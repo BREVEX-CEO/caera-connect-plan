@@ -55,19 +55,26 @@ function OnboardingPage() {
   }, [step, displayName]);
 
   function toggle(id: ModuleId) {
-    setEnabled((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setEnabled((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
   }
 
   async function finish() {
     if (!user) return;
     setBusy(true);
     setError(null);
-    const { error: profileErr } = await supabase.from("profiles").update({
-      display_name: displayName.trim(),
-      locale,
-      timezone,
-      onboarding_completed_at: new Date().toISOString(),
-    }).eq("id", user.id);
+
+    const { error: profileErr } = await supabase
+      .from("profiles")
+      .update({
+        display_name: displayName.trim(),
+        locale,
+        timezone,
+        onboarding_completed: true,
+        onboarding_step: "done",
+      })
+      .eq("id", user.id);
 
     if (profileErr) {
       setError(profileErr.message);
@@ -78,9 +85,17 @@ function OnboardingPage() {
     const { error: settingsErr } = await supabase.from("user_settings").upsert(
       {
         user_id: user.id,
-        account_type: accountType,
-        privacy_mode: privacy,
-        enabled_modules: enabled,
+        main_purpose: accountType,
+        privacy_chats: privacy,
+        privacy_files: privacy,
+        privacy_images: privacy,
+        privacy_copilot: privacy,
+        privacy_recordings: privacy,
+        privacy_resumes: privacy,
+        privacy_company: privacy,
+        privacy_timesheets: privacy,
+        modules: enabled,
+        family_planning_enabled: enabled.includes("ficia_family"),
       },
       { onConflict: "user_id" },
     );
@@ -138,21 +153,9 @@ function OnboardingPage() {
           value={accountType}
           onChange={(v) => setAccountType(v as AccountType)}
           options={[
-            {
-              value: "solo",
-              title: "Solo",
-              desc: "Just you. Personal projects, resumes, private assistant.",
-            },
-            {
-              value: "small_business",
-              title: "Small business",
-              desc: "Up to a small team. Company profile, invoices, timesheets.",
-            },
-            {
-              value: "enterprise",
-              title: "Enterprise",
-              desc: "Multi-tenant, roles, audit — ships after Foundation Alpha.",
-            },
+            { value: "solo", title: "Solo", desc: "Just you. Personal projects, resumes, private assistant." },
+            { value: "small_business", title: "Small business", desc: "Up to a small team. Company profile, invoices, timesheets." },
+            { value: "enterprise", title: "Enterprise", desc: "Multi-tenant, roles, audit — ships after Foundation Alpha." },
           ]}
         />
       ) : null}
@@ -162,16 +165,8 @@ function OnboardingPage() {
           value={privacy}
           onChange={(v) => setPrivacy(v as PrivacyMode)}
           options={[
-            {
-              value: "private_sync",
-              title: "Private Sync (recommended)",
-              desc: "Encrypted account sync across your approved devices. RLS enforced on every read.",
-            },
-            {
-              value: "device_only",
-              title: "Device Only",
-              desc: "Chats, files and project data stay on this device. No cloud sync.",
-            },
+            { value: "private_sync", title: "Private Sync (recommended)", desc: "Encrypted account sync across your approved devices. RLS enforced on every read." },
+            { value: "device_only", title: "Device Only", desc: "Chats, files and project data stay on this device. No cloud sync." },
           ]}
         />
       ) : null}
@@ -217,7 +212,9 @@ function OnboardingPage() {
           <Row
             label="Modules"
             value={
-              enabled.length ? enabled.map((id) => modules.find((m) => m.id === id)?.label).join(", ") : "None"
+              enabled.length
+                ? enabled.map((id) => modules.find((m) => m.id === id)?.label).join(", ")
+                : "None"
             }
           />
           {error ? (
@@ -326,9 +323,7 @@ function RadioGroup({
             onClick={() => onChange(o.value)}
             className={cn(
               "flex flex-col rounded-lg border px-4 py-3 text-left transition-colors",
-              active
-                ? "border-primary/60 bg-primary/10"
-                : "border-border/60 bg-background/40 hover:bg-accent/40",
+              active ? "border-primary/60 bg-primary/10" : "border-border/60 bg-background/40 hover:bg-accent/40",
             )}
           >
             <span className="text-sm font-medium text-foreground">{o.title}</span>
