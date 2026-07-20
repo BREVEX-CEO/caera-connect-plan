@@ -1,0 +1,341 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { Check, Loader2 } from "lucide-react";
+import { OnboardingShell } from "@/components/shell/OnboardingShell";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/lib/session";
+import { cn } from "@/lib/utils";
+
+export const Route = createFileRoute("/_authenticated/onboarding")({
+  head: () => ({
+    meta: [
+      { title: "Onboarding — CAERA CADANE" },
+      { name: "robots", content: "noindex" },
+    ],
+  }),
+  component: OnboardingPage,
+});
+
+type AccountType = "solo" | "small_business" | "enterprise";
+type PrivacyMode = "device_only" | "private_sync";
+
+const modules = [
+  { id: "ocade", label: "OCADE — assistant" },
+  { id: "ficia", label: "FICIA — commerce & finance" },
+  { id: "ficia_family", label: "FICIA — Family, Marriage & Asset Protection" },
+  { id: "madee", label: "MADEE — studio & resume" },
+  { id: "cania", label: "CANIA — world intelligence" },
+] as const;
+
+type ModuleId = (typeof modules)[number]["id"];
+
+function OnboardingPage() {
+  const { user } = useSession();
+  const navigate = useNavigate();
+
+  const [step, setStep] = useState(1);
+  const [displayName, setDisplayName] = useState("");
+  const [locale, setLocale] = useState(
+    typeof navigator !== "undefined" ? navigator.language ?? "en-US" : "en-US",
+  );
+  const [timezone, setTimezone] = useState(
+    typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC",
+  );
+  const [accountType, setAccountType] = useState<AccountType>("solo");
+  const [privacy, setPrivacy] = useState<PrivacyMode>("private_sync");
+  const [enabled, setEnabled] = useState<ModuleId[]>(["ocade", "ficia", "madee"]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const total = 5;
+
+  const canNext = useMemo(() => {
+    if (step === 1) return displayName.trim().length >= 2;
+    return true;
+  }, [step, displayName]);
+
+  function toggle(id: ModuleId) {
+    setEnabled((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  async function finish() {
+    if (!user) return;
+    setBusy(true);
+    setError(null);
+    const { error: profileErr } = await supabase.from("profiles").update({
+      display_name: displayName.trim(),
+      locale,
+      timezone,
+      onboarding_completed_at: new Date().toISOString(),
+    }).eq("id", user.id);
+
+    if (profileErr) {
+      setError(profileErr.message);
+      setBusy(false);
+      return;
+    }
+
+    const { error: settingsErr } = await supabase.from("user_settings").upsert(
+      {
+        user_id: user.id,
+        account_type: accountType,
+        privacy_mode: privacy,
+        enabled_modules: enabled,
+      },
+      { onConflict: "user_id" },
+    );
+    if (settingsErr) {
+      setError(settingsErr.message);
+      setBusy(false);
+      return;
+    }
+
+    navigate({ to: "/home", replace: true });
+  }
+
+  return (
+    <OnboardingShell
+      step={step}
+      total={total}
+      title={titleFor(step)}
+      subtitle={subtitleFor(step)}
+    >
+      {step === 1 ? (
+        <div className="flex flex-col gap-4">
+          <Field label="How should OCADE address you?" htmlFor="displayName">
+            <input
+              id="displayName"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              autoFocus
+              placeholder="e.g. Alex Rivera"
+              className="w-full rounded-lg border border-border/70 bg-background/50 px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+            />
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Language" htmlFor="locale">
+              <input
+                id="locale"
+                value={locale}
+                onChange={(e) => setLocale(e.target.value)}
+                className="w-full rounded-lg border border-border/70 bg-background/50 px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+              />
+            </Field>
+            <Field label="Timezone" htmlFor="tz">
+              <input
+                id="tz"
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                className="w-full rounded-lg border border-border/70 bg-background/50 px-3 py-2.5 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+              />
+            </Field>
+          </div>
+        </div>
+      ) : null}
+
+      {step === 2 ? (
+        <RadioGroup
+          value={accountType}
+          onChange={(v) => setAccountType(v as AccountType)}
+          options={[
+            {
+              value: "solo",
+              title: "Solo",
+              desc: "Just you. Personal projects, resumes, private assistant.",
+            },
+            {
+              value: "small_business",
+              title: "Small business",
+              desc: "Up to a small team. Company profile, invoices, timesheets.",
+            },
+            {
+              value: "enterprise",
+              title: "Enterprise",
+              desc: "Multi-tenant, roles, audit — ships after Foundation Alpha.",
+            },
+          ]}
+        />
+      ) : null}
+
+      {step === 3 ? (
+        <RadioGroup
+          value={privacy}
+          onChange={(v) => setPrivacy(v as PrivacyMode)}
+          options={[
+            {
+              value: "private_sync",
+              title: "Private Sync (recommended)",
+              desc: "Encrypted account sync across your approved devices. RLS enforced on every read.",
+            },
+            {
+              value: "device_only",
+              title: "Device Only",
+              desc: "Chats, files and project data stay on this device. No cloud sync.",
+            },
+          ]}
+        />
+      ) : null}
+
+      {step === 4 ? (
+        <div className="flex flex-col gap-2">
+          {modules.map((m) => {
+            const active = enabled.includes(m.id);
+            return (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => toggle(m.id)}
+                className={cn(
+                  "flex items-center justify-between rounded-lg border px-4 py-3 text-left text-sm transition-colors",
+                  active
+                    ? "border-primary/60 bg-primary/10 text-foreground"
+                    : "border-border/60 bg-background/40 text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <span>{m.label}</span>
+                <span
+                  className={cn(
+                    "flex h-5 w-5 items-center justify-center rounded-md border",
+                    active ? "border-primary bg-primary text-primary-foreground" : "border-border",
+                  )}
+                >
+                  {active ? <Check className="h-3.5 w-3.5" /> : null}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {step === 5 ? (
+        <div className="flex flex-col gap-3 text-sm text-muted-foreground">
+          <Row label="Display name" value={displayName} />
+          <Row label="Language" value={locale} />
+          <Row label="Timezone" value={timezone} />
+          <Row label="Account type" value={labelFor(accountType)} />
+          <Row label="Privacy" value={privacy === "device_only" ? "Device Only" : "Private Sync"} />
+          <Row
+            label="Modules"
+            value={
+              enabled.length ? enabled.map((id) => modules.find((m) => m.id === id)?.label).join(", ") : "None"
+            }
+          />
+          {error ? (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {error}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="mt-6 flex items-center justify-between">
+        <button
+          type="button"
+          disabled={step === 1 || busy}
+          onClick={() => setStep((s) => Math.max(1, s - 1))}
+          className="text-sm text-muted-foreground hover:text-foreground disabled:opacity-40"
+        >
+          Back
+        </button>
+        {step < total ? (
+          <button
+            type="button"
+            disabled={!canNext}
+            onClick={() => setStep((s) => Math.min(total, s + 1))}
+            className="inline-flex items-center justify-center rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
+          >
+            Continue
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={finish}
+            disabled={busy}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Enter workspace
+          </button>
+        )}
+      </div>
+    </OnboardingShell>
+  );
+}
+
+function titleFor(step: number) {
+  switch (step) {
+    case 1: return "Tell us about you";
+    case 2: return "How will you use CAERA CADANE?";
+    case 3: return "Choose your privacy mode";
+    case 4: return "Pick your starting modules";
+    default: return "Review and continue";
+  }
+}
+function subtitleFor(step: number) {
+  switch (step) {
+    case 1: return "Basic profile — you can change any of this later in Settings.";
+    case 2: return "This sets sensible defaults. You can switch account type anytime.";
+    case 3: return "You can change this per-project and per-module later.";
+    case 4: return "Every module can be enabled or hidden later — no dead buttons.";
+    default: return "Confirm your setup and enter your workspace.";
+  }
+}
+function labelFor(t: AccountType) {
+  return { solo: "Solo", small_business: "Small business", enterprise: "Enterprise" }[t];
+}
+
+function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-border/40 pb-2 last:border-none">
+      <span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className="text-right text-sm text-foreground">{value}</span>
+    </div>
+  );
+}
+
+function RadioGroup({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; title: string; desc: string }[];
+}) {
+  return (
+    <div role="radiogroup" className="flex flex-col gap-2">
+      {options.map((o) => {
+        const active = value === o.value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => onChange(o.value)}
+            className={cn(
+              "flex flex-col rounded-lg border px-4 py-3 text-left transition-colors",
+              active
+                ? "border-primary/60 bg-primary/10"
+                : "border-border/60 bg-background/40 hover:bg-accent/40",
+            )}
+          >
+            <span className="text-sm font-medium text-foreground">{o.title}</span>
+            <span className="text-xs text-muted-foreground">{o.desc}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
