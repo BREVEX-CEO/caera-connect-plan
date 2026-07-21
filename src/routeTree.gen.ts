@@ -31,6 +31,7 @@ import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/h
 import { Route as AuthenticatedFiciaRouteImport } from './routes/_authenticated/ficia'
 import { Route as AuthenticatedCaniaRouteImport } from './routes/_authenticated/cania'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
+import { Route as AuthenticatedCaniaIndexRouteImport } from './routes/_authenticated/cania.index'
 import { Route as ApiOcadeChatRouteImport } from './routes/api/ocade.chat'
 import { Route as AuthenticatedSettingsVaultRouteImport } from './routes/_authenticated/settings.vault'
 import { Route as AuthenticatedSettingsPrivacyRouteImport } from './routes/_authenticated/settings.privacy'
@@ -38,6 +39,24 @@ import { Route as AuthenticatedSettingsDevicesRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings.appearance'
 import { Route as AuthenticatedSettingsActivityRouteImport } from './routes/_authenticated/settings.activity'
 import { Route as AuthenticatedOcadeModelsRouteImport } from './routes/_authenticated/ocade.models'
+import { Route as AuthenticatedCaniaWorldRouteImport } from './routes/_authenticated/cania.world'
+import { Route as AuthenticatedCaniaWeatherRouteImport } from './routes/_authenticated/cania.weather'
+import { Route as AuthenticatedCaniaTravelRouteImport } from './routes/_authenticated/cania.travel'
+import { Route as AuthenticatedCaniaTrafficRouteImport } from './routes/_authenticated/cania.traffic'
+import { Route as AuthenticatedCaniaTechnologyRouteImport } from './routes/_authenticated/cania.technology'
+import { Route as AuthenticatedCaniaSportsRouteImport } from './routes/_authenticated/cania.sports'
+import { Route as AuthenticatedCaniaSettingsRouteImport } from './routes/_authenticated/cania.settings'
+import { Route as AuthenticatedCaniaSearchRouteImport } from './routes/_authenticated/cania.search'
+import { Route as AuthenticatedCaniaSavedRouteImport } from './routes/_authenticated/cania.saved'
+import { Route as AuthenticatedCaniaRisksRouteImport } from './routes/_authenticated/cania.risks'
+import { Route as AuthenticatedCaniaMarketsRouteImport } from './routes/_authenticated/cania.markets'
+import { Route as AuthenticatedCaniaGovernmentRouteImport } from './routes/_authenticated/cania.government'
+import { Route as AuthenticatedCaniaFinanceRouteImport } from './routes/_authenticated/cania.finance'
+import { Route as AuthenticatedCaniaCurrencyRouteImport } from './routes/_authenticated/cania.currency'
+import { Route as AuthenticatedCaniaCountryRouteImport } from './routes/_authenticated/cania.country'
+import { Route as AuthenticatedCaniaCommoditiesRouteImport } from './routes/_authenticated/cania.commodities'
+import { Route as AuthenticatedCaniaBusinessRouteImport } from './routes/_authenticated/cania.business'
+import { Route as AuthenticatedCaniaAlertsRouteImport } from './routes/_authenticated/cania.alerts'
 import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_authenticated/admin.launch-gate'
 
 const DemoRoute = DemoRouteImport.update({
@@ -150,6 +169,11 @@ const AuthenticatedSettingsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedCaniaIndexRoute = AuthenticatedCaniaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedCaniaRoute,
+} as any)
 const ApiOcadeChatRoute = ApiOcadeChatRouteImport.update({
   id: '/api/ocade/chat',
   path: '/api/ocade/chat',
@@ -191,6 +215,111 @@ const AuthenticatedOcadeModelsRoute =
     path: '/models',
     getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
+const AuthenticatedCaniaWorldRoute = AuthenticatedCaniaWorldRouteImport.update({
+  id: '/world',
+  path: '/world',
+  getParentRoute: () => AuthenticatedCaniaRoute,
+} as any)
+const AuthenticatedCaniaWeatherRoute =
+  AuthenticatedCaniaWeatherRouteImport.update({
+    id: '/weather',
+    path: '/weather',
+    getParentRoute: () => AuthenticatedCaniaRoute,
+  } as any)
+const AuthenticatedCaniaTravelRoute =
+  AuthenticatedCaniaTravelRouteImport.update({
+    id: '/travel',
+    path: '/travel',
+    getParentRoute: () => AuthenticatedCaniaRoute,
+  } as any)
+const AuthenticatedCaniaTrafficRoute =
+  AuthenticatedCaniaTrafficRouteImport.update({
+    id: '/traffic',
+    path: '/traffic',
+    getParentRoute: () => AuthenticatedCaniaRoute,
+  } as any)
+const AuthenticatedCaniaTechnologyRoute =
+  AuthenticatedCaniaTechnologyRouteImport.update({
+    id: '/technology',
+    path: '/technology',
+    getParentRoute: () => AuthenticatedCaniaRoute,
+  } as any)
+const AuthenticatedCaniaSportsRoute =
+  AuthenticatedCaniaSportsRouteImport.update({
+    id: '/sports',
+    path: '/sports',
+    getParentRoute: () => AuthenticatedCaniaRoute,
+  } as any)
+const AuthenticatedCaniaSettingsRoute =
+  AuthenticatedCaniaSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedCaniaRoute,
+  } as any)
+const AuthenticatedCaniaSearchRoute =
+  AuthenticatedCaniaSearchRouteImport.update({
+    id: '/search',
+    path: '/search',
+    getParentRoute: () => AuthenticatedCaniaRoute,
+  } as any)
+const AuthenticatedCaniaSavedRoute = AuthenticatedCaniaSavedRouteImport.update({
+  id: '/saved',
+  path: '/saved',
+  getParentRoute: () => AuthenticatedCaniaRoute,
+} as any)
+const AuthenticatedCaniaRisksRoute = AuthenticatedCaniaRisksRouteImport.update({
+  id: '/risks',
+  path: '/risks',
+  getParentRoute: () => AuthenticatedCaniaRoute,
+} as any)
+const AuthenticatedCaniaMarketsRoute =
+  AuthenticatedCaniaMarketsRouteImport.update({
+    id: '/markets',
+    path: '/markets',
+    getParentRoute: () => AuthenticatedCaniaRoute,
+  } as any)
+const AuthenticatedCaniaGovernmentRoute =
+  AuthenticatedCaniaGovernmentRouteImport.update({
+    id: '/government',
+    path: '/government',
+    getParentRoute: () => AuthenticatedCaniaRoute,
+  } as any)
+const AuthenticatedCaniaFinanceRoute =
+  AuthenticatedCaniaFinanceRouteImport.update({
+    id: '/finance',
+    path: '/finance',
+    getParentRoute: () => AuthenticatedCaniaRoute,
+  } as any)
+const AuthenticatedCaniaCurrencyRoute =
+  AuthenticatedCaniaCurrencyRouteImport.update({
+    id: '/currency',
+    path: '/currency',
+    getParentRoute: () => AuthenticatedCaniaRoute,
+  } as any)
+const AuthenticatedCaniaCountryRoute =
+  AuthenticatedCaniaCountryRouteImport.update({
+    id: '/country',
+    path: '/country',
+    getParentRoute: () => AuthenticatedCaniaRoute,
+  } as any)
+const AuthenticatedCaniaCommoditiesRoute =
+  AuthenticatedCaniaCommoditiesRouteImport.update({
+    id: '/commodities',
+    path: '/commodities',
+    getParentRoute: () => AuthenticatedCaniaRoute,
+  } as any)
+const AuthenticatedCaniaBusinessRoute =
+  AuthenticatedCaniaBusinessRouteImport.update({
+    id: '/business',
+    path: '/business',
+    getParentRoute: () => AuthenticatedCaniaRoute,
+  } as any)
+const AuthenticatedCaniaAlertsRoute =
+  AuthenticatedCaniaAlertsRouteImport.update({
+    id: '/alerts',
+    path: '/alerts',
+    getParentRoute: () => AuthenticatedCaniaRoute,
+  } as any)
 const AuthenticatedAdminLaunchGateRoute =
   AuthenticatedAdminLaunchGateRouteImport.update({
     id: '/admin/launch-gate',
@@ -202,7 +331,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/demo': typeof DemoRouteWithChildren
-  '/cania': typeof AuthenticatedCaniaRoute
+  '/cania': typeof AuthenticatedCaniaRouteWithChildren
   '/ficia': typeof AuthenticatedFiciaRoute
   '/home': typeof AuthenticatedHomeRoute
   '/madee': typeof AuthenticatedMadeeRoute
@@ -220,6 +349,24 @@ export interface FileRoutesByFullPath {
   '/demo/tasks': typeof DemoTasksRoute
   '/demo/': typeof DemoIndexRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
+  '/cania/alerts': typeof AuthenticatedCaniaAlertsRoute
+  '/cania/business': typeof AuthenticatedCaniaBusinessRoute
+  '/cania/commodities': typeof AuthenticatedCaniaCommoditiesRoute
+  '/cania/country': typeof AuthenticatedCaniaCountryRoute
+  '/cania/currency': typeof AuthenticatedCaniaCurrencyRoute
+  '/cania/finance': typeof AuthenticatedCaniaFinanceRoute
+  '/cania/government': typeof AuthenticatedCaniaGovernmentRoute
+  '/cania/markets': typeof AuthenticatedCaniaMarketsRoute
+  '/cania/risks': typeof AuthenticatedCaniaRisksRoute
+  '/cania/saved': typeof AuthenticatedCaniaSavedRoute
+  '/cania/search': typeof AuthenticatedCaniaSearchRoute
+  '/cania/settings': typeof AuthenticatedCaniaSettingsRoute
+  '/cania/sports': typeof AuthenticatedCaniaSportsRoute
+  '/cania/technology': typeof AuthenticatedCaniaTechnologyRoute
+  '/cania/traffic': typeof AuthenticatedCaniaTrafficRoute
+  '/cania/travel': typeof AuthenticatedCaniaTravelRoute
+  '/cania/weather': typeof AuthenticatedCaniaWeatherRoute
+  '/cania/world': typeof AuthenticatedCaniaWorldRoute
   '/ocade/models': typeof AuthenticatedOcadeModelsRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
@@ -227,12 +374,12 @@ export interface FileRoutesByFullPath {
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/api/ocade/chat': typeof ApiOcadeChatRoute
+  '/cania/': typeof AuthenticatedCaniaIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
-  '/cania': typeof AuthenticatedCaniaRoute
   '/ficia': typeof AuthenticatedFiciaRoute
   '/home': typeof AuthenticatedHomeRoute
   '/madee': typeof AuthenticatedMadeeRoute
@@ -249,6 +396,24 @@ export interface FileRoutesByTo {
   '/demo/tasks': typeof DemoTasksRoute
   '/demo': typeof DemoIndexRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
+  '/cania/alerts': typeof AuthenticatedCaniaAlertsRoute
+  '/cania/business': typeof AuthenticatedCaniaBusinessRoute
+  '/cania/commodities': typeof AuthenticatedCaniaCommoditiesRoute
+  '/cania/country': typeof AuthenticatedCaniaCountryRoute
+  '/cania/currency': typeof AuthenticatedCaniaCurrencyRoute
+  '/cania/finance': typeof AuthenticatedCaniaFinanceRoute
+  '/cania/government': typeof AuthenticatedCaniaGovernmentRoute
+  '/cania/markets': typeof AuthenticatedCaniaMarketsRoute
+  '/cania/risks': typeof AuthenticatedCaniaRisksRoute
+  '/cania/saved': typeof AuthenticatedCaniaSavedRoute
+  '/cania/search': typeof AuthenticatedCaniaSearchRoute
+  '/cania/settings': typeof AuthenticatedCaniaSettingsRoute
+  '/cania/sports': typeof AuthenticatedCaniaSportsRoute
+  '/cania/technology': typeof AuthenticatedCaniaTechnologyRoute
+  '/cania/traffic': typeof AuthenticatedCaniaTrafficRoute
+  '/cania/travel': typeof AuthenticatedCaniaTravelRoute
+  '/cania/weather': typeof AuthenticatedCaniaWeatherRoute
+  '/cania/world': typeof AuthenticatedCaniaWorldRoute
   '/ocade/models': typeof AuthenticatedOcadeModelsRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
@@ -256,6 +421,7 @@ export interface FileRoutesByTo {
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/api/ocade/chat': typeof ApiOcadeChatRoute
+  '/cania': typeof AuthenticatedCaniaIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesById {
@@ -264,7 +430,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/demo': typeof DemoRouteWithChildren
-  '/_authenticated/cania': typeof AuthenticatedCaniaRoute
+  '/_authenticated/cania': typeof AuthenticatedCaniaRouteWithChildren
   '/_authenticated/ficia': typeof AuthenticatedFiciaRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/madee': typeof AuthenticatedMadeeRoute
@@ -282,6 +448,24 @@ export interface FileRoutesById {
   '/demo/tasks': typeof DemoTasksRoute
   '/demo/': typeof DemoIndexRoute
   '/_authenticated/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
+  '/_authenticated/cania/alerts': typeof AuthenticatedCaniaAlertsRoute
+  '/_authenticated/cania/business': typeof AuthenticatedCaniaBusinessRoute
+  '/_authenticated/cania/commodities': typeof AuthenticatedCaniaCommoditiesRoute
+  '/_authenticated/cania/country': typeof AuthenticatedCaniaCountryRoute
+  '/_authenticated/cania/currency': typeof AuthenticatedCaniaCurrencyRoute
+  '/_authenticated/cania/finance': typeof AuthenticatedCaniaFinanceRoute
+  '/_authenticated/cania/government': typeof AuthenticatedCaniaGovernmentRoute
+  '/_authenticated/cania/markets': typeof AuthenticatedCaniaMarketsRoute
+  '/_authenticated/cania/risks': typeof AuthenticatedCaniaRisksRoute
+  '/_authenticated/cania/saved': typeof AuthenticatedCaniaSavedRoute
+  '/_authenticated/cania/search': typeof AuthenticatedCaniaSearchRoute
+  '/_authenticated/cania/settings': typeof AuthenticatedCaniaSettingsRoute
+  '/_authenticated/cania/sports': typeof AuthenticatedCaniaSportsRoute
+  '/_authenticated/cania/technology': typeof AuthenticatedCaniaTechnologyRoute
+  '/_authenticated/cania/traffic': typeof AuthenticatedCaniaTrafficRoute
+  '/_authenticated/cania/travel': typeof AuthenticatedCaniaTravelRoute
+  '/_authenticated/cania/weather': typeof AuthenticatedCaniaWeatherRoute
+  '/_authenticated/cania/world': typeof AuthenticatedCaniaWorldRoute
   '/_authenticated/ocade/models': typeof AuthenticatedOcadeModelsRoute
   '/_authenticated/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
@@ -289,6 +473,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
   '/_authenticated/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/api/ocade/chat': typeof ApiOcadeChatRoute
+  '/_authenticated/cania/': typeof AuthenticatedCaniaIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -315,6 +500,24 @@ export interface FileRouteTypes {
     | '/demo/tasks'
     | '/demo/'
     | '/admin/launch-gate'
+    | '/cania/alerts'
+    | '/cania/business'
+    | '/cania/commodities'
+    | '/cania/country'
+    | '/cania/currency'
+    | '/cania/finance'
+    | '/cania/government'
+    | '/cania/markets'
+    | '/cania/risks'
+    | '/cania/saved'
+    | '/cania/search'
+    | '/cania/settings'
+    | '/cania/sports'
+    | '/cania/technology'
+    | '/cania/traffic'
+    | '/cania/travel'
+    | '/cania/weather'
+    | '/cania/world'
     | '/ocade/models'
     | '/settings/activity'
     | '/settings/appearance'
@@ -322,12 +525,12 @@ export interface FileRouteTypes {
     | '/settings/privacy'
     | '/settings/vault'
     | '/api/ocade/chat'
+    | '/cania/'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
-    | '/cania'
     | '/ficia'
     | '/home'
     | '/madee'
@@ -344,6 +547,24 @@ export interface FileRouteTypes {
     | '/demo/tasks'
     | '/demo'
     | '/admin/launch-gate'
+    | '/cania/alerts'
+    | '/cania/business'
+    | '/cania/commodities'
+    | '/cania/country'
+    | '/cania/currency'
+    | '/cania/finance'
+    | '/cania/government'
+    | '/cania/markets'
+    | '/cania/risks'
+    | '/cania/saved'
+    | '/cania/search'
+    | '/cania/settings'
+    | '/cania/sports'
+    | '/cania/technology'
+    | '/cania/traffic'
+    | '/cania/travel'
+    | '/cania/weather'
+    | '/cania/world'
     | '/ocade/models'
     | '/settings/activity'
     | '/settings/appearance'
@@ -351,6 +572,7 @@ export interface FileRouteTypes {
     | '/settings/privacy'
     | '/settings/vault'
     | '/api/ocade/chat'
+    | '/cania'
     | '/settings'
   id:
     | '__root__'
@@ -376,6 +598,24 @@ export interface FileRouteTypes {
     | '/demo/tasks'
     | '/demo/'
     | '/_authenticated/admin/launch-gate'
+    | '/_authenticated/cania/alerts'
+    | '/_authenticated/cania/business'
+    | '/_authenticated/cania/commodities'
+    | '/_authenticated/cania/country'
+    | '/_authenticated/cania/currency'
+    | '/_authenticated/cania/finance'
+    | '/_authenticated/cania/government'
+    | '/_authenticated/cania/markets'
+    | '/_authenticated/cania/risks'
+    | '/_authenticated/cania/saved'
+    | '/_authenticated/cania/search'
+    | '/_authenticated/cania/settings'
+    | '/_authenticated/cania/sports'
+    | '/_authenticated/cania/technology'
+    | '/_authenticated/cania/traffic'
+    | '/_authenticated/cania/travel'
+    | '/_authenticated/cania/weather'
+    | '/_authenticated/cania/world'
     | '/_authenticated/ocade/models'
     | '/_authenticated/settings/activity'
     | '/_authenticated/settings/appearance'
@@ -383,6 +623,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/privacy'
     | '/_authenticated/settings/vault'
     | '/api/ocade/chat'
+    | '/_authenticated/cania/'
     | '/_authenticated/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -550,6 +791,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/cania/': {
+      id: '/_authenticated/cania/'
+      path: '/'
+      fullPath: '/cania/'
+      preLoaderRoute: typeof AuthenticatedCaniaIndexRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
     '/api/ocade/chat': {
       id: '/api/ocade/chat'
       path: '/api/ocade/chat'
@@ -599,6 +847,132 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOcadeModelsRouteImport
       parentRoute: typeof AuthenticatedOcadeRoute
     }
+    '/_authenticated/cania/world': {
+      id: '/_authenticated/cania/world'
+      path: '/world'
+      fullPath: '/cania/world'
+      preLoaderRoute: typeof AuthenticatedCaniaWorldRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/weather': {
+      id: '/_authenticated/cania/weather'
+      path: '/weather'
+      fullPath: '/cania/weather'
+      preLoaderRoute: typeof AuthenticatedCaniaWeatherRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/travel': {
+      id: '/_authenticated/cania/travel'
+      path: '/travel'
+      fullPath: '/cania/travel'
+      preLoaderRoute: typeof AuthenticatedCaniaTravelRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/traffic': {
+      id: '/_authenticated/cania/traffic'
+      path: '/traffic'
+      fullPath: '/cania/traffic'
+      preLoaderRoute: typeof AuthenticatedCaniaTrafficRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/technology': {
+      id: '/_authenticated/cania/technology'
+      path: '/technology'
+      fullPath: '/cania/technology'
+      preLoaderRoute: typeof AuthenticatedCaniaTechnologyRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/sports': {
+      id: '/_authenticated/cania/sports'
+      path: '/sports'
+      fullPath: '/cania/sports'
+      preLoaderRoute: typeof AuthenticatedCaniaSportsRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/settings': {
+      id: '/_authenticated/cania/settings'
+      path: '/settings'
+      fullPath: '/cania/settings'
+      preLoaderRoute: typeof AuthenticatedCaniaSettingsRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/search': {
+      id: '/_authenticated/cania/search'
+      path: '/search'
+      fullPath: '/cania/search'
+      preLoaderRoute: typeof AuthenticatedCaniaSearchRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/saved': {
+      id: '/_authenticated/cania/saved'
+      path: '/saved'
+      fullPath: '/cania/saved'
+      preLoaderRoute: typeof AuthenticatedCaniaSavedRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/risks': {
+      id: '/_authenticated/cania/risks'
+      path: '/risks'
+      fullPath: '/cania/risks'
+      preLoaderRoute: typeof AuthenticatedCaniaRisksRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/markets': {
+      id: '/_authenticated/cania/markets'
+      path: '/markets'
+      fullPath: '/cania/markets'
+      preLoaderRoute: typeof AuthenticatedCaniaMarketsRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/government': {
+      id: '/_authenticated/cania/government'
+      path: '/government'
+      fullPath: '/cania/government'
+      preLoaderRoute: typeof AuthenticatedCaniaGovernmentRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/finance': {
+      id: '/_authenticated/cania/finance'
+      path: '/finance'
+      fullPath: '/cania/finance'
+      preLoaderRoute: typeof AuthenticatedCaniaFinanceRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/currency': {
+      id: '/_authenticated/cania/currency'
+      path: '/currency'
+      fullPath: '/cania/currency'
+      preLoaderRoute: typeof AuthenticatedCaniaCurrencyRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/country': {
+      id: '/_authenticated/cania/country'
+      path: '/country'
+      fullPath: '/cania/country'
+      preLoaderRoute: typeof AuthenticatedCaniaCountryRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/commodities': {
+      id: '/_authenticated/cania/commodities'
+      path: '/commodities'
+      fullPath: '/cania/commodities'
+      preLoaderRoute: typeof AuthenticatedCaniaCommoditiesRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/business': {
+      id: '/_authenticated/cania/business'
+      path: '/business'
+      fullPath: '/cania/business'
+      preLoaderRoute: typeof AuthenticatedCaniaBusinessRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
+    '/_authenticated/cania/alerts': {
+      id: '/_authenticated/cania/alerts'
+      path: '/alerts'
+      fullPath: '/cania/alerts'
+      preLoaderRoute: typeof AuthenticatedCaniaAlertsRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
     '/_authenticated/admin/launch-gate': {
       id: '/_authenticated/admin/launch-gate'
       path: '/admin/launch-gate'
@@ -608,6 +982,53 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedCaniaRouteChildren {
+  AuthenticatedCaniaAlertsRoute: typeof AuthenticatedCaniaAlertsRoute
+  AuthenticatedCaniaBusinessRoute: typeof AuthenticatedCaniaBusinessRoute
+  AuthenticatedCaniaCommoditiesRoute: typeof AuthenticatedCaniaCommoditiesRoute
+  AuthenticatedCaniaCountryRoute: typeof AuthenticatedCaniaCountryRoute
+  AuthenticatedCaniaCurrencyRoute: typeof AuthenticatedCaniaCurrencyRoute
+  AuthenticatedCaniaFinanceRoute: typeof AuthenticatedCaniaFinanceRoute
+  AuthenticatedCaniaGovernmentRoute: typeof AuthenticatedCaniaGovernmentRoute
+  AuthenticatedCaniaMarketsRoute: typeof AuthenticatedCaniaMarketsRoute
+  AuthenticatedCaniaRisksRoute: typeof AuthenticatedCaniaRisksRoute
+  AuthenticatedCaniaSavedRoute: typeof AuthenticatedCaniaSavedRoute
+  AuthenticatedCaniaSearchRoute: typeof AuthenticatedCaniaSearchRoute
+  AuthenticatedCaniaSettingsRoute: typeof AuthenticatedCaniaSettingsRoute
+  AuthenticatedCaniaSportsRoute: typeof AuthenticatedCaniaSportsRoute
+  AuthenticatedCaniaTechnologyRoute: typeof AuthenticatedCaniaTechnologyRoute
+  AuthenticatedCaniaTrafficRoute: typeof AuthenticatedCaniaTrafficRoute
+  AuthenticatedCaniaTravelRoute: typeof AuthenticatedCaniaTravelRoute
+  AuthenticatedCaniaWeatherRoute: typeof AuthenticatedCaniaWeatherRoute
+  AuthenticatedCaniaWorldRoute: typeof AuthenticatedCaniaWorldRoute
+  AuthenticatedCaniaIndexRoute: typeof AuthenticatedCaniaIndexRoute
+}
+
+const AuthenticatedCaniaRouteChildren: AuthenticatedCaniaRouteChildren = {
+  AuthenticatedCaniaAlertsRoute: AuthenticatedCaniaAlertsRoute,
+  AuthenticatedCaniaBusinessRoute: AuthenticatedCaniaBusinessRoute,
+  AuthenticatedCaniaCommoditiesRoute: AuthenticatedCaniaCommoditiesRoute,
+  AuthenticatedCaniaCountryRoute: AuthenticatedCaniaCountryRoute,
+  AuthenticatedCaniaCurrencyRoute: AuthenticatedCaniaCurrencyRoute,
+  AuthenticatedCaniaFinanceRoute: AuthenticatedCaniaFinanceRoute,
+  AuthenticatedCaniaGovernmentRoute: AuthenticatedCaniaGovernmentRoute,
+  AuthenticatedCaniaMarketsRoute: AuthenticatedCaniaMarketsRoute,
+  AuthenticatedCaniaRisksRoute: AuthenticatedCaniaRisksRoute,
+  AuthenticatedCaniaSavedRoute: AuthenticatedCaniaSavedRoute,
+  AuthenticatedCaniaSearchRoute: AuthenticatedCaniaSearchRoute,
+  AuthenticatedCaniaSettingsRoute: AuthenticatedCaniaSettingsRoute,
+  AuthenticatedCaniaSportsRoute: AuthenticatedCaniaSportsRoute,
+  AuthenticatedCaniaTechnologyRoute: AuthenticatedCaniaTechnologyRoute,
+  AuthenticatedCaniaTrafficRoute: AuthenticatedCaniaTrafficRoute,
+  AuthenticatedCaniaTravelRoute: AuthenticatedCaniaTravelRoute,
+  AuthenticatedCaniaWeatherRoute: AuthenticatedCaniaWeatherRoute,
+  AuthenticatedCaniaWorldRoute: AuthenticatedCaniaWorldRoute,
+  AuthenticatedCaniaIndexRoute: AuthenticatedCaniaIndexRoute,
+}
+
+const AuthenticatedCaniaRouteWithChildren =
+  AuthenticatedCaniaRoute._addFileChildren(AuthenticatedCaniaRouteChildren)
 
 interface AuthenticatedOcadeRouteChildren {
   AuthenticatedOcadeModelsRoute: typeof AuthenticatedOcadeModelsRoute
@@ -644,7 +1065,7 @@ const AuthenticatedSettingsRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedCaniaRoute: typeof AuthenticatedCaniaRoute
+  AuthenticatedCaniaRoute: typeof AuthenticatedCaniaRouteWithChildren
   AuthenticatedFiciaRoute: typeof AuthenticatedFiciaRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedMadeeRoute: typeof AuthenticatedMadeeRoute
@@ -655,7 +1076,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedCaniaRoute: AuthenticatedCaniaRoute,
+  AuthenticatedCaniaRoute: AuthenticatedCaniaRouteWithChildren,
   AuthenticatedFiciaRoute: AuthenticatedFiciaRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedMadeeRoute: AuthenticatedMadeeRoute,
