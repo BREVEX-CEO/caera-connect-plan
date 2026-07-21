@@ -61,7 +61,7 @@ function PrivacyPage() {
     const next = { ...values, [key]: mode };
     const { error: err } = await supabase
       .from("user_settings")
-      .update({ [key]: mode })
+      .update({ [key]: mode } as never)
       .eq("user_id", user.id);
     if (err) setError(err.message);
     else {
