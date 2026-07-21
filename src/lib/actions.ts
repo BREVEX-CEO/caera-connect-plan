@@ -130,13 +130,17 @@ export async function recordAction({ actionId, metadata, tenantId }: RecordArgs)
         metadata: meta,
       });
     } else {
-      await supabase.from("compliance_audit_log").insert({
-        user_id: uid,
-        tenant_id: tenantId ?? null,
-        action: a.id,
-        feature_id: a.featureId,
-        category: a.category ?? "other",
-        preview: meta,
+      // Compliance writes go through the protected server writer.
+      // Direct INSERT on compliance_audit_log is revoked for authenticated.
+      const { writeComplianceLog } = await import("./compliance-log.functions");
+      await writeComplianceLog({
+        data: {
+          action: a.id,
+          featureId: a.featureId,
+          category: a.category ?? "other",
+          tenantId: tenantId ?? null,
+          preview: (metadata ?? {}) as Record<string, unknown>,
+        },
       });
     }
   } catch (e) {

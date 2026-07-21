@@ -5,6 +5,15 @@ Corrections applied per user directive. Preserves Foundation Alpha, hardens inte
 
 ---
 
+## Rollback Checkpoint
+
+**Name:** `caera-foundation-alpha-0`
+**Scope:** Foundation Alpha + P3.5 Integrity Hardening (unified auth, onboarding gate, deep-link return, device registration, two-log split, ActionRegistry, OCADE identity contract stub, server-side compliance writer, protected-route error boundary).
+**Lovable revert-point:** this message. Restore here if a later slice regresses auth, onboarding, RLS, or the two-log model.
+**GitHub sync:** owned by the user — tag `caera-foundation-alpha-0` after next push. The agent does not rewrite repository history.
+
+---
+
 ## 1. Core Idea
 
 Privacy-first, evidence-first, cross-device AI work OS: **OCADE** (assistant/copilot/learning), **FICIA** (commerce/finance/compliance), **MADEE** (studio/resume), **CANIA** (world intelligence). Visible assistant identity is always **"OCADE by CAERA CADANE"** — but provider identity is never falsified (see §12).
