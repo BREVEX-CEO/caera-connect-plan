@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { LogOut } from "lucide-react";
+import { LogOut, Shield, Laptop, ChevronRight } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
@@ -8,6 +8,7 @@ import { PrivacyBadge } from "@/components/shell/PrivacyBadge";
 import { SetupRequiredState } from "@/components/shell/SetupRequiredState";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
+import { recordAction } from "@/lib/actions";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -26,6 +27,7 @@ function SettingsPage() {
 
   async function signOut() {
     setBusy(true);
+    await recordAction({ actionId: "auth.sign_out" });
     await supabase.auth.signOut();
     navigate({ to: "/auth", replace: true });
   }
@@ -57,19 +59,43 @@ function SettingsPage() {
           </button>
         </GlassPanel>
 
-        <SetupRequiredState
-          title="Device management ships in the next slice"
-          description="You'll approve up to two mobile and two desktop devices, revoke any device, and replay important actions per device."
-        />
+        <Link to="/settings/privacy" className="group">
+          <GlassPanel className="flex h-full items-start gap-4 p-5 transition-transform group-hover:-translate-y-0.5">
+            <div className="rounded-lg bg-primary/15 p-2.5 text-primary">
+              <Shield className="h-5 w-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-foreground">Privacy</h3>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Choose Device Only or Private Sync per data class.
+              </p>
+            </div>
+          </GlassPanel>
+        </Link>
 
-        <SetupRequiredState
-          title="Advanced privacy controls ship next"
-          description="Per-project privacy modes, cloud-processing consent history, and export/delete-my-data land in the P4 slice."
-        />
+        <Link to="/settings/devices" className="group">
+          <GlassPanel className="flex h-full items-start gap-4 p-5 transition-transform group-hover:-translate-y-0.5">
+            <div className="rounded-lg bg-primary/15 p-2.5 text-primary">
+              <Laptop className="h-5 w-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-foreground">Devices</h3>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Two desktop and two mobile devices per account. Revoke anytime.
+              </p>
+            </div>
+          </GlassPanel>
+        </Link>
 
         <SetupRequiredState
           title="Roles & organizations ship next"
-          description="Multi-tenant orgs, role assignment and audit trail arrive after the Foundation Alpha slice."
+          description="Multi-tenant orgs, role assignment and audit trail arrive with FICIA slice P20+."
         />
       </div>
     </AppShell>
