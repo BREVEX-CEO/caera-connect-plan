@@ -96,6 +96,13 @@ const actions: Action[] = [
     description: "Theme, cursor, motion or performance preference update.",
   },
   {
+    id: "settings.profile.update",
+    featureId: "settings.appearance",
+    title: "Update profile",
+    log: "operational",
+    description: "General profile fields (name, preferred name, occupation, personal OCADE instructions, language, timezone).",
+  },
+  {
     id: "settings.privacy.change",
     featureId: "settings.privacy",
     title: "Change privacy mode",
