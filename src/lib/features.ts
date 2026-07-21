@@ -28,6 +28,8 @@ export interface Feature {
   platforms: Platform[];
   /** Reason shown to users when status is not "active" or "beta". */
   reason?: string;
+  /** Feature is a display-only surface with no user-triggerable actions. */
+  viewOnly?: boolean;
 }
 
 const registry = new Map<string, Feature>();
