@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
+import { ThemeProvider } from "@/lib/theme-provider";
 // Side-effect import: registers Foundation Alpha features on module load.
 import "@/lib/features";
 
