@@ -336,7 +336,7 @@ function PackEditor() {
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-xs">{t.case_key}</span>
                       {t.last_status ? (
-                        <StatusBadge kind={t.last_status === "pass" ? "success" : "failed"}>
+                        <StatusBadge status={t.last_status === "pass" ? "success" : "failed"}>
                           {t.last_status}
                         </StatusBadge>
                       ) : (
@@ -386,7 +386,7 @@ function PackEditor() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium">{r.reviewer_name}</span>
                       <span className="text-xs text-muted-foreground">{r.reviewer_credential}{r.credential_id ? ` · ${r.credential_id}` : ""}</span>
-                      <StatusBadge kind={r.decision === "approved" ? "success" : r.decision === "rejected" ? "failed" : "pending"}>
+                      <StatusBadge status={r.decision === "approved" ? "success" : r.decision === "rejected" ? "failed" : "pending"}>
                         {r.decision}
                       </StatusBadge>
                     </div>
