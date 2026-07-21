@@ -36,6 +36,7 @@ import { Route as AuthenticatedSettingsPrivacyRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsDevicesRouteImport } from './routes/_authenticated/settings.devices'
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings.appearance'
 import { Route as AuthenticatedSettingsActivityRouteImport } from './routes/_authenticated/settings.activity'
+import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_authenticated/admin.launch-gate'
 
 const DemoRoute = DemoRouteImport.update({
   id: '/demo',
@@ -177,6 +178,12 @@ const AuthenticatedSettingsActivityRoute =
     path: '/activity',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedAdminLaunchGateRoute =
+  AuthenticatedAdminLaunchGateRouteImport.update({
+    id: '/admin/launch-gate',
+    path: '/admin/launch-gate',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -199,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/demo/settings': typeof DemoSettingsRoute
   '/demo/tasks': typeof DemoTasksRoute
   '/demo/': typeof DemoIndexRoute
+  '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
@@ -225,6 +233,7 @@ export interface FileRoutesByTo {
   '/demo/settings': typeof DemoSettingsRoute
   '/demo/tasks': typeof DemoTasksRoute
   '/demo': typeof DemoIndexRoute
+  '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
@@ -255,6 +264,7 @@ export interface FileRoutesById {
   '/demo/settings': typeof DemoSettingsRoute
   '/demo/tasks': typeof DemoTasksRoute
   '/demo/': typeof DemoIndexRoute
+  '/_authenticated/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/_authenticated/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/_authenticated/settings/devices': typeof AuthenticatedSettingsDevicesRoute
@@ -285,6 +295,7 @@ export interface FileRouteTypes {
     | '/demo/settings'
     | '/demo/tasks'
     | '/demo/'
+    | '/admin/launch-gate'
     | '/settings/activity'
     | '/settings/appearance'
     | '/settings/devices'
@@ -311,6 +322,7 @@ export interface FileRouteTypes {
     | '/demo/settings'
     | '/demo/tasks'
     | '/demo'
+    | '/admin/launch-gate'
     | '/settings/activity'
     | '/settings/appearance'
     | '/settings/devices'
@@ -340,6 +352,7 @@ export interface FileRouteTypes {
     | '/demo/settings'
     | '/demo/tasks'
     | '/demo/'
+    | '/_authenticated/admin/launch-gate'
     | '/_authenticated/settings/activity'
     | '/_authenticated/settings/appearance'
     | '/_authenticated/settings/devices'
@@ -546,6 +559,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsActivityRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/admin/launch-gate': {
+      id: '/_authenticated/admin/launch-gate'
+      path: '/admin/launch-gate'
+      fullPath: '/admin/launch-gate'
+      preLoaderRoute: typeof AuthenticatedAdminLaunchGateRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -580,6 +600,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOcadeRoute: typeof AuthenticatedOcadeRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
+  AuthenticatedAdminLaunchGateRoute: typeof AuthenticatedAdminLaunchGateRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -590,6 +611,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOcadeRoute: AuthenticatedOcadeRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
+  AuthenticatedAdminLaunchGateRoute: AuthenticatedAdminLaunchGateRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
