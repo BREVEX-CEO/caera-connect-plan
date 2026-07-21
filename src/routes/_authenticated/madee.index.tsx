@@ -63,7 +63,7 @@ function MadeeIndex() {
         }
       />
 
-      {demo.enabled && (
+      {demoBanner && (
         <div className="mt-4 rounded-lg border border-dashed border-border/70 bg-muted/40 p-3 text-sm text-muted-foreground">
           Demo mode is on. Projects you create are still saved to your real account —
           use it to experiment safely with your own data.
