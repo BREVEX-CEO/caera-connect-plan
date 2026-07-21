@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { StatusBadge } from "@/components/shell/StatusBadge";
 import { listDevicesForCurrentUser, revokeDevice, type DeviceRow } from "@/lib/devices";
-import { recordAction } from "@/lib/actions";
+import { executeAction, ActionConfirmationError } from "@/lib/actions";
 
 export const Route = createFileRoute("/_authenticated/settings/devices")({
   head: () => ({
