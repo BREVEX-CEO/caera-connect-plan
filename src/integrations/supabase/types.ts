@@ -433,6 +433,81 @@ export type Database = {
           },
         ]
       }
+      ocade_provider_events: {
+        Row: {
+          created_at: string
+          detail: Json
+          event_kind: string
+          id: string
+          latency_ms: number | null
+          model: string | null
+          ok: boolean | null
+          provider: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: Json
+          event_kind: string
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          ok?: boolean | null
+          provider: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          detail?: Json
+          event_kind?: string
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          ok?: boolean | null
+          provider?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ocade_provider_prefs: {
+        Row: {
+          cost_pref: string
+          ollama_bridge_url: string | null
+          openai_direct_enabled: boolean
+          privacy_pref: string
+          routing: string
+          session_override_model: string | null
+          speed_pref: string
+          updated_at: string
+          user_id: string
+          vision_required: boolean
+        }
+        Insert: {
+          cost_pref?: string
+          ollama_bridge_url?: string | null
+          openai_direct_enabled?: boolean
+          privacy_pref?: string
+          routing?: string
+          session_override_model?: string | null
+          speed_pref?: string
+          updated_at?: string
+          user_id: string
+          vision_required?: boolean
+        }
+        Update: {
+          cost_pref?: string
+          ollama_bridge_url?: string | null
+          openai_direct_enabled?: boolean
+          privacy_pref?: string
+          routing?: string
+          session_override_model?: string | null
+          speed_pref?: string
+          updated_at?: string
+          user_id?: string
+          vision_required?: boolean
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
