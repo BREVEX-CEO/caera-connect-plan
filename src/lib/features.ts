@@ -87,7 +87,7 @@ const features: Feature[] = [
   { id: "ficia.roles", module: "ficia", title: "Roles, templates & grants", status: "active", platforms: ["web"] },
   { id: "ficia.approvals", module: "ficia", title: "Approvals & segregation of duties", status: "active", platforms: ["web"] },
   { id: "ficia.messenger", module: "ficia", title: "Business messenger", status: "active", platforms: ["web"] },
-  { id: "ficia.timesheet", module: "ficia", title: "Timesheets", status: "planned", platforms: ["web"], reason: "Ships after company workspace." },
+  { id: "ficia.timesheet", module: "ficia", title: "Timesheets & attendance", status: "active", platforms: ["web"] },
   { id: "ficia.family_planning", module: "ficia", title: "Family, Marriage & Asset Protection", status: "planned", platforms: ["web"], reason: "Ships with the FICIA tax / benefits slice." },
 
   // MADEE
