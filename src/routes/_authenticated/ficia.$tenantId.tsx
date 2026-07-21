@@ -69,25 +69,28 @@ function CompanyWorkspace() {
         actions={<StatusBadge status={company.status === "active" ? "success" : "planned"}>{company.status ?? "active"}</StatusBadge>}
       />
 
-      <GlassPanel className="p-2 mt-4 mb-4 flex gap-1">
+      <div className="mt-4 mb-4 flex flex-wrap items-center gap-1 border-b border-border/60 pb-0">
         {(["overview", "settings", "members"] as const).map((k) => (
           <button
             key={k}
             onClick={() => setTab(k)}
-            className={`px-3 py-1.5 rounded-md text-sm capitalize ${tab === k ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}
+            className={`-mb-px px-3 py-2 text-[13px] capitalize border-b-2 transition-colors ${
+              tab === k
+                ? "border-primary text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
           >
             {k}
           </button>
         ))}
-      </GlassPanel>
-
-      <GlassPanel className="p-3 mb-4 flex flex-wrap gap-2 text-sm">
-        <Link to="/ficia/$tenantId/people" params={{ tenantId }} className="px-3 py-1.5 rounded-md border border-border hover:bg-muted">People &amp; org units →</Link>
-        <Link to="/ficia/$tenantId/roles" params={{ tenantId }} className="px-3 py-1.5 rounded-md border border-border hover:bg-muted">Roles &amp; permissions →</Link>
-        <Link to="/ficia/$tenantId/approvals" params={{ tenantId }} className="px-3 py-1.5 rounded-md border border-border hover:bg-muted">Approvals &amp; SoD →</Link>
-        <Link to="/ficia/$tenantId/messenger" params={{ tenantId }} className="px-3 py-1.5 rounded-md border border-border hover:bg-muted">Messenger →</Link>
-        <Link to="/ficia/$tenantId/time" params={{ tenantId }} className="px-3 py-1.5 rounded-md border border-border hover:bg-muted">Timesheets →</Link>
-      </GlassPanel>
+        <div className="ml-auto flex flex-wrap gap-1 pb-1 text-[12px]">
+          <Link to="/ficia/$tenantId/people" params={{ tenantId }} className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">People</Link>
+          <Link to="/ficia/$tenantId/roles" params={{ tenantId }} className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">Roles</Link>
+          <Link to="/ficia/$tenantId/approvals" params={{ tenantId }} className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">Approvals</Link>
+          <Link to="/ficia/$tenantId/messenger" params={{ tenantId }} className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">Messenger</Link>
+          <Link to="/ficia/$tenantId/time" params={{ tenantId }} className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">Timesheets</Link>
+        </div>
+      </div>
 
       {tab === "overview" && <Overview company={company} />}
       {tab === "settings" && <Settings company={company} isOwner={isOwner} onSaved={() => qc.invalidateQueries({ queryKey: ["ficia_company", tenantId] })} />}
