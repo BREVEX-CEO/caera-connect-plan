@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { SetupRequiredState } from "@/components/shell/SetupRequiredState";
 import { DataCard } from "./DataCard";
-import { getCaniaSection, type CaniaSectionDef } from "@/lib/cania-sections";
+import { CANIA_SECTIONS, type CaniaSectionDef } from "@/lib/cania-sections";
 import { providersForSection } from "@/lib/cania-providers";
 import { isDemoActive } from "@/lib/demo/context";
 import { listSavedTopics, saveTopic, listAlerts, saveAlert } from "@/lib/cania.functions";
@@ -13,19 +13,14 @@ import { recordAction } from "@/lib/actions";
 import { toast } from "sonner";
 
 /**
- * SectionView — one reusable shell for every CANIA section leaf.
+ * SectionView — one reusable body for every CANIA section leaf.
  *
- * Behaviour:
- * - Renders provider adapter cards, each as a DataCard with truthful
- *   status/label/permission metadata. Providers are all "setup_required"
- *   until an operator connects them, so cards render the honest empty state.
- * - Demo Mode: shows one clearly-labelled sample card so the user can see
- *   the intended layout, without fabricating live facts.
- * - Save Topic / Add Alert: real writes to the user's Supabase rows.
+ * Renders provider adapter cards as truthful DataCards (setup_required until
+ * an operator connects them). Adds Save Topic / Add Alert actions that write
+ * to the user's Supabase rows. Demo Mode shows one labelled sample card.
  */
 export function SectionView({ sectionId }: { sectionId: string }) {
-  const section = getCaniaSection(sectionIdToSlug(sectionId)) ?? undefined;
-  const def = section ?? getCaniaSectionById(sectionId);
+  const def = CANIA_SECTIONS.find((s) => s.id === sectionId);
   if (!def) {
     return (
       <SetupRequiredState
@@ -35,19 +30,6 @@ export function SectionView({ sectionId }: { sectionId: string }) {
     );
   }
   return <SectionViewInner def={def} />;
-}
-
-function getCaniaSectionById(id: string): CaniaSectionDef | undefined {
-  return getCaniaSection("") ? // dummy to keep import used
-    getCaniaSectionByField(id) : undefined;
-}
-function getCaniaSectionByField(id: string): CaniaSectionDef | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { CANIA_SECTIONS } = require("@/lib/cania-sections") as typeof import("@/lib/cania-sections");
-  return CANIA_SECTIONS.find((s) => s.id === id);
-}
-function sectionIdToSlug(_id: string): string {
-  return "___never___";
 }
 
 function SectionViewInner({ def }: { def: CaniaSectionDef }) {
