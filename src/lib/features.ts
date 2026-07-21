@@ -28,6 +28,8 @@ export interface Feature {
   platforms: Platform[];
   /** Reason shown to users when status is not "active" or "beta". */
   reason?: string;
+  /** Feature is a display-only surface with no user-triggerable actions. */
+  viewOnly?: boolean;
 }
 
 const registry = new Map<string, Feature>();
@@ -61,7 +63,9 @@ const features: Feature[] = [
   { id: "auth.sign_in", module: "core", title: "Sign in", status: "active", platforms: ["web"] },
   { id: "auth.sign_out", module: "core", title: "Sign out", status: "active", platforms: ["web"] },
   { id: "onboarding.wizard", module: "core", title: "Onboarding", status: "active", platforms: ["web"] },
-  { id: "home.dashboard", module: "core", title: "Home", status: "active", platforms: ["web"] },
+  { id: "home.dashboard", module: "core", title: "Home", status: "active", platforms: ["web"], viewOnly: true },
+  { id: "settings.activity", module: "core", title: "Activity centre", status: "active", platforms: ["web"] },
+  { id: "demo.mode", module: "core", title: "Demo mode", status: "active", platforms: ["web"], viewOnly: true },
   { id: "settings.privacy", module: "core", title: "Privacy settings", status: "active", platforms: ["web"] },
   { id: "settings.devices", module: "core", title: "Devices", status: "active", platforms: ["web"] },
   { id: "settings.appearance", module: "core", title: "Appearance", status: "active", platforms: ["web"] },

@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { StatusBadge } from "@/components/shell/StatusBadge";
 import { listDevicesForCurrentUser, revokeDevice, type DeviceRow } from "@/lib/devices";
-import { recordAction } from "@/lib/actions";
+import { executeAction, ActionConfirmationError } from "@/lib/actions";
 
 export const Route = createFileRoute("/_authenticated/settings/devices")({
   head: () => ({
@@ -35,15 +35,29 @@ function DevicesPage() {
   const mobileCount = active.filter((d) => d.kind === "mobile").length;
 
   async function onRevoke(d: DeviceRow) {
+    const phrase = window.prompt(
+      `Revoke this ${d.kind} device? This removes an approved access surface for your account. Type "revoke" to confirm.`,
+    );
+    if (phrase === null) return;
     setBusyId(d.id);
     setError(null);
-    const res = await revokeDevice(d.id);
-    if (res.error) setError(res.error);
-    else {
-      await recordAction({ actionId: "devices.revoke", metadata: { device_id: d.id, kind: d.kind } });
+    try {
+      await executeAction("devices.revoke", {
+        confirmed: true,
+        confirmPhrase: phrase,
+        metadata: { device_id: d.id, kind: d.kind },
+        run: async () => {
+          const res = await revokeDevice(d.id);
+          if (res.error) throw new Error(res.error);
+        },
+      });
       await refresh();
+    } catch (e) {
+      if (e instanceof ActionConfirmationError) setError('Type "revoke" exactly to confirm.');
+      else setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusyId(null);
     }
-    setBusyId(null);
   }
 
   return (

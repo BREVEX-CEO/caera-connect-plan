@@ -9,9 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DemoRouteImport } from './routes/demo'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DemoIndexRouteImport } from './routes/demo.index'
+import { Route as DemoTasksRouteImport } from './routes/demo.tasks'
+import { Route as DemoSettingsRouteImport } from './routes/demo.settings'
+import { Route as DemoOcadeRouteImport } from './routes/demo.ocade'
+import { Route as DemoMadeeRouteImport } from './routes/demo.madee'
+import { Route as DemoFilesRouteImport } from './routes/demo.files'
+import { Route as DemoFiciaRouteImport } from './routes/demo.ficia'
+import { Route as DemoCaniaRouteImport } from './routes/demo.cania'
 import { Route as AuthVerifyRouteImport } from './routes/auth.verify'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
@@ -26,7 +35,13 @@ import { Route as AuthenticatedSettingsVaultRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsPrivacyRouteImport } from './routes/_authenticated/settings.privacy'
 import { Route as AuthenticatedSettingsDevicesRouteImport } from './routes/_authenticated/settings.devices'
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings.appearance'
+import { Route as AuthenticatedSettingsActivityRouteImport } from './routes/_authenticated/settings.activity'
 
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -40,6 +55,46 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DemoIndexRoute = DemoIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DemoRoute,
+} as any)
+const DemoTasksRoute = DemoTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => DemoRoute,
+} as any)
+const DemoSettingsRoute = DemoSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DemoRoute,
+} as any)
+const DemoOcadeRoute = DemoOcadeRouteImport.update({
+  id: '/ocade',
+  path: '/ocade',
+  getParentRoute: () => DemoRoute,
+} as any)
+const DemoMadeeRoute = DemoMadeeRouteImport.update({
+  id: '/madee',
+  path: '/madee',
+  getParentRoute: () => DemoRoute,
+} as any)
+const DemoFilesRoute = DemoFilesRouteImport.update({
+  id: '/files',
+  path: '/files',
+  getParentRoute: () => DemoRoute,
+} as any)
+const DemoFiciaRoute = DemoFiciaRouteImport.update({
+  id: '/ficia',
+  path: '/ficia',
+  getParentRoute: () => DemoRoute,
+} as any)
+const DemoCaniaRoute = DemoCaniaRouteImport.update({
+  id: '/cania',
+  path: '/cania',
+  getParentRoute: () => DemoRoute,
 } as any)
 const AuthVerifyRoute = AuthVerifyRouteImport.update({
   id: '/verify',
@@ -116,10 +171,17 @@ const AuthenticatedSettingsAppearanceRoute =
     path: '/appearance',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsActivityRoute =
+  AuthenticatedSettingsActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/demo': typeof DemoRouteWithChildren
   '/cania': typeof AuthenticatedCaniaRoute
   '/ficia': typeof AuthenticatedFiciaRoute
   '/home': typeof AuthenticatedHomeRoute
@@ -129,6 +191,15 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/demo/cania': typeof DemoCaniaRoute
+  '/demo/ficia': typeof DemoFiciaRoute
+  '/demo/files': typeof DemoFilesRoute
+  '/demo/madee': typeof DemoMadeeRoute
+  '/demo/ocade': typeof DemoOcadeRoute
+  '/demo/settings': typeof DemoSettingsRoute
+  '/demo/tasks': typeof DemoTasksRoute
+  '/demo/': typeof DemoIndexRoute
+  '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
@@ -146,6 +217,15 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/demo/cania': typeof DemoCaniaRoute
+  '/demo/ficia': typeof DemoFiciaRoute
+  '/demo/files': typeof DemoFilesRoute
+  '/demo/madee': typeof DemoMadeeRoute
+  '/demo/ocade': typeof DemoOcadeRoute
+  '/demo/settings': typeof DemoSettingsRoute
+  '/demo/tasks': typeof DemoTasksRoute
+  '/demo': typeof DemoIndexRoute
+  '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
@@ -157,6 +237,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/demo': typeof DemoRouteWithChildren
   '/_authenticated/cania': typeof AuthenticatedCaniaRoute
   '/_authenticated/ficia': typeof AuthenticatedFiciaRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
@@ -166,6 +247,15 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/demo/cania': typeof DemoCaniaRoute
+  '/demo/ficia': typeof DemoFiciaRoute
+  '/demo/files': typeof DemoFilesRoute
+  '/demo/madee': typeof DemoMadeeRoute
+  '/demo/ocade': typeof DemoOcadeRoute
+  '/demo/settings': typeof DemoSettingsRoute
+  '/demo/tasks': typeof DemoTasksRoute
+  '/demo/': typeof DemoIndexRoute
+  '/_authenticated/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/_authenticated/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/_authenticated/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
@@ -177,6 +267,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/demo'
     | '/cania'
     | '/ficia'
     | '/home'
@@ -186,6 +277,15 @@ export interface FileRouteTypes {
     | '/settings'
     | '/auth/callback'
     | '/auth/verify'
+    | '/demo/cania'
+    | '/demo/ficia'
+    | '/demo/files'
+    | '/demo/madee'
+    | '/demo/ocade'
+    | '/demo/settings'
+    | '/demo/tasks'
+    | '/demo/'
+    | '/settings/activity'
     | '/settings/appearance'
     | '/settings/devices'
     | '/settings/privacy'
@@ -203,6 +303,15 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/auth/callback'
     | '/auth/verify'
+    | '/demo/cania'
+    | '/demo/ficia'
+    | '/demo/files'
+    | '/demo/madee'
+    | '/demo/ocade'
+    | '/demo/settings'
+    | '/demo/tasks'
+    | '/demo'
+    | '/settings/activity'
     | '/settings/appearance'
     | '/settings/devices'
     | '/settings/privacy'
@@ -213,6 +322,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/demo'
     | '/_authenticated/cania'
     | '/_authenticated/ficia'
     | '/_authenticated/home'
@@ -222,6 +332,15 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/auth/callback'
     | '/auth/verify'
+    | '/demo/cania'
+    | '/demo/ficia'
+    | '/demo/files'
+    | '/demo/madee'
+    | '/demo/ocade'
+    | '/demo/settings'
+    | '/demo/tasks'
+    | '/demo/'
+    | '/_authenticated/settings/activity'
     | '/_authenticated/settings/appearance'
     | '/_authenticated/settings/devices'
     | '/_authenticated/settings/privacy'
@@ -233,10 +352,18 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  DemoRoute: typeof DemoRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -257,6 +384,62 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/demo/': {
+      id: '/demo/'
+      path: '/'
+      fullPath: '/demo/'
+      preLoaderRoute: typeof DemoIndexRouteImport
+      parentRoute: typeof DemoRoute
+    }
+    '/demo/tasks': {
+      id: '/demo/tasks'
+      path: '/tasks'
+      fullPath: '/demo/tasks'
+      preLoaderRoute: typeof DemoTasksRouteImport
+      parentRoute: typeof DemoRoute
+    }
+    '/demo/settings': {
+      id: '/demo/settings'
+      path: '/settings'
+      fullPath: '/demo/settings'
+      preLoaderRoute: typeof DemoSettingsRouteImport
+      parentRoute: typeof DemoRoute
+    }
+    '/demo/ocade': {
+      id: '/demo/ocade'
+      path: '/ocade'
+      fullPath: '/demo/ocade'
+      preLoaderRoute: typeof DemoOcadeRouteImport
+      parentRoute: typeof DemoRoute
+    }
+    '/demo/madee': {
+      id: '/demo/madee'
+      path: '/madee'
+      fullPath: '/demo/madee'
+      preLoaderRoute: typeof DemoMadeeRouteImport
+      parentRoute: typeof DemoRoute
+    }
+    '/demo/files': {
+      id: '/demo/files'
+      path: '/files'
+      fullPath: '/demo/files'
+      preLoaderRoute: typeof DemoFilesRouteImport
+      parentRoute: typeof DemoRoute
+    }
+    '/demo/ficia': {
+      id: '/demo/ficia'
+      path: '/ficia'
+      fullPath: '/demo/ficia'
+      preLoaderRoute: typeof DemoFiciaRouteImport
+      parentRoute: typeof DemoRoute
+    }
+    '/demo/cania': {
+      id: '/demo/cania'
+      path: '/cania'
+      fullPath: '/demo/cania'
+      preLoaderRoute: typeof DemoCaniaRouteImport
+      parentRoute: typeof DemoRoute
     }
     '/auth/verify': {
       id: '/auth/verify'
@@ -356,10 +539,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsAppearanceRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/activity': {
+      id: '/_authenticated/settings/activity'
+      path: '/activity'
+      fullPath: '/settings/activity'
+      preLoaderRoute: typeof AuthenticatedSettingsActivityRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
   }
 }
 
 interface AuthenticatedSettingsRouteChildren {
+  AuthenticatedSettingsActivityRoute: typeof AuthenticatedSettingsActivityRoute
   AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute
   AuthenticatedSettingsDevicesRoute: typeof AuthenticatedSettingsDevicesRoute
   AuthenticatedSettingsPrivacyRoute: typeof AuthenticatedSettingsPrivacyRoute
@@ -368,6 +559,7 @@ interface AuthenticatedSettingsRouteChildren {
 }
 
 const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
+  AuthenticatedSettingsActivityRoute: AuthenticatedSettingsActivityRoute,
   AuthenticatedSettingsAppearanceRoute: AuthenticatedSettingsAppearanceRoute,
   AuthenticatedSettingsDevicesRoute: AuthenticatedSettingsDevicesRoute,
   AuthenticatedSettingsPrivacyRoute: AuthenticatedSettingsPrivacyRoute,
@@ -415,10 +607,35 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface DemoRouteChildren {
+  DemoCaniaRoute: typeof DemoCaniaRoute
+  DemoFiciaRoute: typeof DemoFiciaRoute
+  DemoFilesRoute: typeof DemoFilesRoute
+  DemoMadeeRoute: typeof DemoMadeeRoute
+  DemoOcadeRoute: typeof DemoOcadeRoute
+  DemoSettingsRoute: typeof DemoSettingsRoute
+  DemoTasksRoute: typeof DemoTasksRoute
+  DemoIndexRoute: typeof DemoIndexRoute
+}
+
+const DemoRouteChildren: DemoRouteChildren = {
+  DemoCaniaRoute: DemoCaniaRoute,
+  DemoFiciaRoute: DemoFiciaRoute,
+  DemoFilesRoute: DemoFilesRoute,
+  DemoMadeeRoute: DemoMadeeRoute,
+  DemoOcadeRoute: DemoOcadeRoute,
+  DemoSettingsRoute: DemoSettingsRoute,
+  DemoTasksRoute: DemoTasksRoute,
+  DemoIndexRoute: DemoIndexRoute,
+}
+
+const DemoRouteWithChildren = DemoRoute._addFileChildren(DemoRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  DemoRoute: DemoRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
