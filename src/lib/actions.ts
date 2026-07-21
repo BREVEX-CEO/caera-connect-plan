@@ -120,25 +120,23 @@ export async function recordAction({ actionId, metadata, tenantId }: RecordArgs)
   if (!uid) return;
 
   try {
+    const meta = (metadata ?? {}) as never;
     if (a.log === "operational") {
       await supabase.from("activity_log").insert({
         user_id: uid,
         tenant_id: tenantId ?? null,
         action: a.id,
         feature_id: a.featureId,
-        metadata: metadata ?? {},
+        metadata: meta,
       });
     } else {
-      // Compliance writes go through a server function once available. For P3.5
-      // we insert with category set — the hash chain is applied server-side in a
-      // later slice.
       await supabase.from("compliance_audit_log").insert({
         user_id: uid,
         tenant_id: tenantId ?? null,
         action: a.id,
         feature_id: a.featureId,
         category: a.category ?? "other",
-        preview: metadata ?? {},
+        preview: meta,
       });
     }
   } catch (e) {
