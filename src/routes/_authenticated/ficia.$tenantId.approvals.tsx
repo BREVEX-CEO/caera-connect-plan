@@ -144,7 +144,7 @@ function SubmitForm({ tenantId, onSubmitted }: { tenantId: string; onSubmitted: 
 function RequestsTable({ requests, loading, onChange }: { requests: any[]; loading: boolean; onChange: () => void }) {
   async function decide(r: any, decision: "approve" | "reject") {
     const reason = decision === "reject" ? prompt("Reason for rejection?") ?? "" : prompt("Approval note (optional):") ?? "";
-    let sod = undefined;
+    let sod: string | undefined = undefined;
     // Optimistic client-side SoD hint; server enforces truthfully
     const res = await executeAction(`ficia.approvals.${decision}`, {
       confirmed: true,
