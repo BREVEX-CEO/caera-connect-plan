@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { LogOut, Shield, Laptop, ChevronRight } from "lucide-react";
+import { LogOut, Shield, Laptop, ChevronRight, Palette } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
@@ -88,6 +88,23 @@ function SettingsPage() {
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 Two desktop and two mobile devices per account. Revoke anytime.
+              </p>
+            </div>
+          </GlassPanel>
+        </Link>
+
+        <Link to="/settings/appearance" className="group">
+          <GlassPanel className="flex h-full items-start gap-4 p-5 transition-transform group-hover:-translate-y-0.5">
+            <div className="rounded-lg bg-primary/15 p-2.5 text-primary">
+              <Palette className="h-5 w-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-foreground">Appearance</h3>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Theme, motion, cursor and accessibility preferences.
               </p>
             </div>
           </GlassPanel>

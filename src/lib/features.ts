@@ -64,6 +64,7 @@ const features: Feature[] = [
   { id: "home.dashboard", module: "core", title: "Home", status: "active", platforms: ["web"] },
   { id: "settings.privacy", module: "core", title: "Privacy settings", status: "active", platforms: ["web"] },
   { id: "settings.devices", module: "core", title: "Devices", status: "active", platforms: ["web"] },
+  { id: "settings.appearance", module: "core", title: "Appearance", status: "active", platforms: ["web"] },
 
   // OCADE — full chat lands in P10
   { id: "ocade.chat", module: "ocade", title: "OCADE chat", status: "planned", platforms: ["web"], reason: "Ships in the next build slice." },

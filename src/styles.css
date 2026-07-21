@@ -154,20 +154,87 @@
   --surface-glass-border: oklch(0 0 0 / 8%);
 }
 
-/* High contrast (accessibility) */
-.high-contrast {
-  --border: oklch(1 0 0 / 30%);
-  --muted-foreground: oklch(0.85 0.01 250);
-  --surface-glass-border: oklch(1 0 0 / 25%);
+/* Light theme adjustments: warm ivory + silver + restrained gold */
+.light {
+  --primary: oklch(0.55 0.12 85);            /* gold accent for interactive */
+  --primary-foreground: oklch(0.14 0.02 260);
+  --ring: oklch(0.55 0.12 85 / 45%);
+  --card: oklch(0.995 0.004 90);
+  --background: oklch(0.985 0.005 90);       /* warm ivory */
+  --sidebar: oklch(0.965 0.006 90);
+  --accent-ocade: oklch(0.55 0.14 220);
+  --accent-ficia: oklch(0.5 0.13 165);
+  --accent-madee: oklch(0.5 0.16 300);
+  --accent-cania: oklch(0.55 0.14 65);
+  --blur-glass: 12px;
 }
 
-/* Reduced motion */
+/* REAL theme: elegant animated gradients, morphing light, liquid depth. */
+.real {
+  --background: oklch(0.13 0.02 265);
+  --foreground: oklch(0.97 0.005 250);
+  --card: oklch(0.2 0.03 268 / 62%);
+  --card-foreground: oklch(0.97 0.005 250);
+  --popover: oklch(0.22 0.035 268 / 82%);
+  --popover-foreground: oklch(0.97 0.005 250);
+  --primary: oklch(0.82 0.14 205);
+  --primary-foreground: oklch(0.14 0.02 260);
+  --secondary: oklch(0.26 0.03 268 / 65%);
+  --secondary-foreground: oklch(0.96 0.005 250);
+  --muted: oklch(0.24 0.03 268 / 55%);
+  --muted-foreground: oklch(0.78 0.02 255);
+  --accent: oklch(0.3 0.05 250 / 70%);
+  --accent-foreground: oklch(0.97 0.005 250);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.82 0.14 205 / 65%);
+  --sidebar: oklch(0.15 0.025 265 / 75%);
+  --sidebar-accent: oklch(0.26 0.04 268 / 70%);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --surface-glass: oklch(1 0 0 / 7%);
+  --surface-glass-strong: oklch(1 0 0 / 11%);
+  --surface-glass-border: oklch(1 0 0 / 16%);
+  --blur-glass: 26px;
+}
+
+/* High contrast (accessibility) */
+.high-contrast {
+  --border: oklch(1 0 0 / 32%);
+  --muted-foreground: oklch(0.88 0.01 250);
+  --surface-glass-border: oklch(1 0 0 / 28%);
+  --ring: oklch(0.9 0.05 210);
+}
+
+.light.high-contrast {
+  --border: oklch(0.25 0.02 260 / 55%);
+  --muted-foreground: oklch(0.28 0.02 260);
+  --surface-glass-border: oklch(0 0 0 / 22%);
+}
+
+/* Reduced motion — OS pref or user override */
 .reduce-motion *,
 .reduce-motion *::before,
 .reduce-motion *::after {
   animation-duration: 0.001ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Low-performance — collapse continuous blur & motion. */
+.low-perf {
+  --blur-glass: 0px;
+}
+.low-perf .real-aurora,
+.low-perf .real-orb {
+  display: none !important;
 }
 
 @layer base {
@@ -180,6 +247,12 @@
     min-height: 100%;
   }
 
+  html {
+    color-scheme: dark;
+  }
+  html.light { color-scheme: light; }
+  html.real  { color-scheme: dark; }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -189,19 +262,63 @@
       radial-gradient(800px 500px at 50% 110%, oklch(0.75 0.15 165 / 5%), transparent 60%);
     background-attachment: fixed;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    overflow-x: hidden;
   }
+
+  html.light body {
+    background-image:
+      radial-gradient(1100px 600px at 10% -10%, oklch(0.55 0.12 85 / 8%), transparent 60%),
+      radial-gradient(900px 500px at 95% 0%, oklch(0.55 0.14 220 / 5%), transparent 55%);
+  }
+
+  /* REAL: liquid animated aurora background */
+  html.real body {
+    background-color: var(--color-background);
+    background-image:
+      radial-gradient(60% 40% at 20% 10%, oklch(0.55 0.18 260 / 42%), transparent 65%),
+      radial-gradient(55% 45% at 85% 20%, oklch(0.6 0.19 200 / 34%), transparent 65%),
+      radial-gradient(70% 55% at 50% 100%, oklch(0.55 0.18 300 / 32%), transparent 65%),
+      radial-gradient(50% 40% at 100% 90%, oklch(0.6 0.16 160 / 28%), transparent 60%);
+    background-size: 200% 200%, 200% 200%, 200% 200%, 200% 200%;
+    background-position: 0% 0%, 100% 0%, 50% 100%, 100% 100%;
+    animation: caera-aurora 28s ease-in-out infinite alternate;
+  }
+
+  html.real.reduce-motion body,
+  html.real.low-perf body {
+    animation: none;
+  }
+
+  /* Cursor application — only when a real url() is set */
+  html.has-custom-cursor,
+  html.has-custom-cursor body,
+  html.has-custom-cursor button,
+  html.has-custom-cursor a,
+  html.has-custom-cursor [role="button"] {
+    cursor: var(--app-cursor);
+  }
+
+  /* Accessibility override always wins */
+  html.cursor-accessibility,
+  html.cursor-accessibility * {
+    cursor: auto !important;
+  }
+}
+
+@keyframes caera-aurora {
+  0%   { background-position: 0% 0%, 100% 0%, 50% 100%, 100% 100%; }
+  50%  { background-position: 30% 20%, 70% 30%, 40% 70%, 70% 80%; }
+  100% { background-position: 60% 40%, 40% 60%, 60% 40%, 40% 60%; }
 }
 
 @utility glass {
   background-color: var(--surface-glass);
   border: 1px solid var(--surface-glass-border);
   backdrop-filter: blur(var(--blur-glass)) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(140%);
 }
 
 @utility glass-strong {
   background-color: var(--surface-glass-strong);
   border: 1px solid var(--surface-glass-border);
   backdrop-filter: blur(var(--blur-glass)) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(140%);
 }

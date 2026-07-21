@@ -376,6 +376,11 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          appearance_cursor: string
+          appearance_cursor_custom: string | null
+          appearance_cursor_size: number
+          appearance_cursor_trail: boolean
+          appearance_low_performance: boolean
           created_at: string
           family_planning_enabled: boolean
           high_contrast: boolean
@@ -395,6 +400,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          appearance_cursor?: string
+          appearance_cursor_custom?: string | null
+          appearance_cursor_size?: number
+          appearance_cursor_trail?: boolean
+          appearance_low_performance?: boolean
           created_at?: string
           family_planning_enabled?: boolean
           high_contrast?: boolean
@@ -414,6 +424,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          appearance_cursor?: string
+          appearance_cursor_custom?: string | null
+          appearance_cursor_size?: number
+          appearance_cursor_trail?: boolean
+          appearance_low_performance?: boolean
           created_at?: string
           family_planning_enabled?: boolean
           high_contrast?: boolean
