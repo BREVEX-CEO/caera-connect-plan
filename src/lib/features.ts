@@ -74,9 +74,10 @@ const features: Feature[] = [
 
 
   // OCADE — full chat lands in P10
-  { id: "ocade.chat", module: "ocade", title: "OCADE chat", status: "planned", platforms: ["web"], reason: "Ships in the next build slice." },
-  { id: "ocade.models", module: "ocade", title: "Model connections", status: "planned", platforms: ["web"], reason: "Ollama + OpenAI connection surface ships with chat." },
+  { id: "ocade.chat", module: "ocade", title: "OCADE chat", status: "active", platforms: ["web"] },
+  { id: "ocade.models", module: "ocade", title: "Model connections", status: "active", platforms: ["web"] },
   { id: "ocade.copilot", module: "ocade", title: "Computer Copilot", status: "planned", platforms: ["windows", "macos"], reason: "Requires the Native Companion (Cursor / Tauri build)." },
+
 
   // FICIA
   { id: "ficia.company", module: "ficia", title: "Company workspace", status: "planned", platforms: ["web"], reason: "Company setup + Home dashboard ship next." },

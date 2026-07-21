@@ -157,8 +157,36 @@ const actions: Action[] = [
     requiresPreview: true,
     confirmation: "strong",
     confirmPhrase: "activate",
+  { id: "ocade.chat.send", featureId: "ocade.chat", title: "Send OCADE message", log: "operational" },
+  { id: "ocade.chat.regenerate", featureId: "ocade.chat", title: "Regenerate OCADE response", log: "operational" },
+  { id: "ocade.chat.stop", featureId: "ocade.chat", title: "Stop OCADE response", log: "operational" },
+  { id: "ocade.chat.improve_prompt", featureId: "ocade.chat", title: "Improve prompt", log: "operational" },
+  { id: "ocade.conversation.new", featureId: "ocade.chat", title: "New OCADE conversation", log: "operational" },
+  { id: "ocade.conversation.rename", featureId: "ocade.chat", title: "Rename OCADE conversation", log: "operational" },
+  { id: "ocade.conversation.pin", featureId: "ocade.chat", title: "Pin OCADE conversation", log: "operational" },
+  { id: "ocade.conversation.archive", featureId: "ocade.chat", title: "Archive OCADE conversation", log: "operational" },
+  { id: "ocade.conversation.export", featureId: "ocade.chat", title: "Export OCADE conversation", log: "operational" },
+  {
+    id: "ocade.conversation.delete",
+    featureId: "ocade.chat",
+    title: "Delete OCADE conversation",
+    log: "operational",
+    description: "Permanently removes a conversation and its messages.",
+    requiresPreview: true,
+    confirmation: "strong",
+    confirmPhrase: "delete",
   },
+  {
+    id: "ocade.chat.cloud_transfer_approved",
+    featureId: "ocade.chat",
+    title: "Approved cloud transfer for Browser Only chats",
+    log: "compliance",
+    category: "sensitive_export",
+    description: "User acknowledged that a message stored under Browser Only privacy will be sent to a cloud model.",
+  },
+  { id: "ocade.model.change", featureId: "ocade.models", title: "Change OCADE model", log: "operational" },
 ];
+
 
 
 for (const a of actions) registerAction(a);
