@@ -85,7 +85,8 @@ const features: Feature[] = [
   { id: "ficia.family_planning", module: "ficia", title: "Family, Marriage & Asset Protection", status: "planned", platforms: ["web"], reason: "Ships with the FICIA tax / benefits slice." },
 
   // MADEE
-  { id: "madee.resume", module: "madee", title: "Resume Builder", status: "planned", platforms: ["web"], reason: "Studio slice ships after OCADE chat." },
+  { id: "madee.resume", module: "madee", title: "Resume Builder", status: "active", platforms: ["web"] },
+  { id: "madee.resume_ai", module: "madee", title: "Resume AI assist", status: "setup_required", platforms: ["web"], reason: "AI assist runs when the Lovable AI Gateway is reachable. Manual editing always works." },
 
   // CANIA — design + honest empty states now, providers later
   { id: "cania.center", module: "cania", title: "World intelligence center", status: "setup_required", platforms: ["web"], reason: "Provider setup required. Data sources not connected yet." },

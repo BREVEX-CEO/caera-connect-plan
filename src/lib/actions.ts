@@ -201,6 +201,27 @@ const actions: Action[] = [
   { id: "cania.settings.save", featureId: "cania.settings", title: "Save CANIA settings", log: "operational" },
   { id: "cania.location.grant", featureId: "cania.settings", title: "Grant CANIA location", log: "operational",
     description: "User granted the browser geolocation permission for CANIA weather and traffic." },
+
+  // MADEE Resume Builder
+  { id: "madee.resume.create", featureId: "madee.resume", title: "Create resume project", log: "operational",
+    description: "New resume project, requires owner attestation before insert." },
+  { id: "madee.resume.upload_parse", featureId: "madee.resume", title: "Parse uploaded resume", log: "operational" },
+  { id: "madee.resume.save_version", featureId: "madee.resume", title: "Save resume version", log: "operational" },
+  { id: "madee.resume.rename_version", featureId: "madee.resume", title: "Rename resume version", log: "operational" },
+  { id: "madee.resume.duplicate", featureId: "madee.resume", title: "Duplicate resume project", log: "operational" },
+  { id: "madee.resume.delete_version", featureId: "madee.resume", title: "Delete resume version", log: "operational",
+    confirmation: "confirm",
+    description: "Removes one version. Other versions remain." },
+  { id: "madee.resume.delete_project", featureId: "madee.resume", title: "Delete resume project", log: "compliance",
+    category: "deletion", confirmation: "strong", confirmPhrase: "delete resume",
+    description: "Permanently deletes the project and every version." },
+  { id: "madee.resume.export_pdf", featureId: "madee.resume", title: "Export resume as PDF", log: "operational" },
+  { id: "madee.resume.export_docx", featureId: "madee.resume", title: "Export resume as DOCX", log: "operational" },
+  { id: "madee.resume.ai_bullet", featureId: "madee.resume_ai", title: "AI: improve bullet", log: "operational" },
+  { id: "madee.resume.ai_summary", featureId: "madee.resume_ai", title: "AI: draft summary", log: "operational" },
+  { id: "madee.resume.ai_grammar", featureId: "madee.resume_ai", title: "AI: grammar check", log: "operational" },
+  { id: "madee.resume.ai_ats", featureId: "madee.resume_ai", title: "AI: ATS review", log: "operational" },
+  { id: "madee.resume.ai_jd_match", featureId: "madee.resume_ai", title: "AI: job description match", log: "operational" },
 ];
 
 
