@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Loader2, Lock, Shield, ShieldCheck, KeyRound, Fingerprint, Copy, RotateCw, Unlock } from "lucide-react";
-import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { useSession } from "@/lib/session";
@@ -55,11 +54,11 @@ function VaultPage() {
   };
 
   if (!user || loading) {
-    return <AppShell><div className="flex items-center gap-2 p-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div></AppShell>;
+    return <><div className="flex items-center gap-2 p-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div></>;
   }
 
   return (
-    <AppShell>
+    <>
       <PageHeader
         eyebrow="Account · Vault"
         title="Browser Vault"
@@ -116,7 +115,7 @@ function VaultPage() {
         : <UnlockedPanel cfg={cfg} busy={busy}
               onRotate={(pw) => run(() => rotatePassphrase(user.id, pw), "vault.rotate")}
               onTimeout={(s) => run(() => updateLockTimeout(user.id, s))} />}
-    </AppShell>
+    </>
   );
 }
 

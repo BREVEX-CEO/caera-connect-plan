@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, Shield, Activity as ActivityIcon, Trash2, RefreshCw } from "lucide-react";
-import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,7 +131,7 @@ function ActivityPage() {
   }
 
   return (
-    <AppShell>
+    <>
       <PageHeader
         eyebrow="Account · Activity"
         title="Activity centre"
@@ -309,6 +308,6 @@ function ActivityPage() {
         Missing something? Some actions ship in later slices — the{" "}
         <Link to="/settings" className="underline underline-offset-4">Settings</Link> hub lists what is live today.
       </p>
-    </AppShell>
+    </>
   );
 }
