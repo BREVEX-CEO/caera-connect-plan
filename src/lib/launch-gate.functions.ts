@@ -79,7 +79,7 @@ export const updateLaunchGateItem = createServerFn({ method: "POST" })
 
     const { error: updErr } = await supabaseAdmin
       .from("launch_gate_items")
-      .update(patch)
+      .update(patch as never)
       .eq("id", data.id);
     if (updErr) throw new Response(`Update failed: ${updErr.message}`, { status: 500 });
 
@@ -144,7 +144,7 @@ export const upsertFeatureFlag = createServerFn({ method: "POST" })
     row.applicable_modules = data.applicable_modules ?? existing?.applicable_modules ?? [];
     row.description = data.description ?? existing?.description ?? null;
 
-    const { error } = await supabaseAdmin.from("feature_flags").upsert(row);
+    const { error } = await supabaseAdmin.from("feature_flags").upsert(row as never);
     if (error) {
       // Surface the launch-gate trigger message verbatim so admins see the reason.
       return { ok: false as const, message: error.message };
