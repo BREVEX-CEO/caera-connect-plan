@@ -32,6 +32,7 @@ import { Route as AuthenticatedFiciaRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedCaniaRouteImport } from './routes/_authenticated/cania'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
 import { Route as AuthenticatedMadeeIndexRouteImport } from './routes/_authenticated/madee.index'
+import { Route as AuthenticatedFiciaIndexRouteImport } from './routes/_authenticated/ficia.index'
 import { Route as AuthenticatedCaniaIndexRouteImport } from './routes/_authenticated/cania.index'
 import { Route as ApiOcadeChatRouteImport } from './routes/api/ocade.chat'
 import { Route as AuthenticatedSettingsVaultRouteImport } from './routes/_authenticated/settings.vault'
@@ -42,6 +43,8 @@ import { Route as AuthenticatedSettingsActivityRouteImport } from './routes/_aut
 import { Route as AuthenticatedOcadeModelsRouteImport } from './routes/_authenticated/ocade.models'
 import { Route as AuthenticatedMadeeNewRouteImport } from './routes/_authenticated/madee.new'
 import { Route as AuthenticatedMadeeProjectIdRouteImport } from './routes/_authenticated/madee.$projectId'
+import { Route as AuthenticatedFiciaNewRouteImport } from './routes/_authenticated/ficia.new'
+import { Route as AuthenticatedFiciaTenantIdRouteImport } from './routes/_authenticated/ficia.$tenantId'
 import { Route as AuthenticatedCaniaWorldRouteImport } from './routes/_authenticated/cania.world'
 import { Route as AuthenticatedCaniaWeatherRouteImport } from './routes/_authenticated/cania.weather'
 import { Route as AuthenticatedCaniaTravelRouteImport } from './routes/_authenticated/cania.travel'
@@ -180,6 +183,11 @@ const AuthenticatedMadeeIndexRoute = AuthenticatedMadeeIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthenticatedMadeeRoute,
 } as any)
+const AuthenticatedFiciaIndexRoute = AuthenticatedFiciaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedFiciaRoute,
+} as any)
 const AuthenticatedCaniaIndexRoute = AuthenticatedCaniaIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -236,6 +244,17 @@ const AuthenticatedMadeeProjectIdRoute =
     id: '/$projectId',
     path: '/$projectId',
     getParentRoute: () => AuthenticatedMadeeRoute,
+  } as any)
+const AuthenticatedFiciaNewRoute = AuthenticatedFiciaNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AuthenticatedFiciaRoute,
+} as any)
+const AuthenticatedFiciaTenantIdRoute =
+  AuthenticatedFiciaTenantIdRouteImport.update({
+    id: '/$tenantId',
+    path: '/$tenantId',
+    getParentRoute: () => AuthenticatedFiciaRoute,
   } as any)
 const AuthenticatedCaniaWorldRoute = AuthenticatedCaniaWorldRouteImport.update({
   id: '/world',
@@ -372,7 +391,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/demo': typeof DemoRouteWithChildren
   '/cania': typeof AuthenticatedCaniaRouteWithChildren
-  '/ficia': typeof AuthenticatedFiciaRoute
+  '/ficia': typeof AuthenticatedFiciaRouteWithChildren
   '/home': typeof AuthenticatedHomeRoute
   '/madee': typeof AuthenticatedMadeeRouteWithChildren
   '/ocade': typeof AuthenticatedOcadeRouteWithChildren
@@ -408,6 +427,8 @@ export interface FileRoutesByFullPath {
   '/cania/travel': typeof AuthenticatedCaniaTravelRoute
   '/cania/weather': typeof AuthenticatedCaniaWeatherRoute
   '/cania/world': typeof AuthenticatedCaniaWorldRoute
+  '/ficia/$tenantId': typeof AuthenticatedFiciaTenantIdRoute
+  '/ficia/new': typeof AuthenticatedFiciaNewRoute
   '/madee/$projectId': typeof AuthenticatedMadeeProjectIdRouteWithChildren
   '/madee/new': typeof AuthenticatedMadeeNewRoute
   '/ocade/models': typeof AuthenticatedOcadeModelsRoute
@@ -418,6 +439,7 @@ export interface FileRoutesByFullPath {
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/cania/': typeof AuthenticatedCaniaIndexRoute
+  '/ficia/': typeof AuthenticatedFiciaIndexRoute
   '/madee/': typeof AuthenticatedMadeeIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/admin/country-packs/$packId': typeof AuthenticatedAdminCountryPacksPackIdRoute
@@ -426,7 +448,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
-  '/ficia': typeof AuthenticatedFiciaRoute
   '/home': typeof AuthenticatedHomeRoute
   '/ocade': typeof AuthenticatedOcadeRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
@@ -460,6 +481,8 @@ export interface FileRoutesByTo {
   '/cania/travel': typeof AuthenticatedCaniaTravelRoute
   '/cania/weather': typeof AuthenticatedCaniaWeatherRoute
   '/cania/world': typeof AuthenticatedCaniaWorldRoute
+  '/ficia/$tenantId': typeof AuthenticatedFiciaTenantIdRoute
+  '/ficia/new': typeof AuthenticatedFiciaNewRoute
   '/madee/$projectId': typeof AuthenticatedMadeeProjectIdRouteWithChildren
   '/madee/new': typeof AuthenticatedMadeeNewRoute
   '/ocade/models': typeof AuthenticatedOcadeModelsRoute
@@ -470,6 +493,7 @@ export interface FileRoutesByTo {
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/cania': typeof AuthenticatedCaniaIndexRoute
+  '/ficia': typeof AuthenticatedFiciaIndexRoute
   '/madee': typeof AuthenticatedMadeeIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/admin/country-packs/$packId': typeof AuthenticatedAdminCountryPacksPackIdRoute
@@ -482,7 +506,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/demo': typeof DemoRouteWithChildren
   '/_authenticated/cania': typeof AuthenticatedCaniaRouteWithChildren
-  '/_authenticated/ficia': typeof AuthenticatedFiciaRoute
+  '/_authenticated/ficia': typeof AuthenticatedFiciaRouteWithChildren
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/madee': typeof AuthenticatedMadeeRouteWithChildren
   '/_authenticated/ocade': typeof AuthenticatedOcadeRouteWithChildren
@@ -518,6 +542,8 @@ export interface FileRoutesById {
   '/_authenticated/cania/travel': typeof AuthenticatedCaniaTravelRoute
   '/_authenticated/cania/weather': typeof AuthenticatedCaniaWeatherRoute
   '/_authenticated/cania/world': typeof AuthenticatedCaniaWorldRoute
+  '/_authenticated/ficia/$tenantId': typeof AuthenticatedFiciaTenantIdRoute
+  '/_authenticated/ficia/new': typeof AuthenticatedFiciaNewRoute
   '/_authenticated/madee/$projectId': typeof AuthenticatedMadeeProjectIdRouteWithChildren
   '/_authenticated/madee/new': typeof AuthenticatedMadeeNewRoute
   '/_authenticated/ocade/models': typeof AuthenticatedOcadeModelsRoute
@@ -528,6 +554,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/_authenticated/cania/': typeof AuthenticatedCaniaIndexRoute
+  '/_authenticated/ficia/': typeof AuthenticatedFiciaIndexRoute
   '/_authenticated/madee/': typeof AuthenticatedMadeeIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/admin/country-packs/$packId': typeof AuthenticatedAdminCountryPacksPackIdRoute
@@ -576,6 +603,8 @@ export interface FileRouteTypes {
     | '/cania/travel'
     | '/cania/weather'
     | '/cania/world'
+    | '/ficia/$tenantId'
+    | '/ficia/new'
     | '/madee/$projectId'
     | '/madee/new'
     | '/ocade/models'
@@ -586,6 +615,7 @@ export interface FileRouteTypes {
     | '/settings/vault'
     | '/api/ocade/chat'
     | '/cania/'
+    | '/ficia/'
     | '/madee/'
     | '/settings/'
     | '/admin/country-packs/$packId'
@@ -594,7 +624,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
-    | '/ficia'
     | '/home'
     | '/ocade'
     | '/onboarding'
@@ -628,6 +657,8 @@ export interface FileRouteTypes {
     | '/cania/travel'
     | '/cania/weather'
     | '/cania/world'
+    | '/ficia/$tenantId'
+    | '/ficia/new'
     | '/madee/$projectId'
     | '/madee/new'
     | '/ocade/models'
@@ -638,6 +669,7 @@ export interface FileRouteTypes {
     | '/settings/vault'
     | '/api/ocade/chat'
     | '/cania'
+    | '/ficia'
     | '/madee'
     | '/settings'
     | '/admin/country-packs/$packId'
@@ -685,6 +717,8 @@ export interface FileRouteTypes {
     | '/_authenticated/cania/travel'
     | '/_authenticated/cania/weather'
     | '/_authenticated/cania/world'
+    | '/_authenticated/ficia/$tenantId'
+    | '/_authenticated/ficia/new'
     | '/_authenticated/madee/$projectId'
     | '/_authenticated/madee/new'
     | '/_authenticated/ocade/models'
@@ -695,6 +729,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/vault'
     | '/api/ocade/chat'
     | '/_authenticated/cania/'
+    | '/_authenticated/ficia/'
     | '/_authenticated/madee/'
     | '/_authenticated/settings/'
     | '/_authenticated/admin/country-packs/$packId'
@@ -872,6 +907,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMadeeIndexRouteImport
       parentRoute: typeof AuthenticatedMadeeRoute
     }
+    '/_authenticated/ficia/': {
+      id: '/_authenticated/ficia/'
+      path: '/'
+      fullPath: '/ficia/'
+      preLoaderRoute: typeof AuthenticatedFiciaIndexRouteImport
+      parentRoute: typeof AuthenticatedFiciaRoute
+    }
     '/_authenticated/cania/': {
       id: '/_authenticated/cania/'
       path: '/'
@@ -941,6 +983,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/madee/$projectId'
       preLoaderRoute: typeof AuthenticatedMadeeProjectIdRouteImport
       parentRoute: typeof AuthenticatedMadeeRoute
+    }
+    '/_authenticated/ficia/new': {
+      id: '/_authenticated/ficia/new'
+      path: '/new'
+      fullPath: '/ficia/new'
+      preLoaderRoute: typeof AuthenticatedFiciaNewRouteImport
+      parentRoute: typeof AuthenticatedFiciaRoute
+    }
+    '/_authenticated/ficia/$tenantId': {
+      id: '/_authenticated/ficia/$tenantId'
+      path: '/$tenantId'
+      fullPath: '/ficia/$tenantId'
+      preLoaderRoute: typeof AuthenticatedFiciaTenantIdRouteImport
+      parentRoute: typeof AuthenticatedFiciaRoute
     }
     '/_authenticated/cania/world': {
       id: '/_authenticated/cania/world'
@@ -1146,6 +1202,21 @@ const AuthenticatedCaniaRouteChildren: AuthenticatedCaniaRouteChildren = {
 const AuthenticatedCaniaRouteWithChildren =
   AuthenticatedCaniaRoute._addFileChildren(AuthenticatedCaniaRouteChildren)
 
+interface AuthenticatedFiciaRouteChildren {
+  AuthenticatedFiciaTenantIdRoute: typeof AuthenticatedFiciaTenantIdRoute
+  AuthenticatedFiciaNewRoute: typeof AuthenticatedFiciaNewRoute
+  AuthenticatedFiciaIndexRoute: typeof AuthenticatedFiciaIndexRoute
+}
+
+const AuthenticatedFiciaRouteChildren: AuthenticatedFiciaRouteChildren = {
+  AuthenticatedFiciaTenantIdRoute: AuthenticatedFiciaTenantIdRoute,
+  AuthenticatedFiciaNewRoute: AuthenticatedFiciaNewRoute,
+  AuthenticatedFiciaIndexRoute: AuthenticatedFiciaIndexRoute,
+}
+
+const AuthenticatedFiciaRouteWithChildren =
+  AuthenticatedFiciaRoute._addFileChildren(AuthenticatedFiciaRouteChildren)
+
 interface AuthenticatedMadeeProjectIdRouteChildren {
   AuthenticatedMadeeProjectIdPreviewRoute: typeof AuthenticatedMadeeProjectIdPreviewRoute
 }
@@ -1228,7 +1299,7 @@ const AuthenticatedAdminCountryPacksRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCaniaRoute: typeof AuthenticatedCaniaRouteWithChildren
-  AuthenticatedFiciaRoute: typeof AuthenticatedFiciaRoute
+  AuthenticatedFiciaRoute: typeof AuthenticatedFiciaRouteWithChildren
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedMadeeRoute: typeof AuthenticatedMadeeRouteWithChildren
   AuthenticatedOcadeRoute: typeof AuthenticatedOcadeRouteWithChildren
@@ -1240,7 +1311,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCaniaRoute: AuthenticatedCaniaRouteWithChildren,
-  AuthenticatedFiciaRoute: AuthenticatedFiciaRoute,
+  AuthenticatedFiciaRoute: AuthenticatedFiciaRouteWithChildren,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedMadeeRoute: AuthenticatedMadeeRouteWithChildren,
   AuthenticatedOcadeRoute: AuthenticatedOcadeRouteWithChildren,

@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          message: string | null
+          requested_role: Database["public"]["Enums"]["tenant_role"]
+          requester_user_id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          message?: string | null
+          requested_role?: Database["public"]["Enums"]["tenant_role"]
+          requester_user_id: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          message?: string | null
+          requested_role?: Database["public"]["Enums"]["tenant_role"]
+          requester_user_id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_log: {
         Row: {
           action: string
@@ -1166,10 +1213,16 @@ export type Database = {
       tenants: {
         Row: {
           accounting_method: string | null
+          address: Json
+          branches: Json
+          contact: Json
           country: string | null
           created_at: string
           created_by: string
           currency: string
+          description: string | null
+          entity_type: string | null
+          fiscal_year_end_month: number | null
           fiscal_year_start_month: number
           id: string
           industry: string | null
@@ -1178,16 +1231,26 @@ export type Database = {
           logo_url: string | null
           name: string
           region: string | null
+          registration_number: string | null
           slug: string | null
+          status: string
+          subsidiaries: Json
+          tax_ids: Json
           timezone: string
           updated_at: string
         }
         Insert: {
           accounting_method?: string | null
+          address?: Json
+          branches?: Json
+          contact?: Json
           country?: string | null
           created_at?: string
           created_by: string
           currency?: string
+          description?: string | null
+          entity_type?: string | null
+          fiscal_year_end_month?: number | null
           fiscal_year_start_month?: number
           id?: string
           industry?: string | null
@@ -1196,16 +1259,26 @@ export type Database = {
           logo_url?: string | null
           name: string
           region?: string | null
+          registration_number?: string | null
           slug?: string | null
+          status?: string
+          subsidiaries?: Json
+          tax_ids?: Json
           timezone?: string
           updated_at?: string
         }
         Update: {
           accounting_method?: string | null
+          address?: Json
+          branches?: Json
+          contact?: Json
           country?: string | null
           created_at?: string
           created_by?: string
           currency?: string
+          description?: string | null
+          entity_type?: string | null
+          fiscal_year_end_month?: number | null
           fiscal_year_start_month?: number
           id?: string
           industry?: string | null
@@ -1214,7 +1287,11 @@ export type Database = {
           logo_url?: string | null
           name?: string
           region?: string | null
+          registration_number?: string | null
           slug?: string | null
+          status?: string
+          subsidiaries?: Json
+          tax_ids?: Json
           timezone?: string
           updated_at?: string
         }
@@ -1411,6 +1488,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_company_with_owner: {
+        Args: { _payload: Json; _uid: string }
+        Returns: string
+      }
+      find_conflicting_legal_id: {
+        Args: {
+          _country: string
+          _gstin: string
+          _pan: string
+          _registration: string
+        }
+        Returns: {
+          id: string
+          matched: string
+          name: string
+        }[]
+      }
+      find_similar_company_names: {
+        Args: { _country: string; _name: string }
+        Returns: {
+          id: string
+          name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

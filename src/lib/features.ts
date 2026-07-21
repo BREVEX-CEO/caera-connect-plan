@@ -81,7 +81,8 @@ const features: Feature[] = [
 
 
   // FICIA
-  { id: "ficia.company", module: "ficia", title: "Company workspace", status: "planned", platforms: ["web"], reason: "Company setup + Home dashboard ship next." },
+  { id: "ficia.company", module: "ficia", title: "Company workspace", status: "active", platforms: ["web"] },
+  { id: "ficia.access", module: "ficia", title: "Company access requests", status: "active", platforms: ["web"] },
   { id: "ficia.timesheet", module: "ficia", title: "Timesheets", status: "planned", platforms: ["web"], reason: "Ships after company workspace." },
   { id: "ficia.family_planning", module: "ficia", title: "Family, Marriage & Asset Protection", status: "planned", platforms: ["web"], reason: "Ships with the FICIA tax / benefits slice." },
 
