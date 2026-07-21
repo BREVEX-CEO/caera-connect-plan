@@ -1488,7 +1488,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_company_with_owner: { Args: { _payload: Json }; Returns: string }
+      create_company_with_owner: {
+        Args: { _payload: Json; _uid: string }
+        Returns: string
+      }
       find_conflicting_legal_id: {
         Args: {
           _country: string
