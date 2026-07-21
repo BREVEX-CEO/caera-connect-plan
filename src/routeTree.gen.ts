@@ -68,6 +68,7 @@ import { Route as AuthenticatedAdminCountryPacksRouteImport } from './routes/_au
 import { Route as AuthenticatedMadeeProjectIdPreviewRouteImport } from './routes/_authenticated/madee.$projectId.preview'
 import { Route as AuthenticatedFiciaTenantIdRolesRouteImport } from './routes/_authenticated/ficia.$tenantId.roles'
 import { Route as AuthenticatedFiciaTenantIdPeopleRouteImport } from './routes/_authenticated/ficia.$tenantId.people'
+import { Route as AuthenticatedFiciaTenantIdMessengerRouteImport } from './routes/_authenticated/ficia.$tenantId.messenger'
 import { Route as AuthenticatedFiciaTenantIdApprovalsRouteImport } from './routes/_authenticated/ficia.$tenantId.approvals'
 import { Route as AuthenticatedAdminCountryPacksPackIdRouteImport } from './routes/_authenticated/admin.country-packs.$packId'
 
@@ -394,6 +395,12 @@ const AuthenticatedFiciaTenantIdPeopleRoute =
     path: '/people',
     getParentRoute: () => AuthenticatedFiciaTenantIdRoute,
   } as any)
+const AuthenticatedFiciaTenantIdMessengerRoute =
+  AuthenticatedFiciaTenantIdMessengerRouteImport.update({
+    id: '/messenger',
+    path: '/messenger',
+    getParentRoute: () => AuthenticatedFiciaTenantIdRoute,
+  } as any)
 const AuthenticatedFiciaTenantIdApprovalsRoute =
   AuthenticatedFiciaTenantIdApprovalsRouteImport.update({
     id: '/approvals',
@@ -465,6 +472,7 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/admin/country-packs/$packId': typeof AuthenticatedAdminCountryPacksPackIdRoute
   '/ficia/$tenantId/approvals': typeof AuthenticatedFiciaTenantIdApprovalsRoute
+  '/ficia/$tenantId/messenger': typeof AuthenticatedFiciaTenantIdMessengerRoute
   '/ficia/$tenantId/people': typeof AuthenticatedFiciaTenantIdPeopleRoute
   '/ficia/$tenantId/roles': typeof AuthenticatedFiciaTenantIdRolesRoute
   '/madee/$projectId/preview': typeof AuthenticatedMadeeProjectIdPreviewRoute
@@ -522,6 +530,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/admin/country-packs/$packId': typeof AuthenticatedAdminCountryPacksPackIdRoute
   '/ficia/$tenantId/approvals': typeof AuthenticatedFiciaTenantIdApprovalsRoute
+  '/ficia/$tenantId/messenger': typeof AuthenticatedFiciaTenantIdMessengerRoute
   '/ficia/$tenantId/people': typeof AuthenticatedFiciaTenantIdPeopleRoute
   '/ficia/$tenantId/roles': typeof AuthenticatedFiciaTenantIdRolesRoute
   '/madee/$projectId/preview': typeof AuthenticatedMadeeProjectIdPreviewRoute
@@ -586,6 +595,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/admin/country-packs/$packId': typeof AuthenticatedAdminCountryPacksPackIdRoute
   '/_authenticated/ficia/$tenantId/approvals': typeof AuthenticatedFiciaTenantIdApprovalsRoute
+  '/_authenticated/ficia/$tenantId/messenger': typeof AuthenticatedFiciaTenantIdMessengerRoute
   '/_authenticated/ficia/$tenantId/people': typeof AuthenticatedFiciaTenantIdPeopleRoute
   '/_authenticated/ficia/$tenantId/roles': typeof AuthenticatedFiciaTenantIdRolesRoute
   '/_authenticated/madee/$projectId/preview': typeof AuthenticatedMadeeProjectIdPreviewRoute
@@ -650,6 +660,7 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/admin/country-packs/$packId'
     | '/ficia/$tenantId/approvals'
+    | '/ficia/$tenantId/messenger'
     | '/ficia/$tenantId/people'
     | '/ficia/$tenantId/roles'
     | '/madee/$projectId/preview'
@@ -707,6 +718,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/admin/country-packs/$packId'
     | '/ficia/$tenantId/approvals'
+    | '/ficia/$tenantId/messenger'
     | '/ficia/$tenantId/people'
     | '/ficia/$tenantId/roles'
     | '/madee/$projectId/preview'
@@ -770,6 +782,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/'
     | '/_authenticated/admin/country-packs/$packId'
     | '/_authenticated/ficia/$tenantId/approvals'
+    | '/_authenticated/ficia/$tenantId/messenger'
     | '/_authenticated/ficia/$tenantId/people'
     | '/_authenticated/ficia/$tenantId/roles'
     | '/_authenticated/madee/$projectId/preview'
@@ -1198,6 +1211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFiciaTenantIdPeopleRouteImport
       parentRoute: typeof AuthenticatedFiciaTenantIdRoute
     }
+    '/_authenticated/ficia/$tenantId/messenger': {
+      id: '/_authenticated/ficia/$tenantId/messenger'
+      path: '/messenger'
+      fullPath: '/ficia/$tenantId/messenger'
+      preLoaderRoute: typeof AuthenticatedFiciaTenantIdMessengerRouteImport
+      parentRoute: typeof AuthenticatedFiciaTenantIdRoute
+    }
     '/_authenticated/ficia/$tenantId/approvals': {
       id: '/_authenticated/ficia/$tenantId/approvals'
       path: '/approvals'
@@ -1264,6 +1284,7 @@ const AuthenticatedCaniaRouteWithChildren =
 
 interface AuthenticatedFiciaTenantIdRouteChildren {
   AuthenticatedFiciaTenantIdApprovalsRoute: typeof AuthenticatedFiciaTenantIdApprovalsRoute
+  AuthenticatedFiciaTenantIdMessengerRoute: typeof AuthenticatedFiciaTenantIdMessengerRoute
   AuthenticatedFiciaTenantIdPeopleRoute: typeof AuthenticatedFiciaTenantIdPeopleRoute
   AuthenticatedFiciaTenantIdRolesRoute: typeof AuthenticatedFiciaTenantIdRolesRoute
 }
@@ -1272,6 +1293,8 @@ const AuthenticatedFiciaTenantIdRouteChildren: AuthenticatedFiciaTenantIdRouteCh
   {
     AuthenticatedFiciaTenantIdApprovalsRoute:
       AuthenticatedFiciaTenantIdApprovalsRoute,
+    AuthenticatedFiciaTenantIdMessengerRoute:
+      AuthenticatedFiciaTenantIdMessengerRoute,
     AuthenticatedFiciaTenantIdPeopleRoute:
       AuthenticatedFiciaTenantIdPeopleRoute,
     AuthenticatedFiciaTenantIdRolesRoute: AuthenticatedFiciaTenantIdRolesRoute,

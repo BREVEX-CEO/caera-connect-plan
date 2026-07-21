@@ -21,6 +21,8 @@ export type ComplianceCategory =
   | "role_change"
   | "sensitive_export"
   | "deletion"
+  | "data_change"
+  | "consent"
   | "other";
 
 export type ConfirmationLevel = "none" | "confirm" | "strong";
@@ -260,6 +262,20 @@ const actions: Action[] = [
   { id: "ficia.approvals.reject", featureId: "ficia.approvals", title: "Reject request", log: "compliance", category: "approval", requiresPreview: true, confirmation: "confirm" },
   { id: "ficia.approvals.release", featureId: "ficia.approvals", title: "Release approved request", log: "compliance", category: "approval", requiresPreview: true, confirmation: "strong", confirmPhrase: "RELEASE" },
   { id: "ficia.approvals.sod_override", featureId: "ficia.approvals", title: "Segregation-of-duties override", log: "compliance", category: "approval", requiresPreview: true, confirmation: "strong", confirmPhrase: "OVERRIDE", description: "Documented override — requires reason and appears in compliance audit." },
+  // FICIA messenger
+  { id: "ficia.messenger.thread.create", featureId: "ficia.messenger", title: "Create messenger thread", log: "operational" },
+  { id: "ficia.messenger.thread.update", featureId: "ficia.messenger", title: "Update thread settings", log: "operational" },
+  { id: "ficia.messenger.member.add", featureId: "ficia.messenger", title: "Add thread member", log: "operational" },
+  { id: "ficia.messenger.member.remove", featureId: "ficia.messenger", title: "Remove thread member", log: "compliance", category: "role_change" },
+  { id: "ficia.messenger.send", featureId: "ficia.messenger", title: "Send message", log: "operational" },
+  { id: "ficia.messenger.edit", featureId: "ficia.messenger", title: "Edit message", log: "operational" },
+  { id: "ficia.messenger.delete", featureId: "ficia.messenger", title: "Delete message", log: "compliance", category: "data_change", requiresPreview: true, confirmation: "confirm", description: "Company message retention governs whether authors can delete after 30 days." },
+  { id: "ficia.messenger.attachment", featureId: "ficia.messenger", title: "Attach file or voice note", log: "operational" },
+  { id: "ficia.messenger.pin", featureId: "ficia.messenger", title: "Pin or unpin message", log: "operational" },
+  { id: "ficia.messenger.link_action", featureId: "ficia.messenger", title: "Link message to task, approval or evidence", log: "compliance", category: "data_change" },
+  { id: "ficia.messenger.convert_approval", featureId: "ficia.messenger", title: "Convert message to approval request", log: "compliance", category: "approval", requiresPreview: true, confirmation: "confirm" },
+  { id: "ficia.messenger.cross_company.request", featureId: "ficia.messenger", title: "Request cross-company access", log: "compliance", category: "consent", requiresPreview: true, confirmation: "confirm" },
+  { id: "ficia.messenger.cross_company.decide", featureId: "ficia.messenger", title: "Approve or reject cross-company access", log: "compliance", category: "consent", requiresPreview: true, confirmation: "confirm" },
   { id: "ocade.chat.send", featureId: "ocade.chat", title: "Send OCADE message", log: "operational" },
 
   { id: "ocade.chat.regenerate", featureId: "ocade.chat", title: "Regenerate OCADE response", log: "operational" },
