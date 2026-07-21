@@ -35,7 +35,10 @@ const updateItemInput = z.object({
   history_note: z.string().max(500).optional(),
 });
 
-async function assertAdmin(supabase: ReturnType<typeof requireSupabaseAuth> extends never ? never : any, userId: string) {
+async function assertAdmin(
+  supabase: { from: (t: string) => any },
+  userId: string,
+) {
   const { data, error } = await supabase
     .from("user_roles")
     .select("role")
@@ -46,6 +49,7 @@ async function assertAdmin(supabase: ReturnType<typeof requireSupabaseAuth> exte
     throw new Response("Forbidden: admin role required", { status: 403 });
   }
 }
+
 
 export const updateLaunchGateItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
