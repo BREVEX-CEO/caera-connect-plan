@@ -99,6 +99,14 @@ const actions: Action[] = [
     category: "role_change",
     description: "Revoking a device removes an approved access surface for the account.",
   },
+  { id: "vault.setup", featureId: "settings.vault", title: "Set up Browser Vault", log: "operational",
+    description: "Creates an AES-GCM data key wrapped by a passphrase or WebAuthn PRF." },
+  { id: "vault.unlock", featureId: "settings.vault", title: "Unlock Browser Vault", log: "operational" },
+  { id: "vault.lock", featureId: "settings.vault", title: "Lock Browser Vault", log: "operational" },
+  { id: "vault.rotate", featureId: "settings.vault", title: "Rotate vault credential", log: "compliance",
+    category: "role_change", description: "Re-wraps the data key with a fresh credential." },
+  { id: "vault.recovery_used", featureId: "settings.vault", title: "Recovered vault with recovery kit", log: "compliance",
+    category: "role_change", description: "One-time recovery kit was used to unlock the browser vault." },
 ];
 
 for (const a of actions) registerAction(a);
