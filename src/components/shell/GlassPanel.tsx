@@ -10,7 +10,7 @@ export function GlassPanel({
     <div
       className={cn(
         strong ? "glass-strong" : "glass",
-        "rounded-2xl",
+        "rounded-lg",
         className,
       )}
       {...props}
