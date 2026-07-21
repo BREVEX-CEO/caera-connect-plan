@@ -187,6 +187,10 @@ const actions: Action[] = [
     description: "User acknowledged that a message stored under Browser Only privacy will be sent to a cloud model.",
   },
   { id: "ocade.model.change", featureId: "ocade.models", title: "Change OCADE model", log: "operational" },
+  { id: "ocade.providers.save_prefs", featureId: "ocade.models", title: "Save OCADE provider preferences", log: "operational" },
+  { id: "ocade.providers.test_connection", featureId: "ocade.models", title: "Test OCADE provider connection", log: "operational" },
+  { id: "ocade.providers.set_bridge_url", featureId: "ocade.models", title: "Set Ollama local bridge URL", log: "operational" },
+  { id: "ocade.providers.enable_openai_direct", featureId: "ocade.models", title: "Enable OpenAI Direct", log: "operational" },
 ];
 
 
