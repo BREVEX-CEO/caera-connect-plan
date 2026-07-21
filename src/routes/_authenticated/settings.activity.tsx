@@ -40,7 +40,7 @@ type ComplianceRow = {
   category: string | null;
   tenant_id: string | null;
   preview: Record<string, unknown> | null;
-  evidence_ref: string | null;
+  result: string | null;
   prev_hash: string | null;
   row_hash: string | null;
 };
