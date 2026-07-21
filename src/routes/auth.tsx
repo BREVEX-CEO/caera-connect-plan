@@ -35,8 +35,16 @@ export const Route = createFileRoute("/auth")({
 
 function safeNext(value: string | undefined): string | null {
   if (!value) return null;
-  if (!value.startsWith("/") || value.startsWith("//")) return null;
-  return value;
+  if (value.startsWith("/") && !value.startsWith("//")) return value;
+  if (typeof window !== "undefined") {
+    try {
+      const u = new URL(value, window.location.origin);
+      if (u.origin === window.location.origin) return u.pathname + u.search + u.hash;
+    } catch {
+      /* fall through */
+    }
+  }
+  return null;
 }
 
 type Method = "google" | "apple" | "phone" | "email";
