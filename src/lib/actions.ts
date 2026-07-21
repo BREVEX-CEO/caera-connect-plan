@@ -72,6 +72,13 @@ const actions: Action[] = [
     log: "operational",
   },
   {
+    id: "settings.appearance.change",
+    featureId: "settings.appearance",
+    title: "Change appearance",
+    log: "operational",
+    description: "Theme, cursor, motion or performance preference update.",
+  },
+  {
     id: "settings.privacy.change",
     featureId: "settings.privacy",
     title: "Change privacy mode",
