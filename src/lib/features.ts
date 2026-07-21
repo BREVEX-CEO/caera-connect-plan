@@ -89,6 +89,10 @@ const features: Feature[] = [
 
   // CANIA — design + honest empty states now, providers later
   { id: "cania.center", module: "cania", title: "World intelligence center", status: "setup_required", platforms: ["web"], reason: "Provider setup required. Data sources not connected yet." },
+  { id: "cania.topics", module: "cania", title: "CANIA saved topics", status: "active", platforms: ["web"] },
+  { id: "cania.alerts", module: "cania", title: "CANIA alerts", status: "setup_required", platforms: ["web"], reason: "Alerts fire once provider adapters are connected." },
+  { id: "cania.settings", module: "cania", title: "CANIA settings", status: "active", platforms: ["web"] },
+  { id: "cania.search", module: "cania", title: "CANIA search", status: "setup_required", platforms: ["web"], reason: "Cross-section search runs once providers are connected." },
 ];
 
 for (const f of features) registerFeature(f);
