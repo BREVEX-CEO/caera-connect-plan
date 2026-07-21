@@ -156,7 +156,8 @@ function OcadeWorkspace({ userId }: { userId: string }) {
     }
     setLoadingMessages(true);
     void listMessages({ data: { conversationId: activeId } }).then((rows) => {
-      setMessages(rows as Message[]);
+      setMessages(rows as unknown as Message[]);
+
       setLoadingMessages(false);
     });
   }, [activeId]);
@@ -488,7 +489,7 @@ function ChatWindow(props: {
       }
 
       // Reload from server to get real IDs.
-      const rows = (await listMessages({ data: { conversationId: conversation.id } })) as Message[];
+      const rows = (await listMessages({ data: { conversationId: conversation.id } })) as unknown as Message[];
       setMessages(rows);
       setStreamText("");
       await onRefreshList();
@@ -623,7 +624,7 @@ function ChatWindow(props: {
         <div className="min-w-0">
           <div className="truncate text-sm font-medium">{conversation.title}</div>
           <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
-            <PrivacyBadge mode={chatsMode} />
+            <PrivacyBadge mode={chatsMode === "private_sync" ? "private_sync" : "device_only"} />
             <span>·</span>
             <span title={modelInfo.provider}>{modelInfo.display}</span>
           </div>
@@ -661,7 +662,7 @@ function ChatWindow(props: {
             <p className="text-sm text-muted-foreground">
               Ask a question, paste text, or drop an image. OCADE will introduce itself and answer honestly about its limits.
             </p>
-            <p className="text-[11px] text-muted-foreground/80">{ocadeHonestDisclosure(modelInfo.display, modelInfo.provider)}</p>
+            <p className="text-[11px] text-muted-foreground/80">{ocadeHonestDisclosure({ modelId: modelInfo.display, providerId: modelInfo.provider, locality: modelInfo.locality })}</p>
           </div>
         ) : (
           messages.map((m) => (
