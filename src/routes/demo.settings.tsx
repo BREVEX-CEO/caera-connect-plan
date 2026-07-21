@@ -16,7 +16,9 @@ const cursors = ["system", "black_arrow", "white_arrow", "auto_contrast"] as con
 function DemoSettings() {
   const { reset, exit } = useDemo();
   const navigate = useNavigate();
-  const { theme, setTheme, cursor, setCursor } = useTheme();
+  const { theme, cursor, update } = useAppearance();
+  const setTheme = (t: "dark" | "light" | "real") => update({ theme: t });
+  const setCursor = (c: "system" | "black_arrow" | "white_arrow" | "auto_contrast") => update({ cursor: c });
 
   return (
     <DemoShell>
