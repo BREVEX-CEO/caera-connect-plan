@@ -286,8 +286,8 @@ function ActivityPage() {
                     <div className="text-xs text-muted-foreground">
                       {r.category ?? "other"} · {r.feature_id ?? "—"}
                     </div>
-                    {r.evidence_ref ? (
-                      <div className="mt-1 text-[11px] text-muted-foreground">Evidence: <code>{r.evidence_ref}</code></div>
+                    {r.result ? (
+                      <div className="mt-1 text-[11px] text-muted-foreground">Result: <code>{r.result}</code></div>
                     ) : null}
                     {r.row_hash ? (
                       <div className="mt-0.5 text-[10px] font-mono text-muted-foreground/70">
