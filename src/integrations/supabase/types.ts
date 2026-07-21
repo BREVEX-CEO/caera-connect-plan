@@ -347,6 +347,92 @@ export type Database = {
         }
         Relationships: []
       }
+      ocade_conversations: {
+        Row: {
+          archived: boolean
+          created_at: string
+          id: string
+          model_id: string | null
+          pinned: boolean
+          privacy_mode: string
+          provider_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          created_at?: string
+          id?: string
+          model_id?: string | null
+          pinned?: boolean
+          privacy_mode?: string
+          provider_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          created_at?: string
+          id?: string
+          model_id?: string | null
+          pinned?: boolean
+          privacy_mode?: string
+          provider_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ocade_messages: {
+        Row: {
+          attachments: Json
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          model_id: string | null
+          provider_id: string | null
+          role: string
+          token_usage: Json | null
+          user_id: string
+        }
+        Insert: {
+          attachments?: Json
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          model_id?: string | null
+          provider_id?: string | null
+          role: string
+          token_usage?: Json | null
+          user_id: string
+        }
+        Update: {
+          attachments?: Json
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          model_id?: string | null
+          provider_id?: string | null
+          role?: string
+          token_usage?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
