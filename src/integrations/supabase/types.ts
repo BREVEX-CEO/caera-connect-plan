@@ -208,6 +208,75 @@ export type Database = {
         }
         Relationships: []
       }
+      company_obligations: {
+        Row: {
+          assignee_user_id: string | null
+          category: string
+          computed_at: string
+          created_at: string
+          due_date: string | null
+          event_key: string
+          evidence_url: string | null
+          id: string
+          notes: string | null
+          period_label: string | null
+          status: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          version_id: string
+        }
+        Insert: {
+          assignee_user_id?: string | null
+          category: string
+          computed_at?: string
+          created_at?: string
+          due_date?: string | null
+          event_key: string
+          evidence_url?: string | null
+          id?: string
+          notes?: string | null
+          period_label?: string | null
+          status?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          version_id: string
+        }
+        Update: {
+          assignee_user_id?: string | null
+          category?: string
+          computed_at?: string
+          created_at?: string
+          due_date?: string | null
+          event_key?: string
+          evidence_url?: string | null
+          id?: string
+          notes?: string | null
+          period_label?: string | null
+          status?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_obligations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_obligations_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "country_pack_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compliance_audit_log: {
         Row: {
           action: string
@@ -263,6 +332,160 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      compliance_events: {
+        Row: {
+          applicability: Json
+          cadence: string
+          category: string
+          created_at: string
+          description: string | null
+          due_rule: Json
+          event_key: string
+          form_ref: string | null
+          id: string
+          penalty_notes: string | null
+          title: string
+          version_id: string
+        }
+        Insert: {
+          applicability?: Json
+          cadence: string
+          category: string
+          created_at?: string
+          description?: string | null
+          due_rule?: Json
+          event_key: string
+          form_ref?: string | null
+          id?: string
+          penalty_notes?: string | null
+          title: string
+          version_id: string
+        }
+        Update: {
+          applicability?: Json
+          cadence?: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          due_rule?: Json
+          event_key?: string
+          form_ref?: string | null
+          id?: string
+          penalty_notes?: string | null
+          title?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_events_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "country_pack_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      country_pack_versions: {
+        Row: {
+          applicability: Json
+          authored_by: string | null
+          business_types: string[]
+          changelog: string | null
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          ga_ready: boolean
+          id: string
+          jurisdiction: string
+          pack_id: string
+          pilot_evidence_url: string | null
+          review_required_count: number
+          rules: Json
+          status: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          applicability?: Json
+          authored_by?: string | null
+          business_types?: string[]
+          changelog?: string | null
+          created_at?: string
+          effective_from: string
+          effective_to?: string | null
+          ga_ready?: boolean
+          id?: string
+          jurisdiction?: string
+          pack_id: string
+          pilot_evidence_url?: string | null
+          review_required_count?: number
+          rules?: Json
+          status?: string
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          applicability?: Json
+          authored_by?: string | null
+          business_types?: string[]
+          changelog?: string | null
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          ga_ready?: boolean
+          id?: string
+          jurisdiction?: string
+          pack_id?: string
+          pilot_evidence_url?: string | null
+          review_required_count?: number
+          rules?: Json
+          status?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_pack_versions_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "country_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      country_packs: {
+        Row: {
+          country_code: string
+          created_at: string
+          description: string | null
+          id: string
+          jurisdiction_level: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          jurisdiction_level?: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          jurisdiction_level?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       data_class_privacy: {
         Row: {
@@ -350,6 +573,59 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      historical_test_cases: {
+        Row: {
+          calculator: string
+          case_key: string
+          created_at: string
+          description: string | null
+          expected: Json
+          id: string
+          inputs: Json
+          last_result: Json | null
+          last_run_at: string | null
+          last_status: string | null
+          tolerance: number
+          version_id: string
+        }
+        Insert: {
+          calculator: string
+          case_key: string
+          created_at?: string
+          description?: string | null
+          expected: Json
+          id?: string
+          inputs: Json
+          last_result?: Json | null
+          last_run_at?: string | null
+          last_status?: string | null
+          tolerance?: number
+          version_id: string
+        }
+        Update: {
+          calculator?: string
+          case_key?: string
+          created_at?: string
+          description?: string | null
+          expected?: Json
+          id?: string
+          inputs?: Json
+          last_result?: Json | null
+          last_run_at?: string | null
+          last_status?: string | null
+          tolerance?: number
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historical_test_cases_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "country_pack_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       launch_gate_history: {
         Row: {
@@ -713,6 +989,59 @@ export type Database = {
         }
         Relationships: []
       }
+      pack_reviews: {
+        Row: {
+          created_at: string
+          credential_id: string | null
+          decision: string
+          evidence_url: string | null
+          id: string
+          notes: string | null
+          reviewer_credential: string
+          reviewer_name: string
+          reviewer_user_id: string | null
+          scope: string | null
+          signed_at: string
+          version_id: string
+        }
+        Insert: {
+          created_at?: string
+          credential_id?: string | null
+          decision: string
+          evidence_url?: string | null
+          id?: string
+          notes?: string | null
+          reviewer_credential: string
+          reviewer_name: string
+          reviewer_user_id?: string | null
+          scope?: string | null
+          signed_at?: string
+          version_id: string
+        }
+        Update: {
+          created_at?: string
+          credential_id?: string | null
+          decision?: string
+          evidence_url?: string | null
+          id?: string
+          notes?: string | null
+          reviewer_credential?: string
+          reviewer_name?: string
+          reviewer_user_id?: string | null
+          scope?: string | null
+          signed_at?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pack_reviews_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "country_pack_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -754,6 +1083,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      rule_sources: {
+        Row: {
+          citation: string
+          created_at: string
+          document_ref: string | null
+          id: string
+          notes: string | null
+          retrieved_at: string
+          rule_key: string
+          source_type: string
+          url: string | null
+          version_id: string
+        }
+        Insert: {
+          citation: string
+          created_at?: string
+          document_ref?: string | null
+          id?: string
+          notes?: string | null
+          retrieved_at?: string
+          rule_key: string
+          source_type: string
+          url?: string | null
+          version_id: string
+        }
+        Update: {
+          citation?: string
+          created_at?: string
+          document_ref?: string | null
+          id?: string
+          notes?: string | null
+          retrieved_at?: string
+          rule_key?: string
+          source_type?: string
+          url?: string | null
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_sources_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "country_pack_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tenant_members: {
         Row: {
