@@ -10,14 +10,14 @@ export function DemoBadge({ className, floating = false }: { className?: string;
       role="status"
       aria-label="Demo mode active"
       className={cn(
-        "pointer-events-none inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-amber-300 backdrop-blur",
+        "pointer-events-none inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300",
         floating &&
           "fixed bottom-3 right-3 z-50 shadow-lg shadow-amber-500/10 sm:bottom-4 sm:right-4",
         className,
       )}
     >
       <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
-      Demo — sample data
+      Demo
     </span>
   );
 }
