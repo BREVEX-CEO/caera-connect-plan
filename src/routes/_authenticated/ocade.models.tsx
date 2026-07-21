@@ -162,7 +162,7 @@ function OcadeModelsPage() {
   if (!prefs) {
     return (
       <AppShell>
-        <PageHeader title="OCADE Model Control" subtitle="Loading provider preferences…" />
+        <PageHeader title="OCADE Model Control" description="Loading provider preferences…" />
       </AppShell>
     );
   }
@@ -171,7 +171,7 @@ function OcadeModelsPage() {
     <AppShell>
       <PageHeader
         title="OCADE Model Control"
-        subtitle="Technical provider settings. Public chat always identifies as OCADE by CAERA CADANE."
+        description="Technical provider settings. Public chat always identifies as OCADE by CAERA CADANE."
         actions={
           <Link
             to="/ocade"
