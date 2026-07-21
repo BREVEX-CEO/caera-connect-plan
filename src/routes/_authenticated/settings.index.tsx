@@ -110,6 +110,24 @@ function SettingsPage() {
           </GlassPanel>
         </Link>
 
+        <Link to="/settings/vault" className="group">
+          <GlassPanel className="flex h-full items-start gap-4 p-5 transition-transform group-hover:-translate-y-0.5">
+            <div className="rounded-lg bg-primary/15 p-2.5 text-primary">
+              <Lock className="h-5 w-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-foreground">Browser Vault</h3>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden />
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Encrypt Browser Only data. Passphrase or WebAuthn, with a recovery kit.
+              </p>
+            </div>
+          </GlassPanel>
+        </Link>
+
+
         <SetupRequiredState
           title="Roles & organizations ship next"
           description="Multi-tenant orgs, role assignment and audit trail arrive with FICIA slice P20+."
