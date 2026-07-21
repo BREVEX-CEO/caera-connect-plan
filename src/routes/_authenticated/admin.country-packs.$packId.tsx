@@ -185,8 +185,8 @@ function PackEditor() {
       const res = await executeAction("admin.country_pack.run_tests", {
         run: () => runVersionTests({ data: { version_id: ver.id } }),
       });
-      if (res && res.ok && res.summary) {
-        const s = res.summary;
+      if (res && res.ok) {
+        const s = res.summary!;
         setFlash(`Tests: ${s.pass}/${s.total} pass · ${s.fail} fail · ${s.error} error`);
       } else if (res && !res.ok) {
         setFlash(res.message ?? "Test run failed.");
