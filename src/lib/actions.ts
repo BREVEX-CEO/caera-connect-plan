@@ -135,8 +135,29 @@ const actions: Action[] = [
     requiresPreview: true,
     confirmation: "strong",
     confirmPhrase: "clear",
+  {
+    id: "admin.launch_gate.update",
+    featureId: "admin.launch_gate",
+    title: "Update launch-gate item",
+    log: "compliance",
+    category: "approval",
+    description: "Admin changed status, evidence, owner or blocker flag on a launch-gate item.",
+    requiresPreview: true,
+    confirmation: "confirm",
+  },
+  {
+    id: "admin.feature_flag.upsert",
+    featureId: "admin.launch_gate",
+    title: "Update feature flag stage",
+    log: "compliance",
+    category: "approval",
+    description: "Admin changed a feature flag's stage, applicable modules or enabled state. GA is refused while any required blocker is unresolved.",
+    requiresPreview: true,
+    confirmation: "strong",
+    confirmPhrase: "activate",
   },
 ];
+
 
 for (const a of actions) registerAction(a);
 
