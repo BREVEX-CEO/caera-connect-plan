@@ -580,7 +580,7 @@ function CrossCompanyDialog({ thread, tenantId, onClose }: { thread: any; tenant
           <div key={g.id} className="p-2 rounded border border-border text-sm">
             <div className="flex items-center gap-2">
               <div className="flex-1">{g.from_tenant?.name} → {g.to_tenant?.name}</div>
-              <Chip variant={g.status}>{g.status}</Chip>
+              <Chip variant={g.status === "active" ? "success" : g.status === "pending_to" ? "warning" : "danger"}>{g.status}</Chip>
             </div>
             {g.reason && <div className="text-xs text-muted-foreground mt-1">{g.reason}</div>}
             <div className="mt-1 flex gap-1">
