@@ -30,12 +30,11 @@ function ReportsPage() {
   const monthStart = today.slice(0, 8) + "01";
   const [from, setFrom] = useState(monthStart);
   const [to, setTo] = useState(today);
-  const [groupBy, setGroupBy] = useState<"user" | "project" | "billable">("user");
-  const [scope, setScope] = useState<"team" | "self">("team");
+  const [groupBy, setGroupBy] = useState<"user" | "project">("user");
 
   const q = useQuery({
-    queryKey: ["time.report", tenantId, from, to, groupBy, scope],
-    queryFn: () => reportRollup({ data: { tenant_id: tenantId, from, to, group_by: groupBy, scope } }),
+    queryKey: ["time.report", tenantId, from, to],
+    queryFn: () => reportRollup({ data: { tenant_id: tenantId, from, to } }),
   });
 
   async function lock() {
@@ -49,7 +48,24 @@ function ReportsPage() {
     else toast.success("Period locked. Approved entries in this range are now immutable.");
   }
 
-  const rows = (q.data?.rows ?? []) as any[];
+  const rows = (() => {
+    const d = q.data;
+    if (!d) return [] as Array<{ key: string; total_seconds: number; billable_seconds: number; manual_seconds: number; ai_assisted_seconds: number; autonomous_seconds: number; overtime_seconds: number; amount_cents?: number; currency?: string | null }>;
+    if (groupBy === "user") {
+      return Object.entries(d.byUser).map(([uid, v]) => ({
+        key: `user ${uid.slice(0, 8)}…`,
+        total_seconds: v.seconds, billable_seconds: v.billable_seconds,
+        manual_seconds: v.manual, ai_assisted_seconds: v.assisted, autonomous_seconds: v.autonomous,
+        overtime_seconds: 0,
+      }));
+    }
+    return Object.entries(d.byProject).map(([pid, v]) => ({
+      key: pid === "_unassigned" ? "— Unassigned —" : `project ${pid.slice(0, 8)}…`,
+      total_seconds: v.seconds, billable_seconds: v.billable_seconds,
+      manual_seconds: 0, ai_assisted_seconds: 0, autonomous_seconds: 0, overtime_seconds: 0,
+      amount_cents: v.amount_cents, currency: v.currency,
+    }));
+  })();
   const totalSec = rows.reduce((a, r) => a + (r.total_seconds ?? 0), 0);
   const billableSec = rows.reduce((a, r) => a + (r.billable_seconds ?? 0), 0);
   const otSec = rows.reduce((a, r) => a + (r.overtime_seconds ?? 0), 0);
@@ -69,14 +85,10 @@ function ReportsPage() {
           <div className="grid gap-1"><Label>To</Label><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>
           <div className="grid gap-1"><Label>Group by</Label>
             <select className="h-9 rounded-md border border-border bg-background px-2 text-sm" value={groupBy} onChange={(e) => setGroupBy(e.target.value as any)}>
-              <option value="user">Employee</option><option value="project">Project</option><option value="billable">Billable</option>
+              <option value="user">Employee</option><option value="project">Project</option>
             </select>
           </div>
-          <div className="grid gap-1"><Label>Scope</Label>
-            <select className="h-9 rounded-md border border-border bg-background px-2 text-sm" value={scope} onChange={(e) => setScope(e.target.value as any)}>
-              <option value="team">Team (managed)</option><option value="self">Just me</option>
-            </select>
-          </div>
+          <div />
           <Button size="sm" variant="destructive" onClick={lock}><Lock className="size-4 mr-1" /> Lock period</Button>
         </div>
 

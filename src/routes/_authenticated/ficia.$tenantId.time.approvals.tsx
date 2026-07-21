@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { executeAction } from "@/lib/actions";
-import { listPendingApprovals, decideEntry } from "@/lib/timesheet.functions";
+import { listApprovalQueue, decideEntry } from "@/lib/timesheet.functions";
 
 export const Route = createFileRoute("/_authenticated/ficia/$tenantId/time/approvals")({
   head: () => ({ meta: [{ title: "Timesheet Approvals — FICIA" }, { name: "robots", content: "noindex" }] }),
@@ -29,7 +29,7 @@ function ApprovalsPage() {
   const qc = useQueryClient();
   const pendingQ = useQuery({
     queryKey: ["time.pending", tenantId],
-    queryFn: () => listPendingApprovals({ data: { tenant_id: tenantId } }),
+    queryFn: () => listApprovalQueue({ data: { tenant_id: tenantId } }),
   });
 
   const [reasons, setReasons] = useState<Record<string, string>>({});
