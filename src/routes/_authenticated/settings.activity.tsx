@@ -85,7 +85,7 @@ function ActivityPage() {
     queryFn: async () => {
       let query = supabase
         .from("compliance_audit_log")
-        .select("id, created_at, action, feature_id, category, tenant_id, preview, evidence_ref, prev_hash, row_hash")
+        .select("id, created_at, action, feature_id, category, tenant_id, preview, result, prev_hash, row_hash")
         .order("created_at", { ascending: false })
         .limit(500);
       if (from) query = query.gte("created_at", from);
