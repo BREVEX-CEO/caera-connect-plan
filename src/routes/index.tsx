@@ -121,6 +121,12 @@ function LandingPage() {
                 Create your account
               </Link>
               <Link
+                to="/demo"
+                className="inline-flex items-center justify-center rounded-lg border border-amber-400/40 bg-amber-500/10 px-5 py-2.5 text-sm font-medium text-amber-200 transition-colors hover:bg-amber-500/20"
+              >
+                Try Demo — no sign-in
+              </Link>
+              <Link
                 to="/auth"
                 className="inline-flex items-center justify-center rounded-lg border border-border/60 bg-background/50 px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent"
               >
