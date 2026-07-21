@@ -316,7 +316,7 @@ function ItemRow({ item, onSaved }: { item: Item; onSaved: () => void }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
-            <StatusBadge tone={statusTone(item.status)}>{item.status.replace("_", " ")}</StatusBadge>
+            <StatusBadge status={statusBadgeKind(item.status)}>{item.status.replace("_", " ")}</StatusBadge>
             {openBlocker ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-destructive">
                 <AlertTriangle className="h-3 w-3" /> Blocker
