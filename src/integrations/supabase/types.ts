@@ -106,6 +106,108 @@ export type Database = {
           },
         ]
       }
+      cania_alert_prefs: {
+        Row: {
+          channel: string
+          created_at: string
+          criteria: Json
+          enabled: boolean
+          id: string
+          label: string
+          section: string
+          user_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          criteria?: Json
+          enabled?: boolean
+          id?: string
+          label: string
+          section: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          criteria?: Json
+          enabled?: boolean
+          id?: string
+          label?: string
+          section?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cania_saved_topics: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          query: string | null
+          section: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          query?: string | null
+          section: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          query?: string | null
+          section?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cania_settings: {
+        Row: {
+          approx_lat: number | null
+          approx_lon: number | null
+          country_code: string | null
+          location_permission: string
+          primary_currency: string | null
+          region: string | null
+          secondary_currency: string | null
+          timezone: string | null
+          units: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          approx_lat?: number | null
+          approx_lon?: number | null
+          country_code?: string | null
+          location_permission?: string
+          primary_currency?: string | null
+          region?: string | null
+          secondary_currency?: string | null
+          timezone?: string | null
+          units?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          approx_lat?: number | null
+          approx_lon?: number | null
+          country_code?: string | null
+          location_permission?: string
+          primary_currency?: string | null
+          region?: string | null
+          secondary_currency?: string | null
+          timezone?: string | null
+          units?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       compliance_audit_log: {
         Row: {
           action: string
