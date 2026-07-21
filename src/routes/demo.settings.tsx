@@ -4,7 +4,7 @@ import { DemoShell } from "@/components/shell/DemoShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { useDemo } from "@/lib/demo/context";
-import { useTheme } from "@/lib/theme-provider";
+import { useAppearance } from "@/lib/theme-provider";
 
 export const Route = createFileRoute("/demo/settings")({
   component: DemoSettings,
