@@ -36,7 +36,7 @@ function DemoSettings() {
             {themes.map((t) => (
               <button
                 key={t}
-                onClick={() => setTheme(t)}
+                onClick={() => update({ theme: t })}
                 className={
                   "rounded-lg border px-3 py-2 text-xs capitalize " +
                   (theme === t
@@ -59,7 +59,7 @@ function DemoSettings() {
             {cursors.map((c) => (
               <button
                 key={c}
-                onClick={() => setCursor(c)}
+                onClick={() => update({ cursor: c })}
                 className={
                   "rounded-lg border px-3 py-2 text-xs capitalize " +
                   (cursor === c
