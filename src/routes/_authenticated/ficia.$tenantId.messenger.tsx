@@ -29,15 +29,29 @@ export const Route = createFileRoute("/_authenticated/ficia/$tenantId/messenger"
 });
 
 type Kind = "company" | "department" | "role" | "project" | "private" | "cross_company";
-type ScopeBadge = "company" | "private" | "cross_company" | "dm";
+type ScopeBadge = "company" | "private" | "cross_company";
+type ChipVariant = "success" | "warning" | "danger" | "info" | "neutral";
 
-function scopeBadgeVariant(s?: string): "success" | "warning" | "danger" | "info" | "neutral" {
+const chipStyles: Record<ChipVariant, string> = {
+  success: "bg-[color:var(--state-success)]/15 text-[color:var(--state-success)] ring-[color:var(--state-success)]/30",
+  info: "bg-[color:var(--state-info)]/15 text-[color:var(--state-info)] ring-[color:var(--state-info)]/30",
+  warning: "bg-[color:var(--state-warning)]/15 text-[color:var(--state-warning)] ring-[color:var(--state-warning)]/30",
+  danger: "bg-destructive/15 text-destructive ring-destructive/30",
+  neutral: "bg-muted text-muted-foreground ring-border",
+};
+
+function Chip({ variant = "neutral", children }: { variant?: ChipVariant; children: React.ReactNode }) {
+  return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${chipStyles[variant]}`}>{children}</span>;
+}
+
+function scopeBadgeVariant(s?: string): ChipVariant {
   if (s === "company") return "info";
   if (s === "cross_company") return "warning";
   if (s === "private") return "neutral";
   if (s === "dm") return "success";
   return "neutral";
 }
+
 
 function MessengerPage() {
   const { tenantId } = Route.useParams();
