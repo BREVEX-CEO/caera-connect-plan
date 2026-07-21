@@ -156,11 +156,18 @@ function Overview({ company }: { company: any }) {
       </GlassPanel>
 
       <GlassPanel className="p-4 md:col-span-2">
-        <h3 className="text-sm font-semibold">FICIA modules</h3>
-        <p className="text-sm text-muted-foreground mt-2">
-          Timesheets, invoices, banking, tax preparation, filings and family-planning modules ship in upcoming slices.
-          Legal-identity, tenant isolation and audit trail are already active for this workspace.
-        </p>
+        <h3 className="text-sm font-semibold">Recent work</h3>
+        <p className="mt-2 text-xs text-muted-foreground">No recent activity yet — recent invoices, filings and messages will appear here.</p>
+      </GlassPanel>
+
+      <GlassPanel className="p-4">
+        <h3 className="text-sm font-semibold">Upcoming deadlines</h3>
+        <p className="mt-2 text-xs text-muted-foreground">No deadlines tracked yet. Tax, filing and payroll deadlines will list here once the country pack is active.</p>
+      </GlassPanel>
+
+      <GlassPanel className="p-4">
+        <h3 className="text-sm font-semibold">Activity</h3>
+        <p className="mt-2 text-xs text-muted-foreground">Team activity and audit events will appear here as members work in this company.</p>
       </GlassPanel>
     </div>
   );
