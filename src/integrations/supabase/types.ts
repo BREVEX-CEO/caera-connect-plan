@@ -14,39 +14,140 @@ export type Database = {
   }
   public: {
     Tables: {
-      audit_log: {
+      activity_log: {
         Row: {
           action: string
           created_at: string
           feature_id: string | null
           id: string
-          ip: string | null
-          preview: Json | null
-          result: Json | null
+          metadata: Json
           tenant_id: string | null
-          user_agent: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           action: string
           created_at?: string
           feature_id?: string | null
           id?: string
-          ip?: string | null
-          preview?: Json | null
-          result?: Json | null
+          metadata?: Json
           tenant_id?: string | null
-          user_agent?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           action?: string
           created_at?: string
           feature_id?: string | null
           id?: string
+          metadata?: Json
+          tenant_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      browser_grants: {
+        Row: {
+          approved_by_grant_id: string | null
+          browser_install_id: string
+          created_at: string
+          device_id: string
+          id: string
+          last_seen_at: string
+          origin: string | null
+          revoked_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          approved_by_grant_id?: string | null
+          browser_install_id: string
+          created_at?: string
+          device_id: string
+          id?: string
+          last_seen_at?: string
+          origin?: string | null
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          approved_by_grant_id?: string | null
+          browser_install_id?: string
+          created_at?: string
+          device_id?: string
+          id?: string
+          last_seen_at?: string
+          origin?: string | null
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "browser_grants_approved_by_grant_id_fkey"
+            columns: ["approved_by_grant_id"]
+            isOneToOne: false
+            referencedRelation: "browser_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "browser_grants_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compliance_audit_log: {
+        Row: {
+          action: string
+          category: Database["public"]["Enums"]["compliance_category"]
+          created_at: string
+          feature_id: string | null
+          id: string
+          ip: string | null
+          prev_hash: string | null
+          preview: Json | null
+          result: Json | null
+          row_hash: string | null
+          tenant_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          category?: Database["public"]["Enums"]["compliance_category"]
+          created_at?: string
+          feature_id?: string | null
+          id?: string
           ip?: string | null
+          prev_hash?: string | null
           preview?: Json | null
           result?: Json | null
+          row_hash?: string | null
+          tenant_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          category?: Database["public"]["Enums"]["compliance_category"]
+          created_at?: string
+          feature_id?: string | null
+          id?: string
+          ip?: string | null
+          prev_hash?: string | null
+          preview?: Json | null
+          result?: Json | null
+          row_hash?: string | null
           tenant_id?: string | null
           user_agent?: string | null
           user_id?: string | null
@@ -68,6 +169,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["device_kind"]
           last_active_at: string
           name: string
+          physical_pc_id: string | null
           revoked_at: string | null
           user_agent: string | null
           user_id: string
@@ -78,6 +180,7 @@ export type Database = {
           kind: Database["public"]["Enums"]["device_kind"]
           last_active_at?: string
           name: string
+          physical_pc_id?: string | null
           revoked_at?: string | null
           user_agent?: string | null
           user_id: string
@@ -88,6 +191,7 @@ export type Database = {
           kind?: Database["public"]["Enums"]["device_kind"]
           last_active_at?: string
           name?: string
+          physical_pc_id?: string | null
           revoked_at?: string | null
           user_agent?: string | null
           user_id?: string
@@ -275,7 +379,7 @@ export type Database = {
           created_at: string
           family_planning_enabled: boolean
           high_contrast: boolean
-          main_purpose: string | null
+          main_purpose: Database["public"]["Enums"]["main_purpose_kind"] | null
           modules: Json
           privacy_chats: Database["public"]["Enums"]["privacy_mode"]
           privacy_company: Database["public"]["Enums"]["privacy_mode"]
@@ -294,7 +398,7 @@ export type Database = {
           created_at?: string
           family_planning_enabled?: boolean
           high_contrast?: boolean
-          main_purpose?: string | null
+          main_purpose?: Database["public"]["Enums"]["main_purpose_kind"] | null
           modules?: Json
           privacy_chats?: Database["public"]["Enums"]["privacy_mode"]
           privacy_company?: Database["public"]["Enums"]["privacy_mode"]
@@ -313,7 +417,7 @@ export type Database = {
           created_at?: string
           family_planning_enabled?: boolean
           high_contrast?: boolean
-          main_purpose?: string | null
+          main_purpose?: Database["public"]["Enums"]["main_purpose_kind"] | null
           modules?: Json
           privacy_chats?: Database["public"]["Enums"]["privacy_mode"]
           privacy_company?: Database["public"]["Enums"]["privacy_mode"]
@@ -357,7 +461,18 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      compliance_category:
+        | "finance"
+        | "payment"
+        | "filing"
+        | "signature"
+        | "approval"
+        | "role_change"
+        | "sensitive_export"
+        | "deletion"
+        | "other"
       device_kind: "mobile" | "desktop"
+      main_purpose_kind: "solo" | "small_business" | "enterprise"
       privacy_mode: "device_only" | "private_sync"
       tenant_kind: "individual" | "company"
       tenant_role:
@@ -496,7 +611,19 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      compliance_category: [
+        "finance",
+        "payment",
+        "filing",
+        "signature",
+        "approval",
+        "role_change",
+        "sensitive_export",
+        "deletion",
+        "other",
+      ],
       device_kind: ["mobile", "desktop"],
+      main_purpose_kind: ["solo", "small_business", "enterprise"],
       privacy_mode: ["device_only", "private_sync"],
       tenant_kind: ["individual", "company"],
       tenant_role: [
