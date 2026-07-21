@@ -2623,11 +2623,15 @@ export type Database = {
           country: string | null
           created_at: string
           currency: string
+          custom_instructions: string | null
           display_name: string | null
+          full_name: string | null
           id: string
           locale: string
+          occupation: string | null
           onboarding_completed: boolean
           onboarding_step: string | null
+          preferred_name: string | null
           timezone: string
           updated_at: string
         }
@@ -2636,11 +2640,15 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency?: string
+          custom_instructions?: string | null
           display_name?: string | null
+          full_name?: string | null
           id: string
           locale?: string
+          occupation?: string | null
           onboarding_completed?: boolean
           onboarding_step?: string | null
+          preferred_name?: string | null
           timezone?: string
           updated_at?: string
         }
@@ -2649,11 +2657,15 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency?: string
+          custom_instructions?: string | null
           display_name?: string | null
+          full_name?: string | null
           id?: string
           locale?: string
+          occupation?: string | null
           onboarding_completed?: boolean
           onboarding_step?: string | null
+          preferred_name?: string | null
           timezone?: string
           updated_at?: string
         }

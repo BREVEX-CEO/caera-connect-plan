@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Loader2, Shield, Cloud, HardDrive, Cpu } from "lucide-react";
-import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { useSession } from "@/lib/session";
@@ -66,7 +65,7 @@ function PrivacyPage() {
   }
 
   return (
-    <AppShell>
+    <>
       <PageHeader
         eyebrow="Account · Privacy"
         title="Per-data-class privacy"
@@ -127,6 +126,6 @@ function PrivacyPage() {
           })
         )}
       </GlassPanel>
-    </AppShell>
+    </>
   );
 }

@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Laptop, Smartphone, ShieldCheck, Loader2, XCircle } from "lucide-react";
-import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { StatusBadge } from "@/components/shell/StatusBadge";
@@ -61,7 +60,7 @@ function DevicesPage() {
   }
 
   return (
-    <AppShell>
+    <>
       <PageHeader
         eyebrow="Account · Devices"
         title="Approved devices"
@@ -158,6 +157,6 @@ function DevicesPage() {
           registers as its own device.
         </p>
       </GlassPanel>
-    </AppShell>
+    </>
   );
 }

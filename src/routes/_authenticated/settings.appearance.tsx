@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { Palette, Check, Upload, RefreshCcw } from "lucide-react";
-import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import {
@@ -85,7 +84,7 @@ function AppearancePage() {
   }
 
   return (
-    <AppShell>
+    <>
       <PageHeader
         eyebrow="Account · Appearance"
         title="Appearance"
@@ -253,7 +252,7 @@ function AppearancePage() {
           </div>
         </GlassPanel>
       </div>
-    </AppShell>
+    </>
   );
 }
 
