@@ -21,8 +21,19 @@ function SettingsPage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["cania", "settings"], queryFn: () => getCaniaSettings() });
   const saveFn = useServerFn(saveCaniaSettings);
+  type Patch = {
+    countryCode?: string | null;
+    region?: string | null;
+    timezone?: string | null;
+    primaryCurrency?: string | null;
+    secondaryCurrency?: string | null;
+    units?: "metric" | "imperial";
+    locationPermission?: "unknown" | "granted" | "denied" | "prompt_pending";
+    approxLat?: number | null;
+    approxLon?: number | null;
+  };
   const save = useMutation({
-    mutationFn: (data: Parameters<typeof saveFn>[0]["data"]) => saveFn({ data }),
+    mutationFn: (data: Patch) => saveFn({ data }),
     onSuccess: async () => {
       await recordAction({ actionId: "cania.settings.save" });
       qc.invalidateQueries({ queryKey: ["cania", "settings"] });
