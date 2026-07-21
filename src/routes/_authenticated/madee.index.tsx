@@ -20,7 +20,7 @@ import {
   deleteResumeProject, duplicateResumeProject, listResumeProjects,
 } from "@/lib/madee.functions";
 import { executeAction } from "@/lib/actions";
-import { useDemo } from "@/lib/demo/context";
+import { isDemoActive } from "@/lib/demo/context";
 
 export const Route = createFileRoute("/_authenticated/madee/")({
   head: () => ({ meta: [{ title: "MADEE Studio — CAERA CADANE" }, { name: "robots", content: "noindex" }] }),
