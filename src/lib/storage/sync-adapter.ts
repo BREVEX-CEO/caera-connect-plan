@@ -1,21 +1,22 @@
 /**
- * Private Sync adapter — persists records to a single Supabase table
- * (`user_private_records`) keyed by (user_id, data_class, id). Feature
- * modules with rich schemas (chats, invoices, resumes…) will layer their
- * own tables on top; this generic adapter covers the storage-adapter
- * contract for anything that doesn't need a bespoke schema yet.
+ * Private Sync adapter — persists records to `user_private_records`,
+ * keyed by (user_id, data_class, id). Feature modules with rich schemas
+ * (chats, invoices, resumes…) layer their own tables on top; this generic
+ * adapter covers the storage-adapter contract for anything without a
+ * bespoke schema yet.
  *
- * Rows are protected by RLS scoped to auth.uid(); nothing here bypasses it.
+ * All access is protected by RLS scoped to auth.uid(); nothing here bypasses it.
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import type { DataClass, StorageAdapter, StoredRecord } from "./types";
 
 type Row = {
   user_id: string;
   data_class: string;
   id: string;
-  value: unknown;
+  value: Json;
   created_at: string;
   updated_at: string;
 };
@@ -37,24 +38,19 @@ function toRecord<T>(r: Row): StoredRecord<T> {
   };
 }
 
-/** Falls back gracefully when `user_private_records` isn't in the schema
- *  yet — the adapter still satisfies its contract by surfacing a clear
- *  error rather than silently swallowing writes. */
 export const syncAdapter: StorageAdapter = {
   mode: "private_sync",
 
-  async put(dataClass, id, value) {
+  async put<T>(dataClass: DataClass, id: string, value: T) {
     const user_id = await uid();
-    // @ts-expect-error generated types may lag the runtime schema
     const { error } = await supabase.from("user_private_records").upsert(
-      { user_id, data_class: dataClass, id, value },
+      { user_id, data_class: dataClass, id, value: value as Json },
       { onConflict: "user_id,data_class,id" },
     );
     if (error) throw error;
   },
-  async get(dataClass, id) {
+  async get<T>(dataClass: DataClass, id: string) {
     const user_id = await uid();
-    // @ts-expect-error generated types may lag the runtime schema
     const { data, error } = await supabase
       .from("user_private_records")
       .select("*")
@@ -63,22 +59,20 @@ export const syncAdapter: StorageAdapter = {
       .eq("id", id)
       .maybeSingle();
     if (error) throw error;
-    return data ? toRecord(data as Row) : null;
+    return data ? toRecord<T>(data as Row) : null;
   },
-  async list(dataClass) {
+  async list<T>(dataClass: DataClass) {
     const user_id = await uid();
-    // @ts-expect-error generated types may lag the runtime schema
     const { data, error } = await supabase
       .from("user_private_records")
       .select("*")
       .eq("user_id", user_id)
       .eq("data_class", dataClass);
     if (error) throw error;
-    return (data as Row[] | null)?.map(toRecord) ?? [];
+    return ((data ?? []) as Row[]).map((r) => toRecord<T>(r));
   },
   async delete(dataClass, id) {
     const user_id = await uid();
-    // @ts-expect-error generated types may lag the runtime schema
     const { error } = await supabase
       .from("user_private_records")
       .delete()
@@ -89,7 +83,6 @@ export const syncAdapter: StorageAdapter = {
   },
   async clear(dataClass) {
     const user_id = await uid();
-    // @ts-expect-error generated types may lag the runtime schema
     let q = supabase.from("user_private_records").delete().eq("user_id", user_id);
     if (dataClass) q = q.eq("data_class", dataClass);
     const { error } = await q;
