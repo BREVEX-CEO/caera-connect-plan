@@ -621,6 +621,511 @@ export type Database = {
         }
         Relationships: []
       }
+      ficia_approval_decisions: {
+        Row: {
+          approver_user_id: string
+          decided_at: string
+          decision: Database["public"]["Enums"]["approval_decision"]
+          id: string
+          reason: string | null
+          request_id: string
+          step: number
+          tenant_id: string
+        }
+        Insert: {
+          approver_user_id: string
+          decided_at?: string
+          decision: Database["public"]["Enums"]["approval_decision"]
+          id?: string
+          reason?: string | null
+          request_id: string
+          step: number
+          tenant_id: string
+        }
+        Update: {
+          approver_user_id?: string
+          decided_at?: string
+          decision?: Database["public"]["Enums"]["approval_decision"]
+          id?: string
+          reason?: string | null
+          request_id?: string
+          step?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_approval_decisions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_approval_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_approval_decisions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ficia_approval_policies: {
+        Row: {
+          created_at: string
+          currency: string | null
+          id: string
+          is_active: boolean
+          max_amount: number | null
+          min_amount: number | null
+          sod_enforced: boolean
+          steps: Json
+          subject: Database["public"]["Enums"]["approval_subject"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string | null
+          id?: string
+          is_active?: boolean
+          max_amount?: number | null
+          min_amount?: number | null
+          sod_enforced?: boolean
+          steps?: Json
+          subject: Database["public"]["Enums"]["approval_subject"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string | null
+          id?: string
+          is_active?: boolean
+          max_amount?: number | null
+          min_amount?: number | null
+          sod_enforced?: boolean
+          steps?: Json
+          subject?: Database["public"]["Enums"]["approval_subject"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_approval_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ficia_approval_requests: {
+        Row: {
+          amount: number | null
+          created_at: string
+          currency: string | null
+          current_step: number
+          id: string
+          payload: Json
+          policy_id: string | null
+          released_at: string | null
+          released_by: string | null
+          sod_override_at: string | null
+          sod_override_by: string | null
+          sod_override_reason: string | null
+          status: Database["public"]["Enums"]["approval_status"]
+          steps: Json
+          subject: Database["public"]["Enums"]["approval_subject"]
+          submitted_by: string
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          current_step?: number
+          id?: string
+          payload?: Json
+          policy_id?: string | null
+          released_at?: string | null
+          released_by?: string | null
+          sod_override_at?: string | null
+          sod_override_by?: string | null
+          sod_override_reason?: string | null
+          status?: Database["public"]["Enums"]["approval_status"]
+          steps?: Json
+          subject: Database["public"]["Enums"]["approval_subject"]
+          submitted_by: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          currency?: string | null
+          current_step?: number
+          id?: string
+          payload?: Json
+          policy_id?: string | null
+          released_at?: string | null
+          released_by?: string | null
+          sod_override_at?: string | null
+          sod_override_by?: string | null
+          sod_override_reason?: string | null
+          status?: Database["public"]["Enums"]["approval_status"]
+          steps?: Json
+          subject?: Database["public"]["Enums"]["approval_subject"]
+          submitted_by?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_approval_requests_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_approval_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_approval_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ficia_custom_roles: {
+        Row: {
+          base_role: Database["public"]["Enums"]["tenant_role"] | null
+          created_at: string
+          description: string | null
+          id: string
+          is_template: boolean
+          key: string
+          name: string
+          permissions: Json
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          base_role?: Database["public"]["Enums"]["tenant_role"] | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_template?: boolean
+          key: string
+          name: string
+          permissions?: Json
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          base_role?: Database["public"]["Enums"]["tenant_role"] | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_template?: boolean
+          key?: string
+          name?: string
+          permissions?: Json
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_custom_roles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ficia_departments: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          manager_user_id: string | null
+          name: string
+          parent_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          manager_user_id?: string | null
+          name: string
+          parent_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          manager_user_id?: string | null
+          name?: string
+          parent_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_departments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_departments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ficia_employments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          end_date: string | null
+          id: string
+          invited_email: string | null
+          location_id: string | null
+          manager_user_id: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["employment_status"]
+          suspended_reason: string | null
+          team_id: string | null
+          tenant_id: string
+          terminated_reason: string | null
+          title: string | null
+          updated_at: string
+          user_id: string | null
+          worker_type: Database["public"]["Enums"]["worker_type"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          end_date?: string | null
+          id?: string
+          invited_email?: string | null
+          location_id?: string | null
+          manager_user_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["employment_status"]
+          suspended_reason?: string | null
+          team_id?: string | null
+          tenant_id: string
+          terminated_reason?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+          worker_type?: Database["public"]["Enums"]["worker_type"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          end_date?: string | null
+          id?: string
+          invited_email?: string | null
+          location_id?: string | null
+          manager_user_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["employment_status"]
+          suspended_reason?: string | null
+          team_id?: string | null
+          tenant_id?: string
+          terminated_reason?: string | null
+          title?: string | null
+          updated_at?: string
+          user_id?: string | null
+          worker_type?: Database["public"]["Enums"]["worker_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_employments_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_employments_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_employments_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_employments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ficia_locations: {
+        Row: {
+          address: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          id: string
+          is_headquarters: boolean
+          label: string
+          region: string | null
+          tenant_id: string
+          timezone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_headquarters?: boolean
+          label: string
+          region?: string | null
+          tenant_id: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          is_headquarters?: boolean
+          label?: string
+          region?: string | null
+          tenant_id?: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ficia_role_grants: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          id: string
+          revoked_at: string | null
+          revoked_by: string | null
+          role_key: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          role_key: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          role_key?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_role_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ficia_teams: {
+        Row: {
+          created_at: string
+          department_id: string | null
+          description: string | null
+          id: string
+          manager_user_id: string | null
+          name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          manager_user_id?: string | null
+          name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          manager_user_id?: string | null
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_teams_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_teams_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       historical_test_cases: {
         Row: {
           calculator: string
@@ -1492,6 +1997,10 @@ export type Database = {
         Args: { _payload: Json; _uid: string }
         Returns: string
       }
+      ficia_has_permission: {
+        Args: { _perm: string; _tenant: string; _uid: string }
+        Returns: boolean
+      }
       find_conflicting_legal_id: {
         Args: {
           _country: string
@@ -1531,9 +2040,29 @@ export type Database = {
         Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
       }
+      is_tenant_owner_or_manager: {
+        Args: { _tenant: string; _uid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      approval_decision: "approve" | "reject"
+      approval_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "released"
+        | "withdrawn"
+      approval_subject:
+        | "expense"
+        | "invoice"
+        | "payroll"
+        | "tax"
+        | "files"
+        | "payments"
+        | "signatures"
+        | "export"
       compliance_category:
         | "finance"
         | "payment"
@@ -1545,6 +2074,7 @@ export type Database = {
         | "deletion"
         | "other"
       device_kind: "mobile" | "desktop"
+      employment_status: "invited" | "active" | "suspended" | "terminated"
       feature_flag_stage: "demo" | "private_alpha" | "beta" | "ga"
       launch_gate_status:
         | "not_started"
@@ -1564,6 +2094,12 @@ export type Database = {
         | "auditor"
         | "consultant"
         | "advisor"
+      worker_type:
+        | "employee"
+        | "contractor"
+        | "advisor"
+        | "auditor"
+        | "consultant"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1692,6 +2228,24 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      approval_decision: ["approve", "reject"],
+      approval_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "released",
+        "withdrawn",
+      ],
+      approval_subject: [
+        "expense",
+        "invoice",
+        "payroll",
+        "tax",
+        "files",
+        "payments",
+        "signatures",
+        "export",
+      ],
       compliance_category: [
         "finance",
         "payment",
@@ -1704,6 +2258,7 @@ export const Constants = {
         "other",
       ],
       device_kind: ["mobile", "desktop"],
+      employment_status: ["invited", "active", "suspended", "terminated"],
       feature_flag_stage: ["demo", "private_alpha", "beta", "ga"],
       launch_gate_status: [
         "not_started",
@@ -1724,6 +2279,13 @@ export const Constants = {
         "auditor",
         "consultant",
         "advisor",
+      ],
+      worker_type: [
+        "employee",
+        "contractor",
+        "advisor",
+        "auditor",
+        "consultant",
       ],
     },
   },
