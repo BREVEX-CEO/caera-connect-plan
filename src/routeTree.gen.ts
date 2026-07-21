@@ -40,6 +40,7 @@ import { Route as AuthenticatedSettingsPrivacyRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsDevicesRouteImport } from './routes/_authenticated/settings.devices'
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings.appearance'
 import { Route as AuthenticatedSettingsActivityRouteImport } from './routes/_authenticated/settings.activity'
+import { Route as AuthenticatedSettingsSectionRouteImport } from './routes/_authenticated/settings.$section'
 import { Route as AuthenticatedOcadeModelsRouteImport } from './routes/_authenticated/ocade.models'
 import { Route as AuthenticatedMadeeNewRouteImport } from './routes/_authenticated/madee.new'
 import { Route as AuthenticatedMadeeProjectIdRouteImport } from './routes/_authenticated/madee.$projectId'
@@ -234,6 +235,12 @@ const AuthenticatedSettingsActivityRoute =
   AuthenticatedSettingsActivityRouteImport.update({
     id: '/activity',
     path: '/activity',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsSectionRoute =
+  AuthenticatedSettingsSectionRouteImport.update({
+    id: '/$section',
+    path: '/$section',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
 const AuthenticatedOcadeModelsRoute =
@@ -488,6 +495,7 @@ export interface FileRoutesByFullPath {
   '/madee/$projectId': typeof AuthenticatedMadeeProjectIdRouteWithChildren
   '/madee/new': typeof AuthenticatedMadeeNewRoute
   '/ocade/models': typeof AuthenticatedOcadeModelsRoute
+  '/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
@@ -550,6 +558,7 @@ export interface FileRoutesByTo {
   '/madee/$projectId': typeof AuthenticatedMadeeProjectIdRouteWithChildren
   '/madee/new': typeof AuthenticatedMadeeNewRoute
   '/ocade/models': typeof AuthenticatedOcadeModelsRoute
+  '/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
@@ -619,6 +628,7 @@ export interface FileRoutesById {
   '/_authenticated/madee/$projectId': typeof AuthenticatedMadeeProjectIdRouteWithChildren
   '/_authenticated/madee/new': typeof AuthenticatedMadeeNewRoute
   '/_authenticated/ocade/models': typeof AuthenticatedOcadeModelsRoute
+  '/_authenticated/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/_authenticated/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/_authenticated/settings/devices': typeof AuthenticatedSettingsDevicesRoute
@@ -688,6 +698,7 @@ export interface FileRouteTypes {
     | '/madee/$projectId'
     | '/madee/new'
     | '/ocade/models'
+    | '/settings/$section'
     | '/settings/activity'
     | '/settings/appearance'
     | '/settings/devices'
@@ -750,6 +761,7 @@ export interface FileRouteTypes {
     | '/madee/$projectId'
     | '/madee/new'
     | '/ocade/models'
+    | '/settings/$section'
     | '/settings/activity'
     | '/settings/appearance'
     | '/settings/devices'
@@ -818,6 +830,7 @@ export interface FileRouteTypes {
     | '/_authenticated/madee/$projectId'
     | '/_authenticated/madee/new'
     | '/_authenticated/ocade/models'
+    | '/_authenticated/settings/$section'
     | '/_authenticated/settings/activity'
     | '/_authenticated/settings/appearance'
     | '/_authenticated/settings/devices'
@@ -1065,6 +1078,13 @@ declare module '@tanstack/react-router' {
       path: '/activity'
       fullPath: '/settings/activity'
       preLoaderRoute: typeof AuthenticatedSettingsActivityRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/$section': {
+      id: '/_authenticated/settings/$section'
+      path: '/$section'
+      fullPath: '/settings/$section'
+      preLoaderRoute: typeof AuthenticatedSettingsSectionRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
     '/_authenticated/ocade/models': {
@@ -1467,6 +1487,7 @@ const AuthenticatedOcadeRouteWithChildren =
   AuthenticatedOcadeRoute._addFileChildren(AuthenticatedOcadeRouteChildren)
 
 interface AuthenticatedSettingsRouteChildren {
+  AuthenticatedSettingsSectionRoute: typeof AuthenticatedSettingsSectionRoute
   AuthenticatedSettingsActivityRoute: typeof AuthenticatedSettingsActivityRoute
   AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute
   AuthenticatedSettingsDevicesRoute: typeof AuthenticatedSettingsDevicesRoute
@@ -1476,6 +1497,7 @@ interface AuthenticatedSettingsRouteChildren {
 }
 
 const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
+  AuthenticatedSettingsSectionRoute: AuthenticatedSettingsSectionRoute,
   AuthenticatedSettingsActivityRoute: AuthenticatedSettingsActivityRoute,
   AuthenticatedSettingsAppearanceRoute: AuthenticatedSettingsAppearanceRoute,
   AuthenticatedSettingsDevicesRoute: AuthenticatedSettingsDevicesRoute,
