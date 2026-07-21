@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { recordAction } from "@/lib/actions";
 
-export const Route = createFileRoute("/_authenticated/settings")({
+export const Route = createFileRoute("/_authenticated/settings/")({
   head: () => ({
     meta: [
       { title: "Settings — CAERA CADANE" },
