@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -229,9 +229,18 @@ function OcadeWorkspace({ userId }: { userId: string }) {
               <div className="text-[11px] font-semibold uppercase tracking-wide text-[color:var(--accent-ocade)]">OCADE</div>
               <div className="text-xs text-muted-foreground">by CAERA CADANE</div>
             </div>
-            <Button size="sm" onClick={handleNew} className="gap-1.5">
-              <Plus className="h-3.5 w-3.5" /> New
-            </Button>
+            <div className="flex items-center gap-1">
+              <Link
+                to="/ocade/models"
+                className="rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground"
+                title="Model Control (technical)"
+              >
+                Models
+              </Link>
+              <Button size="sm" onClick={handleNew} className="gap-1.5">
+                <Plus className="h-3.5 w-3.5" /> New
+              </Button>
+            </div>
           </div>
           <div className="border-b border-border/60 p-2">
             <div className="relative">

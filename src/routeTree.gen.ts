@@ -37,6 +37,7 @@ import { Route as AuthenticatedSettingsPrivacyRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsDevicesRouteImport } from './routes/_authenticated/settings.devices'
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings.appearance'
 import { Route as AuthenticatedSettingsActivityRouteImport } from './routes/_authenticated/settings.activity'
+import { Route as AuthenticatedOcadeModelsRouteImport } from './routes/_authenticated/ocade.models'
 import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_authenticated/admin.launch-gate'
 
 const DemoRoute = DemoRouteImport.update({
@@ -184,6 +185,12 @@ const AuthenticatedSettingsActivityRoute =
     path: '/activity',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedOcadeModelsRoute =
+  AuthenticatedOcadeModelsRouteImport.update({
+    id: '/models',
+    path: '/models',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
 const AuthenticatedAdminLaunchGateRoute =
   AuthenticatedAdminLaunchGateRouteImport.update({
     id: '/admin/launch-gate',
@@ -199,7 +206,7 @@ export interface FileRoutesByFullPath {
   '/ficia': typeof AuthenticatedFiciaRoute
   '/home': typeof AuthenticatedHomeRoute
   '/madee': typeof AuthenticatedMadeeRoute
-  '/ocade': typeof AuthenticatedOcadeRoute
+  '/ocade': typeof AuthenticatedOcadeRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
@@ -213,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/demo/tasks': typeof DemoTasksRoute
   '/demo/': typeof DemoIndexRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
+  '/ocade/models': typeof AuthenticatedOcadeModelsRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
@@ -228,7 +236,7 @@ export interface FileRoutesByTo {
   '/ficia': typeof AuthenticatedFiciaRoute
   '/home': typeof AuthenticatedHomeRoute
   '/madee': typeof AuthenticatedMadeeRoute
-  '/ocade': typeof AuthenticatedOcadeRoute
+  '/ocade': typeof AuthenticatedOcadeRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
@@ -241,6 +249,7 @@ export interface FileRoutesByTo {
   '/demo/tasks': typeof DemoTasksRoute
   '/demo': typeof DemoIndexRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
+  '/ocade/models': typeof AuthenticatedOcadeModelsRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
@@ -259,7 +268,7 @@ export interface FileRoutesById {
   '/_authenticated/ficia': typeof AuthenticatedFiciaRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/madee': typeof AuthenticatedMadeeRoute
-  '/_authenticated/ocade': typeof AuthenticatedOcadeRoute
+  '/_authenticated/ocade': typeof AuthenticatedOcadeRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
@@ -273,6 +282,7 @@ export interface FileRoutesById {
   '/demo/tasks': typeof DemoTasksRoute
   '/demo/': typeof DemoIndexRoute
   '/_authenticated/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
+  '/_authenticated/ocade/models': typeof AuthenticatedOcadeModelsRoute
   '/_authenticated/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/_authenticated/settings/devices': typeof AuthenticatedSettingsDevicesRoute
@@ -305,6 +315,7 @@ export interface FileRouteTypes {
     | '/demo/tasks'
     | '/demo/'
     | '/admin/launch-gate'
+    | '/ocade/models'
     | '/settings/activity'
     | '/settings/appearance'
     | '/settings/devices'
@@ -333,6 +344,7 @@ export interface FileRouteTypes {
     | '/demo/tasks'
     | '/demo'
     | '/admin/launch-gate'
+    | '/ocade/models'
     | '/settings/activity'
     | '/settings/appearance'
     | '/settings/devices'
@@ -364,6 +376,7 @@ export interface FileRouteTypes {
     | '/demo/tasks'
     | '/demo/'
     | '/_authenticated/admin/launch-gate'
+    | '/_authenticated/ocade/models'
     | '/_authenticated/settings/activity'
     | '/_authenticated/settings/appearance'
     | '/_authenticated/settings/devices'
@@ -579,6 +592,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsActivityRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/ocade/models': {
+      id: '/_authenticated/ocade/models'
+      path: '/models'
+      fullPath: '/ocade/models'
+      preLoaderRoute: typeof AuthenticatedOcadeModelsRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
     '/_authenticated/admin/launch-gate': {
       id: '/_authenticated/admin/launch-gate'
       path: '/admin/launch-gate'
@@ -588,6 +608,17 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedOcadeRouteChildren {
+  AuthenticatedOcadeModelsRoute: typeof AuthenticatedOcadeModelsRoute
+}
+
+const AuthenticatedOcadeRouteChildren: AuthenticatedOcadeRouteChildren = {
+  AuthenticatedOcadeModelsRoute: AuthenticatedOcadeModelsRoute,
+}
+
+const AuthenticatedOcadeRouteWithChildren =
+  AuthenticatedOcadeRoute._addFileChildren(AuthenticatedOcadeRouteChildren)
 
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsActivityRoute: typeof AuthenticatedSettingsActivityRoute
@@ -617,7 +648,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFiciaRoute: typeof AuthenticatedFiciaRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedMadeeRoute: typeof AuthenticatedMadeeRoute
-  AuthenticatedOcadeRoute: typeof AuthenticatedOcadeRoute
+  AuthenticatedOcadeRoute: typeof AuthenticatedOcadeRouteWithChildren
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
   AuthenticatedAdminLaunchGateRoute: typeof AuthenticatedAdminLaunchGateRoute
@@ -628,7 +659,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFiciaRoute: AuthenticatedFiciaRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedMadeeRoute: AuthenticatedMadeeRoute,
-  AuthenticatedOcadeRoute: AuthenticatedOcadeRoute,
+  AuthenticatedOcadeRoute: AuthenticatedOcadeRouteWithChildren,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
   AuthenticatedAdminLaunchGateRoute: AuthenticatedAdminLaunchGateRoute,
