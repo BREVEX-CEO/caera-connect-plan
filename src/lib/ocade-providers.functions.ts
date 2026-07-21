@@ -241,7 +241,7 @@ export const getUsageDiagnostics = createServerFn({ method: "GET" })
   });
 
 async function recordEvent(
-  supabase: { from: (t: string) => { insert: (r: unknown) => Promise<unknown> } },
+  supabase: unknown,
   userId: string,
   eventKind: string,
   provider: string,
@@ -250,7 +250,8 @@ async function recordEvent(
   latencyMs: number,
   detail: Record<string, unknown>,
 ) {
-  await supabase.from("ocade_provider_events").insert({
+  const sb = supabase as { from: (t: string) => { insert: (r: Record<string, unknown>) => Promise<unknown> } };
+  await sb.from("ocade_provider_events").insert({
     user_id: userId,
     event_kind: eventKind,
     provider,
