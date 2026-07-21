@@ -31,6 +31,7 @@ import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/h
 import { Route as AuthenticatedFiciaRouteImport } from './routes/_authenticated/ficia'
 import { Route as AuthenticatedCaniaRouteImport } from './routes/_authenticated/cania'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
+import { Route as ApiOcadeChatRouteImport } from './routes/api/ocade.chat'
 import { Route as AuthenticatedSettingsVaultRouteImport } from './routes/_authenticated/settings.vault'
 import { Route as AuthenticatedSettingsPrivacyRouteImport } from './routes/_authenticated/settings.privacy'
 import { Route as AuthenticatedSettingsDevicesRouteImport } from './routes/_authenticated/settings.devices'
@@ -148,6 +149,11 @@ const AuthenticatedSettingsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const ApiOcadeChatRoute = ApiOcadeChatRouteImport.update({
+  id: '/api/ocade/chat',
+  path: '/api/ocade/chat',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedSettingsVaultRoute =
   AuthenticatedSettingsVaultRouteImport.update({
     id: '/vault',
@@ -212,6 +218,7 @@ export interface FileRoutesByFullPath {
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
+  '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -239,6 +246,7 @@ export interface FileRoutesByTo {
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
+  '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesById {
@@ -270,6 +278,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/_authenticated/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
   '/_authenticated/settings/vault': typeof AuthenticatedSettingsVaultRoute
+  '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -301,6 +310,7 @@ export interface FileRouteTypes {
     | '/settings/devices'
     | '/settings/privacy'
     | '/settings/vault'
+    | '/api/ocade/chat'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/settings/devices'
     | '/settings/privacy'
     | '/settings/vault'
+    | '/api/ocade/chat'
     | '/settings'
   id:
     | '__root__'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/devices'
     | '/_authenticated/settings/privacy'
     | '/_authenticated/settings/vault'
+    | '/api/ocade/chat'
     | '/_authenticated/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -366,6 +378,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   DemoRoute: typeof DemoRouteWithChildren
+  ApiOcadeChatRoute: typeof ApiOcadeChatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -524,6 +537,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/api/ocade/chat': {
+      id: '/api/ocade/chat'
+      path: '/api/ocade/chat'
+      fullPath: '/api/ocade/chat'
+      preLoaderRoute: typeof ApiOcadeChatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/settings/vault': {
       id: '/_authenticated/settings/vault'
       path: '/vault'
@@ -658,6 +678,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   DemoRoute: DemoRouteWithChildren,
+  ApiOcadeChatRoute: ApiOcadeChatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
