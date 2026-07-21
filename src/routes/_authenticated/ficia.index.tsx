@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { listMyCompanies, respondAccessRequest } from "@/lib/ficia-companies.functions";
 import { executeAction } from "@/lib/actions";
-import { useDemo } from "@/lib/demo/demo-provider";
 
 export const Route = createFileRoute("/_authenticated/ficia/")({
   head: () => ({
@@ -21,26 +20,18 @@ export const Route = createFileRoute("/_authenticated/ficia/")({
   component: FiciaIndex,
 });
 
-const DEMO_COMPANIES = [
-  { id: "demo-1", name: "Ashwin Consultancy LLP", country: "IN", currency: "INR", status: "active", legal_name: "Ashwin Consultancy LLP" },
-  { id: "demo-2", name: "Nova Bakery", country: "IN", currency: "INR", status: "active", legal_name: "Nova Bakery Pvt. Ltd." },
-];
-
 function FiciaIndex() {
-  const demo = useDemo();
   const qc = useQueryClient();
 
   const companies = useQuery({
-    queryKey: ["ficia_companies", demo.isDemo],
+    queryKey: ["ficia_companies"],
     queryFn: async () => {
-      if (demo.isDemo) return { companies: DEMO_COMPANIES };
       return listMyCompanies();
     },
   });
 
   const pendingRequests = useQuery({
     queryKey: ["ficia_access_requests_incoming"],
-    enabled: !demo.isDemo,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("access_requests")
@@ -61,7 +52,7 @@ function FiciaIndex() {
     qc.invalidateQueries({ queryKey: ["ficia_companies"] });
   }
 
-  const list = (companies.data as any)?.companies ?? [];
+  const list = ((companies.data as any)?.companies ?? []) as any[];
 
   return (
     <AppShell>
@@ -70,13 +61,7 @@ function FiciaIndex() {
         title="Your companies"
         description="Pick a company to work in, or create a new one. FICIA keeps each company isolated and only shows you data you belong to."
         actions={
-          demo.isDemo ? (
-            <StatusBadge status="beta">Demo data</StatusBadge>
-          ) : (
-            <Link to="/ficia/new">
-              <Button size="sm"><Plus className="size-4" /> New company</Button>
-            </Link>
-          )
+          <Link to="/ficia/new"><Button size="sm"><Plus className="size-4" /> New company</Button></Link>
         }
       />
 
@@ -105,36 +90,17 @@ function FiciaIndex() {
           <p className="mt-3 text-sm text-muted-foreground">
             You don't belong to any company yet.
           </p>
-          {!demo.isDemo && (
-            <Link to="/ficia/new" className="mt-3 inline-block">
-              <Button size="sm"><Plus className="size-4" /> Create your first company</Button>
-            </Link>
-          )}
+          <Link to="/ficia/new" className="mt-3 inline-block"><Button size="sm"><Plus className="size-4" /> Create your first company</Button></Link>
         </GlassPanel>
       )}
 
       <div className="grid gap-3 md:grid-cols-2">
         {list.map((c: any) => (
-          demo.isDemo ? (
-            <GlassPanel key={c.id} className="p-4">
-              <CompanyRow c={c} disabled />
-            </GlassPanel>
-          ) : (
-            <Link
-              key={c.id}
-              to="/ficia/$tenantId"
-              params={{ tenantId: c.id }}
-              className="block"
-            >
-              <GlassPanel className="p-4 hover:border-primary/40 transition">
-                <CompanyRow c={c} />
-              </GlassPanel>
-            </Link>
-          )
+          <Link key={c.id} to="/ficia/$tenantId" params={{ tenantId: c.id }} className="block"><GlassPanel className="p-4 hover:border-primary/40 transition"><CompanyRow c={c} /></GlassPanel></Link>
         ))}
       </div>
 
-      {!demo.isDemo && (pendingRequests.data?.length ?? 0) > 0 && (
+      {(pendingRequests.data?.length ?? 0) > 0 && (
         <div className="mt-8">
           <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
             <MailCheck className="size-4" /> Pending access requests
