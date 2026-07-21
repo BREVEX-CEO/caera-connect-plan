@@ -1,0 +1,106 @@
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { ExternalLink, Info } from "lucide-react";
+import { PageHeader } from "@/components/shell/PageHeader";
+import { GlassPanel } from "@/components/shell/GlassPanel";
+import { StatusBadge } from "@/components/shell/StatusBadge";
+import { findSection } from "@/lib/settings-sections";
+
+export const Route = createFileRoute("/_authenticated/settings/$section")({
+  head: ({ params }) => {
+    const found = findSection(params.section);
+    const label = found?.item.label ?? "Settings";
+    return {
+      meta: [
+        { title: `${label} — CAERA CADANE` },
+        { name: "robots", content: "noindex" },
+      ],
+    };
+  },
+  component: SectionCatchall,
+});
+
+function SectionCatchall() {
+  const { section } = Route.useParams();
+  const found = findSection(section);
+
+  if (!found) {
+    return (
+      <>
+        <PageHeader
+          eyebrow="Settings"
+          title="Section not found"
+          description="This settings page does not exist."
+        />
+        <GlassPanel className="p-5 text-sm text-muted-foreground">
+          <Link to="/settings" className="text-primary underline underline-offset-4">
+            Back to Settings
+          </Link>
+        </GlassPanel>
+      </>
+    );
+  }
+
+  const { group, item } = found;
+
+  // External redirect (e.g. Model Settings → /ocade/models)
+  if (item.status === "external" && item.externalTo) {
+    return <Navigate to={item.externalTo} replace />;
+  }
+
+  const Icon = item.icon;
+
+  return (
+    <>
+      <PageHeader
+        eyebrow={group.label}
+        title={item.label}
+        description={item.description}
+        actions={<StatusBadge status="planned">Setup Required</StatusBadge>}
+      />
+
+      <GlassPanel className="flex items-start gap-3 p-5 text-sm">
+        <div className="rounded-md bg-primary/10 p-2 text-primary">
+          <Icon className="h-4 w-4" aria-hidden />
+        </div>
+        <div className="min-w-0 space-y-2">
+          <p className="text-foreground">
+            This page is planned. Nothing here is enabled yet, so we do not show
+            fake controls or fake data.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {item.description}
+          </p>
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Link
+              to="/settings"
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border/60 bg-background/40 px-3 text-xs text-foreground hover:bg-accent"
+            >
+              Back to Settings
+            </Link>
+            {item.externalTo ? (
+              <Link
+                to={item.externalTo}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90"
+              >
+                <ExternalLink className="h-3 w-3" aria-hidden />
+                {item.externalHint ?? "Open"}
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      </GlassPanel>
+
+      <GlassPanel className="mt-4 flex items-start gap-3 p-4 text-xs text-muted-foreground">
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+        <p>
+          CAERA CADANE ships in vertical slices. If you need this feature sooner,
+          use the feedback form inside {" "}
+          <Link to="/settings/activity" className="underline underline-offset-4">
+            Activity
+          </Link>{" "}
+          to record the request in your account log.
+        </p>
+      </GlassPanel>
+    </>
+  );
+}
