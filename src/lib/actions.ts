@@ -157,7 +157,9 @@ const actions: Action[] = [
     requiresPreview: true,
     confirmation: "strong",
     confirmPhrase: "activate",
+  },
   { id: "ocade.chat.send", featureId: "ocade.chat", title: "Send OCADE message", log: "operational" },
+
   { id: "ocade.chat.regenerate", featureId: "ocade.chat", title: "Regenerate OCADE response", log: "operational" },
   { id: "ocade.chat.stop", featureId: "ocade.chat", title: "Stop OCADE response", log: "operational" },
   { id: "ocade.chat.improve_prompt", featureId: "ocade.chat", title: "Improve prompt", log: "operational" },
