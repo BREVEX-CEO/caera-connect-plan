@@ -32,7 +32,7 @@ function MadeeIndex() {
   const del = useServerFn(deleteResumeProject);
   const dup = useServerFn(duplicateResumeProject);
   const router = useRouter();
-  const demo = useDemo();
+  const demoBanner = isDemoActive();
 
   const q = useQuery({
     queryKey: ["madee", "projects"],
