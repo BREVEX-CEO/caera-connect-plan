@@ -185,8 +185,11 @@ function PackEditor() {
       const res = await executeAction("admin.country_pack.run_tests", {
         run: () => runVersionTests({ data: { version_id: ver.id } }),
       });
-      if (res && "summary" in res) {
-        setFlash(`Tests: ${res.summary.pass}/${res.summary.total} pass · ${res.summary.fail} fail · ${res.summary.error} error`);
+      if (res && res.ok && res.summary) {
+        const s = res.summary;
+        setFlash(`Tests: ${s.pass}/${s.total} pass · ${s.fail} fail · ${s.error} error`);
+      } else if (res && !res.ok) {
+        setFlash(res.message ?? "Test run failed.");
       }
       qc.invalidateQueries({ queryKey: ["historical_test_cases", ver.id] });
     } catch (e) {
