@@ -24,6 +24,7 @@ import { Route as AuthenticatedCaniaRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
 import { Route as AuthenticatedSettingsPrivacyRouteImport } from './routes/_authenticated/settings.privacy'
 import { Route as AuthenticatedSettingsDevicesRouteImport } from './routes/_authenticated/settings.devices'
+import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings.appearance'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -102,6 +103,12 @@ const AuthenticatedSettingsDevicesRoute =
     path: '/devices',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsAppearanceRoute =
+  AuthenticatedSettingsAppearanceRouteImport.update({
+    id: '/appearance',
+    path: '/appearance',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
@@ -130,6 +138,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
@@ -148,6 +157,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/_authenticated/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/_authenticated/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
@@ -166,6 +176,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/auth/callback'
     | '/auth/verify'
+    | '/settings/appearance'
     | '/settings/devices'
     | '/settings/privacy'
     | '/settings/'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/auth/callback'
     | '/auth/verify'
+    | '/settings/appearance'
     | '/settings/devices'
     | '/settings/privacy'
     | '/settings'
@@ -198,6 +210,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/auth/callback'
     | '/auth/verify'
+    | '/_authenticated/settings/appearance'
     | '/_authenticated/settings/devices'
     | '/_authenticated/settings/privacy'
     | '/_authenticated/settings/'
@@ -316,16 +329,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsDevicesRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/appearance': {
+      id: '/_authenticated/settings/appearance'
+      path: '/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof AuthenticatedSettingsAppearanceRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
   }
 }
 
 interface AuthenticatedSettingsRouteChildren {
+  AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute
   AuthenticatedSettingsDevicesRoute: typeof AuthenticatedSettingsDevicesRoute
   AuthenticatedSettingsPrivacyRoute: typeof AuthenticatedSettingsPrivacyRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
 
 const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
+  AuthenticatedSettingsAppearanceRoute: AuthenticatedSettingsAppearanceRoute,
   AuthenticatedSettingsDevicesRoute: AuthenticatedSettingsDevicesRoute,
   AuthenticatedSettingsPrivacyRoute: AuthenticatedSettingsPrivacyRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
