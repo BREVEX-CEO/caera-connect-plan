@@ -162,6 +162,27 @@ export type Database = {
           },
         ]
       }
+      data_class_privacy: {
+        Row: {
+          data_class: string
+          mode: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          data_class: string
+          mode: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          data_class?: string
+          mode?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       devices: {
         Row: {
           created_at: string
@@ -446,6 +467,69 @@ export type Database = {
           theme?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      vault_config: {
+        Row: {
+          created_at: string
+          credential_kind: string
+          kdf_algo: string
+          kdf_iterations: number
+          kdf_salt: string
+          last_rotated_at: string | null
+          last_unlocked_at: string | null
+          lock_timeout_seconds: number
+          recovery_salt: string | null
+          recovery_verifier: string | null
+          recovery_wrapped_dek: string | null
+          recovery_wrapped_dek_iv: string | null
+          updated_at: string
+          user_id: string
+          webauthn_credential_id: string | null
+          webauthn_prf_salt: string | null
+          wrapped_dek: string
+          wrapped_dek_iv: string
+        }
+        Insert: {
+          created_at?: string
+          credential_kind: string
+          kdf_algo?: string
+          kdf_iterations?: number
+          kdf_salt: string
+          last_rotated_at?: string | null
+          last_unlocked_at?: string | null
+          lock_timeout_seconds?: number
+          recovery_salt?: string | null
+          recovery_verifier?: string | null
+          recovery_wrapped_dek?: string | null
+          recovery_wrapped_dek_iv?: string | null
+          updated_at?: string
+          user_id: string
+          webauthn_credential_id?: string | null
+          webauthn_prf_salt?: string | null
+          wrapped_dek: string
+          wrapped_dek_iv: string
+        }
+        Update: {
+          created_at?: string
+          credential_kind?: string
+          kdf_algo?: string
+          kdf_iterations?: number
+          kdf_salt?: string
+          last_rotated_at?: string | null
+          last_unlocked_at?: string | null
+          lock_timeout_seconds?: number
+          recovery_salt?: string | null
+          recovery_verifier?: string | null
+          recovery_wrapped_dek?: string | null
+          recovery_wrapped_dek_iv?: string | null
+          updated_at?: string
+          user_id?: string
+          webauthn_credential_id?: string | null
+          webauthn_prf_salt?: string | null
+          wrapped_dek?: string
+          wrapped_dek_iv?: string
         }
         Relationships: []
       }
