@@ -183,7 +183,6 @@ function PackEditor() {
     setFlash(null);
     try {
       const res = await executeAction("admin.country_pack.run_tests", {
-        target: ver.id,
         run: () => runVersionTests({ data: { version_id: ver.id } }),
       });
       if (res && "summary" in res) {
@@ -203,8 +202,6 @@ function PackEditor() {
     setFlash(null);
     try {
       const res = await executeAction("admin.country_pack.promote", {
-        target: ver.id,
-        preview: { from: ver.status, to: target },
         run: () => promotePackVersion({ data: { version_id: ver.id, target_status: target as any, ga_ready: target === "ga" ? true : undefined } }),
       });
       if (res && !("ok" in res && res.ok)) {
@@ -418,8 +415,6 @@ function VersionMeta({ ver, onSaved }: { ver: Version; onSaved: () => void }) {
     setMsg(null);
     try {
       const res = await executeAction("admin.country_pack.update_version", {
-        target: ver.id,
-        preview: { effective_to: effTo, pilot_evidence_url: pilot },
         run: () =>
           updatePackVersion({
             data: {
@@ -473,7 +468,6 @@ function AddSourceForm({ versionId, onSaved }: { versionId: string; onSaved: () 
     setBusy(true);
     try {
       await executeAction("admin.country_pack.add_source", {
-        target: versionId,
         run: () => addRuleSource({ data: { version_id: versionId, rule_key: ruleKey, source_type: type, citation, url: url || undefined } }),
       });
       setRuleKey(""); setCitation(""); setUrl("");
@@ -521,8 +515,6 @@ function AddReviewForm({ versionId, onSaved }: { versionId: string; onSaved: () 
     setMsg(null);
     try {
       const res = await executeAction("admin.country_pack.add_review", {
-        target: versionId,
-        preview: { reviewer: name, credential: cred, decision },
         run: () =>
           addPackReview({
             data: {
