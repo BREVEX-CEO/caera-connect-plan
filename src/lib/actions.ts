@@ -191,6 +191,16 @@ const actions: Action[] = [
   { id: "ocade.providers.test_connection", featureId: "ocade.models", title: "Test OCADE provider connection", log: "operational" },
   { id: "ocade.providers.set_bridge_url", featureId: "ocade.models", title: "Set Ollama local bridge URL", log: "operational" },
   { id: "ocade.providers.enable_openai_direct", featureId: "ocade.models", title: "Enable OpenAI Direct", log: "operational" },
+
+  // CANIA
+  { id: "cania.topic.save", featureId: "cania.topics", title: "Save CANIA topic", log: "operational" },
+  { id: "cania.topic.delete", featureId: "cania.topics", title: "Delete CANIA topic", log: "operational" },
+  { id: "cania.alert.create", featureId: "cania.alerts", title: "Create CANIA alert", log: "operational" },
+  { id: "cania.alert.toggle", featureId: "cania.alerts", title: "Toggle CANIA alert", log: "operational" },
+  { id: "cania.alert.delete", featureId: "cania.alerts", title: "Delete CANIA alert", log: "operational" },
+  { id: "cania.settings.save", featureId: "cania.settings", title: "Save CANIA settings", log: "operational" },
+  { id: "cania.location.grant", featureId: "cania.settings", title: "Grant CANIA location", log: "operational",
+    description: "User granted the browser geolocation permission for CANIA weather and traffic." },
 ];
 
 
