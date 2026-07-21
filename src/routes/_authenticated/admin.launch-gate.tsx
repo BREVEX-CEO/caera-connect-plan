@@ -91,13 +91,17 @@ export const Route = createFileRoute("/_authenticated/admin/launch-gate")({
   component: LaunchGatePage,
 });
 
-function statusTone(s: Status): "success" | "warning" | "danger" | "info" | "neutral" {
+function statusBadgeKind(
+  s: Status,
+): "success" | "beta" | "setup_required" | "failed" | "pending" | "running" {
   if (s === "complete") return "success";
-  if (s === "waived") return "info";
-  if (s === "evidence_required") return "warning";
-  if (s === "not_started") return "danger";
-  return "neutral";
+  if (s === "waived") return "beta";
+  if (s === "evidence_required") return "setup_required";
+  if (s === "not_started") return "failed";
+  if (s === "pending_review") return "pending";
+  return "running";
 }
+
 
 function LaunchGatePage() {
   const qc = useQueryClient();
