@@ -12,16 +12,16 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="flex flex-col gap-2 border-b border-border/60 pb-6 sm:flex-row sm:items-end sm:justify-between">
-      <div>
+    <header className="flex flex-col gap-2 pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0">
         {eyebrow ? (
-          <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
             {eyebrow}
           </div>
         ) : null}
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
+        <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-foreground sm:text-[22px]">{title}</h1>
         {description ? (
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p>
+          <p className="mt-1 max-w-2xl text-[13px] text-muted-foreground">{description}</p>
         ) : null}
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
