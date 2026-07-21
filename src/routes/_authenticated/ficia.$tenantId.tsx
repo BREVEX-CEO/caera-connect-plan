@@ -81,6 +81,12 @@ function CompanyWorkspace() {
         ))}
       </GlassPanel>
 
+      <GlassPanel className="p-3 mb-4 flex flex-wrap gap-2 text-sm">
+        <Link to="/ficia/$tenantId/people" params={{ tenantId }} className="px-3 py-1.5 rounded-md border border-border hover:bg-muted">People &amp; org units →</Link>
+        <Link to="/ficia/$tenantId/roles" params={{ tenantId }} className="px-3 py-1.5 rounded-md border border-border hover:bg-muted">Roles &amp; permissions →</Link>
+        <Link to="/ficia/$tenantId/approvals" params={{ tenantId }} className="px-3 py-1.5 rounded-md border border-border hover:bg-muted">Approvals &amp; SoD →</Link>
+      </GlassPanel>
+
       {tab === "overview" && <Overview company={company} />}
       {tab === "settings" && <Settings company={company} isOwner={isOwner} onSaved={() => qc.invalidateQueries({ queryKey: ["ficia_company", tenantId] })} />}
       {tab === "members" && <Members members={members ?? []} />}

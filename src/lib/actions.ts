@@ -243,6 +243,23 @@ const actions: Action[] = [
     requiresPreview: true,
     confirmation: "confirm",
   },
+  // FICIA people
+  { id: "ficia.people.invite", featureId: "ficia.people", title: "Invite person", log: "compliance", category: "role_change", requiresPreview: true, confirmation: "confirm" },
+  { id: "ficia.people.suspend", featureId: "ficia.people", title: "Suspend person", log: "compliance", category: "role_change", requiresPreview: true, confirmation: "confirm", description: "Immediately removes tenant access." },
+  { id: "ficia.people.terminate", featureId: "ficia.people", title: "Terminate person", log: "compliance", category: "role_change", requiresPreview: true, confirmation: "strong", confirmPhrase: "TERMINATE" },
+  { id: "ficia.people.restore", featureId: "ficia.people", title: "Restore person", log: "compliance", category: "role_change", requiresPreview: true, confirmation: "confirm" },
+  { id: "ficia.org.create", featureId: "ficia.people", title: "Create department / team / location", log: "operational" },
+  // FICIA roles
+  { id: "ficia.roles.upsert", featureId: "ficia.roles", title: "Create or edit custom role", log: "compliance", category: "role_change", requiresPreview: true, confirmation: "confirm" },
+  { id: "ficia.roles.grant", featureId: "ficia.roles", title: "Grant role to user", log: "compliance", category: "role_change", requiresPreview: true, confirmation: "confirm" },
+  { id: "ficia.roles.revoke", featureId: "ficia.roles", title: "Revoke role from user", log: "compliance", category: "role_change", requiresPreview: true, confirmation: "confirm" },
+  // FICIA approvals
+  { id: "ficia.approvals.policy_upsert", featureId: "ficia.approvals", title: "Create or edit approval policy", log: "compliance", category: "approval", requiresPreview: true, confirmation: "confirm" },
+  { id: "ficia.approvals.submit", featureId: "ficia.approvals", title: "Submit for approval", log: "compliance", category: "approval" },
+  { id: "ficia.approvals.approve", featureId: "ficia.approvals", title: "Approve request", log: "compliance", category: "approval", requiresPreview: true, confirmation: "confirm" },
+  { id: "ficia.approvals.reject", featureId: "ficia.approvals", title: "Reject request", log: "compliance", category: "approval", requiresPreview: true, confirmation: "confirm" },
+  { id: "ficia.approvals.release", featureId: "ficia.approvals", title: "Release approved request", log: "compliance", category: "approval", requiresPreview: true, confirmation: "strong", confirmPhrase: "RELEASE" },
+  { id: "ficia.approvals.sod_override", featureId: "ficia.approvals", title: "Segregation-of-duties override", log: "compliance", category: "approval", requiresPreview: true, confirmation: "strong", confirmPhrase: "OVERRIDE", description: "Documented override — requires reason and appears in compliance audit." },
   { id: "ocade.chat.send", featureId: "ocade.chat", title: "Send OCADE message", log: "operational" },
 
   { id: "ocade.chat.regenerate", featureId: "ocade.chat", title: "Regenerate OCADE response", log: "operational" },

@@ -66,6 +66,9 @@ import { Route as AuthenticatedCaniaAlertsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_authenticated/admin.launch-gate'
 import { Route as AuthenticatedAdminCountryPacksRouteImport } from './routes/_authenticated/admin.country-packs'
 import { Route as AuthenticatedMadeeProjectIdPreviewRouteImport } from './routes/_authenticated/madee.$projectId.preview'
+import { Route as AuthenticatedFiciaTenantIdRolesRouteImport } from './routes/_authenticated/ficia.$tenantId.roles'
+import { Route as AuthenticatedFiciaTenantIdPeopleRouteImport } from './routes/_authenticated/ficia.$tenantId.people'
+import { Route as AuthenticatedFiciaTenantIdApprovalsRouteImport } from './routes/_authenticated/ficia.$tenantId.approvals'
 import { Route as AuthenticatedAdminCountryPacksPackIdRouteImport } from './routes/_authenticated/admin.country-packs.$packId'
 
 const DemoRoute = DemoRouteImport.update({
@@ -379,6 +382,24 @@ const AuthenticatedMadeeProjectIdPreviewRoute =
     path: '/preview',
     getParentRoute: () => AuthenticatedMadeeProjectIdRoute,
   } as any)
+const AuthenticatedFiciaTenantIdRolesRoute =
+  AuthenticatedFiciaTenantIdRolesRouteImport.update({
+    id: '/roles',
+    path: '/roles',
+    getParentRoute: () => AuthenticatedFiciaTenantIdRoute,
+  } as any)
+const AuthenticatedFiciaTenantIdPeopleRoute =
+  AuthenticatedFiciaTenantIdPeopleRouteImport.update({
+    id: '/people',
+    path: '/people',
+    getParentRoute: () => AuthenticatedFiciaTenantIdRoute,
+  } as any)
+const AuthenticatedFiciaTenantIdApprovalsRoute =
+  AuthenticatedFiciaTenantIdApprovalsRouteImport.update({
+    id: '/approvals',
+    path: '/approvals',
+    getParentRoute: () => AuthenticatedFiciaTenantIdRoute,
+  } as any)
 const AuthenticatedAdminCountryPacksPackIdRoute =
   AuthenticatedAdminCountryPacksPackIdRouteImport.update({
     id: '/$packId',
@@ -427,7 +448,7 @@ export interface FileRoutesByFullPath {
   '/cania/travel': typeof AuthenticatedCaniaTravelRoute
   '/cania/weather': typeof AuthenticatedCaniaWeatherRoute
   '/cania/world': typeof AuthenticatedCaniaWorldRoute
-  '/ficia/$tenantId': typeof AuthenticatedFiciaTenantIdRoute
+  '/ficia/$tenantId': typeof AuthenticatedFiciaTenantIdRouteWithChildren
   '/ficia/new': typeof AuthenticatedFiciaNewRoute
   '/madee/$projectId': typeof AuthenticatedMadeeProjectIdRouteWithChildren
   '/madee/new': typeof AuthenticatedMadeeNewRoute
@@ -443,6 +464,9 @@ export interface FileRoutesByFullPath {
   '/madee/': typeof AuthenticatedMadeeIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/admin/country-packs/$packId': typeof AuthenticatedAdminCountryPacksPackIdRoute
+  '/ficia/$tenantId/approvals': typeof AuthenticatedFiciaTenantIdApprovalsRoute
+  '/ficia/$tenantId/people': typeof AuthenticatedFiciaTenantIdPeopleRoute
+  '/ficia/$tenantId/roles': typeof AuthenticatedFiciaTenantIdRolesRoute
   '/madee/$projectId/preview': typeof AuthenticatedMadeeProjectIdPreviewRoute
 }
 export interface FileRoutesByTo {
@@ -481,7 +505,7 @@ export interface FileRoutesByTo {
   '/cania/travel': typeof AuthenticatedCaniaTravelRoute
   '/cania/weather': typeof AuthenticatedCaniaWeatherRoute
   '/cania/world': typeof AuthenticatedCaniaWorldRoute
-  '/ficia/$tenantId': typeof AuthenticatedFiciaTenantIdRoute
+  '/ficia/$tenantId': typeof AuthenticatedFiciaTenantIdRouteWithChildren
   '/ficia/new': typeof AuthenticatedFiciaNewRoute
   '/madee/$projectId': typeof AuthenticatedMadeeProjectIdRouteWithChildren
   '/madee/new': typeof AuthenticatedMadeeNewRoute
@@ -497,6 +521,9 @@ export interface FileRoutesByTo {
   '/madee': typeof AuthenticatedMadeeIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/admin/country-packs/$packId': typeof AuthenticatedAdminCountryPacksPackIdRoute
+  '/ficia/$tenantId/approvals': typeof AuthenticatedFiciaTenantIdApprovalsRoute
+  '/ficia/$tenantId/people': typeof AuthenticatedFiciaTenantIdPeopleRoute
+  '/ficia/$tenantId/roles': typeof AuthenticatedFiciaTenantIdRolesRoute
   '/madee/$projectId/preview': typeof AuthenticatedMadeeProjectIdPreviewRoute
 }
 export interface FileRoutesById {
@@ -542,7 +569,7 @@ export interface FileRoutesById {
   '/_authenticated/cania/travel': typeof AuthenticatedCaniaTravelRoute
   '/_authenticated/cania/weather': typeof AuthenticatedCaniaWeatherRoute
   '/_authenticated/cania/world': typeof AuthenticatedCaniaWorldRoute
-  '/_authenticated/ficia/$tenantId': typeof AuthenticatedFiciaTenantIdRoute
+  '/_authenticated/ficia/$tenantId': typeof AuthenticatedFiciaTenantIdRouteWithChildren
   '/_authenticated/ficia/new': typeof AuthenticatedFiciaNewRoute
   '/_authenticated/madee/$projectId': typeof AuthenticatedMadeeProjectIdRouteWithChildren
   '/_authenticated/madee/new': typeof AuthenticatedMadeeNewRoute
@@ -558,6 +585,9 @@ export interface FileRoutesById {
   '/_authenticated/madee/': typeof AuthenticatedMadeeIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/admin/country-packs/$packId': typeof AuthenticatedAdminCountryPacksPackIdRoute
+  '/_authenticated/ficia/$tenantId/approvals': typeof AuthenticatedFiciaTenantIdApprovalsRoute
+  '/_authenticated/ficia/$tenantId/people': typeof AuthenticatedFiciaTenantIdPeopleRoute
+  '/_authenticated/ficia/$tenantId/roles': typeof AuthenticatedFiciaTenantIdRolesRoute
   '/_authenticated/madee/$projectId/preview': typeof AuthenticatedMadeeProjectIdPreviewRoute
 }
 export interface FileRouteTypes {
@@ -619,6 +649,9 @@ export interface FileRouteTypes {
     | '/madee/'
     | '/settings/'
     | '/admin/country-packs/$packId'
+    | '/ficia/$tenantId/approvals'
+    | '/ficia/$tenantId/people'
+    | '/ficia/$tenantId/roles'
     | '/madee/$projectId/preview'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -673,6 +706,9 @@ export interface FileRouteTypes {
     | '/madee'
     | '/settings'
     | '/admin/country-packs/$packId'
+    | '/ficia/$tenantId/approvals'
+    | '/ficia/$tenantId/people'
+    | '/ficia/$tenantId/roles'
     | '/madee/$projectId/preview'
   id:
     | '__root__'
@@ -733,6 +769,9 @@ export interface FileRouteTypes {
     | '/_authenticated/madee/'
     | '/_authenticated/settings/'
     | '/_authenticated/admin/country-packs/$packId'
+    | '/_authenticated/ficia/$tenantId/approvals'
+    | '/_authenticated/ficia/$tenantId/people'
+    | '/_authenticated/ficia/$tenantId/roles'
     | '/_authenticated/madee/$projectId/preview'
   fileRoutesById: FileRoutesById
 }
@@ -1145,6 +1184,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMadeeProjectIdPreviewRouteImport
       parentRoute: typeof AuthenticatedMadeeProjectIdRoute
     }
+    '/_authenticated/ficia/$tenantId/roles': {
+      id: '/_authenticated/ficia/$tenantId/roles'
+      path: '/roles'
+      fullPath: '/ficia/$tenantId/roles'
+      preLoaderRoute: typeof AuthenticatedFiciaTenantIdRolesRouteImport
+      parentRoute: typeof AuthenticatedFiciaTenantIdRoute
+    }
+    '/_authenticated/ficia/$tenantId/people': {
+      id: '/_authenticated/ficia/$tenantId/people'
+      path: '/people'
+      fullPath: '/ficia/$tenantId/people'
+      preLoaderRoute: typeof AuthenticatedFiciaTenantIdPeopleRouteImport
+      parentRoute: typeof AuthenticatedFiciaTenantIdRoute
+    }
+    '/_authenticated/ficia/$tenantId/approvals': {
+      id: '/_authenticated/ficia/$tenantId/approvals'
+      path: '/approvals'
+      fullPath: '/ficia/$tenantId/approvals'
+      preLoaderRoute: typeof AuthenticatedFiciaTenantIdApprovalsRouteImport
+      parentRoute: typeof AuthenticatedFiciaTenantIdRoute
+    }
     '/_authenticated/admin/country-packs/$packId': {
       id: '/_authenticated/admin/country-packs/$packId'
       path: '/$packId'
@@ -1202,14 +1262,34 @@ const AuthenticatedCaniaRouteChildren: AuthenticatedCaniaRouteChildren = {
 const AuthenticatedCaniaRouteWithChildren =
   AuthenticatedCaniaRoute._addFileChildren(AuthenticatedCaniaRouteChildren)
 
+interface AuthenticatedFiciaTenantIdRouteChildren {
+  AuthenticatedFiciaTenantIdApprovalsRoute: typeof AuthenticatedFiciaTenantIdApprovalsRoute
+  AuthenticatedFiciaTenantIdPeopleRoute: typeof AuthenticatedFiciaTenantIdPeopleRoute
+  AuthenticatedFiciaTenantIdRolesRoute: typeof AuthenticatedFiciaTenantIdRolesRoute
+}
+
+const AuthenticatedFiciaTenantIdRouteChildren: AuthenticatedFiciaTenantIdRouteChildren =
+  {
+    AuthenticatedFiciaTenantIdApprovalsRoute:
+      AuthenticatedFiciaTenantIdApprovalsRoute,
+    AuthenticatedFiciaTenantIdPeopleRoute:
+      AuthenticatedFiciaTenantIdPeopleRoute,
+    AuthenticatedFiciaTenantIdRolesRoute: AuthenticatedFiciaTenantIdRolesRoute,
+  }
+
+const AuthenticatedFiciaTenantIdRouteWithChildren =
+  AuthenticatedFiciaTenantIdRoute._addFileChildren(
+    AuthenticatedFiciaTenantIdRouteChildren,
+  )
+
 interface AuthenticatedFiciaRouteChildren {
-  AuthenticatedFiciaTenantIdRoute: typeof AuthenticatedFiciaTenantIdRoute
+  AuthenticatedFiciaTenantIdRoute: typeof AuthenticatedFiciaTenantIdRouteWithChildren
   AuthenticatedFiciaNewRoute: typeof AuthenticatedFiciaNewRoute
   AuthenticatedFiciaIndexRoute: typeof AuthenticatedFiciaIndexRoute
 }
 
 const AuthenticatedFiciaRouteChildren: AuthenticatedFiciaRouteChildren = {
-  AuthenticatedFiciaTenantIdRoute: AuthenticatedFiciaTenantIdRoute,
+  AuthenticatedFiciaTenantIdRoute: AuthenticatedFiciaTenantIdRouteWithChildren,
   AuthenticatedFiciaNewRoute: AuthenticatedFiciaNewRoute,
   AuthenticatedFiciaIndexRoute: AuthenticatedFiciaIndexRoute,
 }
