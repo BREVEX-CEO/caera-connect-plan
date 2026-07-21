@@ -135,7 +135,9 @@ const actions: Action[] = [
     requiresPreview: true,
     confirmation: "strong",
     confirmPhrase: "clear",
+  },
   {
+
     id: "admin.launch_gate.update",
     featureId: "admin.launch_gate",
     title: "Update launch-gate item",
