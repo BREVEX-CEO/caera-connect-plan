@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { LogOut, Shield, Laptop, ChevronRight, Palette } from "lucide-react";
+import { LogOut, Shield, Laptop, ChevronRight, Palette, Lock } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
