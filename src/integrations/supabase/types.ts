@@ -449,6 +449,109 @@ export type Database = {
         }
         Relationships: []
       }
+      madee_resume_projects: {
+        Row: {
+          archived: boolean
+          attestation_accepted_at: string | null
+          attestation_full_name: string | null
+          attestation_text: string | null
+          created_at: string
+          current_version_id: string | null
+          experience_level: string | null
+          id: string
+          profession: string | null
+          storage_mode: string
+          target_role: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          attestation_accepted_at?: string | null
+          attestation_full_name?: string | null
+          attestation_text?: string | null
+          created_at?: string
+          current_version_id?: string | null
+          experience_level?: string | null
+          id?: string
+          profession?: string | null
+          storage_mode?: string
+          target_role?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          attestation_accepted_at?: string | null
+          attestation_full_name?: string | null
+          attestation_text?: string | null
+          created_at?: string
+          current_version_id?: string | null
+          experience_level?: string | null
+          id?: string
+          profession?: string | null
+          storage_mode?: string
+          target_role?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "madee_projects_current_version_fk"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "madee_resume_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      madee_resume_versions: {
+        Row: {
+          ai_notes: Json
+          content: Json
+          content_stored_locally: boolean
+          created_at: string
+          id: string
+          label: string | null
+          project_id: string
+          user_id: string
+          version_number: number
+        }
+        Insert: {
+          ai_notes?: Json
+          content?: Json
+          content_stored_locally?: boolean
+          created_at?: string
+          id?: string
+          label?: string | null
+          project_id: string
+          user_id: string
+          version_number: number
+        }
+        Update: {
+          ai_notes?: Json
+          content?: Json
+          content_stored_locally?: boolean
+          created_at?: string
+          id?: string
+          label?: string | null
+          project_id?: string
+          user_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "madee_resume_versions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "madee_resume_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ocade_conversations: {
         Row: {
           archived: boolean
