@@ -1037,6 +1037,69 @@ export type Database = {
           },
         ]
       }
+      ficia_projects: {
+        Row: {
+          billable_default: boolean
+          billing_rate_cents: number | null
+          client_name: string | null
+          code: string | null
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          department_id: string | null
+          id: string
+          name: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          billable_default?: boolean
+          billing_rate_cents?: number | null
+          client_name?: string | null
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          department_id?: string | null
+          id?: string
+          name: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          billable_default?: boolean
+          billing_rate_cents?: number | null
+          client_name?: string | null
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          department_id?: string | null
+          id?: string
+          name?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_projects_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_projects_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ficia_role_grants: {
         Row: {
           granted_at: string
@@ -1071,6 +1134,54 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ficia_role_grants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ficia_tasks: {
+        Row: {
+          billable_default: boolean
+          created_at: string
+          id: string
+          name: string
+          project_id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          billable_default?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          project_id: string
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          billable_default?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          project_id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_tasks_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1121,6 +1232,427 @@ export type Database = {
             foreignKeyName: "ficia_teams_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ficia_time_activity_samples: {
+        Row: {
+          at: string
+          created_at: string
+          entry_id: string | null
+          id: string
+          idle_seconds: number
+          state: Database["public"]["Enums"]["time_activity_state"]
+          tenant_id: string
+          user_id: string
+          window_focus: boolean | null
+        }
+        Insert: {
+          at?: string
+          created_at?: string
+          entry_id?: string | null
+          id?: string
+          idle_seconds?: number
+          state: Database["public"]["Enums"]["time_activity_state"]
+          tenant_id: string
+          user_id: string
+          window_focus?: boolean | null
+        }
+        Update: {
+          at?: string
+          created_at?: string
+          entry_id?: string | null
+          id?: string
+          idle_seconds?: number
+          state?: Database["public"]["Enums"]["time_activity_state"]
+          tenant_id?: string
+          user_id?: string
+          window_focus?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_time_activity_samples_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_time_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_time_activity_samples_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ficia_time_consents: {
+        Row: {
+          accepted_at: string
+          accepted_terms: string
+          activity_monitoring: boolean
+          auto_pause: boolean
+          created_at: string
+          id: string
+          ip_at_accept: string | null
+          revoked_at: string | null
+          screen_recording_optin: boolean
+          tenant_id: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          accepted_terms: string
+          activity_monitoring?: boolean
+          auto_pause?: boolean
+          created_at?: string
+          id?: string
+          ip_at_accept?: string | null
+          revoked_at?: string | null
+          screen_recording_optin?: boolean
+          tenant_id: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          accepted_terms?: string
+          activity_monitoring?: boolean
+          auto_pause?: boolean
+          created_at?: string
+          id?: string
+          ip_at_accept?: string | null
+          revoked_at?: string | null
+          screen_recording_optin?: boolean
+          tenant_id?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_time_consents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ficia_time_entries: {
+        Row: {
+          ai_time_split: Json
+          approved_at: string | null
+          approved_by: string | null
+          billable: boolean
+          billing_rate_cents: number | null
+          break_seconds: number
+          breaks: Json
+          correction_of: string | null
+          created_at: string
+          currency: string | null
+          department_id: string | null
+          description: string | null
+          duration_seconds: number | null
+          ended_at: string | null
+          entry_date: string
+          evidence: Json
+          id: string
+          idle_seconds: number
+          locked_period_id: string | null
+          project_id: string | null
+          rejected_reason: string | null
+          source: Database["public"]["Enums"]["time_entry_source"]
+          started_at: string
+          status: Database["public"]["Enums"]["time_entry_status"]
+          task_id: string | null
+          tenant_id: string
+          updated_at: string
+          user_id: string
+          work_mode: Database["public"]["Enums"]["time_work_mode"] | null
+        }
+        Insert: {
+          ai_time_split?: Json
+          approved_at?: string | null
+          approved_by?: string | null
+          billable?: boolean
+          billing_rate_cents?: number | null
+          break_seconds?: number
+          breaks?: Json
+          correction_of?: string | null
+          created_at?: string
+          currency?: string | null
+          department_id?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          entry_date: string
+          evidence?: Json
+          id?: string
+          idle_seconds?: number
+          locked_period_id?: string | null
+          project_id?: string | null
+          rejected_reason?: string | null
+          source?: Database["public"]["Enums"]["time_entry_source"]
+          started_at: string
+          status?: Database["public"]["Enums"]["time_entry_status"]
+          task_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+          work_mode?: Database["public"]["Enums"]["time_work_mode"] | null
+        }
+        Update: {
+          ai_time_split?: Json
+          approved_at?: string | null
+          approved_by?: string | null
+          billable?: boolean
+          billing_rate_cents?: number | null
+          break_seconds?: number
+          breaks?: Json
+          correction_of?: string | null
+          created_at?: string
+          currency?: string | null
+          department_id?: string | null
+          description?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          entry_date?: string
+          evidence?: Json
+          id?: string
+          idle_seconds?: number
+          locked_period_id?: string | null
+          project_id?: string | null
+          rejected_reason?: string | null
+          source?: Database["public"]["Enums"]["time_entry_source"]
+          started_at?: string
+          status?: Database["public"]["Enums"]["time_entry_status"]
+          task_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+          work_mode?: Database["public"]["Enums"]["time_work_mode"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_time_entries_correction_of_fkey"
+            columns: ["correction_of"]
+            isOneToOne: false
+            referencedRelation: "ficia_time_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_time_entries_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_time_entries_locked_period_id_fkey"
+            columns: ["locked_period_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_time_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_time_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_time_entries_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_time_entries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ficia_time_events: {
+        Row: {
+          at: string
+          created_at: string
+          entry_id: string | null
+          id: string
+          kind: Database["public"]["Enums"]["time_event_kind"]
+          metadata: Json
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          at?: string
+          created_at?: string
+          entry_id?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["time_event_kind"]
+          metadata?: Json
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          at?: string
+          created_at?: string
+          entry_id?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["time_event_kind"]
+          metadata?: Json
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_time_events_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_time_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ficia_time_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ficia_time_periods: {
+        Row: {
+          created_at: string
+          id: string
+          label: string | null
+          locked_at: string
+          locked_by: string
+          period_end: string
+          period_start: string
+          reason: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          locked_at?: string
+          locked_by: string
+          period_end: string
+          period_start: string
+          reason?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          locked_at?: string
+          locked_by?: string
+          period_end?: string
+          period_start?: string
+          reason?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_time_periods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ficia_time_policies: {
+        Row: {
+          allowed_work_modes: string[]
+          auto_pause_enabled: boolean
+          billable_default: boolean
+          break_minutes_paid: number
+          break_minutes_unpaid: number
+          created_at: string
+          daily_hours_target: number
+          holidays: Json
+          id: string
+          idle_threshold_minutes: number
+          overtime_rules: Json
+          screen_recording_available: boolean
+          shift_end: string
+          shift_start: string
+          tenant_id: string
+          timezone: string
+          updated_at: string
+          updated_by: string | null
+          weekly_hours_target: number
+          weekly_offs: number[]
+          workdays: number[]
+        }
+        Insert: {
+          allowed_work_modes?: string[]
+          auto_pause_enabled?: boolean
+          billable_default?: boolean
+          break_minutes_paid?: number
+          break_minutes_unpaid?: number
+          created_at?: string
+          daily_hours_target?: number
+          holidays?: Json
+          id?: string
+          idle_threshold_minutes?: number
+          overtime_rules?: Json
+          screen_recording_available?: boolean
+          shift_end?: string
+          shift_start?: string
+          tenant_id: string
+          timezone?: string
+          updated_at?: string
+          updated_by?: string | null
+          weekly_hours_target?: number
+          weekly_offs?: number[]
+          workdays?: number[]
+        }
+        Update: {
+          allowed_work_modes?: string[]
+          auto_pause_enabled?: boolean
+          billable_default?: boolean
+          break_minutes_paid?: number
+          break_minutes_unpaid?: number
+          created_at?: string
+          daily_hours_target?: number
+          holidays?: Json
+          id?: string
+          idle_threshold_minutes?: number
+          overtime_rules?: Json
+          screen_recording_available?: boolean
+          shift_end?: string
+          shift_start?: string
+          tenant_id?: string
+          timezone?: string
+          updated_at?: string
+          updated_by?: string | null
+          weekly_hours_target?: number
+          weekly_offs?: number[]
+          workdays?: number[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ficia_time_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -2488,6 +3020,10 @@ export type Database = {
         Args: { _payload: Json; _uid: string }
         Returns: string
       }
+      ficia_can_manage_worker: {
+        Args: { _caller_uid: string; _tenant_id: string; _worker_uid: string }
+        Returns: boolean
+      }
       ficia_has_permission: {
         Args: { _perm: string; _tenant: string; _uid: string }
         Returns: boolean
@@ -2625,6 +3161,28 @@ export type Database = {
         | "auditor"
         | "consultant"
         | "advisor"
+      time_activity_state:
+        | "active"
+        | "idle"
+        | "minimized"
+        | "closed"
+        | "disconnected"
+      time_entry_source: "clock" | "manual" | "import"
+      time_entry_status:
+        | "draft"
+        | "submitted"
+        | "approved"
+        | "rejected"
+        | "locked"
+      time_event_kind:
+        | "clock_in"
+        | "clock_out"
+        | "break_start"
+        | "break_end"
+        | "auto_pause"
+        | "resume"
+        | "manual_edit"
+      time_work_mode: "office" | "remote" | "hybrid" | "field"
       worker_type:
         | "employee"
         | "contractor"
@@ -2840,6 +3398,31 @@ export const Constants = {
         "consultant",
         "advisor",
       ],
+      time_activity_state: [
+        "active",
+        "idle",
+        "minimized",
+        "closed",
+        "disconnected",
+      ],
+      time_entry_source: ["clock", "manual", "import"],
+      time_entry_status: [
+        "draft",
+        "submitted",
+        "approved",
+        "rejected",
+        "locked",
+      ],
+      time_event_kind: [
+        "clock_in",
+        "clock_out",
+        "break_start",
+        "break_end",
+        "auto_pause",
+        "resume",
+        "manual_edit",
+      ],
+      time_work_mode: ["office", "remote", "hybrid", "field"],
       worker_type: [
         "employee",
         "contractor",

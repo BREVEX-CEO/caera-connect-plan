@@ -86,6 +86,7 @@ function CompanyWorkspace() {
         <Link to="/ficia/$tenantId/roles" params={{ tenantId }} className="px-3 py-1.5 rounded-md border border-border hover:bg-muted">Roles &amp; permissions →</Link>
         <Link to="/ficia/$tenantId/approvals" params={{ tenantId }} className="px-3 py-1.5 rounded-md border border-border hover:bg-muted">Approvals &amp; SoD →</Link>
         <Link to="/ficia/$tenantId/messenger" params={{ tenantId }} className="px-3 py-1.5 rounded-md border border-border hover:bg-muted">Messenger →</Link>
+        <Link to="/ficia/$tenantId/time" params={{ tenantId }} className="px-3 py-1.5 rounded-md border border-border hover:bg-muted">Timesheets →</Link>
       </GlassPanel>
 
       {tab === "overview" && <Overview company={company} />}

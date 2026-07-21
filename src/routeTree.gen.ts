@@ -66,11 +66,15 @@ import { Route as AuthenticatedCaniaAlertsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_authenticated/admin.launch-gate'
 import { Route as AuthenticatedAdminCountryPacksRouteImport } from './routes/_authenticated/admin.country-packs'
 import { Route as AuthenticatedMadeeProjectIdPreviewRouteImport } from './routes/_authenticated/madee.$projectId.preview'
+import { Route as AuthenticatedFiciaTenantIdTimeRouteImport } from './routes/_authenticated/ficia.$tenantId.time'
 import { Route as AuthenticatedFiciaTenantIdRolesRouteImport } from './routes/_authenticated/ficia.$tenantId.roles'
 import { Route as AuthenticatedFiciaTenantIdPeopleRouteImport } from './routes/_authenticated/ficia.$tenantId.people'
 import { Route as AuthenticatedFiciaTenantIdMessengerRouteImport } from './routes/_authenticated/ficia.$tenantId.messenger'
 import { Route as AuthenticatedFiciaTenantIdApprovalsRouteImport } from './routes/_authenticated/ficia.$tenantId.approvals'
 import { Route as AuthenticatedAdminCountryPacksPackIdRouteImport } from './routes/_authenticated/admin.country-packs.$packId'
+import { Route as AuthenticatedFiciaTenantIdTimeSettingsRouteImport } from './routes/_authenticated/ficia.$tenantId.time.settings'
+import { Route as AuthenticatedFiciaTenantIdTimeReportsRouteImport } from './routes/_authenticated/ficia.$tenantId.time.reports'
+import { Route as AuthenticatedFiciaTenantIdTimeApprovalsRouteImport } from './routes/_authenticated/ficia.$tenantId.time.approvals'
 
 const DemoRoute = DemoRouteImport.update({
   id: '/demo',
@@ -383,6 +387,12 @@ const AuthenticatedMadeeProjectIdPreviewRoute =
     path: '/preview',
     getParentRoute: () => AuthenticatedMadeeProjectIdRoute,
   } as any)
+const AuthenticatedFiciaTenantIdTimeRoute =
+  AuthenticatedFiciaTenantIdTimeRouteImport.update({
+    id: '/time',
+    path: '/time',
+    getParentRoute: () => AuthenticatedFiciaTenantIdRoute,
+  } as any)
 const AuthenticatedFiciaTenantIdRolesRoute =
   AuthenticatedFiciaTenantIdRolesRouteImport.update({
     id: '/roles',
@@ -412,6 +422,24 @@ const AuthenticatedAdminCountryPacksPackIdRoute =
     id: '/$packId',
     path: '/$packId',
     getParentRoute: () => AuthenticatedAdminCountryPacksRoute,
+  } as any)
+const AuthenticatedFiciaTenantIdTimeSettingsRoute =
+  AuthenticatedFiciaTenantIdTimeSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => AuthenticatedFiciaTenantIdTimeRoute,
+  } as any)
+const AuthenticatedFiciaTenantIdTimeReportsRoute =
+  AuthenticatedFiciaTenantIdTimeReportsRouteImport.update({
+    id: '/reports',
+    path: '/reports',
+    getParentRoute: () => AuthenticatedFiciaTenantIdTimeRoute,
+  } as any)
+const AuthenticatedFiciaTenantIdTimeApprovalsRoute =
+  AuthenticatedFiciaTenantIdTimeApprovalsRouteImport.update({
+    id: '/approvals',
+    path: '/approvals',
+    getParentRoute: () => AuthenticatedFiciaTenantIdTimeRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -475,7 +503,11 @@ export interface FileRoutesByFullPath {
   '/ficia/$tenantId/messenger': typeof AuthenticatedFiciaTenantIdMessengerRoute
   '/ficia/$tenantId/people': typeof AuthenticatedFiciaTenantIdPeopleRoute
   '/ficia/$tenantId/roles': typeof AuthenticatedFiciaTenantIdRolesRoute
+  '/ficia/$tenantId/time': typeof AuthenticatedFiciaTenantIdTimeRouteWithChildren
   '/madee/$projectId/preview': typeof AuthenticatedMadeeProjectIdPreviewRoute
+  '/ficia/$tenantId/time/approvals': typeof AuthenticatedFiciaTenantIdTimeApprovalsRoute
+  '/ficia/$tenantId/time/reports': typeof AuthenticatedFiciaTenantIdTimeReportsRoute
+  '/ficia/$tenantId/time/settings': typeof AuthenticatedFiciaTenantIdTimeSettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -533,7 +565,11 @@ export interface FileRoutesByTo {
   '/ficia/$tenantId/messenger': typeof AuthenticatedFiciaTenantIdMessengerRoute
   '/ficia/$tenantId/people': typeof AuthenticatedFiciaTenantIdPeopleRoute
   '/ficia/$tenantId/roles': typeof AuthenticatedFiciaTenantIdRolesRoute
+  '/ficia/$tenantId/time': typeof AuthenticatedFiciaTenantIdTimeRouteWithChildren
   '/madee/$projectId/preview': typeof AuthenticatedMadeeProjectIdPreviewRoute
+  '/ficia/$tenantId/time/approvals': typeof AuthenticatedFiciaTenantIdTimeApprovalsRoute
+  '/ficia/$tenantId/time/reports': typeof AuthenticatedFiciaTenantIdTimeReportsRoute
+  '/ficia/$tenantId/time/settings': typeof AuthenticatedFiciaTenantIdTimeSettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -598,7 +634,11 @@ export interface FileRoutesById {
   '/_authenticated/ficia/$tenantId/messenger': typeof AuthenticatedFiciaTenantIdMessengerRoute
   '/_authenticated/ficia/$tenantId/people': typeof AuthenticatedFiciaTenantIdPeopleRoute
   '/_authenticated/ficia/$tenantId/roles': typeof AuthenticatedFiciaTenantIdRolesRoute
+  '/_authenticated/ficia/$tenantId/time': typeof AuthenticatedFiciaTenantIdTimeRouteWithChildren
   '/_authenticated/madee/$projectId/preview': typeof AuthenticatedMadeeProjectIdPreviewRoute
+  '/_authenticated/ficia/$tenantId/time/approvals': typeof AuthenticatedFiciaTenantIdTimeApprovalsRoute
+  '/_authenticated/ficia/$tenantId/time/reports': typeof AuthenticatedFiciaTenantIdTimeReportsRoute
+  '/_authenticated/ficia/$tenantId/time/settings': typeof AuthenticatedFiciaTenantIdTimeSettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -663,7 +703,11 @@ export interface FileRouteTypes {
     | '/ficia/$tenantId/messenger'
     | '/ficia/$tenantId/people'
     | '/ficia/$tenantId/roles'
+    | '/ficia/$tenantId/time'
     | '/madee/$projectId/preview'
+    | '/ficia/$tenantId/time/approvals'
+    | '/ficia/$tenantId/time/reports'
+    | '/ficia/$tenantId/time/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -721,7 +765,11 @@ export interface FileRouteTypes {
     | '/ficia/$tenantId/messenger'
     | '/ficia/$tenantId/people'
     | '/ficia/$tenantId/roles'
+    | '/ficia/$tenantId/time'
     | '/madee/$projectId/preview'
+    | '/ficia/$tenantId/time/approvals'
+    | '/ficia/$tenantId/time/reports'
+    | '/ficia/$tenantId/time/settings'
   id:
     | '__root__'
     | '/'
@@ -785,7 +833,11 @@ export interface FileRouteTypes {
     | '/_authenticated/ficia/$tenantId/messenger'
     | '/_authenticated/ficia/$tenantId/people'
     | '/_authenticated/ficia/$tenantId/roles'
+    | '/_authenticated/ficia/$tenantId/time'
     | '/_authenticated/madee/$projectId/preview'
+    | '/_authenticated/ficia/$tenantId/time/approvals'
+    | '/_authenticated/ficia/$tenantId/time/reports'
+    | '/_authenticated/ficia/$tenantId/time/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1197,6 +1249,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMadeeProjectIdPreviewRouteImport
       parentRoute: typeof AuthenticatedMadeeProjectIdRoute
     }
+    '/_authenticated/ficia/$tenantId/time': {
+      id: '/_authenticated/ficia/$tenantId/time'
+      path: '/time'
+      fullPath: '/ficia/$tenantId/time'
+      preLoaderRoute: typeof AuthenticatedFiciaTenantIdTimeRouteImport
+      parentRoute: typeof AuthenticatedFiciaTenantIdRoute
+    }
     '/_authenticated/ficia/$tenantId/roles': {
       id: '/_authenticated/ficia/$tenantId/roles'
       path: '/roles'
@@ -1231,6 +1290,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/country-packs/$packId'
       preLoaderRoute: typeof AuthenticatedAdminCountryPacksPackIdRouteImport
       parentRoute: typeof AuthenticatedAdminCountryPacksRoute
+    }
+    '/_authenticated/ficia/$tenantId/time/settings': {
+      id: '/_authenticated/ficia/$tenantId/time/settings'
+      path: '/settings'
+      fullPath: '/ficia/$tenantId/time/settings'
+      preLoaderRoute: typeof AuthenticatedFiciaTenantIdTimeSettingsRouteImport
+      parentRoute: typeof AuthenticatedFiciaTenantIdTimeRoute
+    }
+    '/_authenticated/ficia/$tenantId/time/reports': {
+      id: '/_authenticated/ficia/$tenantId/time/reports'
+      path: '/reports'
+      fullPath: '/ficia/$tenantId/time/reports'
+      preLoaderRoute: typeof AuthenticatedFiciaTenantIdTimeReportsRouteImport
+      parentRoute: typeof AuthenticatedFiciaTenantIdTimeRoute
+    }
+    '/_authenticated/ficia/$tenantId/time/approvals': {
+      id: '/_authenticated/ficia/$tenantId/time/approvals'
+      path: '/approvals'
+      fullPath: '/ficia/$tenantId/time/approvals'
+      preLoaderRoute: typeof AuthenticatedFiciaTenantIdTimeApprovalsRouteImport
+      parentRoute: typeof AuthenticatedFiciaTenantIdTimeRoute
     }
   }
 }
@@ -1282,11 +1362,33 @@ const AuthenticatedCaniaRouteChildren: AuthenticatedCaniaRouteChildren = {
 const AuthenticatedCaniaRouteWithChildren =
   AuthenticatedCaniaRoute._addFileChildren(AuthenticatedCaniaRouteChildren)
 
+interface AuthenticatedFiciaTenantIdTimeRouteChildren {
+  AuthenticatedFiciaTenantIdTimeApprovalsRoute: typeof AuthenticatedFiciaTenantIdTimeApprovalsRoute
+  AuthenticatedFiciaTenantIdTimeReportsRoute: typeof AuthenticatedFiciaTenantIdTimeReportsRoute
+  AuthenticatedFiciaTenantIdTimeSettingsRoute: typeof AuthenticatedFiciaTenantIdTimeSettingsRoute
+}
+
+const AuthenticatedFiciaTenantIdTimeRouteChildren: AuthenticatedFiciaTenantIdTimeRouteChildren =
+  {
+    AuthenticatedFiciaTenantIdTimeApprovalsRoute:
+      AuthenticatedFiciaTenantIdTimeApprovalsRoute,
+    AuthenticatedFiciaTenantIdTimeReportsRoute:
+      AuthenticatedFiciaTenantIdTimeReportsRoute,
+    AuthenticatedFiciaTenantIdTimeSettingsRoute:
+      AuthenticatedFiciaTenantIdTimeSettingsRoute,
+  }
+
+const AuthenticatedFiciaTenantIdTimeRouteWithChildren =
+  AuthenticatedFiciaTenantIdTimeRoute._addFileChildren(
+    AuthenticatedFiciaTenantIdTimeRouteChildren,
+  )
+
 interface AuthenticatedFiciaTenantIdRouteChildren {
   AuthenticatedFiciaTenantIdApprovalsRoute: typeof AuthenticatedFiciaTenantIdApprovalsRoute
   AuthenticatedFiciaTenantIdMessengerRoute: typeof AuthenticatedFiciaTenantIdMessengerRoute
   AuthenticatedFiciaTenantIdPeopleRoute: typeof AuthenticatedFiciaTenantIdPeopleRoute
   AuthenticatedFiciaTenantIdRolesRoute: typeof AuthenticatedFiciaTenantIdRolesRoute
+  AuthenticatedFiciaTenantIdTimeRoute: typeof AuthenticatedFiciaTenantIdTimeRouteWithChildren
 }
 
 const AuthenticatedFiciaTenantIdRouteChildren: AuthenticatedFiciaTenantIdRouteChildren =
@@ -1298,6 +1400,8 @@ const AuthenticatedFiciaTenantIdRouteChildren: AuthenticatedFiciaTenantIdRouteCh
     AuthenticatedFiciaTenantIdPeopleRoute:
       AuthenticatedFiciaTenantIdPeopleRoute,
     AuthenticatedFiciaTenantIdRolesRoute: AuthenticatedFiciaTenantIdRolesRoute,
+    AuthenticatedFiciaTenantIdTimeRoute:
+      AuthenticatedFiciaTenantIdTimeRouteWithChildren,
   }
 
 const AuthenticatedFiciaTenantIdRouteWithChildren =
