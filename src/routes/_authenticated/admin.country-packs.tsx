@@ -86,7 +86,6 @@ function CountryPacksList() {
   return (
     <AppShell>
       <PageHeader
-        icon={<Globe2 className="size-5" />}
         eyebrow="FICIA Admin"
         title="Country Packs"
         description="Versioned compliance rule packs. Only admins can edit. India is the first pack; every other country is Planned."
