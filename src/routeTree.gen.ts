@@ -61,7 +61,9 @@ import { Route as AuthenticatedCaniaCommoditiesRouteImport } from './routes/_aut
 import { Route as AuthenticatedCaniaBusinessRouteImport } from './routes/_authenticated/cania.business'
 import { Route as AuthenticatedCaniaAlertsRouteImport } from './routes/_authenticated/cania.alerts'
 import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_authenticated/admin.launch-gate'
+import { Route as AuthenticatedAdminCountryPacksRouteImport } from './routes/_authenticated/admin.country-packs'
 import { Route as AuthenticatedMadeeProjectIdPreviewRouteImport } from './routes/_authenticated/madee.$projectId.preview'
+import { Route as AuthenticatedAdminCountryPacksPackIdRouteImport } from './routes/_authenticated/admin.country-packs.$packId'
 
 const DemoRoute = DemoRouteImport.update({
   id: '/demo',
@@ -346,11 +348,23 @@ const AuthenticatedAdminLaunchGateRoute =
     path: '/admin/launch-gate',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminCountryPacksRoute =
+  AuthenticatedAdminCountryPacksRouteImport.update({
+    id: '/admin/country-packs',
+    path: '/admin/country-packs',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMadeeProjectIdPreviewRoute =
   AuthenticatedMadeeProjectIdPreviewRouteImport.update({
     id: '/preview',
     path: '/preview',
     getParentRoute: () => AuthenticatedMadeeProjectIdRoute,
+  } as any)
+const AuthenticatedAdminCountryPacksPackIdRoute =
+  AuthenticatedAdminCountryPacksPackIdRouteImport.update({
+    id: '/$packId',
+    path: '/$packId',
+    getParentRoute: () => AuthenticatedAdminCountryPacksRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -374,6 +388,7 @@ export interface FileRoutesByFullPath {
   '/demo/settings': typeof DemoSettingsRoute
   '/demo/tasks': typeof DemoTasksRoute
   '/demo/': typeof DemoIndexRoute
+  '/admin/country-packs': typeof AuthenticatedAdminCountryPacksRouteWithChildren
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/cania/alerts': typeof AuthenticatedCaniaAlertsRoute
   '/cania/business': typeof AuthenticatedCaniaBusinessRoute
@@ -405,6 +420,7 @@ export interface FileRoutesByFullPath {
   '/cania/': typeof AuthenticatedCaniaIndexRoute
   '/madee/': typeof AuthenticatedMadeeIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/admin/country-packs/$packId': typeof AuthenticatedAdminCountryPacksPackIdRoute
   '/madee/$projectId/preview': typeof AuthenticatedMadeeProjectIdPreviewRoute
 }
 export interface FileRoutesByTo {
@@ -424,6 +440,7 @@ export interface FileRoutesByTo {
   '/demo/settings': typeof DemoSettingsRoute
   '/demo/tasks': typeof DemoTasksRoute
   '/demo': typeof DemoIndexRoute
+  '/admin/country-packs': typeof AuthenticatedAdminCountryPacksRouteWithChildren
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/cania/alerts': typeof AuthenticatedCaniaAlertsRoute
   '/cania/business': typeof AuthenticatedCaniaBusinessRoute
@@ -455,6 +472,7 @@ export interface FileRoutesByTo {
   '/cania': typeof AuthenticatedCaniaIndexRoute
   '/madee': typeof AuthenticatedMadeeIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
+  '/admin/country-packs/$packId': typeof AuthenticatedAdminCountryPacksPackIdRoute
   '/madee/$projectId/preview': typeof AuthenticatedMadeeProjectIdPreviewRoute
 }
 export interface FileRoutesById {
@@ -480,6 +498,7 @@ export interface FileRoutesById {
   '/demo/settings': typeof DemoSettingsRoute
   '/demo/tasks': typeof DemoTasksRoute
   '/demo/': typeof DemoIndexRoute
+  '/_authenticated/admin/country-packs': typeof AuthenticatedAdminCountryPacksRouteWithChildren
   '/_authenticated/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/_authenticated/cania/alerts': typeof AuthenticatedCaniaAlertsRoute
   '/_authenticated/cania/business': typeof AuthenticatedCaniaBusinessRoute
@@ -511,6 +530,7 @@ export interface FileRoutesById {
   '/_authenticated/cania/': typeof AuthenticatedCaniaIndexRoute
   '/_authenticated/madee/': typeof AuthenticatedMadeeIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/_authenticated/admin/country-packs/$packId': typeof AuthenticatedAdminCountryPacksPackIdRoute
   '/_authenticated/madee/$projectId/preview': typeof AuthenticatedMadeeProjectIdPreviewRoute
 }
 export interface FileRouteTypes {
@@ -536,6 +556,7 @@ export interface FileRouteTypes {
     | '/demo/settings'
     | '/demo/tasks'
     | '/demo/'
+    | '/admin/country-packs'
     | '/admin/launch-gate'
     | '/cania/alerts'
     | '/cania/business'
@@ -567,6 +588,7 @@ export interface FileRouteTypes {
     | '/cania/'
     | '/madee/'
     | '/settings/'
+    | '/admin/country-packs/$packId'
     | '/madee/$projectId/preview'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -586,6 +608,7 @@ export interface FileRouteTypes {
     | '/demo/settings'
     | '/demo/tasks'
     | '/demo'
+    | '/admin/country-packs'
     | '/admin/launch-gate'
     | '/cania/alerts'
     | '/cania/business'
@@ -617,6 +640,7 @@ export interface FileRouteTypes {
     | '/cania'
     | '/madee'
     | '/settings'
+    | '/admin/country-packs/$packId'
     | '/madee/$projectId/preview'
   id:
     | '__root__'
@@ -641,6 +665,7 @@ export interface FileRouteTypes {
     | '/demo/settings'
     | '/demo/tasks'
     | '/demo/'
+    | '/_authenticated/admin/country-packs'
     | '/_authenticated/admin/launch-gate'
     | '/_authenticated/cania/alerts'
     | '/_authenticated/cania/business'
@@ -672,6 +697,7 @@ export interface FileRouteTypes {
     | '/_authenticated/cania/'
     | '/_authenticated/madee/'
     | '/_authenticated/settings/'
+    | '/_authenticated/admin/country-packs/$packId'
     | '/_authenticated/madee/$projectId/preview'
   fileRoutesById: FileRoutesById
 }
@@ -1049,12 +1075,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminLaunchGateRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/country-packs': {
+      id: '/_authenticated/admin/country-packs'
+      path: '/admin/country-packs'
+      fullPath: '/admin/country-packs'
+      preLoaderRoute: typeof AuthenticatedAdminCountryPacksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/madee/$projectId/preview': {
       id: '/_authenticated/madee/$projectId/preview'
       path: '/preview'
       fullPath: '/madee/$projectId/preview'
       preLoaderRoute: typeof AuthenticatedMadeeProjectIdPreviewRouteImport
       parentRoute: typeof AuthenticatedMadeeProjectIdRoute
+    }
+    '/_authenticated/admin/country-packs/$packId': {
+      id: '/_authenticated/admin/country-packs/$packId'
+      path: '/$packId'
+      fullPath: '/admin/country-packs/$packId'
+      preLoaderRoute: typeof AuthenticatedAdminCountryPacksPackIdRouteImport
+      parentRoute: typeof AuthenticatedAdminCountryPacksRoute
     }
   }
 }
@@ -1171,6 +1211,21 @@ const AuthenticatedSettingsRouteWithChildren =
     AuthenticatedSettingsRouteChildren,
   )
 
+interface AuthenticatedAdminCountryPacksRouteChildren {
+  AuthenticatedAdminCountryPacksPackIdRoute: typeof AuthenticatedAdminCountryPacksPackIdRoute
+}
+
+const AuthenticatedAdminCountryPacksRouteChildren: AuthenticatedAdminCountryPacksRouteChildren =
+  {
+    AuthenticatedAdminCountryPacksPackIdRoute:
+      AuthenticatedAdminCountryPacksPackIdRoute,
+  }
+
+const AuthenticatedAdminCountryPacksRouteWithChildren =
+  AuthenticatedAdminCountryPacksRoute._addFileChildren(
+    AuthenticatedAdminCountryPacksRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCaniaRoute: typeof AuthenticatedCaniaRouteWithChildren
   AuthenticatedFiciaRoute: typeof AuthenticatedFiciaRoute
@@ -1179,6 +1234,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOcadeRoute: typeof AuthenticatedOcadeRouteWithChildren
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
+  AuthenticatedAdminCountryPacksRoute: typeof AuthenticatedAdminCountryPacksRouteWithChildren
   AuthenticatedAdminLaunchGateRoute: typeof AuthenticatedAdminLaunchGateRoute
 }
 
@@ -1190,6 +1246,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOcadeRoute: AuthenticatedOcadeRouteWithChildren,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
+  AuthenticatedAdminCountryPacksRoute:
+    AuthenticatedAdminCountryPacksRouteWithChildren,
   AuthenticatedAdminLaunchGateRoute: AuthenticatedAdminLaunchGateRoute,
 }
 

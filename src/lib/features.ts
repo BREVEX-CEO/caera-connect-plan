@@ -71,6 +71,7 @@ const features: Feature[] = [
   { id: "settings.appearance", module: "core", title: "Appearance", status: "active", platforms: ["web"] },
   { id: "settings.vault", module: "core", title: "Browser Vault", status: "active", platforms: ["web"] },
   { id: "admin.launch_gate", module: "admin", title: "Launch Gate", status: "active", platforms: ["web"] },
+  { id: "admin.country_packs", module: "admin", title: "Country Packs", status: "active", platforms: ["web"] },
 
 
   // OCADE — full chat lands in P10

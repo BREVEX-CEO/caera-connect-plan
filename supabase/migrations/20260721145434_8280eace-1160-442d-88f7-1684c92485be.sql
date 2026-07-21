@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.enforce_pack_ga_gate() FROM PUBLIC, anon, authenticated;
