@@ -221,23 +221,127 @@ export type Database = {
       }
       feature_flags: {
         Row: {
+          applicable_modules: string[]
           description: string | null
           enabled: boolean
           id: string
+          stage: Database["public"]["Enums"]["feature_flag_stage"]
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          applicable_modules?: string[]
           description?: string | null
           enabled?: boolean
           id: string
+          stage?: Database["public"]["Enums"]["feature_flag_stage"]
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          applicable_modules?: string[]
           description?: string | null
           enabled?: boolean
           id?: string
+          stage?: Database["public"]["Enums"]["feature_flag_stage"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      launch_gate_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          evidence_url: string | null
+          from_status: Database["public"]["Enums"]["launch_gate_status"] | null
+          id: string
+          item_id: string
+          note: string | null
+          to_status: Database["public"]["Enums"]["launch_gate_status"]
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          evidence_url?: string | null
+          from_status?: Database["public"]["Enums"]["launch_gate_status"] | null
+          id?: string
+          item_id: string
+          note?: string | null
+          to_status: Database["public"]["Enums"]["launch_gate_status"]
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          evidence_url?: string | null
+          from_status?: Database["public"]["Enums"]["launch_gate_status"] | null
+          id?: string
+          item_id?: string
+          note?: string | null
+          to_status?: Database["public"]["Enums"]["launch_gate_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "launch_gate_history_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "launch_gate_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      launch_gate_items: {
+        Row: {
+          applicable_modules: string[]
+          blocker: boolean
+          category: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          evidence_url: string | null
+          id: string
+          key: string
+          notes: string | null
+          owner: string | null
+          reviewer: string | null
+          status: Database["public"]["Enums"]["launch_gate_status"]
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          applicable_modules?: string[]
+          blocker?: boolean
+          category: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          evidence_url?: string | null
+          id?: string
+          key: string
+          notes?: string | null
+          owner?: string | null
+          reviewer?: string | null
+          status?: Database["public"]["Enums"]["launch_gate_status"]
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          applicable_modules?: string[]
+          blocker?: boolean
+          category?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          evidence_url?: string | null
+          id?: string
+          key?: string
+          notes?: string | null
+          owner?: string | null
+          reviewer?: string | null
+          status?: Database["public"]["Enums"]["launch_gate_status"]
+          title?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -598,6 +702,14 @@ export type Database = {
         | "deletion"
         | "other"
       device_kind: "mobile" | "desktop"
+      feature_flag_stage: "demo" | "private_alpha" | "beta" | "ga"
+      launch_gate_status:
+        | "not_started"
+        | "in_progress"
+        | "pending_review"
+        | "evidence_required"
+        | "complete"
+        | "waived"
       main_purpose_kind: "solo" | "small_business" | "enterprise"
       privacy_mode: "device_only" | "private_sync"
       tenant_kind: "individual" | "company"
@@ -749,6 +861,15 @@ export const Constants = {
         "other",
       ],
       device_kind: ["mobile", "desktop"],
+      feature_flag_stage: ["demo", "private_alpha", "beta", "ga"],
+      launch_gate_status: [
+        "not_started",
+        "in_progress",
+        "pending_review",
+        "evidence_required",
+        "complete",
+        "waived",
+      ],
       main_purpose_kind: ["solo", "small_business", "enterprise"],
       privacy_mode: ["device_only", "private_sync"],
       tenant_kind: ["individual", "company"],
