@@ -167,6 +167,15 @@ function AuthPage() {
           </div>
         ) : null}
 
+        <Link
+          to="/demo"
+          className="flex items-center justify-between rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 hover:bg-amber-500/20"
+        >
+          <span>Just looking? Try the demo — no sign-in, sample data only.</span>
+          <span className="font-semibold uppercase tracking-wider">Demo →</span>
+        </Link>
+
+
         {/* Method tabs */}
         <div
           role="tablist"
