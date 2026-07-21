@@ -11,14 +11,12 @@ export const Route = createFileRoute("/demo/settings")({
 });
 
 const themes = ["dark", "light", "real"] as const;
-const cursors = ["system", "black_arrow", "white_arrow", "auto_contrast"] as const;
+const cursors = ["system", "caera_black", "caera_white", "auto_contrast"] as const;
 
 function DemoSettings() {
   const { reset, exit } = useDemo();
   const navigate = useNavigate();
   const { theme, cursor, update } = useAppearance();
-  const setTheme = (t: "dark" | "light" | "real") => update({ theme: t });
-  const setCursor = (c: "system" | "black_arrow" | "white_arrow" | "auto_contrast") => update({ cursor: c });
 
   return (
     <DemoShell>
