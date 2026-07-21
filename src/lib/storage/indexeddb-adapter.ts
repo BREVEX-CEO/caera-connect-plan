@@ -84,24 +84,24 @@ export const indexedDbAdapter: StorageAdapter = {
     db.close();
   },
 
-  async get(dataClass, id) {
+  async get<T>(dataClass: DataClass, id: string) {
     const db = await openDb();
     const row = (await promisify(tx(db, "readonly").get(`${dataClass}:${id}`))) as Row | undefined;
     db.close();
     if (!row) return null;
-    const value = await decryptValue(row);
-    return { id: row.id, dataClass: row.dataClass, createdAt: row.createdAt, updatedAt: row.updatedAt, value } as StoredRecord;
+    const value = await decryptValue<T>(row);
+    return { id: row.id, dataClass: row.dataClass, createdAt: row.createdAt, updatedAt: row.updatedAt, value } satisfies StoredRecord<T>;
   },
 
-  async list(dataClass) {
+  async list<T>(dataClass: DataClass) {
     const db = await openDb();
     const store = tx(db, "readonly");
     const idx = store.index("by_class");
     const rows = (await promisify(idx.getAll(IDBKeyRange.only(dataClass)))) as Row[];
     db.close();
-    const out: StoredRecord[] = [];
+    const out: StoredRecord<T>[] = [];
     for (const row of rows) {
-      const value = await decryptValue(row);
+      const value = await decryptValue<T>(row);
       out.push({ id: row.id, dataClass: row.dataClass, createdAt: row.createdAt, updatedAt: row.updatedAt, value });
     }
     return out;

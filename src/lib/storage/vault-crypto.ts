@@ -7,6 +7,15 @@
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 
+/** Copy a Uint8Array into a fresh ArrayBuffer so it satisfies SubtleCrypto's
+ *  strict BufferSource<ArrayBuffer> parameter (TS lib.dom no longer accepts
+ *  Uint8Array<ArrayBufferLike> after 5.6). */
+function ab(u: Uint8Array): ArrayBuffer {
+  const out = new ArrayBuffer(u.byteLength);
+  new Uint8Array(out).set(u);
+  return out;
+}
+
 export function b64encode(buf: ArrayBuffer | Uint8Array): string {
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
   let s = "";
@@ -34,13 +43,11 @@ export async function exportRawKey(key: CryptoKey): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.exportKey("raw", key));
 }
 export async function importRawKey(raw: Uint8Array, usages: KeyUsage[] = ["encrypt", "decrypt"]): Promise<CryptoKey> {
-  return crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, usages);
+  return crypto.subtle.importKey("raw", ab(raw), { name: "AES-GCM" }, false, usages);
 }
 
-/** PBKDF2-SHA256 passphrase → 256-bit AES-GCM key. Memory-hard alternative
- *  (Argon2) requires a wasm dep; PBKDF2 at 600k iterations is FIPS-approved
- *  and the OWASP 2023 minimum. Iteration count is stored per-user so we can
- *  raise it during rotation. */
+/** PBKDF2-SHA256 passphrase → 256-bit AES-GCM key. Iteration count is
+ *  stored per-user so we can raise it during rotation. */
 export async function deriveKeyFromPassphrase(
   passphrase: string,
   salt: Uint8Array,
@@ -48,13 +55,13 @@ export async function deriveKeyFromPassphrase(
 ): Promise<CryptoKey> {
   const material = await crypto.subtle.importKey(
     "raw",
-    enc.encode(passphrase),
+    ab(enc.encode(passphrase)),
     { name: "PBKDF2" },
     false,
     ["deriveKey"],
   );
   return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: salt as BufferSource, iterations, hash: "SHA-256" },
+    { name: "PBKDF2", salt: ab(salt), iterations, hash: "SHA-256" },
     material,
     { name: "AES-GCM", length: 256 },
     false,
@@ -68,11 +75,9 @@ export async function aesGcmEncrypt(
   aad?: Uint8Array,
 ): Promise<{ iv: Uint8Array; ciphertext: Uint8Array }> {
   const iv = randomBytes(12);
-  const ct = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv: iv as BufferSource, additionalData: aad as BufferSource | undefined },
-    key,
-    plaintext as BufferSource,
-  );
+  const alg: AesGcmParams = { name: "AES-GCM", iv: ab(iv) };
+  if (aad) alg.additionalData = ab(aad);
+  const ct = await crypto.subtle.encrypt(alg, key, ab(plaintext));
   return { iv, ciphertext: new Uint8Array(ct) };
 }
 export async function aesGcmDecrypt(
@@ -81,11 +86,9 @@ export async function aesGcmDecrypt(
   ciphertext: Uint8Array,
   aad?: Uint8Array,
 ): Promise<Uint8Array> {
-  const pt = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: iv as BufferSource, additionalData: aad as BufferSource | undefined },
-    key,
-    ciphertext as BufferSource,
-  );
+  const alg: AesGcmParams = { name: "AES-GCM", iv: ab(iv) };
+  if (aad) alg.additionalData = ab(aad);
+  const pt = await crypto.subtle.decrypt(alg, key, ab(ciphertext));
   return new Uint8Array(pt);
 }
 
@@ -98,21 +101,19 @@ export function webauthnPrfSupported(): boolean {
   return typeof PublicKeyCredential !== "undefined" && typeof navigator !== "undefined" && !!navigator.credentials;
 }
 
-/** Create a resident credential with the PRF extension. Returns the raw
- *  credential id and the PRF output that we treat as key material. */
 export async function createPrfCredential(userId: string, userLabel: string, prfSalt: Uint8Array) {
   const cred = (await navigator.credentials.create({
     publicKey: {
-      challenge: randomBytes(32),
+      challenge: ab(randomBytes(32)),
       rp: { name: "CAERA CADANE" },
-      user: { id: enc.encode(userId), name: userLabel, displayName: userLabel },
+      user: { id: ab(enc.encode(userId)), name: userLabel, displayName: userLabel },
       pubKeyCredParams: [
         { type: "public-key", alg: -7 },
         { type: "public-key", alg: -257 },
       ],
       authenticatorSelection: { residentKey: "preferred", userVerification: "required" },
       timeout: 60_000,
-      extensions: { prf: { eval: { first: prfSalt as BufferSource } } } as AuthenticationExtensionsClientInputs,
+      extensions: { prf: { eval: { first: ab(prfSalt) } } } as AuthenticationExtensionsClientInputs,
     },
   })) as PublicKeyCredential | null;
   if (!cred) throw new Error("WebAuthn credential creation failed.");
@@ -125,11 +126,11 @@ export async function createPrfCredential(userId: string, userLabel: string, prf
 export async function evaluatePrf(credentialId: Uint8Array, prfSalt: Uint8Array): Promise<Uint8Array> {
   const assertion = (await navigator.credentials.get({
     publicKey: {
-      challenge: randomBytes(32),
-      allowCredentials: [{ id: credentialId as BufferSource, type: "public-key" }],
+      challenge: ab(randomBytes(32)),
+      allowCredentials: [{ id: ab(credentialId), type: "public-key" }],
       userVerification: "required",
       timeout: 60_000,
-      extensions: { prf: { eval: { first: prfSalt as BufferSource } } } as AuthenticationExtensionsClientInputs,
+      extensions: { prf: { eval: { first: ab(prfSalt) } } } as AuthenticationExtensionsClientInputs,
     },
   })) as PublicKeyCredential | null;
   if (!assertion) throw new Error("WebAuthn assertion failed.");
@@ -139,11 +140,10 @@ export async function evaluatePrf(credentialId: Uint8Array, prfSalt: Uint8Array)
   return new Uint8Array(first);
 }
 
-/** Turn raw key material (PRF output or a recovery key) into an AES key. */
 export async function keyFromMaterial(material: Uint8Array, salt: Uint8Array): Promise<CryptoKey> {
-  const km = await crypto.subtle.importKey("raw", material as BufferSource, "HKDF", false, ["deriveKey"]);
+  const km = await crypto.subtle.importKey("raw", ab(material), "HKDF", false, ["deriveKey"]);
   return crypto.subtle.deriveKey(
-    { name: "HKDF", salt: salt as BufferSource, hash: "SHA-256", info: enc.encode("caera-vault-kek") },
+    { name: "HKDF", salt: ab(salt), hash: "SHA-256", info: ab(enc.encode("caera-vault-kek")) },
     km,
     { name: "AES-GCM", length: 256 },
     false,
@@ -154,7 +154,6 @@ export async function keyFromMaterial(material: Uint8Array, salt: Uint8Array): P
 export function generateRecoveryKey(): Uint8Array {
   return randomBytes(32);
 }
-/** Groups of 5 chars, 12 groups → 60 chars base32-ish. */
 export function formatRecoveryKit(raw: Uint8Array): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let s = "";
@@ -174,5 +173,5 @@ export function parseRecoveryKit(text: string): Uint8Array | null {
   return out;
 }
 export async function sha256(data: Uint8Array): Promise<Uint8Array> {
-  return new Uint8Array(await crypto.subtle.digest("SHA-256", data as BufferSource));
+  return new Uint8Array(await crypto.subtle.digest("SHA-256", ab(data)));
 }
