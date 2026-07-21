@@ -31,6 +31,7 @@ import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/h
 import { Route as AuthenticatedFiciaRouteImport } from './routes/_authenticated/ficia'
 import { Route as AuthenticatedCaniaRouteImport } from './routes/_authenticated/cania'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
+import { Route as AuthenticatedCaniaIndexRouteImport } from './routes/_authenticated/cania.index'
 import { Route as ApiOcadeChatRouteImport } from './routes/api/ocade.chat'
 import { Route as AuthenticatedSettingsVaultRouteImport } from './routes/_authenticated/settings.vault'
 import { Route as AuthenticatedSettingsPrivacyRouteImport } from './routes/_authenticated/settings.privacy'
@@ -150,6 +151,11 @@ const AuthenticatedSettingsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedCaniaIndexRoute = AuthenticatedCaniaIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedCaniaRoute,
+} as any)
 const ApiOcadeChatRoute = ApiOcadeChatRouteImport.update({
   id: '/api/ocade/chat',
   path: '/api/ocade/chat',
@@ -202,7 +208,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/demo': typeof DemoRouteWithChildren
-  '/cania': typeof AuthenticatedCaniaRoute
+  '/cania': typeof AuthenticatedCaniaRouteWithChildren
   '/ficia': typeof AuthenticatedFiciaRoute
   '/home': typeof AuthenticatedHomeRoute
   '/madee': typeof AuthenticatedMadeeRoute
@@ -227,12 +233,12 @@ export interface FileRoutesByFullPath {
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/api/ocade/chat': typeof ApiOcadeChatRoute
+  '/cania/': typeof AuthenticatedCaniaIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
-  '/cania': typeof AuthenticatedCaniaRoute
   '/ficia': typeof AuthenticatedFiciaRoute
   '/home': typeof AuthenticatedHomeRoute
   '/madee': typeof AuthenticatedMadeeRoute
@@ -256,6 +262,7 @@ export interface FileRoutesByTo {
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/api/ocade/chat': typeof ApiOcadeChatRoute
+  '/cania': typeof AuthenticatedCaniaIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRoutesById {
@@ -264,7 +271,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/demo': typeof DemoRouteWithChildren
-  '/_authenticated/cania': typeof AuthenticatedCaniaRoute
+  '/_authenticated/cania': typeof AuthenticatedCaniaRouteWithChildren
   '/_authenticated/ficia': typeof AuthenticatedFiciaRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/madee': typeof AuthenticatedMadeeRoute
@@ -289,6 +296,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
   '/_authenticated/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/api/ocade/chat': typeof ApiOcadeChatRoute
+  '/_authenticated/cania/': typeof AuthenticatedCaniaIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -322,12 +330,12 @@ export interface FileRouteTypes {
     | '/settings/privacy'
     | '/settings/vault'
     | '/api/ocade/chat'
+    | '/cania/'
     | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
-    | '/cania'
     | '/ficia'
     | '/home'
     | '/madee'
@@ -351,6 +359,7 @@ export interface FileRouteTypes {
     | '/settings/privacy'
     | '/settings/vault'
     | '/api/ocade/chat'
+    | '/cania'
     | '/settings'
   id:
     | '__root__'
@@ -383,6 +392,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/privacy'
     | '/_authenticated/settings/vault'
     | '/api/ocade/chat'
+    | '/_authenticated/cania/'
     | '/_authenticated/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -550,6 +560,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/cania/': {
+      id: '/_authenticated/cania/'
+      path: '/'
+      fullPath: '/cania/'
+      preLoaderRoute: typeof AuthenticatedCaniaIndexRouteImport
+      parentRoute: typeof AuthenticatedCaniaRoute
+    }
     '/api/ocade/chat': {
       id: '/api/ocade/chat'
       path: '/api/ocade/chat'
@@ -609,6 +626,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedCaniaRouteChildren {
+  AuthenticatedCaniaIndexRoute: typeof AuthenticatedCaniaIndexRoute
+}
+
+const AuthenticatedCaniaRouteChildren: AuthenticatedCaniaRouteChildren = {
+  AuthenticatedCaniaIndexRoute: AuthenticatedCaniaIndexRoute,
+}
+
+const AuthenticatedCaniaRouteWithChildren =
+  AuthenticatedCaniaRoute._addFileChildren(AuthenticatedCaniaRouteChildren)
+
 interface AuthenticatedOcadeRouteChildren {
   AuthenticatedOcadeModelsRoute: typeof AuthenticatedOcadeModelsRoute
 }
@@ -644,7 +672,7 @@ const AuthenticatedSettingsRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedCaniaRoute: typeof AuthenticatedCaniaRoute
+  AuthenticatedCaniaRoute: typeof AuthenticatedCaniaRouteWithChildren
   AuthenticatedFiciaRoute: typeof AuthenticatedFiciaRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedMadeeRoute: typeof AuthenticatedMadeeRoute
@@ -655,7 +683,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedCaniaRoute: AuthenticatedCaniaRoute,
+  AuthenticatedCaniaRoute: AuthenticatedCaniaRouteWithChildren,
   AuthenticatedFiciaRoute: AuthenticatedFiciaRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedMadeeRoute: AuthenticatedMadeeRoute,
