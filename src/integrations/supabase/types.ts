@@ -1380,6 +1380,497 @@ export type Database = {
           },
         ]
       }
+      msg_attachments: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          file_name: string
+          id: string
+          is_voice_note: boolean
+          message_id: string
+          mime: string
+          sha256: string | null
+          size_bytes: number
+          storage_path: string
+          thread_id: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          file_name: string
+          id?: string
+          is_voice_note?: boolean
+          message_id: string
+          mime: string
+          sha256?: string | null
+          size_bytes: number
+          storage_path: string
+          thread_id: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          file_name?: string
+          id?: string
+          is_voice_note?: boolean
+          message_id?: string
+          mime?: string
+          sha256?: string | null
+          size_bytes?: number
+          storage_path?: string
+          thread_id?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "msg_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "msg_attachments_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "msg_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      msg_cross_company_grants: {
+        Row: {
+          approved_by_from: string | null
+          approved_by_to: string | null
+          created_at: string
+          from_tenant_id: string
+          id: string
+          reason: string | null
+          requested_by: string
+          status: Database["public"]["Enums"]["msg_grant_status"]
+          thread_id: string
+          to_tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          approved_by_from?: string | null
+          approved_by_to?: string | null
+          created_at?: string
+          from_tenant_id: string
+          id?: string
+          reason?: string | null
+          requested_by: string
+          status?: Database["public"]["Enums"]["msg_grant_status"]
+          thread_id: string
+          to_tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          approved_by_from?: string | null
+          approved_by_to?: string | null
+          created_at?: string
+          from_tenant_id?: string
+          id?: string
+          reason?: string | null
+          requested_by?: string
+          status?: Database["public"]["Enums"]["msg_grant_status"]
+          thread_id?: string
+          to_tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_cross_company_grants_from_tenant_id_fkey"
+            columns: ["from_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "msg_cross_company_grants_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "msg_threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "msg_cross_company_grants_to_tenant_id_fkey"
+            columns: ["to_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      msg_message_edits: {
+        Row: {
+          edited_at: string
+          edited_by: string
+          id: string
+          message_id: string
+          previous_body: string | null
+        }
+        Insert: {
+          edited_at?: string
+          edited_by: string
+          id?: string
+          message_id: string
+          previous_body?: string | null
+        }
+        Update: {
+          edited_at?: string
+          edited_by?: string
+          id?: string
+          message_id?: string
+          previous_body?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_message_edits_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "msg_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      msg_message_links: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          link_kind: Database["public"]["Enums"]["msg_link_kind"]
+          message_id: string
+          note: string | null
+          target_id: string | null
+          target_ref: string | null
+          thread_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          link_kind: Database["public"]["Enums"]["msg_link_kind"]
+          message_id: string
+          note?: string | null
+          target_id?: string | null
+          target_ref?: string | null
+          thread_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          link_kind?: Database["public"]["Enums"]["msg_link_kind"]
+          message_id?: string
+          note?: string | null
+          target_id?: string | null
+          target_ref?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_message_links_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "msg_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "msg_message_links_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "msg_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      msg_messages: {
+        Row: {
+          author_id: string
+          body: string | null
+          created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          edit_count: number
+          edited_at: string | null
+          id: string
+          is_deleted: boolean
+          kind: Database["public"]["Enums"]["msg_message_kind"]
+          mentions_users: string[]
+          reply_to: string | null
+          scope_badge: Database["public"]["Enums"]["msg_scope_badge"]
+          tenant_id: string | null
+          thread_id: string
+        }
+        Insert: {
+          author_id: string
+          body?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          edit_count?: number
+          edited_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          kind?: Database["public"]["Enums"]["msg_message_kind"]
+          mentions_users?: string[]
+          reply_to?: string | null
+          scope_badge?: Database["public"]["Enums"]["msg_scope_badge"]
+          tenant_id?: string | null
+          thread_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          edit_count?: number
+          edited_at?: string | null
+          id?: string
+          is_deleted?: boolean
+          kind?: Database["public"]["Enums"]["msg_message_kind"]
+          mentions_users?: string[]
+          reply_to?: string | null
+          scope_badge?: Database["public"]["Enums"]["msg_scope_badge"]
+          tenant_id?: string | null
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "msg_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "msg_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "msg_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "msg_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      msg_pins: {
+        Row: {
+          message_id: string
+          pinned_at: string
+          pinned_by: string
+          thread_id: string
+        }
+        Insert: {
+          message_id: string
+          pinned_at?: string
+          pinned_by: string
+          thread_id: string
+        }
+        Update: {
+          message_id?: string
+          pinned_at?: string
+          pinned_by?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_pins_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "msg_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "msg_pins_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "msg_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      msg_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "msg_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      msg_read_receipts: {
+        Row: {
+          message_id: string
+          read_at: string
+          user_id: string
+        }
+        Insert: {
+          message_id: string
+          read_at?: string
+          user_id: string
+        }
+        Update: {
+          message_id?: string
+          read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_read_receipts_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "msg_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      msg_thread_members: {
+        Row: {
+          joined_at: string
+          last_read_at: string | null
+          muted: boolean
+          role: Database["public"]["Enums"]["msg_member_role"]
+          thread_id: string
+          user_id: string
+        }
+        Insert: {
+          joined_at?: string
+          last_read_at?: string | null
+          muted?: boolean
+          role?: Database["public"]["Enums"]["msg_member_role"]
+          thread_id: string
+          user_id: string
+        }
+        Update: {
+          joined_at?: string
+          last_read_at?: string | null
+          muted?: boolean
+          role?: Database["public"]["Enums"]["msg_member_role"]
+          thread_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_thread_members_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "msg_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      msg_threads: {
+        Row: {
+          created_at: string
+          created_by: string
+          department_id: string | null
+          dm_user_a: string | null
+          dm_user_b: string | null
+          id: string
+          is_archived: boolean
+          kind: Database["public"]["Enums"]["msg_thread_kind"]
+          last_message_at: string | null
+          name: string | null
+          retention_days: number
+          role_key: string | null
+          scope_badge: Database["public"]["Enums"]["msg_scope_badge"]
+          team_id: string | null
+          tenant_id: string | null
+          topic: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          department_id?: string | null
+          dm_user_a?: string | null
+          dm_user_b?: string | null
+          id?: string
+          is_archived?: boolean
+          kind: Database["public"]["Enums"]["msg_thread_kind"]
+          last_message_at?: string | null
+          name?: string | null
+          retention_days?: number
+          role_key?: string | null
+          scope_badge?: Database["public"]["Enums"]["msg_scope_badge"]
+          team_id?: string | null
+          tenant_id?: string | null
+          topic?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          department_id?: string | null
+          dm_user_a?: string | null
+          dm_user_b?: string | null
+          id?: string
+          is_archived?: boolean
+          kind?: Database["public"]["Enums"]["msg_thread_kind"]
+          last_message_at?: string | null
+          name?: string | null
+          retention_days?: number
+          role_key?: string | null
+          scope_badge?: Database["public"]["Enums"]["msg_scope_badge"]
+          team_id?: string | null
+          tenant_id?: string | null
+          topic?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "msg_threads_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "msg_threads_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "ficia_teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "msg_threads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ocade_conversations: {
         Row: {
           archived: boolean
@@ -2044,6 +2535,20 @@ export type Database = {
         Args: { _tenant: string; _uid: string }
         Returns: boolean
       }
+      msg_is_thread_admin: {
+        Args: { _thread_id: string; _user_id: string }
+        Returns: boolean
+      }
+      msg_is_thread_member: {
+        Args: { _thread_id: string; _user_id: string }
+        Returns: boolean
+      }
+      msg_thread_writable: {
+        Args: { _thread_id: string; _user_id: string }
+        Returns: boolean
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
@@ -2084,6 +2589,32 @@ export type Database = {
         | "complete"
         | "waived"
       main_purpose_kind: "solo" | "small_business" | "enterprise"
+      msg_grant_status:
+        | "pending_from"
+        | "pending_to"
+        | "active"
+        | "revoked"
+        | "rejected"
+      msg_link_kind:
+        | "task"
+        | "approval"
+        | "timesheet"
+        | "evidence"
+        | "invoice"
+        | "expense"
+        | "filing"
+        | "signature"
+      msg_member_role: "admin" | "member"
+      msg_message_kind: "text" | "voice" | "system"
+      msg_scope_badge: "company" | "private" | "cross_company" | "dm"
+      msg_thread_kind:
+        | "company"
+        | "department"
+        | "role"
+        | "project"
+        | "private"
+        | "dm"
+        | "cross_company"
       privacy_mode: "device_only" | "private_sync"
       tenant_kind: "individual" | "company"
       tenant_role:
@@ -2269,6 +2800,35 @@ export const Constants = {
         "waived",
       ],
       main_purpose_kind: ["solo", "small_business", "enterprise"],
+      msg_grant_status: [
+        "pending_from",
+        "pending_to",
+        "active",
+        "revoked",
+        "rejected",
+      ],
+      msg_link_kind: [
+        "task",
+        "approval",
+        "timesheet",
+        "evidence",
+        "invoice",
+        "expense",
+        "filing",
+        "signature",
+      ],
+      msg_member_role: ["admin", "member"],
+      msg_message_kind: ["text", "voice", "system"],
+      msg_scope_badge: ["company", "private", "cross_company", "dm"],
+      msg_thread_kind: [
+        "company",
+        "department",
+        "role",
+        "project",
+        "private",
+        "dm",
+        "cross_company",
+      ],
       privacy_mode: ["device_only", "private_sync"],
       tenant_kind: ["individual", "company"],
       tenant_role: [
