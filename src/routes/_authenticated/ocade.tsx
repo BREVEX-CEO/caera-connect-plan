@@ -67,6 +67,12 @@ import {
   DEFAULT_LOCAL_BRIDGE_URL,
   type LocalChatMessage,
 } from "@/lib/ocade-local";
+import {
+  classifyFile,
+  isNativeTextKind,
+  extractDocument,
+  clampForContext,
+} from "@/lib/ocade-documents";
 
 export const Route = createFileRoute("/_authenticated/ocade")({
   head: () => ({
@@ -86,6 +92,10 @@ type Attachment = {
   mime: string;
   sizeBytes: number;
   dataUrl?: string;
+  /** Text extracted on-device for readable documents (never uploaded raw). */
+  extractedText?: string;
+  /** Honest note when a file could not be read (e.g. needs the document pack). */
+  extractNote?: string;
 };
 
 type Conversation = {
@@ -796,6 +806,7 @@ function ChatSurface(props: {
           conversationId: conversation.id,
           model,
           allowCloud,
+          documentContext: buildDocContext(atts),
           message: { content: text, attachments: atts },
         }),
         signal: controller.signal,
@@ -919,6 +930,13 @@ function ChatSurface(props: {
           if (m.role === "system") continue;
           localMessages.push({ role: m.role, content: m.content });
         }
+        const docContext = buildDocContext(atts);
+        if (docContext) {
+          localMessages.push({
+            role: "user",
+            content: `Context from files the user attached (extracted on this device):\n\n${docContext}`,
+          });
+        }
         localMessages.push({ role: "user", content: text });
 
         let acc = "";
@@ -992,6 +1010,18 @@ function ChatSurface(props: {
       setStreamText("");
       abortRef.current = null;
     }
+  }
+
+  /**
+   * Assemble on-device-extracted document text into a single bounded context
+   * block. Only extracted TEXT travels — never the raw file.
+   */
+  function buildDocContext(atts: Attachment[]): string | undefined {
+    const parts = atts
+      .filter((a) => a.extractedText)
+      .map((a) => `--- Attached file: ${a.name} ---\n${a.extractedText}`);
+    if (parts.length === 0) return undefined;
+    return clampForContext(parts.join("\n\n"), 24_000).text;
   }
 
   async function refreshAfterLocal() {
@@ -1270,13 +1300,34 @@ function Composer(props: {
       if (imagesOnly && !f.type.startsWith("image/")) continue;
       const isImage = f.type.startsWith("image/");
       const dataUrl = isImage ? await fileToDataUrl(f) : undefined;
+
+      // Read readable documents on-device and extract text (Plan §18). The raw
+      // file is never uploaded — only the extracted text becomes model context.
+      let extractedText: string | undefined;
+      let extractNote: string | undefined;
+      if (!isImage) {
+        const kind = classifyFile(f.name, f.type);
+        const content = isNativeTextKind(kind) ? await f.text() : undefined;
+        const result = extractDocument({
+          name: f.name,
+          mime: f.type,
+          sizeBytes: f.size,
+          content,
+        });
+        if (result.status === "ok" && result.text) {
+          extractedText = clampForContext(result.text).text;
+          toast.success(`${f.name}: read on your device and added as context.`);
+        } else {
+          extractNote = result.reason;
+          toast.info(`${f.name}: attached. ${result.reason ?? "No text could be read."}`);
+        }
+      }
+
       next.push({
         kind: isImage ? "image" : "file",
         name: f.name, mime: f.type || "application/octet-stream", sizeBytes: f.size, dataUrl,
+        extractedText, extractNote,
       });
-      if (!isImage) {
-        toast.info(`${f.name}: attached to record. Non-image files are not sent to the model in this build.`);
-      }
     }
     setAttachments(next);
   }

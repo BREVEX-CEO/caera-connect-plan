@@ -14,6 +14,8 @@ type ChatBody = {
   conversationId: string;
   model?: string;
   allowCloud?: boolean;
+  /** Text extracted from attachments ON THE USER'S DEVICE (never the raw file). */
+  documentContext?: string;
   message: { content: string; attachments?: Attachment[] };
 };
 
@@ -169,6 +171,17 @@ export const Route = createFileRoute("/api/ocade/chat")({
             modelMessages.push({ role: m.role as "user" | "assistant", content: String(m.content) });
           }
         }
+        // Document text extracted on the user's device (Plan §18). Included as
+        // context for this turn only; the raw file never reaches the server.
+        const docContext =
+          typeof body.documentContext === "string" ? body.documentContext.slice(0, 24_000) : "";
+        if (docContext.trim()) {
+          modelMessages.push({
+            role: "user",
+            content: `Context from files the user attached (extracted on their device):\n\n${docContext}`,
+          });
+        }
+
         // Append current user message with any inline image data (not persisted with data URL).
         const currentImages = attachments.filter((a) => a.kind === "image" && a.dataUrl);
         if (currentImages.length > 0) {
