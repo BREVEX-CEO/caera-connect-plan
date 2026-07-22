@@ -82,6 +82,13 @@ import {
   loadChatMessages,
   describeStorageError,
 } from "@/lib/ocade-chat-store";
+import {
+  detectVoiceCapabilities,
+  toVoiceOptions,
+  pickVoice,
+  supportedLanguages,
+  type VoiceGender,
+} from "@/lib/ocade-voice";
 
 export const Route = createFileRoute("/_authenticated/ocade")({
   head: () => ({
@@ -753,6 +760,18 @@ function ChatSurface(props: {
   const online = useOnline();
   const localEngine = useLocalEngine();
   const [engineTier, setEngineTier] = useState<"auto" | "local" | "cloud">("auto");
+  // No assumed default voice — OCADE speaks with the platform voice until the
+  // user chooses male or female (decision #22). Device-level preference.
+  const [voiceGender, setVoiceGender] = useState<VoiceGender | null>(() => {
+    if (typeof window === "undefined") return null;
+    const v = window.localStorage.getItem("caera:voice:gender");
+    return v === "male" || v === "female" ? v : null;
+  });
+
+  function chooseVoice(g: VoiceGender) {
+    setVoiceGender(g);
+    if (typeof window !== "undefined") window.localStorage.setItem("caera:voice:gender", g);
+  }
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -1078,13 +1097,23 @@ function ChatSurface(props: {
     }
   }
 
+  /** Push-to-talk. On-device recognition only — no audio leaves the machine. */
   function toggleVoice() {
     const w = window as unknown as {
+      speechSynthesis?: unknown;
       webkitSpeechRecognition?: new () => SpeechRecognitionLike;
       SpeechRecognition?: new () => SpeechRecognitionLike;
     };
+    const caps = detectVoiceCapabilities(w);
+    if (!caps.recognition) {
+      toast.error(caps.reason ?? "Voice input isn't available in this browser.");
+      return;
+    }
     const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
-    if (!Ctor) { toast.error("Voice input not supported in this browser"); return; }
+    if (!Ctor) {
+      toast.error("Voice input isn't available in this browser.");
+      return;
+    }
     if (listening) {
       (recogRef.current as SpeechRecognitionLike | null)?.stop();
       setListening(false);
@@ -1093,6 +1122,8 @@ function ChatSurface(props: {
     const rec = new Ctor();
     rec.continuous = false;
     rec.interimResults = false;
+    // Only a verified language pack is used (decision #27).
+    rec.lang = supportedLanguages()[0]?.code ?? "en";
     rec.onresult = (ev) => {
       const transcript = ev.results[0]?.[0]?.transcript ?? "";
       setDraft((d) => (d ? d + " " : "") + transcript);
@@ -1104,13 +1135,37 @@ function ChatSurface(props: {
     setListening(true);
   }
 
+  /**
+   * Read a reply aloud with the user's chosen OCADE voice. Speaking again
+   * cancels the previous utterance, so the user can always interrupt.
+   */
   function readAloud(text: string) {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
-      toast.error("Read-aloud not supported here"); return;
+    if (typeof window === "undefined") return;
+    const caps = detectVoiceCapabilities(window as unknown as { speechSynthesis?: unknown });
+    if (!caps.synthesis) {
+      toast.error(caps.reason ?? "Read-aloud isn't available here.");
+      return;
     }
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    window.speechSynthesis.speak(u);
+    window.speechSynthesis.cancel(); // interruption / barge-in
+    const utterance = new SpeechSynthesisUtterance(text);
+    const lang = supportedLanguages()[0]?.code ?? "en";
+    const chosen = pickVoice(toVoiceOptions(window.speechSynthesis.getVoices()), {
+      gender: voiceGender ?? undefined,
+      lang,
+    });
+    if (chosen) {
+      const match = window.speechSynthesis
+        .getVoices()
+        .find((v) => (v.voiceURI ?? v.name) === chosen.id);
+      if (match) utterance.voice = match;
+    }
+    window.speechSynthesis.speak(utterance);
+  }
+
+  function stopSpeaking() {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
   }
 
   return (
@@ -1220,6 +1275,33 @@ function ChatSurface(props: {
                 </button>
               );
             })}
+
+            <span className="mx-1 h-3 w-px bg-border/70" />
+            <span className="text-muted-foreground">Voice</span>
+            {(["female", "male"] as const).map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => chooseVoice(g)}
+                title={`Use the ${g} OCADE voice for read-aloud`}
+                className={cn(
+                  "rounded px-2 py-0.5 capitalize transition-colors",
+                  voiceGender === g
+                    ? "bg-sidebar-accent text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {g}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={stopSpeaking}
+              title="Stop speaking"
+              className="rounded px-2 py-0.5 text-muted-foreground hover:text-foreground"
+            >
+              Stop
+            </button>
           </div>
           <Composer
             draft={draft}
@@ -1729,6 +1811,8 @@ function fileToDataUrl(f: File): Promise<string> {
 type SpeechRecognitionLike = {
   continuous: boolean;
   interimResults: boolean;
+  /** BCP-47 language tag for on-device recognition. */
+  lang: string;
   onresult: (ev: { results: { [key: number]: { [key: number]: { transcript: string } } } }) => void;
   onend: () => void;
   onerror: (ev: unknown) => void;
