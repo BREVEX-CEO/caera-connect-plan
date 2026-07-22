@@ -1,0 +1,14 @@
+[package]
+name = "caera-companion-safety"
+version = "0.1.0"
+edition = "2021"
+description = "Host-side safety enforcement for the CAERA Native Companion (risk tiers, protected-input refusal, allowlists, audit redaction)."
+license = "UNLICENSED"
+publish = false
+
+# Intentionally dependency-free: the security core must be auditable and must
+# compile and test without any network access.
+[dependencies]
+
+[lib]
+path = "src/lib.rs"
