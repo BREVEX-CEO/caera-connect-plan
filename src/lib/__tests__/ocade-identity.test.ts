@@ -47,7 +47,7 @@ describe("OCADE identity contract", () => {
         modelId: "gpt-4o-mini",
         locality: "cloud",
       });
-      expect(out).toContain("OCADE by CAERA CADANE");
+      expect(out).toContain("developed and created by CAERA CADANE");
       expect(out).toContain("gpt-4o-mini");
       expect(out).toContain("openai");
       expect(out).toContain("cloud");
@@ -56,7 +56,7 @@ describe("OCADE identity contract", () => {
 
     it("never fabricates a model when metadata is missing", () => {
       const out = ocadeHonestDisclosure({});
-      expect(out).toContain("OCADE by CAERA CADANE");
+      expect(out).toContain("developed and created by CAERA CADANE");
       expect(out).toContain("Model Settings");
       expect(out.toLowerCase()).not.toMatch(/gpt-|gemini|llama|claude/);
     });
