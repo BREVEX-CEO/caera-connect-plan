@@ -55,7 +55,10 @@ import {
 } from "@/lib/ocade.functions";
 import { getModeFor } from "@/lib/storage/resolver";
 import { OCADE_DEFAULT_MODEL_ID, OCADE_MODELS, getOcadeModel } from "@/lib/ocade-models";
-import { ocadeHonestDisclosure } from "@/lib/ocade-identity";
+import { ocadeChatCapabilityDisclosure } from "@/lib/ocade-identity";
+import { capabilityLabelFor } from "@/lib/ocade-capability-labels";
+import { useOnline } from "@/lib/use-online";
+import { useLocalEngine } from "@/lib/use-local-engine";
 
 export const Route = createFileRoute("/_authenticated/ocade")({
   head: () => ({
@@ -601,7 +604,7 @@ function HomeSurface(props: {
         </div>
 
         <p className="mt-6 text-center text-[11px] text-muted-foreground/80">
-          {ocadeHonestDisclosure({ modelId: modelInfo.display, providerId: modelInfo.provider, locality: modelInfo.locality })}
+          {ocadeChatCapabilityDisclosure(capabilityLabelFor({ locality: modelInfo.locality }))}
         </p>
       </div>
     </div>
@@ -714,6 +717,8 @@ function ChatSurface(props: {
   const scrollRef = useRef<HTMLDivElement>(null);
   const recogRef = useRef<unknown>(null);
   const modelInfo = getOcadeModel(model);
+  const online = useOnline();
+  const localEngine = useLocalEngine();
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -888,7 +893,23 @@ function ChatSurface(props: {
           <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
             <PrivacyBadge mode={chatsMode === "private_sync" ? "private_sync" : "device_only"} />
             <span>·</span>
-            <span title={modelInfo.provider}>{modelInfo.display}</span>
+            <span>{capabilityLabelFor({ locality: modelInfo.locality })}</span>
+            {!online ? (
+              <span
+                className="rounded bg-[color:var(--warning)]/15 px-1.5 py-0.5 text-[10px] text-[color:var(--warning)]"
+                title="You're offline. Cloud features are paused; local features stay available."
+              >
+                Offline
+              </span>
+            ) : null}
+            {localEngine.status === "ready" ? (
+              <span
+                className="rounded bg-[color:var(--success)]/15 px-1.5 py-0.5 text-[10px] text-[color:var(--success)]"
+                title={`On-device engine detected — ${localEngine.models.length} local model${localEngine.models.length === 1 ? "" : "s"} available.`}
+              >
+                OCADE Local ready
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
@@ -969,7 +990,7 @@ function ChatSurface(props: {
           <div className="space-y-2 text-sm">
             <p>
               Your chats are set to <span className="font-medium">Browser Only</span>. Sending this message uses{" "}
-              <span className="font-medium">{modelInfo.display}</span> ({modelInfo.provider}), a cloud model.
+              <span className="font-medium">OCADE Cloud</span>, a cloud engine.
             </p>
             <p className="text-muted-foreground">
               The message and any attached images will be sent to the cloud provider. Approve one-time transfer to continue.
