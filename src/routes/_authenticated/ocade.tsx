@@ -62,6 +62,7 @@ import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
 import {
   pickLocalModel,
+  buildLocalFirstPlan,
   streamLocalChat,
   DEFAULT_LOCAL_BRIDGE_URL,
   type LocalChatMessage,
@@ -757,7 +758,7 @@ function ChatSurface(props: {
       return;
     }
     if ((engineTier === "local" || engineTier === "auto") && localReady && localPick) {
-      await sendViaLocal(text, atts, localPick.id, localPick.label);
+      await sendViaLocal(text, atts, hasImage);
       return;
     }
 
@@ -854,7 +855,25 @@ function ChatSurface(props: {
     }
   }
 
-  async function sendViaLocal(text: string, atts: Attachment[], modelId: string, label: string) {
+  /**
+   * On-device send with the capability-aware fallback chain: preferred local →
+   * secondary → lightweight. Only after every local engine fails do we ask
+   * permission to cross to OCADE Cloud (never silently). Cancellation is
+   * honoured at any step and the partial answer is preserved.
+   */
+  async function sendViaLocal(text: string, atts: Attachment[], hasImage: boolean) {
+    const plan = buildLocalFirstPlan({
+      desired: hasImage ? "vision" : "general",
+      models: localEngine.models,
+      cloudAllowed: online,
+      online,
+    });
+    const localSteps = plan.filter((s) => s.modelId);
+    if (localSteps.length === 0) {
+      toast.error("No on-device engine can serve this request.");
+      return;
+    }
+
     const optimistic: Message = {
       id: `local-${Date.now()}`,
       role: "user",
@@ -873,9 +892,12 @@ function ChatSurface(props: {
     const controller = new AbortController();
     abortRef.current = controller;
 
+    let userTurnPersisted = false;
+    const failures: string[] = [];
+
     try {
-      // Persist the user turn (text + attachment metadata only; the prompt is
-      // sent to the on-device engine, never to a server, so local stays local).
+      // Persist the user turn once (text + attachment metadata only; the prompt
+      // goes to the on-device engine, never to a server — local stays local).
       await appendOcadeMessage({
         data: {
           conversationId: conversation.id,
@@ -884,62 +906,99 @@ function ChatSurface(props: {
           attachments: atts.map((a) => ({ kind: a.kind, name: a.name, mime: a.mime, sizeBytes: a.sizeBytes })),
         },
       });
+      userTurnPersisted = true;
 
-      const sys =
-        `You are OCADE, developed and created by CAERA CADANE, running as ${label} on the user's own device. ` +
-        `Refer to your engine only as "${label}"; never print raw model or provider names. ` +
-        `Never claim to be another product. Be helpful, concise, and honest about your limits.`;
-      const localMessages: LocalChatMessage[] = [{ role: "system", content: sys }];
-      for (const m of priorMessages) {
-        if (m.role === "system") continue;
-        localMessages.push({ role: m.role, content: m.content });
-      }
-      localMessages.push({ role: "user", content: text });
+      for (const step of localSteps) {
+        const label = step.label ?? "OCADE Local";
+        const sys =
+          `You are OCADE, developed and created by CAERA CADANE, running as ${label} on the user's own device. ` +
+          `Refer to your engine only as "${label}"; never print raw model or provider names. ` +
+          `Never claim to be another product. Be helpful, concise, and honest about your limits.`;
+        const localMessages: LocalChatMessage[] = [{ role: "system", content: sys }];
+        for (const m of priorMessages) {
+          if (m.role === "system") continue;
+          localMessages.push({ role: m.role, content: m.content });
+        }
+        localMessages.push({ role: "user", content: text });
 
-      let acc = "";
-      const result = await streamLocalChat(
-        DEFAULT_LOCAL_BRIDGE_URL,
-        modelId,
-        localMessages,
-        {
-          onToken: (c) => {
-            acc += c;
-            setStreamText(acc);
+        let acc = "";
+        setStreamText("");
+        const result = await streamLocalChat(
+          DEFAULT_LOCAL_BRIDGE_URL,
+          step.modelId!,
+          localMessages,
+          {
+            onToken: (c) => {
+              acc += c;
+              setStreamText(acc);
+            },
+            signal: controller.signal,
           },
-          signal: controller.signal,
-        },
-      );
+        );
 
-      if (!result.ok && result.reason !== "cancelled") {
-        throw new Error(result.reason || "OCADE Local could not respond");
-      }
-      const finalText = result.reason === "cancelled" ? acc + "\n\n_[stopped by you]_" : acc;
-      if (finalText.trim()) {
-        await appendOcadeMessage({
-          data: {
-            conversationId: conversation.id,
-            role: "assistant",
-            content: finalText,
-            modelId,
-            providerId: "ocade-local",
-          },
-        });
+        if (result.reason === "cancelled") {
+          if (acc.trim()) {
+            await appendOcadeMessage({
+              data: {
+                conversationId: conversation.id,
+                role: "assistant",
+                content: acc + "\n\n_[stopped by you]_",
+                modelId: step.modelId,
+                providerId: "ocade-local",
+              },
+            });
+          }
+          await refreshAfterLocal();
+          return;
+        }
+
+        if (result.ok && acc.trim()) {
+          await appendOcadeMessage({
+            data: {
+              conversationId: conversation.id,
+              role: "assistant",
+              content: acc,
+              modelId: step.modelId,
+              providerId: "ocade-local",
+            },
+          });
+          await refreshAfterLocal();
+          return;
+        }
+
+        // This engine failed — record and try the next one in the chain.
+        failures.push(`${label}: ${result.reason ?? "no response"}`);
       }
 
-      const rows = (await listMessages({ data: { conversationId: conversation.id } })) as unknown as Message[];
-      setMessages(rows);
+      // Every on-device engine failed. Never cross to cloud silently.
+      setStreaming(false);
       setStreamText("");
-      await onRefreshList();
+      const why = failures.length > 0 ? ` (${failures[failures.length - 1]})` : "";
+      if (online) {
+        setCloudApprovalNeeded({ text, attachments: atts });
+        toast.error(`On-device engines couldn't answer${why}. Approve OCADE Cloud to continue.`);
+      } else {
+        toast.error(`You're offline and no on-device engine could answer${why}.`);
+      }
     } catch (e) {
       toast.error((e as Error).message || "OCADE Local could not respond");
-      setMessages((m) => m.filter((x) => x.id !== optimistic.id));
-      setDraft(text);
-      setAttachments(atts);
+      if (!userTurnPersisted) {
+        setMessages((m) => m.filter((x) => x.id !== optimistic.id));
+        setDraft(text);
+        setAttachments(atts);
+      }
     } finally {
       setStreaming(false);
       setStreamText("");
       abortRef.current = null;
     }
+  }
+
+  async function refreshAfterLocal() {
+    const rows = (await listMessages({ data: { conversationId: conversation.id } })) as unknown as Message[];
+    setMessages(rows);
+    setStreamText("");
+    await onRefreshList();
   }
 
   function stop() { abortRef.current?.abort(); }
