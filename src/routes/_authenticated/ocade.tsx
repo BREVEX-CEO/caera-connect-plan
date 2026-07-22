@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/session";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  appendOcadeMessage,
   createConversation,
   deleteConversation,
   exportConversation,
@@ -59,6 +60,12 @@ import { ocadeChatCapabilityDisclosure } from "@/lib/ocade-identity";
 import { capabilityLabelFor } from "@/lib/ocade-capability-labels";
 import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
+import {
+  pickLocalModel,
+  streamLocalChat,
+  DEFAULT_LOCAL_BRIDGE_URL,
+  type LocalChatMessage,
+} from "@/lib/ocade-local";
 
 export const Route = createFileRoute("/_authenticated/ocade")({
   head: () => ({
@@ -719,6 +726,7 @@ function ChatSurface(props: {
   const modelInfo = getOcadeModel(model);
   const online = useOnline();
   const localEngine = useLocalEngine();
+  const [engineTier, setEngineTier] = useState<"auto" | "local" | "cloud">("auto");
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -730,6 +738,28 @@ function ChatSurface(props: {
     const atts = overrideAtts ?? attachments;
     if (!text && atts.length === 0) return;
     if (streaming) return;
+
+    // Local-first routing (P4c). On-device inference is unlimited and keeps the
+    // prompt on the machine — no cloud approval needed. "Automatic" prefers
+    // local when a suitable engine is ready, else falls through to cloud.
+    const localReady = localEngine.status === "ready" && localEngine.models.length > 0;
+    const hasImage = atts.some((a) => a.kind === "image");
+    const localPick = localReady ? pickLocalModel(localEngine.models, hasImage ? "vision" : "general") : null;
+
+    if (engineTier === "local" && (!localReady || !localPick)) {
+      toast.error(
+        !localReady
+          ? "OCADE Local isn't available right now. Switch to OCADE Cloud or Automatic."
+          : hasImage
+            ? "Image understanding needs a local vision engine or OCADE Cloud."
+            : "No suitable on-device engine is installed.",
+      );
+      return;
+    }
+    if ((engineTier === "local" || engineTier === "auto") && localReady && localPick) {
+      await sendViaLocal(text, atts, localPick.id, localPick.label);
+      return;
+    }
 
     if (chatsMode === "browser_only" && !allowCloud && modelInfo.locality === "cloud") {
       setCloudApprovalNeeded({ text, attachments: atts });
@@ -817,6 +847,94 @@ function ChatSurface(props: {
         setDraft(text);
         setAttachments(atts);
       }
+    } finally {
+      setStreaming(false);
+      setStreamText("");
+      abortRef.current = null;
+    }
+  }
+
+  async function sendViaLocal(text: string, atts: Attachment[], modelId: string, label: string) {
+    const optimistic: Message = {
+      id: `local-${Date.now()}`,
+      role: "user",
+      content: text,
+      attachments: atts,
+      model_id: null,
+      created_at: new Date().toISOString(),
+    };
+    const priorMessages = messages;
+    setMessages((m) => [...m, optimistic]);
+    setDraft("");
+    setAttachments([]);
+    setStreaming(true);
+    setStreamText("");
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    try {
+      // Persist the user turn (text + attachment metadata only; the prompt is
+      // sent to the on-device engine, never to a server, so local stays local).
+      await appendOcadeMessage({
+        data: {
+          conversationId: conversation.id,
+          role: "user",
+          content: text,
+          attachments: atts.map((a) => ({ kind: a.kind, name: a.name, mime: a.mime, sizeBytes: a.sizeBytes })),
+        },
+      });
+
+      const sys =
+        `You are OCADE, developed and created by CAERA CADANE, running as ${label} on the user's own device. ` +
+        `Refer to your engine only as "${label}"; never print raw model or provider names. ` +
+        `Never claim to be another product. Be helpful, concise, and honest about your limits.`;
+      const localMessages: LocalChatMessage[] = [{ role: "system", content: sys }];
+      for (const m of priorMessages) {
+        if (m.role === "system") continue;
+        localMessages.push({ role: m.role, content: m.content });
+      }
+      localMessages.push({ role: "user", content: text });
+
+      let acc = "";
+      const result = await streamLocalChat(
+        DEFAULT_LOCAL_BRIDGE_URL,
+        modelId,
+        localMessages,
+        {
+          onToken: (c) => {
+            acc += c;
+            setStreamText(acc);
+          },
+          signal: controller.signal,
+        },
+      );
+
+      if (!result.ok && result.reason !== "cancelled") {
+        throw new Error(result.reason || "OCADE Local could not respond");
+      }
+      const finalText = result.reason === "cancelled" ? acc + "\n\n_[stopped by you]_" : acc;
+      if (finalText.trim()) {
+        await appendOcadeMessage({
+          data: {
+            conversationId: conversation.id,
+            role: "assistant",
+            content: finalText,
+            modelId,
+            providerId: "ocade-local",
+          },
+        });
+      }
+
+      const rows = (await listMessages({ data: { conversationId: conversation.id } })) as unknown as Message[];
+      setMessages(rows);
+      setStreamText("");
+      await onRefreshList();
+    } catch (e) {
+      toast.error((e as Error).message || "OCADE Local could not respond");
+      setMessages((m) => m.filter((x) => x.id !== optimistic.id));
+      setDraft(text);
+      setAttachments(atts);
     } finally {
       setStreaming(false);
       setStreamText("");
@@ -959,6 +1077,39 @@ function ChatSurface(props: {
       {/* Composer pinned to bottom */}
       <div className="border-t border-border/60 bg-background/60 px-5 py-3 backdrop-blur">
         <div className="mx-auto w-full max-w-2xl">
+          <div className="mb-1.5 flex items-center gap-1 text-[11px]">
+            <span className="text-muted-foreground">Engine</span>
+            {(["auto", "local", "cloud"] as const).map((t) => {
+              const lbl = t === "auto" ? "Automatic" : t === "local" ? "Local" : "Cloud";
+              const disabled = t === "local" && localEngine.status !== "ready";
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => setEngineTier(t)}
+                  title={
+                    disabled
+                      ? "No on-device engine detected"
+                      : t === "local"
+                        ? "Run on your device — unlimited, private"
+                        : t === "cloud"
+                          ? "Use OCADE Cloud (counts toward your allowance)"
+                          : "Prefer on-device, fall back to cloud with approval"
+                  }
+                  className={cn(
+                    "rounded px-2 py-0.5 transition-colors",
+                    engineTier === t
+                      ? "bg-sidebar-accent text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                    disabled && "cursor-not-allowed opacity-40",
+                  )}
+                >
+                  OCADE {lbl}
+                </button>
+              );
+            })}
+          </div>
           <Composer
             draft={draft}
             setDraft={setDraft}

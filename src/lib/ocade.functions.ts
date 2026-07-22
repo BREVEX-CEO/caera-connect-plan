@@ -105,6 +105,75 @@ export const deleteMessage = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
+/**
+ * Persist a single OCADE message (P4c). Used when the assistant response is
+ * produced by OCADE Local on-device — the browser streams the completion and
+ * then records the user + assistant turns here. Ownership is enforced by RLS
+ * (own-row on ocade_messages/ocade_conversations). Prompts to a local engine
+ * never touch the server; only the resulting message text is persisted, exactly
+ * as the cloud path already persists it.
+ */
+export const appendOcadeMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) =>
+    z
+      .object({
+        conversationId: uuid,
+        role: z.enum(["user", "assistant"]),
+        content: z.string().max(200_000),
+        modelId: z.string().max(200).nullable().optional(),
+        providerId: z.string().max(100).nullable().optional(),
+        attachments: z
+          .array(
+            z.object({
+              kind: z.enum(["image", "file"]),
+              name: z.string().max(500),
+              mime: z.string().max(200),
+              sizeBytes: z.number().int().nonnegative(),
+            }),
+          )
+          .max(10)
+          .optional(),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: conv } = await context.supabase
+      .from("ocade_conversations")
+      .select("id, title")
+      .eq("id", data.conversationId)
+      .maybeSingle();
+    if (!conv) throw new Response("Conversation not found", { status: 404 });
+
+    const { data: row, error } = await context.supabase
+      .from("ocade_messages")
+      .insert({
+        conversation_id: data.conversationId,
+        user_id: context.userId,
+        role: data.role,
+        content: data.content,
+        model_id: data.modelId ?? null,
+        provider_id: data.providerId ?? null,
+        attachments: (data.attachments ?? []) as never,
+      })
+      .select("id, role, content, attachments, model_id, provider_id, created_at")
+      .single();
+    if (error) throw new Response(error.message, { status: 500 });
+
+    // Auto-title from the first user message, matching the cloud path.
+    if (
+      data.role === "user" &&
+      (conv.title ?? "").toLowerCase() === "new chat" &&
+      data.content.trim()
+    ) {
+      await context.supabase
+        .from("ocade_conversations")
+        .update({ title: data.content.trim().slice(0, 60) } as never)
+        .eq("id", data.conversationId);
+    }
+    return row;
+  });
+
 export const exportConversation = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) => z.object({ conversationId: uuid }).parse(i))
