@@ -27,7 +27,7 @@ export function calcIncomeTaxNewRegime(
     0,
     (input.gross_salary ?? 0) + (input.other_income ?? 0) - std,
   );
-  let remaining = taxable;
+  const remaining = taxable;
   let prev = 0;
   let tax = 0;
   for (const s of slabs) {
