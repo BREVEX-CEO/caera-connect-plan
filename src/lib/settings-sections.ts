@@ -4,7 +4,7 @@ import {
   ScrollText, Monitor, CreditCard, Gauge, SlidersHorizontal, Cpu, Mic,
   Wand2, Lock, GraduationCap, Palette, MousePointer, Bell, Languages, Timer,
   Accessibility, Puzzle, Plug, Blocks, Terminal, Building2, Users, CheckSquare,
-  ClipboardCheck, PenTool,
+  ClipboardCheck, PenTool, Brain,
 } from "lucide-react";
 
 export type SettingsStatus = "active" | "setup_required" | "external";
@@ -46,6 +46,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
       { slug: "vault", label: "Storage", icon: HardDrive, status: "active", description: "Browser Vault setup, passphrase, WebAuthn and recovery kit.", keywords: ["storage", "vault", "encryption", "passphrase", "webauthn", "recovery"] },
       { slug: "data-controls", label: "Data Controls", icon: Database, status: "setup_required", description: "Export a copy of your data, request erasure and manage retention windows. Ships with the compliance slice.", keywords: ["export", "erasure", "gdpr", "dpdp", "retention"] },
       { slug: "activity", label: "Activity", icon: ScrollText, status: "active", description: "Operational activity and immutable compliance events.", keywords: ["activity", "audit", "logs", "compliance"] },
+      { slug: "memory", label: "Memory", icon: Brain, status: "active", description: "Review, edit and delete what OCADE remembers. Opt-in and separate from chat history.", keywords: ["memory", "remember", "personalisation", "forget"] },
       { slug: "devices", label: "Devices", icon: Monitor, status: "active", description: "Two desktop and two mobile devices per account. Approve, name and revoke.", keywords: ["devices", "browsers", "revoke"] },
     ],
   },

@@ -4,6 +4,15 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { StatusBadge } from "@/components/shell/StatusBadge";
 import { findSection } from "@/lib/settings-sections";
+import { MemoryPanel } from "@/components/settings/MemoryPanel";
+
+/**
+ * Settings sections that are REAL and rendered here rather than falling through
+ * to the Setup-Required state. Keep in sync with settings-sections.ts statuses.
+ */
+const IMPLEMENTED_SECTIONS: Record<string, () => React.ReactElement> = {
+  memory: () => <MemoryPanel />,
+};
 
 export const Route = createFileRoute("/_authenticated/settings/$section")({
   head: ({ params }) => {
@@ -46,6 +55,10 @@ function SectionCatchall() {
   if (item.status === "external" && item.externalTo) {
     return <Navigate to={item.externalTo} replace />;
   }
+
+  // Real, implemented sections render their own UI.
+  const Implemented = IMPLEMENTED_SECTIONS[section];
+  if (Implemented) return Implemented();
 
   const Icon = item.icon;
 
