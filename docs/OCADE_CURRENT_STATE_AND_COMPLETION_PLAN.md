@@ -1,425 +1,560 @@
-# OCADE — Current State & Completion Plan
+# OCADE — Current-State & Master Completion Plan
 
-> **Status:** Audit only. This document makes no code, schema, configuration, or
-> environment changes. Every claim below is traceable to a real file in the repository at
-> commit `cd0ad8f` (branch base: `origin/main`).
+> **Document type:** Planning only. No application code, migrations, configuration, environment,
+> dependencies, or lockfiles are changed by this document. Evidence is traceable to real files at
+> branch base `origin/main` (`cd0ad8f`).
 >
-> **Product identity:** The assistant is **"OCADE by CAERA CADANE."** Underlying model
-> providers remain truthful in Model Settings, diagnostics, and usage records — this
-> document preserves that honesty and does not describe any capability as more complete
-> than the code actually makes it.
+> **Truthfulness contract:** Nothing is marked complete unless the codebase proves it works.
+> Planned/expanded capabilities are labelled with the status taxonomy in §0. No fake data, fake
+> providers, fake success, or fake completion is used as evidence.
 
 ---
 
-## 0. Architecture reality check (read this first)
+## 0. How to read this document (status taxonomy)
 
-The repo was described as a "Vite/React/Supabase app synced from Lovable." The more precise
-truth, which the rest of this document depends on:
+Every capability is tagged with one status:
 
-- It is a **TanStack Start SSR application** (`package.json` name: `tanstack_start_ts`),
-  React **19.2**, Vite **8**, Tailwind **v4** (CSS-first via `@import "tailwindcss"` +
-  `@theme inline`; there is **no `tailwind.config.*`**).
-- Routing is **file-based** through `@tanstack/react-router` (`src/routes/`), with a
-  generated `src/routeTree.gen.ts`.
-- **Supabase is the database + auth backend only.** There are **no Supabase edge functions**
-  (`supabase/functions/` does not exist). Server-side logic runs as **TanStack Start server
-  functions** in `src/lib/*.functions.ts` (via `createServerFn`) plus one API route,
-  `src/routes/api/ocade.chat.ts`.
-- The **single real model-generation path** is the **Lovable AI Gateway**
-  (`src/lib/ai-gateway.server.ts`), an OpenAI-compatible endpoint keyed by the server-only
-  secret `LOVABLE_API_KEY`.
-- Package manager is **Bun** (`bunfig.toml`, `bun.lock`), though a stale
-  `package-lock.json` is also committed (see §7). TypeScript is **`strict: true`**. There is
-  **no test runner** and **no `test`/`typecheck` npm script**.
-
-Two architectural primitives govern honesty across the whole app and are load-bearing for
-OCADE completion:
-
-- **FeatureRegistry** (`src/lib/features.ts`) — every visible capability must have a
-  `Feature` entry. `registerFeature` **throws at registration** if a feature is not
-  `active`/`beta` and lacks a `reason`. Statuses: `active | beta | setup_required | planned
-  | hidden`. This is the "No-Dead-Button" enforcement seam.
-- **ActionRegistry** (`src/lib/actions.ts`) — ~90 registered actions. `registerAction`
-  throws if a `compliance`-logged action has no `category`, or a `strong` confirmation has
-  no `confirmPhrase`. `executeAction` enforces confirmation + phrase match, races a timeout,
-  and records success/failure to `activity_log` (operational) or the immutable compliance
-  log (compliance). `validateRegistry()` runs a dev-time self-check.
+- **WORKING** — real code + real data path, verified by reading the source.
+- **PARTIAL** — real but incomplete or environment-limited.
+- **DEMO-ONLY** — exists only under `/demo/*` (in-memory, never touches Supabase).
+- **UI-ONLY** — rendered control with no real action behind it (should be gated per No-Dead-Button).
+- **SETUP-REQUIRED** — real design, disabled until a credential/provider/config is supplied.
+- **NATIVE-COMPANION-REQUIRED** — impossible in the browser; needs the signed native companion.
+- **PLANNED** — a confirmed target with no implementation yet.
+- **MISSING** — required by the vision, absent from the code.
+- **BLOCKED** — depends on external infra/credentials/legal clearance.
+- **COMPLETED-AFTER-IMPLEMENTATION** — used only in the phase plan to mark exit criteria.
 
 ---
 
-## 1. What is real and working
+# PART A — VERIFIED CURRENT STATE (truthful audit, preserved & updated)
 
-All items below are backed by real Supabase tables and/or the real Lovable gateway.
+## 1. Executive summary
 
-### OCADE (assistant)
-- **Chat — text + image vision. REAL.** `src/routes/api/ocade.chat.ts` authenticates the
-  Supabase bearer token, enforces the user's `data_class_privacy` mode for the `chats` data
-  class, persists user + assistant turns to `ocade_messages`, loads prior history, and
-  streams a genuine model response via the AI SDK `streamText(gateway(modelId))`. Images are
-  passed to the model as `image` parts (real vision path). The front end
-  (`ChatSurface.sendMessage` in `src/routes/_authenticated/ocade.tsx`) streams the response
-  body chunk-by-chunk.
-- **Prompt-improve. REAL.** `improvePrompt` in `src/lib/ocade.functions.ts` calls
-  `generateText` via the gateway.
-- **Provider prefs + connection tests. REAL.** `src/routes/_authenticated/ocade.models.tsx`
-  + `src/lib/ocade-providers.functions.ts` persist prefs to `ocade_provider_prefs`, run
-  genuine network connection tests, and log events to `ocade_provider_events`
-  (`getUsageDiagnostics` surfaces them).
-- **Identity contract. REAL.** `src/lib/ocade-identity.ts` centralizes the "OCADE by CAERA
-  CADANE" strings and identity-probe detection; the chat system prompt enforces truthful
-  model disclosure.
-- **Voice input/read-aloud. REAL (browser-native).** `toggleVoice` uses the Web Speech API;
-  `readAloud` uses `speechSynthesis`. Works only where the browser supports it; there is no
-  server/model voice.
+CAERA CADANE is a **TanStack Start** SSR app (React 19, Vite 8, Tailwind v4, file-based routing),
+with Supabase for DB/auth and a single real model path via the **Lovable AI Gateway**. The
+platform already ships a genuinely honest foundation: a **FeatureRegistry** with a "No-Dead-Button"
+registration guard, a compliance-aware **ActionRegistry**, three real storage adapters
+(AES-GCM IndexedDB, Supabase-sync, and a deliberately-throwing PC-vault), Demo-mode isolation, a
+three-theme system with correct gradient ownership, and a full custom-cursor system.
 
-### MADEE (Resume Builder)
-- **Resume editor. REAL / complete.** Routes `madee.*`; components
-  `src/components/madee/ResumePreview.tsx`, `ResumeSections.tsx`; logic
-  `src/lib/madee.functions.ts` (project/version CRUD, attestation-gated, browser-only vs
-  private-sync storage split), `madee-export.ts`, `madee-local-store.ts`.
-- **AI assist. REAL with graceful fallback.** `src/lib/madee-ai.functions.ts` (improve
-  bullet, summary, grammar, ATS check, JD match, parsing) call the gateway `generateText`;
-  when `LOVABLE_API_KEY` is absent they return `{ ok:false, error }` so manual editing
-  continues to work.
+**OCADE today** is a working text+image chat assistant (streaming, persisted, privacy-enforced)
+with real prompt-improve and provider diagnostics — but the chat route **hardcodes** the Lovable
+provider, there are **no local (Ollama) models**, the model catalog uses **unverified future model
+IDs**, and the big product vision (OCADE Voice, wake phrase, desktop copilot, PC/browser/software
+control, native companion, mobile companion, memory, automations, video responses, subscriptions,
+capability-label identity, offline-first) is **almost entirely MISSING as code** — present only as
+honest placeholders. This plan turns that vision into an ordered, testable build while keeping every
+claim truthful.
 
-### FICIA (company / HR / messenger / timesheets) — REAL / complete
-- Companies CRUD via SECURITY DEFINER RPCs, access requests, legal-ID/name conflict checks
-  (`src/lib/ficia-companies.functions.ts`); people/employments/org units
-  (`ficia-people.functions.ts`); business messenger with tenant isolation
-  (`messenger.functions.ts`); timesheets with a single-running-entry DB constraint,
-  consent-gated activity samples, locked periods, approve/reject/lock
-  (`timesheet.functions.ts`); immutable audit writer (`compliance-log.functions.ts`).
-- Regulated mutations append to the immutable `compliance_audit_log`. High-risk actions
-  carry strong confirmation phrases (e.g. `ficia.people.terminate` → "TERMINATE",
-  `ficia.approvals.release` → "RELEASE", `ficia.time.period.lock` → "LOCK").
+**Confirmed product direction (from the clarification rounds):** OCADE is the single product
+identity; local-first with unlimited local processing and permissioned OCADE Cloud (28 uses / 8h);
+zero user-facing API keys; capability-label identity (no raw model names in ordinary UI); Tauri +
+Rust native companion with bounded low-risk PC control; unified Windows/macOS/Android/iOS
+architecture; opt-in "Hello OCADE" wake phrase; original male/female voices; hybrid video
+responses; 2/8-day, 1-month, 1-year plans; and testing/security/rollback/packaging as first-class
+phases.
 
-### CANIA — REAL UI + real saved topics/settings
-- `src/lib/cania.functions.ts` persists saved topics and alert prefs (RLS-scoped). The UI
-  shell (`CaniaLayout.tsx`, `SectionView.tsx`, `DataCard.tsx`) is complete. Live data is
-  intentionally empty (see §3).
+## 2. Verified current architecture
 
-### Platform / shell
-- **Auth. REAL.** `src/integrations/supabase/client.ts` (lazy singleton, localStorage
-  session, autoRefresh); `auth.tsx` offers Google + Apple OAuth (via
-  `@lovable.dev/cloud-auth-js`) and passwordless **phone/email OTP**
-  (`supabase.auth.signInWithOtp`), with a same-origin `safeNext()` open-redirect guard.
-  Server-side `requireSupabaseAuth` middleware validates the bearer via
-  `supabase.auth.getClaims`.
-- **Onboarding gate. REAL.** `_authenticated/route.tsx` `beforeLoad` redirects
-  unauthenticated users to `/auth`, and users with `profiles.onboarding_completed = false`
-  to `/onboarding` (5-step wizard: display name, locale/timezone, account type, privacy
-  mode, module selection). Registers the device on mount.
-- **Devices. REAL.** `settings.devices.tsx` + `src/lib/devices.ts` list/revoke real device
-  rows with a confirm-phrase action.
-- **Privacy + Browser Vault. REAL.** `settings.privacy.tsx`, `settings.vault.tsx`; the
-  StorageAdapter system (`src/lib/storage/*`) with an IndexedDB adapter that AES-GCM-encrypts
-  each record value using an in-memory DEK, a Supabase sync adapter (RLS-scoped to
-  `auth.uid()`), and a PC-vault adapter that deliberately throws
-  `NativeCompanionRequiredError` (no silent fallback).
-- **Activity log. REAL.** `settings.activity.tsx` reads `activity_log`.
-- **Appearance / theme / custom cursor. REAL.** `src/lib/theme-provider.tsx` + `styles.css`:
-  three themes (`dark` obsidian, `light` silver/ivory/gold, `real` animated aurora),
-  reduced-motion + high-contrast + auto low-performance (rAF FPS sampler), and a
-  CSS-variable custom cursor (`system | caera_black | caera_white | auto_contrast | custom |
-  accessibility`). Prefs persist to `user_settings` when signed in, else `localStorage`.
-- **Registries. REAL.** FeatureRegistry + ActionRegistry as described in §0.
+- **Framework:** TanStack Start SSR (`package.json` name `tanstack_start_ts`), `@tanstack/react-router`
+  file routing, generated `src/routeTree.gen.ts`. Server logic = TanStack **server functions**
+  (`src/lib/*.functions.ts`) + one API route (`src/routes/api/ocade.chat.ts`). **No** Supabase edge
+  functions (`supabase/functions/` absent).
+- **UI:** Tailwind v4 CSS-first (no `tailwind.config`), shadcn/ui primitives (`src/components/ui/*`,
+  46 files), Radix, lucide, sonner, recharts, cmdk.
+- **Backend:** Supabase (`@supabase/supabase-js`), ~50 RLS-enabled tables, SECURITY DEFINER RPCs,
+  26–27 migrations. Auth via Supabase (OAuth + passwordless OTP) with `@lovable.dev/cloud-auth-js`.
+- **AI:** Vercel AI SDK (`ai`, `@ai-sdk/openai-compatible`, `@ai-sdk/react`); one real gateway
+  (`src/lib/ai-gateway.server.ts`, keyed by server-only `LOVABLE_API_KEY`).
+- **Package manager:** Bun (`bunfig.toml`, `bun.lock`) — a stale `package-lock.json` is also
+  committed. **TypeScript strict**. **No test runner, no `test`/`typecheck` scripts.**
+- **Baseline plan:** `.lovable/plan.md` "Master Plan v3" (α0→P40) is the prior roadmap; this
+  document supersedes and expands it and removes the Lovable-editor-sync constraint (see §6/§13).
 
----
+## 3. Complete repository map (key paths)
 
-## 2. What is only Demo data
+- `src/routes/` — public (`index`, `auth*`), `demo.*` (8), `api/ocade.chat.ts`, and
+  `_authenticated/` (home, onboarding, `ocade`, `ocade.models`, `cania.*` +19 sections, `madee.*`,
+  `ficia.*`, `settings.*`, `admin.*`). Layout gate: `_authenticated/route.tsx`.
+- `src/lib/` — registries (`features.ts`, `actions.ts`), identity/model (`ocade-identity.ts`,
+  `ocade-models.ts`, `ocade.functions.ts`, `ocade-providers.functions.ts`, `ai-gateway.server.ts`),
+  storage (`storage/{types,resolver,sync-adapter,indexeddb-adapter,pc-vault-adapter}.ts`), demo
+  (`demo/{context,data}`), theme (`theme-provider.tsx`), FICIA/MADEE/CANIA `*.functions.ts`,
+  `settings-sections.ts`, `cania-sections.ts`, `devices.ts`, `session.ts`.
+- `src/components/` — `shell/` (`AppShell`, `DemoShell`, `AuthShell`, `MarketingShell`,
+  `OnboardingShell`, `SetupRequiredState`, `PageHeader`, `GlassPanel`, `BrandMark`),
+  `settings/SettingsShell`, `cania/`, `madee/`, `ui/`.
+- `supabase/migrations/` (26–27 SQL), `supabase/config.toml`.
+- Root: `.lovable/plan.md`, `AGENTS.md`, `src/routes/README.md`, `.env` (committed), configs.
 
-Demo Mode is isolated by design and **never touches Supabase**.
+## 4. Real & working capabilities (WORKING)
 
-- **Flag & isolation:** `caera:demo` in `sessionStorage`; `DemoProvider`
-  (`src/lib/demo/context.tsx`) holds all sample data in React state (seeded from
-  `src/lib/demo/data.ts`) with in-memory-only mutators; `useDemo` throws outside `/demo/*`.
-  The `/demo` route is `ssr:false` + `robots: noindex`.
-- **Demo-only surfaces (no authenticated equivalent):**
-  - **Files** — only `src/routes/demo.files.tsx` (static list; uploads disabled).
-  - **Tasks** — only `src/routes/demo.tasks.tsx` (local `markTaskDone`; "Nothing is saved to
-    real accounts").
-  - Demo variants of OCADE/FICIA/MADEE/CANIA/Settings for signed-out preview.
-- **Seed data:** `DEMO_COMPANY` (Meridian Foods, sample GSTIN, India/INR),
-  `DEMO_OCADE_MESSAGES`, `DEMO_TIMESHEET`, `DEMO_INVOICES`, `DEMO_TASKS`, `DEMO_FILES`,
-  `DEMO_COMPANY_CHAT`, `DEMO_RESUME`, `DEMO_REPORTS` — each field flagged "sample" in the UI.
+- **OCADE chat, text + image vision** — `api/ocade.chat.ts`: Supabase bearer auth, `chats` privacy
+  enforcement (browser_only refuses cloud without `allowCloud`, HTTP 428), persistence to
+  `ocade_messages`, history load, real `streamText` streaming; images sent as vision parts.
+- **OCADE prompt-improve** — `ocade.functions.ts` `improvePrompt` (real `generateText`).
+- **Provider diagnostics** — `ocade.models.tsx` + `ocade-providers.functions.ts`: real connection
+  tests, prefs in `ocade_provider_prefs`, events in `ocade_provider_events`.
+- **Identity contract (baseline)** — `ocade-identity.ts` + chat system prompt: introduces as
+  "OCADE by CAERA CADANE", truthfully names the active model on request, never claims to have
+  trained the weights.
+- **MADEE** resume editor + AI assist (graceful fallback) — WORKING.
+- **FICIA** companies/people/roles/approvals/messenger/timesheets + immutable `compliance_audit_log`
+  — WORKING.
+- **CANIA** UI shell + saved topics/settings (RLS) — WORKING (live data intentionally empty).
+- **Platform:** auth (OAuth + OTP) + onboarding gate; Devices; Privacy; Browser Vault (AES-GCM);
+  Activity; Appearance/theme (dark/light/real) + full cursor system; FeatureRegistry +
+  ActionRegistry enforcement; StorageAdapter resolver with per-data-class privacy.
+- **Voice (browser)** — `ocade.tsx` Web Speech API input + read-aloud. **PARTIAL** (browser-only).
 
----
+## 5. Partially working capabilities (PARTIAL)
 
-## 3. What is placeholder or setup-required
+- **Model selection** — `body.model` is honored, but the **provider is hardcoded** to the Lovable
+  gateway (`provider_id:"lovable-ai"`); OpenAI-direct/Ollama/native are diagnostics-only.
+- **Voice** — Web Speech API only; no wake phrase, greeting, male/female voices, or local STT/TTS.
+- **OCADE attachments** — images reach the model; **non-image files are not sent** ("not sent in
+  this build").
+- **CANIA** — full UI, but every external provider is `setup_required` (catalog-only, no fetching).
 
-These are honestly gated (disabled / "Setup Required" / "Native Companion Required") — none
-are faked.
+## 6. Demo-only capabilities (DEMO-ONLY)
 
-- **CANIA live data.** `src/lib/cania-providers.ts` is a **catalog only** — its header states
-  "Nothing here fetches… NO fake live data anywhere." All external providers (GNews, NewsAPI,
-  weather, etc.) are `setup_required`. Features `cania.center/alerts/search` are
-  `setup_required`.
-- **OCADE Work mode.** `WorkModePanel` in `ocade.tsx` is a static "Native Companion Required"
-  panel — Pause/Stop/Replay buttons are `disabled`; copy states OCADE "cannot control your
-  mouse, keyboard, terminal or filesystem" in the browser build. `ocade.copilot` is `planned`
-  with reason "Requires the Native Companion (Cursor / Tauri build)."
-- **OCADE non-image files.** Attachments UI is real (≤10 files, 20 MB) and images reach the
-  model, but non-image files are explicitly NOT sent ("Non-image files are not sent to the
-  model in this build").
-- **OCADE OpenAI-direct / Ollama providers.** Both are **connection-tested for real** but are
-  **not wired into any generation path** — chat always routes through the Lovable gateway
-  (the endpoint hardcodes `provider_id: "lovable-ai"`). They are diagnostics/roadmap today.
-- **OCADE Voice settings section** and **MADEE `resume_ai`** (without `LOVABLE_API_KEY`) are
-  `setup_required`.
-- **~24 Settings sections** (`src/lib/settings-sections.ts`) render honest Setup-Required
-  states: Profile, Account, Authentication, Security, Data Controls, Billing, Usage, Limits,
-  OCADE Preferences/Voice/Work/Permissions/Learning, Notifications, Language, Time/Focus,
-  Accessibility, Skills, Connectors, Integrations, Developer, and several FICIA
-  roles/approvals/compliance/signature-trust sub-sections.
+`/demo/*` uses `sessionStorage` `caera:demo` + in-memory `DemoProvider`, never touching Supabase.
+**Files** and **Tasks** exist ONLY here (`demo.files.tsx`, `demo.tasks.tsx`); also demo variants of
+OCADE/FICIA/MADEE/CANIA/Settings. Seed data in `src/lib/demo/data.ts`.
 
----
+## 7. Placeholder / setup-required capabilities (SETUP-REQUIRED / UI-ONLY / NATIVE-COMPANION-REQUIRED)
 
-## 4. What is missing
+- **~24 Settings sections** render honest `SetupRequiredState` (`settings-sections.ts`).
+- **OCADE Work mode** — `WorkModePanel` disabled, "Native Companion Required".
+- **OpenAI-direct / Ollama providers** — real connection tests, not wired to generation.
+- **MADEE `resume_ai`** without `LOVABLE_API_KEY`; OCADE Voice settings section.
+- **PC-vault storage adapter** — throws `NativeCompanionRequiredError` by design.
 
-Not yet present in any form (or present only as a "Planned" label with no data model):
+## 8. Missing capabilities (MISSING) — the bulk of the expanded vision
 
-- **OCADE Projects / Outputs / Scheduled / Automations** — sidebar rows hard-disabled with
-  "Planned" badges; the Composer "Project" selector is disabled; no data model.
-- **OCADE Replay / Learning** — only a disabled "Replay" button + a `setup_required`
-  "Learning and Replay" settings section.
-- **Non-image file understanding** — no extraction/RAG pipeline.
-- **Authenticated Files and Tasks backends** — exist only as demo.
-- **Browser automation** — no `puppeteer`/`playwright` dependency or implementation anywhere
-  (only marketing/plan copy mentions it).
-- **Native / computer control / OS voice** — Native Companion not built.
-- **Automated tests** — none exist (no `*.test.*`, `*.spec.*`, `__tests__/`, no runner).
+No code exists for: capability-label identity layer; OCADE Voice (wake phrase, greeting,
+male/female, local STT/TTS); capability-aware local fallback chain; Ollama integration; offline
+detection/matrix; desktop copilot; PC/browser/software control; native companion (Tauri/Rust);
+mobile companion; projects/outputs/scheduled/automations; replay/learning; memory architecture;
+non-image/document intelligence (PDF/Office/code); hybrid video response; subscriptions/entitlements;
+usage-allowance enforcement; automated tests/typecheck.
+
+## 9. Incorrect or misleading UI states (to correct)
+
+1. **Raw model/provider names in ordinary UI** — `ocade.models.tsx` + `ocade-models.ts` surface
+   "Gemini 3.5 Flash", "GPT-5.4 mini", "OpenAI (direct)", "add an OPENAI_API_KEY". Per decisions
+   #14–18 these must become **capability labels** (OCADE Local/Cloud/…), with raw names + the whole
+   provider/key screen moved to **admin-only** infra.
+2. **Unverified future model IDs** (`gemini-3.5-flash`, `gpt-5.4-mini`, `gpt-5.5`) — must be
+   validated against what the gateway actually serves, or replaced.
+3. **Provider selector implies routing it doesn't do** — selecting OpenAI/Ollama changes nothing in
+   generation today; must either route for real or be hidden from users.
+4. **`ficia_time_entries`** referenced in code/types + a migration COMMENT but never `CREATE`d — a
+   schema-history gap to reconcile before CI provisioning.
 
 ---
 
-## 5. Exact routes and components involved
+# PART B — OCADE TARGET (confirmed decisions, truthfully classified)
 
-**Public / auth:** `/` (`index.tsx`), `/auth`, `/auth/verify`, `/auth/callback`.
+## 10. OCADE product identity
 
-**API:** `POST /api/ocade/chat` (`src/routes/api/ocade.chat.ts`) — streaming chat.
+- **Single identity.** OCADE is the one product/assistant across chat, voice, desktop copilot, PC
+  control, browser, mobile, files, projects, automations, offline, and cloud. Public feature names:
+  **OCADE Voice**, **OCADE Desktop Copilot**, **OCADE Assistant**. "Jarvis" is an **internal
+  codename only** (decision #2) — never user-facing.
+- **Creator wording (decision #1):** "I am OCADE, developed and created by CAERA CADANE." Still
+  truthfully names the active model when asked; **never** claims CAERA CADANE trained third-party
+  weights (#19).
+- **Four-layer separation:** (1) Product identity = OCADE; (2) Execution engine = the local/cloud
+  inference currently selected; (3) Provider = the runtime delivering inference (internal); (4)
+  Capability = chat/vision/code/voice/tools/automation.
+- **Capability labels in ordinary UI (#18):** OCADE Local, OCADE Local Fast, OCADE Local Vision,
+  OCADE Local Code, OCADE Cloud, OCADE Automatic. Raw runtime/model/version/licence/provider names
+  live ONLY in admin diagnostics, support reports, legal/licence notices, security logs, internal
+  routing. Never in ordinary chat, selectors, onboarding, marketing, or routine errors.
+- **Files:** update `ocade-identity.ts` (vendor string + disclosure), the chat system prompt in
+  `api/ocade.chat.ts`, and add a capability-label mapping module. Status: **PLANNED**.
 
-**Demo (`ssr:false`, noindex):** `/demo` + `demo.{index,ocade,ficia,madee,cania,files,tasks,settings}`.
+## 11. FICIA / CANIA / MADEE positioning
 
-**Protected (`_authenticated/`, `ssr:false`, layout `route.tsx`):**
-- Home: `/home`; Onboarding: `/onboarding`.
-- OCADE: `/ocade`, `/ocade/models`.
-- CANIA (`cania.tsx` layout): `/cania` + 19 sections (`world, business, markets, weather,
-  traffic, currency, commodities, sports, government, finance, technology, travel, risks,
-  alerts, country, saved, search, settings`).
-- MADEE (`madee.tsx`): `/madee`, `/madee/new`, `/madee/$projectId`,
-  `/madee/$projectId/preview`.
-- FICIA (`ficia.tsx`): `/ficia`, `/ficia/new`, `/ficia/$tenantId`,
-  `/ficia/$tenantId/approvals`, `/messenger`, `/people`, `/roles`, `/time`,
-  `/time/approvals`, `/time/reports`, `/time/settings`.
-- Settings (`settings.tsx`): `/settings`, `/settings/$section`, `/settings/activity`,
-  `/appearance`, `/devices`, `/privacy`, `/vault`.
-- Admin: `/admin/country-packs`, `/admin/country-packs/$packId`, `/admin/launch-gate`.
+FICIA, CANIA, MADEE are **not foundation AI models** (#28). In model/assistant selection surfaces
+only, show "FICIA — Not an AI model — Coming soon" (and CANIA/MADEE). **Everywhere else, preserve
+their real module functions** — do not label working sections (FICIA WORKING, MADEE WORKING, CANIA
+UI WORKING) as unavailable. They are specialised modules that may later consume OCADE capabilities.
+Status: preventive labelling **PLANNED**; modules themselves unchanged.
 
-**Shell components:** `src/components/shell/` — `AppShell.tsx` (authenticated shell: top bar,
-collapsible sidebar, module accents), `AuthShell.tsx`, `DemoShell.tsx`, `MarketingShell.tsx`,
-`OnboardingShell.tsx`, `SetupRequiredState.tsx`, `DemoBadge`; plus
-`src/components/settings/SettingsShell.tsx`, `src/components/cania/CaniaLayout.tsx`,
-`src/components/ui/sidebar.tsx`. OCADE-specific: `ChatSurface`, `WorkModePanel` (in
-`ocade.tsx`).
+## 12. OCADE chat completion
 
-**Responsive model:** single Tailwind `md` (768px) pivot — below 768 the sidebar is a
-`mobileOpen` overlay drawer; at ≥768 it collapses between 60px/248px. No dedicated tablet
-breakpoint.
+Current: WORKING but provider-hardcoded, no memory, non-image files dropped. Target: route through
+the provider layer (§13), attach projects/memory (§17/§19), document intelligence (§18), capability
+labels (§10), and the fallback chain (§14). Status: **PARTIAL → PLANNED** completion.
+
+## 13. Provider-routing architecture
+
+- Replace the hardcoded gateway in `api/ocade.chat.ts` with a **router** that reads the user's
+  selected capability profile + `ocade_provider_prefs` + data-class privacy, then dispatches to the
+  resolved engine. **Provider-neutral**: Lovable gateway stays as **replaceable internal infra**
+  (#16); adding/removing a provider must not require rewriting OCADE chat.
+- **No user-facing keys (#14–16):** remove "API key"/BYOK/secret/developer-credential terminology
+  from all user surfaces; cloud creds are admin-only encrypted infra, never in browser/logs/prompts/
+  replay/exports. The current user-facing provider/key screen becomes **admin-only** (§38).
+- Server-side: key protection, health checks, metering, cancellation, timeout, retry limits, cost
+  caps, failover, outage messages. Status: **PLANNED**.
+
+## 14. Ollama & local-model completion
+
+- **Local-first (#10, #17).** Detect Ollama; discover installed engines; record capability, context,
+  RAM/VRAM, CPU/GPU fit, speed, tool/vision support, licence, health, version, storage.
+- **Capability-aware fallback chain (#17):** preferred local → secondary local → smaller
+  low-resource local → reduced local response → **ask permission for OCADE Cloud** → approved cloud
+  → clear failure message. Never silently cross to cloud.
+- **Installation (#20):** detect hardware, recommend a profile, show download size, require
+  confirmation, one-click install, never silent multi-GB downloads, resume interrupted downloads,
+  keep multiple compatible backups.
+- **Recommended internal catalog (from Group-5 answer, adjustable):** general 7–8B (e.g. Llama
+  3.1 8B → *OCADE Local*), small/fast (e.g. Qwen2.5-3B / Phi → *OCADE Local Fast*), vision (e.g.
+  Llama 3.2 Vision / LLaVA → *OCADE Local Vision*), code (e.g. Qwen2.5-Coder → *OCADE Local Code*).
+  Names are internal; users see capability labels. Status: **MISSING → PLANNED** (companion-dependent
+  for true local execution; a browser bridge URL is an interim).
+
+## 15. Cloud-provider support (OCADE Cloud)
+
+Managed, permissioned cloud after local can't complete. Consumes the 28/8h allowance (#12).
+Approval asked before crossing to cloud (#13), remembered only for the current conversation;
+sensitive/protected content always fresh. Encrypted keys server-side, metering, cost caps,
+daily/monthly limits, failover, honest outage states. Status: gateway WORKING; routing/allowance
+**PLANNED**.
+
+## 16. Model capability registry
+
+Extend `ocade-models.ts` into a capability registry mapping **capability profiles → eligible engines
+(local or cloud)** with capability flags (text/vision/code/tools/context/speed/cost/licence). Powers
+"OCADE Automatic" selection and the fallback chain. Raw identities internal-only. Status: **PARTIAL
+→ PLANNED**.
+
+## 17. Projects & conversations
+
+Projects, conversations, pinned/archived, branches/variants, project instructions, project memory.
+Today OCADE's sidebar shows Projects/Outputs/Scheduled/Automations as honest **PLANNED** disabled
+rows. Target: real `ocade_projects` / `ocade_project_items` tables (RLS), wired to the composer,
+with Features/Actions registered. Status: **MISSING → PLANNED**.
+
+## 18. Files & document intelligence
+
+Uploads, indexing, and **offline** understanding of text, Markdown, PDF, DOCX, XLSX, CSV, and source
+code (#44) — plus citations/source tracing. Non-image files currently dropped. Target: local
+extraction pipeline + optional retrieval, gated where not built. Status: **MISSING → PLANNED**.
+
+## 19. Memory architecture
+
+Opt-in (#31), reviewable, editable, deletable, governed by privacy mode, **distinct from chat
+history**. New data-class + review UI + retention controls. Status: **MISSING → PLANNED**.
+
+## 20. Outputs & artifacts
+
+Generated outputs (documents, exports, visual responses) stored per privacy/retention; exportable;
+listed in the OCADE "Outputs" contextual item (currently PLANNED). Status: **MISSING → PLANNED**.
+
+## 21. Desktop Copilot
+
+Overlay/floating assistant, system tray, global shortcut, selected-text assistance, screenshot
+understanding, active-window context, clipboard access, notification reading, task execution with
+confirmation/progress/cancellation/recovery, replay, visible privacy status, emergency stop, startup
++ background resource limits. Uses the same OCADE intelligence/memory/permissions (#3).
+Status: **MISSING / NATIVE-COMPANION-REQUIRED → PLANNED**.
+
+## 22. OCADE Voice architecture
+
+Selectable original male/female voices, **no assumed default** (chosen in onboarding), push-to-talk
+first, optional local wake phrase, interruption/stop-speaking, captions, local STT/TTS where
+installed, **multilingual** (#22, #27). Wake phrase "Hello OCADE" / optional "Hey OCADE", **opt-in
+and off by default**, detected locally (#23). Personalized greeting from onboarding (#24) with
+**first-name-no-title default** (#25) and **never inferring titles** (#26). Multilingual via
+installable, independently verified language packs — a language is not advertised until its STT, TTS,
+wake phrase, and commands pass verification (#27). No default microphone recording. Original design —
+no imitation of any copyrighted assistant's voice/personality/sound/design. Status: **MISSING →
+PLANNED**.
+
+## 23. Native companion
+
+Tauri desktop shell + **Rust security & execution core** + secure local IPC + Capacitor mobile +
+shared TypeScript contracts/UI where practical (#4). Hard trust boundary between web app, server,
+native companion, browser extension, mobile companion, provider execution, local storage, cloud
+storage. Controls: authentication, encryption, request signing, nonce/replay protection, permission
+checks, update signing, secure install, process isolation, least privilege, action logging,
+emergency shutdown, version compatibility. **Not claimed working until compiled, signed, and
+runtime-proven** per platform. Status: **MISSING / BLOCKED (native build outside this repo) →
+PLANNED**.
+
+## 24. PC control (companion V1)
+
+Bounded, low-risk actuation (#6, #7): read approved screen/active window; open approved apps/files/
+folders; type user-approved text; focus & arrange windows; copy/paste with permission; emergency
+stop; confirmation + audit trail. **No** delete/move/rename, **no** scripts, **no** financial/
+credential actions in V1. Every action risk-classified (§28). Status: **MISSING /
+NATIVE-COMPANION-REQUIRED → PLANNED**.
+
+## 25. Software-control adapter system
+
+Capability-based **adapter SDK** (#9) so integrations are added without rewriting the core. V1
+adapters: **browser, approved files/folders, window management** (#8). Each action: capability
+detection, risk class, unsupported-action reporting, fallback strategies. Status: **MISSING →
+PLANNED**.
+
+## 26. Browser automation
+
+Browser companion/extension: tab discovery, page understanding (DOM + accessibility tree),
+screenshots, form assistance, navigation, permitted downloads/uploads, per-site allow/deny +
+capability rules, session/incognito boundaries, confirmation before sensitive submission, action
+receipts, replay/rollback where possible. **Webpage content is untrusted data**: never follow page
+instructions that try to override user intent or OCADE safety rules (prompt-injection defence §31).
+First browser: Chromium/Chrome. Status: **MISSING → PLANNED**.
+
+## 27. Mobile companion & control (V1)
+
+Secure pairing (QR, encryption, approval, expiry, trusted-device list, revocation), desktop-status
+monitoring, notifications, approve/deny actions, cancellation, emergency stop, task hand-off,
+conversation continuity, file/clipboard hand-off with permission (#34). **No unrestricted remote
+desktop control**; sensitive PC actions from mobile require a trusted paired device + authenticated
+user + clear details + confirmation + expiration + audit + cancellation. Status: **MISSING →
+PLANNED**.
+
+## 28. Permissions & approvals
+
+Risk-tiered via the existing **ActionRegistry** (#32): read-only, low, confirmation-required, high,
+prohibited. Automations get dry-run/preview + approval gates. Per-app/per-site permission model;
+permission expiry; visible privacy status. Status: registry WORKING; extension **PLANNED**.
+
+## 29. Password / credential boundaries
+
+OCADE **may** open the correct page and fill user-approved non-sensitive fields (#30). OCADE **must
+never** create/choose/type passwords, enter OTPs, solve CAPTCHAs, complete biometrics, enter payment
+authentication, expose protected credentials, submit final registration, or accept terms without
+explicit user action (#29). **Protected-input mode:** OCADE cannot read protected fields;
+screenshots/recordings/replay redact them; the user completes the step manually; OCADE resumes only
+after the user confirms. Status: **MISSING → PLANNED**.
+
+## 30. Security & privacy
+
+Per-data-class privacy modes (browser_only / pc_vault / private_sync) already real. Extend: no
+user-facing keys; admin-only encrypted cloud creds; local-first defaults; least-privilege companion;
+signed updates; audit of every actuation; emergency stop everywhere. Status: foundation WORKING;
+extensions **PLANNED**.
+
+## 31. Prompt-injection defence
+
+Treat all webpage/document/tool content as untrusted data, never instructions. Detect hidden/
+adversarial instructions; confirm before sensitive submissions; strip/quote injected directives;
+never let observed content escalate permissions or reveal secrets/system prompts. Status: **MISSING
+→ PLANNED**.
+
+## 32. Activity logs & replay
+
+Two-log model preserved: immutable **compliance_audit_log** (permanent) + **activity_log**
+(operational). Operational activity + action replay default to **90-day retention, user-adjustable**
+(#33); compliance permanent and separate. Replays redact protected inputs. Status: logs WORKING;
+replay **PLANNED**.
+
+## 33. Automations & scheduling
+
+V1: manual + scheduled/recurring + simple conditional triggers; dry-run/preview, approval gates,
+logs, rollback where possible; no destructive/financial/irreversible action without confirmation.
+Full event-driven engine deferred. Status: **MISSING → PLANNED**.
+
+## 34. Offline & local-first behaviour
+
+Local-first; useful offline once local components are installed (#10, #21). On connectivity loss:
+detect; keep local features active; show a small non-disruptive offline indicator; prevent repeated
+failing cloud calls; move eligible requests to local; preserve unsent work; queue only safe-to-retry
+tasks; explain unavailable features; retry with backoff; notify on reconnect. **Explicit error
+states:** internet unavailable; local engine unavailable/loading/lacks-capability; companion
+disconnected; cloud approval required; cloud allowance exhausted; API key invalid *(internal only)*;
+provider temporarily unavailable; device memory insufficient; model install incomplete; subscription
+expired; offline entitlement verification unavailable. Status: **MISSING → PLANNED**.
+
+## 35. Database & migration requirements
+
+New tables (all RLS, own-row/tenant-scoped): `ocade_projects`, `ocade_project_items`,
+`ocade_outputs`, `ocade_memory` (+ review/audit), `ocade_automations`, `ocade_automation_runs`,
+`ocade_replays`, `local_engines` (device-scoped inventory), `voice_prefs` (or extend
+`user_settings`), `subscriptions`, `entitlements`, `usage_ledger` (cloud allowance), `devices`
+extension for pairing, `companion_sessions`, `permission_grants`. Reconcile the missing
+`ficia_time_entries` migration. Every table ships with a migration + RLS + tests. Status: **PLANNED**.
+
+## 36. API & server-function requirements
+
+New/updated server functions: provider router (replace hardcoded chat provider), local-engine
+detection/health bridge, allowance metering + reset, subscription/entitlement checks (with signed
+offline cache), memory CRUD, projects/outputs CRUD, automation scheduler + runner, companion pairing
++ signed IPC broker, voice/session endpoints, document-extraction. Admin-only provider/diagnostics
+endpoints. Status: **PLANNED**.
+
+## 37. UI & navigation requirements
+
+**Unified shell (#42):** one module-aware sidebar, **layout-level single-shell mounting**, contextual
+navigation for all modules. Consolidate `AppShell`/`DemoShell` into one `WorkspaceShell` mounted in
+`_authenticated/route.tsx` and `demo.tsx`; remove ~33 per-page wrappers; lift OCADE's conversation
+sidebar + CANIA sections into the shell contextual slot; real account area; capability-label model
+picker; calm design (no giant cards/oversized headings/heavy blur; dark/light flat, REAL owns
+gradients). Status: **PLANNED** (design validated against existing `AppShell`, `DemoShell`,
+`CaniaLayout`, `settings-sections.ts`).
+
+## 38. Settings requirements
+
+Keep the existing honest IA (`settings-sections.ts`). Changes: move the provider/model/key screen to
+**admin-only**; add capability-profile settings (no keys); add Voice (voices/wake/greeting/language/
+accent/formality), Memory (review/delete/retention), Automations, Subscriptions/Usage (allowance +
+next reset), Companion/Permissions, Offline. Remove all user-facing "API key" terminology (#15).
+Status: **PARTIAL → PLANNED**.
+
+## 39. Performance & resource limits
+
+Companion background resource caps; local-inference performance surfacing; low-resource voice/video
+modes; FPS-aware theme already exists; download size/disk guards. Status: **PLANNED**.
 
 ---
 
-## 6. Exact database tables and policies involved
+# PART C — QUALITY, PLATFORMS, PHASES
 
-All tables are in `public` with **Row Level Security enabled + policies** (own-row
-`auth.uid()`, tenant-member checks, admin-write, messenger-membership). 26–27 migrations in
-`supabase/migrations/` (2026-07-20 → 07-21). Storage RLS policies exist on `storage.objects`
-(`messenger_read/insert/delete_own`).
+## 40. Testing strategy
 
-| Domain | Tables |
-|---|---|
-| Core / identity | `profiles`, `user_roles`, `tenants`, `tenant_members`, `user_settings`, `devices`, `compliance_audit_log` (formerly `audit_log`), `feature_flags` |
-| Activity / privacy | `activity_log`, `browser_grants`, `data_class_privacy`, `vault_config`, `user_private_records` |
-| OCADE | `ocade_conversations`, `ocade_messages`, `ocade_provider_prefs`, `ocade_provider_events` |
-| CANIA | `cania_saved_topics`, `cania_alert_prefs`, `cania_settings` |
-| MADEE | `madee_resume_projects`, `madee_resume_versions` |
-| Launch / admin | `launch_gate_items`, `launch_gate_history`, `access_requests` |
-| Country packs / compliance | `country_packs`, `country_pack_versions`, `rule_sources`, `compliance_events`, `historical_test_cases`, `pack_reviews`, `company_obligations` |
-| FICIA org | `ficia_locations`, `ficia_departments`, `ficia_teams`, `ficia_employments`, `ficia_custom_roles`, `ficia_role_grants`, `ficia_approval_policies`, `ficia_approval_requests`, `ficia_approval_decisions` |
-| Messenger | `msg_threads`, `msg_thread_members`, `msg_cross_company_grants`, `msg_messages`, `msg_message_edits`, `msg_attachments`, `msg_reactions`, `msg_pins`, `msg_read_receipts`, `msg_message_links` |
+Introduce a **test runner + `typecheck` script first** (none today). Test types (#45): unit,
+integration, end-to-end, native-companion, permission, offline, cloud-fallback, voice, wake-phrase
+(incl. false-positive), model-download (incl. interruption), subscription, usage-reset, installer/
+update, rollback, migration, prompt-injection, protected-input, hardware-compatibility. **No phase
+is "done" because UI exists** — every phase verifies the full path
+**UI → state → API/native IPC → execution → persistence → error handling → audit → rollback**.
 
-**SECURITY DEFINER functions (locked-down grants):** `create_company_with_owner`,
-`find_conflicting_legal_id`, `find_similar_company_names`, `is_tenant_owner_or_manager`,
-`ficia_has_permission`, `enforce_resume_attestation`, `set_resume_version_number`,
-`set_updated_at`.
+## 41. CI & quality gates
 
-**⚠ Schema integrity finding:** `ficia_time_entries` is referenced by
-`src/lib/timesheet.functions.ts` and `src/integrations/supabase/types.ts`, and a migration
-(`20260721153321`) contains only a `COMMENT ON TABLE public.ficia_time_entries …`, but **no
-`CREATE TABLE public.ficia_time_entries` exists in any committed migration**. The table
-appears to live only in generated types / the live Cloud DB. This is a real migration-history
-gap to reconcile before relying on `supabase db reset`/CI provisioning.
+Add scripts: `test`, `typecheck` (tsc `--noEmit`), keep `lint`, add `build` gate. CI runs
+typecheck + lint + unit/integration + build on every PR; native/e2e on tagged runs. No merge on red.
+Status: **MISSING → PLANNED**.
 
----
+## 42. Packaging & deployment
 
-## 7. Safe deletion candidates
+Web: current Vite/Nitro build. Desktop: Tauri signed installers (Windows first, then macOS).
+Mobile: Capacitor (Android, iOS). Signed auto-update channels; per-platform verification + packaging
+**separately** (#5) — one build never proves another platform. Status: **PLANNED**.
 
-> This document **recommends only**; it deletes nothing. The user's instruction to reuse
-> existing code before creating new code, and to preserve completed FICIA/MADEE/CANIA work,
-> governs every classification below.
+## 43–46. Platform expansion (unified core, verified separately)
 
-### SAFE_AUTO_DELETE
-- **`package-lock.json`** — Bun is the declared package manager (`bunfig.toml`, `bun.lock`).
-  The npm lockfile is a second source of truth that can drift. (Confirm no CI step consumes
-  it first.)
+**Unified programme (#5):** one shared architecture/core (Tauri+Rust+Capacitor, shared TS contracts,
+shared permissions, shared design system) targeting **Windows, macOS, Android, iOS as soon as
+possible**; **Windows is the lead/reference** verified first; **each platform is verified, packaged,
+and release-tested separately** and ships only when its own verification passes (honest per-platform
+gating — never pretend one build proves all). §43 Windows-first · §44 macOS · §45 Android · §46 iOS.
+Status: **PLANNED**.
 
-### REVIEW_REQUIRED
-- **Unused `src/components/ui/*` shadcn primitives** — 46 files; several are likely unused
-  (candidates seen: `carousel.tsx`, `input-otp.tsx`, `menubar.tsx`, `resizable.tsx`,
-  `chart.tsx`). **Verify import usage per file before removing** — some are referenced
-  indirectly.
-- **Model-catalog duplication** — `src/lib/ocade-models.ts` (5 models) vs
-  `src/lib/ai-gateway.server.ts` `OCADE_MODEL_DISPLAY` (3 models). Consolidate to one source
-  of truth (do not delete blindly).
-- **Committed `.env` with Supabase keys** — a real `.env` (publishable/anon key + project
-  ref) is checked into the tree. The anon key is RLS-protected and semi-public, but committing
-  `.env` is poor hygiene. Decision required: rotate + git-ignore, or accept. **Out of scope
-  for this docs-only PR.**
-- **Dense same-day migration history (26–27 files)** — candidate for squash *awareness* only;
-  `AGENTS.md` warns against rewriting pushed Lovable history, so treat as MUST-NOT-rewrite in
-  practice.
+## 47. Ordered implementation phases
 
-### MUST_KEEP
-- `src/routeTree.gen.ts` (generated), `src/integrations/lovable/*` (auto-generated,
-  load-bearing for the AI gateway), `src/lib/lovable-error-reporting.ts`,
-  `src/lib/ai-gateway.server.ts`.
-- All `src/lib/*.functions.ts`, both Supabase clients (`client.ts` browser + `client.server.ts`
-  server — legitimately distinct), all migrations, `features.ts`, `actions.ts`,
-  `src/lib/storage/*`, `demo/*`.
-- All FICIA / MADEE / CANIA code, auth, onboarding, RLS policies, StorageAdapter, theme,
-  cursor.
+Each phase uses the template in §49. Recommended order:
 
----
+- **P0 — Quality foundations.** Add test runner + `typecheck`/`build` gates; fix lint; reconcile
+  `ficia_time_entries`; remove stale `package-lock.json` (Bun). *Edit mode; no feature code.*
+- **P1 — Unified WorkspaceShell (#37, #42).** One shell, layout-level, contextual nav; capability-
+  label model picker scaffold; calm pass. *No auth/RLS/Demo regression.*
+- **P2 — Identity + capability labels (#1, #10, #18).** Update `ocade-identity.ts` + chat system
+  prompt to CAERA-CADANE creator wording; capability-label mapping; hide raw names; move provider/
+  key screen to admin-only; strip user-facing key terminology (#14–16).
+- **P3 — Provider router (#13).** Replace hardcoded chat provider with a router honoring capability
+  profile + privacy; Lovable becomes one internal provider; verify model IDs.
+- **P4 — Local engine bridge + Ollama detection + fallback chain (#14, #17).** Browser-bridge
+  interim; capability-aware chain; ask-before-cloud; allowance hooks.
+- **P5 — Allowance + offline matrix + error states (#12, #34).** 28/8h cloud metering (local
+  unlimited); offline detection + explicit error states; signed offline entitlement cache.
+- **P6 — Projects, memory, outputs (#17, #19, #20).** Tables + RLS + UI + Features/Actions.
+- **P7 — Document intelligence (#18, #44).** Non-image + PDF/DOCX/XLSX/CSV/code, offline, citations.
+- **P8 — Automations v1 (#33).** Manual + scheduled + simple triggers; dry-run; approvals; logs.
+- **P9 — Subscriptions/entitlements (#35–37).** Configurable per-plan matrix; post-expiry local
+  stays; usage enforcement. *(Prices pending §54.)*
+- **P10 — Native companion V1 (Windows) (#4, #23, #24, #25).** Tauri+Rust core, secure IPC, bounded
+  PC control, browser/files/windows adapters, emergency stop, audit. *Signed build proven outside
+  this repo before any "available" flag flips.*
+- **P11 — OCADE Voice (#22–27).** Voices, push-to-talk, opt-in wake phrase, greeting, captions,
+  local STT/TTS, multilingual with per-language verification.
+- **P12 — Desktop Copilot (#21).** Overlay/tray/shortcut/selected-text/screenshot/actions/replay.
+- **P13 — Mobile companion V1 (#27).** Pairing, monitor, approve/deny, cancel, e-stop, hand-off,
+  continuity (Android → iOS).
+- **P14 — Hybrid video response (#38–41).** Animated OCADE presence + visual panel + optional
+  confirmed screen tutorial; offline where installed; opt-in.
+- **P15 — Browser automation hardening + prompt-injection defence (#26, #31).**
+- **P16 — Packaging/deploy across platforms (#42–46);** signed installers + update channels.
 
-## 8. OCADE target architecture
+## 48. Dependencies & prerequisites
 
-The goal is to complete OCADE **without weakening** the existing honesty guarantees.
+Test runner (e.g. Vitest) + Playwright (e2e); Tauri + Rust toolchain (native); Capacitor (mobile);
+local STT/TTS + wake-word engine (voice); PDF/Office parsers (docs); signing certs (BLOCKED on
+external procurement); subscription/payment provider (deferred). Each phase lists its own.
 
-1. **Provider routing that the chat path actually consumes.** Today the chat endpoint
-   hardcodes `provider_id: "lovable-ai"`, so the provider-selection UI is decorative for live
-   inference. Target: `api/ocade.chat.ts` reads `ocade_provider_prefs` and dispatches to the
-   selected, server-validated provider (Lovable gateway now; OpenAI-direct/Ollama only when
-   their `setup_required` gate is satisfied). Keep secrets server-only.
-2. **Single model catalog** — collapse `ocade-models.ts` + `ai-gateway.server.ts` display
-   list into one exported source.
-3. **Projects data model** — real tables (e.g. `ocade_projects`, `ocade_project_items`) with
-   RLS, wired to the Composer selector, replacing the "Planned" placeholders. Register
-   corresponding Features + Actions (No-Dead-Button policy).
-4. **Files pipeline** — an authenticated Files route + StorageAdapter-backed store; non-image
-   extraction so files can inform chat. Gate anything not built as `setup_required`.
-5. **Replay / learning** — persist and replay OCADE sessions using the existing audit
-   patterns (`ocade_provider_events` / `activity_log`), not a new fake log.
-6. **Native Companion boundary** — keep Work mode honestly gated behind
-   `NativeCompanionRequiredError` until a Tauri/Cursor build exists.
+## 49. Acceptance tests per phase (template)
 
-Every new visible control must map to a **real registered Action**, or be hidden / shown as
-Disabled / Setup Required / Native Companion Required with a reason.
+Every phase entry MUST specify: **phase number · exact purpose · current status · what it builds/fixes
+· recommended Claude model · thinking level · read-only/edit mode · prerequisites · files in scope ·
+forbidden changes · DB changes · API changes · web changes · desktop changes · mobile changes ·
+security requirements · privacy requirements · implementation steps · automated tests · manual tests
+· acceptance criteria · rollback point · risks · completion definition · next prompt.**
 
----
+Example — **P3 Provider router:** *purpose:* consume selected provider instead of hardcoded; *status:*
+PARTIAL; *model:* Opus, high thinking, edit mode; *prereq:* P2; *files:* `api/ocade.chat.ts`,
+`ocade-providers.functions.ts`, new `provider-router.server.ts`; *forbidden:* auth gate, RLS, Demo;
+*DB:* none; *API:* router; *tests:* unit (routing table), integration (privacy blocks cloud),
+e2e (switch reflects in `ocade_provider_events`); *acceptance:* selecting a profile changes the real
+engine and is provable in events, not mocked; *rollback:* revert commit; *completion:* no hardcoded
+`provider_id`; *next:* P4.
 
-## 9. Ordered implementation slices
+## 50. Risks & mitigations
 
-Each slice is independently shippable and leaves the app in a working state.
+- **Scope vastly exceeds a web app** → phase gating + honest status; nothing claimed until proven.
+- **Native/mobile unverifiable in-repo** → per-platform verification; feature flags stay false until
+  signed+runtime-proven.
+- **Zero tests today on compliance-critical FICIA** → P0 first; never weaken checks to pass.
+- **Committed `.env` with Supabase keys** → rotate + git-ignore (separate hygiene task).
+- **Unverified model IDs / gateway coupling** → verify in P3; keep provider replaceable.
+- **Full multilingual scope** → per-language verified packs; advertise only what passes.
+- **Credential/PC-control safety** → protected-input mode, risk tiers, emergency stop, audit.
 
-1. **S1 — Provider routing wiring.** Make chat honor `ocade_provider_prefs`; keep Lovable as
-   default. Single model catalog.
-2. **S2 — Settings truthfulness pass.** Audit each of the ~24 `setup_required` sections;
-   implement the cheap real ones (Profile, Notifications, Language), keep the rest honestly
-   gated.
-3. **S3 — OCADE Projects.** Tables + RLS + Composer wiring + Features/Actions.
-4. **S4 — Files (authenticated).** Route + StorageAdapter store + upload; non-image
-   extraction behind a gate.
-5. **S5 — Tasks (authenticated).** Route + backend, mirroring the demo shape.
-6. **S6 — Replay/Learning.** Session capture + replay UI over existing audit tables.
-7. **S7 — Test harness.** Introduce Vitest + first tests on compliance-critical paths
-   (timesheet lock, approvals SoD, action confirmation). **Do not weaken any check to pass.**
-8. **S8 — Native Companion spike.** Define the IPC contract; keep browser build gated.
+## 51. Rollback strategy
 
----
+Each phase = its own branch/PR with a revertable commit and a stated rollback point. No DB migration
+lands without a down path/plan. Companion/mobile releases gated behind feature flags that revert to
+"unavailable" cleanly. Global rollback point for this programme: `origin/main` (`cd0ad8f`).
 
-## 10. Acceptance tests for each slice
+## 52. Honest completion percentages
 
-- **S1:** Selecting OpenAI-direct with a valid server key produces a response from that
-  provider; with no key it stays `setup_required` and chat falls back to Lovable — verified by
-  a real `ocade_provider_events` entry, not a mocked one.
-- **S2:** Each shipped settings section performs a real registered Action; every unshipped one
-  still renders `SetupRequiredState` with a reason. `validateRegistry()` passes.
-- **S3:** Create/select/delete a project persists across reload (RLS-scoped to the user);
-  disabled "Planned" badges are gone only where the feature is now `active`.
-- **S4:** Upload a file → it appears in the authenticated Files route and (if extractable)
-  informs a chat answer; non-extractable types show an honest "not sent" notice.
-- **S5:** A task created while signed in survives reload and is scoped by RLS.
-- **S6:** A completed OCADE session can be replayed from persisted records; replay shows real
-  timestamps/events.
-- **S7:** `bun run test` green; a deliberately broken RLS/confirmation check makes a test
-  **fail** (proves tests are load-bearing).
-- **S8:** Work mode remains disabled in the browser build and only activates against a running
-  Native Companion.
+Web assistant core (chat text+image, persistence, privacy) ~65–70%; FICIA ~90%; MADEE ~85%; CANIA UI
+~80% (live data ~10%); platform (auth/onboarding/settings/theme/cursor/devices/privacy/vault) ~80%.
+Expanded OCADE vision overall (voice, copilot, PC/browser/software control, native + mobile
+companion, memory, automations, video, subscriptions, offline): **~8–12% built**, the remainder
+PLANNED/MISSING/BLOCKED. Provider routing ~50% (selection UI real, generation hardcoded). Native
+control ~0–5%; mobile ~0%; browser automation ~0%; voice ~15% (browser Web Speech only).
 
-Cross-cutting acceptance (all slices): `bun run lint` clean; TypeScript strict passes;
-responsive at mobile/tablet/desktop; no new dead buttons (`validateRegistry()` + FeatureRegistry
-registration guards).
+## 53. Definition of fully completed OCADE
+
+OCADE is "complete" when, on each separately-verified platform: local-first chat/voice work offline
+after install; capability-aware fallback + permissioned OCADE Cloud with 28/8h allowance enforced;
+no user-facing keys; capability-label identity truthful; projects/files/memory/outputs/automations
+real; desktop copilot + bounded PC/browser/software control via signed companion with emergency stop
++ audit; mobile pairing/approvals/continuity; hybrid video responses; subscriptions/entitlements with
+post-expiry local access; protected-input + prompt-injection defences; and the full test/security/
+rollback/packaging matrix green — with every capability honestly labelled and nothing faked.
+
+## 54. Questions requiring user decisions (residual)
+
+1. **Subscription prices + per-plan values** (deferred; "do not invent pricing"): for each plan
+   (2-day / 8-day / 1-month / 1-year) — price; cloud allowance if above the 28/8h base; storage,
+   file, and automation limits; included extras (premium voices, desktop video, desktop companion,
+   mobile companion). Structure is fixed (#35–37: uniform core, 2+2 devices, 28/8h) — only numbers
+   remain.
+2. **Model-ID verification:** confirm which real cloud models the gateway serves (current catalog
+   uses unverified future IDs).
+3. **Signing/certificate procurement** for Windows/macOS/mobile (BLOCKED on external accounts).
+4. Any later decision to differentiate plans beyond duration/price (currently declined, #35).
 
 ---
 
-## 11. Risks and rollback
-
-### Risks
-- **Committed `.env` with Supabase keys** — anon key is RLS-protected but should be rotated +
-  git-ignored; treat as a hygiene/security follow-up.
-- **Orphaned `ficia_time_entries`** — code/types reference a table with no `CREATE TABLE`
-  migration; a clean `supabase db reset` or CI provision would break timesheets. Reconcile
-  before automating DB provisioning.
-- **Zero automated tests** on compliance-critical FICIA/timesheet/approval logic labeled
-  "must not break" — highest-leverage gap; any refactor is unguarded.
-- **Lovable sync coupling** — commits to the connected branch sync to Lovable; `AGENTS.md`
-  forbids rewriting pushed history. Do not squash/rebase pushed migrations.
-- **Dual lockfiles** — `bun.lock` + `package-lock.json` can diverge and produce
-  environment-specific installs.
-- **Provider UI vs reality drift** — until S1, provider selection does not affect live
-  inference; users could believe they switched providers when they did not. (Diagnostics are
-  honest; generation is not yet routed.)
-
-### Rollback plan
-This PR adds exactly one documentation file and touches no runtime surface, so rollback is
-trivial: revert the single commit or delete the `docs/ocade-current-state-audit` branch. No
-migrations, config, env, or lockfile changes are included, so there is nothing to un-apply in
-Supabase or the build.
-
-**Rollback point for future OCADE work:** base commit `cd0ad8f` (== `origin/main` at audit
-time). Each implementation slice (§9) should be its own branch/PR with its own revertable
-commit.
-
----
-
-## 12. Honest percentage estimates
-
-Rough, evidence-based completeness toward a shippable OCADE product. Not precise metrics —
-they reflect how much of each area is real vs. gated/missing per the findings above.
-
-| Area | Estimate | Basis |
-|---|---:|---|
-| **OCADE UI (shell, chat surface, composer, model settings)** | **~80%** | Shell, chat surface, model-settings page, voice, attachments UI all real; Projects/Outputs/Replay panels are disabled placeholders. |
-| **OCADE web logic (chat orchestration, persistence, prompt-improve)** | **~70%** | Streaming, persistence, privacy enforcement, prompt-improve all real; provider routing not consumed by chat; no Projects/Replay logic; non-image files unhandled. |
-| **Model integration** | **~65%** | One real streaming provider (Lovable gateway) with vision + graceful fallback; OpenAI-direct/Ollama tested but not wired to generation; catalog drift. |
-| **Storage** | **~85%** | Three real adapters (IndexedDB AES-GCM, Supabase sync, PC-vault stub that honestly throws), per-data-class privacy resolver, RLS — mature. PC-vault requires Native Companion. |
-| **Browser automation** | **~0%** | No dependency or implementation; marketing copy only. |
-| **Native / computer control** | **~5%** | Only honest "Native Companion Required" gating + IPC-shaped placeholders; no runtime. |
-| **Cross-platform readiness** | **~40%** | Responsive web (mobile/tablet/desktop) works via a single `md` pivot; Feature `platforms` metadata exists; but Windows/macOS/Android/iOS builds and the Native Companion do not exist. |
-
-Platform-wide, treating "real & shippable web features" broadly: **FICIA ~90%, MADEE ~85%,
-CANIA UI ~80% (live data ~10%), core platform (auth/onboarding/settings shell/theme/devices/
-privacy/vault) ~80%.** These are the "must not break" areas and are the most complete.
-
----
-
-*Prepared as a read-only audit. No source files were modified, deleted, formatted, or
-repaired in producing this document.*
+*Prepared as a planning revision. No application code, migrations, configuration, environment,
+dependencies, or lockfiles were changed in producing this document; only this Markdown file was
+edited. Native, mobile, and OS-level capabilities remain honestly gated until compiled, signed, and
+runtime-proven.*
