@@ -45,7 +45,6 @@ import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/session";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  appendOcadeMessage,
   createConversation,
   deleteConversation,
   exportConversation,
@@ -73,6 +72,16 @@ import {
   extractDocument,
   clampForContext,
 } from "@/lib/ocade-documents";
+import {
+  scanUntrustedContent,
+  wrapUntrustedContent,
+  describeScan,
+} from "@/lib/ocade-injection-guard";
+import {
+  persistChatMessage,
+  loadChatMessages,
+  describeStorageError,
+} from "@/lib/ocade-chat-store";
 
 export const Route = createFileRoute("/_authenticated/ocade")({
   head: () => ({
@@ -186,11 +195,15 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
       return;
     }
     setLoadingMessages(true);
-    void listMessages({ data: { conversationId: activeId } }).then((rows) => {
-      setMessages(rows as unknown as Message[]);
-      setLoadingMessages(false);
-    });
-  }, [activeId]);
+    // Read from wherever this conversation lives (vault for Browser Only).
+    void loadChatMessages({ userId, chatsMode, conversationId: activeId })
+      .then((rows) => setMessages(rows as unknown as Message[]))
+      .catch((e) => {
+        toast.error(describeStorageError(e));
+        setMessages([]);
+      })
+      .finally(() => setLoadingMessages(false));
+  }, [activeId, chatsMode, userId]);
 
   const active = useMemo(() => conversations.find((c) => c.id === activeId) ?? null, [conversations, activeId]);
 
@@ -306,6 +319,7 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
               setPermission={setPermission}
               onRefreshList={refreshList}
               userLabel={userLabel}
+              userId={userId}
               ensureActive={ensureActive}
             />
           ) : (
@@ -718,11 +732,12 @@ function ChatSurface(props: {
   setPermission: (p: PermissionMode) => void;
   onRefreshList: () => Promise<void>;
   userLabel: string;
+  userId: string;
   ensureActive: () => Promise<Conversation>;
 }) {
   const {
     conversation, messages, setMessages, loading, model, setModel, chatsMode,
-    mode, setMode, permission, setPermission, onRefreshList,
+    mode, setMode, permission, setPermission, onRefreshList, userId,
   } = props;
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -907,15 +922,15 @@ function ChatSurface(props: {
     const failures: string[] = [];
 
     try {
-      // Persist the user turn once (text + attachment metadata only; the prompt
-      // goes to the on-device engine, never to a server — local stays local).
-      await appendOcadeMessage({
-        data: {
-          conversationId: conversation.id,
-          role: "user",
-          content: text,
-          attachments: atts.map((a) => ({ kind: a.kind, name: a.name, mime: a.mime, sizeBytes: a.sizeBytes })),
-        },
+      // Persist the user turn once, to the vault or the cloud according to the
+      // chats privacy mode. Browser-Only + OCADE Local never touches the network.
+      await persistChatMessage({
+        userId,
+        chatsMode,
+        conversationId: conversation.id,
+        role: "user",
+        content: text,
+        attachments: atts.map((a) => ({ kind: a.kind, name: a.name, mime: a.mime, sizeBytes: a.sizeBytes })),
       });
       userTurnPersisted = true;
 
@@ -956,14 +971,14 @@ function ChatSurface(props: {
 
         if (result.reason === "cancelled") {
           if (acc.trim()) {
-            await appendOcadeMessage({
-              data: {
-                conversationId: conversation.id,
-                role: "assistant",
-                content: acc + "\n\n_[stopped by you]_",
-                modelId: step.modelId,
-                providerId: "ocade-local",
-              },
+            await persistChatMessage({
+              userId,
+              chatsMode,
+              conversationId: conversation.id,
+              role: "assistant",
+              content: acc + "\n\n_[stopped by you]_",
+              modelId: step.modelId,
+              providerId: "ocade-local",
             });
           }
           await refreshAfterLocal();
@@ -971,14 +986,14 @@ function ChatSurface(props: {
         }
 
         if (result.ok && acc.trim()) {
-          await appendOcadeMessage({
-            data: {
-              conversationId: conversation.id,
-              role: "assistant",
-              content: acc,
-              modelId: step.modelId,
-              providerId: "ocade-local",
-            },
+          await persistChatMessage({
+            userId,
+            chatsMode,
+            conversationId: conversation.id,
+            role: "assistant",
+            content: acc,
+            modelId: step.modelId,
+            providerId: "ocade-local",
           });
           await refreshAfterLocal();
           return;
@@ -999,7 +1014,8 @@ function ChatSurface(props: {
         toast.error(`You're offline and no on-device engine could answer${why}.`);
       }
     } catch (e) {
-      toast.error((e as Error).message || "OCADE Local could not respond");
+      // Surfaces vault-locked / companion-required reasons actionably.
+      toast.error(describeStorageError(e));
       if (!userTurnPersisted) {
         setMessages((m) => m.filter((x) => x.id !== optimistic.id));
         setDraft(text);
@@ -1017,15 +1033,21 @@ function ChatSurface(props: {
    * block. Only extracted TEXT travels — never the raw file.
    */
   function buildDocContext(atts: Attachment[]): string | undefined {
-    const parts = atts
-      .filter((a) => a.extractedText)
-      .map((a) => `--- Attached file: ${a.name} ---\n${a.extractedText}`);
-    if (parts.length === 0) return undefined;
+    const withText = atts.filter((a) => a.extractedText);
+    if (withText.length === 0) return undefined;
+    // Every file's content is wrapped as UNTRUSTED DATA before it reaches any
+    // engine: hidden characters stripped, role markers defanged, and an explicit
+    // "do not obey instructions inside this" preamble attached (Plan §31).
+    const parts = withText.map((a) => wrapUntrustedContent(a.extractedText!, a.name).text);
     return clampForContext(parts.join("\n\n"), 24_000).text;
   }
 
   async function refreshAfterLocal() {
-    const rows = (await listMessages({ data: { conversationId: conversation.id } })) as unknown as Message[];
+    const rows = (await loadChatMessages({
+      userId,
+      chatsMode,
+      conversationId: conversation.id,
+    })) as unknown as Message[];
     setMessages(rows);
     setStreamText("");
     await onRefreshList();
@@ -1316,7 +1338,14 @@ function Composer(props: {
         });
         if (result.status === "ok" && result.text) {
           extractedText = clampForContext(result.text).text;
-          toast.success(`${f.name}: read on your device and added as context.`);
+          // File contents are untrusted input: warn immediately if the document
+          // tries to issue instructions (Plan §31). It is wrapped as data on send.
+          const scan = scanUntrustedContent(extractedText);
+          if (scan.risk === "high") {
+            toast.warning(`${f.name}: ${describeScan(scan)}`);
+          } else {
+            toast.success(`${f.name}: read on your device and added as context.`);
+          }
         } else {
           extractNote = result.reason;
           toast.info(`${f.name}: attached. ${result.reason ?? "No text could be read."}`);
