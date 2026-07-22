@@ -6,8 +6,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import { streamText, type ModelMessage } from "ai";
-import { createLovableGateway, OCADE_DEFAULT_MODEL } from "@/lib/ai-gateway.server";
-import { capabilityLabelFor } from "@/lib/ocade-capability-labels";
+import { createLovableGateway, createOpenAIDirectGateway, OCADE_DEFAULT_MODEL } from "@/lib/ai-gateway.server";
+import { resolveOcadeEngine, type ProviderRouting } from "@/lib/ocade-router";
 
 type Attachment = { kind: "image" | "file"; name: string; mime: string; dataUrl?: string; sizeBytes: number };
 type ChatBody = {
@@ -28,8 +28,8 @@ export const Route = createFileRoute("/api/ocade/chat")({
         const supabaseUrl = process.env.SUPABASE_URL;
         const publishable = process.env.SUPABASE_PUBLISHABLE_KEY;
         const lovableKey = process.env.LOVABLE_API_KEY;
+        const openaiKey = process.env.OPENAI_API_KEY;
         if (!supabaseUrl || !publishable) return new Response("Backend misconfigured", { status: 500 });
-        if (!lovableKey) return new Response("AI gateway not configured", { status: 500 });
 
         const supabase = createClient(supabaseUrl, publishable, {
           global: { headers: { Authorization: `Bearer ${token}` } },
@@ -48,7 +48,6 @@ export const Route = createFileRoute("/api/ocade/chat")({
         if (!body?.conversationId || typeof body.message?.content !== "string") {
           return new Response("Missing conversationId or message", { status: 400 });
         }
-        const modelId = body.model || OCADE_DEFAULT_MODEL;
 
         // Verify conversation ownership (RLS also enforces this).
         const { data: conv } = await supabase
@@ -87,6 +86,31 @@ export const Route = createFileRoute("/api/ocade/chat")({
           return new Response("Maximum 10 attachments per message", { status: 413 });
         }
 
+        // Resolve which OCADE engine serves this request from the user's routing
+        // preference (decision #13). Provider-neutral. Local/native engines have
+        // no server execution path yet and return an honest unavailable state —
+        // never a silent cloud substitution.
+        const { data: prefs } = await supabase
+          .from("ocade_provider_prefs")
+          .select("routing, session_override_model, openai_direct_enabled")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        const requestedModel =
+          body.model || (prefs?.session_override_model as string | null) || OCADE_DEFAULT_MODEL;
+        const engine = resolveOcadeEngine({
+          routing: (prefs?.routing as ProviderRouting | undefined) ?? "auto",
+          hasLovableKey: !!lovableKey,
+          hasOpenAIKey: !!openaiKey,
+          openaiDirectEnabled: !!prefs?.openai_direct_enabled,
+          requestedModel,
+        });
+        if (engine.kind === "unavailable") {
+          return new Response(JSON.stringify({ error: engine.code, message: engine.reason }), {
+            status: 409,
+            headers: { "content-type": "application/json" },
+          });
+        }
+
         // Persist user message.
         await supabase.from("ocade_messages").insert({
           conversation_id: conv.id,
@@ -115,9 +139,8 @@ export const Route = createFileRoute("/api/ocade/chat")({
           .order("created_at", { ascending: true });
 
         // Ordinary chat surfaces the OCADE capability tier, never a raw model
-        // name (decisions #10, #18). This request runs on the managed cloud
-        // gateway → "OCADE Cloud". P3 will pass the routed engine descriptor.
-        const engineLabel = capabilityLabelFor({ locality: "cloud" });
+        // name (decisions #10, #18). The tier comes from the resolved engine.
+        const engineLabel = engine.label;
         const systemPrompt =
           `You are OCADE, developed and created by CAERA CADANE — a private, local-first AI coworker. ` +
           `When asked who or what you are, say: "I am OCADE, developed and created by CAERA CADANE." ` +
@@ -158,10 +181,13 @@ export const Route = createFileRoute("/api/ocade/chat")({
           });
         }
 
-        const gateway = createLovableGateway(lovableKey);
+        const gateway =
+          engine.provider === "openai"
+            ? createOpenAIDirectGateway(openaiKey!)
+            : createLovableGateway(lovableKey!);
         try {
           const result = streamText({
-            model: gateway(modelId),
+            model: gateway(engine.model),
             messages: modelMessages,
             onFinish: async ({ text }) => {
               await supabase.from("ocade_messages").insert({
@@ -169,12 +195,12 @@ export const Route = createFileRoute("/api/ocade/chat")({
                 user_id: user.id,
                 role: "assistant",
                 content: text,
-                model_id: modelId,
-                provider_id: "lovable-ai",
+                model_id: engine.model,
+                provider_id: engine.provider,
               });
               await supabase
                 .from("ocade_conversations")
-                .update({ model_id: modelId, provider_id: "lovable-ai" } as never)
+                .update({ model_id: engine.model, provider_id: engine.provider } as never)
                 .eq("id", conv.id);
             },
           });
