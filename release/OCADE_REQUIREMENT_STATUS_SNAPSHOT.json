@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-29T16:49:35.205Z",
-  "head": "3705301",
+  "generatedAt": "2026-07-29T16:55:31.166Z",
+  "head": "a04e11a",
   "branch": "feat/ocade-implementation",
-  "phase": "P05 - Hidden-but-truthful model lifecycle (COMPLETE)",
+  "phase": "P06 - Local-model router and quality policy (complete)",
   "method": "Semantic subject-to-module mapping validated against a production import-reachability graph, executed tests separated from source-text assertions, and executed gate results. Source-text assertions are graded SOURCE COMPLETE, never UNIT TESTED.",
   "denominators": {
     "originalCore": 450,
@@ -11,14 +11,14 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 196.4,
+      "numerator": 196.8,
       "denominator": 450,
-      "percent": 43.6
+      "percent": 43.7
     },
     "expanded": {
-      "numerator": 208.1,
+      "numerator": 208.5,
       "denominator": 510,
-      "percent": 40.8
+      "percent": 40.9
     }
   },
   "evidenceTiers": {
@@ -28,13 +28,13 @@
     "productionReady": 0
   },
   "counts": {
-    "UNIT TESTED": 217,
+    "UNIT TESTED": 213,
     "PARTIAL SOURCE": 8,
     "SOURCE COMPLETE": 80,
     "NOT STARTED": 73,
     "EXTERNALLY BLOCKED": 82,
     "REAL TARGET RUNTIME VERIFIED": 8,
-    "INTEGRATION TESTED": 42
+    "INTEGRATION TESTED": 46
   },
   "requirements": [
     {
@@ -1368,29 +1368,41 @@
       "id": "AZ-126",
       "subject": "adapters",
       "area": "Provider Gateway and Model Routing",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P06",
+      "evidence": "src/lib/local/router-policy.ts — measured routing (median TTFT, success rate), policy limits, per-choice receipts, hot-swap; 17 focused tests; wired both directions in routes/_authenticated/ocade.tsx (routes through routeTask AND feeds PerfLedger from real streams)",
+      "caveat": "No runtime evidence run has yet observed routing decided by accumulated real measurements; the measured path is proven by tests, not by a live session."
     },
     {
       "id": "AZ-127",
       "subject": "capabilities",
       "area": "Provider Gateway and Model Routing; Deterministic Actions and Executor Registry; Skill Registry Reuse and Governance",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P06",
+      "evidence": "src/lib/local/router-policy.ts — measured routing (median TTFT, success rate), policy limits, per-choice receipts, hot-swap; 17 focused tests; wired both directions in routes/_authenticated/ocade.tsx (routes through routeTask AND feeds PerfLedger from real streams)",
+      "caveat": "No runtime evidence run has yet observed routing decided by accumulated real measurements; the measured path is proven by tests, not by a live session."
     },
     {
       "id": "AZ-128",
       "subject": "route selection",
       "area": "Provider Gateway and Model Routing",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P06",
+      "evidence": "src/lib/local/router-policy.ts — measured routing (median TTFT, success rate), policy limits, per-choice receipts, hot-swap; 17 focused tests; wired both directions in routes/_authenticated/ocade.tsx (routes through routeTask AND feeds PerfLedger from real streams)",
+      "caveat": "No runtime evidence run has yet observed routing decided by accumulated real measurements; the measured path is proven by tests, not by a live session."
     },
     {
       "id": "AZ-129",
       "subject": "fallback",
       "area": "Provider Gateway and Model Routing",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P06",
+      "evidence": "src/lib/local/router-policy.ts — measured routing (median TTFT, success rate), policy limits, per-choice receipts, hot-swap; 17 focused tests; wired both directions in routes/_authenticated/ocade.tsx (routes through routeTask AND feeds PerfLedger from real streams)",
+      "caveat": "No runtime evidence run has yet observed routing decided by accumulated real measurements; the measured path is proven by tests, not by a live session."
     },
     {
       "id": "AZ-130",
@@ -3645,7 +3657,7 @@
   "verifiedCommands": {
     "typecheck": "PASS",
     "lint": "PASS",
-    "tests": "3518 passed | 1 skipped (3519) across 222 files",
+    "tests": "3535 passed | 1 skipped (3536) across 223 files",
     "build": "PASS",
     "gates": "26/26"
   }
