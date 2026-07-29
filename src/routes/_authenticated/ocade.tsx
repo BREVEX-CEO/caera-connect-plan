@@ -76,13 +76,20 @@ import { capabilityLabelFor } from "@/lib/ocade-capability-labels";
 import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
 import {
-  pickLocalModelForHardware,
   browserTotalRamBytes,
   buildLocalFirstPlan,
   streamLocalChat,
   DEFAULT_LOCAL_BRIDGE_URL,
   type LocalChatMessage,
 } from "@/lib/ocade-local";
+import { PerfLedger, routeTask } from "@/lib/local/router-policy";
+
+/**
+ * One ledger per tab. Routing prefers the fastest MEASURED model, so
+ * measurements must outlive a single send — but not the session, because a
+ * machine's speed changes with whatever else is running on it.
+ */
+const localPerfLedger = new PerfLedger();
 import {
   classifyFile,
   isNativeTextKind,
@@ -1196,13 +1203,12 @@ function ChatSurface(props: {
      * generic failure with no reason. Runtime evidence caught this; see
      * release/OCADE_LOCAL_ENGINE_RUNTIME_EVIDENCE.json (E10–E12).
      */
-    const localPick = localReady
-      ? pickLocalModelForHardware(
-          localEngine.models,
-          hasImage ? "vision" : "general",
-          browserTotalRamBytes() ?? Number.NaN,
-        ).picked
+    const localRoute = localReady
+      ? routeTask(hasImage ? "vision" : "general", localEngine.models, localPerfLedger, {
+          totalRamBytes: browserTotalRamBytes(),
+        })
       : null;
+    const localPick = localRoute?.ok ? localRoute.model : null;
 
     if (engineTier === "local" && (!localReady || !localPick)) {
       toast.error(
@@ -1615,18 +1621,38 @@ function ChatSurface(props: {
 
         let acc = "";
         setStreamText("");
+        /*
+         * Measure the stream so routing has something real to work from. The
+         * router prefers the fastest MEASURED model, and it can only do that if
+         * ordinary chat feeds it — a ledger nothing writes to is a ledger that
+         * routes on nothing.
+         */
+        const routeStarted = Date.now();
+        let firstTokenMs: number | null = null;
         const result = await streamLocalChat(
           DEFAULT_LOCAL_BRIDGE_URL,
           step.modelId!,
           localMessages,
           {
             onToken: (c) => {
+              if (firstTokenMs === null) firstTokenMs = Date.now() - routeStarted;
               acc += c;
               setStreamText(acc);
             },
             signal: controller.signal,
           },
         );
+        // A cancellation is the user's choice, not the model failing, so it is
+        // not recorded as a failure against the model.
+        if (result.reason !== "cancelled") {
+          localPerfLedger.record({
+            modelId: step.modelId!,
+            task: hasImage ? "vision" : "general",
+            firstTokenMs: firstTokenMs ?? Date.now() - routeStarted,
+            totalMs: Date.now() - routeStarted,
+            ok: result.ok,
+          });
+        }
 
         if (result.reason === "cancelled") {
           completedUnsavedText = `${acc}\n\n_[stopped by you]_`;
