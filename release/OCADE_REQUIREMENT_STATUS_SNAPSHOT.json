@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-29T16:39:35.093Z",
-  "head": "97a205759f437013ef28805713cee704dc5735ea",
+  "generatedAt": "2026-07-29T16:49:35.205Z",
+  "head": "3705301",
   "branch": "feat/ocade-implementation",
-  "phase": "P05 - Hidden-but-truthful model lifecycle (PARTIAL: download/verify/launch/repair/uninstall not implemented)",
+  "phase": "P05 - Hidden-but-truthful model lifecycle (COMPLETE)",
   "method": "Semantic subject-to-module mapping validated against a production import-reachability graph, executed tests separated from source-text assertions, and executed gate results. Source-text assertions are graded SOURCE COMPLETE, never UNIT TESTED.",
   "denominators": {
     "originalCore": 450,
@@ -11,29 +11,29 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 191.6,
+      "numerator": 196.4,
       "denominator": 450,
-      "percent": 42.6
+      "percent": 43.6
     },
     "expanded": {
-      "numerator": 203.3,
+      "numerator": 208.1,
       "denominator": 510,
-      "percent": 39.9
+      "percent": 40.8
     }
   },
   "evidenceTiers": {
     "simulatedRuntime": 0,
     "hostedRuntime": 0,
-    "realTargetRuntime": 3,
+    "realTargetRuntime": 8,
     "productionReady": 0
   },
   "counts": {
     "UNIT TESTED": 217,
-    "PARTIAL SOURCE": 9,
+    "PARTIAL SOURCE": 8,
     "SOURCE COMPLETE": 80,
-    "NOT STARTED": 77,
+    "NOT STARTED": 73,
     "EXTERNALLY BLOCKED": 82,
-    "REAL TARGET RUNTIME VERIFIED": 3,
+    "REAL TARGET RUNTIME VERIFIED": 8,
     "INTEGRATION TESTED": 42
   },
   "requirements": [
@@ -1309,30 +1309,31 @@
       "id": "AZ-120",
       "subject": "download",
       "area": "Local AI Runtime Architecture",
-      "status": "NOT STARTED",
-      "weight": 0,
-      "evidence": "No model-download code exists.",
-      "resolvedInPhase": "P03-P05",
-      "caveat": "Ollama and all models were already installed; the download path was never exercised because it does not exist."
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "evidence": "release/OCADE_MODEL_LIFECYCLE_RUNTIME_EVIDENCE.json — 11/11 observed against live Ollama 0.30.11 (L01-L03: pre-flight disk refusal, real cancel, real 270.9MB resumable download)",
+      "resolvedInPhase": "P05",
+      "caveat": "Single host (Windows 10, i5-1135G7). Not proven on other operating systems, other runtimes, or under mid-transfer network failure."
     },
     {
       "id": "AZ-121",
       "subject": "hash verification",
       "area": "Local AI Runtime Architecture",
-      "status": "NOT STARTED",
-      "weight": 0,
-      "evidence": "No hash/digest verification code exists.",
-      "resolvedInPhase": "P03-P05"
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "evidence": "release/OCADE_MODEL_LIFECYCLE_RUNTIME_EVIDENCE.json — 11/11 observed against live Ollama 0.30.11 (L04: sha256 digest read and verified; a missing digest reports unverified, never verified)",
+      "resolvedInPhase": "P05",
+      "caveat": "Single host (Windows 10, i5-1135G7). Not proven on other operating systems, other runtimes, or under mid-transfer network failure."
     },
     {
       "id": "AZ-122",
       "subject": "launcher",
       "area": "Local AI Runtime Architecture",
-      "status": "PARTIAL SOURCE",
-      "weight": 0.2,
-      "evidence": "OCADE consumes a running runtime but does not start one. The process was started manually for this evidence run.",
-      "resolvedInPhase": "P03-P05",
-      "caveat": "No launcher/startup code exists in OCADE."
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "evidence": "release/OCADE_MODEL_LIFECYCLE_RUNTIME_EVIDENCE.json — 11/11 observed against live Ollama 0.30.11 (L05: activateModel gates READY on real inference + real cancellation, first token 1078ms)",
+      "resolvedInPhase": "P05",
+      "caveat": "Single host (Windows 10, i5-1135G7). Not proven on other operating systems, other runtimes, or under mid-transfer network failure."
     },
     {
       "id": "AZ-123",
@@ -1347,19 +1348,21 @@
       "id": "AZ-124",
       "subject": "repair",
       "area": "Local AI Runtime Architecture; Updater Staging Verification and Rollback; Clean-Machine Installation and First Run",
-      "status": "NOT STARTED",
-      "weight": 0,
-      "evidence": "No repair code exists.",
-      "resolvedInPhase": "P03-P05"
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "evidence": "release/OCADE_MODEL_LIFECYCLE_RUNTIME_EVIDENCE.json — 11/11 observed against live Ollama 0.30.11 (L06: planRepair computed from the real installed set; unit-tested across start/reinstall/free-disk/none)",
+      "resolvedInPhase": "P05",
+      "caveat": "Single host (Windows 10, i5-1135G7). Not proven on other operating systems, other runtimes, or under mid-transfer network failure."
     },
     {
       "id": "AZ-125",
       "subject": "uninstall",
       "area": "Local AI Runtime Architecture; Clean-Machine Installation and First Run",
-      "status": "NOT STARTED",
-      "weight": 0,
-      "evidence": "No uninstall or model-removal code exists.",
-      "resolvedInPhase": "P03-P05"
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "evidence": "release/OCADE_MODEL_LIFECYCLE_RUNTIME_EVIDENCE.json — 11/11 observed against live Ollama 0.30.11 (L08-L10: removal confirmed by re-querying the runtime, disk reclaimed)",
+      "resolvedInPhase": "P05",
+      "caveat": "Single host (Windows 10, i5-1135G7). Not proven on other operating systems, other runtimes, or under mid-transfer network failure."
     },
     {
       "id": "AZ-126",
@@ -3641,10 +3644,9 @@
   ],
   "verifiedCommands": {
     "typecheck": "PASS",
-    "lint": "PASS (0 errors)",
-    "tests": "3480 passed | 1 skipped (3481) across 221 files",
+    "lint": "PASS",
+    "tests": "3518 passed | 1 skipped (3519) across 222 files",
     "build": "PASS",
-    "gates": "26/26",
-    "remote": "origin/feat/ocade-implementation = b3ed79d, 0 divergence, working tree clean"
+    "gates": "26/26"
   }
 }
