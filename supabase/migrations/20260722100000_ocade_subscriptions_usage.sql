@@ -5,6 +5,8 @@
 -- Rollback:    supabase/rollback/20260722100000_ocade_subscriptions_usage_rollback.sql
 -- Verification: supabase/verification/20260722100000_ocade_subscriptions_usage_verify.sql
 
+BEGIN;
+
 -- ----------------------------------------------------------- subscriptions --
 CREATE TABLE IF NOT EXISTS public.ocade_subscriptions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -17,6 +19,10 @@ CREATE TABLE IF NOT EXISTS public.ocade_subscriptions (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK (expires_at > started_at)
 );
+
+REVOKE ALL ON TABLE public.ocade_subscriptions FROM PUBLIC, anon;
+GRANT SELECT ON TABLE public.ocade_subscriptions TO authenticated;
+GRANT ALL ON TABLE public.ocade_subscriptions TO service_role;
 
 ALTER TABLE public.ocade_subscriptions ENABLE ROW LEVEL SECURITY;
 
@@ -45,6 +51,10 @@ CREATE TABLE IF NOT EXISTS public.ocade_cloud_usage (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, window_start)
 );
+
+REVOKE ALL ON TABLE public.ocade_cloud_usage FROM PUBLIC, anon;
+GRANT SELECT ON TABLE public.ocade_cloud_usage TO authenticated;
+GRANT ALL ON TABLE public.ocade_cloud_usage TO service_role;
 
 ALTER TABLE public.ocade_cloud_usage ENABLE ROW LEVEL SECURITY;
 
@@ -97,3 +107,5 @@ GRANT EXECUTE ON FUNCTION public.ocade_consume_cloud_use(UUID, TIMESTAMPTZ, INTE
 
 COMMENT ON TABLE public.ocade_cloud_usage IS
   'OCADE Cloud allowance ledger (28 per fixed 8-hour UTC window). Local inference is unlimited and never recorded here.';
+
+COMMIT;

@@ -10,6 +10,20 @@ BEGIN;
 ALTER TABLE public.user_settings
   DROP COLUMN IF EXISTS ocade_memory_enabled;
 
+DROP POLICY IF EXISTS "own_messages" ON public.ocade_messages;
+CREATE POLICY "own_messages" ON public.ocade_messages FOR ALL
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Restore the pre-migration conversation policy before removing the project
+-- column referenced by the parent-ownership check.
+DROP POLICY IF EXISTS "own_conversations" ON public.ocade_conversations;
+CREATE POLICY "own_conversations" ON public.ocade_conversations FOR ALL
+  TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
 DROP INDEX IF EXISTS public.ocade_conversations_project_idx;
 ALTER TABLE public.ocade_conversations
   DROP COLUMN IF EXISTS project_id;
