@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-29T16:55:31.166Z",
-  "head": "a04e11a",
+  "generatedAt": "2026-07-29T17:31:43.515Z",
+  "head": "a4aa418",
   "branch": "feat/ocade-implementation",
-  "phase": "P06 - Local-model router and quality policy (complete)",
+  "phase": "P08 - Application digital-twin laboratory (complete)",
   "method": "Semantic subject-to-module mapping validated against a production import-reachability graph, executed tests separated from source-text assertions, and executed gate results. Source-text assertions are graded SOURCE COMPLETE, never UNIT TESTED.",
   "denominators": {
     "originalCore": 450,
@@ -11,30 +11,31 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 196.8,
+      "numerator": 197.9,
       "denominator": 450,
-      "percent": 43.7
+      "percent": 44
     },
     "expanded": {
-      "numerator": 208.5,
+      "numerator": 211,
       "denominator": 510,
-      "percent": 40.9
+      "percent": 41.4
     }
   },
   "evidenceTiers": {
-    "simulatedRuntime": 0,
+    "simulatedRuntime": 9,
     "hostedRuntime": 0,
     "realTargetRuntime": 8,
     "productionReady": 0
   },
   "counts": {
-    "UNIT TESTED": 213,
+    "UNIT TESTED": 209,
     "PARTIAL SOURCE": 8,
     "SOURCE COMPLETE": 80,
-    "NOT STARTED": 73,
+    "NOT STARTED": 71,
+    "SIMULATED RUNTIME VERIFIED": 9,
     "EXTERNALLY BLOCKED": 82,
     "REAL TARGET RUNTIME VERIFIED": 8,
-    "INTEGRATION TESTED": 46
+    "INTEGRATION TESTED": 43
   },
   "requirements": [
     {
@@ -180,15 +181,21 @@
       "id": "HWE-10",
       "subject": "Headless accessibility-tree simulator",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P07",
+      "evidence": "release/OCADE_A11Y_SIMULATOR_EVIDENCE.json — 13/13 adversarial scenarios executed against the governed HandExecutor/EyeObserver contract",
+      "caveat": "Simulator only. No real application, accessibility API or operating system involved."
     },
     {
       "id": "HWE-11",
       "subject": "Application digital-twin laboratory",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P08",
+      "evidence": "release/OCADE_TWIN_LAB_EVIDENCE.json — 17/17 across nine adversarial twins; route selection, unsafe-downgrade refusal, ground-truth verification, interruption, cancellation, emergency stop and verified rollback",
+      "caveat": "Twin only. No licensed application, real GUI toolkit, display or input device involved. Real application support remains unproven."
     },
     {
       "id": "HWE-12",
@@ -1702,22 +1709,31 @@
       "id": "AZ-172",
       "subject": "action schemas",
       "area": "Deterministic Actions and Executor Registry",
-      "status": "INTEGRATION TESTED",
-      "weight": 0.6
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P08",
+      "evidence": "release/OCADE_TWIN_LAB_EVIDENCE.json — 17/17 across nine adversarial twins; route selection, unsafe-downgrade refusal, ground-truth verification, interruption, cancellation, emergency stop and verified rollback",
+      "caveat": "Twin only. No licensed application, real GUI toolkit, display or input device involved. Real application support remains unproven."
     },
     {
       "id": "AZ-173",
       "subject": "registry",
       "area": "Deterministic Actions and Executor Registry; Skill Registry Reuse and Governance",
-      "status": "INTEGRATION TESTED",
-      "weight": 0.6
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P08",
+      "evidence": "release/OCADE_TWIN_LAB_EVIDENCE.json — 17/17 across nine adversarial twins; route selection, unsafe-downgrade refusal, ground-truth verification, interruption, cancellation, emergency stop and verified rollback",
+      "caveat": "Twin only. No licensed application, real GUI toolkit, display or input device involved. Real application support remains unproven."
     },
     {
       "id": "AZ-174",
       "subject": "preconditions",
       "area": "Deterministic Actions and Executor Registry",
-      "status": "INTEGRATION TESTED",
-      "weight": 0.6
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P08",
+      "evidence": "release/OCADE_TWIN_LAB_EVIDENCE.json — 17/17 across nine adversarial twins; route selection, unsafe-downgrade refusal, ground-truth verification, interruption, cancellation, emergency stop and verified rollback",
+      "caveat": "Twin only. No licensed application, real GUI toolkit, display or input device involved. Real application support remains unproven."
     },
     {
       "id": "AZ-175",
@@ -1835,29 +1851,41 @@
       "id": "AZ-191",
       "subject": "accessibility tree",
       "area": "Accessibility and Semantic UI Control",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P07",
+      "evidence": "release/OCADE_A11Y_SIMULATOR_EVIDENCE.json — 13/13 adversarial scenarios executed against the governed HandExecutor/EyeObserver contract",
+      "caveat": "Simulated tree only. Real accessibility-API support remains unproven and is gated on a built native companion."
     },
     {
       "id": "AZ-192",
       "subject": "roles",
       "area": "Accessibility and Semantic UI Control",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P07",
+      "evidence": "release/OCADE_A11Y_SIMULATOR_EVIDENCE.json — 13/13 adversarial scenarios executed against the governed HandExecutor/EyeObserver contract",
+      "caveat": "Simulated tree only. Real accessibility-API support remains unproven and is gated on a built native companion."
     },
     {
       "id": "AZ-193",
       "subject": "names",
       "area": "Accessibility and Semantic UI Control",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P07",
+      "evidence": "release/OCADE_A11Y_SIMULATOR_EVIDENCE.json — 13/13 adversarial scenarios executed against the governed HandExecutor/EyeObserver contract",
+      "caveat": "Simulated tree only. Real accessibility-API support remains unproven and is gated on a built native companion."
     },
     {
       "id": "AZ-194",
       "subject": "states",
       "area": "Accessibility and Semantic UI Control",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P07",
+      "evidence": "release/OCADE_A11Y_SIMULATOR_EVIDENCE.json — 13/13 adversarial scenarios executed against the governed HandExecutor/EyeObserver contract",
+      "caveat": "Simulated tree only. Real accessibility-API support remains unproven and is gated on a built native companion."
     },
     {
       "id": "AZ-195",
@@ -3657,7 +3685,7 @@
   "verifiedCommands": {
     "typecheck": "PASS",
     "lint": "PASS",
-    "tests": "3535 passed | 1 skipped (3536) across 223 files",
+    "tests": "3591 passed | 1 skipped (3592) across 225 files",
     "build": "PASS",
     "gates": "26/26"
   }
