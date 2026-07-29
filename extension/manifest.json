@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "OCADE Browser Companion",
+  "version": "0.1.0",
+  "description": "Lets OCADE read and act on pages you explicitly approve. Never reads passwords, OTPs or payment fields.",
+  "minimum_chrome_version": "116",
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "OCADE",
+    "default_popup": "popup.html"
+  },
+  "_permissions_note": "Only permissions the code uses. Downloads is optional and requested only for a confirmed download. Storage is not requested.",
+  "permissions": ["tabs", "scripting"],
+  "optional_permissions": ["downloads"],
+  "host_permissions": [],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; frame-ancestors 'none'"
+  },
+  "externally_connectable": {
+    "matches": ["https://*.caeracadane.com/*", "http://localhost/*", "http://127.0.0.1/*"]
+  },
+  "incognito": "not_allowed",
+  "icons": {
+    "128": "icons/icon128.png"
+  }
+}

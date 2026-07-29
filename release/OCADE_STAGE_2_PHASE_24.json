@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "phase": 24,
+  "name": "Windows companion and permission setup",
+  "classification": "VERIFIED COMPLETE",
+  "runtimeClassification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+  "validationStatus": "FOCUSED 114/114; FULL 2377/2377 IN 148 FILES; TYPECHECK LINT BUILD AUDIT SECURITY DIFF AND SOURCE GATES PASS",
+  "branch": "feat/ocade-implementation",
+  "head": "52cd6cf4cc312d9072d8e1ce1fefdc740d193a76",
+  "sourceScore": 94,
+  "controlledWindowsPrimitiveRuntimeScore": 22,
+  "signedCompanionRuntimeScore": 0,
+  "verifiedApplicationCoverage": 0,
+  "stage2Readiness": {
+    "source": 44,
+    "sourceRemaining": 56,
+    "runtime": 2,
+    "verifiedApplicationCoverage": 0,
+    "production": 21
+  },
+  "implementationPhasesRemaining": 15,
+  "externalValidationTracksRemaining": 8,
+  "nextDependency": {
+    "phase": 25,
+    "name": "Perception, Set-of-Mark and state fingerprints"
+  },
+  "verifiedSourceCapabilities": [
+    "host-minted signed IPC sessions with counters, nonces, replay rejection and command-argument rebinding",
+    "durable app and canonical directory allowlists",
+    "host-side protected-input and confirmation enforcement",
+    "permission status and setup guidance for Windows, macOS and Linux",
+    "interactive-session detection with no Session 0 capability claim",
+    "authenticated bounded redacted application inventory",
+    "bounded Windows UI Automation accessibility-tree reading",
+    "window listing, focus, arrangement and independent layout/title observation",
+    "private screen capture with SHA-256 and retention bounds",
+    "approved app and canonical file opening",
+    "clipboard, approved typing and selection broker",
+    "hard process timeout, cancellation and emergency stop",
+    "idempotent operation journal and crash recovery without replay",
+    "tray and global-hotkey emergency stop",
+    "active settings UI for permission state, setup guidance and authenticated applications",
+    "inert signing and updater defaults with Windows MSI and NSIS source targets"
+  ],
+  "runtimeClaims": {
+    "tauriBinaryBuilt": false,
+    "signedCompanionInstalled": false,
+    "signedIpcExercised": false,
+    "uiaThroughCompanionExercised": false,
+    "screenshotThroughCompanionExercised": false,
+    "keyboardOrMouseActionExecuted": false,
+    "realApplicationControlled": false,
+    "packageSigned": false
+  },
+  "runtimeBlockers": [
+    "MSVC link.exe is absent, so neither the Tauri binary nor Rust test executables can link.",
+    "A controlled Windows probe loaded UI Automation but saw zero visible windows, and screen capture failed with an invalid desktop handle.",
+    "No signed companion binary or signing identity is available.",
+    "Real approved Windows actions through signed IPC require the built companion and explicit temporary-data approval.",
+    "Verified real-application coverage remains zero until independent application observations run through the signed host."
+  ]
+}

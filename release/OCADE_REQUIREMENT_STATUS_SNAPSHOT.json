@@ -1,0 +1,3625 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-29T15:58:15.950Z",
+  "head": "52cd6cf4cc312d9072d8e1ce1fefdc740d193a76",
+  "branch": "feat/ocade-implementation",
+  "phase": "P01 - Critical classification repair (complete)",
+  "method": "Semantic subject-to-module mapping validated against a production import-reachability graph, executed tests separated from source-text assertions, and executed gate results. Source-text assertions are graded SOURCE COMPLETE, never UNIT TESTED.",
+  "denominators": {
+    "originalCore": 450,
+    "expanded": 510
+  },
+  "readiness": {
+    "originalCore": {
+      "numerator": 191.2,
+      "denominator": 450,
+      "percent": 42.5
+    },
+    "expanded": {
+      "numerator": 202.7,
+      "denominator": 510,
+      "percent": 39.7
+    }
+  },
+  "evidenceTiers": {
+    "simulatedRuntime": 0,
+    "hostedRuntime": 0,
+    "realTargetRuntime": 0,
+    "productionReady": 0
+  },
+  "counts": {
+    "UNIT TESTED": 219,
+    "SOURCE COMPLETE": 82,
+    "PARTIAL SOURCE": 12,
+    "NOT STARTED": 73,
+    "EXTERNALLY BLOCKED": 82,
+    "INTEGRATION TESTED": 42
+  },
+  "requirements": [
+    {
+      "id": "CXR-01",
+      "subject": "Local-first governed product definition — OCADE remains a local-first, permission-governed operating layer spanning Chat, Logic, Copilot/Cowork, browser, desktop, mobile, voice, research, code workspaces, application learning, security, evidence, recovery, packaging, and operations without hiding where processing occurs.",
+      "area": "Product foundation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "CXR-02",
+      "subject": "Live repository and retained evidence are authoritative — Every completion claim is verified against the live repository, executable tests, build output, runtime observations, checkpoints, handoffs, and retained evidence; documentation alone is insufficient.",
+      "area": "Audit governance",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "CXR-03",
+      "subject": "Evidence ladder and honest status classification — Every requirement uses the defined evidence classes and never conflates source existence, tests, simulation, real runtime, external blockers, or production readiness.",
+      "area": "Evidence governance",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "CXR-04",
+      "subject": "Historical baseline must be revalidated — Historical percentages, test counts, branch data, and HEAD values may be carried forward only after current command output independently confirms them.",
+      "area": "Audit governance",
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "historical 3,474-test and 24-gate claims revalidated against current output and corrected",
+      "resolvedInPhase": "P01"
+    },
+    {
+      "id": "CXR-05",
+      "subject": "Original-core and expanded-programme scopes remain separate — Completion is recalculated separately for the original core and the expanded marketplace, enterprise, telemetry, bounty, public-proof, release, and hardware-elimination scope.",
+      "area": "Programme measurement",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "CXR-06",
+      "subject": "Mandatory requirement-to-code traceability — The audit produces exact counts, owners, files, tests, commands, dependencies, defects, evidence, acceptance tests, and a dependency-ordered execution roadmap.",
+      "area": "Audit outputs",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "CXR-07",
+      "subject": "Non-destructive repository preservation — Planning and audit work does not reset, clean, stash, discard, switch worktrees, delete untracked work, mass-format, commit, push, merge, rebase, apply live migrations, modify real credentials, sign, publish, or deploy without approval.",
+      "area": "Repository safety",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "CXR-08",
+      "subject": "Universal governed loop and control hierarchy — Consequential work follows observe, understand, plan, validate, risk, permission, deterministic execution, independent verification, receipt, recovery, and trusted continuation while preferring API, plug-in, CLI, file, DOM, accessibility, native, vision, then scoped input.",
+      "area": "Execution architecture",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "CXR-09",
+      "subject": "Systematic hardware and tooling blocker reduction — A blocker is genuinely external only after portable runtimes, hosted runners, emulators, free equivalents, existing devices, authorised remote workers, peer-to-peer paths, signed external evidence, community skills, and one-step human actions have been evaluated.",
+      "area": "Hardware elimination",
+      "status": "PARTIAL SOURCE",
+      "weight": 0.2
+    },
+    {
+      "id": "CXR-10",
+      "subject": "Validation, readiness, and handoff contract — Every change passes focused and full validation, production readiness requires real target evidence and operations, and every handoff records exact repository state, tests, blockers, next file, next command, expected output, and required approvals.",
+      "area": "Release governance",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "HWE-01",
+      "subject": "Cloud-native Windows companion build fabric",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "HWE-02",
+      "subject": "Provider-neutral build-runner abstraction",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "PARTIAL SOURCE",
+      "weight": 0.2
+    },
+    {
+      "id": "HWE-03",
+      "subject": "Hermetic portable toolchain capsule",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-04",
+      "subject": "Reproducible native artifact verification",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-05",
+      "subject": "Prebuilt sidecar and runtime bundle strategy",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-06",
+      "subject": "Clean-machine snapshot matrix",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-07",
+      "subject": "Remote hardware evidence network",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-08",
+      "subject": "Capability-attestation evidence bundles",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "HWE-09",
+      "subject": "Virtual audio, microphone, camera, and clipboard laboratory",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-10",
+      "subject": "Headless accessibility-tree simulator",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-11",
+      "subject": "Application digital-twin laboratory",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-12",
+      "subject": "Open-source application equivalence programme",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-13",
+      "subject": "Remote licensed-worker adapter",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-14",
+      "subject": "Browser-first functional substitution layer",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "PARTIAL SOURCE",
+      "weight": 0.2
+    },
+    {
+      "id": "HWE-15",
+      "subject": "WebAssembly execution fallback",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-16",
+      "subject": "WebGPU and CPU tiered local inference",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "PARTIAL SOURCE",
+      "weight": 0.2
+    },
+    {
+      "id": "HWE-17",
+      "subject": "Progressive model download and micro-model bootstrap",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "PARTIAL SOURCE",
+      "weight": 0.2
+    },
+    {
+      "id": "HWE-18",
+      "subject": "Encrypted burst-compute provider",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-19",
+      "subject": "Home-node and spare-device compute mesh",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-20",
+      "subject": "Phone-as-supervisor architecture",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "HWE-21",
+      "subject": "Browser extension zero-touch test profile",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-22",
+      "subject": "Enterprise browser policy deployment",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-23",
+      "subject": "Hosted Android emulator matrix",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "HWE-24",
+      "subject": "Hosted macOS and iOS simulator lane",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "HWE-25",
+      "subject": "Remote physical-device proof broker",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-26",
+      "subject": "Peer-to-peer relay minimisation",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "HWE-27",
+      "subject": "Store-and-forward offline supervision",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "HWE-28",
+      "subject": "LAN-only private mode",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-29",
+      "subject": "Synthetic payment-provider twin",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-30",
+      "subject": "Local database and identity digital twin",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-31",
+      "subject": "Local secrets broker and credential-presence wizard",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "PARTIAL SOURCE",
+      "weight": 0.2
+    },
+    {
+      "id": "HWE-32",
+      "subject": "Self-signed trust laboratory",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-33",
+      "subject": "Open-source signing eligibility path",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-34",
+      "subject": "Direct Android distribution lane",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "HWE-35",
+      "subject": "Progressive web supervisor fallback",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "HWE-36",
+      "subject": "Application-skill marketplace as a hardware multiplier",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-37",
+      "subject": "Community compatibility bounty engine",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-38",
+      "subject": "Opt-in failure telemetry and hardware-gap prioritisation",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-39",
+      "subject": "Synthetic fault and chaos hardware injector",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-40",
+      "subject": "Deterministic replay of real control sessions",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "HWE-41",
+      "subject": "One-click environment doctor and repair engine",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "HWE-42",
+      "subject": "Automatic provider substitution with transparent receipts",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "HWE-43",
+      "subject": "Evidence-weighted completion engine",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "PARTIAL SOURCE",
+      "weight": 0.2
+    },
+    {
+      "id": "HWE-44",
+      "subject": "Automatic stale-evidence invalidation",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-45",
+      "subject": "Privacy-preserving screenshot and UI evidence redaction",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "PARTIAL SOURCE",
+      "weight": 0.2
+    },
+    {
+      "id": "HWE-46",
+      "subject": "User-owned compatibility lab mode",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-47",
+      "subject": "Remote support session without unrestricted access",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-48",
+      "subject": "Portable compatibility pack export",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-49",
+      "subject": "Air-gapped local update and evidence workflow",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "HWE-50",
+      "subject": "Unified cross-platform release orchestrator",
+      "area": "Hardware/tooling/cost/manual-step elimination",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-001",
+      "subject": "vision",
+      "area": "Programme Charter and Product Definition",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-002",
+      "subject": "personas",
+      "area": "Programme Charter and Product Definition",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-003",
+      "subject": "outcomes",
+      "area": "Programme Charter and Product Definition",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-004",
+      "subject": "non-goals",
+      "area": "Programme Charter and Product Definition",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-005",
+      "subject": "ethical boundaries",
+      "area": "Programme Charter and Product Definition",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-006",
+      "subject": "evidence policy",
+      "area": "Programme Charter and Product Definition",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-007",
+      "subject": "governance",
+      "area": "Programme Charter and Product Definition",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-008",
+      "subject": "success metrics",
+      "area": "Programme Charter and Product Definition",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-009",
+      "subject": "interviews",
+      "area": "Stakeholder Discovery and Workflow Research",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-010",
+      "subject": "workflow observation",
+      "area": "Stakeholder Discovery and Workflow Research",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-011",
+      "subject": "pain points",
+      "area": "Stakeholder Discovery and Workflow Research",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-012",
+      "subject": "task frequency",
+      "area": "Stakeholder Discovery and Workflow Research",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-013",
+      "subject": "risk mapping",
+      "area": "Stakeholder Discovery and Workflow Research",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-014",
+      "subject": "accessibility",
+      "area": "Stakeholder Discovery and Workflow Research; GUI Integration and No-Dead-Control Enforcement",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-015",
+      "subject": "regional needs",
+      "area": "Stakeholder Discovery and Workflow Research",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-016",
+      "subject": "priorities",
+      "area": "Stakeholder Discovery and Workflow Research",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-017",
+      "subject": "requirement IDs",
+      "area": "Requirements Decomposition and Traceability",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-018",
+      "subject": "traceability",
+      "area": "Requirements Decomposition and Traceability",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-019",
+      "subject": "acceptance criteria",
+      "area": "Requirements Decomposition and Traceability",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-020",
+      "subject": "dependencies",
+      "area": "Requirements Decomposition and Traceability; Maintenance Upgrades and Application Drift",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-021",
+      "subject": "evidence classes",
+      "area": "Requirements Decomposition and Traceability",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-022",
+      "subject": "change control",
+      "area": "Requirements Decomposition and Traceability",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-023",
+      "subject": "definition of done",
+      "area": "Requirements Decomposition and Traceability",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-024",
+      "subject": "ownership",
+      "area": "Requirements Decomposition and Traceability",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-025",
+      "subject": "risk taxonomy",
+      "area": "Risk Permission and Evidence Model",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-026",
+      "subject": "permission scopes",
+      "area": "Risk Permission and Evidence Model",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-027",
+      "subject": "protected actions",
+      "area": "Risk Permission and Evidence Model",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-028",
+      "subject": "fail-closed rules",
+      "area": "Risk Permission and Evidence Model",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-029",
+      "subject": "approval expiry",
+      "area": "Risk Permission and Evidence Model",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-030",
+      "subject": "postconditions",
+      "area": "Risk Permission and Evidence Model; Deterministic Actions and Executor Registry",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-031",
+      "subject": "receipts",
+      "area": "Risk Permission and Evidence Model; Domain Model and Data Ownership; Scoped Keyboard Mouse Clipboard and Files",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-032",
+      "subject": "audit",
+      "area": "Risk Permission and Evidence Model; Risk Evaluation and Permission UX; Trials Plans Entitlements and Usage; Administration and Operational Controls",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-033",
+      "subject": "repository inventory",
+      "area": "Repository Branching and Baseline Integrity",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-034",
+      "subject": "branch policy",
+      "area": "Repository Branching and Baseline Integrity",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-035",
+      "subject": "worktree rules",
+      "area": "Repository Branching and Baseline Integrity",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-036",
+      "subject": "gitignore",
+      "area": "Repository Branching and Baseline Integrity",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-037",
+      "subject": "secret exclusion",
+      "area": "Repository Branching and Baseline Integrity",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-038",
+      "subject": "untracked classification",
+      "area": "Repository Branching and Baseline Integrity",
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "scripts/classify-untracked.mjs audit/ rules; untracked:classify exit 0; 9 unknown -> 0; deliberate regression verified red",
+      "resolvedInPhase": "P01"
+    },
+    {
+      "id": "AZ-039",
+      "subject": "tags",
+      "area": "Repository Branching and Baseline Integrity",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-040",
+      "subject": "recovery",
+      "area": "Repository Branching and Baseline Integrity; Deterministic Actions and Executor Registry; Voice Input Output Wake and Protected Speech; Authentication Accounts and Device Management; Internal Alpha and Dogfooding",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-041",
+      "subject": "ADRs",
+      "area": "Architecture Decisions and System Boundaries",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-042",
+      "subject": "context diagrams",
+      "area": "Architecture Decisions and System Boundaries",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-043",
+      "subject": "trust boundaries",
+      "area": "Architecture Decisions and System Boundaries",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-044",
+      "subject": "runtime boundaries",
+      "area": "Architecture Decisions and System Boundaries",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-045",
+      "subject": "integration contracts",
+      "area": "Architecture Decisions and System Boundaries",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-046",
+      "subject": "ownership maps",
+      "area": "Architecture Decisions and System Boundaries",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-047",
+      "subject": "compatibility",
+      "area": "Architecture Decisions and System Boundaries; Shared Types Contracts and Versioning; Desktop Companion Foundation",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-048",
+      "subject": "deprecation",
+      "area": "Architecture Decisions and System Boundaries; Skill Registry Reuse and Governance; Product Governance and Long-Term Evolution",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-049",
+      "subject": "schemas",
+      "area": "Shared Types Contracts and Versioning",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-050",
+      "subject": "validators",
+      "area": "Shared Types Contracts and Versioning",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-051",
+      "subject": "protocol versions",
+      "area": "Shared Types Contracts and Versioning",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-052",
+      "subject": "capability negotiation",
+      "area": "Shared Types Contracts and Versioning",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-053",
+      "subject": "error contracts",
+      "area": "Shared Types Contracts and Versioning",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-054",
+      "subject": "result envelopes",
+      "area": "Shared Types Contracts and Versioning",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-055",
+      "subject": "migrations",
+      "area": "Shared Types Contracts and Versioning; Database Schema Migrations and Rollback",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-056",
+      "subject": "users",
+      "area": "Domain Model and Data Ownership",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-057",
+      "subject": "organisations",
+      "area": "Domain Model and Data Ownership; Authentication Accounts and Device Management",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-058",
+      "subject": "conversations",
+      "area": "Domain Model and Data Ownership",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-059",
+      "subject": "projects",
+      "area": "Domain Model and Data Ownership",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-060",
+      "subject": "files",
+      "area": "Domain Model and Data Ownership; Scoped Keyboard Mouse Clipboard and Files",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-061",
+      "subject": "tasks",
+      "area": "Domain Model and Data Ownership",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-062",
+      "subject": "devices",
+      "area": "Domain Model and Data Ownership",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-063",
+      "subject": "skills",
+      "area": "Domain Model and Data Ownership; OCADE Studio and Capability Management",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-064",
+      "subject": "subscriptions",
+      "area": "Domain Model and Data Ownership; Payments and Billing",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-065",
+      "subject": "navigation",
+      "area": "UX Information Architecture",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-066",
+      "subject": "routes",
+      "area": "UX Information Architecture",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-067",
+      "subject": "primary actions",
+      "area": "UX Information Architecture",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-068",
+      "subject": "progressive disclosure",
+      "area": "UX Information Architecture",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-069",
+      "subject": "setup states",
+      "area": "UX Information Architecture",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-070",
+      "subject": "empty states",
+      "area": "UX Information Architecture; GUI Integration and No-Dead-Control Enforcement",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-071",
+      "subject": "error states",
+      "area": "UX Information Architecture",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-072",
+      "subject": "mobile structure",
+      "area": "UX Information Architecture",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-073",
+      "subject": "tokens",
+      "area": "Design System and Accessibility",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-074",
+      "subject": "typography",
+      "area": "Design System and Accessibility",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-075",
+      "subject": "spacing",
+      "area": "Design System and Accessibility",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-076",
+      "subject": "components",
+      "area": "Design System and Accessibility",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-077",
+      "subject": "focus",
+      "area": "Design System and Accessibility; Windows Process Application and Window Control",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-078",
+      "subject": "keyboard access",
+      "area": "Design System and Accessibility",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-079",
+      "subject": "screen readers",
+      "area": "Design System and Accessibility",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-080",
+      "subject": "responsive layouts",
+      "area": "Design System and Accessibility",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-081",
+      "subject": "auth middleware",
+      "area": "Identity Sessions and Tenant Isolation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-082",
+      "subject": "sessions",
+      "area": "Identity Sessions and Tenant Isolation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-083",
+      "subject": "tenant resolution",
+      "area": "Identity Sessions and Tenant Isolation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-084",
+      "subject": "device registration",
+      "area": "Identity Sessions and Tenant Isolation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-085",
+      "subject": "revocation",
+      "area": "Identity Sessions and Tenant Isolation; Security Hardening and Adversarial Testing; Authentication Accounts and Device Management",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-086",
+      "subject": "token expiry",
+      "area": "Identity Sessions and Tenant Isolation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-087",
+      "subject": "isolation",
+      "area": "Identity Sessions and Tenant Isolation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-088",
+      "subject": "audit identity",
+      "area": "Identity Sessions and Tenant Isolation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-089",
+      "subject": "privacy modes",
+      "area": "Data Protection Privacy Modes and Vaults",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-090",
+      "subject": "encryption",
+      "area": "Data Protection Privacy Modes and Vaults",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-091",
+      "subject": "vault session",
+      "area": "Data Protection Privacy Modes and Vaults",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-092",
+      "subject": "auto-lock",
+      "area": "Data Protection Privacy Modes and Vaults",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-093",
+      "subject": "storage routing",
+      "area": "Data Protection Privacy Modes and Vaults",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-094",
+      "subject": "redaction",
+      "area": "Data Protection Privacy Modes and Vaults; Generated Code Sandbox; Voice Input Output Wake and Protected Speech",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-095",
+      "subject": "retention",
+      "area": "Data Protection Privacy Modes and Vaults; Event Journal Receipts and Auditability; Legal Privacy Licence and Compliance Review",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-096",
+      "subject": "exports",
+      "area": "Data Protection Privacy Modes and Vaults; File Artifact and Workspace Foundation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-097",
+      "subject": "schema",
+      "area": "Database Schema Migrations and Rollback",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-098",
+      "subject": "RLS",
+      "area": "Database Schema Migrations and Rollback",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-099",
+      "subject": "rollbacks",
+      "area": "Database Schema Migrations and Rollback",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-100",
+      "subject": "verification SQL",
+      "area": "Database Schema Migrations and Rollback",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-101",
+      "subject": "catalogue assertions",
+      "area": "Database Schema Migrations and Rollback",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-102",
+      "subject": "seed data",
+      "area": "Database Schema Migrations and Rollback",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-103",
+      "subject": "staging rehearsal",
+      "area": "Database Schema Migrations and Rollback",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-104",
+      "subject": "journal",
+      "area": "Event Journal Receipts and Auditability",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-105",
+      "subject": "receipt schema",
+      "area": "Event Journal Receipts and Auditability",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-106",
+      "subject": "redacted fields",
+      "area": "Event Journal Receipts and Auditability",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-107",
+      "subject": "idempotency",
+      "area": "Event Journal Receipts and Auditability; Recovery Repair and Idempotency",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-108",
+      "subject": "statuses",
+      "area": "Event Journal Receipts and Auditability",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-109",
+      "subject": "evidence attachments",
+      "area": "Event Journal Receipts and Auditability",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-110",
+      "subject": "tamper detection",
+      "area": "Event Journal Receipts and Auditability",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-111",
+      "subject": "uploads",
+      "area": "File Artifact and Workspace Foundation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-112",
+      "subject": "metadata",
+      "area": "File Artifact and Workspace Foundation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-113",
+      "subject": "hashing",
+      "area": "File Artifact and Workspace Foundation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-114",
+      "subject": "paths",
+      "area": "File Artifact and Workspace Foundation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-115",
+      "subject": "previews",
+      "area": "File Artifact and Workspace Foundation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-116",
+      "subject": "deletion verification",
+      "area": "File Artifact and Workspace Foundation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-117",
+      "subject": "provenance",
+      "area": "File Artifact and Workspace Foundation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-118",
+      "subject": "hardware detection",
+      "area": "Local AI Runtime Architecture",
+      "status": "PARTIAL SOURCE",
+      "weight": 0.2
+    },
+    {
+      "id": "AZ-119",
+      "subject": "model catalogue",
+      "area": "Local AI Runtime Architecture",
+      "status": "PARTIAL SOURCE",
+      "weight": 0.2
+    },
+    {
+      "id": "AZ-120",
+      "subject": "download",
+      "area": "Local AI Runtime Architecture",
+      "status": "PARTIAL SOURCE",
+      "weight": 0.2
+    },
+    {
+      "id": "AZ-121",
+      "subject": "hash verification",
+      "area": "Local AI Runtime Architecture",
+      "status": "PARTIAL SOURCE",
+      "weight": 0.2
+    },
+    {
+      "id": "AZ-122",
+      "subject": "launcher",
+      "area": "Local AI Runtime Architecture",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-123",
+      "subject": "health",
+      "area": "Local AI Runtime Architecture; Provider Gateway and Model Routing; Relay Service and Remote Sessions; Observability Telemetry and Diagnostics; Cloud Relay and Service Deployment",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-124",
+      "subject": "repair",
+      "area": "Local AI Runtime Architecture; Updater Staging Verification and Rollback; Clean-Machine Installation and First Run",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-125",
+      "subject": "uninstall",
+      "area": "Local AI Runtime Architecture; Clean-Machine Installation and First Run",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-126",
+      "subject": "adapters",
+      "area": "Provider Gateway and Model Routing",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-127",
+      "subject": "capabilities",
+      "area": "Provider Gateway and Model Routing; Deterministic Actions and Executor Registry; Skill Registry Reuse and Governance",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-128",
+      "subject": "route selection",
+      "area": "Provider Gateway and Model Routing",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-129",
+      "subject": "fallback",
+      "area": "Provider Gateway and Model Routing",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-130",
+      "subject": "circuit breakers",
+      "area": "Provider Gateway and Model Routing",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-131",
+      "subject": "cost",
+      "area": "Provider Gateway and Model Routing",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-132",
+      "subject": "privacy",
+      "area": "Provider Gateway and Model Routing; Legal Privacy Licence and Compliance Review",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-133",
+      "subject": "new chat",
+      "area": "Chat Core and Conversation Lifecycle",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-134",
+      "subject": "streaming",
+      "area": "Chat Core and Conversation Lifecycle",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-135",
+      "subject": "persistence",
+      "area": "Chat Core and Conversation Lifecycle",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-136",
+      "subject": "retry",
+      "area": "Chat Core and Conversation Lifecycle",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-137",
+      "subject": "regenerate",
+      "area": "Chat Core and Conversation Lifecycle",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-138",
+      "subject": "cancellation",
+      "area": "Chat Core and Conversation Lifecycle",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-139",
+      "subject": "history",
+      "area": "Chat Core and Conversation Lifecycle",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-140",
+      "subject": "attachments",
+      "area": "Chat Core and Conversation Lifecycle",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-141",
+      "subject": "context assembly",
+      "area": "Context Memory Citations and Personalisation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-142",
+      "subject": "memory scopes",
+      "area": "Context Memory Citations and Personalisation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-143",
+      "subject": "citation store",
+      "area": "Context Memory Citations and Personalisation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-144",
+      "subject": "retrieval",
+      "area": "Context Memory Citations and Personalisation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-145",
+      "subject": "limits",
+      "area": "Context Memory Citations and Personalisation; Supported Application Certification",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-146",
+      "subject": "deletion",
+      "area": "Context Memory Citations and Personalisation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-147",
+      "subject": "attribution",
+      "area": "Context Memory Citations and Personalisation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-148",
+      "subject": "controls",
+      "area": "Context Memory Citations and Personalisation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-149",
+      "subject": "URL validation",
+      "area": "Research and Source Acquisition",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-150",
+      "subject": "SSRF defence",
+      "area": "Research and Source Acquisition",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-151",
+      "subject": "fetch",
+      "area": "Research and Source Acquisition",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-152",
+      "subject": "redirects",
+      "area": "Research and Source Acquisition",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-153",
+      "subject": "extraction",
+      "area": "Research and Source Acquisition",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-154",
+      "subject": "evidence",
+      "area": "Research and Source Acquisition; Skill Registry Reuse and Governance; Supported Application Certification; Creative and Media Workflows; CAD Engineering and Solver Workflows",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-155",
+      "subject": "citations",
+      "area": "Research and Source Acquisition",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-156",
+      "subject": "failure classification",
+      "area": "Research and Source Acquisition",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-157",
+      "subject": "mission specs",
+      "area": "Copilot and Cowork Orchestration",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-158",
+      "subject": "task graphs",
+      "area": "Copilot and Cowork Orchestration",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-159",
+      "subject": "parallel reads",
+      "area": "Copilot and Cowork Orchestration",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-160",
+      "subject": "mutation sequencing",
+      "area": "Copilot and Cowork Orchestration",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-161",
+      "subject": "checkpoints",
+      "area": "Copilot and Cowork Orchestration",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-162",
+      "subject": "pause",
+      "area": "Copilot and Cowork Orchestration",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-163",
+      "subject": "resume",
+      "area": "Copilot and Cowork Orchestration; Reliability No-Progress Detection and Long Tasks",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-164",
+      "subject": "completion",
+      "area": "Copilot and Cowork Orchestration",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-165",
+      "subject": "risk scoring",
+      "area": "Risk Evaluation and Permission UX",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-166",
+      "subject": "permission prompts",
+      "area": "Risk Evaluation and Permission UX",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-167",
+      "subject": "scope display",
+      "area": "Risk Evaluation and Permission UX",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-168",
+      "subject": "expiry",
+      "area": "Risk Evaluation and Permission UX; Reconnect Replay Protection and Reconciliation",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-169",
+      "subject": "reuse",
+      "area": "Risk Evaluation and Permission UX",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-170",
+      "subject": "denial",
+      "area": "Risk Evaluation and Permission UX",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-171",
+      "subject": "emergency policy",
+      "area": "Risk Evaluation and Permission UX",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-172",
+      "subject": "action schemas",
+      "area": "Deterministic Actions and Executor Registry",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-173",
+      "subject": "registry",
+      "area": "Deterministic Actions and Executor Registry; Skill Registry Reuse and Governance",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-174",
+      "subject": "preconditions",
+      "area": "Deterministic Actions and Executor Registry",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-175",
+      "subject": "verification",
+      "area": "Deterministic Actions and Executor Registry; Screen Capture Vision and Set-of-Mark; Signing and Trust Distribution; Staging Database and Controlled Deployment",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-176",
+      "subject": "refusals",
+      "area": "Deterministic Actions and Executor Registry",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-177",
+      "subject": "Tauri shell",
+      "area": "Desktop Companion Foundation",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-178",
+      "subject": "IPC auth",
+      "area": "Desktop Companion Foundation",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-179",
+      "subject": "capability manifest",
+      "area": "Desktop Companion Foundation",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-180",
+      "subject": "command allowlist",
+      "area": "Desktop Companion Foundation",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-181",
+      "subject": "lifetime",
+      "area": "Desktop Companion Foundation",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-182",
+      "subject": "logging",
+      "area": "Desktop Companion Foundation; Relay Service and Remote Sessions",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-183",
+      "subject": "failures",
+      "area": "Desktop Companion Foundation; Internal Alpha and Dogfooding",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-184",
+      "subject": "process discovery",
+      "area": "Windows Process Application and Window Control",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-185",
+      "subject": "fingerprints",
+      "area": "Windows Process Application and Window Control",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-186",
+      "subject": "versions",
+      "area": "Windows Process Application and Window Control; Skill Registry Reuse and Governance; Desktop Mobile and Extension Packaging; Supported Application Certification",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-187",
+      "subject": "windows",
+      "area": "Windows Process Application and Window Control",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-188",
+      "subject": "geometry",
+      "area": "Windows Process Application and Window Control",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-189",
+      "subject": "launch",
+      "area": "Windows Process Application and Window Control",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-190",
+      "subject": "close",
+      "area": "Windows Process Application and Window Control",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-191",
+      "subject": "accessibility tree",
+      "area": "Accessibility and Semantic UI Control",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-192",
+      "subject": "roles",
+      "area": "Accessibility and Semantic UI Control",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-193",
+      "subject": "names",
+      "area": "Accessibility and Semantic UI Control",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-194",
+      "subject": "states",
+      "area": "Accessibility and Semantic UI Control",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-195",
+      "subject": "semantic actions",
+      "area": "Accessibility and Semantic UI Control",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-196",
+      "subject": "focus verification",
+      "area": "Accessibility and Semantic UI Control",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-197",
+      "subject": "fallbacks",
+      "area": "Accessibility and Semantic UI Control",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-198",
+      "subject": "localisation",
+      "area": "Accessibility and Semantic UI Control",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-199",
+      "subject": "keyboard",
+      "area": "Scoped Keyboard Mouse Clipboard and Files",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-200",
+      "subject": "mouse",
+      "area": "Scoped Keyboard Mouse Clipboard and Files",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-201",
+      "subject": "clipboard",
+      "area": "Scoped Keyboard Mouse Clipboard and Files",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-202",
+      "subject": "protected text refusal",
+      "area": "Scoped Keyboard Mouse Clipboard and Files",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-203",
+      "subject": "rate limits",
+      "area": "Scoped Keyboard Mouse Clipboard and Files",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-204",
+      "subject": "target checks",
+      "area": "Scoped Keyboard Mouse Clipboard and Files",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-205",
+      "subject": "capture",
+      "area": "Screen Capture Vision and Set-of-Mark",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-206",
+      "subject": "masking",
+      "area": "Screen Capture Vision and Set-of-Mark",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-207",
+      "subject": "element detection",
+      "area": "Screen Capture Vision and Set-of-Mark",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-208",
+      "subject": "marks",
+      "area": "Screen Capture Vision and Set-of-Mark",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-209",
+      "subject": "confidence",
+      "area": "Screen Capture Vision and Set-of-Mark",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-210",
+      "subject": "validation",
+      "area": "Screen Capture Vision and Set-of-Mark",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-211",
+      "subject": "proposals",
+      "area": "Screen Capture Vision and Set-of-Mark",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-212",
+      "subject": "manifest",
+      "area": "Browser Extension and Web Control; Updater Staging Verification and Rollback",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-213",
+      "subject": "service worker",
+      "area": "Browser Extension and Web Control",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-214",
+      "subject": "content scripts",
+      "area": "Browser Extension and Web Control",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-215",
+      "subject": "origin permissions",
+      "area": "Browser Extension and Web Control",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-216",
+      "subject": "pairing",
+      "area": "Browser Extension and Web Control; Mobile Application and Native Bridge",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-217",
+      "subject": "protocol",
+      "area": "Browser Extension and Web Control; Relay Service and Remote Sessions",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-218",
+      "subject": "DOM actions",
+      "area": "Browser Extension and Web Control",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-219",
+      "subject": "downloads",
+      "area": "Browser Extension and Web Control",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-220",
+      "subject": "detection",
+      "area": "Unknown Application Learning and App Maps",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-221",
+      "subject": "route discovery",
+      "area": "Unknown Application Learning and App Maps",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-222",
+      "subject": "rehearsal",
+      "area": "Unknown Application Learning and App Maps",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-223",
+      "subject": "shadow execution",
+      "area": "Unknown Application Learning and App Maps",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-224",
+      "subject": "app maps",
+      "area": "Unknown Application Learning and App Maps",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-225",
+      "subject": "skill versions",
+      "area": "Unknown Application Learning and App Maps",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-226",
+      "subject": "drift",
+      "area": "Unknown Application Learning and App Maps; Supported Application Certification",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-227",
+      "subject": "invalidation",
+      "area": "Unknown Application Learning and App Maps",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-228",
+      "subject": "skill schema",
+      "area": "Skill Registry Reuse and Governance",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-229",
+      "subject": "approval",
+      "area": "Skill Registry Reuse and Governance; Mobile Application and Native Bridge; Staging Database and Controlled Deployment",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-230",
+      "subject": "rollback",
+      "area": "Skill Registry Reuse and Governance; Recovery Repair and Idempotency; Updater Staging Verification and Rollback; Cloud Relay and Service Deployment; External Beta and Controlled Expansion; Production Launch; Production Operations and Incident Response",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-231",
+      "subject": "workspace creation",
+      "area": "Code Workspace and Repository Operations",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-232",
+      "subject": "repository scan",
+      "area": "Code Workspace and Repository Operations",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-233",
+      "subject": "command host",
+      "area": "Code Workspace and Repository Operations",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-234",
+      "subject": "patches",
+      "area": "Code Workspace and Repository Operations",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-235",
+      "subject": "process observation",
+      "area": "Code Workspace and Repository Operations",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-236",
+      "subject": "results",
+      "area": "Code Workspace and Repository Operations",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-237",
+      "subject": "diff review",
+      "area": "Code Workspace and Repository Operations",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-238",
+      "subject": "cleanup",
+      "area": "Code Workspace and Repository Operations; Recovery Repair and Idempotency",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-239",
+      "subject": "worker",
+      "area": "Generated Code Sandbox",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-240",
+      "subject": "confinement",
+      "area": "Generated Code Sandbox",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-241",
+      "subject": "network denial",
+      "area": "Generated Code Sandbox",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-242",
+      "subject": "process denial",
+      "area": "Generated Code Sandbox",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-243",
+      "subject": "budgets",
+      "area": "Generated Code Sandbox",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-244",
+      "subject": "declared outputs",
+      "area": "Generated Code Sandbox",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-245",
+      "subject": "acceptance",
+      "area": "Generated Code Sandbox",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-246",
+      "subject": "microphone",
+      "area": "Voice Input Output Wake and Protected Speech",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-247",
+      "subject": "wake",
+      "area": "Voice Input Output Wake and Protected Speech",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-248",
+      "subject": "captions",
+      "area": "Voice Input Output Wake and Protected Speech",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-249",
+      "subject": "transcription",
+      "area": "Voice Input Output Wake and Protected Speech",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-250",
+      "subject": "speech synthesis",
+      "area": "Voice Input Output Wake and Protected Speech",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-251",
+      "subject": "settings",
+      "area": "Voice Input Output Wake and Protected Speech",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-252",
+      "subject": "Capacitor shell",
+      "area": "Mobile Application and Native Bridge",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-253",
+      "subject": "Android plugin",
+      "area": "Mobile Application and Native Bridge",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-254",
+      "subject": "iOS plugin",
+      "area": "Mobile Application and Native Bridge",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-255",
+      "subject": "status",
+      "area": "Mobile Application and Native Bridge",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-256",
+      "subject": "emergency stop",
+      "area": "Mobile Application and Native Bridge",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-257",
+      "subject": "notifications",
+      "area": "Mobile Application and Native Bridge",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-258",
+      "subject": "sealed envelopes",
+      "area": "Relay Service and Remote Sessions",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-259",
+      "subject": "membership",
+      "area": "Relay Service and Remote Sessions",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-260",
+      "subject": "transport",
+      "area": "Relay Service and Remote Sessions",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-261",
+      "subject": "shutdown",
+      "area": "Relay Service and Remote Sessions",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-262",
+      "subject": "Docker",
+      "area": "Relay Service and Remote Sessions",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-263",
+      "subject": "sequence watermark",
+      "area": "Reconnect Replay Protection and Reconciliation",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-264",
+      "subject": "replay refusal",
+      "area": "Reconnect Replay Protection and Reconciliation",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-265",
+      "subject": "handshake",
+      "area": "Reconnect Replay Protection and Reconciliation",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-266",
+      "subject": "checkpoint reconciliation",
+      "area": "Reconnect Replay Protection and Reconciliation",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-267",
+      "subject": "duplicates",
+      "area": "Reconnect Replay Protection and Reconciliation",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-268",
+      "subject": "emergency propagation",
+      "area": "Reconnect Replay Protection and Reconciliation",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-269",
+      "subject": "conflicts",
+      "area": "Reconnect Replay Protection and Reconciliation",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-270",
+      "subject": "threat model",
+      "area": "Security Hardening and Adversarial Testing",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-271",
+      "subject": "auth bypass",
+      "area": "Security Hardening and Adversarial Testing",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-272",
+      "subject": "traversal",
+      "area": "Security Hardening and Adversarial Testing",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-273",
+      "subject": "replay",
+      "area": "Security Hardening and Adversarial Testing",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-274",
+      "subject": "leakage",
+      "area": "Security Hardening and Adversarial Testing",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-275",
+      "subject": "origin tests",
+      "area": "Security Hardening and Adversarial Testing",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-276",
+      "subject": "update trust",
+      "area": "Security Hardening and Adversarial Testing",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-277",
+      "subject": "sign-up",
+      "area": "Authentication Accounts and Device Management",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-278",
+      "subject": "sign-in",
+      "area": "Authentication Accounts and Device Management",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-279",
+      "subject": "refresh",
+      "area": "Authentication Accounts and Device Management",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-280",
+      "subject": "device registry",
+      "area": "Authentication Accounts and Device Management",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-281",
+      "subject": "security history",
+      "area": "Authentication Accounts and Device Management",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-282",
+      "subject": "plan catalogue",
+      "area": "Trials Plans Entitlements and Usage",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-283",
+      "subject": "trials",
+      "area": "Trials Plans Entitlements and Usage",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-284",
+      "subject": "accounting",
+      "area": "Trials Plans Entitlements and Usage",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-285",
+      "subject": "signed entitlements",
+      "area": "Trials Plans Entitlements and Usage",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-286",
+      "subject": "gates",
+      "area": "Trials Plans Entitlements and Usage",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-287",
+      "subject": "grace periods",
+      "area": "Trials Plans Entitlements and Usage",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-288",
+      "subject": "offline verification",
+      "area": "Trials Plans Entitlements and Usage",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-289",
+      "subject": "checkout",
+      "area": "Payments and Billing",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-290",
+      "subject": "test cards",
+      "area": "Payments and Billing",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-291",
+      "subject": "webhooks",
+      "area": "Payments and Billing",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-292",
+      "subject": "invoices",
+      "area": "Payments and Billing",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-293",
+      "subject": "failed payments",
+      "area": "Payments and Billing",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-294",
+      "subject": "refunds",
+      "area": "Payments and Billing",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-295",
+      "subject": "portal",
+      "area": "Payments and Billing",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-296",
+      "subject": "admin roles",
+      "area": "Administration and Operational Controls",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-297",
+      "subject": "support",
+      "area": "Administration and Operational Controls; External Beta and Controlled Expansion",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-298",
+      "subject": "plans",
+      "area": "Administration and Operational Controls",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-299",
+      "subject": "flags",
+      "area": "Administration and Operational Controls",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-300",
+      "subject": "incidents",
+      "area": "Administration and Operational Controls; External Beta and Controlled Expansion",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-301",
+      "subject": "evidence review",
+      "area": "Administration and Operational Controls",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-302",
+      "subject": "repairs",
+      "area": "Administration and Operational Controls",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-303",
+      "subject": "Studio routes",
+      "area": "OCADE Studio and Capability Management",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-304",
+      "subject": "providers",
+      "area": "OCADE Studio and Capability Management",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-305",
+      "subject": "hardware planner",
+      "area": "OCADE Studio and Capability Management",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-306",
+      "subject": "coverage",
+      "area": "OCADE Studio and Capability Management; Test Architecture and Evidence Ladder",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-307",
+      "subject": "update policy",
+      "area": "OCADE Studio and Capability Management",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-308",
+      "subject": "benchmarks",
+      "area": "OCADE Studio and Capability Management; Performance Budgets and Resource Governance",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-309",
+      "subject": "setup guidance",
+      "area": "OCADE Studio and Capability Management",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-310",
+      "subject": "reachability",
+      "area": "GUI Integration and No-Dead-Control Enforcement",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-311",
+      "subject": "control audit",
+      "area": "GUI Integration and No-Dead-Control Enforcement",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-312",
+      "subject": "loading",
+      "area": "GUI Integration and No-Dead-Control Enforcement",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-313",
+      "subject": "errors",
+      "area": "GUI Integration and No-Dead-Control Enforcement",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-314",
+      "subject": "blocked states",
+      "area": "GUI Integration and No-Dead-Control Enforcement",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-315",
+      "subject": "mobile layout",
+      "area": "GUI Integration and No-Dead-Control Enforcement",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-316",
+      "subject": "asset budgets",
+      "area": "Performance Budgets and Resource Governance",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-317",
+      "subject": "stream limits",
+      "area": "Performance Budgets and Resource Governance",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-318",
+      "subject": "memory",
+      "area": "Performance Budgets and Resource Governance",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-319",
+      "subject": "CPU",
+      "area": "Performance Budgets and Resource Governance",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-320",
+      "subject": "concurrency",
+      "area": "Performance Budgets and Resource Governance",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-321",
+      "subject": "thermal rules",
+      "area": "Performance Budgets and Resource Governance",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-322",
+      "subject": "profiles",
+      "area": "Performance Budgets and Resource Governance",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-323",
+      "subject": "retry budget",
+      "area": "Reliability No-Progress Detection and Long Tasks",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-324",
+      "subject": "deadline",
+      "area": "Reliability No-Progress Detection and Long Tasks",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-325",
+      "subject": "progress monitor",
+      "area": "Reliability No-Progress Detection and Long Tasks",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-326",
+      "subject": "loop limit",
+      "area": "Reliability No-Progress Detection and Long Tasks",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-327",
+      "subject": "wall clock",
+      "area": "Reliability No-Progress Detection and Long Tasks",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-328",
+      "subject": "checkpointing",
+      "area": "Reliability No-Progress Detection and Long Tasks",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-329",
+      "subject": "halt reasons",
+      "area": "Reliability No-Progress Detection and Long Tasks",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-330",
+      "subject": "repair wizard",
+      "area": "Recovery Repair and Idempotency",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-331",
+      "subject": "journal recovery",
+      "area": "Recovery Repair and Idempotency",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-332",
+      "subject": "lost acknowledgement",
+      "area": "Recovery Repair and Idempotency",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-333",
+      "subject": "session recovery",
+      "area": "Recovery Repair and Idempotency",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-334",
+      "subject": "guidance",
+      "area": "Recovery Repair and Idempotency",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-335",
+      "subject": "logs",
+      "area": "Observability Telemetry and Diagnostics",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-336",
+      "subject": "metrics",
+      "area": "Observability Telemetry and Diagnostics; Product Governance and Long-Term Evolution",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-337",
+      "subject": "failure taxonomy",
+      "area": "Observability Telemetry and Diagnostics",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-338",
+      "subject": "privacy filtering",
+      "area": "Observability Telemetry and Diagnostics",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-339",
+      "subject": "coverage telemetry",
+      "area": "Observability Telemetry and Diagnostics",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-340",
+      "subject": "crash reports",
+      "area": "Observability Telemetry and Diagnostics",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-341",
+      "subject": "alerts",
+      "area": "Observability Telemetry and Diagnostics; Production Operations and Incident Response",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-342",
+      "subject": "unit",
+      "area": "Test Architecture and Evidence Ladder",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-343",
+      "subject": "integration",
+      "area": "Test Architecture and Evidence Ladder",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-344",
+      "subject": "simulated runtime",
+      "area": "Test Architecture and Evidence Ladder",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-345",
+      "subject": "real runtime",
+      "area": "Test Architecture and Evidence Ladder",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-346",
+      "subject": "adversarial tests",
+      "area": "Test Architecture and Evidence Ladder",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-347",
+      "subject": "gate tests",
+      "area": "Test Architecture and Evidence Ladder",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-348",
+      "subject": "evidence tiers",
+      "area": "Test Architecture and Evidence Ladder",
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "published counts rebaselined to 3,479 tests / 221 files / 26 gates from executed output",
+      "resolvedInPhase": "P01"
+    },
+    {
+      "id": "AZ-349",
+      "subject": "web CI",
+      "area": "Continuous Integration and Platform Workflows",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-350",
+      "subject": "Rust CI",
+      "area": "Continuous Integration and Platform Workflows",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-351",
+      "subject": "Android",
+      "area": "Continuous Integration and Platform Workflows",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-352",
+      "subject": "iOS",
+      "area": "Continuous Integration and Platform Workflows",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-353",
+      "subject": "extension",
+      "area": "Continuous Integration and Platform Workflows",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-354",
+      "subject": "database checks",
+      "area": "Continuous Integration and Platform Workflows",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-355",
+      "subject": "licence checks",
+      "area": "Continuous Integration and Platform Workflows",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-356",
+      "subject": "artifacts",
+      "area": "Continuous Integration and Platform Workflows",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-357",
+      "subject": "desktop bundle",
+      "area": "Desktop Mobile and Extension Packaging",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-358",
+      "subject": "Android package",
+      "area": "Desktop Mobile and Extension Packaging",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-359",
+      "subject": "iOS archive",
+      "area": "Desktop Mobile and Extension Packaging",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-360",
+      "subject": "extension bundle",
+      "area": "Desktop Mobile and Extension Packaging",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-361",
+      "subject": "notices",
+      "area": "Desktop Mobile and Extension Packaging; Legal Privacy Licence and Compliance Review",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-362",
+      "subject": "hashes",
+      "area": "Desktop Mobile and Extension Packaging; Updater Staging Verification and Rollback",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-363",
+      "subject": "manifests",
+      "area": "Desktop Mobile and Extension Packaging",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-364",
+      "subject": "signatures",
+      "area": "Updater Staging Verification and Rollback",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-365",
+      "subject": "staging",
+      "area": "Updater Staging Verification and Rollback",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-366",
+      "subject": "decisions",
+      "area": "Updater Staging Verification and Rollback",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-367",
+      "subject": "UI",
+      "area": "Updater Staging Verification and Rollback",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-368",
+      "subject": "self-signed tests",
+      "area": "Signing and Trust Distribution",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-369",
+      "subject": "key generation",
+      "area": "Signing and Trust Distribution",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-370",
+      "subject": "public keys",
+      "area": "Signing and Trust Distribution",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-371",
+      "subject": "secret storage",
+      "area": "Signing and Trust Distribution",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-372",
+      "subject": "desktop signing",
+      "area": "Signing and Trust Distribution",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-373",
+      "subject": "mobile signing",
+      "area": "Signing and Trust Distribution",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-374",
+      "subject": "rotation",
+      "area": "Signing and Trust Distribution",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-375",
+      "subject": "local DB",
+      "area": "Staging Database and Controlled Deployment",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-376",
+      "subject": "staging DB",
+      "area": "Staging Database and Controlled Deployment",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-377",
+      "subject": "migration apply",
+      "area": "Staging Database and Controlled Deployment",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-378",
+      "subject": "rollback rehearsal",
+      "area": "Staging Database and Controlled Deployment",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-379",
+      "subject": "RLS tests",
+      "area": "Staging Database and Controlled Deployment",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-380",
+      "subject": "backup",
+      "area": "Staging Database and Controlled Deployment",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-381",
+      "subject": "container image",
+      "area": "Cloud Relay and Service Deployment",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-382",
+      "subject": "deployment script",
+      "area": "Cloud Relay and Service Deployment",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-383",
+      "subject": "TLS",
+      "area": "Cloud Relay and Service Deployment",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-384",
+      "subject": "secrets",
+      "area": "Cloud Relay and Service Deployment",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-385",
+      "subject": "monitoring",
+      "area": "Cloud Relay and Service Deployment; Production Launch; Production Operations and Incident Response",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-386",
+      "subject": "network tests",
+      "area": "Cloud Relay and Service Deployment",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-387",
+      "subject": "clean Windows",
+      "area": "Clean-Machine Installation and First Run",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-388",
+      "subject": "clean macOS",
+      "area": "Clean-Machine Installation and First Run",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-389",
+      "subject": "Android emulator",
+      "area": "Clean-Machine Installation and First Run",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-390",
+      "subject": "iOS simulator",
+      "area": "Clean-Machine Installation and First Run",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-391",
+      "subject": "wizard",
+      "area": "Clean-Machine Installation and First Run",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-392",
+      "subject": "permissions",
+      "area": "Clean-Machine Installation and First Run",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-393",
+      "subject": "application matrix",
+      "area": "Supported Application Certification",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-394",
+      "subject": "workflows",
+      "area": "Supported Application Certification",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-395",
+      "subject": "regressions",
+      "area": "Supported Application Certification",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-396",
+      "subject": "certification",
+      "area": "Supported Application Certification",
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-397",
+      "subject": "image editing",
+      "area": "Creative and Media Workflows",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-398",
+      "subject": "video editing",
+      "area": "Creative and Media Workflows",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-399",
+      "subject": "audio editing",
+      "area": "Creative and Media Workflows",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-400",
+      "subject": "3D editing",
+      "area": "Creative and Media Workflows",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-401",
+      "subject": "duplication",
+      "area": "Creative and Media Workflows",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-402",
+      "subject": "export verification",
+      "area": "Creative and Media Workflows",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-403",
+      "subject": "undo",
+      "area": "Creative and Media Workflows",
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6
+    },
+    {
+      "id": "AZ-404",
+      "subject": "CAD creation",
+      "area": "CAD Engineering and Solver Workflows",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-405",
+      "subject": "parameters",
+      "area": "CAD Engineering and Solver Workflows",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-406",
+      "subject": "mesh",
+      "area": "CAD Engineering and Solver Workflows",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-407",
+      "subject": "solver execution",
+      "area": "CAD Engineering and Solver Workflows",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-408",
+      "subject": "parsing",
+      "area": "CAD Engineering and Solver Workflows",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-409",
+      "subject": "rendering",
+      "area": "CAD Engineering and Solver Workflows",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-410",
+      "subject": "engineering limits",
+      "area": "CAD Engineering and Solver Workflows",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-411",
+      "subject": "terms",
+      "area": "Legal Privacy Licence and Compliance Review",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-412",
+      "subject": "licences",
+      "area": "Legal Privacy Licence and Compliance Review",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-413",
+      "subject": "consent",
+      "area": "Legal Privacy Licence and Compliance Review",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-414",
+      "subject": "security disclosure",
+      "area": "Legal Privacy Licence and Compliance Review",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-415",
+      "subject": "regional review",
+      "area": "Legal Privacy Licence and Compliance Review",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-416",
+      "subject": "alpha cohort",
+      "area": "Internal Alpha and Dogfooding",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-417",
+      "subject": "task library",
+      "area": "Internal Alpha and Dogfooding",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-418",
+      "subject": "performance",
+      "area": "Internal Alpha and Dogfooding",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-419",
+      "subject": "usability",
+      "area": "Internal Alpha and Dogfooding",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-420",
+      "subject": "security review",
+      "area": "Internal Alpha and Dogfooding",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-421",
+      "subject": "exit criteria",
+      "area": "Internal Alpha and Dogfooding",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-422",
+      "subject": "beta enrolment",
+      "area": "External Beta and Controlled Expansion",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-423",
+      "subject": "feature flags",
+      "area": "External Beta and Controlled Expansion",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-424",
+      "subject": "telemetry consent",
+      "area": "External Beta and Controlled Expansion",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-425",
+      "subject": "coverage limits",
+      "area": "External Beta and Controlled Expansion",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-426",
+      "subject": "exit",
+      "area": "External Beta and Controlled Expansion",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-427",
+      "subject": "release candidate",
+      "area": "Production Launch",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-428",
+      "subject": "go-live review",
+      "area": "Production Launch",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-429",
+      "subject": "signing",
+      "area": "Production Launch",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-430",
+      "subject": "deployment",
+      "area": "Production Launch",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-431",
+      "subject": "support readiness",
+      "area": "Production Launch",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-432",
+      "subject": "announcement",
+      "area": "Production Launch",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-433",
+      "subject": "on-call",
+      "area": "Production Operations and Incident Response",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-434",
+      "subject": "incident command",
+      "area": "Production Operations and Incident Response",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-435",
+      "subject": "communication",
+      "area": "Production Operations and Incident Response",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-436",
+      "subject": "forensics",
+      "area": "Production Operations and Incident Response",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-437",
+      "subject": "postmortem",
+      "area": "Production Operations and Incident Response",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-438",
+      "subject": "models",
+      "area": "Maintenance Upgrades and Application Drift",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-439",
+      "subject": "OS",
+      "area": "Maintenance Upgrades and Application Drift",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-440",
+      "subject": "browsers",
+      "area": "Maintenance Upgrades and Application Drift",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-441",
+      "subject": "mobile SDKs",
+      "area": "Maintenance Upgrades and Application Drift",
+      "status": "UNIT TESTED",
+      "weight": 0.5
+    },
+    {
+      "id": "AZ-442",
+      "subject": "app drift",
+      "area": "Maintenance Upgrades and Application Drift",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-443",
+      "subject": "security patches",
+      "area": "Maintenance Upgrades and Application Drift",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-444",
+      "subject": "evidence refresh",
+      "area": "Maintenance Upgrades and Application Drift",
+      "status": "NOT STARTED",
+      "weight": 0
+    },
+    {
+      "id": "AZ-445",
+      "subject": "roadmap",
+      "area": "Product Governance and Long-Term Evolution",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-446",
+      "subject": "feature intake",
+      "area": "Product Governance and Long-Term Evolution",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-447",
+      "subject": "architecture review",
+      "area": "Product Governance and Long-Term Evolution",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-448",
+      "subject": "safety review",
+      "area": "Product Governance and Long-Term Evolution",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-449",
+      "subject": "migration",
+      "area": "Product Governance and Long-Term Evolution",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    },
+    {
+      "id": "AZ-450",
+      "subject": "portfolio",
+      "area": "Product Governance and Long-Term Evolution",
+      "status": "SOURCE COMPLETE",
+      "weight": 0.4
+    }
+  ],
+  "verifiedCommands": {
+    "typecheck": "PASS",
+    "lint": "PASS (0 errors, 1917 warnings)",
+    "tests": "3478 passed | 1 skipped (3479) across 221 files, exit 0",
+    "build": "PASS",
+    "gates": "26/26",
+    "dependencyAuditProduction": "0 vulnerabilities",
+    "secretScan": "0 real secrets"
+  }
+}

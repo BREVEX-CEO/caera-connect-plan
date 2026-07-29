@@ -1,0 +1,81 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "CAERA Companion",
+  "version": "0.1.0",
+  "identifier": "com.caeracadane.companion",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "overlay",
+        "title": "OCADE",
+        "width": 420,
+        "height": 560,
+        "resizable": true,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false,
+        "center": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost",
+      "freezePrototype": true,
+      "assetProtocol": {
+        "enable": false,
+        "scope": []
+      }
+    },
+    "trayIcon": {
+      "id": "caera-tray",
+      "iconPath": "icons/tray.png",
+      "iconAsTemplate": true,
+      "tooltip": "OCADE — CAERA Companion",
+      "menuOnLeftClick": false
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "copyright": "CAERA CADANE",
+    "category": "Productivity",
+    "shortDescription": "OCADE desktop companion",
+    "longDescription": "Performs bounded, permission-gated OCADE actions on this computer. Every action is risk-checked, confirmable and auditable, and protected input is always refused.",
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.digicert.com",
+      "nsis": {
+        "installMode": "perMachine"
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "10.15",
+      "signingIdentity": null,
+      "entitlements": "entitlements.plist"
+    },
+    "createUpdaterArtifacts": false
+  },
+  "plugins": {
+    "updater": {
+      "active": false,
+      "dialog": true,
+      "pubkey": "REPLACE_WITH_SIGNING_PUBLIC_KEY",
+      "endpoints": [
+        "https://updates.caeracadane.com/companion/{{target}}/{{arch}}/{{current_version}}"
+      ]
+    },
+    "global-shortcut": {
+      "all": false
+    },
+    "clipboard-manager": {
+      "all": false
+    }
+  }
+}

@@ -6,9 +6,16 @@ description = "Host-side safety enforcement for the CAERA Native Companion (risk
 license = "UNLICENSED"
 publish = false
 
-# Intentionally dependency-free: the security core must be auditable and must
-# compile and test without any network access.
+# Intentionally dependency-free BY DEFAULT: the security core must be auditable
+# and must compile and test without any network access. The optional `serde`
+# feature is enabled only by the Tauri app crate, which needs to deserialise
+# actions arriving over IPC.
 [dependencies]
+serde = { version = "1", features = ["derive"], optional = true }
+
+[features]
+default = []
+serde = ["dep:serde"]
 
 [lib]
 path = "src/lib.rs"

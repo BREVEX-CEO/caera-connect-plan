@@ -33,3 +33,29 @@ dist-ssr
 
 # Rust build output (native companion)
 native/companion/**/target/
+
+# Secrets and credentials
+#
+# The tracked `.env` currently holds ONLY Supabase publishable (anon) values and
+# the project URL — these are public by design and already ship inside the
+# client bundle. Never add a service-role key, provider credential, signing key
+# or session key to it: anything secret belongs in a file matched below, which
+# git will refuse to track.
+.env.local
+.env.*.local
+.env.production
+.env.secret
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+secrets.json
+# Tauri update-signing private key (public key belongs in tauri.conf.json)
+*.tauri-key
+
+# OCADE local progress ledger (never commit; local-only)
+.claude/
+.codex/
+.codex/

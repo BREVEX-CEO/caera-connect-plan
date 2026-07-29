@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "phase": 20,
+  "branch": "feat/ocade-implementation",
+  "head": "52cd6cf4cc312d9072d8e1ce1fefdc740d193a76",
+  "olderSpecificationCompleteThroughPhase": 19,
+  "specificationHashes": {
+    "older": "59db30a328090403d456ee9c4a188937f480ac5c96d27a4aee75bd8c64474d6b",
+    "stage2": "a3483644e25da1a4eb94efe539da1e900c14490f798ec517990411242ea721e9",
+    "goal": "e48cea7a2ec3de8a2ecc94eba46e0947594a57eff410e725a2c039cc47df2665"
+  },
+  "phaseScoreMethod": "Each Stage 2 implementation phase 21-39 has equal source weight. A score requires integrated production callers; isolated tested modules receive scaffold or runtime-blocked credit only. The rounded arithmetic mean is Stage 2 source readiness.",
+  "phaseScores": [
+    {
+      "phase": 21,
+      "name": "Canonical model-to-tool control plane",
+      "score": 45,
+      "classification": "PARTIAL",
+      "evidence": [
+        "src/lib/skills/governed-run.ts",
+        "src/lib/work/orchestrator.ts",
+        "src/lib/skills/executor-registry.ts"
+      ],
+      "gap": "Existing governed runs are not one canonical Brain/Director/Hands/Eyes/Verifier contract with typed model-output decoding and fail-closed verification."
+    },
+    {
+      "phase": 22,
+      "name": "Multi-provider local model fabric",
+      "score": 20,
+      "classification": "PARTIAL",
+      "evidence": [
+        "src/lib/ocade-providers.functions.ts",
+        "src/lib/use-local-engine.ts",
+        "src/routes/_authenticated/ocade.models.tsx"
+      ],
+      "gap": "LM Studio, llama.cpp, LocalAI, vLLM, Jan, KoboldCpp, generic discovery, circuit breakers and tested failover are missing."
+    },
+    {
+      "phase": 23,
+      "name": "Secure generated-code sandbox",
+      "score": 10,
+      "classification": "PARTIAL",
+      "evidence": ["src/lib/code/workspace.ts", "src/components/ocade/CodeWorkspacePanel.tsx"],
+      "gap": "There is no ephemeral generated-code runner with process, filesystem, network, resource, termination and cleanup isolation."
+    },
+    {
+      "phase": 24,
+      "name": "Windows companion and permission setup",
+      "score": 70,
+      "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+      "evidence": [
+        "native/companion/tauri/src/main.rs",
+        "native/companion/tauri/src/platform.rs",
+        "src/lib/native/tauri-companion.ts"
+      ],
+      "gap": "UI Automation, permission setup assistance and real Windows action proof remain; full Tauri linking is blocked by missing MSVC link.exe."
+    },
+    {
+      "phase": 25,
+      "name": "Perception, Set-of-Mark and state fingerprints",
+      "score": 10,
+      "classification": "SCAFFOLD-ONLY",
+      "evidence": ["src/lib/native/automation-observer.ts", "src/lib/skills/app-map.ts"],
+      "gap": "No fused UIA/OCR/icon/vision perception, numbered targets, protected-region masks or multi-monitor scaling implementation exists."
+    },
+    {
+      "phase": 26,
+      "name": "Universal route selector",
+      "score": 30,
+      "classification": "PARTIAL",
+      "evidence": [
+        "src/lib/skills/work-session.ts",
+        "src/lib/native/browser-bridge.ts",
+        "src/lib/skills/pack-registry.ts"
+      ],
+      "gap": "Existing method selection is not the complete API/plugin/CLI/file/DOM/accessibility/native/vision/input route hierarchy."
+    },
+    {
+      "phase": 27,
+      "name": "Unknown-App Learning and Digital Twins",
+      "score": 55,
+      "classification": "PARTIAL",
+      "evidence": [
+        "src/lib/skills/app-map.ts",
+        "src/lib/skills/skill-pack.ts",
+        "src/lib/skills/work-session.ts"
+      ],
+      "gap": "The learned map path lacks a real probe host, rehearsal integration, versioned skill compilation and unfamiliar-application runtime proof."
+    },
+    {
+      "phase": 28,
+      "name": "Chrome and Edge control",
+      "score": 65,
+      "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+      "evidence": [
+        "extension/background.js",
+        "src/lib/native/extension-bridge.ts",
+        "src/lib/native/extension-protocol.ts"
+      ],
+      "gap": "Selector healing, controlled web-lab execution and real Chrome plus Edge loading and action evidence remain."
+    },
+    {
+      "phase": 29,
+      "name": "Email and web work",
+      "score": 10,
+      "classification": "SCAFFOLD-ONLY",
+      "evidence": ["src/lib/native/browser-bridge.ts"],
+      "gap": "Connector-first email, draft/recipient/attachment validation and safe web-editor workflows are missing."
+    },
+    {
+      "phase": 30,
+      "name": "Creative application control",
+      "score": 15,
+      "classification": "SCAFFOLD-ONLY",
+      "evidence": [
+        "src/routes/_authenticated/ocade.studio.tsx",
+        "src/lib/media/inspect.ts",
+        "src/lib/vision3d/scene.ts"
+      ],
+      "gap": "Blender and creative-application adapters, checkpoints, render execution and export verification are missing."
+    },
+    {
+      "phase": 31,
+      "name": "CAD and engineering application control",
+      "score": 5,
+      "classification": "MISSING",
+      "evidence": ["src/lib/skills/pack-registry.ts"],
+      "gap": "No generic CAD/CAE route, units/constraint guard, duplicate-project workflow, solver boundary or verified export path exists."
+    },
+    {
+      "phase": 32,
+      "name": "Resource Governor",
+      "score": 50,
+      "classification": "PARTIAL",
+      "evidence": [
+        "src/lib/skills/resource-governor.ts",
+        "src/lib/skills/hardware-profile.ts",
+        "src/lib/skills/concurrency.ts"
+      ],
+      "gap": "Generic estimation is not wired to live hardware discovery, model/renderer/solver selection or reversible OS performance profiles."
+    },
+    {
+      "phase": 33,
+      "name": "Mobile mission control",
+      "score": 25,
+      "classification": "PARTIAL",
+      "evidence": [
+        "mobile/www/index.html",
+        "src/lib/mobile/secure-channel.ts",
+        "src/routes/_authenticated/settings.mobile.tsx"
+      ],
+      "gap": "The OcadeMobile native plugin, signed live transport and complete task correction/pause/resume/output runtime are missing."
+    },
+    {
+      "phase": 34,
+      "name": "Relay and reconnect protocol",
+      "score": 15,
+      "classification": "SCAFFOLD-ONLY",
+      "evidence": ["src/lib/mobile/companion-link.ts", "src/lib/mobile/secure-channel.ts"],
+      "gap": "LAN/local/managed relay implementations, acknowledgements, revocation and reconnect reconciliation are missing."
+    },
+    {
+      "phase": 35,
+      "name": "Voice and multimodal connectors",
+      "score": 45,
+      "classification": "PARTIAL",
+      "evidence": [
+        "src/lib/ocade-voice.ts",
+        "src/lib/use-voice-prefs.ts",
+        "src/lib/ocade-visual.ts"
+      ],
+      "gap": "Provider contracts, recorded-audio fixtures, local/licensed voices and headless multimodal connectors are incomplete."
+    },
+    {
+      "phase": 36,
+      "name": "Packaging and coding-only release preparation",
+      "score": 70,
+      "classification": "PARTIAL",
+      "evidence": [
+        "release/OCADE_RELEASE_CHECKLIST.md",
+        "release/OCADE_RELEASE_BLOCKERS.json",
+        "scripts/check-release-source.mjs"
+      ],
+      "gap": "Windows beta installer proof, CI, dev signing, hosting scripts, update activation and clean-machine rollback evidence remain."
+    },
+    {
+      "phase": 37,
+      "name": "Universal application coverage run",
+      "score": 0,
+      "classification": "UNVERIFIED",
+      "evidence": [],
+      "gap": "No approved installed application has a versioned real-runtime coverage record."
+    },
+    {
+      "phase": 38,
+      "name": "Adversarial reliability and performance proof",
+      "score": 25,
+      "classification": "PARTIAL",
+      "evidence": [
+        "src/lib/__tests__/ocade-injection-guard.test.ts",
+        "src/lib/__tests__/measurable-properties.test.ts",
+        "scripts/check-asset-budgets.mjs"
+      ],
+      "gap": "Stage 2 stale-state, escape, crash, reconnect, overnight and live-resource campaigns have not run."
+    },
+    {
+      "phase": 39,
+      "name": "Final universal-control audit",
+      "score": 0,
+      "classification": "MISSING",
+      "evidence": [],
+      "gap": "The final Stage 2 audit cannot begin before Phases 21-38."
+    }
+  ],
+  "readiness": {
+    "stage2Source": 30,
+    "stage2SourceRemaining": 70,
+    "stage2WindowsRuntime": 0,
+    "stage2BrowserRuntime": 0,
+    "stage2AnyAppRuntime": 0,
+    "stage2MobileRuntime": 0,
+    "stage2ApplicationCoverage": 0,
+    "stage2Runtime": 0,
+    "stage2Production": 15,
+    "olderSpecBuildableSource": 96,
+    "overallAvailableRuntime": 25,
+    "overallSupabase": 86,
+    "overallProduction": 36
+  },
+  "productionFormula": "round(stage2Source*0.50 + windowsRuntime*0.15 + browserRuntime*0.10 + anyAppRuntime*0.10 + mobileRuntime*0.05 + applicationCoverage*0.05 + externallyValidatedPackaging*0.05)",
+  "externallyValidatedPackaging": 0,
+  "implementationPhasesRemaining": 19,
+  "externalValidationTracksRemaining": 8,
+  "firstIncompleteDependency": {
+    "phase": 21,
+    "name": "Canonical model-to-tool control plane",
+    "reason": "Every provider, sandbox, companion, perception, route, app, browser and mobile executor must consume one fail-closed typed plan and emit independently verified evidence."
+  },
+  "phase19Checkpoint": {
+    "trackedPatch": ".claude/checkpoints/PHASE_19_COMPLETE_TRACKED.patch",
+    "trackedPatchSha256": "cf17e1607541c97ab88f7d284a50be9da2e5c9a32b0f0b7e58ff76f0ff638248",
+    "untrackedManifest": ".claude/checkpoints/PHASE_19_COMPLETE_UNTRACKED_SHA256.txt",
+    "untrackedManifestSha256": "24e4347fe4c1daf78e646685dbfd0c808cc5c65eedbf9c1047bbef613215beb0",
+    "untrackedEntries": 372
+  }
+}
