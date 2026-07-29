@@ -57,7 +57,7 @@ describe("splitDelimited", () => {
 });
 
 describe("summariseTabular", () => {
-  const csv = 'name,qty\nwidget,3\ngadget,5\nbolt,9';
+  const csv = "name,qty\nwidget,3\ngadget,5\nbolt,9";
   it("extracts columns and row count", () => {
     const s = summariseTabular(csv, ",");
     expect(s.columns).toEqual(["name", "qty"]);
@@ -75,7 +75,11 @@ describe("summariseTabular", () => {
 
 describe("extractDocument", () => {
   it("extracts plain text and counts", () => {
-    const r = extractDocument({ name: "a.txt", sizeBytes: 10, content: "hello world\nsecond line" });
+    const r = extractDocument({
+      name: "a.txt",
+      sizeBytes: 10,
+      content: "hello world\nsecond line",
+    });
     expect(r.status).toBe("ok");
     expect(r.text).toContain("hello world");
     expect(r.meta.wordCount).toBe(4);
@@ -126,9 +130,9 @@ describe("extractDocument", () => {
   });
 
   it("marks genuinely unsupported types", () => {
-    expect(extractDocument({ name: "x.bin", mime: "application/octet-stream", sizeBytes: 4 }).status).toBe(
-      "unsupported",
-    );
+    expect(
+      extractDocument({ name: "x.bin", mime: "application/octet-stream", sizeBytes: 4 }).status,
+    ).toBe("unsupported");
   });
 });
 

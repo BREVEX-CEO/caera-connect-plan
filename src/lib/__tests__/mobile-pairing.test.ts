@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   createPairingChallenge,
   verifyPairing,
@@ -41,6 +41,21 @@ describe("pairing challenge", () => {
     expect(c.expiresAt.getTime() - c.createdAt.getTime()).toBe(PAIRING_TTL_MS);
   });
 
+  it("fails closed when a cryptographically secure random source is unavailable", () => {
+    const original = globalThis.crypto;
+    vi.stubGlobal("crypto", undefined);
+    try {
+      expect(() => createPairingChallenge(T0)).toThrow(/secure random/i);
+    } finally {
+      vi.stubGlobal("crypto", original);
+    }
+  });
+
+  it("rejects an invalid injected random source", () => {
+    expect(() => createPairingChallenge(T0, () => 1)).toThrow(/between 0/i);
+    expect(() => createPairingChallenge(T0, () => -0.01)).toThrow(/between 0/i);
+  });
+
   it("accepts a correct, unexpired attempt", () => {
     const c = createPairingChallenge(T0, seq());
     expect(verifyPairing(c, { code: c.code, nonce: c.nonce }, T0)).toEqual({ ok: true });
@@ -64,6 +79,13 @@ describe("pairing challenge", () => {
     if (!wrongNonce.ok) expect(wrongNonce.code).toBe("nonce_mismatch");
   });
 
+  it("fails closed on forged or invalid challenge timestamps", () => {
+    const c = createPairingChallenge(T0, seq());
+    const forged = { ...c, expiresAt: new Date(Number.NaN) };
+    expect(verifyPairing(forged, { code: c.code, nonce: c.nonce }, T0).ok).toBe(false);
+    expect(verifyPairing(c, { code: c.code, nonce: c.nonce }, new Date(Number.NaN)).ok).toBe(false);
+  });
+
   it("QR payload carries only the single-use challenge", () => {
     const c = createPairingChallenge(T0, seq());
     const parsed = JSON.parse(pairingPayload(c, "acct-1")) as Record<string, unknown>;
@@ -82,10 +104,15 @@ describe("device trust", () => {
   it("stops trusting a long-unseen device", () => {
     expect(isTrusted(device({ lastSeenAt: at("2026-01-01T00:00:00Z") }), T0)).toBe(false);
   });
+  it("does not trust malformed or future-dated device evidence", () => {
+    expect(isTrusted(device({ lastSeenAt: new Date(Number.NaN) }), T0)).toBe(false);
+    expect(isTrusted(device({ lastSeenAt: at("2027-01-01T00:00:00Z") }), T0)).toBe(false);
+  });
 });
 
 describe("approval decisions", () => {
-  const req = () => createApprovalRequest({ id: "a1", summary: "Open approved app", risk: "confirm", now: T0 });
+  const req = () =>
+    createApprovalRequest({ id: "a1", summary: "Open approved app", risk: "confirm", now: T0 });
 
   it("has a bounded lifetime", () => {
     const r = req();
@@ -112,7 +139,12 @@ describe("approval decisions", () => {
   });
 
   it("NEVER allows remote approval of protected-information actions", () => {
-    const prohibited = createApprovalRequest({ id: "p", summary: "Type password", risk: "prohibited", now: T0 });
+    const prohibited = createApprovalRequest({
+      id: "p",
+      summary: "Type password",
+      risk: "prohibited",
+      now: T0,
+    });
     const d = decideApproval(prohibited, "approved", device(), T0);
     expect(d.ok).toBe(false);
     if (!d.ok) {
@@ -159,7 +191,10 @@ describe("emergency stop", () => {
 
   it("cancels every in-flight request and records who stopped it", () => {
     const pending = createApprovalRequest({ id: "x", summary: "s", risk: "confirm", now: T0 });
-    const done = { ...createApprovalRequest({ id: "y", summary: "s", risk: "low", now: T0 }), status: "approved" as const };
+    const done = {
+      ...createApprovalRequest({ id: "y", summary: "s", risk: "low", now: T0 }),
+      status: "approved" as const,
+    };
     const out = applyEmergencyStop([pending, done], {
       requestedByDeviceId: "dev-1",
       requestedAt: T0,

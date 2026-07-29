@@ -9,6 +9,7 @@ import {
   entitlementState,
   expiryOf,
   canRegisterDevice,
+  cloudEntitlementActive,
   offlineEntitlementValid,
   describeAllowance,
 } from "../ocade-allowance";
@@ -44,6 +45,12 @@ describe("allowance state", () => {
     expect(s.used).toBe(CLOUD_ALLOWANCE);
     expect(s.remaining).toBe(0);
     expect(s.exhausted).toBe(true);
+  });
+
+  it("fails closed on malformed usage, limits, or clocks", () => {
+    expect(allowanceState(Number.NaN, at("2026-07-22T09:00:00Z")).exhausted).toBe(true);
+    expect(allowanceState(0, at("2026-07-22T09:00:00Z"), Number.NaN).exhausted).toBe(true);
+    expect(() => currentWindow(new Date(Number.NaN))).toThrow(/time/i);
   });
 });
 
@@ -87,6 +94,18 @@ describe("cloud gating", () => {
       expect(d.code).toBe("subscription_expired");
       expect(d.reason).toMatch(/local still works/i);
     }
+  });
+
+  it("requires an observed active, unexpired subscription record", () => {
+    const now = at("2026-07-22T09:00:00Z");
+    expect(cloudEntitlementActive(null, now)).toBe(false);
+    expect(
+      cloudEntitlementActive({ status: "active", expiresAt: "2026-07-23T09:00:00.000Z" }, now),
+    ).toBe(true);
+    expect(
+      cloudEntitlementActive({ status: "cancelled", expiresAt: "2026-07-23T09:00:00.000Z" }, now),
+    ).toBe(false);
+    expect(cloudEntitlementActive({ status: "active", expiresAt: "invalid" }, now)).toBe(false);
   });
 });
 
@@ -137,11 +156,18 @@ describe("entitlements", () => {
 });
 
 describe("device limits", () => {
-  const s = entitlementState({ planId: "month_1m", startedAt: at("2026-07-20T00:00:00Z") }, at("2026-07-22T00:00:00Z"));
+  const s = entitlementState(
+    { planId: "month_1m", startedAt: at("2026-07-20T00:00:00Z") },
+    at("2026-07-22T00:00:00Z"),
+  );
 
   it("allows up to 2 desktop and 2 mobile", () => {
-    expect(canRegisterDevice({ kind: "desktop", currentDesktop: 1, currentMobile: 0, state: s }).allowed).toBe(true);
-    expect(canRegisterDevice({ kind: "mobile", currentDesktop: 2, currentMobile: 1, state: s }).allowed).toBe(true);
+    expect(
+      canRegisterDevice({ kind: "desktop", currentDesktop: 1, currentMobile: 0, state: s }).allowed,
+    ).toBe(true);
+    expect(
+      canRegisterDevice({ kind: "mobile", currentDesktop: 2, currentMobile: 1, state: s }).allowed,
+    ).toBe(true);
   });
 
   it("refuses beyond the limit with a clear reason", () => {
@@ -149,14 +175,35 @@ describe("device limits", () => {
     expect(r.allowed).toBe(false);
     expect(r.reason).toMatch(/limit of 2 desktop/i);
   });
+
+  it("does not allow malformed device counts to bypass the limit", () => {
+    expect(
+      canRegisterDevice({
+        kind: "mobile",
+        currentDesktop: 0,
+        currentMobile: Number.NaN,
+        state: s,
+      }).allowed,
+    ).toBe(false);
+  });
 });
 
 describe("offline entitlement grace", () => {
   it("stays valid within the grace period", () => {
-    expect(offlineEntitlementValid(at("2026-07-20T00:00:00Z"), at("2026-07-22T00:00:00Z"))).toBe(true);
+    expect(offlineEntitlementValid(at("2026-07-20T00:00:00Z"), at("2026-07-22T00:00:00Z"))).toBe(
+      true,
+    );
   });
   it("expires after the grace period", () => {
-    expect(offlineEntitlementValid(at("2026-07-01T00:00:00Z"), at("2026-07-22T00:00:00Z"))).toBe(false);
+    expect(offlineEntitlementValid(at("2026-07-01T00:00:00Z"), at("2026-07-22T00:00:00Z"))).toBe(
+      false,
+    );
+  });
+  it("rejects invalid or future verification timestamps", () => {
+    expect(offlineEntitlementValid(at("2027-01-01T00:00:00Z"), at("2026-07-22T00:00:00Z"))).toBe(
+      false,
+    );
+    expect(offlineEntitlementValid(new Date(Number.NaN), at("2026-07-22T00:00:00Z"))).toBe(false);
   });
 });
 

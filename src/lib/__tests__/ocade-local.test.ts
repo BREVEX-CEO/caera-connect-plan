@@ -37,27 +37,57 @@ describe("classifyLocalModel", () => {
   });
 
   it.each<[string, RawLocalModel, string]>([
-    ["vision", { name: "llava:13b", size: 8e9, details: { parameter_size: "13B" } }, "OCADE Local Vision"],
-    ["fast", { name: "phi3:3.8b", size: 2e9, details: { parameter_size: "3.8B" } }, "OCADE Local Fast"],
-    ["general", { name: "llama3.1:8b", size: 5e9, details: { parameter_size: "8B" } }, "OCADE Local"],
+    [
+      "vision",
+      { name: "llava:13b", size: 8e9, details: { parameter_size: "13B" } },
+      "OCADE Local Vision",
+    ],
+    [
+      "fast",
+      { name: "phi3:3.8b", size: 2e9, details: { parameter_size: "3.8B" } },
+      "OCADE Local Fast",
+    ],
+    [
+      "general",
+      { name: "llama3.1:8b", size: 5e9, details: { parameter_size: "8B" } },
+      "OCADE Local",
+    ],
   ])("classifies %s → %s", (_p, raw, label) => {
     expect(classifyLocalModel(raw).label).toBe(label);
   });
 
   it("flags a :cloud pointer as not on-device", () => {
-    expect(classifyLocalModel({ name: "deepseek-v4-pro:cloud", size: 0 }).isCloudPointer).toBe(true);
+    expect(classifyLocalModel({ name: "deepseek-v4-pro:cloud", size: 0 }).isCloudPointer).toBe(
+      true,
+    );
   });
 
   it("never surfaces the raw model name in the capability label", () => {
-    const m = classifyLocalModel({ name: "qwen2.5-coder:7b", size: 4.4e9, details: { parameter_size: "7.6B" } });
+    const m = classifyLocalModel({
+      name: "qwen2.5-coder:7b",
+      size: 4.4e9,
+      details: { parameter_size: "7.6B" },
+    });
     expect(leaksRawModelIdentity(m.label)).toBe(false);
   });
 });
 
 const CODE_MODELS: LocalModelInfo[] = [
-  classifyLocalModel({ name: "qwen3-coder:30b", size: 17.3e9, details: { parameter_size: "30.5B" } }),
-  classifyLocalModel({ name: "qwen2.5-coder:7b", size: 4.4e9, details: { parameter_size: "7.6B" } }),
-  classifyLocalModel({ name: "deepseek-coder:6.7b", size: 3.6e9, details: { parameter_size: "7B" } }),
+  classifyLocalModel({
+    name: "qwen3-coder:30b",
+    size: 17.3e9,
+    details: { parameter_size: "30.5B" },
+  }),
+  classifyLocalModel({
+    name: "qwen2.5-coder:7b",
+    size: 4.4e9,
+    details: { parameter_size: "7.6B" },
+  }),
+  classifyLocalModel({
+    name: "deepseek-coder:6.7b",
+    size: 3.6e9,
+    details: { parameter_size: "7B" },
+  }),
 ];
 
 describe("pickLocalModel", () => {
@@ -77,7 +107,12 @@ describe("pickLocalModel", () => {
 
 describe("buildLocalFirstPlan", () => {
   it("orders local → cloud with an explicit ask-before-cloud step", () => {
-    const plan = buildLocalFirstPlan({ desired: "general", models: CODE_MODELS, cloudAllowed: true, online: true });
+    const plan = buildLocalFirstPlan({
+      desired: "general",
+      models: CODE_MODELS,
+      cloudAllowed: true,
+      online: true,
+    });
     const kinds = plan.map((s) => s.kind);
     expect(kinds[0]).toBe("local_preferred");
     expect(kinds).toContain("local_reduced");
@@ -87,18 +122,33 @@ describe("buildLocalFirstPlan", () => {
   });
 
   it("offers only cloud (with approval) when no local model is installed", () => {
-    const plan = buildLocalFirstPlan({ desired: "general", models: [], cloudAllowed: true, online: true });
+    const plan = buildLocalFirstPlan({
+      desired: "general",
+      models: [],
+      cloudAllowed: true,
+      online: true,
+    });
     expect(plan.map((s) => s.kind)).toEqual(["ask_cloud"]);
   });
 
   it("fails honestly when offline with no local model and no cloud", () => {
-    const plan = buildLocalFirstPlan({ desired: "general", models: [], cloudAllowed: false, online: false });
+    const plan = buildLocalFirstPlan({
+      desired: "general",
+      models: [],
+      cloudAllowed: false,
+      online: false,
+    });
     expect(plan).toHaveLength(1);
     expect(plan[0].kind).toBe("fail");
   });
 
   it("never emits a raw model name in a step label", () => {
-    const plan = buildLocalFirstPlan({ desired: "code", models: CODE_MODELS, cloudAllowed: true, online: true });
+    const plan = buildLocalFirstPlan({
+      desired: "code",
+      models: CODE_MODELS,
+      cloudAllowed: true,
+      online: true,
+    });
     for (const step of plan) {
       if (step.label) expect(leaksRawModelIdentity(step.label)).toBe(false);
     }

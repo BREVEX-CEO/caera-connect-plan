@@ -12,25 +12,32 @@ const opts = { runId: "run-1", confirmed: true };
 function fakeExecutor(available = true) {
   return {
     isAvailable: vi.fn(async () => available),
-    execute: vi.fn(
-      async (_a: CompanionAction, o: { runId: string }): Promise<ExecuteResult> => ({
-        ok: true,
-        runId: o.runId,
-        detail: "done",
-      }),
-    ),
+    execute: vi.fn(async (_a: CompanionAction, o: { runId: string }): Promise<ExecuteResult> => ({
+      ok: true,
+      runId: o.runId,
+      detail: "done",
+    })),
   };
 }
 
 describe("AdapterRegistry basics", () => {
   it("registers and lists adapters", () => {
     const reg = createDefaultRegistry();
-    expect(reg.list().map((a) => a.id).sort()).toEqual(["browser", "files", "windows"]);
+    expect(
+      reg
+        .list()
+        .map((a) => a.id)
+        .sort(),
+    ).toEqual(["browser", "files", "selection", "windows"]);
   });
 
   it("refuses duplicate adapter ids", () => {
     const reg = new AdapterRegistry();
-    const a = createCompanionBackedAdapter({ id: "browser", label: "B", capabilities: BROWSER_CAPABILITIES });
+    const a = createCompanionBackedAdapter({
+      id: "browser",
+      label: "B",
+      capabilities: BROWSER_CAPABILITIES,
+    });
     reg.register(a);
     expect(() => reg.register(a)).toThrow(/already registered/i);
   });
