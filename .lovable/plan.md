@@ -1,4 +1,3 @@
-
 # CAERA CADANE — Revised Master Plan (v3)
 
 Corrections applied per user directive. Preserves Foundation Alpha, hardens integrity gaps, then ships in disciplined vertical slices with honest completion claims.
@@ -27,6 +26,7 @@ Differentiators: local-first vault + PC pairing, automated Signature Trust Netwo
 Working: 8 routes, unified auth (Google/Apple/Phone OTP/Email OTP), 8 DB tables with RLS + `enforce_device_cap`, 11 reusable shells, FeatureRegistry, session hook, AI Gateway installed.
 
 Gaps to fix in P3.5 before any new feature:
+
 - **G1** `/home` bypasses `profiles.onboarding_completed`.
 - **G2** Deep-link `next` broken — `_authenticated` sends absolute URL, `/auth` `safeNext` rejects.
 - **G3** `devices` table dormant — no registration on sign-in.
@@ -166,7 +166,7 @@ CSV of verification IDs → parallel verify → CSV/PDF report. Public-permissio
 
 ### Honesty guardrails
 
-Where DSC / QES / licensed professional / officer signature is legally required, FICIA prepares + packages + routes to the qualified human and records their signature. **Never** simulates authority. Verification page carries: *"Verification confirms the record on file. Legal effect depends on jurisdiction, signer authority, and applicable law."*
+Where DSC / QES / licensed professional / officer signature is legally required, FICIA prepares + packages + routes to the qualified human and records their signature. **Never** simulates authority. Verification page carries: _"Verification confirms the record on file. Legal effect depends on jurisdiction, signer authority, and applicable law."_
 
 ### DB additions
 
@@ -234,7 +234,7 @@ Clock in/out, breaks, shifts, holidays, overtime, projects, tasks, billable/non-
 ### Identity contract (corrected — no falsification)
 
 - **Chat/voice/exports never advertise the underlying provider.** UI shows only "OCADE by CAERA CADANE".
-- When a user **directly asks** what model or provider is being used, OCADE answers truthfully: *"I'm OCADE by CAERA CADANE. Your current session is using **{model_display_name}** — you can change this in Model Settings."* Never denies being an AI, never denies that a third-party model powers the response.
+- When a user **directly asks** what model or provider is being used, OCADE answers truthfully: _"I'm OCADE by CAERA CADANE. Your current session is using **{model_display_name}** — you can change this in Model Settings."_ Never denies being an AI, never denies that a third-party model powers the response.
 - Never claims to be a specific competitor product (never "I am ChatGPT / Claude / Gemini"). Never fabricates that CAERA CADANE built the underlying weights.
 - Provider names are always visible in: Model Settings (`/ocade/models`), per-message usage record (expandable), technical diagnostics, exported transcript footers, audit log entries.
 - Server-side implementation: `src/lib/ocade/identity.server.ts` injects a system prompt with the above rules, plus a response filter that rewrites competitor self-identification into the truthful form ("I'm OCADE by CAERA CADANE — currently on {model}"). Filter is **truthful**, not concealing.
@@ -298,6 +298,7 @@ Existing `audit_log` table is renamed/repurposed to `compliance_audit_log`; `act
 **Must pass before any public marketing or GA of FICIA/Signature/Penalty modules.**
 
 Legal & privacy:
+
 - Terms of Service, Privacy Policy, Cookie Policy, Acceptable Use Policy — reviewed by counsel.
 - DPA (data processing addendum) for company tenants.
 - End-user consent flows (chat data usage, model provider disclosure, cross-border transfer notice).
@@ -309,12 +310,14 @@ Legal & privacy:
 - Professional-review boundaries page: what CAERA prepares vs what a licensed professional must sign; disclaimers wired into every regulated action.
 
 Security:
+
 - External security review of signature stack, RLS, and companion protocol (once companion ships).
 - Secret management, key rotation policy, SBOM.
 - Incident response plan with severity levels, on-call, user notification thresholds.
 - Vulnerability disclosure policy + reporting inbox.
 
 Reliability:
+
 - Automated backups (Supabase + object storage), tested restoration drill quarterly.
 - Outage handling: status page, degraded-mode banner, feature flag kill switches.
 - Monitoring: uptime, error rate, server-fn latency p95, signature-verification success rate, filing block-rate.
@@ -329,9 +332,11 @@ Gate is a checklist route in admin (`/admin/launch-gate`) with per-item status, 
 Legend: **Purpose · Builds · Files/Systems · Preserve · Test gate · Rollback · Truthful completion**.
 
 ### α0 — Rollback checkpoint (no code)
+
 Record `caera-foundation-alpha-0`. GitHub tag by user after sync. Lovable revert-point noted in `.lovable/plan.md`.
 
 ### P3.5 — Integrity hardening (G1-G8)
+
 - Purpose: close all gaps.
 - Builds: onboarding gate; `safeNext` accepts absolute-origin URLs; device registration on sign-in (physical PC detection via WebAuthn credential or generated `browser_install_id` pre-companion, promoted when companion arrives); `/settings/privacy` and `/settings/devices` real UI; `ActionRegistry`; `compliance_audit_log` + `activity_log` migration (rename existing `audit_log`); audit writer helper; error boundaries on protected routes; `main_purpose` enum; OCADE identity contract stubbed (returns identity string; wired to chat in P10).
 - Files: `_authenticated/route.tsx`, `_authenticated/settings/*`, `src/lib/actions.ts`, `src/lib/compliance-audit.functions.ts`, `src/lib/activity-log.functions.ts`, migration.
@@ -340,84 +345,111 @@ Record `caera-foundation-alpha-0`. GitHub tag by user after sync. Lovable revert
 - Rollback: α0. Truthful completion: gaps closed; two-log split live.
 
 ### P4 — Themes + cursor
+
 Three themes, reduced-motion, low-perf fallback, cursor picker + upload. Test: contrast in all themes; persistence across reload. Rollback: P3.5.
 
 ### P5 — StorageAdapter + Browser Only (encryption corrected)
+
 Adapter contract; IndexedDB impl with WebAuthn PRF → Argon2id → wrapped DEK; recovery kit generation; unlock/lock flow; per-class privacy UI. Test: DEK never persisted unwrapped; recovery kit round-trip; auto-lock; clearing IndexedDB shows empty state; Private Sync unchanged.
 
 ### P6 — Demo Mode
+
 In-memory demo tenant, watermark, destructive actions disabled. Test: no writes to Supabase.
 
 ### P7 — ActionRegistry hardening + `/settings/activity` UI
+
 Both logs surface (compliance vs operational, filtered). Test: every action visible within 2s in correct log.
 
 ### P8 — Pre-launch Gate scaffold
+
 `/admin/launch-gate` UI + rows for every §16 item; module GA gated on flag. Test: enabling a module without gate-green fails.
 
 ### P10 — OCADE chat + honest identity
+
 Chat UI (threads, projects, files upload), server fn `ocade.chat`, `identity.server.ts` implementing §12 (truthful, model-name-disclosing when asked; provider hidden from casual UI). Lovable AI Gateway default; OpenAI/Ollama wired but exposed only in P13. Regression tests: identity honesty across providers and probes.
 
 ### P13 — Model Settings
+
 `/ocade/models` shows providers, per-request usage records, technical diagnostics. Truthful-completion: no provider name leaks outside these surfaces; when-asked truthful disclosure works.
 
 ### P16 — CANIA shell (no providers)
+
 Full IA, saved topics, alerts, filters — all data surfaces `SetupRequiredState`. Test: grep denies fixtures.
 
 ### P18 — MADEE Resume Builder
+
 End-to-end resume, versions, export. Storage per user's per-class choice.
 
 ### P19 — India country pack framework
+
 `country_packs`, `compliance_events`, admin loader, versioned schema, source citations, deterministic test harness. Only India pack is authored. Others remain `planned`. Test: pack loads; deterministic tests pass; historical-case tests pass.
 
 ### P20 — FICIA-1: Company identity + duplicate prevention
+
 Company create/edit, legal profile, GSTIN/PAN/registration validation, unique constraints, review-before-create step. Test: duplicate registration blocked; similar display name only warns.
 
 ### P21 — FICIA-2: Employees, departments, roles
+
 Multi-role, segregation-of-duties matrix, approval chains. Test: SoD violation blocked.
 
 ### P22 — FICIA-3: Company chat + DMs
+
 Groups, DMs, message→action primitives, cross-tenant consent record. Test: tenant isolation.
 
 ### P23 — FICIA-4: Timesheets + attendance
+
 Clock, breaks, idle/minimized detection with consent, auto-pause, reports. Test: no capture without consent; auto-pause fires.
 
 ### P24 — FICIA-5: Files + document ingestion
+
 OCR, classification, versioning, retention tags. Test: version hashes stable.
 
 ### P25 — FICIA-6: Invoices + expenses (deterministic)
+
 Test: money math unit tests; approvals wired.
 
 ### P26 — FICIA-7: Accounting engine + reports
+
 Double-entry ledger; P&L, balance sheet, cash flow. Test: LLM cannot touch postings; deterministic replay.
 
 ### P27 — FICIA-8: Payroll
+
 India pack rules; payslip generation; signing via Authority Matrix. Test: payroll numbers deterministic; payslip signature recorded.
 
 ### P28 — FICIA-9: Tax and compliance (India)
+
 GST, TDS, income tax filings prep; calendar. Test: pack version pinned in every evidence pack.
 
 ### P29 — FICIA-10: Penalty Prevention Engine
+
 Obligations, three-stage warnings, evidence-pack-required blocking. Test: incomplete evidence blocks; three stages fire on schedule.
 
 ### P30 — FICIA-11: Signature Trust Network
+
 Signature records, Authority Matrix, verification page, hash-compare upload, bulk regulator dashboard, chain/timestamp/revocation/reauth/policy/manifest/event history. Test: altered doc detected; expired cert flagged; missing TSA flagged; unauthorized signer flagged; every response includes legal-effect disclaimer.
 
 ### P31 — FICIA-12: Audit + regulator dashboards
+
 Compliance log export with Merkle proofs; regulator bulk verification; retention enforcement. Test: log immutability; export replay verifies.
 
 ### P32 — Family/Marriage/Divorce/Asset-Protection FICIA module
+
 Educational + document checklists + counsel routing. Refuses illegal patterns. Test: refusal cases enumerated.
 
 ### P33 — Pre-Launch Gate closure for FICIA India GA
+
 Every §16 row green; module flipped to `ga` behind flag. External security review completed for signature stack.
 
 ### P34 — OCADE Computer Copilot (browser mode) + task replay
+
 Test: visible plan/pause/stop; replay artifact per run.
 
 ### P35 — Native Companion v1 (post-web-core)
+
 UI + typed bridge contract + security protocol + source scaffold shipped inside Lovable. Real Windows build produced and signed **outside Lovable**, runtime-tested, then feature flag `pc_vault.available` flips true. macOS/Linux follow-ups.
 
 ### P36 — PC Device Vault activation (only after P35 runtime proof)
+
 Pairing, browser grants, OS-keychain KEK, revocation.
 
 ### P37 — Intern Learning Replay (post-companion for OS-level; web-instrumentable skills earlier)
@@ -442,21 +474,21 @@ CI-style locally: `bunx vitest run` and `tsgo`. No slice ships red.
 
 ## 19. Risks and Fixes
 
-| Risk | Reality | Mitigation |
-|---|---|---|
-| "AI signature replaces legal signature" | False. | Authority Matrix; human sign-off routing; verification page discloses legal-effect limits. |
-| "Guaranteed zero penalties" | Impossible. | Penalty engine + evidence-required blocking; never zero-promise. |
-| Cross-browser same-PC vault seems trivial | Requires native bridge. | Companion + loopback HTTPS + pairing; feature gated until proven. |
-| Web ≠ OS control | True. | Browser copilot does browser things only; rest requires companion; UI states this. |
-| Provider falsification | Illegal / dishonest. | Truthful identity contract: identity always CAERA, model disclosed when asked, always visible in settings/usage/diagnostics. |
-| Verification ID = legal validity | False. | Chain, timestamp, revocation, reauth, policy, manifest, event history — plus explicit legal-effect disclaimer. |
-| Encryption key at rest | Unsafe if plain. | KEK-wrapped DEK, WebAuthn PRF / Argon2id, recovery kit, unrecoverable warnings. |
-| Native companion "already works" | False until built + signed + tested. | Deferred to P35+; only UI + contract + scaffold in web phase. |
-| Free-form LLM money math | Wrong. | Deterministic engine; LLM writes narrative only. |
-| Country pack drift | Laws change. | Versioned packs; source URLs; stale warnings; India-only until pilot passes. |
-| Overloaded audit log | Legal/perf risk. | Two-log split; compliance immutable + hash-chained; operational short retention. |
-| Cross-tenant leak | Common failure. | Isolation spec in every FICIA slice. |
-| Trillion-dollar promises | Not credible. | Plan separates ambition from feasibility and milestones. |
+| Risk                                      | Reality                              | Mitigation                                                                                                                   |
+| ----------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| "AI signature replaces legal signature"   | False.                               | Authority Matrix; human sign-off routing; verification page discloses legal-effect limits.                                   |
+| "Guaranteed zero penalties"               | Impossible.                          | Penalty engine + evidence-required blocking; never zero-promise.                                                             |
+| Cross-browser same-PC vault seems trivial | Requires native bridge.              | Companion + loopback HTTPS + pairing; feature gated until proven.                                                            |
+| Web ≠ OS control                          | True.                                | Browser copilot does browser things only; rest requires companion; UI states this.                                           |
+| Provider falsification                    | Illegal / dishonest.                 | Truthful identity contract: identity always CAERA, model disclosed when asked, always visible in settings/usage/diagnostics. |
+| Verification ID = legal validity          | False.                               | Chain, timestamp, revocation, reauth, policy, manifest, event history — plus explicit legal-effect disclaimer.               |
+| Encryption key at rest                    | Unsafe if plain.                     | KEK-wrapped DEK, WebAuthn PRF / Argon2id, recovery kit, unrecoverable warnings.                                              |
+| Native companion "already works"          | False until built + signed + tested. | Deferred to P35+; only UI + contract + scaffold in web phase.                                                                |
+| Free-form LLM money math                  | Wrong.                               | Deterministic engine; LLM writes narrative only.                                                                             |
+| Country pack drift                        | Laws change.                         | Versioned packs; source URLs; stale warnings; India-only until pilot passes.                                                 |
+| Overloaded audit log                      | Legal/perf risk.                     | Two-log split; compliance immutable + hash-chained; operational short retention.                                             |
+| Cross-tenant leak                         | Common failure.                      | Isolation spec in every FICIA slice.                                                                                         |
+| Trillion-dollar promises                  | Not credible.                        | Plan separates ambition from feasibility and milestones.                                                                     |
 
 ---
 
@@ -464,16 +496,17 @@ CI-style locally: `bunx vitest run` and `tsgo`. No slice ships red.
 
 Baseline = the full CAERA CADANE scope described here, not Foundation Alpha alone.
 
-| Track | Today | After P3.5 | After P10 | After FICIA India GA (P33) | After P36 | After P39 |
-|---|---|---|---|---|---|---|
-| Web GUI (shells + module surfaces) | ~30% | ~35% | ~45% | ~75% | ~80% | ~90% |
-| Web workflows (routing, auth, adapters, chat, docs) | ~15% | ~25% | ~40% | ~70% | ~75% | ~85% |
-| **Verified finance / compliance (deterministic + reviewed + piloted)** | 0% | 0% | 0% | India ~60% (v1 pilot); other countries 0% | India ~65% | India ~75% |
-| Signature Trust Network (chain + TSA + revocation + verification page + regulator dash) | 0% | 0% | 0% | ~60% (India pilot) | ~65% | ~75% |
-| Native runtime (companion binary signed + runtime-proven) | 0% | 0% | 0% | 0% | Windows ~60% (signed + tested); macOS/Linux 0% | Windows ~70%; macOS ~40%; Linux ~20% |
-| Cross-platform packaging (Tauri desktop shell + Capacitor mobile) | 0% | 0% | 0% | 0% | 0% | Desktop ~50%; mobile ~30% |
+| Track                                                                                   | Today | After P3.5 | After P10 | After FICIA India GA (P33)                | After P36                                      | After P39                            |
+| --------------------------------------------------------------------------------------- | ----- | ---------- | --------- | ----------------------------------------- | ---------------------------------------------- | ------------------------------------ |
+| Web GUI (shells + module surfaces)                                                      | ~30%  | ~35%       | ~45%      | ~75%                                      | ~80%                                           | ~90%                                 |
+| Web workflows (routing, auth, adapters, chat, docs)                                     | ~15%  | ~25%       | ~40%      | ~70%                                      | ~75%                                           | ~85%                                 |
+| **Verified finance / compliance (deterministic + reviewed + piloted)**                  | 0%    | 0%         | 0%        | India ~60% (v1 pilot); other countries 0% | India ~65%                                     | India ~75%                           |
+| Signature Trust Network (chain + TSA + revocation + verification page + regulator dash) | 0%    | 0%         | 0%        | ~60% (India pilot)                        | ~65%                                           | ~75%                                 |
+| Native runtime (companion binary signed + runtime-proven)                               | 0%    | 0%         | 0%        | 0%                                        | Windows ~60% (signed + tested); macOS/Linux 0% | Windows ~70%; macOS ~40%; Linux ~20% |
+| Cross-platform packaging (Tauri desktop shell + Capacitor mobile)                       | 0%    | 0%         | 0%        | 0%                                        | 0%                                             | Desktop ~50%; mobile ~30%            |
 
 Rules:
+
 - "Verified finance/compliance" advances only after deterministic tests + historical cases + professional review + private pilot for that country.
 - Native runtime cannot advance from 0% inside Lovable — advances only when a real signed binary is compiled and runtime-tested outside Lovable.
 - Do not describe the product as "90% complete" because most screens exist. Screens ≠ verified finance ≠ signed native runtime ≠ shipped mobile app.
