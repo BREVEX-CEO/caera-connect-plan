@@ -11,6 +11,8 @@
  * claim OCR or transcription it cannot perform.
  */
 
+import { decodeBinaryDocument, isDecodableBinary, type DecodeResult } from "./ocade-decoders";
+
 export type DocumentKind =
   | "text"
   | "markdown"
@@ -25,13 +27,24 @@ export type DocumentKind =
   | "video"
   | "unknown";
 
-export type ExtractStatus = "ok" | "needs_document_pack" | "metadata_only" | "unsupported" | "empty";
+export type ExtractStatus =
+  | "ok"
+  | "needs_document_pack"
+  | "metadata_only"
+  | "unsupported"
+  | "empty"
+  /** The user stopped the read. The file itself is fine. */
+  | "cancelled";
 
 export interface DocumentMeta {
   name: string;
   kind: DocumentKind;
   mime: string;
   sizeBytes: number;
+  /** Populated for paginated documents (PDF). */
+  pageCount?: number;
+  /** Populated for workbooks (XLSX). */
+  sheets?: string[];
   /** Populated for text formats. */
   lineCount?: number;
   wordCount?: number;
@@ -53,11 +66,33 @@ export interface ExtractResult {
 }
 
 const CODE_EXT_LANGUAGE: Record<string, string> = {
-  ts: "TypeScript", tsx: "TypeScript", js: "JavaScript", jsx: "JavaScript",
-  py: "Python", rb: "Ruby", go: "Go", rs: "Rust", java: "Java", kt: "Kotlin",
-  c: "C", h: "C", cpp: "C++", hpp: "C++", cs: "C#", php: "PHP", swift: "Swift",
-  sql: "SQL", sh: "Shell", bash: "Shell", ps1: "PowerShell", yml: "YAML",
-  yaml: "YAML", toml: "TOML", html: "HTML", css: "CSS", scss: "SCSS",
+  ts: "TypeScript",
+  tsx: "TypeScript",
+  js: "JavaScript",
+  jsx: "JavaScript",
+  py: "Python",
+  rb: "Ruby",
+  go: "Go",
+  rs: "Rust",
+  java: "Java",
+  kt: "Kotlin",
+  c: "C",
+  h: "C",
+  cpp: "C++",
+  hpp: "C++",
+  cs: "C#",
+  php: "PHP",
+  swift: "Swift",
+  sql: "SQL",
+  sh: "Shell",
+  bash: "Shell",
+  ps1: "PowerShell",
+  yml: "YAML",
+  yaml: "YAML",
+  toml: "TOML",
+  html: "HTML",
+  css: "CSS",
+  scss: "SCSS",
 };
 
 export function extensionOf(name: string): string {
@@ -90,7 +125,14 @@ export function classifyFile(name: string, mime = ""): DocumentKind {
 
 /** True when the kind can be read as UTF-8 text without a decoder pack. */
 export function isNativeTextKind(kind: DocumentKind): boolean {
-  return kind === "text" || kind === "markdown" || kind === "csv" || kind === "tsv" || kind === "json" || kind === "code";
+  return (
+    kind === "text" ||
+    kind === "markdown" ||
+    kind === "csv" ||
+    kind === "tsv" ||
+    kind === "json" ||
+    kind === "code"
+  );
 }
 
 function countWords(text: string): number {
@@ -136,7 +178,11 @@ export interface TabularSummary {
 }
 
 /** Summarise CSV/TSV content into columns + a bounded preview. Pure. */
-export function summariseTabular(content: string, delimiter: string, maxPreviewRows = 20): TabularSummary {
+export function summariseTabular(
+  content: string,
+  delimiter: string,
+  maxPreviewRows = 20,
+): TabularSummary {
   const lines = content.split(/\r?\n/).filter((l) => l.length > 0);
   if (lines.length === 0) return { columns: [], rowCount: 0, preview: "" };
   const columns = splitDelimited(lines[0], delimiter).map((c) => c.trim());
@@ -153,8 +199,13 @@ export function summariseTabular(content: string, delimiter: string, maxPreviewR
   return { columns, rowCount: dataLines.length, preview };
 }
 
+/**
+ * Retained for the honest-refusal path only. PDF/DOCX/XLSX now decode on-device
+ * via `ocade-decoders.ts`; this message is used if a decoder is unavailable at
+ * runtime (e.g. a stripped build) so OCADE still never fakes an extraction.
+ */
 export const DOCUMENT_PACK_REASON =
-  "This file type needs the OCADE document pack, which isn't installed yet. Plain text, Markdown, CSV, JSON and code files work offline today.";
+  "This file type needs the OCADE document decoders, which aren't available in this build. Plain text, Markdown, CSV, JSON and code files always work offline.";
 
 export const IMAGE_METADATA_REASON =
   "OCADE reads images with a vision engine rather than text extraction. Only file details are available here.";
@@ -224,7 +275,9 @@ export function extractDocument(input: {
       const topLevel = Array.isArray(parsed)
         ? `array of ${parsed.length}`
         : parsed && typeof parsed === "object"
-          ? `object with keys: ${Object.keys(parsed as Record<string, unknown>).slice(0, 30).join(", ")}`
+          ? `object with keys: ${Object.keys(parsed as Record<string, unknown>)
+              .slice(0, 30)
+              .join(", ")}`
           : typeof parsed;
       return { status: "ok", meta, text: `JSON (${topLevel})\n\n${content}` };
     } catch {
@@ -235,8 +288,71 @@ export function extractDocument(input: {
   return { status: "ok", meta, text: content };
 }
 
+/**
+ * Extract a binary document (PDF / DOCX / XLSX) on-device.
+ *
+ * Wraps the real decoders and maps their outcome onto the same ExtractResult
+ * shape the text formats use, so callers have ONE contract. Page and sheet
+ * locators survive into `meta` for citations.
+ */
+export async function extractBinaryDocument(
+  input: { name: string; mime?: string; sizeBytes: number; buffer: ArrayBuffer },
+  signal?: AbortSignal,
+): Promise<ExtractResult> {
+  const kind = classifyFile(input.name, input.mime ?? "");
+  const meta: DocumentMeta = {
+    name: input.name,
+    kind,
+    mime: input.mime ?? "",
+    sizeBytes: input.sizeBytes,
+  };
+
+  if (!isDecodableBinary(kind)) {
+    return {
+      status: "unsupported",
+      meta,
+      text: null,
+      reason: "OCADE can't read this file type offline yet.",
+    };
+  }
+
+  let result: DecodeResult;
+  try {
+    result = await decodeBinaryDocument(kind, input.buffer, signal);
+  } catch {
+    // A missing/failed decoder must never look like an empty document.
+    return { status: "needs_document_pack", meta, text: null, reason: DOCUMENT_PACK_REASON };
+  }
+
+  if (result.meta.pages) meta.pageCount = result.meta.pages;
+  if (result.meta.sheets) meta.sheets = result.meta.sheets;
+  if (result.meta.wordCount) meta.wordCount = result.meta.wordCount;
+
+  if (result.status === "ok") {
+    meta.lineCount = result.text.split(/\r?\n/).length;
+    return { status: "ok", meta, text: result.text };
+  }
+  // empty / encrypted / corrupt / cancelled / unsupported all surface their
+  // real reason. A cancellation maps to `cancelled` rather than `unsupported`:
+  // the file is perfectly readable, the user just stopped.
+  return {
+    status:
+      result.status === "empty"
+        ? "empty"
+        : result.status === "cancelled"
+          ? "cancelled"
+          : "unsupported",
+    meta,
+    text: null,
+    reason: result.reason,
+  };
+}
+
 /** Bound extracted text so a large file can't blow the model context. */
-export function clampForContext(text: string, maxChars = 24_000): { text: string; truncated: boolean } {
+export function clampForContext(
+  text: string,
+  maxChars = 24_000,
+): { text: string; truncated: boolean } {
   if (text.length <= maxChars) return { text, truncated: false };
   return {
     text: text.slice(0, maxChars) + `\n\n…[truncated ${text.length - maxChars} characters]`,

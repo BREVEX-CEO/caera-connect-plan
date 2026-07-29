@@ -18,11 +18,7 @@
 import { capabilityLabelFor, type OcadeCapabilityLabel } from "./ocade-capability-labels";
 
 export type ProviderRouting =
-  | "auto"
-  | "lovable_gateway"
-  | "openai_direct"
-  | "ollama_local"
-  | "caera_native";
+  "auto" | "lovable_gateway" | "openai_direct" | "ollama_local" | "caera_native";
 
 export interface EngineResolveInput {
   routing: ProviderRouting;

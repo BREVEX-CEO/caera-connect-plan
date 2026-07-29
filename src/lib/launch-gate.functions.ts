@@ -29,16 +29,17 @@ const updateItemInput = z.object({
   reviewer: z.string().max(200).nullable().optional(),
   evidence_url: z.string().url().max(500).nullable().optional(),
   applicable_modules: z.array(z.string().max(64)).max(20).optional(),
-  due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  due_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
   blocker: z.boolean().optional(),
   notes: z.string().max(2000).nullable().optional(),
   history_note: z.string().max(500).optional(),
 });
 
-async function assertAdmin(
-  supabase: { from: (t: string) => any },
-  userId: string,
-) {
+async function assertAdmin(supabase: { from: (t: string) => any }, userId: string) {
   const { data, error } = await supabase
     .from("user_roles")
     .select("role")
@@ -49,7 +50,6 @@ async function assertAdmin(
     throw new Response("Forbidden: admin role required", { status: 403 });
   }
 }
-
 
 export const updateLaunchGateItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

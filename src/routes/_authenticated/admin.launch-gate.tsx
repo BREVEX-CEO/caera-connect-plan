@@ -1,33 +1,18 @@
 import { createFileRoute, redirect, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ShieldCheck,
-  AlertTriangle,
-  Loader2,
-  ExternalLink,
-  History,
-  Lock,
-} from "lucide-react";
+import { ShieldCheck, AlertTriangle, Loader2, ExternalLink, History, Lock } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { StatusBadge } from "@/components/shell/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { executeAction, ActionConfirmationError } from "@/lib/actions";
-import {
-  updateLaunchGateItem,
-  upsertFeatureFlag,
-} from "@/lib/launch-gate.functions";
+import { updateLaunchGateItem, upsertFeatureFlag } from "@/lib/launch-gate.functions";
 import { cn } from "@/lib/utils";
 
 type Status =
-  | "not_started"
-  | "in_progress"
-  | "pending_review"
-  | "evidence_required"
-  | "complete"
-  | "waived";
+  "not_started" | "in_progress" | "pending_review" | "evidence_required" | "complete" | "waived";
 
 type Stage = "demo" | "private_alpha" | "beta" | "ga";
 
@@ -71,10 +56,7 @@ const STAGE_OPTIONS: Stage[] = ["demo", "private_alpha", "beta", "ga"];
 export const Route = createFileRoute("/_authenticated/admin/launch-gate")({
   ssr: false,
   head: () => ({
-    meta: [
-      { title: "Launch Gate — CAERA CADANE Admin" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Launch Gate — CAERA CADANE Admin" }, { name: "robots", content: "noindex" }],
   }),
   beforeLoad: async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -102,7 +84,6 @@ function statusBadgeKind(
   return "running";
 }
 
-
 function LaunchGatePage() {
   const qc = useQueryClient();
   const items = useQuery({
@@ -121,10 +102,7 @@ function LaunchGatePage() {
   const flags = useQuery({
     queryKey: ["feature_flags_admin"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("feature_flags")
-        .select("*")
-        .order("id");
+      const { data, error } = await supabase.from("feature_flags").select("*").order("id");
       if (error) throw error;
       return (data ?? []) as unknown as Flag[];
     },
@@ -145,9 +123,8 @@ function LaunchGatePage() {
     return {
       total: all.length,
       complete: all.filter((i) => i.status === "complete").length,
-      blockers: all.filter(
-        (i) => i.blocker && i.status !== "complete" && i.status !== "waived",
-      ).length,
+      blockers: all.filter((i) => i.blocker && i.status !== "complete" && i.status !== "waived")
+        .length,
     };
   }, [items.data]);
 
@@ -170,7 +147,11 @@ function LaunchGatePage() {
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <SummaryCard label="Items" value={summary.total} tone="neutral" />
         <SummaryCard label="Complete" value={summary.complete} tone="success" />
-        <SummaryCard label="Open blockers" value={summary.blockers} tone={summary.blockers > 0 ? "danger" : "success"} />
+        <SummaryCard
+          label="Open blockers"
+          value={summary.blockers}
+          tone={summary.blockers > 0 ? "danger" : "success"}
+        />
       </div>
 
       {items.isLoading ? (
@@ -210,7 +191,8 @@ function LaunchGatePage() {
           <Lock className="h-4 w-4" aria-hidden /> Feature flag stages
         </h2>
         <p className="mb-3 max-w-2xl text-xs text-muted-foreground">
-          Flags advance from Demo → Private alpha → Beta → GA. Moving a flag to GA is refused by the database when required blockers are unresolved for its applicable modules.
+          Flags advance from Demo → Private alpha → Beta → GA. Moving a flag to GA is refused by the
+          database when required blockers are unresolved for its applicable modules.
         </p>
         <FeatureFlagsPanel
           flags={flags.data ?? []}
@@ -259,8 +241,15 @@ function ItemRow({ item, onSaved }: { item: Item; onSaved: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<
-    { id: string; from_status: Status | null; to_status: Status; changed_at: string; note: string | null; evidence_url: string | null }[]
-  | null
+    | {
+        id: string;
+        from_status: Status | null;
+        to_status: Status;
+        changed_at: string;
+        note: string | null;
+        evidence_url: string | null;
+      }[]
+    | null
   >(null);
 
   async function loadHistory() {
@@ -316,7 +305,9 @@ function ItemRow({ item, onSaved }: { item: Item; onSaved: () => void }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-foreground">{item.title}</h3>
-            <StatusBadge status={statusBadgeKind(item.status)}>{item.status.replace("_", " ")}</StatusBadge>
+            <StatusBadge status={statusBadgeKind(item.status)}>
+              {item.status.replace("_", " ")}
+            </StatusBadge>
             {openBlocker ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-destructive">
                 <AlertTriangle className="h-3 w-3" /> Blocker
@@ -413,7 +404,9 @@ function ItemRow({ item, onSaved }: { item: Item; onSaved: () => void }) {
             />
           </label>
           <label className="text-xs sm:col-span-2">
-            <span className="text-muted-foreground">Applicable modules (comma-separated: ocade, ficia, madee, cania, core, admin)</span>
+            <span className="text-muted-foreground">
+              Applicable modules (comma-separated: ocade, ficia, madee, cania, core, admin)
+            </span>
             <input
               value={modules}
               onChange={(e) => setModules(e.target.value)}
@@ -447,7 +440,11 @@ function ItemRow({ item, onSaved }: { item: Item; onSaved: () => void }) {
                 disabled={busy}
                 className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
               >
-                {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <ShieldCheck className="h-3 w-3" />}
+                {busy ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <ShieldCheck className="h-3 w-3" />
+                )}
                 Save & audit
               </button>
             </div>
@@ -463,7 +460,9 @@ function ItemRow({ item, onSaved }: { item: Item; onSaved: () => void }) {
               ) : (
                 (history ?? []).map((h) => (
                   <li key={h.id} className="text-muted-foreground">
-                    <span className="text-foreground">{new Date(h.changed_at).toLocaleString()}</span>{" "}
+                    <span className="text-foreground">
+                      {new Date(h.changed_at).toLocaleString()}
+                    </span>{" "}
                     — {h.from_status ?? "∅"} → {h.to_status}
                     {h.note ? ` · ${h.note}` : ""}
                   </li>
@@ -525,7 +524,8 @@ function FeatureFlagsPanel({ flags, onSaved }: { flags: Flag[]; onSaved: () => v
           </button>
         </div>
         <p className="mt-2 text-[11px] text-muted-foreground">
-          New flags start in Demo stage, disabled. Advance them through Private alpha → Beta → GA as launch-gate items complete.
+          New flags start in Demo stage, disabled. Advance them through Private alpha → Beta → GA as
+          launch-gate items complete.
         </p>
       </GlassPanel>
     </div>
@@ -551,7 +551,7 @@ function FlagRow({ flag, onSaved }: { flag: Flag; onSaved: () => void }) {
         : null;
       const res = await executeAction("admin.feature_flag.upsert", {
         confirmed: true,
-        confirmPhrase: requiresStrong ? phrase ?? "" : "activate",
+        confirmPhrase: requiresStrong ? (phrase ?? "") : "activate",
         metadata: { flag_id: flag.id, to_stage: stage, to_enabled: enabled },
         run: () =>
           upsertFeatureFlag({
@@ -600,11 +600,7 @@ function FlagRow({ flag, onSaved }: { flag: Flag; onSaved: () => void }) {
           </select>
         </label>
         <label className="inline-flex items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={(e) => setEnabled(e.target.checked)}
-          />
+          <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
           <span className="text-muted-foreground">Enabled</span>
         </label>
         <input

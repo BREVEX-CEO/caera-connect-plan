@@ -2,9 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ArrowLeft, Copy, Eye, GitBranch, Loader2, Save, Sparkles, Trash2,
-} from "lucide-react";
+import { ArrowLeft, Copy, Eye, GitBranch, Loader2, Save, Sparkles, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -12,43 +10,80 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
-  createResumeVersion, deleteResumeVersion, getResumeVersion, listResumeVersions,
-  renameResumeVersion, updateResumeProject,
+  createResumeVersion,
+  deleteResumeVersion,
+  getResumeVersion,
+  listResumeVersions,
+  renameResumeVersion,
+  updateResumeProject,
 } from "@/lib/madee.functions";
-import { atsCheckResume, jobDescriptionMatch, type AtsResult, type JdMatchResult } from "@/lib/madee-ai.functions";
+import {
+  atsCheckResume,
+  jobDescriptionMatch,
+  type AtsResult,
+  type JdMatchResult,
+} from "@/lib/madee-ai.functions";
 import { executeAction } from "@/lib/actions";
 import {
-  emptyResume, type ResumeContent, ResumeContent as ResumeContentSchema, type ExperienceLevel,
+  emptyResume,
+  type ResumeContent,
+  ResumeContent as ResumeContentSchema,
+  type ExperienceLevel,
 } from "@/lib/madee-resume-types";
-import {
-  loadLocalResumeContent, saveLocalResumeContent,
-} from "@/lib/madee-local-store";
+import { loadLocalResumeContent, saveLocalResumeContent } from "@/lib/madee-local-store";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  AchievementsSection, CertificationsSection, EducationSection, LanguagesSection,
-  LinksSection, PersonalSection, ProjectsSection, SkillsSection, WorkSection,
+  AchievementsSection,
+  CertificationsSection,
+  EducationSection,
+  LanguagesSection,
+  LinksSection,
+  PersonalSection,
+  ProjectsSection,
+  SkillsSection,
+  WorkSection,
 } from "@/components/madee/ResumeSections";
 import { ResumePreview } from "@/components/madee/ResumePreview";
 
 export const Route = createFileRoute("/_authenticated/madee/$projectId")({
-  head: () => ({ meta: [{ title: "Edit resume — MADEE" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [{ title: "Edit resume — MADEE" }, { name: "robots", content: "noindex" }],
+  }),
   component: EditResume,
 });
 
 type Project = {
-  id: string; title: string; profession: string | null;
-  experience_level: ExperienceLevel | null; storage_mode: "browser_only" | "private_sync";
-  current_version_id: string | null; target_role: string | null; archived: boolean;
-  created_at: string; updated_at: string;
+  id: string;
+  title: string;
+  profession: string | null;
+  experience_level: ExperienceLevel | null;
+  storage_mode: "browser_only" | "private_sync";
+  current_version_id: string | null;
+  target_role: string | null;
+  archived: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 function EditResume() {
@@ -69,7 +104,10 @@ function EditResume() {
     queryKey: ["madee", "project", projectId],
     queryFn: async (): Promise<Project | null> => {
       const { data, error } = await supabase
-        .from("madee_resume_projects").select("*").eq("id", projectId).maybeSingle();
+        .from("madee_resume_projects")
+        .select("*")
+        .eq("id", projectId)
+        .maybeSingle();
       if (error) throw error;
       return data as Project | null;
     },
@@ -114,7 +152,9 @@ function EditResume() {
         toast.error(e instanceof Error ? e.message : "Could not load version");
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [project, currentId, loadedVersionId, getVersion]);
 
   const setResumeTracked = useMemo(
@@ -159,13 +199,26 @@ function EditResume() {
   }
 
   if (projectQ.isLoading) {
-    return <AppShell><div className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div></AppShell>;
+    return (
+      <AppShell>
+        <div className="flex items-center gap-2 text-sm">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+        </div>
+      </AppShell>
+    );
   }
   if (!project) {
     return (
       <AppShell>
-        <PageHeader title="Resume not found" description="This project may have been deleted or you do not have access." />
-        <Button asChild variant="secondary"><Link to="/madee"><ArrowLeft className="h-4 w-4" /> Back to projects</Link></Button>
+        <PageHeader
+          title="Resume not found"
+          description="This project may have been deleted or you do not have access."
+        />
+        <Button asChild variant="secondary">
+          <Link to="/madee">
+            <ArrowLeft className="h-4 w-4" /> Back to projects
+          </Link>
+        </Button>
       </AppShell>
     );
   }
@@ -206,19 +259,41 @@ function EditResume() {
                 experienceLevel={project.experience_level}
               />
             </TabsContent>
-            <TabsContent value="work" className="mt-4"><WorkSection resume={resume} setResume={setResumeTracked} /></TabsContent>
-            <TabsContent value="education" className="mt-4"><EducationSection resume={resume} setResume={setResumeTracked} /></TabsContent>
-            <TabsContent value="skills" className="mt-4"><SkillsSection resume={resume} setResume={setResumeTracked} /></TabsContent>
-            <TabsContent value="projects" className="mt-4"><ProjectsSection resume={resume} setResume={setResumeTracked} /></TabsContent>
-            <TabsContent value="certs" className="mt-4"><CertificationsSection resume={resume} setResume={setResumeTracked} /></TabsContent>
-            <TabsContent value="achievements" className="mt-4"><AchievementsSection resume={resume} setResume={setResumeTracked} /></TabsContent>
-            <TabsContent value="languages" className="mt-4"><LanguagesSection resume={resume} setResume={setResumeTracked} /></TabsContent>
-            <TabsContent value="links" className="mt-4"><LinksSection resume={resume} setResume={setResumeTracked} /></TabsContent>
+            <TabsContent value="work" className="mt-4">
+              <WorkSection resume={resume} setResume={setResumeTracked} />
+            </TabsContent>
+            <TabsContent value="education" className="mt-4">
+              <EducationSection resume={resume} setResume={setResumeTracked} />
+            </TabsContent>
+            <TabsContent value="skills" className="mt-4">
+              <SkillsSection resume={resume} setResume={setResumeTracked} />
+            </TabsContent>
+            <TabsContent value="projects" className="mt-4">
+              <ProjectsSection resume={resume} setResume={setResumeTracked} />
+            </TabsContent>
+            <TabsContent value="certs" className="mt-4">
+              <CertificationsSection resume={resume} setResume={setResumeTracked} />
+            </TabsContent>
+            <TabsContent value="achievements" className="mt-4">
+              <AchievementsSection resume={resume} setResume={setResumeTracked} />
+            </TabsContent>
+            <TabsContent value="languages" className="mt-4">
+              <LanguagesSection resume={resume} setResume={setResumeTracked} />
+            </TabsContent>
+            <TabsContent value="links" className="mt-4">
+              <LinksSection resume={resume} setResume={setResumeTracked} />
+            </TabsContent>
             <TabsContent value="ai" className="mt-4">
-              <AiPanel resume={resume} project={project} atsCheck={atsCheck} jdMatch={jdMatch} onSetTargetRole={async (v) => {
-                await updateProj({ data: { id: project.id, targetRole: v } });
-                projectQ.refetch();
-              }} />
+              <AiPanel
+                resume={resume}
+                project={project}
+                atsCheck={atsCheck}
+                jdMatch={jdMatch}
+                onSetTargetRole={async (v) => {
+                  await updateProj({ data: { id: project.id, targetRole: v } });
+                  projectQ.refetch();
+                }}
+              />
             </TabsContent>
             <TabsContent value="versions" className="mt-4">
               <VersionsPanel
@@ -259,7 +334,9 @@ function EditResume() {
 
         <aside className="hidden lg:block">
           <div className="sticky top-6 space-y-2">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Live preview</Label>
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+              Live preview
+            </Label>
             <div className="rounded-xl border border-border/60 bg-muted/30 p-4 max-h-[calc(100vh-8rem)] overflow-auto">
               <ResumePreview resume={resume} compact />
             </div>
@@ -285,8 +362,14 @@ const SECTIONS = [
 ] as const;
 
 function SaveVersionButton({
-  onSave, saving, dirty,
-}: { onSave: (label: string | null) => Promise<void>; saving: boolean; dirty: boolean }) {
+  onSave,
+  saving,
+  dirty,
+}: {
+  onSave: (label: string | null) => Promise<void>;
+  saving: boolean;
+  dirty: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState("");
   return (
@@ -298,11 +381,20 @@ function SaveVersionButton({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Save a new version</DialogTitle>
-          <DialogDescription>Add an optional label (e.g. "Applied Acme", "Tightened bullets").</DialogDescription>
+          <DialogDescription>
+            Add an optional label (e.g. "Applied Acme", "Tightened bullets").
+          </DialogDescription>
         </DialogHeader>
-        <Input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={160} placeholder="Version label" />
+        <Input
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
+          maxLength={160}
+          placeholder="Version label"
+        />
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
           <Button
             disabled={saving}
             onClick={async () => {
@@ -322,7 +414,11 @@ function SaveVersionButton({
 /* -------------------- AI review panel -------------------- */
 
 function AiPanel({
-  resume, project, atsCheck, jdMatch, onSetTargetRole,
+  resume,
+  project,
+  atsCheck,
+  jdMatch,
+  onSetTargetRole,
 }: {
   resume: ResumeContent;
   project: Project;
@@ -342,8 +438,8 @@ function AiPanel({
       <div className="rounded-lg border border-border/60 p-4">
         <h3 className="font-semibold">ATS review</h3>
         <p className="text-xs text-muted-foreground">
-          Runs an AI check for applicant-tracking-system compatibility against the
-          current draft. Never invents credentials — only flags what's on the page.
+          Runs an AI check for applicant-tracking-system compatibility against the current draft.
+          Never invents credentials — only flags what's on the page.
         </p>
         <div className="mt-2 flex flex-wrap items-end gap-2">
           <div className="flex-1 min-w-[12rem]">
@@ -366,15 +462,28 @@ function AiPanel({
               setBusy("ats");
               try {
                 const res = await executeAction("madee.resume.ai_ats", {
-                  run: () => atsCheck({ data: { resume: resume as unknown as Record<string, unknown>, targetRole: targetRole || undefined } }),
+                  run: () =>
+                    atsCheck({
+                      data: {
+                        resume: resume as unknown as Record<string, unknown>,
+                        targetRole: targetRole || undefined,
+                      },
+                    }),
                 });
-                if (res.ok) setAts(res.result); else toast.error(res.error);
+                if (res.ok) setAts(res.result);
+                else toast.error(res.error);
               } catch (e) {
                 toast.error(e instanceof Error ? e.message : "AI request failed");
-              } finally { setBusy(null); }
+              } finally {
+                setBusy(null);
+              }
             }}
           >
-            {busy === "ats" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {busy === "ats" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
             Run ATS check
           </Button>
         </div>
@@ -384,8 +493,8 @@ function AiPanel({
       <div className="rounded-lg border border-border/60 p-4">
         <h3 className="font-semibold">Job-description match</h3>
         <p className="text-xs text-muted-foreground">
-          Paste a job description. MADEE compares it against your draft — matched
-          keywords, missing keywords, and tailoring tips.
+          Paste a job description. MADEE compares it against your draft — matched keywords, missing
+          keywords, and tailoring tips.
         </p>
         <Textarea
           className="mt-2"
@@ -403,15 +512,27 @@ function AiPanel({
               try {
                 const res = await executeAction("madee.resume.ai_jd_match", {
                   run: () =>
-                    jdMatch({ data: { resume: resume as unknown as Record<string, unknown>, jobDescription: jdText } }),
+                    jdMatch({
+                      data: {
+                        resume: resume as unknown as Record<string, unknown>,
+                        jobDescription: jdText,
+                      },
+                    }),
                 });
-                if (res.ok) setJd(res.result); else toast.error(res.error);
+                if (res.ok) setJd(res.result);
+                else toast.error(res.error);
               } catch (e) {
                 toast.error(e instanceof Error ? e.message : "AI request failed");
-              } finally { setBusy(null); }
+              } finally {
+                setBusy(null);
+              }
             }}
           >
-            {busy === "jd" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {busy === "jd" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
             Match
           </Button>
         </div>
@@ -437,7 +558,9 @@ function AtsResultView({ r }: { r: AtsResult }) {
 function JdResultView({ r }: { r: JdMatchResult }) {
   return (
     <div className="mt-4 space-y-3 text-sm">
-      <div><b>{r.matchScore}</b> / 100 match</div>
+      <div>
+        <b>{r.matchScore}</b> / 100 match
+      </div>
       <BulletBlock title="Matched keywords" items={r.matchedKeywords} />
       <BulletBlock title="Missing keywords" items={r.missingKeywords} />
       <BulletBlock title="Tailoring tips" items={r.tailoringTips} />
@@ -448,8 +571,14 @@ function BulletBlock({ title, items }: { title: string; items: string[] }) {
   if (!items.length) return null;
   return (
     <div>
-      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</div>
-      <ul className="ml-4 list-disc">{items.map((s, i) => <li key={i}>{s}</li>)}</ul>
+      <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {title}
+      </div>
+      <ul className="ml-4 list-disc">
+        {items.map((s, i) => (
+          <li key={i}>{s}</li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -457,10 +586,23 @@ function BulletBlock({ title, items }: { title: string; items: string[] }) {
 /* -------------------- Versions panel -------------------- */
 
 function VersionsPanel({
-  projectId: _projectId, versions, currentId, storageMode, onSwitch, onRename, onDelete, onCompare,
+  projectId: _projectId,
+  versions,
+  currentId,
+  storageMode,
+  onSwitch,
+  onRename,
+  onDelete,
+  onCompare,
 }: {
   projectId: string;
-  versions: Array<{ id: string; version_number: number; label: string | null; content_stored_locally: boolean; created_at: string }>;
+  versions: Array<{
+    id: string;
+    version_number: number;
+    label: string | null;
+    content_stored_locally: boolean;
+    created_at: string;
+  }>;
   currentId: string | null;
   storageMode: "browser_only" | "private_sync";
   onSwitch: (id: string) => Promise<void>;
@@ -472,19 +614,29 @@ function VersionsPanel({
   return (
     <div className="space-y-3">
       <div className="text-xs text-muted-foreground">
-        Storage: {storageMode === "browser_only" ? "Browser Only — content lives in this browser." : "Private Sync — content available on approved devices."}
+        Storage:{" "}
+        {storageMode === "browser_only"
+          ? "Browser Only — content lives in this browser."
+          : "Private Sync — content available on approved devices."}
       </div>
       <ul className="space-y-2">
         {versions.map((v) => {
           const active = v.id === currentId;
           return (
-            <li key={v.id} className={`rounded-lg border p-3 ${active ? "border-[color:var(--accent-madee)]" : "border-border/60"}`}>
+            <li
+              key={v.id}
+              className={`rounded-lg border p-3 ${active ? "border-[color:var(--accent-madee)]" : "border-border/60"}`}
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-medium">
                     v{v.version_number} {v.label ? `— ${v.label}` : ""}
-                    {active && <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">current</span>}
-                    {v.content_stored_locally && <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">local</span>}
+                    {active && (
+                      <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">current</span>
+                    )}
+                    {v.content_stored_locally && (
+                      <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs">local</span>
+                    )}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {new Date(v.created_at).toLocaleString()}
@@ -496,22 +648,38 @@ function VersionsPanel({
                       <GitBranch className="h-4 w-4" /> Load
                     </Button>
                   )}
-                  <Button size="sm" variant="ghost" onClick={() => {
-                    if (!compareA) { setCompareA(v.id); toast("Pick a second version to compare"); }
-                    else if (compareA === v.id) { setCompareA(null); toast("Cleared"); }
-                    else { onCompare(compareA, v.id); setCompareA(null); }
-                  }}>
-                    <Copy className="h-4 w-4" /> {compareA === v.id ? "Cancel" : compareA ? "Compare with this" : "Compare…"}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      if (!compareA) {
+                        setCompareA(v.id);
+                        toast("Pick a second version to compare");
+                      } else if (compareA === v.id) {
+                        setCompareA(null);
+                        toast("Cleared");
+                      } else {
+                        onCompare(compareA, v.id);
+                        setCompareA(null);
+                      }
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />{" "}
+                    {compareA === v.id ? "Cancel" : compareA ? "Compare with this" : "Compare…"}
                   </Button>
                   <RenameButton current={v.label ?? ""} onRename={(l) => onRename(v.id, l)} />
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button size="icon" variant="ghost" title="Delete version"><Trash2 className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" title="Delete version">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete version v{v.version_number}?</AlertDialogTitle>
-                        <AlertDialogDescription>Other versions remain. This cannot be undone.</AlertDialogDescription>
+                        <AlertDialogDescription>
+                          Other versions remain. This cannot be undone.
+                        </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -529,18 +697,43 @@ function VersionsPanel({
   );
 }
 
-function RenameButton({ current, onRename }: { current: string; onRename: (l: string) => Promise<void> }) {
+function RenameButton({
+  current,
+  onRename,
+}: {
+  current: string;
+  onRename: (l: string) => Promise<void>;
+}) {
   const [open, setOpen] = useState(false);
   const [label, setLabel] = useState(current);
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) setLabel(current); }}>
-      <Button size="sm" variant="ghost" onClick={() => setOpen(true)}>Rename</Button>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (o) setLabel(current);
+      }}
+    >
+      <Button size="sm" variant="ghost" onClick={() => setOpen(true)}>
+        Rename
+      </Button>
       <DialogContent>
-        <DialogHeader><DialogTitle>Rename version</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Rename version</DialogTitle>
+        </DialogHeader>
         <Input value={label} onChange={(e) => setLabel(e.target.value)} maxLength={160} />
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={async () => { await onRename(label); setOpen(false); }}>Save</Button>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={async () => {
+              await onRename(label);
+              setOpen(false);
+            }}
+          >
+            Save
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

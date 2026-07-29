@@ -76,3 +76,18 @@ const RAW_IDENTITY_PATTERN =
 export function leaksRawModelIdentity(text: string): boolean {
   return RAW_IDENTITY_PATTERN.test(text);
 }
+
+/**
+ * Replace raw provider/model names with the neutral OCADE wording.
+ *
+ * Used before an assistant reply is PERSISTED: a leaked vendor name in stored
+ * history is re-fed as context on every later turn, so it must not survive even
+ * though the streamed copy already reached the user once.
+ *
+ * Deliberately a targeted substitution rather than dropping the message — the
+ * answer is usually still useful, and silently discarding it would be worse.
+ */
+export function redactRawModelIdentity(text: string): string {
+  if (!text) return text;
+  return text.replace(new RegExp(RAW_IDENTITY_PATTERN.source, "gi"), "the OCADE engine");
+}

@@ -86,23 +86,46 @@ function SettingsPage() {
     <div className="flex flex-col gap-4">
       <GlassPanel className="p-4">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Country (ISO-2)" hint="Used by Country news and Government feeds. Example: IN, US, GB.">
-            <Input value={country} onChange={(e) => setCountry(e.target.value.toUpperCase().slice(0, 2))} placeholder="IN" />
+          <Field
+            label="Country (ISO-2)"
+            hint="Used by Country news and Government feeds. Example: IN, US, GB."
+          >
+            <Input
+              value={country}
+              onChange={(e) => setCountry(e.target.value.toUpperCase().slice(0, 2))}
+              placeholder="IN"
+            />
           </Field>
           <Field label="Region / state" hint="Optional — narrows some feeds.">
-            <Input value={region} onChange={(e) => setRegion(e.target.value)} placeholder="Karnataka" />
+            <Input
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              placeholder="Karnataka"
+            />
           </Field>
           <Field label="Timezone" hint="IANA timezone name.">
             <Input value={tz} onChange={(e) => setTz(e.target.value)} placeholder="Asia/Kolkata" />
           </Field>
           <Field label="Primary currency" hint="ISO 4217 code. Example: INR, USD.">
-            <Input value={primary} onChange={(e) => setPrimary(e.target.value.toUpperCase().slice(0, 3))} placeholder="INR" />
+            <Input
+              value={primary}
+              onChange={(e) => setPrimary(e.target.value.toUpperCase().slice(0, 3))}
+              placeholder="INR"
+            />
           </Field>
           <Field label="Secondary currency" hint="Optional — used for exchange cards.">
-            <Input value={secondary} onChange={(e) => setSecondary(e.target.value.toUpperCase().slice(0, 3))} placeholder="USD" />
+            <Input
+              value={secondary}
+              onChange={(e) => setSecondary(e.target.value.toUpperCase().slice(0, 3))}
+              placeholder="USD"
+            />
           </Field>
           <Field label="Units" hint="Metric or imperial.">
-            <RadioGroup value={units} onValueChange={(v) => setUnits(v as "metric" | "imperial")} className="flex gap-4">
+            <RadioGroup
+              value={units}
+              onValueChange={(v) => setUnits(v as "metric" | "imperial")}
+              className="flex gap-4"
+            >
               <label className="flex items-center gap-2 text-sm">
                 <RadioGroupItem value="metric" /> Metric
               </label>
@@ -136,15 +159,18 @@ function SettingsPage() {
           <MapPin className="h-4 w-4" /> Location permission
         </div>
         <p className="text-xs text-muted-foreground">
-          Weather and Traffic need approximate coordinates. Location is asked
-          only when you press the button below. We store rounded coordinates
-          (about 1 km precision), never a live track.
+          Weather and Traffic need approximate coordinates. Location is asked only when you press
+          the button below. We store rounded coordinates (about 1 km precision), never a live track.
         </p>
         <div className="flex items-center justify-between gap-2 text-xs">
           <span className="text-muted-foreground">
-            Current status: <span className="text-foreground">{q.data?.location_permission ?? "unknown"}</span>
+            Current status:{" "}
+            <span className="text-foreground">{q.data?.location_permission ?? "unknown"}</span>
             {q.data?.approx_lat != null && q.data?.approx_lon != null ? (
-              <> · approx {q.data.approx_lat}, {q.data.approx_lon}</>
+              <>
+                {" "}
+                · approx {q.data.approx_lat}, {q.data.approx_lon}
+              </>
             ) : null}
           </span>
           <Button size="sm" variant="outline" onClick={requestLocation}>

@@ -7,13 +7,6 @@ export function GlassPanel({
   ...props
 }: HTMLAttributes<HTMLDivElement> & { strong?: boolean }) {
   return (
-    <div
-      className={cn(
-        strong ? "glass-strong" : "glass",
-        "rounded-lg",
-        className,
-      )}
-      {...props}
-    />
+    <div className={cn(strong ? "glass-strong" : "glass", "rounded-lg", className)} {...props} />
   );
 }

@@ -12,6 +12,9 @@ const marketingNav = [
 export function MarketingShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen">
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <Link to="/" aria-label="CAERA CADANE home">
@@ -19,7 +22,11 @@ export function MarketingShell({ children }: { children: ReactNode }) {
           </Link>
           <nav className="hidden items-center gap-6 md:flex">
             {marketingNav.map((n) => (
-              <span key={n.to} className="text-sm text-muted-foreground opacity-60" title="Ships next">
+              <span
+                key={n.to}
+                className="text-sm text-muted-foreground opacity-60"
+                title="Ships next"
+              >
                 {n.label}
               </span>
             ))}
@@ -40,7 +47,9 @@ export function MarketingShell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
-      <main>{children}</main>
+      <main id="main-content" tabIndex={-1} className="focus:outline-none">
+        {children}
+      </main>
       <footer className="border-t border-border/60 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground sm:flex-row">
           <BrandMark />

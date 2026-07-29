@@ -8,14 +8,26 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const uuid = z.string().uuid();
 
+/**
+ * Temporary bridge for `project_id`, which exists in the ready-to-apply OCADE
+ * migration but not in the generated Supabase type until that migration is
+ * applied and types are regenerated.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function pendingConversationFrom(supabase: unknown): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (supabase as { from: (table: string) => any }).from("ocade_conversations");
+}
+
 /* -------------------- Conversations -------------------- */
 
 export const listConversations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("ocade_conversations")
-      .select("id, title, pinned, archived, model_id, privacy_mode, updated_at, created_at")
+    const { data, error } = await pendingConversationFrom(context.supabase)
+      .select(
+        "id, title, pinned, archived, model_id, privacy_mode, project_id, updated_at, created_at",
+      )
       .order("pinned", { ascending: false })
       .order("updated_at", { ascending: false });
     if (error) throw new Response(error.message, { status: 500 });
@@ -25,17 +37,20 @@ export const listConversations = createServerFn({ method: "GET" })
 export const createConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) =>
-    z.object({ title: z.string().max(200).optional(), modelId: z.string().max(200).optional() }).parse(i),
+    z
+      .object({ title: z.string().max(200).optional(), modelId: z.string().max(200).optional() })
+      .parse(i),
   )
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
-      .from("ocade_conversations")
+    const { data: row, error } = await pendingConversationFrom(context.supabase)
       .insert({
         user_id: context.userId,
         title: data.title ?? "New chat",
         model_id: data.modelId ?? null,
       })
-      .select("id, title, pinned, archived, model_id, privacy_mode, updated_at, created_at")
+      .select(
+        "id, title, pinned, archived, model_id, privacy_mode, project_id, updated_at, created_at",
+      )
       .single();
     if (error) throw new Response(error.message, { status: 500 });
     return row;
@@ -70,10 +85,7 @@ export const deleteConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("ocade_conversations")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await context.supabase.from("ocade_conversations").delete().eq("id", data.id);
     if (error) throw new Response(error.message, { status: 500 });
     return { ok: true as const };
   });
@@ -97,10 +109,7 @@ export const deleteMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
-      .from("ocade_messages")
-      .delete()
-      .eq("id", data.id);
+    const { error } = await context.supabase.from("ocade_messages").delete().eq("id", data.id);
     if (error) throw new Response(error.message, { status: 500 });
     return { ok: true as const };
   });

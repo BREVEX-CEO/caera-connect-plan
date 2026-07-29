@@ -1,7 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, UserPlus, Building, MapPin, Users2, Ban, Undo2, Trash2, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  UserPlus,
+  Building,
+  MapPin,
+  Users2,
+  Ban,
+  Undo2,
+  Trash2,
+  Loader2,
+} from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
@@ -45,7 +55,11 @@ function PeoplePage() {
   return (
     <AppShell>
       <div className="mb-4">
-        <Link to="/ficia/$tenantId" params={{ tenantId }} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          to="/ficia/$tenantId"
+          params={{ tenantId }}
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="size-4" /> Back to company
         </Link>
       </div>
@@ -57,8 +71,11 @@ function PeoplePage() {
 
       <GlassPanel className="p-2 mt-4 mb-4 flex gap-1">
         {(["people", "org"] as const).map((k) => (
-          <button key={k} onClick={() => setTab(k)}
-            className={`px-3 py-1.5 rounded-md text-sm capitalize ${tab === k ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}>
+          <button
+            key={k}
+            onClick={() => setTab(k)}
+            className={`px-3 py-1.5 rounded-md text-sm capitalize ${tab === k ? "bg-primary/10 text-primary" : "hover:bg-muted"}`}
+          >
             {k === "org" ? "Departments / teams / locations" : "People"}
           </button>
         ))}
@@ -77,46 +94,86 @@ function PeoplePage() {
         </>
       )}
 
-      {tab === "org" && (
-        <OrgUnits tenantId={tenantId} data={org.data as any} onChange={refresh} />
-      )}
+      {tab === "org" && <OrgUnits tenantId={tenantId} data={org.data as any} onChange={refresh} />}
     </AppShell>
   );
 }
 
 function InvitePersonForm({ tenantId, onDone }: { tenantId: string; onDone: () => void }) {
   const [email, setEmail] = useState("");
-  const [type, setType] = useState<"employee" | "contractor" | "advisor" | "auditor" | "consultant">("employee");
+  const [type, setType] = useState<
+    "employee" | "contractor" | "advisor" | "auditor" | "consultant"
+  >("employee");
   const [title, setTitle] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 
   async function submit() {
-    if (!email.includes("@")) { setMsg("Enter a valid email."); return; }
+    if (!email.includes("@")) {
+      setMsg("Enter a valid email.");
+      return;
+    }
     setBusy(true);
     setMsg(null);
     try {
       const r = await executeAction("ficia.people.invite", {
         confirmed: true,
-        run: () => invitePerson({ data: { tenant_id: tenantId, invited_email: email, worker_type: type, title: title || undefined } }),
+        run: () =>
+          invitePerson({
+            data: {
+              tenant_id: tenantId,
+              invited_email: email,
+              worker_type: type,
+              title: title || undefined,
+            },
+          }),
       });
-      if (r.ok) { setEmail(""); setTitle(""); setMsg("Invitation recorded."); onDone(); }
-      else setMsg(r.message);
-    } finally { setBusy(false); }
+      if (r.ok) {
+        setEmail("");
+        setTitle("");
+        setMsg("Invitation recorded.");
+        onDone();
+      } else setMsg(r.message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
     <GlassPanel className="p-4 mb-4">
-      <h3 className="text-sm font-semibold flex items-center gap-2"><UserPlus className="size-4" /> Invite person</h3>
+      <h3 className="text-sm font-semibold flex items-center gap-2">
+        <UserPlus className="size-4" /> Invite person
+      </h3>
       <div className="grid gap-3 md:grid-cols-4 mt-3">
-        <div className="grid gap-1"><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="person@example.com" /></div>
+        <div className="grid gap-1">
+          <Label>Email</Label>
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="person@example.com"
+          />
+        </div>
         <div className="grid gap-1">
           <Label>Type</Label>
-          <select value={type} onChange={(e) => setType(e.target.value as any)} className="rounded-md border border-border bg-background px-2 py-2 text-sm">
-            {["employee", "contractor", "advisor", "auditor", "consultant"].map((t) => <option key={t}>{t}</option>)}
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value as any)}
+            className="rounded-md border border-border bg-background px-2 py-2 text-sm"
+          >
+            {["employee", "contractor", "advisor", "auditor", "consultant"].map((t) => (
+              <option key={t}>{t}</option>
+            ))}
           </select>
         </div>
-        <div className="grid gap-1"><Label>Title (optional)</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Senior accountant" /></div>
+        <div className="grid gap-1">
+          <Label>Title (optional)</Label>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Senior accountant"
+          />
+        </div>
         <div className="grid gap-1 justify-end">
           <Label>&nbsp;</Label>
           <Button size="sm" onClick={submit} disabled={busy}>
@@ -127,16 +184,34 @@ function InvitePersonForm({ tenantId, onDone }: { tenantId: string; onDone: () =
       </div>
       {msg && <p className="text-xs text-muted-foreground mt-2">{msg}</p>}
       <p className="text-xs text-muted-foreground mt-2">
-        Invited people appear as <b>invited</b> until they sign in and are linked. Actual signup / email delivery ships with the invite-mail slice.
+        Invited people appear as <b>invited</b> until they sign in and are linked. Actual signup /
+        email delivery ships with the invite-mail slice.
       </p>
     </GlassPanel>
   );
 }
 
-function PeopleTable({ tenantId: _tenantId, loading, people, org, onChange }: { tenantId: string; loading: boolean; people: any[]; org: any; onChange: () => void }) {
+function PeopleTable({
+  tenantId: _tenantId,
+  loading,
+  people,
+  org,
+  onChange,
+}: {
+  tenantId: string;
+  loading: boolean;
+  people: any[];
+  org: any;
+  onChange: () => void;
+}) {
   const [busy, setBusy] = useState<string | null>(null);
 
-  async function change(id: string, action: string, status: "suspended" | "terminated" | "active", reason?: string) {
+  async function change(
+    id: string,
+    action: string,
+    status: "suspended" | "terminated" | "active",
+    reason?: string,
+  ) {
     setBusy(id);
     try {
       const r = await executeAction(action, {
@@ -146,7 +221,9 @@ function PeopleTable({ tenantId: _tenantId, loading, people, org, onChange }: { 
       });
       if (!r.ok) alert(r.message);
       else onChange();
-    } finally { setBusy(null); }
+    } finally {
+      setBusy(null);
+    }
   }
 
   const depMap = new Map((org?.departments ?? []).map((d: any) => [d.id, d.name]));
@@ -168,40 +245,89 @@ function PeopleTable({ tenantId: _tenantId, loading, people, org, onChange }: { 
           </tr>
         </thead>
         <tbody>
-          {loading && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">Loading…</td></tr>}
-          {!loading && people.length === 0 && <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">No people yet — invite the first one above.</td></tr>}
+          {loading && (
+            <tr>
+              <td colSpan={7} className="p-4 text-center text-muted-foreground">
+                Loading…
+              </td>
+            </tr>
+          )}
+          {!loading && people.length === 0 && (
+            <tr>
+              <td colSpan={7} className="p-4 text-center text-muted-foreground">
+                No people yet — invite the first one above.
+              </td>
+            </tr>
+          )}
           {people.map((p) => (
             <tr key={p.id} className="border-b border-border/40 last:border-0">
               <td className="p-3">
-                <div className="font-medium">{p.invited_email ?? (p.user_id ? `${p.user_id.slice(0, 8)}…` : "—")}</div>
+                <div className="font-medium">
+                  {p.invited_email ?? (p.user_id ? `${p.user_id.slice(0, 8)}…` : "—")}
+                </div>
               </td>
               <td className="p-3 capitalize">{p.worker_type}</td>
               <td className="p-3">
-                <StatusBadge status={p.status === "active" ? "success" : p.status === "invited" ? "beta" : p.status === "suspended" ? "planned" : "planned"}>{p.status}</StatusBadge>
+                <StatusBadge
+                  status={
+                    p.status === "active"
+                      ? "success"
+                      : p.status === "invited"
+                        ? "beta"
+                        : p.status === "suspended"
+                          ? "planned"
+                          : "planned"
+                  }
+                >
+                  {p.status}
+                </StatusBadge>
               </td>
               <td className="p-3">{p.title ?? "—"}</td>
               <td className="p-3 text-xs text-muted-foreground">
-                {[depMap.get(p.department_id), teamMap.get(p.team_id), locMap.get(p.location_id)].filter(Boolean).join(" · ") || "—"}
+                {[depMap.get(p.department_id), teamMap.get(p.team_id), locMap.get(p.location_id)]
+                  .filter(Boolean)
+                  .join(" · ") || "—"}
               </td>
               <td className="p-3 text-xs text-muted-foreground">
-                {p.start_date ?? "—"}{p.end_date ? ` → ${p.end_date}` : ""}
+                {p.start_date ?? "—"}
+                {p.end_date ? ` → ${p.end_date}` : ""}
               </td>
               <td className="p-3 whitespace-nowrap text-right">
                 {p.status === "active" && (
-                  <Button size="sm" variant="ghost" disabled={busy === p.id}
-                    onClick={() => { const r = prompt("Suspend — reason?"); if (r != null) change(p.id, "ficia.people.suspend", "suspended", r); }}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy === p.id}
+                    onClick={() => {
+                      const r = prompt("Suspend — reason?");
+                      if (r != null) change(p.id, "ficia.people.suspend", "suspended", r);
+                    }}
+                  >
                     <Ban className="size-3" /> Suspend
                   </Button>
                 )}
                 {p.status === "suspended" && (
-                  <Button size="sm" variant="ghost" disabled={busy === p.id}
-                    onClick={() => change(p.id, "ficia.people.restore", "active")}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy === p.id}
+                    onClick={() => change(p.id, "ficia.people.restore", "active")}
+                  >
                     <Undo2 className="size-3" /> Restore
                   </Button>
                 )}
                 {(p.status === "active" || p.status === "suspended") && (
-                  <Button size="sm" variant="ghost" disabled={busy === p.id}
-                    onClick={() => { const r = prompt("Terminate — reason? (Type TERMINATE on the confirm screen.)"); if (r != null) change(p.id, "ficia.people.terminate", "terminated", r); }}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy === p.id}
+                    onClick={() => {
+                      const r = prompt(
+                        "Terminate — reason? (Type TERMINATE on the confirm screen.)",
+                      );
+                      if (r != null) change(p.id, "ficia.people.terminate", "terminated", r);
+                    }}
+                  >
                     <Trash2 className="size-3" /> Terminate
                   </Button>
                 )}
@@ -214,37 +340,108 @@ function PeopleTable({ tenantId: _tenantId, loading, people, org, onChange }: { 
   );
 }
 
-function OrgUnits({ tenantId, data, onChange }: { tenantId: string; data: any; onChange: () => void }) {
+function OrgUnits({
+  tenantId,
+  data,
+  onChange,
+}: {
+  tenantId: string;
+  data: any;
+  onChange: () => void;
+}) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <OrgList title="Departments" icon={<Building className="size-4" />} items={data?.departments ?? []} field="name" onCreate={async (name) => {
-        const r = await executeAction("ficia.org.create", { confirmed: true, run: () => createOrgUnit({ data: { kind: "department", tenant_id: tenantId, name } }) });
-        if (!r.ok) alert(r.message); else onChange();
-      }} />
-      <OrgList title="Teams" icon={<Users2 className="size-4" />} items={data?.teams ?? []} field="name" onCreate={async (name) => {
-        const r = await executeAction("ficia.org.create", { confirmed: true, run: () => createOrgUnit({ data: { kind: "team", tenant_id: tenantId, name } }) });
-        if (!r.ok) alert(r.message); else onChange();
-      }} />
-      <OrgList title="Locations" icon={<MapPin className="size-4" />} items={data?.locations ?? []} field="label" onCreate={async (name) => {
-        const r = await executeAction("ficia.org.create", { confirmed: true, run: () => createOrgUnit({ data: { kind: "location", tenant_id: tenantId, label: name } }) });
-        if (!r.ok) alert(r.message); else onChange();
-      }} />
+      <OrgList
+        title="Departments"
+        icon={<Building className="size-4" />}
+        items={data?.departments ?? []}
+        field="name"
+        onCreate={async (name) => {
+          const r = await executeAction("ficia.org.create", {
+            confirmed: true,
+            run: () => createOrgUnit({ data: { kind: "department", tenant_id: tenantId, name } }),
+          });
+          if (!r.ok) alert(r.message);
+          else onChange();
+        }}
+      />
+      <OrgList
+        title="Teams"
+        icon={<Users2 className="size-4" />}
+        items={data?.teams ?? []}
+        field="name"
+        onCreate={async (name) => {
+          const r = await executeAction("ficia.org.create", {
+            confirmed: true,
+            run: () => createOrgUnit({ data: { kind: "team", tenant_id: tenantId, name } }),
+          });
+          if (!r.ok) alert(r.message);
+          else onChange();
+        }}
+      />
+      <OrgList
+        title="Locations"
+        icon={<MapPin className="size-4" />}
+        items={data?.locations ?? []}
+        field="label"
+        onCreate={async (name) => {
+          const r = await executeAction("ficia.org.create", {
+            confirmed: true,
+            run: () =>
+              createOrgUnit({ data: { kind: "location", tenant_id: tenantId, label: name } }),
+          });
+          if (!r.ok) alert(r.message);
+          else onChange();
+        }}
+      />
     </div>
   );
 }
 
-function OrgList({ title, icon, items, field, onCreate }: { title: string; icon: React.ReactNode; items: any[]; field: string; onCreate: (name: string) => Promise<void> }) {
+function OrgList({
+  title,
+  icon,
+  items,
+  field,
+  onCreate,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  items: any[];
+  field: string;
+  onCreate: (name: string) => Promise<void>;
+}) {
   const [name, setName] = useState("");
   return (
     <GlassPanel className="p-4">
-      <h3 className="text-sm font-semibold flex items-center gap-2">{icon} {title}</h3>
+      <h3 className="text-sm font-semibold flex items-center gap-2">
+        {icon} {title}
+      </h3>
       <div className="mt-3 flex gap-2">
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={`New ${title.toLowerCase().slice(0, -1)}`} />
-        <Button size="sm" onClick={async () => { if (name.trim()) { await onCreate(name.trim()); setName(""); } }}>Add</Button>
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={`New ${title.toLowerCase().slice(0, -1)}`}
+        />
+        <Button
+          size="sm"
+          onClick={async () => {
+            if (name.trim()) {
+              await onCreate(name.trim());
+              setName("");
+            }
+          }}
+        >
+          Add
+        </Button>
       </div>
       <ul className="mt-3 space-y-1 text-sm">
         {items.length === 0 && <li className="text-xs text-muted-foreground">None yet.</li>}
-        {items.map((it) => <li key={it.id} className="border-b border-border/40 py-1 last:border-0">{it[field]}</li>)}
+        {items.map((it) => (
+          <li key={it.id} className="border-b border-border/40 py-1 last:border-0">
+            {it[field]}
+          </li>
+        ))}
       </ul>
     </GlassPanel>
   );

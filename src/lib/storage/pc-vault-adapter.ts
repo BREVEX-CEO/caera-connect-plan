@@ -6,9 +6,19 @@ import { NativeCompanionRequiredError, type StorageAdapter } from "./types";
  *  Native Companion Required state at every call site. */
 export const pcVaultAdapter: StorageAdapter = {
   mode: "pc_vault",
-  async put() { throw new NativeCompanionRequiredError(); },
-  async get() { throw new NativeCompanionRequiredError(); },
-  async list() { throw new NativeCompanionRequiredError(); },
-  async delete() { throw new NativeCompanionRequiredError(); },
-  async clear() { throw new NativeCompanionRequiredError(); },
+  async put() {
+    throw new NativeCompanionRequiredError();
+  },
+  async get() {
+    throw new NativeCompanionRequiredError();
+  },
+  async list() {
+    throw new NativeCompanionRequiredError();
+  },
+  async delete() {
+    throw new NativeCompanionRequiredError();
+  },
+  async clear() {
+    throw new NativeCompanionRequiredError();
+  },
 };

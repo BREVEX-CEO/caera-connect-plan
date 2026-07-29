@@ -15,10 +15,7 @@ export const Route = createFileRoute("/auth/callback")({
   ssr: false,
   validateSearch: searchSchema,
   head: () => ({
-    meta: [
-      { title: "Signing you in — CAERA CADANE" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Signing you in — CAERA CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: CallbackPage,
 });
@@ -27,7 +24,7 @@ function CallbackPage() {
   const { next, error: providerError, error_description } = Route.useSearch();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(
-    providerError ? error_description ?? providerError : null,
+    providerError ? (error_description ?? providerError) : null,
   );
 
   useEffect(() => {
@@ -69,7 +66,10 @@ function CallbackPage() {
   }, [error, navigate, next]);
 
   return (
-    <AuthShell title="Signing you in" subtitle="Completing your sign-in — this should only take a moment.">
+    <AuthShell
+      title="Signing you in"
+      subtitle="Completing your sign-in — this should only take a moment."
+    >
       {error ? (
         <div className="flex flex-col gap-3">
           <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">

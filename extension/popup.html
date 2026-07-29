@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pair OCADE</title>
+    <style>
+      body {
+        width: 280px;
+        margin: 0;
+        padding: 16px;
+        font: 14px system-ui;
+        color: #172033;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 16px;
+      }
+      p {
+        margin: 0 0 12px;
+        color: #526079;
+        line-height: 1.4;
+      }
+      button {
+        width: 100%;
+        padding: 9px;
+        border: 0;
+        border-radius: 8px;
+        background: #3155d9;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      output {
+        display: block;
+        margin-top: 12px;
+        padding: 10px;
+        border-radius: 8px;
+        background: #f1f4fa;
+        text-align: center;
+        font:
+          700 24px ui-monospace,
+          monospace;
+        letter-spacing: 0.18em;
+      }
+      small {
+        display: block;
+        margin-top: 8px;
+        color: #68758c;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Pair OCADE</h1>
+    <p>
+      Create a one-time code, then enter it in OCADE Browser settings. It expires in five minutes.
+    </p>
+    <button id="begin" type="button">Create pairing code</button>
+    <output id="code" aria-live="polite">------</output>
+    <small id="status">No pairing code is active.</small>
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>

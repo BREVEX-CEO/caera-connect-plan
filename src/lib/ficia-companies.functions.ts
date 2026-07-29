@@ -107,12 +107,14 @@ export const getCompany = createServerFn({ method: "POST" })
 export const checkLegalId = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) =>
-    z.object({
-      country: z.string().length(2),
-      registration_number: z.string().max(120).optional().default(""),
-      gstin: z.string().max(40).optional().default(""),
-      pan: z.string().max(40).optional().default(""),
-    }).parse(i),
+    z
+      .object({
+        country: z.string().length(2),
+        registration_number: z.string().max(120).optional().default(""),
+        gstin: z.string().max(40).optional().default(""),
+        pan: z.string().max(40).optional().default(""),
+      })
+      .parse(i),
   )
   .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -123,7 +125,10 @@ export const checkLegalId = createServerFn({ method: "POST" })
       _pan: data.pan,
     });
     if (error) return { ok: false as const, message: error.message, conflicts: [] };
-    return { ok: true as const, conflicts: (rows ?? []) as Array<{ id: string; name: string; matched: string }> };
+    return {
+      ok: true as const,
+      conflicts: (rows ?? []) as Array<{ id: string; name: string; matched: string }>,
+    };
   });
 
 export const checkSimilarNames = createServerFn({ method: "POST" })
@@ -155,7 +160,12 @@ export const createCompany = createServerFn({ method: "POST" })
       const msg = error.message || "Failed to create company.";
       if (msg.startsWith("duplicate_legal_id:")) {
         const conflictId = msg.split(":")[1]?.trim() ?? null;
-        return { ok: false as const, code: "duplicate_legal_id" as const, conflict_id: conflictId, message: "A company with this official ID already exists." };
+        return {
+          ok: false as const,
+          code: "duplicate_legal_id" as const,
+          conflict_id: conflictId,
+          message: "A company with this official ID already exists.",
+        };
       }
       return { ok: false as const, code: "error" as const, message: msg };
     }
@@ -224,7 +234,9 @@ export const updateCompany = createServerFn({ method: "POST" })
 
 const accessRequestInput = z.object({
   tenant_id: z.string().uuid(),
-  requested_role: z.enum(["employee", "accountant", "auditor", "consultant", "advisor", "manager"]).default("employee"),
+  requested_role: z
+    .enum(["employee", "accountant", "auditor", "consultant", "advisor", "manager"])
+    .default("employee"),
   message: z.string().max(1000).optional(),
 });
 
@@ -270,7 +282,8 @@ export const respondAccessRequest = createServerFn({ method: "POST" })
       .eq("id", data.request_id)
       .maybeSingle();
     if (readErr || !req) return { ok: false as const, message: "Request not visible." };
-    if ((req as any).status !== "pending") return { ok: false as const, message: "Already decided." };
+    if ((req as any).status !== "pending")
+      return { ok: false as const, message: "Already decided." };
 
     const { error } = await context.supabase
       .from("access_requests")

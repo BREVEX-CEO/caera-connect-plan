@@ -61,7 +61,9 @@ type Version = {
   updated_at: string;
 };
 
-function statusKind(s: string): "success" | "beta" | "setup_required" | "failed" | "pending" | "running" {
+function statusKind(
+  s: string,
+): "success" | "beta" | "setup_required" | "failed" | "pending" | "running" {
   if (s === "ga") return "success";
   if (s === "pilot" || s === "approved") return "beta";
   if (s === "in_review") return "pending";
@@ -167,8 +169,7 @@ function PackEditor() {
   });
 
   const allTestsPass =
-    (tests.data ?? []).length > 0 &&
-    (tests.data ?? []).every((t: any) => t.last_status === "pass");
+    (tests.data ?? []).length > 0 && (tests.data ?? []).every((t: any) => t.last_status === "pass");
   const approvedReviews = (reviews.data ?? []).filter((r: any) => r.decision === "approved").length;
   const canGa =
     ver &&
@@ -205,7 +206,14 @@ function PackEditor() {
     setFlash(null);
     try {
       const res = await executeAction("admin.country_pack.promote", {
-        run: () => promotePackVersion({ data: { version_id: ver.id, target_status: target as any, ga_ready: target === "ga" ? true : undefined } }),
+        run: () =>
+          promotePackVersion({
+            data: {
+              version_id: ver.id,
+              target_status: target as any,
+              ga_ready: target === "ga" ? true : undefined,
+            },
+          }),
       });
       if (res && !("ok" in res && res.ok)) {
         setFlash((res as any).message ?? "Promotion refused by GA gate.");
@@ -224,7 +232,10 @@ function PackEditor() {
   return (
     <AppShell>
       <div className="mb-4">
-        <Link to="/admin/country-packs" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          to="/admin/country-packs"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="size-4" /> All country packs
         </Link>
       </div>
@@ -234,9 +245,7 @@ function PackEditor() {
         description="Edit versions, sources, deterministic tests and professional reviews. GA is trigger-gated."
       />
 
-      {flash && (
-        <GlassPanel className="p-3 mb-4 text-sm">{flash}</GlassPanel>
-      )}
+      {flash && <GlassPanel className="p-3 mb-4 text-sm">{flash}</GlassPanel>}
 
       <GlassPanel className="p-4 mb-4">
         <div className="flex flex-wrap gap-2">
@@ -271,29 +280,52 @@ function PackEditor() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Effective {ver.effective_from} → {ver.effective_to ?? "—"} · Jurisdiction {ver.jurisdiction} ·
-                  Business types: {ver.business_types.join(", ") || "—"}
+                  Effective {ver.effective_from} → {ver.effective_to ?? "—"} · Jurisdiction{" "}
+                  {ver.jurisdiction} · Business types: {ver.business_types.join(", ") || "—"}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="secondary" onClick={runTests} disabled={busy}>
-                  {busy ? <Loader2 className="size-3 animate-spin" /> : <PlayCircle className="size-3" />}
+                  {busy ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <PlayCircle className="size-3" />
+                  )}
                   <span className="ml-1">Run tests</span>
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => promote("in_review")} disabled={busy}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => promote("in_review")}
+                  disabled={busy}
+                >
                   → In review
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => promote("approved")} disabled={busy}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => promote("approved")}
+                  disabled={busy}
+                >
                   → Approved
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => promote("pilot")} disabled={busy}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => promote("pilot")}
+                  disabled={busy}
+                >
                   → Pilot
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => promote("ga")}
                   disabled={busy || !canGa}
-                  title={canGa ? "Promote to GA" : "GA blocked — need approved review + pilot evidence + all tests passing"}
+                  title={
+                    canGa
+                      ? "Promote to GA"
+                      : "GA blocked — need approved review + pilot evidence + all tests passing"
+                  }
                 >
                   → GA
                 </Button>
@@ -303,20 +335,29 @@ function PackEditor() {
               <p className="text-xs text-muted-foreground whitespace-pre-wrap">{ver.changelog}</p>
             )}
 
-            <VersionMeta ver={ver} onSaved={() => qc.invalidateQueries({ queryKey: ["country_pack_versions", packId] })} />
+            <VersionMeta
+              ver={ver}
+              onSaved={() => qc.invalidateQueries({ queryKey: ["country_pack_versions", packId] })}
+            />
           </GlassPanel>
 
           <div className="grid gap-4 md:grid-cols-2">
             <GlassPanel className="p-4">
-              <h4 className="text-sm font-semibold mb-2">Compliance calendar ({(events.data ?? []).length})</h4>
+              <h4 className="text-sm font-semibold mb-2">
+                Compliance calendar ({(events.data ?? []).length})
+              </h4>
               <ul className="space-y-2 text-sm">
                 {(events.data ?? []).map((e: any) => (
                   <li key={e.id} className="border-l border-border/60 pl-3">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs text-muted-foreground uppercase">{e.category}</span>
+                      <span className="font-mono text-xs text-muted-foreground uppercase">
+                        {e.category}
+                      </span>
                       <span className="font-medium">{e.title}</span>
                     </div>
-                    {e.description && <p className="text-xs text-muted-foreground">{e.description}</p>}
+                    {e.description && (
+                      <p className="text-xs text-muted-foreground">{e.description}</p>
+                    )}
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {e.cadence} · {e.form_ref ?? "—"}
                     </p>
@@ -329,7 +370,9 @@ function PackEditor() {
             </GlassPanel>
 
             <GlassPanel className="p-4">
-              <h4 className="text-sm font-semibold mb-2">Historical test cases ({(tests.data ?? []).length})</h4>
+              <h4 className="text-sm font-semibold mb-2">
+                Historical test cases ({(tests.data ?? []).length})
+              </h4>
               <ul className="space-y-2 text-sm">
                 {(tests.data ?? []).map((t: any) => (
                   <li key={t.id} className="border-l border-border/60 pl-3">
@@ -343,7 +386,9 @@ function PackEditor() {
                         <StatusBadge status="pending">not run</StatusBadge>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">{t.calculator} · {t.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t.calculator} · {t.description}
+                    </p>
                   </li>
                 ))}
                 {(tests.data ?? []).length === 0 && (
@@ -353,27 +398,41 @@ function PackEditor() {
             </GlassPanel>
 
             <GlassPanel className="p-4">
-              <h4 className="text-sm font-semibold mb-2">Rule sources ({(sources.data ?? []).length})</h4>
+              <h4 className="text-sm font-semibold mb-2">
+                Rule sources ({(sources.data ?? []).length})
+              </h4>
               <ul className="space-y-2 text-sm">
                 {(sources.data ?? []).map((s: any) => (
                   <li key={s.id} className="border-l border-border/60 pl-3">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono text-xs">{s.rule_key}</span>
-                      <span className="text-xs text-muted-foreground uppercase">{s.source_type}</span>
+                      <span className="text-xs text-muted-foreground uppercase">
+                        {s.source_type}
+                      </span>
                     </div>
                     <p className="text-xs">{s.citation}</p>
                     {s.url && (
-                      <a href={s.url} target="_blank" rel="noreferrer" className="text-xs text-primary inline-flex items-center gap-1">
+                      <a
+                        href={s.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-primary inline-flex items-center gap-1"
+                      >
                         source <ExternalLink className="size-3" />
                       </a>
                     )}
                   </li>
                 ))}
                 {(sources.data ?? []).length === 0 && (
-                  <li className="text-xs text-muted-foreground">No sources cited yet — rules without citations cannot show green compliance.</li>
+                  <li className="text-xs text-muted-foreground">
+                    No sources cited yet — rules without citations cannot show green compliance.
+                  </li>
                 )}
               </ul>
-              <AddSourceForm versionId={ver.id} onSaved={() => qc.invalidateQueries({ queryKey: ["rule_sources", ver.id] })} />
+              <AddSourceForm
+                versionId={ver.id}
+                onSaved={() => qc.invalidateQueries({ queryKey: ["rule_sources", ver.id] })}
+              />
             </GlassPanel>
 
             <GlassPanel className="p-4">
@@ -385,8 +444,19 @@ function PackEditor() {
                   <li key={r.id} className="border-l border-border/60 pl-3">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium">{r.reviewer_name}</span>
-                      <span className="text-xs text-muted-foreground">{r.reviewer_credential}{r.credential_id ? ` · ${r.credential_id}` : ""}</span>
-                      <StatusBadge status={r.decision === "approved" ? "success" : r.decision === "rejected" ? "failed" : "pending"}>
+                      <span className="text-xs text-muted-foreground">
+                        {r.reviewer_credential}
+                        {r.credential_id ? ` · ${r.credential_id}` : ""}
+                      </span>
+                      <StatusBadge
+                        status={
+                          r.decision === "approved"
+                            ? "success"
+                            : r.decision === "rejected"
+                              ? "failed"
+                              : "pending"
+                        }
+                      >
                         {r.decision}
                       </StatusBadge>
                     </div>
@@ -397,7 +467,10 @@ function PackEditor() {
                   <li className="text-xs text-muted-foreground">No reviews recorded.</li>
                 )}
               </ul>
-              <AddReviewForm versionId={ver.id} onSaved={() => qc.invalidateQueries({ queryKey: ["pack_reviews", ver.id] })} />
+              <AddReviewForm
+                versionId={ver.id}
+                onSaved={() => qc.invalidateQueries({ queryKey: ["pack_reviews", ver.id] })}
+              />
             </GlassPanel>
           </div>
         </>
@@ -428,7 +501,7 @@ function VersionMeta({ ver, onSaved }: { ver: Version; onSaved: () => void }) {
             },
           }),
       });
-      setMsg(res && "ok" in res && res.ok ? "Saved." : (res as any)?.message ?? "Save failed.");
+      setMsg(res && "ok" in res && res.ok ? "Saved." : ((res as any)?.message ?? "Save failed."));
       onSaved();
     } catch (e) {
       setMsg((e as Error).message);
@@ -445,14 +518,21 @@ function VersionMeta({ ver, onSaved }: { ver: Version; onSaved: () => void }) {
       </div>
       <div className="md:col-span-2">
         <Label className="text-xs">Pilot evidence URL (required for GA)</Label>
-        <Input type="url" placeholder="https://…" value={pilot} onChange={(e) => setPilot(e.target.value)} />
+        <Input
+          type="url"
+          placeholder="https://…"
+          value={pilot}
+          onChange={(e) => setPilot(e.target.value)}
+        />
       </div>
       <div className="md:col-span-3">
         <Label className="text-xs">Changelog</Label>
         <Textarea rows={2} value={changelog} onChange={(e) => setChangelog(e.target.value)} />
       </div>
       <div className="md:col-span-3 flex items-center gap-3">
-        <Button size="sm" onClick={save} disabled={saving}>Save</Button>
+        <Button size="sm" onClick={save} disabled={saving}>
+          Save
+        </Button>
         {msg && <span className="text-xs text-muted-foreground">{msg}</span>}
       </div>
     </div>
@@ -463,7 +543,9 @@ function AddSourceForm({ versionId, onSaved }: { versionId: string; onSaved: () 
   const [ruleKey, setRuleKey] = useState("");
   const [citation, setCitation] = useState("");
   const [url, setUrl] = useState("");
-  const [type, setType] = useState<"statute" | "notification" | "circular" | "guidance" | "form" | "portal">("statute");
+  const [type, setType] = useState<
+    "statute" | "notification" | "circular" | "guidance" | "form" | "portal"
+  >("statute");
   const [busy, setBusy] = useState(false);
 
   async function submit() {
@@ -471,9 +553,20 @@ function AddSourceForm({ versionId, onSaved }: { versionId: string; onSaved: () 
     setBusy(true);
     try {
       await executeAction("admin.country_pack.add_source", {
-        run: () => addRuleSource({ data: { version_id: versionId, rule_key: ruleKey, source_type: type, citation, url: url || undefined } }),
+        run: () =>
+          addRuleSource({
+            data: {
+              version_id: versionId,
+              rule_key: ruleKey,
+              source_type: type,
+              citation,
+              url: url || undefined,
+            },
+          }),
       });
-      setRuleKey(""); setCitation(""); setUrl("");
+      setRuleKey("");
+      setCitation("");
+      setUrl("");
       onSaved();
     } finally {
       setBusy(false);
@@ -482,7 +575,11 @@ function AddSourceForm({ versionId, onSaved }: { versionId: string; onSaved: () 
 
   return (
     <div className="mt-3 grid gap-2 md:grid-cols-2">
-      <Input placeholder="rule.key (e.g. gst.slabs)" value={ruleKey} onChange={(e) => setRuleKey(e.target.value)} />
+      <Input
+        placeholder="rule.key (e.g. gst.slabs)"
+        value={ruleKey}
+        onChange={(e) => setRuleKey(e.target.value)}
+      />
       <select
         value={type}
         onChange={(e) => setType(e.target.value as any)}
@@ -495,10 +592,21 @@ function AddSourceForm({ versionId, onSaved }: { versionId: string; onSaved: () 
         <option value="form">form</option>
         <option value="portal">portal</option>
       </select>
-      <Input placeholder="Citation" value={citation} onChange={(e) => setCitation(e.target.value)} />
-      <Input type="url" placeholder="https://…" value={url} onChange={(e) => setUrl(e.target.value)} />
+      <Input
+        placeholder="Citation"
+        value={citation}
+        onChange={(e) => setCitation(e.target.value)}
+      />
+      <Input
+        type="url"
+        placeholder="https://…"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+      />
       <div className="md:col-span-2">
-        <Button size="sm" onClick={submit} disabled={busy || !ruleKey || !citation}>Add source</Button>
+        <Button size="sm" onClick={submit} disabled={busy || !ruleKey || !citation}>
+          Add source
+        </Button>
       </div>
     </div>
   );
@@ -508,7 +616,9 @@ function AddReviewForm({ versionId, onSaved }: { versionId: string; onSaved: () 
   const [name, setName] = useState("");
   const [cred, setCred] = useState("");
   const [credId, setCredId] = useState("");
-  const [decision, setDecision] = useState<"approved" | "changes_requested" | "rejected">("approved");
+  const [decision, setDecision] = useState<"approved" | "changes_requested" | "rejected">(
+    "approved",
+  );
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -530,9 +640,14 @@ function AddReviewForm({ versionId, onSaved }: { versionId: string; onSaved: () 
             },
           }),
       });
-      setMsg(res && "ok" in res && res.ok ? "Review recorded." : (res as any)?.message ?? "Failed.");
+      setMsg(
+        res && "ok" in res && res.ok ? "Review recorded." : ((res as any)?.message ?? "Failed."),
+      );
       if (res && "ok" in res && res.ok) {
-        setName(""); setCred(""); setCredId(""); setNotes("");
+        setName("");
+        setCred("");
+        setCredId("");
+        setNotes("");
         onSaved();
       }
     } catch (e) {
@@ -544,9 +659,21 @@ function AddReviewForm({ versionId, onSaved }: { versionId: string; onSaved: () 
 
   return (
     <div className="mt-3 grid gap-2 md:grid-cols-2">
-      <Input placeholder="Reviewer full name" value={name} onChange={(e) => setName(e.target.value)} />
-      <Input placeholder="Credential (e.g. CA, CPA, Advocate)" value={cred} onChange={(e) => setCred(e.target.value)} />
-      <Input placeholder="Credential ID (optional)" value={credId} onChange={(e) => setCredId(e.target.value)} />
+      <Input
+        placeholder="Reviewer full name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <Input
+        placeholder="Credential (e.g. CA, CPA, Advocate)"
+        value={cred}
+        onChange={(e) => setCred(e.target.value)}
+      />
+      <Input
+        placeholder="Credential ID (optional)"
+        value={credId}
+        onChange={(e) => setCredId(e.target.value)}
+      />
       <select
         value={decision}
         onChange={(e) => setDecision(e.target.value as any)}
@@ -556,7 +683,13 @@ function AddReviewForm({ versionId, onSaved }: { versionId: string; onSaved: () 
         <option value="changes_requested">Changes requested</option>
         <option value="rejected">Rejected</option>
       </select>
-      <Textarea rows={2} className="md:col-span-2" placeholder="Notes / scope" value={notes} onChange={(e) => setNotes(e.target.value)} />
+      <Textarea
+        rows={2}
+        className="md:col-span-2"
+        placeholder="Notes / scope"
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+      />
       <div className="md:col-span-2 flex items-center gap-3">
         <Button size="sm" onClick={submit} disabled={busy || name.length < 2 || cred.length < 2}>
           Submit review (strong confirm: type "sign")

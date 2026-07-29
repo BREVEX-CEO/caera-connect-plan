@@ -19,7 +19,9 @@ export function PageHeader({
             {eyebrow}
           </div>
         ) : null}
-        <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-foreground sm:text-[22px]">{title}</h1>
+        <h1 className="mt-0.5 text-xl font-semibold tracking-tight text-foreground sm:text-[22px]">
+          {title}
+        </h1>
         {description ? (
           <p className="mt-1 max-w-2xl text-[13px] text-muted-foreground">{description}</p>
         ) : null}

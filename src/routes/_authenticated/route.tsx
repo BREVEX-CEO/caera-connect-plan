@@ -17,6 +17,7 @@ export const Route = createFileRoute("/_authenticated")({
     if (error || !data.user) {
       throw redirect({
         to: "/auth",
+        reloadDocument: true,
         // Pass a same-origin path — auth.safeNext() accepts both absolute and relative.
         search: { next: location.pathname + location.searchStr },
       });

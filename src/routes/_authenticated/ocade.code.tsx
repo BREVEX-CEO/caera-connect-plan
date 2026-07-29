@@ -1,0 +1,24 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { AppShell } from "@/components/shell/AppShell";
+import { PageHeader } from "@/components/shell/PageHeader";
+import { CodeWorkspacePanel } from "@/components/ocade/CodeWorkspacePanel";
+
+export const Route = createFileRoute("/_authenticated/ocade/code")({
+  head: () => ({
+    meta: [{ title: "OCADE Code — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+  }),
+  component: CodePage,
+});
+
+function CodePage() {
+  return (
+    <AppShell>
+      <PageHeader
+        eyebrow="OCADE"
+        title="Code"
+        description="Inspect a user-selected repository, follow its rules, patch exact context, exercise recovery, and keep observed evidence."
+      />
+      <CodeWorkspacePanel />
+    </AppShell>
+  );
+}

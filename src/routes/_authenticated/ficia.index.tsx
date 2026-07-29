@@ -12,10 +12,7 @@ import { executeAction } from "@/lib/actions";
 
 export const Route = createFileRoute("/_authenticated/ficia/")({
   head: () => ({
-    meta: [
-      { title: "FICIA — Companies" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "FICIA — Companies" }, { name: "robots", content: "noindex" }],
   }),
   component: FiciaIndex,
 });
@@ -61,7 +58,11 @@ function FiciaIndex() {
         title="Your companies"
         description="Pick a company to work in, or create a new one. FICIA keeps each company isolated and only shows you data you belong to."
         actions={
-          <Link to="/ficia/new"><Button size="sm"><Plus className="size-4" /> New company</Button></Link>
+          <Link to="/ficia/new">
+            <Button size="sm">
+              <Plus className="size-4" /> New company
+            </Button>
+          </Link>
         }
       />
 
@@ -72,9 +73,9 @@ function FiciaIndex() {
             <p className="font-medium">Explain this page</p>
             <p className="text-muted-foreground mt-1">
               A company is an isolated workspace. Only members you approve can see its records.
-              Before you create one, FICIA checks the country + official registration number
-              (and GSTIN / PAN where applicable) to avoid duplicates. If a match exists,
-              you'll be offered a safe access request instead.
+              Before you create one, FICIA checks the country + official registration number (and
+              GSTIN / PAN where applicable) to avoid duplicates. If a match exists, you'll be
+              offered a safe access request instead.
             </p>
           </div>
         </div>
@@ -87,16 +88,22 @@ function FiciaIndex() {
       {!companies.isLoading && list.length === 0 && (
         <GlassPanel className="p-8 text-center">
           <Building2 className="size-8 mx-auto text-muted-foreground" />
-          <p className="mt-3 text-sm text-muted-foreground">
-            You don't belong to any company yet.
-          </p>
-          <Link to="/ficia/new" className="mt-3 inline-block"><Button size="sm"><Plus className="size-4" /> Create your first company</Button></Link>
+          <p className="mt-3 text-sm text-muted-foreground">You don't belong to any company yet.</p>
+          <Link to="/ficia/new" className="mt-3 inline-block">
+            <Button size="sm">
+              <Plus className="size-4" /> Create your first company
+            </Button>
+          </Link>
         </GlassPanel>
       )}
 
       <div className="grid gap-3 md:grid-cols-2">
         {list.map((c: any) => (
-          <Link key={c.id} to="/ficia/$tenantId" params={{ tenantId: c.id }} className="block"><GlassPanel className="p-4 hover:border-primary/40 transition"><CompanyRow c={c} /></GlassPanel></Link>
+          <Link key={c.id} to="/ficia/$tenantId" params={{ tenantId: c.id }} className="block">
+            <GlassPanel className="p-4 hover:border-primary/40 transition">
+              <CompanyRow c={c} />
+            </GlassPanel>
+          </Link>
         ))}
       </div>
 
@@ -107,15 +114,26 @@ function FiciaIndex() {
           </h3>
           <div className="grid gap-2">
             {pendingRequests.data!.map((r: any) => (
-              <GlassPanel key={r.id} className="p-3 text-sm flex flex-wrap items-center gap-3 justify-between">
+              <GlassPanel
+                key={r.id}
+                className="p-3 text-sm flex flex-wrap items-center gap-3 justify-between"
+              >
                 <div>
-                  <div className="font-mono text-xs text-muted-foreground">{r.tenant_id.slice(0, 8)}…</div>
-                  <p>Role requested: <b>{r.requested_role}</b></p>
+                  <div className="font-mono text-xs text-muted-foreground">
+                    {r.tenant_id.slice(0, 8)}…
+                  </div>
+                  <p>
+                    Role requested: <b>{r.requested_role}</b>
+                  </p>
                   {r.message && <p className="text-muted-foreground text-xs">"{r.message}"</p>}
                 </div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => decide(r.id, "rejected")}>Reject</Button>
-                  <Button size="sm" onClick={() => decide(r.id, "approved")}>Approve</Button>
+                  <Button size="sm" variant="outline" onClick={() => decide(r.id, "rejected")}>
+                    Reject
+                  </Button>
+                  <Button size="sm" onClick={() => decide(r.id, "approved")}>
+                    Approve
+                  </Button>
                 </div>
               </GlassPanel>
             ))}
@@ -139,10 +157,13 @@ function CompanyRow({ c, disabled }: { c: any; disabled?: boolean }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="font-semibold truncate">{c.name}</p>
-          <StatusBadge status={c.status === "active" ? "success" : "planned"}>{c.status ?? "active"}</StatusBadge>
+          <StatusBadge status={c.status === "active" ? "success" : "planned"}>
+            {c.status ?? "active"}
+          </StatusBadge>
         </div>
         <p className="text-xs text-muted-foreground truncate">
-          {c.legal_name ? `${c.legal_name} · ` : ""}{c.country} · {c.currency}
+          {c.legal_name ? `${c.legal_name} · ` : ""}
+          {c.country} · {c.currency}
         </p>
       </div>
       {disabled && <StatusBadge status="beta">Demo</StatusBadge>}

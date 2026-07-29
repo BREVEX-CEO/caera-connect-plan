@@ -18,7 +18,12 @@ import {
   FileOutput,
   CalendarClock,
   Workflow,
+  Package,
+  Radar,
+  Boxes,
   ListChecks,
+  FileCode2,
+  BriefcaseBusiness,
   type LucideIcon,
 } from "lucide-react";
 
@@ -46,13 +51,31 @@ export interface ModuleDef {
 export const MODULES: ModuleDef[] = [
   { id: "home", label: "Home", to: "/home", icon: Home, match: ["/home"] },
   { id: "ocade", label: "OCADE", to: "/ocade", icon: MessageSquare, match: ["/ocade"] },
-  { id: "ficia", label: "FICIA", to: "/ficia", icon: Building2, match: ["/ficia", "/people", "/roles", "/messenger", "/time"] },
+  {
+    id: "ficia",
+    label: "FICIA",
+    to: "/ficia",
+    icon: Building2,
+    match: ["/ficia", "/people", "/roles", "/messenger", "/time"],
+  },
   { id: "madee", label: "MADEE", to: "/madee", icon: Sparkles, match: ["/madee"] },
-  { id: "cania", label: "CANIA", to: "/cania", icon: Globe2, match: ["/cania", "/world", "/business", "/markets"] },
+  {
+    id: "cania",
+    label: "CANIA",
+    to: "/cania",
+    icon: Globe2,
+    match: ["/cania", "/world", "/business", "/markets"],
+  },
 ];
 
 export const UTILITY: ModuleDef[] = [
-  { id: "devices", label: "Devices", to: "/settings/devices", icon: Monitor, match: ["/settings/devices"] },
+  {
+    id: "devices",
+    label: "Devices",
+    to: "/settings/devices",
+    icon: Monitor,
+    match: ["/settings/devices"],
+  },
   { id: "settings", label: "Settings", to: "/settings", icon: Settings, match: ["/settings"] },
 ];
 
@@ -72,12 +95,25 @@ export function activeModule(pathname: string): ModuleId {
  */
 export const MODULE_CONTEXT: Record<ModuleId, NavItem[]> = {
   home: [],
+  /*
+   * One entry per destination.
+   *
+   * "Outputs" and "Scheduled" used to sit here as separate items pointing at
+   * /ocade/projects and /ocade/automations — the same URLs as the entries
+   * beside them. Clicking "Outputs" landed on the projects list, not on
+   * outputs, which is a dead control wearing a different label. Outputs live
+   * inside a selected project and scheduled runs inside Automations, so they
+   * are reached there rather than advertised as places of their own.
+   */
   ocade: [
     { to: "/ocade", label: "Chat", icon: MessageSquare, exact: true },
-    { to: "/ocade", label: "Projects", icon: FolderOpen, planned: true, reason: "Projects arrive with the projects slice." },
-    { to: "/ocade", label: "Outputs", icon: FileOutput, planned: true, reason: "Generated outputs arrive with the outputs slice." },
-    { to: "/ocade", label: "Scheduled", icon: CalendarClock, planned: true, reason: "Scheduling arrives with the automations slice." },
-    { to: "/ocade", label: "Automations", icon: Workflow, planned: true, reason: "Automations arrive with the automations slice." },
+    { to: "/ocade/work", label: "Work", icon: BriefcaseBusiness },
+    { to: "/ocade/code", label: "Code", icon: FileCode2 },
+    { to: "/ocade/projects", label: "Projects", icon: FolderOpen },
+    { to: "/ocade/artifacts", label: "Artifacts", icon: Package },
+    { to: "/ocade/monitors", label: "Monitors", icon: Radar },
+    { to: "/ocade/automations", label: "Automations", icon: Workflow },
+    { to: "/ocade/studio", label: "Studio", icon: Boxes },
   ],
   ficia: [
     { to: "/ficia", label: "Companies", icon: Building2, exact: true },

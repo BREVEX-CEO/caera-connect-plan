@@ -9,14 +9,7 @@
 
 import { z } from "zod";
 
-export const ExperienceLevel = z.enum([
-  "student",
-  "entry",
-  "mid",
-  "senior",
-  "executive",
-  "other",
-]);
+export const ExperienceLevel = z.enum(["student", "entry", "mid", "senior", "executive", "other"]);
 export type ExperienceLevel = z.infer<typeof ExperienceLevel>;
 
 export const EXPERIENCE_LEVEL_LABEL: Record<ExperienceLevel, string> = {

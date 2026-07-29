@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark light" />
+    <title>OCADE Companion</title>
+    <!--
+      OCADE mobile companion shell.
+
+      This is deliberately NOT the full OCADE web app. The web app is a TanStack
+      Start SSR application with no static bundle, and shipping a whole assistant
+      into a phone build would be wrong anyway: the companion's job is to
+      MONITOR and APPROVE, never to take arbitrary control.
+
+      The shell is self-contained so it opens instantly and still works with no
+      connectivity — it can always show pairing state and the emergency stop.
+      Live data arrives over the paired session; nothing is invented here.
+    -->
+    <style>
+      :root {
+        --bg: #141518;
+        --panel: #1b1d21;
+        --line: #2a2d33;
+        --text: #d6d9de;
+        --muted: #8b9098;
+        --ok: #6ee7a8;
+        --warn: #f0c674;
+        --danger: #f08a8a;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f4f5f7;
+          --panel: #ffffff;
+          --line: #e2e4e8;
+          --text: #1a1c1f;
+          --muted: #5f646c;
+        }
+      }
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      body {
+        margin: 0;
+        font:
+          15px/1.5 system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+          env(safe-area-inset-left);
+      }
+      header {
+        padding: 20px 16px 8px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 17px;
+        letter-spacing: 0.02em;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 2px;
+      }
+      main {
+        padding: 8px 16px 32px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex: none;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      button {
+        font: inherit;
+        color: var(--text);
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px 14px;
+        width: 100%;
+        min-height: 48px; /* comfortable touch target */
+      }
+      button:active {
+        opacity: 0.7;
+      }
+      button:disabled {
+        opacity: 0.45;
+      }
+      input,
+      textarea {
+        width: 100%;
+        margin: 6px 0;
+        padding: 11px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+      }
+      textarea {
+        min-height: 84px;
+        resize: vertical;
+      }
+      .actions {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+      .metric {
+        display: grid;
+        grid-template-columns: 42% 58%;
+        gap: 6px;
+        margin: 4px 0;
+      }
+      .metric span:first-child {
+        color: var(--muted);
+      }
+      progress {
+        width: 100%;
+        margin-top: 8px;
+        accent-color: var(--ok);
+      }
+      .list {
+        list-style: none;
+        padding: 0;
+      }
+      .list li {
+        border-top: 1px solid var(--line);
+        padding: 9px 0;
+      }
+      .stop {
+        border-color: var(--danger);
+        color: var(--danger);
+        font-weight: 600;
+      }
+      ul {
+        margin: 8px 0 0;
+        padding-left: 18px;
+      }
+      li {
+        margin: 4px 0;
+      }
+      .no {
+        color: var(--muted);
+        text-decoration: line-through;
+      }
+      code {
+        font-size: 12px;
+        color: var(--muted);
+        word-break: break-all;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>OCADE Companion</h1>
+      <p class="sub">Watch and approve what OCADE is doing on your computer.</p>
+    </header>
+
+    <main>
+      <section class="card" aria-labelledby="status-h">
+        <h2 id="status-h" style="margin: 0 0 8px; font-size: 14px">Status</h2>
+        <div class="row">
+          <span class="dot" id="dot" style="background: var(--warn)"></span>
+          <span id="status">Not paired</span>
+        </div>
+        <p class="muted" id="detail" style="margin: 8px 0 0">
+          Open OCADE on your computer, go to Settings → Mobile companion, and scan the pairing code.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="pair-h">
+        <h2 id="pair-h" style="margin: 0 0 8px; font-size: 14px">Pair this device</h2>
+        <label class="muted" for="pair-code">Six-digit code</label>
+        <input id="pair-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" />
+        <label class="muted" for="pair-nonce">Pairing nonce from the QR payload</label>
+        <input id="pair-nonce" autocomplete="off" maxlength="128" />
+        <button id="pair">Pair with my computer</button>
+        <p class="muted" id="pair-note" aria-live="polite">
+          Pairing succeeds only after the computer acknowledges the single-use code.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="net-h">
+        <h2 id="net-h" style="margin: 0 0 8px; font-size: 14px">Connection</h2>
+        <div class="row">
+          <span class="dot" id="netdot"></span>
+          <span id="net">Checking…</span>
+        </div>
+        <p class="muted" style="margin: 8px 0 0">
+          Approvals and stops always need a live connection. Task hand-offs are queued and sent when
+          you reconnect.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="mission-h">
+        <div class="row" style="justify-content: space-between">
+          <h2 id="mission-h" style="margin: 0; font-size: 14px">Current PC task</h2>
+          <button id="refresh" style="width: auto; min-height: 36px; padding: 6px 10px">
+            Refresh
+          </button>
+        </div>
+        <div class="metric"><span>PC</span><span id="pc-online">Unknown</span></div>
+        <div class="metric"><span>Companion</span><span id="health">Unknown</span></div>
+        <div class="metric"><span>Task</span><span id="task">No verified task</span></div>
+        <div class="metric"><span>Application</span><span id="application">—</span></div>
+        <div class="metric"><span>Step</span><span id="step">—</span></div>
+        <div class="metric"><span>Checkpoint</span><span id="checkpoint">—</span></div>
+        <progress id="progress" max="100" value="0" aria-label="Task progress"></progress>
+        <p class="muted" id="problem" aria-live="polite">No verified blocker or error.</p>
+        <img
+          id="preview"
+          hidden
+          alt="Redacted preview from the active PC task"
+          style="max-width: 100%; border-radius: 10px"
+        />
+        <div class="actions">
+          <button id="pause">Pause</button>
+          <button id="resume">Resume</button>
+          <button id="cancel">Cancel</button>
+          <button class="stop" id="mission-stop">Emergency stop</button>
+        </div>
+        <p class="muted" id="command-note" aria-live="polite">
+          Commands are short-lived, device-bound, scoped and signed by the native companion.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="new-task-h">
+        <h2 id="new-task-h" style="margin: 0 0 8px; font-size: 14px">Send a new PC task</h2>
+        <textarea id="new-task" maxlength="8000" placeholder="Describe the PC task"></textarea>
+        <button id="send-task">Send signed task</button>
+      </section>
+
+      <section class="card" aria-labelledby="instruction-h">
+        <h2 id="instruction-h" style="margin: 0 0 8px; font-size: 14px">
+          Add or correct an instruction
+        </h2>
+        <input
+          id="instruction-id"
+          maxlength="128"
+          placeholder="Instruction ID only when correcting"
+        />
+        <textarea id="instruction" maxlength="8000" placeholder="New instruction"></textarea>
+        <div class="actions">
+          <button id="add-instruction">Add</button>
+          <button id="correct-instruction">Correct</button>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="approval-h">
+        <h2 id="approval-h" style="margin: 0 0 8px; font-size: 14px">Approvals</h2>
+        <ul class="list muted" id="approvals">
+          <li>No verified approvals waiting.</li>
+        </ul>
+      </section>
+
+      <section class="card" aria-labelledby="output-h">
+        <h2 id="output-h" style="margin: 0 0 8px; font-size: 14px">Outputs and receipts</h2>
+        <ul class="list muted" id="outputs">
+          <li>No verified outputs.</li>
+        </ul>
+        <ul class="list muted" id="receipts">
+          <li>No verified receipts.</li>
+        </ul>
+      </section>
+
+      <section class="card" aria-labelledby="stop-h">
+        <h2 id="stop-h" style="margin: 0 0 8px; font-size: 14px">Emergency stop</h2>
+        <button class="stop" id="stop" aria-describedby="stop-note">
+          Stop everything on my computer
+        </button>
+        <p class="muted" id="stop-note" style="margin: 8px 0 0">
+          Available from any paired device, even one that hasn’t checked in recently. Revoked
+          devices cannot stop.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="revoke-h">
+        <h2 id="revoke-h" style="margin: 0 0 8px; font-size: 14px">Revoke mobile session</h2>
+        <button class="stop" id="revoke">Revoke this session</button>
+        <p class="muted">Revocation is live-only and is never queued for later replay.</p>
+      </section>
+
+      <section class="card" aria-labelledby="scope-h">
+        <h2 id="scope-h" style="margin: 0 0 8px; font-size: 14px">What this app can do</h2>
+        <ul>
+          <li>See what OCADE is doing</li>
+          <li>Approve, deny or cancel an action</li>
+          <li>Emergency stop</li>
+          <li>Send a task to your computer</li>
+          <li class="no">Take arbitrary control of your PC</li>
+          <li class="no">Enter passwords, OTPs or payment details</li>
+        </ul>
+      </section>
+    </main>
+
+    <script type="module">
+      // Honest, offline-safe shell. It reports only what it can actually know:
+      // real connectivity, and real stored pairing state. Nothing is simulated.
+      const $ = (id) => document.getElementById(id);
+
+      function paintNetwork() {
+        const online = navigator.onLine;
+        $("netdot").style.background = online ? "var(--ok)" : "var(--warn)";
+        $("net").textContent = online ? "Online" : "Offline — local features only";
+      }
+      addEventListener("online", paintNetwork);
+      addEventListener("offline", paintNetwork);
+      paintNetwork();
+
+      // Native owns device identity and paired-session material. Web storage is
+      // deliberately not accepted as proof of trust.
+      const native = window.Capacitor?.Plugins?.OcadeMobile;
+      let pairing = null;
+
+      async function refreshPairing() {
+        if (!native?.pairingState) {
+          $("detail").textContent =
+            "The native secure-pairing bridge is unavailable in this build.";
+          return;
+        }
+        try {
+          const state = await native.pairingState();
+          if (state?.paired === true && typeof state.deviceId === "string") {
+            pairing = state;
+            $("dot").style.background = "var(--ok)";
+            $("status").textContent = "Paired";
+            $("detail").textContent = `This device is paired. ${state.deviceId}`;
+          }
+        } catch {
+          $("detail").textContent = "Pairing state could not be verified.";
+        }
+      }
+      void refreshPairing();
+
+      $("stop").addEventListener("click", async () => {
+        if (!pairing) {
+          $("stop-note").textContent = "Not securely paired, so no stop was sent.";
+          return;
+        }
+        if (!navigator.onLine) {
+          $("stop-note").textContent =
+            "You are offline. A stop must be delivered live — reconnect and try again.";
+          return;
+        }
+        if (!native?.emergencyStop) {
+          $("stop-note").textContent =
+            "The native stop transport is unavailable. Nothing was reported as stopped.";
+          return;
+        }
+        $("stop").disabled = true;
+        $("stop-note").textContent = "Requesting a live stop…";
+        try {
+          const result = await native.emergencyStop({
+            deviceId: pairing.deviceId,
+            requestId: crypto.randomUUID(),
+          });
+          $("stop-note").textContent =
+            result?.acknowledged === true
+              ? "Your computer acknowledged the emergency stop."
+              : result?.detail || "The computer did not acknowledge the stop.";
+        } catch {
+          $("stop-note").textContent = "The stop request failed. Nothing was reported as stopped.";
+        } finally {
+          $("stop").disabled = false;
+        }
+      });
+    </script>
+    <script type="module" src="./mission-control.js"></script>
+  </body>
+</html>

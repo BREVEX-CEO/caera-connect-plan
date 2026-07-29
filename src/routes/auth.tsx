@@ -13,7 +13,6 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/auth")({
-  ssr: false,
   validateSearch: searchSchema,
   beforeLoad: async ({ search }) => {
     if (typeof window === "undefined") return;
@@ -100,7 +99,10 @@ function AuthPage() {
     const parsed = z
       .string()
       .trim()
-      .regex(/^\+[1-9]\d{6,14}$/, "Enter a phone number in international format, e.g. +14155551234.")
+      .regex(
+        /^\+[1-9]\d{6,14}$/,
+        "Enter a phone number in international format, e.g. +14155551234.",
+      )
       .safeParse(phone);
     if (!parsed.success) {
       setError(parsed.error.issues[0].message);
@@ -155,8 +157,8 @@ function AuthPage() {
       subtitle="One account for OCADE, FICIA, MADEE and CANIA."
       footer={
         <>
-          By continuing you agree to our terms and privacy notice. Your workspace defaults to Private
-          Sync — you can switch it to Device Only anytime.
+          By continuing you agree to our terms and privacy notice. Your workspace defaults to
+          Private Sync — you can switch it to Device Only anytime.
         </>
       }
     >
@@ -174,7 +176,6 @@ function AuthPage() {
           <span>Just looking? Try the demo — no sign-in, sample data only.</span>
           <span className="font-semibold uppercase tracking-wider">Demo →</span>
         </Link>
-
 
         {/* Method tabs */}
         <div
@@ -302,7 +303,10 @@ function AuthPage() {
 function GoogleGlyph() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
-      <path d="M21.35 11.1H12v3.2h5.35c-.23 1.38-1.62 4.05-5.35 4.05-3.22 0-5.85-2.66-5.85-5.95S8.78 6.45 12 6.45c1.83 0 3.06.78 3.76 1.45l2.57-2.48C16.86 3.98 14.66 3 12 3 6.98 3 3 6.98 3 12s3.98 9 9 9c5.19 0 8.63-3.64 8.63-8.78 0-.59-.06-1.05-.28-1.12Z" fill="currentColor" />
+      <path
+        d="M21.35 11.1H12v3.2h5.35c-.23 1.38-1.62 4.05-5.35 4.05-3.22 0-5.85-2.66-5.85-5.95S8.78 6.45 12 6.45c1.83 0 3.06.78 3.76 1.45l2.57-2.48C16.86 3.98 14.66 3 12 3 6.98 3 3 6.98 3 12s3.98 9 9 9c5.19 0 8.63-3.64 8.63-8.78 0-.59-.06-1.05-.28-1.12Z"
+        fill="currentColor"
+      />
     </svg>
   );
 }
@@ -310,7 +314,10 @@ function GoogleGlyph() {
 function AppleGlyph() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden>
-      <path d="M16.36 12.55c-.03-2.63 2.15-3.9 2.25-3.96-1.23-1.79-3.14-2.03-3.82-2.06-1.63-.16-3.18.96-4.01.96-.84 0-2.11-.94-3.47-.91-1.78.03-3.43 1.03-4.35 2.62-1.85 3.21-.47 7.95 1.33 10.55.88 1.27 1.93 2.7 3.29 2.65 1.32-.05 1.82-.85 3.41-.85 1.59 0 2.05.85 3.45.83 1.43-.03 2.33-1.3 3.2-2.58 1-1.48 1.42-2.92 1.44-3-.03-.01-2.76-1.06-2.79-4.19ZM13.86 4.6c.73-.88 1.22-2.11 1.09-3.33-1.05.04-2.32.7-3.07 1.58-.68.78-1.27 2.03-1.11 3.22 1.17.09 2.36-.59 3.09-1.47Z" fill="currentColor" />
+      <path
+        d="M16.36 12.55c-.03-2.63 2.15-3.9 2.25-3.96-1.23-1.79-3.14-2.03-3.82-2.06-1.63-.16-3.18.96-4.01.96-.84 0-2.11-.94-3.47-.91-1.78.03-3.43 1.03-4.35 2.62-1.85 3.21-.47 7.95 1.33 10.55.88 1.27 1.93 2.7 3.29 2.65 1.32-.05 1.82-.85 3.41-.85 1.59 0 2.05.85 3.45.83 1.43-.03 2.33-1.3 3.2-2.58 1-1.48 1.42-2.92 1.44-3-.03-.01-2.76-1.06-2.79-4.19ZM13.86 4.6c.73-.88 1.22-2.11 1.09-3.33-1.05.04-2.32.7-3.07 1.58-.68.78-1.27 2.03-1.11 3.22 1.17.09 2.36-.59 3.09-1.47Z"
+        fill="currentColor"
+      />
     </svg>
   );
 }

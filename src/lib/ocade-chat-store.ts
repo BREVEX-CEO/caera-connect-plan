@@ -123,7 +123,10 @@ export async function loadChatMessages(input: {
 }
 
 /** Remove every vault-stored message for a conversation (privacy control). */
-export async function deleteVaultConversation(userId: string, conversationId: string): Promise<number> {
+export async function deleteVaultConversation(
+  userId: string,
+  conversationId: string,
+): Promise<number> {
   const adapter = await resolveAdapter(userId, "chats");
   const all = await adapter.list<ChatMessageRecord>("chats");
   const targets = all.filter((r) => r.value?.conversation_id === conversationId);

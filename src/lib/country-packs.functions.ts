@@ -13,10 +13,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { runCalculator, compareExpected } from "./india-calculators";
 
-async function assertAdmin(
-  supabase: { from: (t: string) => any },
-  userId: string,
-) {
+async function assertAdmin(supabase: { from: (t: string) => any }, userId: string) {
   const { data, error } = await supabase
     .from("user_roles")
     .select("role")
@@ -47,14 +44,23 @@ async function audit(
 
 const updateVersionInput = z.object({
   version_id: z.string().uuid(),
-  effective_from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  effective_to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  effective_from: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  effective_to: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
   jurisdiction: z.string().max(64).optional(),
   business_types: z.array(z.string().max(64)).max(20).optional(),
   applicability: z.record(z.string(), z.any()).optional(),
   rules: z.record(z.string(), z.any()).optional(),
   changelog: z.string().max(2000).optional(),
-  status: z.enum(["draft", "in_review", "approved", "pilot", "ga", "stale", "deprecated"]).optional(),
+  status: z
+    .enum(["draft", "in_review", "approved", "pilot", "ga", "stale", "deprecated"])
+    .optional(),
   ga_ready: z.boolean().optional(),
   pilot_evidence_url: z.string().url().max(500).nullable().optional(),
   review_required_count: z.number().int().min(1).max(5).optional(),
@@ -81,7 +87,16 @@ export const updatePackVersion = createServerFn({ method: "POST" })
 const addSourceInput = z.object({
   version_id: z.string().uuid(),
   rule_key: z.string().min(1).max(200),
-  source_type: z.enum(["statute", "notification", "circular", "case_law", "guidance", "form", "portal", "other"]),
+  source_type: z.enum([
+    "statute",
+    "notification",
+    "circular",
+    "case_law",
+    "guidance",
+    "form",
+    "portal",
+    "other",
+  ]),
   citation: z.string().min(1).max(500),
   url: z.string().url().max(500).optional(),
   document_ref: z.string().max(500).optional(),
@@ -196,7 +211,9 @@ export const runVersionTests = createServerFn({ method: "POST" })
       error: results.filter((r) => r.status === "error").length,
     };
 
-    await audit(supabaseAdmin, context.userId, "country_pack.tests.run", data.version_id, { summary });
+    await audit(supabaseAdmin, context.userId, "country_pack.tests.run", data.version_id, {
+      summary,
+    });
 
     return { ok: true as const, summary, results };
   });
@@ -234,6 +251,12 @@ export const promotePackVersion = createServerFn({ method: "POST" })
           .eq("id", ver.pack_id);
       }
     }
-    await audit(supabaseAdmin, context.userId, "country_pack.version.promote", data.version_id, patch);
+    await audit(
+      supabaseAdmin,
+      context.userId,
+      "country_pack.version.promote",
+      data.version_id,
+      patch,
+    );
     return { ok: true as const };
   });

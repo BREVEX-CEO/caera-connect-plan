@@ -5,14 +5,12 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { StatusBadge } from "@/components/shell/StatusBadge";
 import { listDevicesForCurrentUser, revokeDevice, type DeviceRow } from "@/lib/devices";
+import { canRegisterDevice, entitlementState } from "@/lib/ocade-allowance";
 import { executeAction, ActionConfirmationError } from "@/lib/actions";
 
 export const Route = createFileRoute("/_authenticated/settings/devices")({
   head: () => ({
-    meta: [
-      { title: "Devices — CAERA CADANE" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Devices — CAERA CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: DevicesPage,
 });
@@ -33,9 +31,25 @@ function DevicesPage() {
   const desktopCount = active.filter((d) => d.kind === "desktop").length;
   const mobileCount = active.filter((d) => d.kind === "mobile").length;
 
+  // Limits come from the entitlement, not a hardcoded number — a different plan
+  // grants a different allowance, and the count shown must match what is
+  // actually enforced.
+  const entitlement = entitlementState(null);
+  const room = (kind: "desktop" | "mobile") =>
+    canRegisterDevice({
+      kind,
+      currentDesktop: desktopCount,
+      currentMobile: mobileCount,
+      state: entitlement,
+    });
+  const desktopRoom = room("desktop");
+  const mobileRoom = room("mobile");
+
   async function onRevoke(d: DeviceRow) {
     const phrase = window.prompt(
-      `Revoke this ${d.kind} device? This removes an approved access surface for your account. Type "revoke" to confirm.`,
+      `Revoke this ${d.kind} device? This removes an approved access surface for your account. ` +
+        `The device stays revoked even if it reconnects, so if it is lost or stolen it cannot let itself back in. ` +
+        `Type "revoke" to confirm.`,
     );
     if (phrase === null) return;
     setBusyId(d.id);
@@ -66,10 +80,7 @@ function DevicesPage() {
         title="Approved devices"
         description="One physical PC counts as one desktop device. Extra browsers on the same PC will share that slot once the Native Companion ships."
         actions={
-          <Link
-            to="/settings"
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
+          <Link to="/settings" className="text-sm text-muted-foreground hover:text-foreground">
             ← Back to Settings
           </Link>
         }
@@ -80,14 +91,28 @@ function DevicesPage() {
           <Laptop className="h-5 w-5 text-primary" aria-hidden />
           <div>
             <div className="text-sm font-medium text-foreground">Desktop</div>
-            <div className="text-xs text-muted-foreground">{desktopCount} / 2 active</div>
+            <div className="text-xs text-muted-foreground">
+              {desktopCount} / {entitlement.desktopDevices} active
+            </div>
+            {!desktopRoom.allowed ? (
+              <div className="mt-0.5 text-[11px] text-[color:var(--state-warning)]">
+                {desktopRoom.reason}
+              </div>
+            ) : null}
           </div>
         </GlassPanel>
         <GlassPanel className="flex items-center gap-3 p-4">
           <Smartphone className="h-5 w-5 text-primary" aria-hidden />
           <div>
             <div className="text-sm font-medium text-foreground">Mobile</div>
-            <div className="text-xs text-muted-foreground">{mobileCount} / 2 active</div>
+            <div className="text-xs text-muted-foreground">
+              {mobileCount} / {entitlement.mobileDevices} active
+            </div>
+            {!mobileRoom.allowed ? (
+              <div className="mt-0.5 text-[11px] text-[color:var(--state-warning)]">
+                {mobileRoom.reason}
+              </div>
+            ) : null}
           </div>
         </GlassPanel>
       </div>
@@ -123,7 +148,8 @@ function DevicesPage() {
                   <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <StatusBadge status={d.revoked_at ? "planned" : "active"} />
                     <span>
-                      Last active {d.last_active_at ? new Date(d.last_active_at).toLocaleString() : "—"}
+                      Last active{" "}
+                      {d.last_active_at ? new Date(d.last_active_at).toLocaleString() : "—"}
                     </span>
                   </div>
                 </div>

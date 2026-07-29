@@ -42,8 +42,8 @@ export function ocadeIntro(): string {
  * Never fabricate. If provider metadata is missing, say so.
  */
 export interface ProviderContext {
-  providerId?: string | null;   // e.g. "openai", "ollama"
-  modelId?: string | null;      // e.g. "gpt-4o-mini", "llama3.1:8b"
+  providerId?: string | null; // e.g. "openai", "ollama"
+  modelId?: string | null; // e.g. "gpt-4o-mini", "llama3.1:8b"
   locality?: "local" | "cloud" | null;
 }
 
@@ -56,7 +56,9 @@ export function ocadeHonestDisclosure(ctx: ProviderContext): string {
       }. You can change this in Model Settings.`,
     );
   } else if (ctx.providerId) {
-    parts.push(`For this request I'm using ${ctx.providerId}. You can change this in Model Settings.`);
+    parts.push(
+      `For this request I'm using ${ctx.providerId}. You can change this in Model Settings.`,
+    );
   } else {
     parts.push("The active model is shown in Model Settings.");
   }

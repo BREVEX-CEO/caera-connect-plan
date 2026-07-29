@@ -26,6 +26,7 @@ function resetTimer() {
 }
 
 export function setLockTimeout(seconds: number) {
+  if (!Number.isFinite(seconds)) throw new Error("The vault lock timeout is invalid.");
   timeoutMs = Math.max(60, seconds) * 1000;
   resetTimer();
 }

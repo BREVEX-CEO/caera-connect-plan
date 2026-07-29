@@ -29,7 +29,10 @@ export function createOpenAIDirectGateway(apiKey: string) {
 }
 
 export const OCADE_DEFAULT_MODEL = "google/gemini-3.5-flash";
-export const OCADE_MODEL_DISPLAY: Record<string, { display: string; provider: string; locality: "cloud" | "local"; vision: boolean }> = {
+export const OCADE_MODEL_DISPLAY: Record<
+  string,
+  { display: string; provider: string; locality: "cloud" | "local"; vision: boolean }
+> = {
   "google/gemini-3.5-flash": {
     display: "Gemini 3.5 Flash",
     provider: "Google via Lovable AI",

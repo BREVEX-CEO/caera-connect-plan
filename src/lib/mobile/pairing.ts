@@ -27,15 +27,37 @@ export interface PairingChallenge {
 
 export const PAIRING_TTL_MS = 5 * 60 * 1000;
 export const APPROVAL_TTL_MS = 2 * 60 * 1000;
+const CLOCK_SKEW_MS = 30 * 1000;
+
+function secureRandomUnit(): number {
+  const source = globalThis.crypto;
+  if (!source?.getRandomValues) {
+    throw new Error("A cryptographically secure random source is required for mobile pairing.");
+  }
+  const value = new Uint32Array(1);
+  source.getRandomValues(value);
+  return value[0] / 0x1_0000_0000;
+}
+
+function checkedRandom(random: () => number): number {
+  const value = random();
+  if (!Number.isFinite(value) || value < 0 || value >= 1) {
+    throw new RangeError("Pairing randomness must be a finite number between 0 (inclusive) and 1.");
+  }
+  return value;
+}
 
 /** 6-digit code + nonce. `random` is injectable so tests are deterministic. */
 export function createPairingChallenge(
   now: Date = new Date(),
-  random: () => number = Math.random,
+  random: () => number = secureRandomUnit,
 ): PairingChallenge {
-  const code = String(Math.floor(random() * 1_000_000)).padStart(6, "0");
+  if (!Number.isFinite(now.getTime())) {
+    throw new Error("A pairing challenge requires a valid creation time.");
+  }
+  const code = String(Math.floor(checkedRandom(random) * 1_000_000)).padStart(6, "0");
   const nonce = Array.from({ length: 4 }, () =>
-    Math.floor(random() * 0xffff)
+    Math.floor(checkedRandom(random) * 0x10000)
       .toString(16)
       .padStart(4, "0"),
   ).join("");
@@ -49,18 +71,50 @@ export function createPairingChallenge(
 
 export type PairingResult =
   | { ok: true }
-  | { ok: false; code: "expired" | "code_mismatch" | "nonce_mismatch"; reason: string };
+  | {
+      ok: false;
+      code: "expired" | "code_mismatch" | "nonce_mismatch" | "invalid_challenge";
+      reason: string;
+    };
 
 export function verifyPairing(
   challenge: PairingChallenge,
   attempt: { code: string; nonce: string },
   now: Date = new Date(),
 ): PairingResult {
-  if (now.getTime() > challenge.expiresAt.getTime()) {
-    return { ok: false, code: "expired", reason: "This pairing code has expired. Generate a new one." };
+  const createdAt =
+    challenge.createdAt instanceof Date ? challenge.createdAt.getTime() : Number.NaN;
+  const expiresAt =
+    challenge.expiresAt instanceof Date ? challenge.expiresAt.getTime() : Number.NaN;
+  const current = now.getTime();
+  if (
+    !/^\d{6}$/.test(challenge.code) ||
+    !/^[a-f0-9]{16}$/.test(challenge.nonce) ||
+    !Number.isFinite(createdAt) ||
+    !Number.isFinite(expiresAt) ||
+    !Number.isFinite(current) ||
+    expiresAt <= createdAt ||
+    expiresAt - createdAt > PAIRING_TTL_MS
+  ) {
+    return {
+      ok: false,
+      code: "invalid_challenge",
+      reason: "This pairing challenge is invalid. Generate a new one.",
+    };
+  }
+  if (current >= expiresAt) {
+    return {
+      ok: false,
+      code: "expired",
+      reason: "This pairing code has expired. Generate a new one.",
+    };
   }
   if (attempt.nonce !== challenge.nonce) {
-    return { ok: false, code: "nonce_mismatch", reason: "This pairing request doesn't match. Try again." };
+    return {
+      ok: false,
+      code: "nonce_mismatch",
+      reason: "This pairing request doesn't match. Try again.",
+    };
   }
   if (attempt.code !== challenge.code) {
     return { ok: false, code: "code_mismatch", reason: "That code is incorrect." };
@@ -88,7 +142,19 @@ export const TRUST_STALE_MS = 30 * 24 * 60 * 60 * 1000;
 
 export function isTrusted(device: PairedDevice, now: Date = new Date()): boolean {
   if (device.revoked) return false;
-  return now.getTime() - device.lastSeenAt.getTime() <= TRUST_STALE_MS;
+  const current = now.getTime();
+  const pairedAt = device.pairedAt instanceof Date ? device.pairedAt.getTime() : Number.NaN;
+  const lastSeenAt = device.lastSeenAt instanceof Date ? device.lastSeenAt.getTime() : Number.NaN;
+  if (
+    !Number.isFinite(current) ||
+    !Number.isFinite(pairedAt) ||
+    !Number.isFinite(lastSeenAt) ||
+    pairedAt > lastSeenAt ||
+    lastSeenAt > current + CLOCK_SKEW_MS
+  ) {
+    return false;
+  }
+  return current - lastSeenAt <= TRUST_STALE_MS;
 }
 
 /* ----------------------------------------------------------- approvals -- */
@@ -127,7 +193,11 @@ export function createApprovalRequest(input: {
 
 export type DecisionResult =
   | { ok: true; request: ApprovalRequest }
-  | { ok: false; code: "expired" | "already_decided" | "untrusted_device" | "prohibited"; reason: string };
+  | {
+      ok: false;
+      code: "expired" | "already_decided" | "untrusted_device" | "prohibited";
+      reason: string;
+    };
 
 /**
  * Apply a mobile decision. Refuses prohibited actions outright, decisions from
@@ -147,13 +217,25 @@ export function decideApproval(
     };
   }
   if (request.status !== "pending") {
-    return { ok: false, code: "already_decided", reason: `This request was already ${request.status}.` };
+    return {
+      ok: false,
+      code: "already_decided",
+      reason: `This request was already ${request.status}.`,
+    };
   }
   if (now.getTime() > request.expiresAt.getTime()) {
-    return { ok: false, code: "expired", reason: "This approval request expired. Ask again from your desktop." };
+    return {
+      ok: false,
+      code: "expired",
+      reason: "This approval request expired. Ask again from your desktop.",
+    };
   }
   if (!isTrusted(device, now)) {
-    return { ok: false, code: "untrusted_device", reason: "This device isn't trusted. Pair it again." };
+    return {
+      ok: false,
+      code: "untrusted_device",
+      reason: "This device isn't trusted. Pair it again.",
+    };
   }
   return {
     ok: true,
@@ -195,7 +277,12 @@ export function applyEmergencyStop(
 ): ApprovalRequest[] {
   return requests.map((r) =>
     r.status === "pending"
-      ? { ...r, status: "cancelled" as const, decidedByDeviceId: stop.requestedByDeviceId, decidedAt: stop.requestedAt }
+      ? {
+          ...r,
+          status: "cancelled" as const,
+          decidedByDeviceId: stop.requestedByDeviceId,
+          decidedAt: stop.requestedAt,
+        }
       : r,
   );
 }

@@ -13,7 +13,9 @@ import { executeAction } from "@/lib/actions";
 import { listApprovalQueue, decideEntry } from "@/lib/timesheet.functions";
 
 export const Route = createFileRoute("/_authenticated/ficia/$tenantId/time/approvals")({
-  head: () => ({ meta: [{ title: "Timesheet Approvals — FICIA" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [{ title: "Timesheet Approvals — FICIA" }, { name: "robots", content: "noindex" }],
+  }),
   component: ApprovalsPage,
 });
 
@@ -38,21 +40,32 @@ function ApprovalsPage() {
   async function decide(id: string, decision: "approve" | "reject" | "request_correction") {
     const reason = reasons[id] ?? "";
     if ((decision === "reject" || decision === "request_correction") && reason.trim().length < 3) {
-      toast.error("Reason required."); return;
+      toast.error("Reason required.");
+      return;
     }
     setBusy(id);
     try {
-      const actionId = decision === "approve" ? "ficia.time.entry.approve"
-        : decision === "reject" ? "ficia.time.entry.reject"
-        : "ficia.time.entry.request_correction";
+      const actionId =
+        decision === "approve"
+          ? "ficia.time.entry.approve"
+          : decision === "reject"
+            ? "ficia.time.entry.reject"
+            : "ficia.time.entry.request_correction";
       const res = await executeAction(actionId, {
-        confirmed: true, tenantId,
-        run: () => decideEntry({ data: { tenant_id: tenantId, id, decision, reason: reason || null } }),
+        confirmed: true,
+        tenantId,
+        run: () =>
+          decideEntry({ data: { tenant_id: tenantId, id, decision, reason: reason || null } }),
       });
       if ((res as any).ok === false) toast.error((res as any).message);
-      else { qc.invalidateQueries({ queryKey: ["time.pending", tenantId] }); }
-    } catch (e: any) { toast.error(e?.message ?? String(e)); }
-    finally { setBusy(null); }
+      else {
+        qc.invalidateQueries({ queryKey: ["time.pending", tenantId] });
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? String(e));
+    } finally {
+      setBusy(null);
+    }
   }
 
   const rows = (pendingQ.data?.entries ?? []) as any[];
@@ -60,15 +73,25 @@ function ApprovalsPage() {
   return (
     <AppShell>
       <div className="mb-4">
-        <Link to="/ficia/$tenantId/time" params={{ tenantId }} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          to="/ficia/$tenantId/time"
+          params={{ tenantId }}
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="size-4" /> Timesheets
         </Link>
       </div>
-      <PageHeader eyebrow="FICIA — Time" title="Approval queue" description="Review submitted entries from workers you manage." />
+      <PageHeader
+        eyebrow="FICIA — Time"
+        title="Approval queue"
+        description="Review submitted entries from workers you manage."
+      />
 
       <GlassPanel className="mt-4 p-4">
         {pendingQ.isLoading && <Loader2 className="size-4 animate-spin" />}
-        {!pendingQ.isLoading && rows.length === 0 && <p className="text-sm text-muted-foreground">Nothing pending. All caught up.</p>}
+        {!pendingQ.isLoading && rows.length === 0 && (
+          <p className="text-sm text-muted-foreground">Nothing pending. All caught up.</p>
+        )}
         <ul className="divide-y divide-border/40">
           {rows.map((e) => (
             <li key={e.id} className="py-3 text-sm">
@@ -77,9 +100,17 @@ function ApprovalsPage() {
                 <span className="font-mono w-20 tabular-nums">{fmt(e.duration_seconds ?? 0)}</span>
                 <StatusBadge status="pending">submitted</StatusBadge>
                 <span className="text-xs uppercase text-muted-foreground">{e.source}</span>
-                {e.billable && <span className="text-xs text-[color:var(--state-info)]">billable</span>}
-                <span className="text-xs text-muted-foreground">user {String(e.user_id).slice(0, 8)}…</span>
-                <span className="truncate flex-1">{e.description ?? <span className="italic text-muted-foreground">no description</span>}</span>
+                {e.billable && (
+                  <span className="text-xs text-[color:var(--state-info)]">billable</span>
+                )}
+                <span className="text-xs text-muted-foreground">
+                  user {String(e.user_id).slice(0, 8)}…
+                </span>
+                <span className="truncate flex-1">
+                  {e.description ?? (
+                    <span className="italic text-muted-foreground">no description</span>
+                  )}
+                </span>
               </div>
               <div className="mt-2 flex gap-2 items-center">
                 <Input
@@ -88,14 +119,29 @@ function ApprovalsPage() {
                   onChange={(ev) => setReasons((r) => ({ ...r, [e.id]: ev.target.value }))}
                   className="h-8 text-xs flex-1"
                 />
-                <Button size="sm" variant="outline" disabled={busy === e.id} onClick={() => decide(e.id, "request_correction")}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy === e.id}
+                  onClick={() => decide(e.id, "request_correction")}
+                >
                   <RotateCcw className="size-3.5 mr-1" /> Request fix
                 </Button>
-                <Button size="sm" variant="destructive" disabled={busy === e.id} onClick={() => decide(e.id, "reject")}>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  disabled={busy === e.id}
+                  onClick={() => decide(e.id, "reject")}
+                >
                   <X className="size-3.5 mr-1" /> Reject
                 </Button>
                 <Button size="sm" disabled={busy === e.id} onClick={() => decide(e.id, "approve")}>
-                  {busy === e.id ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5 mr-1" />} Approve
+                  {busy === e.id ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Check className="size-3.5 mr-1" />
+                  )}{" "}
+                  Approve
                 </Button>
               </div>
             </li>

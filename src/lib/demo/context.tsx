@@ -99,7 +99,12 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           ...s,
           companyChat: [
             ...s.companyChat,
-            { id: `c${s.companyChat.length + 1}`, author, ts: new Date().toISOString().slice(11, 16), body },
+            {
+              id: `c${s.companyChat.length + 1}`,
+              author,
+              ts: new Date().toISOString().slice(11, 16),
+              body,
+            },
           ],
         })),
       markTaskDone: (id) =>

@@ -171,11 +171,18 @@ export const WINDOWS_CAPABILITIES: AdapterCapability[] = [
   { kind: "app.open", label: "Open an approved application" },
 ];
 
-/** Build the V1 registry (browser + files + windows). */
+/** Acting on whatever the user has highlighted in the focused application. */
+export const SELECTION_CAPABILITIES: AdapterCapability[] = [
+  { kind: "selection.read", label: "Read what you've selected" },
+  { kind: "selection.replace", label: "Replace what you've selected" },
+];
+
+/** Build the V1 registry (browser + files + windows + selection). */
 export function createDefaultRegistry(executors?: {
   browser?: Parameters<typeof createCompanionBackedAdapter>[0]["executor"];
   files?: Parameters<typeof createCompanionBackedAdapter>[0]["executor"];
   windows?: Parameters<typeof createCompanionBackedAdapter>[0]["executor"];
+  selection?: Parameters<typeof createCompanionBackedAdapter>[0]["executor"];
 }): AdapterRegistry {
   const reg = new AdapterRegistry();
   reg.register(
@@ -200,6 +207,14 @@ export function createDefaultRegistry(executors?: {
       label: "Window management",
       capabilities: WINDOWS_CAPABILITIES,
       executor: executors?.windows,
+    }),
+  );
+  reg.register(
+    createCompanionBackedAdapter({
+      id: "selection",
+      label: "Selected text",
+      capabilities: SELECTION_CAPABILITIES,
+      executor: executors?.selection,
     }),
   );
   return reg;

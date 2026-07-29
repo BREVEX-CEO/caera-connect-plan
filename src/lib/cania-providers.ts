@@ -22,16 +22,9 @@ export type CaniaProviderKind =
   | "government"
   | "risk";
 
-export type CaniaProviderStatus =
-  | "setup_required"
-  | "connected"
-  | "planned";
+export type CaniaProviderStatus = "setup_required" | "connected" | "planned";
 
-export type CaniaProviderAuth =
-  | "none"
-  | "api_key"
-  | "oauth"
-  | "native_companion";
+export type CaniaProviderAuth = "none" | "api_key" | "oauth" | "native_companion";
 
 export interface CaniaProviderAdapter {
   id: string;

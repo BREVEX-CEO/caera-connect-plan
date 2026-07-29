@@ -6,8 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { newId, type ResumeContent, EXPERIENCE_LEVEL_LABEL, type ExperienceLevel } from "@/lib/madee-resume-types";
-import { generateResumeSummary, improveResumeBullet, grammarCheckResume } from "@/lib/madee-ai.functions";
+import {
+  newId,
+  type ResumeContent,
+  EXPERIENCE_LEVEL_LABEL,
+  type ExperienceLevel,
+} from "@/lib/madee-resume-types";
+import {
+  generateResumeSummary,
+  improveResumeBullet,
+  grammarCheckResume,
+} from "@/lib/madee-ai.functions";
 import { executeAction } from "@/lib/actions";
 
 type Setter = (updater: (r: ResumeContent) => ResumeContent) => void;
@@ -15,7 +24,10 @@ type Setter = (updater: (r: ResumeContent) => ResumeContent) => void;
 /* ---------- Personal + summary ---------- */
 
 export function PersonalSection({
-  resume, setResume, profession, experienceLevel,
+  resume,
+  setResume,
+  profession,
+  experienceLevel,
 }: {
   resume: ResumeContent;
   setResume: Setter;
@@ -128,7 +140,11 @@ export function PersonalSection({
             }
           }}
         >
-          {busy === "summary" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {busy === "summary" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
           Draft summary
         </Button>
         <Button
@@ -151,7 +167,11 @@ export function PersonalSection({
             }
           }}
         >
-          {busy === "grammar" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {busy === "grammar" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="h-4 w-4" />
+          )}
           Grammar check
         </Button>
       </div>
@@ -169,7 +189,16 @@ export function WorkSection({ resume, setResume }: { resume: ResumeContent; setR
       ...r,
       work: [
         ...r.work,
-        { id: newId(), role: "", company: "", location: "", start: "", end: "", current: false, bullets: [""] },
+        {
+          id: newId(),
+          role: "",
+          company: "",
+          location: "",
+          start: "",
+          end: "",
+          current: false,
+          bullets: [""],
+        },
       ],
     }));
   return (
@@ -184,14 +213,28 @@ export function WorkSection({ resume, setResume }: { resume: ResumeContent; setR
               <Input value={w.company} onChange={(e) => update(idx, { company: e.target.value })} />
             </Field>
             <Field label="Location">
-              <Input value={w.location} onChange={(e) => update(idx, { location: e.target.value })} />
+              <Input
+                value={w.location}
+                onChange={(e) => update(idx, { location: e.target.value })}
+              />
             </Field>
             <div className="flex gap-2">
               <Field label="Start (YYYY-MM)">
-                <Input value={w.start} maxLength={10} placeholder="2022-01" onChange={(e) => update(idx, { start: e.target.value })} />
+                <Input
+                  value={w.start}
+                  maxLength={10}
+                  placeholder="2022-01"
+                  onChange={(e) => update(idx, { start: e.target.value })}
+                />
               </Field>
               <Field label={w.current ? "Present" : "End (YYYY-MM)"}>
-                <Input value={w.current ? "" : w.end} disabled={w.current} maxLength={10} placeholder="2024-03" onChange={(e) => update(idx, { end: e.target.value })} />
+                <Input
+                  value={w.current ? "" : w.end}
+                  disabled={w.current}
+                  maxLength={10}
+                  placeholder="2024-03"
+                  onChange={(e) => update(idx, { end: e.target.value })}
+                />
               </Field>
             </div>
           </div>
@@ -224,7 +267,8 @@ export function WorkSection({ resume, setResume }: { resume: ResumeContent; setR
                       setBusy(key);
                       try {
                         const res = await executeAction("madee.resume.ai_bullet", {
-                          run: () => improve({ data: { bullet: b, role: w.role, company: w.company } }),
+                          run: () =>
+                            improve({ data: { bullet: b, role: w.role, company: w.company } }),
                         });
                         if (res.ok) updateBullet(idx, i, res.result);
                         else toast.error(res.error);
@@ -236,7 +280,11 @@ export function WorkSection({ resume, setResume }: { resume: ResumeContent; setR
                     }}
                     title="Strengthen this bullet"
                   >
-                    {busy === `${w.id}:${i}` ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    {busy === `${w.id}:${i}` ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
                   </Button>
                   <Button
                     type="button"
@@ -299,13 +347,28 @@ export function WorkSection({ resume, setResume }: { resume: ResumeContent; setR
 
 /* ---------- Education ---------- */
 
-export function EducationSection({ resume, setResume }: { resume: ResumeContent; setResume: Setter }) {
+export function EducationSection({
+  resume,
+  setResume,
+}: {
+  resume: ResumeContent;
+  setResume: Setter;
+}) {
   const add = () =>
     setResume((r) => ({
       ...r,
       education: [
         ...r.education,
-        { id: newId(), school: "", degree: "", field: "", location: "", start: "", end: "", notes: "" },
+        {
+          id: newId(),
+          school: "",
+          degree: "",
+          field: "",
+          location: "",
+          start: "",
+          end: "",
+          notes: "",
+        },
       ],
     }));
   return (
@@ -313,24 +376,62 @@ export function EducationSection({ resume, setResume }: { resume: ResumeContent;
       {resume.education.map((e, idx) => (
         <div key={e.id} className="rounded-lg border border-border/60 p-3">
           <div className="grid gap-2 sm:grid-cols-2">
-            <Field label="School"><Input value={e.school} onChange={(ev) => set(idx, { school: ev.target.value })} /></Field>
-            <Field label="Degree"><Input value={e.degree} onChange={(ev) => set(idx, { degree: ev.target.value })} /></Field>
-            <Field label="Field of study"><Input value={e.field} onChange={(ev) => set(idx, { field: ev.target.value })} /></Field>
-            <Field label="Location"><Input value={e.location} onChange={(ev) => set(idx, { location: ev.target.value })} /></Field>
-            <Field label="Start"><Input value={e.start} maxLength={10} placeholder="2018" onChange={(ev) => set(idx, { start: ev.target.value })} /></Field>
-            <Field label="End"><Input value={e.end} maxLength={10} placeholder="2022" onChange={(ev) => set(idx, { end: ev.target.value })} /></Field>
+            <Field label="School">
+              <Input value={e.school} onChange={(ev) => set(idx, { school: ev.target.value })} />
+            </Field>
+            <Field label="Degree">
+              <Input value={e.degree} onChange={(ev) => set(idx, { degree: ev.target.value })} />
+            </Field>
+            <Field label="Field of study">
+              <Input value={e.field} onChange={(ev) => set(idx, { field: ev.target.value })} />
+            </Field>
+            <Field label="Location">
+              <Input
+                value={e.location}
+                onChange={(ev) => set(idx, { location: ev.target.value })}
+              />
+            </Field>
+            <Field label="Start">
+              <Input
+                value={e.start}
+                maxLength={10}
+                placeholder="2018"
+                onChange={(ev) => set(idx, { start: ev.target.value })}
+              />
+            </Field>
+            <Field label="End">
+              <Input
+                value={e.end}
+                maxLength={10}
+                placeholder="2022"
+                onChange={(ev) => set(idx, { end: ev.target.value })}
+              />
+            </Field>
           </div>
           <Field label="Notes / honours">
-            <Textarea rows={2} value={e.notes} maxLength={600} onChange={(ev) => set(idx, { notes: ev.target.value })} />
+            <Textarea
+              rows={2}
+              value={e.notes}
+              maxLength={600}
+              onChange={(ev) => set(idx, { notes: ev.target.value })}
+            />
           </Field>
           <div className="flex justify-end">
-            <Button size="sm" variant="ghost" onClick={() => setResume((r) => ({ ...r, education: r.education.filter((_, j) => j !== idx) }))}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() =>
+                setResume((r) => ({ ...r, education: r.education.filter((_, j) => j !== idx) }))
+              }
+            >
               <Trash2 className="h-4 w-4" /> Remove
             </Button>
           </div>
         </div>
       ))}
-      <Button variant="secondary" onClick={add}><Plus className="h-4 w-4" /> Add education</Button>
+      <Button variant="secondary" onClick={add}>
+        <Plus className="h-4 w-4" /> Add education
+      </Button>
     </div>
   );
   function set(idx: number, patch: Partial<ResumeContent["education"][number]>) {
@@ -344,25 +445,41 @@ export function EducationSection({ resume, setResume }: { resume: ResumeContent;
 /* ---------- Simple list sections ---------- */
 
 export function SkillsSection({ resume, setResume }: { resume: ResumeContent; setResume: Setter }) {
-  return <StringListEditor
-    label="Skill"
-    values={resume.skills}
-    onChange={(next) => setResume((r) => ({ ...r, skills: next }))}
-  />;
+  return (
+    <StringListEditor
+      label="Skill"
+      values={resume.skills}
+      onChange={(next) => setResume((r) => ({ ...r, skills: next }))}
+    />
+  );
 }
 
-export function AchievementsSection({ resume, setResume }: { resume: ResumeContent; setResume: Setter }) {
-  return <StringListEditor
-    label="Achievement"
-    values={resume.achievements}
-    onChange={(next) => setResume((r) => ({ ...r, achievements: next }))}
-    multiline
-  />;
+export function AchievementsSection({
+  resume,
+  setResume,
+}: {
+  resume: ResumeContent;
+  setResume: Setter;
+}) {
+  return (
+    <StringListEditor
+      label="Achievement"
+      values={resume.achievements}
+      onChange={(next) => setResume((r) => ({ ...r, achievements: next }))}
+      multiline
+    />
+  );
 }
 
 /* ---------- Projects ---------- */
 
-export function ProjectsSection({ resume, setResume }: { resume: ResumeContent; setResume: Setter }) {
+export function ProjectsSection({
+  resume,
+  setResume,
+}: {
+  resume: ResumeContent;
+  setResume: Setter;
+}) {
   const add = () =>
     setResume((r) => ({
       ...r,
@@ -373,30 +490,57 @@ export function ProjectsSection({ resume, setResume }: { resume: ResumeContent; 
       {resume.projects.map((p, idx) => (
         <div key={p.id} className="rounded-lg border border-border/60 p-3">
           <div className="grid gap-2 sm:grid-cols-2">
-            <Field label="Name"><Input value={p.name} onChange={(e) => set(idx, { name: e.target.value })} /></Field>
-            <Field label="Role"><Input value={p.role} onChange={(e) => set(idx, { role: e.target.value })} /></Field>
+            <Field label="Name">
+              <Input value={p.name} onChange={(e) => set(idx, { name: e.target.value })} />
+            </Field>
+            <Field label="Role">
+              <Input value={p.role} onChange={(e) => set(idx, { role: e.target.value })} />
+            </Field>
           </div>
-          <Field label="Link"><Input value={p.link} onChange={(e) => set(idx, { link: e.target.value })} /></Field>
+          <Field label="Link">
+            <Input value={p.link} onChange={(e) => set(idx, { link: e.target.value })} />
+          </Field>
           <Label className="text-xs uppercase tracking-wide text-muted-foreground">Bullets</Label>
           {p.bullets.map((b, i) => (
             <div key={i} className="mt-1 flex gap-2">
-              <Textarea rows={2} value={b} maxLength={600} onChange={(e) => setB(idx, i, e.target.value)} />
-              <Button size="icon" variant="ghost" onClick={() => set(idx, { bullets: p.bullets.filter((_, j) => j !== i) })}>
+              <Textarea
+                rows={2}
+                value={b}
+                maxLength={600}
+                onChange={(e) => setB(idx, i, e.target.value)}
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => set(idx, { bullets: p.bullets.filter((_, j) => j !== i) })}
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           ))}
-          <Button size="sm" variant="ghost" onClick={() => set(idx, { bullets: [...p.bullets, ""] })}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => set(idx, { bullets: [...p.bullets, ""] })}
+          >
             <Plus className="h-4 w-4" /> Add bullet
           </Button>
           <div className="flex justify-end">
-            <Button size="sm" variant="ghost" onClick={() => setResume((r) => ({ ...r, projects: r.projects.filter((_, j) => j !== idx) }))}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() =>
+                setResume((r) => ({ ...r, projects: r.projects.filter((_, j) => j !== idx) }))
+              }
+            >
               <Trash2 className="h-4 w-4" /> Remove
             </Button>
           </div>
         </div>
       ))}
-      <Button variant="secondary" onClick={add}><Plus className="h-4 w-4" /> Add project</Button>
+      <Button variant="secondary" onClick={add}>
+        <Plus className="h-4 w-4" /> Add project
+      </Button>
     </div>
   );
   function set(idx: number, patch: Partial<ResumeContent["projects"][number]>) {
@@ -417,28 +561,59 @@ export function ProjectsSection({ resume, setResume }: { resume: ResumeContent; 
 
 /* ---------- Certifications ---------- */
 
-export function CertificationsSection({ resume, setResume }: { resume: ResumeContent; setResume: Setter }) {
+export function CertificationsSection({
+  resume,
+  setResume,
+}: {
+  resume: ResumeContent;
+  setResume: Setter;
+}) {
   const add = () =>
     setResume((r) => ({
       ...r,
-      certifications: [...r.certifications, { id: newId(), name: "", issuer: "", date: "", id_number: "" }],
+      certifications: [
+        ...r.certifications,
+        { id: newId(), name: "", issuer: "", date: "", id_number: "" },
+      ],
     }));
   return (
     <div className="space-y-3">
       {resume.certifications.map((c, idx) => (
-        <div key={c.id} className="rounded-lg border border-border/60 p-3 grid gap-2 sm:grid-cols-2">
-          <Field label="Name"><Input value={c.name} onChange={(e) => set(idx, { name: e.target.value })} /></Field>
-          <Field label="Issuer"><Input value={c.issuer} onChange={(e) => set(idx, { issuer: e.target.value })} /></Field>
-          <Field label="Date"><Input value={c.date} onChange={(e) => set(idx, { date: e.target.value })} /></Field>
-          <Field label="Credential ID"><Input value={c.id_number} onChange={(e) => set(idx, { id_number: e.target.value })} /></Field>
+        <div
+          key={c.id}
+          className="rounded-lg border border-border/60 p-3 grid gap-2 sm:grid-cols-2"
+        >
+          <Field label="Name">
+            <Input value={c.name} onChange={(e) => set(idx, { name: e.target.value })} />
+          </Field>
+          <Field label="Issuer">
+            <Input value={c.issuer} onChange={(e) => set(idx, { issuer: e.target.value })} />
+          </Field>
+          <Field label="Date">
+            <Input value={c.date} onChange={(e) => set(idx, { date: e.target.value })} />
+          </Field>
+          <Field label="Credential ID">
+            <Input value={c.id_number} onChange={(e) => set(idx, { id_number: e.target.value })} />
+          </Field>
           <div className="sm:col-span-2 flex justify-end">
-            <Button size="sm" variant="ghost" onClick={() => setResume((r) => ({ ...r, certifications: r.certifications.filter((_, j) => j !== idx) }))}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() =>
+                setResume((r) => ({
+                  ...r,
+                  certifications: r.certifications.filter((_, j) => j !== idx),
+                }))
+              }
+            >
               <Trash2 className="h-4 w-4" /> Remove
             </Button>
           </div>
         </div>
       ))}
-      <Button variant="secondary" onClick={add}><Plus className="h-4 w-4" /> Add certification</Button>
+      <Button variant="secondary" onClick={add}>
+        <Plus className="h-4 w-4" /> Add certification
+      </Button>
     </div>
   );
   function set(idx: number, patch: Partial<ResumeContent["certifications"][number]>) {
@@ -451,7 +626,13 @@ export function CertificationsSection({ resume, setResume }: { resume: ResumeCon
 
 /* ---------- Languages ---------- */
 
-export function LanguagesSection({ resume, setResume }: { resume: ResumeContent; setResume: Setter }) {
+export function LanguagesSection({
+  resume,
+  setResume,
+}: {
+  resume: ResumeContent;
+  setResume: Setter;
+}) {
   const add = () =>
     setResume((r) => ({
       ...r,
@@ -460,14 +641,21 @@ export function LanguagesSection({ resume, setResume }: { resume: ResumeContent;
   return (
     <div className="space-y-3">
       {resume.languages.map((l, idx) => (
-        <div key={l.id} className="flex flex-wrap items-end gap-2 rounded-lg border border-border/60 p-3">
+        <div
+          key={l.id}
+          className="flex flex-wrap items-end gap-2 rounded-lg border border-border/60 p-3"
+        >
           <Field label="Language" className="flex-1 min-w-[10rem]">
             <Input value={l.name} onChange={(e) => set(idx, { name: e.target.value })} />
           </Field>
           <Field label="Proficiency">
             <select
               value={l.proficiency}
-              onChange={(e) => set(idx, { proficiency: e.target.value as ResumeContent["languages"][number]["proficiency"] })}
+              onChange={(e) =>
+                set(idx, {
+                  proficiency: e.target.value as ResumeContent["languages"][number]["proficiency"],
+                })
+              }
               className="h-9 rounded-md border border-input bg-background px-2 text-sm"
             >
               <option value="basic">basic</option>
@@ -477,12 +665,20 @@ export function LanguagesSection({ resume, setResume }: { resume: ResumeContent;
               <option value="native">native</option>
             </select>
           </Field>
-          <Button size="icon" variant="ghost" onClick={() => setResume((r) => ({ ...r, languages: r.languages.filter((_, j) => j !== idx) }))}>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() =>
+              setResume((r) => ({ ...r, languages: r.languages.filter((_, j) => j !== idx) }))
+            }
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       ))}
-      <Button variant="secondary" onClick={add}><Plus className="h-4 w-4" /> Add language</Button>
+      <Button variant="secondary" onClick={add}>
+        <Plus className="h-4 w-4" /> Add language
+      </Button>
     </div>
   );
   function set(idx: number, patch: Partial<ResumeContent["languages"][number]>) {
@@ -504,15 +700,28 @@ export function LinksSection({ resume, setResume }: { resume: ResumeContent; set
   return (
     <div className="space-y-3">
       {resume.links.map((l, idx) => (
-        <div key={l.id} className="grid gap-2 sm:grid-cols-[1fr_2fr_auto] items-end rounded-lg border border-border/60 p-3">
-          <Field label="Label"><Input value={l.label} onChange={(e) => set(idx, { label: e.target.value })} /></Field>
-          <Field label="URL"><Input value={l.url} onChange={(e) => set(idx, { url: e.target.value })} /></Field>
-          <Button size="icon" variant="ghost" onClick={() => setResume((r) => ({ ...r, links: r.links.filter((_, j) => j !== idx) }))}>
+        <div
+          key={l.id}
+          className="grid gap-2 sm:grid-cols-[1fr_2fr_auto] items-end rounded-lg border border-border/60 p-3"
+        >
+          <Field label="Label">
+            <Input value={l.label} onChange={(e) => set(idx, { label: e.target.value })} />
+          </Field>
+          <Field label="URL">
+            <Input value={l.url} onChange={(e) => set(idx, { url: e.target.value })} />
+          </Field>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setResume((r) => ({ ...r, links: r.links.filter((_, j) => j !== idx) }))}
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
       ))}
-      <Button variant="secondary" onClick={add}><Plus className="h-4 w-4" /> Add link</Button>
+      <Button variant="secondary" onClick={add}>
+        <Plus className="h-4 w-4" /> Add link
+      </Button>
     </div>
   );
   function set(idx: number, patch: Partial<ResumeContent["links"][number]>) {
@@ -526,8 +735,14 @@ export function LinksSection({ resume, setResume }: { resume: ResumeContent; set
 /* ---------- Primitives ---------- */
 
 function Field({
-  label, children, className,
-}: { label: string; children: React.ReactNode; className?: string }) {
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <div className={`space-y-1 ${className ?? ""}`}>
       <Label className="text-xs uppercase tracking-wide text-muted-foreground">{label}</Label>
@@ -537,7 +752,10 @@ function Field({
 }
 
 function StringListEditor({
-  label, values, onChange, multiline,
+  label,
+  values,
+  onChange,
+  multiline,
 }: {
   label: string;
   values: string[];
@@ -549,11 +767,24 @@ function StringListEditor({
       {values.map((v, i) => (
         <div key={i} className="flex gap-2">
           {multiline ? (
-            <Textarea rows={2} value={v} maxLength={600} onChange={(e) => onChange(values.map((x, j) => (j === i ? e.target.value : x)))} />
+            <Textarea
+              rows={2}
+              value={v}
+              maxLength={600}
+              onChange={(e) => onChange(values.map((x, j) => (j === i ? e.target.value : x)))}
+            />
           ) : (
-            <Input value={v} maxLength={120} onChange={(e) => onChange(values.map((x, j) => (j === i ? e.target.value : x)))} />
+            <Input
+              value={v}
+              maxLength={120}
+              onChange={(e) => onChange(values.map((x, j) => (j === i ? e.target.value : x)))}
+            />
           )}
-          <Button size="icon" variant="ghost" onClick={() => onChange(values.filter((_, j) => j !== i))}>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => onChange(values.filter((_, j) => j !== i))}
+          >
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>

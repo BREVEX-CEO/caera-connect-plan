@@ -1,10 +1,12 @@
+import type { MultimodalRegistry, VoiceProvider } from "./providers/multimodal-registry";
 /**
  * OCADE Voice (Plan §22, decisions #22–#27).
  *
  * An original OCADE voice experience — it does not imitate any copyrighted
- * character, voice, or dialogue. Speech recognition and synthesis run on the
- * device through the browser's speech engines, so push-to-talk and read-aloud
- * work without sending audio to a server.
+ * character, voice, or dialogue. Speech synthesis and recognition are supplied
+ * by the browser/operating system. Recognition may use a remote service unless
+ * the engine explicitly exposes local processing, so OCADE never promises that
+ * microphone audio stays on-device merely because the Web Speech API exists.
  *
  * Design rules encoded here:
  *  - No assumed default voice: the user picks male or female in onboarding.
@@ -104,8 +106,10 @@ export interface VoiceOption {
   gender: VoiceGender;
 }
 
-const FEMALE_HINTS = /(female|woman|zira|aria|jenny|samantha|victoria|karen|serena|sonia|amelie|hazel|eva|nora|clara|lucia|emma|ava)/i;
-const MALE_HINTS = /(male|man|david|mark|george|guy|ryan|daniel|alex|fred|thomas|liam|william|james|diego|jorge)/i;
+const FEMALE_HINTS =
+  /(female|woman|zira|aria|jenny|samantha|victoria|karen|serena|sonia|amelie|hazel|eva|nora|clara|lucia|emma|ava)/i;
+const MALE_HINTS =
+  /(male|man|david|mark|george|guy|ryan|daniel|alex|fred|thomas|liam|william|james|diego|jorge)/i;
 
 /**
  * Best-effort gender classification of a platform voice. Returns "unknown"
@@ -177,6 +181,112 @@ export function supportedLanguages(packs: LanguagePack[] = LANGUAGE_PACKS): Lang
   return packs.filter(isLanguageSupported);
 }
 
+/**
+ * The sentence being spoken at `charIndex`, for output captions.
+ *
+ * Speech synthesis reports a character offset as it progresses; showing the
+ * whole answer at once defeats the point of a caption, and showing a single
+ * word loses the meaning. A sentence is the readable unit.
+ *
+ * Total: any index, empty text, or text with no sentence punctuation still
+ * returns something displayable rather than throwing or returning "".
+ */
+export function captionSentenceAt(text: string, charIndex: number, maxLength = 200): string {
+  const src = text ?? "";
+  if (!src.trim()) return "";
+
+  // Clamp to the LAST CHARACTER, not to `length`. An index at or past the end
+  // would otherwise sit after the final sentence mark, making the backward walk
+  // start on a boundary and produce an empty slice.
+  const idx = Math.min(Math.max(charIndex || 0, 0), Math.max(src.length - 1, 0));
+  const BOUNDARY = /[.!?]/;
+
+  // Walk back to just after the previous sentence-ending mark.
+  let start = 0;
+  for (let i = idx - 1; i >= 0; i--) {
+    if (BOUNDARY.test(src[i])) {
+      start = i + 1;
+      break;
+    }
+  }
+
+  // Walk forward to the next sentence-ending mark, inclusive.
+  let end = src.length;
+  for (let i = idx; i < src.length; i++) {
+    if (BOUNDARY.test(src[i])) {
+      end = i + 1;
+      break;
+    }
+  }
+
+  const sentence = src.slice(start, end).trim();
+  // No punctuation at all — fall back to a bounded window rather than the lot.
+  const chosen = sentence || src.slice(0, maxLength).trim();
+  return chosen.length > maxLength ? `${chosen.slice(0, maxLength - 1)}…` : chosen;
+}
+
+export type LanguageStatus =
+  { supported: true; pack: LanguagePack } | { supported: false; reason: string; missing: string[] };
+
+const PART_LABELS: Record<keyof LanguagePack["verified"], string> = {
+  stt: "speech input",
+  tts: "spoken replies",
+  wake: "the wake phrase",
+  commands: "voice commands",
+};
+
+/**
+ * Honest status for a language code.
+ *
+ * Filtering unsupported languages out of the picker silently leaves a
+ * non-English speaker staring at a single option with no explanation. This
+ * reports WHY a language is unavailable — either it has no pack at all, or its
+ * pack exists but some part is unverified — so the UI can say so plainly.
+ *
+ * Matching is on the primary subtag, so "en-GB" and "en-US" both resolve to the
+ * "en" pack rather than reporting a false negative.
+ */
+export function languageStatus(
+  code: string,
+  packs: LanguagePack[] = LANGUAGE_PACKS,
+): LanguageStatus {
+  const primary = (code ?? "").toLowerCase().split(/[-_]/)[0];
+  const pack = packs.find((p) => p.code.toLowerCase().split(/[-_]/)[0] === primary);
+
+  if (!pack) {
+    return {
+      supported: false,
+      reason: "OCADE Voice doesn't support this language yet.",
+      missing: Object.values(PART_LABELS),
+    };
+  }
+  if (isLanguageSupported(pack)) return { supported: true, pack };
+
+  const missing = (Object.keys(PART_LABELS) as (keyof LanguagePack["verified"])[])
+    .filter((k) => !pack.verified[k])
+    .map((k) => PART_LABELS[k]);
+
+  return {
+    supported: false,
+    reason: `${pack.label} isn't fully verified yet — ${missing.join(", ")} still need work.`,
+    missing,
+  };
+}
+
+/**
+ * The language OCADE Voice will actually use, given what the device asks for.
+ * Falls back to the first verified pack rather than failing outright.
+ */
+export function resolveVoiceLanguage(
+  requested: string,
+  packs: LanguagePack[] = LANGUAGE_PACKS,
+): { code: string; fellBack: boolean; status: LanguageStatus } {
+  const status = languageStatus(requested, packs);
+  if (status.supported) return { code: status.pack.code, fellBack: false, status };
+  const fallback = supportedLanguages(packs)[0];
+  return { code: fallback?.code ?? "en", fellBack: true, status };
+}
+
 /* --------------------------------------------------------- speech engine -- */
 
 export interface SpeakOptions {
@@ -198,8 +308,9 @@ export interface SpeechEngine {
 export interface VoiceCapabilities {
   synthesis: boolean;
   recognition: boolean;
-  /** Wake phrase needs continuous recognition. */
+  /** Wake phrase requires an engine that explicitly supports local processing. */
   wakePhrase: boolean;
+  wakeReason?: string;
   reason?: string;
 }
 
@@ -213,14 +324,102 @@ export function detectVoiceCapabilities(win: {
   webkitSpeechRecognition?: unknown;
 }): VoiceCapabilities {
   const synthesis = Boolean(win.speechSynthesis);
-  const recognition = Boolean(win.SpeechRecognition || win.webkitSpeechRecognition);
-  const caps: VoiceCapabilities = { synthesis, recognition, wakePhrase: recognition };
+  const recognitionEngine = win.SpeechRecognition || win.webkitSpeechRecognition;
+  const recognition = Boolean(recognitionEngine);
+  const prototype =
+    typeof recognitionEngine === "function"
+      ? (recognitionEngine as { prototype?: object }).prototype
+      : undefined;
+  const wakePhrase = Boolean(prototype && "processLocally" in prototype);
+  const caps: VoiceCapabilities = {
+    synthesis,
+    recognition,
+    wakePhrase,
+    wakeReason:
+      recognition && !wakePhrase
+        ? "This speech engine does not prove that recognition stays on-device, so continuous wake-phrase listening is disabled."
+        : undefined,
+  };
   if (!synthesis && !recognition) {
-    caps.reason = "This browser doesn't provide on-device speech. OCADE Voice is unavailable here.";
+    caps.reason =
+      "This browser doesn't provide speech input or output. OCADE Voice is unavailable here.";
   } else if (!recognition) {
     caps.reason = "This browser can speak but not listen. Push-to-talk is unavailable.";
   } else if (!synthesis) {
     caps.reason = "This browser can listen but not speak. Replies will be text only.";
   }
   return caps;
+}
+
+/**
+ * The browser's own speech engine, as a registrable voice provider.
+ *
+ * This exists so the multimodal registry holds the provider that actually
+ * ships. It declares ONLY `speakAloud`, because that is all the Web Speech API
+ * can honestly do: `speechSynthesis` speaks through an utterance and never
+ * returns audio bytes, and its recognition reads a live microphone rather than
+ * a buffer. A `synthesize` or `transcribe` here would have to throw or return
+ * empty audio, which is a placeholder executor — so neither is declared.
+ *
+ * `isAvailable` re-probes on every call rather than caching: speech synthesis
+ * can disappear (a permissions change, a different tab, a browser without it),
+ * and a provider that answers from a stale probe would claim it can speak when
+ * it cannot.
+ */
+export function createSystemVoiceProvider(win: {
+  speechSynthesis?: {
+    speak: (utterance: unknown) => void;
+    cancel: () => void;
+  };
+  SpeechSynthesisUtterance?: new (text: string) => object;
+}): VoiceProvider | null {
+  // No synthesis here means there is no provider to register. Registering a
+  // non-functional one would be exactly the false claim to avoid.
+  if (!win.speechSynthesis || !win.SpeechSynthesisUtterance) return null;
+
+  return {
+    id: "system-speech",
+    type: "system",
+    name: "System speech",
+    isAvailable: async () => Boolean(win.speechSynthesis && win.SpeechSynthesisUtterance),
+    speakAloud: (text: string) =>
+      new Promise<void>((resolve, reject) => {
+        const synthesis = win.speechSynthesis;
+        const Utterance = win.SpeechSynthesisUtterance;
+        if (!synthesis || !Utterance) {
+          reject(new Error("Speech synthesis disappeared before the utterance started."));
+          return;
+        }
+        const utterance = new Utterance(text) as {
+          onend: (() => void) | null;
+          onerror: ((event: { error?: string }) => void) | null;
+        };
+        utterance.onend = () => resolve();
+        utterance.onerror = (event) =>
+          reject(new Error(event?.error ?? "The utterance failed before it finished."));
+        synthesis.speak(utterance);
+      }),
+  };
+}
+
+/**
+ * Registers the platform's speech provider, if there is one.
+ *
+ * Returns what happened so a caller can surface an honest reason rather than a
+ * silent no-op. Re-registration is not an error: the registry refuses duplicate
+ * ids, and a voice surface may mount more than once.
+ */
+export function registerSystemVoice(
+  registry: MultimodalRegistry,
+  win: Parameters<typeof createSystemVoiceProvider>[0],
+): { registered: boolean; reason: string } {
+  const provider = createSystemVoiceProvider(win);
+  if (!provider) {
+    return { registered: false, reason: "This browser provides no speech synthesis engine." };
+  }
+  if (registry.getVoiceProvider(provider.id)) {
+    return { registered: false, reason: "The system speech provider is already registered." };
+  }
+  registry.registerVoiceProvider(provider);
+  return { registered: true, reason: "System speech is available and registered." };
 }

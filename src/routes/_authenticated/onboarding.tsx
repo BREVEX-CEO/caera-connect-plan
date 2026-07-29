@@ -8,10 +8,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
-    meta: [
-      { title: "Onboarding — CAERA CADANE" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Onboarding — CAERA CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: OnboardingPage,
 });
@@ -36,7 +33,7 @@ function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [displayName, setDisplayName] = useState("");
   const [locale, setLocale] = useState(
-    typeof navigator !== "undefined" ? navigator.language ?? "en-US" : "en-US",
+    typeof navigator !== "undefined" ? (navigator.language ?? "en-US") : "en-US",
   );
   const [timezone, setTimezone] = useState(
     typeof Intl !== "undefined" ? Intl.DateTimeFormat().resolvedOptions().timeZone : "UTC",
@@ -55,9 +52,7 @@ function OnboardingPage() {
   }, [step, displayName]);
 
   function toggle(id: ModuleId) {
-    setEnabled((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
+    setEnabled((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
   async function finish() {
@@ -109,12 +104,7 @@ function OnboardingPage() {
   }
 
   return (
-    <OnboardingShell
-      step={step}
-      total={total}
-      title={titleFor(step)}
-      subtitle={subtitleFor(step)}
-    >
+    <OnboardingShell step={step} total={total} title={titleFor(step)} subtitle={subtitleFor(step)}>
       {step === 1 ? (
         <div className="flex flex-col gap-4">
           <Field label="How should OCADE address you?" htmlFor="displayName">
@@ -153,9 +143,21 @@ function OnboardingPage() {
           value={accountType}
           onChange={(v) => setAccountType(v as AccountType)}
           options={[
-            { value: "solo", title: "Solo", desc: "Just you. Personal projects, resumes, private assistant." },
-            { value: "small_business", title: "Small business", desc: "Up to a small team. Company profile, invoices, timesheets." },
-            { value: "enterprise", title: "Enterprise", desc: "Multi-tenant, roles, audit — ships after Foundation Alpha." },
+            {
+              value: "solo",
+              title: "Solo",
+              desc: "Just you. Personal projects, resumes, private assistant.",
+            },
+            {
+              value: "small_business",
+              title: "Small business",
+              desc: "Up to a small team. Company profile, invoices, timesheets.",
+            },
+            {
+              value: "enterprise",
+              title: "Enterprise",
+              desc: "Multi-tenant, roles, audit — ships after Foundation Alpha.",
+            },
           ]}
         />
       ) : null}
@@ -165,8 +167,16 @@ function OnboardingPage() {
           value={privacy}
           onChange={(v) => setPrivacy(v as PrivacyMode)}
           options={[
-            { value: "private_sync", title: "Private Sync (recommended)", desc: "Encrypted account sync across your approved devices. RLS enforced on every read." },
-            { value: "device_only", title: "Device Only", desc: "Chats, files and project data stay on this device. No cloud sync." },
+            {
+              value: "private_sync",
+              title: "Private Sync (recommended)",
+              desc: "Encrypted account sync across your approved devices. RLS enforced on every read.",
+            },
+            {
+              value: "device_only",
+              title: "Device Only",
+              desc: "Chats, files and project data stay on this device. No cloud sync.",
+            },
           ]}
         />
       ) : null}
@@ -261,27 +271,45 @@ function OnboardingPage() {
 
 function titleFor(step: number) {
   switch (step) {
-    case 1: return "Tell us about you";
-    case 2: return "How will you use CAERA CADANE?";
-    case 3: return "Choose your privacy mode";
-    case 4: return "Pick your starting modules";
-    default: return "Review and continue";
+    case 1:
+      return "Tell us about you";
+    case 2:
+      return "How will you use CAERA CADANE?";
+    case 3:
+      return "Choose your privacy mode";
+    case 4:
+      return "Pick your starting modules";
+    default:
+      return "Review and continue";
   }
 }
 function subtitleFor(step: number) {
   switch (step) {
-    case 1: return "Basic profile — you can change any of this later in Settings.";
-    case 2: return "This sets sensible defaults. You can switch account type anytime.";
-    case 3: return "You can change this per-project and per-module later.";
-    case 4: return "Every module can be enabled or hidden later — no dead buttons.";
-    default: return "Confirm your setup and enter your workspace.";
+    case 1:
+      return "Basic profile — you can change any of this later in Settings.";
+    case 2:
+      return "This sets sensible defaults. You can switch account type anytime.";
+    case 3:
+      return "You can change this per-project and per-module later.";
+    case 4:
+      return "Every module can be enabled or hidden later — no dead buttons.";
+    default:
+      return "Confirm your setup and enter your workspace.";
   }
 }
 function labelFor(t: AccountType) {
   return { solo: "Solo", small_business: "Small business", enterprise: "Enterprise" }[t];
 }
 
-function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
+function Field({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
@@ -323,7 +351,9 @@ function RadioGroup({
             onClick={() => onChange(o.value)}
             className={cn(
               "flex flex-col rounded-lg border px-4 py-3 text-left transition-colors",
-              active ? "border-primary/60 bg-primary/10" : "border-border/60 bg-background/40 hover:bg-accent/40",
+              active
+                ? "border-primary/60 bg-primary/10"
+                : "border-border/60 bg-background/40 hover:bg-accent/40",
             )}
           >
             <span className="text-sm font-medium text-foreground">{o.title}</span>

@@ -22,13 +22,9 @@ export function ResumePreview({ resume, compact }: { resume: ResumeContent; comp
       }}
     >
       <header style={{ textAlign: "center", marginBottom: 18 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>
-          {p.fullName || "Your name"}
-        </h1>
+        <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0 }}>{p.fullName || "Your name"}</h1>
         {p.headline && (
-          <p style={{ margin: "4px 0 8px", fontStyle: "italic", color: "#374151" }}>
-            {p.headline}
-          </p>
+          <p style={{ margin: "4px 0 8px", fontStyle: "italic", color: "#374151" }}>{p.headline}</p>
         )}
         {contact.length > 0 && (
           <p style={{ margin: 0, color: "#374151", fontSize: 12 }}>{contact.join(" • ")}</p>
@@ -51,9 +47,7 @@ export function ResumePreview({ resume, compact }: { resume: ResumeContent; comp
                   <strong>{[w.role, w.company].filter(Boolean).join(" — ") || "Role"}</strong>
                   {range && <span style={{ color: "#374151", fontSize: 12 }}>{range}</span>}
                 </div>
-                {w.location && (
-                  <div style={{ color: "#374151", fontSize: 12 }}>{w.location}</div>
-                )}
+                {w.location && <div style={{ color: "#374151", fontSize: 12 }}>{w.location}</div>}
                 {w.bullets.filter(Boolean).length > 0 && (
                   <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
                     {w.bullets.filter(Boolean).map((b, i) => (
@@ -96,9 +90,7 @@ export function ResumePreview({ resume, compact }: { resume: ResumeContent; comp
           {resume.projects.map((pr) => (
             <div key={pr.id} style={{ marginBottom: 10 }}>
               <strong>{[pr.name, pr.role].filter(Boolean).join(" — ") || "Project"}</strong>
-              {pr.link && (
-                <div style={{ color: "#374151", fontSize: 12 }}>{pr.link}</div>
-              )}
+              {pr.link && <div style={{ color: "#374151", fontSize: 12 }}>{pr.link}</div>}
               {pr.bullets.filter(Boolean).length > 0 && (
                 <ul style={{ margin: "6px 0 0 18px", padding: 0 }}>
                   {pr.bullets.filter(Boolean).map((b, i) => (

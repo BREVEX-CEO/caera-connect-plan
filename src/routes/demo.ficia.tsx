@@ -45,7 +45,9 @@ function DemoFicia() {
               onClick={() => setTab(t.id)}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition-colors",
-                tab === t.id ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                tab === t.id
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               <Icon className="h-3.5 w-3.5" aria-hidden />
@@ -145,7 +147,9 @@ function DemoFicia() {
                   <tr key={r.id} className="border-b border-border/40 last:border-0">
                     <td className="px-4 py-2 text-foreground">{r.id}</td>
                     <td className="px-4 py-2 text-muted-foreground">{r.customer}</td>
-                    <td className="px-4 py-2 text-right text-foreground">{r.amount.toLocaleString("en-IN")}</td>
+                    <td className="px-4 py-2 text-right text-foreground">
+                      {r.amount.toLocaleString("en-IN")}
+                    </td>
                     <td className="px-4 py-2 text-muted-foreground">{r.due}</td>
                     <td className="px-4 py-2">
                       <span
@@ -165,7 +169,8 @@ function DemoFicia() {
             </table>
             <div className="flex items-center gap-2 border-t border-border/60 p-3 text-xs text-muted-foreground">
               <Ban className="h-3.5 w-3.5 text-amber-300" aria-hidden />
-              Sending, e-invoice filing, digital signature and payment collection are disabled in demo.
+              Sending, e-invoice filing, digital signature and payment collection are disabled in
+              demo.
             </div>
           </GlassPanel>
         ) : null}
@@ -177,7 +182,8 @@ function DemoFicia() {
                 <div className="text-sm font-semibold text-foreground">{r.title}</div>
                 <div className="mt-1 text-2xl font-semibold text-foreground">{r.value}</div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Sample report. FICIA financial reports use deterministic rules, not model arithmetic.
+                  Sample report. FICIA financial reports use deterministic rules, not model
+                  arithmetic.
                 </p>
               </GlassPanel>
             ))}

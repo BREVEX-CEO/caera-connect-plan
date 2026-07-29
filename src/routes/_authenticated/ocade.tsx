@@ -16,11 +16,13 @@ import {
   Plus,
   RefreshCcw,
   Search,
+  Save,
   Send,
   Sparkles,
   Square,
   Trash2,
   Volume2,
+  GitBranch,
   X,
   FolderOpen,
   FileOutput,
@@ -30,16 +32,29 @@ import {
   MessagesSquare,
   Bot,
   Terminal,
-  ChevronDown,
   ShieldCheck,
+  FileCode2,
+  BriefcaseBusiness,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { AppShell } from "@/components/shell/AppShell";
 import { PrivacyBadge } from "@/components/shell/PrivacyBadge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/session";
@@ -49,6 +64,7 @@ import {
   deleteConversation,
   exportConversation,
   improvePrompt,
+  appendOcadeMessage,
   listConversations,
   listMessages,
   updateConversation,
@@ -70,32 +86,69 @@ import {
   classifyFile,
   isNativeTextKind,
   extractDocument,
+  extractBinaryDocument,
   clampForContext,
+  type ExtractResult,
 } from "@/lib/ocade-documents";
+import { isDecodableBinary } from "@/lib/ocade-decoders";
 import {
   scanUntrustedContent,
   wrapUntrustedContent,
   describeScan,
 } from "@/lib/ocade-injection-guard";
 import {
+  buildSourceIndex,
+  citationInstruction,
+  parseCitations,
+  stripCitationMarkers,
+  describeLocator,
+  type IndexedSource,
+  type Citation,
+} from "@/lib/ocade-citations";
+import { CopilotMount } from "@/components/ocade/CopilotPanel";
+import { VisualResponse } from "@/components/ocade/VisualResponse";
+import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
+import { saveDraft, recoverDraft, clearDraft } from "@/lib/offline-queue";
+import {
+  branchConversation,
+  forkConversationBeforeMessage,
+  getProject,
+  setConversationProject,
+  type OcadeProject,
+} from "@/lib/ocade-projects.functions";
+import {
   persistChatMessage,
   loadChatMessages,
+  deleteVaultConversation,
   describeStorageError,
 } from "@/lib/ocade-chat-store";
+import { globalMultimodalRegistry } from "@/lib/providers/multimodal-registry";
+import { assertStreamWithinLimit } from "@/lib/stream-limits";
 import {
   detectVoiceCapabilities,
+  registerSystemVoice,
   toVoiceOptions,
   pickVoice,
-  supportedLanguages,
+  resolveVoiceLanguage,
+  captionSentenceAt,
+  matchesWakePhrase,
+  buildGreeting,
   type VoiceGender,
 } from "@/lib/ocade-voice";
+import { redactForSpeech, redactSpokenSecrets } from "@/lib/voice/transcript-redaction";
+import { useVoicePrefs } from "@/lib/use-voice-prefs";
+import { saveChatOutput } from "@/lib/artifacts/chat-output-flow";
+import { listProjectFiles, saveProjectFile, type ProjectFile } from "@/lib/project-files";
+import { localMemoryContext } from "@/lib/local-memory";
+import {
+  getChatCitations,
+  removeConversationCitations,
+  saveChatCitations,
+} from "@/lib/chat-citation-store";
 
 export const Route = createFileRoute("/_authenticated/ocade")({
   head: () => ({
-    meta: [
-      { title: "OCADE — CAERA CADANE" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "OCADE — CAERA CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: OcadePage,
 });
@@ -112,6 +165,12 @@ type Attachment = {
   extractedText?: string;
   /** Honest note when a file could not be read (e.g. needs the document pack). */
   extractNote?: string;
+  /**
+   * The full extraction result, kept so citations can point at a real position.
+   * Without it the source locator is empty and a citation can only name the
+   * file, never the page, sheet or line it came from.
+   */
+  extract?: ExtractResult;
 };
 
 type Conversation = {
@@ -122,6 +181,7 @@ type Conversation = {
   model_id: string | null;
   privacy_mode: string;
   updated_at: string;
+  project_id?: string | null;
 };
 
 type Message = {
@@ -135,6 +195,12 @@ type Message = {
 
 type Mode = "chat" | "work";
 type PermissionMode = "manual" | "assisted" | "autonomous";
+type PendingChatMessage = {
+  id: string;
+  conversationId: string;
+  text: string;
+  attachments: Attachment[];
+};
 
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const MAX_ATTACHMENTS = 10;
@@ -176,11 +242,14 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   const [showArchived, setShowArchived] = useState(false);
   const [search, setSearch] = useState("");
   const [model, setModel] = useState<string>(OCADE_DEFAULT_MODEL_ID);
-  const [chatsMode, setChatsMode] = useState<"browser_only" | "pc_vault" | "private_sync">("private_sync");
+  const [chatsMode, setChatsMode] = useState<"browser_only" | "pc_vault" | "private_sync">(
+    "private_sync",
+  );
   const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null);
   const [renameTarget, setRenameTarget] = useState<Conversation | null>(null);
   const [mode, setMode] = useState<Mode>("chat");
   const [permission, setPermission] = useState<PermissionMode>("manual");
+  const [pendingMessage, setPendingMessage] = useState<PendingChatMessage | null>(null);
 
   const refreshList = useCallback(async () => {
     try {
@@ -212,13 +281,17 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
       .finally(() => setLoadingMessages(false));
   }, [activeId, chatsMode, userId]);
 
-  const active = useMemo(() => conversations.find((c) => c.id === activeId) ?? null, [conversations, activeId]);
+  const active = useMemo(
+    () => conversations.find((c) => c.id === activeId) ?? null,
+    [conversations, activeId],
+  );
 
   useEffect(() => {
     if (active?.model_id) setModel(active.model_id);
   }, [active?.id, active?.model_id]);
 
   async function handleNew() {
+    setPendingMessage(null);
     setActiveId(null);
     setMode("chat");
   }
@@ -227,6 +300,7 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
     if (active) return active;
     const conv = (await createConversation({ data: { modelId: model } })) as Conversation;
     setConversations((prev) => [conv, ...prev]);
+    setLoadingMessages(true);
     setActiveId(conv.id);
     return conv;
   }
@@ -248,11 +322,47 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   }
   async function handleDelete() {
     if (!deleteTarget) return;
-    await deleteConversation({ data: { id: deleteTarget.id } });
-    if (deleteTarget.id === activeId) setActiveId(null);
+    const target = deleteTarget;
+
+    // Delete the conversation record...
+    await deleteConversation({ data: { id: target.id } });
+
+    /*
+     * ...AND the message bodies held on this device.
+     *
+     * With a Browser Vault or PC Vault privacy mode the message text never went
+     * to the server, so removing the server row alone would leave the actual
+     * content sitting in local storage while the user is told "Conversation
+     * deleted". Deleting only half of it and reporting success is worse than
+     * failing loudly.
+     */
+    let vaultRemoved = 0;
+    let vaultError: unknown = null;
+    try {
+      vaultRemoved = await deleteVaultConversation(userId, target.id);
+    } catch (e) {
+      vaultError = e;
+    }
+    const citationRemoval = removeConversationCitations(target.id);
+
+    if (target.id === activeId) setActiveId(null);
     setDeleteTarget(null);
     await refreshList();
-    toast.success("Conversation deleted");
+
+    if (vaultError || !citationRemoval.ok) {
+      // Honest: the record is gone but the on-device copy is not.
+      toast.error(
+        vaultError
+          ? `Conversation removed, but its messages on this device could not be deleted. ${describeStorageError(vaultError)}`
+          : `Conversation removed, but its citation history on this device could not be deleted. ${citationRemoval.ok ? "" : citationRemoval.reason}`,
+      );
+    } else {
+      toast.success(
+        vaultRemoved > 0
+          ? `Conversation deleted, including ${vaultRemoved} ${vaultRemoved === 1 ? "message" : "messages"} stored on this device.`
+          : "Conversation deleted",
+      );
+    }
   }
   async function handleExport(c: Conversation) {
     const bundle = await exportConversation({ data: { conversationId: c.id } });
@@ -278,6 +388,8 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
 
   return (
     <AppShell>
+      {/* Offer the Desktop Copilot in the shell's adaptive right-hand panel. */}
+      <CopilotMount />
       {/* Break out of centered workspace column and take the full height under the top bar. */}
       <div className="-mx-5 -my-6 flex h-[calc(100vh-2.75rem)] min-h-0 sm:-mx-8">
         {/* Contextual OCADE sidebar */}
@@ -291,7 +403,10 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
           recent={recent}
           loading={loadingList}
           activeId={activeId}
-          onSelect={(id) => { setActiveId(id); setMode("chat"); }}
+          onSelect={(id) => {
+            setActiveId(id);
+            setMode("chat");
+          }}
           onPin={togglePin}
           onArchive={toggleArchive}
           onRename={(c) => setRenameTarget(c)}
@@ -302,10 +417,7 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
         {/* Main workspace canvas */}
         <div className="flex min-h-0 flex-1 flex-col">
           {mode === "work" ? (
-            <WorkModePanel
-              permission={permission}
-              onExitWork={() => setMode("chat")}
-            />
+            <WorkModePanel permission={permission} onExitWork={() => setMode("chat")} />
           ) : active ? (
             <ChatSurface
               key={active.id}
@@ -328,6 +440,14 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
               userLabel={userLabel}
               userId={userId}
               ensureActive={ensureActive}
+              initialMessage={pendingMessage?.conversationId === active.id ? pendingMessage : null}
+              onInitialMessageHandled={(id) =>
+                setPendingMessage((current) => (current?.id === id ? null : current))
+              }
+              onOpenConversation={(id) => {
+                setActiveId(id);
+                setMode("chat");
+              }}
             />
           ) : (
             <HomeSurface
@@ -341,16 +461,12 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
               setPermission={setPermission}
               onSubmit={async (text, atts) => {
                 const conv = await ensureActive();
-                // Route into ChatSurface by selecting; ChatSurface will send on mount is complex.
-                // Instead: create then immediately send via inline transport.
-                await sendViaApi({
+                setPendingMessage({
+                  id: `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
                   conversationId: conv.id,
-                  model,
                   text,
                   attachments: atts,
-                  allowCloud: chatsMode !== "browser_only" || getOcadeModel(model).locality !== "cloud",
                 });
-                await refreshList();
                 setActiveId(conv.id);
               }}
             />
@@ -358,8 +474,16 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
         </div>
       </div>
 
-      <RenameDialog target={renameTarget} onClose={() => setRenameTarget(null)} onSubmit={handleRenameSubmit} />
-      <DeleteDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} />
+      <RenameDialog
+        target={renameTarget}
+        onClose={() => setRenameTarget(null)}
+        onSubmit={handleRenameSubmit}
+      />
+      <DeleteDialog
+        target={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+      />
     </AppShell>
   );
 }
@@ -384,8 +508,21 @@ function OcadeContextualSidebar(props: {
   onExport: (c: Conversation) => void;
 }) {
   const {
-    onNew, search, setSearch, showArchived, setShowArchived, pinned, recent,
-    loading, activeId, onSelect, onPin, onArchive, onRename, onDelete, onExport,
+    onNew,
+    search,
+    setSearch,
+    showArchived,
+    setShowArchived,
+    pinned,
+    recent,
+    loading,
+    activeId,
+    onSelect,
+    onPin,
+    onArchive,
+    onRename,
+    onDelete,
+    onExport,
   } = props;
 
   return (
@@ -408,11 +545,18 @@ function OcadeContextualSidebar(props: {
 
       {/* Static context sections */}
       <div className="space-y-0.5 px-2">
-        <StaticRow icon={FolderOpen} label="Projects" state="planned" />
-        <StaticRow icon={FileOutput} label="Outputs" state="planned" />
-        <StaticRow icon={CalendarClock} label="Scheduled" state="planned" />
-        <StaticRow icon={Workflow} label="Automations" state="planned" />
-        <StaticRow icon={SlidersHorizontal} label="Customize" state="active" onClick={() => setShowArchived(!showArchived)} note={showArchived ? "Viewing archived" : undefined} />
+        <SidebarLink icon={BriefcaseBusiness} label="Work" to="/ocade/work" />
+        <SidebarLink icon={FileCode2} label="Code" to="/ocade/code" />
+        <SidebarLink icon={FolderOpen} label="Projects" to="/ocade/projects" />
+        <SidebarLink icon={FileOutput} label="Outputs" to="/ocade/artifacts" />
+        <SidebarLink icon={CalendarClock} label="Scheduled" to="/ocade/automations" />
+        <SidebarLink icon={Workflow} label="Automations" to="/ocade/automations" />
+        <StaticRow
+          icon={SlidersHorizontal}
+          label="Customize"
+          onClick={() => setShowArchived(!showArchived)}
+          note={showArchived ? "Viewing archived" : undefined}
+        />
       </div>
 
       <div className="mt-1 px-2">
@@ -422,6 +566,10 @@ function OcadeContextualSidebar(props: {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search conversations"
+            // A placeholder is not an accessible name: it disappears as soon as
+            // the user types and is not reliably announced.
+            aria-label="Search conversations"
+            type="search"
             className="h-8 border-sidebar-border bg-background/50 pl-7 text-xs"
           />
         </div>
@@ -433,9 +581,17 @@ function OcadeContextualSidebar(props: {
             <SectionLabel>Pinned</SectionLabel>
             <ul className="mb-2 space-y-0.5">
               {pinned.map((c) => (
-                <ConvRow key={c.id} c={c} active={c.id === activeId} onSelect={() => onSelect(c.id)}
-                  onPin={() => onPin(c)} onArchive={() => onArchive(c)} onRename={() => onRename(c)}
-                  onDelete={() => onDelete(c)} onExport={() => onExport(c)} />
+                <ConvRow
+                  key={c.id}
+                  c={c}
+                  active={c.id === activeId}
+                  onSelect={() => onSelect(c.id)}
+                  onPin={() => onPin(c)}
+                  onArchive={() => onArchive(c)}
+                  onRename={() => onRename(c)}
+                  onDelete={() => onDelete(c)}
+                  onExport={() => onExport(c)}
+                />
               ))}
             </ul>
           </>
@@ -460,9 +616,17 @@ function OcadeContextualSidebar(props: {
         ) : (
           <ul className="space-y-0.5">
             {recent.map((c) => (
-              <ConvRow key={c.id} c={c} active={c.id === activeId} onSelect={() => onSelect(c.id)}
-                onPin={() => onPin(c)} onArchive={() => onArchive(c)} onRename={() => onRename(c)}
-                onDelete={() => onDelete(c)} onExport={() => onExport(c)} />
+              <ConvRow
+                key={c.id}
+                c={c}
+                active={c.id === activeId}
+                onSelect={() => onSelect(c.id)}
+                onPin={() => onPin(c)}
+                onArchive={() => onArchive(c)}
+                onRename={() => onRename(c)}
+                onDelete={() => onDelete(c)}
+                onExport={() => onExport(c)}
+              />
             ))}
           </ul>
         )}
@@ -479,52 +643,78 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+function SidebarLink({
+  icon: Icon,
+  label,
+  to,
+}: {
+  icon: typeof FolderOpen;
+  label: string;
+  to: "/ocade/work" | "/ocade/code" | "/ocade/projects" | "/ocade/artifacts" | "/ocade/automations";
+}) {
+  return (
+    <Link
+      to={to}
+      className="flex h-8 w-full items-center gap-2.5 rounded-md px-2 text-[13px] text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-foreground"
+    >
+      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      <span className="truncate">{label}</span>
+    </Link>
+  );
+}
+
 function StaticRow({
   icon: Icon,
   label,
-  state,
   onClick,
   note,
 }: {
   icon: typeof FolderOpen;
   label: string;
-  state: "planned" | "active";
   onClick?: () => void;
   note?: string;
 }) {
-  const disabled = state === "planned";
   return (
     <button
       onClick={onClick}
-      disabled={disabled}
-      title={disabled ? `${label} — planned` : label}
-      className={cn(
-        "flex h-8 w-full items-center gap-2.5 rounded-md px-2 text-[13px] transition-colors",
-        disabled
-          ? "cursor-not-allowed text-muted-foreground/60"
-          : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
-      )}
+      title={label}
+      className="flex h-8 w-full items-center gap-2.5 rounded-md px-2 text-[13px] text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-foreground"
     >
       <Icon className="h-3.5 w-3.5 shrink-0" />
       <span className="truncate">{label}</span>
-      {disabled ? <span className="ml-auto text-[9px] uppercase tracking-wide">Planned</span> : null}
       {note ? <span className="ml-auto text-[10px] text-muted-foreground">{note}</span> : null}
     </button>
   );
 }
 
 function ConvRow({
-  c, active, onSelect, onPin, onArchive, onRename, onDelete, onExport,
+  c,
+  active,
+  onSelect,
+  onPin,
+  onArchive,
+  onRename,
+  onDelete,
+  onExport,
 }: {
-  c: Conversation; active: boolean;
-  onSelect: () => void; onPin: () => void; onArchive: () => void;
-  onRename: () => void; onDelete: () => void; onExport: () => void;
+  c: Conversation;
+  active: boolean;
+  onSelect: () => void;
+  onPin: () => void;
+  onArchive: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+  onExport: () => void;
 }) {
   return (
-    <li className={cn(
-      "group flex items-center gap-1 rounded-md px-1.5 py-1 text-[13px] transition-colors",
-      active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
-    )}>
+    <li
+      className={cn(
+        "group flex items-center gap-1 rounded-md px-1.5 py-1 text-[13px] transition-colors",
+        active
+          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+          : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+      )}
+    >
       <button onClick={onSelect} className="flex flex-1 items-center gap-1.5 truncate text-left">
         {c.pinned ? <Pin className="h-3 w-3 shrink-0 text-[color:var(--accent-ocade)]" /> : null}
         <span className="truncate">{c.title}</span>
@@ -533,23 +723,40 @@ function ConvRow({
         <IconMini title={c.pinned ? "Unpin" : "Pin"} onClick={onPin}>
           {c.pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
         </IconMini>
-        <IconMini title="Rename" onClick={onRename}><Pencil className="h-3 w-3" /></IconMini>
-        <IconMini title="Export" onClick={onExport}><Download className="h-3 w-3" /></IconMini>
+        <IconMini title="Rename" onClick={onRename}>
+          <Pencil className="h-3 w-3" />
+        </IconMini>
+        <IconMini title="Export" onClick={onExport}>
+          <Download className="h-3 w-3" />
+        </IconMini>
         <IconMini title={c.archived ? "Unarchive" : "Archive"} onClick={onArchive}>
           {c.archived ? <ArchiveRestore className="h-3 w-3" /> : <Archive className="h-3 w-3" />}
         </IconMini>
-        <IconMini title="Delete" onClick={onDelete}><Trash2 className="h-3 w-3 text-destructive" /></IconMini>
+        <IconMini title="Delete" onClick={onDelete}>
+          <Trash2 className="h-3 w-3 text-destructive" />
+        </IconMini>
       </div>
     </li>
   );
 }
 
-function IconMini({ children, title, onClick }: { children: React.ReactNode; title: string; onClick: () => void }) {
+function IconMini({
+  children,
+  title,
+  onClick,
+}: {
+  children: React.ReactNode;
+  title: string;
+  onClick: () => void;
+}) {
   return (
     <button
       title={title}
       aria-label={title}
-      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
       className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
     >
       {children}
@@ -570,7 +777,17 @@ function HomeSurface(props: {
   setPermission: (p: PermissionMode) => void;
   onSubmit: (text: string, atts: Attachment[]) => Promise<void>;
 }) {
-  const { userLabel, model, setModel, chatsMode, mode, setMode, permission, setPermission, onSubmit } = props;
+  const {
+    userLabel,
+    model,
+    setModel,
+    chatsMode,
+    mode,
+    setMode,
+    permission,
+    setPermission,
+    onSubmit,
+  } = props;
   const modelInfo = getOcadeModel(model);
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -603,9 +820,7 @@ function HomeSurface(props: {
             <span className="text-[15px] font-semibold tracking-tighter">CC</span>
           </div>
           <div>
-            <h1 className="text-[22px] font-semibold text-foreground">
-              Welcome, {userLabel}.
-            </h1>
+            <h1 className="text-[22px] font-semibold text-foreground">Welcome, {userLabel}.</h1>
             <p className="mt-1 text-[13px] text-muted-foreground">
               OCADE by CAERA CADANE. Ask a question or start a task.
             </p>
@@ -618,7 +833,9 @@ function HomeSurface(props: {
           attachments={attachments}
           setAttachments={setAttachments}
           onSubmit={submit}
-          onStop={() => { /* not streaming on home */ }}
+          // No onStop: creating a conversation is a single round trip with
+          // nothing to cancel, so no Stop button is offered. Send disables
+          // itself while the request is in flight.
           streaming={busy}
           mode={mode}
           setMode={setMode}
@@ -659,7 +876,13 @@ const SUGGESTIONS = [
 
 /* ---------- Work Mode Panel ---------- */
 
-function WorkModePanel({ permission, onExitWork }: { permission: PermissionMode; onExitWork: () => void }) {
+function WorkModePanel({
+  permission,
+  onExitWork,
+}: {
+  permission: PermissionMode;
+  onExitWork: () => void;
+}) {
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
       <div className="mx-auto w-full max-w-2xl px-6 py-10">
@@ -678,11 +901,14 @@ function WorkModePanel({ permission, onExitWork }: { permission: PermissionMode;
           <div className="flex items-start gap-3">
             <Bot className="mt-0.5 h-5 w-5 text-[color:var(--accent-ocade)]" />
             <div className="flex-1">
-              <h3 className="text-[14px] font-semibold text-foreground">Native Companion Required</h3>
+              <h3 className="text-[14px] font-semibold text-foreground">
+                Native Companion Required
+              </h3>
               <p className="mt-1 text-[12px] text-muted-foreground">
-                OCADE Work coordinates real desktop tasks — plan, permissions, live steps, pause, stop,
-                verification and replay. In the browser alpha, OCADE cannot control your mouse, keyboard,
-                terminal or filesystem. Install the CAERA Native Companion on your PC to enable this mode.
+                OCADE Work coordinates real desktop tasks — plan, permissions, live steps, pause,
+                stop, verification and replay. In the browser alpha, OCADE cannot control your
+                mouse, keyboard, terminal or filesystem. Install the CAERA Native Companion on your
+                PC to enable this mode.
               </p>
               <div className="mt-3 grid gap-2 text-[12px] sm:grid-cols-2">
                 <PlanRow label="Task" value="Not started" />
@@ -692,11 +918,43 @@ function WorkModePanel({ permission, onExitWork }: { permission: PermissionMode;
                 <PlanRow label="Permissions" value={permission} />
                 <PlanRow label="Current step" value="—" />
               </div>
+              {/*
+                These three controls are disabled until the Native Companion is
+                connected. The "Setup Required" badge explains that visually,
+                but a badge sitting next to a button is not programmatically
+                associated with it: a screen-reader user tabbing here would hear
+                "Pause, dimmed" and no reason at all. Each control therefore
+                states its own blocked reason and points at the badge.
+              */}
               <div className="mt-4 flex flex-wrap gap-2">
-                <button disabled className="cursor-not-allowed rounded-md border border-border/60 px-3 py-1.5 text-[12px] text-muted-foreground">Pause</button>
-                <button disabled className="cursor-not-allowed rounded-md border border-border/60 px-3 py-1.5 text-[12px] text-muted-foreground">Stop</button>
-                <button disabled className="cursor-not-allowed rounded-md border border-border/60 px-3 py-1.5 text-[12px] text-muted-foreground">Replay</button>
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-300">
+                <button
+                  disabled
+                  title="Pause is available once the Native Companion is connected."
+                  aria-describedby="run-controls-setup-required"
+                  className="cursor-not-allowed rounded-md border border-border/60 px-3 py-1.5 text-[12px] text-muted-foreground"
+                >
+                  Pause
+                </button>
+                <button
+                  disabled
+                  title="Stop is available once the Native Companion is connected."
+                  aria-describedby="run-controls-setup-required"
+                  className="cursor-not-allowed rounded-md border border-border/60 px-3 py-1.5 text-[12px] text-muted-foreground"
+                >
+                  Stop
+                </button>
+                <button
+                  disabled
+                  title="Replay is available once the Native Companion is connected."
+                  aria-describedby="run-controls-setup-required"
+                  className="cursor-not-allowed rounded-md border border-border/60 px-3 py-1.5 text-[12px] text-muted-foreground"
+                >
+                  Replay
+                </button>
+                <span
+                  id="run-controls-setup-required"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-300"
+                >
                   <ShieldCheck className="h-3 w-3" /> Setup Required
                 </span>
               </div>
@@ -705,9 +963,9 @@ function WorkModePanel({ permission, onExitWork }: { permission: PermissionMode;
         </div>
 
         <p className="mt-4 text-[11px] text-muted-foreground">
-          Native mouse, keyboard, screen, clipboard, terminal, PowerShell/shell, filesystem and application
-          control are only performed when the CAERA Native Companion is installed and connected. OCADE will
-          never pretend an OS action happened.
+          Native mouse, keyboard, screen, clipboard, terminal, PowerShell/shell, filesystem and
+          application control are only performed when the CAERA Native Companion is installed and
+          connected. OCADE will never pretend an OS action happened.
         </p>
       </div>
     </div>
@@ -741,10 +999,27 @@ function ChatSurface(props: {
   userLabel: string;
   userId: string;
   ensureActive: () => Promise<Conversation>;
+  initialMessage: PendingChatMessage | null;
+  onInitialMessageHandled: (id: string) => void;
+  onOpenConversation: (id: string) => void;
 }) {
   const {
-    conversation, messages, setMessages, loading, model, setModel, chatsMode,
-    mode, setMode, permission, setPermission, onRefreshList, userId,
+    conversation,
+    messages,
+    setMessages,
+    loading,
+    model,
+    setModel,
+    chatsMode,
+    mode,
+    setMode,
+    permission,
+    setPermission,
+    onRefreshList,
+    userId,
+    initialMessage,
+    onInitialMessageHandled,
+    onOpenConversation,
   } = props;
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -752,7 +1027,13 @@ function ChatSurface(props: {
   const [streamText, setStreamText] = useState("");
   const [improving, setImproving] = useState(false);
   const [listening, setListening] = useState(false);
-  const [cloudApprovalNeeded, setCloudApprovalNeeded] = useState<null | { text: string; attachments: Attachment[] }>(null);
+  // Event handlers can run before React commits the next render. This ref is
+  // the immediate authority, so a short press cannot strand the microphone on.
+  const listeningRef = useRef(false);
+  const [cloudApprovalNeeded, setCloudApprovalNeeded] = useState<null | {
+    text: string;
+    attachments: Attachment[];
+  }>(null);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recogRef = useRef<unknown>(null);
@@ -760,6 +1041,107 @@ function ChatSurface(props: {
   const online = useOnline();
   const localEngine = useLocalEngine();
   const [engineTier, setEngineTier] = useState<"auto" | "local" | "cloud">("auto");
+  // Sources attached to the in-flight request, so the reply's [S1] markers can
+  // be resolved back to real documents (never to an invented id).
+  const sourceIndexRef = useRef<IndexedSource[]>([]);
+  const [citations, setCitations] = useState<Citation[]>([]);
+  const [citationError, setCitationError] = useState<string | null>(null);
+  // Voice: shared preferences drive captions, wake phrase, device and output.
+  const { prefs: voicePrefs, emergencyMute } = useVoicePrefs();
+  const [caption, setCaption] = useState("");
+  /** What OCADE is currently reading aloud, for output captions. */
+  const [spokenCaption, setSpokenCaption] = useState("");
+  const [speaking, setSpeaking] = useState(false);
+  const wakeRef = useRef<SpeechRecognitionLike | null>(null);
+  // Visual responses are opt-in per answer.
+  const [visualAnswer, setVisualAnswer] = useState<string | null>(null);
+  const [projectFiles, setProjectFiles] = useState<ProjectFile[]>([]);
+  const [projectFileError, setProjectFileError] = useState<string | null>(null);
+  const [projectDetails, setProjectDetails] = useState<OcadeProject | null>(null);
+  const [projectContextError, setProjectContextError] = useState<string | null>(null);
+  const [projectContextLoading, setProjectContextLoading] = useState(false);
+  const initialMessageRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!conversation.project_id) {
+      setProjectFiles([]);
+      setProjectFileError(null);
+      setProjectDetails(null);
+      setProjectContextError(null);
+      setProjectContextLoading(false);
+      return;
+    }
+    const result = listProjectFiles(conversation.project_id);
+    if (result.ok) {
+      setProjectFiles(result.data);
+      setProjectFileError(null);
+    } else {
+      setProjectFiles([]);
+      setProjectFileError(result.reason);
+    }
+    let live = true;
+    setProjectContextLoading(true);
+    void getProject({ data: { id: conversation.project_id } })
+      .then((project) => {
+        if (!live) return;
+        setProjectDetails(project);
+        setProjectContextError(null);
+      })
+      .catch((error) => {
+        if (!live) return;
+        setProjectDetails(null);
+        setProjectContextError(
+          error instanceof Error ? error.message : "Project context could not be loaded.",
+        );
+      })
+      .finally(() => {
+        if (live) setProjectContextLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [conversation.project_id]);
+
+  useEffect(() => {
+    if (streaming) return;
+    const assistant = [...messages].reverse().find((message) => message.role === "assistant");
+    if (!assistant) {
+      setCitations([]);
+      setCitationError(null);
+      return;
+    }
+    const restored = getChatCitations(conversation.id, assistant.id);
+    if (!restored.ok) {
+      setCitations([]);
+      setCitationError(restored.reason);
+      return;
+    }
+    setCitations(restored.data ?? []);
+    setCitationError(null);
+  }, [conversation.id, messages, streaming]);
+
+  // Crash recovery: restore anything typed but not sent for THIS conversation,
+  // and keep it saved as the user types (Plan §39).
+  useEffect(() => {
+    const recovered = recoverDraft(conversation.id);
+    if (recovered?.text) {
+      setDraft((current) => (current.trim() ? current : recovered.text));
+      toast.info("Restored the message you were writing.");
+    }
+    // Only on conversation change — never clobber what the user is typing now.
+  }, [conversation.id]);
+
+  useEffect(() => {
+    if (streaming) return;
+    const id = setTimeout(() => saveDraft(conversation.id, draft), 400);
+    return () => clearTimeout(id);
+  }, [draft, conversation.id, streaming]);
+  const lastAssistantText = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "assistant") return messages[i].content;
+    }
+    return null;
+  }, [messages]);
   // No assumed default voice — OCADE speaks with the platform voice until the
   // user chooses male or female (decision #22). Device-level preference.
   const [voiceGender, setVoiceGender] = useState<VoiceGender | null>(() => {
@@ -778,18 +1160,37 @@ function ChatSurface(props: {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, streamText]);
 
-  async function sendMessage(overrideText?: string, overrideAtts?: Attachment[], allowCloud = false) {
+  async function sendMessage(
+    overrideText?: string,
+    overrideAtts?: Attachment[],
+    allowCloud = false,
+  ) {
     const text = (overrideText ?? draft).trim();
     const atts = overrideAtts ?? attachments;
     if (!text && atts.length === 0) return;
     if (streaming) return;
+    if (
+      conversation.project_id &&
+      (projectContextLoading || projectFileError || projectContextError || !projectDetails)
+    ) {
+      toast.error(
+        `Project context is unavailable: ${
+          projectContextLoading
+            ? "still loading"
+            : (projectFileError ?? projectContextError ?? "project record missing")
+        }`,
+      );
+      return;
+    }
 
     // Local-first routing (P4c). On-device inference is unlimited and keeps the
     // prompt on the machine — no cloud approval needed. "Automatic" prefers
     // local when a suitable engine is ready, else falls through to cloud.
     const localReady = localEngine.status === "ready" && localEngine.models.length > 0;
     const hasImage = atts.some((a) => a.kind === "image");
-    const localPick = localReady ? pickLocalModel(localEngine.models, hasImage ? "vision" : "general") : null;
+    const localPick = localReady
+      ? pickLocalModel(localEngine.models, hasImage ? "vision" : "general")
+      : null;
 
     if (engineTier === "local" && (!localReady || !localPick)) {
       toast.error(
@@ -806,8 +1207,13 @@ function ChatSurface(props: {
       return;
     }
 
-    if (chatsMode === "browser_only" && !allowCloud && modelInfo.locality === "cloud") {
+    if (chatsMode !== "private_sync" && !allowCloud) {
       setCloudApprovalNeeded({ text, attachments: atts });
+      return;
+    }
+    const requestContext = buildRequestContext(atts, chatsMode !== "private_sync");
+    if (!requestContext.ok) {
+      toast.error(requestContext.reason);
       return;
     }
 
@@ -820,6 +1226,7 @@ function ChatSurface(props: {
       created_at: new Date().toISOString(),
     };
     setMessages((m) => [...m, optimistic]);
+    saveDraft(conversation.id, text);
     setDraft("");
     setAttachments([]);
     setStreaming(true);
@@ -827,6 +1234,7 @@ function ChatSurface(props: {
 
     const controller = new AbortController();
     abortRef.current = controller;
+    let acc = "";
 
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -840,7 +1248,15 @@ function ChatSurface(props: {
           conversationId: conversation.id,
           model,
           allowCloud,
-          documentContext: buildDocContext(atts),
+          documentContext: requestContext.data,
+          ...(chatsMode !== "private_sync"
+            ? {
+                history: messages
+                  .filter((message) => message.role !== "system")
+                  .slice(-200)
+                  .map((message) => ({ role: message.role, content: message.content })),
+              }
+            : {}),
           message: { content: text, attachments: atts },
         }),
         signal: controller.signal,
@@ -854,44 +1270,241 @@ function ChatSurface(props: {
         setCloudApprovalNeeded({ text, attachments: atts });
         return;
       }
+      // Cloud allowance exhausted — restore the message and point at the local
+      // alternative rather than failing generically (decision #12).
+      if (res.status === 429) {
+        setStreaming(false);
+        setMessages((m) => m.filter((x) => x.id !== optimistic.id));
+        setDraft(text);
+        setAttachments(atts);
+        const info = (await res.json().catch(() => null)) as {
+          message?: string;
+          resetsAt?: string;
+        } | null;
+        const resets = info?.resetsAt ? new Date(info.resetsAt) : null;
+        const localReady = localEngine.status === "ready" && localEngine.models.length > 0;
+        toast.error(
+          localReady
+            ? "OCADE Cloud allowance is used up. Switch to OCADE Local — it's unlimited."
+            : (info?.message ??
+                `OCADE Cloud allowance is used up${resets ? ` until ${resets.toLocaleTimeString()}` : ""}.`),
+        );
+        if (localReady) setEngineTier("local");
+        return;
+      }
       if (!res.ok || !res.body) {
         const errTxt = await res.text().catch(() => "Chat request failed");
-        throw new Error(errTxt || `HTTP ${res.status}`);
+        throw new Error(readChatError(errTxt, res.status));
       }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let acc = "";
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         acc += decoder.decode(value, { stream: true });
+        /*
+         * Stop a reply that never ends. Cancellation covers the case where the
+         * USER wants out; nothing bounded a server that simply keeps sending,
+         * and every chunk here also triggers a re-render, so the page degrades
+         * long before memory does.
+         */
+        assertStreamWithinLimit(acc.length);
         setStreamText(acc);
       }
 
-      const rows = (await listMessages({ data: { conversationId: conversation.id } })) as unknown as Message[];
+      let rows: Message[];
+      if (chatsMode === "private_sync") {
+        rows = (await listMessages({
+          data: { conversationId: conversation.id },
+        })) as unknown as Message[];
+      } else {
+        try {
+          await persistChatMessage({
+            userId,
+            chatsMode,
+            conversationId: conversation.id,
+            role: "user",
+            content: text,
+            attachments: atts.map((attachment) => ({
+              kind: attachment.kind,
+              name: attachment.name,
+              mime: attachment.mime,
+              sizeBytes: attachment.sizeBytes,
+            })),
+          });
+          await persistChatMessage({
+            userId,
+            chatsMode,
+            conversationId: conversation.id,
+            role: "assistant",
+            content: acc,
+            modelId: model,
+            providerId: "ocade-cloud",
+          });
+          rows = (await loadChatMessages({
+            userId,
+            chatsMode,
+            conversationId: conversation.id,
+          })) as unknown as Message[];
+        } catch (storageError) {
+          const reason = describeStorageError(storageError);
+          setMessages((current) => [
+            ...current.filter((message) => message.id !== optimistic.id),
+            optimistic,
+            {
+              id: `unsaved-cloud-${Date.now()}`,
+              role: "assistant",
+              content: `${acc}\n\n_[Cloud response completed but could not be saved on this device: ${reason}]_`,
+              attachments: [],
+              model_id: model,
+              created_at: new Date().toISOString(),
+            },
+          ]);
+          setCitationError(
+            "The response was not saved in the selected vault, so its citation history was not recorded.",
+          );
+          toast.error(`Cloud response completed, but vault persistence failed. ${reason}`);
+          setStreamText("");
+          await onRefreshList();
+          return;
+        }
+      }
+      const assistant = [...rows].reverse().find((message) => message.role === "assistant");
+      recordCitations(acc, assistant?.id);
       setMessages(rows);
+      clearDraft(conversation.id);
       setStreamText("");
       await onRefreshList();
     } catch (e) {
       if ((e as { name?: string }).name === "AbortError") {
-        setMessages((m) => [
-          ...m.filter((x) => x.id !== optimistic.id),
-          { ...optimistic },
-          {
-            id: `local-a-${Date.now()}`,
-            role: "assistant",
-            content: streamText + "\n\n_[stopped by you]_",
-            attachments: [],
-            model_id: model,
-            created_at: new Date().toISOString(),
-          },
-        ]);
+        const stopped = `${acc}\n\n_[stopped by you]_`;
+        try {
+          let rows: Message[];
+          if (chatsMode === "private_sync") {
+            rows = (await listMessages({
+              data: { conversationId: conversation.id },
+            })) as unknown as Message[];
+            const persistedUser = rows.some(
+              (message) =>
+                message.role === "user" &&
+                message.content === text &&
+                Date.parse(message.created_at) >= Date.parse(optimistic.created_at) - 5_000,
+            );
+            if (!persistedUser) {
+              await appendOcadeMessage({
+                data: {
+                  conversationId: conversation.id,
+                  role: "user",
+                  content: text,
+                  attachments: atts.map((attachment) => ({
+                    kind: attachment.kind,
+                    name: attachment.name,
+                    mime: attachment.mime,
+                    sizeBytes: attachment.sizeBytes,
+                  })),
+                },
+              });
+            }
+            const completedAssistant = rows.find(
+              (message) =>
+                message.role === "assistant" &&
+                Date.parse(message.created_at) >= Date.parse(optimistic.created_at) - 5_000,
+            );
+            if (!completedAssistant) {
+              await appendOcadeMessage({
+                data: {
+                  conversationId: conversation.id,
+                  role: "assistant",
+                  content: stopped,
+                  modelId: model,
+                  providerId: "ocade-cloud",
+                },
+              });
+            }
+            rows = (await listMessages({
+              data: { conversationId: conversation.id },
+            })) as unknown as Message[];
+          } else {
+            await persistChatMessage({
+              userId,
+              chatsMode,
+              conversationId: conversation.id,
+              role: "user",
+              content: text,
+              attachments: atts.map((attachment) => ({
+                kind: attachment.kind,
+                name: attachment.name,
+                mime: attachment.mime,
+                sizeBytes: attachment.sizeBytes,
+              })),
+            });
+            await persistChatMessage({
+              userId,
+              chatsMode,
+              conversationId: conversation.id,
+              role: "assistant",
+              content: stopped,
+              modelId: model,
+              providerId: "ocade-cloud",
+            });
+            rows = (await loadChatMessages({
+              userId,
+              chatsMode,
+              conversationId: conversation.id,
+            })) as unknown as Message[];
+          }
+          const assistant = [...rows].reverse().find((message) => message.role === "assistant");
+          recordCitations(assistant?.content ?? acc, assistant?.id);
+          setMessages(rows);
+          clearDraft(conversation.id);
+          await onRefreshList();
+        } catch (storageError) {
+          const reason = describeStorageError(storageError);
+          setMessages((current) => [
+            ...current.filter((message) => message.id !== optimistic.id),
+            optimistic,
+            {
+              id: `unsaved-stopped-${Date.now()}`,
+              role: "assistant",
+              content: `${stopped}\n\n_[This stopped response could not be persisted: ${reason}]_`,
+              attachments: [],
+              model_id: model,
+              created_at: new Date().toISOString(),
+            },
+          ]);
+          setCitationError(
+            "The stopped response was not persisted, so its citations were not saved.",
+          );
+          toast.error(`The response stopped, but persistence failed. ${reason}`);
+        }
       } else {
         toast.error((e as Error).message || "OCADE could not respond");
-        setMessages((m) => m.filter((x) => x.id !== optimistic.id));
-        setDraft(text);
-        setAttachments(atts);
+        let persisted = false;
+        if (chatsMode === "private_sync") {
+          try {
+            const rows = (await listMessages({
+              data: { conversationId: conversation.id },
+            })) as unknown as Message[];
+            persisted = rows.some(
+              (message) =>
+                message.role === "user" &&
+                message.content === text &&
+                Date.parse(message.created_at) >= Date.parse(optimistic.created_at) - 5_000,
+            );
+            if (persisted) setMessages(rows);
+          } catch {
+            // Preserve the visible failure state below when persistence itself
+            // cannot be inspected.
+          }
+        }
+        if (!persisted) {
+          setMessages((m) => m.filter((x) => x.id !== optimistic.id));
+          setDraft(text);
+          setAttachments(atts);
+        } else {
+          clearDraft(conversation.id);
+        }
       }
     } finally {
       setStreaming(false);
@@ -918,6 +1531,11 @@ function ChatSurface(props: {
       toast.error("No on-device engine can serve this request.");
       return;
     }
+    const requestContext = buildRequestContext(atts, true);
+    if (!requestContext.ok) {
+      toast.error(requestContext.reason);
+      return;
+    }
 
     const optimistic: Message = {
       id: `local-${Date.now()}`,
@@ -929,6 +1547,7 @@ function ChatSurface(props: {
     };
     const priorMessages = messages;
     setMessages((m) => [...m, optimistic]);
+    saveDraft(conversation.id, text);
     setDraft("");
     setAttachments([]);
     setStreaming(true);
@@ -938,40 +1557,46 @@ function ChatSurface(props: {
     abortRef.current = controller;
 
     let userTurnPersisted = false;
+    let completedUnsavedText = "";
     const failures: string[] = [];
 
     try {
-      // Persist the user turn once, to the vault or the cloud according to the
-      // chats privacy mode. Browser-Only + OCADE Local never touches the network.
-      await persistChatMessage({
-        userId,
-        chatsMode,
-        conversationId: conversation.id,
-        role: "user",
-        content: text,
-        attachments: atts.map((a) => ({ kind: a.kind, name: a.name, mime: a.mime, sizeBytes: a.sizeBytes })),
-      });
-      userTurnPersisted = true;
-
       for (const step of localSteps) {
         const label = step.label ?? "OCADE Local";
         const sys =
           `You are OCADE, developed and created by CAERA CADANE, running as ${label} on the user's own device. ` +
           `Refer to your engine only as "${label}"; never print raw model or provider names. ` +
-          `Never claim to be another product. Be helpful, concise, and honest about your limits.`;
+          `Never claim to be another product. Be helpful, concise, and honest about your limits.` +
+          (projectDetails
+            ? ` This conversation belongs to the user project "${projectDetails.name}".` +
+              (projectDetails.instructions?.trim()
+                ? ` Apply these user-authored project instructions: ${projectDetails.instructions.slice(0, 20_000)}`
+                : "")
+            : "");
         const localMessages: LocalChatMessage[] = [{ role: "system", content: sys }];
         for (const m of priorMessages) {
           if (m.role === "system") continue;
           localMessages.push({ role: m.role, content: m.content });
         }
-        const docContext = buildDocContext(atts);
+        const docContext = requestContext.data;
         if (docContext) {
           localMessages.push({
             role: "user",
             content: `Context from files the user attached (extracted on this device):\n\n${docContext}`,
           });
         }
-        localMessages.push({ role: "user", content: text });
+        const images = atts
+          .filter(
+            (attachment): attachment is Attachment & { dataUrl: string } =>
+              attachment.kind === "image" && typeof attachment.dataUrl === "string",
+          )
+          .map((attachment) => attachment.dataUrl.split(",", 2)[1])
+          .filter((payload): payload is string => Boolean(payload));
+        localMessages.push({
+          role: "user",
+          content: text,
+          ...(images.length > 0 ? { images } : {}),
+        });
 
         let acc = "";
         setStreamText("");
@@ -989,22 +1614,53 @@ function ChatSurface(props: {
         );
 
         if (result.reason === "cancelled") {
-          if (acc.trim()) {
-            await persistChatMessage({
-              userId,
-              chatsMode,
-              conversationId: conversation.id,
-              role: "assistant",
-              content: acc + "\n\n_[stopped by you]_",
-              modelId: step.modelId,
-              providerId: "ocade-local",
-            });
-          }
-          await refreshAfterLocal();
+          completedUnsavedText = `${acc}\n\n_[stopped by you]_`;
+          await persistChatMessage({
+            userId,
+            chatsMode,
+            conversationId: conversation.id,
+            role: "user",
+            content: text,
+            attachments: atts.map((attachment) => ({
+              kind: attachment.kind,
+              name: attachment.name,
+              mime: attachment.mime,
+              sizeBytes: attachment.sizeBytes,
+            })),
+          });
+          userTurnPersisted = true;
+          await persistChatMessage({
+            userId,
+            chatsMode,
+            conversationId: conversation.id,
+            role: "assistant",
+            content: completedUnsavedText,
+            modelId: step.modelId,
+            providerId: "ocade-local",
+          });
+          const rows = await refreshAfterLocal();
+          const assistant = [...rows].reverse().find((message) => message.role === "assistant");
+          recordCitations(acc, assistant?.id);
+          clearDraft(conversation.id);
           return;
         }
 
         if (result.ok && acc.trim()) {
+          completedUnsavedText = acc;
+          await persistChatMessage({
+            userId,
+            chatsMode,
+            conversationId: conversation.id,
+            role: "user",
+            content: text,
+            attachments: atts.map((attachment) => ({
+              kind: attachment.kind,
+              name: attachment.name,
+              mime: attachment.mime,
+              sizeBytes: attachment.sizeBytes,
+            })),
+          });
+          userTurnPersisted = true;
           await persistChatMessage({
             userId,
             chatsMode,
@@ -1014,7 +1670,10 @@ function ChatSurface(props: {
             modelId: step.modelId,
             providerId: "ocade-local",
           });
-          await refreshAfterLocal();
+          const rows = await refreshAfterLocal();
+          const assistant = [...rows].reverse().find((message) => message.role === "assistant");
+          recordCitations(acc, assistant?.id);
+          clearDraft(conversation.id);
           return;
         }
 
@@ -1025,6 +1684,9 @@ function ChatSurface(props: {
       // Every on-device engine failed. Never cross to cloud silently.
       setStreaming(false);
       setStreamText("");
+      setMessages((current) => current.filter((message) => message.id !== optimistic.id));
+      setDraft(text);
+      setAttachments(atts);
       const why = failures.length > 0 ? ` (${failures[failures.length - 1]})` : "";
       if (online) {
         setCloudApprovalNeeded({ text, attachments: atts });
@@ -1039,6 +1701,26 @@ function ChatSurface(props: {
         setMessages((m) => m.filter((x) => x.id !== optimistic.id));
         setDraft(text);
         setAttachments(atts);
+      } else {
+        clearDraft(conversation.id);
+        try {
+          const rows = await refreshAfterLocal();
+          if (completedUnsavedText) {
+            setMessages([
+              ...rows,
+              {
+                id: `unsaved-local-${Date.now()}`,
+                role: "assistant",
+                content: `${completedUnsavedText}\n\n_[This local response completed but could not be saved.]_`,
+                attachments: [],
+                model_id: model,
+                created_at: new Date().toISOString(),
+              },
+            ]);
+          }
+        } catch {
+          // The original storage error is already surfaced above.
+        }
       }
     } finally {
       setStreaming(false);
@@ -1052,16 +1734,279 @@ function ChatSurface(props: {
    * block. Only extracted TEXT travels — never the raw file.
    */
   function buildDocContext(atts: Attachment[]): string | undefined {
-    const withText = atts.filter((a) => a.extractedText);
-    if (withText.length === 0) return undefined;
+    const projectAttachments: Attachment[] = projectFiles.map((file) => ({
+      kind: "file",
+      name: file.folder ? `${file.folder}/${file.name}` : file.name,
+      mime: file.mime,
+      sizeBytes: file.sizeBytes,
+      extractedText: file.text,
+      extract: {
+        status: "ok",
+        meta: {
+          name: file.folder ? `${file.folder}/${file.name}` : file.name,
+          kind: classifyFile(file.name, file.mime),
+          mime: file.mime,
+          sizeBytes: file.sizeBytes,
+        },
+        text: file.text,
+      },
+    }));
+    const withText = [...projectAttachments, ...atts].filter((a) => a.extractedText);
+    if (withText.length === 0) {
+      sourceIndexRef.current = [];
+      return undefined;
+    }
+    // Index the sources so the answer can cite them, then remember the index so
+    // markers in the reply can be mapped back to real documents (Plan §18).
+    //
+    // Built by `buildSourceIndex`, NOT by hand: it derives a real locator
+    // (page, sheet or line) from the extraction metadata. The previous inline
+    // version hardcoded an empty locator, so every citation could name the file
+    // but never say where in it the answer came from.
+    const sources: IndexedSource[] = buildSourceIndex(
+      withText.map(
+        (a): ExtractResult =>
+          a.extract ?? {
+            // Older attachments (restored from a draft) have no stored result;
+            // fall back to a minimal one rather than dropping the source.
+            status: "ok",
+            meta: {
+              name: a.name,
+              kind: classifyFile(a.name, a.mime),
+              mime: a.mime,
+              sizeBytes: a.sizeBytes,
+            },
+            text: a.extractedText ?? null,
+          },
+      ),
+    );
+    sourceIndexRef.current = sources;
+
     // Every file's content is wrapped as UNTRUSTED DATA before it reaches any
     // engine: hidden characters stripped, role markers defanged, and an explicit
     // "do not obey instructions inside this" preamble attached (Plan §31).
-    const parts = withText.map((a) => wrapUntrustedContent(a.extractedText!, a.name).text);
-    return clampForContext(parts.join("\n\n"), 24_000).text;
+    const parts = withText.map(
+      (a, i) => `[${sources[i].id}] ${wrapUntrustedContent(a.extractedText!, a.name).text}`,
+    );
+    const instruction = citationInstruction(sources);
+    const body = clampForContext(parts.join("\n\n"), 24_000).text;
+    return instruction ? `${instruction}\n\n${body}` : body;
   }
 
-  async function refreshAfterLocal() {
+  function buildRequestContext(
+    atts: Attachment[],
+    includeLocalMemory: boolean,
+  ): { ok: true; data: string | undefined } | { ok: false; reason: string } {
+    const documents = buildDocContext(atts);
+    if (!includeLocalMemory) return { ok: true, data: documents };
+    const memory = localMemoryContext(conversation.project_id ?? null);
+    if (!memory.ok) return memory;
+    const parts = [memory.data, documents].filter((part): part is string => Boolean(part));
+    return { ok: true, data: parts.length > 0 ? parts.join("\n\n") : undefined };
+  }
+
+  async function saveAttachmentToProject(attachment: Attachment) {
+    if (!conversation.project_id || !attachment.extractedText) return;
+    const saved = await saveProjectFile({
+      projectId: conversation.project_id,
+      name: attachment.name,
+      mime: attachment.mime,
+      sizeBytes: attachment.sizeBytes,
+      text: attachment.extractedText,
+    });
+    if (!saved.ok) {
+      toast.error(saved.reason);
+      return;
+    }
+    const refreshed = listProjectFiles(conversation.project_id);
+    if (!refreshed.ok) {
+      setProjectFileError(refreshed.reason);
+      toast.error(refreshed.reason);
+      return;
+    }
+    setProjectFiles(refreshed.data);
+    setProjectFileError(null);
+    toast.success(`Saved ${attachment.name} as hashed project context on this device.`);
+  }
+
+  /** Map citation markers in a finished answer back to the real sources. */
+  function recordCitations(answer: string, messageId?: string) {
+    const sources = sourceIndexRef.current;
+    const parsed = sources.length > 0 ? parseCitations(answer, sources) : [];
+    setCitations(parsed);
+    if (parsed.length === 0) {
+      setCitationError(null);
+      return;
+    }
+    if (!messageId) {
+      setCitationError(
+        "The cited response was not found in persistence, so its citation cards were not saved.",
+      );
+      return;
+    }
+    const saved = saveChatCitations({
+      conversationId: conversation.id,
+      messageId,
+      citations: parsed,
+    });
+    setCitationError(saved.ok ? null : saved.reason);
+  }
+
+  /**
+   * Fork the conversation at a message into a new thread (Plan §17). The
+   * original is never modified — every turn up to and including this one is
+   * copied, so the user can explore an alternative without losing anything.
+   */
+  async function branchFrom(message: Message) {
+    try {
+      const created = (await branchConversation({
+        data: { conversationId: conversation.id, fromMessageId: message.id },
+      })) as { id: string; title: string };
+      toast.success(`Branched into “${created.title}”. The original is unchanged.`);
+      await onRefreshList();
+      onOpenConversation(created.id);
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Couldn't branch — this needs the database migration.",
+      );
+    }
+  }
+
+  async function forkBeforeUser(message: Message, title: string) {
+    if (chatsMode === "private_sync") {
+      return (await forkConversationBeforeMessage({
+        data: {
+          conversationId: conversation.id,
+          fromMessageId: message.id,
+          title,
+        },
+      })) as { id: string; title: string };
+    }
+
+    const created = (await createConversation({
+      data: { title, modelId: model },
+    })) as Conversation;
+    try {
+      if (conversation.project_id) {
+        await setConversationProject({
+          data: {
+            conversationId: created.id,
+            projectId: conversation.project_id,
+          },
+        });
+      }
+      const source = await loadChatMessages({
+        userId,
+        chatsMode,
+        conversationId: conversation.id,
+      });
+      const pivot = source.findIndex((row) => row.id === message.id);
+      if (pivot < 0 || source[pivot].role !== "user") {
+        throw new Error("The message to branch from is no longer available in this vault.");
+      }
+      for (const row of source.slice(0, pivot)) {
+        if (row.role === "system") {
+          throw new Error(
+            "This local branch contains a system record that cannot be copied safely.",
+          );
+        }
+        await persistChatMessage({
+          userId,
+          chatsMode,
+          conversationId: created.id,
+          role: row.role,
+          content: row.content,
+          attachments: row.attachments,
+          modelId: row.model_id,
+          providerId: row.provider_id,
+        });
+      }
+      return { id: created.id, title: created.title };
+    } catch (error) {
+      let cleanupError: unknown = null;
+      try {
+        await deleteVaultConversation(userId, created.id);
+        await deleteConversation({ data: { id: created.id } });
+      } catch (cleanup) {
+        cleanupError = cleanup;
+      }
+      if (cleanupError) {
+        throw new Error(
+          `${error instanceof Error ? error.message : "Could not create the local branch."} Cleanup also failed: ${describeStorageError(cleanupError)}`,
+        );
+      }
+      throw error;
+    }
+  }
+
+  async function prepareEdit(message: Message) {
+    try {
+      const created = await forkBeforeUser(message, `${conversation.title} (edited branch)`);
+      saveDraft(created.id, message.content);
+      await onRefreshList();
+      onOpenConversation(created.id);
+      toast.success("Created an independent branch. Edit the restored prompt, then send it.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not prepare the edited branch.");
+    }
+  }
+
+  async function saveAssistantOutput(message: Message, index: number) {
+    const sourceTurn = [...messages.slice(0, index)]
+      .reverse()
+      .find((candidate) => candidate.role === "user");
+    const attachedFiles = (sourceTurn?.attachments ?? [])
+      .filter(
+        (attachment): attachment is Attachment & { extractedText: string } =>
+          typeof attachment.extractedText === "string" && attachment.extractedText.length > 0,
+      )
+      .map((attachment) => ({
+        name: attachment.name,
+        content: attachment.extractedText,
+      }));
+    const files = [
+      ...projectFiles.map((file) => ({
+        name: file.folder ? `${file.folder}/${file.name}` : file.name,
+        content: file.text,
+      })),
+      ...attachedFiles,
+    ].filter(
+      (file, index, all) =>
+        all.findIndex(
+          (candidate) => candidate.name === file.name && candidate.content === file.content,
+        ) === index,
+    );
+
+    const saved = await saveChatOutput({
+      title: conversation.title,
+      content: message.content,
+      conversationId: conversation.id,
+      messageId: message.id,
+      ...(conversation.project_id
+        ? {
+            project: {
+              id: conversation.project_id,
+              ...(projectDetails
+                ? { name: projectDetails.name, instructions: projectDetails.instructions }
+                : {}),
+            },
+          }
+        : {}),
+      files,
+      // A complete model response is not independent evidence that its claims
+      // are correct. The artifact is integrity-checked but stays NOT CONFIRMED.
+      producerEvidence:
+        "Saved from a completed OCADE Chat response and re-hashed after local storage. Factual claims were not independently verified by this save action.",
+      producerVerified: false,
+    });
+    if (!saved.ok) {
+      toast.error(saved.reason);
+      return;
+    }
+    toast.success("Saved to Artifacts and recorded in on-device Activity.");
+  }
+
+  async function refreshAfterLocal(): Promise<Message[]> {
     const rows = (await loadChatMessages({
       userId,
       chatsMode,
@@ -1070,24 +2015,53 @@ function ChatSurface(props: {
     setMessages(rows);
     setStreamText("");
     await onRefreshList();
+    return rows;
   }
 
-  function stop() { abortRef.current?.abort(); }
+  function stop() {
+    abortRef.current?.abort();
+  }
+
+  useEffect(() => {
+    if (
+      loading ||
+      !initialMessage ||
+      initialMessage.conversationId !== conversation.id ||
+      initialMessageRef.current === initialMessage.id
+    ) {
+      return;
+    }
+    initialMessageRef.current = initialMessage.id;
+    onInitialMessageHandled(initialMessage.id);
+    void sendMessage(initialMessage.text, initialMessage.attachments);
+    // The message id is the one-shot authority. sendMessage is intentionally
+    // excluded because its render identity changes while streaming.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversation.id, initialMessage, loading, onInitialMessageHandled]);
 
   async function regenerate() {
     const idx = [...messages].reverse().findIndex((m) => m.role === "user");
     if (idx === -1) return;
     const realIdx = messages.length - 1 - idx;
     const userMsg = messages[realIdx];
-    setMessages(messages.slice(0, realIdx + 1));
-    await sendMessage(userMsg.content, userMsg.attachments);
+    try {
+      const created = await forkBeforeUser(userMsg, `${conversation.title} (retry branch)`);
+      saveDraft(created.id, userMsg.content);
+      await onRefreshList();
+      onOpenConversation(created.id);
+      toast.success("Created a retry branch with the prompt restored. Send when ready.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not prepare the retry branch.");
+    }
   }
 
   async function handleImprove() {
     if (!draft.trim()) return;
     setImproving(true);
     try {
-      const { improved } = (await improvePrompt({ data: { text: draft.trim() } })) as { improved: string };
+      const { improved } = (await improvePrompt({ data: { text: draft.trim() } })) as {
+        improved: string;
+      };
       setDraft(improved);
       toast.success("Prompt improved");
     } catch {
@@ -1097,7 +2071,11 @@ function ChatSurface(props: {
     }
   }
 
-  /** Push-to-talk. On-device recognition only — no audio leaves the machine. */
+  /**
+   * Push-to-talk through the browser speech engine. The browser/OS may process
+   * recognition remotely; only the optional wake listener requires an explicit
+   * local-processing capability.
+   */
   function toggleVoice() {
     const w = window as unknown as {
       speechSynthesis?: unknown;
@@ -1114,43 +2092,199 @@ function ChatSurface(props: {
       toast.error("Voice input isn't available in this browser.");
       return;
     }
-    if (listening) {
+    if (listeningRef.current) {
       (recogRef.current as SpeechRecognitionLike | null)?.stop();
+      listeningRef.current = false;
       setListening(false);
       return;
     }
     const rec = new Ctor();
     rec.continuous = false;
-    rec.interimResults = false;
+    // Interim results power live captions; without captions we only need finals.
+    rec.interimResults = voicePrefs.captionsEnabled;
     // Only a verified language pack is used (decision #27).
-    rec.lang = supportedLanguages()[0]?.code ?? "en";
+    rec.lang = verifiedLanguage(voicePrefs.language);
     rec.onresult = (ev) => {
-      const transcript = ev.results[0]?.[0]?.transcript ?? "";
-      setDraft((d) => (d ? d + " " : "") + transcript);
+      let interim = "";
+      let final = "";
+      for (let i = 0; i < ev.results.length; i++) {
+        const r = ev.results[i];
+        const text = r?.[0]?.transcript ?? "";
+        if (r?.isFinal) final += text;
+        else interim += text;
+      }
+      /**
+       * Redact BEFORE the transcript reaches anything that displays, stores or
+       * transmits it. The draft feeds the composer, which feeds the model and
+       * the saved conversation, so a spoken OTP left here would leak into all
+       * three. Redaction is local and runs on interim results too, so a secret
+       * never even flashes up in the live caption.
+       */
+      const safeFinal = redactSpokenSecrets(final).text;
+      const safeInterim = redactSpokenSecrets(interim).text;
+      if (voicePrefs.captionsEnabled) setCaption(safeFinal || safeInterim);
+      if (safeFinal) setDraft((d) => (d ? d + " " : "") + safeFinal);
     };
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
-    rec.start();
+    rec.onend = () => {
+      listeningRef.current = false;
+      setListening(false);
+      setCaption("");
+    };
+    rec.onerror = () => {
+      listeningRef.current = false;
+      setListening(false);
+      setCaption("");
+    };
     recogRef.current = rec;
-    setListening(true);
+    try {
+      rec.start();
+      listeningRef.current = true;
+      setListening(true);
+    } catch {
+      recogRef.current = null;
+      listeningRef.current = false;
+      setListening(false);
+      setCaption("");
+      toast.error("The browser couldn't start speech recognition.");
+    }
   }
+
+  /** Fall back to a verified pack rather than advertising an unverified one. */
+  /**
+   * The language voice will actually use.
+   *
+   * Delegates to `resolveVoiceLanguage` so region subtags resolve correctly —
+   * matching on the exact code meant "en-GB" missed the "en" pack and fell back
+   * for no reason.
+   */
+  function verifiedLanguage(code: string): string {
+    return resolveVoiceLanguage(code).code;
+  }
+
+  /**
+   * Optional local wake phrase (decision #23). It runs only when the recognition
+   * engine explicitly exposes local processing; ordinary browser recognition
+   * is not enough evidence for continuous background listening.
+   */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!voicePrefs.wakeEnabled || listening) return;
+    const w = window as unknown as {
+      webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+      SpeechRecognition?: new () => SpeechRecognitionLike;
+    };
+    const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+    if (!Ctor) return;
+    const caps = detectVoiceCapabilities(w);
+    if (!caps.wakePhrase) return;
+
+    let stopped = false;
+    const rec = new Ctor();
+    rec.processLocally = true;
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.lang = verifiedLanguage(voicePrefs.language);
+    rec.onresult = (ev) => {
+      for (let i = 0; i < ev.results.length; i++) {
+        const text = ev.results[i]?.[0]?.transcript ?? "";
+        if (matchesWakePhrase(text)) {
+          stopped = true;
+          rec.stop();
+          const greeting = buildGreeting(
+            {
+              style: voicePrefs.addressStyle,
+              preferredName: voicePrefs.preferredName,
+              customTitle: voicePrefs.preferredTitle,
+              enabled: voicePrefs.greetingEnabled,
+            },
+            new Date().getHours(),
+          );
+          if (greeting) readAloud(greeting);
+          toggleVoice();
+          return;
+        }
+      }
+    };
+    // Keep the wake listener alive across the browser's idle auto-stops.
+    rec.onend = () => {
+      if (!stopped && voicePrefs.wakeEnabled) {
+        try {
+          rec.start();
+        } catch {
+          /* already starting */
+        }
+      }
+    };
+    rec.onerror = () => {
+      /* transient — onend restarts */
+    };
+    try {
+      rec.start();
+    } catch {
+      /* already running */
+    }
+    wakeRef.current = rec;
+    return () => {
+      stopped = true;
+      try {
+        rec.stop();
+      } catch {
+        /* not running */
+      }
+      wakeRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voicePrefs.wakeEnabled, voicePrefs.language, listening]);
 
   /**
    * Read a reply aloud with the user's chosen OCADE voice. Speaking again
    * cancels the previous utterance, so the user can always interrupt.
    */
-  function readAloud(text: string) {
+  function readAloud(raw: string) {
     if (typeof window === "undefined") return;
+    /*
+     * Publish the platform speech engine to the multimodal registry the first
+     * time speech is actually used, so the registry holds the provider that
+     * really ships rather than an empty list. Idempotent: the registry refuses
+     * a duplicate id and this reports the reason instead of throwing.
+     */
+    registerSystemVoice(
+      globalMultimodalRegistry,
+      window as unknown as Parameters<typeof registerSystemVoice>[1],
+    );
+    /*
+     * Citation markers are for the EYE, not the ear. Speaking "[S1]" comes out
+     * as "bracket S one" mid-sentence and makes a cited answer hard to follow.
+     * The markers stay in the written answer, where they are clickable.
+     */
+    /**
+     * A secret must never be READ ALOUD — spoken output is audible to everyone
+     * in the room and to any recording in progress, and unlike text it cannot
+     * be un-seen. Redaction runs locally, before the utterance and before the
+     * caption derived from it.
+     */
+    const spoken = redactForSpeech(stripCitationMarkers(raw));
+    const text = spoken.text;
+    if (spoken.containedProtected) {
+      toast.warning("OCADE didn't read protected details aloud.", {
+        description: `Removed before speaking: ${spoken.categories.join(", ")}.`,
+      });
+    }
     const caps = detectVoiceCapabilities(window as unknown as { speechSynthesis?: unknown });
     if (!caps.synthesis) {
       toast.error(caps.reason ?? "Read-aloud isn't available here.");
       return;
     }
+    // Emergency mute wins over everything.
+    if (voicePrefs.muted) {
+      toast.error("OCADE Voice is muted. Unmute it in Settings → Voice.");
+      return;
+    }
     window.speechSynthesis.cancel(); // interruption / barge-in
     const utterance = new SpeechSynthesisUtterance(text);
-    const lang = supportedLanguages()[0]?.code ?? "en";
+    const lang = verifiedLanguage(voicePrefs.language);
     const chosen = pickVoice(toVoiceOptions(window.speechSynthesis.getVoices()), {
-      gender: voiceGender ?? undefined,
+      gender: voicePrefs.gender !== "unknown" ? voicePrefs.gender : (voiceGender ?? undefined),
       lang,
     });
     if (chosen) {
@@ -1159,6 +2293,30 @@ function ChatSurface(props: {
         .find((v) => (v.voiceURI ?? v.name) === chosen.id);
       if (match) utterance.voice = match;
     }
+    utterance.lang = lang;
+    utterance.rate = voicePrefs.rate;
+    utterance.pitch = voicePrefs.pitch;
+    utterance.onstart = () => {
+      setSpeaking(true);
+      // Output captions: show what is being READ ALOUD, not only what was
+      // heard. Without this, a deaf or hard-of-hearing user — or anyone with
+      // the sound off — gets nothing from read-aloud at all.
+      if (voicePrefs.captionsEnabled) setSpokenCaption(text);
+    };
+    utterance.onend = () => {
+      setSpeaking(false);
+      setSpokenCaption("");
+    };
+    utterance.onerror = () => {
+      setSpeaking(false);
+      setSpokenCaption("");
+    };
+    // Track progress through the utterance so the caption follows the voice
+    // rather than dumping the whole answer at once.
+    utterance.onboundary = (e: SpeechSynthesisEvent) => {
+      if (!voicePrefs.captionsEnabled) return;
+      setSpokenCaption(captionSentenceAt(text, e.charIndex ?? 0));
+    };
     window.speechSynthesis.speak(utterance);
   }
 
@@ -1166,6 +2324,8 @@ function ChatSurface(props: {
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
+    setSpeaking(false);
+    setSpokenCaption("");
   }
 
   return (
@@ -1213,22 +2373,100 @@ function ChatSurface(props: {
             </div>
           ) : (
             <div className="space-y-5">
-              {messages.map((m) => (
+              {messages.map((m, index) => (
                 <MessageRow
                   key={m.id}
                   message={m}
                   onCopy={() => navigator.clipboard.writeText(m.content)}
                   onSpeak={() => readAloud(m.content)}
-                  onEdit={m.role === "user" ? () => { setDraft(m.content); setAttachments(m.attachments ?? []); } : undefined}
+                  onSave={
+                    m.role === "assistant" && !m.id.startsWith("local-")
+                      ? () => void saveAssistantOutput(m, index)
+                      : undefined
+                  }
+                  onEdit={m.role === "user" ? () => void prepareEdit(m) : undefined}
+                  onBranch={
+                    m.role === "assistant" && !m.id.startsWith("local-")
+                      ? () => void branchFrom(m)
+                      : undefined
+                  }
                 />
               ))}
               {streaming && streamText ? (
                 <MessageRow
                   message={{
-                    id: "streaming", role: "assistant", content: streamText,
-                    attachments: [], model_id: model, created_at: new Date().toISOString(),
+                    id: "streaming",
+                    role: "assistant",
+                    content: streamText,
+                    attachments: [],
+                    model_id: model,
+                    created_at: new Date().toISOString(),
                   }}
                 />
+              ) : null}
+              {/* Visual response is OFFERED, never auto-rendered (decision #41). */}
+              {!streaming && lastAssistantText ? (
+                visualAnswer ? (
+                  <ErrorBoundary label="Visual response">
+                    <VisualResponse
+                      answer={visualAnswer}
+                      onClose={() => setVisualAnswer(null)}
+                      onNarrate={(t) => readAloud(t)}
+                      projectId={conversation.project_id}
+                      conversationId={conversation.id}
+                    />
+                  </ErrorBoundary>
+                ) : (
+                  <button
+                    onClick={() => setVisualAnswer(lastAssistantText)}
+                    className="mt-2 self-start rounded-md border border-border/60 px-2.5 py-1 text-[11px] text-muted-foreground hover:text-foreground"
+                  >
+                    Create visual response
+                  </button>
+                )
+              ) : null}
+              {!streaming && citationError ? (
+                <div className="mt-3 rounded-lg border border-[color:var(--warning)]/40 bg-[color:var(--warning)]/5 p-3 text-xs text-muted-foreground">
+                  Citation evidence could not be restored or saved: {citationError}
+                </div>
+              ) : null}
+              {!streaming && citations.length > 0 ? (
+                <div className="mt-3 rounded-lg border border-border/60 bg-secondary/25 p-3">
+                  {/*
+                    A real heading, associated with the list via aria-labelledby.
+                    A bare <p> left the list unlabelled, so a screen reader
+                    announced "list, 2 items" with no indication these are the
+                    sources backing the answer.
+                  */}
+                  <h3
+                    id={`sources-${conversation.id}`}
+                    className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
+                  >
+                    Sources
+                  </h3>
+                  <ul
+                    aria-labelledby={`sources-${conversation.id}`}
+                    className="flex flex-col gap-1.5"
+                  >
+                    {citations.map((c) => {
+                      const where = describeLocator(c.locator);
+                      return (
+                        <li key={c.sourceId} className="text-[12px]">
+                          <span className="mr-1.5 rounded bg-secondary px-1 py-0.5 text-[10px] text-muted-foreground">
+                            {c.sourceId}
+                          </span>
+                          <span className="font-medium text-foreground">{c.name}</span>
+                          {where ? <span className="text-muted-foreground"> · {where}</span> : null}
+                          {c.snippet ? (
+                            <p className="mt-0.5 line-clamp-2 text-muted-foreground">
+                              “{c.snippet}”
+                            </p>
+                          ) : null}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
               ) : null}
               {streaming && !streamText ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -1243,6 +2481,61 @@ function ChatSurface(props: {
       {/* Composer pinned to bottom */}
       <div className="border-t border-border/60 bg-background/60 px-5 py-3 backdrop-blur">
         <div className="mx-auto w-full max-w-2xl">
+          {/* Microphone privacy indicator + live captions (Plan §22). */}
+          {listening || speaking ? (
+            <div className="mb-1.5 flex items-start gap-2 rounded-md border border-border/60 bg-secondary/40 px-2.5 py-1.5 text-[12px]">
+              <span
+                className={cn(
+                  "mt-1 inline-block h-2 w-2 shrink-0 rounded-full",
+                  listening ? "animate-pulse bg-destructive" : "bg-[color:var(--state-success)]",
+                )}
+                aria-hidden
+              />
+              <span className="min-w-0 flex-1">
+                <span className="text-muted-foreground">
+                  {listening ? "Microphone on — OCADE is listening" : "OCADE is speaking"}
+                </span>
+                {/*
+                  Two caption tracks: what was HEARD while listening, and what
+                  is being READ ALOUD while speaking. aria-live so a screen
+                  reader announces the spoken text as it progresses.
+                */}
+                {voicePrefs.captionsEnabled && caption ? (
+                  <span className="mt-0.5 block truncate text-foreground">{caption}</span>
+                ) : null}
+                {voicePrefs.captionsEnabled && spokenCaption ? (
+                  <span
+                    aria-live="polite"
+                    className="mt-0.5 block text-foreground"
+                    data-testid="spoken-caption"
+                  >
+                    {spokenCaption}
+                  </span>
+                ) : null}
+              </span>
+              <button
+                onClick={() => {
+                  stopSpeaking();
+                  if (listening) toggleVoice();
+                }}
+                className="shrink-0 text-[11px] text-muted-foreground hover:text-foreground"
+              >
+                {listening ? "Stop listening" : "Stop speaking"}
+              </button>
+              <button
+                onClick={() => {
+                  emergencyMute();
+                  stopSpeaking();
+                  if (listening) toggleVoice();
+                  toast.success("Voice muted.");
+                }}
+                title="Emergency mute — stop all voice immediately"
+                className="shrink-0 text-[11px] text-destructive hover:underline"
+              >
+                Mute
+              </button>
+            </div>
+          ) : null}
           <div className="mb-1.5 flex items-center gap-1 text-[11px]">
             <span className="text-muted-foreground">Engine</span>
             {(["auto", "local", "cloud"] as const).map((t) => {
@@ -1323,6 +2616,10 @@ function ChatSurface(props: {
             onToggleVoice={toggleVoice}
             listening={listening}
             onRegenerate={messages.some((m) => m.role === "assistant") ? regenerate : undefined}
+            projectAssigned={Boolean(conversation.project_id)}
+            onSaveAttachmentToProject={
+              conversation.project_id ? saveAttachmentToProject : undefined
+            }
           />
         </div>
       </div>
@@ -1330,18 +2627,28 @@ function ChatSurface(props: {
       {/* Cloud approval */}
       <Dialog open={!!cloudApprovalNeeded} onOpenChange={(o) => !o && setCloudApprovalNeeded(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Approve cloud transfer</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Approve cloud transfer</DialogTitle>
+          </DialogHeader>
           <div className="space-y-2 text-sm">
             <p>
-              Your chats are set to <span className="font-medium">Browser Only</span>. Sending this message uses{" "}
-              <span className="font-medium">OCADE Cloud</span>, a cloud engine.
+              Your chats are set to{" "}
+              <span className="font-medium">
+                {chatsMode === "pc_vault" ? "PC Vault" : "Browser Only"}
+              </span>
+              . Sending this message uses <span className="font-medium">OCADE Cloud</span>, a cloud
+              engine.
             </p>
             <p className="text-muted-foreground">
-              The message and any attached images will be sent to the cloud provider. Approve one-time transfer to continue.
+              The current message, relevant conversation history, extracted context and any attached
+              images will be sent for this request. Message storage remains in your selected vault.
+              Approve this one-time transfer to continue.
             </p>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setCloudApprovalNeeded(null)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setCloudApprovalNeeded(null)}>
+              Cancel
+            </Button>
             <Button
               onClick={() => {
                 const payload = cloudApprovalNeeded!;
@@ -1358,6 +2665,17 @@ function ChatSurface(props: {
   );
 }
 
+function readChatError(body: string, status: number): string {
+  try {
+    const parsed = JSON.parse(body) as { message?: unknown };
+    if (typeof parsed.message === "string" && parsed.message.trim()) return parsed.message;
+  } catch {
+    // Plain-text gateway and infrastructure errors remain valid user-facing
+    // evidence; JSON parsing is only an optional improvement.
+  }
+  return body.trim() || `Chat request failed (HTTP ${status}).`;
+}
+
 /* ---------- Composer ---------- */
 
 function Composer(props: {
@@ -1366,7 +2684,15 @@ function Composer(props: {
   attachments: Attachment[];
   setAttachments: React.Dispatch<React.SetStateAction<Attachment[]>>;
   onSubmit: () => void;
-  onStop: () => void;
+  /**
+   * Cancel the in-flight response. OPTIONAL on purpose: a surface that has
+   * nothing cancellable must omit it rather than pass a no-op, because the Stop
+   * button is only rendered when a real handler exists. A required prop forced
+   * `onStop={() => {}}` on the home composer, which put a red Stop button on
+   * screen that did nothing when clicked.
+   */
+  onStop?: () => void;
+  /** Something is in flight. With `onStop`, shows Stop; without it, disables Send. */
   streaming: boolean;
   mode: Mode;
   setMode: (m: Mode) => void;
@@ -1381,25 +2707,51 @@ function Composer(props: {
   listening?: boolean;
   onRegenerate?: () => void;
   floating?: boolean;
+  projectAssigned?: boolean;
+  onSaveAttachmentToProject?: (attachment: Attachment) => Promise<void>;
 }) {
   const {
-    draft, setDraft, attachments, setAttachments, onSubmit, onStop, streaming,
-    mode, setMode, permission, setPermission, model, setModel, chatsMode,
-    onImprove, improving, onToggleVoice, listening, onRegenerate, floating,
+    draft,
+    setDraft,
+    attachments,
+    setAttachments,
+    onSubmit,
+    onStop,
+    streaming,
+    mode,
+    setMode,
+    permission,
+    setPermission,
+    model,
+    setModel,
+    chatsMode,
+    onImprove,
+    improving,
+    onToggleVoice,
+    listening,
+    onRegenerate,
+    floating,
+    projectAssigned,
+    onSaveAttachmentToProject,
   } = props;
   const modelInfo = getOcadeModel(model);
   const fileRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLInputElement>(null);
+  // React may not rerender between pointer-down and pointer-up on a short
+  // press, so remember whether this gesture started recognition.
+  const voiceHoldStartedRef = useRef(false);
 
   async function handleFiles(files: FileList | null, imagesOnly: boolean) {
     if (!files) return;
     const next: Attachment[] = [...attachments];
     for (const f of Array.from(files)) {
       if (next.length >= MAX_ATTACHMENTS) {
-        toast.error(`Maximum ${MAX_ATTACHMENTS} attachments per message`); break;
+        toast.error(`Maximum ${MAX_ATTACHMENTS} attachments per message`);
+        break;
       }
       if (f.size > MAX_FILE_BYTES) {
-        toast.error(`${f.name}: exceeds 20 MB limit`); continue;
+        toast.error(`${f.name}: exceeds 20 MB limit`);
+        continue;
       }
       if (imagesOnly && !f.type.startsWith("image/")) continue;
       const isImage = f.type.startsWith("image/");
@@ -1409,15 +2761,51 @@ function Composer(props: {
       // file is never uploaded — only the extracted text becomes model context.
       let extractedText: string | undefined;
       let extractNote: string | undefined;
+      // Hoisted so the extraction metadata survives past this block — the
+      // citation locator is derived from it.
+      let result: ExtractResult | undefined;
       if (!isImage) {
         const kind = classifyFile(f.name, f.type);
-        const content = isNativeTextKind(kind) ? await f.text() : undefined;
-        const result = extractDocument({
-          name: f.name,
-          mime: f.type,
-          sizeBytes: f.size,
-          content,
-        });
+        // PDF / DOCX / XLSX are decoded on-device by the real decoders; text
+        // formats are read directly. Either way the raw file stays local.
+        if (isDecodableBinary(kind)) {
+          /*
+           * A large PDF or workbook can take seconds to decode on-device. The
+           * decoder has always honoured an AbortSignal, but nothing passed one,
+           * so "Stop" was unreachable and the user had to wait it out.
+           */
+          const controller = new AbortController();
+          const toastId = toast.loading(`${f.name}: reading on your device…`, {
+            action: { label: "Stop", onClick: () => controller.abort() },
+            duration: Infinity,
+          });
+          try {
+            result = await extractBinaryDocument(
+              {
+                name: f.name,
+                mime: f.type,
+                sizeBytes: f.size,
+                buffer: await f.arrayBuffer(),
+              },
+              controller.signal,
+            );
+          } finally {
+            toast.dismiss(toastId);
+          }
+          // A cancelled read adds nothing at all — not an errored attachment.
+          if (result.status === "cancelled") {
+            toast.info(`${f.name}: ${result.reason ?? "Reading was cancelled."}`);
+            continue;
+          }
+        } else {
+          const content = isNativeTextKind(kind) ? await f.text() : undefined;
+          result = extractDocument({
+            name: f.name,
+            mime: f.type,
+            sizeBytes: f.size,
+            content,
+          });
+        }
         if (result.status === "ok" && result.text) {
           extractedText = clampForContext(result.text).text;
           // File contents are untrusted input: warn immediately if the document
@@ -1436,25 +2824,55 @@ function Composer(props: {
 
       next.push({
         kind: isImage ? "image" : "file",
-        name: f.name, mime: f.type || "application/octet-stream", sizeBytes: f.size, dataUrl,
-        extractedText, extractNote,
+        name: f.name,
+        mime: f.type || "application/octet-stream",
+        sizeBytes: f.size,
+        dataUrl,
+        extractedText,
+        extractNote,
+        // Carry the clamped text inside the result so the citation index and
+        // the model context are built from exactly the same string.
+        extract: result ? { ...result, text: extractedText ?? result.text } : undefined,
       });
     }
     setAttachments(next);
   }
 
   return (
-    <div className={cn(
-      "rounded-xl border border-border/70 bg-card/80 shadow-sm backdrop-blur",
-      floating && "shadow-md",
-    )}>
+    <div
+      className={cn(
+        "rounded-xl border border-border/70 bg-card/80 shadow-sm backdrop-blur",
+        floating && "shadow-md",
+      )}
+    >
       {attachments.length > 0 ? (
         <div className="flex flex-wrap gap-1.5 border-b border-border/60 px-3 py-2">
           {attachments.map((a, i) => (
-            <div key={i} className="flex items-center gap-1.5 rounded-md border border-border/60 bg-background/50 px-2 py-1 text-[11px]">
-              {a.kind === "image" ? <Sparkles className="h-3 w-3" /> : <Paperclip className="h-3 w-3" />}
+            <div
+              key={i}
+              className="flex items-center gap-1.5 rounded-md border border-border/60 bg-background/50 px-2 py-1 text-[11px]"
+            >
+              {a.kind === "image" ? (
+                <Sparkles className="h-3 w-3" />
+              ) : (
+                <Paperclip className="h-3 w-3" />
+              )}
               <span className="max-w-[160px] truncate">{a.name}</span>
-              <button onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))} aria-label="Remove">
+              {a.extractedText && onSaveAttachmentToProject ? (
+                <button
+                  type="button"
+                  onClick={() => void onSaveAttachmentToProject(a)}
+                  title="Save extracted text to this project"
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Save className="h-3 w-3" />
+                  <span className="sr-only">Save {a.name} to project</span>
+                </button>
+              ) : null}
+              <button
+                onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
+                aria-label="Remove"
+              >
                 <X className="h-3 w-3" />
               </button>
             </div>
@@ -1466,12 +2884,17 @@ function Composer(props: {
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSubmit(); }
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            onSubmit();
+          }
         }}
         rows={2}
-        placeholder={mode === "work"
-          ? "Describe the task for OCADE Work…"
-          : "Message OCADE…  (Enter to send, Shift+Enter for newline)"}
+        placeholder={
+          mode === "work"
+            ? "Describe the task for OCADE Work…"
+            : "Message OCADE…  (Enter to send, Shift+Enter for newline)"
+        }
         className="min-h-[52px] resize-none border-0 bg-transparent px-3 py-2.5 text-sm shadow-none focus-visible:ring-0"
         disabled={streaming}
       />
@@ -1485,23 +2908,77 @@ function Composer(props: {
           <Paperclip className="h-3.5 w-3.5" />
         </ComposerIcon>
         <input
-          ref={fileRef} type="file" multiple className="hidden"
-          onChange={(e) => { void handleFiles(e.target.files, false); e.currentTarget.value = ""; }}
+          ref={fileRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            void handleFiles(e.target.files, false);
+            e.currentTarget.value = "";
+          }}
         />
-        <ComposerIcon
-          title="Attach images"
-          onClick={() => imageRef.current?.click()}
-        >
+        <ComposerIcon title="Attach images" onClick={() => imageRef.current?.click()}>
           <Sparkles className="h-3.5 w-3.5" />
         </ComposerIcon>
         <input
-          ref={imageRef} type="file" multiple accept="image/*" className="hidden"
-          onChange={(e) => { void handleFiles(e.target.files, true); e.currentTarget.value = ""; }}
+          ref={imageRef}
+          type="file"
+          multiple
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            void handleFiles(e.target.files, true);
+            e.currentTarget.value = "";
+          }}
         />
         {onToggleVoice ? (
+          /*
+           * Push-to-talk AND click-to-toggle.
+           *
+           * Hold is the privacy-safer default: the microphone stops the moment
+           * you let go, so walking away can never leave it live. A plain toggle
+           * on its own has exactly that failure mode.
+           *
+           * `onPointerDown`/`onPointerUp` covers mouse, touch and pen. Releasing
+           * outside the button (pointerleave / pointercancel) still stops it —
+           * otherwise dragging off would strand the mic on.
+           */
           <ComposerIcon
-            title={listening ? "Stop voice input" : "Voice input"}
-            onClick={onToggleVoice}
+            title={
+              listening
+                ? "Release to stop — or click to toggle"
+                : "Hold to talk, or click to toggle"
+            }
+            onPointerDown={() => {
+              if (!listening) {
+                voiceHoldStartedRef.current = true;
+                onToggleVoice();
+              }
+            }}
+            onPointerUp={() => {
+              if (voiceHoldStartedRef.current) {
+                voiceHoldStartedRef.current = false;
+                onToggleVoice();
+              }
+            }}
+            onPointerLeave={() => {
+              if (voiceHoldStartedRef.current) {
+                voiceHoldStartedRef.current = false;
+                onToggleVoice();
+              }
+            }}
+            onPointerCancel={() => {
+              if (voiceHoldStartedRef.current) {
+                voiceHoldStartedRef.current = false;
+                onToggleVoice();
+              }
+            }}
+            // Keyboard users get the toggle: Enter/Space fire click, and there
+            // is no reliable key-hold equivalent that does not repeat.
+            onClick={(e) => {
+              // Pointer already handled it; only act for real keyboard activation.
+              if (e.detail === 0) onToggleVoice();
+            }}
             active={listening}
           >
             {listening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
@@ -1513,14 +2990,15 @@ function Composer(props: {
         {/* Chat / Work switch */}
         <ModeSwitch mode={mode} setMode={setMode} />
 
-        {/* Project or folder selector (planned) */}
-        <button
-          disabled
-          title="Project or folder — planned"
+        {/* Project assignment is managed on the live Projects surface. */}
+        <Link
+          to="/ocade/projects"
+          title="Manage this conversation's project"
           className="ml-1 hidden items-center gap-1 rounded-md border border-border/60 bg-background/40 px-2 py-1 text-[11px] text-muted-foreground/70 sm:inline-flex"
         >
-          <FolderOpen className="h-3 w-3" /> Project <ChevronDown className="h-3 w-3" />
-        </button>
+          <FolderOpen className="h-3 w-3" />{" "}
+          {projectAssigned ? "Project assigned" : "Choose project"}
+        </Link>
 
         {/* Permission mode */}
         <Select value={permission} onValueChange={(v) => setPermission(v as PermissionMode)}>
@@ -1528,9 +3006,15 @@ function Composer(props: {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="manual" className="text-xs">Manual</SelectItem>
-            <SelectItem value="assisted" className="text-xs">Assisted</SelectItem>
-            <SelectItem value="autonomous" className="text-xs">Autonomous with approval</SelectItem>
+            <SelectItem value="manual" className="text-xs">
+              Manual
+            </SelectItem>
+            <SelectItem value="assisted" className="text-xs">
+              Assisted
+            </SelectItem>
+            <SelectItem value="autonomous" className="text-xs">
+              Autonomous with approval
+            </SelectItem>
           </SelectContent>
         </Select>
 
@@ -1557,7 +3041,11 @@ function Composer(props: {
           title={`Storage mode: ${chatsMode}`}
         >
           <ShieldCheck className="h-3 w-3" />
-          {chatsMode === "private_sync" ? "Private sync" : chatsMode === "pc_vault" ? "PC vault" : "Browser only"}
+          {chatsMode === "private_sync"
+            ? "Private sync"
+            : chatsMode === "pc_vault"
+              ? "PC vault"
+              : "Browser only"}
         </span>
 
         <div className="ml-auto flex items-center gap-1">
@@ -1568,16 +3056,21 @@ function Composer(props: {
               title="Improve prompt"
               className="inline-flex h-7 items-center gap-1 rounded-md border border-border/60 bg-background/40 px-2 text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-50"
             >
-              {improving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+              {improving ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Sparkles className="h-3 w-3" />
+              )}
               Improve
             </button>
           ) : null}
           {onRegenerate ? (
-            <ComposerIcon title="Regenerate" onClick={onRegenerate}>
+            <ComposerIcon title="Retry in a new branch" onClick={onRegenerate}>
               <RefreshCcw className="h-3.5 w-3.5" />
             </ComposerIcon>
           ) : null}
-          {streaming ? (
+          {/* Stop is offered ONLY when there is a real handler to cancel with. */}
+          {streaming && onStop ? (
             <button
               onClick={onStop}
               className="inline-flex h-7 items-center gap-1 rounded-md bg-destructive/90 px-2.5 text-[11px] font-medium text-destructive-foreground hover:bg-destructive"
@@ -1587,7 +3080,9 @@ function Composer(props: {
           ) : (
             <button
               onClick={onSubmit}
-              disabled={!draft.trim() && attachments.length === 0}
+              /* While something is in flight with nothing to cancel, Send is
+                 disabled — honest "working" feedback, not a fake Stop. */
+              disabled={streaming || (!draft.trim() && attachments.length === 0)}
               className="inline-flex h-7 items-center gap-1 rounded-md bg-primary px-2.5 text-[11px] font-medium text-primary-foreground disabled:opacity-40"
             >
               <Send className="h-3 w-3" /> Send
@@ -1606,7 +3101,9 @@ function ModeSwitch({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void 
         onClick={() => setMode("chat")}
         className={cn(
           "inline-flex h-7 items-center gap-1 px-2",
-          mode === "chat" ? "bg-secondary text-foreground" : "bg-background/40 text-muted-foreground hover:text-foreground",
+          mode === "chat"
+            ? "bg-secondary text-foreground"
+            : "bg-background/40 text-muted-foreground hover:text-foreground",
         )}
       >
         <MessagesSquare className="h-3 w-3" /> Chat
@@ -1615,7 +3112,9 @@ function ModeSwitch({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void 
         onClick={() => setMode("work")}
         className={cn(
           "inline-flex h-7 items-center gap-1 border-l border-border/60 px-2",
-          mode === "work" ? "bg-secondary text-foreground" : "bg-background/40 text-muted-foreground hover:text-foreground",
+          mode === "work"
+            ? "bg-secondary text-foreground"
+            : "bg-background/40 text-muted-foreground hover:text-foreground",
         )}
       >
         <Bot className="h-3 w-3" /> OCADE Work
@@ -1625,15 +3124,33 @@ function ModeSwitch({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void 
 }
 
 function ComposerIcon({
-  children, title, onClick, active,
-}: { children: React.ReactNode; title: string; onClick: () => void; active?: boolean }) {
+  children,
+  title,
+  onClick,
+  active,
+  ...pointer
+}: {
+  children: React.ReactNode;
+  title: string;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  active?: boolean;
+} & Pick<
+  React.ComponentPropsWithoutRef<"button">,
+  "onPointerDown" | "onPointerUp" | "onPointerLeave" | "onPointerCancel"
+>) {
   return (
     <button
+      type="button"
       onClick={onClick}
+      {...pointer}
       title={title}
       aria-label={title}
+      aria-pressed={active}
       className={cn(
         "inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground",
+        // Holding to talk must not select surrounding text or fire the OS
+        // touch-and-hold menu.
+        "select-none touch-none",
         active && "text-destructive",
       )}
     >
@@ -1645,12 +3162,21 @@ function ComposerIcon({
 /* ---------- Message row (minimal, no big card) ---------- */
 
 function MessageRow({
-  message, onCopy, onSpeak, onEdit,
+  message,
+  onCopy,
+  onSpeak,
+  onEdit,
+  onBranch,
+  onSave,
 }: {
   message: Message;
   onCopy?: () => void;
   onSpeak?: () => void;
   onEdit?: () => void;
+  /** Fork the conversation from this point into a new thread. */
+  onBranch?: () => void;
+  /** Save this exact response as a hashed artifact and activity entry. */
+  onSave?: () => void;
 }) {
   const isAssistant = message.role === "assistant";
 
@@ -1667,8 +3193,29 @@ function MessageRow({
           <ReactMarkdown>{message.content}</ReactMarkdown>
         </div>
         <div className="mt-1 flex gap-1 opacity-0 transition group-hover:opacity-100">
-          {onCopy ? <RowAction title="Copy" onClick={onCopy}><Copy className="h-3 w-3" /></RowAction> : null}
-          {onSpeak ? <RowAction title="Read aloud" onClick={onSpeak}><Volume2 className="h-3 w-3" /></RowAction> : null}
+          {onCopy ? (
+            <RowAction title="Copy" onClick={onCopy}>
+              <Copy className="h-3 w-3" />
+            </RowAction>
+          ) : null}
+          {onSpeak ? (
+            <RowAction title="Read aloud" onClick={onSpeak}>
+              <Volume2 className="h-3 w-3" />
+            </RowAction>
+          ) : null}
+          {onSave ? (
+            <RowAction title="Save to Artifacts and Activity" onClick={onSave}>
+              <FileOutput className="h-3 w-3" />
+            </RowAction>
+          ) : null}
+          {onBranch ? (
+            <RowAction
+              title="Branch from here — explore an alternative without losing this thread"
+              onClick={onBranch}
+            >
+              <GitBranch className="h-3 w-3" />
+            </RowAction>
+          ) : null}
         </div>
       </div>
     );
@@ -1683,8 +3230,16 @@ function MessageRow({
         <div className="whitespace-pre-wrap break-words">{message.content}</div>
       </div>
       <div className="mt-1 flex gap-1 opacity-0 transition group-hover:opacity-100">
-        {onCopy ? <RowAction title="Copy" onClick={onCopy}><Copy className="h-3 w-3" /></RowAction> : null}
-        {onEdit ? <RowAction title="Edit & resend" onClick={onEdit}><Pencil className="h-3 w-3" /></RowAction> : null}
+        {onCopy ? (
+          <RowAction title="Copy" onClick={onCopy}>
+            <Copy className="h-3 w-3" />
+          </RowAction>
+        ) : null}
+        {onEdit ? (
+          <RowAction title="Edit & resend" onClick={onEdit}>
+            <Pencil className="h-3 w-3" />
+          </RowAction>
+        ) : null}
       </div>
     </div>
   );
@@ -1693,18 +3248,36 @@ function MessageRow({
 function AttachmentsInline({ atts }: { atts: Attachment[] }) {
   return (
     <div className="mb-2 flex flex-wrap gap-2">
-      {atts.map((a, i) => a.kind === "image" && a.dataUrl ? (
-        <img key={i} src={a.dataUrl} alt={a.name} className="max-h-40 rounded-md border border-border/60" />
-      ) : (
-        <div key={i} className="flex items-center gap-1.5 rounded-md border border-border/60 bg-background/40 px-2 py-1 text-[11px]">
-          <Paperclip className="h-3 w-3" /> {a.name}
-        </div>
-      ))}
+      {atts.map((a, i) =>
+        a.kind === "image" && a.dataUrl ? (
+          <img
+            key={i}
+            src={a.dataUrl}
+            alt={a.name}
+            className="max-h-40 rounded-md border border-border/60"
+          />
+        ) : (
+          <div
+            key={i}
+            className="flex items-center gap-1.5 rounded-md border border-border/60 bg-background/40 px-2 py-1 text-[11px]"
+          >
+            <Paperclip className="h-3 w-3" /> {a.name}
+          </div>
+        ),
+      )}
     </div>
   );
 }
 
-function RowAction({ children, title, onClick }: { children: React.ReactNode; title: string; onClick: () => void }) {
+function RowAction({
+  children,
+  title,
+  onClick,
+}: {
+  children: React.ReactNode;
+  title: string;
+  onClick: () => void;
+}) {
   return (
     <button
       onClick={onClick}
@@ -1719,18 +3292,39 @@ function RowAction({ children, title, onClick }: { children: React.ReactNode; ti
 /* ---------- Dialogs ---------- */
 
 function RenameDialog({
-  target, onClose, onSubmit,
-}: { target: Conversation | null; onClose: () => void; onSubmit: (title: string) => void }) {
+  target,
+  onClose,
+  onSubmit,
+}: {
+  target: Conversation | null;
+  onClose: () => void;
+  onSubmit: (title: string) => void;
+}) {
   const [value, setValue] = useState("");
-  useEffect(() => { setValue(target?.title ?? ""); }, [target]);
+  useEffect(() => {
+    setValue(target?.title ?? "");
+  }, [target]);
   return (
     <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Rename conversation</DialogTitle></DialogHeader>
-        <Input value={value} onChange={(e) => setValue(e.target.value)} maxLength={200} />
+        <DialogHeader>
+          <DialogTitle>Rename conversation</DialogTitle>
+        </DialogHeader>
+        {/* No placeholder either — this field had no accessible name at all. */}
+        <Input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          maxLength={200}
+          aria-label="Conversation name"
+          autoFocus
+        />
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => value.trim() && onSubmit(value.trim())} disabled={!value.trim()}>Save</Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={() => value.trim() && onSubmit(value.trim())} disabled={!value.trim()}>
+            Save
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1738,24 +3332,46 @@ function RenameDialog({
 }
 
 function DeleteDialog({
-  target, onClose, onConfirm,
-}: { target: Conversation | null; onClose: () => void; onConfirm: () => void }) {
+  target,
+  onClose,
+  onConfirm,
+}: {
+  target: Conversation | null;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
   const [phrase, setPhrase] = useState("");
-  useEffect(() => { setPhrase(""); }, [target]);
+  useEffect(() => {
+    setPhrase("");
+  }, [target]);
   return (
     <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Delete “{target?.title}”?</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>Delete “{target?.title}”?</DialogTitle>
+        </DialogHeader>
         <div className="space-y-2 text-sm">
           <p className="text-muted-foreground">
             This permanently removes the conversation and all its messages. This cannot be undone.
           </p>
-          <p className="text-xs">Type <span className="font-mono font-semibold">delete</span> to confirm.</p>
-          <Input value={phrase} onChange={(e) => setPhrase(e.target.value)} placeholder="delete" />
+          <p className="text-xs">
+            Type <span className="font-mono font-semibold">delete</span> to confirm.
+          </p>
+          <Input
+            value={phrase}
+            onChange={(e) => setPhrase(e.target.value)}
+            placeholder="delete"
+            aria-label="Type delete to confirm"
+            autoComplete="off"
+          />
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button variant="destructive" disabled={phrase !== "delete"} onClick={onConfirm}>Delete</Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="destructive" disabled={phrase !== "delete"} onClick={onConfirm}>
+            Delete
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1763,41 +3379,6 @@ function DeleteDialog({
 }
 
 /* ---------- Helpers ---------- */
-
-async function sendViaApi(args: {
-  conversationId: string;
-  model: string;
-  text: string;
-  attachments: Attachment[];
-  allowCloud: boolean;
-}): Promise<void> {
-  const { data: session } = await supabase.auth.getSession();
-  const token = session.session?.access_token;
-  if (!token) throw new Error("Session expired");
-  const res = await fetch("/api/ocade/chat", {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-    body: JSON.stringify({
-      conversationId: args.conversationId,
-      model: args.model,
-      allowCloud: args.allowCloud,
-      message: { content: args.text, attachments: args.attachments },
-    }),
-  });
-  if (res.status === 428) {
-    throw new Error("This model is cloud-based. Approve cloud transfer from the chat to continue.");
-  }
-  if (!res.ok || !res.body) {
-    const errTxt = await res.text().catch(() => "Chat request failed");
-    throw new Error(errTxt || `HTTP ${res.status}`);
-  }
-  // Drain the stream so the server finishes writing rows.
-  const reader = res.body.getReader();
-  while (true) {
-    const { done } = await reader.read();
-    if (done) break;
-  }
-}
 
 function fileToDataUrl(f: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -1808,12 +3389,32 @@ function fileToDataUrl(f: File): Promise<string> {
   });
 }
 
+/** One alternative transcription of a recognised phrase. */
+type SpeechAlternativeLike = { transcript: string };
+
+/**
+ * A recognition result. `isFinal` distinguishes a settled phrase from an
+ * in-progress guess, which is what drives live captions.
+ */
+type SpeechResultLike = {
+  readonly length: number;
+  readonly isFinal: boolean;
+  [index: number]: SpeechAlternativeLike;
+};
+
+type SpeechResultListLike = {
+  readonly length: number;
+  [index: number]: SpeechResultLike;
+};
+
 type SpeechRecognitionLike = {
   continuous: boolean;
   interimResults: boolean;
-  /** BCP-47 language tag for on-device recognition. */
+  /** BCP-47 language tag requested from the browser recognition engine. */
   lang: string;
-  onresult: (ev: { results: { [key: number]: { [key: number]: { transcript: string } } } }) => void;
+  /** Experimental Web Speech flag; required for the continuous wake listener. */
+  processLocally?: boolean;
+  onresult: (ev: { results: SpeechResultListLike }) => void;
   onend: () => void;
   onerror: (ev: unknown) => void;
   start: () => void;

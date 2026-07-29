@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   PanelLeft,
@@ -12,6 +12,11 @@ import {
   PanelRight,
   X,
   LogIn,
+  LogOut,
+  Monitor,
+  Settings,
+  ScrollText,
+  ChevronUp,
   RotateCcw,
 } from "lucide-react";
 import { BrandMark } from "./BrandMark";
@@ -19,6 +24,9 @@ import { DemoBadge } from "./DemoBadge";
 import { ShellProvider, useShell } from "./shell-context";
 import { cn } from "@/lib/utils";
 import { useAppearance } from "@/lib/theme-provider";
+import { useSession } from "@/lib/session";
+import { supabase } from "@/integrations/supabase/client";
+import { closeActiveCompanionSession } from "@/lib/native/tauri-companion";
 import {
   MODULES,
   UTILITY,
@@ -55,10 +63,16 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
   );
 }
 
-function WorkspaceShellInner({ children, variant = "app", onDemoReset, onDemoExit }: WorkspaceShellProps) {
+function WorkspaceShellInner({
+  children,
+  variant = "app",
+  onDemoReset,
+  onDemoExit,
+}: WorkspaceShellProps) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { theme, update } = useAppearance();
+  const { user } = useSession();
   const shell = useShell();
   const isDemo = variant === "demo";
 
@@ -67,13 +81,54 @@ function WorkspaceShellInner({ children, variant = "app", onDemoReset, onDemoExi
     return window.localStorage.getItem(COLLAPSE_KEY) === "1";
   });
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [mobileNavigation, setMobileNavigation] = useState(() =>
+    typeof window === "undefined" ? false : window.matchMedia("(max-width: 767px)").matches,
+  );
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const accountRef = useRef<HTMLDivElement>(null);
+  const navigationRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(COLLAPSE_KEY, collapsed ? "1" : "0");
   }, [collapsed]);
 
-  useEffect(() => setDrawerOpen(false), [pathname]);
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 767px)");
+    const sync = () => setMobileNavigation(query.matches);
+    sync();
+    query.addEventListener?.("change", sync);
+    return () => query.removeEventListener?.("change", sync);
+  }, []);
+
+  useEffect(() => {
+    setDrawerOpen(false);
+    setAccountOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    function closeTransientUi(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setDrawerOpen(false);
+      setAccountOpen(false);
+      shell?.setCopilotOpen(false);
+    }
+    function closeAccountOnOutsidePointer(event: PointerEvent) {
+      if (accountRef.current?.contains(event.target as Node)) return;
+      setAccountOpen(false);
+    }
+    window.addEventListener("keydown", closeTransientUi);
+    window.addEventListener("pointerdown", closeAccountOnOutsidePointer);
+    return () => {
+      window.removeEventListener("keydown", closeTransientUi);
+      window.removeEventListener("pointerdown", closeAccountOnOutsidePointer);
+    };
+  }, [shell]);
+
+  useEffect(() => {
+    if (drawerOpen) navigationRef.current?.focus();
+  }, [drawerOpen]);
 
   const modules: ModuleDef[] = isDemo ? DEMO_MODULES : MODULES;
   const current = activeModule(pathname);
@@ -84,17 +139,60 @@ function WorkspaceShellInner({ children, variant = "app", onDemoReset, onDemoExi
     void update({ theme: next });
   }
   const ThemeIcon = theme === "light" ? Sun : theme === "real" ? Waves : Moon;
+  const initials =
+    (user?.user_metadata?.preferred_name as string | undefined) ??
+    (user?.user_metadata?.full_name as string | undefined) ??
+    user?.email ??
+    "Account";
+  const accountInitials =
+    initials
+      .split(/[\s@.]+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "CC";
+
+  async function signOut() {
+    setAccountError(null);
+    try {
+      await closeActiveCompanionSession();
+    } catch (error) {
+      setAccountError(
+        error instanceof Error
+          ? `The local companion session could not confirm closure: ${error.message}`
+          : "The local companion session could not confirm closure.",
+      );
+    }
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      await navigate({ to: "/auth", replace: true });
+    } catch (error) {
+      setAccountError(error instanceof Error ? error.message : "Sign out failed.");
+    }
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
+      {/*
+        Skip link: the first thing a keyboard or screen-reader user reaches.
+        Without it, every page forces a walk through the whole sidebar before
+        the actual content. Visually hidden until focused.
+      */}
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
+
       {/* Utility bar — compact, structural, no colour */}
       <header className="sticky top-0 z-40 flex h-12 items-center gap-1 border-b border-border/70 bg-background/95 px-2 backdrop-blur">
         <button
           onClick={() => {
-            if (typeof window !== "undefined" && window.innerWidth < 768) setDrawerOpen((v) => !v);
+            if (mobileNavigation) setDrawerOpen((v) => !v);
             else setCollapsed((v) => !v);
           }}
           aria-label="Toggle navigation"
+          aria-controls="workspace-navigation"
+          aria-expanded={mobileNavigation ? drawerOpen : !collapsed}
           className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           <PanelLeft className="h-4 w-4" aria-hidden />
@@ -160,6 +258,8 @@ function WorkspaceShellInner({ children, variant = "app", onDemoReset, onDemoExi
                 <button
                   onClick={() => shell.setCopilotOpen(!shell.copilotOpen)}
                   aria-label="Toggle Copilot panel"
+                  aria-expanded={shell.copilotOpen}
+                  aria-controls="copilot-desktop-panel copilot-mobile-panel"
                   className={cn(
                     "inline-flex h-8 w-8 items-center justify-center rounded-md",
                     shell.copilotOpen
@@ -186,6 +286,10 @@ function WorkspaceShellInner({ children, variant = "app", onDemoReset, onDemoExi
 
         {/* Module rail + contextual navigation */}
         <aside
+          ref={navigationRef}
+          id="workspace-navigation"
+          tabIndex={-1}
+          aria-label="Workspace navigation"
           className={cn(
             "z-40 flex shrink-0 flex-col border-r border-border/70 bg-sidebar transition-[width] duration-150",
             "fixed inset-y-0 left-0 top-12 md:sticky md:top-12 md:h-[calc(100vh-3rem)]",
@@ -193,8 +297,17 @@ function WorkspaceShellInner({ children, variant = "app", onDemoReset, onDemoExi
             drawerOpen ? "flex" : "hidden md:flex",
           )}
         >
-          <div className={cn("flex h-14 items-center border-b border-sidebar-border", collapsed ? "justify-center px-2" : "px-4")}>
-            <Link to={isDemo ? "/" : "/home"} aria-label="CAERA CADANE home" className="inline-flex">
+          <div
+            className={cn(
+              "flex h-14 items-center border-b border-sidebar-border",
+              collapsed ? "justify-center px-2" : "px-4",
+            )}
+          >
+            <Link
+              to={isDemo ? "/" : "/home"}
+              aria-label="CAERA CADANE home"
+              className="inline-flex"
+            >
               <BrandMark className={collapsed ? "[&_.flex-col]:hidden" : ""} />
             </Link>
           </div>
@@ -224,7 +337,13 @@ function WorkspaceShellInner({ children, variant = "app", onDemoReset, onDemoExi
           </nav>
 
           {/* Account / session area, pinned */}
-          <div className={cn("border-t border-sidebar-border p-2", collapsed && "flex justify-center")}>
+          <div
+            ref={accountRef}
+            className={cn(
+              "relative border-t border-sidebar-border p-2",
+              collapsed && "flex justify-center",
+            )}
+          >
             {isDemo ? (
               collapsed ? null : (
                 <div className="flex gap-1">
@@ -243,35 +362,138 @@ function WorkspaceShellInner({ children, variant = "app", onDemoReset, onDemoExi
                 </div>
               )
             ) : (
-              <Link
-                to="/settings"
-                title="Account and settings"
-                className={cn(
-                  "flex items-center gap-2.5 rounded-md text-[13px] text-muted-foreground hover:bg-sidebar-accent/70 hover:text-foreground",
-                  collapsed ? "h-9 w-9 justify-center" : "h-10 px-3",
-                )}
-              >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border/70 text-[10px] font-medium">
-                  CC
-                </span>
-                {!collapsed && <span className="truncate">Account</span>}
-              </Link>
+              <>
+                {accountOpen ? (
+                  <div
+                    role="menu"
+                    aria-label="Account menu"
+                    className={cn(
+                      "absolute bottom-[calc(100%+0.25rem)] z-50 w-56 rounded-lg border border-border bg-popover p-1.5 text-popover-foreground shadow-xl",
+                      collapsed ? "left-2" : "left-2 right-2",
+                    )}
+                  >
+                    <div className="border-b border-border/60 px-2 py-2">
+                      <div className="truncate text-xs font-medium">{initials}</div>
+                      <div className="truncate text-[10px] text-muted-foreground">
+                        {user?.email ?? user?.phone ?? "Signed-in account"}
+                      </div>
+                    </div>
+                    <Link
+                      role="menuitem"
+                      to="/settings"
+                      className="mt-1 flex h-8 items-center gap-2 rounded-md px-2 text-xs hover:bg-accent"
+                    >
+                      <Settings className="h-3.5 w-3.5" aria-hidden /> Settings
+                    </Link>
+                    <Link
+                      role="menuitem"
+                      to="/settings/devices"
+                      className="flex h-8 items-center gap-2 rounded-md px-2 text-xs hover:bg-accent"
+                    >
+                      <Monitor className="h-3.5 w-3.5" aria-hidden /> Devices
+                    </Link>
+                    <Link
+                      role="menuitem"
+                      to="/settings/activity"
+                      className="flex h-8 items-center gap-2 rounded-md px-2 text-xs hover:bg-accent"
+                    >
+                      <ScrollText className="h-3.5 w-3.5" aria-hidden /> Activity
+                    </Link>
+                    <button
+                      role="menuitem"
+                      type="button"
+                      onClick={() => void signOut()}
+                      className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-xs hover:bg-accent"
+                    >
+                      <LogOut className="h-3.5 w-3.5" aria-hidden /> Sign out
+                    </button>
+                    {accountError ? (
+                      <p role="alert" className="px-2 py-1 text-[10px] text-destructive">
+                        {accountError}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+                <button
+                  type="button"
+                  title="Account menu"
+                  aria-label="Account menu"
+                  aria-haspopup="menu"
+                  aria-expanded={accountOpen}
+                  onClick={() => setAccountOpen((open) => !open)}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-md text-[13px] text-muted-foreground hover:bg-sidebar-accent/70 hover:text-foreground",
+                    collapsed ? "h-9 w-9 justify-center" : "h-10 w-full px-3",
+                  )}
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border/70 text-[10px] font-medium">
+                    {accountInitials}
+                  </span>
+                  {!collapsed ? (
+                    <>
+                      <span className="min-w-0 flex-1 truncate text-left">Account</span>
+                      <ChevronUp className="h-3.5 w-3.5" aria-hidden />
+                    </>
+                  ) : null}
+                </button>
+              </>
             )}
           </div>
         </aside>
 
         {/* Spacious workspace */}
-        <main className="min-w-0 flex-1">
+        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 focus:outline-none">
           <div className="mx-auto w-full max-w-6xl px-6 py-8 sm:px-10">{children}</div>
         </main>
 
         {/* Adaptive Copilot panel */}
         {shell?.copilotOpen && shell.copilotContent ? (
-          <aside className="hidden w-[340px] shrink-0 border-l border-border/70 bg-sidebar/60 lg:block">
+          <aside
+            id="copilot-desktop-panel"
+            aria-label="Desktop Copilot"
+            className="hidden w-[340px] shrink-0 border-l border-border/70 bg-sidebar/60 lg:block"
+          >
             <div className="sticky top-12 h-[calc(100vh-3rem)] overflow-y-auto p-4">
               {shell.copilotContent}
             </div>
           </aside>
+        ) : null}
+
+        {shell?.copilotOpen && shell.copilotContent ? (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Desktop Copilot"
+            className="fixed inset-0 z-50 lg:hidden"
+          >
+            <button
+              type="button"
+              aria-label="Close Copilot panel"
+              tabIndex={-1}
+              onClick={() => shell.setCopilotOpen(false)}
+              className="absolute inset-0 bg-background/70 backdrop-blur-sm"
+            />
+            <aside
+              id="copilot-mobile-panel"
+              className="absolute inset-y-0 right-0 flex w-[min(92vw,380px)] flex-col border-l border-border bg-sidebar shadow-2xl"
+            >
+              <div className="flex h-12 items-center justify-between border-b border-border px-4">
+                <span className="text-xs font-semibold uppercase tracking-[0.12em]">
+                  Desktop Copilot
+                </span>
+                <button
+                  type="button"
+                  aria-label="Close Copilot panel"
+                  autoFocus
+                  onClick={() => shell.setCopilotOpen(false)}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+                >
+                  <X className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto p-4">{shell.copilotContent}</div>
+            </aside>
+          </div>
         ) : null}
       </div>
     </div>
@@ -336,7 +558,9 @@ function ContextList({ items, pathname }: { items: NavItem[]; pathname: string }
             </li>
           );
         }
-        const active = n.exact ? pathname === n.to : pathname === n.to || pathname.startsWith(n.to + "/");
+        const active = n.exact
+          ? pathname === n.to
+          : pathname === n.to || pathname.startsWith(n.to + "/");
         return (
           <li key={`${n.label}-${i}`}>
             <Link

@@ -33,10 +33,38 @@ export interface PlanDef {
 }
 
 export const PLANS: Record<PlanId, PlanDef> = {
-  trial_2d: { id: "trial_2d", label: "2 days", durationDays: 2, cloudAllowancePerWindow: CLOUD_ALLOWANCE, desktopDevices: 2, mobileDevices: 2 },
-  std_8d: { id: "std_8d", label: "8 days", durationDays: 8, cloudAllowancePerWindow: CLOUD_ALLOWANCE, desktopDevices: 2, mobileDevices: 2 },
-  month_1m: { id: "month_1m", label: "1 month", durationDays: 30, cloudAllowancePerWindow: CLOUD_ALLOWANCE, desktopDevices: 2, mobileDevices: 2 },
-  year_1y: { id: "year_1y", label: "1 year", durationDays: 365, cloudAllowancePerWindow: CLOUD_ALLOWANCE, desktopDevices: 2, mobileDevices: 2 },
+  trial_2d: {
+    id: "trial_2d",
+    label: "2 days",
+    durationDays: 2,
+    cloudAllowancePerWindow: CLOUD_ALLOWANCE,
+    desktopDevices: 2,
+    mobileDevices: 2,
+  },
+  std_8d: {
+    id: "std_8d",
+    label: "8 days",
+    durationDays: 8,
+    cloudAllowancePerWindow: CLOUD_ALLOWANCE,
+    desktopDevices: 2,
+    mobileDevices: 2,
+  },
+  month_1m: {
+    id: "month_1m",
+    label: "1 month",
+    durationDays: 30,
+    cloudAllowancePerWindow: CLOUD_ALLOWANCE,
+    desktopDevices: 2,
+    mobileDevices: 2,
+  },
+  year_1y: {
+    id: "year_1y",
+    label: "1 year",
+    durationDays: 365,
+    cloudAllowancePerWindow: CLOUD_ALLOWANCE,
+    desktopDevices: 2,
+    mobileDevices: 2,
+  },
 };
 
 /* ------------------------------------------------------------- windowing -- */
@@ -52,6 +80,9 @@ export interface AllowanceWindow {
  */
 export function currentWindow(now: Date = new Date()): AllowanceWindow {
   const ms = now.getTime();
+  if (!Number.isFinite(ms)) {
+    throw new Error("A valid time is required to calculate cloud allowance.");
+  }
   const startMs = Math.floor(ms / WINDOW_MS) * WINDOW_MS;
   return { start: new Date(startMs), end: new Date(startMs + WINDOW_MS) };
 }
@@ -70,9 +101,18 @@ export function allowanceState(
   limit: number = CLOUD_ALLOWANCE,
 ): AllowanceState {
   const w = currentWindow(now);
-  const used = Math.max(0, Math.min(usedInWindow, limit));
-  const remaining = Math.max(0, limit - used);
-  return { limit, used, remaining, resetsAt: w.end, exhausted: remaining === 0 };
+  const validLimit = Number.isSafeInteger(limit) && limit > 0;
+  const safeLimit = validLimit ? limit : CLOUD_ALLOWANCE;
+  const validUsage = Number.isSafeInteger(usedInWindow) && usedInWindow >= 0;
+  const used = validUsage && validLimit ? Math.min(usedInWindow, safeLimit) : safeLimit;
+  const remaining = Math.max(0, safeLimit - used);
+  return {
+    limit: safeLimit,
+    used,
+    remaining,
+    resetsAt: w.end,
+    exhausted: remaining === 0,
+  };
 }
 
 /* ------------------------------------------------------------- consuming -- */
@@ -91,7 +131,12 @@ export function consumesAllowance(locality: EngineLocality, outcome: RequestOutc
 
 export type CloudDecision =
   | { allowed: true }
-  | { allowed: false; code: "allowance_exhausted" | "subscription_expired"; reason: string; resetsAt?: Date };
+  | {
+      allowed: false;
+      code: "allowance_exhausted" | "subscription_expired";
+      reason: string;
+      resetsAt?: Date;
+    };
 
 /** Gate a cloud request against entitlement + allowance. */
 export function canUseCloud(input: {
@@ -109,11 +154,30 @@ export function canUseCloud(input: {
     return {
       allowed: false,
       code: "allowance_exhausted",
-      reason: "You've used all OCADE Cloud requests for this period. OCADE Local is still unlimited.",
+      reason:
+        "You've used all OCADE Cloud requests for this period. OCADE Local is still unlimited.",
       resetsAt: input.state.resetsAt,
     };
   }
   return { allowed: true };
+}
+
+/** Resolve the untrusted database shape used by server cloud gates. */
+export function cloudEntitlementActive(
+  record: { status?: unknown; expiresAt?: unknown } | null,
+  now: Date = new Date(),
+): boolean {
+  const current = now.getTime();
+  if (
+    !record ||
+    record.status !== "active" ||
+    typeof record.expiresAt !== "string" ||
+    !Number.isFinite(current)
+  ) {
+    return false;
+  }
+  const expiry = Date.parse(record.expiresAt);
+  return Number.isFinite(expiry) && expiry > current;
 }
 
 /* ----------------------------------------------------------- entitlement -- */
@@ -190,6 +254,12 @@ export function canRegisterDevice(input: {
 }): { allowed: boolean; reason?: string } {
   const limit = input.kind === "desktop" ? input.state.desktopDevices : input.state.mobileDevices;
   const current = input.kind === "desktop" ? input.currentDesktop : input.currentMobile;
+  if (!Number.isSafeInteger(limit) || limit < 0 || !Number.isSafeInteger(current) || current < 0) {
+    return {
+      allowed: false,
+      reason: "Device limits could not be verified, so registration was refused.",
+    };
+  }
   if (current >= limit) {
     return {
       allowed: false,
@@ -208,7 +278,10 @@ export function canRegisterDevice(input: {
 export const OFFLINE_GRACE_DAYS = 7;
 
 export function offlineEntitlementValid(lastVerifiedAt: Date, now: Date = new Date()): boolean {
-  return now.getTime() - lastVerifiedAt.getTime() <= OFFLINE_GRACE_DAYS * 24 * HOUR_MS;
+  const current = now.getTime();
+  const verified = lastVerifiedAt.getTime();
+  if (!Number.isFinite(current) || !Number.isFinite(verified) || verified > current) return false;
+  return current - verified <= OFFLINE_GRACE_DAYS * 24 * HOUR_MS;
 }
 
 /** Format the reset time for display, e.g. "resets at 16:00". */

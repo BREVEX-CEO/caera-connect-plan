@@ -3,27 +3,28 @@ import { useRef, useState } from "react";
 import { Palette, Check, Upload, RefreshCcw } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
-import {
-  useAppearance,
-  type ThemeMode,
-  type CursorKind,
-} from "@/lib/theme-provider";
+import { useAppearance, type ThemeMode, type CursorKind } from "@/lib/theme-provider";
 import { recordAction } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/settings/appearance")({
   head: () => ({
-    meta: [
-      { title: "Appearance — CAERA CADANE" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Appearance — CAERA CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: AppearancePage,
 });
 
 const THEMES: { id: ThemeMode; label: string; description: string }[] = [
-  { id: "dark", label: "Dark", description: "Obsidian, graphite and silver. Restrained cyan accents." },
-  { id: "light", label: "Light", description: "Warm ivory and silver with dark controls and gold accents." },
+  {
+    id: "dark",
+    label: "Dark",
+    description: "Obsidian, graphite and silver. Restrained cyan accents.",
+  },
+  {
+    id: "light",
+    label: "Light",
+    description: "Warm ivory and silver with dark controls and gold accents.",
+  },
   { id: "real", label: "REAL", description: "Animated aurora, morphing light and liquid depth." },
 ];
 
@@ -31,9 +32,21 @@ const CURSORS: { id: CursorKind; label: string; description: string }[] = [
   { id: "system", label: "System default", description: "Use your operating system cursor." },
   { id: "caera_black", label: "CAERA Black Arrow", description: "Dark arrow with light outline." },
   { id: "caera_white", label: "CAERA White Arrow", description: "Light arrow with dark outline." },
-  { id: "auto_contrast", label: "Auto Contrast", description: "Chooses black or white based on the current theme." },
-  { id: "custom", label: "Custom upload", description: "Use your own PNG or SVG cursor (max 128 KB)." },
-  { id: "accessibility", label: "Accessibility (force system)", description: "Always use the system cursor and ignore custom cursors." },
+  {
+    id: "auto_contrast",
+    label: "Auto Contrast",
+    description: "Chooses black or white based on the current theme.",
+  },
+  {
+    id: "custom",
+    label: "Custom upload",
+    description: "Use your own PNG or SVG cursor (max 128 KB).",
+  },
+  {
+    id: "accessibility",
+    label: "Accessibility (force system)",
+    description: "Always use the system cursor and ignore custom cursors.",
+  },
 ];
 
 const MAX_CURSOR_BYTES = 128 * 1024;
@@ -213,9 +226,7 @@ function AppearancePage() {
 
           {appearance.cursorCustom && (
             <button
-              onClick={() =>
-                appearance.update({ cursorCustom: null, cursor: "system" })
-              }
+              onClick={() => appearance.update({ cursorCustom: null, cursor: "system" })}
               className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border/60 bg-background/40 px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent"
             >
               <RefreshCcw className="h-3 w-3" aria-hidden /> Remove custom cursor
@@ -233,9 +244,7 @@ function AppearancePage() {
                 max={64}
                 step={2}
                 value={appearance.cursorSize}
-                onChange={(e) =>
-                  appearance.update({ cursorSize: Number(e.target.value) })
-                }
+                onChange={(e) => appearance.update({ cursorSize: Number(e.target.value) })}
                 className="mt-2 w-full accent-primary"
               />
             </div>
@@ -244,7 +253,9 @@ function AppearancePage() {
               <ToggleRow
                 label="Cursor trail"
                 help="A subtle glow that follows the cursor. Disabled automatically in low-performance mode."
-                checked={appearance.cursorTrail && !appearance.lowPerformance && !appearance.autoLowPerf}
+                checked={
+                  appearance.cursorTrail && !appearance.lowPerformance && !appearance.autoLowPerf
+                }
                 disabled={appearance.lowPerformance || appearance.autoLowPerf}
                 onChange={(v) => appearance.update({ cursorTrail: v })}
               />
@@ -270,12 +281,7 @@ function ToggleRow({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label
-      className={cn(
-        "flex items-start justify-between gap-4",
-        disabled && "opacity-70",
-      )}
-    >
+    <label className={cn("flex items-start justify-between gap-4", disabled && "opacity-70")}>
       <span className="min-w-0">
         <span className="block text-sm font-medium text-foreground">{label}</span>
         <span className="mt-0.5 block text-xs text-muted-foreground">{help}</span>

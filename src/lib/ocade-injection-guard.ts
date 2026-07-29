@@ -33,6 +33,9 @@ export interface InjectionScan {
  * U+2060-2064 word-joiner/invisible operators, U+FEFF BOM.
  */
 const HIDDEN_CHARS = new RegExp("[​-‏‪-‮⁠-⁤﻿]", "g");
+const CREDENTIAL_VALUE =
+  /\b(token|authorization|api[_ -]?key|password|secret(?: key)?|credentials?|private key)\s*[:=]\s*[^\s,;]+/gi;
+const QUOTE_DELIMITER = /---\s*(?:BEGIN|END)\s+UNTRUSTED CONTENT(?:\s*\([^)]*\))?\s*---/gi;
 
 interface Rule {
   name: string;
@@ -41,20 +44,68 @@ interface Rule {
 }
 
 const RULES: Rule[] = [
-  { name: "override_instructions", risk: "high", pattern: /\b(ignore|disregard|forget|override)\b[^.\n]{0,40}\b(previous|prior|above|earlier|all)\b[^.\n]{0,20}\b(instruction|instructions|prompt|rules?|context)\b/i },
-  { name: "reveal_system_prompt", risk: "high", pattern: /\b(reveal|show|print|repeat|output|display)\b[^.\n]{0,30}\b(system prompt|system message|your instructions|hidden instructions|initial prompt)\b/i },
-  { name: "identity_override", risk: "high", pattern: /\byou are (now|actually)\b|\bpretend (to be|you are)\b|\bact as if you (are|were)\b/i },
-  { name: "exfiltrate_secrets", risk: "high", pattern: /\b(api[_ -]?key|access[_ -]?token|password|secret key|credentials?|private key)\b[^.\n]{0,30}\b(send|post|share|reveal|email|upload|transmit)\b|\b(send|post|share|upload)\b[^.\n]{0,30}\b(api[_ -]?key|token|password|credentials?)\b/i },
-  { name: "silent_action", risk: "high", pattern: /\b(without (telling|informing|asking)|do not (tell|inform|ask|mention)|silently|secretly)\b[^.\n]{0,30}\b(the )?(user|owner|human)\b/i },
-  { name: "tool_hijack", risk: "high", pattern: /\b(execute|run|call|invoke)\b[^.\n]{0,25}\b(command|shell|script|tool|function)\b[^.\n]{0,25}\b(immediately|now|without confirmation)\b/i },
+  {
+    name: "override_instructions",
+    risk: "high",
+    pattern:
+      /\b(ignore|disregard|forget|override)\b[^.\n]{0,40}\b(previous|prior|above|earlier|all)\b[^.\n]{0,20}\b(instruction|instructions|prompt|rules?|context)\b/i,
+  },
+  {
+    name: "reveal_system_prompt",
+    risk: "high",
+    pattern:
+      /\b(reveal|show|print|repeat|output|display)\b[^.\n]{0,30}\b(system prompt|system message|your instructions|hidden instructions|initial prompt)\b/i,
+  },
+  {
+    name: "identity_override",
+    risk: "high",
+    pattern: /\byou are (now|actually)\b|\bpretend (to be|you are)\b|\bact as if you (are|were)\b/i,
+  },
+  {
+    name: "exfiltrate_secrets",
+    risk: "high",
+    pattern:
+      /\b(api[_ -]?key|access[_ -]?token|password|secret key|credentials?|private key)\b[^.\n]{0,30}\b(send|post|share|reveal|email|upload|transmit)\b|\b(send|post|share|upload)\b[^.\n]{0,30}\b(api[_ -]?key|token|password|credentials?)\b/i,
+  },
+  {
+    name: "silent_action",
+    risk: "high",
+    pattern:
+      /\b(without (telling|informing|asking)|do not (tell|inform|ask|mention)|silently|secretly)\b[^.\n]{0,30}\b(the )?(user|owner|human)\b/i,
+  },
+  {
+    name: "tool_hijack",
+    risk: "high",
+    pattern:
+      /\b(execute|run|call|invoke)\b[^.\n]{0,25}\b(command|shell|script|tool|function)\b[^.\n]{0,25}\b(immediately|now|without confirmation)\b/i,
+  },
   { name: "role_marker_injection", risk: "low", pattern: /^\s*(system|assistant)\s*:/im },
-  { name: "instruction_to_assistant", risk: "low", pattern: /\b(ai|assistant|model|chatbot|ocade)\b[^.\n]{0,20}\b(must|should|shall) (now )?(ignore|obey|follow|comply)\b/i },
+  {
+    name: "instruction_to_assistant",
+    risk: "low",
+    pattern:
+      /\b(ai|assistant|model|chatbot|ocade)\b[^.\n]{0,20}\b(must|should|shall) (now )?(ignore|obey|follow|comply)\b/i,
+  },
 ];
 
 function excerptAround(text: string, match: RegExpExecArray, span = 60): string {
   const start = Math.max(0, match.index - 10);
-  const raw = text.slice(start, start + span).replace(/\s+/g, " ").trim();
+  const raw = redactCredentialValues(text.slice(start, start + span))
+    .replace(/\s+/g, " ")
+    .trim();
   return raw.length < text.length ? `${raw}…` : raw;
+}
+
+function redactCredentialValues(text: string): string {
+  return text.replace(CREDENTIAL_VALUE, (_match, label: string) => `${label}=[REDACTED]`);
+}
+
+function safeSourceLabel(source: string): string {
+  const clean = redactCredentialValues(stripHiddenCharacters(String(source)))
+    .replace(QUOTE_DELIMITER, "[quoted delimiter]")
+    .replace(/\s+/g, " ")
+    .trim();
+  return (clean || "unknown source").slice(0, 200);
 }
 
 /** Remove invisible characters used to smuggle hidden instructions. */
@@ -106,8 +157,10 @@ export interface WrappedContent {
 export function wrapUntrustedContent(text: string, source: string): WrappedContent {
   const scan = scanUntrustedContent(text);
   const cleaned = stripHiddenCharacters(text)
+    .replace(QUOTE_DELIMITER, "[quoted delimiter]")
     // Defang line-leading role markers so they can't look like real turns.
     .replace(/^\s*(system|assistant|user)\s*:/gim, (m) => `[quoted] ${m.trim()}`);
+  const sourceLabel = safeSourceLabel(source);
 
   const notice =
     scan.risk === "high"
@@ -115,7 +168,7 @@ export function wrapUntrustedContent(text: string, source: string): WrappedConte
       : "";
 
   return {
-    text: `${UNTRUSTED_PREAMBLE}\n\n--- BEGIN UNTRUSTED CONTENT (source: ${source}) ---\n${cleaned}\n--- END UNTRUSTED CONTENT ---${notice}`,
+    text: `${UNTRUSTED_PREAMBLE}\n\n--- BEGIN UNTRUSTED CONTENT (source: ${sourceLabel}) ---\n${cleaned}\n--- END UNTRUSTED CONTENT ---${notice}`,
     scan,
     warn: scan.risk === "high",
   };

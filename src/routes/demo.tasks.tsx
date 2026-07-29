@@ -32,7 +32,11 @@ function DemoTasks() {
                 >
                   {done ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
                 </button>
-                <span className={done ? "flex-1 text-muted-foreground line-through" : "flex-1 text-foreground"}>
+                <span
+                  className={
+                    done ? "flex-1 text-muted-foreground line-through" : "flex-1 text-foreground"
+                  }
+                >
                   {t.title}
                 </span>
                 <span className="text-xs text-muted-foreground">{t.owner}</span>

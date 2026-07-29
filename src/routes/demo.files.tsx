@@ -22,7 +22,12 @@ function DemoFiles() {
         <div className="flex items-center gap-2 border-b border-border/60 p-3 text-xs text-muted-foreground">
           <Ban className="h-3.5 w-3.5 text-amber-300" aria-hidden />
           Uploads disabled in demo.
-          <button disabled className="ml-auto inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border border-border/60 bg-background/30 px-2 py-1 opacity-60">
+          <button
+            disabled
+            title="Uploads are disabled in demo mode. Sign in to upload real files."
+            aria-label="Upload (disabled in demo mode)"
+            className="ml-auto inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border border-border/60 bg-background/30 px-2 py-1 opacity-60"
+          >
             <Upload className="h-3.5 w-3.5" aria-hidden /> Upload
           </button>
         </div>

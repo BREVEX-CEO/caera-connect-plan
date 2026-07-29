@@ -38,10 +38,34 @@ export type RunStatus =
   | "pending"
   | "awaiting_approval"
   | "running"
+  | "paused"
   | "succeeded"
   | "failed"
   | "cancelled"
   | "blocked";
+
+/**
+ * Statuses that mean a run still occupies the automation.
+ *
+ * A run in any of these is "in flight": it has not reached a terminal state, so
+ * starting another run of the same automation would double-execute the work.
+ */
+export const IN_FLIGHT_STATUSES: RunStatus[] = [
+  "pending",
+  "awaiting_approval",
+  "running",
+  "paused",
+];
+
+/** True while a run still occupies its automation. */
+export function isInFlight(status: RunStatus): boolean {
+  return IN_FLIGHT_STATUSES.includes(status);
+}
+
+/** True once a run has finished for good, whatever the outcome. */
+export function isTerminal(status: RunStatus): boolean {
+  return !isInFlight(status);
+}
 
 export interface RunStep {
   action: CompanionAction;
@@ -49,6 +73,11 @@ export interface RunStep {
   /** Redacted, human-readable description for preview + audit. */
   summary: string;
   requiresConfirmation: boolean;
+  /** Optional conservative estimate used to refuse work that cannot fit. */
+  estimatedDurationMs?: number;
+  /** Prepared inverse action. Omitted when automatic rollback is unavailable. */
+  rollbackAction?: CompanionAction;
+  rollbackSummary?: string;
 }
 
 export interface RunPlan {
@@ -64,16 +93,26 @@ export interface RunPlan {
 
 function summarise(action: CompanionAction): string {
   switch (action.kind) {
-    case "screen.read": return "Read the visible screen";
-    case "window.list": return "List open windows";
-    case "window.focus": return `Focus window "${action.target}"`;
-    case "window.arrange": return `Arrange window (${action.layout})`;
-    case "app.open": return `Open application "${action.appId}"`;
-    case "file.open": return `Open "${action.path}"`;
-    case "text.type": return "Type approved text";
-    case "clipboard.read": return "Read the clipboard";
-    case "clipboard.write": return "Write to the clipboard";
-    default: return "Unknown action";
+    case "screen.read":
+      return "Read the visible screen";
+    case "window.list":
+      return "List open windows";
+    case "window.focus":
+      return `Focus window "${action.target}"`;
+    case "window.arrange":
+      return `Arrange window (${action.layout})`;
+    case "app.open":
+      return `Open application "${action.appId}"`;
+    case "file.open":
+      return `Open "${action.path}"`;
+    case "text.type":
+      return "Type approved text";
+    case "clipboard.read":
+      return "Read the clipboard";
+    case "clipboard.write":
+      return "Write to the clipboard";
+    default:
+      return "Unknown action";
   }
 }
 
@@ -99,16 +138,19 @@ export function planRun(automation: Automation): RunPlan {
   });
 
   const highestRisk = steps.reduce<ActionRisk>((acc, s) => maxRisk(acc, s.risk), "read_only");
-  const blocked = highestRisk === "prohibited";
+  const blocked = steps.length === 0 || highestRisk === "prohibited";
 
   return {
     automationId: automation.id,
     steps,
     highestRisk,
     blocked,
-    blockedReason: blocked
-      ? "This automation includes a step involving protected information, which OCADE can never perform automatically."
-      : undefined,
+    blockedReason:
+      steps.length === 0
+        ? "This automation has no steps, so there is nothing to execute."
+        : highestRisk === "prohibited"
+          ? "This automation includes a step involving protected information, which OCADE can never perform automatically."
+          : undefined,
     // An automation can't self-authorise: anything above low risk needs approval.
     requiresApproval:
       automation.requiresApproval || highestRisk === "confirm" || highestRisk === "high",
@@ -165,11 +207,7 @@ export function nextRunAt(
   }
 }
 
-export function isDue(
-  automation: Automation,
-  now: Date,
-  lastRunAt?: Date | null,
-): boolean {
+export function isDue(automation: Automation, now: Date, lastRunAt?: Date | null): boolean {
   if (!automation.enabled) return false;
   const next = nextRunAt(automation.trigger, lastRunAt ?? now, lastRunAt);
   if (!next) return false;
@@ -215,6 +253,7 @@ export function decideRetry(input: {
 /* ------------------------------------------------------------- approvals -- */
 
 export type ApprovalDecision = "approved" | "denied";
+export const AUTOMATION_APPROVAL_TTL_MS = 30 * 60 * 1000;
 
 export function applyApproval(
   status: RunStatus,
@@ -230,5 +269,79 @@ export function applyApproval(
 
 /** A run can be cancelled while it is queued, awaiting approval, or running. */
 export function canCancel(status: RunStatus): boolean {
+  return (
+    status === "pending" ||
+    status === "awaiting_approval" ||
+    status === "running" ||
+    status === "paused"
+  );
+}
+
+export function canPause(status: RunStatus): boolean {
   return status === "pending" || status === "awaiting_approval" || status === "running";
+}
+
+export function canResume(status: RunStatus): boolean {
+  return status === "paused";
+}
+
+/**
+ * The result of recording a run request. `executed` is deliberately literal:
+ * this layer persists/queues work but does not perform an automation action.
+ */
+export interface RunEnqueueResult {
+  status: RunStatus;
+  dryRun: boolean;
+  reused: boolean;
+  executed: false;
+}
+
+export interface RunEnqueueNotice {
+  tone: "success" | "info" | "warning" | "error";
+  message: string;
+}
+
+/** User-facing copy that never mistakes persistence for execution. */
+export function describeRunEnqueue(result: RunEnqueueResult): RunEnqueueNotice {
+  if (result.status === "blocked") {
+    return { tone: "error", message: "Run blocked — no action was executed." };
+  }
+  if (result.dryRun) {
+    return {
+      tone: "success",
+      message: "Dry-run preview recorded — nothing was executed or changed.",
+    };
+  }
+  if (result.status === "awaiting_approval") {
+    return {
+      tone: "warning",
+      message: result.reused
+        ? "This run is already waiting for approval — no duplicate was created and nothing was executed."
+        : "Run created — it needs your approval before anything can be queued for execution.",
+    };
+  }
+  if (result.status === "pending") {
+    return {
+      tone: "info",
+      message: result.reused
+        ? "This run is already queued — no duplicate was created and no action has executed."
+        : "Run queued — no action has executed yet.",
+    };
+  }
+  if (result.status === "running") {
+    return {
+      tone: "info",
+      message: "An existing run is marked running; no duplicate was created.",
+    };
+  }
+  if (result.status === "paused") {
+    return {
+      tone: "info",
+      message: "An existing run is paused; no duplicate was created and no action is executing.",
+    };
+  }
+  return {
+    tone: "info",
+    message: `Existing run status: ${result.status}. No new run was created.`,
+  };
 }

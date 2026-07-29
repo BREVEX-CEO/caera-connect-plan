@@ -12,6 +12,12 @@
  * take an injectable fetch so they are testable and SSR-safe.
  */
 import {
+  assertStreamWithinLimit,
+  StreamLimitError,
+  MAX_STREAM_CHARS,
+  MAX_STREAM_LINE_CHARS,
+} from "./stream-limits";
+import {
   capabilityLabelFor,
   type OcadeCapabilityLabel,
   type OcadeLocalProfile,
@@ -64,8 +70,7 @@ export function classifyLocalModel(raw: RawLocalModel): LocalModelInfo {
   const id = raw.name;
   const isCloudPointer = /:cloud$/i.test(id) || (raw.size ?? 0) === 0;
   const families = raw.details?.families ?? [];
-  const vision =
-    VISION_HINT.test(id) || families.some((f) => /vision|clip|vit/i.test(f ?? ""));
+  const vision = VISION_HINT.test(id) || families.some((f) => /vision|clip|vit/i.test(f ?? ""));
   const paramsB = parseParamsB(raw.details?.parameter_size);
 
   let profile: OcadeLocalProfile;
@@ -121,7 +126,13 @@ export async function discoverLocalModels(
     const version = ((await vres.json()) as { version?: string }).version;
     const tres = await f(`${base}/api/tags`, { signal: ctrl.signal });
     if (!tres.ok) {
-      return { ok: false, reachable: true, version, models: [], reason: `Model list HTTP ${tres.status}.` };
+      return {
+        ok: false,
+        reachable: true,
+        version,
+        models: [],
+        reason: `Model list HTTP ${tres.status}.`,
+      };
     }
     const body = (await tres.json()) as { models?: RawLocalModel[] };
     const models = (body.models ?? []).map(classifyLocalModel).filter((m) => !m.isCloudPointer);
@@ -133,7 +144,10 @@ export async function discoverLocalModels(
       reason: models.length === 0 ? "No on-device models installed yet." : undefined,
     };
   } catch (e) {
-    const reason = e instanceof Error && e.name === "AbortError" ? "Local engine timed out." : "Local engine unreachable.";
+    const reason =
+      e instanceof Error && e.name === "AbortError"
+        ? "Local engine timed out."
+        : "Local engine unreachable.";
     return { ok: false, reachable: false, models: [], reason };
   } finally {
     clearTimeout(t);
@@ -267,6 +281,8 @@ function labelName(label: OcadeCapabilityLabel): string {
 export interface LocalChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
+  /** Ollama-compatible base64 image payloads, without data-URL prefixes. */
+  images?: string[];
 }
 
 export interface LocalStreamHandlers {
@@ -308,10 +324,21 @@ export async function streamLocalChat(
   const decoder = new TextDecoder();
   let buffer = "";
   try {
+    let streamedChars = 0;
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
-      buffer += decoder.decode(value, { stream: true });
+      const piece = decoder.decode(value, { stream: true });
+      streamedChars += piece.length;
+      buffer += piece;
+      /*
+       * A local engine that never stops sending would grow this buffer until
+       * the tab dies. The line cap matters separately: bytes are held until a
+       * newline arrives, so a stream that never sends one is unbounded even
+       * when the total is still small.
+       */
+      assertStreamWithinLimit(streamedChars, MAX_STREAM_CHARS, "local reply");
+      assertStreamWithinLimit(buffer.length, MAX_STREAM_LINE_CHARS, "local reply line");
       let nl: number;
       while ((nl = buffer.indexOf("\n")) >= 0) {
         const line = buffer.slice(0, nl).trim();
@@ -329,6 +356,8 @@ export async function streamLocalChat(
     return { ok: true };
   } catch (e) {
     if (e instanceof Error && e.name === "AbortError") return { ok: false, reason: "cancelled" };
+    // A budget stop carries its own explanation; "interrupted" would hide why.
+    if (e instanceof StreamLimitError) return { ok: false, reason: e.message };
     return { ok: false, reason: "Local stream interrupted." };
   }
 }
