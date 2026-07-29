@@ -43,6 +43,7 @@ import {
 } from "@/lib/ocade-providers.functions";
 import { cn } from "@/lib/utils";
 import { ocadeIntro, ocadeHonestDisclosure } from "@/lib/ocade-identity";
+import { LocalModelLifecyclePanel } from "@/components/ocade/LocalModelLifecyclePanel";
 
 export const Route = createFileRoute("/_authenticated/ocade/models")({
   head: () => ({
@@ -236,6 +237,11 @@ function OcadeModelsPage() {
       />
 
       <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 pb-16">
+        {/* On-device engine lifecycle: install, verify, activate, remove. */}
+        <GlassPanel className="p-5">
+          <LocalModelLifecyclePanel />
+        </GlassPanel>
+
         {/* Identity contract notice */}
         <GlassPanel className="p-5">
           <div className="flex gap-3">
