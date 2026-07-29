@@ -6,7 +6,8 @@ import {
   type Disturbance,
   type SimReceipt,
 } from "@/lib/hwe/a11y-simulator";
-import type { OcadeActionRequest } from "@/lib/control/control-plane";
+import type { ActionRoute, OcadeActionRequest } from "@/lib/control/control-plane";
+import { buildTwinLab, TWIN_PREFIX, type TwinKind, type TwinReceipt } from "@/lib/hwe/twin-lab";
 
 /**
  * Production owner for the HWE-10 accessibility-tree simulator.
@@ -253,6 +254,150 @@ export function ControlSimulatorPanel() {
           </ul>
         </div>
       )}
+
+      <TwinLabBench />
     </section>
+  );
+}
+
+/** Adversarial application shapes, and the route each one can honestly serve. */
+const TWINS: Array<{ kind: TwinKind; label: string; target: string; blurb: string }> = [
+  { kind: "menu", label: "Menu (has an API)", target: "save_item", blurb: "Precise route available." },
+  { kind: "form", label: "Form (DOM only)", target: "submit", blurb: "No API; falls to DOM." },
+  {
+    kind: "virtualised_list",
+    label: "Virtualised list",
+    target: "row_5000",
+    blurb: "Row 5000 has not been scrolled into existence yet.",
+  },
+  {
+    kind: "canvas",
+    label: "Canvas (no accessible tree)",
+    target: "shape_a",
+    blurb: "Only coordinates can reach these shapes.",
+  },
+  {
+    kind: "mixed_dpi",
+    label: "Mixed DPI display",
+    target: "scaled_button",
+    blurb: "Logical pixels on a 2x display miss the target.",
+  },
+  {
+    kind: "inaccessible_controls",
+    label: "Custom widget, no identity",
+    target: "custom_widget",
+    blurb: "Nothing to name; coordinates or nothing.",
+  },
+];
+
+const ROUTES: ActionRoute[] = ["api", "dom", "accessibility", "vision", "input"];
+
+/**
+ * HWE-11 bench.
+ *
+ * The interesting control here is "allow coordinate fallback". Leaving it off
+ * is the safe default and produces refusals on purpose — a coordinate route is
+ * blind mouse movement, and consenting to it should be a decision someone
+ * makes, not something that happens because a better route was unavailable.
+ */
+function TwinLabBench() {
+  const [twin, setTwin] = useState<TwinKind>("canvas");
+  const [route, setRoute] = useState<ActionRoute>("accessibility");
+  const [allowCoords, setAllowCoords] = useState(false);
+  const [out, setOut] = useState<TwinReceipt | null>(null);
+
+  const chosen = TWINS.find((t) => t.kind === twin)!;
+
+  const run = useCallback(() => {
+    const lab = buildTwinLab();
+    setOut(
+      lab[twin].perform({
+        targetId: chosen.target,
+        intent: "activate",
+        route,
+        allowCoordinateFallback: allowCoords,
+      }),
+    );
+  }, [twin, route, allowCoords, chosen.target]);
+
+  return (
+    <div className="mt-5 border-t border-border pt-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h4 className="text-sm font-medium">Application twin bench</h4>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Each twin holds ground truth separately from what it displays, and every action is
+            checked against that truth rather than against its own report.
+          </p>
+        </div>
+        <span className="shrink-0 rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">
+          Twin
+        </span>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <select
+          className="rounded border border-border bg-background px-2 py-1 text-xs"
+          value={twin}
+          onChange={(e) => setTwin(e.target.value as TwinKind)}
+          aria-label="Application twin"
+        >
+          {TWINS.map((t) => (
+            <option key={t.kind} value={t.kind}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+        <select
+          className="rounded border border-border bg-background px-2 py-1 text-xs"
+          value={route}
+          onChange={(e) => setRoute(e.target.value as ActionRoute)}
+          aria-label="Requested route"
+        >
+          {ROUTES.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+        <label className="flex items-center gap-1.5 text-xs">
+          <input
+            type="checkbox"
+            checked={allowCoords}
+            onChange={(e) => setAllowCoords(e.target.checked)}
+          />
+          Allow coordinate fallback
+        </label>
+        <button
+          type="button"
+          className="rounded bg-primary px-3 py-1 text-xs text-primary-foreground"
+          onClick={run}
+        >
+          Run
+        </button>
+      </div>
+      <p className="mt-1 text-xs text-muted-foreground">{chosen.blurb}</p>
+
+      {out && (
+        <div className="mt-3 rounded border border-border bg-muted/40 p-3">
+          <p className="text-xs font-medium">
+            {out.ok ? "Completed" : `Refused — ${out.failure?.replace(/_/g, " ")}`}
+            {out.requestedRoute ? ` (asked for ${out.requestedRoute}, used ${out.route})` : ""}
+          </p>
+          {out.ok && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Verified against ground truth: {String(out.verifiedAgainstGroundTruth)}
+            </p>
+          )}
+          <ul className="mt-1.5 space-y-0.5">
+            {out.evidence.map((line, i) => (
+              <li key={i} className="text-xs text-muted-foreground">
+                {line.replace(`${TWIN_PREFIX} `, "")}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
