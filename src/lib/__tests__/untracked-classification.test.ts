@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+// @ts-expect-error — plain .mjs tool script, no type declarations by design.
+import { classifyPath } from "../../../scripts/classify-untracked.mjs";
 
 /**
  * Untracked-file classification (spec §4.3, §15.1, §19.1).
@@ -45,8 +47,12 @@ const report = JSON.parse(runClassifier()) as {
 };
 
 describe("every untracked path is accounted for", () => {
-  it("classifies a realistic number of paths", () => {
-    expect(report.total).toBeGreaterThan(100);
+  it("reports a self-consistent file list", () => {
+    // NOT `total > 100`. Once the tree is fully committed the untracked set is
+    // legitimately EMPTY, and an assertion that demands untracked files would
+    // fail precisely when the repository is in its healthiest state. The rules
+    // themselves are asserted directly in the suite below, against synthetic
+    // paths, so coverage does not depend on the tree being messy.
     expect(report.files).toHaveLength(report.total);
   });
 
@@ -125,42 +131,63 @@ describe("build output and weights are never staged", () => {
   });
 });
 
-describe("audit pipeline paths are classified without a catch-all", () => {
-  // The audit pipeline emits `.mjs` tooling and `.jsonl` evidence from a
-  // directory neither the `script` nor the config rule reached, which is what
-  // left nine paths `unknown` and turned the gate red.
+describe("the rules classify synthetic paths correctly", () => {
+  // These EXECUTE the classifier against paths that need not exist, so they
+  // keep asserting after the tree is fully committed and the untracked set is
+  // empty. `sniff` is stubbed to "no credential" so path rules are isolated.
+  const noSniff = () => false;
+  const kindOf = (p: string) => classifyPath(p, 0, noSniff).kind;
 
-  it("classifies audit pipeline scripts as scripts", () => {
-    const scripts = report.files.filter((f) => /^audit\/.*\.[cm]?js$/.test(f.path));
-    expect(scripts.length).toBeGreaterThan(0);
-    for (const f of scripts) expect(f.kind).toBe("script");
+  it("routes audit pipeline scripts to `script`", () => {
+    expect(kindOf("audit/ocade-master-audit/process-document.mjs")).toBe("script");
+    expect(kindOf("audit/x/y.js")).toBe("script");
+    expect(kindOf("audit/deep/nested/tool.cjs")).toBe("script");
   });
 
-  it("classifies audit .jsonl reports as retained evidence", () => {
-    const evidence = report.files.filter((f) => f.path.endsWith(".jsonl"));
-    expect(evidence.length).toBeGreaterThan(0);
-    for (const f of evidence) {
-      expect(f.path).toMatch(/^audit\//);
-      expect(f.kind).toBe("docs");
-    }
+  it("routes audit .jsonl reports to `docs`", () => {
+    expect(kindOf("audit/ocade-master-audit/out/OCADE_LINE_COVERAGE.jsonl")).toBe("docs");
   });
 
   it("applies the audit rules to audit/ ONLY — the regression that matters", () => {
-    // If either rule ever loses its `^audit/` anchor it becomes a catch-all
-    // that silently absorbs unclassified files anywhere in the tree. That is
-    // the exact failure this rule was introduced to avoid, so assert that no
-    // file outside `audit/` was admitted by an audit reason.
-    const admitted = report.files.filter((f) =>
-      /audit pipeline script|retained audit evidence/.test(f.why),
-    );
-    expect(admitted.length).toBeGreaterThan(0);
-    for (const f of admitted) expect(f.path).toMatch(/^audit\//);
+    // If either rule loses its `^audit/` anchor it becomes a catch-all that
+    // silently absorbs unclassified files anywhere in the tree. This is the
+    // exact failure the anchor exists to prevent, and it is now provable
+    // without needing such a file to exist on disk.
+    expect(kindOf("elsewhere/report.jsonl")).toBe("unknown");
+    expect(kindOf("notaudit/tool.mjs")).toBe("unknown");
+    // `src/audit/...` is NOT the audit pipeline — the anchor is `^audit/`, so
+    // the ordinary source rule claims it. Proves the anchor is a prefix match,
+    // not a substring match.
+    expect(kindOf("src/audit/tool.mjs")).toBe("source");
   });
 
-  it("keeps both audit rules anchored in source", () => {
-    const source = readFileSync("scripts/classify-untracked.mjs", "utf8");
-    expect(source).toMatch(/re: \/\^audit\\\/\.\*\\\.\[cm\]\?js\$\//);
-    expect(source).toMatch(/re: \/\^audit\\\/\.\*\\\.jsonl\$\//);
+  it("still classifies the pre-existing categories", () => {
+    expect(kindOf("src/lib/thing.ts")).toBe("source");
+    expect(kindOf("src/lib/__tests__/thing.test.ts")).toBe("test");
+    expect(kindOf("supabase/migrations/001_x.sql")).toBe("migration");
+    expect(kindOf("scripts/check-x.mjs")).toBe("script");
+    expect(kindOf("release/NOTES.md")).toBe("docs");
+    expect(kindOf("public/logo.png")).toBe("asset");
+    expect(kindOf("android/app/build.gradle")).toBe("platform-config");
+    expect(kindOf("wrangler.json")).toBe("config");
+  });
+
+  it("treats secrets and build output as never-stage, by path", () => {
+    expect(kindOf(".env")).toBe("secret");
+    expect(kindOf("certs/server.pem")).toBe("secret");
+    expect(kindOf("models/llama.gguf")).toBe("model-weight");
+    expect(kindOf("dist/app.js")).toBe("generated");
+    expect(kindOf("node_modules/x/index.js")).toBe("generated");
+  });
+
+  it("lets credential CONTENT override a benign-looking path", () => {
+    const withSecret = () => true;
+    expect(classifyPath("src/lib/thing.ts", 10, withSecret).kind).toBe("secret");
+    // ...except in a genuine test, where a credential-shaped fixture is the
+    // point — surfaced separately, never silently reclassified.
+    expect(classifyPath("src/lib/__tests__/redact.test.ts", 10, withSecret).kind).toBe(
+      "test-fixture",
+    );
   });
 });
 

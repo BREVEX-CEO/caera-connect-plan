@@ -20,16 +20,7 @@
 
 import { execFileSync } from "node:child_process";
 import { statSync, readFileSync } from "node:fs";
-
-const jsonOnly = process.argv.includes("--json");
-
-const untracked = execFileSync("git", ["ls-files", "--others", "--exclude-standard"], {
-  encoding: "utf8",
-  maxBuffer: 32 * 1024 * 1024,
-})
-  .split("\n")
-  .map((l) => l.trim())
-  .filter(Boolean);
+import { pathToFileURL } from "node:url";
 
 /** Content that would be a credential if it appeared in a file. */
 const SECRET_SHAPE =
@@ -134,13 +125,21 @@ function looksSecret(path, size) {
   }
 }
 
-const classified = untracked.map((path) => {
-  const size = bytesOf(path);
+/**
+ * Classify ONE path. Exported so the rules can be tested directly against
+ * synthetic paths — the tree's own untracked set is not a fixture, and once it
+ * is fully committed (which is the goal) it is empty, so report-driven tests
+ * alone would silently stop asserting anything.
+ *
+ * `sniff` is injected so a caller can classify a path that does not exist on
+ * disk; it defaults to the real content check.
+ */
+export function classifyPath(path, size = bytesOf(path), sniff = looksSecret) {
   for (const rule of RULES) {
     if (rule.re.test(path)) {
       // A file that looks like source but CONTAINS a credential is a secret
       // first. Path shape must never override content.
-      if (rule.kind !== "secret" && looksSecret(path, size)) {
+      if (rule.kind !== "secret" && sniff(path, size)) {
         // ...with one honest exception. A TEST asserting that a redactor or
         // scanner catches `sk-…` must contain a credential-SHAPED string, or it
         // is asserting nothing. Those are synthetic fixtures and must be
@@ -159,20 +158,30 @@ const classified = untracked.map((path) => {
       return { path, kind: rule.kind, why: rule.why, bytes: size };
     }
   }
+  const secret = sniff(path, size);
   return {
     path,
-    kind: looksSecret(path, size) ? "secret" : "unknown",
-    why: looksSecret(path, size)
-      ? "credential-shaped content"
-      : "no rule matched — needs inspection",
+    kind: secret ? "secret" : "unknown",
+    why: secret ? "credential-shaped content" : "no rule matched — needs inspection",
     bytes: size,
   };
-});
+}
 
-const groups = classified.reduce((acc, f) => {
-  (acc[f.kind] ??= []).push(f);
-  return acc;
-}, {});
+/** Classify the whole untracked set. Exported for tests. */
+export function classifyUntracked(paths) {
+  return paths.map((p) => classifyPath(p));
+}
+
+/** Read the untracked set from git. Side-effecting, so it stays out of import. */
+function readUntracked() {
+  return execFileSync("git", ["ls-files", "--others", "--exclude-standard"], {
+    encoding: "utf8",
+    maxBuffer: 32 * 1024 * 1024,
+  })
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+}
 
 /** What each class means for staging. */
 const DISPOSITION = {
@@ -194,31 +203,52 @@ const DISPOSITION = {
   unknown: "INSPECT — a human must classify this",
 };
 
-const needsHuman = [...(groups.secret ?? []), ...(groups.unknown ?? [])];
-
-const report = {
-  generatedAt: new Date().toISOString(),
-  total: classified.length,
-  counts: Object.fromEntries(Object.entries(groups).map(([k, v]) => [k, v.length])),
-  needsHuman: needsHuman.map((f) => ({ path: f.path, kind: f.kind, why: f.why })),
-  files: classified,
-};
-
-if (jsonOnly) {
-  console.log(JSON.stringify(report, null, 2));
-} else {
-  console.log(`Untracked classification: ${classified.length} paths\n`);
-  for (const [kind, files] of Object.entries(groups).sort((a, b) => b[1].length - a[1].length)) {
-    console.log(`  ${String(files.length).padStart(4)}  ${kind.padEnd(13)} ${DISPOSITION[kind]}`);
-  }
-  if (needsHuman.length > 0) {
-    console.log(`\n  ${needsHuman.length} path(s) need a human decision before any commit:`);
-    for (const f of needsHuman.slice(0, 40))
-      console.log(`    ${f.kind.padEnd(8)} ${f.path} — ${f.why}`);
-    if (needsHuman.length > 40) console.log(`    …and ${needsHuman.length - 40} more (use --json)`);
-  } else {
-    console.log("\n  Every untracked path is classified. None is a secret or unknown.");
-  }
+/** Build the full report from a classified set. Exported for tests. */
+export function buildReport(classified) {
+  const groups = classified.reduce((acc, f) => {
+    (acc[f.kind] ??= []).push(f);
+    return acc;
+  }, {});
+  const needsHuman = [...(groups.secret ?? []), ...(groups.unknown ?? [])];
+  return {
+    generatedAt: new Date().toISOString(),
+    total: classified.length,
+    counts: Object.fromEntries(Object.entries(groups).map(([k, v]) => [k, v.length])),
+    needsHuman: needsHuman.map((f) => ({ path: f.path, kind: f.kind, why: f.why })),
+    files: classified,
+    groups,
+  };
 }
 
-process.exit(needsHuman.length === 0 ? 0 : 1);
+// CLI. Guarded so importing this module for tests never shells out to git,
+// prints, or exits the test runner.
+const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isMain) {
+  const jsonOnly = process.argv.includes("--json");
+  const classified = classifyUntracked(readUntracked());
+  const { groups, ...report } = buildReport(classified);
+  const needsHuman = report.needsHuman;
+
+  if (jsonOnly) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    console.log(`Untracked classification: ${classified.length} paths\n`);
+    for (const [kind, files] of Object.entries(groups).sort((a, b) => b[1].length - a[1].length)) {
+      console.log(`  ${String(files.length).padStart(4)}  ${kind.padEnd(13)} ${DISPOSITION[kind]}`);
+    }
+    if (needsHuman.length > 0) {
+      console.log(`\n  ${needsHuman.length} path(s) need a human decision before any commit:`);
+      for (const f of needsHuman.slice(0, 40))
+        console.log(`    ${f.kind.padEnd(8)} ${f.path} — ${f.why}`);
+      if (needsHuman.length > 40)
+        console.log(`    …and ${needsHuman.length - 40} more (use --json)`);
+    } else if (classified.length === 0) {
+      console.log("\n  Nothing untracked — the tree is fully committed.");
+    } else {
+      console.log("\n  Every untracked path is classified. None is a secret or unknown.");
+    }
+  }
+
+  process.exit(needsHuman.length === 0 ? 0 : 1);
+}
