@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches: ["feat/ocade-implementation", "main"]
+  pull_request:
+    branches: ["main"]
+
+# Cancel superseded runs on the same branch rather than queueing them.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web (typecheck, lint, tests, build, gates)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test
+
+      - name: Production build
+        run: npm run build
+
+      # These gates read the build output, so they run after it. Each has been
+      # verified to genuinely FAIL on a bad input (see the *-gate-enforces
+      # suites), so a green result here is evidence rather than decoration.
+      - name: Performance budget
+        run: npm run performance:budget
+
+      - name: Integration honesty gate
+        run: npm run integration:source-check
+
+      - name: Release source gate
+        run: npm run release:source-check
+
+      - name: No-dead-button audit
+        run: npm run controls:check
+
+      - name: Licence notices are current
+        run: npm run licences:check
+
+      - name: Stage 2 baseline checks
+        run: npm run stage2:baseline-check
+
+  rust:
+    name: Rust companion safety core
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # windows-latest ships the MSVC toolchain, so the safety crate can be
+      # LINKED and its tests EXECUTED here. That is the entire point of this
+      # job: on a developer machine without the C++ build tools, `cargo test`
+      # cannot link, so the safety assertions never run and the crate is only
+      # compile-verified. This turns them into executed evidence on every push.
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+          components: clippy, rustfmt
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            native/companion/safety/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('native/companion/safety/Cargo.lock') }}
+
+      - name: Formatting
+        working-directory: native/companion/safety
+        run: cargo fmt --check
+
+      - name: Clippy (warnings are errors)
+        working-directory: native/companion/safety
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Check
+        working-directory: native/companion/safety
+        run: cargo check --all-targets
+
+      # The 10 safety assertions: protected-text detection, prohibited typing,
+      # path-traversal rejection, unapproved-app refusal, audit redaction.
+      - name: Test (executes the safety assertions)
+        working-directory: native/companion/safety
+        run: cargo test --all-targets -- --nocapture
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Production dependency tree only: a dev-only advisory must not block a
+      # release, but a production one must.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev
