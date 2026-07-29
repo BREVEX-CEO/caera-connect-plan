@@ -175,6 +175,124 @@ export function pickLocalModel(
   return [...pool].sort((a, b) => b.sizeBytes - a.sizeBytes)[0];
 }
 
+/* -------------------- Hardware-aware model fit -------------------- */
+
+/**
+ * Loading a GGUF needs more than the file itself: weights, KV cache for the
+ * context window, and the runtime's own working set. 1.2x the file size is the
+ * conservative planning figure — it under-promises rather than selecting a
+ * model that loads and then thrashes.
+ */
+export const MODEL_RAM_OVERHEAD = 1.2;
+
+/**
+ * Fraction of TOTAL RAM a model may claim.
+ *
+ * Deliberately measured against total, not currently-available, RAM. Available
+ * RAM is violently transient — on this machine it read 0.85 GiB immediately
+ * after Ollama loaded a model, yet a 3.83 GB model had just run fine, because
+ * the OS evicts cache under pressure. Selecting on `availableRamBytes` would
+ * refuse models that demonstrably work. Total RAM is what actually bounds
+ * whether weights can be resident at all.
+ */
+export const TOTAL_RAM_HEADROOM = 0.8;
+
+/**
+ * Best-effort total RAM from inside a browser.
+ *
+ * `navigator.deviceMemory` is coarse (0.25/0.5/1/2/4/8 GiB, capped at 8 for
+ * fingerprinting reasons) and is not implemented in Firefox or Safari. It is
+ * still worth using: on the machine this was developed against it reports 8,
+ * which correctly excludes an 18.6 GB model even though the machine really has
+ * 16.8 GB. Returns `undefined` when unavailable, which DISABLES the fit check
+ * rather than substituting a guess — refusing a model on invented hardware data
+ * would be its own dishonesty.
+ */
+export function browserTotalRamBytes(): number | undefined {
+  if (typeof navigator === "undefined") return undefined;
+  const gib = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+  if (typeof gib !== "number" || !Number.isFinite(gib) || gib <= 0) return undefined;
+  return gib * 1024 ** 3;
+}
+
+export interface ModelFit {
+  model: LocalModelInfo;
+  /** Estimated resident bytes required. */
+  needsBytes: number;
+  fits: boolean;
+  /** Present only when `fits` is false. */
+  reason?: string;
+}
+
+/** Bytes → "3.8 GB", for user-facing refusal text. */
+function gb(bytes: number): string {
+  return `${(bytes / 1e9).toFixed(1)} GB`;
+}
+
+/**
+ * Can this model be resident on a machine with `totalRamBytes`?
+ *
+ * A model that cannot fit is excluded WITH A REASON rather than silently
+ * dropped, because "OCADE Local Code is unavailable" is a worse answer than
+ * "qwen3-coder:30b needs 22.3 GB of RAM but this machine has 16.8 GB".
+ */
+export function modelFit(model: LocalModelInfo, totalRamBytes: number): ModelFit {
+  const needsBytes = Math.round(model.sizeBytes * MODEL_RAM_OVERHEAD);
+  if (!Number.isFinite(totalRamBytes) || totalRamBytes <= 0) {
+    // Unknown hardware is not a licence to guess. Treat as fitting so an
+    // undetectable machine still gets a model, but say the check was skipped.
+    return { model, needsBytes, fits: true };
+  }
+  const ceiling = totalRamBytes * TOTAL_RAM_HEADROOM;
+  if (needsBytes > ceiling) {
+    return {
+      model,
+      needsBytes,
+      fits: false,
+      reason: `${model.id} needs about ${gb(needsBytes)} of RAM but only ${gb(ceiling)} of this machine's ${gb(totalRamBytes)} can safely be used.`,
+    };
+  }
+  return { model, needsBytes, fits: true };
+}
+
+export interface HardwareAwarePick {
+  picked: LocalModelInfo | null;
+  /** Models rejected because this machine cannot hold them, with reasons. */
+  excluded: ModelFit[];
+  /** Set when nothing at all fits — the honest "use cloud or free RAM" case. */
+  reason?: string;
+}
+
+/**
+ * Choose a local model that this machine can actually run.
+ *
+ * `pickLocalModel` alone prefers the LARGEST model for general/code, which on a
+ * 16 GB machine holding an 18.6 GB model returns something that cannot load.
+ * This filters to what fits first, then applies the same preference within that
+ * set, so "most capable" never means "most capable in theory".
+ */
+export function pickLocalModelForHardware(
+  models: LocalModelInfo[],
+  desired: OcadeLocalProfile,
+  totalRamBytes: number,
+): HardwareAwarePick {
+  const fits = models.map((m) => modelFit(m, totalRamBytes));
+  const runnable = fits.filter((f) => f.fits).map((f) => f.model);
+  const excluded = fits.filter((f) => !f.fits);
+
+  if (runnable.length === 0) {
+    return {
+      picked: null,
+      excluded,
+      reason:
+        models.length === 0
+          ? "No on-device models are installed yet."
+          : `No installed model fits this machine's ${gb(totalRamBytes)} of RAM.`,
+    };
+  }
+  return { picked: pickLocalModel(runnable, desired), excluded };
+}
+
 export type FallbackStepKind =
   | "local_preferred"
   | "local_secondary"
@@ -197,6 +315,12 @@ export interface FallbackPlanInput {
   /** Whether crossing to cloud is permitted at all (privacy/allowance). */
   cloudAllowed: boolean;
   online: boolean;
+  /**
+   * Total physical RAM, when known. Models that cannot be resident are dropped
+   * from the chain rather than offered and then failing to load. Omit only when
+   * hardware is genuinely undetectable; omitting it disables the check.
+   */
+  totalRamBytes?: number;
 }
 
 /**
@@ -207,7 +331,20 @@ export interface FallbackPlanInput {
  */
 export function buildLocalFirstPlan(input: FallbackPlanInput): FallbackStep[] {
   const steps: FallbackStep[] = [];
-  const { models, desired } = input;
+  const { desired } = input;
+
+  /*
+   * Filter to what this machine can hold BEFORE building the chain. Offering a
+   * model that cannot load is worse than offering nothing: every step below
+   * would inherit the same impossible candidate, and the user would watch the
+   * chain fail all the way down to `fail` for a reason none of the steps state.
+   */
+  const excludedByHardware =
+    input.totalRamBytes === undefined
+      ? []
+      : input.models.map((m) => modelFit(m, input.totalRamBytes!)).filter((f) => !f.fits);
+  const excludedIds = new Set(excludedByHardware.map((f) => f.model.id));
+  const models = input.models.filter((m) => !excludedIds.has(m.id));
 
   const preferred = pickLocalModel(models, desired);
   if (preferred) {
@@ -260,13 +397,22 @@ export function buildLocalFirstPlan(input: FallbackPlanInput): FallbackStep[] {
   }
 
   if (steps.length === 0) {
+    /*
+     * Distinguish "nothing installed" from "everything installed is too big for
+     * this machine". They are different problems with different fixes, and
+     * telling a user with three installed models that none is installed is a
+     * lie the hardware check has already disproved.
+     */
+    const tooBig = excludedByHardware.length > 0;
     steps.push({
       kind: "fail",
       label: null,
       modelId: null,
-      detail: input.online
-        ? "No local engine is installed and OCADE Cloud isn't permitted for this content."
-        : "You're offline and no local engine is installed yet.",
+      detail: tooBig
+        ? `${excludedByHardware.length} installed model${excludedByHardware.length === 1 ? "" : "s"} cannot run on this machine. ${excludedByHardware[0].reason}`
+        : input.online
+          ? "No local engine is installed and OCADE Cloud isn't permitted for this content."
+          : "You're offline and no local engine is installed yet.",
     });
   }
   return steps;

@@ -3,8 +3,12 @@ import {
   parseParamsB,
   classifyLocalModel,
   pickLocalModel,
+  pickLocalModelForHardware,
+  modelFit,
   buildLocalFirstPlan,
   discoverLocalModels,
+  MODEL_RAM_OVERHEAD,
+  TOTAL_RAM_HEADROOM,
   type LocalModelInfo,
   type RawLocalModel,
 } from "../ocade-local";
@@ -191,5 +195,133 @@ describe("discoverLocalModels (injected fetch)", () => {
     expect(d.ok).toBe(false);
     expect(d.reachable).toBe(false);
     expect(d.reason).toBeTruthy();
+  });
+});
+
+/*
+ * Hardware-aware selection.
+ *
+ * These numbers are not invented: they are the three models actually installed
+ * on the machine where this was found, and the RAM that machine actually has.
+ * `pickLocalModel` returned qwen3-coder:30b (18.56 GB) for "code" on a 16.8 GB
+ * machine — a model that cannot be resident. Runtime evidence caught it; these
+ * tests keep it caught.
+ */
+const REAL_MACHINE_RAM = 16_801_841_152; // 15.65 GiB, measured
+const model = (id: string, sizeBytes: number, paramsB: number): LocalModelInfo =>
+  classifyLocalModel({
+    name: id,
+    size: sizeBytes,
+    details: { parameter_size: `${paramsB}B` },
+  });
+
+const DEEPSEEK_67 = model("deepseek-coder:6.7b", 3_830_000_000, 7);
+const QWEN25_7 = model("qwen2.5-coder:7b", 4_680_000_000, 7.6);
+const QWEN3_30 = model("qwen3-coder:30b", 18_560_000_000, 30.5);
+const INSTALLED = [DEEPSEEK_67, QWEN3_30, QWEN25_7];
+
+describe("modelFit", () => {
+  it("estimates resident bytes as file size plus overhead", () => {
+    const f = modelFit(DEEPSEEK_67, REAL_MACHINE_RAM);
+    expect(f.needsBytes).toBe(Math.round(3_830_000_000 * MODEL_RAM_OVERHEAD));
+    expect(f.fits).toBe(true);
+  });
+
+  it("rejects a model larger than the machine, and says why in real units", () => {
+    const f = modelFit(QWEN3_30, REAL_MACHINE_RAM);
+    expect(f.fits).toBe(false);
+    expect(f.reason).toContain("qwen3-coder:30b");
+    expect(f.reason).toMatch(/22\.3 GB/); // 18.56 * 1.2
+    expect(f.reason).toMatch(/16\.8 GB/); // the machine
+  });
+
+  it("respects the headroom constant rather than using all of RAM", () => {
+    // A model needing exactly the full RAM must NOT fit — headroom is the point.
+    const exact = model("exact:1", REAL_MACHINE_RAM / MODEL_RAM_OVERHEAD, 1);
+    expect(modelFit(exact, REAL_MACHINE_RAM).fits).toBe(false);
+
+    // Just under the ceiling fits. Not exactly AT it: needsBytes is rounded, so
+    // an exact-ceiling model lands a fraction of a byte either side depending on
+    // float error, and a test that flips on rounding noise tests nothing.
+    const ceilingBytes = REAL_MACHINE_RAM * TOTAL_RAM_HEADROOM;
+    const justUnder = model("under:1", (ceilingBytes - 1_000_000) / MODEL_RAM_OVERHEAD, 1);
+    expect(modelFit(justUnder, REAL_MACHINE_RAM).fits).toBe(true);
+
+    const justOver = model("over:1", (ceilingBytes + 1_000_000) / MODEL_RAM_OVERHEAD, 1);
+    expect(modelFit(justOver, REAL_MACHINE_RAM).fits).toBe(false);
+  });
+
+  it("does not guess when hardware is undetectable", () => {
+    // Unknown RAM disables the check rather than inventing a limit.
+    expect(modelFit(QWEN3_30, 0).fits).toBe(true);
+    expect(modelFit(QWEN3_30, Number.NaN).fits).toBe(true);
+  });
+});
+
+describe("pickLocalModelForHardware", () => {
+  it("never returns a model this machine cannot hold — the real regression", () => {
+    const plain = pickLocalModel(INSTALLED, "code");
+    expect(plain?.id).toBe("qwen3-coder:30b"); // the old, hardware-blind answer
+
+    const aware = pickLocalModelForHardware(INSTALLED, "code", REAL_MACHINE_RAM);
+    expect(aware.picked?.id).toBe("qwen2.5-coder:7b"); // largest that actually fits
+    expect(aware.excluded.map((e) => e.model.id)).toEqual(["qwen3-coder:30b"]);
+  });
+
+  it("still prefers the smallest for `fast`", () => {
+    const aware = pickLocalModelForHardware(INSTALLED, "fast", REAL_MACHINE_RAM);
+    expect(aware.picked?.id).toBe("deepseek-coder:6.7b");
+  });
+
+  it("refuses honestly when nothing installed fits", () => {
+    const tiny = 2_000_000_000; // 2 GB machine
+    const aware = pickLocalModelForHardware(INSTALLED, "code", tiny);
+    expect(aware.picked).toBeNull();
+    expect(aware.excluded).toHaveLength(3);
+    expect(aware.reason).toMatch(/No installed model fits/);
+  });
+
+  it("distinguishes nothing-installed from nothing-fits", () => {
+    const empty = pickLocalModelForHardware([], "code", REAL_MACHINE_RAM);
+    expect(empty.reason).toMatch(/No on-device models are installed/);
+  });
+});
+
+describe("buildLocalFirstPlan is hardware-aware", () => {
+  it("drops unrunnable models from every step of the chain", () => {
+    const chain = buildLocalFirstPlan({
+      desired: "code",
+      models: INSTALLED,
+      cloudAllowed: false,
+      online: true,
+      totalRamBytes: REAL_MACHINE_RAM,
+    });
+    const ids = chain.map((s) => s.modelId).filter(Boolean);
+    expect(ids).not.toContain("qwen3-coder:30b");
+    expect(chain[0].modelId).toBe("qwen2.5-coder:7b");
+  });
+
+  it("keeps the old behaviour when RAM is unknown", () => {
+    const chain = buildLocalFirstPlan({
+      desired: "code",
+      models: INSTALLED,
+      cloudAllowed: false,
+      online: true,
+    });
+    expect(chain[0].modelId).toBe("qwen3-coder:30b");
+  });
+
+  it("says models are too big rather than claiming none are installed", () => {
+    const chain = buildLocalFirstPlan({
+      desired: "code",
+      models: INSTALLED,
+      cloudAllowed: false,
+      online: false,
+      totalRamBytes: 2_000_000_000,
+    });
+    expect(chain).toHaveLength(1);
+    expect(chain[0].kind).toBe("fail");
+    expect(chain[0].detail).toMatch(/cannot run on this machine/);
+    expect(chain[0].detail).not.toMatch(/no local engine is installed/i);
   });
 });

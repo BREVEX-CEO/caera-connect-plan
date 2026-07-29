@@ -84,7 +84,10 @@ const RULES = [
     re: /^(\.github\/|\.vscode\/)|(^|\/)(package\.json|tsconfig.*\.json|vite\.config\.[cm]?[jt]s|vitest\.config\.[cm]?[jt]s|eslint\.config\.[cm]?[jt]s|docker-compose\.ya?ml|Dockerfile|capacitor\.config\.json|wrangler\.json|Cargo\.toml|Cargo\.lock|\.gitignore)$/,
   },
   { kind: "config", why: "configuration file", re: /\.(json|ya?ml|toml|conf|ini)$/i },
-  { kind: "script", why: "automation script", re: /^scripts\/.*\.[cm]?js$/ },
+  // `[cm]?[jt]s` covers .js/.cjs/.mjs AND .ts/.cts/.mts — tool scripts under
+  // `scripts/` are increasingly TypeScript (run via vite-node), and a .mts
+  // helper is no less an automation script than its .mjs sibling.
+  { kind: "script", why: "automation script", re: /^scripts\/.*\.[cm]?[jt]s$/ },
   // The requirement-register audit pipeline lives under `audit/`, not
   // `scripts/`, and emits newline-delimited JSON. Neither the `script` rule
   // (anchored to `^scripts/`) nor the config rule (`\.json$` does not match

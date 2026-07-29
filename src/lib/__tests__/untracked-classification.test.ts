@@ -208,3 +208,30 @@ describe("the classifier is available and blocks on a human decision", () => {
     expect(report.needsHuman).toEqual([]);
   });
 });
+
+describe("tool scripts are classified whatever language they are written in", () => {
+  const noSniff = () => false;
+  const kindOf = (p: string) => classifyPath(p, 0, noSniff).kind;
+
+  it("classifies TypeScript tool scripts, not just JavaScript ones", () => {
+    // A .mts runtime-evidence harness under scripts/ was left `unknown` and
+    // turned the gate red. Tool scripts are increasingly TypeScript run through
+    // vite-node; the rule must not be tied to one file extension family.
+    for (const p of [
+      "scripts/x.js",
+      "scripts/x.mjs",
+      "scripts/x.cjs",
+      "scripts/x.ts",
+      "scripts/x.mts",
+      "scripts/x.cts",
+    ]) {
+      expect(kindOf(p)).toBe("script");
+    }
+  });
+
+  it("does not turn `scripts/` into a catch-all for any file at all", () => {
+    expect(kindOf("scripts/notes.md")).toBe("docs");
+    expect(kindOf("scripts/data.bin")).toBe("model-weight");
+    expect(kindOf("scripts/weird.xyz")).toBe("unknown");
+  });
+});

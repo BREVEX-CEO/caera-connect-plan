@@ -76,7 +76,8 @@ import { capabilityLabelFor } from "@/lib/ocade-capability-labels";
 import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
 import {
-  pickLocalModel,
+  pickLocalModelForHardware,
+  browserTotalRamBytes,
   buildLocalFirstPlan,
   streamLocalChat,
   DEFAULT_LOCAL_BRIDGE_URL,
@@ -1188,8 +1189,19 @@ function ChatSurface(props: {
     // local when a suitable engine is ready, else falls through to cloud.
     const localReady = localEngine.status === "ready" && localEngine.models.length > 0;
     const hasImage = atts.some((a) => a.kind === "image");
+    /*
+     * Hardware-aware, not just capability-aware. Selecting purely on capability
+     * picked the LARGEST installed model, which on a 16 GB machine holding an
+     * 18.6 GB model returned something that cannot load — the user saw a
+     * generic failure with no reason. Runtime evidence caught this; see
+     * release/OCADE_LOCAL_ENGINE_RUNTIME_EVIDENCE.json (E10–E12).
+     */
     const localPick = localReady
-      ? pickLocalModel(localEngine.models, hasImage ? "vision" : "general")
+      ? pickLocalModelForHardware(
+          localEngine.models,
+          hasImage ? "vision" : "general",
+          browserTotalRamBytes() ?? Number.NaN,
+        ).picked
       : null;
 
     if (engineTier === "local" && (!localReady || !localPick)) {
@@ -1525,6 +1537,9 @@ function ChatSurface(props: {
       models: localEngine.models,
       cloudAllowed: online,
       online,
+      // Undefined when the browser will not say, which leaves the chain
+      // unfiltered rather than filtered on a guess.
+      totalRamBytes: browserTotalRamBytes(),
     });
     const localSteps = plan.filter((s) => s.modelId);
     if (localSteps.length === 0) {
