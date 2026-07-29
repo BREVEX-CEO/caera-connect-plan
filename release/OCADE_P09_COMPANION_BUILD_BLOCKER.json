@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "phase": "P09 — Windows companion build and Rust safety execution",
+  "status": "ONE HUMAN ACTION AWAY",
+  "generatedAt": "2026-07-29",
+  "summary": "The Rust safety core type-checks, formats and lints cleanly, but its 25 tests have never executed because no C++ linker is installed. This is the same blocker native/companion/README.md has always declared, now measured rather than asserted.",
+  "host": {
+    "platform": "win32",
+    "os": "Windows 10 Home Single Language, build 19045",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "cargo": "1.96.0 (30a34c682 2026-05-25)",
+    "defaultHost": "x86_64-pc-windows-msvc",
+    "installedTargets": ["x86_64-pc-windows-msvc"],
+    "installedToolchains": ["stable-x86_64-pc-windows-msvc"]
+  },
+  "observed": [
+    {
+      "id": "R01",
+      "command": "cargo check --all-targets",
+      "result": "PASS",
+      "note": "Compiles to object code. Proves the source is valid Rust; proves nothing about behaviour."
+    },
+    {
+      "id": "R02",
+      "command": "cargo fmt --check",
+      "result": "PASS"
+    },
+    {
+      "id": "R03",
+      "command": "cargo clippy --all-targets -- -D warnings",
+      "result": "PASS",
+      "note": "Zero warnings at deny level."
+    },
+    {
+      "id": "R04",
+      "command": "cargo test",
+      "result": "FAIL — cannot link",
+      "error": "linking with `link.exe` failed: exit code: 1 — link: missing operand after '\\377\\376'",
+      "diagnosis": "The `link.exe` found on PATH is GNU coreutils `link` from Git Bash (/usr/bin/link), not the MSVC linker. Its error text ('Try link --help') is the coreutils message. rustc invoked it with MSVC linker arguments, which it cannot parse. No Visual Studio installation exists under either Program Files path.",
+      "note": "This is the exact failure native/companion/README.md predicted."
+    }
+  ],
+  "testsThatCannotExecute": {
+    "total": 25,
+    "byFile": { "src/ipc.rs": 15, "src/lib.rs": 10 },
+    "mostSignificant": {
+      "name": "mac_matches_typescript_golden_vectors",
+      "location": "native/companion/safety/src/ipc.rs:509",
+      "why": "It asserts the SAME golden HMAC-SHA-256 table as the TypeScript half in src/lib/__tests__/companion-client.test.ts. The TypeScript side runs and passes today. Until the Rust side executes, wire-format agreement between the two halves is assumed, not verified — and a silent disagreement would mean the host rejects every signed envelope the page produces."
+    }
+  },
+  "whatThisDoesNotProve": [
+    "That the Rust safety core behaves correctly. Compiling is not running.",
+    "That protected-input refusal, allowlist enforcement, path canonicalisation, replay rejection or emergency stop work at all.",
+    "That the companion can be built, signed, installed or launched.",
+    "Any of the 18 items on the README runtime checklist, all of which remain unticked."
+  ],
+  "unblockedBy": {
+    "action": "Install a C++ linker, then run `cargo test -p caera-companion-safety`.",
+    "options": [
+      {
+        "id": "msvc",
+        "what": "Visual Studio Build Tools with the 'Desktop development with C++' workload",
+        "approxDownload": "2-7 GB",
+        "needsAdmin": true,
+        "note": "Matches the existing default toolchain (x86_64-pc-windows-msvc); nothing else changes."
+      },
+      {
+        "id": "gnu",
+        "what": "MinGW-w64 plus `rustup target add x86_64-pc-windows-gnu`",
+        "approxDownload": "under 500 MB",
+        "needsAdmin": false,
+        "note": "Lighter, but builds a GNU-ABI binary. Acceptable for EXECUTING the safety-core tests; the shipped companion should still be built with MSVC to match the platform it targets."
+      }
+    ],
+    "alsoNote": "Git Bash's /usr/bin/link shadows the MSVC linker on PATH in this shell. After installing MSVC tools, run cargo from a Developer Command Prompt or ensure the MSVC bin directory precedes /usr/bin."
+  },
+  "honestClassification": "The 27 requirements covering Desktop Companion Foundation, Windows Process/Application/Window Control, scoped input and part of Accessibility remain EXTERNALLY BLOCKED / ONE HUMAN ACTION AWAY. `cargo check` passing does not move any of them, and this file exists so that it cannot be mistaken for progress."
+}
