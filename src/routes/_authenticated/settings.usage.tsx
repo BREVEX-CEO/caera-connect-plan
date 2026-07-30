@@ -19,6 +19,7 @@ import {
   type Entitlement,
 } from "@/lib/ocade-allowance";
 import { getCloudUsage, getEntitlement } from "@/lib/ocade-usage.functions";
+import { BillingPanel } from "@/components/settings/BillingPanel";
 
 export const Route = createFileRoute("/_authenticated/settings/usage")({
   head: () => ({
@@ -78,6 +79,9 @@ function UsagePage() {
       />
 
       <div className="flex flex-col gap-5">
+        {/* Subscription, entitlement and the payment provider twin. */}
+        <BillingPanel />
+
         {/* Cloud allowance */}
         <GlassPanel className="p-4">
           <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold">
