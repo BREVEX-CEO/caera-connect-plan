@@ -1,0 +1,58 @@
+﻿{
+    "schemaVersion":  1,
+    "phase":  "P09 - Windows companion build and Rust safety execution",
+    "tier":  "REAL TARGET RUNTIME VERIFIED",
+    "generatedAt":  "2026-07-30T06:04:03.3017474+05:30",
+    "supersedes":  "release/OCADE_P09_COMPANION_BUILD_BLOCKER.json - the linker blocker recorded there is now resolved",
+    "toolchain":  {
+                      "linker":  "Visual Studio Build Tools 2022 17.14.37, MSVC 14.44.35207, Hostx64/x64 link.exe",
+                      "installedVia":  "winget Microsoft.VisualStudio.2022.BuildTools --add Microsoft.VisualStudio.Workload.VCTools",
+                      "rustc":  "1.96.0",
+                      "note":  "Run through vcvars64.bat. Git Bash\u0027s /usr/bin/link shadows the MSVC linker on PATH, which is what produced the original \u0027missing operand\u0027 failure."
+                  },
+    "results":  {
+                    "command":  "cargo test -p caera-companion-safety",
+                    "passed":  25,
+                    "failed":  0,
+                    "summary":  "test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s | test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+                    "testNames":  [
+                                      "ipc::tests::constant_time_eq_behaves_like_eq",
+                                      "ipc::tests::closing_a_session_revokes_it",
+                                      "ipc::tests::canonical_matches_typescript_layout",
+                                      "ipc::tests::accepts_a_fresh_signed_request",
+                                      "ipc::tests::mac_changes_with_key_and_message",
+                                      "ipc::tests::mac_matches_typescript_golden_vectors",
+                                      "ipc::tests::rejects_exact_replay",
+                                      "ipc::tests::rejects_expired_and_future_requests",
+                                      "ipc::tests::rejects_out_of_order_counter",
+                                      "ipc::tests::rejects_tampered_body",
+                                      "ipc::tests::rejects_reused_nonce_with_new_counter",
+                                      "ipc::tests::rejects_unknown_session",
+                                      "tests::audit_redacts_digit_runs_and_keywords",
+                                      "ipc::tests::sha256_matches_standard_vectors",
+                                      "tests::confirm_tier_requires_confirmation",
+                                      "tests::parent_traversal_is_rejected",
+                                      "tests::read_only_needs_no_confirmation",
+                                      "tests::protected_text_is_detected",
+                                      "tests::reading_the_selection_is_read_only",
+                                      "ipc::tests::session_and_envelope_memory_are_bounded",
+                                      "tests::replacing_a_selection_with_protected_content_is_prohibited",
+                                      "tests::replacing_the_selection_needs_confirmation",
+                                      "tests::typing_protected_content_is_prohibited",
+                                      "tests::unapproved_app_is_refused",
+                                      "ipc::tests::nonce_window_is_pruned"
+                                  ]
+                },
+    "significance":  [
+                         "mac_matches_typescript_golden_vectors PASSED. It asserts the same golden HMAC-SHA-256 table as src/lib/__tests__/companion-client.test.ts. Both halves now execute and agree, so the wire format is verified rather than assumed.",
+                         "canonical_matches_typescript_layout PASSED, confirming envelope field layout parity across the two implementations.",
+                         "Replay protection executes: exact replay, out-of-order counter, reused nonce with a new counter, expired and future requests, and nonce-window pruning are all rejected.",
+                         "Protected-input refusal executes: protected text detected, typing protected content prohibited, replacing a selection with protected content prohibited.",
+                         "Path traversal rejected and unapproved applications refused."
+                     ],
+    "whatThisStillDoesNotProve":  [
+                                      "That the Tauri companion binary builds, is signed, installs or launches. Only the dependency-free safety core was executed.",
+                                      "Any of the 18 items on the README runtime checklist that require a running companion process.",
+                                      "That OCADE can control a real application. UnavailableCompanion remains the active adapter."
+                                  ]
+}
