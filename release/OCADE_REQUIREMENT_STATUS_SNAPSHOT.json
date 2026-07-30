@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-30T12:03:10.762Z",
-  "head": "4ff5975",
+  "generatedAt": "2026-07-30T12:11:42.336Z",
+  "head": "64ad76c",
   "branch": "feat/ocade-implementation",
-  "phase": "P13 - Mobile supervisor and cross-device continuity (key exchange complete; real device unproven)",
+  "phase": "P18 - Telemetry complete; marketplace (S02) and bounty (S03) NOT implemented",
   "method": "Semantic subject-to-module mapping validated against a production import-reachability graph, executed tests separated from source-text assertions, and executed gate results. Source-text assertions are graded SOURCE COMPLETE, never UNIT TESTED.",
   "denominators": {
     "originalCore": 450,
@@ -11,14 +11,14 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 213.3,
+      "numerator": 215.3,
       "denominator": 450,
-      "percent": 47.4
+      "percent": 47.8
     },
     "expanded": {
-      "numerator": 228.4,
+      "numerator": 230.9,
       "denominator": 510,
-      "percent": 44.8
+      "percent": 45.3
     }
   },
   "evidenceTiers": {
@@ -28,10 +28,10 @@
     "productionReady": 0
   },
   "counts": {
-    "UNIT TESTED": 215,
+    "UNIT TESTED": 220,
     "PARTIAL SOURCE": 8,
     "SOURCE COMPLETE": 48,
-    "NOT STARTED": 61,
+    "NOT STARTED": 56,
     "SIMULATED RUNTIME VERIFIED": 41,
     "INTEGRATION TESTED": 50,
     "EXTERNALLY BLOCKED": 76,
@@ -395,8 +395,11 @@
       "id": "HWE-38",
       "subject": "Opt-in failure telemetry and hardware-gap prioritisation",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P18",
+      "evidence": "src/lib/__tests__/failure-telemetry.test.ts - 18 tests: consent-off default, consent withdrawal discarding the queue, allow-list dropping window titles/clipboard/email/home paths, redaction of paths/emails/tokens/JWTs/IPs inside allowed fields, bounded queue, user-readable payload",
+      "caveat": "No transmission endpoint exists; reports are queued locally only. Nothing has ever been sent."
     },
     {
       "id": "HWE-39",
@@ -3089,29 +3092,41 @@
       "id": "AZ-338",
       "subject": "privacy filtering",
       "area": "Observability Telemetry and Diagnostics",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P18",
+      "evidence": "src/lib/__tests__/failure-telemetry.test.ts - 18 tests: consent-off default, consent withdrawal discarding the queue, allow-list dropping window titles/clipboard/email/home paths, redaction of paths/emails/tokens/JWTs/IPs inside allowed fields, bounded queue, user-readable payload",
+      "caveat": "Local collection only; no endpoint, nothing transmitted."
     },
     {
       "id": "AZ-339",
       "subject": "coverage telemetry",
       "area": "Observability Telemetry and Diagnostics",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P18",
+      "evidence": "src/lib/__tests__/failure-telemetry.test.ts - 18 tests: consent-off default, consent withdrawal discarding the queue, allow-list dropping window titles/clipboard/email/home paths, redaction of paths/emails/tokens/JWTs/IPs inside allowed fields, bounded queue, user-readable payload",
+      "caveat": "Local collection only; no endpoint, nothing transmitted."
     },
     {
       "id": "AZ-340",
       "subject": "crash reports",
       "area": "Observability Telemetry and Diagnostics",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P18",
+      "evidence": "src/lib/__tests__/failure-telemetry.test.ts - 18 tests: consent-off default, consent withdrawal discarding the queue, allow-list dropping window titles/clipboard/email/home paths, redaction of paths/emails/tokens/JWTs/IPs inside allowed fields, bounded queue, user-readable payload",
+      "caveat": "Local collection only; no endpoint, nothing transmitted."
     },
     {
       "id": "AZ-341",
       "subject": "alerts",
       "area": "Observability Telemetry and Diagnostics; Production Operations and Incident Response",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P18",
+      "evidence": "src/lib/__tests__/failure-telemetry.test.ts - 18 tests: consent-off default, consent withdrawal discarding the queue, allow-list dropping window titles/clipboard/email/home paths, redaction of paths/emails/tokens/JWTs/IPs inside allowed fields, bounded queue, user-readable payload",
+      "caveat": "Local collection only; no endpoint, nothing transmitted."
     },
     {
       "id": "AZ-342",
@@ -3900,7 +3915,7 @@
   "verifiedCommands": {
     "typecheck": "PASS",
     "lint": "PASS",
-    "tests": "3894 passed | 1 skipped (3895) across 234 files",
+    "tests": "3912 passed | 1 skipped (3913) across 235 files",
     "build": "PASS",
     "gates": "27/27",
     "rustTests": "25/25"
