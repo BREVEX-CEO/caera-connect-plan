@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-30T11:47:01.331Z",
-  "head": "f0e71b7",
+  "generatedAt": "2026-07-30T11:55:20.095Z",
+  "head": "c62050f",
   "branch": "feat/ocade-implementation",
-  "phase": "P17 - Payments and entitlement system (twin complete; live activation blocked)",
+  "phase": "P11 - Unknown-application learning and versioned skills (complete)",
   "method": "Semantic subject-to-module mapping validated against a production import-reachability graph, executed tests separated from source-text assertions, and executed gate results. Source-text assertions are graded SOURCE COMPLETE, never UNIT TESTED.",
   "denominators": {
     "originalCore": 450,
@@ -11,29 +11,29 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 211,
+      "numerator": 211.7,
       "denominator": 450,
-      "percent": 46.9
+      "percent": 47
     },
     "expanded": {
-      "numerator": 226.1,
+      "numerator": 226.8,
       "denominator": 510,
-      "percent": 44.3
+      "percent": 44.5
     }
   },
   "evidenceTiers": {
-    "simulatedRuntime": 30,
+    "simulatedRuntime": 34,
     "hostedRuntime": 0,
     "realTargetRuntime": 11,
     "productionReady": 0
   },
   "counts": {
-    "UNIT TESTED": 223,
+    "UNIT TESTED": 220,
     "PARTIAL SOURCE": 8,
     "SOURCE COMPLETE": 50,
     "NOT STARTED": 61,
-    "SIMULATED RUNTIME VERIFIED": 30,
-    "INTEGRATION TESTED": 51,
+    "SIMULATED RUNTIME VERIFIED": 34,
+    "INTEGRATION TESTED": 50,
     "EXTERNALLY BLOCKED": 76,
     "REAL TARGET RUNTIME VERIFIED": 11
   },
@@ -2168,29 +2168,41 @@
       "id": "AZ-220",
       "subject": "detection",
       "area": "Unknown Application Learning and App Maps",
-      "status": "INTEGRATION TESTED",
-      "weight": 0.6
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P11",
+      "evidence": "src/lib/__tests__/skill-trust.test.ts - 18 tests with REAL Ed25519 keypairs: unsigned refused, forged key refused, swapped body refused, revocation beating a valid signature, publisher-key compromise, capability sandbox, version-drift invalidation; combined with the P07 simulator and P08 twins for learning/rehearsal evidence",
+      "caveat": "Simulated only. Learning against a real unfamiliar application remains unproven."
     },
     {
       "id": "AZ-221",
       "subject": "route discovery",
       "area": "Unknown Application Learning and App Maps",
-      "status": "INTEGRATION TESTED",
-      "weight": 0.6
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P11",
+      "evidence": "src/lib/__tests__/skill-trust.test.ts - 18 tests with REAL Ed25519 keypairs: unsigned refused, forged key refused, swapped body refused, revocation beating a valid signature, publisher-key compromise, capability sandbox, version-drift invalidation; combined with the P07 simulator and P08 twins for learning/rehearsal evidence",
+      "caveat": "Simulated only. Learning against a real unfamiliar application remains unproven."
     },
     {
       "id": "AZ-222",
       "subject": "rehearsal",
       "area": "Unknown Application Learning and App Maps",
-      "status": "INTEGRATION TESTED",
-      "weight": 0.6
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P11",
+      "evidence": "src/lib/__tests__/skill-trust.test.ts - 18 tests with REAL Ed25519 keypairs: unsigned refused, forged key refused, swapped body refused, revocation beating a valid signature, publisher-key compromise, capability sandbox, version-drift invalidation; combined with the P07 simulator and P08 twins for learning/rehearsal evidence",
+      "caveat": "Simulated only. Learning against a real unfamiliar application remains unproven."
     },
     {
       "id": "AZ-223",
       "subject": "shadow execution",
       "area": "Unknown Application Learning and App Maps",
-      "status": "INTEGRATION TESTED",
-      "weight": 0.6
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P11",
+      "evidence": "src/lib/__tests__/skill-trust.test.ts - 18 tests with REAL Ed25519 keypairs: unsigned refused, forged key refused, swapped body refused, revocation beating a valid signature, publisher-key compromise, capability sandbox, version-drift invalidation; combined with the P07 simulator and P08 twins for learning/rehearsal evidence",
+      "caveat": "Simulated only. Learning against a real unfamiliar application remains unproven."
     },
     {
       "id": "AZ-224",
@@ -2224,22 +2236,28 @@
       "id": "AZ-228",
       "subject": "skill schema",
       "area": "Skill Registry Reuse and Governance",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P11",
+      "evidence": "src/lib/__tests__/skill-trust.test.ts - 18 tests with REAL Ed25519 keypairs: unsigned refused, forged key refused, swapped body refused, revocation beating a valid signature, publisher-key compromise, capability sandbox, version-drift invalidation"
     },
     {
       "id": "AZ-229",
       "subject": "approval",
       "area": "Skill Registry Reuse and Governance; Mobile Application and Native Bridge; Staging Database and Controlled Deployment",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P11",
+      "evidence": "src/lib/__tests__/skill-trust.test.ts - 18 tests with REAL Ed25519 keypairs: unsigned refused, forged key refused, swapped body refused, revocation beating a valid signature, publisher-key compromise, capability sandbox, version-drift invalidation"
     },
     {
       "id": "AZ-230",
       "subject": "rollback",
       "area": "Skill Registry Reuse and Governance; Recovery Repair and Idempotency; Updater Staging Verification and Rollback; Cloud Relay and Service Deployment; External Beta and Controlled Expansion; Production Launch; Production Operations and Incident Response",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P11",
+      "evidence": "src/lib/__tests__/skill-trust.test.ts - 18 tests with REAL Ed25519 keypairs: unsigned refused, forged key refused, swapped body refused, revocation beating a valid signature, publisher-key compromise, capability sandbox, version-drift invalidation"
     },
     {
       "id": "AZ-231",
@@ -3869,7 +3887,7 @@
   "verifiedCommands": {
     "typecheck": "PASS",
     "lint": "PASS",
-    "tests": "3861 passed | 1 skipped (3862) across 232 files",
+    "tests": "3879 passed | 1 skipped (3880) across 233 files",
     "build": "PASS",
     "gates": "27/27",
     "rustTests": "25/25"
