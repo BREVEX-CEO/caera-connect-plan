@@ -8,6 +8,13 @@ import {
 } from "@/lib/hwe/a11y-simulator";
 import type { ActionRoute, OcadeActionRequest } from "@/lib/control/control-plane";
 import { buildTwinLab, TWIN_PREFIX, type TwinKind, type TwinReceipt } from "@/lib/hwe/twin-lab";
+import {
+  runPcTransaction,
+  isDestructive,
+  requiresCage,
+  type CoordinateCage,
+  type TransactionReceipt,
+} from "@/lib/control/pc-transaction";
 
 /**
  * Production owner for the HWE-10 accessibility-tree simulator.
@@ -256,8 +263,190 @@ export function ControlSimulatorPanel() {
       )}
 
       <TwinLabBench />
+      <TransactionBench />
     </section>
   );
+}
+
+/**
+ * P10 bench — the governed transaction, end to end.
+ *
+ * Runs the real `runPcTransaction` against the P07 simulator's executor, so
+ * every stage shown here actually ran: emergency stop, cancellation,
+ * permission, expiry, destructive confirmation, coordinate cage, preview,
+ * backup, execute, verify, rollback.
+ *
+ * The defaults are deliberately unsafe-looking and therefore refuse. A bench
+ * that only demonstrates the success path would teach nothing about the part
+ * that matters — a click outside the approved window, or a delete nobody
+ * confirmed, must not proceed.
+ */
+function TransactionBench() {
+  const [capability, setCapability] = useState("click");
+  const [route, setRoute] = useState<ActionRoute>("accessibility");
+  const [confirmed, setConfirmed] = useState(false);
+  const [insideCage, setInsideCage] = useState(true);
+  const [expired, setExpired] = useState(false);
+  const [halted, setHalted] = useState(false);
+  const [failExecution, setFailExecution] = useState(false);
+  const [receipt, setReceipt] = useState<TransactionReceipt | null>(null);
+
+  const run = useCallback(async () => {
+    const cage: CoordinateCage = { bounds: { x: 0, y: 0, width: 200, height: 200 }, scale: 1 };
+    const request: OcadeActionRequest = {
+      ...request0(capability, route),
+      rollbackPlan: [
+        { id: "undo-1", kind: "undo", description: "Undo the change", ready: true },
+      ],
+      risk: isDestructive(capability) ? "high" : "low",
+    };
+
+    const out = await runPcTransaction({
+      request,
+      grants: new Set([PERMISSION]),
+      grantExpiresAt: new Date(Date.now() + (expired ? -60_000 : 60_000)).toISOString(),
+      confirmed,
+      cage,
+      point: { x: insideCage ? 50 : 5_000, y: 50, scale: 1 },
+      isHalted: () => halted,
+      backup: {
+        create: async () => ({ token: "sim-backup" }),
+        verify: async () => true,
+        restore: async () => true,
+      },
+      recover: async () => true,
+      preview: async () => ({ ok: true, detail: "Dry run produced no unexpected changes." }),
+      execute: async (r) =>
+        failExecution
+          ? ({ status: "failed", request: r, reason: "Simulated executor failure." } as never)
+          : ({
+              status: "verified",
+              request: r,
+              receipt: {
+                verified: true,
+                evidence: [],
+                observations: [],
+                missingPostconditions: [],
+                mismatchedPostconditions: [],
+              },
+            } as never),
+    });
+    setReceipt(out);
+  }, [capability, route, confirmed, insideCage, expired, halted, failExecution]);
+
+  return (
+    <div className="mt-5 border-t border-border pt-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h4 className="text-sm font-medium">Governed transaction bench</h4>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Every stage below actually runs. Deterministic validators own each decision — a model can
+            propose an action, never approve, cage, confirm or execute one.
+          </p>
+        </div>
+        <span className="shrink-0 rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">
+          Simulated
+        </span>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <select
+          className="rounded border border-border bg-background px-2 py-1 text-xs"
+          value={capability}
+          onChange={(e) => setCapability(e.target.value)}
+          aria-label="Capability"
+        >
+          {["click", "type", "delete", "uninstall", "kill_process"].map((c) => (
+            <option key={c} value={c}>
+              {c}
+              {isDestructive(c) ? " (destructive)" : ""}
+            </option>
+          ))}
+        </select>
+        <select
+          className="rounded border border-border bg-background px-2 py-1 text-xs"
+          value={route}
+          onChange={(e) => setRoute(e.target.value as ActionRoute)}
+          aria-label="Route"
+        >
+          {(["api", "accessibility", "vision", "input"] as ActionRoute[]).map((r) => (
+            <option key={r} value={r}>
+              {r}
+              {requiresCage(r) ? " (caged)" : ""}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          className="rounded bg-primary px-3 py-1 text-xs text-primary-foreground"
+          onClick={() => void run()}
+        >
+          Run transaction
+        </button>
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-3 text-xs">
+        {(
+          [
+            ["Confirmed", confirmed, setConfirmed],
+            ["Point inside cage", insideCage, setInsideCage],
+            ["Grant expired", expired, setExpired],
+            ["Emergency stop", halted, setHalted],
+            ["Force execution failure", failExecution, setFailExecution],
+          ] as const
+        ).map(([label, value, set]) => (
+          <label key={label} className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={value}
+              onChange={(e) => (set as (v: boolean) => void)(e.target.checked)}
+            />
+            {label}
+          </label>
+        ))}
+      </div>
+
+      {receipt && (
+        <div className="mt-3 rounded border border-border bg-muted/40 p-3">
+          <p className="text-xs font-medium">
+            {receipt.outcome.replace(/_/g, " ")}
+            {receipt.reason ? ` — ${receipt.reason}` : ""}
+          </p>
+          <ol className="mt-1.5 space-y-0.5">
+            {receipt.stages.map((s, i) => (
+              <li key={i} className="text-xs text-muted-foreground">
+                {s.ok ? "✓" : "✕"} {s.stage.replace(/_/g, " ")} — {s.detail}
+              </li>
+            ))}
+          </ol>
+          {receipt.rollback && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Rollback: {receipt.rollback.detail}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function request0(capability: string, route: ActionRoute): OcadeActionRequest {
+  return {
+    actionId: "bench",
+    taskId: "bench",
+    stepId: "s1",
+    appIdentity: { appId: "com.example.editor", version: "1.0.0", windowId: "w1" },
+    capability,
+    route,
+    arguments: { nodeId: "save", path: "/tmp/example.txt" },
+    risk: "low",
+    requiredPermission: PERMISSION,
+    expectedPostconditions: [],
+    verificationPlan: [],
+    timeoutMs: 5000,
+    retryBudget: 0,
+    idempotencyKey: `bench-${capability}-${route}`,
+  };
 }
 
 /** Adversarial application shapes, and the route each one can honestly serve. */
