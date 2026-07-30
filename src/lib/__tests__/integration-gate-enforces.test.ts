@@ -95,11 +95,31 @@ describe("the honesty gate rejects a dishonest ledger", () => {
     expect(result.stderr).toMatch(/desktopInstallerValidated/);
   });
 
-  it("FAILS when a non-runtime module is quietly dropped from the ledger", async () => {
-    // Deleting an entry would hide a real orphan from the audit.
+  /*
+   * These four corruptions need an entry to corrupt. P21 wired every remaining
+   * orphan, so the real ledger is now legitimately EMPTY — and a suite that
+   * indexed `modules[0]` broke precisely because the repository got healthier.
+   *
+   * Each test therefore SEEDS its own synthetic entry rather than borrowing one
+   * from the tracked ledger. The gate is still the real gate; only the fixture
+   * is local, so this keeps proving the gate bites no matter how many genuine
+   * orphans exist.
+   */
+  const seeded = (over: Partial<Record<string, string>> = {}) => ({
+    path: "src/lib/utils.ts", // a real file, deliberately NOT an orphan
+    classification: "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+    reason: "Synthetic fixture entry used only to prove the gate rejects dishonest ledgers.",
+    ...over,
+  });
+
+  it("FAILS when the ledger declares an orphan that is not one", async () => {
+    /*
+     * The invariant is that declared and observed must MATCH. With no genuine
+     * orphans left, the way to break it is to declare one that does not exist
+     * — the same drift check, exercised from the other direction.
+     */
     const result = await withCorruptedLedger((audit) => {
-      const modules = audit.nonRuntimeModules as unknown[];
-      modules.pop();
+      (audit.nonRuntimeModules as unknown[]).push(seeded());
     });
     expect(result.ok).toBe(false);
     expect(result.stderr).toMatch(/ledger drifted/i);
@@ -107,8 +127,7 @@ describe("the honesty gate rejects a dishonest ledger", () => {
 
   it("FAILS when a module is upgraded to a classification it has not earned", async () => {
     const result = await withCorruptedLedger((audit) => {
-      const modules = audit.nonRuntimeModules as Array<Record<string, string>>;
-      modules[0].classification = "RUNTIME VERIFIED";
+      (audit.nonRuntimeModules as unknown[]).push(seeded({ classification: "RUNTIME VERIFIED" }));
     });
     expect(result.ok).toBe(false);
     expect(result.stderr).toMatch(/overclaimed/i);
@@ -116,8 +135,7 @@ describe("the honesty gate rejects a dishonest ledger", () => {
 
   it("FAILS when a declared reason is too thin to be useful", async () => {
     const result = await withCorruptedLedger((audit) => {
-      const modules = audit.nonRuntimeModules as Array<Record<string, string>>;
-      modules[0].reason = "later";
+      (audit.nonRuntimeModules as unknown[]).push(seeded({ reason: "later" }));
     });
     expect(result.ok).toBe(false);
     expect(result.stderr).toMatch(/lacks a useful reason/i);
@@ -125,8 +143,9 @@ describe("the honesty gate rejects a dishonest ledger", () => {
 
   it("FAILS when a declared module path does not exist", async () => {
     const result = await withCorruptedLedger((audit) => {
-      const modules = audit.nonRuntimeModules as Array<Record<string, string>>;
-      modules[0].path = "src/lib/skills/this-module-does-not-exist.ts";
+      (audit.nonRuntimeModules as unknown[]).push(
+        seeded({ path: "src/lib/skills/this-module-does-not-exist.ts" }),
+      );
     });
     expect(result.ok).toBe(false);
     // Either the drift check or the existence check must catch it.

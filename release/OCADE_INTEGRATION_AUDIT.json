@@ -35,33 +35,7 @@
     "20260722110000_ocade_automations",
     "20260724211500_ocade_automation_worker"
   ],
-  "nonRuntimeModules": [
-    {
-      "path": "src/lib/code/generated-sandbox-node.ts",
-      "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
-      "reason": "Node-side runner for the generated-code sandbox. It needs a Node sandbox host process to execute; the browser bundle cannot import it, so it is exercised by tests and scripts only."
-    },
-    {
-      "path": "src/lib/mobile/reconnect-protocol.ts",
-      "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
-      "reason": "Tested reliable mobile reconnect protocol has no active caller."
-    },
-    {
-      "path": "src/lib/packaging/update-signature.ts",
-      "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
-      "reason": "Real Ed25519 verification over a SHA-256 digest, tested against a self-signed key. It has no production consumer because tauri.conf.json still carries the placeholder signing public key, so there is no trusted key to verify against yet."
-    },
-    {
-      "path": "src/lib/providers/free-tool-adapters.ts",
-      "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
-      "reason": "Real version probing for Blender, FreeCAD and CalculiX. None of the three is installed on this machine, so it is exercised by tests and scripts only."
-    },
-    {
-      "path": "src/lib/research/http-source.ts",
-      "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
-      "reason": "Restricted HTTP fetcher has no active network acquisition caller. Its SSRF defences and redirect re-validation are now proven by 23 tests (metadata/loopback/private/link-local refused, HTTPS-only, no credentials, no nonstandard ports, redirect destinations re-validated). It CANNOT be exercised over real sockets here BY DESIGN: it refuses loopback, which is the anti-SSRF control working. Real-socket proof needs public network egress."
-    }
-  ],
+  "nonRuntimeModules": [],
   "knownRuntimeBoundaries": [
     {
       "id": "mobile-native-plugin",
@@ -101,5 +75,13 @@
     "desktopInstallerValidated": false,
     "browserStorePackageValidated": false,
     "realApplicationCoverageValidated": false
-  }
+  },
+  "nonRuntimeModulesNote": "P21 emptied this ledger by WIRING the modules, not by deleting entries. Each of the five now has a production owner: generated-sandbox-node -> sandbox.functions.ts (server fn, dynamic import so Node builtins stay out of the client bundle) -> CodeWorkspacePanel 'Execute in sandbox'; reconnect-protocol + secure-channel + transport-adapters -> mobile/transport-factory.ts -> settings.mobile.tsx; update-signature -> packaging/update-gate.ts -> UpdatePolicyPanel; free-tool-adapters -> providers/tool-prober.ts -> AppCoveragePanel; research http-source/research-run/research-cache/source-fallback -> research.functions.ts (server fn) -> ResearchPanel. An empty ledger is only honest while the reachability check stays green; the gate fails if any module drifts back to zero incoming imports.",
+  "previouslyDeclaredNonRuntime": [
+    "src/lib/code/generated-sandbox-node.ts",
+    "src/lib/mobile/reconnect-protocol.ts",
+    "src/lib/packaging/update-signature.ts",
+    "src/lib/providers/free-tool-adapters.ts",
+    "src/lib/research/http-source.ts"
+  ]
 }

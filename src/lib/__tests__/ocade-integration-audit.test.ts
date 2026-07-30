@@ -51,7 +51,18 @@ describe("Phase 19 integration honesty audit", () => {
     // contract was corrected to make synthesize/transcribe optional — no
     // browser engine can return audio bytes — so the real system speech
     // provider registers without stubs, and the route registers it.
-    expect(audit.nonRuntimeModules).toHaveLength(5);
+    // Then 0 (P21). The last five were wired to real production owners rather
+    // than struck from the ledger: generated-sandbox-node behind a server
+    // function so Node builtins stay out of the client bundle; the mobile
+    // secure-channel/transport/reconnect trio behind a transport factory;
+    // update-signature behind an update gate that finally does the
+    // cryptography planUpdate only ever checked was PRESENT; free-tool-adapters
+    // behind a prober, giving the coverage registry something to look with.
+    //
+    // Zero is the correct number and it must stay earned: the gate compares
+    // declared against observed, so a module drifting back to zero incoming
+    // imports fails the build rather than silently rejoining the list.
+    expect(audit.nonRuntimeModules).toHaveLength(0);
     expect(audit.nonRuntimeModules.some((entry) => entry.path === "src/lib/media/inspect.ts")).toBe(
       false,
     );
