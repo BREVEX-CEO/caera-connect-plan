@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-29T17:31:43.515Z",
-  "head": "a4aa418",
+  "generatedAt": "2026-07-30T00:56:39.009Z",
+  "head": "c2ab40c",
   "branch": "feat/ocade-implementation",
-  "phase": "P08 - Application digital-twin laboratory (complete)",
+  "phase": "P21 - Production wiring closure (complete); P09 safety core executed",
   "method": "Semantic subject-to-module mapping validated against a production import-reachability graph, executed tests separated from source-text assertions, and executed gate results. Source-text assertions are graded SOURCE COMPLETE, never UNIT TESTED.",
   "denominators": {
     "originalCore": 450,
@@ -11,31 +11,31 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 197.9,
+      "numerator": 201.6,
       "denominator": 450,
-      "percent": 44
+      "percent": 44.8
     },
     "expanded": {
-      "numerator": 211,
+      "numerator": 214.8,
       "denominator": 510,
-      "percent": 41.4
+      "percent": 42.1
     }
   },
   "evidenceTiers": {
     "simulatedRuntime": 9,
     "hostedRuntime": 0,
-    "realTargetRuntime": 8,
+    "realTargetRuntime": 11,
     "productionReady": 0
   },
   "counts": {
-    "UNIT TESTED": 209,
+    "UNIT TESTED": 235,
     "PARTIAL SOURCE": 8,
-    "SOURCE COMPLETE": 80,
+    "SOURCE COMPLETE": 54,
     "NOT STARTED": 71,
     "SIMULATED RUNTIME VERIFIED": 9,
     "EXTERNALLY BLOCKED": 82,
-    "REAL TARGET RUNTIME VERIFIED": 8,
-    "INTEGRATION TESTED": 43
+    "REAL TARGET RUNTIME VERIFIED": 11,
+    "INTEGRATION TESTED": 40
   },
   "requirements": [
     {
@@ -414,8 +414,10 @@
       "id": "HWE-42",
       "subject": "Automatic provider substitution with transparent receipts",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "HWE-43",
@@ -1548,29 +1550,37 @@
       "id": "AZ-149",
       "subject": "URL validation",
       "area": "Research and Source Acquisition",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-150",
       "subject": "SSRF defence",
       "area": "Research and Source Acquisition",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-151",
       "subject": "fetch",
       "area": "Research and Source Acquisition",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-152",
       "subject": "redirects",
       "area": "Research and Source Acquisition",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-153",
@@ -2178,22 +2188,28 @@
       "id": "AZ-236",
       "subject": "results",
       "area": "Code Workspace and Repository Operations",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-237",
       "subject": "diff review",
       "area": "Code Workspace and Repository Operations",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-238",
       "subject": "cleanup",
       "area": "Code Workspace and Repository Operations; Recovery Repair and Idempotency",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-239",
@@ -2220,29 +2236,37 @@
       "id": "AZ-242",
       "subject": "process denial",
       "area": "Generated Code Sandbox",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-243",
       "subject": "budgets",
       "area": "Generated Code Sandbox",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-244",
       "subject": "declared outputs",
       "area": "Generated Code Sandbox",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-245",
       "subject": "acceptance",
       "area": "Generated Code Sandbox",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-246",
@@ -2332,22 +2356,28 @@
       "id": "AZ-258",
       "subject": "sealed envelopes",
       "area": "Relay Service and Remote Sessions",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-259",
       "subject": "membership",
       "area": "Relay Service and Remote Sessions",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-260",
       "subject": "transport",
       "area": "Relay Service and Remote Sessions",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-261",
@@ -2367,71 +2397,94 @@
       "id": "AZ-263",
       "subject": "sequence watermark",
       "area": "Reconnect Replay Protection and Reconciliation",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-264",
       "subject": "replay refusal",
       "area": "Reconnect Replay Protection and Reconciliation",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-265",
       "subject": "handshake",
       "area": "Reconnect Replay Protection and Reconciliation",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-266",
       "subject": "checkpoint reconciliation",
       "area": "Reconnect Replay Protection and Reconciliation",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-267",
       "subject": "duplicates",
       "area": "Reconnect Replay Protection and Reconciliation",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-268",
       "subject": "emergency propagation",
       "area": "Reconnect Replay Protection and Reconciliation",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-269",
       "subject": "conflicts",
       "area": "Reconnect Replay Protection and Reconciliation",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-270",
       "subject": "threat model",
       "area": "Security Hardening and Adversarial Testing",
-      "status": "INTEGRATION TESTED",
-      "weight": 0.6
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "resolvedInPhase": "P09",
+      "evidence": "release/OCADE_RUST_SAFETY_CORE_EVIDENCE.json - 25/25 Rust tests executed with MSVC 14.44.35207; MAC golden-vector parity with the TypeScript half verified",
+      "caveat": "Safety CORE only. The Tauri companion binary is still not built, signed, installed or launched; UnavailableCompanion remains the active adapter."
     },
     {
       "id": "AZ-271",
       "subject": "auth bypass",
       "area": "Security Hardening and Adversarial Testing",
-      "status": "INTEGRATION TESTED",
-      "weight": 0.6
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "resolvedInPhase": "P09",
+      "evidence": "release/OCADE_RUST_SAFETY_CORE_EVIDENCE.json - 25/25 Rust tests executed with MSVC 14.44.35207; MAC golden-vector parity with the TypeScript half verified",
+      "caveat": "Safety CORE only. The Tauri companion binary is still not built, signed, installed or launched; UnavailableCompanion remains the active adapter."
     },
     {
       "id": "AZ-272",
       "subject": "traversal",
       "area": "Security Hardening and Adversarial Testing",
-      "status": "INTEGRATION TESTED",
-      "weight": 0.6
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "resolvedInPhase": "P09",
+      "evidence": "release/OCADE_RUST_SAFETY_CORE_EVIDENCE.json - 25/25 Rust tests executed with MSVC 14.44.35207; MAC golden-vector parity with the TypeScript half verified",
+      "caveat": "Safety CORE only. The Tauri companion binary is still not built, signed, installed or launched; UnavailableCompanion remains the active adapter."
     },
     {
       "id": "AZ-273",
@@ -3076,29 +3129,37 @@
       "id": "AZ-364",
       "subject": "signatures",
       "area": "Updater Staging Verification and Rollback",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-365",
       "subject": "staging",
       "area": "Updater Staging Verification and Rollback",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-366",
       "subject": "decisions",
       "area": "Updater Staging Verification and Rollback",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-367",
       "subject": "UI",
       "area": "Updater Staging Verification and Rollback",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P21",
+      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
     },
     {
       "id": "AZ-368",
@@ -3687,6 +3748,12 @@
     "lint": "PASS",
     "tests": "3591 passed | 1 skipped (3592) across 225 files",
     "build": "PASS",
-    "gates": "26/26"
+    "gates": "26/26",
+    "rustTests": "25/25"
+  },
+  "productionWiring": {
+    "testOnlyModules": 0,
+    "nonRuntimeLedger": 0,
+    "note": "Import-graph reachability: 338 of 375 non-test source files reachable; the 37 unreached are unused shadcn UI primitives carrying no requirement."
   }
 }
