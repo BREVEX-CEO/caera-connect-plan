@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -38,6 +39,7 @@ import {
 } from "@/lib/code/workspace";
 import { validateGeneratedSandboxRequest } from "@/lib/code/generated-sandbox";
 import { saveArtifact } from "@/lib/artifacts/store";
+import { runSandboxScript, type SandboxRunResponse } from "@/lib/sandbox.functions";
 
 const SAMPLE_FILES = [
   {
@@ -164,6 +166,8 @@ function download(name: string, content: string, type = "text/plain") {
 }
 
 export function CodeWorkspacePanel() {
+  const runSandbox = useServerFn(runSandboxScript);
+  const [sandboxRunning, setSandboxRunning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [workspace, setWorkspace] = useState<CodeWorkspace | null>(null);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -437,9 +441,47 @@ export function CodeWorkspacePanel() {
     });
     setSandboxStatus(
       validated.ok
-        ? "Plan admitted. Network, imports, child processes and undeclared paths remain denied. Connect the verified Node permission host to execute it."
+        ? "Plan admitted. Network, imports, child processes and undeclared paths remain denied. Use Execute to run it in the Node permission host."
         : (validated.reason ?? "Sandbox plan was refused."),
     );
+  }
+
+  /**
+   * Actually run the plan in the Node permission host (P21).
+   *
+   * Validation only ever proved the request was admissible; execution needed a
+   * host, and the only real one was reachable from tests alone. It runs on the
+   * server because the host spawns a process — the browser has nothing to
+   * spawn — and network stays denied there regardless of what is asked.
+   */
+  async function executeSandboxPlan() {
+    setSandboxRunning(true);
+    setSandboxStatus("Running in the Node permission host…");
+    try {
+      const res = (await runSandbox({
+        data: {
+          taskId: workspace?.id ?? "code-workspace",
+          language: "javascript" as const,
+          script: generatedScript,
+          inputs: [{ path: "source.txt", content: selectedFile?.content ?? "" }],
+          outputs: [{ path: "result.txt", mediaType: "text/plain", maxBytes: 100_000 }],
+          allowedImports: [],
+          timeoutMs: 10_000,
+          memoryMb: 128,
+        },
+      })) as SandboxRunResponse;
+      setSandboxStatus(
+        res.ok
+          ? `${res.result.status}: ${res.result.diffs.length} declared output(s) changed; undeclared paths were not written.`
+          : `Refused: ${res.reason}`,
+      );
+    } catch (e) {
+      setSandboxStatus(
+        e instanceof Error ? `Could not run: ${e.message}` : "Could not run the sandbox.",
+      );
+    } finally {
+      setSandboxRunning(false);
+    }
   }
 
   async function savePatchArtifact() {
@@ -621,6 +663,13 @@ export function CodeWorkspacePanel() {
               </div>
               <Button size="sm" variant="outline" onClick={validateSandboxPlan}>
                 Validate sandbox plan
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => void executeSandboxPlan()}
+                disabled={sandboxRunning}
+              >
+                {sandboxRunning ? "Running…" : "Execute in sandbox"}
               </Button>
             </div>
             <Textarea
