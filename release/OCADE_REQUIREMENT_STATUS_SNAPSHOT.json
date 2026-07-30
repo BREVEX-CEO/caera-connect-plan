@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-30T09:29:48.253Z",
-  "head": "be653db",
+  "generatedAt": "2026-07-30T09:37:11.310Z",
+  "head": "112c361",
   "branch": "feat/ocade-implementation",
-  "phase": "P10 - Universal PC-control transaction engine (complete)",
+  "phase": "P12 - Browser control and zero-touch test profile (protocol half complete)",
   "method": "Semantic subject-to-module mapping validated against a production import-reachability graph, executed tests separated from source-text assertions, and executed gate results. Source-text assertions are graded SOURCE COMPLETE, never UNIT TESTED.",
   "denominators": {
     "originalCore": 450,
@@ -11,14 +11,14 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 203.1,
+      "numerator": 203.5,
       "denominator": 450,
-      "percent": 45.1
+      "percent": 45.2
     },
     "expanded": {
-      "numerator": 216.3,
+      "numerator": 217.2,
       "denominator": 510,
-      "percent": 42.4
+      "percent": 42.6
     }
   },
   "evidenceTiers": {
@@ -28,10 +28,10 @@
     "productionReady": 0
   },
   "counts": {
-    "UNIT TESTED": 228,
+    "UNIT TESTED": 233,
     "PARTIAL SOURCE": 8,
-    "SOURCE COMPLETE": 54,
-    "NOT STARTED": 71,
+    "SOURCE COMPLETE": 50,
+    "NOT STARTED": 70,
     "SIMULATED RUNTIME VERIFIED": 17,
     "EXTERNALLY BLOCKED": 82,
     "REAL TARGET RUNTIME VERIFIED": 11,
@@ -267,8 +267,11 @@
       "id": "HWE-21",
       "subject": "Browser extension zero-touch test profile",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P12",
+      "evidence": "src/lib/__tests__/extension-zero-touch.test.ts - 14 tests EXECUTING extension/background.js in a VM with a recording chrome double; protocol rejection, pairing enforcement, no-API-touch-while-unpaired, manifest minimality",
+      "caveat": "The chrome API is a double. No real tab, DOM or permission prompt. Proves the extension's decisions, NOT that it works in Chrome; scripting.executeScript reaching a page is unproven until the extension is loaded for real."
     },
     {
       "id": "HWE-22",
@@ -2044,29 +2047,41 @@
       "id": "AZ-212",
       "subject": "manifest",
       "area": "Browser Extension and Web Control; Updater Staging Verification and Rollback",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P12",
+      "evidence": "src/lib/__tests__/extension-zero-touch.test.ts - 14 tests EXECUTING extension/background.js in a VM with a recording chrome double; protocol rejection, pairing enforcement, no-API-touch-while-unpaired, manifest minimality",
+      "caveat": "The chrome API is a double. No real tab, DOM or permission prompt. Proves the extension's decisions, NOT that it works in Chrome; scripting.executeScript reaching a page is unproven until the extension is loaded for real."
     },
     {
       "id": "AZ-213",
       "subject": "service worker",
       "area": "Browser Extension and Web Control",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P12",
+      "evidence": "src/lib/__tests__/extension-zero-touch.test.ts - 14 tests EXECUTING extension/background.js in a VM with a recording chrome double; protocol rejection, pairing enforcement, no-API-touch-while-unpaired, manifest minimality",
+      "caveat": "The chrome API is a double. No real tab, DOM or permission prompt. Proves the extension's decisions, NOT that it works in Chrome; scripting.executeScript reaching a page is unproven until the extension is loaded for real."
     },
     {
       "id": "AZ-214",
       "subject": "content scripts",
       "area": "Browser Extension and Web Control",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P12",
+      "evidence": "src/lib/__tests__/extension-zero-touch.test.ts - 14 tests EXECUTING extension/background.js in a VM with a recording chrome double; protocol rejection, pairing enforcement, no-API-touch-while-unpaired, manifest minimality",
+      "caveat": "The chrome API is a double. No real tab, DOM or permission prompt. Proves the extension's decisions, NOT that it works in Chrome; scripting.executeScript reaching a page is unproven until the extension is loaded for real."
     },
     {
       "id": "AZ-215",
       "subject": "origin permissions",
       "area": "Browser Extension and Web Control",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P12",
+      "evidence": "src/lib/__tests__/extension-zero-touch.test.ts - 14 tests EXECUTING extension/background.js in a VM with a recording chrome double; protocol rejection, pairing enforcement, no-API-touch-while-unpaired, manifest minimality",
+      "caveat": "The chrome API is a double. No real tab, DOM or permission prompt. Proves the extension's decisions, NOT that it works in Chrome; scripting.executeScript reaching a page is unproven until the extension is loaded for real."
     },
     {
       "id": "AZ-216",
@@ -3770,7 +3785,7 @@
   "verifiedCommands": {
     "typecheck": "PASS",
     "lint": "PASS",
-    "tests": "3622 passed | 1 skipped (3623) across 226 files",
+    "tests": "3636 passed | 1 skipped (3637) across 227 files",
     "build": "PASS",
     "gates": "26/26",
     "rustTests": "25/25"
