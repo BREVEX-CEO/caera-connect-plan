@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-30T11:55:20.095Z",
-  "head": "c62050f",
+  "generatedAt": "2026-07-30T12:03:10.762Z",
+  "head": "4ff5975",
   "branch": "feat/ocade-implementation",
-  "phase": "P11 - Unknown-application learning and versioned skills (complete)",
+  "phase": "P13 - Mobile supervisor and cross-device continuity (key exchange complete; real device unproven)",
   "method": "Semantic subject-to-module mapping validated against a production import-reachability graph, executed tests separated from source-text assertions, and executed gate results. Source-text assertions are graded SOURCE COMPLETE, never UNIT TESTED.",
   "denominators": {
     "originalCore": 450,
@@ -11,28 +11,28 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 211.7,
+      "numerator": 213.3,
       "denominator": 450,
-      "percent": 47
+      "percent": 47.4
     },
     "expanded": {
-      "numerator": 226.8,
+      "numerator": 228.4,
       "denominator": 510,
-      "percent": 44.5
+      "percent": 44.8
     }
   },
   "evidenceTiers": {
-    "simulatedRuntime": 34,
+    "simulatedRuntime": 41,
     "hostedRuntime": 0,
     "realTargetRuntime": 11,
     "productionReady": 0
   },
   "counts": {
-    "UNIT TESTED": 220,
+    "UNIT TESTED": 215,
     "PARTIAL SOURCE": 8,
-    "SOURCE COMPLETE": 50,
+    "SOURCE COMPLETE": 48,
     "NOT STARTED": 61,
-    "SIMULATED RUNTIME VERIFIED": 34,
+    "SIMULATED RUNTIME VERIFIED": 41,
     "INTEGRATION TESTED": 50,
     "EXTERNALLY BLOCKED": 76,
     "REAL TARGET RUNTIME VERIFIED": 11
@@ -2424,15 +2424,21 @@
       "id": "AZ-252",
       "subject": "Capacitor shell",
       "area": "Mobile Application and Native Bridge",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P13",
+      "evidence": "src/lib/__tests__/pairing-keys.test.ts - 15 tests with real ECDH keys: MITM produces differing SAS on each side, reflection attack refused, insecure relay refused, SAS order-independent, confirmation requires the digits the user actually saw",
+      "caveat": "Simulated only. No physical phone has paired; the relay is not deployed. Real device pairing remains unproven."
     },
     {
       "id": "AZ-253",
       "subject": "Android plugin",
       "area": "Mobile Application and Native Bridge",
-      "status": "SOURCE COMPLETE",
-      "weight": 0.4
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P13",
+      "evidence": "src/lib/__tests__/pairing-keys.test.ts - 15 tests with real ECDH keys: MITM produces differing SAS on each side, reflection attack refused, insecure relay refused, SAS order-independent, confirmation requires the digits the user actually saw",
+      "caveat": "Simulated only. No physical phone has paired; the relay is not deployed. Real device pairing remains unproven."
     },
     {
       "id": "AZ-254",
@@ -2507,64 +2513,71 @@
       "id": "AZ-263",
       "subject": "sequence watermark",
       "area": "Reconnect Replay Protection and Reconciliation",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P21",
-      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P13",
+      "evidence": "src/lib/__tests__/pairing-keys.test.ts - 15 tests with real ECDH keys: MITM produces differing SAS on each side, reflection attack refused, insecure relay refused, SAS order-independent, confirmation requires the digits the user actually saw",
+      "caveat": "Simulated only. No physical phone has paired; the relay is not deployed. Real device pairing remains unproven."
     },
     {
       "id": "AZ-264",
       "subject": "replay refusal",
       "area": "Reconnect Replay Protection and Reconciliation",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P21",
-      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P13",
+      "evidence": "src/lib/__tests__/pairing-keys.test.ts - 15 tests with real ECDH keys: MITM produces differing SAS on each side, reflection attack refused, insecure relay refused, SAS order-independent, confirmation requires the digits the user actually saw",
+      "caveat": "Simulated only. No physical phone has paired; the relay is not deployed. Real device pairing remains unproven."
     },
     {
       "id": "AZ-265",
       "subject": "handshake",
       "area": "Reconnect Replay Protection and Reconciliation",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P21",
-      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P13",
+      "evidence": "src/lib/__tests__/pairing-keys.test.ts - 15 tests with real ECDH keys: MITM produces differing SAS on each side, reflection attack refused, insecure relay refused, SAS order-independent, confirmation requires the digits the user actually saw",
+      "caveat": "Simulated only. No physical phone has paired; the relay is not deployed. Real device pairing remains unproven."
     },
     {
       "id": "AZ-266",
       "subject": "checkpoint reconciliation",
       "area": "Reconnect Replay Protection and Reconciliation",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P21",
-      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P13",
+      "evidence": "src/lib/__tests__/pairing-keys.test.ts - 15 tests with real ECDH keys: MITM produces differing SAS on each side, reflection attack refused, insecure relay refused, SAS order-independent, confirmation requires the digits the user actually saw",
+      "caveat": "Simulated only. No physical phone has paired; the relay is not deployed. Real device pairing remains unproven."
     },
     {
       "id": "AZ-267",
       "subject": "duplicates",
       "area": "Reconnect Replay Protection and Reconciliation",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P21",
-      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P13",
+      "evidence": "src/lib/__tests__/pairing-keys.test.ts - 15 tests with real ECDH keys: MITM produces differing SAS on each side, reflection attack refused, insecure relay refused, SAS order-independent, confirmation requires the digits the user actually saw",
+      "caveat": "Simulated only. No physical phone has paired; the relay is not deployed. Real device pairing remains unproven."
     },
     {
       "id": "AZ-268",
       "subject": "emergency propagation",
       "area": "Reconnect Replay Protection and Reconciliation",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P21",
-      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P13",
+      "evidence": "src/lib/__tests__/pairing-keys.test.ts - 15 tests with real ECDH keys: MITM produces differing SAS on each side, reflection attack refused, insecure relay refused, SAS order-independent, confirmation requires the digits the user actually saw",
+      "caveat": "Simulated only. No physical phone has paired; the relay is not deployed. Real device pairing remains unproven."
     },
     {
       "id": "AZ-269",
       "subject": "conflicts",
       "area": "Reconnect Replay Protection and Reconciliation",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P21",
-      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P13",
+      "evidence": "src/lib/__tests__/pairing-keys.test.ts - 15 tests with real ECDH keys: MITM produces differing SAS on each side, reflection attack refused, insecure relay refused, SAS order-independent, confirmation requires the digits the user actually saw",
+      "caveat": "Simulated only. No physical phone has paired; the relay is not deployed. Real device pairing remains unproven."
     },
     {
       "id": "AZ-270",
@@ -3887,7 +3900,7 @@
   "verifiedCommands": {
     "typecheck": "PASS",
     "lint": "PASS",
-    "tests": "3879 passed | 1 skipped (3880) across 233 files",
+    "tests": "3894 passed | 1 skipped (3895) across 234 files",
     "build": "PASS",
     "gates": "27/27",
     "rustTests": "25/25"
