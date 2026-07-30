@@ -18,6 +18,7 @@ import {
   UNKNOWN_APP_SUPPORT_LABELS,
 } from "@/lib/skills/unknown-app-learning";
 import { describeRunnable } from "@/lib/skills/executor-registry";
+import { SkillTrustPanel } from "@/components/settings/SkillTrustPanel";
 import { createDefaultExecutors, RUNTIME_REALITY } from "@/lib/skills/default-executors";
 import { DataWorkbench } from "@/components/ocade/DataWorkbench";
 import { CriteriaScorecard } from "@/components/ocade/CriteriaScorecard";
@@ -70,6 +71,9 @@ function SkillsPage() {
         <GlassPanel className="p-4">
           <p className="text-sm text-muted-foreground">{describeCoverage(report)}</p>
         </GlassPanel>
+
+        {/* Signing, capability sandbox and revocation for community skills. */}
+        <SkillTrustPanel />
 
         {/*
           What runs HERE, right now, versus what needs another component. A user
