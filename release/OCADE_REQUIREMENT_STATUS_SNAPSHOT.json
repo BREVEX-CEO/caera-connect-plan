@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-30T09:37:11.310Z",
-  "head": "112c361",
+  "generatedAt": "2026-07-30T10:27:39.581Z",
+  "head": "8b8d1ad",
   "branch": "feat/ocade-implementation",
-  "phase": "P12 - Browser control and zero-touch test profile (protocol half complete)",
+  "phase": "P20 - Test architecture correction (complete)",
   "method": "Semantic subject-to-module mapping validated against a production import-reachability graph, executed tests separated from source-text assertions, and executed gate results. Source-text assertions are graded SOURCE COMPLETE, never UNIT TESTED.",
   "denominators": {
     "originalCore": 450,
@@ -11,14 +11,14 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 203.5,
+      "numerator": 204.7,
       "denominator": 450,
-      "percent": 45.2
+      "percent": 45.5
     },
     "expanded": {
-      "numerator": 217.2,
+      "numerator": 218.4,
       "denominator": 510,
-      "percent": 42.6
+      "percent": 42.8
     }
   },
   "evidenceTiers": {
@@ -28,14 +28,14 @@
     "productionReady": 0
   },
   "counts": {
-    "UNIT TESTED": 233,
+    "UNIT TESTED": 221,
     "PARTIAL SOURCE": 8,
     "SOURCE COMPLETE": 50,
     "NOT STARTED": 70,
     "SIMULATED RUNTIME VERIFIED": 17,
+    "INTEGRATION TESTED": 51,
     "EXTERNALLY BLOCKED": 82,
-    "REAL TARGET RUNTIME VERIFIED": 11,
-    "INTEGRATION TESTED": 39
+    "REAL TARGET RUNTIME VERIFIED": 11
   },
   "requirements": [
     {
@@ -932,50 +932,64 @@
       "id": "AZ-065",
       "subject": "navigation",
       "area": "UX Information Architecture",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P20",
+      "evidence": "Every shipped route assembles at its real URL through the real router; authenticated surfaces proven not to leak signed-in content server-side."
     },
     {
       "id": "AZ-066",
       "subject": "routes",
       "area": "UX Information Architecture",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P20",
+      "evidence": "Every shipped route assembles at its real URL through the real router; authenticated surfaces proven not to leak signed-in content server-side."
     },
     {
       "id": "AZ-067",
       "subject": "primary actions",
       "area": "UX Information Architecture",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P20",
+      "evidence": "Every shipped route assembles at its real URL through the real router; authenticated surfaces proven not to leak signed-in content server-side."
     },
     {
       "id": "AZ-068",
       "subject": "progressive disclosure",
       "area": "UX Information Architecture",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P20",
+      "evidence": "Every shipped route assembles at its real URL through the real router; authenticated surfaces proven not to leak signed-in content server-side."
     },
     {
       "id": "AZ-069",
       "subject": "setup states",
       "area": "UX Information Architecture",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P20",
+      "evidence": "Every shipped route assembles at its real URL through the real router; authenticated surfaces proven not to leak signed-in content server-side."
     },
     {
       "id": "AZ-070",
       "subject": "empty states",
       "area": "UX Information Architecture; GUI Integration and No-Dead-Control Enforcement",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P20",
+      "evidence": "Every shipped route assembles at its real URL through the real router; authenticated surfaces proven not to leak signed-in content server-side."
     },
     {
       "id": "AZ-071",
       "subject": "error states",
       "area": "UX Information Architecture",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P20",
+      "evidence": "Every shipped route assembles at its real URL through the real router; authenticated surfaces proven not to leak signed-in content server-side."
     },
     {
       "id": "AZ-072",
@@ -3012,36 +3026,46 @@
       "id": "AZ-342",
       "subject": "unit",
       "area": "Test Architecture and Evidence Ladder",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P20",
+      "evidence": "route-router-render.test.tsx mounts the real generated route tree on a memory history and assembles 85 real URLs (0 routes were previously executed); route-execution.test.tsx proves every route module evaluates; scripts/check-test-kinds.mjs classifies all 230 test files and is enforced as a gate"
     },
     {
       "id": "AZ-343",
       "subject": "integration",
       "area": "Test Architecture and Evidence Ladder",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P20",
+      "evidence": "route-router-render.test.tsx mounts the real generated route tree on a memory history and assembles 85 real URLs (0 routes were previously executed); route-execution.test.tsx proves every route module evaluates; scripts/check-test-kinds.mjs classifies all 230 test files and is enforced as a gate"
     },
     {
       "id": "AZ-344",
       "subject": "simulated runtime",
       "area": "Test Architecture and Evidence Ladder",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P20",
+      "evidence": "route-router-render.test.tsx mounts the real generated route tree on a memory history and assembles 85 real URLs (0 routes were previously executed); route-execution.test.tsx proves every route module evaluates; scripts/check-test-kinds.mjs classifies all 230 test files and is enforced as a gate"
     },
     {
       "id": "AZ-345",
       "subject": "real runtime",
       "area": "Test Architecture and Evidence Ladder",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P20",
+      "evidence": "route-router-render.test.tsx mounts the real generated route tree on a memory history and assembles 85 real URLs (0 routes were previously executed); route-execution.test.tsx proves every route module evaluates; scripts/check-test-kinds.mjs classifies all 230 test files and is enforced as a gate"
     },
     {
       "id": "AZ-346",
       "subject": "adversarial tests",
       "area": "Test Architecture and Evidence Ladder",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P20",
+      "evidence": "route-router-render.test.tsx mounts the real generated route tree on a memory history and assembles 85 real URLs (0 routes were previously executed); route-execution.test.tsx proves every route module evaluates; scripts/check-test-kinds.mjs classifies all 230 test files and is enforced as a gate"
     },
     {
       "id": "AZ-347",
@@ -3785,14 +3809,22 @@
   "verifiedCommands": {
     "typecheck": "PASS",
     "lint": "PASS",
-    "tests": "3636 passed | 1 skipped (3637) across 227 files",
+    "tests": "3817 passed | 1 skipped (3818) across 230 files",
     "build": "PASS",
-    "gates": "26/26",
+    "gates": "27/27",
     "rustTests": "25/25"
   },
   "productionWiring": {
     "testOnlyModules": 0,
     "nonRuntimeLedger": 0,
     "note": "Import-graph reachability: 338 of 375 non-test source files reachable; the 37 unreached are unused shadcn UI primitives carrying no requirement."
+  },
+  "testArchitecture": {
+    "files": 230,
+    "execution": 181,
+    "mixed": 23,
+    "structuralOnly": 26,
+    "routesExecuted": "85 URLs (was 0)",
+    "gates": 27
   }
 }
