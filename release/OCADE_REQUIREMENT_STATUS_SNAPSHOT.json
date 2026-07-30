@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-30T10:27:39.581Z",
-  "head": "8b8d1ad",
+  "generatedAt": "2026-07-30T10:51:37.023Z",
+  "head": "ed961c2",
   "branch": "feat/ocade-implementation",
-  "phase": "P20 - Test architecture correction (complete)",
+  "phase": "P16 - Authentication, database twin and staging (twin complete; staging blocked on owner authority)",
   "method": "Semantic subject-to-module mapping validated against a production import-reachability graph, executed tests separated from source-text assertions, and executed gate results. Source-text assertions are graded SOURCE COMPLETE, never UNIT TESTED.",
   "denominators": {
     "originalCore": 450,
@@ -11,30 +11,30 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 204.7,
+      "numerator": 207.5,
       "denominator": 450,
-      "percent": 45.5
+      "percent": 46.1
     },
     "expanded": {
-      "numerator": 218.4,
+      "numerator": 221.9,
       "denominator": 510,
-      "percent": 42.8
+      "percent": 43.5
     }
   },
   "evidenceTiers": {
-    "simulatedRuntime": 17,
+    "simulatedRuntime": 29,
     "hostedRuntime": 0,
     "realTargetRuntime": 11,
     "productionReady": 0
   },
   "counts": {
-    "UNIT TESTED": 221,
+    "UNIT TESTED": 216,
     "PARTIAL SOURCE": 8,
     "SOURCE COMPLETE": 50,
-    "NOT STARTED": 70,
-    "SIMULATED RUNTIME VERIFIED": 17,
+    "NOT STARTED": 69,
+    "SIMULATED RUNTIME VERIFIED": 29,
     "INTEGRATION TESTED": 51,
-    "EXTERNALLY BLOCKED": 82,
+    "EXTERNALLY BLOCKED": 76,
     "REAL TARGET RUNTIME VERIFIED": 11
   },
   "requirements": [
@@ -333,8 +333,11 @@
       "id": "HWE-30",
       "subject": "Local database and identity digital twin",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P16",
+      "evidence": "src/lib/__tests__/db-twin.test.ts - 14 tests executing 31 migrations against real PostgreSQL 18.3 (PGlite) with unmodified pgcrypto/pg_trgm; RLS proven to bite under SET ROLE authenticated; cross-tenant read, forged insert and anonymous access all refused",
+      "caveat": "Local twin only. Not the production database: no GoTrue, realtime or storage service, and no deployment proven. Migration 20260721153321 FAILS - it comments on ficia_time_entries which no migration creates, so this set cannot rebuild the database from scratch."
     },
     {
       "id": "HWE-31",
@@ -1058,36 +1061,51 @@
       "id": "AZ-081",
       "subject": "auth middleware",
       "area": "Identity Sessions and Tenant Isolation",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P16",
+      "evidence": "src/lib/__tests__/db-twin.test.ts - 14 tests executing 31 migrations against real PostgreSQL 18.3 (PGlite) with unmodified pgcrypto/pg_trgm; RLS proven to bite under SET ROLE authenticated; cross-tenant read, forged insert and anonymous access all refused",
+      "caveat": "Local twin only. Not the production database: no GoTrue, realtime or storage service, and no deployment proven. Migration 20260721153321 FAILS - it comments on ficia_time_entries which no migration creates, so this set cannot rebuild the database from scratch."
     },
     {
       "id": "AZ-082",
       "subject": "sessions",
       "area": "Identity Sessions and Tenant Isolation",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P16",
+      "evidence": "src/lib/__tests__/db-twin.test.ts - 14 tests executing 31 migrations against real PostgreSQL 18.3 (PGlite) with unmodified pgcrypto/pg_trgm; RLS proven to bite under SET ROLE authenticated; cross-tenant read, forged insert and anonymous access all refused",
+      "caveat": "Local twin only. Not the production database: no GoTrue, realtime or storage service, and no deployment proven. Migration 20260721153321 FAILS - it comments on ficia_time_entries which no migration creates, so this set cannot rebuild the database from scratch."
     },
     {
       "id": "AZ-083",
       "subject": "tenant resolution",
       "area": "Identity Sessions and Tenant Isolation",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P16",
+      "evidence": "src/lib/__tests__/db-twin.test.ts - 14 tests executing 31 migrations against real PostgreSQL 18.3 (PGlite) with unmodified pgcrypto/pg_trgm; RLS proven to bite under SET ROLE authenticated; cross-tenant read, forged insert and anonymous access all refused",
+      "caveat": "Local twin only. Not the production database: no GoTrue, realtime or storage service, and no deployment proven. Migration 20260721153321 FAILS - it comments on ficia_time_entries which no migration creates, so this set cannot rebuild the database from scratch."
     },
     {
       "id": "AZ-084",
       "subject": "device registration",
       "area": "Identity Sessions and Tenant Isolation",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P16",
+      "evidence": "src/lib/__tests__/db-twin.test.ts - 14 tests executing 31 migrations against real PostgreSQL 18.3 (PGlite) with unmodified pgcrypto/pg_trgm; RLS proven to bite under SET ROLE authenticated; cross-tenant read, forged insert and anonymous access all refused",
+      "caveat": "Local twin only. Not the production database: no GoTrue, realtime or storage service, and no deployment proven. Migration 20260721153321 FAILS - it comments on ficia_time_entries which no migration creates, so this set cannot rebuild the database from scratch."
     },
     {
       "id": "AZ-085",
       "subject": "revocation",
       "area": "Identity Sessions and Tenant Isolation; Security Hardening and Adversarial Testing; Authentication Accounts and Device Management",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P16",
+      "evidence": "src/lib/__tests__/db-twin.test.ts - 14 tests executing 31 migrations against real PostgreSQL 18.3 (PGlite) with unmodified pgcrypto/pg_trgm; RLS proven to bite under SET ROLE authenticated; cross-tenant read, forged insert and anonymous access all refused",
+      "caveat": "Local twin only. Not the production database: no GoTrue, realtime or storage service, and no deployment proven. Migration 20260721153321 FAILS - it comments on ficia_time_entries which no migration creates, so this set cannot rebuild the database from scratch."
     },
     {
       "id": "AZ-086",
@@ -1170,43 +1188,61 @@
       "id": "AZ-097",
       "subject": "schema",
       "area": "Database Schema Migrations and Rollback",
-      "status": "EXTERNALLY BLOCKED",
-      "weight": 0.4
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P16",
+      "evidence": "src/lib/__tests__/db-twin.test.ts - 14 tests executing 31 migrations against real PostgreSQL 18.3 (PGlite) with unmodified pgcrypto/pg_trgm; RLS proven to bite under SET ROLE authenticated; cross-tenant read, forged insert and anonymous access all refused",
+      "caveat": "Local twin only. Not the production database: no GoTrue, realtime or storage service, and no deployment proven. Migration 20260721153321 FAILS - it comments on ficia_time_entries which no migration creates, so this set cannot rebuild the database from scratch."
     },
     {
       "id": "AZ-098",
       "subject": "RLS",
       "area": "Database Schema Migrations and Rollback",
-      "status": "EXTERNALLY BLOCKED",
-      "weight": 0.4
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P16",
+      "evidence": "src/lib/__tests__/db-twin.test.ts - 14 tests executing 31 migrations against real PostgreSQL 18.3 (PGlite) with unmodified pgcrypto/pg_trgm; RLS proven to bite under SET ROLE authenticated; cross-tenant read, forged insert and anonymous access all refused",
+      "caveat": "Local twin only. Not the production database: no GoTrue, realtime or storage service, and no deployment proven. Migration 20260721153321 FAILS - it comments on ficia_time_entries which no migration creates, so this set cannot rebuild the database from scratch."
     },
     {
       "id": "AZ-099",
       "subject": "rollbacks",
       "area": "Database Schema Migrations and Rollback",
-      "status": "EXTERNALLY BLOCKED",
-      "weight": 0.4
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P16",
+      "evidence": "src/lib/__tests__/db-twin.test.ts - 14 tests executing 31 migrations against real PostgreSQL 18.3 (PGlite) with unmodified pgcrypto/pg_trgm; RLS proven to bite under SET ROLE authenticated; cross-tenant read, forged insert and anonymous access all refused",
+      "caveat": "Local twin only. Not the production database: no GoTrue, realtime or storage service, and no deployment proven. Migration 20260721153321 FAILS - it comments on ficia_time_entries which no migration creates, so this set cannot rebuild the database from scratch."
     },
     {
       "id": "AZ-100",
       "subject": "verification SQL",
       "area": "Database Schema Migrations and Rollback",
-      "status": "EXTERNALLY BLOCKED",
-      "weight": 0.4
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P16",
+      "evidence": "src/lib/__tests__/db-twin.test.ts - 14 tests executing 31 migrations against real PostgreSQL 18.3 (PGlite) with unmodified pgcrypto/pg_trgm; RLS proven to bite under SET ROLE authenticated; cross-tenant read, forged insert and anonymous access all refused",
+      "caveat": "Local twin only. Not the production database: no GoTrue, realtime or storage service, and no deployment proven. Migration 20260721153321 FAILS - it comments on ficia_time_entries which no migration creates, so this set cannot rebuild the database from scratch."
     },
     {
       "id": "AZ-101",
       "subject": "catalogue assertions",
       "area": "Database Schema Migrations and Rollback",
-      "status": "EXTERNALLY BLOCKED",
-      "weight": 0.4
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P16",
+      "evidence": "src/lib/__tests__/db-twin.test.ts - 14 tests executing 31 migrations against real PostgreSQL 18.3 (PGlite) with unmodified pgcrypto/pg_trgm; RLS proven to bite under SET ROLE authenticated; cross-tenant read, forged insert and anonymous access all refused",
+      "caveat": "Local twin only. Not the production database: no GoTrue, realtime or storage service, and no deployment proven. Migration 20260721153321 FAILS - it comments on ficia_time_entries which no migration creates, so this set cannot rebuild the database from scratch."
     },
     {
       "id": "AZ-102",
       "subject": "seed data",
       "area": "Database Schema Migrations and Rollback",
-      "status": "EXTERNALLY BLOCKED",
-      "weight": 0.4
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P16",
+      "evidence": "src/lib/__tests__/db-twin.test.ts - 14 tests executing 31 migrations against real PostgreSQL 18.3 (PGlite) with unmodified pgcrypto/pg_trgm; RLS proven to bite under SET ROLE authenticated; cross-tenant read, forged insert and anonymous access all refused",
+      "caveat": "Local twin only. Not the production database: no GoTrue, realtime or storage service, and no deployment proven. Migration 20260721153321 FAILS - it comments on ficia_time_entries which no migration creates, so this set cannot rebuild the database from scratch."
     },
     {
       "id": "AZ-103",
@@ -3809,7 +3845,7 @@
   "verifiedCommands": {
     "typecheck": "PASS",
     "lint": "PASS",
-    "tests": "3817 passed | 1 skipped (3818) across 230 files",
+    "tests": "3831 passed | 1 skipped (3832) across 231 files",
     "build": "PASS",
     "gates": "27/27",
     "rustTests": "25/25"
@@ -3826,5 +3862,14 @@
     "structuralOnly": 26,
     "routesExecuted": "85 URLs (was 0)",
     "gates": 27
-  }
+  },
+  "openDefects": [
+    {
+      "id": "DB-01",
+      "severity": "high",
+      "what": "Migration 20260721153321 comments on public.ficia_time_entries, which no tracked migration creates. The migration set cannot rebuild the database from scratch.",
+      "foundBy": "P16 database twin",
+      "notFixedBecause": "Reconstructing the table from generated Supabase types would omit its RLS policies, turning a schema gap into a data-exposure bug. The missing CREATE migration must come from the project that owns the schema."
+    }
+  ]
 }
