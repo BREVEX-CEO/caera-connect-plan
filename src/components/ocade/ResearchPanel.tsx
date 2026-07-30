@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Globe, ShieldAlert, ShieldCheck } from "lucide-react";
+import { runResearchQuery, type ResearchRunResponse } from "@/lib/research.functions";
 import { Button } from "@/components/ui/button";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { cn } from "@/lib/utils";
@@ -76,6 +78,49 @@ type Demo = "syndication" | "incident";
 
 export function ResearchPanel() {
   const [demo, setDemo] = useState<Demo | null>(null);
+  const runQuery = useServerFn(runResearchQuery);
+  const [running, setRunning] = useState(false);
+  const [runResult, setRunResult] = useState<ResearchRunResponse | null>(null);
+
+  /*
+   * P21: a real research run, executed server-side.
+   *
+   * The pipeline (runResearch + createHttpSourceFetcher + ResearchCache +
+   * the fallback planner) was complete and tested but reachable only from
+   * tests. It runs on the server because the SSRF guard has to run where the
+   * request is actually made — a guard in the browser protects nothing — and
+   * because CORS would otherwise decide which sources "exist".
+   */
+  const runRealResearch = useCallback(async () => {
+    setRunning(true);
+    setRunResult(null);
+    try {
+      const res = (await runQuery({
+        data: {
+          query: "What is the current UK guidance on flood warnings?",
+          topic: "flooding",
+          volatility: "daily",
+          candidates: [
+            { url: "https://www.gov.uk/check-flood-risk", title: "Check flood risk", publishedAt: null },
+            {
+              url: "https://en.wikipedia.org/wiki/Flood_warning",
+              title: "Flood warning",
+              publishedAt: null,
+            },
+          ],
+        },
+      })) as ResearchRunResponse;
+      setRunResult(res);
+    } catch (e) {
+      setRunResult({
+        ok: false,
+        reason: e instanceof Error ? e.message : "The research run could not be started.",
+        allowedHosts: [],
+      });
+    } finally {
+      setRunning(false);
+    }
+  }, [runQuery]);
 
   const syndication = assessClaim(
     {
@@ -102,6 +147,34 @@ export function ResearchPanel() {
         Fetching pages needs a network. Judging them doesn't — and that's where research goes wrong.
         These run the real code on the two cases that most often produce a confident, wrong answer.
       </p>
+
+      <div className="mb-3 rounded border border-border p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" onClick={() => void runRealResearch()} disabled={running}>
+            {running ? "Researching…" : "Run a real research query"}
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            Runs on the server. Only an allowlisted set of hosts can be reached.
+          </span>
+        </div>
+        {runResult && (
+          <div className="mt-2 text-xs">
+            {runResult.ok ? (
+              <p className="text-muted-foreground">
+                Answered from {runResult.result.subAnswers?.length ?? 0} sub-question
+                {(runResult.result.subAnswers?.length ?? 0) === 1 ? "" : "s"}.
+              </p>
+            ) : (
+              <p className="text-muted-foreground">Refused: {runResult.reason}</p>
+            )}
+            {runResult.allowedHosts.length > 0 && (
+              <p className="mt-0.5 text-muted-foreground">
+                Reachable hosts: {runResult.allowedHosts.join(", ")}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-wrap gap-2">
         <Button

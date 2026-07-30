@@ -1,6 +1,8 @@
+import { useEffect, useState } from "react";
 import { AppWindow, HelpCircle } from "lucide-react";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { AppCoverageRegistry, type AppCoverageInfo } from "@/lib/providers/app-coverage-registry";
+import { createToolProber } from "@/lib/providers/tool-prober";
 
 /**
  * Which applications OCADE can drive — and, here, why it cannot say.
@@ -26,26 +28,43 @@ const CANDIDATES: { id: string; name: string }[] = [
   { id: "app.calculix", name: "CalculiX" },
 ];
 
-/**
- * Reads the real registry's state for applications nothing has probed.
- *
- * No scan is started. A scan is asynchronous, and firing one without awaiting
- * it — then reading the result synchronously — would depend on the scan
- * happening to complete before its first suspension point. The registered state
- * is already the honest answer here, and it is produced by the registry itself
- * rather than written into this component.
- */
-function currentCoverage(): AppCoverageInfo[] {
+function newRegistry(): AppCoverageRegistry {
   const registry = new AppCoverageRegistry();
   for (const candidate of CANDIDATES) {
     registry.registerAppProfile(candidate.id, candidate.name);
   }
-  return registry.getCoverageReport();
+  return registry;
 }
 
-const ROWS = currentCoverage();
+/** Unprobed state, rendered until an actual scan reports back. */
+const INITIAL_ROWS = newRegistry().getCoverageReport();
 
 export function AppCoveragePanel() {
+  const [rows, setRows] = useState<AppCoverageInfo[]>(INITIAL_ROWS);
+
+  /*
+   * P21: actually ATTEMPT a probe rather than never trying.
+   *
+   * `createToolProber(null)` throws, because a browser cannot run a process —
+   * and the registry turns a throwing probe into BLOCKED (unknown), never
+   * UNSUPPORTED (absent). The rendered result is therefore the same as before
+   * in a browser, but it is now DERIVED from an attempted probe instead of
+   * from the absence of one. The difference matters the moment this component
+   * runs anywhere a runner exists.
+   */
+  useEffect(() => {
+    let live = true;
+    void (async () => {
+      const registry = newRegistry();
+      await registry.runCoverageScan(createToolProber(null));
+      if (live) setRows(registry.getCoverageReport());
+    })();
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const ROWS = rows;
   return (
     <GlassPanel className="p-4">
       <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold">
