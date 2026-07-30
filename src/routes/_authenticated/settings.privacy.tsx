@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { DATA_CLASSES, loadAllModes, setModeFor } from "@/lib/storage/resolver";
 import type { DataClass, StorageMode } from "@/lib/storage/types";
 import { isUnlocked, isVaultConfigured } from "@/lib/storage/vault";
+import { TelemetryPanel } from "@/components/settings/TelemetryPanel";
 
 export const Route = createFileRoute("/_authenticated/settings/privacy")({
   head: () => ({
@@ -84,6 +85,11 @@ function PrivacyPage() {
           </Link>
         }
       />
+
+      {/* Opt-in failure reporting. Consent lives with the other privacy choices. */}
+      <div className="mt-4">
+        <TelemetryPanel />
+      </div>
 
       <GlassPanel className="mt-4 flex items-start gap-3 p-4 text-xs text-muted-foreground">
         <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
