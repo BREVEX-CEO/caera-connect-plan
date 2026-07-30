@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-30T00:56:39.009Z",
-  "head": "c2ab40c",
+  "generatedAt": "2026-07-30T09:29:48.253Z",
+  "head": "be653db",
   "branch": "feat/ocade-implementation",
-  "phase": "P21 - Production wiring closure (complete); P09 safety core executed",
+  "phase": "P10 - Universal PC-control transaction engine (complete)",
   "method": "Semantic subject-to-module mapping validated against a production import-reachability graph, executed tests separated from source-text assertions, and executed gate results. Source-text assertions are graded SOURCE COMPLETE, never UNIT TESTED.",
   "denominators": {
     "originalCore": 450,
@@ -11,31 +11,31 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 201.6,
+      "numerator": 203.1,
       "denominator": 450,
-      "percent": 44.8
+      "percent": 45.1
     },
     "expanded": {
-      "numerator": 214.8,
+      "numerator": 216.3,
       "denominator": 510,
-      "percent": 42.1
+      "percent": 42.4
     }
   },
   "evidenceTiers": {
-    "simulatedRuntime": 9,
+    "simulatedRuntime": 17,
     "hostedRuntime": 0,
     "realTargetRuntime": 11,
     "productionReady": 0
   },
   "counts": {
-    "UNIT TESTED": 235,
+    "UNIT TESTED": 228,
     "PARTIAL SOURCE": 8,
     "SOURCE COMPLETE": 54,
     "NOT STARTED": 71,
-    "SIMULATED RUNTIME VERIFIED": 9,
+    "SIMULATED RUNTIME VERIFIED": 17,
     "EXTERNALLY BLOCKED": 82,
     "REAL TARGET RUNTIME VERIFIED": 11,
-    "INTEGRATION TESTED": 40
+    "INTEGRATION TESTED": 39
   },
   "requirements": [
     {
@@ -1670,50 +1670,71 @@
       "id": "AZ-165",
       "subject": "risk scoring",
       "area": "Risk Evaluation and Permission UX",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P10",
+      "evidence": "release/OCADE_PC_TRANSACTION_EVIDENCE.json - 13/13 transaction stages executed against the P07 simulator (cages, expiry, destructive confirmation, dry run, verified backup, reverse-order rollback, journal replay)",
+      "caveat": "Simulated only. Executed against the accessibility simulator, not a real application. Real Windows control remains gated on a built and signed Tauri companion."
     },
     {
       "id": "AZ-166",
       "subject": "permission prompts",
       "area": "Risk Evaluation and Permission UX",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P10",
+      "evidence": "release/OCADE_PC_TRANSACTION_EVIDENCE.json - 13/13 transaction stages executed against the P07 simulator (cages, expiry, destructive confirmation, dry run, verified backup, reverse-order rollback, journal replay)",
+      "caveat": "Simulated only. Executed against the accessibility simulator, not a real application. Real Windows control remains gated on a built and signed Tauri companion."
     },
     {
       "id": "AZ-167",
       "subject": "scope display",
       "area": "Risk Evaluation and Permission UX",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P10",
+      "evidence": "release/OCADE_PC_TRANSACTION_EVIDENCE.json - 13/13 transaction stages executed against the P07 simulator (cages, expiry, destructive confirmation, dry run, verified backup, reverse-order rollback, journal replay)",
+      "caveat": "Simulated only. Executed against the accessibility simulator, not a real application. Real Windows control remains gated on a built and signed Tauri companion."
     },
     {
       "id": "AZ-168",
       "subject": "expiry",
       "area": "Risk Evaluation and Permission UX; Reconnect Replay Protection and Reconciliation",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P10",
+      "evidence": "release/OCADE_PC_TRANSACTION_EVIDENCE.json - 13/13 transaction stages executed against the P07 simulator (cages, expiry, destructive confirmation, dry run, verified backup, reverse-order rollback, journal replay)",
+      "caveat": "Simulated only. Executed against the accessibility simulator, not a real application. Real Windows control remains gated on a built and signed Tauri companion."
     },
     {
       "id": "AZ-169",
       "subject": "reuse",
       "area": "Risk Evaluation and Permission UX",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P10",
+      "evidence": "release/OCADE_PC_TRANSACTION_EVIDENCE.json - 13/13 transaction stages executed against the P07 simulator (cages, expiry, destructive confirmation, dry run, verified backup, reverse-order rollback, journal replay)",
+      "caveat": "Simulated only. Executed against the accessibility simulator, not a real application. Real Windows control remains gated on a built and signed Tauri companion."
     },
     {
       "id": "AZ-170",
       "subject": "denial",
       "area": "Risk Evaluation and Permission UX",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P10",
+      "evidence": "release/OCADE_PC_TRANSACTION_EVIDENCE.json - 13/13 transaction stages executed against the P07 simulator (cages, expiry, destructive confirmation, dry run, verified backup, reverse-order rollback, journal replay)",
+      "caveat": "Simulated only. Executed against the accessibility simulator, not a real application. Real Windows control remains gated on a built and signed Tauri companion."
     },
     {
       "id": "AZ-171",
       "subject": "emergency policy",
       "area": "Risk Evaluation and Permission UX",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P10",
+      "evidence": "release/OCADE_PC_TRANSACTION_EVIDENCE.json - 13/13 transaction stages executed against the P07 simulator (cages, expiry, destructive confirmation, dry run, verified backup, reverse-order rollback, journal replay)",
+      "caveat": "Simulated only. Executed against the accessibility simulator, not a real application. Real Windows control remains gated on a built and signed Tauri companion."
     },
     {
       "id": "AZ-172",
@@ -1749,8 +1770,11 @@
       "id": "AZ-175",
       "subject": "verification",
       "area": "Deterministic Actions and Executor Registry; Screen Capture Vision and Set-of-Mark; Signing and Trust Distribution; Staging Database and Controlled Deployment",
-      "status": "INTEGRATION TESTED",
-      "weight": 0.6
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P10",
+      "evidence": "release/OCADE_PC_TRANSACTION_EVIDENCE.json - 13/13 transaction stages executed against the P07 simulator (cages, expiry, destructive confirmation, dry run, verified backup, reverse-order rollback, journal replay)",
+      "caveat": "Simulated only. Executed against the accessibility simulator, not a real application. Real Windows control remains gated on a built and signed Tauri companion."
     },
     {
       "id": "AZ-176",
@@ -3746,7 +3770,7 @@
   "verifiedCommands": {
     "typecheck": "PASS",
     "lint": "PASS",
-    "tests": "3591 passed | 1 skipped (3592) across 225 files",
+    "tests": "3622 passed | 1 skipped (3623) across 226 files",
     "build": "PASS",
     "gates": "26/26",
     "rustTests": "25/25"
