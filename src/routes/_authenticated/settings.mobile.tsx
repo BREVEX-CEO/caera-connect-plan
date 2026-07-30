@@ -45,6 +45,7 @@ import {
   type MobileIntent,
 } from "@/lib/mobile/companion-link";
 import { buildMobileTransportOrUnavailable } from "@/lib/mobile/transport-factory";
+import type { ChannelDescriptor } from "@/lib/mobile/pairing-keys";
 import type { QueuedItem } from "@/lib/offline-queue";
 import { canRegisterDevice, entitlementState } from "@/lib/ocade-allowance";
 import {
@@ -99,6 +100,8 @@ function describeIntent(intent: MobileIntent): string {
 function MobilePage() {
   const online = useOnline();
   const [challenge, setChallenge] = useState<PairingChallenge | null>(null);
+  /* Set only after the user compares the pairing digits on both devices. */
+  const [channel] = useState<ChannelDescriptor | null>(null);
   const [now, setNow] = useState(() => new Date());
   // Loaded from the durable store: pairing and — critically — REVOCATION must
   // survive a reload. Component state alone made both cosmetic.
@@ -157,30 +160,26 @@ function MobilePage() {
   }, []);
 
   /*
-   * P21: route transport selection through the real factory.
+   * P13: build the encrypted transport from a CONFIRMED channel.
    *
-   * The encrypted stack (relay socket -> reliable resend -> sealed envelopes)
-   * lived in three modules nothing outside tests imported. It is now composed
-   * by `buildMobileTransportOrUnavailable` and selected here, so the assembly
-   * is reachable and correct rather than hypothetical.
+   * P21 composed the transport stack but had nothing to build it from —
+   * pairing exchanged only a six-digit code, so no relay, room or peer key
+   * existed. P13 added the key exchange; `channel` below is the result of one
+   * whose short authentication string the user compared and accepted.
    *
-   * IT STILL RETURNS THE REFUSING TRANSPORT, and that is the honest outcome
-   * rather than a shortcoming of this wiring: `PairedDevice` records only id,
-   * label, kind, platform, timestamps and revocation. Pairing never exchanges
-   * a relay URL, a room, or the phone's public key — so there is no material
-   * from which to build a channel. Supplying placeholders would produce a
-   * transport that looks connected and encrypts to nobody.
-   *
-   * Extending the pairing protocol to carry a peer key is cryptographic
-   * protocol work, not wiring, and is deliberately not attempted here.
+   * Until that confirmation happens `channel` is null and the refusing
+   * transport stays in place. That is the correct default: an unconfirmed
+   * channel may be relayed by an attacker, and a transport that connected
+   * anyway would be encrypting to whoever is in the middle.
    */
   useEffect(() => {
     let live = true;
     void (async () => {
       const next = await buildMobileTransportOrUnavailable({
         deviceId: activeDevices()[0]?.id,
-        // relayUrl / roomId / peerPublicKey are genuinely unavailable: the
-        // pairing record does not carry them. Omitted rather than faked.
+        relayUrl: channel?.relayUrl,
+        roomId: channel?.roomId,
+        peerPublicKey: channel?.peerPublicKey,
       });
       if (!live) return;
       setMobileTransport(next);
@@ -191,7 +190,7 @@ function MobilePage() {
     return () => {
       live = false;
     };
-  }, [devices]);
+  }, [devices, channel]);
 
   // Read from the shared store, which applies expiry on read — so a request
   // that lapsed while no tab was open never shows as still pending.
