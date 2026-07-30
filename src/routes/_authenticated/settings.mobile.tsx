@@ -40,9 +40,11 @@ import {
   dispatchMobileIntent,
   flushMobileQueue,
   getMobileTransport,
+  setMobileTransport,
   MOBILE_TRANSPORT_UNAVAILABLE,
   type MobileIntent,
 } from "@/lib/mobile/companion-link";
+import { buildMobileTransportOrUnavailable } from "@/lib/mobile/transport-factory";
 import type { QueuedItem } from "@/lib/offline-queue";
 import { canRegisterDevice, entitlementState } from "@/lib/ocade-allowance";
 import {
@@ -154,13 +156,42 @@ function MobilePage() {
     return () => clearInterval(t);
   }, []);
 
+  /*
+   * P21: route transport selection through the real factory.
+   *
+   * The encrypted stack (relay socket -> reliable resend -> sealed envelopes)
+   * lived in three modules nothing outside tests imported. It is now composed
+   * by `buildMobileTransportOrUnavailable` and selected here, so the assembly
+   * is reachable and correct rather than hypothetical.
+   *
+   * IT STILL RETURNS THE REFUSING TRANSPORT, and that is the honest outcome
+   * rather than a shortcoming of this wiring: `PairedDevice` records only id,
+   * label, kind, platform, timestamps and revocation. Pairing never exchanges
+   * a relay URL, a room, or the phone's public key — so there is no material
+   * from which to build a channel. Supplying placeholders would produce a
+   * transport that looks connected and encrypts to nobody.
+   *
+   * Extending the pairing protocol to carry a peer key is cryptographic
+   * protocol work, not wiring, and is deliberately not attempted here.
+   */
   useEffect(() => {
-    void getMobileTransport()
-      .status()
-      .then((s) =>
-        setTransportReason(s.connected ? null : (s.reason ?? MOBILE_TRANSPORT_UNAVAILABLE)),
-      );
-  }, []);
+    let live = true;
+    void (async () => {
+      const next = await buildMobileTransportOrUnavailable({
+        deviceId: activeDevices()[0]?.id,
+        // relayUrl / roomId / peerPublicKey are genuinely unavailable: the
+        // pairing record does not carry them. Omitted rather than faked.
+      });
+      if (!live) return;
+      setMobileTransport(next);
+      const s = await next.status();
+      if (!live) return;
+      setTransportReason(s.connected ? null : (s.reason ?? MOBILE_TRANSPORT_UNAVAILABLE));
+    })();
+    return () => {
+      live = false;
+    };
+  }, [devices]);
 
   // Read from the shared store, which applies expiry on read — so a request
   // that lapsed while no tab was open never shows as still pending.
