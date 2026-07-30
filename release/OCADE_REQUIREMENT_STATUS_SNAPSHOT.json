@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-30T10:51:37.023Z",
-  "head": "ed961c2",
+  "generatedAt": "2026-07-30T11:47:01.331Z",
+  "head": "f0e71b7",
   "branch": "feat/ocade-implementation",
-  "phase": "P16 - Authentication, database twin and staging (twin complete; staging blocked on owner authority)",
+  "phase": "P17 - Payments and entitlement system (twin complete; live activation blocked)",
   "method": "Semantic subject-to-module mapping validated against a production import-reachability graph, executed tests separated from source-text assertions, and executed gate results. Source-text assertions are graded SOURCE COMPLETE, never UNIT TESTED.",
   "denominators": {
     "originalCore": 450,
@@ -11,28 +11,28 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 207.5,
+      "numerator": 211,
       "denominator": 450,
-      "percent": 46.1
+      "percent": 46.9
     },
     "expanded": {
-      "numerator": 221.9,
+      "numerator": 226.1,
       "denominator": 510,
-      "percent": 43.5
+      "percent": 44.3
     }
   },
   "evidenceTiers": {
-    "simulatedRuntime": 29,
+    "simulatedRuntime": 30,
     "hostedRuntime": 0,
     "realTargetRuntime": 11,
     "productionReady": 0
   },
   "counts": {
-    "UNIT TESTED": 216,
+    "UNIT TESTED": 223,
     "PARTIAL SOURCE": 8,
     "SOURCE COMPLETE": 50,
-    "NOT STARTED": 69,
-    "SIMULATED RUNTIME VERIFIED": 29,
+    "NOT STARTED": 61,
+    "SIMULATED RUNTIME VERIFIED": 30,
     "INTEGRATION TESTED": 51,
     "EXTERNALLY BLOCKED": 76,
     "REAL TARGET RUNTIME VERIFIED": 11
@@ -326,8 +326,11 @@
       "id": "HWE-29",
       "subject": "Synthetic payment-provider twin",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P17",
+      "evidence": "src/lib/__tests__/payments.test.ts - 30 tests executing the provider contract, HWE-29 twin and entitlement machine: forged signature, tampered payload, replay window, duplicate delivery, seen-set poisoning, out-of-order events, grace non-extension, cancellation, refund, dispute lifecycle",
+      "caveat": "Synthetic provider only. No money can move: LIVE_PAYMENTS_ENABLED is a compile-time false and checkoutAllowed refuses any non-simulated provider. Live activation needs legal identity, bank verification and owner approval."
     },
     {
       "id": "HWE-30",
@@ -2691,50 +2694,71 @@
       "id": "AZ-289",
       "subject": "checkout",
       "area": "Payments and Billing",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P17",
+      "evidence": "src/lib/__tests__/payments.test.ts - 30 tests executing the provider contract, HWE-29 twin and entitlement machine: forged signature, tampered payload, replay window, duplicate delivery, seen-set poisoning, out-of-order events, grace non-extension, cancellation, refund, dispute lifecycle",
+      "caveat": "Synthetic provider only. No money can move: LIVE_PAYMENTS_ENABLED is a compile-time false and checkoutAllowed refuses any non-simulated provider. Live activation needs legal identity, bank verification and owner approval."
     },
     {
       "id": "AZ-290",
       "subject": "test cards",
       "area": "Payments and Billing",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P17",
+      "evidence": "src/lib/__tests__/payments.test.ts - 30 tests executing the provider contract, HWE-29 twin and entitlement machine: forged signature, tampered payload, replay window, duplicate delivery, seen-set poisoning, out-of-order events, grace non-extension, cancellation, refund, dispute lifecycle",
+      "caveat": "Synthetic provider only. No money can move: LIVE_PAYMENTS_ENABLED is a compile-time false and checkoutAllowed refuses any non-simulated provider. Live activation needs legal identity, bank verification and owner approval."
     },
     {
       "id": "AZ-291",
       "subject": "webhooks",
       "area": "Payments and Billing",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P17",
+      "evidence": "src/lib/__tests__/payments.test.ts - 30 tests executing the provider contract, HWE-29 twin and entitlement machine: forged signature, tampered payload, replay window, duplicate delivery, seen-set poisoning, out-of-order events, grace non-extension, cancellation, refund, dispute lifecycle",
+      "caveat": "Synthetic provider only. No money can move: LIVE_PAYMENTS_ENABLED is a compile-time false and checkoutAllowed refuses any non-simulated provider. Live activation needs legal identity, bank verification and owner approval."
     },
     {
       "id": "AZ-292",
       "subject": "invoices",
       "area": "Payments and Billing",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P17",
+      "evidence": "src/lib/__tests__/payments.test.ts - 30 tests executing the provider contract, HWE-29 twin and entitlement machine: forged signature, tampered payload, replay window, duplicate delivery, seen-set poisoning, out-of-order events, grace non-extension, cancellation, refund, dispute lifecycle",
+      "caveat": "Synthetic provider only. No money can move: LIVE_PAYMENTS_ENABLED is a compile-time false and checkoutAllowed refuses any non-simulated provider. Live activation needs legal identity, bank verification and owner approval."
     },
     {
       "id": "AZ-293",
       "subject": "failed payments",
       "area": "Payments and Billing",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P17",
+      "evidence": "src/lib/__tests__/payments.test.ts - 30 tests executing the provider contract, HWE-29 twin and entitlement machine: forged signature, tampered payload, replay window, duplicate delivery, seen-set poisoning, out-of-order events, grace non-extension, cancellation, refund, dispute lifecycle",
+      "caveat": "Synthetic provider only. No money can move: LIVE_PAYMENTS_ENABLED is a compile-time false and checkoutAllowed refuses any non-simulated provider. Live activation needs legal identity, bank verification and owner approval."
     },
     {
       "id": "AZ-294",
       "subject": "refunds",
       "area": "Payments and Billing",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P17",
+      "evidence": "src/lib/__tests__/payments.test.ts - 30 tests executing the provider contract, HWE-29 twin and entitlement machine: forged signature, tampered payload, replay window, duplicate delivery, seen-set poisoning, out-of-order events, grace non-extension, cancellation, refund, dispute lifecycle",
+      "caveat": "Synthetic provider only. No money can move: LIVE_PAYMENTS_ENABLED is a compile-time false and checkoutAllowed refuses any non-simulated provider. Live activation needs legal identity, bank verification and owner approval."
     },
     {
       "id": "AZ-295",
       "subject": "portal",
       "area": "Payments and Billing",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P17",
+      "evidence": "src/lib/__tests__/payments.test.ts - 30 tests executing the provider contract, HWE-29 twin and entitlement machine: forged signature, tampered payload, replay window, duplicate delivery, seen-set poisoning, out-of-order events, grace non-extension, cancellation, refund, dispute lifecycle",
+      "caveat": "Synthetic provider only. No money can move: LIVE_PAYMENTS_ENABLED is a compile-time false and checkoutAllowed refuses any non-simulated provider. Live activation needs legal identity, bank verification and owner approval."
     },
     {
       "id": "AZ-296",
@@ -3845,7 +3869,7 @@
   "verifiedCommands": {
     "typecheck": "PASS",
     "lint": "PASS",
-    "tests": "3831 passed | 1 skipped (3832) across 231 files",
+    "tests": "3861 passed | 1 skipped (3862) across 232 files",
     "build": "PASS",
     "gates": "27/27",
     "rustTests": "25/25"
