@@ -225,7 +225,7 @@ checks.push(
     "supabase-apply",
     "Migrations applied and RLS verified against a live database",
     "No database connection is available in this environment.",
-    "Apply the 31 migrations via Lovable, then run each supabase/verification/*_verify.sql — all are self-checking and raise on any gap.",
+    "Apply the 32 migrations via Lovable, then run each supabase/verification/*_verify.sql — all are self-checking and raise on any gap.",
   ),
   notAttempted(
     "browser-extension-runtime",

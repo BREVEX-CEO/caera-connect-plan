@@ -22,6 +22,8 @@ for (const path of [
   "wrangler.json",
   "release/OCADE_RELEASE_BLOCKERS.json",
   "release/OCADE_RELEASE_CHECKLIST.md",
+  "release/OCADE_PRODUCTION_OPERATIONS.json",
+  "release/OCADE_INCIDENT_RESPONSE_RUNBOOK.md",
   "src/lib/release-health.ts",
   "extension/manifest.json",
   "native/companion/tauri/tauri.conf.json",
@@ -43,6 +45,7 @@ const extension = json("extension/manifest.json");
 const tauri = json("native/companion/tauri/tauri.conf.json");
 const wrangler = json("wrangler.json");
 const blockers = json("release/OCADE_RELEASE_BLOCKERS.json");
+const operations = json("release/OCADE_PRODUCTION_OPERATIONS.json");
 const android = read("android/app/build.gradle");
 const androidManifest = read("android/app/src/main/AndroidManifest.xml");
 const iosProject = read("ios/App/App.xcodeproj/project.pbxproj");
@@ -118,11 +121,27 @@ check(
     ),
   "external-blocker ledger is incomplete",
 );
+check(
+  operations.releaseVersion === version &&
+    operations.classification === "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+  "production operations ledger overstates readiness or differs from the release version",
+);
+check(
+  Object.values(operations.liveClaims ?? {}).every((claim) => claim === false),
+  "production operations ledger contains an unverified live claim",
+);
+check(
+  operations.releaseControls?.databaseApplyAuthorized === false &&
+    operations.releaseControls?.separateDeployApprovalRequired === true &&
+    operations.releaseControls?.separateRollbackApprovalRequired === true,
+  "production operations approval boundaries are incomplete",
+);
 
 const secretShape =
   /AKIA[0-9A-Z]{16}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|sk-[A-Za-z0-9_-]{20,}/;
 check(!secretShape.test(JSON.stringify(wrangler)), "secret-shaped value in wrangler config");
 check(!secretShape.test(JSON.stringify(blockers)), "secret-shaped value in blocker ledger");
+check(!secretShape.test(JSON.stringify(operations)), "secret-shaped value in operations ledger");
 
 const generatedPath = resolve(root, ".output/server/wrangler.json");
 check(existsSync(generatedPath), "production output is missing; run npm run build first");

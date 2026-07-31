@@ -51,7 +51,7 @@ const CHECKS = [
     detail: () =>
       `SUPABASE_URL ${envPresent("SUPABASE_URL") ? "set" : "MISSING"}, SUPABASE_PUBLISHABLE_KEY ${envPresent("SUPABASE_PUBLISHABLE_KEY") ? "set" : "MISSING"}`,
     action:
-      "Connect Supabase in Lovable Cloud, then apply the 31 migrations. Every one has a paired rollback and a self-checking verification script in supabase/verification/.",
+      "Connect Supabase in Lovable Cloud, then apply the 32 migrations. Every one has a paired rollback and a self-checking verification script in supabase/verification/.",
     unlocks: "7 identity items plus cross-user isolation — the largest single cluster.",
   },
   {
