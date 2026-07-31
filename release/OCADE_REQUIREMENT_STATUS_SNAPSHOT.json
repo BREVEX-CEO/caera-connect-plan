@@ -18,27 +18,27 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 227.3,
+      "numerator": 228.9,
       "denominator": 450,
-      "percent": 50.5
+      "percent": 50.9
     },
     "expanded": {
-      "numerator": 256.9,
+      "numerator": 258.5,
       "denominator": 510,
-      "percent": 50.4
+      "percent": 50.7
     }
   },
   "evidenceTiers": {
-    "simulatedRuntime": 44,
+    "simulatedRuntime": 52,
     "hostedRuntime": 0,
     "realTargetRuntime": 27,
     "productionReady": 0
   },
   "counts": {
-    "UNIT TESTED": 233,
+    "UNIT TESTED": 225,
     "INTEGRATION TESTED": 59,
     "SOURCE COMPLETE": 17,
-    "SIMULATED RUNTIME VERIFIED": 44,
+    "SIMULATED RUNTIME VERIFIED": 52,
     "NOT STARTED": 27,
     "EXTERNALLY BLOCKED": 99,
     "REAL TARGET RUNTIME VERIFIED": 27,
@@ -3279,37 +3279,41 @@
       "id": "AZ-284",
       "subject": "accounting",
       "area": "Trials Plans Entitlements and Usage",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 88 cases total: src/lib/__tests__/ocade-allowance.test.ts (24 cases), src/lib/__tests__/allowance-enforcement.test.ts (22 cases), src/lib/__tests__/billing-flow.test.ts (12 cases), src/lib/__tests__/payments.test.ts (30 cases). These execute the modules that own \"Trials Plans Entitlements and Usage\". Proves specified behaviour under test only; NOT real-target runtime proof.",
-      "resolvedInPhase": "P29-test-evidence-binding"
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "evidence": "SIMULATED RUNTIME VERIFIED — release/OCADE_P22_SIMULATED_EVIDENCE.json step(s) S04, S08: paid periods tracked across checkout and renewal, with the period end genuinely advancing. Driven end to end against the deterministic payment twin with real HMAC signing and the production entitlement state machine.",
+      "resolvedInPhase": "P22-simulated-campaign",
+      "caveat": "Driven against a deterministic twin, with real HMAC signing and real entitlement transitions but NO real payment provider. The twin cannot move money and live payments are a hard false. This is not evidence that billing works against a real provider, and must never be reported as such."
     },
     {
       "id": "AZ-285",
       "subject": "signed entitlements",
       "area": "Trials Plans Entitlements and Usage",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 88 cases total: src/lib/__tests__/ocade-allowance.test.ts (24 cases), src/lib/__tests__/allowance-enforcement.test.ts (22 cases), src/lib/__tests__/billing-flow.test.ts (12 cases), src/lib/__tests__/payments.test.ts (30 cases). These execute the modules that own \"Trials Plans Entitlements and Usage\". Proves specified behaviour under test only; NOT real-target runtime proof.",
-      "resolvedInPhase": "P29-test-evidence-binding"
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "evidence": "SIMULATED RUNTIME VERIFIED — release/OCADE_P22_SIMULATED_EVIDENCE.json step(s) S04, S05, S06: entitlement state changing only on a cryptographically verified event, and staying unchanged when the signature is forged or the payload tampered. Driven end to end against the deterministic payment twin with real HMAC signing and the production entitlement state machine.",
+      "resolvedInPhase": "P22-simulated-campaign",
+      "caveat": "Driven against a deterministic twin, with real HMAC signing and real entitlement transitions but NO real payment provider. The twin cannot move money and live payments are a hard false. This is not evidence that billing works against a real provider, and must never be reported as such."
     },
     {
       "id": "AZ-286",
       "subject": "gates",
       "area": "Trials Plans Entitlements and Usage",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 88 cases total: src/lib/__tests__/ocade-allowance.test.ts (24 cases), src/lib/__tests__/allowance-enforcement.test.ts (22 cases), src/lib/__tests__/billing-flow.test.ts (12 cases), src/lib/__tests__/payments.test.ts (30 cases). These execute the modules that own \"Trials Plans Entitlements and Usage\". Proves specified behaviour under test only; NOT real-target runtime proof.",
-      "resolvedInPhase": "P29-test-evidence-binding"
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "evidence": "SIMULATED RUNTIME VERIFIED — release/OCADE_P22_SIMULATED_EVIDENCE.json step(s) S04, S11, S14: access gating derived from entitlement state: granted while active, withdrawn after grace lapses, withdrawn immediately on refund. Driven end to end against the deterministic payment twin with real HMAC signing and the production entitlement state machine.",
+      "resolvedInPhase": "P22-simulated-campaign",
+      "caveat": "Driven against a deterministic twin, with real HMAC signing and real entitlement transitions but NO real payment provider. The twin cannot move money and live payments are a hard false. This is not evidence that billing works against a real provider, and must never be reported as such."
     },
     {
       "id": "AZ-287",
       "subject": "grace periods",
       "area": "Trials Plans Entitlements and Usage",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 88 cases total: src/lib/__tests__/ocade-allowance.test.ts (24 cases), src/lib/__tests__/allowance-enforcement.test.ts (22 cases), src/lib/__tests__/billing-flow.test.ts (12 cases), src/lib/__tests__/payments.test.ts (30 cases). These execute the modules that own \"Trials Plans Entitlements and Usage\". Proves specified behaviour under test only; NOT real-target runtime proof.",
-      "resolvedInPhase": "P29-test-evidence-binding"
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "evidence": "SIMULATED RUNTIME VERIFIED — release/OCADE_P22_SIMULATED_EVIDENCE.json step(s) S09, S10, S11: the grace window opening once, not re-opening on retry, and expiring. Driven end to end against the deterministic payment twin with real HMAC signing and the production entitlement state machine.",
+      "resolvedInPhase": "P22-simulated-campaign",
+      "caveat": "Driven against a deterministic twin, with real HMAC signing and real entitlement transitions but NO real payment provider. The twin cannot move money and live payments are a hard false. This is not evidence that billing works against a real provider, and must never be reported as such."
     },
     {
       "id": "AZ-288",
@@ -3324,11 +3328,11 @@
       "id": "AZ-289",
       "subject": "checkout",
       "area": "Payments and Billing",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P17",
-      "evidence": "src/lib/__tests__/payments.test.ts - 30 tests executing the provider contract, HWE-29 twin and entitlement machine: forged signature, tampered payload, replay window, duplicate delivery, seen-set poisoning, out-of-order events, grace non-extension, cancellation, refund, dispute lifecycle",
-      "caveat": "Synthetic provider only. No money can move: LIVE_PAYMENTS_ENABLED is a compile-time false and checkoutAllowed refuses any non-simulated provider. Live activation needs legal identity, bank verification and owner approval."
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P22-simulated-campaign",
+      "evidence": "SIMULATED RUNTIME VERIFIED — release/OCADE_P22_SIMULATED_EVIDENCE.json step(s) S02, S03: a checkout created through the twin, and a repeated idempotency key returning the same session rather than a second subscription. Driven end to end against the deterministic payment twin with real HMAC signing and the production entitlement state machine.",
+      "caveat": "Driven against a deterministic twin, with real HMAC signing and real entitlement transitions but NO real payment provider. The twin cannot move money and live payments are a hard false. This is not evidence that billing works against a real provider, and must never be reported as such."
     },
     {
       "id": "AZ-290",
@@ -3344,11 +3348,11 @@
       "id": "AZ-291",
       "subject": "webhooks",
       "area": "Payments and Billing",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P17",
-      "evidence": "src/lib/__tests__/payments.test.ts - 30 tests executing the provider contract, HWE-29 twin and entitlement machine: forged signature, tampered payload, replay window, duplicate delivery, seen-set poisoning, out-of-order events, grace non-extension, cancellation, refund, dispute lifecycle",
-      "caveat": "Synthetic provider only. No money can move: LIVE_PAYMENTS_ENABLED is a compile-time false and checkoutAllowed refuses any non-simulated provider. Live activation needs legal identity, bank verification and owner approval."
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P22-simulated-campaign",
+      "evidence": "SIMULATED RUNTIME VERIFIED — release/OCADE_P22_SIMULATED_EVIDENCE.json step(s) S04, S05, S06, S07: a real HMAC-signed webhook admitted, and forged-signature, tampered-payload and duplicate-delivery refusals observed with their specific refusal codes. Driven end to end against the deterministic payment twin with real HMAC signing and the production entitlement state machine.",
+      "caveat": "Driven against a deterministic twin, with real HMAC signing and real entitlement transitions but NO real payment provider. The twin cannot move money and live payments are a hard false. This is not evidence that billing works against a real provider, and must never be reported as such."
     },
     {
       "id": "AZ-292",
@@ -3364,21 +3368,21 @@
       "id": "AZ-293",
       "subject": "failed payments",
       "area": "Payments and Billing",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P17",
-      "evidence": "src/lib/__tests__/payments.test.ts - 30 tests executing the provider contract, HWE-29 twin and entitlement machine: forged signature, tampered payload, replay window, duplicate delivery, seen-set poisoning, out-of-order events, grace non-extension, cancellation, refund, dispute lifecycle",
-      "caveat": "Synthetic provider only. No money can move: LIVE_PAYMENTS_ENABLED is a compile-time false and checkoutAllowed refuses any non-simulated provider. Live activation needs legal identity, bank verification and owner approval."
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P22-simulated-campaign",
+      "evidence": "SIMULATED RUNTIME VERIFIED — release/OCADE_P22_SIMULATED_EVIDENCE.json step(s) S09, S10, S11: a failed renewal entering grace with access retained, a retry NOT extending the grace window, and access lapsing when grace expires. Driven end to end against the deterministic payment twin with real HMAC signing and the production entitlement state machine.",
+      "caveat": "Driven against a deterministic twin, with real HMAC signing and real entitlement transitions but NO real payment provider. The twin cannot move money and live payments are a hard false. This is not evidence that billing works against a real provider, and must never be reported as such."
     },
     {
       "id": "AZ-294",
       "subject": "refunds",
       "area": "Payments and Billing",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P17",
-      "evidence": "src/lib/__tests__/payments.test.ts - 30 tests executing the provider contract, HWE-29 twin and entitlement machine: forged signature, tampered payload, replay window, duplicate delivery, seen-set poisoning, out-of-order events, grace non-extension, cancellation, refund, dispute lifecycle",
-      "caveat": "Synthetic provider only. No money can move: LIVE_PAYMENTS_ENABLED is a compile-time false and checkoutAllowed refuses any non-simulated provider. Live activation needs legal identity, bank verification and owner approval."
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P22-simulated-campaign",
+      "evidence": "SIMULATED RUNTIME VERIFIED — release/OCADE_P22_SIMULATED_EVIDENCE.json step(s) S13, S14: a refund for a non-existent payment refused, and a genuine refund revoking access immediately with no grace. Driven end to end against the deterministic payment twin with real HMAC signing and the production entitlement state machine.",
+      "caveat": "Driven against a deterministic twin, with real HMAC signing and real entitlement transitions but NO real payment provider. The twin cannot move money and live payments are a hard false. This is not evidence that billing works against a real provider, and must never be reported as such."
     },
     {
       "id": "AZ-295",
