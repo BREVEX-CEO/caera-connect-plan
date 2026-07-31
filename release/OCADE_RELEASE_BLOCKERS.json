@@ -30,11 +30,12 @@
       "area": "desktop",
       "status": "externally_blocked",
       "requiredEvidence": [
-        "MSVC linker on Windows and target-OS builders for macOS and Linux",
+        "Target-OS builders for macOS and Linux (the Windows build is NOT blocked - verified building on x86_64-pc-windows-msvc, see release/OCADE_P24_COMPANION_BUILD_EVIDENCE.json)",
         "Platform signing and notarization identities",
         "Updater signing key and controlled update endpoint",
         "Clean-machine install update rollback and emergency-stop runtime tests"
-      ]
+      ],
+      "correctionNote": "An earlier version of this blocker listed the MSVC linker as missing. It is present and the Windows companion builds. Only signing, notarisation, updater trust, non-Windows builders and a supervised runtime session remain."
     },
     {
       "id": "android-build-sign-device",
