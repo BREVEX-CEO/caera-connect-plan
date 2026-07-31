@@ -18,17 +18,20 @@ Apply **in this exact order** — later migrations reference earlier tables.
 | 2   | `20260722100000_ocade_subscriptions_usage.sql`     | `ocade_subscriptions`, `ocade_cloud_usage`, `ocade_consume_cloud_use()`                                                                                                                        | `set_updated_at()`                                                                    |
 | 3   | `20260722110000_ocade_automations.sql`             | `ocade_automations`, `ocade_automation_runs`                                                                                                                                                   | `set_updated_at()`                                                                    |
 | 4   | `20260724211500_ocade_automation_worker.sql`       | worker leases, cancellation/pause/deadline/approval state, append-only step receipts, 13 atomic lifecycle RPCs                                                                                 | migration 3                                                                           |
+| 5   | `20260730190000_ocade_controlled_rollout_gates.sql` | internal-alpha and controlled-beta evidence gates plus fail-closed feature-flag expansion triggers                                                                                           | existing `launch_gate_items`, `launch_gate_history`, `feature_flags`                  |
 
 Migration 3 must come after 1 only for consistency of review; it has no hard FK
 to projects. Migrations 1 and 2 are independent of each other. Migration 4 must
 immediately follow migration 3: it replaces the temporary owner-CRUD run policy
 with SELECT/INSERT plus RPC-only lifecycle mutations.
+Migration 5 is independent of migrations 1–4 but must run after the existing
+Lovable launch-gate migration `20260721141946_382eee61-77fa-42d8-9b79-9c9c9b3195a3.sql`.
 
-**Scope note.** These four are the only UNAPPLIED migrations. The 27
+**Scope note.** These five are the only UNAPPLIED migrations. The 27
 UUID-named files alongside them were generated and already applied by Lovable
 before this work began; they are untouched here and deliberately have no
 rollback or verification script — writing a rollback for an already-applied
-migration would invite someone to run it. Each of the four above has a matching
+migration would invite someone to run it. Each of the five above has a matching
 `rollback/` and `verification/` script:
 
 | Migration                         | Rollback | Verification |
@@ -37,6 +40,7 @@ migration would invite someone to run it. Each of the four above has a matching
 | `…_ocade_subscriptions_usage`     | ✅       | ✅           |
 | `…_ocade_automations`             | ✅       | ✅           |
 | `…_ocade_automation_worker`       | ✅       | ✅           |
+| `…_ocade_controlled_rollout_gates` | ✅       | ✅           |
 
 ### Prerequisite check (run first)
 
@@ -66,8 +70,10 @@ WHERE n.nspname = 'public' AND proname = 'set_updated_at';
 ### Rollback
 
 Each migration has a matching transactional teardown in `supabase/rollback/`.
-Apply them in **reverse** order (4 → 3 → 2 → 1). Rollback 4 first removes the
-worker RPCs/receipts and restores the base run policy. Rollback 1 restores the
+Apply them in **reverse** order (5 → 4 → 3 → 2 → 1). Rollback 5 first removes
+the controlled-rollout triggers and seed gates, but refuses if doing so would
+erase launch-gate history. Rollback 4 then removes the worker RPCs/receipts and
+restores the base run policy. Rollback 1 restores the
 original conversation policy before dropping the added project column, so
 foreign keys and policy expressions unwind cleanly. Conversations and messages
 are never deleted — only the project link is removed.
