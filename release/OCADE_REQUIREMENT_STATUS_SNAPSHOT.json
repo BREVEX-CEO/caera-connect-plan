@@ -18,30 +18,30 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 220.8,
+      "numerator": 227.3,
       "denominator": 450,
-      "percent": 49.1
+      "percent": 50.5
     },
     "expanded": {
-      "numerator": 250.4,
+      "numerator": 256.9,
       "denominator": 510,
-      "percent": 49.1
+      "percent": 50.4
     }
   },
   "evidenceTiers": {
     "simulatedRuntime": 44,
     "hostedRuntime": 0,
-    "realTargetRuntime": 14,
+    "realTargetRuntime": 27,
     "productionReady": 0
   },
   "counts": {
-    "UNIT TESTED": 246,
+    "UNIT TESTED": 233,
     "INTEGRATION TESTED": 59,
     "SOURCE COMPLETE": 17,
     "SIMULATED RUNTIME VERIFIED": 44,
     "NOT STARTED": 27,
     "EXTERNALLY BLOCKED": 99,
-    "REAL TARGET RUNTIME VERIFIED": 14,
+    "REAL TARGET RUNTIME VERIFIED": 27,
     "PARTIAL SOURCE": 4
   },
   "requirements": [
@@ -1973,28 +1973,31 @@
       "id": "AZ-149",
       "subject": "URL validation",
       "area": "Research and Source Acquisition",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P21",
-      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "resolvedInPhase": "P15-runtime-evidence",
+      "evidence": "REAL TARGET RUNTIME VERIFIED — release/OCADE_P15_RESEARCH_SANDBOX_RUNTIME_EVIDENCE.json step(s) A01, A02: URL validation executed against hostile and allowlisted URLs. Observed on win32/x64 node v24.16.0.",
+      "caveat": "Observed on ONE host. Research acquisition used example.com, an IANA-reserved documentation domain: it proves the guarded fetcher performs real HTTPS over a real socket, NOT that OCADE can research the open web at scale. The sandbox spawned real Node child processes on this platform only; other platforms are unproven."
     },
     {
       "id": "AZ-150",
       "subject": "SSRF defence",
       "area": "Research and Source Acquisition",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P21",
-      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "resolvedInPhase": "P15-runtime-evidence",
+      "evidence": "REAL TARGET RUNTIME VERIFIED — release/OCADE_P15_RESEARCH_SANDBOX_RUNTIME_EVIDENCE.json step(s) A01: SSRF defence refusing cloud metadata, loopback, private range, plain HTTP, credentialed URLs and nonstandard ports — refused even when those hosts were explicitly allowlisted. Observed on win32/x64 node v24.16.0.",
+      "caveat": "Observed on ONE host. Research acquisition used example.com, an IANA-reserved documentation domain: it proves the guarded fetcher performs real HTTPS over a real socket, NOT that OCADE can research the open web at scale. The sandbox spawned real Node child processes on this platform only; other platforms are unproven."
     },
     {
       "id": "AZ-151",
       "subject": "fetch",
       "area": "Research and Source Acquisition",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P21",
-      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "resolvedInPhase": "P15-runtime-evidence",
+      "evidence": "REAL TARGET RUNTIME VERIFIED — release/OCADE_P15_RESEARCH_SANDBOX_RUNTIME_EVIDENCE.json step(s) A03: a real HTTPS GET over a real socket through the production fetcher. Observed on win32/x64 node v24.16.0.",
+      "caveat": "Observed on ONE host. Research acquisition used example.com, an IANA-reserved documentation domain: it proves the guarded fetcher performs real HTTPS over a real socket, NOT that OCADE can research the open web at scale. The sandbox spawned real Node child processes on this platform only; other platforms are unproven."
     },
     {
       "id": "AZ-152",
@@ -2009,19 +2012,21 @@
       "id": "AZ-153",
       "subject": "extraction",
       "area": "Research and Source Acquisition",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 6 passing test file(s), 95 cases total: src/lib/__tests__/research.test.ts (31 cases), src/lib/__tests__/research-run.test.ts (14 cases), src/lib/__tests__/research-cache.test.ts (18 cases), src/lib/__tests__/http-source.test.ts (5 cases), src/lib/__tests__/http-source-runtime.test.ts (16 cases), src/lib/__tests__/source-fallback.test.ts (11 cases). These execute the modules that own \"Research and Source Acquisition\". Proves specified behaviour under test only; NOT real-target runtime proof.",
-      "resolvedInPhase": "P29-test-evidence-binding"
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "evidence": "REAL TARGET RUNTIME VERIFIED — release/OCADE_P15_RESEARCH_SANDBOX_RUNTIME_EVIDENCE.json step(s) A03: content extraction from the real response body. Observed on win32/x64 node v24.16.0.",
+      "resolvedInPhase": "P15-runtime-evidence",
+      "caveat": "Observed on ONE host. Research acquisition used example.com, an IANA-reserved documentation domain: it proves the guarded fetcher performs real HTTPS over a real socket, NOT that OCADE can research the open web at scale. The sandbox spawned real Node child processes on this platform only; other platforms are unproven."
     },
     {
       "id": "AZ-154",
       "subject": "evidence",
       "area": "Research and Source Acquisition; Skill Registry Reuse and Governance; Supported Application Certification; Creative and Media Workflows; CAD Engineering and Solver Workflows",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 6 passing test file(s), 95 cases total: src/lib/__tests__/research.test.ts (31 cases), src/lib/__tests__/research-run.test.ts (14 cases), src/lib/__tests__/research-cache.test.ts (18 cases), src/lib/__tests__/http-source.test.ts (5 cases), src/lib/__tests__/http-source-runtime.test.ts (16 cases), src/lib/__tests__/source-fallback.test.ts (11 cases). These execute the modules that own \"Research and Source Acquisition\". Proves specified behaviour under test only; NOT real-target runtime proof.",
-      "resolvedInPhase": "P29-test-evidence-binding"
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "evidence": "REAL TARGET RUNTIME VERIFIED — release/OCADE_P15_RESEARCH_SANDBOX_RUNTIME_EVIDENCE.json step(s) A04: an end-to-end run producing sub-answers with honest single_source confidence. Observed on win32/x64 node v24.16.0.",
+      "resolvedInPhase": "P15-runtime-evidence",
+      "caveat": "Observed on ONE host. Research acquisition used example.com, an IANA-reserved documentation domain: it proves the guarded fetcher performs real HTTPS over a real socket, NOT that OCADE can research the open web at scale. The sandbox spawned real Node child processes on this platform only; other platforms are unproven."
     },
     {
       "id": "AZ-155",
@@ -2036,10 +2041,11 @@
       "id": "AZ-156",
       "subject": "failure classification",
       "area": "Research and Source Acquisition",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 6 passing test file(s), 95 cases total: src/lib/__tests__/research.test.ts (31 cases), src/lib/__tests__/research-run.test.ts (14 cases), src/lib/__tests__/research-cache.test.ts (18 cases), src/lib/__tests__/http-source.test.ts (5 cases), src/lib/__tests__/http-source-runtime.test.ts (16 cases), src/lib/__tests__/source-fallback.test.ts (11 cases). These execute the modules that own \"Research and Source Acquisition\". Proves specified behaviour under test only; NOT real-target runtime proof.",
-      "resolvedInPhase": "P29-test-evidence-binding"
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "evidence": "REAL TARGET RUNTIME VERIFIED — release/OCADE_P15_RESEARCH_SANDBOX_RUNTIME_EVIDENCE.json step(s) A01, A03b: failure classification: off-allowlist and hostile URLs classified hard rather than transient. Observed on win32/x64 node v24.16.0.",
+      "resolvedInPhase": "P15-runtime-evidence",
+      "caveat": "Observed on ONE host. Research acquisition used example.com, an IANA-reserved documentation domain: it proves the guarded fetcher performs real HTTPS over a real socket, NOT that OCADE can research the open web at scale. The sandbox spawned real Node child processes on this platform only; other platforms are unproven."
     },
     {
       "id": "AZ-157",
@@ -2774,10 +2780,11 @@
       "id": "AZ-232",
       "subject": "repository scan",
       "area": "Code Workspace and Repository Operations",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 5 passing test file(s), 82 cases total: src/lib/__tests__/code-workspace.test.ts (9 cases), src/lib/__tests__/code-workspace-runtime.test.ts (6 cases), src/lib/__tests__/code-patch.test.ts (25 cases), src/lib/__tests__/repo-map.test.ts (20 cases), src/lib/__tests__/git-pack.test.ts (22 cases). These execute the modules that own \"Code Workspace and Repository Operations\". Proves specified behaviour under test only; NOT real-target runtime proof.",
-      "resolvedInPhase": "P29-test-evidence-binding"
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "evidence": "REAL TARGET RUNTIME VERIFIED — release/OCADE_P15_RESEARCH_SANDBOX_RUNTIME_EVIDENCE.json step(s) C01, C02, C03: repository mapping, symbol lookup and import-edge resolution over real repository sources. Observed on win32/x64 node v24.16.0.",
+      "resolvedInPhase": "P15-runtime-evidence",
+      "caveat": "Observed on ONE host. Research acquisition used example.com, an IANA-reserved documentation domain: it proves the guarded fetcher performs real HTTPS over a real socket, NOT that OCADE can research the open web at scale. The sandbox spawned real Node child processes on this platform only; other platforms are unproven."
     },
     {
       "id": "AZ-233",
@@ -2837,55 +2844,61 @@
       "id": "AZ-239",
       "subject": "worker",
       "area": "Generated Code Sandbox",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 2 passing test file(s), 27 cases total: src/lib/__tests__/generated-sandbox.test.ts (6 cases), src/lib/__tests__/sandbox-worker-runtime.test.ts (21 cases). These execute the modules that own \"Generated Code Sandbox\". Proves specified behaviour under test only; NOT real-target runtime proof.",
-      "resolvedInPhase": "P29-test-evidence-binding"
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "evidence": "REAL TARGET RUNTIME VERIFIED — release/OCADE_P15_RESEARCH_SANDBOX_RUNTIME_EVIDENCE.json step(s) B01: a real spawned child process executing generated code and returning captured output. Observed on win32/x64 node v24.16.0.",
+      "resolvedInPhase": "P15-runtime-evidence",
+      "caveat": "Observed on ONE host. Research acquisition used example.com, an IANA-reserved documentation domain: it proves the guarded fetcher performs real HTTPS over a real socket, NOT that OCADE can research the open web at scale. The sandbox spawned real Node child processes on this platform only; other platforms are unproven."
     },
     {
       "id": "AZ-240",
       "subject": "confinement",
       "area": "Generated Code Sandbox",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 2 passing test file(s), 27 cases total: src/lib/__tests__/generated-sandbox.test.ts (6 cases), src/lib/__tests__/sandbox-worker-runtime.test.ts (21 cases). These execute the modules that own \"Generated Code Sandbox\". Proves specified behaviour under test only; NOT real-target runtime proof.",
-      "resolvedInPhase": "P29-test-evidence-binding"
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "evidence": "REAL TARGET RUNTIME VERIFIED — release/OCADE_P15_RESEARCH_SANDBOX_RUNTIME_EVIDENCE.json step(s) B05: path confinement refusing a traversal write even when declared as an output. Observed on win32/x64 node v24.16.0.",
+      "resolvedInPhase": "P15-runtime-evidence",
+      "caveat": "Observed on ONE host. Research acquisition used example.com, an IANA-reserved documentation domain: it proves the guarded fetcher performs real HTTPS over a real socket, NOT that OCADE can research the open web at scale. The sandbox spawned real Node child processes on this platform only; other platforms are unproven."
     },
     {
       "id": "AZ-241",
       "subject": "network denial",
       "area": "Generated Code Sandbox",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 2 passing test file(s), 27 cases total: src/lib/__tests__/generated-sandbox.test.ts (6 cases), src/lib/__tests__/sandbox-worker-runtime.test.ts (21 cases). These execute the modules that own \"Generated Code Sandbox\". Proves specified behaviour under test only; NOT real-target runtime proof.",
-      "resolvedInPhase": "P29-test-evidence-binding"
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "evidence": "REAL TARGET RUNTIME VERIFIED — release/OCADE_P15_RESEARCH_SANDBOX_RUNTIME_EVIDENCE.json step(s) B02: no network primitive reachable inside the sandbox context, observed by probing the context rather than by reading the host's hard-coded networkDenied field. Observed on win32/x64 node v24.16.0.",
+      "resolvedInPhase": "P15-runtime-evidence",
+      "caveat": "Observed on ONE host. Research acquisition used example.com, an IANA-reserved documentation domain: it proves the guarded fetcher performs real HTTPS over a real socket, NOT that OCADE can research the open web at scale. The sandbox spawned real Node child processes on this platform only; other platforms are unproven."
     },
     {
       "id": "AZ-242",
       "subject": "process denial",
       "area": "Generated Code Sandbox",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P21",
-      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "resolvedInPhase": "P15-runtime-evidence",
+      "evidence": "REAL TARGET RUNTIME VERIFIED — release/OCADE_P15_RESEARCH_SANDBOX_RUNTIME_EVIDENCE.json step(s) B02: no process or require primitive reachable, so child processes cannot be spawned from generated code. Observed on win32/x64 node v24.16.0.",
+      "caveat": "Observed on ONE host. Research acquisition used example.com, an IANA-reserved documentation domain: it proves the guarded fetcher performs real HTTPS over a real socket, NOT that OCADE can research the open web at scale. The sandbox spawned real Node child processes on this platform only; other platforms are unproven."
     },
     {
       "id": "AZ-243",
       "subject": "budgets",
       "area": "Generated Code Sandbox",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P21",
-      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "resolvedInPhase": "P15-runtime-evidence",
+      "evidence": "REAL TARGET RUNTIME VERIFIED — release/OCADE_P15_RESEARCH_SANDBOX_RUNTIME_EVIDENCE.json step(s) B06: the wall-time budget terminating a real infinite loop. Observed on win32/x64 node v24.16.0.",
+      "caveat": "Observed on ONE host. Research acquisition used example.com, an IANA-reserved documentation domain: it proves the guarded fetcher performs real HTTPS over a real socket, NOT that OCADE can research the open web at scale. The sandbox spawned real Node child processes on this platform only; other platforms are unproven."
     },
     {
       "id": "AZ-244",
       "subject": "declared outputs",
       "area": "Generated Code Sandbox",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P21",
-      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "resolvedInPhase": "P15-runtime-evidence",
+      "evidence": "REAL TARGET RUNTIME VERIFIED — release/OCADE_P15_RESEARCH_SANDBOX_RUNTIME_EVIDENCE.json step(s) B03, B04: a declared output captured and hashed, and an undeclared write refused at the point of writing. Observed on win32/x64 node v24.16.0.",
+      "caveat": "Observed on ONE host. Research acquisition used example.com, an IANA-reserved documentation domain: it proves the guarded fetcher performs real HTTPS over a real socket, NOT that OCADE can research the open web at scale. The sandbox spawned real Node child processes on this platform only; other platforms are unproven."
     },
     {
       "id": "AZ-245",
