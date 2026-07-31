@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-31T06:24:56.762Z",
-  "head": "6c87440ac8c18e04bbb9face87c058d56f2f9f70",
+  "generatedAt": "2026-07-31T06:41:30.560Z",
+  "head": "3c53296b755ef0f7e1d7c1a8d397dc8ac63635a8",
   "branch": "feat/ocade-implementation",
   "phase": "P29 - evidence backfill complete; P14/P15 runtime recorded; production externally blocked",
   "evidenceBindings": {
-    "sourceRevision": "6c87440ac8c18e04bbb9face87c058d56f2f9f70",
+    "sourceRevision": "3c53296b755ef0f7e1d7c1a8d397dc8ac63635a8",
     "targetVersion": "0.1.0",
     "dependencyLockSha256": "21e378ff9dc2e6260e18bcda165eda4d9cd53b344cd6dcdea219d8425741bc88",
     "environment": "windows-x64-node22+",
@@ -4833,11 +4833,11 @@
   "verifiedCommands": {
     "typecheck": "PASS",
     "lint": "PASS",
-    "tests": "4167 passed | 1 skipped (4168) across 253 files",
+    "tests": "4171 passed | 1 skipped (4172) across 253 files",
     "build": "PASS",
     "gates": "41/42 (deploy:check correctly refuses: no Cloudflare credentials)",
     "rustTests": "30/30 (native/companion/safety)",
-    "measuredAtRevision": "6c87440ac8c18e04bbb9face87c058d56f2f9f70",
+    "measuredAtRevision": "3c53296b755ef0f7e1d7c1a8d397dc8ac63635a8",
     "note": "Measured by an executed run at the revision above, not carried forward. Treat as stale if HEAD has moved."
   },
   "productionWiring": {
@@ -4863,5 +4863,5 @@
       "blockerRecord": "release/OCADE_DB01_SCHEMA_AUTHORITY_BLOCKER.json"
     }
   ],
-  "headRebindNote": "Re-bound to 7934ddb after the evidence backfill and P14/P15 runtime evidence. A snapshot cannot record the hash of the commit that contains it, so the final re-bind commit necessarily moves HEAD one ahead; the readiness GATE owns that drift check, and final-readiness.test.ts owns the arithmetic."
+  "headRebindNote": "Bound to 3c53296. The commit that writes this binding cannot contain its own hash, so HEAD ends one ahead; effectiveBoundRevision in scripts/readiness-engine.mjs tolerates a diff limited to the binding files and nothing else."
 }
