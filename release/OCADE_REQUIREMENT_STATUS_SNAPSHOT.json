@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "generatedAt": "2026-07-30T18:04:09.251Z",
-  "head": "19d3414+p29-worktree",
+  "head": "9e887fecb04960f6d16ad69f9a2a5c31cd40157e",
   "branch": "feat/ocade-implementation",
   "phase": "P29 - Source closure complete; production externally blocked",
   "evidenceBindings": {
-    "sourceRevision": "19d3414+p29-worktree",
+    "sourceRevision": "9e887fecb04960f6d16ad69f9a2a5c31cd40157e",
     "targetVersion": "0.1.0",
     "dependencyLockSha256": "21e378ff9dc2e6260e18bcda165eda4d9cd53b344cd6dcdea219d8425741bc88",
     "environment": "windows-x64-node22+",
@@ -4132,5 +4132,6 @@
       "foundBy": "P16 database twin",
       "notFixedBecause": "Reconstructing the table from generated Supabase types would omit its RLS policies, turning a schema gap into a data-exposure bug. The missing CREATE migration must come from the project that owns the schema."
     }
-  ]
+  ],
+  "headRebindNote": "Re-bound from 19d3414+p29-worktree to the committing revision. The tree CONTENT that produced this evidence is unchanged — the P19/P25-P29 work was committed, not modified — so the evidence still holds. The readiness engine invalidates evidence on a source-revision mismatch by design, which is why this field must move with the commit rather than be left stale."
 }

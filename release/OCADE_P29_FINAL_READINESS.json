@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "phase": "P29 - Final production-readiness closure",
-  "calculatedAt": "2026-07-30T18:24:29.941Z",
+  "calculatedAt": "2026-07-31T05:37:06.519Z",
   "branch": "feat/ocade-implementation",
-  "currentHead": "19d3414633b9167632514aaf4e98e1c6a93065df",
-  "sourceRevision": "19d3414+p29-worktree",
+  "currentHead": "9e887fecb04960f6d16ad69f9a2a5c31cd40157e",
+  "sourceRevision": "9e887fecb04960f6d16ad69f9a2a5c31cd40157e",
   "targetVersion": "0.1.0",
   "evidenceBindings": {
-    "sourceRevision": "19d3414+p29-worktree",
+    "sourceRevision": "9e887fecb04960f6d16ad69f9a2a5c31cd40157e",
     "targetVersion": "0.1.0",
     "dependencyLockSha256": "21e378ff9dc2e6260e18bcda165eda4d9cd53b344cd6dcdea219d8425741bc88",
     "environment": "windows-x64-node22+",
