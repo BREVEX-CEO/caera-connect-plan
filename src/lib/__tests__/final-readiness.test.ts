@@ -155,22 +155,80 @@ describe("final readiness evidence accounting", () => {
     );
   });
 
+  /**
+   * Evaluate the tracked snapshot with its evidence treated as current.
+   *
+   * The snapshot's `head` is deliberately NOT compared against live HEAD here.
+   * A file cannot record the hash of the commit that contains it, so the final
+   * re-bind commit always moves HEAD one ahead of the recorded revision — which
+   * would make every run of this test see stale evidence and a zero score, and
+   * would say nothing about whether the arithmetic is right. Revision drift is
+   * a real check, but it belongs to the readiness GATE (`readiness:check`,
+   * which reports `source_revision_drift`), and is asserted separately below.
+   * This test owns the arithmetic.
+   */
+  function evaluateTracked() {
+    const tracked = JSON.parse(
+      readFileSync("release/OCADE_REQUIREMENT_STATUS_SNAPSHOT.json", "utf8"),
+    );
+    const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
+    const generatedAt = Date.parse(tracked.generatedAt);
+    return {
+      tracked,
+      result: evaluateRequirementReadiness(tracked, {
+        expectedRequirementCount: 510,
+        expectedHead: tracked.head,
+        expectedTargetVersion: packageJson.version,
+        targetVersion: packageJson.version,
+        // Anchored to the snapshot's own timestamp rather than a frozen
+        // literal, so regenerating it does not put the age check in the past.
+        now: new Date(generatedAt + 60_000),
+      }),
+    };
+  }
+
   it("recalculates the tracked 510-row snapshot without trusting its headline", () => {
+    const { tracked, result } = evaluateTracked();
+
+    // The headline is a claim stored in a separate field; the engine derives
+    // its own total from the 510 rows. Comparing the two is what makes the
+    // headline untrusted. A hard-coded literal would only catch drift at the
+    // moment someone remembered to update it.
+    expect(result.declared).toEqual(tracked.readiness.expanded);
+    expect(result.counts).toEqual(tracked.counts);
+
+    // Every row must name the evidence and the phase that observed it. This
+    // was 319 unbound; it is the property the whole register depends on.
+    expect(result.issues.filter((entry) => entry.code === "evidence_unbound")).toHaveLength(0);
+
+    // Evidence-bound can never exceed declared: you cannot prove more than you
+    // claim. This holds regardless of what either number happens to be.
+    expect(result.evidenceBound.numerator).toBeLessThanOrEqual(result.declared.numerator);
+
+    expect(result.productionReady).toBe(false);
+  });
+
+  it("treats the tracked snapshot as stale when it is not bound to the revision under test", () => {
     const tracked = JSON.parse(
       readFileSync("release/OCADE_REQUIREMENT_STATUS_SNAPSHOT.json", "utf8"),
     );
     const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
     const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const foreignRevision = head === "0".repeat(40) ? "1".repeat(40) : "0".repeat(40);
+
     const result = evaluateRequirementReadiness(tracked, {
       expectedRequirementCount: 510,
-      expectedHead: head,
+      expectedHead: foreignRevision,
       expectedTargetVersion: packageJson.version,
       targetVersion: packageJson.version,
-      now: new Date("2026-07-30T18:30:00.000Z"),
+      now: new Date(Date.parse(tracked.generatedAt) + 60_000),
     });
-    expect(result.declared).toEqual({ numerator: 262, denominator: 510, percent: 51.4 });
-    expect(result.evidenceBound).toEqual({ numerator: 111.9, denominator: 510, percent: 21.9 });
-    expect(result.issues.filter((entry) => entry.code === "evidence_unbound")).toHaveLength(319);
+
+    // Readiness evidence describes a specific tree. Pointed at a different
+    // revision, every bound row must lose its weight rather than carry a score
+    // forward onto source it was never observed against.
+    expect(result.evidenceBound.numerator).toBe(0);
+    expect(result.issues.map((entry) => entry.code)).toContain("source_revision_drift");
     expect(result.productionReady).toBe(false);
   });
 
