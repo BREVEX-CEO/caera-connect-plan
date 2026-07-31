@@ -24,22 +24,24 @@ use std::collections::{HashMap, VecDeque};
 use std::fs::{self, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
 use caera_companion_safety as safety;
 use safety::ipc::{now_unix, Envelope, IpcGuard};
-use safety::{guard, redact_for_audit, risk_of, ActionRisk, Allowlist, CompanionAction, Refusal};
+use safety::{
+    guard, redact_for_audit, risk_of, Allowlist, CompanionAction, EmergencyStopRegistry, Refusal,
+};
 use serde::{Deserialize, Serialize};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
     Emitter, Manager, State,
 };
-use tauri_plugin_global_shortcut::GlobalShortcutExt;
 use tauri_plugin_clipboard_manager::ClipboardExt;
+use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
 mod platform;
 
@@ -48,13 +50,12 @@ struct Companion {
     ipc: Mutex<IpcGuard>,
     allow: Mutex<Allowlist>,
     audit: Mutex<VecDeque<AuditEntry>>,
-    /// Set by emergency stop; every in-flight and subsequent action aborts.
-    halted: AtomicBool,
+    /// Atomic latch + active-token registry. One lock closes the race between
+    /// admitting a run and cancelling everything during emergency stop.
+    emergency: EmergencyStopRegistry,
     /// Bounded host-side idempotency ledger. A retry with the same operation id
     /// returns its prior terminal result instead of touching the machine twice.
     operations: Mutex<OperationLedger>,
-    /// Live cancellation tokens, keyed by caller-owned run id.
-    running: Mutex<HashMap<String, Arc<AtomicBool>>>,
     /// Private cache directory resolved by Tauri during setup.
     artifact_dir: Mutex<Option<PathBuf>>,
     allowlist_path: Mutex<Option<PathBuf>>,
@@ -67,9 +68,8 @@ impl Companion {
             ipc: Mutex::new(IpcGuard::new()),
             allow: Mutex::new(Allowlist::default()),
             audit: Mutex::new(VecDeque::new()),
-            halted: AtomicBool::new(false),
+            emergency: EmergencyStopRegistry::default(),
             operations: Mutex::new(OperationLedger::default()),
-            running: Mutex::new(HashMap::new()),
             artifact_dir: Mutex::new(None),
             allowlist_path: Mutex::new(None),
             observations: Mutex::new(HashMap::new()),
@@ -91,13 +91,15 @@ impl Companion {
             }
         }
     }
-
 }
 
 #[derive(Clone)]
 enum ObservationExpectation {
     WindowFocus(String),
-    WindowArrange { layout: String, target: Option<String> },
+    WindowArrange {
+        layout: String,
+        target: Option<String>,
+    },
     AppOpen(String),
     FileOpen(String),
     ClipboardWrite(String),
@@ -114,7 +116,9 @@ fn observation_expectation(action: &CompanionAction) -> Option<ObservationExpect
                 target: target.clone(),
             })
         }
-        CompanionAction::AppOpen { app_id } => Some(ObservationExpectation::AppOpen(app_id.clone())),
+        CompanionAction::AppOpen { app_id } => {
+            Some(ObservationExpectation::AppOpen(app_id.clone()))
+        }
         CompanionAction::FileOpen { path } => PathBuf::from(path)
             .canonicalize()
             .ok()
@@ -443,8 +447,12 @@ fn open_session(state: State<'_, Companion>) -> Result<SessionReply, String> {
     let mut key = vec![0u8; 32];
     getrandom::getrandom(&mut key).map_err(|_| "Could not generate a session key.".to_string())?;
     let mut id_bytes = [0u8; 16];
-    getrandom::getrandom(&mut id_bytes).map_err(|_| "Could not generate a session id.".to_string())?;
-    let session_id = id_bytes.iter().map(|b| format!("{b:02x}")).collect::<String>();
+    getrandom::getrandom(&mut id_bytes)
+        .map_err(|_| "Could not generate a session id.".to_string())?;
+    let session_id = id_bytes
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<String>();
 
     state
         .ipc
@@ -490,7 +498,7 @@ fn status(state: State<'_, Companion>) -> StatusReply {
         // discovery found the required OS facilities.
         available: backend.available,
         version: env!("CARGO_PKG_VERSION").to_string(),
-        halted: state.halted.load(Ordering::SeqCst),
+        halted: state.emergency.is_halted(),
         reason: backend.reason,
         capabilities: backend.capabilities,
         permissions: backend.permissions,
@@ -503,8 +511,13 @@ fn application_inventory(
     state: State<'_, Companion>,
     request: SignedRequest,
 ) -> Result<Vec<platform::ApplicationInfo>, String> {
-    verify_signed(&state, &request, "application_inventory", &serde_json::json!({}))?;
-    if state.halted.load(Ordering::SeqCst) {
+    verify_signed(
+        &state,
+        &request,
+        "application_inventory",
+        &serde_json::json!({}),
+    )?;
+    if state.emergency.is_halted() {
         return Err("Emergency stop is active. Reset it before reading applications.".into());
     }
     platform::application_inventory(Arc::new(AtomicBool::new(false)))
@@ -565,7 +578,10 @@ struct SetAllowlistArgs<'a> {
 /// did not know about. Read-only, so it needs no signature.
 #[tauri::command]
 fn get_allowlist(state: State<'_, Companion>) -> Result<AllowlistReply, String> {
-    let allow = state.allow.lock().map_err(|_| "Companion busy".to_string())?;
+    let allow = state
+        .allow
+        .lock()
+        .map_err(|_| "Companion busy".to_string())?;
     Ok(AllowlistReply {
         apps: allow.apps.clone(),
         paths: allow
@@ -657,7 +673,7 @@ async fn execute(
     run_id: String,
     operation_id: String,
 ) -> Result<ExecuteReply, String> {
-    if state.halted.load(Ordering::SeqCst) {
+    if state.emergency.is_halted() {
         return Err("Emergency stop is active. Reset it before running actions.".into());
     }
 
@@ -705,14 +721,12 @@ async fn execute(
         .map_err(|_| "Companion busy".to_string())?
         .clone()
         .ok_or_else(|| "The companion cache is not configured.".to_string())?;
-    let cancel_token = Arc::new(AtomicBool::new(false));
-    {
-        let mut running = state.running.lock().map_err(|_| "Companion busy".to_string())?;
-        if running.contains_key(&run_id) {
-            return Err("That run id is already active.".into());
-        }
-        running.insert(run_id.clone(), cancel_token.clone());
-    }
+    // Final host-side admission is atomic with emergency stop. A stop can no
+    // longer land between the old latch check and token registration.
+    let cancel_token = state
+        .emergency
+        .register(&run_id)
+        .map_err(|refusal| refusal.message().to_string())?;
 
     // Persist only a collision-resistant local fingerprint, never the signed
     // action body, which may contain private user text.
@@ -724,24 +738,18 @@ async fn execute(
     let decision = match decision {
         Ok(decision) => decision,
         Err(error) => {
-            if let Ok(mut running) = state.running.lock() {
-                running.remove(&run_id);
-            }
+            state.emergency.finish(&run_id);
             return Err(error);
         }
     };
     match decision {
         OperationDecision::Replay(result) => {
-            if let Ok(mut running) = state.running.lock() {
-                running.remove(&run_id);
-            }
+            state.emergency.finish(&run_id);
             state.record(&run_id, "Returned cached operation result.", result.is_ok());
             return result;
         }
         OperationDecision::InFlight => {
-            if let Ok(mut running) = state.running.lock() {
-                running.remove(&run_id);
-            }
+            state.emergency.finish(&run_id);
             return Err("This operation is already in progress; it was not executed again.".into());
         }
         OperationDecision::Start => {}
@@ -771,9 +779,7 @@ async fn execute(
         Ok(outcome) => outcome,
         Err(_) => Err("The native action worker stopped unexpectedly.".to_string()),
     };
-    if let Ok(mut running) = state.running.lock() {
-        running.remove(&run_id);
-    }
+    state.emergency.finish(&run_id);
     if outcome.is_ok() {
         if let Some(expectation) = expectation {
             if let Ok(mut observations) = state.observations.lock() {
@@ -966,7 +972,9 @@ fn observe(
         .map_err(|_| "Companion busy".to_string())?
         .get(&observation.operation_id)
         .cloned()
-        .ok_or_else(|| "No matching native observation is available for this operation.".to_string())?;
+        .ok_or_else(|| {
+            "No matching native observation is available for this operation.".to_string()
+        })?;
     let cancelled = Arc::new(AtomicBool::new(false));
     let digest = |value: &str| safety::ipc::sha256_hex(value.trim().as_bytes());
     let mut value = serde_json::json!({
@@ -1027,7 +1035,8 @@ fn observe(
                 return Err("The observation kind did not match the executed action.".into());
             }
             let title = platform::active_window_title(cancelled)?;
-            let file_name = PathBuf::from(&path)
+            let path_buf = PathBuf::from(&path);
+            let file_name = path_buf
                 .file_name()
                 .and_then(|name| name.to_str())
                 .unwrap_or("");
@@ -1076,34 +1085,27 @@ fn cancel(
     run_id: String,
 ) -> Result<bool, String> {
     verify_signed(&state, &request, "cancel", &RunArgs { run_id: &run_id })?;
-    let token = state
-        .running
-        .lock()
-        .map_err(|_| "Companion busy".to_string())?
-        .get(&run_id)
-        .cloned();
-    match token {
-        Some(token) => {
-            token.store(true, Ordering::SeqCst);
-            state.record(&run_id, "Cancellation requested for active native action.", true);
-            Ok(true)
-        }
-        None => {
-            state.record(&run_id, "Cancellation refused: that run is not active.", false);
-            Err("That native run is not active.".into())
-        }
+    if state.emergency.cancel(&run_id) {
+        state.record(
+            &run_id,
+            "Cancellation requested for active native action.",
+            true,
+        );
+        Ok(true)
+    } else {
+        state.record(
+            &run_id,
+            "Cancellation refused: that run is not active.",
+            false,
+        );
+        Err("That native run is not active.".into())
     }
 }
 
 /// Emergency stop: halt everything immediately. Always available, never gated.
 #[tauri::command]
 fn emergency_stop(app: tauri::AppHandle, state: State<'_, Companion>) -> Result<bool, String> {
-    state.halted.store(true, Ordering::SeqCst);
-    if let Ok(running) = state.running.lock() {
-        for token in running.values() {
-            token.store(true, Ordering::SeqCst);
-        }
-    }
+    state.emergency.halt();
     state.record("-", "EMERGENCY STOP — all companion actions halted.", true);
     let _ = app.emit("ocade://emergency-stop", true);
     Ok(true)
@@ -1120,9 +1122,14 @@ fn reset_emergency_stop(
     state: State<'_, Companion>,
     request: SignedRequest,
 ) -> Result<bool, String> {
-    verify_signed(&state, &request, "reset_emergency_stop", &serde_json::json!({}))?;
+    verify_signed(
+        &state,
+        &request,
+        "reset_emergency_stop",
+        &serde_json::json!({}),
+    )?;
 
-    state.halted.store(false, Ordering::SeqCst);
+    state.emergency.reset();
     state.record("-", "Emergency stop reset.", true);
     Ok(true)
 }
@@ -1185,8 +1192,7 @@ fn main() {
             *app.state::<Companion>()
                 .allowlist_path
                 .lock()
-                .map_err(|_| std::io::Error::other("Companion busy"))? =
-                Some(allowlist_path);
+                .map_err(|_| std::io::Error::other("Companion busy"))? = Some(allowlist_path);
             let artifact_dir = app.path().app_cache_dir()?.join("captures");
             fs::create_dir_all(&artifact_dir)?;
             platform::prune_artifacts(&artifact_dir).map_err(std::io::Error::other)?;
@@ -1213,12 +1219,7 @@ fn main() {
                     }
                     "stop" => {
                         if let Some(state) = app.try_state::<Companion>() {
-                            state.halted.store(true, Ordering::SeqCst);
-                            if let Ok(running) = state.running.lock() {
-                                for token in running.values() {
-                                    token.store(true, Ordering::SeqCst);
-                                }
-                            }
+                            state.emergency.halt();
                             state.record("-", "EMERGENCY STOP from tray.", true);
                         }
                         let _ = app.emit("ocade://emergency-stop", true);
@@ -1234,7 +1235,8 @@ fn main() {
                 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
 
                 // Ctrl/Cmd+Shift+Escape-style panic key, and a show/hide toggle.
-                let stop_key = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::F12);
+                let stop_key =
+                    Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::F12);
                 let toggle_key =
                     Shortcut::new(Some(Modifiers::CONTROL | Modifiers::SHIFT), Code::Space);
 
@@ -1248,12 +1250,7 @@ fn main() {
                             }
                             if shortcut == &stop_key {
                                 if let Some(state) = handle.try_state::<Companion>() {
-                                    state.halted.store(true, Ordering::SeqCst);
-                                    if let Ok(running) = state.running.lock() {
-                                        for token in running.values() {
-                                            token.store(true, Ordering::SeqCst);
-                                        }
-                                    }
+                                    state.emergency.halt();
                                     state.record("-", "EMERGENCY STOP from global hotkey.", true);
                                 }
                                 let _ = handle.emit("ocade://emergency-stop", true);

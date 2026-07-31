@@ -10,7 +10,115 @@
 /// nonces and replay rejection for every inbound companion request.
 pub mod ipc;
 
+use std::collections::HashMap;
 use std::path::{Component, Path, PathBuf};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex, MutexGuard,
+};
+
+/// One atomic owner for the emergency-stop latch and every active cancellation
+/// token.
+///
+/// The latch and token registry deliberately share a mutex. Keeping them in
+/// separate locks creates a check-then-register race: a stop can land after an
+/// action observes `halted = false` but before its token is visible, allowing
+/// that action to escape the stop. `register` and `halt` are mutually exclusive,
+/// so a run is either registered in time to be cancelled or refused because the
+/// latch is already set.
+#[derive(Debug, Default)]
+pub struct EmergencyStopRegistry {
+    state: Mutex<EmergencyStopState>,
+}
+
+#[derive(Debug, Default)]
+struct EmergencyStopState {
+    halted: bool,
+    running: HashMap<String, Arc<AtomicBool>>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EmergencyStopRefusal {
+    Halted,
+    DuplicateRun,
+}
+
+impl EmergencyStopRefusal {
+    pub fn message(self) -> &'static str {
+        match self {
+            Self::Halted => "Emergency stop is active. Reset it before running actions.",
+            Self::DuplicateRun => "That run id is already active.",
+        }
+    }
+}
+
+impl EmergencyStopRegistry {
+    fn lock(&self) -> MutexGuard<'_, EmergencyStopState> {
+        // A panic while holding the registry must not disable the panic button.
+        // Recover the state and keep the latch usable; `halt` still sets every
+        // token and `is_halted` still fails safe from the recovered state.
+        self.state
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    pub fn is_halted(&self) -> bool {
+        self.lock().halted
+    }
+
+    /// Register a run and return its cancellation token.
+    ///
+    /// This is the final admission gate before execution. It refuses while
+    /// halted and rejects duplicate run ids under the same lock used by
+    /// `halt`, closing the stop-versus-registration race.
+    pub fn register(&self, run_id: &str) -> Result<Arc<AtomicBool>, EmergencyStopRefusal> {
+        let mut state = self.lock();
+        if state.halted {
+            return Err(EmergencyStopRefusal::Halted);
+        }
+        if state.running.contains_key(run_id) {
+            return Err(EmergencyStopRefusal::DuplicateRun);
+        }
+        let token = Arc::new(AtomicBool::new(false));
+        state.running.insert(run_id.to_string(), Arc::clone(&token));
+        Ok(token)
+    }
+
+    pub fn finish(&self, run_id: &str) {
+        self.lock().running.remove(run_id);
+    }
+
+    pub fn cancel(&self, run_id: &str) -> bool {
+        let token = self.lock().running.get(run_id).cloned();
+        if let Some(token) = token {
+            token.store(true, Ordering::SeqCst);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Latch the stop and cancel every run admitted before this call.
+    ///
+    /// Returns the number of active tokens signalled, which is useful for audit
+    /// and runtime evidence without exposing action contents.
+    pub fn halt(&self) -> usize {
+        let mut state = self.lock();
+        state.halted = true;
+        for token in state.running.values() {
+            token.store(true, Ordering::SeqCst);
+        }
+        state.running.len()
+    }
+
+    pub fn reset(&self) {
+        self.lock().halted = false;
+    }
+
+    pub fn active_count(&self) -> usize {
+        self.lock().running.len()
+    }
+}
 
 /// Risk tiers, identical to the TypeScript contract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -275,6 +383,109 @@ pub fn redact_for_audit(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Barrier;
+    use std::thread;
+    use std::time::{Duration, Instant};
+
+    #[test]
+    fn emergency_stop_cancels_every_active_run_under_load() {
+        let stop = EmergencyStopRegistry::default();
+        let tokens = (0..512)
+            .map(|index| stop.register(&format!("run-{index}")).unwrap())
+            .collect::<Vec<_>>();
+
+        let started = Instant::now();
+        assert_eq!(stop.halt(), 512);
+        assert!(
+            started.elapsed() < Duration::from_millis(250),
+            "the host stop exceeded its declared 250 ms in-process bound"
+        );
+        assert!(tokens.iter().all(|token| token.load(Ordering::SeqCst)));
+        assert!(stop.is_halted());
+    }
+
+    #[test]
+    fn registration_cannot_race_past_the_emergency_stop() {
+        const RUNS: usize = 64;
+        let stop = Arc::new(EmergencyStopRegistry::default());
+        let barrier = Arc::new(Barrier::new(RUNS + 1));
+        let workers = (0..RUNS)
+            .map(|index| {
+                let stop = Arc::clone(&stop);
+                let barrier = Arc::clone(&barrier);
+                thread::spawn(move || {
+                    barrier.wait();
+                    stop.register(&format!("race-{index}"))
+                })
+            })
+            .collect::<Vec<_>>();
+
+        barrier.wait();
+        stop.halt();
+        for worker in workers {
+            match worker.join().unwrap() {
+                Ok(token) => assert!(
+                    token.load(Ordering::SeqCst),
+                    "a run admitted before halt escaped cancellation"
+                ),
+                Err(refusal) => assert_eq!(refusal, EmergencyStopRefusal::Halted),
+            }
+        }
+        assert!(stop.is_halted());
+    }
+
+    #[test]
+    fn emergency_stop_refuses_new_and_duplicate_runs_until_explicit_reset() {
+        let stop = EmergencyStopRegistry::default();
+        let first = stop.register("run-1").unwrap();
+        assert!(matches!(
+            stop.register("run-1"),
+            Err(EmergencyStopRefusal::DuplicateRun)
+        ));
+
+        stop.halt();
+        assert!(first.load(Ordering::SeqCst));
+        assert!(matches!(
+            stop.register("run-2"),
+            Err(EmergencyStopRefusal::Halted)
+        ));
+
+        stop.finish("run-1");
+        stop.reset();
+        assert!(!stop.is_halted());
+        assert!(stop.register("run-2").is_ok());
+    }
+
+    #[test]
+    fn cancellation_and_cleanup_have_honest_outcomes() {
+        let stop = EmergencyStopRegistry::default();
+        let token = stop.register("run-1").unwrap();
+        assert!(stop.cancel("run-1"));
+        assert!(token.load(Ordering::SeqCst));
+        assert!(!stop.cancel("missing"));
+
+        stop.finish("run-1");
+        assert_eq!(stop.active_count(), 0);
+        assert!(!stop.cancel("run-1"));
+    }
+
+    #[test]
+    fn a_poisoned_registry_cannot_disable_the_emergency_stop() {
+        let stop = Arc::new(EmergencyStopRegistry::default());
+        let token = stop.register("run-1").unwrap();
+        let poison_target = Arc::clone(&stop);
+        let poisoned = thread::spawn(move || {
+            let _guard = poison_target.state.lock().unwrap();
+            panic!("planted registry failure");
+        });
+        assert!(poisoned.join().is_err());
+
+        assert_eq!(stop.halt(), 1);
+        assert!(stop.is_halted());
+        assert!(token.load(Ordering::SeqCst));
+        stop.reset();
+        assert!(stop.register("recovered").is_ok());
+    }
 
     #[test]
     fn protected_text_is_detected() {

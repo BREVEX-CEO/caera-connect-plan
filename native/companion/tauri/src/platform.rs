@@ -21,7 +21,11 @@ const CAPTURE_RETENTION: Duration = Duration::from_secs(24 * 60 * 60);
 const MAX_CAPTURES: usize = 50;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(tag = "kind", rename_all = "snake_case", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "kind",
+    rename_all = "snake_case",
+    rename_all_fields = "camelCase"
+)]
 pub enum PlatformOutput {
     ScreenCapture {
         path: String,
@@ -39,7 +43,7 @@ pub enum PlatformOutput {
     },
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AccessibilityNode {
     pub role: String,
@@ -81,54 +85,59 @@ pub struct ApplicationInfo {
 }
 
 pub fn discover() -> BackendStatus {
-    let mut capabilities = vec![
-        "app.open",
-        "clipboard.read",
-        "clipboard.write",
-        "file.open",
-    ];
+    let mut capabilities = ["app.open", "clipboard.read", "clipboard.write", "file.open"]
+        .map(str::to_string)
+        .to_vec();
 
     #[cfg(target_os = "windows")]
     {
         if program_available("powershell.exe") {
-            capabilities.extend([
-                "screen.read",
-                "window.list",
-                "accessibility.read",
-                "window.focus",
-                "window.arrange",
-                "text.type",
-                "selection.read",
-                "selection.replace",
-            ]);
+            capabilities.extend(
+                [
+                    "screen.read",
+                    "window.list",
+                    "accessibility.read",
+                    "window.focus",
+                    "window.arrange",
+                    "text.type",
+                    "selection.read",
+                    "selection.replace",
+                ]
+                .map(str::to_string),
+            );
         }
     }
     #[cfg(target_os = "macos")]
     {
         if Path::new("/usr/bin/osascript").is_file() {
-            capabilities.extend([
-                "window.list",
-                "window.focus",
-                "window.arrange",
-                "text.type",
-                "selection.read",
-                "selection.replace",
-            ]);
+            capabilities.extend(
+                [
+                    "window.list",
+                    "window.focus",
+                    "window.arrange",
+                    "text.type",
+                    "selection.read",
+                    "selection.replace",
+                ]
+                .map(str::to_string),
+            );
         }
         if Path::new("/usr/sbin/screencapture").is_file() {
-            capabilities.push("screen.read");
+            capabilities.push("screen.read".into());
         }
     }
     #[cfg(target_os = "linux")]
     {
         if program_available("wmctrl") {
-            capabilities.extend(["window.list", "window.focus", "window.arrange"]);
+            capabilities
+                .extend(["window.list", "window.focus", "window.arrange"].map(str::to_string));
         }
         if program_available("xdotool") {
-            capabilities.extend(["text.type", "selection.read", "selection.replace"]);
+            capabilities
+                .extend(["text.type", "selection.read", "selection.replace"].map(str::to_string));
         }
         if screenshot_program().is_some() {
-            capabilities.push("screen.read");
+            capabilities.push("screen.read".into());
         }
     }
 
@@ -143,7 +152,11 @@ pub fn discover() -> BackendStatus {
         .collect();
     BackendStatus {
         available: !unavailable,
-        capabilities: if unavailable { Vec::new() } else { capabilities },
+        capabilities: if unavailable {
+            Vec::new()
+        } else {
+            capabilities
+        },
         reason: unavailable.then(|| {
             "The required operating-system control tools are unavailable on this machine.".into()
         }),
@@ -152,12 +165,7 @@ pub fn discover() -> BackendStatus {
     }
 }
 
-fn permission(
-    id: &str,
-    label: &str,
-    state: &str,
-    guidance: &str,
-) -> PermissionStatus {
+fn permission(id: &str, label: &str, state: &str, guidance: &str) -> PermissionStatus {
     PermissionStatus {
         id: id.into(),
         label: label.into(),
@@ -171,7 +179,7 @@ fn permission_statuses() -> Vec<PermissionStatus> {
     {
         let powershell = program_available("powershell.exe");
         let interactive = windows_interactive();
-        return vec![
+        vec![
             permission(
                 "interactive_desktop",
                 "Interactive desktop session",
@@ -202,7 +210,7 @@ fn permission_statuses() -> Vec<PermissionStatus> {
                 "not_required",
                 "Choose explicit directories in OCADE; Windows does not require a separate global file permission.",
             ),
-        ];
+        ]
     }
     #[cfg(target_os = "macos")]
     {
@@ -255,13 +263,15 @@ fn permission_statuses() -> Vec<PermissionStatus> {
             ),
         ];
     }
-    #[allow(unreachable_code)]
-    vec![permission(
-        "unsupported_platform",
-        "Operating-system integration",
-        "denied",
-        "This operating system has no approved OCADE companion backend.",
-    )]
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        vec![permission(
+            "unsupported_platform",
+            "Operating-system integration",
+            "denied",
+            "This operating system has no approved OCADE companion backend.",
+        )]
+    }
 }
 
 #[cfg(target_os = "windows")]
@@ -283,9 +293,7 @@ fn windows_interactive() -> bool {
         })
 }
 
-pub fn application_inventory(
-    cancelled: Arc<AtomicBool>,
-) -> Result<Vec<ApplicationInfo>, String> {
+pub fn application_inventory(cancelled: Arc<AtomicBool>) -> Result<Vec<ApplicationInfo>, String> {
     ensure_not_cancelled(&cancelled)?;
     #[cfg(target_os = "windows")]
     let output = run_program(
@@ -432,9 +440,7 @@ pub fn perform(
     }
 }
 
-fn accessibility_tree(
-    cancelled: Arc<AtomicBool>,
-) -> Result<Vec<AccessibilityNode>, String> {
+fn accessibility_tree(cancelled: Arc<AtomicBool>) -> Result<Vec<AccessibilityNode>, String> {
     #[cfg(target_os = "windows")]
     {
         let output = run_program(
@@ -447,7 +453,7 @@ fn accessibility_tree(
             cancelled,
         )?;
         let text = text_output(output)?;
-        return Ok(text
+        Ok(text
             .lines()
             .filter_map(|line| {
                 let mut fields = line.splitn(3, '\t');
@@ -475,7 +481,7 @@ fn accessibility_tree(
                 })
             })
             .take(500)
-            .collect());
+            .collect())
     }
     #[cfg(not(target_os = "windows"))]
     {
@@ -497,8 +503,12 @@ pub fn active_window_title(cancelled: Arc<AtomicBool>) -> Result<String, String>
     {
         let script = "$u=Add-Type -MemberDefinition '[DllImport(\"user32.dll\")] public static extern IntPtr GetForegroundWindow();' -Name U -Namespace O -PassThru; $h=$u::GetForegroundWindow(); $p=Get-Process|Where-Object {$_.MainWindowHandle -eq $h}|Select-Object -First 1 -ExpandProperty MainWindowTitle; if($p){[Console]::Out.Write($p)}";
         return text_output(run_program(
-            Command::new("powershell.exe")
-                .args(["-NoProfile", "-NonInteractive", "-Command", script]),
+            Command::new("powershell.exe").args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                script,
+            ]),
             cancelled,
         )?);
     }
@@ -607,7 +617,10 @@ pub fn active_window_layout(cancelled: Arc<AtomicBool>) -> Result<String, String
 }
 
 fn receipt(detail: &str) -> PlatformResult {
-    PlatformResult { detail: detail.into(), output: None }
+    PlatformResult {
+        detail: detail.into(),
+        output: None,
+    }
 }
 
 fn capture_screen(
@@ -624,7 +637,11 @@ fn capture_screen(
         .collect();
     let path = artifact_dir.join(format!(
         "screen-{}.png",
-        if safe_id.is_empty() { "capture" } else { &safe_id }
+        if safe_id.is_empty() {
+            "capture"
+        } else {
+            &safe_id
+        }
     ));
 
     #[cfg(target_os = "windows")]
@@ -644,9 +661,7 @@ fn capture_screen(
     #[cfg(target_os = "macos")]
     {
         run_program(
-            Command::new("/usr/sbin/screencapture")
-                .arg("-x")
-                .arg(&path),
+            Command::new("/usr/sbin/screencapture").arg("-x").arg(&path),
             cancelled,
         )?;
     }
@@ -654,13 +669,19 @@ fn capture_screen(
     {
         match screenshot_program().as_deref() {
             Some("gnome-screenshot") => {
-                run_program(Command::new("gnome-screenshot").arg("-f").arg(&path), cancelled)?;
+                run_program(
+                    Command::new("gnome-screenshot").arg("-f").arg(&path),
+                    cancelled,
+                )?;
             }
             Some("scrot") => {
                 run_program(Command::new("scrot").arg(&path), cancelled)?;
             }
             Some("import") => {
-                run_program(Command::new("import").arg("-window").arg("root").arg(&path), cancelled)?;
+                run_program(
+                    Command::new("import").arg("-window").arg("root").arg(&path),
+                    cancelled,
+                )?;
             }
             _ => return Err("No supported screenshot tool is installed.".into()),
         }
@@ -774,7 +795,12 @@ fn arrange_window(layout: &str, cancelled: Arc<AtomicBool>) -> Result<(), String
     if layout == "maximize" {
         command.args(["-r", ":ACTIVE:", "-b", "add,maximized_vert,maximized_horz"]);
     } else {
-        command.args(["-r", ":ACTIVE:", "-b", "remove,maximized_vert,maximized_horz"]);
+        command.args([
+            "-r",
+            ":ACTIVE:",
+            "-b",
+            "remove,maximized_vert,maximized_horz",
+        ]);
     }
     #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
     return Err("Window arrangement is unsupported on this operating system.".into());
@@ -854,16 +880,18 @@ fn wait_child(mut child: Child, cancelled: Arc<AtomicBool>) -> Result<Output, St
         }
         match child.try_wait() {
             Ok(Some(_)) => {
-                let output = child
-                    .wait_with_output()
-                    .map_err(|_| "The operating-system action did not return a result.".to_string())?;
+                let output = child.wait_with_output().map_err(|_| {
+                    "The operating-system action did not return a result.".to_string()
+                })?;
                 return if output.status.success() {
                     Ok(output)
                 } else {
                     Err("The operating-system action was refused or failed.".into())
                 };
             }
-            Ok(None) if started.elapsed() < ACTION_TIMEOUT => thread::sleep(Duration::from_millis(20)),
+            Ok(None) if started.elapsed() < ACTION_TIMEOUT => {
+                thread::sleep(Duration::from_millis(20))
+            }
             Ok(None) => {
                 let _ = child.kill();
                 let _ = child.wait();
@@ -909,9 +937,4 @@ fn screenshot_program() -> Option<String> {
         .into_iter()
         .find(|program| program_available(program))
         .map(str::to_string)
-}
-
-#[cfg(not(target_os = "linux"))]
-fn screenshot_program() -> Option<String> {
-    None
 }
