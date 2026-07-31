@@ -5,6 +5,11 @@
   "note": "P12 removed extension/background.js from the unexecutable set by proving it runs in a VM with a fake chrome API. P09 did the same for the Rust safety core via cargo test. Both are recorded below as targets whose structural tests are now SUPPLEMENTARY rather than sole evidence.",
   "structuralOnly": [
     {
+      "path": "src/lib/__tests__/accessibility-gate.test.ts",
+      "why": "Runs the real accessibility gate as a subprocess against deliberately inaccessible temporary TSX fixtures. File reads verify command and CI wiring and prove the tracked zero baseline stays byte-identical.",
+      "couldBeStronger": "No for gate enforcement: it already executes the production gate and proves real regressions fail. Rendered-browser and assistive-technology evidence remain separate acceptance layers."
+    },
+    {
       "path": "src/lib/__tests__/automation-worker-sql.test.ts",
       "why": "Asserts on migration SQL. Executing it needs a live PostgreSQL with the OCADE schema; no migration has been applied to any database, so behaviour cannot be run here.",
       "couldBeStronger": "Yes, once a database twin or staging instance exists (P16)."
@@ -23,6 +28,11 @@
       "path": "src/lib/__tests__/ci-workflows.test.ts",
       "why": "Asserts on .github/workflows YAML for the platform matrix. Same constraint: workflows execute on the runner.",
       "couldBeStronger": "No, not locally."
+    },
+    {
+      "path": "src/lib/__tests__/controlled-rollout-sql.test.ts",
+      "why": "Asserts the ready-to-apply controlled-rollout migration, verification and rollback package. The local PostgreSQL twin cannot reach this late migration until the known missing ficia_time_entries CREATE migration is recovered.",
+      "couldBeStronger": "Yes. Execute it in the database twin after the missing schema migration is recovered, then in an isolated authorized Supabase project."
     },
     {
       "path": "src/lib/__tests__/dead-controls.test.ts",
@@ -125,14 +135,14 @@
       "couldBeStronger": "Partly; same as phase 21."
     },
     {
-      "path": "src/lib/__tests__/test-kinds.test.ts",
-      "why": "Runs the test-kind gate itself as a subprocess against corrupted COPIES of this ledger. The file reads build the fixture and read back the tracked ledger to prove it was never written; the gate is genuinely executed.",
-      "couldBeStronger": "No. It already executes the gate; the classifier sees readFileSync because that is how a subprocess fixture is built."
-    },
-    {
       "path": "src/lib/__tests__/supabase-sql-discipline.test.ts",
       "why": "Asserts every migration ships a verification and a rollback script, and that RLS is enabled. Structural by design — it is a discipline check across 31 file triples, not a behaviour.",
       "couldBeStronger": "No. Applying the migrations is externally blocked and is a separate claim."
+    },
+    {
+      "path": "src/lib/__tests__/test-kinds.test.ts",
+      "why": "Runs the test-kind gate itself as a subprocess against corrupted COPIES of this ledger. The file reads build the fixture and read back the tracked ledger to prove it was never written; the gate is genuinely executed.",
+      "couldBeStronger": "No. It already executes the gate; the classifier sees readFileSync because that is how a subprocess fixture is built."
     }
   ]
 }

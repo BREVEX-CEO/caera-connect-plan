@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "phase": "P27 - Deployment, monitoring, and incident readiness",
+  "sourceStatus": "VERIFIED COMPLETE",
+  "runtimeStatus": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+  "completedAt": "2026-07-30T15:25:00.000Z",
+  "branch": "feat/ocade-implementation",
+  "baseHead": "19d3414633b9167632514aaf4e98e1c6a93065df",
+  "requirements": {
+    "P27.S01": "READY TO APPLY - all migrations retain paired rollback and verification SQL; no database authority or migration execution was used.",
+    "P27.S02": "PASS AT CONTROLLED BOUNDARY - web deployment is fail-closed, relay container source is reproducible and hardened, and success needs independent health evidence.",
+    "P27.S03": "PASS AT SOURCE BOUNDARY - secrets are presence-checked only and must remain in platform stores; production-source secret scan is clean.",
+    "P27.S04": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED - health, operational signals, alerts, privacy, backup and restore-drill evidence are specified; providers and live evidence are absent.",
+    "P27.S05": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED - incident roles, severities, command, communications, forensics, rollback, recovery verification and postmortem are specified; owners and exercise evidence are absent."
+  },
+  "validation": {
+    "fullVitest": "PASS - 3948 passed, 1 skipped, 3949 collected across 238 files",
+    "typecheck": "PASS",
+    "lint": "PASS - 0 errors, 2203 preserved warnings",
+    "build": "PASS - 2865 client, 498 SSR and 2685 server modules transformed",
+    "operationsGate": "PASS - 16/16",
+    "releaseGate": "PASS - 55/55",
+    "integrationGate": "PASS - 163/163",
+    "deadControls": "PASS - 0 across 179 component and route files",
+    "testKinds": "PASS - 188 execution, 23 mixed, 27 declared structural across 238 files",
+    "accessibility": "PASS - 0 static findings across 133 files; rendered assistive-technology checks remain a separate boundary",
+    "performance": "PASS - 214/250 assets; 3605.1/3906.3 KiB total",
+    "licences": "PASS - 374 production packages current",
+    "rust": "PASS - safety 30/30; Tauri check and clippy -D warnings",
+    "builtWorker": "PASS - GET 200/versioned body, HEAD 200/zero bytes, POST 405/Allow",
+    "dependencyAudit": "PASS - npm audit --omit=dev found 0 vulnerabilities",
+    "jsonAndExtension": "PASS - 87 JSON files parsed and extension/background.js syntax checked",
+    "secretScan": "PASS - 0 production files; synthetic test fixtures remain declared",
+    "diffCheck": "PASS - no whitespace errors; line-ending notices only"
+  },
+  "readiness": {
+    "before": {
+      "originalCore": "217.5/450 = 48.3%",
+      "expanded": "233.1/510 = 45.7%"
+    },
+    "after": {
+      "originalCore": "217.8/450 = 48.4%",
+      "expanded": "235.4/510 = 46.2%"
+    },
+    "promotions": [
+      "AZ-382 deployment script: EXTERNALLY BLOCKED to SIMULATED RUNTIME VERIFIED",
+      "AZ-433 through AZ-437 operations procedures: NOT STARTED to EXTERNALLY BLOCKED with complete source contracts and named owner/runtime caveats"
+    ]
+  },
+  "workingTreeAfterEvidence": {
+    "modifiedTracked": 41,
+    "untracked": 22,
+    "deleted": 0,
+    "staged": 0
+  },
+  "recovery": "Revert only the P27 deploy controller, operations gate/contract/runbook, release-gate integration, release checklist/blocker corrections, sandbox cancellation-race fix and P27 evidence/ledger paths. Do not restore the former simulated-success deploy script.",
+  "nextDependency": "No unstarted numbered P28 source specification exists in the uploaded master plan or current authoritative checkpoint. The next readiness increase is externally blocked: assign production owners, authorize an isolated Supabase restore drill, connect monitoring, then separately approve deployment validation."
+}

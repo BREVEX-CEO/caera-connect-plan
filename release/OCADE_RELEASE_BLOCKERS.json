@@ -20,7 +20,7 @@
       "status": "externally_blocked",
       "requiredEvidence": [
         "Authorized project access",
-        "Four OCADE migrations applied in documented order",
+        "All OCADE migrations applied in documented order",
         "Verification SQL and cross-tenant attack tests passed",
         "Generated database types refreshed after apply"
       ]

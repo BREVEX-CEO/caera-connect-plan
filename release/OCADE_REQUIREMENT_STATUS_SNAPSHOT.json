@@ -1,9 +1,16 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-30T12:11:42.336Z",
-  "head": "64ad76c",
+  "generatedAt": "2026-07-30T18:04:09.251Z",
+  "head": "19d3414+p29-worktree",
   "branch": "feat/ocade-implementation",
-  "phase": "P18 - Telemetry complete; marketplace (S02) and bounty (S03) NOT implemented",
+  "phase": "P29 - Source closure complete; production externally blocked",
+  "evidenceBindings": {
+    "sourceRevision": "19d3414+p29-worktree",
+    "targetVersion": "0.1.0",
+    "dependencyLockSha256": "21e378ff9dc2e6260e18bcda165eda4d9cd53b344cd6dcdea219d8425741bc88",
+    "environment": "windows-x64-node22+",
+    "verificationRuleVersion": "p29-v1"
+  },
   "method": "Semantic subject-to-module mapping validated against a production import-reachability graph, executed tests separated from source-text assertions, and executed gate results. Source-text assertions are graded SOURCE COMPLETE, never UNIT TESTED.",
   "denominators": {
     "originalCore": 450,
@@ -11,31 +18,29 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 215.3,
+      "numerator": 224.9,
       "denominator": 450,
-      "percent": 47.8
+      "percent": 50
     },
     "expanded": {
-      "numerator": 230.9,
+      "numerator": 262,
       "denominator": 510,
-      "percent": 45.3
+      "percent": 51.4
     }
   },
   "evidenceTiers": {
-    "simulatedRuntime": 41,
+    "simulatedRuntime": 44,
     "hostedRuntime": 0,
-    "realTargetRuntime": 11,
+    "realTargetRuntime": 14,
     "productionReady": 0
   },
   "counts": {
-    "UNIT TESTED": 220,
-    "PARTIAL SOURCE": 8,
+    "UNIT TESTED": 246,
+    "INTEGRATION TESTED": 59,
     "SOURCE COMPLETE": 48,
-    "NOT STARTED": 56,
-    "SIMULATED RUNTIME VERIFIED": 41,
-    "INTEGRATION TESTED": 50,
-    "EXTERNALLY BLOCKED": 76,
-    "REAL TARGET RUNTIME VERIFIED": 11
+    "SIMULATED RUNTIME VERIFIED": 44,
+    "EXTERNALLY BLOCKED": 99,
+    "REAL TARGET RUNTIME VERIFIED": 14
   },
   "requirements": [
     {
@@ -104,8 +109,11 @@
       "id": "CXR-09",
       "subject": "Systematic hardware and tooling blocker reduction — A blocker is genuinely external only after portable runtimes, hosted runners, emulators, free equivalents, existing devices, authorised remote workers, peer-to-peer paths, signed external evidence, community skills, and one-step human actions have been evaluated.",
       "area": "Hardware elimination",
-      "status": "PARTIAL SOURCE",
-      "weight": 0.2
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "evidence": "src/lib/blocker-resolution.ts, the reachable admin launch-gate policy panel, release/OCADE_BLOCKER_REDUCTION_POLICY.json and src/lib/__tests__/blocker-resolution.test.ts enforce all ten alternatives in order, fresh digest-bound independent evidence, available-route preference, one explicit lawful owner action, cancellation, tenant-scoped retention and idempotency across 13 executed tests.",
+      "caveat": "The evaluator proves the classification workflow; each live release blocker still needs its own current ten-route assessment and real owner evidence before that individual blocker can be called external.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "CXR-10",
@@ -125,43 +133,55 @@
       "id": "HWE-02",
       "subject": "Provider-neutral build-runner abstraction",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "PARTIAL SOURCE",
-      "weight": 0.2
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "The tracked portable release manifest translates the same bounded jobs to hosted, self-hosted and alternate-cloud providers; the executed test rejects provider, command, secret and path drift.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-03",
       "subject": "Hermetic portable toolchain capsule",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "The portable release gate enforces exact Node, npm, Rust and TypeScript versions, explicit lockfiles, environment allowlisting and toolchain-first PATH policy; complete Vitest passed.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-04",
       "subject": "Reproducible native artifact verification",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "Independent provenance tests compare source, compiler, dependency digests, flags, symbols and artifact hashes, distinguish exact from normalized equivalence, and reject deliberate drift.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-05",
       "subject": "Prebuilt sidecar and runtime bundle strategy",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "Sidecar selection requires target identity, HTTPS, version, rollback and matching SHA-256; missing published bundles and tampered bytes fail closed, while actual publication remains external.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-06",
       "subject": "Clean-machine snapshot matrix",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "The clean-machine contract covers Windows, Linux, Android and macOS lifecycle receipts and refuses repository, developer-tool, credential, leftover, missing-step and retained-environment contamination.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-07",
       "subject": "Remote hardware evidence network",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "Signed plan and tester-attestation envelopes bind the exact source, target version, app, device and benchmark; forged, stale, duplicate, privacy-leaking and impossible-hardware receipts are refused. An actual independent tester remains external.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-08",
@@ -174,8 +194,11 @@
       "id": "HWE-09",
       "subject": "Virtual audio, microphone, camera, and clipboard laboratory",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "A production-owned CI/disposable-VM media-lab contract now provides five scoped virtual adapters and twelve deterministic fixtures. Executed tests cover exact consumption/emission digests, absence, denial, unplug, silence, noise, long streams, malformed frames, protected speech, cancellation, tenant and permission refusal, bounded resources, recovery and false real-hardware claims.",
+      "caveat": "This is simulated media-lab evidence only. Acoustic quality, driver differences and physical camera behaviour still require real-device proof.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-10",
@@ -201,60 +224,81 @@
       "id": "HWE-12",
       "subject": "Open-source application equivalence programme",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "The production-owned substitution fabric maps six brand-neutral capability/format categories to FreeCAD, Blender, CalculiX, LibreOffice, GIMP and Audacity reference adapters and refuses unsupported capability or format pairs. Receipts remain CATEGORY CAPABILITY EVIDENCE ONLY and explicitly deny commercial-application support.",
+      "caveat": "Installed free-tool execution and every commercial application/version still require independent runtime evidence.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-13",
       "subject": "Remote licensed-worker adapter",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "Signed worker, job and evidence envelopes now bind tenant, user, application/version, capability and input/output digests. Tests refuse revocation, offline state, exported licence secrets, expiry, protected files, excessive retry, cancellation, capability drift and evidence mismatch.",
+      "caveat": "No licensed application or authorised remote workstation was connected; receipts remain execution candidates requiring real evidence.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-14",
       "subject": "Browser-first functional substitution layer",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "PARTIAL SOURCE",
-      "weight": 0.2
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "The substitution registry records the original request and actual route, requires explicit off-device consent plus provider, privacy and pricing disclosures, preserves output-format contracts, honours stop/revocation and never claims the requested desktop application was used.",
+      "caveat": "No third-party browser provider, account, pricing tier or live data transfer was exercised.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-15",
       "subject": "WebAssembly execution fallback",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "A real deterministic WebAssembly module executes twice through a typed runner contract that binds package digest, tenant, capability, memory, time, file and network limits. Tampering, over-limit execution, nondeterminism, network attempts, undeclared files, cancellation and emergency stop fail closed.",
+      "caveat": "The evidence is bounded unit execution; large GPU work and operating-system control are explicitly not replaced.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-16",
       "subject": "WebGPU and CPU tiered local inference",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "PARTIAL SOURCE",
-      "weight": 0.2,
-      "resolvedInPhase": "P03-P05",
-      "evidence": "RAM-based tiering implemented, tested and wired (modelFit/pickLocalModelForHardware).",
-      "caveat": "WebGPU tiering is not implemented; only CPU/RAM tiering exists."
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "resolvedInPhase": "P29",
+      "evidence": "The local inference ladder now selects WebGPU, native GPU, vector CPU or micro CPU from measured memory, GPU memory, driver, thermal and model-compatibility constraints and records every fallback reason plus truthful latency/context/privacy metadata.",
+      "caveat": "No local model was downloaded or executed on WebGPU/native GPU in this environment; route selection still requires runtime inference evidence."
     },
     {
       "id": "HWE-17",
       "subject": "Progressive model download and micro-model bootstrap",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "PARTIAL SOURCE",
-      "weight": 0.2
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "Signed model manifests now support bootstrap-first compatibility and storage checks, resumable digest-bound chunks, idempotent resume, corruption/incomplete-package refusal, final package verification, rollback metadata and garbage collection that preserves bootstrap, active and rollback models.",
+      "caveat": "No distributable model package or network download was supplied; verified package state does not claim model execution.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-18",
       "subject": "Encrypted burst-compute provider",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "Burst policy requires approved providers, fresh explicit consent, non-protected minimum transformed payloads, retention/pricing disclosure, bounded retries and local fallback. Tests execute AES-256-GCM sealing with tenant/job/provider associated-data binding and refuse tampering, stale consent, outage, partial results and retention/evidence drift.",
+      "caveat": "No remote provider was contacted and no cost was incurred; signed results remain provider-runtime candidates.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-19",
       "subject": "Home-node and spare-device compute mesh",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "Signed measured-node attestations and scoped jobs now bind tenant, user, certificate identity, capability and input digest over approved LAN mutual-TLS or E2E peer transports. Tests refuse revocation, offline/expired nodes, impossible claims, public addresses, duplicates, capability drift, protected data and excessive retries while allowing private IP changes without identity drift.",
+      "caveat": "No spare physical device or live peer transport was connected.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-20",
@@ -277,8 +321,11 @@
       "id": "HWE-22",
       "subject": "Enterprise browser policy deployment",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "The production-owned generator emits signed Chrome/Edge policies for Windows, macOS and Linux with exact tenant/package/version binding, HTTPS allow-listed update URLs, least-privilege production origins, forbidden permissions, incognito refusal, rollback and blocked-install revocation bundles. Tests reject wildcard/dev origins, unsupported combinations, tampering, expiry, replay and tenant/package drift.",
+      "caveat": "Bundles explicitly report appliedToDeviceManagement=false. An organisation must approve and deploy them through its own device-management system or manual policy process.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-23",
@@ -298,8 +345,10 @@
       "id": "HWE-25",
       "subject": "Remote physical-device proof broker",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "The compatibility broker verifies signed plans and attestations against exact build, application, physical-device and benchmark bindings, then retains REAL TARGET CANDIDATE - INDEPENDENT REVIEW REQUIRED rather than self-promoting evidence.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-26",
@@ -319,8 +368,11 @@
       "id": "HWE-28",
       "subject": "LAN-only private mode",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "LAN-only authorization requires QR/short-code proof, mutual local-certificate authentication, pinned fingerprints, an explicit LAN ONLY indicator, fresh authentication after subnet changes and local emergency stop. Tests accept only private IPv4/IPv6 destinations and refuse DNS queries, relays, public/hostname destinations, rogue certificates and stale pairing.",
+      "caveat": "The policy is unit tested; a real packet capture proving zero external traffic remains required.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-29",
@@ -346,22 +398,31 @@
       "id": "HWE-31",
       "subject": "Local secrets broker and credential-presence wizard",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "PARTIAL SOURCE",
-      "weight": 0.2
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "release/OCADE_TRUST_SETUP_POLICY.json, scripts/trust-setup.mjs and src/lib/__tests__/trust-setup.test.ts - 15 tests verify presence-only inspection, exact setup destinations, scoped one-call credential injection, consumer/project/scope/revocation refusal, secret-free audit receipts, rotation, removal and cancellation.",
+      "caveat": "The broker contract is unit tested with an injected secure-store adapter. Real Windows Credential Manager, macOS Keychain and Linux Secret Service integration plus production credential entry remain external owner/runtime work.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-32",
       "subject": "Self-signed trust laboratory",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "evidence": "release/OCADE_P26_UPDATE_TRUST_EVIDENCE.json, src/lib/packaging/update-trust.ts and src/lib/__tests__/update-trust.test.ts - 17 executed Ed25519 trust-lab tests cover canonical manifests, tampering, wrong keys, unsigned artifacts, expiry, rotation, revocation, downgrade, rollback and placeholder-key refusal.",
+      "caveat": "This is an explicit test-only trust laboratory. It is not a production certificate, public trust chain, signed installer or notarized release.",
+      "resolvedInPhase": "P26"
     },
     {
       "id": "HWE-33",
       "subject": "Open-source signing eligibility path",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "release/OCADE_TRUST_SETUP_POLICY.json, scripts/trust-setup.mjs and src/lib/__tests__/trust-setup.test.ts validate public-source, SPDX-licence, owner-approval, reproducibility, notice and proprietary-input eligibility rules and reject product-code/community-signing conflation.",
+      "caveat": "No current component is eligible: candidate component licences and public repositories require owner/legal publication decisions, and the proprietary OCADE product is explicitly prohibited from community open-source signing routes.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-34",
@@ -381,15 +442,21 @@
       "id": "HWE-36",
       "subject": "Application-skill marketplace as a hardware multiplier",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "evidence": "src/lib/skills/marketplace.ts integrates the existing real-Ed25519 skill-trust evaluator with independent review, reputation, sandbox, version binding, local revalidation, digest-bound acceptance evidence, tenant-scoped persistence and durable revocation. src/lib/__tests__/marketplace-bounty.test.ts exercises the reachable Settings UI boundary and registry flow within a 21-test marketplace/bounty suite.",
+      "caveat": "The marketplace is local review and installation only. No hosted catalogue, external contributor, target-application licence or real community publication has been proven, and simulated admission never claims the target application ran.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-37",
       "subject": "Community compatibility bounty engine",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "src/lib/skills/marketplace.ts and src/lib/__tests__/marketplace-bounty.test.ts cover bounded priority requests, duplicate claims, requester self-claim refusal, claimant identity, version mismatch, fraudulent/partial/simulated evidence, exact acceptance criteria, independent review, disputes, later revocation and tenant isolation.",
+      "caveat": "This is a non-financial priority-credit engine. Escrow, identity verification and payouts remain externally blocked until compliant payment infrastructure and contributor identity checks exist.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-38",
@@ -405,8 +472,10 @@
       "id": "HWE-39",
       "subject": "Synthetic fault and chaos hardware injector",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "Nine policy-declared fault cases are restricted to explicit test shims and require checkpointing, one bounded retry, a user-visible reason, rollback and unique mutation identifiers. Results remain labelled SIMULATED FAULT ONLY.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-40",
@@ -435,50 +504,64 @@
       "id": "HWE-43",
       "subject": "Evidence-weighted completion engine",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "PARTIAL SOURCE",
-      "weight": 0.2
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "scripts/readiness-engine.mjs recalculates all 510 unique rows and per-area dimensions; seven Phase 29 tests, including deliberate score inflation, passed in the complete Vitest suite.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-44",
       "subject": "Automatic stale-evidence invalidation",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "The P29 engine invalidates future, expired, source-revision-drifted and target-version-drifted evidence; the focused cases passed inside the complete Vitest suite.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-45",
       "subject": "Privacy-preserving screenshot and UI evidence redaction",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "PARTIAL SOURCE",
-      "weight": 0.2
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "Evidence intake requires pre-capture masking, redacts protected values, payment data, OTPs and paths locally, stores only the original digest, refuses unmasked screenshots and downgrades excessively redacted evidence to LOCALLY VERIFIED ONLY. No real screenshot was uploaded.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-46",
       "subject": "User-owned compatibility lab mode",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "Compatibility-lab authorisation is local-first and requires low-risk rehearsed actions, explicit permissions, a bounded action budget, cancellation and separate publication consent.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-47",
       "subject": "Remote support session without unrestricted access",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "Support sessions expose diagnostics and plans only, bind identity and expiry, support revocation and emergency stop, refuse protected content and direct control, and require local approval for mutations.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-48",
       "subject": "Portable compatibility pack export",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "The offline compatibility pack is signed and binds tenant, platform, component versions, licences, digests, expiry and rollback metadata; tampering is rejected.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-49",
       "subject": "Air-gapped local update and evidence workflow",
       "area": "Hardware/tooling/cost/manual-step elimination",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "Signed offline pack verification refuses replay, downgrade, tampering and tenant mismatch and preserves rollback data. A physical removable-media run remains external.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "HWE-50",
@@ -547,50 +630,71 @@
       "id": "AZ-009",
       "subject": "interviews",
       "area": "Stakeholder Discovery and Workflow Research",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "release/OCADE_STAKEHOLDER_RESEARCH_POLICY.json, src/lib/stakeholder-research.ts, the admin launch-gate research boundary and 17 executed stakeholder-research tests provide a consented, pseudonymous, independently reviewed, tenant-scoped intake contract that excludes synthetic fixtures from production evidence.",
+      "caveat": "Zero production participants are recorded. The product-research owner must recruit consenting external humans and conduct real interviews.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-010",
       "subject": "workflow observation",
       "area": "Stakeholder Discovery and Workflow Research",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "The stakeholder-research intake requires explicit observation authorisation, withdrawal support, digest-bound evidence, independent review, current timestamps and no raw or protected content retention.",
+      "caveat": "No authorised human workflow has been observed. The research owner and participant must schedule and consent to real observation.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-011",
       "subject": "pain points",
       "area": "Stakeholder Discovery and Workflow Research",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "The evidence contract accepts pain-point findings only from current external-human records with consent, privacy, coverage and independent-review proof; synthetic fixtures are excluded by the production assessment.",
+      "caveat": "No real participant pain-point evidence exists. Human discovery is owner-coordinated external work.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-012",
       "subject": "task frequency",
       "area": "Stakeholder Discovery and Workflow Research",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "The research programme gate requires five distinct current external participants per dimension and rejects duplicated pseudonyms or synthetic task-frequency records.",
+      "caveat": "No real task-frequency sample has been collected. Participant recruitment and observation remain external.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-013",
       "subject": "risk mapping",
       "area": "Stakeholder Discovery and Workflow Research",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "Risk-mapping evidence is governed by the same current, consented, pseudonymous, independently reviewed and tenant-scoped contract, with raw/protected participant content prohibited.",
+      "caveat": "No stakeholder-validated risk map has been observed. External participants and the accountable research owner are required.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-014",
       "subject": "accessibility",
       "area": "Stakeholder Discovery and Workflow Research; GUI Integration and No-Dead-Control Enforcement",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "The research contract includes accessibility as a mandatory distinct coverage dimension and proves that duplicate or synthetic participants cannot satisfy its minimum; repository accessibility gates remain separate technical evidence.",
+      "caveat": "No research sessions with real users of assistive technology are recorded. Accessibility stakeholder validation requires consenting external participants.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-015",
       "subject": "regional needs",
       "area": "Stakeholder Discovery and Workflow Research",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "Regional-needs coverage uses non-identifying coverage tags, current external-human evidence, independent review and minimum distinct-participant gates while rejecting email, phone and URL-shaped identifiers.",
+      "caveat": "No real regional stakeholder sample is recorded. Recruitment across intended regions remains an owner-led external action.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-016",
@@ -1039,29 +1143,38 @@
       "id": "AZ-077",
       "subject": "focus",
       "area": "Design System and Accessibility; Windows Process Application and Window Control",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P19",
+      "evidence": "release/OCADE_P19_GUI_RUNTIME_EVIDENCE.json - keyboard focus and visible computed outlines verified in Chromium for dark, light and REAL themes"
     },
     {
       "id": "AZ-078",
       "subject": "keyboard access",
       "area": "Design System and Accessibility",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P19",
+      "evidence": "Zero-baseline gate plus real keyboard activation; custom dialog implements Tab containment, Escape cancellation and focus restoration"
     },
     {
       "id": "AZ-079",
       "subject": "screen readers",
       "area": "Design System and Accessibility",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P19",
+      "evidence": "Zero statically decidable defects across 133 files and Chromium accessibility-tree inspection of public OCADE, auth and error semantics",
+      "caveat": "No physical assistive technology was used; this is not REAL TARGET RUNTIME VERIFIED."
     },
     {
       "id": "AZ-080",
       "subject": "responsive layouts",
       "area": "Design System and Accessibility",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P19",
+      "evidence": "Eight credential-free demo routes rendered at 375x812 with zero horizontal overflow and zero unnamed visible controls"
     },
     {
       "id": "AZ-081",
@@ -1789,11 +1902,11 @@
       "id": "AZ-171",
       "subject": "emergency policy",
       "area": "Risk Evaluation and Permission UX",
-      "status": "SIMULATED RUNTIME VERIFIED",
-      "weight": 0.7,
-      "resolvedInPhase": "P10",
-      "evidence": "release/OCADE_PC_TRANSACTION_EVIDENCE.json - 13/13 transaction stages executed against the P07 simulator (cages, expiry, destructive confirmation, dry run, verified backup, reverse-order rollback, journal replay)",
-      "caveat": "Simulated only. Executed against the accessibility simulator, not a real application. Real Windows control remains gated on a built and signed Tauri companion."
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "resolvedInPhase": "P25",
+      "evidence": "release/OCADE_P25_SECURITY_RUNTIME_EVIDENCE.json - compiled Windows Rust runtime cancelled 512 active tokens, closed a 64-registration halt race, refused work until reset and survived a poisoned registry",
+      "caveat": "The native safety core is real compiled runtime. The Tauri host compiled and passed clippy, but no signed installed companion or physical input target was exercised."
     },
     {
       "id": "AZ-172",
@@ -2616,15 +2729,20 @@
       "id": "AZ-273",
       "subject": "replay",
       "area": "Security Hardening and Adversarial Testing",
-      "status": "INTEGRATION TESTED",
-      "weight": 0.6
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "resolvedInPhase": "P25",
+      "evidence": "release/OCADE_P25_SECURITY_RUNTIME_EVIDENCE.json - compiled Rust IPC rejects exact replay, reused nonce, out-of-order counter, expired/future envelope and closed session"
     },
     {
       "id": "AZ-274",
       "subject": "leakage",
       "area": "Security Hardening and Adversarial Testing",
-      "status": "INTEGRATION TESTED",
-      "weight": 0.6
+      "status": "REAL TARGET RUNTIME VERIFIED",
+      "weight": 1,
+      "resolvedInPhase": "P25",
+      "evidence": "release/OCADE_P25_SECURITY_RUNTIME_EVIDENCE.json - compiled native audit redaction and protected-input refusal execute alongside sandbox, extension and mobile leakage regressions",
+      "caveat": "No production telemetry endpoint or signed installed companion was exercised."
     },
     {
       "id": "AZ-275",
@@ -2637,8 +2755,11 @@
       "id": "AZ-276",
       "subject": "update trust",
       "area": "Security Hardening and Adversarial Testing",
-      "status": "INTEGRATION TESTED",
-      "weight": 0.6
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P26",
+      "evidence": "src/lib/__tests__/update-trust.test.ts - 17 tests execute a real Ed25519 self-signed trust lab: canonical manifest metadata, observed artifact hashes, key rotation, epoch retirement, revocation, expiry, stale/future evidence, HTTPS URL constraints and downgrade refusal.",
+      "caveat": "Self-signed in-process trust lab only. No production updater key, signed installer, update endpoint or installed application was used."
     },
     {
       "id": "AZ-277",
@@ -2833,15 +2954,19 @@
       "id": "AZ-301",
       "subject": "evidence review",
       "area": "Administration and Operational Controls",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "The P29 executable review distinguishes the 510-row declared score from requirement-bound evidence, publishes every per-area numerator and denominator, and rejects malformed rows.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-302",
       "subject": "repairs",
       "area": "Administration and Operational Controls",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "buildReadinessRecoveryPlan produces deterministic non-mutating repair instructions for missing, stale, drifted and structurally invalid evidence; recovery tests passed.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-303",
@@ -2903,8 +3028,10 @@
       "id": "AZ-311",
       "subject": "control audit",
       "area": "GUI Integration and No-Dead-Control Enforcement",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P19",
+      "evidence": "0 dead controls across 179 files, 0 accessibility findings across 133 files, regression fixtures prove both gates fail"
     },
     {
       "id": "AZ-312",
@@ -2917,22 +3044,28 @@
       "id": "AZ-313",
       "subject": "errors",
       "area": "GUI Integration and No-Dead-Control Enforcement",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P19",
+      "evidence": "Real 404 path exposed main/error semantics and Go home recovered to the landing page"
     },
     {
       "id": "AZ-314",
       "subject": "blocked states",
       "area": "GUI Integration and No-Dead-Control Enforcement",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P19",
+      "evidence": "Credential-free OCADE surfaces rendered named disabled controls and honest prerequisite/status boundaries"
     },
     {
       "id": "AZ-315",
       "subject": "mobile layout",
       "area": "GUI Integration and No-Dead-Control Enforcement",
-      "status": "UNIT TESTED",
-      "weight": 0.5
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "resolvedInPhase": "P19",
+      "evidence": "Eight demo routes passed a real Chromium 375x812 viewport sweep with no horizontal overflow"
     },
     {
       "id": "AZ-316",
@@ -3298,10 +3431,11 @@
       "id": "AZ-364",
       "subject": "signatures",
       "area": "Updater Staging Verification and Rollback",
-      "status": "UNIT TESTED",
-      "weight": 0.5,
-      "resolvedInPhase": "P21",
-      "evidence": "P21 production wiring: module now reachable from a route/server function. Verified by import-graph reachability (test-only modules 10 -> 0) and by the integration honesty gate (nonRuntimeModules 5 -> 0)."
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P26",
+      "evidence": "src/lib/packaging/update-trust.ts and src/lib/__tests__/update-trust.test.ts - real WebCrypto Ed25519 signatures verify canonical manifest digests; metadata tampering, wrong generation, revoked/expired/placeholder keys and artifact-hash mismatch fail closed.",
+      "caveat": "Self-signed trust lab only. Platform code-signing, notarisation and Tauri updater signing remain externally blocked and are not claimed."
     },
     {
       "id": "AZ-365",
@@ -3432,8 +3566,11 @@
       "id": "AZ-382",
       "subject": "deployment script",
       "area": "Cloud Relay and Service Deployment",
-      "status": "EXTERNALLY BLOCKED",
-      "weight": 0.4
+      "status": "SIMULATED RUNTIME VERIFIED",
+      "weight": 0.7,
+      "resolvedInPhase": "P27",
+      "evidence": "scripts/deploy.mjs and src/lib/__tests__/deployment-controller.test.ts - 11 behavioral tests execute exact preflight, build, Wrangler deploy/rollback, independent health verification, cancellation and failure/recovery branches through injected process and HTTPS boundaries.",
+      "caveat": "Controlled runners and health responses only. No Cloudflare credential was used and no deployment or rollback ran."
     },
     {
       "id": "AZ-383",
@@ -3454,7 +3591,10 @@
       "subject": "monitoring",
       "area": "Cloud Relay and Service Deployment; Production Launch; Production Operations and Incident Response",
       "status": "EXTERNALLY BLOCKED",
-      "weight": 0.4
+      "weight": 0.4,
+      "resolvedInPhase": "P27",
+      "evidence": "release/OCADE_PRODUCTION_OPERATIONS.json and scripts/check-production-operations.mjs - bounded web/relay health, error, latency, refusal and security alert contracts with privacy limits and 16/16 source checks.",
+      "caveat": "No monitoring provider or alert receiver is connected; all live monitoring and alert claims remain false."
     },
     {
       "id": "AZ-386",
@@ -3670,78 +3810,100 @@
       "id": "AZ-416",
       "subject": "alpha cohort",
       "area": "Internal Alpha and Dogfooding",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "P28 adds a pseudonymous, consent-aware cohort evidence contract and a required alpha_cohort launch gate; no people were enrolled and no live cohort evidence was fabricated.",
+      "resolvedInPhase": "P28"
     },
     {
       "id": "AZ-417",
       "subject": "task library",
       "area": "Internal Alpha and Dogfooding",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "The alpha_task_library gate requires reviewable success, refusal, cancellation, failure and recovery receipts; executing those missions needs enrolled users and target runtimes.",
+      "resolvedInPhase": "P28"
     },
     {
       "id": "AZ-418",
       "subject": "performance",
       "area": "Internal Alpha and Dogfooding",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "The alpha_performance and alpha_endurance_recovery gates define evidence and review boundaries; live duration, crash and platform measurements remain external.",
+      "resolvedInPhase": "P28"
     },
     {
       "id": "AZ-419",
       "subject": "usability",
       "area": "Internal Alpha and Dogfooding",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "The alpha_usability gate is persisted and cannot be waived, but observed participant usability evidence requires an actual cohort.",
+      "resolvedInPhase": "P28"
     },
     {
       "id": "AZ-420",
       "subject": "security review",
       "area": "Internal Alpha and Dogfooding",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "The alpha_security_review gate requires independent evidence and distinct owner/reviewer identities; an independent production security review has not occurred.",
+      "resolvedInPhase": "P28"
     },
     {
       "id": "AZ-421",
       "subject": "exit criteria",
       "area": "Internal Alpha and Dogfooding",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "Alpha exit is fail-closed behind seven evidence gates and sequential stage promotion; the evidence itself must come from real alpha execution.",
+      "resolvedInPhase": "P28"
     },
     {
       "id": "AZ-422",
       "subject": "beta enrolment",
       "area": "External Beta and Controlled Expansion",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "The beta_enrolment gate defines invitation, consent, support, revocation and coverage evidence, but no external participant was enrolled.",
+      "resolvedInPhase": "P28"
     },
     {
       "id": "AZ-423",
       "subject": "feature flags",
       "area": "External Beta and Controlled Expansion",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "src/lib/control/controlled-rollout.ts, launch-gate.functions.ts and controlled-rollout.test.ts enforce sequential feature-flag expansion, refusal audit and emergency narrowing; the paired SQL trigger is READY TO APPLY.",
+      "resolvedInPhase": "P28"
     },
     {
       "id": "AZ-424",
       "subject": "telemetry consent",
       "area": "External Beta and Controlled Expansion",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "failure-telemetry.test.ts proves telemetry off by default, separate failure/performance consent, withdrawal purge, field allow-listing, redaction and bounded queues; P28 binds beta exit to beta_telemetry_consent evidence.",
+      "resolvedInPhase": "P28"
     },
     {
       "id": "AZ-425",
       "subject": "coverage limits",
       "area": "External Beta and Controlled Expansion",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "Controlled rollout tests and the server/SQL owners require explicit capability:* and platform:* coverage tokens before any enabled non-demo cohort.",
+      "resolvedInPhase": "P28"
     },
     {
       "id": "AZ-426",
       "subject": "exit",
       "area": "External Beta and Controlled Expansion",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "GA remains blocked by beta enrolment, consent, coverage and exit-review evidence plus every applicable launch blocker; no live beta exit claim was made.",
+      "resolvedInPhase": "P28"
     },
     {
       "id": "AZ-427",
@@ -3761,64 +3923,87 @@
       "id": "AZ-429",
       "subject": "signing",
       "area": "Production Launch",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "release/OCADE_LAUNCH_AUTHORITY_POLICY.json and scripts/launch-authority.mjs enforce trusted non-placeholder signing identity, artifact/source binding, cryptographic verification, platform trust and fresh evidence; the current authority truthfully records that no production signing identity is present.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-430",
       "subject": "deployment",
       "area": "Production Launch",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "scripts/launch-authority.mjs requires signing readiness, an authorised production environment, HTTPS health observation by an independent verifier and a rollback version; no production environment, credentials, domain or observed deployment receipt is available in this worktree.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-431",
       "subject": "support readiness",
       "area": "Production Launch",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "release/OCADE_LAUNCH_AUTHORITY_POLICY.json requires named on-call and privacy contacts, verified escalation and alert delivery, plus incident and restore drills; current authority records no assigned on-call or live operational drill evidence.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-432",
       "subject": "announcement",
       "area": "Production Launch",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "evidence": "scripts/launch-authority.mjs makes announcement authority depend on signed deployment, support readiness, the final production-readiness gate, explicit owner approval and version/source-bound support and rollback links; those external prerequisites have not passed.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-433",
       "subject": "on-call",
       "area": "Production Operations and Incident Response",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "resolvedInPhase": "P27",
+      "evidence": "release/OCADE_PRODUCTION_OPERATIONS.json defines service and incident roles, severity-specific acknowledgement windows and required evidence.",
+      "caveat": "Every role is deliberately OWNER_REQUIRED; no person has been assigned or paged."
     },
     {
       "id": "AZ-434",
       "subject": "incident command",
       "area": "Production Operations and Incident Response",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "resolvedInPhase": "P27",
+      "evidence": "release/OCADE_INCIDENT_RESPONSE_RUNBOOK.md defines declaration, containment, evidence preservation, triage, recovery verification and closure.",
+      "caveat": "The procedure has not been exercised against a deployed service."
     },
     {
       "id": "AZ-435",
       "subject": "communication",
       "area": "Production Operations and Incident Response",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "resolvedInPhase": "P27",
+      "evidence": "release/OCADE_INCIDENT_RESPONSE_RUNBOOK.md defines severity-specific update intervals and requires facts, scope, mitigations, remaining risk and next-update time.",
+      "caveat": "No communication owner, channel or live incident exercise exists."
     },
     {
       "id": "AZ-436",
       "subject": "forensics",
       "area": "Production Operations and Incident Response",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "resolvedInPhase": "P27",
+      "evidence": "release/OCADE_PRODUCTION_OPERATIONS.json requires preservation before mutation, hashed exports, UTC, minimum access and redaction of credentials and user content.",
+      "caveat": "No production evidence store or forensic export has been exercised."
     },
     {
       "id": "AZ-437",
       "subject": "postmortem",
       "area": "Production Operations and Incident Response",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "EXTERNALLY BLOCKED",
+      "weight": 0.4,
+      "resolvedInPhase": "P27",
+      "evidence": "release/OCADE_INCIDENT_RESPONSE_RUNBOOK.md requires a five-business-day review with timeline, impact, detection gap, causes, recovery evidence and owned corrective actions.",
+      "caveat": "No live incident has produced a postmortem."
     },
     {
       "id": "AZ-438",
@@ -3852,22 +4037,28 @@
       "id": "AZ-442",
       "subject": "app drift",
       "area": "Maintenance Upgrades and Application Drift",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "evidence": "scripts/lifecycle-policy.mjs detects version, fingerprint, capability, layout, plug-in and freshness drift, invalidates execution, revokes version-bound private skills through the real RevocationList contract, persists a recovery receipt, supports cancellation, and is exposed on the routed software-skills surface; the 25-test lifecycle suite and complete regression suite passed.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-443",
       "subject": "security patches",
       "area": "Maintenance Upgrades and Application Drift",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "INTEGRATION TESTED",
+      "weight": 0.6,
+      "evidence": "release/OCADE_APP_DRIFT_SECURITY_POLICY.json and scripts/lifecycle-policy.mjs require trusted signed HTTPS advisories, fresh evidence, a newer fixed version, owner approval, safe rehearsal, an observed artifact digest and known-good rollback; critical/high affected adapters block and revoke skills, staging never claims installation, and the executable CI gate plus full suite passed.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-444",
       "subject": "evidence refresh",
       "area": "Maintenance Upgrades and Application Drift",
-      "status": "NOT STARTED",
-      "weight": 0
+      "status": "UNIT TESTED",
+      "weight": 0.5,
+      "evidence": "npm run readiness:publish regenerates a source/version-bound publication, while npm run readiness:check refuses stale scores and evidence; the falsified publication regression failed as required.",
+      "resolvedInPhase": "P29"
     },
     {
       "id": "AZ-445",
@@ -3915,10 +4106,10 @@
   "verifiedCommands": {
     "typecheck": "PASS",
     "lint": "PASS",
-    "tests": "3912 passed | 1 skipped (3913) across 235 files",
+    "tests": "3919 passed | 1 skipped (3920) across 236 files",
     "build": "PASS",
-    "gates": "27/27",
-    "rustTests": "25/25"
+    "gates": "28/28",
+    "rustTests": "30/30"
   },
   "productionWiring": {
     "testOnlyModules": 0,
@@ -3926,12 +4117,12 @@
     "note": "Import-graph reachability: 338 of 375 non-test source files reachable; the 37 unreached are unused shadcn UI primitives carrying no requirement."
   },
   "testArchitecture": {
-    "files": 230,
-    "execution": 181,
+    "files": 236,
+    "execution": 186,
     "mixed": 23,
-    "structuralOnly": 26,
+    "structuralOnly": 27,
     "routesExecuted": "85 URLs (was 0)",
-    "gates": 27
+    "gates": 28
   },
   "openDefects": [
     {

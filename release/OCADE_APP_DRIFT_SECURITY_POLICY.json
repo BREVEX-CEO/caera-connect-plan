@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "owner": "application-lifecycle-owner",
+  "maximumObservationAgeMs": 2592000000,
+  "trustedAdvisoryHosts": [
+    "nvd.nist.gov",
+    "github.com",
+    "support.microsoft.com",
+    "support.apple.com"
+  ],
+  "driftSignals": ["version", "fingerprint", "capabilityDigest", "layoutRevision", "plugins"],
+  "severityActions": {
+    "critical": "block_and_stage_patch",
+    "high": "block_and_stage_patch",
+    "medium": "degrade_and_review",
+    "low": "monitor"
+  },
+  "patchRequirements": {
+    "verifiedAdvisorySignature": true,
+    "trustedHttpsSource": true,
+    "ownerApproval": true,
+    "safeRehearsal": true,
+    "knownGoodRollback": true,
+    "observedArtifactDigest": true,
+    "independentPostInstallVerification": true
+  },
+  "automaticPatchApplication": false,
+  "invalidatePrivateRecipesOnDrift": true,
+  "revokeAffectedSkillsOnCriticalOrHigh": true,
+  "currentRuntime": {
+    "advisoryFeedConnected": false,
+    "hostPatchExecutorConnected": false,
+    "patchApplied": false
+  },
+  "externalBoundary": "A trusted advisory feed and an approved host or platform updater must supply signed evidence, download and hash real bytes, rehearse, install, verify and retain a known-good rollback. Source-only checks never claim a patch was applied."
+}

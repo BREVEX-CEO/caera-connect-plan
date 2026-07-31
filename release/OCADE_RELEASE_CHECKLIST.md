@@ -19,9 +19,12 @@ published, uploaded to a store, or installed on a device.
 
 ## External release evidence
 
-- Web: run the generated Cloudflare worker through Wrangler, configure values
-  in platform secret storage, deploy under authorized credentials, then probe
-  `/api/health`, authentication, OCADE Chat, Projects, Usage, and error pages.
+- Web: run `npm run operations:check` and `npm run deploy:check`, configure
+  values in platform secret storage, record the prior verified version, then
+  run the separately approved `npm run deploy:web`. Probe `/api/health`,
+  authentication, OCADE Chat, Projects, Usage, and error pages. A zero
+  deployment exit without the independent versioned health response is not
+  success.
 - Supabase: follow `supabase/APPLY_ORDER.md`, run every verification file, test
   cross-tenant denial, and regenerate database types.
 - Desktop: build on each target OS, sign/notarize, test clean install, updater
@@ -32,6 +35,10 @@ published, uploaded to a store, or installed on a device.
   notification delivery, revocation, offline recovery, and emergency stop.
 - Extension: load unpacked for real-browser verification, then sign and publish
   through the Chrome and Edge stores; retest the installed store package.
+- Operations: assign every `OWNER_REQUIRED` role in
+  `OCADE_PRODUCTION_OPERATIONS.json`, connect health/metrics/alerts, and execute
+  both an incident exercise and an isolated database restore drill. Preserve
+  the evidence required by the operations contract.
 
 ## STOP RELEASE
 

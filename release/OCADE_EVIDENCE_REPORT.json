@@ -88,7 +88,7 @@
       "description": "Migrations applied and RLS verified against a live database",
       "status": "not_attempted",
       "reason": "No database connection is available in this environment.",
-      "humanAction": "Apply the 31 migrations via Lovable, then run each supabase/verification/*_verify.sql — all are self-checking and raise on any gap."
+      "humanAction": "Apply the 32 migrations via Lovable, then run each supabase/verification/*_verify.sql — all are self-checking and raise on any gap."
     },
     {
       "id": "browser-extension-runtime",

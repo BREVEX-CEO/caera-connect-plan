@@ -1,4 +1,14 @@
-# Readiness composition — what each percentage is made of
+# SUPERSEDED historical readiness composition
+
+> **Do not use the percentages or “buildable remainder: None” claims below for
+> release decisions.** Phase 29 proved that this 2026-07-28 document conflated
+> declared/source progress with requirement-bound evidence. The executable
+> authority is now
+> [`OCADE_P29_FINAL_READINESS.json`](./OCADE_P29_FINAL_READINESS.json), produced
+> by `npm run readiness:publish` and enforced by `npm run readiness:check`.
+> The historical text remains only to preserve the audit trail.
+
+# Historical readiness composition — what each percentage claimed
 
 The readiness line reports 16 numbers. Until now they were my estimates, stated
 without their working. This decomposes every one into **what is done**, **what

@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-07-30T15:08:00.000Z",
+  "phase": "P26 - Updater, signing, installers, and rollback",
+  "branch": "feat/ocade-implementation",
+  "baseHead": "19d3414633b9167632514aaf4e98e1c6a93065df",
+  "classification": "SIMULATED RUNTIME VERIFIED",
+  "sourceManifest": {
+    "algorithm": "SHA-256 over sorted path-tab-contentSHA lines with a trailing newline",
+    "files": [
+      {
+        "path": "src/components/settings/UpdatePolicyPanel.tsx",
+        "sha256": "5485c0defe742a5cc2a5dbeab142b59a1f1b4b4dd3bb77b0394661eb6662707c"
+      },
+      {
+        "path": "src/lib/__tests__/update-trust.test.ts",
+        "sha256": "981b332621e81f653d700ed42493b5e4fa7067b8234de504dfcb5efec2220d66"
+      },
+      {
+        "path": "src/lib/packaging/update-gate.ts",
+        "sha256": "4808468b24aca96b4ca6bcc48f74bc18537dc1da42a685e579a2edb9931f6134"
+      },
+      {
+        "path": "src/lib/packaging/update-plan.ts",
+        "sha256": "19959d6fc0b56ef361a542f5c91e93c20b6765902a4ce2565007562d19ec61fa"
+      },
+      {
+        "path": "src/lib/packaging/update-trust.ts",
+        "sha256": "0708a9cce02fe51b52b60bb3d19097f26e5dfb0d5e9db682e3ed7ea40b7f5d71"
+      }
+    ],
+    "sha256": "a3a30a8a52f7d1f81b36f9f6a311cce2f5935791d3bc1bac6323a44e6964a9a4"
+  },
+  "environment": {
+    "platform": "Windows x86_64",
+    "node": "v24.16.0",
+    "npm": "11.13.0",
+    "vitest": "3.2.7",
+    "crypto": "Node WebCrypto Ed25519"
+  },
+  "trustLab": {
+    "tests": "17/17 passed",
+    "keyPairs": "Fresh Ed25519 self-signed primary and rotated keys generated at runtime",
+    "verified": [
+      "canonical metadata is stable across object insertion order",
+      "version, URL, artifact hash, upgrade floor and signing time are cryptographically bound",
+      "downloaded bytes must match the hash in the signed manifest",
+      "minimum key epochs retire old keys",
+      "revocation overrides a genuine signature",
+      "unknown and duplicate key identities fail closed",
+      "future, stale and expired evidence fails closed",
+      "only HTTPS URLs without embedded credentials or fragments are accepted",
+      "placeholder production keys remain disabled",
+      "downgrades are refused before trust work"
+    ]
+  },
+  "productionOwner": {
+    "path": "src/lib/packaging/update-gate.ts",
+    "reachableFrom": "src/components/settings/UpdatePolicyPanel.tsx via authenticated Settings > Updates",
+    "order": "plan and downgrade policy -> canonical manifest trust -> observed artifact hash -> apply decision"
+  },
+  "notClaimed": [
+    "No production updater key or code-signing certificate was generated or used.",
+    "No platform installer was signed, installed, repaired, upgraded, rolled back or uninstalled.",
+    "No clean-machine workflow was executed.",
+    "No update endpoint was contacted.",
+    "The Tauri updater stays inactive and its public key stays a placeholder."
+  ]
+}

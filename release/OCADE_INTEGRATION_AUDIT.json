@@ -33,7 +33,8 @@
     "20260722090000_ocade_projects_outputs_memory",
     "20260722100000_ocade_subscriptions_usage",
     "20260722110000_ocade_automations",
-    "20260724211500_ocade_automation_worker"
+    "20260724211500_ocade_automation_worker",
+    "20260730190000_ocade_controlled_rollout_gates"
   ],
   "nonRuntimeModules": [],
   "knownRuntimeBoundaries": [
@@ -46,7 +47,7 @@
     {
       "id": "live-supabase",
       "classification": "READY TO APPLY",
-      "reason": "Four ordered migrations have matching rollback and verification SQL but have not been applied."
+      "reason": "Five ordered migrations have matching rollback and verification SQL but have not been applied."
     },
     {
       "id": "desktop-link-and-sign",

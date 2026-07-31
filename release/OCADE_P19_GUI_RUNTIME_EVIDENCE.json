@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-07-30T13:40:21.237Z",
+  "branch": "feat/ocade-implementation",
+  "baseHead": "19d3414633b9167632514aaf4e98e1c6a93065df",
+  "sourceManifest": {
+    "files": 31,
+    "sha256": "7765a72187ffeeb1d4235482472e01d4efd3679a75f3d7ab0b6f571cf9d27f53",
+    "note": "SHA-256 of the sorted path and content-SHA manifest before evidence/checkpoint files were added."
+  },
+  "target": {
+    "runtime": "Codex in-app Chromium",
+    "application": "Vite development server on 127.0.0.1:8080",
+    "platform": "Windows",
+    "credentialsUsed": false
+  },
+  "routeCoverage": {
+    "publicRoutes": [
+      "/",
+      "/auth",
+      "/auth/verify",
+      "/demo",
+      "/demo/ocade",
+      "/demo/ficia",
+      "/demo/madee",
+      "/demo/cania",
+      "/demo/files",
+      "/demo/tasks",
+      "/demo/settings"
+    ],
+    "desktop": {
+      "routesPassed": 11,
+      "routesFailed": 0,
+      "unnamedVisibleInteractiveElements": 0,
+      "horizontalOverflowRoutes": 0
+    },
+    "mobile375x812": {
+      "demoRoutesPassed": 8,
+      "demoRoutesFailed": 0,
+      "unnamedVisibleInteractiveElements": 0,
+      "horizontalOverflowRoutes": 0
+    }
+  },
+  "themes": {
+    "tested": [
+      "dark",
+      "light",
+      "REAL"
+    ],
+    "themeSpecificDemoTextAssessments": 726,
+    "additionalDefaultPublicTextAssessments": 69,
+    "wcagAANonLargeTextThreshold": 4.5,
+    "wcagAALargeTextThreshold": 3,
+    "failuresAfterRepair": 0,
+    "gradientTextNote": "The automated evaluator cannot derive a colour from transparent background-clipped gradient text. The three actual gradient stops were checked independently at 10.41:1, 7.10:1 and 9.19:1 against the rendered background, all above the 3:1 large-text threshold."
+  },
+  "focus": {
+    "keyboardActivation": "Theme controls activated with Enter",
+    "dark": "2px solid visible outline, 2px offset",
+    "light": "2px solid visible outline, 2px offset",
+    "real": "2px solid visible outline, 2px offset",
+    "customDialog": "Initial focus, Tab and Shift+Tab containment, Escape cancellation, and previous-focus restoration implemented."
+  },
+  "semantics": {
+    "ocadeDemo": "Accessibility tree exposes banner, navigation, main, named composer, named disabled Attach and Voice controls, and Send.",
+    "notFound": "Unknown URL exposes main, 404 heading, explanation, and Go home recovery link.",
+    "notFoundRecovery": "Go home was activated and navigation recovered to /.",
+    "errorAlerts": "Root route error surfaces expose role=alert inside a main landmark."
+  },
+  "logs": {
+    "browserErrors": 0,
+    "browserWarnings": 0
+  },
+  "limits": [
+    "This is real rendered-browser evidence, not evidence from a physical screen reader.",
+    "Authenticated product routes were not entered because no user credentials were supplied.",
+    "The static zero-baseline gate covers only decidable source defects; contrast and focus are supported by this separate rendered-runtime evidence."
+  ]
+}
