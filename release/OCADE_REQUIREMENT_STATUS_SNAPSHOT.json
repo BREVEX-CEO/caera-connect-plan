@@ -4844,7 +4844,8 @@
       "severity": "high",
       "what": "Migration 20260721153321 comments on public.ficia_time_entries, which no tracked migration creates. The migration set cannot rebuild the database from scratch.",
       "foundBy": "P16 database twin",
-      "notFixedBecause": "Reconstructing the table from generated Supabase types would omit its RLS policies, turning a schema gap into a data-exposure bug. The missing CREATE migration must come from the project that owns the schema."
+      "notFixedBecause": "Authoritative schema unavailable in this environment. The only description of the table is src/integrations/supabase/types.ts, which is generated output and excluded as a source; it carries no RLS policies, GRANTs, defaults or foreign-key actions. Writing CREATE TABLE from it would ship timesheet data with no row-level security, turning a loud build failure into a silent cross-tenant exposure. No service-role key or database password is present, so no definition dump is reachable.",
+      "blockerRecord": "release/OCADE_DB01_SCHEMA_AUTHORITY_BLOCKER.json"
     }
   ],
   "headRebindNote": "Re-bound from 19d3414+p29-worktree to the committing revision. The tree CONTENT that produced this evidence is unchanged — the P19/P25-P29 work was committed, not modified — so the evidence still holds. The readiness engine invalidates evidence on a source-revision mismatch by design, which is why this field must move with the commit rather than be left stale."

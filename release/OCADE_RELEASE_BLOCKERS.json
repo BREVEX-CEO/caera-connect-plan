@@ -79,6 +79,18 @@
         "GPU media voice vision and long-duration workload evidence",
         "Cross-device revocation offline recovery and security validation"
       ]
+    },
+    {
+      "id": "db01-schema-authority",
+      "area": "supabase",
+      "status": "externally_blocked",
+      "requiredEvidence": [
+        "Authenticated access to the Supabase project that owns public.ficia_time_entries",
+        "Definition dump including RLS policies GRANTs indexes and foreign-key actions",
+        "CREATE TABLE migration ordered before 20260721153321 with verification and rollback",
+        "Full migration set applies cleanly to an empty database"
+      ],
+      "detail": "release/OCADE_DB01_SCHEMA_AUTHORITY_BLOCKER.json"
     }
   ]
 }

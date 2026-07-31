@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "DB-01",
+  "severity": "high",
+  "status": "externally_blocked",
+  "recordedAt": "2026-07-31",
+  "title": "public.ficia_time_entries is referenced by a migration but created by none",
+
+  "what": {
+    "failingMigration": "supabase/migrations/20260721153321_92abb662-0ac2-4900-a2b6-5724104dd1bb.sql",
+    "statement": "COMMENT ON TABLE public.ficia_time_entries IS 'FICIA timesheet & attendance entries.';",
+    "verification": "supabase/verification/20260721153321_92abb662-0ac2-4900-a2b6-5724104dd1bb_verify.sql raises 'Table public.ficia_time_entries does not exist.'",
+    "consequence": "The 32-migration set cannot rebuild the database from scratch. Every migration after this point is unreachable on a clean database, which is why the local PostgreSQL twin stops here."
+  },
+
+  "whyNotFixedHere": [
+    "No tracked migration creates the table, so the authoritative definition is not in this repository.",
+    "The only description of its shape is src/integrations/supabase/types.ts, which is GENERATED OUTPUT and was explicitly excluded as a source.",
+    "types.ts describes column names and nullability only. It does not carry RLS policies, GRANTs, defaults, CHECK constraints, ON DELETE behaviour, or index definitions.",
+    "Writing a CREATE TABLE from those types would produce a table with no row-level security on timesheet and attendance data. That converts a build failure, which is loud and harmless, into a cross-tenant data-exposure bug, which is silent and not. A migration set that rebuilds but leaks is worse than one that refuses to rebuild.",
+    "types.ts additionally records foreign keys ficia_time_entries_correction_of_fkey (self-referential) and ficia_time_entries_department_id_fkey. Their ON DELETE and ON UPDATE actions are not recoverable from generated types, and guessing them would silently change deletion semantics for payroll-relevant records."
+  ],
+
+  "credentialsChecked": {
+    "envFile": ".env",
+    "present": ["SUPABASE_PROJECT_ID", "SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY"],
+    "absent": ["service-role key", "database password", "SUPABASE_ACCESS_TOKEN"],
+    "supabaseCli": "available (2.110.0) but cannot link or dump without an access token and database password",
+    "conclusion": "The publishable/anon key cannot read pg_catalog, pg_policies or information_schema for a definition dump. No authoritative schema is reachable from this environment."
+  },
+
+  "exactResolution": {
+    "owner": "whoever owns the Supabase project that already contains this table",
+    "step1": "Authenticate the CLI: supabase login (or set SUPABASE_ACCESS_TOKEN)",
+    "step2": "supabase link --project-ref <SUPABASE_PROJECT_ID>",
+    "step3": "supabase db dump --schema public --table ficia_time_entries > authoritative.sql",
+    "step4": "Also dump the policies: supabase db dump --data-only=false --schema public | grep -A20 ficia_time_entries, or query pg_policies for policies on the table",
+    "step5": "Add the recovered definition as a migration ordered BEFORE 20260721153321, with its own verification and rollback files, matching supabase/APPLY_ORDER.md",
+    "step6": "Re-run the local twin to confirm the set rebuilds from scratch, then re-run cross-tenant attack tests"
+  },
+
+  "acceptanceForClosure": [
+    "A CREATE TABLE migration for public.ficia_time_entries exists and is ordered before 20260721153321",
+    "Its RLS policies, GRANTs, indexes and foreign-key actions come from the live project, not from generated types",
+    "The full migration set applies cleanly to an empty database",
+    "Cross-tenant attack tests pass against the created table"
+  ]
+}
