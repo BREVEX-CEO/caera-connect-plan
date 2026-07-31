@@ -7,6 +7,7 @@ import {
   ReadinessCancelledError,
   buildReadinessRecoveryPlan,
   createReadinessPublication,
+  effectiveBoundRevision,
   evaluateRequirementReadiness,
   validateProductionClaim,
 } from "../../../scripts/readiness-engine.mjs";
@@ -230,6 +231,38 @@ describe("final readiness evidence accounting", () => {
     expect(result.evidenceBound.numerator).toBe(0);
     expect(result.issues.map((entry) => entry.code)).toContain("source_revision_drift");
     expect(result.productionReady).toBe(false);
+  });
+
+  describe("the binding commit is tolerated, and nothing else is", () => {
+    const RECORDED = "a".repeat(40);
+    const HEAD = "b".repeat(40);
+    const SNAPSHOT = "release/OCADE_REQUIREMENT_STATUS_SNAPSHOT.json";
+    const PUBLICATION = "release/OCADE_P29_FINAL_READINESS.json";
+
+    it("judges evidence against the recorded revision when only binding files moved", () => {
+      // The commit that writes the binding cannot contain its own hash, so this
+      // one-commit gap is structural rather than a sign of stale evidence.
+      expect(effectiveBoundRevision(RECORDED, HEAD, [SNAPSHOT, PUBLICATION])).toBe(RECORDED);
+      expect(effectiveBoundRevision(RECORDED, HEAD, [SNAPSHOT])).toBe(RECORDED);
+    });
+
+    it("falls back to HEAD as soon as any evidence-bearing file moved", () => {
+      // These are the cases that must never be forgiven: if source, tests or
+      // gate scripts changed, the recorded evidence describes a different tree.
+      expect(effectiveBoundRevision(RECORDED, HEAD, [SNAPSHOT, "src/lib/ocade-local.ts"])).toBe(HEAD);
+      expect(effectiveBoundRevision(RECORDED, HEAD, ["scripts/readiness-engine.mjs"])).toBe(HEAD);
+      expect(effectiveBoundRevision(RECORDED, HEAD, ["package-lock.json"])).toBe(HEAD);
+    });
+
+    it("does not forgive an undeterminable or empty diff", () => {
+      expect(effectiveBoundRevision(RECORDED, HEAD, null)).toBe(HEAD);
+      expect(effectiveBoundRevision(RECORDED, HEAD, [])).toBe(HEAD);
+    });
+
+    it("returns HEAD when there is nothing to reconcile", () => {
+      expect(effectiveBoundRevision(HEAD, HEAD, [])).toBe(HEAD);
+      expect(effectiveBoundRevision(undefined, HEAD, [])).toBe(HEAD);
+    });
   });
 
   it("makes the executable publication gate reject a falsified score", () => {

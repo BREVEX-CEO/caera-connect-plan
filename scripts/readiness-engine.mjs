@@ -22,6 +22,43 @@ export const STATUS_WEIGHTS = Object.freeze({
   "REAL TARGET RUNTIME VERIFIED": 1,
 });
 
+/**
+ * Files that carry the evidence binding itself and no evidence of their own.
+ */
+export const BINDING_ONLY_PATHS = Object.freeze([
+  "release/OCADE_REQUIREMENT_STATUS_SNAPSHOT.json",
+  "release/OCADE_P29_FINAL_READINESS.json",
+]);
+
+/**
+ * Decide which revision a snapshot's evidence should be judged against.
+ *
+ * A snapshot records the revision its evidence was observed at, but it cannot
+ * record the hash of the commit that contains it — writing the hash changes the
+ * file, which changes the hash. The binding commit therefore always leaves HEAD
+ * one ahead of the recorded revision, which made the gate permanently
+ * unpassable once that commit landed: the snapshot read as stale, every bound
+ * row lost its weight, and the published score was then reported as differing
+ * from a calculation of zero.
+ *
+ * The answer is not to forgive drift. Evidence must never carry forward onto
+ * source it was not observed against. It is to ask what actually moved: if the
+ * only paths differing between the recorded revision and HEAD are the binding
+ * files themselves, no evidence-bearing source changed and the binding still
+ * describes this tree. Anything else is real drift and is reported as such.
+ *
+ * @param recorded revision recorded in the snapshot
+ * @param head revision under verification
+ * @param changedPaths paths differing between them, or null if undeterminable
+ */
+export function effectiveBoundRevision(recorded, head, changedPaths) {
+  if (!recorded || recorded === head) return head;
+  // An undeterminable diff is not forgiven — fall back to HEAD so drift fires.
+  if (!Array.isArray(changedPaths) || changedPaths.length === 0) return head;
+  const bindingOnly = new Set(BINDING_ONLY_PATHS);
+  return changedPaths.every((path) => bindingOnly.has(path)) ? recorded : head;
+}
+
 export class ReadinessCancelledError extends Error {
   constructor() {
     super("Readiness calculation cancelled.");

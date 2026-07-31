@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import {
   createReadinessPublication,
+  effectiveBoundRevision,
   evaluateRequirementReadiness,
   validateProductionClaim,
 } from "./readiness-engine.mjs";
@@ -29,8 +30,31 @@ const verificationEnvironment =
   Number(process.versions.node.split(".")[0]) >= 22
     ? "windows-x64-node22+"
     : `${process.platform}-${process.arch}-node${process.versions.node.split(".")[0]}`;
+/**
+ * Judge the snapshot against the revision its evidence describes.
+ *
+ * See effectiveBoundRevision: the commit that writes the binding cannot contain
+ * its own hash, so it always leaves HEAD one ahead. Only a diff limited to the
+ * binding files themselves is tolerated; anything else is real drift.
+ */
+function changedPathsSince(recorded, head) {
+  if (!recorded || recorded === head) return [];
+  try {
+    return git("diff", "--name-only", `${recorded}..${head}`).split("\n").filter(Boolean);
+  } catch {
+    // An unknown revision is not forgiven — null makes the check fall back to
+    // HEAD so drift fires normally.
+    return null;
+  }
+}
+
+const boundRevision = effectiveBoundRevision(
+  snapshot?.head,
+  currentHead,
+  changedPathsSince(snapshot?.head, currentHead),
+);
 const expectedEvidenceBindings = {
-  sourceRevision: currentHead,
+  sourceRevision: boundRevision,
   targetVersion,
   dependencyLockSha256,
   environment: verificationEnvironment,
@@ -39,7 +63,7 @@ const expectedEvidenceBindings = {
 const writePublication = process.argv.includes("--write");
 const calculation = evaluateRequirementReadiness(snapshot, {
   expectedRequirementCount: 510,
-  expectedHead: currentHead,
+  expectedHead: boundRevision,
   expectedTargetVersion: packageJson.version,
   expectedEvidenceBindings,
   targetVersion,

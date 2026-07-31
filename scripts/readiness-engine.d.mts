@@ -2,6 +2,19 @@ export declare const STATUS_WEIGHTS: Readonly<Record<string, number>>;
 
 export declare class ReadinessCancelledError extends Error {}
 
+export declare const BINDING_ONLY_PATHS: readonly string[];
+
+/**
+ * Which revision a snapshot's evidence should be judged against. Returns the
+ * recorded revision only when the paths differing from `head` are entirely
+ * binding metadata; otherwise `head`, so real drift is reported.
+ */
+export declare function effectiveBoundRevision(
+  recorded: string | null | undefined,
+  head: string,
+  changedPaths: readonly string[] | null | undefined,
+): string;
+
 export type ReadinessIssue = {
   readonly code: string;
   readonly message: string;
