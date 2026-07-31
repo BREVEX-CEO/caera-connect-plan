@@ -1,29 +1,29 @@
 {
   "schemaVersion": 1,
   "phase": "P29 - Final production-readiness closure",
-  "calculatedAt": "2026-07-31T06:41:32.276Z",
+  "calculatedAt": "2026-07-31T07:03:13.263Z",
   "branch": "feat/ocade-implementation",
-  "currentHead": "3c53296b755ef0f7e1d7c1a8d397dc8ac63635a8",
-  "sourceRevision": "3c53296b755ef0f7e1d7c1a8d397dc8ac63635a8",
+  "currentHead": "33e2e296a5f796bc579e8e218f92e218c4d30cb8",
+  "sourceRevision": "33e2e296a5f796bc579e8e218f92e218c4d30cb8",
   "targetVersion": "0.1.0",
   "evidenceBindings": {
-    "sourceRevision": "3c53296b755ef0f7e1d7c1a8d397dc8ac63635a8",
+    "sourceRevision": "33e2e296a5f796bc579e8e218f92e218c4d30cb8",
     "targetVersion": "0.1.0",
     "dependencyLockSha256": "21e378ff9dc2e6260e18bcda165eda4d9cd53b344cd6dcdea219d8425741bc88",
     "environment": "windows-x64-node22+",
     "verificationRuleVersion": "p29-v1"
   },
   "productionReady": false,
-  "declaredNumerator": 256.9,
-  "evidenceBoundNumerator": 256.9,
+  "declaredNumerator": 258.5,
+  "evidenceBoundNumerator": 258.5,
   "denominator": 510,
-  "declaredPercent": 50.4,
-  "evidenceBoundPercent": 50.4,
+  "declaredPercent": 50.7,
+  "evidenceBoundPercent": 50.7,
   "statusCounts": {
-    "UNIT TESTED": 233,
+    "UNIT TESTED": 225,
     "INTEGRATION TESTED": 59,
     "SOURCE COMPLETE": 17,
-    "SIMULATED RUNTIME VERIFIED": 44,
+    "SIMULATED RUNTIME VERIFIED": 52,
     "NOT STARTED": 27,
     "EXTERNALLY BLOCKED": 99,
     "REAL TARGET RUNTIME VERIFIED": 27,
@@ -763,12 +763,12 @@
     {
       "area": "Payments and Billing",
       "denominator": 7,
-      "declaredNumerator": 3.5,
-      "evidenceBoundNumerator": 3.5,
+      "declaredNumerator": 4.3,
+      "evidenceBoundNumerator": 4.3,
       "notStarted": 0,
       "unverifiedPositiveWeight": 0,
-      "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "declaredPercent": 61.4,
+      "evidenceBoundPercent": 61.4
     },
     {
       "area": "Performance Budgets and Resource Governance",
@@ -1193,12 +1193,12 @@
     {
       "area": "Trials Plans Entitlements and Usage",
       "denominator": 7,
-      "declaredNumerator": 3.5,
-      "evidenceBoundNumerator": 3.5,
+      "declaredNumerator": 4.3,
+      "evidenceBoundNumerator": 4.3,
       "notStarted": 0,
       "unverifiedPositiveWeight": 0,
-      "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "declaredPercent": 61.4,
+      "evidenceBoundPercent": 61.4
     },
     {
       "area": "Unknown Application Learning and App Maps",
