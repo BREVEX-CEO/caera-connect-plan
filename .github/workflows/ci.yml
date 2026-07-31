@@ -51,8 +51,50 @@ jobs:
       - name: Release source gate
         run: npm run release:source-check
 
+      - name: Evidence-bound final-readiness gate
+        run: npm run readiness:check
+
+      - name: Provider-neutral portable-release gate
+        run: npm run portable-release:check
+
+      - name: Compatibility evidence trust gate
+        run: npm run compatibility-evidence:check
+
+      - name: Deterministic virtual-media laboratory gate
+        run: npm run media-lab:check
+
+      - name: Capability substitution and local-model gate
+        run: npm run substitution-fabric:check
+
+      - name: Private compute and LAN-only trust gate
+        run: npm run private-compute:check
+
+      - name: Enterprise browser-policy trust gate
+        run: npm run enterprise-browser-policy:check
+
+      - name: Credential and signing-eligibility trust gate
+        run: npm run trust-setup:check
+
+      - name: Community marketplace and bounty honesty gate
+        run: npm run marketplace-bounty:check
+
+      - name: Systematic external-blocker reduction gate
+        run: npm run blocker-reduction:check
+
+      - name: Honest stakeholder-research intake gate
+        run: npm run stakeholder-research:check
+
+      - name: Production launch-authority gate
+        run: npm run launch-authority:check
+
+      - name: Application drift and security-patch lifecycle gate
+        run: npm run application-lifecycle:check
+
       - name: No-dead-button audit
         run: npm run controls:check
+
+      - name: Keyboard and screen-reader accessibility audit
+        run: npm run a11y:check
 
       - name: Licence notices are current
         run: npm run licences:check

@@ -33,6 +33,10 @@ dist-ssr
 
 # Rust build output (native companion)
 native/companion/**/target/
+# Tauri regenerates gen/schemas from capabilities/*.json on every build, so
+# committing it is pure churn. The classifier buckets these as `config` only
+# because its `.json` rule matches before the generated-output rule sees the path.
+native/companion/tauri/gen/
 
 # Secrets and credentials
 #
