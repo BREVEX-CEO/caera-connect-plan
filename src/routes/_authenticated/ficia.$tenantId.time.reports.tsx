@@ -121,6 +121,7 @@ function ReportsPage() {
           <div className="grid gap-1">
             <Label>Group by</Label>
             <select
+              aria-label="Group time report by"
               className="h-9 rounded-md border border-border bg-background px-2 text-sm"
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value as any)}

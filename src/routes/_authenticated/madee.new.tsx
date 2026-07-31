@@ -196,6 +196,7 @@ function NewResume() {
             <div className="space-y-1">
               <Label>Experience level</Label>
               <select
+                aria-label="Experience level"
                 value={experienceLevel}
                 onChange={(e) => setExperienceLevel(e.target.value as ExperienceLevel)}
                 className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"

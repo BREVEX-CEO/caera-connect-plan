@@ -157,6 +157,7 @@ function InvitePersonForm({ tenantId, onDone }: { tenantId: string; onDone: () =
         <div className="grid gap-1">
           <Label>Type</Label>
           <select
+            aria-label="Person type"
             value={type}
             onChange={(e) => setType(e.target.value as any)}
             className="rounded-md border border-border bg-background px-2 py-2 text-sm"

@@ -109,6 +109,7 @@ function OnboardingPage() {
         <div className="flex flex-col gap-4">
           <Field label="How should OCADE address you?" htmlFor="displayName">
             <input
+              aria-label="How should OCADE address you?"
               id="displayName"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
@@ -120,6 +121,7 @@ function OnboardingPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Language" htmlFor="locale">
               <input
+                aria-label="Language"
                 id="locale"
                 value={locale}
                 onChange={(e) => setLocale(e.target.value)}
@@ -128,6 +130,7 @@ function OnboardingPage() {
             </Field>
             <Field label="Timezone" htmlFor="tz">
               <input
+                aria-label="Timezone"
                 id="tz"
                 value={timezone}
                 onChange={(e) => setTimezone(e.target.value)}

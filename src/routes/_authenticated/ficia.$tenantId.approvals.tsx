@@ -176,6 +176,7 @@ function SubmitForm({ tenantId, onSubmitted }: { tenantId: string; onSubmitted: 
         <div className="grid gap-1">
           <Label>Subject</Label>
           <select
+            aria-label="Approval subject"
             value={subject}
             onChange={(e) => setSubject(e.target.value as Subject)}
             className="rounded-md border border-border bg-background px-2 py-2 text-sm"
@@ -452,6 +453,7 @@ function PoliciesEditor({
             <div className="grid gap-1">
               <Label>Subject</Label>
               <select
+                aria-label="Approval subject"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value as Subject)}
                 className="rounded-md border border-border bg-background px-2 py-2 text-sm"
@@ -503,6 +505,7 @@ function PoliciesEditor({
               {steps.map((s, i) => (
                 <div key={i} className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
                   <select
+                    aria-label={`Role for approval step ${i + 1}`}
                     value={s.role_key}
                     onChange={(e) => {
                       const ns = [...steps];

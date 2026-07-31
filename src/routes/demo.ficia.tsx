@@ -85,6 +85,7 @@ function DemoFicia() {
             <div className="border-t border-border/60 p-3">
               <div className="flex gap-2">
                 <input
+                  aria-label="Team message"
                   value={chatDraft}
                   onChange={(e) => setChatDraft(e.target.value)}
                   placeholder="Message the team (demo — in-memory only)…"

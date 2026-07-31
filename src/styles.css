@@ -83,14 +83,14 @@
   --secondary: oklch(0.21 0.008 262);
   --secondary-foreground: oklch(0.93 0.004 250);
   --muted: oklch(0.2 0.006 262);
-  --muted-foreground: oklch(0.68 0.012 255);
+  --muted-foreground: oklch(0.8 0.012 255);
   --accent: oklch(0.24 0.01 250);
   --accent-foreground: oklch(0.96 0.004 250);
   --destructive: oklch(0.62 0.19 25);
   --destructive-foreground: oklch(0.98 0.005 250);
   --border: oklch(1 0 0 / 8%);
   --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.76 0.11 210 / 55%);
+  --ring: oklch(0.76 0.11 210 / 90%);
 
   --chart-1: oklch(0.76 0.11 210);
   --chart-2: oklch(0.72 0.14 165);
@@ -115,10 +115,10 @@
   --accent-cania: oklch(0.78 0.13 75); /* amber */
 
   /* States */
-  --state-success: oklch(0.75 0.14 155);
-  --state-warning: oklch(0.8 0.15 80);
-  --state-info: oklch(0.78 0.12 210);
-  --state-pending: oklch(0.7 0.02 255);
+  --state-success: oklch(0.82 0.12 155);
+  --state-warning: oklch(0.9 0.12 85);
+  --state-info: oklch(0.84 0.1 210);
+  --state-pending: oklch(0.8 0.02 255);
 
   /* Glass surfaces — used only on menus / modals / floating controls */
   --surface-glass: oklch(1 0 0 / 4%);
@@ -135,8 +135,8 @@
   --card-foreground: oklch(0.18 0.015 260);
   --popover: oklch(0.995 0.002 90);
   --popover-foreground: oklch(0.18 0.015 260);
-  --primary: oklch(0.6 0.11 82); /* restrained gold */
-  --primary-foreground: oklch(0.14 0.01 260);
+  --primary: oklch(0.45 0.11 82); /* restrained dark gold: AA on light surfaces */
+  --primary-foreground: oklch(0.99 0.002 90);
   --secondary: oklch(0.93 0.005 90);
   --secondary-foreground: oklch(0.18 0.015 260);
   --muted: oklch(0.94 0.004 90);
@@ -147,23 +147,37 @@
   --destructive-foreground: oklch(0.99 0 0);
   --border: oklch(0.2 0.01 260 / 14%);
   --input: oklch(0.2 0.01 260 / 16%);
-  --ring: oklch(0.6 0.11 82 / 45%);
+  --ring: oklch(0.42 0.1 82);
   --sidebar: oklch(0.945 0.005 90);
   --sidebar-foreground: oklch(0.2 0.015 260);
-  --sidebar-primary: oklch(0.6 0.11 82);
-  --sidebar-primary-foreground: oklch(0.14 0.01 260);
+  --sidebar-primary: oklch(0.45 0.11 82);
+  --sidebar-primary-foreground: oklch(0.99 0.002 90);
   --sidebar-accent: oklch(0.895 0.006 90);
   --sidebar-accent-foreground: oklch(0.15 0.015 260);
   --sidebar-border: oklch(0.2 0.01 260 / 12%);
-  --sidebar-ring: oklch(0.6 0.11 82 / 45%);
+  --sidebar-ring: oklch(0.42 0.1 82);
   --accent-ocade: oklch(0.5 0.13 220);
   --accent-ficia: oklch(0.48 0.12 165);
   --accent-madee: oklch(0.48 0.15 300);
   --accent-cania: oklch(0.55 0.13 65);
+  --state-success: oklch(0.38 0.12 155);
+  --state-warning: oklch(0.38 0.1 75);
+  --state-info: oklch(0.4 0.1 220);
+  --state-pending: oklch(0.4 0.02 255);
   --surface-glass: oklch(0 0 0 / 3%);
   --surface-glass-strong: oklch(0 0 0 / 5%);
   --surface-glass-border: oklch(0 0 0 / 10%);
   --blur-glass: 10px;
+}
+
+/*
+ * Tailwind's light amber text utilities are designed for dark surfaces. The
+ * demo badge and blocked-state notice are present in every theme, so keep their
+ * warning meaning while using a dark amber that clears AA on light surfaces.
+ */
+.light .text-amber-200,
+.light .text-amber-300 {
+  color: oklch(0.38 0.1 80);
 }
 
 /* REAL theme: elegant animated gradients, morphing light, liquid depth. */
@@ -179,7 +193,7 @@
   --secondary: oklch(0.26 0.03 268 / 65%);
   --secondary-foreground: oklch(0.96 0.005 250);
   --muted: oklch(0.24 0.03 268 / 55%);
-  --muted-foreground: oklch(0.78 0.02 255);
+  --muted-foreground: oklch(0.9 0.015 255);
   --accent: oklch(0.3 0.05 250 / 70%);
   --accent-foreground: oklch(0.97 0.005 250);
   --border: oklch(1 0 0 / 14%);

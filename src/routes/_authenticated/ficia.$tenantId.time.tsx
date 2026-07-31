@@ -582,6 +582,7 @@ function RunningDetails({
       <div className="grid gap-1">
         <Label>Project</Label>
         <select
+          aria-label="Project"
           className="h-9 rounded-md border border-border bg-background px-2 text-sm"
           value={projectId}
           onChange={(e) => {
@@ -601,6 +602,7 @@ function RunningDetails({
       <div className="grid gap-1">
         <Label>Task</Label>
         <select
+          aria-label="Task"
           className="h-9 rounded-md border border-border bg-background px-2 text-sm"
           value={taskId}
           onChange={(e) => setTaskId(e.target.value)}
@@ -626,6 +628,7 @@ function RunningDetails({
       <div className="grid gap-1">
         <Label>Work mode</Label>
         <select
+          aria-label="Work mode"
           className="h-9 rounded-md border border-border bg-background px-2 text-sm"
           value={mode}
           onChange={(e) => setMode(e.target.value)}
@@ -727,6 +730,7 @@ function ManualEntryForm({
       <div className="grid gap-1">
         <Label>Project</Label>
         <select
+          aria-label="Project"
           className="h-9 rounded-md border border-border bg-background px-2 text-sm"
           value={projectId}
           onChange={(e) => setProjectId(e.target.value)}
@@ -821,6 +825,7 @@ function WeekEntries({
           <li key={e.id} className="py-2 flex items-center gap-3 text-sm">
             {(e.status === "draft" || e.status === "rejected") && (
               <input
+                aria-label={`Select time entry ${e.id}`}
                 type="checkbox"
                 checked={!!selected[e.id]}
                 onChange={(ev) => setSelected((s) => ({ ...s, [e.id]: ev.target.checked }))}

@@ -650,6 +650,7 @@ export function LanguagesSection({
           </Field>
           <Field label="Proficiency">
             <select
+              aria-label={`Proficiency for ${l.name || "language"}`}
               value={l.proficiency}
               onChange={(e) =>
                 set(idx, {

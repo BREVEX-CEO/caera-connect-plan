@@ -560,6 +560,7 @@ function OcadeModelsPage() {
                     <div className="mt-3 rounded-md border border-white/10 bg-white/[0.02] p-3 text-xs">
                       <label className="block text-fg">Local bridge URL</label>
                       <input
+                        aria-label="Local bridge URL"
                         type="url"
                         placeholder="http://localhost:11434"
                         defaultValue={prefs.ollama_bridge_url ?? ""}

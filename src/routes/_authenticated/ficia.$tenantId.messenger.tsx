@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo, useRef, useEffect } from "react";
+import { useState, useMemo, useRef, useEffect, useId } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -435,6 +435,7 @@ function ThreadView({
         )}
         <div className="flex items-end gap-2">
           <input
+            aria-label="Attach file"
             ref={fileInputRef}
             type="file"
             hidden
@@ -716,19 +717,71 @@ function DialogShell({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  const titleId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const focusableSelector =
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const focusables = () => Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector));
+    (focusables()[0] ?? dialog).focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusables();
+      if (items.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
+  }, [onClose]);
+
   return (
     <div
       className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
-      onClick={onClose}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
     >
       <GlassPanel
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-4"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
-          <div className="font-medium">{title}</div>
-          <button onClick={onClose}>
-            <X className="w-4 h-4" />
+          <div id={titleId} className="font-medium">
+            {title}
+          </div>
+          <button type="button" aria-label={`Close ${title}`} onClick={onClose}>
+            <X className="w-4 h-4" aria-hidden />
           </button>
         </div>
         {children}
@@ -783,6 +836,7 @@ function NewThreadDialog({
         <div>
           <Label>Kind</Label>
           <select
+            aria-label="Thread kind"
             className="w-full h-9 rounded border border-border bg-background px-2 text-sm"
             value={kind}
             onChange={(e) => setKind(e.target.value as Kind)}
@@ -821,6 +875,7 @@ function NewThreadDialog({
           <div>
             <Label>Scope badge</Label>
             <select
+              aria-label="Thread scope badge"
               className="w-full h-9 rounded border border-border bg-background px-2 text-sm"
               value={scope}
               onChange={(e) => setScope(e.target.value as ScopeBadge)}
@@ -1203,6 +1258,7 @@ function LinkDialog({
         <div>
           <Label>Kind</Label>
           <select
+            aria-label="Link kind"
             className="w-full h-9 rounded border border-border bg-background px-2 text-sm"
             value={kind}
             onChange={(e) => setKind(e.target.value as typeof kind)}
@@ -1297,6 +1353,7 @@ function ConvertApprovalDialog({
         <div>
           <Label>Subject</Label>
           <select
+            aria-label="Approval subject"
             className="w-full h-9 rounded border border-border bg-background px-2 text-sm"
             value={subject}
             onChange={(e) => setSubject(e.target.value as typeof subject)}

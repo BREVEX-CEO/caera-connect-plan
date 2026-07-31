@@ -16,7 +16,7 @@
  * apply only if BOTH agree.
  */
 import { planUpdate, type UpdateDecision, type UpdateManifest, type UpdatePolicy } from "./update-plan";
-import { verifyUpdateSignature } from "./update-signature";
+import { verifyUpdateTrust, type UpdateTrustPolicy } from "./update-trust";
 
 export type GateDecision =
   | { readonly action: "apply"; readonly from: string; readonly to: string; readonly url?: string; readonly evidence: string }
@@ -26,8 +26,8 @@ export type GateDecision =
 export interface UpdateGateInput {
   readonly manifest: UpdateManifest;
   readonly policy: UpdatePolicy;
-  /** Ed25519 public key shipped with the application, base64. */
-  readonly publicKeyBase64: string;
+  /** Rotatable, revocable keyring shipped with the application. */
+  readonly trustPolicy: UpdateTrustPolicy;
   /**
    * SHA-256 of the artifact AS DOWNLOADED, computed by the host from the bytes
    * on disk. Never taken from the manifest: a digest supplied by whoever
@@ -46,26 +46,14 @@ export async function gateUpdate(input: UpdateGateInput): Promise<GateDecision> 
   const planned: UpdateDecision = planUpdate(input.manifest, input.policy);
   if (planned.action !== "apply") return planned;
 
-  // The plan wants to apply. Now the part the plan explicitly does not do.
-  const signature = input.manifest.signature?.trim();
-  if (!signature) {
-    return {
-      action: "refuse",
-      reason: "The update is unsigned, so it cannot be verified or applied.",
-    };
+  // Verify the manifest before trusting its expected hash or download URL.
+  const verdict = await verifyUpdateTrust(input.manifest, input.trustPolicy);
+  if (!verdict.ok) {
+    return { action: "refuse", reason: `Update trust rejected: ${verdict.reason}` };
   }
-  if (!input.publicKeyBase64 || input.publicKeyBase64.includes("REPLACE_WITH")) {
-    /*
-     * A placeholder key would make every verification fail at runtime, which
-     * looks like a broken product rather than an unconfigured one. Say which
-     * it is.
-     */
-    return {
-      action: "refuse",
-      reason:
-        "No update signing key is configured in this build, so update signatures cannot be checked. Updates stay disabled until a real key ships.",
-    };
-  }
+
+  // The signed manifest is trusted. Now compare it with the bytes the host
+  // actually observed rather than accepting the manifest's own digest as fact.
   if (!input.artifactSha256) {
     return {
       action: "refuse",
@@ -74,14 +62,13 @@ export async function gateUpdate(input: UpdateGateInput): Promise<GateDecision> 
     };
   }
 
-  const verdict = await verifyUpdateSignature({
-    publicKeyBase64: input.publicKeyBase64,
-    signatureBase64: signature,
-    artifactSha256: input.artifactSha256,
-  });
-
-  if (!verdict.ok) {
-    return { action: "refuse", reason: `Update signature rejected: ${verdict.reason}` };
+  const expectedSha256 = input.manifest.sha256?.trim().toLowerCase();
+  const observedSha256 = input.artifactSha256.trim().toLowerCase();
+  if (!expectedSha256 || observedSha256 !== expectedSha256) {
+    return {
+      action: "refuse",
+      reason: "The downloaded artifact hash does not match the signed update manifest.",
+    };
   }
 
   return {

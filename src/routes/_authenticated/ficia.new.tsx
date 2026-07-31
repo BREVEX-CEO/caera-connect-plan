@@ -333,6 +333,7 @@ function NewCompanyWizard() {
             <div className="grid gap-2">
               <Label>Country *</Label>
               <select
+                aria-label="Country"
                 value={f.country}
                 onChange={(e) => setCountry(e.target.value)}
                 className="rounded-md border border-border bg-background px-2 py-2 text-sm"
@@ -347,6 +348,7 @@ function NewCompanyWizard() {
             <div className="grid gap-2">
               <Label>Entity type</Label>
               <select
+                aria-label="Entity type"
                 value={f.entity_type}
                 onChange={(e) => setF({ ...f, entity_type: e.target.value })}
                 className="rounded-md border border-border bg-background px-2 py-2 text-sm"

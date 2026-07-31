@@ -269,6 +269,7 @@ function SetupPanel({
             PBKDF2-SHA256, 600k iterations. Minimum 12 characters.
           </p>
           <input
+            aria-label="New vault passphrase"
             type="password"
             value={pw}
             onChange={(e) => setPw(e.target.value)}
@@ -276,6 +277,7 @@ function SetupPanel({
             className="mt-2 w-full rounded-md border border-border/60 bg-background/40 px-2 py-1.5 text-xs"
           />
           <input
+            aria-label="Repeat vault passphrase"
             type="password"
             value={pw2}
             onChange={(e) => setPw2(e.target.value)}
@@ -327,6 +329,7 @@ function UnlockPanel({
       ) : (
         <div className="mt-3 flex gap-2">
           <input
+            aria-label="Vault passphrase"
             type="password"
             value={pw}
             onChange={(e) => setPw(e.target.value)}
@@ -351,6 +354,7 @@ function UnlockPanel({
       {showRecovery ? (
         <div className="mt-2 flex gap-2">
           <input
+            aria-label="Recovery kit"
             value={kit}
             onChange={(e) => setKit(e.target.value)}
             placeholder="XXXXX-XXXXX-XXXXX-…"
@@ -391,6 +395,7 @@ function UnlockedPanel({
           Re-wraps the existing data key. Existing records stay readable.
         </p>
         <input
+          aria-label="New vault passphrase"
           type="password"
           value={pw}
           onChange={(e) => setPw(e.target.value)}
@@ -415,6 +420,7 @@ function UnlockedPanel({
           Vault locks after this many seconds of inactivity.
         </p>
         <select
+          aria-label="Auto-lock timeout"
           defaultValue={cfg.lock_timeout_seconds}
           onChange={(e) => onTimeout(Number(e.target.value))}
           className="mt-3 w-full rounded-md border border-border/60 bg-background/40 px-2 py-1.5 text-xs"

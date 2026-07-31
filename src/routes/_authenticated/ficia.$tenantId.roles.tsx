@@ -337,6 +337,7 @@ function RoleGrants({
         <div className="grid gap-1">
           <Label>Person</Label>
           <select
+            aria-label="Person"
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
             className="rounded-md border border-border bg-background px-2 py-2 text-sm"
@@ -357,6 +358,7 @@ function RoleGrants({
         <div className="grid gap-1">
           <Label>Role</Label>
           <select
+            aria-label="Role"
             value={roleKey}
             onChange={(e) => setRoleKey(e.target.value)}
             className="rounded-md border border-border bg-background px-2 py-2 text-sm"

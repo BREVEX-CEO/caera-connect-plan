@@ -30,14 +30,15 @@ async function directoryBytes(root: string): Promise<number> {
 
 async function terminate(child: ReturnType<typeof spawn>): Promise<void> {
   if (child.exitCode !== null || child.signalCode !== null) return;
-  child.kill("SIGKILL");
-  await new Promise<void>((resolveExit) => {
+  const exited = new Promise<void>((resolveExit) => {
     const fallback = setTimeout(resolveExit, 2_000);
     child.once("exit", () => {
       clearTimeout(fallback);
       resolveExit();
     });
   });
+  child.kill("SIGKILL");
+  await exited;
 }
 
 export function createNodePermissionSandboxHost(): GeneratedSandboxHost {
@@ -112,6 +113,13 @@ export function createNodePermissionSandboxHost(): GeneratedSandboxHost {
           ],
           { cwd: root, env: { PATH: process.env.PATH ?? "" }, stdio: ["ignore", "pipe", "pipe"] },
         );
+        const childExit = new Promise<number>((resolveExit, rejectExit) => {
+          child!.once("error", rejectExit);
+          child!.once("exit", (code) => {
+            processExitObserved = true;
+            resolveExit(code ?? 137);
+          });
+        });
 
         let completed = false;
         const stop = async (
@@ -136,21 +144,15 @@ export function createNodePermissionSandboxHost(): GeneratedSandboxHost {
             .catch(() => undefined);
         }, 20);
 
-        exitCode = await new Promise<number>((resolveExit, rejectExit) => {
-          child!.stdout!.on("data", (chunk: Buffer) => {
-            stdout += chunk.toString("utf8");
-            if (Buffer.byteLength(stdout) > request.limits.outputBytes) void stop("output");
-          });
-          child!.stderr!.on("data", (chunk: Buffer) => {
-            stderr += chunk.toString("utf8");
-            if (Buffer.byteLength(stderr) > request.limits.outputBytes) void stop("output");
-          });
-          child!.once("error", rejectExit);
-          child!.once("exit", (code) => {
-            processExitObserved = true;
-            resolveExit(code ?? 137);
-          });
+        child.stdout!.on("data", (chunk: Buffer) => {
+          stdout += chunk.toString("utf8");
+          if (Buffer.byteLength(stdout) > request.limits.outputBytes) void stop("output");
         });
+        child.stderr!.on("data", (chunk: Buffer) => {
+          stderr += chunk.toString("utf8");
+          if (Buffer.byteLength(stderr) > request.limits.outputBytes) void stop("output");
+        });
+        exitCode = await childExit;
         completed = true;
         clearTimeout(timeout);
         clearInterval(monitor);

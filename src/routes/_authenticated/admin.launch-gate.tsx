@@ -10,6 +10,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { executeAction, ActionConfirmationError } from "@/lib/actions";
 import { updateLaunchGateItem, upsertFeatureFlag } from "@/lib/launch-gate.functions";
 import { cn } from "@/lib/utils";
+import { BlockerResolutionPolicy } from "@/components/admin/BlockerResolutionPolicy";
+import { StakeholderResearchBoundary } from "@/components/admin/StakeholderResearchBoundary";
+import { LaunchAuthorityBoundary } from "@/components/admin/LaunchAuthorityBoundary";
 
 type Status =
   "not_started" | "in_progress" | "pending_review" | "evidence_required" | "complete" | "waived";
@@ -153,6 +156,9 @@ function LaunchGatePage() {
           tone={summary.blockers > 0 ? "danger" : "success"}
         />
       </div>
+      <BlockerResolutionPolicy />
+      <StakeholderResearchBoundary />
+      <LaunchAuthorityBoundary />
 
       {items.isLoading ? (
         <div className="mt-8 flex items-center gap-2 text-sm text-muted-foreground">
@@ -191,8 +197,9 @@ function LaunchGatePage() {
           <Lock className="h-4 w-4" aria-hidden /> Feature flag stages
         </h2>
         <p className="mb-3 max-w-2xl text-xs text-muted-foreground">
-          Flags advance from Demo → Private alpha → Beta → GA. Moving a flag to GA is refused by the
-          database when required blockers are unresolved for its applicable modules.
+          Flags advance one stage at a time from Demo → Private alpha → Beta → GA. Enabled rollout
+          requires explicit capability:* and platform:* coverage, independent evidence, and distinct
+          owner/reviewer approval. Missing or waived controlled-rollout evidence is refused.
         </p>
         <FeatureFlagsPanel
           flags={flags.data ?? []}
@@ -265,11 +272,11 @@ function ItemRow({ item, onSaved }: { item: Item; onSaved: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      await executeAction("admin.launch_gate.update", {
+      const result = await executeAction("admin.launch_gate.update", {
         confirmed: true,
         metadata: { item_key: item.key, to_status: status },
-        run: async () => {
-          await updateLaunchGateItem({
+        run: () =>
+          updateLaunchGateItem({
             data: {
               id: item.id,
               status,
@@ -284,9 +291,12 @@ function ItemRow({ item, onSaved }: { item: Item; onSaved: () => void }) {
               blocker,
               history_note: note || undefined,
             },
-          });
-        },
+          }),
       });
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
       setNote("");
       onSaved();
       if (history !== null) await loadHistory();
@@ -420,7 +430,7 @@ function ItemRow({ item, onSaved }: { item: Item; onSaved: () => void }) {
               checked={blocker}
               onChange={(e) => setBlocker(e.target.checked)}
             />
-            <span className="text-muted-foreground">Blocks GA activation</span>
+            <span className="text-muted-foreground">Blocks enabled rollout expansion</span>
           </label>
           <label className="text-xs sm:col-span-2">
             <span className="text-muted-foreground">History note (recorded on status change)</span>
@@ -478,6 +488,8 @@ function ItemRow({ item, onSaved }: { item: Item; onSaved: () => void }) {
 
 function FeatureFlagsPanel({ flags, onSaved }: { flags: Flag[]; onSaved: () => void }) {
   const [newId, setNewId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   return (
     <div className="space-y-3">
       {flags.length === 0 ? (
@@ -493,6 +505,7 @@ function FeatureFlagsPanel({ flags, onSaved }: { flags: Flag[]; onSaved: () => v
       <GlassPanel className="p-4">
         <div className="flex flex-wrap items-center gap-2">
           <input
+            aria-label="New feature flag ID"
             value={newId}
             onChange={(e) => setNewId(e.target.value)}
             placeholder="new.flag.id"
@@ -501,28 +514,50 @@ function FeatureFlagsPanel({ flags, onSaved }: { flags: Flag[]; onSaved: () => v
           <button
             onClick={async () => {
               if (!newId.trim()) return;
-              await executeAction("admin.feature_flag.upsert", {
-                confirmed: true,
-                confirmPhrase: "activate",
-                metadata: { flag_id: newId, stage: "demo" },
-                run: () =>
-                  upsertFeatureFlag({
-                    data: {
-                      id: newId.trim(),
-                      enabled: false,
-                      stage: "demo",
-                      applicable_modules: [],
-                    },
-                  }),
-              });
-              setNewId("");
-              onSaved();
+              setBusy(true);
+              setError(null);
+              try {
+                const phrase = window.prompt(
+                  `Create disabled Demo flag "${newId.trim()}"? Type "activate" to confirm.`,
+                );
+                const result = await executeAction("admin.feature_flag.upsert", {
+                  confirmed: true,
+                  confirmPhrase: phrase ?? "",
+                  metadata: { flag_id: newId, stage: "demo" },
+                  run: () =>
+                    upsertFeatureFlag({
+                      data: {
+                        id: newId.trim(),
+                        enabled: false,
+                        stage: "demo",
+                        applicable_modules: [],
+                      },
+                    }),
+                });
+                if (!result.ok) setError(result.message);
+                else {
+                  setNewId("");
+                  onSaved();
+                }
+              } catch (cause) {
+                if (cause instanceof ActionConfirmationError) setError(cause.message);
+                else setError(cause instanceof Error ? cause.message : "Flag creation failed");
+              } finally {
+                setBusy(false);
+              }
             }}
+            disabled={busy}
             className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
           >
-            Create flag
+            {busy ? "Creating…" : "Create flag"}
           </button>
         </div>
+        {error ? (
+          <div className="mt-2 text-xs text-destructive">
+            <AlertTriangle className="mr-1 inline h-3 w-3" />
+            {error}
+          </div>
+        ) : null}
         <p className="mt-2 text-[11px] text-muted-foreground">
           New flags start in Demo stage, disabled. Advance them through Private alpha → Beta → GA as
           launch-gate items complete.
@@ -543,15 +578,12 @@ function FlagRow({ flag, onSaved }: { flag: Flag; onSaved: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      const requiresStrong = stage === "ga" && enabled;
-      const phrase = requiresStrong
-        ? window.prompt(
-            `Activate flag "${flag.id}" at General Availability? Type "activate" to confirm.`,
-          )
-        : null;
+      const phrase = window.prompt(
+        `Update rollout flag "${flag.id}" to ${stage} (${enabled ? "enabled" : "disabled"})? Type "activate" to confirm.`,
+      );
       const res = await executeAction("admin.feature_flag.upsert", {
         confirmed: true,
-        confirmPhrase: requiresStrong ? (phrase ?? "") : "activate",
+        confirmPhrase: phrase ?? "",
         metadata: { flag_id: flag.id, to_stage: stage, to_enabled: enabled },
         run: () =>
           upsertFeatureFlag({
@@ -604,6 +636,7 @@ function FlagRow({ flag, onSaved }: { flag: Flag; onSaved: () => void }) {
           <span className="text-muted-foreground">Enabled</span>
         </label>
         <input
+          aria-label="Feature flag modules"
           value={modules}
           onChange={(e) => setModules(e.target.value)}
           placeholder="modules (comma-separated)"

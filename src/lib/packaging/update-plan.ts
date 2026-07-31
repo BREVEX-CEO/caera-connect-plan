@@ -123,12 +123,16 @@ export function compareVersions(a: SemVer, b: SemVer): -1 | 0 | 1 {
 /** A manifest as an update feed / Tauri updater endpoint would return it. */
 export interface UpdateManifest {
   readonly version: string;
-  /** Detached signature over the artifact. Absent/empty ⇒ unsigned ⇒ refused. */
+  /** Detached signature over the canonical manifest. Absent/empty ⇒ refused. */
   readonly signature?: string | null;
   /** Content hash of the artifact. Absent/empty ⇒ unverifiable ⇒ refused. */
   readonly sha256?: string | null;
   /** Download location; recorded on the plan, never fetched here. */
   readonly url?: string;
+  /** Stable identity of the trusted signing key. */
+  readonly signingKeyId?: string | null;
+  /** Epoch milliseconds included in the signed manifest. */
+  readonly signedAt?: number | null;
   /**
    * Optional upgrade floor: the client must already be at least this version to
    * accept this update directly (a staged upgrade path). Below it ⇒ refused with

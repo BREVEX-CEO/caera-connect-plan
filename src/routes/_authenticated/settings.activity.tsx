@@ -199,6 +199,7 @@ function ActivityPage() {
           </button>
         </div>
         <select
+          aria-label="Activity time window"
           value={win}
           onChange={(e) => setWin(e.target.value as WindowKey)}
           className="rounded-lg border border-border/60 bg-background/40 px-2 py-1.5 text-xs"
@@ -209,6 +210,7 @@ function ActivityPage() {
           <option value="all">All time</option>
         </select>
         <input
+          aria-label="Filter activity"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Filter action or feature…"
@@ -248,6 +250,7 @@ function ActivityPage() {
             <div className="flex flex-wrap items-center gap-2">
               <span>Type "clear" to confirm:</span>
               <input
+                aria-label='Type "clear" to confirm'
                 value={phrase}
                 onChange={(e) => setPhrase(e.target.value)}
                 className="w-20 rounded-md border border-border/60 bg-background/40 px-2 py-1 text-foreground"

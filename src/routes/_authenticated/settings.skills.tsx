@@ -25,6 +25,8 @@ import { CriteriaScorecard } from "@/components/ocade/CriteriaScorecard";
 import { BenchmarkPanel } from "@/components/ocade/BenchmarkPanel";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { MarketplaceBoundaryPanel } from "@/components/settings/MarketplaceBoundaryPanel";
+import { ApplicationLifecycleBoundaryPanel } from "@/components/settings/ApplicationLifecycleBoundaryPanel";
 
 export const Route = createFileRoute("/_authenticated/settings/skills")({
   head: () => ({
@@ -74,6 +76,8 @@ function SkillsPage() {
 
         {/* Signing, capability sandbox and revocation for community skills. */}
         <SkillTrustPanel />
+        <MarketplaceBoundaryPanel />
+        <ApplicationLifecycleBoundaryPanel />
 
         {/*
           What runs HERE, right now, versus what needs another component. A user

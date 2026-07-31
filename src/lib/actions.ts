@@ -189,7 +189,7 @@ const actions: Action[] = [
     log: "compliance",
     category: "approval",
     description:
-      "Admin changed a feature flag's stage, applicable modules or enabled state. GA is refused while any required blocker is unresolved.",
+      "Admin changed a feature flag's stage, coverage or enabled state. Private-alpha, beta and GA expansion is refused until its required evidence gates pass.",
     requiresPreview: true,
     confirmation: "strong",
     confirmPhrase: "activate",

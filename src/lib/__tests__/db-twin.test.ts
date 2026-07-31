@@ -4,7 +4,7 @@ import { DatabaseTwin } from "../../../scripts/db-twin.mts";
 /**
  * DATABASE AND IDENTITY TWIN (P16 / HWE-30).
  *
- * 31 migrations, 31 verification scripts and 31 rollback scripts had never been
+ * 32 migrations, 32 verification scripts and 32 rollback scripts had never been
  * applied to anything. The SQL tests could only read the files and match
  * strings, because there was no database available and no Docker on this
  * machine.
@@ -35,8 +35,8 @@ afterAll(async () => {
 });
 
 describe("every migration applies in the declared order", () => {
-  it("finds all 31 migrations", () => {
-    expect(DatabaseTwin.migrationFiles()).toHaveLength(31);
+  it("finds all 32 migrations", () => {
+    expect(DatabaseTwin.migrationFiles()).toHaveLength(32);
   });
 
   /**

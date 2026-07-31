@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const root = process.cwd();
 const main = readFileSync(resolve(root, "native/companion/tauri/src/main.rs"), "utf8");
 const platform = readFileSync(resolve(root, "native/companion/tauri/src/platform.rs"), "utf8");
+const safety = readFileSync(resolve(root, "native/companion/safety/src/lib.rs"), "utf8");
 const overlay = readFileSync(resolve(root, "native/companion/ui/overlay.js"), "utf8");
 const buildScript = readFileSync(resolve(root, "native/companion/tauri/build.rs"), "utf8");
 interface TauriConfig {
@@ -64,7 +65,7 @@ describe("desktop companion source contract", () => {
     expect(platform).toContain("[protected window]");
     expect(main).toContain("permissions: backend.permissions");
     expect(main).toContain("install_guidance: backend.install_guidance");
-    expect(main).toContain('verify_signed(&state, &request, "application_inventory"');
+    expect(main).toMatch(/verify_signed\(\s*&state,\s*&request,\s*"application_inventory"/s);
   });
 
   it("implements bounded OS actions without interpolating user values into scripts", () => {
@@ -88,9 +89,13 @@ describe("desktop companion source contract", () => {
 
   it("keeps cancel and emergency stop live while actions run", () => {
     expect(main).toContain("tauri::async_runtime::spawn_blocking");
-    expect(main).toContain("running: Mutex<HashMap<String, Arc<AtomicBool>>>");
     expect(main).toContain('app.emit(\n        "ocade://action-progress"');
-    expect(main.match(/token\.store\(true, Ordering::SeqCst\)/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(main).toMatch(/state\s*\.emergency\s*\.register\(&run_id\)/s);
+    expect(main.match(/state\.emergency\.halt\(\)/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(safety).toContain("pub struct EmergencyStopRegistry");
+    expect(safety).toContain("struct EmergencyStopState");
+    expect(safety).toContain("halted: bool");
+    expect(safety).toContain("running: HashMap<String, Arc<AtomicBool>>");
   });
 
   it("bounds long-lived native sessions, envelopes, audit entries, captures, and results", () => {

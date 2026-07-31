@@ -106,6 +106,7 @@ function DemoOcade() {
             </div>
             <div className="rounded-xl border border-border/70 bg-card/80 shadow-sm">
               <textarea
+                aria-label="Message OCADE"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {

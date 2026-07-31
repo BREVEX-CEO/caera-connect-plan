@@ -6,6 +6,7 @@ const migrations = [
   "20260722100000_ocade_subscriptions_usage",
   "20260722110000_ocade_automations",
   "20260724211500_ocade_automation_worker",
+  "20260730190000_ocade_controlled_rollout_gates",
 ] as const;
 
 function read(path: string): string {
@@ -17,6 +18,7 @@ const projects = read(`supabase/migrations/${migrations[0]}.sql`);
 const usage = read(`supabase/migrations/${migrations[1]}.sql`);
 const automations = read(`supabase/migrations/${migrations[2]}.sql`);
 const worker = read(`supabase/migrations/${migrations[3]}.sql`);
+const controlledRollout = read(`supabase/migrations/${migrations[4]}.sql`);
 const projectsRollback = read(`supabase/rollback/${migrations[0]}_rollback.sql`);
 const workerRollback = read(`supabase/rollback/${migrations[3]}_rollback.sql`);
 const projectsVerify = read(`supabase/verification/${migrations[0]}_verify.sql`);
@@ -34,12 +36,12 @@ describe("OCADE Supabase application package", () => {
       expect(existsSync(`supabase/rollback/${migration}_rollback.sql`)).toBe(true);
       expect(existsSync(`supabase/verification/${migration}_verify.sql`)).toBe(true);
     }
-    expect(applyOrder).toMatch(/four are the only UNAPPLIED migrations/i);
-    expect(applyOrder).toMatch(/\(4\s*→\s*3\s*→\s*2\s*→\s*1\)/);
+    expect(applyOrder).toMatch(/five are the only UNAPPLIED migrations/i);
+    expect(applyOrder).toMatch(/\(5\s*→\s*4\s*→\s*3\s*→\s*2\s*→\s*1\)/);
   });
 
   it("makes each unapplied migration atomic and labels the package honestly", () => {
-    for (const migration of [projects, usage, automations, worker]) {
+    for (const migration of [projects, usage, automations, worker, controlledRollout]) {
       expect(migration).toMatch(/\bBEGIN;\s/);
       expect(migration).toMatch(/\sCOMMIT;\s*$/);
       expect(migration).toMatch(/READY TO APPLY/);

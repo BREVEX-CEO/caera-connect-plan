@@ -214,6 +214,7 @@ function GeneralPage() {
           <div className="min-w-0 flex-1 grid gap-3 sm:grid-cols-2">
             <Field label="Full name">
               <input
+                aria-label="Full name"
                 type="text"
                 value={view?.full_name ?? ""}
                 onChange={(e) => update("full_name", e.target.value)}
@@ -223,6 +224,7 @@ function GeneralPage() {
             </Field>
             <Field label="Preferred name">
               <input
+                aria-label="Preferred name"
                 type="text"
                 value={view?.preferred_name ?? ""}
                 onChange={(e) => update("preferred_name", e.target.value)}
@@ -232,6 +234,7 @@ function GeneralPage() {
             </Field>
             <Field label="Occupation or role" className="sm:col-span-2">
               <input
+                aria-label="Occupation or role"
                 type="text"
                 value={view?.occupation ?? ""}
                 onChange={(e) => update("occupation", e.target.value)}
@@ -251,6 +254,7 @@ function GeneralPage() {
           paste secrets or passwords.
         </p>
         <textarea
+          aria-label="Custom instructions"
           value={view?.custom_instructions ?? ""}
           onChange={(e) => update("custom_instructions", e.target.value)}
           placeholder="Prefer concise replies. Use metric units. Explain financial terms in plain English."
@@ -269,6 +273,7 @@ function GeneralPage() {
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Field label="Language">
             <select
+              aria-label="Language"
               value={view?.locale ?? "en-US"}
               onChange={(e) => update("locale", e.target.value)}
               className={inputCls}
@@ -282,6 +287,7 @@ function GeneralPage() {
           </Field>
           <Field label="Time zone">
             <select
+              aria-label="Time zone"
               value={view?.timezone ?? "UTC"}
               onChange={(e) => update("timezone", e.target.value)}
               className={inputCls}

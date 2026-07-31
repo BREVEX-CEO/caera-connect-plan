@@ -581,6 +581,7 @@ function AddSourceForm({ versionId, onSaved }: { versionId: string; onSaved: () 
         onChange={(e) => setRuleKey(e.target.value)}
       />
       <select
+        aria-label="Rule type"
         value={type}
         onChange={(e) => setType(e.target.value as any)}
         className="rounded-md border border-border bg-background px-2 py-1 text-sm"
@@ -675,6 +676,7 @@ function AddReviewForm({ versionId, onSaved }: { versionId: string; onSaved: () 
         onChange={(e) => setCredId(e.target.value)}
       />
       <select
+        aria-label="Approval decision"
         value={decision}
         onChange={(e) => setDecision(e.target.value as any)}
         className="rounded-md border border-border bg-background px-2 py-1 text-sm"

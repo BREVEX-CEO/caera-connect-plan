@@ -5,8 +5,8 @@ import { readdirSync, readFileSync } from "node:fs";
  * Supabase migration safety discipline — enforced across EVERY migration.
  *
  * The integration gate checks rollback/verification pairing only for the
- * migrations listed in `audit.unappliedMigrations` (currently 4 of 31). The
- * other 27 pairs are enforced by nothing: delete one, or add a new migration
+ * migrations listed in `audit.unappliedMigrations` (currently 5 of 32). The
+ * other 27 pairs need the repository-wide discipline below: delete one, or add a new migration
  * without a pair, and no check notices. Since a migration without a rehearsed
  * rollback is a change you cannot safely undo on a production database, that
  * gap matters more than most.

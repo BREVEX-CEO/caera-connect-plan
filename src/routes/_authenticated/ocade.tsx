@@ -2949,6 +2949,7 @@ function Composer(props: {
           <Paperclip className="h-3.5 w-3.5" />
         </ComposerIcon>
         <input
+          aria-label="Attach files"
           ref={fileRef}
           type="file"
           multiple
@@ -2962,6 +2963,7 @@ function Composer(props: {
           <Sparkles className="h-3.5 w-3.5" />
         </ComposerIcon>
         <input
+          aria-label="Attach images"
           ref={imageRef}
           type="file"
           multiple

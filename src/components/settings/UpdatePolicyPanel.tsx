@@ -22,6 +22,8 @@ import { gateUpdate, type GateDecision } from "@/lib/packaging/update-gate";
  */
 
 const CURRENT_VERSION = "0.1.0";
+const SIGNED_AT = 1_785_345_600_000;
+const SIGNING_KEY_ID = "production-primary";
 
 /** Each case is a real manifest run through the real planner. */
 const CASES: { label: string; manifest: UpdateManifest }[] = [
@@ -32,15 +34,29 @@ const CASES: { label: string; manifest: UpdateManifest }[] = [
       signature: "a-detached-signature",
       sha256: "b".repeat(64),
       url: "https://example.invalid/ocade-0.2.0.msi",
+      signingKeyId: SIGNING_KEY_ID,
+      signedAt: SIGNED_AT,
     },
   },
   {
     label: "Unsigned build",
-    manifest: { version: "0.2.0", signature: "", sha256: "b".repeat(64) },
+    manifest: {
+      version: "0.2.0",
+      signature: "",
+      sha256: "b".repeat(64),
+      signingKeyId: SIGNING_KEY_ID,
+      signedAt: SIGNED_AT,
+    },
   },
   {
     label: "No content hash",
-    manifest: { version: "0.2.0", signature: "a-detached-signature", sha256: "" },
+    manifest: {
+      version: "0.2.0",
+      signature: "a-detached-signature",
+      sha256: "",
+      signingKeyId: SIGNING_KEY_ID,
+      signedAt: SIGNED_AT,
+    },
   },
   {
     label: "Older than installed",
@@ -48,6 +64,8 @@ const CASES: { label: string; manifest: UpdateManifest }[] = [
       version: "0.0.9",
       signature: "a-detached-signature",
       sha256: "b".repeat(64),
+      signingKeyId: SIGNING_KEY_ID,
+      signedAt: SIGNED_AT,
     },
   },
   {
@@ -57,6 +75,8 @@ const CASES: { label: string; manifest: UpdateManifest }[] = [
       signature: "a-detached-signature",
       sha256: "b".repeat(64),
       minimumClientVersion: "0.5.0",
+      signingKeyId: SIGNING_KEY_ID,
+      signedAt: SIGNED_AT,
     },
   },
 ];
@@ -105,7 +125,18 @@ export function UpdatePolicyPanel() {
         out[row.label] = await gateUpdate({
           manifest: row.manifest,
           policy: { currentVersion: CURRENT_VERSION },
-          publicKeyBase64: SIGNING_PUBLIC_KEY,
+          trustPolicy: {
+            keys: [
+              {
+                id: SIGNING_KEY_ID,
+                publicKeyBase64: SIGNING_PUBLIC_KEY,
+                epoch: 1,
+                validFrom: SIGNED_AT,
+              },
+            ],
+            minimumKeyEpoch: 1,
+            evaluationTime: SIGNED_AT,
+          },
           // Null: nothing has been downloaded here, so nothing has been hashed.
           // The gate must refuse rather than trust the manifest's own digest.
           artifactSha256: null,

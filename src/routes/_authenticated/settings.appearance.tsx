@@ -179,6 +179,7 @@ function AppearancePage() {
           </p>
 
           <input
+            aria-label="Upload custom cursor"
             ref={fileRef}
             type="file"
             accept="image/png,image/svg+xml"
@@ -239,6 +240,7 @@ function AppearancePage() {
                 Cursor size — {appearance.cursorSize}px
               </label>
               <input
+                aria-label="Cursor size"
                 type="range"
                 min={16}
                 max={64}

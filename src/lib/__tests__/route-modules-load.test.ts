@@ -19,6 +19,7 @@ import { describe, it, expect } from "vitest";
  */
 
 const routeModules = import.meta.glob("/src/routes/**/*.tsx");
+const ROUTE_IMPORT_TIMEOUT_MS = 15_000;
 
 describe("every route module loads in a server environment", () => {
   const paths = Object.keys(routeModules).sort();
@@ -28,12 +29,20 @@ describe("every route module loads in a server environment", () => {
     expect(paths.length).toBeGreaterThan(50);
   });
 
-  it.each(paths)("%s imports without throwing", async (path) => {
-    // No try/catch: a rejection here IS the failure, and its stack names the
-    // offending module far better than any message this test could invent.
-    const loaded = (await routeModules[path]()) as Record<string, unknown>;
-    expect(loaded, `${path} produced no module object`).toBeTruthy();
-  });
+  it.each(paths)(
+    "%s imports without throwing",
+    async (path) => {
+      // No try/catch: a rejection here IS the failure, and its stack names the
+      // offending module far better than any message this test could invent.
+      const loaded = (await routeModules[path]()) as Record<string, unknown>;
+      expect(loaded, `${path} produced no module object`).toBeTruthy();
+    },
+    // The first route imports the complete server graph. Under full-suite
+    // contention that valid import exceeded Vitest's generic five-second
+    // default once; keep the check bounded without treating machine load as a
+    // product exception.
+    ROUTE_IMPORT_TIMEOUT_MS,
+  );
 });
 
 describe("every route file declares a route", () => {
