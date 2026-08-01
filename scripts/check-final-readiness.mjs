@@ -21,8 +21,27 @@ const packageJson = readJson("package.json");
 const currentHead = git("rev-parse", "HEAD");
 const branch = git("branch", "--show-current");
 const targetVersion = packageJson.version;
+/**
+ * Hash the lockfile's CONTENT, not its bytes on disk.
+ *
+ * This repository has `core.autocrlf=true` and no `.gitattributes`, so git
+ * rewrites line endings on checkout. package-lock.json is 440,611 bytes in a
+ * worktree written with LF and 453,098 in a fresh clone converted to CRLF —
+ * one byte per line, ~12.5 KB of pure formatting. The content is identical;
+ * only the newlines differ.
+ *
+ * Hashing raw bytes therefore produced a value that was reproducible on the
+ * machine that recorded it and on no other. Every fresh checkout, CI included,
+ * computed a different digest and the gate failed with
+ * `evidence_binding_drift` on dependencyLockSha256 — a failure invisible
+ * locally, because the local bytes are the ones the hash was taken from.
+ *
+ * Normalising CRLF to LF first makes the binding mean what it was always meant
+ * to mean: these are the same dependencies. It still changes if a real
+ * dependency changes, which is the property worth keeping.
+ */
 const dependencyLockSha256 = createHash("sha256")
-  .update(readFileSync("package-lock.json"))
+  .update(readFileSync("package-lock.json", "utf8").replace(/\r\n/g, "\n"))
   .digest("hex");
 const verificationEnvironment =
   process.platform === "win32" &&

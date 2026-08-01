@@ -23,11 +23,29 @@ export const STATUS_WEIGHTS = Object.freeze({
 });
 
 /**
- * Files that carry the evidence binding itself and no evidence of their own.
+ * Paths that cannot affect what the recorded evidence describes.
+ *
+ * Two kinds, and the distinction matters:
+ *
+ *   - the binding files themselves, which record the revision and the published
+ *     score but carry no evidence of their own;
+ *   - CHECKPOINT.md, a narrative progress record that no script, test, gate or
+ *     workflow reads (verified by search before adding it here).
+ *
+ * Readiness evidence describes how the CODE behaves. Committing a progress note
+ * cannot change that, so invalidating every bound row because a Markdown file
+ * moved is a false negative — and a costly one: it failed the `readiness:check`
+ * step of the CI web job on every push, which is one reason CI was red while
+ * everything passed locally.
+ *
+ * This list is an explicit allowlist rather than a pattern such as `*.md` on
+ * purpose. A pattern would silently absorb future files nobody evaluated; each
+ * entry here had to be checked for whether anything reads it.
  */
 export const BINDING_ONLY_PATHS = Object.freeze([
   "release/OCADE_REQUIREMENT_STATUS_SNAPSHOT.json",
   "release/OCADE_P29_FINAL_READINESS.json",
+  "CHECKPOINT.md",
 ]);
 
 /**

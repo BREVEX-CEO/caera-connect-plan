@@ -246,6 +246,14 @@ describe("final readiness evidence accounting", () => {
       expect(effectiveBoundRevision(RECORDED, HEAD, [SNAPSHOT])).toBe(RECORDED);
     });
 
+    it("tolerates a progress note that no script reads", () => {
+      // CHECKPOINT.md is narrative. Invalidating every bound row because it
+      // moved failed the readiness gate on every CI push while the code it
+      // describes had not changed at all.
+      expect(effectiveBoundRevision(RECORDED, HEAD, ["CHECKPOINT.md"])).toBe(RECORDED);
+      expect(effectiveBoundRevision(RECORDED, HEAD, ["CHECKPOINT.md", SNAPSHOT])).toBe(RECORDED);
+    });
+
     it("falls back to HEAD as soon as any evidence-bearing file moved", () => {
       // These are the cases that must never be forgiven: if source, tests or
       // gate scripts changed, the recorded evidence describes a different tree.
