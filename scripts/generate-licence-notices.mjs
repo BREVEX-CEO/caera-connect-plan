@@ -197,9 +197,25 @@ for (const p of packages) {
 
 const output = lines.join("\n") + "\n";
 
+/**
+ * Compare content, not line endings.
+ *
+ * `output` is always built with "\n", but this repository has
+ * `core.autocrlf=true` and no `.gitattributes`, so git hands every fresh
+ * checkout a CRLF copy of the committed file. A raw `!==` therefore reported
+ * the notices as stale on every machine except one that happened to have LF
+ * on disk — 581,050 bytes here against 595,017 in a clean clone, identical
+ * once newlines are normalised. That failed the `licences:check` step of the
+ * CI web job on every run while passing locally.
+ *
+ * Normalising both sides keeps the check meaningful: it still fails when a
+ * dependency's licence actually changes, which is the only thing it is for.
+ */
+const normalizeNewlines = (text) => text.replace(/\r\n/g, "\n");
+
 if (checkOnly) {
   const current = existsSync(OUTPUT) ? readFileSync(OUTPUT, "utf8") : "";
-  if (current !== output) {
+  if (normalizeNewlines(current) !== normalizeNewlines(output)) {
     console.error(`${OUTPUT} is stale. Run \`npm run licences:generate\` and commit the result.`);
     process.exit(1);
   }

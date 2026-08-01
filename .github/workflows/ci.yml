@@ -99,8 +99,19 @@ jobs:
       - name: Licence notices are current
         run: npm run licences:check
 
-      - name: Stage 2 baseline checks
-        run: npm run stage2:baseline-check
+      # `stage2:baseline-check` is deliberately NOT run here. It is a
+      # developer-machine integrity check, not a CI check, and it could never
+      # have passed on a runner:
+      #
+      #   - it reads .claude/OCADE_STAGE_2_SPEC_HASHES.json, and .claude/ is
+      #     gitignored, so the file is absent from every checkout;
+      #   - that file pins ABSOLUTE paths on one specific machine
+      #     (C:\Users\haans\Downloads\... and C:\Users\haans\.codex\...) and
+      #     asserts each one exists and still hashes to a recorded value.
+      #
+      # Running it here guaranteed a red web job on every push regardless of
+      # the state of the code. It still runs locally, where the files it
+      # verifies actually exist and the check is meaningful.
 
   rust:
     name: Rust companion safety core
