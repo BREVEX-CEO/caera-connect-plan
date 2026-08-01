@@ -50,12 +50,17 @@ Executed this session, in that clean checkout, after `npm ci` from the committed
 ```
 === TYPECHECK ===   exit 0 — 0 errors
 === LINT ===        exit 0 — 0 errors, 231 warnings
-=== TESTS ===       exit 0 — 254 files, 4173 passed, 6 skipped, 0 failed
+=== TESTS ===       exit 0 — 255 files, 4187 passed, 2 skipped, 0 failed
 === BUILD ===       exit 0
-=== GATES ===       43/44 — only deploy:check fails, correctly refusing without credentials
+=== GATES ===       44/45 — only deploy:check fails, correctly refusing without credentials
 === RUST ===        fmt 0 · clippy -D warnings 0 · check 0 · test 30 passed, 0 failed
 === AUDIT ===       production 0 vulnerabilities · all: 1 high, dev-only (glob→brace-expansion)
 ```
+
+Figures above are at the tip of this phase. Mid-phase the suite read 254 files /
+4,173 passed / 6 skipped; the extra file and tests are the evidence-integrity
+enforcement suite (§7), and four of the six skips were tests refusing to assert
+against a stale evidence binding, which now execute and pass.
 
 **Three previously published figures were wrong**, and the third one mattered:
 
@@ -142,11 +147,48 @@ without reading the run would fabricate the single piece of evidence Phase 0 exi
 **A falsifiable prediction, not an assumption:** because of D19, recent runs were almost certainly
 **red** at the *Unit tests* step. The push carrying this phase contains the fix.
 
+## 7. Evidence-integrity gate — built and enforcing
+
+The six false-progress conditions are now executable checks rather than written
+rules, run in CI **before** the readiness gate (scoring dishonest rows accurately is
+not much use). `npm run evidence:integrity`, 510 requirements, 0 violations.
+
+| Condition | Enforced as |
+|---|---|
+| Requirement has no owner | `no_owner` |
+| Blocked row names no exit condition | `blocker_unspecified` |
+| Evidence cites a file not on disk | `evidence_file_missing` |
+| Evidence bound to a different commit | `revision_drift` |
+| Real-target claim with no retained artefact | `real_target_without_evidence` |
+| Structural test passed off as runtime proof | `source_text_as_runtime_proof` |
+| Blocked row weighted as proven | `blocked_but_verified` |
+
+**Owners.** All 510 rows had status, weight and evidence; **none had an owner**. That is
+how a blocked requirement sits untouched — "EXTERNALLY BLOCKED" reads like a fact about
+the world when it is a fact about a person who has not done a specific thing. Now 411
+internal and 99 external, each blocked row naming who can clear it, what they must
+supply, and the exact proof that closes it. Rows matching no blocker are **reported, not
+given a filler owner** — all 510 matched, so nothing was invented.
+
+**Two defects in this gate's own construction**, both caught before commit and both the
+exact failure mode it exists to detect:
+
+- The structural-test loader required `entry.kind === "structural"`. No entry has a
+  `kind` field — the key is `structuralOnly` and membership *is* the classification. The
+  set stayed empty, so condition 5 was **inert while reporting success**.
+- Its test had the same bug and worse: it looked up the same non-existent key, found
+  nothing, and **returned early — passing while proving nothing**. It now asserts the
+  fixture is non-empty first, and keeps a real retained artefact alongside the structural
+  one so only the intended violation is possible.
+
+Ten enforcement tests, one per condition, each proven to fail on a specific realistic
+corruption. The snapshot is restored byte-identically in `afterEach`, including on failure.
+
 ---
 
 ## Next phase
 
-**Phase 0.5 — Sibling quarantine and evidence integrity.**
+**Phase 0.5 — Sibling quarantine.**
 
 FICIA, MADEE and CANIA are currently fully live — ~40 authenticated routes, 12 lib modules, 5
 components and three top-level sidebar entries. `git grep "Coming later"` returns **zero matches**.
