@@ -45,7 +45,12 @@ assert(
   /export type VoiceProviderType = "system" \| "local" \| "licensed"/.test(registry),
   "Voice providers cover the system, local and licensed cases",
 );
-for (const contract of ["VoiceProvider", "VisionConnector", "MediaConnector", "HeadlessConnector"]) {
+for (const contract of [
+  "VoiceProvider",
+  "VisionConnector",
+  "MediaConnector",
+  "HeadlessConnector",
+]) {
   assert(
     new RegExp(`export interface ${contract}\\b`).test(registry),
     `${contract} contract is declared`,
@@ -127,9 +132,7 @@ assert(
 );
 
 console.log(`\nResult: ${passed}/${total} assertions passed.`);
-console.log(
-  "STATUS: CONTRACTS AND REDACTION VERIFIED BY SOURCE. NO AUDIO RUNTIME WAS EXERCISED.",
-);
+console.log("STATUS: CONTRACTS AND REDACTION VERIFIED BY SOURCE. NO AUDIO RUNTIME WAS EXERCISED.");
 if (passed !== total) {
   console.error(`\nStage 2 Phase 35 gate failed:\n- ${failures.join("\n- ")}`);
   process.exit(1);

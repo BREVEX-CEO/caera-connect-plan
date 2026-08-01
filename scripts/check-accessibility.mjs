@@ -135,8 +135,7 @@ for (const file of files) {
     const staticId = /\bid=["']([^"']+)["']/.exec(attrs)?.[1];
     const escapedId = staticId?.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const hasMatchingLabel =
-      escapedId !== undefined &&
-      new RegExp(`<label\\b[^>]*htmlFor=["']${escapedId}["']`).test(src);
+      escapedId !== undefined && new RegExp(`<label\\b[^>]*htmlFor=["']${escapedId}["']`).test(src);
     const hidden =
       /type=\{?["']hidden/.test(attrs) ||
       /\bhidden(?:\s|$|=)/.test(attrs) ||
@@ -260,9 +259,7 @@ try {
 
 const regressions = [];
 if (findings.length > (baseline.total ?? 0)) {
-  regressions.push(
-    `accessibility findings rose from ${baseline.total ?? 0} to ${findings.length}`,
-  );
+  regressions.push(`accessibility findings rose from ${baseline.total ?? 0} to ${findings.length}`);
 }
 for (const [kind, n] of Object.entries(byKind)) {
   const was = baseline.byKind?.[kind] ?? 0;

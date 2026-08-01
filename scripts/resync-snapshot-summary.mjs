@@ -67,8 +67,12 @@ snapshot.evidenceTiers = {
 };
 
 console.log("Recomputed from rows:");
-console.log(`  expanded      ${snapshot.readiness.expanded.numerator} / ${rows.length} = ${snapshot.readiness.expanded.percent}%`);
-console.log(`  originalCore  ${snapshot.readiness.originalCore.numerator} / ${originalCoreDenominator} = ${snapshot.readiness.originalCore.percent}%`);
+console.log(
+  `  expanded      ${snapshot.readiness.expanded.numerator} / ${rows.length} = ${snapshot.readiness.expanded.percent}%`,
+);
+console.log(
+  `  originalCore  ${snapshot.readiness.originalCore.numerator} / ${originalCoreDenominator} = ${snapshot.readiness.originalCore.percent}%`,
+);
 console.log("  counts        " + JSON.stringify(counts));
 
 if (write) {

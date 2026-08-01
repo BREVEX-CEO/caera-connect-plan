@@ -96,7 +96,10 @@ function closeRequirement(endLine) {
   // that the ten lifecycle variants of one subject collapse together.
   const norm = currentReq.heading
     .replace(/^Task\s+[\d.]+\s*—\s*/i, "")
-    .replace(/^(Inventory|Specify|Design|Implement|Wire|Test|Verify|Secure|Document|Establish)\s+/i, "")
+    .replace(
+      /^(Inventory|Specify|Design|Implement|Wire|Test|Verify|Secure|Document|Establish)\s+/i,
+      "",
+    )
     .replace(/\d+/g, "N")
     .trim()
     .toLowerCase();
@@ -105,9 +108,7 @@ function closeRequirement(endLine) {
     /^Task\s+[\d.]+\s*—\s*(\w+)/i.exec(currentReq.heading)?.[1]?.toLowerCase() ?? null;
   // Structural hash: body with digits normalised, so templated bodies that
   // differ only by phase number group together.
-  currentReq.structuralSha256 = sha(
-    currentReq._body.join("\n").replace(/\d+/g, "N").toLowerCase(),
-  );
+  currentReq.structuralSha256 = sha(currentReq._body.join("\n").replace(/\d+/g, "N").toLowerCase());
   delete currentReq._body;
   requirements.push(currentReq);
   currentReq = null;
@@ -302,20 +303,22 @@ const coverage = {
 };
 writeFileSync(join(OUT, "OCADE_COVERAGE_PROOF.json"), JSON.stringify(coverage, null, 2) + "\n");
 
-console.log(JSON.stringify(
-  {
-    totalLines,
-    coveredLines: covered,
-    verdict: coverage.verdict,
-    chunks: chunks.length,
-    headings: headings.length,
-    requirementBlocks: requirements.length,
-    canonicalSubjects: canonicalBySubject.size,
-    exactDuplicateGroups: duplicateGroups.filter((d) => d.kind === "exact-body").length,
-    structuralDuplicateGroups: duplicateGroups.filter((d) => d.kind !== "exact-body").length,
-  },
-  null,
-  2,
-));
+console.log(
+  JSON.stringify(
+    {
+      totalLines,
+      coveredLines: covered,
+      verdict: coverage.verdict,
+      chunks: chunks.length,
+      headings: headings.length,
+      requirementBlocks: requirements.length,
+      canonicalSubjects: canonicalBySubject.size,
+      exactDuplicateGroups: duplicateGroups.filter((d) => d.kind === "exact-body").length,
+      structuralDuplicateGroups: duplicateGroups.filter((d) => d.kind !== "exact-body").length,
+    },
+    null,
+    2,
+  ),
+);
 
 if (problems.length > 0) process.exit(1);

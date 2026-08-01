@@ -59,7 +59,11 @@ describe("unsafe downgrade refusal", () => {
   });
 
   it("refuses when nothing at or below the requested route is supported", () => {
-    const t = new ApplicationTwin("menu", ["api"], [{ id: "x", label: "x", visible: true, enabled: true }]);
+    const t = new ApplicationTwin(
+      "menu",
+      ["api"],
+      [{ id: "x", label: "x", visible: true, enabled: true }],
+    );
     const r = t.perform(act({ targetId: "x", route: "input" }));
     expect(r.ok).toBe(false);
     expect(r.failure).toBe("unsupported_route");
@@ -241,7 +245,9 @@ describe("stale targets, recovery and rollback", () => {
   it("refuses a stale target", () => {
     const lab = buildTwinLab();
     lab.changing_layout.makeStale("moving_button");
-    const r = lab.changing_layout.perform(act({ targetId: "moving_button", route: "accessibility" }));
+    const r = lab.changing_layout.perform(
+      act({ targetId: "moving_button", route: "accessibility" }),
+    );
     expect(r.ok).toBe(false);
     expect(r.failure).toBe("stale_target");
   });

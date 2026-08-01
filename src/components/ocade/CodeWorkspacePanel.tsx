@@ -664,11 +664,7 @@ export function CodeWorkspacePanel() {
               <Button size="sm" variant="outline" onClick={validateSandboxPlan}>
                 Validate sandbox plan
               </Button>
-              <Button
-                size="sm"
-                onClick={() => void executeSandboxPlan()}
-                disabled={sandboxRunning}
-              >
+              <Button size="sm" onClick={() => void executeSandboxPlan()} disabled={sandboxRunning}>
                 {sandboxRunning ? "Running…" : "Execute in sandbox"}
               </Button>
             </div>

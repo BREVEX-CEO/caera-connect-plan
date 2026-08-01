@@ -257,7 +257,9 @@ describe("final readiness evidence accounting", () => {
     it("falls back to HEAD as soon as any evidence-bearing file moved", () => {
       // These are the cases that must never be forgiven: if source, tests or
       // gate scripts changed, the recorded evidence describes a different tree.
-      expect(effectiveBoundRevision(RECORDED, HEAD, [SNAPSHOT, "src/lib/ocade-local.ts"])).toBe(HEAD);
+      expect(effectiveBoundRevision(RECORDED, HEAD, [SNAPSHOT, "src/lib/ocade-local.ts"])).toBe(
+        HEAD,
+      );
       expect(effectiveBoundRevision(RECORDED, HEAD, ["scripts/readiness-engine.mjs"])).toBe(HEAD);
       expect(effectiveBoundRevision(RECORDED, HEAD, ["package-lock.json"])).toBe(HEAD);
     });

@@ -280,7 +280,9 @@ export function ComputerUsePanel() {
       <GlassPanel className="mt-4 p-5">
         <h3 className="text-sm font-semibold">Fused screen perception</h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          {"The redaction, state-fingerprint and numbered-target pipeline is source-ready. Live UIA/OCR/icon/vision control remains blocked until every authenticated dependency below is available."}
+          {
+            "The redaction, state-fingerprint and numbered-target pipeline is source-ready. Live UIA/OCR/icon/vision control remains blocked until every authenticated dependency below is available."
+          }
         </p>
         <p
           className={cn(

@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
+import { describe, it, expect } from "vitest";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 
-describe('Stage 2 Phase 36: Packaging and Release Preparation', () => {
-  it('has Tauri updater and createUpdaterArtifacts configured but disabled until signed', async () => {
+describe("Stage 2 Phase 36: Packaging and Release Preparation", () => {
+  it("has Tauri updater and createUpdaterArtifacts configured but disabled until signed", async () => {
     const tauriConfStr = await fs.readFile(
-      path.join(process.cwd(), 'native/companion/tauri/tauri.conf.json'),
-      'utf-8'
+      path.join(process.cwd(), "native/companion/tauri/tauri.conf.json"),
+      "utf-8",
     );
     const tauriConf = JSON.parse(tauriConfStr);
 
@@ -15,16 +15,16 @@ describe('Stage 2 Phase 36: Packaging and Release Preparation', () => {
     expect(tauriConf.plugins.updater.endpoints.length).toBeGreaterThan(0);
   });
 
-  it('has CI and Release GitHub Actions workflows', async () => {
-    const ciStat = await fs.stat(path.join(process.cwd(), '.github/workflows/ci.yml'));
+  it("has CI and Release GitHub Actions workflows", async () => {
+    const ciStat = await fs.stat(path.join(process.cwd(), ".github/workflows/ci.yml"));
     expect(ciStat.isFile()).toBe(true);
 
-    const releaseStat = await fs.stat(path.join(process.cwd(), '.github/workflows/release.yml'));
+    const releaseStat = await fs.stat(path.join(process.cwd(), ".github/workflows/release.yml"));
     expect(releaseStat.isFile()).toBe(true);
   });
 
-  it('has deployment scripts configured', async () => {
-    const deployStat = await fs.stat(path.join(process.cwd(), 'scripts/deploy.mjs'));
+  it("has deployment scripts configured", async () => {
+    const deployStat = await fs.stat(path.join(process.cwd(), "scripts/deploy.mjs"));
     expect(deployStat.isFile()).toBe(true);
   });
 });

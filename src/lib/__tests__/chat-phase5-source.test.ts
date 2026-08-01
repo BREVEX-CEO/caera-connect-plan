@@ -31,7 +31,9 @@ describe("Chat uses project and attachment context without duplicating the curre
 
   it("requires a literal cloud-transfer approval and re-guards client document context", () => {
     expect(route).toContain("body.allowCloud !== true");
-    expect(route).toMatch(/wrapUntrustedContent\(\s*docContext,\s*"client-supplied attachment context",\s*\)/);
+    expect(route).toMatch(
+      /wrapUntrustedContent\(\s*docContext,\s*"client-supplied attachment context",\s*\)/,
+    );
     expect(route).toContain("guardedDocumentContext");
   });
 });

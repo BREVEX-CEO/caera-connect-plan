@@ -79,8 +79,7 @@ export const updateLaunchGateItem = createServerFn({ method: "POST" })
       status: (data.status ?? existing.status) as LaunchGateStatus,
       owner: data.owner !== undefined ? data.owner : existing.owner,
       reviewer: data.reviewer !== undefined ? data.reviewer : existing.reviewer,
-      evidence_url:
-        data.evidence_url !== undefined ? data.evidence_url : existing.evidence_url,
+      evidence_url: data.evidence_url !== undefined ? data.evidence_url : existing.evidence_url,
     });
     if (attestationIssues.length > 0) {
       await supabaseAdmin.from("compliance_audit_log").insert({

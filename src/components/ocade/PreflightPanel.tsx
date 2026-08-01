@@ -3,7 +3,12 @@ import { ShieldQuestion, ShieldCheck, AlertTriangle, ScrollText } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { cn } from "@/lib/utils";
-import { rehearseTask, REHEARSAL_REALITY, type RehearsalStep, type RehearsalContext } from "@/lib/skills/rehearsal";
+import {
+  rehearseTask,
+  REHEARSAL_REALITY,
+  type RehearsalStep,
+  type RehearsalContext,
+} from "@/lib/skills/rehearsal";
 import { shadowApplyPatch, SHADOW_RULE } from "@/lib/skills/shadow-execution";
 import { buildReplay, serialiseReplay } from "@/lib/artifacts/learning-replay";
 import { buildTaskLedger, type LedgerStep } from "@/lib/artifacts/evidence-ledger";
@@ -54,7 +59,11 @@ function runRehearsal(): string[] {
   // Two steps: a read the scope allows, then a write it does NOT — so rehearsal
   // reports the step-2 blocker up front, before step 1 would run.
   const steps: RehearsalStep[] = [
-    { action: { kind: "file.open", path: "memory/table" }, capability: cap as SkillCapability, app },
+    {
+      action: { kind: "file.open", path: "memory/table" },
+      capability: cap as SkillCapability,
+      app,
+    },
     { action: { kind: "clipboard.write", text: CSV }, capability: cap as SkillCapability, app },
   ];
   const context: RehearsalContext = {
@@ -72,7 +81,10 @@ function runRehearsal(): string[] {
 
   const r = rehearseTask(steps, context);
   if (!r.ok) return [r.reason];
-  return [r.data.headline, ...r.data.steps.map((s) => `Step ${s.index + 1}: ${s.status} — ${s.reason}`)];
+  return [
+    r.data.headline,
+    ...r.data.steps.map((s) => `Step ${s.index + 1}: ${s.status} — ${s.reason}`),
+  ];
 }
 
 function runShadow(): { safe: boolean; lines: string } {
@@ -133,19 +145,34 @@ export function PreflightPanel() {
         <ShieldQuestion className="h-4 w-4" aria-hidden /> Pre-flight safety checks
       </h3>
       <p className="mb-3 text-xs text-muted-foreground">
-        Three checks OCADE runs before it commits to a task — rehearse the whole plan without acting,
-        prove a code change on a copy first, and turn a finished task into an honest replay that keeps
-        the mistakes in. Each runs its real module here.
+        Three checks OCADE runs before it commits to a task — rehearse the whole plan without
+        acting, prove a code change on a copy first, and turn a finished task into an honest replay
+        that keeps the mistakes in. Each runs its real module here.
       </p>
 
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant={demo === "rehearse" ? "default" : "ghost"} className="h-8" onClick={() => setDemo("rehearse")}>
+        <Button
+          size="sm"
+          variant={demo === "rehearse" ? "default" : "ghost"}
+          className="h-8"
+          onClick={() => setDemo("rehearse")}
+        >
           Rehearse a plan
         </Button>
-        <Button size="sm" variant={demo === "shadow" ? "default" : "ghost"} className="h-8" onClick={() => setDemo("shadow")}>
+        <Button
+          size="sm"
+          variant={demo === "shadow" ? "default" : "ghost"}
+          className="h-8"
+          onClick={() => setDemo("shadow")}
+        >
           Shadow a code change
         </Button>
-        <Button size="sm" variant={demo === "replay" ? "default" : "ghost"} className="h-8" onClick={() => setDemo("replay")}>
+        <Button
+          size="sm"
+          variant={demo === "replay" ? "default" : "ghost"}
+          className="h-8"
+          onClick={() => setDemo("replay")}
+        >
           Replay a task
         </Button>
       </div>
@@ -153,14 +180,17 @@ export function PreflightPanel() {
       {rehearsal ? (
         <div role="status" className="mt-3 rounded-lg border border-border/60 p-3 text-xs">
           <p className="flex items-center gap-1.5 font-medium text-foreground">
-            <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Rehearsal — blockers surfaced before step one
+            <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Rehearsal — blockers surfaced before
+            step one
           </p>
           <ul className="mt-1 flex flex-col gap-0.5 text-[11px] text-muted-foreground">
             {rehearsal.map((l, i) => (
               <li key={i}>{l}</li>
             ))}
           </ul>
-          <p className="mt-1.5 border-t border-border/60 pt-1.5 text-[10px] text-muted-foreground">{REHEARSAL_REALITY}</p>
+          <p className="mt-1.5 border-t border-border/60 pt-1.5 text-[10px] text-muted-foreground">
+            {REHEARSAL_REALITY}
+          </p>
         </div>
       ) : null}
 
@@ -175,18 +205,25 @@ export function PreflightPanel() {
           )}
         >
           <p className="flex items-center gap-1.5 font-medium text-foreground">
-            {shadow.safe ? <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> : <AlertTriangle className="h-3.5 w-3.5" aria-hidden />}
+            {shadow.safe ? (
+              <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
+            ) : (
+              <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+            )}
             {shadow.safe ? "Shadow run clean — safe to apply" : "Shadow held the real file back"}
           </p>
           <p className="mt-1 text-muted-foreground">{shadow.lines}</p>
-          <p className="mt-1.5 border-t border-border/60 pt-1.5 text-[10px] text-muted-foreground">{SHADOW_RULE}</p>
+          <p className="mt-1.5 border-t border-border/60 pt-1.5 text-[10px] text-muted-foreground">
+            {SHADOW_RULE}
+          </p>
         </div>
       ) : null}
 
       {replay ? (
         <div role="status" className="mt-3 rounded-lg border border-border/60 p-3 text-xs">
           <p className="flex items-center gap-1.5 font-medium text-foreground">
-            <ScrollText className="h-3.5 w-3.5" aria-hidden /> Replay — the mistakes are kept in on purpose
+            <ScrollText className="h-3.5 w-3.5" aria-hidden /> Replay — the mistakes are kept in on
+            purpose
           </p>
           <pre className="mt-1 max-h-64 overflow-auto whitespace-pre-wrap font-mono text-[10px] text-muted-foreground">
             {replay}

@@ -53,10 +53,7 @@ function toBase64(bytes: Uint8Array): string {
   for (let i = 0; i < bytes.length; i += CHUNK) {
     binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
   }
-  return typeof btoa === "function"
-    ? btoa(binary)
-    : // eslint-disable-next-line no-undef
-      Buffer.from(bytes).toString("base64");
+  return typeof btoa === "function" ? btoa(binary) : Buffer.from(bytes).toString("base64");
 }
 
 /**

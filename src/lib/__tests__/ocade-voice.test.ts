@@ -399,9 +399,10 @@ describe("the system voice provider claims only what a browser can do", () => {
     // A speak that silently "succeeds" after failing is a fake-success path.
     const win = {
       speechSynthesis: {
-        speak: (u: unknown) => (u as { onerror?: (e: { error: string }) => void }).onerror?.({
-          error: "synthesis-failed",
-        }),
+        speak: (u: unknown) =>
+          (u as { onerror?: (e: { error: string }) => void }).onerror?.({
+            error: "synthesis-failed",
+          }),
         cancel: () => {},
       },
       SpeechSynthesisUtterance: class {

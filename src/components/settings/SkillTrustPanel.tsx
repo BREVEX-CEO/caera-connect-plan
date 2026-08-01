@@ -35,7 +35,10 @@ export function SkillTrustPanel() {
   const revocations = useMemo(() => {
     const list = new RevocationList();
     if (revoked) {
-      list.revokeAllVersions("skill.community.invoice", "withdrawn by the publisher after a report");
+      list.revokeAllVersions(
+        "skill.community.invoice",
+        "withdrawn by the publisher after a report",
+      );
     }
     return list;
   }, [revoked]);

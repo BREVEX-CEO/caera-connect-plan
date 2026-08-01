@@ -262,11 +262,15 @@ export class ApplicationTwin {
 
     const el = this.elements.find((e) => e.id === action.targetId);
     if (!el) return refuse("target_not_found", `no element "${action.targetId}"`);
-    if (el.stale) return refuse("stale_target", `"${action.targetId}" is stale and must be re-resolved`);
+    if (el.stale)
+      return refuse("stale_target", `"${action.targetId}" is stale and must be re-resolved`);
     if (el.realised === false) {
       // A virtualised row that has not been scrolled into existence cannot be
       // clicked by coordinate — there is nothing there yet.
-      return refuse("offscreen_target", `"${action.targetId}" is not realised; scroll it into view first`);
+      return refuse(
+        "offscreen_target",
+        `"${action.targetId}" is not realised; scroll it into view first`,
+      );
     }
     if (el.accessible === false && !COORDINATE_ROUTES.includes(route)) {
       return refuse(
@@ -315,7 +319,10 @@ export class ApplicationTwin {
         requestedRoute: routing.downgraded ? action.route : undefined,
         ok: false,
         failure: "verification_failed",
-        evidence: [...evidence, ev(`ground truth is ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`)],
+        evidence: [
+          ...evidence,
+          ev(`ground truth is ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`),
+        ],
       };
     }
 

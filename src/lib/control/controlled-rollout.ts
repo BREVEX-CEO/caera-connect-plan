@@ -11,12 +11,7 @@ export const ROLLOUT_STAGES = ["demo", "private_alpha", "beta", "ga"] as const;
 export type RolloutStage = (typeof ROLLOUT_STAGES)[number];
 
 export type LaunchGateStatus =
-  | "not_started"
-  | "in_progress"
-  | "pending_review"
-  | "evidence_required"
-  | "complete"
-  | "waived";
+  "not_started" | "in_progress" | "pending_review" | "evidence_required" | "complete" | "waived";
 
 export type RolloutLaunchGate = {
   key: string;
@@ -97,7 +92,9 @@ export type RolloutAdvanceInput = {
 const stageIndex = (stage: RolloutStage): number => ROLLOUT_STAGES.indexOf(stage);
 
 function hasCoverageToken(modules: string[], prefix: "capability:" | "platform:"): boolean {
-  return modules.some((module) => module.toLowerCase().startsWith(prefix) && module.length > prefix.length);
+  return modules.some(
+    (module) => module.toLowerCase().startsWith(prefix) && module.length > prefix.length,
+  );
 }
 
 function gateApplies(gate: RolloutLaunchGate, modules: string[]): boolean {
@@ -131,36 +128,44 @@ function requiredGateKeys(
 function validateGate(gateKey: string, gates: RolloutLaunchGate[]): RolloutRefusal[] {
   const gate = gates.find((candidate) => candidate.key === gateKey);
   if (!gate) {
-    return [{
-      code: "gate_missing",
-      gateKey,
-      message: `Required rollout gate "${gateKey}" is not installed.`,
-    }];
+    return [
+      {
+        code: "gate_missing",
+        gateKey,
+        message: `Required rollout gate "${gateKey}" is not installed.`,
+      },
+    ];
   }
   if (gate.status !== "complete") {
-    return [{
-      code: "gate_incomplete",
-      gateKey,
-      message: `Required rollout gate "${gateKey}" is ${gate.status}; a waiver is not controlled-rollout evidence.`,
-    }];
+    return [
+      {
+        code: "gate_incomplete",
+        gateKey,
+        message: `Required rollout gate "${gateKey}" is ${gate.status}; a waiver is not controlled-rollout evidence.`,
+      },
+    ];
   }
   if (!gate.evidence_url) {
-    return [{
-      code: "gate_evidence_missing",
-      gateKey,
-      message: `Required rollout gate "${gateKey}" has no independently reviewable evidence URL.`,
-    }];
+    return [
+      {
+        code: "gate_evidence_missing",
+        gateKey,
+        message: `Required rollout gate "${gateKey}" has no independently reviewable evidence URL.`,
+      },
+    ];
   }
   if (
-    !gate.owner
-    || !gate.reviewer
-    || gate.owner.trim().toLowerCase() === gate.reviewer.trim().toLowerCase()
+    !gate.owner ||
+    !gate.reviewer ||
+    gate.owner.trim().toLowerCase() === gate.reviewer.trim().toLowerCase()
   ) {
-    return [{
-      code: "gate_review_conflict",
-      gateKey,
-      message: `Required rollout gate "${gateKey}" needs distinct owner and reviewer identities.`,
-    }];
+    return [
+      {
+        code: "gate_review_conflict",
+        gateKey,
+        message: `Required rollout gate "${gateKey}" needs distinct owner and reviewer identities.`,
+      },
+    ];
   }
   return [];
 }
@@ -188,12 +193,13 @@ export function evaluateRolloutAdvance(input: RolloutAdvanceInput): RolloutDecis
 
   if (input.enabled && input.toStage !== "demo") {
     if (
-      !hasCoverageToken(input.applicableModules, "capability:")
-      || !hasCoverageToken(input.applicableModules, "platform:")
+      !hasCoverageToken(input.applicableModules, "capability:") ||
+      !hasCoverageToken(input.applicableModules, "platform:")
     ) {
       refusals.push({
         code: "coverage_missing",
-        message: "Enabled rollout requires at least one capability:* and one platform:* coverage limit.",
+        message:
+          "Enabled rollout requires at least one capability:* and one platform:* coverage limit.",
       });
     }
   }
@@ -254,7 +260,11 @@ export type MissionReceiptValidation = {
 export function validateControlledGateAttestation(
   gate: Pick<RolloutLaunchGate, "key" | "status" | "owner" | "reviewer" | "evidence_url">,
 ): string[] {
-  if (!CONTROLLED_ROLLOUT_GATE_KEYS.includes(gate.key as (typeof CONTROLLED_ROLLOUT_GATE_KEYS)[number])) {
+  if (
+    !CONTROLLED_ROLLOUT_GATE_KEYS.includes(
+      gate.key as (typeof CONTROLLED_ROLLOUT_GATE_KEYS)[number],
+    )
+  ) {
     return [];
   }
   if (gate.status === "waived") {
@@ -263,7 +273,8 @@ export function validateControlledGateAttestation(
   if (gate.status !== "complete") return [];
 
   const issues: string[] = [];
-  if (!gate.evidence_url) issues.push("Completion requires an independently reviewable evidence URL.");
+  if (!gate.evidence_url)
+    issues.push("Completion requires an independently reviewable evidence URL.");
   if (!gate.owner || !gate.reviewer) {
     issues.push("Completion requires both an owner and a reviewer.");
   } else if (gate.owner.trim().toLowerCase() === gate.reviewer.trim().toLowerCase()) {
@@ -297,15 +308,11 @@ export function validatePrivacySafeMissionReceipt(
   if (!Number.isInteger(value.crashCount) || Number(value.crashCount) < 0) {
     issues.push("crashCount must be a non-negative integer");
   }
-  if (
-    !["verified", "failed", "cancelled", "recovered"].includes(String(value.outcome))
-  ) {
+  if (!["verified", "failed", "cancelled", "recovered"].includes(String(value.outcome))) {
     issues.push("outcome is invalid");
   }
   if (
-    !["none", "failures_only", "failures_and_performance"].includes(
-      String(value.telemetryConsent),
-    )
+    !["none", "failures_only", "failures_and_performance"].includes(String(value.telemetryConsent))
   ) {
     issues.push("telemetryConsent is invalid");
   }

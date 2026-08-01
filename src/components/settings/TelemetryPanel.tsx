@@ -131,7 +131,10 @@ export function TelemetryPanel() {
         </summary>
         <ul className="mt-1.5 flex flex-wrap gap-1">
           {ALLOWED_FIELDS.map((f) => (
-            <li key={f} className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground">
+            <li
+              key={f}
+              className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground"
+            >
               {f}
             </li>
           ))}

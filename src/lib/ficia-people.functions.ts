@@ -202,32 +202,26 @@ export const createOrgUnit = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     let error: { message: string } | null = null;
     if (data.kind === "department") {
-      ({ error } = await context.supabase
-        .from("ficia_departments")
-        .insert({
-          tenant_id: data.tenant_id,
-          name: data.name,
-          parent_id: data.parent_id ?? null,
-          manager_user_id: data.manager_user_id ?? null,
-        } as never));
+      ({ error } = await context.supabase.from("ficia_departments").insert({
+        tenant_id: data.tenant_id,
+        name: data.name,
+        parent_id: data.parent_id ?? null,
+        manager_user_id: data.manager_user_id ?? null,
+      } as never));
     } else if (data.kind === "team") {
-      ({ error } = await context.supabase
-        .from("ficia_teams")
-        .insert({
-          tenant_id: data.tenant_id,
-          name: data.name,
-          department_id: data.department_id ?? null,
-          manager_user_id: data.manager_user_id ?? null,
-        } as never));
+      ({ error } = await context.supabase.from("ficia_teams").insert({
+        tenant_id: data.tenant_id,
+        name: data.name,
+        department_id: data.department_id ?? null,
+        manager_user_id: data.manager_user_id ?? null,
+      } as never));
     } else {
-      ({ error } = await context.supabase
-        .from("ficia_locations")
-        .insert({
-          tenant_id: data.tenant_id,
-          label: data.label,
-          city: data.city ?? null,
-          country: data.country ?? null,
-        } as never));
+      ({ error } = await context.supabase.from("ficia_locations").insert({
+        tenant_id: data.tenant_id,
+        label: data.label,
+        city: data.city ?? null,
+        country: data.country ?? null,
+      } as never));
     }
     if (error) return { ok: false as const, message: error.message };
     return { ok: true as const };

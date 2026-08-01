@@ -95,7 +95,12 @@ export class PaymentProviderTwin implements PaymentProvider {
      */
     const existing = this.idempotency.get(req.idempotencyKey);
     if (existing) {
-      return { ok: true, checkoutId: existing, url: `twin://checkout/${existing}`, simulated: true };
+      return {
+        ok: true,
+        checkoutId: existing,
+        url: `twin://checkout/${existing}`,
+        simulated: true,
+      };
     }
     const checkoutId = `cs_${String(this.emitted.length + 1).padStart(4, "0")}`;
     this.idempotency.set(req.idempotencyKey, checkoutId);

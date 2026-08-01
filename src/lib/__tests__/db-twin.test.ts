@@ -92,11 +92,7 @@ describe("every migration applies in the declared order", () => {
     // ocade_projects and later tables are defined AFTER the broken migration,
     // so they are legitimately absent here. Asserting them would be asserting
     // that the defect does not exist.
-    for (const t of [
-      "ocade_conversations",
-      "ocade_messages",
-      "ficia_employments",
-    ]) {
+    for (const t of ["ocade_conversations", "ocade_messages", "ficia_employments"]) {
       expect(tables, `${t} missing after migration`).toContain(t);
     }
   });

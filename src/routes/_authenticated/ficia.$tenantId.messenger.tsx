@@ -721,7 +721,8 @@ function DialogShell({
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousFocus =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const dialog = dialogRef.current;
     if (!dialog) return;
 

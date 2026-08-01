@@ -107,7 +107,12 @@ describe("registration is refused rather than silently accepted", () => {
     // audio to a buffer or transcribe one.
     const registry = new MultimodalRegistry();
     registry.registerVoiceProvider(
-      voice({ id: "speak-only", synthesize: undefined, transcribe: undefined, speakAloud: async () => {} }),
+      voice({
+        id: "speak-only",
+        synthesize: undefined,
+        transcribe: undefined,
+        speakAloud: async () => {},
+      }),
     );
     expect(registry.getSpeakingProviders()).toHaveLength(1);
   });
@@ -141,11 +146,11 @@ describe("registration is refused rather than silently accepted", () => {
       }),
     ).toThrow(/already registered/i);
 
-    expect(() =>
-      registry.registerMediaConnector({ id: "m", name: "M" } as never),
-    ).toThrow(/missing/i);
-    expect(() =>
-      registry.registerHeadlessConnector({ id: "", name: "H" } as never),
-    ).toThrow(/non-empty id/i);
+    expect(() => registry.registerMediaConnector({ id: "m", name: "M" } as never)).toThrow(
+      /missing/i,
+    );
+    expect(() => registry.registerHeadlessConnector({ id: "", name: "H" } as never)).toThrow(
+      /non-empty id/i,
+    );
   });
 });

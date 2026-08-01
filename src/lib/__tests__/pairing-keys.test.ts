@@ -1,10 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  completeKeyExchange,
-  confirmSas,
-  deriveSas,
-  SAS_DIGITS,
-} from "../mobile/pairing-keys";
+import { completeKeyExchange, confirmSas, deriveSas, SAS_DIGITS } from "../mobile/pairing-keys";
 import { generateMobileChannelIdentity } from "../mobile/secure-channel";
 
 /**
@@ -47,10 +42,9 @@ describe("key exchange produces what the encrypted transport needs", () => {
 
   it("refuses when either side offers no key", async () => {
     const { host, device } = await keys();
-    const noHost = await completeKeyExchange(
-      offer(undefined as unknown as JsonWebKey),
-      { devicePublicKey: device.publicKey },
-    );
+    const noHost = await completeKeyExchange(offer(undefined as unknown as JsonWebKey), {
+      devicePublicKey: device.publicKey,
+    });
     expect(noHost.ok).toBe(false);
     if (!noHost.ok) expect(noHost.refusal).toBe("missing_host_key");
 

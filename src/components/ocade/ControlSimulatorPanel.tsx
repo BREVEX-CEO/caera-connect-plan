@@ -295,9 +295,7 @@ function TransactionBench() {
     const cage: CoordinateCage = { bounds: { x: 0, y: 0, width: 200, height: 200 }, scale: 1 };
     const request: OcadeActionRequest = {
       ...request0(capability, route),
-      rollbackPlan: [
-        { id: "undo-1", kind: "undo", description: "Undo the change", ready: true },
-      ],
+      rollbackPlan: [{ id: "undo-1", kind: "undo", description: "Undo the change", ready: true }],
       risk: isDestructive(capability) ? "high" : "low",
     };
 
@@ -340,8 +338,8 @@ function TransactionBench() {
         <div>
           <h4 className="text-sm font-medium">Governed transaction bench</h4>
           <p className="mt-1 text-xs text-muted-foreground">
-            Every stage below actually runs. Deterministic validators own each decision — a model can
-            propose an action, never approve, cage, confirm or execute one.
+            Every stage below actually runs. Deterministic validators own each decision — a model
+            can propose an action, never approve, cage, confirm or execute one.
           </p>
         </div>
         <span className="shrink-0 rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">
@@ -451,7 +449,12 @@ function request0(capability: string, route: ActionRoute): OcadeActionRequest {
 
 /** Adversarial application shapes, and the route each one can honestly serve. */
 const TWINS: Array<{ kind: TwinKind; label: string; target: string; blurb: string }> = [
-  { kind: "menu", label: "Menu (has an API)", target: "save_item", blurb: "Precise route available." },
+  {
+    kind: "menu",
+    label: "Menu (has an API)",
+    target: "save_item",
+    blurb: "Precise route available.",
+  },
   { kind: "form", label: "Form (DOM only)", target: "submit", blurb: "No API; falls to DOM." },
   {
     kind: "virtualised_list",

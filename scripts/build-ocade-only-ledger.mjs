@@ -175,7 +175,8 @@ const ledger = {
   boundRevision: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
 
   scopeVerification: {
-    question: "Is the 510-row register OCADE-only, or does it include the other three bundled products?",
+    question:
+      "Is the 510-row register OCADE-only, or does it include the other three bundled products?",
     answer: "OCADE-only. Verified by three independent probes, not assumed.",
     probe1_foreignRequirements: {
       found: foreignRequirements.length,
@@ -214,7 +215,11 @@ const ledger = {
   },
 
   readiness: {
-    ocadeOnly: { numerator: round(total), denominator: rows.length, percent: pct(total, rows.length) },
+    ocadeOnly: {
+      numerator: round(total),
+      denominator: rows.length,
+      percent: pct(total, rows.length),
+    },
     ocadeExclusiveOfSharedInfrastructure: {
       numerator: round(ocadeExclusiveWeight),
       denominator: ocadeExclusiveCount,
@@ -228,13 +233,23 @@ const ledger = {
   realTargetPercent: pct(byTier["REAL TARGET RUNTIME VERIFIED"] ?? 0, rows.length),
 };
 
-console.log(`Scope probe 1 — foreign requirements : ${foreignRequirements.length} (reviewed exceptions: ${reviewedExceptions.length})`);
+console.log(
+  `Scope probe 1 — foreign requirements : ${foreignRequirements.length} (reviewed exceptions: ${reviewedExceptions.length})`,
+);
 console.log(`Scope probe 2 — borrowed evidence    : ${borrowedEvidence.length}`);
-console.log(`Scope probe 3 — migrations OCADE/other: ${ocadeMigrations}/${ocadeMigrations + otherMigrations}`);
+console.log(
+  `Scope probe 3 — migrations OCADE/other: ${ocadeMigrations}/${ocadeMigrations + otherMigrations}`,
+);
 console.log("");
-console.log(`OCADE-only readiness      : ${ledger.readiness.ocadeOnly.numerator}/${rows.length} = ${ledger.readiness.ocadeOnly.percent}%`);
-console.log(`Excluding shared infra    : ${ledger.readiness.ocadeExclusiveOfSharedInfrastructure.numerator}/${ocadeExclusiveCount} = ${ledger.readiness.ocadeExclusiveOfSharedInfrastructure.percent}%`);
-console.log(`Proven on real equipment  : ${ledger.realTargetProven}/${rows.length} = ${ledger.realTargetPercent}%`);
+console.log(
+  `OCADE-only readiness      : ${ledger.readiness.ocadeOnly.numerator}/${rows.length} = ${ledger.readiness.ocadeOnly.percent}%`,
+);
+console.log(
+  `Excluding shared infra    : ${ledger.readiness.ocadeExclusiveOfSharedInfrastructure.numerator}/${ocadeExclusiveCount} = ${ledger.readiness.ocadeExclusiveOfSharedInfrastructure.percent}%`,
+);
+console.log(
+  `Proven on real equipment  : ${ledger.realTargetProven}/${rows.length} = ${ledger.realTargetPercent}%`,
+);
 
 if (write) {
   writeFileSync(OUT, `${JSON.stringify(ledger, null, 2)}\n`);

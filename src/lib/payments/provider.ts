@@ -36,13 +36,7 @@ export const LIVE_PAYMENTS_ENABLED = false as const;
 export type PlanCode = "trial_2d" | "std_8d" | "month_1m" | "year_1y";
 
 export type SubscriptionStatus =
-  | "none"
-  | "active"
-  | "past_due"
-  | "grace"
-  | "cancelled"
-  | "refunded"
-  | "disputed";
+  "none" | "active" | "past_due" | "grace" | "cancelled" | "refunded" | "disputed";
 
 export type PaymentEventKind =
   | "checkout.completed"
@@ -82,10 +76,7 @@ export type CheckoutOutcome =
   | { ok: false; reason: string; code: CheckoutRefusal };
 
 export type CheckoutRefusal =
-  | "live_payments_disabled"
-  | "unknown_plan"
-  | "duplicate_request"
-  | "provider_error";
+  "live_payments_disabled" | "unknown_plan" | "duplicate_request" | "provider_error";
 
 export interface PaymentProvider {
   readonly id: string;
@@ -101,15 +92,10 @@ export interface PaymentProvider {
 /* ------------------------------------------------------- webhook safety --- */
 
 export type WebhookRefusal =
-  | "bad_signature"
-  | "stale_timestamp"
-  | "future_timestamp"
-  | "duplicate_event"
-  | "malformed";
+  "bad_signature" | "stale_timestamp" | "future_timestamp" | "duplicate_event" | "malformed";
 
 export type WebhookVerdict =
-  | { ok: true; event: PaymentEvent }
-  | { ok: false; refusal: WebhookRefusal; reason: string };
+  { ok: true; event: PaymentEvent } | { ok: false; refusal: WebhookRefusal; reason: string };
 
 /** How far out of date a webhook may be. Providers retry for minutes, not days. */
 export const WEBHOOK_TOLERANCE_SECONDS = 300;
@@ -231,7 +217,11 @@ export async function verifyWebhook(input: VerifyWebhookInput): Promise<WebhookV
     return { ok: false, refusal: "malformed", reason: "The webhook body is not valid JSON." };
   }
   if (!event?.id || !event.kind || typeof event.sequence !== "number") {
-    return { ok: false, refusal: "malformed", reason: "The webhook body is missing required fields." };
+    return {
+      ok: false,
+      refusal: "malformed",
+      reason: "The webhook body is missing required fields.",
+    };
   }
 
   if (input.seen.has(event.id)) {

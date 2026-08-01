@@ -486,7 +486,9 @@ export class AccessibilityTreeSimulator {
         route: request.route,
         nodeId: node.id,
         failure: "focus_lost",
-        evidence: [ev(`refused: "${node.name}" does not have focus; keystrokes would go elsewhere`)],
+        evidence: [
+          ev(`refused: "${node.name}" does not have focus; keystrokes would go elsewhere`),
+        ],
       });
     }
 

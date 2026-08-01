@@ -1,5 +1,5 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
+import fs from "node:fs/promises";
+import path from "node:path";
 
 async function verifyPhase39() {
   console.log("Verifying Stage 2 Phase 39 (Final universal-control audit)...");
@@ -17,7 +17,9 @@ async function verifyPhase39() {
   }
 
   try {
-    const p39Stat = await fs.stat(path.join(process.cwd(), 'src/lib/__tests__/stage2-phase39-source.test.ts'));
+    const p39Stat = await fs.stat(
+      path.join(process.cwd(), "src/lib/__tests__/stage2-phase39-source.test.ts"),
+    );
     assert(p39Stat.isFile(), "Stage 2 Phase 39 final audit tests exist");
   } catch {
     assert(false, "Stage 2 Phase 39 final audit tests exist");
@@ -29,7 +31,7 @@ async function verifyPhase39() {
   }
 }
 
-verifyPhase39().catch(err => {
+verifyPhase39().catch((err) => {
   console.error("Test failed:", err);
   process.exit(1);
 });

@@ -126,7 +126,9 @@ describe("every route renders", () => {
   it.each(renderable.map(([path, mod]) => [path, mod] as const))(
     "%s exposes a real component",
     (path, mod) => {
-      expect(typeof mod.Route!.options!.component, `${path} has no real component`).toBe("function");
+      expect(typeof mod.Route!.options!.component, `${path} has no real component`).toBe(
+        "function",
+      );
     },
   );
 

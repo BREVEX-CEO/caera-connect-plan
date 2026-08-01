@@ -75,7 +75,11 @@ export function applyEvent(current: Entitlement, event: PaymentEvent): ApplyResu
   }
 
   if (current.appliedEvents.includes(event.id)) {
-    return { applied: false, entitlement: current, reason: `Event ${event.id} was already applied.` };
+    return {
+      applied: false,
+      entitlement: current,
+      reason: `Event ${event.id} was already applied.`,
+    };
   }
 
   /*
@@ -97,7 +101,8 @@ export function applyEvent(current: Entitlement, event: PaymentEvent): ApplyResu
     return {
       applied: false,
       entitlement: current,
-      reason: "This subscription is under a lost dispute and cannot be reactivated by payment events.",
+      reason:
+        "This subscription is under a lost dispute and cannot be reactivated by payment events.",
     };
   }
 

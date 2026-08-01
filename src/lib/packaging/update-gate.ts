@@ -15,11 +15,22 @@
  * (cheap, and refuses most bad updates without any crypto), verify second, and
  * apply only if BOTH agree.
  */
-import { planUpdate, type UpdateDecision, type UpdateManifest, type UpdatePolicy } from "./update-plan";
+import {
+  planUpdate,
+  type UpdateDecision,
+  type UpdateManifest,
+  type UpdatePolicy,
+} from "./update-plan";
 import { verifyUpdateTrust, type UpdateTrustPolicy } from "./update-trust";
 
 export type GateDecision =
-  | { readonly action: "apply"; readonly from: string; readonly to: string; readonly url?: string; readonly evidence: string }
+  | {
+      readonly action: "apply";
+      readonly from: string;
+      readonly to: string;
+      readonly url?: string;
+      readonly evidence: string;
+    }
   | { readonly action: "skip"; readonly reason: string }
   | { readonly action: "refuse"; readonly reason: string };
 

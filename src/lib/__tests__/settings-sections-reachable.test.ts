@@ -78,12 +78,12 @@ describe("settings sections that claim to be active can actually render", () => 
   it("keeps every catch-all implementation pointing at a real component file", () => {
     const src = readFileSync(CATCH_ALL, "utf8");
     for (const slug of implemented) {
-      const match = new RegExp(`^\\s{2}${slug}:\\s*\\(\\)\\s*=>\\s*<([A-Za-z0-9_]+)`, "m").exec(src);
+      const match = new RegExp(`^\\s{2}${slug}:\\s*\\(\\)\\s*=>\\s*<([A-Za-z0-9_]+)`, "m").exec(
+        src,
+      );
       expect(match, `${slug} has no component`).toBeTruthy();
       const component = match![1];
-      const importLine = new RegExp(
-        `import \\{ ${component} \\} from "([^"]+)"`,
-      ).exec(src);
+      const importLine = new RegExp(`import \\{ ${component} \\} from "([^"]+)"`).exec(src);
       expect(importLine, `${component} is not imported`).toBeTruthy();
       const path = importLine![1].replace(/^@\//, "src/");
       expect(existsSync(`${path}.tsx`) || existsSync(`${path}.ts`), `${path} missing`).toBe(true);

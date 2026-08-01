@@ -25,14 +25,59 @@ const write = process.argv.includes("--write");
 
 /** requirement id → [evidence step ids, what those steps observed] */
 const PROMOTIONS = new Map([
-  ["AZ-289", [["S02", "S03"], "a checkout created through the twin, and a repeated idempotency key returning the same session rather than a second subscription"]],
-  ["AZ-291", [["S04", "S05", "S06", "S07"], "a real HMAC-signed webhook admitted, and forged-signature, tampered-payload and duplicate-delivery refusals observed with their specific refusal codes"]],
-  ["AZ-293", [["S09", "S10", "S11"], "a failed renewal entering grace with access retained, a retry NOT extending the grace window, and access lapsing when grace expires"]],
-  ["AZ-294", [["S13", "S14"], "a refund for a non-existent payment refused, and a genuine refund revoking access immediately with no grace"]],
-  ["AZ-284", [["S04", "S08"], "paid periods tracked across checkout and renewal, with the period end genuinely advancing"]],
-  ["AZ-285", [["S04", "S05", "S06"], "entitlement state changing only on a cryptographically verified event, and staying unchanged when the signature is forged or the payload tampered"]],
-  ["AZ-286", [["S04", "S11", "S14"], "access gating derived from entitlement state: granted while active, withdrawn after grace lapses, withdrawn immediately on refund"]],
-  ["AZ-287", [["S09", "S10", "S11"], "the grace window opening once, not re-opening on retry, and expiring"]],
+  [
+    "AZ-289",
+    [
+      ["S02", "S03"],
+      "a checkout created through the twin, and a repeated idempotency key returning the same session rather than a second subscription",
+    ],
+  ],
+  [
+    "AZ-291",
+    [
+      ["S04", "S05", "S06", "S07"],
+      "a real HMAC-signed webhook admitted, and forged-signature, tampered-payload and duplicate-delivery refusals observed with their specific refusal codes",
+    ],
+  ],
+  [
+    "AZ-293",
+    [
+      ["S09", "S10", "S11"],
+      "a failed renewal entering grace with access retained, a retry NOT extending the grace window, and access lapsing when grace expires",
+    ],
+  ],
+  [
+    "AZ-294",
+    [
+      ["S13", "S14"],
+      "a refund for a non-existent payment refused, and a genuine refund revoking access immediately with no grace",
+    ],
+  ],
+  [
+    "AZ-284",
+    [
+      ["S04", "S08"],
+      "paid periods tracked across checkout and renewal, with the period end genuinely advancing",
+    ],
+  ],
+  [
+    "AZ-285",
+    [
+      ["S04", "S05", "S06"],
+      "entitlement state changing only on a cryptographically verified event, and staying unchanged when the signature is forged or the payload tampered",
+    ],
+  ],
+  [
+    "AZ-286",
+    [
+      ["S04", "S11", "S14"],
+      "access gating derived from entitlement state: granted while active, withdrawn after grace lapses, withdrawn immediately on refund",
+    ],
+  ],
+  [
+    "AZ-287",
+    [["S09", "S10", "S11"], "the grace window opening once, not re-opening on retry, and expiring"],
+  ],
 ]);
 
 const evidence = JSON.parse(readFileSync(EVIDENCE, "utf8"));
@@ -43,7 +88,8 @@ for (const [id, [stepIds]] of PROMOTIONS) {
   for (const stepId of stepIds) {
     const step = stepById.get(stepId);
     if (!step) problems.push(`${id} cites ${stepId}, which is not in the evidence file`);
-    else if (step.status !== "observed") problems.push(`${id} cites ${stepId}, whose status is "${step.status}"`);
+    else if (step.status !== "observed")
+      problems.push(`${id} cites ${stepId}, whose status is "${step.status}"`);
   }
 }
 if (problems.length > 0) {

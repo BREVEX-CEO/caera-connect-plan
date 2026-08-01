@@ -181,10 +181,7 @@ describe("a mission mutates real files and verifies by reading them back", () =>
 
   it("runs dependent steps in order against the same real file", async () => {
     const store = memoryStore();
-    const s = spec([
-      step({ id: "first" }),
-      step({ id: "second", dependsOn: ["first"] }),
-    ]);
+    const s = spec([step({ id: "first" }), step({ id: "second", dependsOn: ["first"] })]);
 
     const result = await runWorkMission({
       spec: s,
@@ -232,10 +229,7 @@ describe("a lost acknowledgement never causes a second mutation", () => {
     } as never);
 
     const afterRecovery = await reportLines();
-    expect(
-      afterRecovery.length,
-      "recovery repeated a mutation that had already committed",
-    ).toBe(1);
+    expect(afterRecovery.length, "recovery repeated a mutation that had already committed").toBe(1);
 
     expect([first.ok, second.ok].some(Boolean)).toBe(true);
   }, 60_000);

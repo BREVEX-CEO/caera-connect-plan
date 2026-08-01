@@ -32,9 +32,9 @@ describe("Stage 2 Phase 35 - Voice and multimodal connectors", () => {
 
     const providers = registry.getVoiceProviders();
     expect(providers).toHaveLength(3);
-    
+
     // Providers don't block
-    await Promise.all(providers.map(p => p.isAvailable()));
+    await Promise.all(providers.map((p) => p.isAvailable()));
   });
 
   it("Recorded-audio tests", async () => {
@@ -52,13 +52,15 @@ describe("Stage 2 Phase 35 - Voice and multimodal connectors", () => {
       },
     });
 
-    const result = await registry.getVoiceProvider("mock-transcriber")!.transcribe!(new ArrayBuffer(10));
+    const result = await registry.getVoiceProvider("mock-transcriber")!.transcribe!(
+      new ArrayBuffer(10),
+    );
     expect(result).toBe("recorded test passed");
   });
 
   it("Vision, media and headless connector contracts", async () => {
     const registry = new MultimodalRegistry();
-    
+
     registry.registerVisionConnector({
       id: "vision-1",
       name: "Vision Connector",
@@ -81,25 +83,31 @@ describe("Stage 2 Phase 35 - Voice and multimodal connectors", () => {
       executeScript: async () => "executed",
     });
 
-    expect(await registry.getVisionConnector("vision-1")!.analyzeImage(new Uint8Array(), "prompt")).toBe("analyzed");
-    expect(await registry.getMediaConnector("media-1")!.extractMetadata(new Uint8Array())).toEqual({ fps: 60 });
-    expect(await registry.getHeadlessConnector("headless-1")!.executeScript("test")).toBe("executed");
+    expect(
+      await registry.getVisionConnector("vision-1")!.analyzeImage(new Uint8Array(), "prompt"),
+    ).toBe("analyzed");
+    expect(await registry.getMediaConnector("media-1")!.extractMetadata(new Uint8Array())).toEqual({
+      fps: 60,
+    });
+    expect(await registry.getHeadlessConnector("headless-1")!.executeScript("test")).toBe(
+      "executed",
+    );
   });
 
   it("Does not delay PC/web launch", () => {
     // Proves that registering contracts does not execute heavy startup initialization
     const start = performance.now();
     const registry = new MultimodalRegistry();
-    
+
     registry.registerVisionConnector({
       id: "vision-delay",
       name: "Vision Delay Connector",
       isAvailable: async () => {
-        return new Promise(resolve => setTimeout(() => resolve(true), 1000));
+        return new Promise((resolve) => setTimeout(() => resolve(true), 1000));
       },
       analyzeImage: async () => "analyzed",
     });
-    
+
     const elapsed = performance.now() - start;
     expect(elapsed).toBeLessThan(50); // Instant registration without awaiting availability
   });
@@ -117,7 +125,7 @@ describe("Stage 2 Phase 35 - Voice and multimodal connectors", () => {
     expect(result2.recognition).toBe(false);
 
     // Should include wake reason if recognition exists but no wakePhrase
-    const winWithRecog = { SpeechRecognition: function() {} };
+    const winWithRecog = { SpeechRecognition: function () {} };
     const result3 = detectVoiceCapabilities(winWithRecog);
     expect(result3.synthesis).toBe(false);
     expect(result3.recognition).toBe(true);

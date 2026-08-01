@@ -46,11 +46,7 @@ export interface KeyExchangeAnswer {
 }
 
 export type KeyExchangeRefusal =
-  | "missing_host_key"
-  | "missing_device_key"
-  | "same_key"
-  | "insecure_relay"
-  | "missing_room";
+  "missing_host_key" | "missing_device_key" | "same_key" | "insecure_relay" | "missing_room";
 
 export type KeyExchangeResult =
   | { ok: true; channel: ChannelDescriptor; sas: string }
@@ -160,8 +156,7 @@ export async function completeKeyExchange(
 }
 
 export type SasConfirmation =
-  | { confirmed: true; channel: ChannelDescriptor }
-  | { confirmed: false; reason: string };
+  { confirmed: true; channel: ChannelDescriptor } | { confirmed: false; reason: string };
 
 /**
  * Record that the user compared the two strings and they matched.

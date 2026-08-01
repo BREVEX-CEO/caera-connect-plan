@@ -29,7 +29,11 @@ const minsAgo = (n: number) => new Date(NOW.getTime() - n * 60000);
 function composeDemo(): { rendered: string; evidence: string } {
   const claims: AnswerClaim[] = [
     { kind: "observation", text: "The build finished with exit code 0." },
-    { kind: "retrieved_fact", text: "The ledger records 2,567 passing tests.", source: "OCADE_EXECUTION_PROGRESS.md" },
+    {
+      kind: "retrieved_fact",
+      text: "The ledger records 2,567 passing tests.",
+      source: "OCADE_EXECUTION_PROGRESS.md",
+    },
     { kind: "inference", text: "So the suite is currently green." },
     { kind: "recommendation", text: "Re-run the full gate before committing." },
   ];
@@ -90,10 +94,20 @@ export function AnswerQualityPanel() {
       </p>
 
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant={demo === "separate" ? "default" : "ghost"} className="h-8" onClick={() => setDemo("separate")}>
+        <Button
+          size="sm"
+          variant={demo === "separate" ? "default" : "ghost"}
+          className="h-8"
+          onClick={() => setDemo("separate")}
+        >
           Separate the claims
         </Button>
-        <Button size="sm" variant={demo === "cite" ? "default" : "ghost"} className="h-8" onClick={() => setDemo("cite")}>
+        <Button
+          size="sm"
+          variant={demo === "cite" ? "default" : "ghost"}
+          className="h-8"
+          onClick={() => setDemo("cite")}
+        >
           Cite the evidence
         </Button>
       </div>
@@ -101,10 +115,13 @@ export function AnswerQualityPanel() {
       {compose ? (
         <div role="status" className="mt-3 rounded-lg border border-border/60 p-3 text-xs">
           <p className="font-medium text-foreground">Every claim labelled by kind</p>
-          <pre className="mt-1 whitespace-pre-wrap font-mono text-[11px] text-muted-foreground">{compose.rendered}</pre>
+          <pre className="mt-1 whitespace-pre-wrap font-mono text-[11px] text-muted-foreground">
+            {compose.rendered}
+          </pre>
           <p className="mt-1.5 text-[10px] text-muted-foreground">{compose.evidence}</p>
           <p className="mt-1.5 flex items-center gap-1 border-t border-border/60 pt-1.5 text-[11px] text-[color:var(--state-warning)]">
-            <AlertTriangle className="h-3.5 w-3.5" aria-hidden /> A fact with no source is refused: {mislabel}
+            <AlertTriangle className="h-3.5 w-3.5" aria-hidden /> A fact with no source is refused:{" "}
+            {mislabel}
           </p>
         </div>
       ) : null}
@@ -117,7 +134,9 @@ export function AnswerQualityPanel() {
           <p className="mt-1 text-muted-foreground">{cite.summary}</p>
           <ul className="mt-1.5 flex flex-col gap-1">
             {cite.cited.map((c, i) => (
-              <li key={i} className="text-[11px] text-muted-foreground">{c}</li>
+              <li key={i} className="text-[11px] text-muted-foreground">
+                {c}
+              </li>
             ))}
           </ul>
           {cite.without.length > 0 ? (

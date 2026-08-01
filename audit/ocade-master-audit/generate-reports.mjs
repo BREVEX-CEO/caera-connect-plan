@@ -13,7 +13,11 @@ const OUT = join(HERE, "out");
 const ROOT = join(HERE, "..", "..");
 
 const j = (f) => JSON.parse(readFileSync(join(OUT, f), "utf8"));
-const jl = (f) => readFileSync(join(OUT, f), "utf8").trim().split("\n").map((l) => JSON.parse(l));
+const jl = (f) =>
+  readFileSync(join(OUT, f), "utf8")
+    .trim()
+    .split("\n")
+    .map((l) => JSON.parse(l));
 
 const structure = j("OCADE_DOCUMENT_STRUCTURE.json");
 const coverage = j("OCADE_COVERAGE_PROOF.json");
@@ -39,7 +43,10 @@ const numerator = trace.reduce((a, t) => a + (WEIGHT[t.evidenceLevel] ?? 0), 0);
 const denominator = trace.length;
 const staticPct = (numerator / denominator) * 100;
 
-const conf = trace.reduce((a, t) => ((a[t.matchConfidence] = (a[t.matchConfidence] || 0) + 1), a), {});
+const conf = trace.reduce(
+  (a, t) => ((a[t.matchConfidence] = (a[t.matchConfidence] || 0) + 1), a),
+  {},
+);
 const byKind = inventory.reduce((a, r) => ((a[r.kind] = (a[r.kind] || 0) + 1), a), {});
 
 /* ------------------------------------------------- line coverage ledger */
@@ -73,9 +80,18 @@ const ledger = [
   "",
   "| Chunk | Lines | Count | SHA-256 (first 16) | First heading |",
   "|---|---|---:|---|---|",
-  ...[chunks[0], chunks[1], chunks[Math.floor(chunks.length / 2)], chunks[chunks.length - 2], chunks[chunks.length - 1]]
+  ...[
+    chunks[0],
+    chunks[1],
+    chunks[Math.floor(chunks.length / 2)],
+    chunks[chunks.length - 2],
+    chunks[chunks.length - 1],
+  ]
     .filter(Boolean)
-    .map((c) => `| ${c.chunkId} | ${c.startLine}–${c.endLine} | ${c.lineCount} | \`${c.sha256.slice(0, 16)}\` | ${(c.firstHeading || "—").slice(0, 48)} |`),
+    .map(
+      (c) =>
+        `| ${c.chunkId} | ${c.startLine}–${c.endLine} | ${c.lineCount} | \`${c.sha256.slice(0, 16)}\` | ${(c.firstHeading || "—").slice(0, 48)} |`,
+    ),
   "",
   "## Requirement reduction",
   "",
@@ -112,8 +128,9 @@ const calc = [
   "",
   "| Evidence level | Count | Weight | Contribution |",
   "|---|---:|---:|---:|",
-  ...Object.entries(dist).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
-    `| ${k} | ${v} | ${WEIGHT[k] ?? 0} | ${((WEIGHT[k] ?? 0) * v).toFixed(1)} |`),
+  ...Object.entries(dist)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `| ${k} | ${v} | ${WEIGHT[k] ?? 0} | ${((WEIGHT[k] ?? 0) * v).toFixed(1)} |`),
   `| **Total** | **${denominator}** | | **${numerator.toFixed(1)}** |`,
   "",
   `**Numerator ${numerator.toFixed(1)} ÷ denominator ${denominator} = ${staticPct.toFixed(1)}%**`,
@@ -129,7 +146,7 @@ const calc = [
   "",
   "The matcher is lexical: it compares specification subject words against file paths and export",
   "names. It cannot see that the specification's \"rollback\" is the repository's `update-plan`",
-  "`decideRollback`, or that \"no-progress detection\" is `skills/progress-monitor`. Vocabulary",
+  '`decideRollback`, or that "no-progress detection" is `skills/progress-monitor`. Vocabulary',
   "mismatch is counted as absence.",
   "",
   "So the honest reading is:",
@@ -150,16 +167,22 @@ const calc = [
 ].join("\n");
 writeFileSync(join(ROOT, "OCADE_EXACT_COMPLETION_CALCULATION.md"), calc + "\n");
 
-console.log(JSON.stringify({
-  totalLines: structure.totalLines,
-  coveredLines: coverage.coveredLines,
-  verdict: coverage.verdict,
-  chunks: chunks.length,
-  canonicalRequirements: canonical.length,
-  staticWeightedCompletion: `${staticPct.toFixed(1)}%`,
-  numerator: Number(numerator.toFixed(1)),
-  denominator,
-  matchConfidence: conf,
-  inventoryFiles: inventory.length,
-  byKind,
-}, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      totalLines: structure.totalLines,
+      coveredLines: coverage.coveredLines,
+      verdict: coverage.verdict,
+      chunks: chunks.length,
+      canonicalRequirements: canonical.length,
+      staticWeightedCompletion: `${staticPct.toFixed(1)}%`,
+      numerator: Number(numerator.toFixed(1)),
+      denominator,
+      matchConfidence: conf,
+      inventoryFiles: inventory.length,
+      byKind,
+    },
+    null,
+    2,
+  ),
+);

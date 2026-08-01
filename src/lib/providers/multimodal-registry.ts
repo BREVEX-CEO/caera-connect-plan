@@ -157,7 +157,10 @@ export class MultimodalRegistry {
   }
 
   registerHeadlessConnector(connector: HeadlessConnector) {
-    admit(this.headlessConnectors, connector, "headless connector", ["isAvailable", "executeScript"]);
+    admit(this.headlessConnectors, connector, "headless connector", [
+      "isAvailable",
+      "executeScript",
+    ]);
   }
 
   getHeadlessConnector(id: string): HeadlessConnector | undefined {

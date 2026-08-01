@@ -27,7 +27,10 @@ describe("the answer-quality panel", () => {
 
   it("imports both composer modules (reachability guard)", async () => {
     const src = await import("node:fs").then((fs) =>
-      fs.readFileSync(new URL("../../components/ocade/AnswerQualityPanel.tsx", import.meta.url), "utf8"),
+      fs.readFileSync(
+        new URL("../../components/ocade/AnswerQualityPanel.tsx", import.meta.url),
+        "utf8",
+      ),
     );
     expect(src).toContain("chat/answer-composition");
     expect(src).toContain("research/cited-answer");

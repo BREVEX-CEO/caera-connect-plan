@@ -84,7 +84,9 @@ describe("rollbacks are safe to run", () => {
     const unguarded: string[] = [];
     for (const name of rollbacks) {
       const sql = code(read(ROLLBACK, name));
-      for (const match of sql.matchAll(/\bdrop\s+(table|index|function|policy|trigger|type|view|sequence)\s+([\s\S]{0,20})/g)) {
+      for (const match of sql.matchAll(
+        /\bdrop\s+(table|index|function|policy|trigger|type|view|sequence)\s+([\s\S]{0,20})/g,
+      )) {
         if (!match[2].includes("if exists")) unguarded.push(`${name}: drop ${match[1]}`);
       }
     }
@@ -94,7 +96,9 @@ describe("rollbacks are safe to run", () => {
   it("never drops a schema or database wholesale", () => {
     const catastrophic = rollbacks.filter((n) => {
       const sql = code(read(ROLLBACK, n));
-      return /\bdrop\s+database\b/.test(sql) || /\bdrop\s+schema\s+(if\s+exists\s+)?public\b/.test(sql);
+      return (
+        /\bdrop\s+database\b/.test(sql) || /\bdrop\s+schema\s+(if\s+exists\s+)?public\b/.test(sql)
+      );
     });
     expect(catastrophic).toEqual([]);
   });
@@ -147,14 +151,22 @@ describe("verifications actually assert something", () => {
 
 describe("no SQL file leaks a credential", () => {
   const all: Array<[string, string]> = [
-    ...sqlIn(MIGRATIONS).map((n) => [`${MIGRATIONS}/${n}`, read(MIGRATIONS, n)] as [string, string]),
+    ...sqlIn(MIGRATIONS).map(
+      (n) => [`${MIGRATIONS}/${n}`, read(MIGRATIONS, n)] as [string, string],
+    ),
     ...rollbacks.map((n) => [`${ROLLBACK}/${n}`, read(ROLLBACK, n)] as [string, string]),
-    ...verifications.map((n) => [`${VERIFICATION}/${n}`, read(VERIFICATION, n)] as [string, string]),
+    ...verifications.map(
+      (n) => [`${VERIFICATION}/${n}`, read(VERIFICATION, n)] as [string, string],
+    ),
   ];
 
   it("contains no credential-shaped literal", () => {
     const leaking = all
-      .filter(([, sql]) => /sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|\beyJ[A-Za-z0-9_-]{10,}\./.test(sql))
+      .filter(([, sql]) =>
+        /sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|\beyJ[A-Za-z0-9_-]{10,}\./.test(
+          sql,
+        ),
+      )
       .map(([path]) => path);
     expect(leaking).toEqual([]);
   });

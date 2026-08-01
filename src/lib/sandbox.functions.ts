@@ -63,8 +63,7 @@ const sandboxInput = z.object({
 });
 
 export type SandboxRunResponse =
-  | { ok: true; result: GeneratedSandboxResult }
-  | { ok: false; reason: string };
+  { ok: true; result: GeneratedSandboxResult } | { ok: false; reason: string };
 
 export const runSandboxScript = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

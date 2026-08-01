@@ -27,13 +27,26 @@ const ROOT = join(HERE, "..", "..");
 mkdirSync(OUT, { recursive: true });
 
 const SKIP = new Set([
-  "node_modules", ".git", "dist", "build", "coverage", "target", ".output",
-  ".vite", ".wrangler", ".nitro", "out",
+  "node_modules",
+  ".git",
+  "dist",
+  "build",
+  "coverage",
+  "target",
+  ".output",
+  ".vite",
+  ".wrangler",
+  ".nitro",
+  "out",
 ]);
 
 function walk(dir, acc = []) {
   let entries;
-  try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return acc; }
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return acc;
+  }
   for (const e of entries) {
     if (SKIP.has(e.name)) continue;
     const p = join(dir, e.name);
@@ -48,7 +61,18 @@ const rel = (p) => relative(ROOT, p).replaceAll("\\", "/");
 
 /* --------------------------------------------------------------- inventory */
 
-const CODE_EXT = new Set([".ts", ".tsx", ".mjs", ".js", ".rs", ".java", ".swift", ".sql", ".yml", ".yaml"]);
+const CODE_EXT = new Set([
+  ".ts",
+  ".tsx",
+  ".mjs",
+  ".js",
+  ".rs",
+  ".java",
+  ".swift",
+  ".sql",
+  ".yml",
+  ".yaml",
+]);
 const inventory = [];
 const exportsByFile = new Map();
 const importsByFile = new Map();
@@ -57,12 +81,24 @@ for (const f of files) {
   const r = rel(f);
   const ext = extname(f);
   let size = 0;
-  try { size = statSync(f).size; } catch { /* unreadable */ }
+  try {
+    size = statSync(f).size;
+  } catch {
+    /* unreadable */
+  }
   const record = { path: r, ext, size, kind: classify(r, ext) };
   if (CODE_EXT.has(ext) && size < 2_000_000) {
     let src = "";
-    try { src = readFileSync(f, "utf8"); } catch { /* binary */ }
-    const exps = [...src.matchAll(/^export\s+(?:async\s+)?(?:function|const|class|interface|type|enum)\s+([A-Za-z0-9_]+)/gm)].map((m) => m[1]);
+    try {
+      src = readFileSync(f, "utf8");
+    } catch {
+      /* binary */
+    }
+    const exps = [
+      ...src.matchAll(
+        /^export\s+(?:async\s+)?(?:function|const|class|interface|type|enum)\s+([A-Za-z0-9_]+)/gm,
+      ),
+    ].map((m) => m[1]);
     const imps = [...src.matchAll(/from\s+["']([^"']+)["']/g)].map((m) => m[1]);
     exportsByFile.set(r, exps);
     importsByFile.set(r, imps);
@@ -117,13 +153,37 @@ const orphans = [...incoming.entries()].filter(([, n]) => n === 0).map(([p]) => 
 /* ------------------------------------------------------------ traceability */
 
 const canonical = readFileSync(join(OUT, "OCADE_CANONICAL_REQUIREMENTS.jsonl"), "utf8")
-  .trim().split("\n").map((l) => JSON.parse(l));
+  .trim()
+  .split("\n")
+  .map((l) => JSON.parse(l));
 
-const STOP = new Set(["the","and","for","with","that","this","from","into","are","not","all","must","one","its","per","n"]);
-const tokensOf = (s) => s.split(/[^a-z0-9]+/i).map((t) => t.toLowerCase()).filter((t) => t.length > 3 && !STOP.has(t));
+const STOP = new Set([
+  "the",
+  "and",
+  "for",
+  "with",
+  "that",
+  "this",
+  "from",
+  "into",
+  "are",
+  "not",
+  "all",
+  "must",
+  "one",
+  "its",
+  "per",
+  "n",
+]);
+const tokensOf = (s) =>
+  s
+    .split(/[^a-z0-9]+/i)
+    .map((t) => t.toLowerCase())
+    .filter((t) => t.length > 3 && !STOP.has(t));
 
 const haystack = inventory.map((r) => ({
-  path: r.path, kind: r.kind,
+  path: r.path,
+  kind: r.kind,
   tokens: new Set(tokensOf(r.path).concat(tokensOf((exportsByFile.get(r.path) || []).join(" ")))),
 }));
 
@@ -133,7 +193,8 @@ const trace = canonical.map((req) => {
   if (want.length > 0) {
     for (const h of haystack) {
       const hits = want.filter((t) => h.tokens.has(t));
-      if (hits.length > 0) best.push({ path: h.path, kind: h.kind, hits: hits.length, tokens: hits });
+      if (hits.length > 0)
+        best.push({ path: h.path, kind: h.kind, hits: hits.length, tokens: hits });
     }
     best.sort((a, b) => b.hits - a.hits);
     best = best.slice(0, 6);
@@ -156,26 +217,44 @@ const trace = canonical.map((req) => {
     // Deliberately NOT set by this pass: runtime status. Static analysis cannot
     // produce runtime evidence, and inventing one here is the defect this whole
     // audit exists to detect.
-    evidenceLevel: best.length === 0 ? "NOT STARTED"
-      : tests.length > 0 && reachable ? "UNIT TESTED"
-      : reachable ? "WIRED AND REACHABLE"
-      : impl.length > 0 ? "SOURCE COMPLETE" : "PARTIAL SOURCE",
+    evidenceLevel:
+      best.length === 0
+        ? "NOT STARTED"
+        : tests.length > 0 && reachable
+          ? "UNIT TESTED"
+          : reachable
+            ? "WIRED AND REACHABLE"
+            : impl.length > 0
+              ? "SOURCE COMPLETE"
+              : "PARTIAL SOURCE",
   };
 });
 
 const dist = trace.reduce((a, t) => ((a[t.evidenceLevel] = (a[t.evidenceLevel] || 0) + 1), a), {});
-const conf = trace.reduce((a, t) => ((a[t.matchConfidence] = (a[t.matchConfidence] || 0) + 1), a), {});
+const conf = trace.reduce(
+  (a, t) => ((a[t.matchConfidence] = (a[t.matchConfidence] || 0) + 1), a),
+  {},
+);
 
 const jsonl = (rows) => rows.map((r) => JSON.stringify(r)).join("\n") + "\n";
 writeFileSync(join(OUT, "OCADE_CODEBASE_INVENTORY.jsonl"), jsonl(inventory));
 writeFileSync(join(OUT, "OCADE_REQUIREMENT_TRACEABILITY_MATRIX.jsonl"), jsonl(trace));
-writeFileSync(join(OUT, "OCADE_ORPHANS.json"), JSON.stringify({ count: orphans.length, orphans }, null, 2) + "\n");
+writeFileSync(
+  join(OUT, "OCADE_ORPHANS.json"),
+  JSON.stringify({ count: orphans.length, orphans }, null, 2) + "\n",
+);
 
-console.log(JSON.stringify({
-  filesInventoried: inventory.length,
-  byKind,
-  canonicalRequirements: trace.length,
-  evidenceDistribution: dist,
-  matchConfidence: conf,
-  staticOrphanCandidates: orphans.length,
-}, null, 2));
+console.log(
+  JSON.stringify(
+    {
+      filesInventoried: inventory.length,
+      byKind,
+      canonicalRequirements: trace.length,
+      evidenceDistribution: dist,
+      matchConfidence: conf,
+      staticOrphanCandidates: orphans.length,
+    },
+    null,
+    2,
+  ),
+);

@@ -85,7 +85,8 @@ export class PerfLedger {
     if (!list || list.length === 0) return null;
     const oks = list.filter((s) => s.ok);
     const times = oks.map((s) => s.firstTokenMs).sort((a, b) => a - b);
-    const median = times.length === 0 ? Number.POSITIVE_INFINITY : times[Math.floor(times.length / 2)];
+    const median =
+      times.length === 0 ? Number.POSITIVE_INFINITY : times[Math.floor(times.length / 2)];
     return {
       samples: list.length,
       medianFirstTokenMs: median,
@@ -150,8 +151,7 @@ function profilePreference(task: TaskKind): LocalModelInfo["profile"][] {
 }
 
 export type RouteOutcome =
-  | { ok: true; model: LocalModelInfo; receipt: RouteReceipt }
-  | { ok: false; receipt: RouteReceipt };
+  { ok: true; model: LocalModelInfo; receipt: RouteReceipt } | { ok: false; receipt: RouteReceipt };
 
 /**
  * Refuse deterministic work outright (P06.S02).
@@ -279,7 +279,13 @@ export function hotSwap(
   failedModelId: string,
   policy: RoutePolicy = {},
 ): RouteOutcome {
-  ledger.record({ modelId: failedModelId, task, firstTokenMs: Number.MAX_SAFE_INTEGER, totalMs: 0, ok: false });
+  ledger.record({
+    modelId: failedModelId,
+    task,
+    firstTokenMs: Number.MAX_SAFE_INTEGER,
+    totalMs: 0,
+    ok: false,
+  });
   const remaining = models.filter((m) => m.id !== failedModelId);
   const outcome = routeTask(task, remaining, ledger, policy);
   outcome.receipt.rejected.unshift({

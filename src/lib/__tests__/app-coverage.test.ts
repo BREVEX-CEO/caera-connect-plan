@@ -19,7 +19,10 @@ import {
  * guessed in either direction.
  */
 
-const probeReturning = (result: AppProbeResult): AppProber => async () => result;
+const probeReturning =
+  (result: AppProbeResult): AppProber =>
+  async () =>
+    result;
 
 describe("nothing is claimed without a probe", () => {
   it("reports BLOCKED, not UNSUPPORTED, when no prober is available", async () => {

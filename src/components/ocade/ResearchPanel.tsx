@@ -101,7 +101,11 @@ export function ResearchPanel() {
           topic: "flooding",
           volatility: "daily",
           candidates: [
-            { url: "https://www.gov.uk/check-flood-risk", title: "Check flood risk", publishedAt: null },
+            {
+              url: "https://www.gov.uk/check-flood-risk",
+              title: "Check flood risk",
+              publishedAt: null,
+            },
             {
               url: "https://en.wikipedia.org/wiki/Flood_warning",
               title: "Flood warning",

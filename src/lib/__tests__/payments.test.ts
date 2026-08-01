@@ -51,7 +51,11 @@ describe("live payments cannot be switched on by accident", () => {
 
 describe("checkout", () => {
   it("creates a checkout for a known plan", async () => {
-    const r = await twin().createCheckout({ customerId: CUST, plan: "month_1m", idempotencyKey: "k1" });
+    const r = await twin().createCheckout({
+      customerId: CUST,
+      plan: "month_1m",
+      idempotencyKey: "k1",
+    });
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.simulated).toBe(true);
   });
@@ -69,8 +73,16 @@ describe("checkout", () => {
   it("returns the SAME checkout for a repeated idempotency key", async () => {
     // A double-clicked button must not create two subscriptions.
     const p = twin();
-    const a = await p.createCheckout({ customerId: CUST, plan: "month_1m", idempotencyKey: "same" });
-    const b = await p.createCheckout({ customerId: CUST, plan: "month_1m", idempotencyKey: "same" });
+    const a = await p.createCheckout({
+      customerId: CUST,
+      plan: "month_1m",
+      idempotencyKey: "same",
+    });
+    const b = await p.createCheckout({
+      customerId: CUST,
+      plan: "month_1m",
+      idempotencyKey: "same",
+    });
     expect(a.ok && b.ok && a.checkoutId === b.checkoutId).toBe(true);
   });
 
@@ -161,8 +173,20 @@ describe("webhook verification", () => {
     const p = twin();
     const s = seen();
     const { header, payload } = await p.deliver(p.completeCheckout(CUST, "month_1m"));
-    const first = await verifyWebhook({ secret: p.webhookSecret, header, payload, seen: s, nowSeconds: NOW });
-    const second = await verifyWebhook({ secret: p.webhookSecret, header, payload, seen: s, nowSeconds: NOW });
+    const first = await verifyWebhook({
+      secret: p.webhookSecret,
+      header,
+      payload,
+      seen: s,
+      nowSeconds: NOW,
+    });
+    const second = await verifyWebhook({
+      secret: p.webhookSecret,
+      header,
+      payload,
+      seen: s,
+      nowSeconds: NOW,
+    });
     expect(first.ok).toBe(true);
     expect(second.ok).toBe(false);
     if (!second.ok) expect(second.refusal).toBe("duplicate_event");
@@ -184,7 +208,13 @@ describe("webhook verification", () => {
     expect(s.has(real.id), "a forged webhook registered a real event id").toBe(false);
 
     const { header, payload } = await p.deliver(real);
-    const v = await verifyWebhook({ secret: p.webhookSecret, header, payload, seen: s, nowSeconds: NOW });
+    const v = await verifyWebhook({
+      secret: p.webhookSecret,
+      header,
+      payload,
+      seen: s,
+      nowSeconds: NOW,
+    });
     expect(v.ok, "the real event was blocked by a forged one").toBe(true);
   });
 

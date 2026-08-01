@@ -6,7 +6,22 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".vinxi", "native/**/target/**"] },
+  {
+    /**
+     * `.codex` and `.claude` hold gitignored local checkpoint snapshots —
+     * point-in-time copies of source kept so a previous state can be compared
+     * or restored. Linting them was doing real harm, not just wasting time:
+     *
+     *   - they contributed 1,478 of 2,424 warnings (61%), so the headline
+     *     count described copies of the code rather than the code;
+     *   - `--fix` would have REWRITTEN those snapshots, destroying the exact
+     *     historical fidelity that is the only reason they exist.
+     *
+     * They are excluded from version control already; excluding them here just
+     * makes the linter agree with the repository about what the source is.
+     */
+    ignores: ["dist", ".output", ".vinxi", "native/**/target/**", ".codex/**", ".claude/**"],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

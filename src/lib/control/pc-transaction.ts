@@ -35,12 +35,7 @@ import type { ScreenRect } from "./perception";
 
 /* ------------------------------------------------------------ cages ------ */
 
-export type CageRefusal =
-  | "no_cage"
-  | "outside_cage"
-  | "unknown_scale"
-  | "zero_area"
-  | "occluded";
+export type CageRefusal = "no_cage" | "outside_cage" | "unknown_scale" | "zero_area" | "occluded";
 
 export interface CoordinateCage {
   /** The approved window rectangle, in the SAME space as the point. */
@@ -231,9 +226,7 @@ export interface PcTransactionInput {
  * else. Backup is immediately before execute because a backup taken earlier
  * could be stale by the time the mutation lands.
  */
-export async function runPcTransaction(
-  input: PcTransactionInput,
-): Promise<TransactionReceipt> {
+export async function runPcTransaction(input: PcTransactionInput): Promise<TransactionReceipt> {
   const now = input.now ?? (() => new Date());
   const req = input.request;
   const destructive = isDestructive(req.capability);
@@ -302,7 +295,10 @@ export async function runPcTransaction(
   if (requiresCage(req.route)) {
     if (!input.point) {
       stage("coordinate_cage", false, "no point supplied");
-      return refuse("cage_refused", "A coordinate route was chosen but no coordinate was supplied.");
+      return refuse(
+        "cage_refused",
+        "A coordinate route was chosen but no coordinate was supplied.",
+      );
     }
     const verdict = checkCoordinate(input.point, input.cage ?? null, input.point.scale);
     if (!verdict.allowed) {

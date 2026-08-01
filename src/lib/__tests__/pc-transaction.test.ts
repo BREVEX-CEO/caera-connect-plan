@@ -34,7 +34,17 @@ const req = (over: Partial<OcadeActionRequest> = {}): OcadeActionRequest => ({
 });
 
 const verified = (r: OcadeActionRequest): ControlOutcome =>
-  ({ status: "verified", request: r, receipt: { verified: true, evidence: [], observations: [], missingPostconditions: [], mismatchedPostconditions: [] } }) as ControlOutcome;
+  ({
+    status: "verified",
+    request: r,
+    receipt: {
+      verified: true,
+      evidence: [],
+      observations: [],
+      missingPostconditions: [],
+      mismatchedPostconditions: [],
+    },
+  }) as ControlOutcome;
 const failed = (r: OcadeActionRequest, reason = "boom"): ControlOutcome =>
   ({ status: "failed", request: r, reason }) as ControlOutcome;
 
@@ -73,13 +83,20 @@ describe("coordinate safety cage", () => {
   });
 
   it("refuses a point inside a protected exclusion", () => {
-    const caged: CoordinateCage = { ...CAGE, exclusions: [{ x: 10, y: 10, width: 20, height: 20 }] };
+    const caged: CoordinateCage = {
+      ...CAGE,
+      exclusions: [{ x: 10, y: 10, width: 20, height: 20 }],
+    };
     expect(checkCoordinate({ x: 15, y: 15 }, caged, 1).allowed).toBe(false);
     expect(checkCoordinate({ x: 50, y: 50 }, caged, 1).allowed).toBe(true);
   });
 
   it("refuses a zero-area region", () => {
-    const v = checkCoordinate({ x: 0, y: 0 }, { bounds: { x: 0, y: 0, width: 0, height: 0 }, scale: 1 }, 1);
+    const v = checkCoordinate(
+      { x: 0, y: 0 },
+      { bounds: { x: 0, y: 0, width: 0, height: 0 }, scale: 1 },
+      1,
+    );
     expect(v.allowed).toBe(false);
     if (!v.allowed) expect(v.refusal).toBe("zero_area");
   });
@@ -187,7 +204,10 @@ describe("backup before mutation", () => {
 
   it("takes a verified backup for a high-risk action", async () => {
     const r = await runPcTransaction(
-      base({ request: req({ risk: "high", arguments: { path: "/etc/thing" } }), backup: provider() }),
+      base({
+        request: req({ risk: "high", arguments: { path: "/etc/thing" } }),
+        backup: provider(),
+      }),
     );
     expect(r.backup?.verified).toBe(true);
     expect(r.backup?.target).toBe("/etc/thing");
@@ -226,7 +246,20 @@ describe("backup before mutation", () => {
 describe("duplicate protection", () => {
   it("reports a replayed action without re-executing or rolling back", async () => {
     const r = await runPcTransaction(
-      base({ execute: async (rq) => ({ status: "replayed", request: rq, receipt: { verified: true, evidence: [], observations: [], missingPostconditions: [], mismatchedPostconditions: [] } }) as ControlOutcome }),
+      base({
+        execute: async (rq) =>
+          ({
+            status: "replayed",
+            request: rq,
+            receipt: {
+              verified: true,
+              evidence: [],
+              observations: [],
+              missingPostconditions: [],
+              mismatchedPostconditions: [],
+            },
+          }) as ControlOutcome,
+      }),
     );
     expect(r.outcome).toBe("replayed");
     expect(r.rollback).toBeNull();
@@ -310,7 +343,11 @@ describe("rollback", () => {
     const r = await runPcTransaction(
       base({
         request: withPlan(),
-        backup: { create: async () => ({ token: "t" }), verify: async () => true, restore: async () => false },
+        backup: {
+          create: async () => ({ token: "t" }),
+          verify: async () => true,
+          restore: async () => false,
+        },
         execute: async (rq) => failed(rq),
         recover: async () => true,
       }),

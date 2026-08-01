@@ -230,7 +230,11 @@ export async function evaluateSkillTrust(input: TrustInput): Promise<TrustVerdic
  * wrong button.
  */
 export function versionsCompatible(learned: string, observed: string): boolean {
-  const parse = (v: string) => v.trim().split(".").map((p) => Number.parseInt(p, 10));
+  const parse = (v: string) =>
+    v
+      .trim()
+      .split(".")
+      .map((p) => Number.parseInt(p, 10));
   const [lMaj, lMin] = parse(learned);
   const [oMaj, oMin] = parse(observed);
   if (![lMaj, lMin, oMaj, oMin].every((n) => Number.isFinite(n))) {

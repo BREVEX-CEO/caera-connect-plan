@@ -114,7 +114,9 @@ describe("only allow-listed fields ever leave the device", () => {
 
 describe("redaction is a second line of defence on allowed fields", () => {
   it("removes absolute paths", () => {
-    expect(redact("failed at C:\\Users\\alice\\secret.docx").value).toMatch(/\[redacted absolute path\]/);
+    expect(redact("failed at C:\\Users\\alice\\secret.docx").value).toMatch(
+      /\[redacted absolute path\]/,
+    );
     expect(redact("failed at /home/alice/secret").value).toMatch(/\[redacted absolute path\]/);
   });
 

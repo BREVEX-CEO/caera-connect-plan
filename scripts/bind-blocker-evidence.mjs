@@ -91,7 +91,9 @@ for (const req of snapshot.requirements) {
 
   const area = String(req.area ?? "");
   const override = ID_TO_BLOCKER.get(req.id);
-  const hit = override ? [null, override] : AREA_TO_BLOCKER.find(([prefix]) => area.startsWith(prefix));
+  const hit = override
+    ? [null, override]
+    : AREA_TO_BLOCKER.find(([prefix]) => area.startsWith(prefix));
   if (!hit) {
     skipped.push({ id: req.id, area: area.split(";")[0].trim() });
     continue;

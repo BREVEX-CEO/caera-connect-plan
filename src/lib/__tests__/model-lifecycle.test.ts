@@ -168,7 +168,10 @@ describe("removeModel", () => {
 });
 
 describe("activateModel — downloaded is not ready", () => {
-  const ok = { runInference: async () => ({ ok: true, text: "OCADE_READY" }), runCancellable: async () => ({ cancelled: true }) };
+  const ok = {
+    runInference: async () => ({ ok: true, text: "OCADE_READY" }),
+    runCancellable: async () => ({ cancelled: true }),
+  };
 
   it("reports ready only after inference AND cancellation both pass", async () => {
     const res = await activateModel("tiny:1b", ok);

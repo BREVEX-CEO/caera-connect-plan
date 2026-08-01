@@ -81,9 +81,9 @@ describe("simulated output is labelled and cannot be laundered into real evidenc
   });
 
   it("REFUSES to be recorded as real-target evidence", () => {
-    expect(() => assertNotRealEvidence({ simulated: true }, "REAL TARGET RUNTIME VERIFIED")).toThrow(
-      /cannot prove real application support/,
-    );
+    expect(() =>
+      assertNotRealEvidence({ simulated: true }, "REAL TARGET RUNTIME VERIFIED"),
+    ).toThrow(/cannot prove real application support/);
     expect(() =>
       assertNotRealEvidence({ simulated: true }, "SIMULATED RUNTIME VERIFIED"),
     ).not.toThrow();
@@ -263,10 +263,7 @@ describe("stale targets and drift", () => {
 
   it("survives focus theft by refusing the dependent action", async () => {
     const s = sim(
-      [
-        node({ id: "box", role: "textbox", focused: true }),
-        node({ id: "other", role: "button" }),
-      ],
+      [node({ id: "box", role: "textbox", focused: true }), node({ id: "other", role: "button" })],
       [{ kind: "focus_theft", toNodeId: "other" }],
     );
     const out = await run(s, req({ capability: "type", arguments: { nodeId: "box", text: "x" } }));

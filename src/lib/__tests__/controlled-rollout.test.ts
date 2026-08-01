@@ -20,7 +20,8 @@ const completeGate = (key: string, over: Partial<RolloutLaunchGate> = {}): Rollo
   ...over,
 });
 
-const gatesFor = (keys: readonly string[]): RolloutLaunchGate[] => keys.map((key) => completeGate(key));
+const gatesFor = (keys: readonly string[]): RolloutLaunchGate[] =>
+  keys.map((key) => completeGate(key));
 const coverage = ["capability:chat", "platform:web"];
 
 describe("controlled rollout stage decisions", () => {
@@ -62,7 +63,8 @@ describe("controlled rollout stage decisions", () => {
       gates: gatesFor(ALPHA_ENTRY_GATE_KEYS),
     });
     expect(decision.allowed).toBe(false);
-    if (!decision.allowed) expect(decision.refusals.map((r) => r.code)).toContain("coverage_missing");
+    if (!decision.allowed)
+      expect(decision.refusals.map((r) => r.code)).toContain("coverage_missing");
   });
 
   it("allows private alpha only after the entry gates carry independent evidence", () => {

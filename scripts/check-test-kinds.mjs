@@ -62,7 +62,8 @@ const classified = files.map((path) => {
 
   // What does a structural test actually read?
   const targets = [];
-  const re = /["'`]([^"'`\n]*\.(rs|swift|java|gradle|pbxproj|plist|ya?ml|sql|json|mjs|js|ts|tsx|md))["'`]/g;
+  const re =
+    /["'`]([^"'`\n]*\.(rs|swift|java|gradle|pbxproj|plist|ya?ml|sql|json|mjs|js|ts|tsx|md))["'`]/g;
   let m;
   while ((m = re.exec(src))) if (m[1].includes("/") || m[1].includes(".")) targets.push(m[1]);
 
@@ -118,9 +119,15 @@ if (jsonOnly) {
   console.log(JSON.stringify(report, null, 2));
 } else {
   console.log(`Test kinds: ${report.totals.files} files`);
-  console.log(`  ${String(report.totals.execution).padStart(4)}  execution  — import and run production code`);
-  console.log(`  ${String(report.totals.mixed).padStart(4)}  mixed      — execute AND assert on source text`);
-  console.log(`  ${String(report.totals.structural).padStart(4)}  structural — assert on source text only`);
+  console.log(
+    `  ${String(report.totals.execution).padStart(4)}  execution  — import and run production code`,
+  );
+  console.log(
+    `  ${String(report.totals.mixed).padStart(4)}  mixed      — execute AND assert on source text`,
+  );
+  console.log(
+    `  ${String(report.totals.structural).padStart(4)}  structural — assert on source text only`,
+  );
   if (problems.length > 0) {
     console.log(`\n  ${problems.length} problem(s):`);
     for (const p of problems.slice(0, 30)) console.log(`    ${p}`);
