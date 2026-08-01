@@ -30,11 +30,22 @@
       "command": "npm run test",
       "exit": 0,
       "files": 254,
-      "passed": 4173,
-      "skipped": 6,
+      "passed": 4177,
+      "skipped": 2,
       "failed": 0,
+      "total": 4179,
       "priorPublished": "253 files, 4,171 passed, 1 skipped, 0 failed",
-      "note": "The prior figure was wrong in three ways: file count, skip count, and — materially — it recorded 0 failures when a fresh checkout produces 1. See D19."
+      "note": "The prior figure was wrong in three ways: file count, skip count, and — materially — it recorded 0 failures when a fresh checkout produces 1. See D19.",
+      "skipProgression": {
+        "beforeFix": "1 failed | 4,172 passed | 6 skipped",
+        "afterD19Fix": "4,173 passed | 6 skipped | 0 failed",
+        "afterEvidenceRebind": "4,177 passed | 2 skipped | 0 failed",
+        "why": "Four tests were gating on the readiness evidence binding matching HEAD. Rebinding to the committing revision let them execute; all four pass. They were never disabled — they were correctly refusing to assert against a stale binding."
+      },
+      "remainingSkips": [
+        "asset budget gate (no build present) explains that a build is required rather than passing silently — skips BECAUSE a build IS present",
+        "Stage 2 exact transition baseline passes the persisted-spec, checkpoint and readiness gate — skips because the gitignored machine-local spec snapshot is absent, which is the condition D20 addresses"
+      ]
     },
     "build": { "command": "npm run build", "exit": 0 },
     "gates": {

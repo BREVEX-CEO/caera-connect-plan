@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "generatedAt": "2026-08-01T03:28:45.703Z",
-  "head": "c0ff22ba529ff2942cafd12410cfdc361bd9db43",
+  "head": "b838ffeee45598588214a1cf7378487815f70135",
   "branch": "feat/ocade-implementation",
   "phase": "Phase 0 complete - OCADE-only scope verified; next Phase 1 local model lifecycle",
   "evidenceBindings": {
-    "sourceRevision": "c0ff22ba529ff2942cafd12410cfdc361bd9db43",
+    "sourceRevision": "b838ffeee45598588214a1cf7378487815f70135",
     "targetVersion": "0.1.0",
     "dependencyLockSha256": "21e378ff9dc2e6260e18bcda165eda4d9cd53b344cd6dcdea219d8425741bc88",
     "environment": "windows-x64-node22+",
@@ -4835,14 +4835,21 @@
     }
   ],
   "verifiedCommands": {
-    "typecheck": "PASS",
-    "lint": "PASS",
-    "tests": "4171 passed | 1 skipped (4172) across 253 files",
+    "typecheck": "PASS (0 errors)",
+    "lint": "PASS (0 errors, 231 warnings)",
+    "tests": "4177 passed | 2 skipped | 0 failed (4179) across 254 files",
+    "testsSkipDetail": "Both remaining skips are legitimate inverse-conditions, not disabled assertions: 'asset budget gate (no build present)' skips BECAUSE a build is present, and 'Stage 2 exact transition baseline' skips because the gitignored machine-local spec snapshot is absent. Before this commit rebound the evidence to the committing revision, 6 skipped: the other 4 were gating on the binding matching HEAD and now execute and pass.",
     "build": "PASS",
-    "gates": "41/42 (deploy:check correctly refuses: no Cloudflare credentials)",
-    "rustTests": "30/30 (native/companion/safety)",
-    "measuredAtRevision": "33e2e296a5f796bc579e8e218f92e218c4d30cb8",
-    "note": "Measured by an executed run at the revision above, not carried forward. Treat as stale if HEAD has moved."
+    "gates": "43/44 (deploy:check correctly refuses: no Cloudflare credentials)",
+    "rustTests": "30/30 (native/companion/safety); fmt, clippy -D warnings and check all exit 0",
+    "npmAudit": "production 0 vulnerabilities; all: 1 high, dev-only (glob->brace-expansion)",
+    "measuredAtRevision": "b838ffeee45598588214a1cf7378487815f70135",
+    "note": "Re-executed in a worktree created fresh from the branch, with npm ci from the committed lockfile. Not carried forward. Treat as stale if HEAD has moved.",
+    "supersededMeasurement": {
+      "was": "4171 passed | 1 skipped (4172) across 253 files, gates 41/42, at revision 33e2e296a5f796bc579e8e218f92e218c4d30cb8",
+      "whyItWasWrong": "Three figures had drifted, and one was materially false: the fresh checkout produced 1 FAILING test, not 0. release-gate-enforces.test.ts required check-release-source.mjs to exit 0, but that gate verifies .output/server/wrangler.json, which only exists after `npm run build` -- and ci.yml runs Unit tests BEFORE Production build. It passed on the development machine only because earlier builds had left .output/ behind. The web job would therefore have been RED at the Unit tests step on every push. Fixed in b838ffe and proven by mutation.",
+      "lesson": "A measurement carried forward from a machine with accumulated build state is not evidence about a clean checkout, which is what CI always is."
+    }
   },
   "productionWiring": {
     "testOnlyModules": 0,
@@ -4867,5 +4874,5 @@
       "blockerRecord": "release/OCADE_DB01_SCHEMA_AUTHORITY_BLOCKER.json"
     }
   ],
-  "headRebindNote": "Bound to 3c53296. The commit that writes this binding cannot contain its own hash, so HEAD ends one ahead; effectiveBoundRevision in scripts/readiness-engine.mjs tolerates a diff limited to the binding files and nothing else."
+  "headRebindNote": "Bound to b838ffe. The commit that writes this binding cannot contain its own hash, so HEAD ends one ahead; effectiveBoundRevision in scripts/readiness-engine.mjs tolerates a diff limited to the binding files and nothing else."
 }
