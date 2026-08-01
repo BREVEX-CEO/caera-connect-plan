@@ -3,11 +3,26 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = process.cwd();
-const main = readFileSync(resolve(root, "native/companion/tauri/src/main.rs"), "utf8");
-const platform = readFileSync(resolve(root, "native/companion/tauri/src/platform.rs"), "utf8");
-const safety = readFileSync(resolve(root, "native/companion/safety/src/lib.rs"), "utf8");
-const overlay = readFileSync(resolve(root, "native/companion/ui/overlay.js"), "utf8");
-const buildScript = readFileSync(resolve(root, "native/companion/tauri/build.rs"), "utf8");
+
+/**
+ * Read a source file with newlines normalised to "\n".
+ *
+ * Several assertions below match multi-line snippets written with "\n" — for
+ * example `app.emit(\n        "ocade://action-progress"`. This repository has
+ * `core.autocrlf=true` and no `.gitattributes`, so git hands a fresh checkout
+ * CRLF copies and those assertions fail on any machine that did not write the
+ * files itself. That made this suite pass locally and fail in CI, which is the
+ * least useful combination a test can have. Normalising on read asserts on the
+ * source's content rather than on how git happened to check it out.
+ */
+const readSource = (relativePath: string): string =>
+  readFileSync(resolve(root, relativePath), "utf8").replace(/\r\n/g, "\n");
+
+const main = readSource("native/companion/tauri/src/main.rs");
+const platform = readSource("native/companion/tauri/src/platform.rs");
+const safety = readSource("native/companion/safety/src/lib.rs");
+const overlay = readSource("native/companion/ui/overlay.js");
+const buildScript = readSource("native/companion/tauri/build.rs");
 interface TauriConfig {
   app: { withGlobalTauri: boolean; security: { csp: string; freezePrototype: boolean } };
   bundle: {

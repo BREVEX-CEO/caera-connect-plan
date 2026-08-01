@@ -1,6 +1,24 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+
+/**
+ * The Stage 2 gate verifies developer-machine state, not repository state.
+ *
+ * `scripts/check-stage2-baseline.mjs` reads `.claude/OCADE_STAGE_2_SPEC_HASHES.json`,
+ * which is gitignored, and that file pins ABSOLUTE paths on one machine
+ * (`C:\\Users\\haans\\Downloads\\...`) and asserts each still exists and hashes
+ * to a recorded value. None of that can be true in a fresh checkout, so this
+ * test failed in CI on every run while passing for whoever wrote it.
+ *
+ * Skipping when the local-only input is absent is the honest outcome: the gate
+ * has nothing to verify there. It is NOT weakened where it applies — when the
+ * file exists the assertions run in full, unchanged. The remaining tests in
+ * this file read `release/OCADE_STAGE_2_BASELINE.json`, which is tracked, so
+ * they run everywhere.
+ */
+const SPEC_HASHES = ".claude/OCADE_STAGE_2_SPEC_HASHES.json";
+const hasLocalSpecHashes = existsSync(SPEC_HASHES);
 
 interface Stage2Baseline {
   phaseScores: Array<{ phase: number; score: number; classification: string; gap: string }>;
@@ -15,7 +33,7 @@ const baseline = JSON.parse(
 ) as Stage2Baseline;
 
 describe("Stage 2 exact transition baseline", () => {
-  it("passes the persisted-spec, checkpoint and readiness gate", () => {
+  it.skipIf(!hasLocalSpecHashes)("passes the persisted-spec, checkpoint and readiness gate", () => {
     const output = execFileSync(process.execPath, ["scripts/check-stage2-baseline.mjs"], {
       cwd: process.cwd(),
       encoding: "utf8",
