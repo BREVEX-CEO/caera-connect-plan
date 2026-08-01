@@ -7,6 +7,14 @@
 > [`OCADE_P29_FINAL_READINESS.json`](./OCADE_P29_FINAL_READINESS.json), produced
 > by `npm run readiness:publish` and enforced by `npm run readiness:check`.
 > The historical text remains only to preserve the audit trail.
+>
+> **The "buildable remainder: None" claim is now concretely disproven, not just distrusted.**
+> Of the 27 requirements at NOT STARTED in the 510-row register, **25 need no credential, device,
+> licence or toolchain**: AZ-001–008 (charter), AZ-019/020/022/024 (traceability), AZ-041–048
+> (ADRs, context diagrams, trust and runtime boundaries, integration contracts, ownership maps,
+> compatibility, deprecation) and AZ-445–450 (governance). Every one is a document that can be
+> written here. The table below reads "None" in every row because it asked whether *code* remained
+> buildable, and never asked the same question of the deliverables that are not code.
 
 # Historical readiness composition — what each percentage claimed
 

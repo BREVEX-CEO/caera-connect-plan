@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "phase": "Phase 0 — Repository truth, re-measured in a clean checkout",
+  "generatedAt": "2026-08-01",
+  "branch": "feat/ocade-implementation",
+  "baseRevision": "4e99835df8b21fa147522f9f7d17b76104131e0d",
+  "method": "Every row below was executed in this session, in a worktree created fresh from the branch with `npm ci` from the committed lockfile. Nothing is carried forward from a prior record. Where a measurement disagrees with a previously published one, the previous value is named so the drift is visible rather than silently overwritten.",
+
+  "whyAFreshWorktree": {
+    "problem": "The session opened on `claude/vigilant-raman-9a439a`, a Lovable-sync branch holding 34 src/lib modules and none of the OCADE programme — no scripts/, release/, audit/, extension/, relay/ or vitest.config.ts. Any gate run there would have measured a pre-OCADE baseline and reported it as OCADE's.",
+    "obstacle": "Switching in place was refused, correctly: untracked android/, ios/ and native/ directories in that worktree collide with tracked files on this branch. `git clean` is forbidden by the operating rules, and deleting the owner's untracked files to win an argument with git is not a fix.",
+    "resolution": "`git worktree add` at .claude/worktrees/ocade-impl. Non-destructive, leaves the other worktree untouched, and yields a genuinely clean checkout — which is what exposed defect D19 below.",
+    "verified": {
+      "trackedFiles": 1058,
+      "srcLibNonTestModules": 199,
+      "headEqualsOrigin": true
+    }
+  },
+
+  "measured": {
+    "typecheck": { "command": "npm run typecheck", "exit": 0, "errors": 0 },
+    "lint": {
+      "command": "npm run lint",
+      "exit": 0,
+      "errors": 0,
+      "warnings": 231,
+      "note": "Matches WARNINGS_BACKLOG.md exactly. CHECKPOINT.md still published 2,424 — see D15."
+    },
+    "tests": {
+      "command": "npm run test",
+      "exit": 0,
+      "files": 254,
+      "passed": 4173,
+      "skipped": 6,
+      "failed": 0,
+      "priorPublished": "253 files, 4,171 passed, 1 skipped, 0 failed",
+      "note": "The prior figure was wrong in three ways: file count, skip count, and — materially — it recorded 0 failures when a fresh checkout produces 1. See D19."
+    },
+    "build": { "command": "npm run build", "exit": 0 },
+    "gates": {
+      "enumeratedFrom": "package.json scripts",
+      "total": 44,
+      "passed": 43,
+      "failed": ["deploy:check"],
+      "deployCheckExit": 2,
+      "note": "deploy:check refuses because OCADE_DEPLOY_HEALTH_URL, CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are absent. A correct refusal, not a defect. It is not in ci.yml's step list, so it cannot redden the web job."
+    },
+    "rust": {
+      "workingDirectory": "native/companion/safety",
+      "fmtCheck": { "exit": 0 },
+      "clippyDenyWarnings": { "exit": 0 },
+      "check": { "exit": 0 },
+      "test": { "exit": 0, "passed": 30, "failed": 0, "ignored": 0 },
+      "toolchain": { "rustc": "1.96.0", "cargo": "1.96.0", "host": "x86_64-pc-windows-msvc" }
+    },
+    "npmAudit": {
+      "production": { "command": "npm audit --omit=dev", "exit": 0, "vulnerabilities": 0 },
+      "all": {
+        "exit": 1,
+        "high": 1,
+        "path": "node_modules/glob/node_modules/brace-expansion",
+        "devOnly": true,
+        "priorPublished": "5 high",
+        "note": "The dependency tree moved; 1 high remains, still dev-only, still not shipped."
+      }
+    }
+  },
+
+  "localEngine": {
+    "status": "INSTALLED AND REACHABLE — the repository's 'no local model installed' blocker is stale",
+    "endpoint": "http://127.0.0.1:11434",
+    "startedThisSession": true,
+    "priorClaim": "OCADE_MASTER_EXECUTION_QUEUE.md §4: 'Blocked by: no local model installed and no gateway key'",
+    "installedModels": [
+      {
+        "name": "qwen3-coder:30b",
+        "bytes": 18556700761,
+        "quantization": "Q4_K_M",
+        "family": "qwen3moe",
+        "parameterSize": "30.5B",
+        "tools": true
+      },
+      {
+        "name": "qwen2.5-coder:7b",
+        "bytes": 4683087561,
+        "quantization": "Q4_K_M",
+        "family": "qwen2",
+        "parameterSize": "7.6B",
+        "tools": true
+      },
+      {
+        "name": "deepseek-coder:6.7b",
+        "bytes": 3827834503,
+        "quantization": "Q4_0",
+        "family": "llama",
+        "parameterSize": "7B",
+        "tools": false
+      }
+    ],
+    "excludedFromUse": [
+      {
+        "name": "deepseek-v4-pro:cloud",
+        "why": "Not a local model. It is a remote alias pointing at https://ollama.com:443. Using it would send prompts off this machine, which the owner's instruction for this run forbids."
+      }
+    ],
+    "measuredHardware": {
+      "ramGB": 15.6,
+      "cpu": "Intel Core i5-1135G7, 4 cores / 8 threads",
+      "gpu": "Intel Iris Xe integrated only — no dedicated GPU",
+      "matrixTier": "Mid PC, CPU-only (16GB RAM, no GPU)",
+      "requiredModel": "Qwen3 8B, Q4 quantized"
+    },
+    "gapForPhase1": "The tier the plan's §2 matrix requires for this machine — Qwen3 8B Q4 — is NOT installed. qwen3-coder:30b is the right family but a 30.5B MoE that will not serve this tier on 4 CPU cores; qwen2.5-coder:7b is the wrong family; deepseek-coder:6.7b reports no tool-calling capability at all and so cannot drive OCADE's typed-action system. Phase 1 pulls qwen3:8b and proves the tier by measurement.",
+    "whatThisDoesNotProve": "That OCADE has ever obtained a reply from any of them. No inference has been run through the product. The engine being reachable is a prerequisite, not evidence."
+  },
+
+  "defectsFoundAndFixedThisPhase": [
+    {
+      "id": "D19",
+      "severity": "high",
+      "title": "A test that passes only on a machine with a stale build lying around — and would have made CI red",
+      "found": "src/lib/__tests__/release-gate-enforces.test.ts > 'restoration held' > 'passes again on the restored ledger and still reports it as blocked'",
+      "symptom": "AssertionError: OCADE release source gate failed (1/51 checks): production output is missing; run npm run build first",
+      "cause": "The test required `check-release-source.mjs` to exit 0. That gate verifies .output/server/wrangler.json (line 147), which only exists after `npm run build`. ci.yml runs 'Unit tests' BEFORE 'Production build', so the build output cannot exist yet. It passed on the development machine only because earlier builds had left .output/ behind.",
+      "materialConsequence": "The web job in CI would have failed at the Unit tests step, on every push, for as long as this test has existed. CHECKPOINT.md concluded 'a green run is likely' from local success. That conclusion was wrong, and it is exactly the failure mode hosted evidence exists to catch.",
+      "fix": "The suite's subject is the ledger, not the build. The restoration test now accepts the single build-output prerequisite failure and asserts that NO ledger check failed — overstatement, incompleteness, version drift, secret-shaped values and approval boundaries are all still required to pass.",
+      "provenByMutation": "Setting release/OCADE_RELEASE_BLOCKERS.json status to 'ready' fails the new assertion at line 142. Ledger restored byte-identically afterwards, sha256 7ABB3FCF21CD4F22FAA34CABADA69E6800FD5F33BF8BE69C94D9A305435615C5, git reports no change.",
+      "status": "FIXED"
+    },
+    {
+      "id": "D20",
+      "severity": "medium",
+      "title": "A gate that crashed instead of failing, and was excluded from CI to hide it",
+      "found": "scripts/check-stage2-baseline.mjs",
+      "symptom": "Error: ENOENT: no such file or directory, open '.../.claude/OCADE_STAGE_2_SPEC_HASHES.json' — an unhandled exception at module load, before a single check ran.",
+      "cause": "It read a gitignored, machine-local provenance snapshot unconditionally, and that snapshot pins ABSOLUTE paths under C:\\Users\\haans\\. ci.yml excluded the gate by comment for this reason, which also left its 175 repository-intrinsic checks — schema, phase scoring, arithmetic, evidence paths, all tracked — unverified by CI as collateral damage.",
+      "fix": "Intrinsic and provenance checks are now separated. Intrinsic checks always run. Provenance checks are reported as SKIPPED by name with the reason when their snapshot is absent, and are never counted as passed: absence of a check is not a passing check. The gate is re-enabled in ci.yml.",
+      "provenByMutation": [
+        "Intrinsic: corrupting readiness.stage2Source to 99 produced 'gate failed (3/175 checks)', exit 1.",
+        "Provenance: with the snapshot present the gate runs 186 checks instead of 175; corrupting a recorded spec sha256 produced 'gate failed (2/186 checks)', exit 1, naming both the recorded-value mismatch and the on-disk mismatch."
+      ],
+      "status": "FIXED"
+    }
+  ],
+
+  "staleRecordsCorrected": [
+    {
+      "id": "D15",
+      "file": "CHECKPOINT.md",
+      "was": "revision 23ea85f; lint 2,424 warnings; tests 4,171 passed / 1 skipped / 253 files",
+      "now": "revision 4e99835; lint 231 warnings; tests 4,173 passed / 6 skipped / 254 files",
+      "note": "The lint figure had already been corrected in commit dcf665a but never propagated into the checkpoint."
+    },
+    {
+      "id": "D16",
+      "file": "release/OCADE_P09_COMPANION_BUILD_BLOCKER.json",
+      "was": "cargo test = 'FAIL — cannot link'; 25 tests that cannot execute; 'no Visual Studio installation exists'",
+      "now": "cargo test exits 0 with 30 passed. The MSVC toolchain is present and links. Superseded by OCADE_P24_COMPANION_BUILD_EVIDENCE.json.",
+      "note": "Re-measured this session, not inferred from the later correction."
+    },
+    {
+      "id": "D17",
+      "file": "OCADE_MASTER_EXECUTION_QUEUE.md §4",
+      "was": "'Blocked by: no local model installed'",
+      "now": "Three local models are installed, 27.07 GB of weights, engine reachable. The blocker is the missing Qwen3 8B Q4 tier, not the absence of a model."
+    }
+  ],
+
+  "conditionStillOpen": {
+    "condition": "CI is green",
+    "status": "NOT MET — still unobserved, for the third consecutive phase",
+    "priorReport": "CHECKPOINT.md recorded `gh` as not installed.",
+    "measuredNow": "gh 2.97.0 IS installed at C:\\Program Files\\GitHub CLI\\gh.exe, but is not on PATH, has no hosts.yml, and `gh auth status` exits 1 with 'You are not logged into any GitHub hosts'. No GH_TOKEN or GITHUB_TOKEN is set.",
+    "ownerAction": "Run `gh auth login` once. Reading a CI result is not something to fabricate, and authenticating on the owner's behalf is not something to do unasked.",
+    "expectedChange": "D19 means the most recent runs were almost certainly RED at the Unit tests step. The push made at the end of this phase carries the fix, so this is now a falsifiable prediction rather than an assumption."
+  },
+
+  "conclusion": "Two of Phase 0's three Definition-of-Done conditions are met and now rest on re-executed evidence rather than carried-forward numbers. The third — CI green — remains open, but is no longer merely unobserved: a genuine CI-breaking defect was found and fixed, which is more than observation would have given on its own."
+}

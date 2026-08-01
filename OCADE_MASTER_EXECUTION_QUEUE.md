@@ -68,10 +68,18 @@ Hardware detection, model selection, download, hash verification, startup, healt
 discovery, fallback, offline use, repair, update and rollback are implemented behind an injected
 fetch.
 
-- Files: `src/lib/ocade-local.ts`, `src/lib/providers/*`
+- Files: `src/lib/ocade-local.ts`, `src/lib/local/model-lifecycle.ts`, `src/lib/providers/*`
 - Evidence: unit + a real endless-stream test proving the reader terminates
-- **Blocked by:** no local model installed and no gateway key
-- **Next action (human):** install a local engine, or set `LOVABLE_API_KEY`/`OPENAI_API_KEY` → `npm run -s setup:check`
+- ~~**Blocked by:** no local model installed and no gateway key~~ — **CORRECTED 2026-08-01.**
+  An engine IS installed and answers on `127.0.0.1:11434` with 27.07 GB of weights:
+  `qwen3-coder:30b`, `qwen2.5-coder:7b`, `deepseek-coder:6.7b`. Measured, not assumed —
+  see `release/OCADE_P30_PHASE0_BASELINE.json`.
+- **Actual blocker:** the tier the plan's §2 matrix requires for this machine — **Qwen3 8B Q4** —
+  is not installed, and no inference has ever been run *through OCADE*. Of what is installed, the
+  30B is a MoE that will not serve a 4-core CPU-only host, the 7B is the wrong family, and the
+  6.7B reports no tool-calling capability, so it cannot drive the typed-action system.
+- **Next action:** Phase 1 pulls `qwen3:8b`, proves the tier by measurement, and moves storage to
+  the app-managed directory. No human action required.
 
 ## 5. Desktop / PC control
 

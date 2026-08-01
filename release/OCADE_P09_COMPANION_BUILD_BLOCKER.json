@@ -1,8 +1,14 @@
 {
   "schemaVersion": 1,
   "phase": "P09 — Windows companion build and Rust safety execution",
-  "status": "ONE HUMAN ACTION AWAY",
+  "status": "SUPERSEDED — this blocker no longer holds",
   "generatedAt": "2026-07-29",
+  "supersededAt": "2026-08-01",
+  "supersededBy": [
+    "release/OCADE_P24_COMPANION_BUILD_EVIDENCE.json",
+    "release/OCADE_P30_PHASE0_BASELINE.json"
+  ],
+  "supersessionNote": "Everything below the R04 row is now false and is retained only as an audit trail. Re-measured on 2026-08-01 in a clean checkout: `cargo test --all-targets` in native/companion/safety exits 0 with 30 passed, 0 failed. The MSVC toolchain is present and links. The '25 tests that cannot execute' count is also stale — there are 30, and they run. What R04 actually caught was a PATH problem: GNU coreutils `link` from Git Bash shadowing MSVC's linker in that one shell. Diagnosing it as 'no Visual Studio installation exists' was wrong. The 27 desktop-control requirements remain EXTERNALLY BLOCKED, but on a supervised runtime session and signing identity — NOT on a linker.",
   "summary": "The Rust safety core type-checks, formats and lints cleanly, but its 25 tests have never executed because no C++ linker is installed. This is the same blocker native/companion/README.md has always declared, now measured rather than asserted.",
   "host": {
     "platform": "win32",

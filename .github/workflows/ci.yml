@@ -99,19 +99,19 @@ jobs:
       - name: Licence notices are current
         run: npm run licences:check
 
-      # `stage2:baseline-check` is deliberately NOT run here. It is a
-      # developer-machine integrity check, not a CI check, and it could never
-      # have passed on a runner:
+      # `stage2:baseline-check` used to be excluded here, because it read the
+      # gitignored .claude/OCADE_STAGE_2_SPEC_HASHES.json unconditionally and
+      # died with an unhandled ENOENT on any machine but the one that wrote it.
+      # Excluding it also left its 175 repository-intrinsic checks — baseline
+      # schema, phase scoring, arithmetic and evidence paths, all of it tracked
+      # — unverified by CI as collateral damage.
       #
-      #   - it reads .claude/OCADE_STAGE_2_SPEC_HASHES.json, and .claude/ is
-      #     gitignored, so the file is absent from every checkout;
-      #   - that file pins ABSOLUTE paths on one specific machine
-      #     (C:\Users\haans\Downloads\... and C:\Users\haans\.codex\...) and
-      #     asserts each one exists and still hashes to a recorded value.
-      #
-      # Running it here guaranteed a red web job on every push regardless of
-      # the state of the code. It still runs locally, where the files it
-      # verifies actually exist and the check is meaningful.
+      # The gate now separates the two: intrinsic checks always run, and the
+      # machine-local provenance checks are reported as SKIPPED by name when
+      # their snapshot is absent, never counted as passed. So it is meaningful
+      # on a runner, and it runs here.
+      - name: Stage 2 baseline integrity gate
+        run: npm run stage2:baseline-check
 
   rust:
     name: Rust companion safety core
