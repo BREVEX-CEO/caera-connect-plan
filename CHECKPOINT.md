@@ -218,6 +218,47 @@ as a token, and extracting a stored credential to call an API is not something t
 triggered. Recording "CI green" without reading the run would be fabricating the single piece of
 evidence Phase 0 exists to establish.
 
+#### Pre-verification: every command all three CI jobs run, executed locally
+
+Since the run cannot be read, the next best thing was done — each job's commands were run here,
+so that if the hosted run is red the failure is genuinely new information rather than something
+already visible locally. `ci.yml` defines exactly three jobs on a push to this branch.
+
+**`audit` job** — the only job that runs on `ubuntu-latest`, and the one with least prior signal:
+
+```
+$ npm audit --omit=dev
+found 0 vulnerabilities
+EXIT CODE: 0
+```
+
+**`rust` job** — four commands in `native/companion/safety`. `cargo fmt --check` and
+`cargo clippy -D warnings` are strict and had not previously been run:
+
+```
+$ cargo fmt --check
+EXIT: 0
+
+$ cargo clippy --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.21s
+EXIT: 0
+
+$ cargo check --all-targets
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.07s
+EXIT: 0
+
+$ cargo test --all-targets -- --nocapture
+test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+EXIT: 0
+```
+
+**`web` job** — typecheck, lint, tests, build and 20 gate steps, all recorded in §4 above. Every
+gate named in `ci.yml`'s step list is among the 41 that pass. `deploy:check` is **not** in that
+list, so its correct credential refusal cannot fail this job.
+
+This raises confidence but **does not close the condition**. Local success on one Windows host is
+precisely what "hosted evidence" exists to distinguish itself from. The run still has to be read.
+
 ---
 
 ## What clears the blocker
