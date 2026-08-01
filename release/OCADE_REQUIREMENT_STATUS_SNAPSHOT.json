@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "generatedAt": "2026-08-01T03:28:45.703Z",
-  "head": "b838ffeee45598588214a1cf7378487815f70135",
+  "head": "66274718d921deb3fc6d356f1cd32bbb9df69258",
   "branch": "feat/ocade-implementation",
   "phase": "Phase 0 complete - OCADE-only scope verified; next Phase 1 local model lifecycle",
   "evidenceBindings": {
-    "sourceRevision": "b838ffeee45598588214a1cf7378487815f70135",
+    "sourceRevision": "66274718d921deb3fc6d356f1cd32bbb9df69258",
     "targetVersion": "0.1.0",
     "dependencyLockSha256": "21e378ff9dc2e6260e18bcda165eda4d9cd53b344cd6dcdea219d8425741bc88",
     "environment": "windows-x64-node22+",
@@ -4874,5 +4874,5 @@
       "blockerRecord": "release/OCADE_DB01_SCHEMA_AUTHORITY_BLOCKER.json"
     }
   ],
-  "headRebindNote": "Bound to b838ffe. The commit that writes this binding cannot contain its own hash, so HEAD ends one ahead; effectiveBoundRevision in scripts/readiness-engine.mjs tolerates a diff limited to the binding files and nothing else."
+  "headRebindNote": "Bound to 6627471. The commit that writes this binding cannot contain its own hash, so HEAD ends one ahead; effectiveBoundRevision in scripts/readiness-engine.mjs tolerates a diff limited to BINDING_ONLY_PATHS and nothing else. A first attempt bound to b838ffe and failed, because that binding commit also carried release/OCADE_P30_PHASE0_BASELINE.json, which is not on the allowlist. The gate was right to refuse and the allowlist was NOT widened to accommodate the mistake: phase evidence files belong in the content commit, and only the three allowlisted files belong in a binding commit."
 }
