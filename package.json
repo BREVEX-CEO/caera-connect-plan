@@ -46,6 +46,8 @@
     "tests:kinds": "node scripts/check-test-kinds.mjs",
     "a11y:check": "node scripts/check-accessibility.mjs",
     "operations:check": "node scripts/check-production-operations.mjs",
+    "evidence:integrity": "node scripts/check-evidence-integrity.mjs",
+    "owners:seed": "node scripts/seed-requirement-owners.mjs",
     "readiness:check": "node scripts/check-final-readiness.mjs",
     "readiness:publish": "node scripts/check-final-readiness.mjs --write",
     "portable-release:check": "node scripts/portable-release.mjs",

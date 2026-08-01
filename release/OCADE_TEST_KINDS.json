@@ -100,6 +100,11 @@
       "couldBeStronger": "No. It already executes the gate."
     },
     {
+      "path": "src/lib/__tests__/evidence-integrity-gate-enforces.test.ts",
+      "why": "Runs the evidence-integrity gate as a subprocess against a snapshot corrupted one specific way per test; the file reads build the fixture and restore it byte-identically afterwards.",
+      "couldBeStronger": "No. It already executes the production gate and proves each of its conditions rejects. One of its own tests previously passed while proving nothing, because it looked for a ledger key that does not exist; it now asserts the fixture is non-empty before using it."
+    },
+    {
       "path": "src/lib/__tests__/sandbox-worker-runtime.test.ts",
       "why": "Asserts on the sandbox worker script that runs in a spawned process with a restricted permission set.",
       "couldBeStronger": "Yes — P21 wired the Node sandbox host behind a server function, so the worker can now be driven end to end."
