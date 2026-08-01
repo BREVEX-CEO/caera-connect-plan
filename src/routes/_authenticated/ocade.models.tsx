@@ -44,6 +44,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ocadeIntro, ocadeHonestDisclosure } from "@/lib/ocade-identity";
 import { LocalModelLifecyclePanel } from "@/components/ocade/LocalModelLifecyclePanel";
+import { LocalEngineControl } from "@/components/ocade/LocalEngineControl";
 
 export const Route = createFileRoute("/_authenticated/ocade/models")({
   head: () => ({
@@ -239,6 +240,14 @@ function OcadeModelsPage() {
       <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 pb-16">
         {/* On-device engine lifecycle: install, verify, activate, remove. */}
         <GlassPanel className="p-5">
+          {/*
+            Start/stop comes BEFORE the lifecycle panel because it is the
+            prerequisite: installing or activating a model against a runtime
+            that is not listening fails for a reason the user cannot see from
+            the download UI.
+          */}
+          <LocalEngineControl />
+          <div className="mt-5" />
           <LocalModelLifecyclePanel />
         </GlassPanel>
 
