@@ -17,7 +17,7 @@
     {
       "path": "src/lib/__tests__/chat-phase5-source.test.ts",
       "why": "Asserts on the ordering of operations inside routes/api/ocade.chat.ts. The handler needs a Supabase session, a provider key and a request context to execute.",
-      "couldBeStronger": "Yes — this is the weakest remaining case. An injectable handler would allow behavioural tests of the same ordering."
+      "couldBeStronger": "Superseded in part. src/lib/__tests__/chat-route-execution.test.ts now imports the real route module, invokes the real POST handler with a real Request and asserts on the real Response, covering the authentication and configuration gate. This file still covers operation ORDERING inside the handler, which is only reachable past a real Supabase session, so it remains structural by necessity rather than by neglect."
     },
     {
       "path": "src/lib/__tests__/ci-workflow.test.ts",
