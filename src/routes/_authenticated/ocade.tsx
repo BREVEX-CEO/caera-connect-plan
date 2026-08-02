@@ -75,10 +75,11 @@ import { ocadeChatCapabilityDisclosure } from "@/lib/ocade-identity";
 import { capabilityLabelFor } from "@/lib/ocade-capability-labels";
 import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
+import { reason } from "@/lib/reasoning/engine";
+import { browserReasonDeps } from "@/lib/reasoning/browser-deps";
 import {
   browserTotalRamBytes,
   buildLocalFirstPlan,
-  streamLocalChat,
   DEFAULT_LOCAL_BRIDGE_URL,
   type LocalChatMessage,
 } from "@/lib/ocade-local";
@@ -1629,19 +1630,35 @@ function ChatSurface(props: {
          */
         const routeStarted = Date.now();
         let firstTokenMs: number | null = null;
-        const result = await streamLocalChat(
-          DEFAULT_LOCAL_BRIDGE_URL,
-          step.modelId!,
-          localMessages,
-          {
-            onToken: (c) => {
-              if (firstTokenMs === null) firstTokenMs = Date.now() - routeStarted;
-              acc += c;
-              setStreamText(acc);
-            },
-            signal: controller.signal,
+        /*
+         * Chat goes through the shared reasoning service (W1) rather than
+         * calling the engine directly, so local-first, the deterministic-work
+         * refusal and receipts are decided in one place for every surface
+         * instead of per screen.
+         *
+         * `modelId` is passed because chat has ALREADY chosen: this call sits
+         * inside an existing fallback chain that picked `step.modelId`. Letting
+         * the service re-route here would silently override that decision.
+         *
+         * `allowCloud` stays false. This is the on-device branch; the cloud
+         * branch is a separate step in the same chain, so a prompt can never
+         * leave the machine as a side effect of the local path failing.
+         */
+        const reasoned = await reason(browserReasonDeps(DEFAULT_LOCAL_BRIDGE_URL), {
+          messages: localMessages,
+          task: hasImage ? "vision" : "general",
+          modelId: step.modelId!,
+          allowCloud: false,
+          signal: controller.signal,
+          onToken: (c) => {
+            if (firstTokenMs === null) firstTokenMs = Date.now() - routeStarted;
+            acc += c;
+            setStreamText(acc);
           },
-        );
+        });
+        const result: { ok: boolean; reason?: string } = reasoned.ok
+          ? { ok: true }
+          : { ok: false, reason: reasoned.failure === "cancelled" ? "cancelled" : reasoned.reason };
         // A cancellation is the user's choice, not the model failing, so it is
         // not recorded as a failure against the model.
         if (result.reason !== "cancelled") {
