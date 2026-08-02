@@ -193,35 +193,44 @@ for (const [name, port] of [
     const staleTokenRejected = staleTokenReply?.ok !== true;
 
     /*
-     * Reconnection, on the extension's OWN terms.
+     * Reconnection after a real browser restart, with NO popup and NO code.
      *
-     * H5 asks for reconnection "without manual re-pairing". The extension
-     * deliberately does the opposite: `chrome.runtime.onSuspend` sets
-     * pairingToken = null, with the comment "Dropping the token on suspend
-     * means a new session must pair again." That is a security decision — the
-     * popup is the user-presence factor, and a token that survived a restart
-     * would be a standing grant nobody re-consented to.
+     * H5 asks for reconnection without manual re-pairing. The naive way to get
+     * that is to persist the token — which `extension-protocol-parity.test.ts`
+     * forbids by name, because a stored bearer token survives the restart and
+     * outlives the pairing it belonged to. That invariant is left intact.
      *
-     * So what is proven here is the honest version: the stale token is
-     * rejected, and a fresh pairing re-establishes control immediately with no
-     * reinstall and no reconfiguration. The conflict with the requirement's
-     * wording is recorded rather than resolved by weakening the extension.
+     * Instead the extension remembers the CONSENT: the fact that the user
+     * paired this origin, with an expiry. The reconnect below sends no secret
+     * at all — just `reconnect: true` — and the browser-supplied sender origin
+     * is what the extension checks. A brand-new token comes back, which is why
+     * the stale token above is still rejected. Remembering a decision, not
+     * storing a password.
      */
-    const reToken = (await (async () => {
-      const p = (await browser.evaluate(
-        popup2,
-        `new Promise(res => chrome.runtime.sendMessage({kind:'pairing.begin'}, r => res(r ?? {})))`,
-      )) as { pairingCode?: string };
-      const c = (await browser.evaluate(
-        control2,
-        `new Promise(res => chrome.runtime.sendMessage(${JSON.stringify(extId2)}, ${JSON.stringify({ v: 1, kind: "connect" })}, r => res(r ?? {})))`.replace(
-          '"kind":"connect"',
-          `"kind":"connect","pairingCode":${JSON.stringify(p.pairingCode ?? "")}`,
-        ),
-      )) as { data?: { token?: string } };
-      return c?.data?.token;
-    })()) as string | undefined;
+    const reconnectReply = (await browser.evaluate(
+      control2,
+      `new Promise(res => chrome.runtime.sendMessage(${JSON.stringify(extId2)}, ${JSON.stringify({ v: 1, kind: "connect", reconnect: true })}, r => res(r ?? {noReply:true})))`,
+    )) as { data?: { token?: string; reconnected?: boolean } };
+    const reToken = reconnectReply?.data?.token;
     const reconnectedAfterRestart = typeof reToken === "string" && reToken.length >= 32;
+    const reconnectedWithoutPairingCode = reconnectedAfterRestart;
+    // The fresh token must differ from the pre-restart one, or "reconnect"
+    // would just be the old credential surviving under a new name.
+    const freshTokenDiffers = reconnectedAfterRestart && reToken !== token;
+
+    // And the reconnected session must actually WORK, not merely return a
+    // string that looks like a token.
+    const postReconnect = (await browser.evaluate(
+      control2,
+      `new Promise(res => chrome.runtime.sendMessage(${JSON.stringify(extId2)}, ${JSON.stringify({ v: 1, kind: "tabs.list" })}, r => res(r ?? {noReply:true})))`.replace(
+        '"kind":"tabs.list"',
+        `"kind":"tabs.list","token":${JSON.stringify(reToken ?? "")}`,
+      ),
+    )) as Record<string, unknown>;
+    const reconnectedSessionWorks = postReconnect?.ok === true;
+    if (!reconnectedWithoutPairingCode || !freshTokenDiffers || !reconnectedSessionWorks) {
+      failed = true;
+    }
 
     const entry = {
       browser: name,
@@ -236,7 +245,10 @@ for (const [name, port] of [
         staleTokenRejected,
         staleTokenReply,
         reconnectedAfterRestart,
-        reconnectRequiresFreshPairingByDesign: true,
+        reconnectedWithoutPairingCode,
+        freshTokenDiffersFromPreRestartToken: freshTokenDiffers,
+        reconnectedSessionWorks,
+        tokenNeverPersisted: true,
       },
     };
     results.push(entry);
@@ -270,7 +282,7 @@ const doc = {
   method:
     "Each protected field is a real input on a real page, and every refusal is checked twice: the reply must not be ok, AND the input must still be empty when read back from the DOM. A refusal that still wrote the value would be worse than no refusal. A non-protected field on the same form is filled successfully, so 'refused' cannot be a broken fill wearing a safety label.",
   restartNote:
-    "The pairing token is deliberately NOT persisted: it lives in memory and is dropped on suspend, so a token captured before a restart must be rejected afterwards. The granted host permission DOES survive, which is correct — consent is durable, authentication is not. Re-pairing is a fresh popup code, which is the user-presence factor working as designed.",
+    "Consent is durable; authentication is not. The pairing token is never persisted — it lives in memory only, so the token captured before the restart is rejected afterwards. What survives is the record that the user paired this origin, and the granted host permission. The reconnect therefore sends no secret at all, and receives a BRAND-NEW token that is verified to differ from the pre-restart one and to actually work. Persisting the token itself would have been the easy route and is explicitly forbidden by extension-protocol-parity.test.ts, because a stored bearer token outlives the pairing it belonged to.",
   plantedFailureNote:
     "page.verify was asked to confirm a heading that says something the page does not say. Catching that is what makes every other verification in this series worth anything.",
   browsers: results,

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { loadExtension } from "../../../scripts/extension-zero-touch.mts";
 
 /**
@@ -120,11 +121,36 @@ describe("the shipped manifest keeps its promises", () => {
 
   it("requests only the permissions the code actually uses", async () => {
     const { manifest } = loadExtension();
-    expect(manifest.permissions).toEqual(["tabs", "scripting"]);
+    expect(manifest.permissions).toEqual(["tabs", "scripting", "storage"]);
     expect(manifest.optional_permissions).toEqual(["downloads"]);
-    // Storage is deliberately absent: the pairing token is memory-only, so
-    // requesting storage would grant reach the design does not need.
-    expect((manifest.permissions as string[]).includes("storage")).toBe(false);
+  });
+
+  /*
+   * `storage` earns its place, and only just.
+   *
+   * This assertion used to read "storage is deliberately absent: the pairing
+   * token is memory-only". The token is STILL memory-only — that has not been
+   * relaxed, and extension-protocol-parity.test.ts holds the line on it. What
+   * storage now holds is the record that a user paired a given origin, so the
+   * page can obtain a fresh token after the service worker idles out instead of
+   * asking the user to re-read a six-digit code every thirty seconds.
+   *
+   * The permission is therefore justified by consent, not by credentials, and
+   * this test pins it to that single key so a future change cannot quietly
+   * start parking anything else there.
+   */
+  it("uses storage for the pairing consent record only", async () => {
+    const background = readFileSync(
+      new URL("../../../extension/background.js", import.meta.url),
+      "utf8",
+    );
+    const keys = [...background.matchAll(/chrome\.storage\.local\.(?:get|set|remove)\(([^)]*)/g)]
+      .map((m) => m[1])
+      .join(" ");
+    expect(keys).toContain("CONSENT_KEY");
+    expect(background).toMatch(/const CONSENT_KEY = "ocade\.pairedOrigins"/);
+    // No other storage area is touched at all.
+    expect(background).not.toMatch(/chrome\.storage\.(sync|managed|session)\./);
   });
 
   it("locks down its own pages and refuses incognito", async () => {

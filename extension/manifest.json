@@ -16,7 +16,8 @@
   "_permissions_note": "Only permissions the code uses. Downloads is optional and requested only for a confirmed download. Storage is not requested.",
   "permissions": [
     "tabs",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "optional_permissions": [
     "downloads"

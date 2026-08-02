@@ -60,12 +60,70 @@ function newToken() {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * Durable CONSENT, never a durable credential.
+ *
+ * The token itself must never be persisted — a stored bearer token survives a
+ * restart and outlives the pairing it belonged to, which is why
+ * `extension-protocol-parity.test.ts` asserts it is never written to storage.
+ * That invariant stands.
+ *
+ * What IS remembered is the fact that the user paired a given origin, with an
+ * expiry. On reconnection the origin presents no secret and receives none of
+ * the old session's authority: a brand-new token is minted, and every existing
+ * check still applies. This is the difference between remembering a decision
+ * and storing a password.
+ *
+ * It also fixes a real defect. `onSuspend` fires when the MV3 service worker
+ * goes idle — roughly every 30 seconds — not when the browser closes. Clearing
+ * the token there meant a user had to re-enter a six-digit code after half a
+ * minute of inactivity, which trains people to re-pair reflexively and quietly
+ * destroys the value of the popup as a user-presence factor.
+ */
+const CONSENT_KEY = "ocade.pairedOrigins";
+const CONSENT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+async function rememberPairedOrigin(origin) {
+  if (!origin) return;
+  try {
+    const stored = await chrome.storage.local.get(CONSENT_KEY);
+    const record = stored?.[CONSENT_KEY] ?? {};
+    record[origin] = { pairedAt: Date.now(), expiresAt: Date.now() + CONSENT_TTL_MS };
+    await chrome.storage.local.set({ [CONSENT_KEY]: record });
+  } catch {
+    // Consent that cannot be remembered simply means the user pairs again.
+  }
+}
+
+async function originHasLiveConsent(origin) {
+  if (!origin) return false;
+  try {
+    const stored = await chrome.storage.local.get(CONSENT_KEY);
+    const entry = stored?.[CONSENT_KEY]?.[origin];
+    return Boolean(entry && Date.now() < entry.expiresAt);
+  } catch {
+    return false;
+  }
+}
+
+/** Revoke every remembered pairing. Used by emergency stop and unpair. */
+async function forgetAllPairedOrigins() {
+  try {
+    await chrome.storage.local.remove(CONSENT_KEY);
+  } catch {
+    /* nothing to forget */
+  }
+}
+
 /** Mirrors validateRequest() in extension-protocol.ts. */
 function validate(msg) {
   if (typeof msg !== "object" || msg === null) return refuse("Malformed message.");
   if (msg.v !== PROTOCOL_VERSION) return refuse("Unsupported protocol version.");
   if (typeof msg.kind !== "string" || !KINDS.has(msg.kind)) return refuse("Unsupported request.");
   if (msg.kind === "connect") {
+    // A reconnect carries no code and is decided later, against the stored
+    // consent for the sender's origin.
+    if (msg.reconnect === true && typeof msg.pairingCode !== "string") return { ok: true };
     if (
       !pairingCode ||
       Date.now() > pairingExpiresAt ||
@@ -952,6 +1010,9 @@ async function execute(msg) {
     case "emergency.stop": {
       emergencyStopped = true;
       cancelledRuns.clear();
+      // Stop means stop: revoke the remembered consent too, so the origin
+      // cannot silently reconnect its way back in.
+      await forgetAllPairedOrigins();
       for (const [runId, state] of runStates) {
         if (state.status === "running") {
           runStates.set(runId, {
@@ -978,6 +1039,42 @@ async function handle(msg, sender) {
 
   // Incognito is refused at the manifest level; re-check defensively.
   if (sender?.tab?.incognito) return refuse("OCADE does not act inside private windows.");
+
+  /*
+   * Reconnection after the worker restarted or the browser was reopened.
+   *
+   * The origin is taken from `sender`, which the browser sets — the page cannot
+   * claim to be somewhere it is not — and it must already be pinned by
+   * `externally_connectable` to have reached this listener at all. A live
+   * consent record for that exact origin is what permits a fresh token; no
+   * secret is presented, and none of the previous session's authority carries
+   * over. An expired or revoked consent falls through to ordinary pairing.
+   */
+  if (msg.kind === "connect" && msg.reconnect === true && typeof msg.pairingCode !== "string") {
+    const origin = sender?.origin ?? (sender?.url ? new URL(sender.url).origin : null);
+    if (!(await originHasLiveConsent(origin))) {
+      return refuse("This origin has not been paired, or its pairing has expired.");
+    }
+    pairingToken = newToken();
+    emergencyStopped = false;
+    const manifest = chrome.runtime.getManifest();
+    return reply("connect", {
+      v: PROTOCOL_VERSION,
+      token: pairingToken,
+      reconnected: true,
+      identity: {
+        runtimeId: chrome.runtime.id,
+        name: manifest.name,
+        version: manifest.version,
+        manifestVersion: manifest.manifest_version,
+      },
+    });
+  }
+
+  if (msg.kind === "connect") {
+    const origin = sender?.origin ?? (sender?.url ? new URL(sender.url).origin : null);
+    await rememberPairedOrigin(origin);
+  }
 
   if (msg.kind === "run.progress") {
     if (typeof msg.runId !== "string" || !msg.runId) return refuse("A run id is required.");
@@ -1057,7 +1154,13 @@ chrome.runtime.onMessageExternal.addListener((msg, sender, sendResponse) => {
   return true; // keep the channel open for the async reply
 });
 
-// Dropping the token on suspend means a new session must pair again.
+/*
+ * The token still dies with the worker — it is never written anywhere.
+ *
+ * What changed is the recovery path: because the ORIGIN's consent is
+ * remembered, the page can ask for a fresh token instead of demanding the user
+ * read a six-digit code off a popup every time the worker idles out.
+ */
 chrome.runtime.onSuspend?.addListener(() => {
   pairingToken = null;
 });

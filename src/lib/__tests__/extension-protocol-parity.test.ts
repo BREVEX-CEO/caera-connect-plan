@@ -149,4 +149,44 @@ describe("the extension package is a bounded attack surface", () => {
     // Persisting it would survive a browser restart and outlive the pairing.
     expect(background).not.toMatch(/chrome\.storage\.\w+\.set\([^)]*pairingToken/);
   });
+
+  /*
+   * Reconnection remembers a DECISION, not a CREDENTIAL.
+   *
+   * The extension may reconnect a previously paired origin without a fresh
+   * popup code. The tempting shortcut is to stash the token and hand the same
+   * one back — which is exactly what the test above forbids. These guard the
+   * replacement: the stored record carries only an origin and timestamps, and
+   * a reconnect must mint a new token rather than reuse a stored one.
+   */
+  it("stores only origin + expiry in the consent record, never a token", () => {
+    const stored = background.slice(
+      background.indexOf("async function rememberPairedOrigin"),
+      background.indexOf("async function originHasLiveConsent"),
+    );
+    expect(stored).toContain("pairedAt");
+    expect(stored).toContain("expiresAt");
+    expect(stored).not.toMatch(/token/i);
+  });
+
+  it("mints a fresh token on reconnect instead of restoring one", () => {
+    const reconnect = background.slice(background.indexOf("msg.reconnect === true"));
+    // A new token is generated...
+    expect(reconnect).toMatch(/pairingToken = newToken\(\)/);
+    // ...and nothing is ever read back out of storage as a token.
+    expect(background).not.toMatch(/pairingToken\s*=\s*[^;]*chrome\.storage/);
+  });
+
+  it("expires remembered consent rather than granting it forever", () => {
+    expect(background).toMatch(/CONSENT_TTL_MS\s*=/);
+    expect(background).toMatch(/Date\.now\(\) < entry\.expiresAt/);
+  });
+
+  it("revokes remembered consent on emergency stop", () => {
+    const stop = background.slice(
+      background.indexOf('case "emergency.stop"'),
+      background.indexOf('case "emergency.stop"') + 400,
+    );
+    expect(stop).toContain("forgetAllPairedOrigins");
+  });
 });
