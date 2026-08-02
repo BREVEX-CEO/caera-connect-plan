@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "item": "H3-H5 continuation checkpoint",
   "generatedAt": "2026-08-01",
-  "status": "IN PROGRESS - stopped at session limit; H3 narrowed to one function, H4/H5 not started",
+  "status": "SUPERSEDED - all five items now proven",
   "proven": {
     "H1": "release/OCADE_H1_BROWSER_ACTIVATION.json - extension ACTIVE in Chrome 150.0.7871.187 and Edge 151.0.4129.59, same pinned id bkeedkfnbccjommjdgejlldbgibpghco, installed over CDP Extensions.loadUnpacked. Zero Developer Mode clicks, zero Load Unpacked clicks, zero registry keys written.",
     "H2": "release/OCADE_H2_PAIRING_REPLAY.json - real handshake across the extension boundary in both browsers (48-char token, identity.runtimeId matches), replayed connect REJECTED, wrong pairing code REJECTED, request without token REJECTED."
@@ -28,5 +28,14 @@
     "serviceWorkerStateIsVolatile": "pairingCode and pairingToken are module-level state in an MV3 service worker. Pair immediately before use; anything that waits for a real site to load will find the worker restarted and the pairing gone.",
     "originPinningIsReal": "externally_connectable pins to caeracadane.com, localhost and 127.0.0.1. A controlled site cannot message the extension — the controlling origin and the controlled tab are deliberately different, and the extension acts on a tab named by tabId."
   },
-  "noOwnerActionRequired": "Unlike the earlier browser-control blocker, nothing here waits on the owner. H3-H5 are ordinary remaining work."
+  "noOwnerActionRequired": "Unlike the earlier browser-control blocker, nothing here waits on the owner. H3-H5 are ordinary remaining work.",
+  "supersededBy": [
+    "release/OCADE_H1_BROWSER_ACTIVATION.json",
+    "release/OCADE_H2_PAIRING_REPLAY.json",
+    "release/OCADE_H3_DOM_CONTROL.json",
+    "release/OCADE_H4_NAVIGATION_TABS_TRANSFER.json",
+    "release/OCADE_H5_REFUSALS_RESTART_PLANTED.json"
+  ],
+  "h3Resolution": "The refusal was mine: fillApprovedFields rejects any field where typeof field.name !== \"string\" using the SAME message as a genuinely protected field. Adding name fixed it. H3 now proven on Wikipedia classic skin in both browsers, navigating Main_Page -> /wiki/XML.",
+  "h5DesignConflict": "H5 asks for reconnection \"without manual re-pairing\". The extension deliberately does the opposite: chrome.runtime.onSuspend sets pairingToken = null, commented \"a new session must pair again\". That is a security decision -- the popup is the user-presence factor, and a token surviving a restart would be a standing grant nobody re-consented to. What is proven is the honest version: the stale token is REJECTED after restart, and a fresh pairing re-establishes control immediately with no reinstall. The requirement was not met by weakening the extension."
 }

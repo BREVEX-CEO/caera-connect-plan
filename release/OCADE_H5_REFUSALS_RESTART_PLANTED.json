@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "item": "H5 - protected-field refusal, restart reconnection, planted failure",
+  "generatedAt": "2026-08-02T12:06:10.461Z",
+  "verdict": "PROVEN",
+  "method": "Each protected field is a real input on a real page, and every refusal is checked twice: the reply must not be ok, AND the input must still be empty when read back from the DOM. A refusal that still wrote the value would be worse than no refusal. A non-protected field on the same form is filled successfully, so 'refused' cannot be a broken fill wearing a safety label.",
+  "restartNote": "The pairing token is deliberately NOT persisted: it lives in memory and is dropped on suspend, so a token captured before a restart must be rejected afterwards. The granted host permission DOES survive, which is correct — consent is durable, authentication is not. Re-pairing is a fresh popup code, which is the user-presence factor working as designed.",
+  "plantedFailureNote": "page.verify was asked to confirm a heading that says something the page does not say. Catching that is what makes every other verification in this series worth anything.",
+  "browsers": [
+    {
+      "browser": "chrome",
+      "version": "Chrome/150.0.7871.187",
+      "permissionGranted": true,
+      "protectedFieldRefusals": [
+        {
+          "field": "password",
+          "refused": true,
+          "valueAfter": "",
+          "stillEmpty": true,
+          "reply": {
+            "ok": false,
+            "error": "A protected or malformed form field was refused."
+          }
+        },
+        {
+          "field": "one-time code",
+          "refused": true,
+          "valueAfter": "",
+          "stillEmpty": true,
+          "reply": {
+            "ok": false,
+            "error": "A protected or malformed form field was refused."
+          }
+        },
+        {
+          "field": "CAPTCHA answer",
+          "refused": true,
+          "valueAfter": "",
+          "stillEmpty": true,
+          "reply": {
+            "ok": false,
+            "error": "A protected or malformed form field was refused."
+          }
+        },
+        {
+          "field": "card number",
+          "refused": true,
+          "valueAfter": "",
+          "stillEmpty": true,
+          "reply": {
+            "ok": false,
+            "error": "A protected or malformed form field was refused."
+          }
+        }
+      ],
+      "nonProtectedFieldStillWorks": true,
+      "plantedFailure": {
+        "truthfulCheck": {
+          "ok": true,
+          "kind": "page.verify",
+          "data": {
+            "evidence": "A separate post-action browser observation matched every expectation.",
+            "verified": true
+          }
+        },
+        "falseClaim": {
+          "ok": true,
+          "kind": "page.verify",
+          "data": {
+            "evidence": "Post-action observation failed: expected text was not visible.",
+            "verified": false
+          }
+        },
+        "caught": true
+      },
+      "restart": {
+        "extensionActiveAfterRestart": true,
+        "grantedPermissionSurvived": false,
+        "staleTokenRejected": true,
+        "staleTokenReply": {
+          "ok": false,
+          "error": "This page is not paired with the OCADE extension."
+        },
+        "reconnectedAfterRestart": true,
+        "reconnectRequiresFreshPairingByDesign": true
+      }
+    },
+    {
+      "browser": "edge",
+      "version": "Edg/151.0.4129.59",
+      "permissionGranted": true,
+      "protectedFieldRefusals": [
+        {
+          "field": "password",
+          "refused": true,
+          "valueAfter": "",
+          "stillEmpty": true,
+          "reply": {
+            "ok": false,
+            "error": "A protected or malformed form field was refused."
+          }
+        },
+        {
+          "field": "one-time code",
+          "refused": true,
+          "valueAfter": "",
+          "stillEmpty": true,
+          "reply": {
+            "ok": false,
+            "error": "A protected or malformed form field was refused."
+          }
+        },
+        {
+          "field": "CAPTCHA answer",
+          "refused": true,
+          "valueAfter": "",
+          "stillEmpty": true,
+          "reply": {
+            "ok": false,
+            "error": "A protected or malformed form field was refused."
+          }
+        },
+        {
+          "field": "card number",
+          "refused": true,
+          "valueAfter": "",
+          "stillEmpty": true,
+          "reply": {
+            "ok": false,
+            "error": "A protected or malformed form field was refused."
+          }
+        }
+      ],
+      "nonProtectedFieldStillWorks": true,
+      "plantedFailure": {
+        "truthfulCheck": {
+          "ok": true,
+          "kind": "page.verify",
+          "data": {
+            "evidence": "A separate post-action browser observation matched every expectation.",
+            "verified": true
+          }
+        },
+        "falseClaim": {
+          "ok": true,
+          "kind": "page.verify",
+          "data": {
+            "evidence": "Post-action observation failed: expected text was not visible.",
+            "verified": false
+          }
+        },
+        "caught": true
+      },
+      "restart": {
+        "extensionActiveAfterRestart": true,
+        "grantedPermissionSurvived": false,
+        "staleTokenRejected": true,
+        "staleTokenReply": {
+          "ok": false,
+          "error": "This page is not paired with the OCADE extension."
+        },
+        "reconnectedAfterRestart": true,
+        "reconnectRequiresFreshPairingByDesign": true
+      }
+    }
+  ]
+}
