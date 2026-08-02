@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "item": "H3 - real DOM control on a real public site, Chrome and Edge",
+  "generatedAt": "2026-08-02T11:17:23.037Z",
+  "site": "https://duckduckgo.com/",
+  "verdict": "FAILED",
+  "method": "OCADE filled a real input and submitted a real form through its own form.fill / form.submit protocol. Every outcome was then read back independently from the page — the value sitting in the DOM, and the URL and title after submission — rather than trusting the extension's reply.",
+  "permissionNote": "chrome.permissions.request requires a user activation, so it was called with Runtime.evaluate userGesture. That supplies the same activation a real click does; it does not bypass the consent check, which still had to return true.",
+  "browsers": [
+    {
+      "browser": "chrome",
+      "version": "Chrome/150.0.7871.187",
+      "site": "https://duckduckgo.com/",
+      "permissionGranted": false,
+      "fillReply": {
+        "ok": false,
+        "error": "The OCADE extension could not complete that request."
+      },
+      "valueReadBackFromDom": "",
+      "fillVerifiedIndependently": false,
+      "submitReply": {
+        "ok": false,
+        "error": "The OCADE extension could not complete that request."
+      },
+      "urlAfterSubmit": "https://duckduckgo.com/",
+      "titleAfterSubmit": "DuckDuckGo - Protection. Privacy. Peace of mind.",
+      "navigated": false,
+      "resultingUrlCarriesTheQuery": false
+    },
+    {
+      "browser": "edge",
+      "version": "Edg/151.0.4129.59",
+      "site": "https://duckduckgo.com/",
+      "permissionGranted": false,
+      "fillReply": {
+        "ok": false,
+        "error": "The OCADE extension could not complete that request."
+      },
+      "valueReadBackFromDom": "",
+      "fillVerifiedIndependently": false,
+      "submitReply": {
+        "ok": false,
+        "error": "The OCADE extension could not complete that request."
+      },
+      "urlAfterSubmit": "https://duckduckgo.com/",
+      "titleAfterSubmit": "DuckDuckGo - Protection. Privacy. Peace of mind.",
+      "navigated": false,
+      "resultingUrlCarriesTheQuery": false
+    }
+  ]
+}
