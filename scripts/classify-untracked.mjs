@@ -88,6 +88,13 @@ const RULES = [
   // `scripts/` are increasingly TypeScript (run via vite-node), and a .mts
   // helper is no less an automation script than its .mjs sibling.
   { kind: "script", why: "automation script", re: /^scripts\/.*\.[cm]?[jt]s$/ },
+  // PowerShell under `scripts/` is an automation script too. The screen-capture
+  // and OCR host has to reach Win32 (PrintWindow, DWM frame bounds, per-monitor
+  // DPI) and WinRT (Windows.Media.Ocr), none of which Node can call directly, so
+  // this is the one part of the perception path that cannot be a .mts. Anchored
+  // to `^scripts/` for the same reason the rule above is: a .ps1 anywhere else
+  // must still stop and ask a human.
+  { kind: "script", why: "PowerShell automation script", re: /^scripts\/.*\.ps1$/ },
   // The requirement-register audit pipeline lives under `audit/`, not
   // `scripts/`, and emits newline-delimited JSON. Neither the `script` rule
   // (anchored to `^scripts/`) nor the config rule (`\.json$` does not match
