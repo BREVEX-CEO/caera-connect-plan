@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { registerDeviceForCurrentSession } from "@/lib/devices";
 import { reportLovableError } from "@/lib/lovable-error-reporting";
+import { FirstRunEngineSetup } from "@/components/ocade/FirstRunEngineSetup";
 
 /**
  * Integration-managed protected layout. Runs client-only because the Supabase
@@ -48,7 +49,14 @@ function AuthedLayout() {
       reportLovableError(e, { boundary: "device_registration" }),
     );
   }, []);
-  return <Outlet />;
+  return (
+    <>
+      {/* Detects the machine and installs the matching engine on first launch.
+          Renders nothing once a model exists. */}
+      <FirstRunEngineSetup />
+      <Outlet />
+    </>
+  );
 }
 
 function AuthedError({ error, reset }: { error: Error; reset: () => void }) {
