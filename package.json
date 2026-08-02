@@ -67,7 +67,9 @@
     "application-lifecycle:check": "node scripts/check-lifecycle-policy.mjs",
     "deploy:check": "node scripts/deploy.mjs --check",
     "deploy:web": "node scripts/deploy.mjs --execute",
-    "deploy:rollback": "node scripts/deploy.mjs --rollback"
+    "deploy:rollback": "node scripts/deploy.mjs --rollback",
+    "extension:package": "node scripts/extension-policy-install.mjs --print",
+    "extension:package-evidence": "node scripts/extension-policy-install.mjs --write-evidence"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.12",
