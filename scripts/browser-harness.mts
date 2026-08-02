@@ -65,7 +65,9 @@ export class Browser {
   }
 
   /** Launch, optionally reusing the profile so a restart keeps its state. */
-  async launch(opts: { keepProfile?: boolean; headless?: boolean } = {}): Promise<void> {
+  async launch(
+    opts: { keepProfile?: boolean; headless?: boolean; downloadDir?: string } = {},
+  ): Promise<void> {
     if (!opts.keepProfile) rmSync(this.profileDir, { recursive: true, force: true });
     mkdirSync(this.profileDir, { recursive: true });
     this.child = spawn(
@@ -83,6 +85,21 @@ export class Browser {
       { stdio: "ignore", windowsHide: true },
     );
     await this.connect();
+
+    /*
+     * Send downloads to a known folder and accept them without a prompt.
+     *
+     * This is the "approved location" the requirement names: the test can then
+     * verify the file by reading its bytes off disk, rather than trusting the
+     * extension's report that a download happened.
+     */
+    if (opts.downloadDir) {
+      await this.send("Browser.setDownloadBehavior", {
+        behavior: "allow",
+        downloadPath: opts.downloadDir,
+        eventsEnabled: true,
+      });
+    }
   }
 
   private async connect(): Promise<void> {
