@@ -57,19 +57,34 @@ for (const [name, port] of [
     const popup = await browser.attachToPage(`chrome-extension://${extId}/popup.html`);
     await new Promise((r) => setTimeout(r, 1000));
 
-    // Grant the site permission with a REAL user activation.
-    const granted = await browser.send(
-      "Runtime.evaluate",
-      {
-        expression: `chrome.permissions.request({origins:[${JSON.stringify(ORIGIN)}]})`,
-        awaitPromise: true,
-        returnByValue: true,
-        userGesture: true,
-      },
-      popup,
-    );
-    const permissionGranted =
-      (granted.result as { result?: { value?: boolean } })?.result?.value === true;
+    /*
+     * Grant the site permission from the POPUP, with a real user activation,
+     * and then VERIFY it landed.
+     *
+     * The request's return value alone was not reliable here — it came back
+     * false in the full harness while the identical call succeeded in
+     * isolation. `permissions.contains` is the authority: it reports what the
+     * browser actually holds, rather than what the request believed happened.
+     */
+    let permissionGranted = false;
+    for (let attempt = 0; attempt < 3 && !permissionGranted; attempt++) {
+      await browser.send(
+        "Runtime.evaluate",
+        {
+          expression: `chrome.permissions.request({origins:[${JSON.stringify(ORIGIN)}]}).catch(()=>false)`,
+          awaitPromise: true,
+          returnByValue: true,
+          userGesture: true,
+        },
+        popup,
+      );
+      await new Promise((r) => setTimeout(r, 800));
+      permissionGranted =
+        (await browser.evaluate(
+          popup,
+          `chrome.permissions.contains({origins:[${JSON.stringify(ORIGIN)}]})`,
+        )) === true;
+    }
 
     /*
      * OCADE's OWN page drives; the extension acts on the target tab.
@@ -129,13 +144,13 @@ for (const [name, port] of [
       token,
       confirmed: true,
       url: SITE,
-      fields: [{ target: { selector: "input[name='q']" }, value: QUERY }],
+      fields: [{ target: { selector: "#searchbox_input" }, value: QUERY }],
     });
 
     // INDEPENDENT read: what is actually in the DOM now?
     const valueInDom = await browser.evaluate(
       page,
-      `document.querySelector("input[name='q']")?.value ?? null`,
+      `document.querySelector('#searchbox_input')?.value ?? null`,
     );
 
     const submit = await send({
@@ -144,7 +159,7 @@ for (const [name, port] of [
       token,
       confirmed: true,
       url: SITE,
-      target: { selector: "input[name='q']" },
+      target: { selector: "#searchbox_input" },
     });
     await new Promise((r) => setTimeout(r, 4500));
 

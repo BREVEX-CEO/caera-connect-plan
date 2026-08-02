@@ -109,8 +109,23 @@ async function ensureOriginPermission(url) {
   }
   const already = await chrome.permissions.contains({ origins: [origin] });
   if (already) return true;
-  // Triggers the browser's own consent prompt.
-  return chrome.permissions.request({ origins: [origin] });
+  /*
+   * Triggers the browser's own consent prompt — but only when there is a user
+   * activation to trigger it with.
+   *
+   * A service worker handling an external message has no activation, so this
+   * call THROWS rather than returning false. Unhandled, that threw straight
+   * past the caller's "You didn't grant OCADE access to this site." refusal and
+   * surfaced as the generic catch-all, leaving a user with a message that says
+   * nothing about what to do. Returning false keeps the actionable refusal
+   * reachable; the grant is then made from the popup, where the activation
+   * actually exists.
+   */
+  try {
+    return await chrome.permissions.request({ origins: [origin] });
+  } catch {
+    return false;
+  }
 }
 
 async function activeTab() {

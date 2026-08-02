@@ -2,36 +2,31 @@
   "schemaVersion": 1,
   "item": "H3-H5 continuation checkpoint",
   "generatedAt": "2026-08-01",
-  "status": "IN PROGRESS - stopped at session limit, not blocked on an owner action",
-
+  "status": "IN PROGRESS - stopped at session limit; H3 narrowed to one function, H4/H5 not started",
   "proven": {
     "H1": "release/OCADE_H1_BROWSER_ACTIVATION.json - extension ACTIVE in Chrome 150.0.7871.187 and Edge 151.0.4129.59, same pinned id bkeedkfnbccjommjdgejlldbgibpghco, installed over CDP Extensions.loadUnpacked. Zero Developer Mode clicks, zero Load Unpacked clicks, zero registry keys written.",
     "H2": "release/OCADE_H2_PAIRING_REPLAY.json - real handshake across the extension boundary in both browsers (48-char token, identity.runtimeId matches), replayed connect REJECTED, wrong pairing code REJECTED, request without token REJECTED."
   },
-
   "h3State": {
     "working": [
       "extension installs and activates in both browsers",
-      "pairing from the popup issues a real 6-digit code",
-      "connect from the 127.0.0.1 control page returns a valid token",
-      "form.fill and form.submit reach the service worker and are answered"
+      "origin permission GRANTED and verified via permissions.contains in both browsers",
+      "pairing from the popup issues a real code; connect returns a valid token",
+      "form.submit SUCCEEDS in both browsers: {ok:true, kind:\"form.submit\", data:{healed:false, ok:true}}"
     ],
-    "failing": "form.fill returns the generic 'The OCADE extension could not complete that request.' — which is the catch-all in onMessageExternal, meaning handle() THREW rather than refusing.",
-    "diagnosis": "ensureOriginPermission calls chrome.permissions.request from inside the message handler. That API requires a user activation, and a service worker handling an external message has none, so it throws instead of returning false. Granting the origin from the popup beforehand is the correct sequence, but the popup grant in the harness returned false while the same call in isolation returned {granted:true} and flipped permissions.contains from false to true.",
-    "whyThisMattersBeyondTheTest": "If chrome.permissions.request throws in the handler rather than returning false, a user who has not pre-granted an origin gets a generic failure instead of 'You didn't grant OCADE access to this site.' The refusal path that exists in the code at line 805 is unreachable in that case. That is a product defect worth fixing, not only a harness problem.",
-    "nextStep": "Grant the origin from the popup with Runtime.evaluate userGesture and assert permissions.contains returns true BEFORE sending form.fill; if the grant still returns false inside the full harness, compare against the isolated repro which succeeded, since the only differences are the number of open targets and the timing."
+    "failing": "form.fill returns \"A protected or malformed form field was refused.\" in both browsers.",
+    "sharpenedDiagnosis": "This is NOT selector resolution and NOT a permission problem. form.submit succeeds with the SAME selector (#searchbox_input) and the same token, so the element resolves and the origin is granted. The refusal therefore comes from inside fillApprovedFields after resolve() succeeds — either its protectedPattern matching something about the field, or its usable()/ambiguity branch. background.js:264 holds the pattern; the next session should log which branch fires rather than infer it.",
+    "selectorNote": "input[name=\"q\"] was the wrong selector and produced the same message for a different reason: DuckDuckGo has several hidden inputs named q, querySelector returned a hidden one, and usable() correctly rejected it. #searchbox_input is the visible field (name=q, id=searchbox_input, aria-label=\"Search with DuckDuckGo\").",
+    "productDefectFixedThisSession": "ensureOriginPermission called chrome.permissions.request from inside the message handler, where a service worker has no user activation, so it THREW instead of returning false. That threw past the actionable refusal at background.js:805 and surfaced as the generic catch-all. Now wrapped in try/catch returning false, so the specific message is reachable.",
+    "nextStep": "Instrument fillApprovedFields to report WHICH branch refuses, then fix or adjust. Everything else in the H3 chain is proven working."
   },
-
   "h4State": "NOT STARTED. Needs navigation confirmed via extension events, a deliberately slow-loading element, multiple tabs without cross-talk, and one real approved upload and download. The harness already records CDP events, which is what navigation confirmation should read.",
-
   "h5State": "NOT STARTED in a real browser. Protected-field refusal is already proven at protocol level by the zero-touch harness executing the real background.js: the pattern at background.js:205 and :264 covers password, otp, 2fa, captcha, cvv, card, iban, ssn, pin and recovery. Restart-reconnect and planted-failure detection have no coverage yet.",
-
   "environmentNotes": {
     "headlessCannotGrantPermissions": "Under --headless=new the extension consent prompt is auto-denied and chrome.permissions.request returns false. H3 onwards must run headful. Measured, not assumed.",
     "loadExtensionFlagIsDead": "--load-extension is ignored by Chrome 137+ and by Edge. CDP Extensions.loadUnpacked with --enable-unsafe-extension-debugging is the working route and needs no policy change.",
     "serviceWorkerStateIsVolatile": "pairingCode and pairingToken are module-level state in an MV3 service worker. Pair immediately before use; anything that waits for a real site to load will find the worker restarted and the pairing gone.",
     "originPinningIsReal": "externally_connectable pins to caeracadane.com, localhost and 127.0.0.1. A controlled site cannot message the extension — the controlling origin and the controlled tab are deliberately different, and the extension acts on a tab named by tabId."
   },
-
   "noOwnerActionRequired": "Unlike the earlier browser-control blocker, nothing here waits on the owner. H3-H5 are ordinary remaining work."
 }
