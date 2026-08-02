@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "item": "N1-N3 - packaging, signing and updates: prerequisites",
-  "generatedAt": "2026-08-02T18:02:32.484Z",
-  "verdict": "BLOCKED - NOT ATTEMPTED",
+  "generatedAt": "2026-08-02T18:21:39.396Z",
+  "verdict": "PARTIALLY PROVEN - update server half of N2 done; the rest blocked",
   "honestyNote": "No signing, installer or update-server work was performed or claimed. This records what is present and what is missing, measured on this machine.",
   "present": [
     {
@@ -45,6 +45,12 @@
       "name": "freshly provisioned clean CI machine",
       "measured": "no CI access; gh auth status reports not logged in",
       "requiredFor": "N3 clean install / upgrade / rollback / uninstall"
+    },
+    {
+      "name": "Tauri CLI and Windows bundler (WiX/NSIS)",
+      "measured": "cargo tauri -> \"no such command\"; no @tauri-apps/* npm package installed; native/companion/tauri/target has no release bundle",
+      "requiredFor": "N2 Windows installer half",
+      "note": "This one needs no credentials — only a toolchain install (cargo install tauri-cli, or adding @tauri-apps/cli as a devDependency plus the bundler downloads). Adding a build dependency to the project is the owner’s decision, not a step to take unasked in order to make a test pass."
     }
   ],
   "placeholdersN1AsksToReplace": {
@@ -62,5 +68,16 @@
     "Provide Apple Developer credentials and enable macOS CI for notarization",
     "gh auth login, to reach cloud macOS CI and a clean CI machine for N3",
     "Provide Cloudflare credentials for the update server deployment"
-  ]
+  ],
+  "progressSinceFirstProbe": {
+    "N2 update server": "PROVEN without credentials. A real HTTP server on loopback serves a real signed manifest at the exact Tauri endpoint shape, a real request returns it, and the client verifies it with real Ed25519 over the artifact SHA-256. The manifest hash is checked against the bytes actually downloaded. All seven refusal paths hold by name: tampered artifact, wrong key, malformed signature, unsigned manifest, hashless manifest, downgrade, and below the upgrade floor. See release/OCADE_N2_UPDATE_SERVER.json.",
+    "why that was possible": "src/lib/packaging/update-signature.ts makes the distinction explicit: a release certificate identifies the PUBLISHER, which is separate from whether the signing and verification pipeline works. The pipeline is provable today with a generated key pair; the certificate is not."
+  },
+  "stillBlocked": {
+    "N1 Windows signing": "zero code-signing certificates in the store",
+    "N1 macOS sign + notarize": "no Apple Developer credentials, no macOS host",
+    "N2 installers": "Tauri CLI + bundler not installed (no credentials needed — owner decision)",
+    "N2 deployed update server": "no Cloudflare credentials; the manifest logic itself is proven above",
+    "N3": "no freshly provisioned clean CI machine (gh unauthenticated)"
+  }
 }
