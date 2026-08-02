@@ -222,9 +222,30 @@ let failed = false;
 for (const tier of tiers) {
   console.log(`\n=== ${tier.tag} (${tier.deviceClass}) ===`);
 
-  // ---------------------------------------------------------------- install
+  /*
+   * ---------------------------------------------------------------- install
+   *
+   * Check what is already here BEFORE reaching for the network.
+   *
+   * `pullModel` always re-checks the manifest against the registry, even for a
+   * model that is fully installed. On this host that turned into a hard failure:
+   * the runtime dials the registry over IPv6 and that path is blocked
+   * ("connectex: An attempt was made to access a socket in a way forbidden by
+   * its access permissions"), while IPv4 works fine — so an already-installed
+   * 8.64 GiB model could not be benchmarked at all, and a FAILED record
+   * overwrote a good measurement.
+   *
+   * Re-downloading is not what "verify an installed model" should mean, and a
+   * local-first product must not need the internet to exercise a local model.
+   * So: if it is installed, skip the pull entirely and say so.
+   */
+  const preexisting = await verifyInstalled(BRIDGE, tier.tag);
+  const alreadyInstalled = preexisting.ok;
+
   let lastPct = -1;
-  const pull = await pullModel(BRIDGE, tier.tag, {
+  const pull = alreadyInstalled
+    ? ({ ok: true as const, modelId: tier.tag, elapsedMs: 0, lastStatus: "already installed" })
+    : await pullModel(BRIDGE, tier.tag, {
     expectedBytes: tier.expectedStorageBytes,
     freeStorageBytes: await freeBytes(),
     onProgress: (p) => {
@@ -244,7 +265,11 @@ for (const tier of tiers) {
     failed = true;
     continue;
   }
-  console.log(`  installed in ${(pull.elapsedMs / 1000).toFixed(1)}s — ${pull.lastStatus}`);
+  console.log(
+    alreadyInstalled
+      ? `  already installed — no network needed`
+      : `  installed in ${(pull.elapsedMs / 1000).toFixed(1)}s — ${pull.lastStatus}`,
+  );
 
   // ------------------------------------------------------- digest, twice over
   const installed = await verifyInstalled(BRIDGE, tier.tag);
@@ -378,7 +403,10 @@ for (const tier of tiers) {
 
 const document = {
   schemaVersion: 1,
-  item: "B2 - install and benchmark the tiers this machine can run",
+  // Derived from the tiers actually attempted rather than hardcoded: an earlier
+  // run wrote "B2" into a file named B3, which is exactly the kind of label
+  // drift that makes evidence untrustworthy.
+  item: `Tier install and benchmark - ${RUNNABLE.join(", ")}`,
   generatedAt: new Date().toISOString(),
   host: {
     platform: process.platform,
@@ -395,7 +423,7 @@ const document = {
   results,
 };
 
-console.log(`\nB2 tier benchmark: ${document.verdict}`);
+console.log(`\n${document.item}: ${document.verdict}`);
 if (write) {
   await writeFile(OUT, JSON.stringify(document, null, 2) + "\n");
   console.log(`Wrote ${OUT}`);
