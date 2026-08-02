@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { CodeWorkspacePanel } from "@/components/ocade/CodeWorkspacePanel";
+import { FileManagerPanel } from "@/components/ocade/FileManagerPanel";
 
 export const Route = createFileRoute("/_authenticated/ocade/code")({
   head: () => ({
@@ -19,6 +20,8 @@ function CodePage() {
         description="Inspect a user-selected repository, follow its rules, patch exact context, exercise recovery, and keep observed evidence."
       />
       <CodeWorkspacePanel />
+      {/* Real file operations, confined to a folder the user names. */}
+      <FileManagerPanel />
     </AppShell>
   );
 }

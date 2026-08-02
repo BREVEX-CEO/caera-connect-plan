@@ -96,7 +96,55 @@ export type FileOutcome =
   { ok: true; evidence: string; data?: string } | { ok: false; reason: string };
 
 /**
- * Confirm a path is genuinely inside the approved root.
+ * Locations nothing may touch, however the path is expressed or approved.
+ *
+ * Scoping to an approved root is NOT sufficient on its own, and this was found
+ * the hard way: approving `C:\Windows` as the root and writing to a file that
+ * did not yet exist created a real file in the real Windows directory. The
+ * scope check passed, correctly — the target genuinely was inside the approved
+ * root. The root was the problem.
+ *
+ * So this is a second, independent lock, applied at the same choke point every
+ * operation already goes through. It is checked against the RESOLVED real path,
+ * so `..` and symlinks cannot dodge it, and it applies to reads as well as
+ * writes — `C:\Windows\System32\config\SAM` is not something to hand back
+ * either.
+ */
+const PROTECTED_PATTERNS: { pattern: RegExp; what: string }[] = [
+  { pattern: /^[a-z]:\/windows(\/|$)/i, what: "the Windows system folder" },
+  { pattern: /^[a-z]:\/program files( \(x86\))?(\/|$)/i, what: "an installed-programs folder" },
+  { pattern: /^[a-z]:\/programdata(\/|$)/i, what: "the shared program data folder" },
+  { pattern: /^[a-z]:\/\$recycle\.bin(\/|$)/i, what: "the recycle bin" },
+  { pattern: /^[a-z]:\/system volume information(\/|$)/i, what: "a system volume folder" },
+  {
+    pattern: /^\/(etc|bin|sbin|usr\/bin|usr\/sbin|boot|sys|proc|dev)(\/|$)/i,
+    what: "a system folder",
+  },
+  { pattern: /^\/system(\/|$)/i, what: "the macOS system folder" },
+  { pattern: /^\/library\/(launchdaemons|launchagents)(\/|$)/i, what: "a system startup folder" },
+  { pattern: /(^|\/)\.ssh(\/|$)/i, what: "an SSH key folder" },
+  { pattern: /(^|\/)\.aws(\/|$)/i, what: "a cloud-credentials folder" },
+  { pattern: /(^|\/)\.git(\/|$)/i, what: "a Git internals folder" },
+];
+
+/** Pure, so it is cheap to test exhaustively. Expects a resolved real path. */
+export function assertNotProtected(
+  resolvedPath: string,
+): { ok: true } | { ok: false; reason: string } {
+  const p = resolvedPath.replace(/\\/g, "/").replace(/\/+$/, "");
+  for (const { pattern, what } of PROTECTED_PATTERNS) {
+    if (pattern.test(p)) {
+      return {
+        ok: false,
+        reason: `That path is inside ${what}, which OCADE will not touch even if the folder was approved.`,
+      };
+    }
+  }
+  return { ok: true };
+}
+
+/**
+ * Confirm a path is genuinely inside the approved root AND not protected.
  *
  * Uses the RESOLVED real path on both sides, so a symlink pointing outside the
  * root is caught. A string-prefix check on the unresolved path would pass a
@@ -130,12 +178,16 @@ export async function assertInsideRoot(
   }
 
   const inside = resolved === realRoot || resolved.startsWith(`${realRoot}/`);
-  return inside
-    ? { ok: true, resolved }
-    : {
-        ok: false,
-        reason: "That path is outside the folder you approved for this task.",
-      };
+  if (!inside) {
+    return { ok: false, reason: "That path is outside the folder you approved for this task." };
+  }
+
+  // Second lock: being inside an approved root is not enough if the root
+  // itself is somewhere nothing should be writing.
+  const notProtected = assertNotProtected(resolved);
+  if (!notProtected.ok) return { ok: false, reason: notProtected.reason };
+
+  return { ok: true, resolved };
 }
 
 function normalise(p: string): string {
