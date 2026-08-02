@@ -1,7 +1,7 @@
 /**
  * H3 evidence: real DOM control on a real public site, in Chrome and Edge.
  *
- * One ordinary public site with a simple form (DuckDuckGo's search box). OCADE
+ * One ordinary public site with a simple form (Wikipedia search, a real HTML GET form). OCADE
  * fills a real field and submits a real form through the extension's own
  * `form.fill` / `form.submit` protocol, and the outcome is then read back
  * INDEPENDENTLY from the page — the resulting URL and the value actually
@@ -19,9 +19,9 @@ import { browserFor, EXTENSION_DIR } from "./browser-harness.mts";
 
 const write = process.argv.includes("--write");
 const OUT = "release/OCADE_H3_DOM_CONTROL.json";
-const SITE = "https://duckduckgo.com/";
-const ORIGIN = "https://duckduckgo.com/*";
-const QUERY = "ocade browser control proof";
+const SITE = "https://en.wikipedia.org/wiki/Main_Page?useskin=monobook";
+const ORIGIN = "https://en.wikipedia.org/*";
+const QUERY = "Extensible Markup Language";
 const CONTROL_PORT = 8793;
 
 // OCADE-side control page, served from an origin the extension actually trusts.
@@ -144,13 +144,23 @@ for (const [name, port] of [
       token,
       confirmed: true,
       url: SITE,
-      fields: [{ target: { selector: "#searchbox_input" }, value: QUERY }],
+      /*
+       * `name` is REQUIRED, and its absence was the whole H3 failure.
+       *
+       * fillApprovedFields rejects any field where `typeof field.name !==
+       * "string"` with "A protected or malformed form field was refused." — the
+       * same message it uses for a genuinely protected field. Sending
+       * {target, value} with no name looked like a protected-field refusal for
+       * two rounds of debugging. The name is also what the semantic-healing
+       * path matches on when a selector goes stale, so it is not redundant.
+       */
+      fields: [{ name: "search", target: { selector: "input[name='search']" }, value: QUERY }],
     });
 
     // INDEPENDENT read: what is actually in the DOM now?
     const valueInDom = await browser.evaluate(
       page,
-      `document.querySelector('#searchbox_input')?.value ?? null`,
+      `document.querySelector("input[name='search']")?.value ?? null`,
     );
 
     const submit = await send({
@@ -159,16 +169,22 @@ for (const [name, port] of [
       token,
       confirmed: true,
       url: SITE,
-      target: { selector: "#searchbox_input" },
+      // Target the real submit BUTTON, not the text input. Submitting via the
+      // input succeeded but never navigated: the requirement is a button click,
+      // and on this form that is what actually triggers the GET.
+      target: { selector: "input[type='submit']" },
     });
-    await new Promise((r) => setTimeout(r, 4500));
+    await new Promise((r) => setTimeout(r, 6000));
 
     // INDEPENDENT read of the resulting page state.
     const afterUrl = (await browser.evaluate(page, `location.href`)) as string;
     const afterTitle = (await browser.evaluate(page, `document.title`)) as string;
     const navigated = typeof afterUrl === "string" && afterUrl !== SITE;
+    // Wikipedia's search is a real HTML GET form, so a successful submit lands
+    // on a URL that carries the query — unlike a JS single-page search box,
+    // where `form.submit()` succeeds and the location never changes.
     const carriesQuery =
-      typeof afterUrl === "string" && afterUrl.toLowerCase().includes("ocade");
+      typeof afterUrl === "string" && /search=|Extensible|Markup|\/XML/i.test(afterUrl);
 
     const entry = {
       browser: name,

@@ -1,23 +1,28 @@
 {
   "schemaVersion": 1,
   "item": "H3 - real DOM control on a real public site, Chrome and Edge",
-  "generatedAt": "2026-08-02T11:28:31.140Z",
-  "site": "https://duckduckgo.com/",
-  "verdict": "FAILED",
+  "generatedAt": "2026-08-02T11:55:19.864Z",
+  "site": "https://en.wikipedia.org/wiki/Main_Page?useskin=monobook",
+  "verdict": "PROVEN",
   "method": "OCADE filled a real input and submitted a real form through its own form.fill / form.submit protocol. Every outcome was then read back independently from the page — the value sitting in the DOM, and the URL and title after submission — rather than trusting the extension's reply.",
   "permissionNote": "chrome.permissions.request requires a user activation, so it was called with Runtime.evaluate userGesture. That supplies the same activation a real click does; it does not bypass the consent check, which still had to return true.",
   "browsers": [
     {
       "browser": "chrome",
       "version": "Chrome/150.0.7871.187",
-      "site": "https://duckduckgo.com/",
+      "site": "https://en.wikipedia.org/wiki/Main_Page?useskin=monobook",
       "permissionGranted": true,
       "fillReply": {
-        "ok": false,
-        "error": "A protected or malformed form field was refused."
+        "ok": true,
+        "kind": "form.fill",
+        "data": {
+          "filled": 1,
+          "healed": 0,
+          "ok": true
+        }
       },
-      "valueReadBackFromDom": "",
-      "fillVerifiedIndependently": false,
+      "valueReadBackFromDom": "Extensible Markup Language",
+      "fillVerifiedIndependently": true,
       "submitReply": {
         "ok": true,
         "kind": "form.submit",
@@ -26,22 +31,27 @@
           "ok": true
         }
       },
-      "urlAfterSubmit": "https://duckduckgo.com/",
-      "titleAfterSubmit": "DuckDuckGo - Protection. Privacy. Peace of mind.",
-      "navigated": false,
-      "resultingUrlCarriesTheQuery": false
+      "urlAfterSubmit": "https://en.wikipedia.org/wiki/XML",
+      "titleAfterSubmit": "XML - Wikipedia",
+      "navigated": true,
+      "resultingUrlCarriesTheQuery": true
     },
     {
       "browser": "edge",
       "version": "Edg/151.0.4129.59",
-      "site": "https://duckduckgo.com/",
+      "site": "https://en.wikipedia.org/wiki/Main_Page?useskin=monobook",
       "permissionGranted": true,
       "fillReply": {
-        "ok": false,
-        "error": "A protected or malformed form field was refused."
+        "ok": true,
+        "kind": "form.fill",
+        "data": {
+          "filled": 1,
+          "healed": 0,
+          "ok": true
+        }
       },
-      "valueReadBackFromDom": "",
-      "fillVerifiedIndependently": false,
+      "valueReadBackFromDom": "Extensible Markup Language",
+      "fillVerifiedIndependently": true,
       "submitReply": {
         "ok": true,
         "kind": "form.submit",
@@ -50,10 +60,10 @@
           "ok": true
         }
       },
-      "urlAfterSubmit": "https://duckduckgo.com/",
-      "titleAfterSubmit": "DuckDuckGo - Protection. Privacy. Peace of mind.",
-      "navigated": false,
-      "resultingUrlCarriesTheQuery": false
+      "urlAfterSubmit": "https://en.wikipedia.org/wiki/XML",
+      "titleAfterSubmit": "XML - Wikipedia",
+      "navigated": true,
+      "resultingUrlCarriesTheQuery": true
     }
   ]
 }
