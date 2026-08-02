@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "item": "I2 - Set-of-Mark overlay, selection by number, keyboard reachability",
+  "generatedAt": "2026-08-02T16:50:14.416Z",
+  "verdict": "PROVEN",
+  "method": "Live UI Automation observations are fed into fusePerceptionFrame in src/lib/control/perception.ts, and the markers it returns are drawn onto a real scoped screenshot of the same window. Only elements the OS reports as interactive AND enabled are marked, so a disabled control is left unmarked. The selection is recorded as a claim before it is checked, and the same element is then reached with real Tab keystrokes.",
+  "antiCheatNote": "The four buttons are shuffled into their four slots on every launch, so the number that lands on a given label changes between runs and cannot be inferred from the window's source. Ground truth is written to a separate file from the labelled image.",
+  "overlay": {
+    "labelledImage": "C:\\Users\\haans\\AppData\\Local\\Temp\\ocade-i2-labelled.png",
+    "labelledSha256": "e37256aed0ae407edd72f1774ac6065f548b494476bacc6a3d8834909505a701",
+    "markersDrawn": 6,
+    "svgMarkerGroups": 6,
+    "drawnMatchesSvg": true,
+    "markers": [
+      {
+        "number": 1,
+        "name": "Document title",
+        "role": "Edit"
+      },
+      {
+        "number": 2,
+        "name": "Keep a backup copy",
+        "role": "CheckBox"
+      },
+      {
+        "number": 3,
+        "name": "Cancel",
+        "role": "Button"
+      },
+      {
+        "number": 4,
+        "name": "Delete",
+        "role": "Button"
+      },
+      {
+        "number": 5,
+        "name": "Save",
+        "role": "Button"
+      },
+      {
+        "number": 6,
+        "name": "Export",
+        "role": "Button"
+      }
+    ]
+  },
+  "unmarkedButPresent": [
+    {
+      "name": "Document title",
+      "role": "Text",
+      "interactive": false,
+      "enabled": true
+    },
+    {
+      "name": "Keep a backup copy",
+      "role": "Text",
+      "interactive": false,
+      "enabled": true
+    },
+    {
+      "name": "Cancel",
+      "role": "Text",
+      "interactive": false,
+      "enabled": true
+    },
+    {
+      "name": "Delete",
+      "role": "Text",
+      "interactive": false,
+      "enabled": true
+    },
+    {
+      "name": "Save",
+      "role": "Text",
+      "interactive": false,
+      "enabled": true
+    },
+    {
+      "name": "Export",
+      "role": "Text",
+      "interactive": false,
+      "enabled": true
+    },
+    {
+      "name": "Archive",
+      "role": "Button",
+      "interactive": true,
+      "enabled": false
+    },
+    {
+      "name": "Archive",
+      "role": "Text",
+      "interactive": false,
+      "enabled": false
+    },
+    {
+      "name": "Status",
+      "role": "Text",
+      "interactive": false,
+      "enabled": true
+    }
+  ],
+  "selection": {
+    "targetAskedFor": "Save",
+    "numberClaimed": 5,
+    "claimedElement": {
+      "name": "Save",
+      "role": "Button"
+    },
+    "expectedNumber": 5,
+    "correct": true,
+    "resolvedThroughExecutor": true,
+    "resolution": {
+      "physicalPoint": {
+        "x": 628,
+        "y": 375
+      },
+      "evidence": "Resolved mark-5 against current fingerprint screen-v1:6e4b555a0a17d8b32ac73e2fcf7f1af1f50f6c5c946480a002f3184952d66311."
+    }
+  },
+  "keyboard": {
+    "target": "Save",
+    "reached": true,
+    "tabPresses": 4,
+    "trail": [
+      {
+        "step": 1,
+        "name": "Keep a backup copy",
+        "role": "CheckBox"
+      },
+      {
+        "step": 2,
+        "name": "Cancel",
+        "role": "Button"
+      },
+      {
+        "step": 3,
+        "name": "Delete",
+        "role": "Button"
+      },
+      {
+        "step": 4,
+        "name": "Save",
+        "role": "Button"
+      }
+    ],
+    "focusedAtEnd": {
+      "name": "Save",
+      "role": "Button",
+      "automationId": ""
+    },
+    "uiaReportsKeyboardFocusable": true,
+    "sameElementAsMarked": true
+  }
+}

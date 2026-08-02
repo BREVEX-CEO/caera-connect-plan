@@ -189,10 +189,48 @@ switch ($Mode) {
       }
     }
     $unpaintedFraction = if ($sampled -gt 0) { [math]::Round($unpainted / $sampled, 4) } else { 0 }
+
+    <#
+      PERCEPTUAL HASH (dHash), and why a sha256 will not do.
+
+      `fingerprintParts` in src/lib/control/perception.ts feeds
+      screenshotPerceptualHash into the screen-state fingerprint, and the
+      executor refuses to act when that fingerprint moves. A cryptographic hash
+      changes when ANY pixel changes — including the text caret blinking in a
+      focused edit box — so using one made the executor refuse at random,
+      depending on which half of the caret's blink cycle the capture landed in.
+
+      dHash downscales to 9x8 greyscale and records whether each pixel is
+      brighter than its right-hand neighbour: 64 bits describing the image's
+      gradient structure. A blinking caret does not survive the downscale; a
+      button changing label or a dialog opening does.
+    #>
+    $thumb = New-Object System.Drawing.Bitmap(9, 8)
+    $tg = [System.Drawing.Graphics]::FromImage($thumb)
+    $tg.InterpolationMode = "HighQualityBicubic"
+    $tg.DrawImage($bmp, 0, 0, 9, 8)
+    $tg.Dispose()
+    $bits = New-Object System.Text.StringBuilder
+    for ($row = 0; $row -lt 8; $row++) {
+      for ($col = 0; $col -lt 8; $col++) {
+        $a = $thumb.GetPixel($col, $row)
+        $b = $thumb.GetPixel($col + 1, $row)
+        $la = 0.299 * $a.R + 0.587 * $a.G + 0.114 * $a.B
+        $lb = 0.299 * $b.R + 0.587 * $b.G + 0.114 * $b.B
+        [void]$bits.Append($(if ($la -gt $lb) { "1" } else { "0" }))
+      }
+    }
+    $thumb.Dispose()
+    $binary = $bits.ToString()
+    $phash = ""
+    for ($i = 0; $i -lt 64; $i += 4) {
+      $phash += "{0:x}" -f [Convert]::ToInt32($binary.Substring($i, 4), 2)
+    }
     $bmp.Dispose()
     $sha = (Get-FileHash -Path $Path -Algorithm SHA256).Hash.ToLower()
     @{
       ok = $true; path = $Path; image = $dims; sha256 = $sha
+      perceptualHash = $phash
       bytes = (Get-Item $Path).Length
       unpaintedFraction = $unpaintedFraction
       window = $info
