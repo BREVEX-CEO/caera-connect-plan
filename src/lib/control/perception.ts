@@ -809,6 +809,78 @@ export function resolveSetOfMarkTarget(input: {
   };
 }
 
+export type MarkerSelection =
+  | { ok: true; target: SetOfMarkTarget }
+  | { ok: false; reason: string; candidateNumbers: number[] };
+
+/**
+ * Resolve a described target to exactly ONE marker, or refuse.
+ *
+ * `resolveSetOfMarkTarget` takes a marker id, so it can only act on a choice
+ * that has already been made. This is the step where the choice happens, and
+ * therefore the only place a model's description can be silently turned into a
+ * guess. Two controls accessibly named "Remove" have no single right answer,
+ * and picking the first one is indistinguishable from working correctly until
+ * the moment it removes the wrong thing.
+ *
+ * So ambiguity is an outcome, not a tie to break: every candidate is reported
+ * and nothing is selected. The caller has to disambiguate — by number, which is
+ * what the Set-of-Mark overlay exists to make possible.
+ *
+ * A protected element is never selectable by description at all. Its name has
+ * already been replaced with "[protected]", so matching on it would mean
+ * matching on a redaction placeholder rather than on anything the user meant.
+ */
+export function selectMarkerByDescription(
+  plan: SetOfMarkPlan,
+  description: string,
+  options?: { minConfidence?: number },
+): MarkerSelection {
+  const minConfidence = Math.min(Math.max(options?.minConfidence ?? 0.6, 0), 1);
+  const wanted = canonicalText(description, 200).toLowerCase();
+  if (!wanted) {
+    return { ok: false, reason: "No target description was supplied.", candidateNumbers: [] };
+  }
+  if (wanted === "[protected]") {
+    return {
+      ok: false,
+      reason: "A protected element cannot be selected by description.",
+      candidateNumbers: [],
+    };
+  }
+
+  const selectable = plan.markers.filter((marker) => marker.name !== "[protected]");
+  const exact = selectable.filter((marker) => marker.name.toLowerCase() === wanted);
+  // Fall back to containment only when nothing matched exactly, so a precise
+  // name is never dragged into ambiguity by a longer label that contains it.
+  const candidates = exact.length > 0 ? exact : selectable.filter((m) => m.name.toLowerCase().includes(wanted));
+
+  if (candidates.length === 0) {
+    return {
+      ok: false,
+      reason: `No marked element matches "${description}".`,
+      candidateNumbers: [],
+    };
+  }
+  if (candidates.length > 1) {
+    return {
+      ok: false,
+      reason: `"${description}" matches ${candidates.length} marked elements; OCADE will not guess between them. Select one by number.`,
+      candidateNumbers: candidates.map((marker) => marker.number).sort((a, b) => a - b),
+    };
+  }
+
+  const only = candidates[0];
+  if (only.confidence < minConfidence) {
+    return {
+      ok: false,
+      reason: `The only match for "${description}" is below the confidence required to act on it.`,
+      candidateNumbers: [only.number],
+    };
+  }
+  return { ok: true, target: only };
+}
+
 /**
  * Execute one marked action, then require an independent fresh observation.
  * The executor acknowledgement is never treated as verification.

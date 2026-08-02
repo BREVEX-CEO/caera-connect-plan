@@ -41,6 +41,31 @@ $fmt = New-Object System.Drawing.StringFormat
 $fmt.Alignment = "Center"
 $fmt.LineAlignment = "Center"
 
+<#
+  REDACT FIRST, then mark.
+
+  The redactions come from fusePerceptionFrame, which flags any element whose
+  accessible name looks like a secret and any explicitly protected region. They
+  are painted as solid opaque blocks over the pixels BEFORE any marker is drawn,
+  so the retained evidence never contains the sensitive content at all — this is
+  destructive on the copy, not an overlay that something could later be composed
+  without.
+
+  Order matters: painting marks first and redacting second would still be
+  correct visually, but doing it in this order means an exception between the
+  two steps leaves the image over-redacted rather than under-redacted.
+#>
+$redactBrush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::Black)
+$redacted = 0
+foreach ($r in $plan.redactions) {
+  $x = ($r.x - $originX) / $scale
+  $y = ($r.y - $originY) / $scale
+  $w = $r.width / $scale
+  $h = $r.height / $scale
+  $g.FillRectangle($redactBrush, [float]$x, [float]$y, [float]$w, [float]$h)
+  $redacted++
+}
+
 $drawn = 0
 foreach ($m in $plan.markers) {
   $x = ($m.boundsPhysical.x - $originX) / $scale
@@ -66,6 +91,6 @@ $dims = @{ width = $bmp.Width; height = $bmp.Height }
 $bmp.Dispose()
 
 @{
-  ok = $true; out = $OutPath; drawn = $drawn; image = $dims
+  ok = $true; out = $OutPath; drawn = $drawn; redacted = $redacted; image = $dims
   sha256 = (Get-FileHash -Path $OutPath -Algorithm SHA256).Hash.ToLower()
 } | ConvertTo-Json -Compress

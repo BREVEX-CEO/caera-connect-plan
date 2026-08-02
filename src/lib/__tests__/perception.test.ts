@@ -5,6 +5,7 @@ import {
   fusePerceptionFrame,
   perceptionRuntimeReadiness,
   resolveSetOfMarkTarget,
+  selectMarkerByDescription,
   type PerceptionFrame,
   type RawPerceptionElement,
 } from "../control/perception";
@@ -411,5 +412,109 @@ describe("post-action independent re-observation", () => {
       }),
     ).toMatchObject({ status: "refused", reason: expect.stringMatching(/cancelled/i) });
     expect(execute).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Selecting a described target — the step where a guess would happen.
+ *
+ * `resolveSetOfMarkTarget` only ever sees a marker id, so by the time it runs
+ * the choice is already made. This is where a model's words become a target,
+ * and where "two things are called Remove" has to become a refusal rather than
+ * a coin flip that looks like success until it removes the wrong thing.
+ */
+describe("selecting a marked target by description", () => {
+  /** A plan with two independently clickable controls sharing one name. */
+  function ambiguousPlan() {
+    return plan(
+      frame({
+        accessibility: [
+          element({ sourceId: "remove-a", name: "Remove", bounds: { x: 10, y: 10, width: 60, height: 24 } }),
+          element({ sourceId: "remove-b", name: "Remove", bounds: { x: 90, y: 10, width: 60, height: 24 } }),
+          element({ sourceId: "save-a11y", name: "Save", bounds: { x: 10, y: 60, width: 60, height: 24 } }),
+        ],
+        ocr: [],
+        icons: [],
+        vision: [],
+      }),
+    );
+  }
+
+  it("selects the single element that matches", () => {
+    const result = selectMarkerByDescription(ambiguousPlan(), "Save");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.target.name).toBe("Save");
+  });
+
+  it("REFUSES an ambiguous description instead of picking one", () => {
+    const result = selectMarkerByDescription(ambiguousPlan(), "Remove");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.reason).toMatch(/matches 2 marked elements/);
+      // Both are named, so the caller can disambiguate by number — the refusal
+      // has to be actionable, not just a "no".
+      expect(result.candidateNumbers).toHaveLength(2);
+      expect(result.reason).toMatch(/will not guess/);
+    }
+    // And nothing was selected: there is no `target` to accidentally act on.
+    expect((result as { target?: unknown }).target).toBeUndefined();
+  });
+
+  it("refuses a description that matches nothing", () => {
+    const result = selectMarkerByDescription(ambiguousPlan(), "Publish");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.candidateNumbers).toEqual([]);
+  });
+
+  it("refuses when the only match is below the confidence needed to act", () => {
+    const low = plan(
+      frame({
+        accessibility: [element({ sourceId: "save-a11y", name: "Save", confidence: 0.45 })],
+        ocr: [],
+        icons: [],
+        vision: [],
+      }),
+    );
+    const result = selectMarkerByDescription(low, "Save", { minConfidence: 0.9 });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason).toMatch(/below the confidence/);
+    // The same element IS selectable once the bar is set where it can clear it,
+    // so this is a threshold being enforced and not an element that never worked.
+    expect(selectMarkerByDescription(low, "Save", { minConfidence: 0.4 }).ok).toBe(true);
+  });
+
+  it("never selects a protected element by description", () => {
+    const secret = plan(
+      frame({
+        accessibility: [element({ sourceId: "pw-a11y", name: "Password", role: "edit" })],
+        ocr: [],
+        icons: [],
+        vision: [],
+      }),
+    );
+    expect(selectMarkerByDescription(secret, "Password").ok).toBe(false);
+    // Nor by the placeholder its name was replaced with.
+    expect(selectMarkerByDescription(secret, "[protected]").ok).toBe(false);
+  });
+
+  it("does not drag an exact match into ambiguity with a longer label", () => {
+    const mixed = plan(
+      frame({
+        accessibility: [
+          element({ sourceId: "save-a11y", name: "Save", bounds: { x: 10, y: 10, width: 60, height: 24 } }),
+          element({ sourceId: "save-as", name: "Save as copy", bounds: { x: 90, y: 10, width: 90, height: 24 } }),
+        ],
+        ocr: [],
+        icons: [],
+        vision: [],
+      }),
+    );
+    const result = selectMarkerByDescription(mixed, "Save");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.target.name).toBe("Save");
+    // Containment still applies when nothing matches exactly.
+    const partial = selectMarkerByDescription(mixed, "as copy");
+    expect(partial.ok).toBe(true);
+    if (partial.ok) expect(partial.target.name).toBe("Save as copy");
   });
 });

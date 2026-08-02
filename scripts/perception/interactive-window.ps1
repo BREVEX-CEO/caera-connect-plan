@@ -96,10 +96,47 @@ $save = $buttons["Save"]; $delete = $buttons["Delete"]
 $archive = Place (New-Button "Archive" 6) 40 250 200 48
 $archive.IsEnabled = $false
 
+<#
+  A deliberately SENSITIVE field, for the redaction proof (I3).
+
+  Its accessible name is "Password", which `isProtectedText` recognises, so
+  perception.ts replaces the element's name with "[protected]" and adds its
+  bounds to the plan's redaction list. The visible content is a real-looking
+  secret so that a failure to redact would be unmistakable in the retained
+  evidence rather than a subtle omission.
+#>
+$pwLabel = New-Object System.Windows.Controls.TextBlock
+$pwLabel.Text = "Password"
+Place $pwLabel 470 34 240 26 | Out-Null
+
+# x=470, clear of the title box which ends at 440. At x=400 the two fields
+# overlapped by 40px, so the password's redaction block also covered part of a
+# non-sensitive field — correct redaction, but evidence that looked like it had
+# blacked out the wrong thing.
+$password = New-Object System.Windows.Controls.TextBox
+$password.Text = "hunter2-SECRET-9781"
+[System.Windows.Automation.AutomationProperties]::SetName($password, "Password")
+[System.Windows.Input.KeyboardNavigation]::SetTabIndex($password, 7)
+Place $password 470 66 280 32 | Out-Null
+
+<#
+  A deliberately AMBIGUOUS pair, for the refusal proof (I3).
+
+  Two separate, independently clickable controls both accessibly named
+  "Remove". Asking for "Remove" by description has no single right answer, and
+  guessing one would be indistinguishable from working correctly right up until
+  it deleted the wrong thing.
+#>
+$removeA = Place (New-Button "Remove" 8) 400 250 150 48
+$removeB = Place (New-Button "Remove" 9) 570 250 150 48
+
 $status = New-Object System.Windows.Controls.TextBlock
 $status.Text = "Ready"
 [System.Windows.Automation.AutomationProperties]::SetName($status, "Status")
-Place $status 400 264 360 26 | Out-Null
+Place $status 40 330 500 26 | Out-Null
+
+$removeA.Add_Click({ $status.Text = "Removed A" })
+$removeB.Add_Click({ $status.Text = "Removed B" })
 
 # Real, observable effects. Post-action verification (I3) needs controls whose
 # click genuinely changes the screen, not ones that only report that they did.

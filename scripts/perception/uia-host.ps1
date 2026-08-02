@@ -10,10 +10,12 @@
 # the same property a screen reader relies on, so an element that is marked but
 # not focusable is a defect this host can surface rather than hide.
 param(
-  [Parameter(Mandatory = $true)][ValidateSet("elements", "focused", "tab", "invoke")] [string]$Mode,
+  [Parameter(Mandatory = $true)][ValidateSet("elements", "focused", "tab", "invoke", "click")] [string]$Mode,
   [int64]$Hwnd = 0,
   [string]$Name = "",
-  [int]$MaxTabs = 20
+  [int]$MaxTabs = 20,
+  [int]$X = 0,
+  [int]$Y = 0
 )
 $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes, System.Windows.Forms
@@ -25,6 +27,8 @@ public class UiaWin {
   [DllImport("user32.dll")] public static extern bool SetProcessDpiAwarenessContext(IntPtr v);
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
   [DllImport("user32.dll")] public static extern IntPtr SetFocus(IntPtr h);
+  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+  [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, IntPtr e);
 }
 '@
 # Per-monitor aware, so BoundingRectangle comes back in real device pixels and
@@ -135,6 +139,28 @@ switch ($Mode) {
       ok = $true; target = $Name; reached = $reached; tabPresses = $steps
       startedAt = $start; trail = $trail; focusedAtEnd = (Get-Focused)
     } | ConvertTo-Json -Depth 6 -Compress
+  }
+
+  "click" {
+    <#
+      A REAL mouse click at a real screen coordinate.
+
+      Deliberately not the UIA Invoke pattern. Invoke tells the control to
+      activate itself, which would prove the control works but would bypass hit
+      testing entirely — a click landing on the wrong element, or on a disabled
+      one, would still "succeed". Moving the physical cursor and pressing the
+      physical button is the thing that can actually miss, which is what makes
+      post-action verification worth running.
+    #>
+    [void][UiaWin]::SetForegroundWindow([IntPtr]$Hwnd)
+    Start-Sleep -Milliseconds 300
+    [void][UiaWin]::SetCursorPos($X, $Y)
+    Start-Sleep -Milliseconds 150
+    [UiaWin]::mouse_event(0x0002, 0, 0, 0, [IntPtr]::Zero) # LEFTDOWN
+    Start-Sleep -Milliseconds 60
+    [UiaWin]::mouse_event(0x0004, 0, 0, 0, [IntPtr]::Zero) # LEFTUP
+    Start-Sleep -Milliseconds 500
+    @{ ok = $true; clickedAt = @{ x = $X; y = $Y } } | ConvertTo-Json -Depth 4 -Compress
   }
 
   "invoke" {
