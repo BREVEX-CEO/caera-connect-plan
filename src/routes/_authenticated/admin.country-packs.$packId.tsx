@@ -38,7 +38,11 @@ export const Route = createFileRoute("/_authenticated/admin/country-packs/$packI
       .eq("user_id", uid)
       .eq("role", "admin")
       .maybeSingle();
-    if (!data) throw redirect({ to: "/home" });
+    if (!data)
+      throw redirect({
+        to: "/access-denied",
+        search: { area: "the country pack editor", reason: "This area requires the admin role on your CAERA CADANE account." },
+      });
   },
   component: PackEditor,
 });

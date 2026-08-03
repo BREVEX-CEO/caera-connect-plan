@@ -30,6 +30,7 @@ import { Route as AuthenticatedMadeeRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedFiciaRouteImport } from './routes/_authenticated/ficia'
 import { Route as AuthenticatedCaniaRouteImport } from './routes/_authenticated/cania'
+import { Route as AuthenticatedAccessDeniedRouteImport } from './routes/_authenticated/access-denied'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
 import { Route as AuthenticatedMadeeIndexRouteImport } from './routes/_authenticated/madee.index'
 import { Route as AuthenticatedFiciaIndexRouteImport } from './routes/_authenticated/ficia.index'
@@ -181,6 +182,12 @@ const AuthenticatedCaniaRoute = AuthenticatedCaniaRouteImport.update({
   path: '/cania',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAccessDeniedRoute =
+  AuthenticatedAccessDeniedRouteImport.update({
+    id: '/access-denied',
+    path: '/access-denied',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSettingsIndexRoute =
   AuthenticatedSettingsIndexRouteImport.update({
     id: '/',
@@ -453,6 +460,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/demo': typeof DemoRouteWithChildren
+  '/access-denied': typeof AuthenticatedAccessDeniedRoute
   '/cania': typeof AuthenticatedCaniaRouteWithChildren
   '/ficia': typeof AuthenticatedFiciaRouteWithChildren
   '/home': typeof AuthenticatedHomeRoute
@@ -520,6 +528,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/access-denied': typeof AuthenticatedAccessDeniedRoute
   '/home': typeof AuthenticatedHomeRoute
   '/ocade': typeof AuthenticatedOcadeRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
@@ -586,6 +595,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/demo': typeof DemoRouteWithChildren
+  '/_authenticated/access-denied': typeof AuthenticatedAccessDeniedRoute
   '/_authenticated/cania': typeof AuthenticatedCaniaRouteWithChildren
   '/_authenticated/ficia': typeof AuthenticatedFiciaRouteWithChildren
   '/_authenticated/home': typeof AuthenticatedHomeRoute
@@ -656,6 +666,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/demo'
+    | '/access-denied'
     | '/cania'
     | '/ficia'
     | '/home'
@@ -723,6 +734,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/access-denied'
     | '/home'
     | '/ocade'
     | '/onboarding'
@@ -788,6 +800,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/demo'
+    | '/_authenticated/access-denied'
     | '/_authenticated/cania'
     | '/_authenticated/ficia'
     | '/_authenticated/home'
@@ -1008,6 +1021,13 @@ declare module '@tanstack/react-router' {
       path: '/cania'
       fullPath: '/cania'
       preLoaderRoute: typeof AuthenticatedCaniaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/access-denied': {
+      id: '/_authenticated/access-denied'
+      path: '/access-denied'
+      fullPath: '/access-denied'
+      preLoaderRoute: typeof AuthenticatedAccessDeniedRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/settings/': {
@@ -1527,6 +1547,7 @@ const AuthenticatedAdminCountryPacksRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccessDeniedRoute: typeof AuthenticatedAccessDeniedRoute
   AuthenticatedCaniaRoute: typeof AuthenticatedCaniaRouteWithChildren
   AuthenticatedFiciaRoute: typeof AuthenticatedFiciaRouteWithChildren
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
@@ -1539,6 +1560,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccessDeniedRoute: AuthenticatedAccessDeniedRoute,
   AuthenticatedCaniaRoute: AuthenticatedCaniaRouteWithChildren,
   AuthenticatedFiciaRoute: AuthenticatedFiciaRouteWithChildren,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
@@ -1600,13 +1622,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

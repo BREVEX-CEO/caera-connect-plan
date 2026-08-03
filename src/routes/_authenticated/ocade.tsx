@@ -56,6 +56,8 @@ import {
 import { getModeFor } from "@/lib/storage/resolver";
 import { OCADE_DEFAULT_MODEL_ID, OCADE_MODELS, getOcadeModel } from "@/lib/ocade-models";
 import { ocadeHonestDisclosure } from "@/lib/ocade-identity";
+import { recordAction } from "@/lib/actions";
+
 
 export const Route = createFileRoute("/_authenticated/ocade")({
   head: () => ({
@@ -792,6 +794,17 @@ function ChatSurface(props: {
       setMessages(rows);
       setStreamText("");
       await onRefreshList();
+      void recordAction({
+        actionId: "ocade.chat.send",
+        metadata: {
+          result: "success",
+          conversation_id: conversation.id,
+          model_id: model,
+          attachments: atts.length,
+          cloud_approved: allowCloud,
+        },
+        tenantId: null,
+      });
     } catch (e) {
       if ((e as { name?: string }).name === "AbortError") {
         setMessages((m) => [
@@ -806,14 +819,30 @@ function ChatSurface(props: {
             created_at: new Date().toISOString(),
           },
         ]);
+        void recordAction({
+          actionId: "ocade.chat.stop",
+          metadata: { result: "success", conversation_id: conversation.id, model_id: model },
+          tenantId: null,
+        });
       } else {
         toast.error((e as Error).message || "OCADE could not respond");
         setMessages((m) => m.filter((x) => x.id !== optimistic.id));
         setDraft(text);
         setAttachments(atts);
+        void recordAction({
+          actionId: "ocade.chat.send",
+          metadata: {
+            result: "failure",
+            error: (e as Error).message || "unknown error",
+            conversation_id: conversation.id,
+            model_id: model,
+          },
+          tenantId: null,
+        });
       }
     } finally {
       setStreaming(false);
+
       setStreamText("");
       abortRef.current = null;
     }
