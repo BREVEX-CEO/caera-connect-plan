@@ -27,7 +27,10 @@ function Get-MsiProperty($path, $property) {
     $view.GetType().InvokeMember("Execute", "InvokeMethod", $null, $view, $null)
     $record = $view.GetType().InvokeMember("Fetch", "InvokeMethod", $null, $view, $null)
     if ($null -eq $record) { return $null }
-    return $record.GetType().InvokeMember("StringData", "GetProperty", $null, $record, 1)
+    # InvokeMember returns the indexed property as an array; take the value.
+    $data = $record.GetType().InvokeMember("StringData", "GetProperty", $null, $record, 1)
+    if ($data -is [array]) { return ($data | Where-Object { $_ } | Select-Object -First 1) }
+    return $data
   } catch {
     return "ERROR: $($_.Exception.Message)"
   }
@@ -42,9 +45,18 @@ if ($MsiPath -and (Test-Path $MsiPath)) {
   New-Item -ItemType Directory -Force -Path $ExtractTo | Out-Null
   $log = Join-Path $env:TEMP "ocade-msi-admin.log"
 
-  # /a  = administrative install (extract only)
-  # /qn = no UI, so nothing can block waiting for a human
-  $proc = Start-Process msiexec.exe -ArgumentList @("/a", "`"$MsiPath`"", "/qn", "TARGETDIR=`"$ExtractTo`"", "/l*v", "`"$log`"") -Wait -PassThru
+  <#
+    Stage the package at a short, space-free, all-backslash path first.
+
+    msiexec returned 1619 (ERROR_INSTALL_PACKAGE_OPEN_FAILED) on the build
+    output path, which contains spaces AND mixed / and \ separators — while the
+    Windows Installer COM API opened the very same file without complaint and
+    read its Property table. So the package was always fine; msiexec's command
+    line was not. Staging removes quoting from the set of variables entirely.
+  #>
+  $staged = Join-Path $env:TEMP "ocade-verify.msi"
+  Copy-Item -LiteralPath $MsiPath -Destination $staged -Force
+  $proc = Start-Process msiexec.exe -ArgumentList @("/a", $staged, "/qn", "TARGETDIR=$ExtractTo", "/l*v", $log) -Wait -PassThru
   $extracted = @(Get-ChildItem -Path $ExtractTo -Recurse -File -ErrorAction SilentlyContinue)
   $logTail = if (Test-Path $log) { (Get-Content $log -Tail 12) -join "`n" } else { "" }
 
