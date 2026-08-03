@@ -172,10 +172,31 @@ function ThreadView({ thread, tenantId, onUpdated }: { thread: any; tenantId: st
   const messagesQ = useQuery({
     queryKey: ["msg_messages", thread.id],
     queryFn: () => listMessages({ data: { thread_id: thread.id } }),
-    refetchInterval: 5000,
+    // Realtime is primary; this slow poll is a truthful fallback if the socket drops.
+    refetchInterval: 60_000,
   });
 
+  // Live updates for this thread. RLS scopes the stream to threads you belong to.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`msg_thread_${thread.id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "msg_messages", filter: `thread_id=eq.${thread.id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["msg_messages", thread.id] });
+          qc.invalidateQueries({ queryKey: ["msg_threads"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [thread.id, qc]);
+
   const messages = messagesQ.data?.messages ?? [];
+
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
