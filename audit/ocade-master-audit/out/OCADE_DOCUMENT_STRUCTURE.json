@@ -1,0 +1,16 @@
+{
+  "sourceFile": "C:/Users/haans/Downloads/OCADE_CANONICAL_100K_PLUS_ENHANCED_MASTER_PLAN.md",
+  "totalLines": 109510,
+  "totalChars": 13183367,
+  "sha256": "d7cc7cd095835aa9b8e6dd09b2ee14a49faf130b33d59f776748fa6679cbd5a1",
+  "headingCount": 5660,
+  "headingsByLevel": {
+    "1": 35,
+    "2": 200,
+    "3": 5425
+  },
+  "chunkCount": 137,
+  "requirementBlocks": 5425,
+  "canonicalSubjects": 510,
+  "generatedAt": "2026-07-29T10:57:06.282Z"
+}

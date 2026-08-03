@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-31",
+  "phase": "P23 - hosted continuous-integration evidence",
+  "status": "blocked_on_observation",
+
+  "situation": {
+    "workflowsExist": [
+      ".github/workflows/ci.yml — web job (typecheck, lint, tests, build, 20+ gates), rust job, dependency audit",
+      ".github/workflows/platforms.yml — android (build + emulator instrumented tests), ios (simulator build), desktop-windows",
+      ".github/workflows/release.yml — cross-platform release build"
+    ],
+    "triggered": "ci.yml runs on push. Commits were pushed to feat/ocade-implementation during this session, so runs should exist.",
+    "hostedEvidenceRecorded": 0
+  },
+
+  "whyItCannotBeVerifiedHere": {
+    "ghCli": "not installed",
+    "publicApi": "https://api.github.com/repos/BREVEX-CEO/caera-connect-plan returns 404 — the repository is private, so unauthenticated queries cannot see it",
+    "token": "no GITHUB_TOKEN or equivalent credential is present in this environment",
+    "conclusion": "This is an OBSERVATION gap, not missing work. The workflows are written and pushed; nobody here can read their result. Recording a hosted tier without reading the run would be inventing evidence."
+  },
+
+  "howToClear": {
+    "step1": "Open the repository's Actions tab, or run: gh run list --branch feat/ocade-implementation --limit 5",
+    "step2": "For the most recent run: gh run view <id> --log",
+    "step3": "If the web job is green, that is the first hosted evidence this project has ever had — record it against the requirements the job actually covers (typecheck, lint, the executed test suite, the build, and each named gate step), not against the CI area as a whole",
+    "step4": "If it is red, the failure is real and should be fixed before any hosted tier is claimed"
+  },
+
+  "expectedOutcome": {
+    "note": "The same commands pass locally at this revision: typecheck PASS, lint PASS, 4171 passed | 1 skipped across 253 files, build PASS, gates 41/42. A green CI run is therefore likely but is NOT assumed — local success on one Windows host is not hosted evidence, which is the entire point of the distinction.",
+    "knownRisk": "deploy:check exits 2 without Cloudflare credentials. It is not in ci.yml's step list, so it should not fail the web job; if CI is wired to run it, expect that failure and treat it as correct refusal rather than a regression."
+  }
+}

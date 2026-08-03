@@ -32,15 +32,15 @@ export function SettingsShell({ children }: { children: ReactNode }) {
     })).filter((g) => g.items.length > 0);
   }, [query]);
 
-  const isDetail = active !== "" || pathname !== "/settings";
-  const onList = active === "" && pathname === "/settings";
+  const onList = active === "" && (pathname === "/settings" || pathname === "/settings/");
+  const isDetail = !onList;
 
   return (
-    <div className="flex min-h-[calc(100vh-2.75rem)] flex-col md:flex-row md:gap-0">
+    <div className="flex min-h-[calc(100vh-3rem)] flex-col md:flex-row md:gap-0">
       {/* Nav column: always visible on md+, on mobile only when on the list view */}
       <aside
         className={cn(
-          "flex w-full flex-col border-b border-border/60 bg-sidebar/40 md:sticky md:top-11 md:h-[calc(100vh-2.75rem)] md:w-[260px] md:shrink-0 md:border-b-0 md:border-r",
+          "flex w-full flex-col border-b border-border/60 bg-sidebar/40 md:sticky md:top-12 md:h-[calc(100vh-3rem)] md:w-[260px] md:shrink-0 md:border-b-0 md:border-r",
           isDetail ? "hidden md:flex" : "flex",
         )}
       >
@@ -50,7 +50,10 @@ export function SettingsShell({ children }: { children: ReactNode }) {
           </div>
           <h2 className="mt-0.5 text-[15px] font-semibold text-foreground">Settings</h2>
           <div className="relative mt-3">
-            <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <Search
+              className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
             <input
               type="search"
               value={query}
@@ -137,11 +140,9 @@ export function SettingsShell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Content panel */}
-      <main
-        className={cn(
-          "min-w-0 flex-1",
-          onList ? "hidden md:block" : "block",
-        )}
+      <section
+        aria-label="Settings content"
+        className={cn("min-w-0 flex-1", onList ? "hidden md:block" : "block")}
       >
         <div className="mx-auto w-full max-w-3xl px-5 py-6 sm:px-8">
           <div className="mb-3 md:hidden">
@@ -154,7 +155,7 @@ export function SettingsShell({ children }: { children: ReactNode }) {
           </div>
           {children}
         </div>
-      </main>
+      </section>
     </div>
   );
 }

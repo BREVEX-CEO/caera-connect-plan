@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-07-30T12:48:00.000Z",
+  "branch": "feat/ocade-implementation",
+  "head": "19d3414633b9167632514aaf4e98e1c6a93065df",
+  "phase": "P19 - GUI completion and no-dead-control enforcement",
+  "workingTreeAtReconciliation": {
+    "modifiedTracked": 2,
+    "newUntracked": 3,
+    "deleted": 0,
+    "staged": 0,
+    "paths": [
+      "package.json",
+      "release/OCADE_TEST_KINDS.json",
+      "release/OCADE_A11Y_BASELINE.json",
+      "scripts/check-accessibility.mjs",
+      "src/lib/__tests__/accessibility-gate.test.ts"
+    ]
+  },
+  "inheritedDraftFinding": {
+    "scannerResult": "47 unlabelled inputs across 19 files",
+    "draftBaseline": 47,
+    "draftGateResult": "PASS",
+    "risk": "The draft accepted every known defect as baseline debt, so it could report green while every finding remained.",
+    "resolution": "P19 repaired every finding, strengthened the scanner, and reduced the tracked baseline to zero."
+  },
+  "verifiedBaseline": {
+    "originalCoreReadiness": "215.3/450 = 47.8%",
+    "expandedReadiness": "230.9/510 = 45.3%",
+    "tests": "3912 passed, 1 skipped, 3913 collected across 235 files",
+    "gates": "27/27",
+    "rustTests": "25/25"
+  },
+  "authority": "Captured from Git and executable commands before completing the inherited P19 draft. Older local-only handoffs naming HEAD 52cd6cf were treated as historical, not authoritative."
+}

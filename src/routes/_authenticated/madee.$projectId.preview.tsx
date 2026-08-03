@@ -10,25 +10,35 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { getResumeVersion } from "@/lib/madee.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { emptyResume, ResumeContent, type ResumeContent as ResumeContentT } from "@/lib/madee-resume-types";
+import {
+  emptyResume,
+  ResumeContent,
+  type ResumeContent as ResumeContentT,
+} from "@/lib/madee-resume-types";
 import { loadLocalResumeContent } from "@/lib/madee-local-store";
 import { ResumePreview } from "@/components/madee/ResumePreview";
 import { executeAction } from "@/lib/actions";
 import { exportDocx, exportPdfViaPrint } from "@/lib/madee-export";
 
 export const Route = createFileRoute("/_authenticated/madee/$projectId/preview")({
-  head: () => ({ meta: [{ title: "Resume preview — MADEE" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [{ title: "Resume preview — MADEE" }, { name: "robots", content: "noindex" }],
+  }),
   validateSearch: (s) =>
-    z.object({
-      compare: z.coerce.number().optional(),
-      a: z.string().uuid().optional(),
-      b: z.string().uuid().optional(),
-    }).parse(s),
+    z
+      .object({
+        compare: z.coerce.number().optional(),
+        a: z.string().uuid().optional(),
+        b: z.string().uuid().optional(),
+      })
+      .parse(s),
   component: PreviewPage,
 });
 
 type Project = {
-  id: string; title: string; storage_mode: "browser_only" | "private_sync";
+  id: string;
+  title: string;
+  storage_mode: "browser_only" | "private_sync";
   current_version_id: string | null;
 };
 
@@ -43,7 +53,8 @@ function PreviewPage() {
       const { data, error } = await supabase
         .from("madee_resume_projects")
         .select("id, title, storage_mode, current_version_id")
-        .eq("id", projectId).maybeSingle();
+        .eq("id", projectId)
+        .maybeSingle();
       if (error) throw error;
       return data as Project | null;
     },
@@ -79,11 +90,19 @@ function PreviewPage() {
         toast.error(e instanceof Error ? e.message : "Could not load version");
       }
     })();
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, [project, primaryId, secondaryId, getVersion]);
 
   if (!project) {
-    return <AppShell><div className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div></AppShell>;
+    return (
+      <AppShell>
+        <div className="flex items-center gap-2 text-sm">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+        </div>
+      </AppShell>
+    );
   }
 
   const compare = !!search.compare;
@@ -93,7 +112,11 @@ function PreviewPage() {
       <PageHeader
         eyebrow="MADEE — Preview"
         title={project.title}
-        description={compare ? "Comparing two versions side by side." : "This is exactly what your export looks like."}
+        description={
+          compare
+            ? "Comparing two versions side by side."
+            : "This is exactly what your export looks like."
+        }
         actions={
           <div className="flex flex-wrap gap-2 print:hidden">
             <Button asChild variant="ghost">
@@ -102,13 +125,30 @@ function PreviewPage() {
               </Link>
             </Button>
             <div className="flex overflow-hidden rounded-md border border-border/60">
-              <Button size="sm" variant={device === "desktop" ? "secondary" : "ghost"} onClick={() => setDevice("desktop")}>Desktop</Button>
-              <Button size="sm" variant={device === "mobile" ? "secondary" : "ghost"} onClick={() => setDevice("mobile")}>Mobile</Button>
+              <Button
+                size="sm"
+                variant={device === "desktop" ? "secondary" : "ghost"}
+                onClick={() => setDevice("desktop")}
+              >
+                Desktop
+              </Button>
+              <Button
+                size="sm"
+                variant={device === "mobile" ? "secondary" : "ghost"}
+                onClick={() => setDevice("mobile")}
+              >
+                Mobile
+              </Button>
             </div>
             <Button
               variant="secondary"
               onClick={async () => {
-                await executeAction("madee.resume.export_pdf", { run: async () => { exportPdfViaPrint(); return true; } });
+                await executeAction("madee.resume.export_pdf", {
+                  run: async () => {
+                    exportPdfViaPrint();
+                    return true;
+                  },
+                });
               }}
             >
               <Printer className="h-4 w-4" /> Export PDF
@@ -146,7 +186,8 @@ function PreviewPage() {
       {!compare && (
         <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground print:hidden">
           <FileText className="h-4 w-4" />
-          PDF export uses your browser's print → "Save as PDF" for a deterministic result. DOCX is generated locally.
+          PDF export uses your browser's print → "Save as PDF" for a deterministic result. DOCX is
+          generated locally.
         </div>
       )}
     </AppShell>
@@ -155,6 +196,8 @@ function PreviewPage() {
 
 function SubHead({ label }: { label: string }) {
   return (
-    <div className="mb-2 text-center text-xs uppercase tracking-wide text-muted-foreground print:hidden">{label}</div>
+    <div className="mb-2 text-center text-xs uppercase tracking-wide text-muted-foreground print:hidden">
+      {label}
+    </div>
   );
 }

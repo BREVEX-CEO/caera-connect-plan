@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "phase": 19,
+  "status": "partial_stage_2_pending",
+  "auditedSurfaces": [
+    "routes",
+    "controls",
+    "server_functions",
+    "native_commands",
+    "mobile_intents",
+    "extension_messages",
+    "migrations",
+    "adapters",
+    "artifacts",
+    "permissions",
+    "receipts",
+    "tests",
+    "recovery",
+    "assets",
+    "secrets"
+  ],
+  "activeOcadeRoutes": [
+    "/ocade",
+    "/ocade/work",
+    "/ocade/code",
+    "/ocade/projects",
+    "/ocade/artifacts",
+    "/ocade/monitors",
+    "/ocade/automations",
+    "/ocade/studio"
+  ],
+  "unappliedMigrations": [
+    "20260722090000_ocade_projects_outputs_memory",
+    "20260722100000_ocade_subscriptions_usage",
+    "20260722110000_ocade_automations",
+    "20260724211500_ocade_automation_worker",
+    "20260730190000_ocade_controlled_rollout_gates"
+  ],
+  "nonRuntimeModules": [],
+  "knownRuntimeBoundaries": [
+    {
+      "id": "mobile-native-plugin",
+      "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+      "nextPhase": 34,
+      "reason": "Android and iOS expose the OcadeMobile mission-control bridge and fail closed without acknowledgement; the authenticated relay and reconnect runtime remain Phase 34 work."
+    },
+    {
+      "id": "live-supabase",
+      "classification": "READY TO APPLY",
+      "reason": "Five ordered migrations have matching rollback and verification SQL but have not been applied."
+    },
+    {
+      "id": "desktop-link-and-sign",
+      "classification": "EXTERNALLY BLOCKED",
+      "reason": "The Rust source checks offline, but a full Windows build needs MSVC link.exe and release signing."
+    },
+    {
+      "id": "browser-live-coverage",
+      "classification": "EXTERNALLY BLOCKED",
+      "reason": "The MV3 package and protocol are source-verified but require loading in real Chrome and Edge profiles."
+    },
+    {
+      "id": "companion-update-engine",
+      "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+      "reason": "src/lib/packaging/update-plan.ts decides apply/skip/refuse and rollback targets with fail-closed provenance and downgrade guards (33 unit tests); the runtime half — download, Ed25519 signature verification, binary swap and relaunch — lives in the Tauri updater plugin and can only be proven on a real installed machine."
+    },
+    {
+      "id": "free-tool-adapters",
+      "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+      "reason": "src/lib/providers/free-tool-adapters.ts detects Blender, FreeCAD and CalculiX and gates capabilities on a real version banner, earning installed_application only when the binary identifies itself; none of the three is installed here, so every capability correctly resolves to deterministic_fixture. Detection is runtime-verified against this machine; invoking a render, CAD rebuild or FEA solve requires the tools to be installed."
+    }
+  ],
+  "claims": {
+    "liveSupabaseValidated": false,
+    "mobileRuntimeValidated": false,
+    "desktopInstallerValidated": false,
+    "browserStorePackageValidated": false,
+    "realApplicationCoverageValidated": false
+  },
+  "nonRuntimeModulesNote": "P21 emptied this ledger by WIRING the modules, not by deleting entries. Each of the five now has a production owner: generated-sandbox-node -> sandbox.functions.ts (server fn, dynamic import so Node builtins stay out of the client bundle) -> CodeWorkspacePanel 'Execute in sandbox'; reconnect-protocol + secure-channel + transport-adapters -> mobile/transport-factory.ts -> settings.mobile.tsx; update-signature -> packaging/update-gate.ts -> UpdatePolicyPanel; free-tool-adapters -> providers/tool-prober.ts -> AppCoveragePanel; research http-source/research-run/research-cache/source-fallback -> research.functions.ts (server fn) -> ResearchPanel. An empty ledger is only honest while the reachability check stays green; the gate fails if any module drifts back to zero incoming imports.",
+  "previouslyDeclaredNonRuntime": [
+    "src/lib/code/generated-sandbox-node.ts",
+    "src/lib/mobile/reconnect-protocol.ts",
+    "src/lib/packaging/update-signature.ts",
+    "src/lib/providers/free-tool-adapters.ts",
+    "src/lib/research/http-source.ts"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-07-30T14:13:00.000Z",
+  "phase": "P25 - Security hardening on real runtime",
+  "classification": "VERIFIED COMPLETE",
+  "branch": "feat/ocade-implementation",
+  "baseHead": "19d3414633b9167632514aaf4e98e1c6a93065df",
+  "defectRepaired": "The native host's emergency-stop latch and active-run registry were separated, permitting a check-then-register race. A single atomic EmergencyStopRegistry now owns admission, halt, cancellation, cleanup and reset.",
+  "implementation": {
+    "nativeSecurityTestsAdded": 5,
+    "loadTokens": 512,
+    "racingRegistrations": 64,
+    "declaredStopBoundMs": 250,
+    "tauriCompileErrorsRepaired": 5,
+    "trackedImplementationPaths": 4
+  },
+  "validation": {
+    "typecheck": "PASS - 0 errors",
+    "lint": "PASS - 0 errors; 2210 preserved warnings",
+    "vitest": "3919 passed, 1 skipped, 3920 collected across 236 files",
+    "build": "PASS - 2864 client modules transformed",
+    "gates": "PASS - 28/28",
+    "rustSafety": "30/30 passed",
+    "rustClippy": "PASS - safety and Tauri host with -D warnings",
+    "tauriCheck": "PASS",
+    "productionDependencyAudit": "0 vulnerabilities",
+    "deletedTrackedFiles": 0
+  },
+  "readiness": {
+    "before": {
+      "originalCore": "216.1/450 = 48.0%",
+      "expanded": "231.7/510 = 45.4%"
+    },
+    "after": {
+      "originalCore": "217.2/450 = 48.3%",
+      "expanded": "232.8/510 = 45.6%"
+    },
+    "promotions": [
+      "AZ-171 emergency policy: SIMULATED RUNTIME VERIFIED to REAL TARGET RUNTIME VERIFIED",
+      "AZ-273 replay: INTEGRATION TESTED to REAL TARGET RUNTIME VERIFIED",
+      "AZ-274 leakage: INTEGRATION TESTED to REAL TARGET RUNTIME VERIFIED"
+    ],
+    "boundary": "The compiled Windows Rust security core is real target runtime. The Tauri host is compiled and linted but remains SOURCE-COMPLETE BUT RUNTIME-BLOCKED until a signed installed binary is exercised."
+  },
+  "rollback": {
+    "status": "VERIFIED BY DESIGN AND TEST",
+    "procedure": "Revert only the P25 native safety, Tauri host/platform, structural test and P25 evidence/ledger paths. The prior two-lock implementation is not safe to re-enable; rollback is for source recovery only.",
+    "runtimeRecovery": "Halt stays latched until the signed reset command. Active tokens are cancelled, finished runs are removed, and poisoned registry state remains recoverable."
+  },
+  "nextPhase": "P26 - Updater, signing, installers, and rollback"
+}

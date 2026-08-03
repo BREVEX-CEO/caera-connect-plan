@@ -43,9 +43,24 @@ export async function registerDeviceForCurrentSession(): Promise<void> {
     .maybeSingle();
 
   if (existing?.id) {
+    /**
+     * A REVOKED DEVICE MUST NEVER UN-REVOKE ITSELF BY RECONNECTING.
+     *
+     * Revocation is the user's decision about a device they no longer trust —
+     * typically one that is lost or stolen. Clearing `revoked_at` here because
+     * the device showed up again would hand access straight back to whoever is
+     * holding it, and would make the device-management screen a lie: the user
+     * revokes it, the thief reloads the page, and it silently returns.
+     *
+     * Re-enabling a revoked device is an explicit user action, not a side
+     * effect of registration. Nothing is written here, so the revoked row keeps
+     * the exact revocation timestamp the user created.
+     */
+    if (existing.revoked_at) return;
+
     await supabase
       .from("devices")
-      .update({ last_active_at: new Date().toISOString(), revoked_at: null })
+      .update({ last_active_at: new Date().toISOString() })
       .eq("id", existing.id);
     return;
   }

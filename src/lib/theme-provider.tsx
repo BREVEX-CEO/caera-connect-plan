@@ -24,21 +24,16 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type ThemeMode = "dark" | "light" | "real";
 export type CursorKind =
-  | "system"
-  | "caera_black"
-  | "caera_white"
-  | "auto_contrast"
-  | "custom"
-  | "accessibility";
+  "system" | "caera_black" | "caera_white" | "auto_contrast" | "custom" | "accessibility";
 
 export interface AppearancePrefs {
   theme: ThemeMode;
-  reducedMotion: boolean;      // user override; OS preference is always respected on top
+  reducedMotion: boolean; // user override; OS preference is always respected on top
   highContrast: boolean;
-  lowPerformance: boolean;     // user override; auto-detector may also flip it on
+  lowPerformance: boolean; // user override; auto-detector may also flip it on
   cursor: CursorKind;
   cursorCustom: string | null; // data URL for uploaded PNG/SVG
-  cursorSize: number;          // 16..64
+  cursorSize: number; // 16..64
   cursorTrail: boolean;
 }
 
@@ -85,11 +80,7 @@ function writeLocal(prefs: AppearancePrefs) {
 }
 
 /** Apply prefs to the document element via classes + CSS vars. */
-function applyToDocument(
-  prefs: AppearancePrefs,
-  osReducedMotion: boolean,
-  autoLowPerf: boolean,
-) {
+function applyToDocument(prefs: AppearancePrefs, osReducedMotion: boolean, autoLowPerf: boolean) {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
 
@@ -119,8 +110,7 @@ function applyToDocument(
       break;
     case "auto_contrast":
       // Choose based on theme brightness.
-      cursorUrl =
-        prefs.theme === "light" ? "/cursors/caera-black.svg" : "/cursors/caera-white.svg";
+      cursorUrl = prefs.theme === "light" ? "/cursors/caera-black.svg" : "/cursors/caera-white.svg";
       break;
     case "custom":
       cursorUrl = prefs.cursorCustom;
@@ -132,10 +122,7 @@ function applyToDocument(
   }
 
   if (cursorUrl) {
-    root.style.setProperty(
-      "--app-cursor",
-      `url("${cursorUrl}") 2 2, auto`,
-    );
+    root.style.setProperty("--app-cursor", `url("${cursorUrl}") 2 2, auto`);
     root.classList.add("has-custom-cursor");
   } else {
     root.style.removeProperty("--app-cursor");
@@ -204,9 +191,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const theme = (rec.theme as string) ?? "dark";
       const next: AppearancePrefs = {
         theme:
-          theme === "light" || theme === "real" || theme === "dark"
-            ? (theme as ThemeMode)
-            : "dark",
+          theme === "light" || theme === "real" || theme === "dark" ? (theme as ThemeMode) : "dark",
         reducedMotion: !!rec.reduced_motion,
         highContrast: !!rec.high_contrast,
         lowPerformance: !!rec.appearance_low_performance,
@@ -254,8 +239,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         if (patch.lowPerformance !== undefined)
           row.appearance_low_performance = patch.lowPerformance;
         if (patch.cursor !== undefined) row.appearance_cursor = patch.cursor;
-        if (patch.cursorCustom !== undefined)
-          row.appearance_cursor_custom = patch.cursorCustom;
+        if (patch.cursorCustom !== undefined) row.appearance_cursor_custom = patch.cursorCustom;
         if (patch.cursorSize !== undefined) row.appearance_cursor_size = patch.cursorSize;
         if (patch.cursorTrail !== undefined) row.appearance_cursor_trail = patch.cursorTrail;
         if (Object.keys(row).length > 0) {

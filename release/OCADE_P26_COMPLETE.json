@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "completedAt": "2026-07-30T15:08:00.000Z",
+  "phase": "P26 - Updater, signing, installers, and rollback",
+  "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+  "branch": "feat/ocade-implementation",
+  "baseHead": "19d3414633b9167632514aaf4e98e1c6a93065df",
+  "sourceCompletion": {
+    "selfSignedTrustLab": "VERIFIED - 17/17",
+    "signedManifest": "VERIFIED - canonical metadata and artifact digest are bound by Ed25519",
+    "hashChecks": "VERIFIED - observed bytes must match the signed manifest",
+    "keyRotation": "VERIFIED - monotonic epoch floor",
+    "revocation": "VERIFIED - current revocation overrides valid cryptography",
+    "downgradeRefusal": "VERIFIED",
+    "rollbackPolicy": "VERIFIED by existing known-good selection and staged state-machine tests",
+    "productionTrust": "DISABLED - placeholder key, updater inactive, updater capability withheld"
+  },
+  "validation": {
+    "focusedVitest": "BLOCKED BEFORE STARTUP by sandbox esbuild config traversal; not elevated outside the user's approved scope",
+    "fullVitest": "3936 passed, 1 skipped, 3937 collected across 237 files",
+    "typecheck": "PASS - 0 errors",
+    "lint": "PASS - 0 errors; 2210 preserved warnings",
+    "build": "PASS - 2865 client modules transformed",
+    "gates": "PASS - 28/28",
+    "productionDependencyAudit": "PASS - 0 vulnerabilities",
+    "deletedTrackedFiles": 0
+  },
+  "readiness": {
+    "before": {
+      "originalCore": "217.2/450 = 48.3%",
+      "expanded": "232.8/510 = 45.6%"
+    },
+    "after": {
+      "originalCore": "217.5/450 = 48.3%",
+      "expanded": "233.1/510 = 45.7%"
+    },
+    "promotions": [
+      "AZ-276 update trust: INTEGRATION TESTED to SIMULATED RUNTIME VERIFIED",
+      "AZ-364 signatures: UNIT TESTED to SIMULATED RUNTIME VERIFIED"
+    ]
+  },
+  "externalRuntimeBlockers": [
+    "Legitimate production updater and platform code-signing keys",
+    "Windows/macOS/Linux installer builds on clean target machines",
+    "macOS notarisation and Apple signing identity",
+    "Clean-machine install, repair, upgrade, rollback, uninstall and leftover checks",
+    "Authorized signing and publication"
+  ],
+  "rollback": {
+    "status": "VERIFIED BY POLICY AND TEST",
+    "procedure": "Disable the updater, retain the previous known-good signed artifact, refuse automatic downgrade, and require an explicit manual recovery install. The existing staged state machine cannot commit before verification and rolls failed verification back.",
+    "sourceRecovery": "Revert only the P26 update-trust, update-gate, manifest contract, settings owner, test and P26 evidence/ledger paths."
+  },
+  "nextPhase": "P27 - Deployment, monitoring, and incident readiness"
+}

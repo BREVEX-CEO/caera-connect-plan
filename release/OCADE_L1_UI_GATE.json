@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "item": "L1 - research UI route and authentication gate",
+  "generatedAt": "2026-08-03T00:27:47.459Z",
+  "verdict": "GATE PROVEN; LOGGED-IN UI RUN BLOCKED — every auth path needs either a credential or a disabled provider",
+  "devServer": "vite dev on http://localhost:8080",
+  "gateTest": {
+    "requested": "/ocade/studio",
+    "redirectedTo": "/auth?next=%2Focade%2Fstudio",
+    "title": "Sign in — CAERA CADANE",
+    "preservesDestination": true,
+    "note": "The route exists and the _authenticated gate refuses unauthenticated access while preserving the intended destination in ?next. Measured live in the browser against the running dev server."
+  },
+  "signInMethodsOffered": [
+    "Google",
+    "Apple",
+    "Phone",
+    "Email"
+  ],
+  "demoRouteChecked": {
+    "path": "/demo",
+    "includesResearchPanel": false,
+    "note": "The sign-in page offers a no-sign-in demo, which was checked as a possible unauthenticated route to the research panel. ResearchPanel is mounted only in src/routes/_authenticated/ocade.studio.tsx, so the demo does not expose it."
+  },
+  "whyNotCompleted": "Every sign-in method offered is an OAuth flow or a phone/email one-time code. Completing any of them means handling the owner’s credentials, which I will not do. The research QUERY itself was therefore run through the same pipeline the panel calls — createHttpSourceFetcher and runResearch — against the live network, and is evidenced in release/OCADE_L1_RESEARCH_CITATIONS.json.",
+  "ownerActionToComplete": "Sign in at /auth, open /ocade/studio, and run a query in the research panel. The pipeline beneath it is already proven on real sources.",
+  "credentialFreeAuthProbe": {
+    "method": "POST {SUPABASE_URL}/auth/v1/signup with an empty body and the publishable key — the documented Supabase anonymous sign-in endpoint",
+    "httpStatus": 422,
+    "response": {
+      "code": 422,
+      "error_code": "anonymous_provider_disabled",
+      "msg": "Anonymous sign-ins are disabled"
+    },
+    "whyThisWasTried": "Anonymous sign-in is the one authentication path that creates a session without any credential — no password, no OAuth, no one-time code. If it were enabled, the research query could have been run through the real logged-in UI without me ever touching the owner’s credentials. It is disabled server-side, so that route is genuinely closed rather than merely inconvenient.",
+    "ownerActionThatWouldUnblock": "Enable Anonymous Sign-Ins in the Supabase dashboard (Authentication -> Providers -> Anonymous). That is a single project toggle and requires sharing nothing with me. With it on, L1’s UI clause is completable end to end without credentials."
+  }
+}

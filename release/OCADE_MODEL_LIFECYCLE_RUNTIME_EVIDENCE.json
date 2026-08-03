@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-29T16:44:42.622Z",
+  "tier": "REAL TARGET RUNTIME VERIFIED",
+  "model": "smollm2:135m",
+  "caveat": "Single host (Windows 10, i5-1135G7, 15.6GB RAM). Proves download, verification, activation, repair/rollback decisions and removal against a live runtime. It does NOT prove behaviour on other operating systems, other runtimes, or under network failure mid-transfer.",
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v24.16.0",
+    "bridge": "http://localhost:11434"
+  },
+  "summary": {
+    "observed": 11,
+    "failed": 0,
+    "skipped": 0,
+    "total": 11
+  },
+  "steps": [
+    {
+      "id": "L00",
+      "what": "free disk measured before any download",
+      "status": "observed",
+      "detail": {
+        "freeGb": 112.5
+      }
+    },
+    {
+      "id": "L01",
+      "what": "an impossible download is REFUSED before any transfer starts",
+      "status": "observed",
+      "detail": {
+        "failure": "insufficient_disk",
+        "reason": "Needs about 575000.0 GB of free disk (model plus working space) but only 112.5 GB is free."
+      }
+    },
+    {
+      "id": "L02",
+      "what": "a real in-flight download is cancellable and reported as resumable",
+      "status": "observed",
+      "detail": {
+        "failure": "cancelled",
+        "reason": "Download cancelled. Progress so far is kept and can be resumed."
+      }
+    },
+    {
+      "id": "L03",
+      "what": "real download of smollm2:135m (resuming the cancelled attempt)",
+      "status": "observed",
+      "detail": {
+        "elapsedMs": 90735,
+        "lastStatus": "success",
+        "progressSamples": [
+          {
+            "pct": 10,
+            "status": "pulling f535f83ec568"
+          },
+          {
+            "pct": 30,
+            "status": "pulling f535f83ec568"
+          },
+          {
+            "pct": 50.2,
+            "status": "pulling f535f83ec568"
+          },
+          {
+            "pct": 70.2,
+            "status": "pulling f535f83ec568"
+          },
+          {
+            "pct": 90.3,
+            "status": "pulling f535f83ec568"
+          }
+        ]
+      }
+    },
+    {
+      "id": "L04",
+      "what": "installation verified against the runtime's own model list",
+      "status": "observed",
+      "detail": {
+        "ok": true,
+        "modelId": "smollm2:135m",
+        "sizeBytes": 270898672,
+        "digest": "9077fe9d2ae1a4a41a868836b56b8163731a8fe16621397028c2c76f838c6907",
+        "digestVerified": true
+      }
+    },
+    {
+      "id": "L05",
+      "what": "model declared READY only after real inference AND real cancellation",
+      "status": "observed",
+      "detail": {
+        "ok": true,
+        "inferenceOk": true,
+        "cancellationOk": true,
+        "firstTokenMs": 1078,
+        "replyPreview": "Thank you for your feedback. I've made the necessary changes to ensure that all elements of your request have been succe"
+      }
+    },
+    {
+      "id": "L06",
+      "what": "repair plan for a healthy engine is 'none'",
+      "status": "observed",
+      "detail": {
+        "installed": [
+          "smollm2:135m",
+          "deepseek-coder:6.7b",
+          "qwen3-coder:30b",
+          "qwen2.5-coder:7b",
+          "deepseek-v4-pro:cloud"
+        ],
+        "plan": {
+          "kind": "none",
+          "why": "The local engine is healthy."
+        }
+      }
+    },
+    {
+      "id": "L07",
+      "what": "rollback targets a model that is genuinely still installed",
+      "status": "observed",
+      "detail": {
+        "plan": {
+          "target": "deepseek-coder:6.7b",
+          "reason": "Going back to deepseek-coder:6.7b, which was working before smollm2:135m."
+        },
+        "absentTarget": {
+          "target": null,
+          "reason": "The earlier model never-installed:1b is no longer installed, so rolling back would leave no engine at all."
+        }
+      }
+    },
+    {
+      "id": "L08",
+      "what": "removal of smollm2:135m (storage cleanup)",
+      "status": "observed",
+      "detail": {
+        "ok": true,
+        "modelId": "smollm2:135m"
+      }
+    },
+    {
+      "id": "L09",
+      "what": "removal confirmed — the model is genuinely gone, not just reported gone",
+      "status": "observed",
+      "detail": {
+        "failure": "not_installed"
+      }
+    },
+    {
+      "id": "L10",
+      "what": "disk reclaimed after removal",
+      "status": "observed",
+      "detail": {
+        "freeGbBefore": 112.48,
+        "freeGbAfter": 112.49,
+        "deltaGb": 0,
+        "note": "Delta is indicative only — other processes write to the same disk during the run."
+      }
+    }
+  ]
+}

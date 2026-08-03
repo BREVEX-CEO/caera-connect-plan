@@ -16,10 +16,7 @@ import { getCompany, updateCompany } from "@/lib/ficia-companies.functions";
 
 export const Route = createFileRoute("/_authenticated/ficia/$tenantId")({
   head: () => ({
-    meta: [
-      { title: "Company workspace — FICIA" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Company workspace — FICIA" }, { name: "robots", content: "noindex" }],
   }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
@@ -39,14 +36,20 @@ function CompanyWorkspace() {
   });
 
   if (q.isLoading) {
-    return <AppShell><GlassPanel className="p-4">Loading…</GlassPanel></AppShell>;
+    return (
+      <AppShell>
+        <GlassPanel className="p-4">Loading…</GlassPanel>
+      </AppShell>
+    );
   }
   if (q.isError || !q.data) {
     return (
       <AppShell>
         <GlassPanel className="p-6 text-center">
           <p className="text-sm">Company not found or you don't have access.</p>
-          <Link to="/ficia" className="text-sm text-primary mt-2 inline-block">← All companies</Link>
+          <Link to="/ficia" className="text-sm text-primary mt-2 inline-block">
+            ← All companies
+          </Link>
         </GlassPanel>
       </AppShell>
     );
@@ -58,15 +61,24 @@ function CompanyWorkspace() {
   return (
     <AppShell>
       <div className="mb-4">
-        <Link to="/ficia" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          to="/ficia"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="size-4" /> All companies
         </Link>
       </div>
       <PageHeader
         eyebrow="FICIA — company"
         title={company.name}
-        description={[company.legal_name, company.country, company.currency].filter(Boolean).join(" · ")}
-        actions={<StatusBadge status={company.status === "active" ? "success" : "planned"}>{company.status ?? "active"}</StatusBadge>}
+        description={[company.legal_name, company.country, company.currency]
+          .filter(Boolean)
+          .join(" · ")}
+        actions={
+          <StatusBadge status={company.status === "active" ? "success" : "planned"}>
+            {company.status ?? "active"}
+          </StatusBadge>
+        }
       />
 
       <div className="mt-4 mb-4 flex flex-wrap items-center gap-1 border-b border-border/60 pb-0">
@@ -84,16 +96,52 @@ function CompanyWorkspace() {
           </button>
         ))}
         <div className="ml-auto flex flex-wrap gap-1 pb-1 text-[12px]">
-          <Link to="/ficia/$tenantId/people" params={{ tenantId }} className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">People</Link>
-          <Link to="/ficia/$tenantId/roles" params={{ tenantId }} className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">Roles</Link>
-          <Link to="/ficia/$tenantId/approvals" params={{ tenantId }} className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">Approvals</Link>
-          <Link to="/ficia/$tenantId/messenger" params={{ tenantId }} className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">Messenger</Link>
-          <Link to="/ficia/$tenantId/time" params={{ tenantId }} className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground">Timesheets</Link>
+          <Link
+            to="/ficia/$tenantId/people"
+            params={{ tenantId }}
+            className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            People
+          </Link>
+          <Link
+            to="/ficia/$tenantId/roles"
+            params={{ tenantId }}
+            className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            Roles
+          </Link>
+          <Link
+            to="/ficia/$tenantId/approvals"
+            params={{ tenantId }}
+            className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            Approvals
+          </Link>
+          <Link
+            to="/ficia/$tenantId/messenger"
+            params={{ tenantId }}
+            className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            Messenger
+          </Link>
+          <Link
+            to="/ficia/$tenantId/time"
+            params={{ tenantId }}
+            className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            Timesheets
+          </Link>
         </div>
       </div>
 
       {tab === "overview" && <Overview company={company} />}
-      {tab === "settings" && <Settings company={company} isOwner={isOwner} onSaved={() => qc.invalidateQueries({ queryKey: ["ficia_company", tenantId] })} />}
+      {tab === "settings" && (
+        <Settings
+          company={company}
+          isOwner={isOwner}
+          onSaved={() => qc.invalidateQueries({ queryKey: ["ficia_company", tenantId] })}
+        />
+      )}
       {tab === "members" && <Members members={members ?? []} />}
     </AppShell>
   );
@@ -103,16 +151,26 @@ function Overview({ company }: { company: any }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <GlassPanel className="p-4">
-        <h3 className="text-sm font-semibold flex items-center gap-2"><Building2 className="size-4" /> Legal identity</h3>
+        <h3 className="text-sm font-semibold flex items-center gap-2">
+          <Building2 className="size-4" /> Legal identity
+        </h3>
         <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
-          <dt className="text-muted-foreground">Legal name</dt><dd>{company.legal_name ?? "—"}</dd>
-          <dt className="text-muted-foreground">Entity type</dt><dd>{company.entity_type ?? "—"}</dd>
-          <dt className="text-muted-foreground">Country</dt><dd>{company.country}</dd>
-          <dt className="text-muted-foreground">Registration #</dt><dd>{company.registration_number ?? "—"}</dd>
-          <dt className="text-muted-foreground">GSTIN</dt><dd>{company.tax_ids?.gstin ?? "—"}</dd>
-          <dt className="text-muted-foreground">PAN</dt><dd>{company.tax_ids?.pan ?? "—"}</dd>
-          <dt className="text-muted-foreground">Currency</dt><dd>{company.currency}</dd>
-          <dt className="text-muted-foreground">Fiscal year start</dt><dd>Month {company.fiscal_year_start_month}</dd>
+          <dt className="text-muted-foreground">Legal name</dt>
+          <dd>{company.legal_name ?? "—"}</dd>
+          <dt className="text-muted-foreground">Entity type</dt>
+          <dd>{company.entity_type ?? "—"}</dd>
+          <dt className="text-muted-foreground">Country</dt>
+          <dd>{company.country}</dd>
+          <dt className="text-muted-foreground">Registration #</dt>
+          <dd>{company.registration_number ?? "—"}</dd>
+          <dt className="text-muted-foreground">GSTIN</dt>
+          <dd>{company.tax_ids?.gstin ?? "—"}</dd>
+          <dt className="text-muted-foreground">PAN</dt>
+          <dd>{company.tax_ids?.pan ?? "—"}</dd>
+          <dt className="text-muted-foreground">Currency</dt>
+          <dd>{company.currency}</dd>
+          <dt className="text-muted-foreground">Fiscal year start</dt>
+          <dd>Month {company.fiscal_year_start_month}</dd>
         </dl>
       </GlassPanel>
 
@@ -120,10 +178,22 @@ function Overview({ company }: { company: any }) {
         <h3 className="text-sm font-semibold">Address & contact</h3>
         <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
           <dt className="text-muted-foreground">Address</dt>
-          <dd>{[company.address?.line1, company.address?.line2, company.address?.city, company.address?.postal_code].filter(Boolean).join(", ") || "—"}</dd>
-          <dt className="text-muted-foreground">Email</dt><dd>{company.contact?.email ?? "—"}</dd>
-          <dt className="text-muted-foreground">Phone</dt><dd>{company.contact?.phone ?? "—"}</dd>
-          <dt className="text-muted-foreground">Website</dt><dd>{company.contact?.website ?? "—"}</dd>
+          <dd>
+            {[
+              company.address?.line1,
+              company.address?.line2,
+              company.address?.city,
+              company.address?.postal_code,
+            ]
+              .filter(Boolean)
+              .join(", ") || "—"}
+          </dd>
+          <dt className="text-muted-foreground">Email</dt>
+          <dd>{company.contact?.email ?? "—"}</dd>
+          <dt className="text-muted-foreground">Phone</dt>
+          <dd>{company.contact?.phone ?? "—"}</dd>
+          <dt className="text-muted-foreground">Website</dt>
+          <dd>{company.contact?.website ?? "—"}</dd>
         </dl>
       </GlassPanel>
 
@@ -133,47 +203,71 @@ function Overview({ company }: { company: any }) {
           {(company.branches ?? []).map((b: any, i: number) => (
             <li key={i} className="border-l border-border pl-3">
               <p className="font-medium">{b.label}</p>
-              <p className="text-xs text-muted-foreground">{[b.city, b.region, b.country].filter(Boolean).join(", ")}</p>
+              <p className="text-xs text-muted-foreground">
+                {[b.city, b.region, b.country].filter(Boolean).join(", ")}
+              </p>
             </li>
           ))}
-          {(company.branches ?? []).length === 0 && <li className="text-xs text-muted-foreground">None.</li>}
+          {(company.branches ?? []).length === 0 && (
+            <li className="text-xs text-muted-foreground">None.</li>
+          )}
         </ul>
       </GlassPanel>
 
       <GlassPanel className="p-4">
-        <h3 className="text-sm font-semibold">Subsidiaries ({(company.subsidiaries ?? []).length})</h3>
+        <h3 className="text-sm font-semibold">
+          Subsidiaries ({(company.subsidiaries ?? []).length})
+        </h3>
         <ul className="mt-3 space-y-2 text-sm">
           {(company.subsidiaries ?? []).map((s: any, i: number) => (
             <li key={i} className="border-l border-border pl-3">
               <p className="font-medium">{s.name}</p>
               <p className="text-xs text-muted-foreground">
-                {s.country ?? ""} {s.ownership_percent != null ? `· ${s.ownership_percent}% owned` : ""}
+                {s.country ?? ""}{" "}
+                {s.ownership_percent != null ? `· ${s.ownership_percent}% owned` : ""}
               </p>
             </li>
           ))}
-          {(company.subsidiaries ?? []).length === 0 && <li className="text-xs text-muted-foreground">None.</li>}
+          {(company.subsidiaries ?? []).length === 0 && (
+            <li className="text-xs text-muted-foreground">None.</li>
+          )}
         </ul>
       </GlassPanel>
 
       <GlassPanel className="p-4 md:col-span-2">
         <h3 className="text-sm font-semibold">Recent work</h3>
-        <p className="mt-2 text-xs text-muted-foreground">No recent activity yet — recent invoices, filings and messages will appear here.</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          No recent activity yet — recent invoices, filings and messages will appear here.
+        </p>
       </GlassPanel>
 
       <GlassPanel className="p-4">
         <h3 className="text-sm font-semibold">Upcoming deadlines</h3>
-        <p className="mt-2 text-xs text-muted-foreground">No deadlines tracked yet. Tax, filing and payroll deadlines will list here once the country pack is active.</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          No deadlines tracked yet. Tax, filing and payroll deadlines will list here once the
+          country pack is active.
+        </p>
       </GlassPanel>
 
       <GlassPanel className="p-4">
         <h3 className="text-sm font-semibold">Activity</h3>
-        <p className="mt-2 text-xs text-muted-foreground">Team activity and audit events will appear here as members work in this company.</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Team activity and audit events will appear here as members work in this company.
+        </p>
       </GlassPanel>
     </div>
   );
 }
 
-function Settings({ company, isOwner, onSaved }: { company: any; isOwner: boolean; onSaved: () => void }) {
+function Settings({
+  company,
+  isOwner,
+  onSaved,
+}: {
+  company: any;
+  isOwner: boolean;
+  onSaved: () => void;
+}) {
   const [name, setName] = useState(company.name);
   const [legal, setLegal] = useState(company.legal_name ?? "");
   const [industry, setIndustry] = useState(company.industry ?? "");
@@ -196,18 +290,19 @@ function Settings({ company, isOwner, onSaved }: { company: any; isOwner: boolea
     try {
       const res = await executeAction("ficia.company.update", {
         confirmed: true,
-        run: () => updateCompany({
-          data: {
-            id: company.id,
-            patch: {
-              name,
-              legal_name: legal || null,
-              industry: industry || null,
-              logo_url: logo || null,
-              description: desc || null,
+        run: () =>
+          updateCompany({
+            data: {
+              id: company.id,
+              patch: {
+                name,
+                legal_name: legal || null,
+                industry: industry || null,
+                logo_url: logo || null,
+                description: desc || null,
+              },
             },
-          },
-        }),
+          }),
       });
       setMsg(res.ok ? "Saved." : res.message);
       if (res.ok) onSaved();
@@ -218,14 +313,29 @@ function Settings({ company, isOwner, onSaved }: { company: any; isOwner: boolea
 
   return (
     <GlassPanel className="p-5 grid gap-3">
-      <div className="grid gap-2"><Label>Display name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-      <div className="grid gap-2"><Label>Legal name</Label><Input value={legal} onChange={(e) => setLegal(e.target.value)} /></div>
-      <div className="grid gap-2"><Label>Industry</Label><Input value={industry} onChange={(e) => setIndustry(e.target.value)} /></div>
-      <div className="grid gap-2"><Label>Logo URL</Label><Input type="url" value={logo} onChange={(e) => setLogo(e.target.value)} /></div>
-      <div className="grid gap-2"><Label>Description</Label><Textarea rows={2} value={desc} onChange={(e) => setDesc(e.target.value)} /></div>
+      <div className="grid gap-2">
+        <Label>Display name</Label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} />
+      </div>
+      <div className="grid gap-2">
+        <Label>Legal name</Label>
+        <Input value={legal} onChange={(e) => setLegal(e.target.value)} />
+      </div>
+      <div className="grid gap-2">
+        <Label>Industry</Label>
+        <Input value={industry} onChange={(e) => setIndustry(e.target.value)} />
+      </div>
+      <div className="grid gap-2">
+        <Label>Logo URL</Label>
+        <Input type="url" value={logo} onChange={(e) => setLogo(e.target.value)} />
+      </div>
+      <div className="grid gap-2">
+        <Label>Description</Label>
+        <Textarea rows={2} value={desc} onChange={(e) => setDesc(e.target.value)} />
+      </div>
       <p className="text-xs text-muted-foreground">
-        Country, entity type, official registration number and tax IDs are locked to preserve legal identity integrity.
-        Contact support (or a future admin flow) if a correction is needed.
+        Country, entity type, official registration number and tax IDs are locked to preserve legal
+        identity integrity. Contact support (or a future admin flow) if a correction is needed.
       </p>
       <div className="flex items-center gap-3">
         <Button size="sm" onClick={save} disabled={busy}>
@@ -241,13 +351,22 @@ function Settings({ company, isOwner, onSaved }: { company: any; isOwner: boolea
 function Members({ members }: { members: any[] }) {
   return (
     <GlassPanel className="p-4">
-      <h3 className="text-sm font-semibold flex items-center gap-2"><Users className="size-4" /> Members ({members.length})</h3>
+      <h3 className="text-sm font-semibold flex items-center gap-2">
+        <Users className="size-4" /> Members ({members.length})
+      </h3>
       <ul className="mt-3 space-y-2 text-sm">
         {members.map((m) => (
-          <li key={m.user_id} className="flex items-center gap-3 border-b border-border/40 pb-2 last:border-0">
-            <span className="font-mono text-xs text-muted-foreground">{m.user_id.slice(0, 8)}…</span>
+          <li
+            key={m.user_id}
+            className="flex items-center gap-3 border-b border-border/40 pb-2 last:border-0"
+          >
+            <span className="font-mono text-xs text-muted-foreground">
+              {m.user_id.slice(0, 8)}…
+            </span>
             <StatusBadge status={m.role === "owner" ? "success" : "planned"}>{m.role}</StatusBadge>
-            <span className="text-xs text-muted-foreground ml-auto">since {new Date(m.created_at).toLocaleDateString()}</span>
+            <span className="text-xs text-muted-foreground ml-auto">
+              since {new Date(m.created_at).toLocaleDateString()}
+            </span>
           </li>
         ))}
       </ul>

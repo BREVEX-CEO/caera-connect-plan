@@ -15,10 +15,7 @@ export const Route = createFileRoute("/auth/verify")({
   ssr: false,
   validateSearch: searchSchema,
   head: () => ({
-    meta: [
-      { title: "Enter your code — CAERA CADANE" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Enter your code — CAERA CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: VerifyPage,
 });
@@ -37,7 +34,11 @@ function VerifyPage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const parsed = z.string().trim().regex(/^\d{4,8}$/, "Enter the numeric code we sent you.").safeParse(code);
+    const parsed = z
+      .string()
+      .trim()
+      .regex(/^\d{4,8}$/, "Enter the numeric code we sent you.")
+      .safeParse(code);
     if (!parsed.success) {
       setError(parsed.error.issues[0].message);
       setBusy(false);

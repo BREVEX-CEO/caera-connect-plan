@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-08-02T16:50:11.344Z",
+  "labelledImage": "C:\\Users\\haans\\AppData\\Local\\Temp\\ocade-i2-labelled.png",
+  "buttonOrderLeftToRight": [
+    "Cancel",
+    "Delete",
+    "Save",
+    "Export"
+  ],
+  "markers": [
+    {
+      "number": 1,
+      "name": "Document title",
+      "role": "Edit"
+    },
+    {
+      "number": 2,
+      "name": "Keep a backup copy",
+      "role": "CheckBox"
+    },
+    {
+      "number": 3,
+      "name": "Cancel",
+      "role": "Button"
+    },
+    {
+      "number": 4,
+      "name": "Delete",
+      "role": "Button"
+    },
+    {
+      "number": 5,
+      "name": "Save",
+      "role": "Button"
+    },
+    {
+      "number": 6,
+      "name": "Export",
+      "role": "Button"
+    }
+  ]
+}

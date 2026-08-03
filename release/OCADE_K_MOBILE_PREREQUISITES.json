@@ -1,0 +1,167 @@
+{
+  "schemaVersion": 1,
+  "item": "K1-K4 - mobile supervision: prerequisites probe",
+  "generatedAt": "2026-08-02T17:38:05.664Z",
+  "verdict": "BLOCKED - NOT ATTEMPTED",
+  "honestyNote": "No part of Section K was attempted or claimed. This records WHY, measured rather than asserted: the probe below ran on this machine and reports what is and is not installed. The project side of the mobile app exists; the toolchain and the devices do not.",
+  "whatExists": [
+    {
+      "name": "Gradle wrapper",
+      "path": "android\\gradlew.bat"
+    },
+    {
+      "name": "Android manifest",
+      "path": "android\\app\\src\\main\\AndroidManifest.xml"
+    },
+    {
+      "name": "Xcode project",
+      "path": "ios\\App\\App.xcodeproj"
+    }
+  ],
+  "whatIsMissing": [
+    {
+      "name": "ANDROID_HOME / ANDROID_SDK_ROOT",
+      "requiredFor": "K1 Android build"
+    },
+    {
+      "name": "Android SDK at default location",
+      "requiredFor": "K1 Android build"
+    },
+    {
+      "name": "adb",
+      "requiredFor": "K1 install/launch on emulator"
+    },
+    {
+      "name": "emulator",
+      "requiredFor": "K1 Android emulator"
+    },
+    {
+      "name": "JDK (java)",
+      "requiredFor": "K1 gradle build"
+    },
+    {
+      "name": "GitHub CLI authenticated",
+      "requiredFor": "K1 iOS via cloud macOS CI"
+    },
+    {
+      "name": "Any connected mobile device",
+      "requiredFor": "K2, K3, K4"
+    }
+  ],
+  "items": [
+    {
+      "id": "K1 Android",
+      "blockedBy": [
+        "Android SDK",
+        "platform-tools (adb)",
+        "emulator",
+        "JDK"
+      ],
+      "note": "android/gradlew.bat and android/app/src/main/AndroidManifest.xml are present, so the project is buildable in principle. Nothing can compile or launch without the SDK and a JDK. Installing them is a multi-gigabyte toolchain install on the owner machine and is the owner’s decision, not a step to take unasked mid-task."
+    },
+    {
+      "id": "K1 iOS",
+      "blockedBy": [
+        "cloud-hosted macOS CI"
+      ],
+      "note": "An Xcode project exists. iOS cannot build on Windows at all, so this depends entirely on macOS CI, which needs an authenticated gh. Two device codes have already expired unused. Owner action: gh auth login."
+    },
+    {
+      "id": "K2 pairing and PC-action approval",
+      "blockedBy": [
+        "a real paired phone"
+      ],
+      "note": "The requirement is tapping approve and deny on a phone and observing the real PC-side effect. There is no connected device; adb is not even installed to detect one. A simulated tap would proved nothing, and dressing one up as a real approval would be exactly the kind of false green this contract forbids."
+    },
+    {
+      "id": "K3 pause/resume/cancel/stop/reconnect",
+      "blockedBy": [
+        "a real paired phone"
+      ],
+      "note": "Same device dependency as K2, against a live PC task."
+    },
+    {
+      "id": "K4 revocation, push, cross-network relay",
+      "blockedBy": [
+        "a real paired phone",
+        "push service credentials",
+        "a second network"
+      ],
+      "note": "Needs a real push notification to arrive on a real device and a phone on a genuinely different network reaching this PC through a deployed relay. None of the three is available here."
+    }
+  ],
+  "unblockedBy": [
+    "Owner: gh auth login (unblocks K1 iOS via macOS CI)",
+    "Owner: decide whether to install the Android SDK + JDK on this machine (unblocks K1 Android)",
+    "Owner: provide a physical Android or iOS device paired to this desktop (unblocks K2, K3, K4)",
+    "Owner: push credentials and a relay deployment (additionally required for K4)"
+  ],
+  "probe": {
+    "presentCount": 3,
+    "schemaVersion": 1,
+    "generatedAt": "2026-08-02T23:07:39.4188126+05:30",
+    "totalCount": 10,
+    "probes": [
+      {
+        "name": "ANDROID_HOME / ANDROID_SDK_ROOT",
+        "requiredFor": "K1 Android build",
+        "present": false,
+        "detail": ""
+      },
+      {
+        "name": "Android SDK at default location",
+        "requiredFor": "K1 Android build",
+        "present": false,
+        "detail": ""
+      },
+      {
+        "name": "adb",
+        "requiredFor": "K1 install/launch on emulator",
+        "present": false,
+        "detail": ""
+      },
+      {
+        "name": "emulator",
+        "requiredFor": "K1 Android emulator",
+        "present": false,
+        "detail": ""
+      },
+      {
+        "name": "JDK (java)",
+        "requiredFor": "K1 gradle build",
+        "present": false,
+        "detail": ""
+      },
+      {
+        "name": "Gradle wrapper",
+        "requiredFor": "K1 Android build",
+        "present": true,
+        "detail": "android\\gradlew.bat"
+      },
+      {
+        "name": "Android manifest",
+        "requiredFor": "K1 Android build",
+        "present": true,
+        "detail": "android\\app\\src\\main\\AndroidManifest.xml"
+      },
+      {
+        "name": "Xcode project",
+        "requiredFor": "K1 iOS build",
+        "present": true,
+        "detail": "ios\\App\\App.xcodeproj"
+      },
+      {
+        "name": "GitHub CLI authenticated",
+        "requiredFor": "K1 iOS via cloud macOS CI",
+        "present": false,
+        "detail": ""
+      },
+      {
+        "name": "Any connected mobile device",
+        "requiredFor": "K2, K3, K4",
+        "present": false,
+        "detail": ""
+      }
+    ]
+  }
+}

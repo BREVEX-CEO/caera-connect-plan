@@ -11,7 +11,9 @@ import { toast } from "sonner";
 import { recordAction } from "@/lib/actions";
 
 export const Route = createFileRoute("/_authenticated/cania/saved")({
-  head: () => ({ meta: [{ title: "CANIA · Saved topics" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [{ title: "CANIA · Saved topics" }, { name: "robots", content: "noindex" }],
+  }),
   component: SavedPage,
 });
 
@@ -29,7 +31,8 @@ function SavedPage() {
     onError: (e) => toast.error((e as Error).message),
   });
 
-  if (q.isLoading) return <GlassPanel className="p-6 text-sm text-muted-foreground">Loading…</GlassPanel>;
+  if (q.isLoading)
+    return <GlassPanel className="p-6 text-sm text-muted-foreground">Loading…</GlassPanel>;
   const topics = q.data ?? [];
   if (topics.length === 0) {
     return (

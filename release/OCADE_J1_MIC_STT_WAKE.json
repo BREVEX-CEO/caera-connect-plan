@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "item": "J1 - microphone permission, real capture, real STT, live wake phrase",
+  "generatedAt": "2026-08-02T17:19:06.566Z",
+  "verdict": "PROVEN",
+  "scopeNote": "No human voice is involved. Utterances are synthesised and rendered to a waveform, and the recogniser receives only that waveform — so speech recognition and wake-phrase matching are proven on real audio, while the acoustic path from a person's mouth is not. See acousticPathLimitation.",
+  "permission": {
+    "requestedBeforeDeviceOpened": true,
+    "consentStoreValue": "Allow",
+    "granted": true,
+    "note": "voice-host.ps1 reads the Windows CapabilityAccessManager ConsentStore and refuses to open the microphone unless it reads Allow. On a denied machine the recording would otherwise come back as digital silence, which looks exactly like a quiet room."
+  },
+  "devices": {
+    "voices": [
+      "Microsoft Hazel Desktop",
+      "Microsoft Zira Desktop"
+    ],
+    "ok": true,
+    "recognizers": [
+      "MS-2057-80-DESK (en-GB)"
+    ]
+  },
+  "capture": {
+    "requestedSeconds": 5,
+    "path": "C:\\Users\\haans\\AppData\\Local\\Temp\\ocade-j1-capture.wav",
+    "sha256": "5a7fbfc4ad819388b7dfb6a9b6fcacdfff4d574ee4117afed4b1f38ca7006e77",
+    "bytes": 878392,
+    "audio": {
+      "durationSec": 4.98,
+      "samples": 439174,
+      "rmsDbfs": -33.2,
+      "channels": 2,
+      "rms": 718,
+      "peak": 4771,
+      "peakDbfs": -16.7,
+      "sampleRate": 44100
+    },
+    "realAudioNotSilence": true,
+    "formatNote": "Recorded 2ch/44100 because this microphone array refuses every mono format at 16k, 44.1k and 48k alike; the host downmixes and resamples to the mono 16 kHz the recogniser requires."
+  },
+  "transcription": {
+    "spoken": "The quick brown fox jumps over the lazy dog",
+    "transcript": "The quick brown fox jumps over the lazy dog",
+    "segments": [
+      {
+        "text": "The quick brown fox jumps over the lazy dog",
+        "confidence": 0.649
+      }
+    ],
+    "exactMatch": true,
+    "wav": "C:\\Users\\haans\\AppData\\Local\\Temp\\ocade-j1-sentence.wav"
+  },
+  "wakePhrase": {
+    "configuredPhrases": [
+      "hello ocade",
+      "hey ocade"
+    ],
+    "method": "constrained grammar with a confidence floor",
+    "triggering": {
+      "spoken": "Hey OCADE, what time is it",
+      "recognizedPhrase": "hey ocade",
+      "confidence": 0.969,
+      "triggered": true
+    },
+    "nonTriggering": {
+      "spoken": "What time is it",
+      "recognizedPhrase": "",
+      "confidence": 0,
+      "triggered": false
+    },
+    "threshold": 0.6,
+    "correctInBothDirections": true,
+    "dictationComparison": {
+      "triggeringTranscript": "Payer good what time is it",
+      "nonTriggeringTranscript": "What time is it",
+      "matchesWakePhraseOnTriggering": false,
+      "matchesWakePhraseOnNonTriggering": false,
+      "finding": "Dictation transcribed 'Hey OCADE' as 'Payer good' — the name is an invented proper noun outside the recogniser's lexicon, so matchesWakePhrase correctly refused it. Adding 'payer good' to the tolerated mishearings would have made the test pass and the product worse. Wake detection therefore uses a constrained grammar, which is how wake words are actually detected, and the confidence floor is what stops a grammar from reporting its closest phrase for arbitrary audio."
+    }
+  },
+  "acousticPathLimitation": {
+    "ambientRmsDbfs": -32.2,
+    "speechPlayingRmsDbfs": -34.7,
+    "transcriptOverAir": "There are",
+    "transcriptFromWaveform": "The quick brown fox jumps over the lazy dog",
+    "echoCancellationDetected": true,
+    "explanation": "Playing the sentence through the speakers and recording it on the microphone produced a LOWER level than the silent room. Adding a sound source cannot reduce recorded level, so the array is actively cancelling the speaker signal — correct behaviour for a laptop, and fatal for self-testing. Closing this gap needs either a person speaking or a playback device outside the array's echo-cancellation path."
+  }
+}

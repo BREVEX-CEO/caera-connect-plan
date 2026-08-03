@@ -39,10 +39,28 @@ export const DEMO_TIMESHEET = [
 ];
 
 export const DEMO_INVOICES = [
-  { id: "inv-2041", customer: "Sunburst Grocers", amount: 187_400, status: "Paid", due: "2026-07-01" },
-  { id: "inv-2042", customer: "GreenBowl Cafés", amount: 142_800, status: "Overdue", due: "2026-07-05" },
+  {
+    id: "inv-2041",
+    customer: "Sunburst Grocers",
+    amount: 187_400,
+    status: "Paid",
+    due: "2026-07-01",
+  },
+  {
+    id: "inv-2042",
+    customer: "GreenBowl Cafés",
+    amount: 142_800,
+    status: "Overdue",
+    due: "2026-07-05",
+  },
   { id: "inv-2043", customer: "Kestrel Foods", amount: 214_000, status: "Sent", due: "2026-07-22" },
-  { id: "inv-2044", customer: "Northgate Kitchens", amount: 98_100, status: "Overdue", due: "2026-06-30" },
+  {
+    id: "inv-2044",
+    customer: "Northgate Kitchens",
+    amount: 98_100,
+    status: "Overdue",
+    due: "2026-06-30",
+  },
 ];
 
 export const DEMO_REPORTS = [
@@ -67,9 +85,19 @@ export const DEMO_TASKS = [
 ];
 
 export const DEMO_COMPANY_CHAT = [
-  { id: "c1", author: "Priya Menon", ts: "09:12", body: "Uploaded June bank statement, ready for recon." },
+  {
+    id: "c1",
+    author: "Priya Menon",
+    ts: "09:12",
+    body: "Uploaded June bank statement, ready for recon.",
+  },
   { id: "c2", author: "Rahul Iyer", ts: "09:15", body: "Thanks — I'll start recon after standup." },
-  { id: "c3", author: "OCADE", ts: "09:16", body: "I noticed two invoices are overdue. Draft reminder emails? (Demo — not sent.)" },
+  {
+    id: "c3",
+    author: "OCADE",
+    ts: "09:16",
+    body: "I noticed two invoices are overdue. Draft reminder emails? (Demo — not sent.)",
+  },
 ];
 
 export const DEMO_RESUME = {

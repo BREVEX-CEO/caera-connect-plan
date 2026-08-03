@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "owner": "enterprise-browser-policy-owner",
+  "supportedBrowsers": ["chrome", "edge"],
+  "supportedOperatingSystems": ["windows", "macos", "linux"],
+  "allowedUpdateHosts": [
+    "clients2.google.com",
+    "edge.microsoft.com",
+    "microsoftedge.microsoft.com",
+    "updates.caeracadane.com"
+  ],
+  "forbiddenOriginPatterns": ["*://*/*", "http://*/*", "https://*/*", "<all_urls>"],
+  "forbiddenPermissions": [
+    "cookies",
+    "history",
+    "webRequest",
+    "webRequestBlocking",
+    "management",
+    "nativeMessaging",
+    "debugger"
+  ],
+  "developmentOriginsAllowedInProduction": false,
+  "incognitoAllowed": false,
+  "directAdministrativeAuthority": false,
+  "manualDeviceManagementApplyRequired": true,
+  "signatureRequired": true,
+  "tenantBindingRequired": true,
+  "rollbackRequired": true,
+  "revocationRequired": true,
+  "evidenceClass": "SIGNED ENTERPRISE POLICY BUNDLE - DEVICE-MANAGEMENT APPLY REQUIRED"
+}

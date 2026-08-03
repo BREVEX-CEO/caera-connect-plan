@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "item": "J3 - noise does not silently corrupt transcription; unavailable capture device fails clearly",
+  "generatedAt": "2026-08-02T17:35:34.764Z",
+  "verdict": "PROVEN",
+  "clean": {
+    "spoken": "The quick brown fox jumps over the lazy dog",
+    "transcript": "The quick brown fox jumps over the lazy dog",
+    "minConfidence": 0.649,
+    "correct": true,
+    "warned": false,
+    "note": "The clean case must NOT warn. A host that flagged every transcript would satisfy the noise requirement and be useless."
+  },
+  "noise": {
+    "levels": [
+      {
+        "noiseDb": -24,
+        "measuredSnrDb": 12.9,
+        "transcript": "If the flowers for film festival is the the off",
+        "minConfidence": 0.237,
+        "lowConfidenceWarning": true,
+        "warning": "LOW CONFIDENCE: this transcript may be wrong. Confidence 0.237 is below the floor of 0.6; treat it as unreliable rather than as what was said.",
+        "transcriptCorrect": false
+      },
+      {
+        "noiseDb": -18,
+        "measuredSnrDb": 6.9,
+        "transcript": "Slough off enough over to the floor if",
+        "minConfidence": 0.263,
+        "lowConfidenceWarning": true,
+        "warning": "LOW CONFIDENCE: this transcript may be wrong. Confidence 0.263 is below the floor of 0.6; treat it as unreliable rather than as what was said.",
+        "transcriptCorrect": false
+      },
+      {
+        "noiseDb": -12,
+        "measuredSnrDb": 0.9,
+        "transcript": "All five F",
+        "minConfidence": 0.173,
+        "lowConfidenceWarning": true,
+        "warning": "LOW CONFIDENCE: this transcript may be wrong. Confidence 0.173 is below the floor of 0.6; treat it as unreliable rather than as what was said.",
+        "transcriptCorrect": false
+      }
+    ],
+    "corruptedCount": 3,
+    "everyCorruptionCarriedAWarning": true,
+    "note": "Broadband noise is summed into the real samples and the SNR is computed from the two waveforms. Noise degrading recognition is expected; the requirement is that a degraded transcript is never handed back as though it were what was said. Under noise this recogniser returns fluent, wrong sentences rather than errors, which is why the confidence floor is surfaced as an explicit warning."
+  },
+  "deviceUnavailable": {
+    "elapsedMs": 492,
+    "surfacedClearError": true,
+    "failedFast": true,
+    "error": "Exception calling \"Send\" with \"1\" argument(s): \"MCI 'record probe' failed: All wave devices that can record files in the current format are in use.  Wait until a wave device is free, and then try again.\"",
+    "scopeNote": "No microphone was physically unplugged. This exercises the same failure path — the capture device cannot be opened — and shows it returns a specific message immediately instead of blocking. Hot-unplug mid-capture is NOT proven here and would need someone to pull the device during a run."
+  }
+}

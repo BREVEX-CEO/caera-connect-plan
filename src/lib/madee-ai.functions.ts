@@ -182,7 +182,9 @@ export const parseUploadedResume = createServerFn({ method: "POST" })
       const parsed = JSON.parse(extractJson(res.result)) as unknown;
       return { ok: true as const, result: JSON.stringify(parsed) };
     } catch {
-      return fail("Could not parse the uploaded resume. You can still start from an empty template.");
+      return fail(
+        "Could not parse the uploaded resume. You can still start from an empty template.",
+      );
     }
   });
 

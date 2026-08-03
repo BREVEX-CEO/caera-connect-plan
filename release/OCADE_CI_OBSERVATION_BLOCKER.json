@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "id": "ci-observation",
+  "title": "GitHub Actions has never been read",
+  "status": "externally_blocked",
+  "owner": "repository owner (BREVEX-CEO)",
+  "firstRecorded": "2026-07-31",
+  "lastAttempted": "2026-08-01",
+  "area": "continuous-integration",
+
+  "whatIsBlocked": "Every phase's final step — 'read CI and fix it until green' — cannot complete. This is the last open condition of Phase 0's Definition of Done, and it has now been open across three sessions.",
+
+  "whyItIsNotJustMissingWork": "The workflows exist, are correct, and are triggered by every push to feat/ocade-implementation. All three jobs' commands have been executed locally and pass. What is missing is the hosted result, which is the one thing local execution cannot substitute for — as this programme has already proved once: defect D19 made the web job fail at the 'Unit tests' step on every push while everything passed locally, and only a fresh checkout exposed it.",
+
+  "attempts": [
+    {
+      "at": "2026-07-31",
+      "finding": "Recorded as 'gh not installed'. That was wrong: gh 2.97.0 IS installed at C:\\Program Files\\GitHub CLI\\gh.exe, but is not on PATH and has no stored credentials."
+    },
+    {
+      "at": "2026-08-01",
+      "action": "Started the OAuth device flow twice. Both times a one-time code was issued and surfaced to the owner.",
+      "result": "failed to authenticate via web browser: context deadline exceeded",
+      "meaning": "The code expired unused after roughly 15 minutes. No authorisation was granted."
+    }
+  ],
+
+  "whyNotResolvedAutomatically": "Authenticating requires the owner to approve in their own browser session. Device-flow codes are surfaced rather than entered by the agent, and no GH_TOKEN or GITHUB_TOKEN exists in the environment. Extracting a stored credential from the Windows Credential Manager vault — which is what lets git push succeed — to synthesise an API token is not something to do unasked.",
+
+  "exactOwnerAction": {
+    "command": "\"C:\\Program Files\\GitHub CLI\\gh.exe\" auth login --hostname github.com --git-protocol https --web",
+    "thenEnterCodeAt": "https://github.com/login/device",
+    "timeLimit": "the one-time code expires in about 15 minutes, so it has to be entered promptly after the command is run",
+    "alternative": "export a GITHUB_TOKEN with the actions:read scope into the environment instead"
+  },
+
+  "proofStillNeededOnceUnblocked": [
+    "gh run list --branch feat/ocade-implementation --limit 5",
+    "gh run view <id> --log for the most recent run",
+    "Raw pass/fail for each of the three jobs: web, rust, audit",
+    "Each red job classified as product / test / workflow / dependency / OS / credential / flaky / timeout, and fixed if genuinely broken"
+  ],
+
+  "falsifiablePrediction": "Runs before b838ffe should be RED at the web job's 'Unit tests' step, because release-gate-enforces.test.ts required build output that ci.yml does not create until the following step. b838ffe contains the fix. If those runs are green instead, that diagnosis was wrong and must be corrected rather than defended.",
+
+  "whatMustNotHappen": "CI must never be recorded as green, or as passing, on the strength of local execution. Local success on one Windows host is precisely what hosted evidence exists to distinguish itself from."
+}

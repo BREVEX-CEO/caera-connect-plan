@@ -4,7 +4,13 @@ import { cn } from "@/lib/utils";
  * Permanent, always-visible label indicating the current view is Demo Mode.
  * Never conditionally hidden — it is the contract with the visitor.
  */
-export function DemoBadge({ className, floating = false }: { className?: string; floating?: boolean }) {
+export function DemoBadge({
+  className,
+  floating = false,
+}: {
+  className?: string;
+  floating?: boolean;
+}) {
   return (
     <span
       role="status"

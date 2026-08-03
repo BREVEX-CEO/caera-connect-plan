@@ -12,9 +12,7 @@ export async function saveLocalResumeContent(versionId: string, content: ResumeC
   await indexedDbAdapter.put("resumes", KEY(versionId), content);
 }
 
-export async function loadLocalResumeContent(
-  versionId: string,
-): Promise<ResumeContent | null> {
+export async function loadLocalResumeContent(versionId: string): Promise<ResumeContent | null> {
   const rec = await indexedDbAdapter.get<ResumeContent>("resumes", KEY(versionId));
   return rec?.value ?? null;
 }

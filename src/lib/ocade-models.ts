@@ -9,6 +9,11 @@
  * underlying provider (Lovable AI Gateway, OpenAI direct, Ollama local,
  * future CAERA CADANE native) is always visible here and in diagnostics.
  */
+import {
+  createDefaultProviderManifests,
+  type ModelProviderId,
+  type ProviderManifest,
+} from "./providers/model-fabric";
 
 export type OcadeProviderId = "lovable_gateway" | "openai_direct" | "ollama_local" | "caera_native";
 export type OcadeRoutingMode = "auto" | OcadeProviderId;
@@ -34,7 +39,8 @@ export const OCADE_PROVIDERS: OcadeProviderInfo[] = [
     locality: "cloud",
     requiresNative: false,
     requiresSecret: false,
-    description: "Managed cloud routing to Google, OpenAI and others. Metered usage on your workspace credits.",
+    description:
+      "Managed cloud routing to Google, OpenAI and others. Metered usage on your workspace credits.",
     status: "active",
   },
   {
@@ -53,7 +59,8 @@ export const OCADE_PROVIDERS: OcadeProviderInfo[] = [
     locality: "local",
     requiresNative: true,
     requiresSecret: false,
-    description: "Runs on your own machine. No cloud transfer. Requires the Native Companion or a local bridge URL.",
+    description:
+      "Runs on your own machine. No cloud transfer. Requires the Native Companion or a local bridge URL.",
     status: "setup_required",
     disabledReason: "Native Companion or local bridge URL required.",
   },
@@ -69,11 +76,18 @@ export const OCADE_PROVIDERS: OcadeProviderInfo[] = [
   },
 ];
 
+/** Full Stage 2 provider fabric; existing cloud-routing ids remain compatible. */
+export const OCADE_MODEL_FABRIC_PROVIDERS: ProviderManifest[] = createDefaultProviderManifests();
+
+export function getModelFabricProvider(id: ModelProviderId): ProviderManifest | null {
+  return OCADE_MODEL_FABRIC_PROVIDERS.find((provider) => provider.id === id) ?? null;
+}
+
 export interface OcadeCapabilities {
   text: boolean;
-  image: boolean;   // vision (image input understanding)
-  files: boolean;   // document input understanding
-  voice: boolean;   // audio input/output the model itself supports
+  image: boolean; // vision (image input understanding)
+  files: boolean; // document input understanding
+  voice: boolean; // audio input/output the model itself supports
   contextTokens: number; // approximate max context window
   speedTier: "fast" | "balanced" | "slow";
   costTier: "cheap" | "balanced" | "premium";
@@ -106,7 +120,15 @@ export const OCADE_MODELS: OcadeModelInfo[] = [
     locality: "cloud",
     vision: true,
     description: "Balanced default. Fast, accepts images.",
-    capabilities: { text: true, image: true, files: true, voice: false, contextTokens: 1_000_000, speedTier: "fast", costTier: "balanced" },
+    capabilities: {
+      text: true,
+      image: true,
+      files: true,
+      voice: false,
+      contextTokens: 1_000_000,
+      speedTier: "fast",
+      costTier: "balanced",
+    },
   },
   {
     id: "google/gemini-3.1-pro-preview",
@@ -116,7 +138,15 @@ export const OCADE_MODELS: OcadeModelInfo[] = [
     locality: "cloud",
     vision: true,
     description: "Stronger reasoning for complex tasks.",
-    capabilities: { text: true, image: true, files: true, voice: false, contextTokens: 1_000_000, speedTier: "balanced", costTier: "premium" },
+    capabilities: {
+      text: true,
+      image: true,
+      files: true,
+      voice: false,
+      contextTokens: 1_000_000,
+      speedTier: "balanced",
+      costTier: "premium",
+    },
   },
   {
     id: "google/gemini-3.1-flash-lite",
@@ -126,7 +156,15 @@ export const OCADE_MODELS: OcadeModelInfo[] = [
     locality: "cloud",
     vision: true,
     description: "Cheapest cloud option for high-volume tasks.",
-    capabilities: { text: true, image: true, files: true, voice: false, contextTokens: 1_000_000, speedTier: "fast", costTier: "cheap" },
+    capabilities: {
+      text: true,
+      image: true,
+      files: true,
+      voice: false,
+      contextTokens: 1_000_000,
+      speedTier: "fast",
+      costTier: "cheap",
+    },
   },
   {
     id: "openai/gpt-5.4-mini",
@@ -136,7 +174,15 @@ export const OCADE_MODELS: OcadeModelInfo[] = [
     locality: "cloud",
     vision: true,
     description: "OpenAI alternative for varied styles.",
-    capabilities: { text: true, image: true, files: false, voice: false, contextTokens: 400_000, speedTier: "balanced", costTier: "balanced" },
+    capabilities: {
+      text: true,
+      image: true,
+      files: false,
+      voice: false,
+      contextTokens: 400_000,
+      speedTier: "balanced",
+      costTier: "balanced",
+    },
   },
   {
     id: "openai/gpt-5.5",
@@ -146,7 +192,15 @@ export const OCADE_MODELS: OcadeModelInfo[] = [
     locality: "cloud",
     vision: true,
     description: "Highest-quality reasoning; premium cost.",
-    capabilities: { text: true, image: true, files: false, voice: false, contextTokens: 400_000, speedTier: "slow", costTier: "premium" },
+    capabilities: {
+      text: true,
+      image: true,
+      files: false,
+      voice: false,
+      contextTokens: 400_000,
+      speedTier: "slow",
+      costTier: "premium",
+    },
   },
 ];
 
@@ -181,7 +235,12 @@ export function autoSelectModel(prefs: {
   const reasons: string[] = [];
   if (prefs.sessionOverride) {
     const forced = OCADE_MODELS.find((m) => m.id === prefs.sessionOverride);
-    if (forced) return { model: forced, reasons: ["Per-session override active."], localFallbackNeeded: false };
+    if (forced)
+      return {
+        model: forced,
+        reasons: ["Per-session override active."],
+        localFallbackNeeded: false,
+      };
   }
 
   const localFallbackNeeded = prefs.privacy === "local_first";

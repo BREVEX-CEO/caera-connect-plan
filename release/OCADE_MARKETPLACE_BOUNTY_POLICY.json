@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "owner": "application-compatibility-marketplace-owner",
+  "runtimeMode": "LOCAL_REVIEW_AND_PRIORITY_ONLY",
+  "marketplace": {
+    "signatureRequired": true,
+    "sandboxRequired": true,
+    "permissionScopeRequired": true,
+    "versionBindingRequired": true,
+    "independentReviewRequired": true,
+    "minimumPublisherReputation": 0.8,
+    "localRevalidationRequired": true,
+    "revocationRequired": true,
+    "tenantIsolationRequired": true,
+    "evidenceDigestRequired": true,
+    "emergencyStopRequired": true
+  },
+  "bounty": {
+    "financialPayoutsEnabled": false,
+    "priorityCreditsOnly": true,
+    "duplicateClaimsAllowed": false,
+    "realTargetEvidenceRequired": true,
+    "versionMatchRequired": true,
+    "allAcceptanceCriteriaRequired": true,
+    "independentReviewRequired": true,
+    "disputeRequired": true,
+    "laterRevocationRequired": true
+  },
+  "honestBoundaries": {
+    "localAdmissionProvesTargetApplicationRuntime": false,
+    "simulatedEvidenceCanWinBounty": false,
+    "financialPayoutsRequireCompliantProvider": true,
+    "financialPayoutsRequireContributorIdentity": true,
+    "contributorsRequireLegitimateTargetAccess": true
+  }
+}

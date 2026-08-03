@@ -16,9 +16,7 @@ export function EmptyState({
     <GlassPanel className="flex flex-col items-center justify-center gap-3 p-10 text-center">
       {icon ? <div className="text-muted-foreground">{icon}</div> : null}
       <h3 className="text-base font-semibold text-foreground">{title}</h3>
-      {description ? (
-        <p className="max-w-md text-sm text-muted-foreground">{description}</p>
-      ) : null}
+      {description ? <p className="max-w-md text-sm text-muted-foreground">{description}</p> : null}
       {action}
     </GlassPanel>
   );

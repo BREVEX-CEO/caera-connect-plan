@@ -6,10 +6,7 @@ import { providersForSection } from "@/lib/cania-providers";
 
 export const Route = createFileRoute("/_authenticated/cania/")({
   head: () => ({
-    meta: [
-      { title: "CANIA Overview — CAERA CADANE" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "CANIA Overview — CAERA CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: OverviewPage,
 });
@@ -19,9 +16,9 @@ function OverviewPage() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
-        CANIA never fabricates live information. Each section below shows the
-        provider adapters that can power it and the current setup status. Real
-        data appears only after an operator connects the provider.
+        CANIA never fabricates live information. Each section below shows the provider adapters that
+        can power it and the current setup status. Real data appears only after an operator connects
+        the provider.
       </p>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {signals.map((s) => {
@@ -30,7 +27,11 @@ function OverviewPage() {
           return (
             <Link
               key={s.id}
-              to={`/cania/${s.slug}`}
+              // Every CANIA section slug has a real generated route
+              // (/cania/world, /cania/markets, ...), but the router's `to` union
+              // can't be narrowed from a template literal. The runtime target is
+              // always valid; this cast only satisfies the union.
+              to={`/cania/${s.slug}` as "/cania"}
               className="block"
             >
               <GlassPanel className="flex h-full flex-col gap-2 p-4 transition hover:border-border">

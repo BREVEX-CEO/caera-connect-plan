@@ -8,7 +8,14 @@
  */
 
 import type { DataClass, StorageAdapter, StoredRecord } from "./types";
-import { aesGcmDecrypt, aesGcmEncrypt, b64decode, b64encode, bytesToJson, jsonToBytes } from "./vault-crypto";
+import {
+  aesGcmDecrypt,
+  aesGcmEncrypt,
+  b64decode,
+  b64encode,
+  bytesToJson,
+  jsonToBytes,
+} from "./vault-crypto";
 import { requireKey } from "./vault-session";
 
 const DB_NAME = "caera-browser-vault";
@@ -69,7 +76,8 @@ export const indexedDbAdapter: StorageAdapter = {
   async put(dataClass, id, value) {
     const db = await openDb();
     const now = Date.now();
-    const existing = (await promisify(tx(db, "readonly").get(`${dataClass}:${id}`))) as Row | undefined;
+    const existing = (await promisify(tx(db, "readonly").get(`${dataClass}:${id}`))) as
+      Row | undefined;
     const { iv, ciphertext } = await encryptValue(value, dataClass, id);
     const row: Row = {
       key: `${dataClass}:${id}`,
@@ -90,7 +98,13 @@ export const indexedDbAdapter: StorageAdapter = {
     db.close();
     if (!row) return null;
     const value = await decryptValue<T>(row);
-    return { id: row.id, dataClass: row.dataClass, createdAt: row.createdAt, updatedAt: row.updatedAt, value } satisfies StoredRecord<T>;
+    return {
+      id: row.id,
+      dataClass: row.dataClass,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+      value,
+    } satisfies StoredRecord<T>;
   },
 
   async list<T>(dataClass: DataClass) {
@@ -102,7 +116,13 @@ export const indexedDbAdapter: StorageAdapter = {
     const out: StoredRecord<T>[] = [];
     for (const row of rows) {
       const value = await decryptValue<T>(row);
-      out.push({ id: row.id, dataClass: row.dataClass, createdAt: row.createdAt, updatedAt: row.updatedAt, value });
+      out.push({
+        id: row.id,
+        dataClass: row.dataClass,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+        value,
+      });
     }
     return out;
   },

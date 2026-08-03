@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "item": "J2 - live captions, real audio reply, immediate interruption",
+  "generatedAt": "2026-08-02T17:33:18.192Z",
+  "verdict": "PROVEN",
+  "question": "What is on my calendar this afternoon?",
+  "reply": "You have three things this afternoon. A design review at two o'clock, a call with the platform team at half past three, and a reminder to send the quarterly report before the end of the day. The design review has moved rooms since yesterday, so it is now in the larger meeting room on the third floor.",
+  "audioReply": {
+    "uninterruptedDurationMs": 20831,
+    "maxOutputPeak": 0.69719,
+    "produced": true,
+    "note": "Measured with IAudioMeterInformation on the default render endpoint — the peak sample the audio engine is rendering. A run that played nothing would show a flat zero trace here."
+  },
+  "captions": {
+    "eventCount": 5,
+    "spanMs": 1170,
+    "positionsAdvance": true,
+    "live": true,
+    "lines": [
+      {
+        "ms": 180,
+        "charPosition": 0,
+        "caption": "You have three things this afternoon."
+      },
+      {
+        "ms": 389,
+        "charPosition": 4,
+        "caption": "You have three things this afternoon."
+      },
+      {
+        "ms": 619,
+        "charPosition": 9,
+        "caption": "You have three things this afternoon."
+      },
+      {
+        "ms": 960,
+        "charPosition": 15,
+        "caption": "You have three things this afternoon."
+      },
+      {
+        "ms": 1350,
+        "charPosition": 22,
+        "caption": "You have three things this afternoon."
+      }
+    ],
+    "note": "Driven by SpeakProgress, which fires per word as the synthesiser reaches it, and windowed by captionSentenceAt from src/lib/ocade-voice.ts. Liveness is judged on the timestamps being spread across the reply and the character positions advancing, because a single caption emitted at the end would otherwise pass."
+  },
+  "interruption": {
+    "requestedAtMs": 1500,
+    "cancelIssuedAtMs": 1555,
+    "lastAudibleOutputMs": 1493,
+    "stopLatencyMs": 62,
+    "maxOutputPeakAfterCut": 0,
+    "outputStopped": true,
+    "endedEarlyVersusBaseline": true,
+    "baselineMs": 20831,
+    "outputTrace": [
+      {
+        "ms": 20,
+        "peak": 0
+      },
+      {
+        "ms": 109,
+        "peak": 0
+      },
+      {
+        "ms": 171,
+        "peak": 0.0039
+      },
+      {
+        "ms": 232,
+        "peak": 0.16794
+      },
+      {
+        "ms": 309,
+        "peak": 0.44585
+      },
+      {
+        "ms": 371,
+        "peak": 0.46442
+      },
+      {
+        "ms": 434,
+        "peak": 0.4504
+      },
+      {
+        "ms": 496,
+        "peak": 0.64003
+      },
+      {
+        "ms": 559,
+        "peak": 0.64003
+      },
+      {
+        "ms": 619,
+        "peak": 0.41339
+      },
+      {
+        "ms": 682,
+        "peak": 0.0212
+      },
+      {
+        "ms": 744,
+        "peak": 0.20499
+      },
+      {
+        "ms": 806,
+        "peak": 0.45897
+      },
+      {
+        "ms": 869,
+        "peak": 0.47138
+      },
+      {
+        "ms": 930,
+        "peak": 0.46852
+      },
+      {
+        "ms": 993,
+        "peak": 0.30162
+      },
+      {
+        "ms": 1056,
+        "peak": 0.05879
+      },
+      {
+        "ms": 1118,
+        "peak": 0.58528
+      },
+      {
+        "ms": 1180,
+        "peak": 0.62646
+      },
+      {
+        "ms": 1243,
+        "peak": 0.47147
+      },
+      {
+        "ms": 1305,
+        "peak": 0.41694
+      },
+      {
+        "ms": 1367,
+        "peak": 0.07911
+      },
+      {
+        "ms": 1431,
+        "peak": 0.69719
+      },
+      {
+        "ms": 1493,
+        "peak": 0.69719
+      },
+      {
+        "ms": 1555,
+        "peak": 0
+      },
+      {
+        "ms": 1649,
+        "peak": 0
+      },
+      {
+        "ms": 1710,
+        "peak": 0
+      },
+      {
+        "ms": 1772,
+        "peak": 0
+      },
+      {
+        "ms": 1834,
+        "peak": 0
+      },
+      {
+        "ms": 1897,
+        "peak": 0
+      },
+      {
+        "ms": 1959,
+        "peak": 0
+      },
+      {
+        "ms": 2021,
+        "peak": 0
+      },
+      {
+        "ms": 2084,
+        "peak": 0
+      },
+      {
+        "ms": 2146,
+        "peak": 0
+      },
+      {
+        "ms": 2208,
+        "peak": 0
+      },
+      {
+        "ms": 2270,
+        "peak": 0
+      },
+      {
+        "ms": 2332,
+        "peak": 0
+      },
+      {
+        "ms": 2394,
+        "peak": 0
+      },
+      {
+        "ms": 2472,
+        "peak": 0
+      }
+    ],
+    "note": "The uninterrupted reply is timed first so the interrupted one has a baseline to be short against. Output peak is zero from the cut onward; the last audible sample precedes the cancel."
+  }
+}

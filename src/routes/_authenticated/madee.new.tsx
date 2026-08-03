@@ -14,7 +14,10 @@ import { createResumeProject, createResumeVersion } from "@/lib/madee.functions"
 import { parseUploadedResume } from "@/lib/madee-ai.functions";
 import { executeAction } from "@/lib/actions";
 import {
-  EXPERIENCE_LEVEL_LABEL, ResumeContent, emptyResume, type ExperienceLevel,
+  EXPERIENCE_LEVEL_LABEL,
+  ResumeContent,
+  emptyResume,
+  type ExperienceLevel,
 } from "@/lib/madee-resume-types";
 import { saveLocalResumeContent } from "@/lib/madee-local-store";
 
@@ -145,10 +148,12 @@ function NewResume() {
       <div className="mx-auto mt-6 max-w-2xl space-y-6">
         {search.upload && (
           <div className="rounded-xl border border-border/60 bg-card/50 p-4">
-            <Label className="text-xs uppercase tracking-wide text-muted-foreground">Upload file</Label>
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+              Upload file
+            </Label>
             <p className="mb-2 text-sm text-muted-foreground">
-              Supported: .txt, .md, or plain-text-extractable PDF/DOCX in this browser.
-              Complex formatted PDFs may need you to paste the text.
+              Supported: .txt, .md, or plain-text-extractable PDF/DOCX in this browser. Complex
+              formatted PDFs may need you to paste the text.
             </p>
             <Input
               type="file"
@@ -166,7 +171,8 @@ function NewResume() {
             )}
             {uploadedContent && (
               <p className="mt-2 text-sm text-emerald-500">
-                Parsed. {uploadedContent.work.length} role(s), {uploadedContent.skills.length} skill(s).
+                Parsed. {uploadedContent.work.length} role(s), {uploadedContent.skills.length}{" "}
+                skill(s).
               </p>
             )}
           </div>
@@ -190,18 +196,25 @@ function NewResume() {
             <div className="space-y-1">
               <Label>Experience level</Label>
               <select
+                aria-label="Experience level"
                 value={experienceLevel}
                 onChange={(e) => setExperienceLevel(e.target.value as ExperienceLevel)}
                 className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
               >
                 {Object.entries(EXPERIENCE_LEVEL_LABEL).map(([v, label]) => (
-                  <option key={v} value={v}>{label}</option>
+                  <option key={v} value={v}>
+                    {label}
+                  </option>
                 ))}
               </select>
             </div>
             <div className="space-y-1">
               <Label>Target role (optional)</Label>
-              <Input value={targetRole} onChange={(e) => setTargetRole(e.target.value)} maxLength={200} />
+              <Input
+                value={targetRole}
+                onChange={(e) => setTargetRole(e.target.value)}
+                maxLength={200}
+              />
             </div>
           </div>
 
@@ -230,8 +243,8 @@ function NewResume() {
             <div>
               <h3 className="font-semibold">Owner attestation</h3>
               <p className="text-sm text-muted-foreground">
-                MADEE lets one person edit their own resume freely. To prevent resale
-                and impersonation, we ask you to attest before saving.
+                MADEE lets one person edit their own resume freely. To prevent resale and
+                impersonation, we ask you to attest before saving.
               </p>
             </div>
           </div>
@@ -241,13 +254,19 @@ function NewResume() {
           </div>
           <Textarea readOnly rows={4} value={ATTESTATION_TEXT} className="text-xs" />
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={accepted}
+              onChange={(e) => setAccepted(e.target.checked)}
+            />
             I have read and accept the attestation.
           </label>
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={() => nav({ to: "/madee" })}>Cancel</Button>
+          <Button variant="ghost" onClick={() => nav({ to: "/madee" })}>
+            Cancel
+          </Button>
           <Button disabled={busy || !accepted || fullName.trim().length < 2} onClick={onSubmit}>
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             {search.upload ? "Save uploaded resume" : "Create resume"}
@@ -259,14 +278,24 @@ function NewResume() {
 }
 
 function StorageOption({
-  selected, onSelect, title, description,
-}: { selected: boolean; onSelect: () => void; title: string; description: string }) {
+  selected,
+  onSelect,
+  title,
+  description,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  title: string;
+  description: string;
+}) {
   return (
     <button
       type="button"
       onClick={onSelect}
       className={`rounded-lg border p-3 text-left transition-colors ${
-        selected ? "border-[color:var(--accent-madee)] bg-[color:var(--accent-madee)]/5" : "border-border/60 hover:border-border"
+        selected
+          ? "border-[color:var(--accent-madee)] bg-[color:var(--accent-madee)]/5"
+          : "border-border/60 hover:border-border"
       }`}
     >
       <div className="font-medium">{title}</div>

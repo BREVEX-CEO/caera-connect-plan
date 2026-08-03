@@ -45,7 +45,8 @@ export function DataCard({
   className?: string;
 }) {
   const age = meta.retrievedAt ? Date.now() - new Date(meta.retrievedAt).getTime() : null;
-  const stale = age !== null && meta.staleAfterMs && meta.staleAfterMs > 0 && age > meta.staleAfterMs;
+  const stale =
+    age !== null && meta.staleAfterMs && meta.staleAfterMs > 0 && age > meta.staleAfterMs;
 
   return (
     <GlassPanel className={cn("flex flex-col gap-3 p-4", className)}>
@@ -61,7 +62,15 @@ export function DataCard({
             ) : null}
           </div>
         </div>
-        <StatusBadge status={meta.providerStatus === "connected" ? "connected" : meta.providerStatus === "failed" ? "failed" : "setup_required"} />
+        <StatusBadge
+          status={
+            meta.providerStatus === "connected"
+              ? "connected"
+              : meta.providerStatus === "failed"
+                ? "failed"
+                : "setup_required"
+          }
+        />
       </div>
 
       {meta.providerStatus !== "connected" && !meta.demo ? (
@@ -71,7 +80,11 @@ export function DataCard({
       {meta.permission === "denied" ? (
         <PermissionNotice />
       ) : meta.permission === "needs_prompt" ? (
-        <InlineHint icon={Lock} tone="warning" text="This section needs your location — grant permission on the CANIA settings page." />
+        <InlineHint
+          icon={Lock}
+          tone="warning"
+          text="This section needs your location — grant permission on the CANIA settings page."
+        />
       ) : null}
 
       {meta.error ? (
@@ -79,7 +92,11 @@ export function DataCard({
       ) : null}
 
       {stale ? (
-        <InlineHint icon={Clock} tone="warning" text="This data is stale. Refresh to pull the latest from the provider." />
+        <InlineHint
+          icon={Clock}
+          tone="warning"
+          text="This data is stale. Refresh to pull the latest from the provider."
+        />
       ) : null}
 
       {children ? <div className="text-sm text-foreground">{children}</div> : null}
@@ -91,9 +108,7 @@ export function DataCard({
         </div>
         <div className="inline-flex items-center gap-1.5">
           <Clock className="h-3 w-3" aria-hidden />
-          {meta.retrievedAt
-            ? `Retrieved ${formatAge(meta.retrievedAt)}`
-            : "Not yet retrieved"}
+          {meta.retrievedAt ? `Retrieved ${formatAge(meta.retrievedAt)}` : "Not yet retrieved"}
         </div>
         {actions}
       </div>
@@ -103,14 +118,21 @@ export function DataCard({
 
 function LabelChip({ label }: { label: CaniaDataLabel }) {
   const tone =
-    label === "live" ? "success" : label === "delayed" ? "info" : label === "estimated" ? "warning" : "muted";
+    label === "live"
+      ? "success"
+      : label === "delayed"
+        ? "info"
+        : label === "estimated"
+          ? "warning"
+          : "muted";
   const tones: Record<string, string> = {
     success: "bg-[color:var(--state-success)]/15 text-[color:var(--state-success)]",
     info: "bg-[color:var(--state-info)]/15 text-[color:var(--state-info)]",
     warning: "bg-[color:var(--state-warning)]/15 text-[color:var(--state-warning)]",
     muted: "bg-muted text-muted-foreground",
   };
-  const Icon = label === "live" ? Wifi : label === "delayed" ? Signal : label === "estimated" ? Clock : Info;
+  const Icon =
+    label === "live" ? Wifi : label === "delayed" ? Signal : label === "estimated" ? Clock : Info;
   return (
     <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5", tones[tone])}>
       <Icon className="h-3 w-3" aria-hidden /> {CANIA_DATA_LABELS[label]}

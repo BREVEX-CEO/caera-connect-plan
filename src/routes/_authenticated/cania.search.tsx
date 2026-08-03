@@ -47,7 +47,8 @@ function SearchPage() {
         />
       ) : (
         <p className="text-xs text-muted-foreground">
-          Enter a query to search across {eligible.length} sections. Each section returns results only from its connected provider adapters.
+          Enter a query to search across {eligible.length} sections. Each section returns results
+          only from its connected provider adapters.
         </p>
       )}
     </div>

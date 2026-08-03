@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "0.1.0",
+  "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+  "liveClaims": {
+    "webDeployed": false,
+    "relayDeployed": false,
+    "monitoringConnected": false,
+    "alertsDelivering": false,
+    "backupVerified": false,
+    "restoreDrillPassed": false,
+    "onCallAssigned": false
+  },
+  "services": [
+    {
+      "id": "ocade-web",
+      "deploymentOwner": "OWNER_REQUIRED",
+      "healthPath": "/api/health",
+      "healthMethod": "GET",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "status": "ok",
+        "service": "ocade-web",
+        "version": "0.1.0"
+      },
+      "secretStore": "Cloudflare encrypted secret storage",
+      "sourceSecretsAllowed": false
+    },
+    {
+      "id": "ocade-relay",
+      "deploymentOwner": "OWNER_REQUIRED",
+      "healthPath": "/health",
+      "healthMethod": "GET",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "status": "ok",
+        "service": "ocade-relay"
+      },
+      "secretStore": "No application secrets required",
+      "sourceSecretsAllowed": false
+    }
+  ],
+  "monitoring": {
+    "provider": "OWNER_REQUIRED",
+    "retentionDays": 30,
+    "privacy": "Low-cardinality operational fields only; never prompts, documents, ciphertext, credentials, full room identifiers, client identifiers, window titles, file paths or user content.",
+    "signals": [
+      {
+        "id": "web-availability",
+        "source": "external HTTPS /api/health probe",
+        "windowMinutes": 5,
+        "condition": "two consecutive failures",
+        "severity": "SEV2"
+      },
+      {
+        "id": "web-error-rate",
+        "source": "Cloudflare Worker observability",
+        "windowMinutes": 5,
+        "condition": "server error rate at or above 2 percent with at least 50 requests",
+        "severity": "SEV2"
+      },
+      {
+        "id": "web-latency",
+        "source": "Cloudflare Worker observability",
+        "windowMinutes": 15,
+        "condition": "p95 request duration at or above 2000 milliseconds",
+        "severity": "SEV3"
+      },
+      {
+        "id": "relay-availability",
+        "source": "external HTTPS /health probe",
+        "windowMinutes": 5,
+        "condition": "two consecutive failures",
+        "severity": "SEV2"
+      },
+      {
+        "id": "relay-refusal-rate",
+        "source": "structured relay events",
+        "windowMinutes": 5,
+        "condition": "rate_limited or room_full refusals exceed 10 percent with at least 50 sends",
+        "severity": "SEV3"
+      },
+      {
+        "id": "security-signal",
+        "source": "authentication, tenant-isolation and secret-access audit events",
+        "windowMinutes": 1,
+        "condition": "any confirmed cross-tenant access, credential exposure or forged update acceptance",
+        "severity": "SEV1"
+      }
+    ]
+  },
+  "incident": {
+    "roles": {
+      "incidentCommander": "OWNER_REQUIRED",
+      "operationsLead": "OWNER_REQUIRED",
+      "securityLead": "OWNER_REQUIRED",
+      "communicationsLead": "OWNER_REQUIRED"
+    },
+    "severities": [
+      {
+        "id": "SEV1",
+        "meaning": "Confirmed security, privacy, integrity or widespread data-loss event",
+        "acknowledgeMinutes": 5,
+        "updateMinutes": 15
+      },
+      {
+        "id": "SEV2",
+        "meaning": "Production unavailable, materially degraded or rollback required",
+        "acknowledgeMinutes": 15,
+        "updateMinutes": 30
+      },
+      {
+        "id": "SEV3",
+        "meaning": "Limited degradation with a safe workaround",
+        "acknowledgeMinutes": 60,
+        "updateMinutes": 120
+      }
+    ],
+    "requiredRecords": [
+      "UTC incident timeline",
+      "alert and health evidence",
+      "release and deployment version identifiers",
+      "decisions, approvals and commands without secret values",
+      "containment and recovery verification",
+      "affected capability and privacy scope",
+      "customer communication decisions",
+      "follow-up owner and due date"
+    ],
+    "forensics": {
+      "preserveBeforeMutation": true,
+      "hashExports": true,
+      "utcOnly": true,
+      "redactSecretsAndUserContent": true,
+      "minimumAccess": true
+    },
+    "postmortemDueBusinessDays": 5
+  },
+  "dataProtection": {
+    "owner": "OWNER_REQUIRED",
+    "provider": "Supabase managed backup or point-in-time recovery selected by the owner",
+    "productionRetention": "OWNER_REQUIRED",
+    "offsiteCopy": "OWNER_REQUIRED",
+    "restoreTarget": "A separately authorized isolated non-production project",
+    "restoreDrillIntervalDays": 90,
+    "requiredRestoreEvidence": [
+      "backup identifier and UTC timestamp without credentials",
+      "isolated restore target identity",
+      "schema and migration version",
+      "all verification SQL passed",
+      "cross-tenant denial passed",
+      "row-count and critical-record reconciliation",
+      "recovery-point and recovery-time measurements",
+      "restore target destroyed or retained under an approved policy"
+    ]
+  },
+  "releaseControls": {
+    "deployCommand": "npm run deploy:web",
+    "rollbackCommand": "npm run deploy:rollback -- <version-id>",
+    "preflightCommand": "npm run deploy:check",
+    "operationsCheckCommand": "npm run operations:check",
+    "separateDeployApprovalRequired": true,
+    "separateRollbackApprovalRequired": true,
+    "priorVerifiedVersionRequired": true,
+    "independentHealthVerificationRequired": true,
+    "databaseApplyAuthorized": false
+  },
+  "externalInputsRequired": [
+    "named incident and service owners",
+    "monitoring and alert-delivery provider",
+    "production health endpoints and alert receivers",
+    "Cloudflare deployment credentials stored outside the repository",
+    "Supabase project authority and an approved migration window",
+    "backup retention, offsite-copy and restore-target policy",
+    "executed restore drill and incident exercise evidence"
+  ]
+}

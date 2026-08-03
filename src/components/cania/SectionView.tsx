@@ -50,8 +50,7 @@ function SectionViewInner({ def }: { def: CaniaSectionDef }) {
   const saveAlertFn = useServerFn(saveAlert);
 
   const saveTopicMut = useMutation({
-    mutationFn: (label: string) =>
-      saveTopicFn({ data: { section: def.id, label, query: null } }),
+    mutationFn: (label: string) => saveTopicFn({ data: { section: def.id, label, query: null } }),
     onSuccess: async () => {
       await recordAction({ actionId: "cania.topic.save", metadata: { section: def.id } });
       qc.invalidateQueries({ queryKey: ["cania", "topics"] });
@@ -88,7 +87,9 @@ function SectionViewInner({ def }: { def: CaniaSectionDef }) {
                 size="sm"
                 variant="outline"
                 onClick={() => {
-                  const label = window.prompt("Save this section as a topic. Give it a short name:");
+                  const label = window.prompt(
+                    "Save this section as a topic. Give it a short name:",
+                  );
                   if (label && label.trim()) saveTopicMut.mutate(label.trim());
                 }}
                 disabled={saveTopicMut.isPending}
@@ -155,7 +156,8 @@ function SectionViewInner({ def }: { def: CaniaSectionDef }) {
               demo: true,
             }}
           >
-            This is a labelled sample so you can see the intended card layout. It is not real world data.
+            This is a labelled sample so you can see the intended card layout. It is not real world
+            data.
           </DataCard>
         </GlassPanel>
       ) : null}

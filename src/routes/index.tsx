@@ -55,7 +55,8 @@ const modules = [
     id: "madee",
     name: "MADEE",
     tagline: "AI Studio & Resume Builder.",
-    description: "Save resume projects to your account and edit them anytime, on any approved device.",
+    description:
+      "Save resume projects to your account and edit them anytime, on any approved device.",
     icon: Sparkles,
     color: "var(--accent-madee)",
   },
@@ -106,12 +107,14 @@ function LandingPage() {
             <h1 className="mt-5 text-4xl font-semibold tracking-tight text-foreground sm:text-5xl md:text-6xl">
               A private AI workspace that
               <span className="bg-gradient-to-r from-[color:var(--accent-ocade)] via-[color:var(--accent-madee)] to-[color:var(--accent-ficia)] bg-clip-text text-transparent">
-                {" "}scales with you.
+                {" "}
+                scales with you.
               </span>
             </h1>
             <p className="mt-5 max-w-2xl text-base text-muted-foreground sm:text-lg">
-              OCADE assistant, FICIA commerce, MADEE studio and CANIA world intelligence — one workspace,
-              your data, on the devices you approve. Simple for beginners, ready for companies.
+              OCADE assistant, FICIA commerce, MADEE studio and CANIA world intelligence — one
+              workspace, your data, on the devices you approve. Simple for beginners, ready for
+              companies.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link

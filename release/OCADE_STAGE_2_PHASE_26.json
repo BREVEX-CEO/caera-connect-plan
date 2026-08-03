@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "phase": 26,
+  "name": "Universal route selector",
+  "classification": "VERIFIED COMPLETE",
+  "runtimeClassification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+  "branch": "feat/ocade-implementation",
+  "head": "52cd6cf4cc312d9072d8e1ce1fefdc740d193a76",
+  "sourceScore": 94,
+  "deterministicFixtureRuntimeScore": 90,
+  "liveApplicationRuntimeScore": 0,
+  "verifiedApplicationCoverage": 0,
+  "stage2Readiness": {
+    "source": 52,
+    "sourceRemaining": 48,
+    "windowsRuntime": 2,
+    "browserRuntime": 0,
+    "verifiedApplicationCoverage": 0,
+    "production": 23
+  },
+  "implementationPhasesRemaining": 13,
+  "externalValidationTracksRemaining": 8,
+  "nextDependency": {
+    "phase": 27,
+    "name": "Unknown-App Learning and Digital Twins"
+  },
+  "verifiedSourceCapabilities": [
+    "exact official API then approved plugin or MCP then CLI file DOM accessibility native vision and input hierarchy",
+    "same-tier plugin and MCP confidence and latency ordering",
+    "strict application identity and version matching",
+    "task-type capability filtering",
+    "per-route user-permission enforcement",
+    "risk-dependent minimum confidence",
+    "health-aware route exclusion and confidence degradation",
+    "bounded expected-latency gate",
+    "independent verification-route requirement",
+    "ready recovery-route requirement for every mutation",
+    "recording-preference compatibility",
+    "explicit medium-risk coordinate fallback approval",
+    "absolute high-risk vision and input downgrade refusal",
+    "bounded deterministic evaluations for every skipped interface",
+    "safe refusal when no route is adequate",
+    "Director-owned selection from tool metadata rather than model text",
+    "selected route and fallback evidence attached to the directed action",
+    "verification-plan consistency check before action admission"
+  ],
+  "controlledEvidence": [
+    "all ten ActionRoute values are selected in representative deterministic fixtures",
+    "an unavailable or failing API routes to an adequate approved bridge or CLI with retained evidence",
+    "equal-tier plugin and MCP candidates use confidence then latency deterministically",
+    "identity version task permission approval health recording verification recovery latency and confidence failures each route around safely",
+    "medium-risk coordinate fallback requires explicit approval",
+    "high-risk coordinate fallback is refused even with explicit approval",
+    "the canonical Director binds a multi-interface tool to the selected route",
+    "a missing route policy or inadequate semantic route is refused before checkpoint or execution"
+  ],
+  "runtimeClaims": {
+    "installedApplicationApi": false,
+    "livePluginOrMcp": false,
+    "liveCli": false,
+    "liveFileMutation": false,
+    "liveBrowserDom": false,
+    "liveAccessibility": false,
+    "liveNativeApi": false,
+    "liveVision": false,
+    "liveKeyboardMouse": false
+  },
+  "runtimeBlockers": [
+    "No approved interactive application exposes a live multi-route capability in this managed session.",
+    "The signed Tauri companion cannot link because MSVC link.exe is absent.",
+    "The browser extension is source-complete but not installed and paired in a real Chrome or Edge profile.",
+    "No approved plugin MCP server CLI application or external vision provider is connected for live route competition.",
+    "Verified application coverage remains zero until route choice execution observation verification and recovery are recorded against real temporary data."
+  ]
+}

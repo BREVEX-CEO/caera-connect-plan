@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-28T01:00:54.969Z",
+  "repository": {
+    "branch": "feat/ocade-implementation",
+    "head": "52cd6cf4cc312d9072d8e1ce1fefdc740d193a76",
+    "dirtyFiles": 487
+  },
+  "summary": {
+    "passed": 9,
+    "failed": 0,
+    "notAttempted": 6,
+    "verdict": "all attempted checks passed"
+  },
+  "checks": [
+    {
+      "id": "typecheck",
+      "description": "TypeScript compiles with no errors",
+      "status": "passed",
+      "durationMs": 15742,
+      "evidence": "tsc --noEmit: 0 errors"
+    },
+    {
+      "id": "tests",
+      "description": "Full unit and integration test suite",
+      "status": "passed",
+      "durationMs": 26416,
+      "evidence": "3055 tests passed across 203 files"
+    },
+    {
+      "id": "lint",
+      "description": "ESLint reports no errors",
+      "status": "passed",
+      "durationMs": 27147,
+      "evidence": "eslint: 0 errors"
+    },
+    {
+      "id": "build",
+      "description": "Production build succeeds",
+      "status": "passed",
+      "durationMs": 13323,
+      "evidence": "vite build: exit 0"
+    },
+    {
+      "id": "performance-budget",
+      "description": "Production asset budget (proven to fail on an over-budget asset)",
+      "status": "passed",
+      "durationMs": 380,
+      "evidence": "lazy PDF chunks 1"
+    },
+    {
+      "id": "integration-honesty",
+      "description": "Integration honesty gate (proven to fail on an unevidenced claim)",
+      "status": "passed",
+      "durationMs": 401,
+      "evidence": "No migration, native install, signing, deployment, or live-application claim was made."
+    },
+    {
+      "id": "release-source",
+      "description": "Release source gate (proven to fail on overstated readiness)",
+      "status": "passed",
+      "durationMs": 361,
+      "evidence": "No deployment, signing, publication, migration, or device install was performed."
+    },
+    {
+      "id": "dependency-audit",
+      "description": "Production dependency audit",
+      "status": "passed",
+      "durationMs": 1225,
+      "evidence": "found 0 vulnerabilities"
+    },
+    {
+      "id": "rust-check",
+      "description": "Rust safety core type-checks",
+      "status": "passed",
+      "durationMs": 50,
+      "evidence": "cargo check --all-targets: exit 0"
+    },
+    {
+      "id": "rust-test",
+      "description": "Rust safety assertions execute (10 tests)",
+      "status": "not_attempted",
+      "reason": "cargo test cannot LINK on this machine: the MSVC C++ build tools are absent, and GNU coreutils `link.exe` shadows MSVC's linker on the Git Bash PATH.",
+      "humanAction": "Install VS Build Tools 'Desktop development with C++', then run `cargo test` from the x64 Native Tools Command Prompt. CI already runs this on windows-latest with no human step."
+    },
+    {
+      "id": "supabase-apply",
+      "description": "Migrations applied and RLS verified against a live database",
+      "status": "not_attempted",
+      "reason": "No database connection is available in this environment.",
+      "humanAction": "Apply the 32 migrations via Lovable, then run each supabase/verification/*_verify.sql — all are self-checking and raise on any gap."
+    },
+    {
+      "id": "browser-extension-runtime",
+      "description": "Extension loaded and driving a real page",
+      "status": "not_attempted",
+      "reason": "No Chrome/Edge profile is available here.",
+      "humanAction": "Load extension/ unpacked in Chrome and Edge, then pair with the local runtime."
+    },
+    {
+      "id": "android-runtime",
+      "description": "Android app installed and paired on a device",
+      "status": "not_attempted",
+      "reason": "No Android SDK or device is available here.",
+      "humanAction": "Install the Android SDK/JDK, then run the emulator CI job or `npx cap run android`."
+    },
+    {
+      "id": "ios-runtime",
+      "description": "iOS app installed and paired on a device",
+      "status": "not_attempted",
+      "reason": "iOS builds require macOS and Xcode.",
+      "humanAction": "On macOS: open ios/App in Xcode and run on a simulator or device."
+    },
+    {
+      "id": "voice-runtime",
+      "description": "Microphone capture, transcription and speech output",
+      "status": "not_attempted",
+      "reason": "No microphone or speech engine is available in this environment.",
+      "humanAction": "Open the app in a browser with a microphone and exercise Settings -> Voice."
+    }
+  ],
+  "note": "not_attempted means the check could not run here. It is not a pass. Each carries the exact human action that would produce the missing evidence."
+}

@@ -55,21 +55,35 @@ function DemoOcade() {
                 >
                   <span className="text-[15px] font-semibold tracking-tighter">CC</span>
                 </div>
-                <h1 className="text-[20px] font-semibold text-foreground">Try OCADE in Demo Mode</h1>
+                <h1 className="text-[20px] font-semibold text-foreground">
+                  Try OCADE in Demo Mode
+                </h1>
                 <p className="max-w-md text-[13px] text-muted-foreground">
-                  Type a question below to see a sample reply. Sample data is isolated from real accounts.
+                  Type a question below to see a sample reply. Sample data is isolated from real
+                  accounts.
                 </p>
               </div>
             ) : (
               <div className="space-y-5">
+                {/*
+                  The visible h1 above only exists in the empty state, so once a
+                  conversation starts the page would have no heading at all.
+                  This keeps the document outline intact for screen readers.
+                */}
+                <h1 className="sr-only">OCADE demo conversation</h1>
                 {state.ocadeMessages.map((m, i) => (
-                  <div key={i} className={cn("group", m.role === "assistant" ? "" : "flex flex-col items-end")}>
+                  <div
+                    key={i}
+                    className={cn("group", m.role === "assistant" ? "" : "flex flex-col items-end")}
+                  >
                     {m.role === "assistant" ? (
                       <>
                         <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-[color:var(--accent-ocade)]">
                           OCADE
                         </div>
-                        <div className="text-[14px] leading-relaxed text-foreground">{m.content}</div>
+                        <div className="text-[14px] leading-relaxed text-foreground">
+                          {m.content}
+                        </div>
                       </>
                     ) : (
                       <div className="max-w-[85%] rounded-2xl bg-secondary/70 px-3.5 py-2 text-[14px] text-foreground">
@@ -92,23 +106,40 @@ function DemoOcade() {
             </div>
             <div className="rounded-xl border border-border/70 bg-card/80 shadow-sm">
               <textarea
+                aria-label="Message OCADE"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendCanned(); }
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    sendCanned();
+                  }
                 }}
                 rows={2}
                 placeholder="Ask OCADE anything (sample reply only)…"
                 className="min-h-[52px] w-full resize-none rounded-t-xl bg-transparent px-3 py-2.5 text-sm focus:outline-none"
               />
               <div className="flex items-center gap-1 border-t border-border/60 px-2 py-1.5">
-                <button disabled className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/60" title="Attachments disabled in demo">
-                  <Paperclip className="h-3.5 w-3.5" />
+                {/* aria-label, not just title: `title` is not reliably announced. */}
+                <button
+                  disabled
+                  aria-label="Attach a file — disabled in the demo"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/60"
+                  title="Attachments disabled in demo"
+                >
+                  <Paperclip className="h-3.5 w-3.5" aria-hidden />
                 </button>
-                <button disabled className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/60" title="Voice disabled in demo">
-                  <Mic className="h-3.5 w-3.5" />
+                <button
+                  disabled
+                  aria-label="Use voice — disabled in the demo"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/60"
+                  title="Voice disabled in demo"
+                >
+                  <Mic className="h-3.5 w-3.5" aria-hidden />
                 </button>
-                <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">Demo · sample</span>
+                <span className="ml-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  Demo · sample
+                </span>
                 <button
                   onClick={sendCanned}
                   className="ml-auto inline-flex h-7 items-center gap-1 rounded-md bg-primary px-2.5 text-[11px] font-medium text-primary-foreground"

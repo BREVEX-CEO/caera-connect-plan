@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-30T09:26:08.108Z",
+  "tier": "SIMULATED RUNTIME VERIFIED",
+  "subject": "P10 universal PC-control transaction engine",
+  "notRealApplicationSupport": "Executed against the P07 accessibility simulator. No real application, display, input device or built Tauri companion was involved. This proves the transaction refuses, cages, previews, backs up, verifies and rolls back correctly. It proves NOTHING about controlling real Windows applications, and must never be promoted to REAL TARGET RUNTIME VERIFIED.",
+  "stageOrder": "emergency stop -> cancellation -> permission -> expiry -> destructive confirmation -> coordinate cage -> preview -> backup -> execute -> verify -> rollback",
+  "summary": {
+    "observed": 13,
+    "failed": 0,
+    "total": 13
+  },
+  "steps": [
+    {
+      "id": "X01",
+      "what": "a permitted, confirmed, caged action completes and verifies",
+      "expected": "verified",
+      "actual": "verified",
+      "ok": true,
+      "destructive": false,
+      "backupVerified": null,
+      "rollback": null,
+      "stages": [
+        "ok:emergency_stop",
+        "ok:cancellation",
+        "ok:permission",
+        "ok:permission_expiry",
+        "ok:destructive_confirmation",
+        "ok:coordinate_cage",
+        "ok:preview",
+        "ok:backup",
+        "ok:execute",
+        "ok:verify"
+      ]
+    },
+    {
+      "id": "X02",
+      "what": "emergency stop refuses before permission is evaluated",
+      "expected": "refused",
+      "actual": "refused",
+      "ok": true,
+      "reason": "halted: Emergency stop is engaged.",
+      "destructive": false,
+      "backupVerified": null,
+      "rollback": null,
+      "stages": [
+        "no:emergency_stop"
+      ]
+    },
+    {
+      "id": "X03",
+      "what": "an expired permission grant is refused",
+      "expected": "refused",
+      "actual": "refused",
+      "ok": true,
+      "reason": "permission_expired: The permission grant has expired. Ask again.",
+      "destructive": false,
+      "backupVerified": null,
+      "rollback": null,
+      "stages": [
+        "ok:emergency_stop",
+        "ok:cancellation",
+        "ok:permission",
+        "no:permission_expiry"
+      ]
+    },
+    {
+      "id": "X04",
+      "what": "a destructive capability without confirmation is refused",
+      "expected": "refused",
+      "actual": "refused",
+      "ok": true,
+      "reason": "destructive_unconfirmed: \"delete\" destroys or hides state and needs explicit confirmation.",
+      "destructive": true,
+      "backupVerified": null,
+      "rollback": null,
+      "stages": [
+        "ok:emergency_stop",
+        "ok:cancellation",
+        "ok:permission",
+        "ok:permission_expiry",
+        "no:destructive_confirmation"
+      ]
+    },
+    {
+      "id": "X05",
+      "what": "a coordinate outside the approved window is refused, not clamped",
+      "expected": "refused",
+      "actual": "refused",
+      "ok": true,
+      "reason": "cage_refused: The coordinate falls outside the approved window region.",
+      "destructive": false,
+      "backupVerified": null,
+      "rollback": null,
+      "stages": [
+        "ok:emergency_stop",
+        "ok:cancellation",
+        "ok:permission",
+        "ok:permission_expiry",
+        "ok:destructive_confirmation",
+        "no:coordinate_cage"
+      ]
+    },
+    {
+      "id": "X06",
+      "what": "a coordinate at the wrong display scale is refused",
+      "expected": "refused",
+      "actual": "refused",
+      "ok": true,
+      "reason": "cage_refused: The coordinate is expressed at 1x but the approved region is at 2x. Refusing rather than clicking the wrong place.",
+      "destructive": false,
+      "backupVerified": null,
+      "rollback": null,
+      "stages": [
+        "ok:emergency_stop",
+        "ok:cancellation",
+        "ok:permission",
+        "ok:permission_expiry",
+        "ok:destructive_confirmation",
+        "no:coordinate_cage"
+      ]
+    },
+    {
+      "id": "X07",
+      "what": "a rejected dry run stops the transaction before any mutation",
+      "expected": "refused",
+      "actual": "refused",
+      "ok": true,
+      "reason": "preview_rejected: would overwrite 12 files",
+      "destructive": false,
+      "backupVerified": null,
+      "rollback": null,
+      "stages": [
+        "ok:emergency_stop",
+        "ok:cancellation",
+        "ok:permission",
+        "ok:permission_expiry",
+        "ok:destructive_confirmation",
+        "ok:coordinate_cage",
+        "no:preview"
+      ]
+    },
+    {
+      "id": "X08",
+      "what": "an unreadable backup refuses the change rather than proceeding",
+      "expected": "refused",
+      "actual": "refused",
+      "ok": true,
+      "reason": "backup_failed: The backup could not be read back, so it cannot be relied on. The change was not made.",
+      "destructive": true,
+      "backupVerified": null,
+      "rollback": null,
+      "stages": [
+        "ok:emergency_stop",
+        "ok:cancellation",
+        "ok:permission",
+        "ok:permission_expiry",
+        "ok:destructive_confirmation",
+        "ok:coordinate_cage",
+        "ok:preview",
+        "no:backup"
+      ]
+    },
+    {
+      "id": "X09",
+      "what": "cancellation refuses before dispatch",
+      "expected": "refused",
+      "actual": "refused",
+      "ok": true,
+      "reason": "cancelled: The action was cancelled before it began.",
+      "destructive": false,
+      "backupVerified": null,
+      "rollback": null,
+      "stages": [
+        "ok:emergency_stop",
+        "no:cancellation"
+      ]
+    },
+    {
+      "id": "X10",
+      "what": "a failed execution rolls back in reverse order and restores the backup",
+      "expected": "rolled_back",
+      "actual": "rolled_back",
+      "ok": true,
+      "reason": "target_not_found",
+      "destructive": true,
+      "backupVerified": true,
+      "rollback": {
+        "attempted": true,
+        "ok": true,
+        "detail": "Rolled back: r2, r1, restore:/tmp/x."
+      },
+      "stages": [
+        "ok:emergency_stop",
+        "ok:cancellation",
+        "ok:permission",
+        "ok:permission_expiry",
+        "ok:destructive_confirmation",
+        "ok:coordinate_cage",
+        "ok:preview",
+        "ok:backup",
+        "no:execute"
+      ]
+    },
+    {
+      "id": "X11",
+      "what": "a duplicate action replays from the journal instead of re-executing",
+      "expected": "replayed",
+      "actual": "replayed",
+      "ok": true,
+      "destructive": false,
+      "backupVerified": null,
+      "rollback": null,
+      "stages": [
+        "ok:emergency_stop",
+        "ok:cancellation",
+        "ok:permission",
+        "ok:permission_expiry",
+        "ok:destructive_confirmation",
+        "ok:coordinate_cage",
+        "ok:preview",
+        "ok:backup",
+        "ok:execute"
+      ]
+    },
+    {
+      "id": "X12",
+      "what": "a failure with no rollback plan and no backup does NOT claim recovery",
+      "expected": "failed",
+      "actual": "failed",
+      "ok": true,
+      "reason": "target_not_found",
+      "destructive": false,
+      "backupVerified": null,
+      "rollback": {
+        "attempted": false,
+        "ok": false,
+        "detail": "No rollback plan and no backup, so the change could not be undone automatically."
+      },
+      "stages": [
+        "ok:emergency_stop",
+        "ok:cancellation",
+        "ok:permission",
+        "ok:permission_expiry",
+        "ok:destructive_confirmation",
+        "ok:coordinate_cage",
+        "ok:preview",
+        "ok:backup",
+        "no:execute"
+      ]
+    },
+    {
+      "id": "X13",
+      "what": "destructiveness is derived from the capability, not a caller-supplied flag",
+      "ok": true
+    }
+  ]
+}

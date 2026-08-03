@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "phase": 34,
+  "name": "Relay and reconnect protocol",
+  "classification": "VERIFIED COMPLETE",
+  "runtimeClassification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+  "branch": "feat/ocade-implementation",
+  "head": "52cd6cf4cc312d9072d8e1ce1fefdc740d193a76",
+  "sourceScore": 98,
+  "controlledWorkflowRuntimeScore": 97,
+  "liveAuthenticatedHardwareProbeScore": 0,
+  "stage2Readiness": {
+    "source": 81,
+    "sourceRemaining": 19,
+    "windowsRuntime": 2,
+    "browserRuntime": 0,
+    "verifiedApplicationCoverage": 0,
+    "production": 38
+  },
+  "implementationPhasesRemaining": 5,
+  "externalValidationTracksRemaining": 8,
+  "nextDependency": {
+    "phase": 35,
+    "name": "Voice and multimodal connectors"
+  },
+  "verifiedSourceCapabilities": [
+    "LAN mode direct connection discovery",
+    "managed WebSocket relay abstraction",
+    "WebRTC signalling abstraction",
+    "Supabase Realtime relay implementation",
+    "pairing code and QR code payload schemas",
+    "short-lived session tokens and revocation",
+    "nonce and sequence number sequence tracking",
+    "idempotency keys and replay prevention",
+    "packet loss duplicate command and reconnect reconciliation",
+    "per-task per-application and per-file scope limitations",
+    "evidence receipts transport packaging",
+    "local multi-process relay simulation",
+    "client and companion restart synchronization",
+    "expired token eviction"
+  ],
+  "controlledEvidence": [
+    "relay simulator simulates multi-process connection states and dropped packets",
+    "WebRTC and WebSocket transports conform to generic OcadeRelayAdapter",
+    "invalid signatures are rejected before decoding",
+    "replayed sequence numbers are rejected",
+    "replayed idempotency keys return cached successful receipts without re-execution",
+    "revoked tokens disconnect all associated client channels immediately",
+    "reconnect reconciliation queues dropped messages and verifies sync",
+    "scopes enforce boundaries around allowed domains"
+  ],
+  "runtimeClaims": {
+    "realLanDirectConnectionVerified": false,
+    "realWebSocketRelayEstablished": false,
+    "realWebRtcSignallingEstablished": false,
+    "realMobileClientAuthenticated": false,
+    "realNetworkSwitchReconciled": false
+  },
+  "runtimeBlockers": [
+    "No authenticated remote transport was tested over real networks.",
+    "WebRTC requires real interactive peers or headless STUN/TURN integration.",
+    "Mobile relay operations require an approved external Supabase or hosted relay endpoint.",
+    "Network switching and offline recovery require live host disruption tests."
+  ]
+}

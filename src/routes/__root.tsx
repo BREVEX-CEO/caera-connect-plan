@@ -13,12 +13,17 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeProvider } from "@/lib/theme-provider";
+import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
+import { invalidateModeCache } from "@/lib/storage/resolver";
+import { clearDevices } from "@/lib/mobile/device-store";
+import { clearApprovals } from "@/lib/mobile/approval-store";
+import { closeActiveCompanionSession } from "@/lib/native/tauri-companion";
 // Side-effect import: registers Foundation Alpha features on module load.
 import "@/lib/features";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
@@ -34,7 +39,7 @@ function NotFoundComponent() {
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -46,8 +51,8 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="max-w-md text-center" role="alert">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
           This page didn't load
         </h1>
@@ -72,7 +77,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           </a>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -130,17 +135,97 @@ function RootComponent() {
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+
+      // Privacy modes are cached in a module-level map for the life of the tab.
+      // Clearing it on sign-out means the next account starts from its own
+      // stored settings rather than inheriting whatever was resolved before.
+      if (event === "SIGNED_OUT") {
+        invalidateModeCache();
+        // Paired phones belong to the account that paired them. The store is
+        // device-local and not account-scoped, so leaving them would show the
+        // next person to sign in on this browser the previous account's trusted
+        // devices — and let them act through them.
+        clearDevices();
+        clearApprovals();
+        // A signed native session is account-scoped. Invalidate the in-memory
+        // signer immediately and let worker subscribers stop before this
+        // browser can be used by another account.
+        void closeActiveCompanionSession().catch(() => {
+          // Local invalidation already happened before host IPC. A transport
+          // failure must not resurrect or retain the closed signer.
+        });
+      }
+
       router.invalidate();
       if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
     });
     return () => sub.subscription.unsubscribe();
   }, [router, queryClient]);
 
+  /**
+   * Async failures never reach a React boundary — an unhandled rejection in a
+   * fetch or an event handler would otherwise vanish with no diagnostic at all.
+   * These capture them without changing what the user sees.
+   */
+  useEffect(() => {
+    const onRejection = (e: PromiseRejectionEvent) => {
+      const reason = e.reason;
+      reportLovableError(reason instanceof Error ? reason : new Error(String(reason)), {
+        boundary: "unhandled_rejection",
+      });
+    };
+    const onError = (e: ErrorEvent) => {
+      reportLovableError(e.error instanceof Error ? e.error : new Error(e.message), {
+        boundary: "window_error",
+      });
+    };
+    window.addEventListener("unhandledrejection", onRejection);
+    window.addEventListener("error", onError);
+    return () => {
+      window.removeEventListener("unhandledrejection", onRejection);
+      window.removeEventListener("error", onError);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
+        {/*
+          Last-resort boundary. TanStack's errorComponent covers route render
+          errors; this also catches anything thrown by providers or by a child
+          that renders outside the route tree, so a single fault cannot leave
+          the user staring at a blank page.
+        */}
+        <ErrorBoundary
+          label="CAERA CADANE"
+          fallback={(retry, message) => (
+            <main className="flex min-h-screen items-center justify-center bg-background px-4">
+              <div className="max-w-md text-center" role="alert">
+                <h1 className="text-xl font-semibold tracking-tight text-foreground">
+                  Something stopped working
+                </h1>
+                <p className="mt-2 text-sm text-muted-foreground">{message}</p>
+                <div className="mt-6 flex flex-wrap justify-center gap-2">
+                  <button
+                    onClick={retry}
+                    className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                  >
+                    Try again
+                  </button>
+                  <a
+                    href="/"
+                    className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                  >
+                    Go home
+                  </a>
+                </div>
+              </div>
+            </main>
+          )}
+        >
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+        </ErrorBoundary>
       </ThemeProvider>
     </QueryClientProvider>
   );

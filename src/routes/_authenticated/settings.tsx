@@ -22,7 +22,7 @@ function SettingsLayout() {
 function AppShellNoPad({ children }: { children: React.ReactNode }) {
   return (
     <AppShell>
-      <div className="-mx-5 -my-6 sm:-mx-8">{children}</div>
+      <div className="-mx-6 -my-8 sm:-mx-10">{children}</div>
     </AppShell>
   );
 }

@@ -1,0 +1,31 @@
+{
+  "phase": "Stage 2 Phase 37",
+  "name": "Universal application coverage run",
+  "status": "VERIFIED_COMPLETE",
+  "evidence": {
+    "vitest": {
+      "passed": true,
+      "details": "Phase 37 integration tests passed"
+    },
+    "typecheck": {
+      "passed": true,
+      "errors": 0
+    },
+    "lint": {
+      "passed": true,
+      "errors": 0
+    },
+    "build": {
+      "passed": true
+    },
+    "script": {
+      "passed": true,
+      "details": "3/3 assertions passed for Phase 37"
+    }
+  },
+  "changes": [
+    "Implemented AppCoverageRegistry",
+    "Added unit tests for app coverage",
+    "Added integration tests and check scripts for Phase 37"
+  ]
+}

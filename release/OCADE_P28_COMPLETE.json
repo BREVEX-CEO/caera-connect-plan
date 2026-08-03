@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "phase": "P28 - Internal alpha and controlled beta",
+  "sourceStatus": "VERIFIED COMPLETE",
+  "runtimeStatus": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+  "completedAt": "2026-07-30T17:35:00.000Z",
+  "branch": "feat/ocade-implementation",
+  "baseHead": "19d3414633b9167632514aaf4e98e1c6a93065df",
+  "requirements": {
+    "P28.S01": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED - privacy-safe mission receipts reject undeclared identity/content fields and alpha cohort completion needs independently reviewed evidence; no people were enrolled.",
+    "P28.S02": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED - endurance, crash recovery, emergency-stop and rollback evidence are mandatory alpha gates; real long-duration missions need target runtimes and a cohort.",
+    "P28.S03": "PASS AT SOURCE BOUNDARY - feature flags advance sequentially by capability and platform, and the production server owner plus READY-TO-APPLY database trigger fail closed.",
+    "P28.S04": "UNIT TESTED - telemetry remains off by default, performance collection has separate consent, withdrawal purges queued data, and allow-listed reports are redacted and bounded.",
+    "P28.S05": "PASS AT SOURCE BOUNDARY - missing, waived, unreviewed or self-reviewed security, reliability, recovery and exit evidence blocks expansion; narrowing to a safer cohort remains available."
+  },
+  "genuineFailuresFixed": [
+    "The first complete suite found that the new verification SQL did not use a repository-approved catalogue form; it now queries pg_catalog.pg_trigger.",
+    "The first complete suite found the new SQL-shape test absent from the test-kind ledger; it is now honestly declared structural.",
+    "Full lint found generated Tauri target JavaScript being parsed as source; eslint now ignores only native/**/target/** build output.",
+    "The launch-gate editor discarded an honest server refusal and refreshed as though the save succeeded; it now preserves and displays the refusal."
+  ],
+  "validation": {
+    "fullVitest": "PASS - 3964 passed, 1 skipped, 3965 collected across 240 files",
+    "typecheck": "PASS",
+    "lint": "PASS - 0 errors, 2421 preserved warnings",
+    "build": "PASS - 2865 client modules transformed; SSR and server bundles completed",
+    "operationsGate": "PASS - 16/16",
+    "releaseGate": "PASS - 55/55",
+    "integrationGate": "PASS - 167/167",
+    "deadControls": "PASS - 0 across 179 component and route files",
+    "testKinds": "PASS - 189 execution, 23 mixed, 28 declared structural across 240 files",
+    "accessibility": "PASS - 0 static findings across 133 files; rendered assistive-technology checks remain external",
+    "performance": "PASS - 214/250 assets; 3605.6/3906.3 KiB total",
+    "licences": "PASS - 374 production packages current",
+    "rust": "PASS - safety 30/30; Tauri check and clippy -D warnings",
+    "dependencyAudit": "PASS - npm audit --omit=dev found 0 vulnerabilities",
+    "deploymentBoundary": "EXPECTED REFUSAL - no Cloudflare token, account or HTTPS health URL; no deployment ran",
+    "diffCheck": "PASS - no whitespace errors; line-ending notices only",
+    "untrackedClassification": "PASS - every untracked path classified; none secret or unknown"
+  },
+  "databasePackage": {
+    "classification": "READY TO APPLY",
+    "migration": "20260730190000_ocade_controlled_rollout_gates.sql",
+    "rollback": "20260730190000_ocade_controlled_rollout_gates_rollback.sql",
+    "verification": "20260730190000_ocade_controlled_rollout_gates_verify.sql",
+    "applied": false,
+    "totalMigrationTriples": 32,
+    "unappliedOrderedMigrations": 5
+  },
+  "readiness": {
+    "before": {
+      "originalCore": "217.8/450 = 48.4%",
+      "expanded": "235.4/510 = 46.2%"
+    },
+    "after": {
+      "originalCore": "217.8/450 = 48.4%",
+      "expanded": "240.1/510 = 47.1%"
+    },
+    "promotions": [
+      "AZ-416 through AZ-422 and AZ-426: NOT STARTED to EXTERNALLY BLOCKED with complete source gates and explicitly absent live cohort evidence",
+      "AZ-423 feature flags: NOT STARTED to UNIT TESTED",
+      "AZ-424 telemetry consent: NOT STARTED to UNIT TESTED",
+      "AZ-425 coverage limits: NOT STARTED to UNIT TESTED"
+    ]
+  },
+  "workingTreeAfterEvidence": {
+    "modifiedTracked": 54,
+    "untracked": 30,
+    "deleted": 0,
+    "staged": 0
+  },
+  "externalEvidenceStillRequired": [
+    "Named alpha and beta owners, independent reviewers and support contacts",
+    "Consenting pseudonymous alpha and beta participants",
+    "Observed success, refusal, cancellation, failure, recovery, endurance and crash receipts on declared platforms",
+    "Independent security and privacy review",
+    "Authorized migration application and verification in Supabase"
+  ],
+  "recovery": "Narrow any enabled flag to an earlier stage immediately; the policy permits emergency narrowing during gate outages. Revert only the P28 controlled-rollout policy, server/UI integration, three SQL package files, package-count documentation, test files, eslint generated-target ignore and P28 ledgers. The SQL rollback refuses to erase launch-gate history.",
+  "nextDependency": "P29 - Final production-readiness closure. Recalculate all 510 requirements from executed evidence, resolve every source-side gap, and retain external owner/runtime boundaries without claiming live alpha, beta or production launch."
+}

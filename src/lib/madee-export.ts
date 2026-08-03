@@ -3,14 +3,7 @@
  * - PDF: browser print of the preview page (native, no server, deterministic).
  * - DOCX: assembled with the `docx` package, downloaded as a Blob.
  */
-import {
-  Document,
-  Packer,
-  Paragraph,
-  HeadingLevel,
-  TextRun,
-  AlignmentType,
-} from "docx";
+import { Document, Packer, Paragraph, HeadingLevel, TextRun, AlignmentType } from "docx";
 import type { ResumeContent } from "./madee-resume-types";
 
 function fileNameSafe(s: string) {

@@ -71,14 +71,16 @@ function DemoSettings() {
               </button>
             ))}
           </div>
-          <p className="mt-3 text-xs text-muted-foreground">Custom cursor upload is available after sign-in.</p>
+          <p className="mt-3 text-xs text-muted-foreground">
+            Custom cursor upload is available after sign-in.
+          </p>
         </GlassPanel>
 
         <GlassPanel className="flex flex-col gap-3 p-5 lg:col-span-2">
           <h3 className="text-sm font-semibold text-foreground">Demo controls</h3>
           <p className="text-xs text-muted-foreground">
-            Reset restores the initial sample state. Exit clears the demo flag and returns to the landing page.
-            Sign-in never copies demo content into your account.
+            Reset restores the initial sample state. Exit clears the demo flag and returns to the
+            landing page. Sign-in never copies demo content into your account.
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -107,7 +109,8 @@ function DemoSettings() {
           </div>
           <div className="mt-2 flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200">
             <Ban className="h-3.5 w-3.5" aria-hidden />
-            Payments, filings, e-signatures, native device control and destructive account actions are disabled in demo.
+            Payments, filings, e-signatures, native device control and destructive account actions
+            are disabled in demo.
           </div>
         </GlassPanel>
       </div>
