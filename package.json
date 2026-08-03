@@ -71,7 +71,9 @@
     "deploy:web": "node scripts/deploy.mjs --execute",
     "deploy:rollback": "node scripts/deploy.mjs --rollback",
     "extension:package": "node scripts/extension-policy-install.mjs --print",
-    "extension:package-evidence": "node scripts/extension-policy-install.mjs --write-evidence"
+    "extension:package-evidence": "node scripts/extension-policy-install.mjs --write-evidence",
+    "engine:tier-benchmark": "vite-node scripts/ocade-tier-benchmark.mts -- --write",
+    "engine:preload-evidence": "vite-node scripts/ocade-preload-evidence.mts -- --write"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.12",

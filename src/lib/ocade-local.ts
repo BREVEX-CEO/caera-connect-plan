@@ -22,6 +22,10 @@ import {
   type OcadeCapabilityLabel,
   type OcadeLocalProfile,
 } from "./ocade-capability-labels";
+// Value imports only; `tier-policy` depends on nothing in this module, so there
+// is no cycle. Shared deliberately — a second copy of "which tiers need a GPU"
+// is how the router and the tier policy came to disagree about one machine.
+import { GPU_REQUIRED_TAGS, QUARANTINED_TAGS } from "./local/tier-policy";
 
 export const DEFAULT_LOCAL_BRIDGE_URL = "http://localhost:11434";
 
@@ -409,6 +413,13 @@ export interface FallbackPlanInput {
    * hardware is genuinely undetectable; omitting it disables the check.
    */
   totalRamBytes?: number;
+  /**
+   * Whether this machine has real graphics acceleration.
+   *
+   * `false` drops tiers that need it. Omit when genuinely unknown — claiming
+   * "no GPU" without evidence would shrink the chain on a guess.
+   */
+  hasDiscreteGpu?: boolean;
 }
 
 /**
@@ -432,7 +443,27 @@ export function buildLocalFirstPlan(input: FallbackPlanInput): FallbackStep[] {
       ? []
       : input.models.map((m) => modelFit(m, input.totalRamBytes!)).filter((f) => !f.fits);
   const excludedIds = new Set(excludedByHardware.map((f) => f.model.id));
-  const models = input.models.filter((m) => !excludedIds.has(m.id));
+
+  /*
+   * Fitting in memory is not the same as being usable.
+   *
+   * `routeTask` already refuses a quarantined tier and a GPU-tier model on a
+   * machine without acceleration; this chain did not, so the fallback path
+   * could hand back exactly the model the primary path had just rejected — and
+   * on the reference machine that model needed three minutes for a one-word
+   * answer. The same two lists decide here, imported rather than copied.
+   */
+  const unusableIds = new Set(
+    input.models
+      .filter(
+        (m) =>
+          QUARANTINED_TAGS[m.id] !== undefined ||
+          (GPU_REQUIRED_TAGS.has(m.id) && input.hasDiscreteGpu === false),
+      )
+      .map((m) => m.id),
+  );
+
+  const models = input.models.filter((m) => !excludedIds.has(m.id) && !unusableIds.has(m.id));
 
   const preferred = pickLocalModel(models, desired);
   if (preferred) {
@@ -543,6 +574,49 @@ export interface LocalStreamHandlers {
    * ordinary conversation — pass `true` explicitly.
    */
   think?: boolean;
+}
+
+/**
+ * Ask the runtime to load a model's weights WITHOUT sending a prompt.
+ *
+ * Cold start is the remaining lag, and it is entirely disk time. Measured on
+ * the reference machine, first token for the same question:
+ *
+ *     qwen3:8b    cold 26,932 ms   warm 2,192 ms
+ *     qwen3:1.7b  cold  8,975 ms   warm 6,144 ms
+ *
+ * The warm figure is a usable chat; the cold one is what a person meets when
+ * they open the app, and it is twelve times worse for no reason they can see.
+ *
+ * WHY THIS IS NOT CALLED ON MOUNT. Loading several gigabytes because someone
+ * glanced at a screen is its own way of making a machine unusable. The right
+ * trigger is intent — the caller invokes this when the user starts TYPING, so
+ * the weights land while they finish the sentence and nothing is loaded for a
+ * visit that was never going to send a message.
+ *
+ * Sends an empty message list, which the runtime treats as load-only: no
+ * prompt, no generation, nothing leaves the machine. Failure is silent by
+ * design — this is an optimisation, and a failed preload must never surface as
+ * an error for a message the user has not sent yet. The subsequent real
+ * request simply pays the load cost as before.
+ */
+export async function preloadLocalModel(
+  bridgeUrl: string,
+  modelId: string,
+  fetchImpl?: FetchLike,
+): Promise<boolean> {
+  const f = getFetch(fetchImpl);
+  if (!f) return false;
+  try {
+    const res = await f(`${bridgeUrl.replace(/\/+$/, "")}/api/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ model: modelId, messages: [] }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 /**

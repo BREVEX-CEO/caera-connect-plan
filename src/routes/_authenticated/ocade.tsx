@@ -81,6 +81,7 @@ import { reason } from "@/lib/reasoning/engine";
 import { browserReasonDeps } from "@/lib/reasoning/browser-deps";
 import {
   buildLocalFirstPlan,
+  preloadLocalModel,
   DEFAULT_LOCAL_BRIDGE_URL,
   type LocalChatMessage,
 } from "@/lib/ocade-local";
@@ -1045,6 +1046,12 @@ function ChatSurface(props: {
     attachments: Attachment[];
   }>(null);
   const abortRef = useRef<AbortController | null>(null);
+  /**
+   * Models already asked to load in this session. Typing fires on EVERY
+   * keystroke; without this the runtime would receive a load request per
+   * character, which is a denial of service aimed at the user's own machine.
+   */
+  const warmedRef = useRef<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
   const recogRef = useRef<unknown>(null);
   const modelInfo = getOcadeModel(model);
@@ -1193,6 +1200,30 @@ function ChatSurface(props: {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, streamText]);
+
+  /**
+   * Warm the on-device engine while the user is still typing.
+   *
+   * Cold start is pure disk time and it dominates the first message: 26,932 ms
+   * against 2,192 ms warm for the same question on the reference machine
+   * (release/OCADE_TIER_BENCHMARK.json). Nothing is sent — the runtime is asked
+   * to load weights only — and failure is deliberately silent, because this is
+   * an optimisation for a message that has not been sent yet.
+   *
+   * Skipped entirely when the user has chosen the cloud engine: loading
+   * gigabytes for a request that will never touch them is exactly the kind of
+   * background weight this product is meant not to impose.
+   */
+  function warmLocalEngine() {
+    if (engineTier === "cloud") return;
+    if (localEngine.status !== "ready" || localEngine.models.length === 0) return;
+    const route = routeTask("general", localEngine.models, localPerfLedger, devicePolicy.policy);
+    if (!route.ok) return;
+    const id = route.model.id;
+    if (warmedRef.current.has(id)) return;
+    warmedRef.current.add(id);
+    void preloadLocalModel(DEFAULT_LOCAL_BRIDGE_URL, id);
+  }
 
   async function sendMessage(
     overrideText?: string,
@@ -1580,6 +1611,9 @@ function ChatSurface(props: {
        * vision model from its own fallback chain.
        */
       totalRamBytes: devicePolicy.policy.totalRamBytes,
+      // The chain must refuse the same models the primary route refused, or
+      // falling back hands back exactly what was just rejected.
+      hasDiscreteGpu: devicePolicy.policy.hasDiscreteGpu,
     });
     const localSteps = plan.filter((s) => s.modelId);
     if (localSteps.length === 0) {
@@ -2696,6 +2730,7 @@ function ChatSurface(props: {
             attachments={attachments}
             setAttachments={setAttachments}
             onSubmit={() => sendMessage()}
+            onTypingStarted={warmLocalEngine}
             onStop={stop}
             streaming={streaming}
             mode={mode}
@@ -2803,6 +2838,12 @@ function Composer(props: {
   floating?: boolean;
   projectAssigned?: boolean;
   onSaveAttachmentToProject?: (attachment: Attachment) => Promise<void>;
+  /**
+   * Called on the first keystroke. Optional because a surface with no local
+   * engine has nothing to warm, and a required no-op prop is how dead
+   * handlers get introduced.
+   */
+  onTypingStarted?: () => void;
 }) {
   const {
     draft,
@@ -2827,6 +2868,7 @@ function Composer(props: {
     floating,
     projectAssigned,
     onSaveAttachmentToProject,
+    onTypingStarted,
   } = props;
   const modelInfo = getOcadeModel(model);
   // Read directly rather than threaded through props: the composer is mounted
@@ -2981,7 +3023,12 @@ function Composer(props: {
 
       <Textarea
         value={draft}
-        onChange={(e) => setDraft(e.target.value)}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          // Typing is the first honest signal that a message is coming. Warm
+          // the on-device engine now so the send does not pay a cold start.
+          onTypingStarted?.();
+        }}
         onKeyDown={(e) => {
           if (e.key !== "Enter") return;
           /*

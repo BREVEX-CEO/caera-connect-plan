@@ -456,3 +456,85 @@ describe("buildLocalFirstPlan is hardware-aware", () => {
     expect(chain[0].detail).not.toMatch(/no local engine is installed/i);
   });
 });
+
+/*
+ * The fallback chain must refuse what the primary route refused.
+ *
+ * `routeTask` already excludes a quarantined tier and a GPU-tier model on a
+ * machine without acceleration. This chain did not, so falling back could hand
+ * the user exactly the model that had just been rejected — and on the
+ * reference machine that model needed roughly three minutes to produce a
+ * one-word answer.
+ */
+describe("buildLocalFirstPlan excludes models that fit but are not usable here", () => {
+  const model = (id: string, bytes: number, params: string) =>
+    classifyLocalModel({ name: id, size: bytes, details: { parameter_size: params } });
+  const EIGHT_B = model("qwen3:8b", 5.23e9, "8.2B");
+  const FOURTEEN_B = model("qwen3:14b", 9.28e9, "14.8B");
+  const FOUR_B = model("qwen3:4b", 2.5e9, "4.0B");
+  const RAM = 16_801_841_152;
+
+  const modelIds = (steps: ReturnType<typeof buildLocalFirstPlan>) =>
+    steps.map((s) => s.modelId).filter(Boolean);
+
+  it("never offers a GPU-tier model on a machine with no dedicated graphics", () => {
+    const steps = buildLocalFirstPlan({
+      desired: "general",
+      models: [EIGHT_B, FOURTEEN_B],
+      cloudAllowed: false,
+      online: false,
+      totalRamBytes: RAM,
+      hasDiscreteGpu: false,
+    });
+    expect(modelIds(steps)).not.toContain("qwen3:14b");
+    expect(modelIds(steps)).toContain("qwen3:8b");
+  });
+
+  it("keeps the GPU tier when the machine has one", () => {
+    const steps = buildLocalFirstPlan({
+      desired: "general",
+      models: [EIGHT_B, FOURTEEN_B],
+      cloudAllowed: false,
+      online: false,
+      totalRamBytes: RAM,
+      hasDiscreteGpu: true,
+    });
+    expect(modelIds(steps)).toContain("qwen3:14b");
+  });
+
+  it("keeps the GPU tier when acceleration is genuinely unknown", () => {
+    const steps = buildLocalFirstPlan({
+      desired: "general",
+      models: [EIGHT_B, FOURTEEN_B],
+      cloudAllowed: false,
+      online: false,
+      totalRamBytes: RAM,
+    });
+    expect(modelIds(steps)).toContain("qwen3:14b");
+  });
+
+  it("never offers a quarantined tier at any position in the chain", () => {
+    const steps = buildLocalFirstPlan({
+      desired: "general",
+      models: [FOUR_B, EIGHT_B],
+      cloudAllowed: false,
+      online: false,
+      totalRamBytes: RAM,
+      hasDiscreteGpu: false,
+    });
+    expect(modelIds(steps)).not.toContain("qwen3:4b");
+  });
+
+  it("still fails explicitly when exclusions leave nothing runnable", () => {
+    const steps = buildLocalFirstPlan({
+      desired: "general",
+      models: [FOURTEEN_B],
+      cloudAllowed: false,
+      online: false,
+      totalRamBytes: RAM,
+      hasDiscreteGpu: false,
+    });
+    expect(steps.at(-1)?.kind).toBe("fail");
+    expect(modelIds(steps)).toHaveLength(0);
+  });
+});

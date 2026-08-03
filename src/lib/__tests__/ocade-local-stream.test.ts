@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { streamLocalChat } from "../ocade-local";
+import { streamLocalChat, preloadLocalModel } from "../ocade-local";
 
 describe("local Chat transport", () => {
   it("sends image bytes to a local vision engine instead of dropping them", async () => {
@@ -118,5 +118,50 @@ describe("hidden reasoning is disabled unless the caller asks for it", () => {
     );
     expect(result.ok).toBe(false);
     expect(fetchImpl).toHaveBeenCalledOnce();
+  });
+});
+
+/*
+ * Cold start is the remaining lag and it is pure disk time: 26,932 ms against
+ * 2,192 ms warm for the same question on the reference machine
+ * (release/OCADE_TIER_BENCHMARK.json). Preloading turns the first message into
+ * a warm one — provided it genuinely sends no prompt.
+ */
+describe("preloading warms the engine without sending anything", () => {
+  it("asks the runtime to load weights with an EMPTY message list", async () => {
+    let body: Record<string, unknown> | null = null;
+    const fetchImpl = vi.fn(async (_input: string, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      return new Response("{}", { status: 200 });
+    });
+    const ok = await preloadLocalModel("http://127.0.0.1:11434", "qwen3:8b", fetchImpl);
+    expect(ok).toBe(true);
+    expect(body).toEqual({ model: "qwen3:8b", messages: [] });
+  });
+
+  it("targets the chat endpoint on the given bridge", async () => {
+    const urls: string[] = [];
+    const fetchImpl = vi.fn(async (input: string) => {
+      urls.push(input);
+      return new Response("{}", { status: 200 });
+    });
+    await preloadLocalModel("http://127.0.0.1:11434/", "qwen3:8b", fetchImpl);
+    expect(urls).toEqual(["http://127.0.0.1:11434/api/chat"]);
+  });
+
+  it("reports failure quietly rather than throwing at a user who has not sent anything", async () => {
+    const rejecting = vi.fn(async () => {
+      throw new Error("ECONNREFUSED");
+    });
+    await expect(preloadLocalModel("http://127.0.0.1:11434", "qwen3:8b", rejecting)).resolves.toBe(
+      false,
+    );
+  });
+
+  it("reports a refusing runtime as not warmed", async () => {
+    const failing = vi.fn(async () => new Response("nope", { status: 500 }));
+    await expect(preloadLocalModel("http://127.0.0.1:11434", "qwen3:8b", failing)).resolves.toBe(
+      false,
+    );
   });
 });
