@@ -34,6 +34,11 @@ export interface RawLocalModel {
     families?: string[] | null;
     parameter_size?: string;
   };
+  /**
+   * Capabilities the runtime itself declares, e.g. ["vision", "completion"].
+   * Authoritative where present — see `classifyLocalModel`.
+   */
+  capabilities?: string[] | null;
 }
 
 export interface LocalModelInfo {
@@ -49,8 +54,31 @@ export interface LocalModelInfo {
   isCloudPointer: boolean;
 }
 
-const VISION_HINT = /(llava|vision|-vl\b|minicpm-v|moondream|bakllava|llama3.2-vision)/i;
+/*
+ * Name-shape fallback only. `-vl\b` alone missed `qwen2.5vl:7b` — no hyphen,
+ * no word boundary before "vl" — so a genuinely installed vision model was
+ * invisible to OCADE and image questions were refused on a machine that could
+ * answer them. Found by running the real runtime, not by reading the regex.
+ * `internvl` and `pixtral` are included for the same reason: they are common
+ * and neither contains "vision" or "llava".
+ */
+const VISION_HINT =
+  /(llava|vision|vl(?::|-|\b)|minicpm-v|moondream|bakllava|internvl|pixtral|llama3\.2-vision)/i;
 const CODE_HINT = /(coder|code|deepseek-coder|starcoder|codellama|codegemma)/i;
+
+/**
+ * Does the runtime itself say this model takes images?
+ *
+ * Returns null when the runtime declares nothing, which is the ONLY case where
+ * guessing from the name is appropriate. A runtime that lists capabilities and
+ * omits "vision" is stating a fact, and a regex must not overrule it — sending
+ * images to a text-only model produces a confident answer about nothing.
+ */
+function declaredVision(raw: RawLocalModel): boolean | null {
+  const declared = raw.capabilities;
+  if (!Array.isArray(declared) || declared.length === 0) return null;
+  return declared.some((c) => String(c).toLowerCase() === "vision");
+}
 
 /** Parse "7.6B", "30.5B", "7B" → number of billions. */
 export function parseParamsB(paramSize?: string): number | null {
@@ -70,7 +98,9 @@ export function classifyLocalModel(raw: RawLocalModel): LocalModelInfo {
   const id = raw.name;
   const isCloudPointer = /:cloud$/i.test(id) || (raw.size ?? 0) === 0;
   const families = raw.details?.families ?? [];
-  const vision = VISION_HINT.test(id) || families.some((f) => /vision|clip|vit/i.test(f ?? ""));
+  const vision =
+    declaredVision(raw) ??
+    (VISION_HINT.test(id) || families.some((f) => /vision|clip|vit|vl$/i.test(f ?? "")));
   const paramsB = parseParamsB(raw.details?.parameter_size);
 
   let profile: OcadeLocalProfile;
@@ -107,24 +137,87 @@ function getFetch(f?: FetchLike): FetchLike | null {
   return null;
 }
 
+/**
+ * Default per-request budget for discovery.
+ *
+ * Was 4s shared across BOTH requests, which is how a machine with nine
+ * installed models reported "No on-device engine is installed" during a
+ * runtime evidence run — the engine was fine, one probe was briefly slow
+ * because it had just finished loading a 6 GB model, and a single shared
+ * deadline turned that into a false claim about the user's own computer.
+ * A local engine busy loading weights is the NORMAL case, not an outage.
+ */
+export const DISCOVERY_TIMEOUT_MS = 8000;
+
+/** One request, with its own deadline. Never shares a budget with another. */
+async function fetchWithDeadline(f: FetchLike, url: string, timeoutMs: number): Promise<Response> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await f(url, { signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+const isAbort = (e: unknown) => e instanceof Error && e.name === "AbortError";
+
 /** Health + installed-model discovery against the local bridge. */
 export async function discoverLocalModels(
   bridgeUrl: string = DEFAULT_LOCAL_BRIDGE_URL,
   fetchImpl?: FetchLike,
-  timeoutMs = 4000,
+  timeoutMs = DISCOVERY_TIMEOUT_MS,
 ): Promise<LocalDiscovery> {
   const f = getFetch(fetchImpl);
   if (!f) return { ok: false, reachable: false, models: [], reason: "No fetch available." };
   const base = bridgeUrl.replace(/\/+$/, "");
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+
+  /*
+   * The version probe is COSMETIC — it fills a diagnostics line. It used to be
+   * able to fail the whole discovery, so a slow or missing /api/version made
+   * every installed model disappear from the product. It can no longer do
+   * that: an unavailable version is recorded as unknown and discovery
+   * continues to the question that actually matters.
+   */
+  let version: string | undefined;
   try {
-    const vres = await f(`${base}/api/version`, { signal: ctrl.signal });
-    if (!vres.ok) {
-      return { ok: false, reachable: false, models: [], reason: `Bridge HTTP ${vres.status}.` };
+    const vres = await fetchWithDeadline(f, `${base}/api/version`, timeoutMs);
+    if (vres.ok) version = ((await vres.json()) as { version?: string }).version;
+  } catch {
+    version = undefined;
+  }
+
+  /*
+   * The model list gets ONE retry, and only on a timeout. A refused connection
+   * means nothing is listening and retrying just delays an honest answer; a
+   * timeout means something IS there and was busy, which is precisely the case
+   * worth waiting out once.
+   */
+  let tres: Response;
+  try {
+    tres = await fetchWithDeadline(f, `${base}/api/tags`, timeoutMs);
+  } catch (e) {
+    if (!isAbort(e)) {
+      return { ok: false, reachable: false, models: [], reason: "Local engine unreachable." };
     }
-    const version = ((await vres.json()) as { version?: string }).version;
-    const tres = await f(`${base}/api/tags`, { signal: ctrl.signal });
+    try {
+      tres = await fetchWithDeadline(f, `${base}/api/tags`, timeoutMs);
+    } catch (retryError) {
+      return {
+        ok: false,
+        // A timeout means something WAS listening. Reporting it as unreachable
+        // would send the user to the wrong remedy.
+        reachable: isAbort(retryError),
+        models: [],
+        version,
+        reason: isAbort(retryError)
+          ? "The local engine is taking longer than expected — it may still be loading a model."
+          : "Local engine unreachable.",
+      };
+    }
+  }
+
+  try {
     if (!tres.ok) {
       return {
         ok: false,
@@ -144,13 +237,8 @@ export async function discoverLocalModels(
       reason: models.length === 0 ? "No on-device models installed yet." : undefined,
     };
   } catch (e) {
-    const reason =
-      e instanceof Error && e.name === "AbortError"
-        ? "Local engine timed out."
-        : "Local engine unreachable.";
-    return { ok: false, reachable: false, models: [], reason };
-  } finally {
-    clearTimeout(t);
+    const reason = isAbort(e) ? "Local engine timed out." : "Local engine unreachable.";
+    return { ok: false, reachable: false, version, models: [], reason };
   }
 }
 
@@ -434,6 +522,27 @@ export interface LocalChatMessage {
 export interface LocalStreamHandlers {
   onToken: (chunk: string) => void;
   signal?: AbortSignal;
+  /**
+   * Let the model run a hidden reasoning pass before answering.
+   *
+   * DEFAULTS TO FALSE, and that default is a measurement, not a taste.
+   * On the reference machine (4 cores, no dedicated GPU) the same one-word
+   * question through the same model measured:
+   *
+   *     reasoning on   163,215 ms to the first visible character
+   *     reasoning off   60,991 ms cold, 27,863 ms warm
+   *
+   * The answer was "Tokyo" in every case. The user waits nearly three minutes
+   * staring at nothing to receive a word the model could have produced in
+   * seconds, because the reasoning tokens are generated but never shown. On a
+   * machine with acceleration this is a reasonable trade; on the hardware
+   * OCADE targets it is the difference between a usable chat and one that
+   * looks frozen.
+   *
+   * Callers that genuinely want deliberation — a hard analysis step, not
+   * ordinary conversation — pass `true` explicitly.
+   */
+  think?: boolean;
 }
 
 /**
@@ -451,14 +560,36 @@ export async function streamLocalChat(
   const f = getFetch(fetchImpl);
   if (!f) return { ok: false, reason: "No fetch available." };
   const base = bridgeUrl.replace(/\/+$/, "");
-  let res: Response;
-  try {
-    res = await f(`${base}/api/chat`, {
+
+  const send = (includeThink: boolean) =>
+    f(`${base}/api/chat`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ model: modelId, messages, stream: true }),
+      body: JSON.stringify({
+        model: modelId,
+        messages,
+        stream: true,
+        // Sent explicitly rather than relying on the model's own default, so
+        // the behaviour cannot change underneath the product when a model is
+        // updated.
+        ...(includeThink ? { think: handlers.think === true } : {}),
+      }),
       signal: handlers.signal,
     });
+
+  let res: Response;
+  try {
+    res = await send(true);
+    /*
+     * Older runtimes, and models with no reasoning mode at all, reject the
+     * `think` field outright. Retrying without it keeps those models working
+     * instead of making a latency optimisation a hard dependency — they have
+     * no hidden reasoning pass to disable, so nothing is lost by omitting it.
+     */
+    if (res.status === 400) {
+      const detail = await res.clone().text();
+      if (/think/i.test(detail)) res = await send(false);
+    }
   } catch (e) {
     if (e instanceof Error && e.name === "AbortError") return { ok: false, reason: "cancelled" };
     return { ok: false, reason: "Local engine unreachable." };

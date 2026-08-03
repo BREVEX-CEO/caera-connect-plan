@@ -75,10 +75,11 @@ import { ocadeChatCapabilityDisclosure } from "@/lib/ocade-identity";
 import { capabilityLabelFor } from "@/lib/ocade-capability-labels";
 import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
+import { useDevicePolicy } from "@/lib/use-device-policy";
+import { useChatPrefs, readChatPrefs } from "@/lib/use-chat-prefs";
 import { reason } from "@/lib/reasoning/engine";
 import { browserReasonDeps } from "@/lib/reasoning/browser-deps";
 import {
-  browserTotalRamBytes,
   buildLocalFirstPlan,
   DEFAULT_LOCAL_BRIDGE_URL,
   type LocalChatMessage,
@@ -1049,7 +1050,22 @@ function ChatSurface(props: {
   const modelInfo = getOcadeModel(model);
   const online = useOnline();
   const localEngine = useLocalEngine();
-  const [engineTier, setEngineTier] = useState<"auto" | "local" | "cloud">("auto");
+  /*
+   * Measured device facts for engine selection. Routing on the browser's own
+   * memory hint alone picked a model that needed three minutes for a one-word
+   * answer on this hardware, and excluded an installed vision model that works.
+   */
+  const devicePolicy = useDevicePolicy();
+  const { prefs: chatPrefs } = useChatPrefs();
+  /*
+   * The user's chosen starting engine, from Settings › Chat. Read once as the
+   * initial value so switching engine inside a conversation is not overwritten
+   * on every render — the preference decides where a chat BEGINS, not where it
+   * must stay.
+   */
+  const [engineTier, setEngineTier] = useState<"auto" | "local" | "cloud">(
+    () => readChatPrefs().defaultEngineTier,
+  );
   // Sources attached to the in-flight request, so the reply's [S1] markers can
   // be resolved back to real documents (never to an invented id).
   const sourceIndexRef = useRef<IndexedSource[]>([]);
@@ -1132,19 +1148,28 @@ function ChatSurface(props: {
   // Crash recovery: restore anything typed but not sent for THIS conversation,
   // and keep it saved as the user types (Plan §39).
   useEffect(() => {
+    // Settings › Chat › Keep unsent drafts. Someone who turned this off on a
+    // shared computer must not be handed back what they typed last time.
+    if (!chatPrefs.keepDrafts) return;
     const recovered = recoverDraft(conversation.id);
     if (recovered?.text) {
       setDraft((current) => (current.trim() ? current : recovered.text));
       toast.info("Restored the message you were writing.");
     }
     // Only on conversation change — never clobber what the user is typing now.
-  }, [conversation.id]);
+  }, [conversation.id, chatPrefs.keepDrafts]);
 
   useEffect(() => {
     if (streaming) return;
+    if (!chatPrefs.keepDrafts) {
+      // Turning the preference off must also remove what was already stored,
+      // not merely stop adding to it.
+      clearDraft(conversation.id);
+      return;
+    }
     const id = setTimeout(() => saveDraft(conversation.id, draft), 400);
     return () => clearTimeout(id);
-  }, [draft, conversation.id, streaming]);
+  }, [draft, conversation.id, streaming, chatPrefs.keepDrafts]);
   const lastAssistantText = useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === "assistant") return messages[i].content;
@@ -1205,9 +1230,12 @@ function ChatSurface(props: {
      * release/OCADE_LOCAL_ENGINE_RUNTIME_EVIDENCE.json (E10–E12).
      */
     const localRoute = localReady
-      ? routeTask(hasImage ? "vision" : "general", localEngine.models, localPerfLedger, {
-          totalRamBytes: browserTotalRamBytes(),
-        })
+      ? routeTask(
+          hasImage ? "vision" : "general",
+          localEngine.models,
+          localPerfLedger,
+          devicePolicy.policy,
+        )
       : null;
     const localPick = localRoute?.ok ? localRoute.model : null;
 
@@ -1544,9 +1572,14 @@ function ChatSurface(props: {
       models: localEngine.models,
       cloudAllowed: online,
       online,
-      // Undefined when the browser will not say, which leaves the chain
-      // unfiltered rather than filtered on a guess.
-      totalRamBytes: browserTotalRamBytes(),
+      /*
+       * The machine's real total RAM when it could be measured, and undefined
+       * otherwise — undefined disables the fit check rather than filtering on
+       * a guess. It used to be the browser's `deviceMemory`, which is capped
+       * at 8 GiB: on this 16 GB machine that excluded the installed 5.97 GB
+       * vision model from its own fallback chain.
+       */
+      totalRamBytes: devicePolicy.policy.totalRamBytes,
     });
     const localSteps = plan.filter((s) => s.modelId);
     if (localSteps.length === 0) {
@@ -2430,11 +2463,13 @@ function ChatSurface(props: {
               </p>
             </div>
           ) : (
-            <div className="space-y-5">
+            <div className={chatPrefs.density === "compact" ? "space-y-2.5" : "space-y-5"}>
               {messages.map((m, index) => (
                 <MessageRow
                   key={m.id}
                   message={m}
+                  showTimestamp={chatPrefs.showTimestamps}
+                  renderMarkdown={chatPrefs.renderMarkdown}
                   onCopy={() => navigator.clipboard.writeText(m.content)}
                   onSpeak={() => readAloud(m.content)}
                   onSave={
@@ -2452,6 +2487,7 @@ function ChatSurface(props: {
               ))}
               {streaming && streamText ? (
                 <MessageRow
+                  renderMarkdown={chatPrefs.renderMarkdown}
                   message={{
                     id: "streaming",
                     role: "assistant",
@@ -2793,6 +2829,11 @@ function Composer(props: {
     onSaveAttachmentToProject,
   } = props;
   const modelInfo = getOcadeModel(model);
+  // Read directly rather than threaded through props: the composer is mounted
+  // from two different screens and this is a per-browser display preference,
+  // not conversation state either caller owns.
+  const { prefs: composerPrefs } = useChatPrefs();
+  const sendKey = composerPrefs.sendKey;
   const fileRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLInputElement>(null);
   // React may not rerender between pointer-down and pointer-up on a short
@@ -2942,7 +2983,22 @@ function Composer(props: {
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
+          if (e.key !== "Enter") return;
+          /*
+           * Settings › Chat › Sending messages. Someone who writes long
+           * multi-paragraph prompts loses them constantly to an Enter that
+           * sends, so the choice is theirs — and the placeholder below states
+           * whichever one is in force rather than a fixed sentence that would
+           * be wrong half the time.
+           */
+          if (sendKey === "mod_enter") {
+            if (e.ctrlKey || e.metaKey) {
+              e.preventDefault();
+              onSubmit();
+            }
+            return;
+          }
+          if (!e.shiftKey) {
             e.preventDefault();
             onSubmit();
           }
@@ -2951,7 +3007,9 @@ function Composer(props: {
         placeholder={
           mode === "work"
             ? "Describe the task for OCADE Work…"
-            : "Message OCADE…  (Enter to send, Shift+Enter for newline)"
+            : sendKey === "mod_enter"
+              ? "Message OCADE…  (Ctrl+Enter to send, Enter for newline)"
+              : "Message OCADE…  (Enter to send, Shift+Enter for newline)"
         }
         className="min-h-[52px] resize-none border-0 bg-transparent px-3 py-2.5 text-sm shadow-none focus-visible:ring-0"
         disabled={streaming}
@@ -3221,6 +3279,17 @@ function ComposerIcon({
 
 /* ---------- Message row (minimal, no big card) ---------- */
 
+/**
+ * Local time for a stored timestamp. An unparseable value yields nothing
+ * rather than "Invalid Date" — a row with no time is better than a row that
+ * looks broken.
+ */
+function formatMessageTime(iso: string): string | null {
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return null;
+  return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 function MessageRow({
   message,
   onCopy,
@@ -3228,6 +3297,8 @@ function MessageRow({
   onEdit,
   onBranch,
   onSave,
+  showTimestamp = false,
+  renderMarkdown = true,
 }: {
   message: Message;
   onCopy?: () => void;
@@ -3237,20 +3308,37 @@ function MessageRow({
   onBranch?: () => void;
   /** Save this exact response as a hashed artifact and activity entry. */
   onSave?: () => void;
+  /** Settings › Chat › Show message times. */
+  showTimestamp?: boolean;
+  /**
+   * Settings › Chat › Format replies. When off the model's literal output is
+   * shown, which is what someone debugging a prompt actually needs to see.
+   */
+  renderMarkdown?: boolean;
 }) {
   const isAssistant = message.role === "assistant";
+  const timestamp = showTimestamp ? formatMessageTime(message.created_at) : null;
 
   if (isAssistant) {
     return (
       <div className="group">
         <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[color:var(--accent-ocade)]">
           OCADE
+          {timestamp ? (
+            <span className="font-normal normal-case tracking-normal text-muted-foreground">
+              {timestamp}
+            </span>
+          ) : null}
         </div>
         {message.attachments && message.attachments.length > 0 ? (
           <AttachmentsInline atts={message.attachments} />
         ) : null}
         <div className="prose prose-sm prose-invert max-w-none text-[14px] leading-relaxed text-foreground whitespace-pre-wrap break-words [&_p]:my-1.5 [&_pre]:my-2 [&_code]:text-xs">
-          <ReactMarkdown>{message.content}</ReactMarkdown>
+          {renderMarkdown ? (
+            <ReactMarkdown>{message.content}</ReactMarkdown>
+          ) : (
+            <span className="font-mono text-[13px]">{message.content}</span>
+          )}
         </div>
         <div className="mt-1 flex gap-1 opacity-0 transition group-hover:opacity-100">
           {onCopy ? (
@@ -3283,6 +3371,7 @@ function MessageRow({
 
   return (
     <div className="group flex flex-col items-end">
+      {timestamp ? <div className="mb-1 text-[10px] text-muted-foreground">{timestamp}</div> : null}
       <div className="max-w-[85%] rounded-2xl bg-secondary/70 px-3.5 py-2 text-[14px] text-foreground">
         {message.attachments && message.attachments.length > 0 ? (
           <AttachmentsInline atts={message.attachments} />

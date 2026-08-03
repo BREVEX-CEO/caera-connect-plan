@@ -136,19 +136,39 @@ const TIERS = [
 ];
 
 const RAM_HEADROOM = 0.85; // matches hardware-profile.ts
-const usable = snapshot.availableRamBytes * RAM_HEADROOM;
+
+/*
+ * Sized against TOTAL RAM, not free RAM.
+ *
+ * This previously used `availableRamBytes`, and it was wrong in a way that
+ * mattered: free RAM is violently transient — on this machine it read 3.35 GiB
+ * while an 8B model was demonstrably serving answers, because the OS evicts
+ * cache under pressure. Selecting on it made the tool report "no local tier
+ * fits, cloud is the honest fallback" on a machine that runs the mid tier
+ * perfectly well, which is exactly the advice a local-first product must not
+ * give by accident.
+ *
+ * Total RAM is what actually bounds whether weights can be resident, and it is
+ * the basis `src/lib/ocade-local.ts` (TOTAL_RAM_HEADROOM) and
+ * `src/lib/local/tier-policy.ts` already use. Free RAM is still MEASURED and
+ * reported — it is genuinely useful to a user deciding whether to close
+ * something first — it just does not decide the tier.
+ */
+const usable = snapshot.totalRamBytes * RAM_HEADROOM;
 const fits = TIERS.filter((t) => t.minRamGiB * GiB <= usable);
 const best = fits.at(-1) ?? null;
 
 report.recommendation = {
   usableRamGiB: +(usable / GiB).toFixed(2),
+  basedOn: "totalRamBytes",
+  freeRamGiB: +(snapshot.availableRamBytes / GiB).toFixed(2),
   fits: fits.map((t) => t.id),
   best: best?.id ?? null,
   advice: best
     ? `This machine can run ${best.label} within a safe RAM ceiling.`
-    : "No local tier fits the currently available RAM. Cloud is the honest fallback until more RAM is free.",
+    : "No local tier fits this machine's total RAM. Cloud is the honest fallback.",
   caveat:
-    "Tiers are planning defaults from specification 3.5, not benchmarked model choices. Real model selection must be validated against measured memory, speed and quality before release.",
+    "Tiers are planning defaults from specification 3.5, not benchmarked model choices. Real model selection must be validated against measured memory, speed and quality before release. Authoritative selection is selectTier() against the committed model manifest, not this table.",
 };
 
 if (jsonOnly) {
@@ -169,7 +189,9 @@ if (jsonOnly) {
     `  gpu         ${gpu.present === true ? `yes — ${(gpu.discrete ?? []).join(", ")}` : gpu.present === false ? `none detected (${gpu.reason})` : `unknown (${gpu.reason})`}`,
   );
   console.log("");
-  console.log(`  usable RAM  ${report.recommendation.usableRamGiB} GiB after 15% headroom`);
+  console.log(
+    `  usable RAM  ${report.recommendation.usableRamGiB} GiB after 15% headroom (of TOTAL; free RAM is reported, not used to select)`,
+  );
   console.log(`  fits tiers  ${fits.length > 0 ? fits.map((t) => t.id).join(", ") : "none"}`);
   console.log(`  recommend   ${report.recommendation.advice}`);
   console.log("");

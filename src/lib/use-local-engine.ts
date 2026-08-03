@@ -43,7 +43,14 @@ export function useLocalEngine(
       void guardedRead({
         key: `local-engine:${bridgeUrl}`,
         fn: () => discoverLocalModels(bridgeUrl),
-        timeoutMs: 8_000,
+        /*
+         * Wider than the discovery call's own per-request budget on purpose.
+         * When this guard was the SHORTER of the two it cut discovery off
+         * mid-probe and the UI reported "no local engine" for an engine that
+         * was merely busy loading weights. The inner budgets are the real
+         * deadline; this is only a backstop against a hung promise.
+         */
+        timeoutMs: 30_000,
         cache: discoveryCache,
       })
         .then((d) => {

@@ -55,6 +55,9 @@ export const startLocalRuntimeFn = createServerFn({ method: "POST" })
       bind: BIND,
       timeoutMs: START_TIMEOUT_MS,
       pollMs: POLL_MS,
+      // Read so a ceiling the machine's owner has already set for themselves is
+      // respected rather than silently overwritten.
+      ambientEnv: process.env,
     });
   });
 

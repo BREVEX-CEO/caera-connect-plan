@@ -42,7 +42,17 @@ describe("the unified settings workspace", () => {
           ? "src/routes/_authenticated/settings.index.tsx"
           : `src/routes/_authenticated/settings.${item.slug}.tsx`;
       const implementedByRoute = existsSync(join(ROOT, routeFile));
-      const implementedByPanel = new RegExp(`\\b${item.slug}:\\s*\\(\\)\\s*=>`).test(catchall);
+      /*
+       * A hyphenated slug MUST be a quoted key in the map — `local-engine:` is
+       * not valid JavaScript unquoted. A pattern that only matches bare
+       * identifiers therefore reports a correctly implemented section as
+       * missing, which is the false-failure mode this file's sibling test
+       * already warns about. Both forms are accepted.
+       */
+      const implementedByPanel = new RegExp(
+        `(?:^|[\\s{"])"?${item.slug}"?:\\s*\\(\\)\\s*=>`,
+        "m",
+      ).test(catchall);
       expect(
         implementedByRoute || implementedByPanel,
         `${item.label} is marked active but has no implementation`,

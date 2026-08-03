@@ -5,6 +5,8 @@ import {
   engineBinaryCandidates,
   startRuntime,
   stopRuntime,
+  engineResourceEnv,
+  ENGINE_RESOURCE_DEFAULTS,
   DEFAULT_RUNTIME_PORT,
   type SupervisorDeps,
 } from "../local/runtime-supervisor";
@@ -166,6 +168,55 @@ describe("startRuntime — success", () => {
     // stray OLLAMA_HOST=0.0.0.0 in the parent environment cannot leak through.
     await startRuntime(h.deps, { bind: "127.0.0.1", pollMs: 400 });
     expect(h.spawnArgs[0].env.OLLAMA_HOST).not.toContain("0.0.0.0");
+  });
+});
+
+/*
+ * The engine must not be allowed to make the machine unusable in the course of
+ * serving OCADE. On the hardware this product targets — 16 GB, no dedicated
+ * GPU, weights already occupying most of usable memory — the defaults that
+ * cause this are a second resident model and multi-slot parallel decoding.
+ */
+describe("startRuntime — resource ceilings so the device stays usable", () => {
+  it("launches with one resident model, one parallel slot and a bounded idle life", async () => {
+    const h = harness({ listeningAfter: 400 });
+    await startRuntime(h.deps, { pollMs: 400 });
+    const env = h.spawnArgs[0].env;
+    expect(env.OLLAMA_MAX_LOADED_MODELS).toBe("1");
+    expect(env.OLLAMA_NUM_PARALLEL).toBe("1");
+    expect(env.OLLAMA_KEEP_ALIVE).toBe("5m");
+  });
+
+  it("applies every ceiling when the ambient environment sets none", () => {
+    expect(engineResourceEnv({})).toEqual(ENGINE_RESOURCE_DEFAULTS);
+  });
+
+  it("does not overwrite a ceiling the machine's owner has already chosen", () => {
+    const env = engineResourceEnv({ OLLAMA_KEEP_ALIVE: "1h" });
+    expect(env.OLLAMA_KEEP_ALIVE).toBeUndefined();
+    expect(env.OLLAMA_MAX_LOADED_MODELS).toBe("1");
+    expect(env.OLLAMA_NUM_PARALLEL).toBe("1");
+  });
+
+  it("treats a blank ambient value as unset rather than as a deliberate choice", () => {
+    expect(engineResourceEnv({ OLLAMA_NUM_PARALLEL: "   " }).OLLAMA_NUM_PARALLEL).toBe("1");
+  });
+
+  it("carries the user's own ceilings through startRuntime", async () => {
+    const h = harness({ listeningAfter: 400 });
+    await startRuntime(h.deps, { pollMs: 400, ambientEnv: { OLLAMA_NUM_PARALLEL: "4" } });
+    const env = h.spawnArgs[0].env;
+    expect(env.OLLAMA_NUM_PARALLEL).toBeUndefined();
+    expect(env.OLLAMA_MAX_LOADED_MODELS).toBe("1");
+  });
+
+  it("never lets a resource value override the bind address", async () => {
+    const h = harness({ listeningAfter: 400 });
+    await startRuntime(h.deps, {
+      pollMs: 400,
+      ambientEnv: { OLLAMA_HOST: "0.0.0.0:11434" },
+    });
+    expect(h.spawnArgs[0].env.OLLAMA_HOST).toBe("127.0.0.1:11434");
   });
 });
 

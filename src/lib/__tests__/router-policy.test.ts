@@ -163,3 +163,92 @@ describe("hotSwap", () => {
     expect(r.receipt.refusal).toBeTruthy();
   });
 });
+
+/*
+ * The router and the tier policy used to disagree about the same machine.
+ *
+ * Measured on a 16 GB CPU-only host: the tier policy chose the 8B tier, while
+ * the router chose 14B purely because it also fitted in RAM. 14B on that
+ * machine benchmarked at 1.32-2.98 tok/s — 50-128 s for one short answer. It
+ * did not fail, it degraded silently, which is the worst outcome because
+ * nothing tells the user why their computer became unresponsive.
+ */
+describe("routeTask respects the same hardware limits as the tier policy", () => {
+  const EIGHT_B = m("qwen3:8b", 5.23e9, "8.2B");
+  const FOURTEEN_B = m("qwen3:14b", 9.28e9, "14.8B");
+  const FOUR_B = m("qwen3:4b", 2.5e9, "4.0B");
+
+  it("refuses a GPU-tier model on a machine with no dedicated GPU", () => {
+    const r = routeTask("general", [EIGHT_B, FOURTEEN_B], new PerfLedger(), {
+      totalRamBytes: REAL_RAM,
+      hasDiscreteGpu: false,
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.model.id).toBe("qwen3:8b");
+    expect(r.receipt.rejected.find((x) => x.modelId === "qwen3:14b")?.why).toMatch(
+      /dedicated graphics card/i,
+    );
+  });
+
+  it("keeps the GPU tier in play when the machine actually has a GPU", () => {
+    const r = routeTask("general", [EIGHT_B, FOURTEEN_B], new PerfLedger(), {
+      totalRamBytes: REAL_RAM,
+      hasDiscreteGpu: true,
+    });
+    expect(r.receipt.rejected.some((x) => x.modelId === "qwen3:14b")).toBe(false);
+  });
+
+  it("leaves the GPU tier in play when GPU presence is genuinely unknown", () => {
+    const r = routeTask("general", [EIGHT_B, FOURTEEN_B], new PerfLedger(), {
+      totalRamBytes: REAL_RAM,
+    });
+    expect(r.receipt.rejected.some((x) => x.modelId === "qwen3:14b")).toBe(false);
+  });
+
+  it("never routes to a quarantined tier, and says why", () => {
+    const r = routeTask("general", [FOUR_B, EIGHT_B], new PerfLedger(), {
+      totalRamBytes: REAL_RAM,
+      hasDiscreteGpu: false,
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.model.id).not.toBe("qwen3:4b");
+    expect(r.receipt.rejected.find((x) => x.modelId === "qwen3:4b")?.why).toMatch(
+      /leaks its own reasoning/i,
+    );
+  });
+
+  it("chooses the device-matched tier over a merely larger one", () => {
+    const r = routeTask("general", [FOUR_B, EIGHT_B, MID], new PerfLedger(), {
+      totalRamBytes: REAL_RAM,
+      hasDiscreteGpu: false,
+      deviceMatchedModelId: "qwen3:8b",
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.model.id).toBe("qwen3:8b");
+    expect(r.receipt.basis).toBe("device_matched");
+  });
+
+  it("does not let a device-matched id resurrect a model that cannot run here", () => {
+    const r = routeTask("general", [EIGHT_B, HUGE], new PerfLedger(), {
+      totalRamBytes: REAL_RAM,
+      hasDiscreteGpu: false,
+      deviceMatchedModelId: "qwen3-coder:30b",
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.model.id).toBe("qwen3:8b");
+    expect(r.receipt.basis).toBe("unmeasured");
+  });
+
+  it("still prefers a real measurement over the device-matched default", () => {
+    const ledger = new PerfLedger();
+    ledger.record({ modelId: MID.id, task: "general", firstTokenMs: 300, totalMs: 900, ok: true });
+    const r = routeTask("general", [EIGHT_B, MID], ledger, {
+      totalRamBytes: REAL_RAM,
+      hasDiscreteGpu: false,
+      deviceMatchedModelId: "qwen3:8b",
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.model.id).toBe(MID.id);
+    expect(r.receipt.basis).toBe("measured");
+  });
+});

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -16,6 +17,61 @@ function read(path) {
 
 function json(path) {
   return JSON.parse(read(path));
+}
+
+const UPDATER_KEY_PLACEHOLDER = "REPLACE_WITH_SIGNING_PUBLIC_KEY";
+
+/**
+ * A minisign public key, as Tauri stores it, is base64 of two lines: an
+ * "untrusted comment" and a key line beginning `RW`. Anything else — blank, a
+ * truncated paste, or the SECRET key (whose comment says "minisign secret
+ * key") — must fail.
+ */
+function isPlaceholderOrMinisignPublicKey(value) {
+  if (value === UPDATER_KEY_PLACEHOLDER) return true;
+  if (typeof value !== "string" || value.length === 0) return false;
+  let decoded;
+  try {
+    decoded = Buffer.from(value, "base64").toString("utf8");
+  } catch {
+    return false;
+  }
+  if (/minisign secret key/i.test(decoded)) return false;
+  return /minisign public key/i.test(decoded) && /^RW\S{20,}$/m.test(decoded);
+}
+
+/**
+ * The public half being well-formed only matters if the private half is not
+ * sitting next to it. Scans TRACKED files, so an untracked local key the
+ * developer keeps outside git is correctly ignored.
+ *
+ * Matches the minisign key-file HEADER rather than the phrase naming it, so
+ * that source and tests which merely DISCUSS signing keys are not reported as
+ * leaked ones. This file is excluded from its own scan for the same reason —
+ * it necessarily contains the pattern it looks for.
+ *
+ * Limit, stated rather than glossed: a secret key pasted in some other
+ * encoding would evade this. The tauri `pubkey` field is separately decoded
+ * and rejected if it turns out to be a secret key, which is the one field a
+ * key is realistically pasted into by mistake.
+ */
+function committedMinisignSecretKey() {
+  const header = ["untrusted", "comment:.*secret", "key"].join(" ");
+  try {
+    const hits = execFileSync(
+      "git",
+      ["grep", "-lIE", header, "--", ".", ":!scripts/check-release-source.mjs"],
+      { cwd: root, encoding: "utf8" },
+    );
+    return hits.trim().length > 0;
+  } catch (error) {
+    // git grep exits 1 with no output when nothing matches — that is the clean
+    // case. Any other failure means the check did not run, and an unrun check
+    // is never reported as a passing one.
+    if (error && error.status === 1 && !String(error.stdout ?? "").trim()) return false;
+    failures.push("minisign secret-key scan could not run, so it is not counted as passed");
+    return false;
+  }
 }
 
 for (const path of [
@@ -87,9 +143,25 @@ check(
 );
 
 check(tauri.plugins?.updater?.active === false, "unsigned desktop updater is active");
+/*
+ * The updater key used to be asserted as the literal placeholder string. That
+ * proxy broke the moment a real signing key was generated (N1/N2), even though
+ * the property it stands for — no unsigned updater can ship — was never
+ * violated. The subject is the key's SHAPE and the fact that only the PUBLIC
+ * half is ever in the tree, so that is what is checked now:
+ *   - still the placeholder, or a well-formed minisign public key; never blank,
+ *     never a truncated paste;
+ *   - the secret half is absent from the whole repository (checked below).
+ * Combined with `active === false` and `createUpdaterArtifacts === false`, this
+ * is a stronger boundary than string equality, not a relaxed one.
+ */
 check(
-  tauri.plugins?.updater?.pubkey === "REPLACE_WITH_SIGNING_PUBLIC_KEY",
-  "desktop updater placeholder boundary changed unexpectedly",
+  isPlaceholderOrMinisignPublicKey(tauri.plugins?.updater?.pubkey),
+  "desktop updater key is neither the placeholder nor a well-formed minisign public key",
+);
+check(
+  !committedMinisignSecretKey(),
+  "a minisign SECRET signing key is committed to the repository",
 );
 check(tauri.bundle?.createUpdaterArtifacts === false, "unsigned updater artifacts are enabled");
 check(

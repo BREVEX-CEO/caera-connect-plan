@@ -181,6 +181,56 @@ export interface SupervisorError {
 
 export type SupervisorResult<T> = ({ ok: true } & T) | SupervisorError;
 
+/**
+ * Resource ceilings the engine is launched under, so OCADE never makes the
+ * user's machine unusable to serve itself.
+ *
+ * These are not tuning preferences — each one closes a specific way a local
+ * engine degrades the whole device on the class of hardware OCADE targets
+ * (16 GB, no dedicated GPU, weights already at 60-80% of usable RAM):
+ *
+ *  - MAX_LOADED_MODELS=1 — the default keeps several models resident. Two 5 GB
+ *    models resident at once exceeds what this machine can hold, and the OS
+ *    answers by swapping, which freezes the foreground application rather than
+ *    slowing the engine.
+ *  - NUM_PARALLEL=1 — parallel sequences multiply the KV cache by the number
+ *    of slots. One user chatting does not need four, and four is what turns a
+ *    working configuration into an out-of-memory one.
+ *  - KEEP_ALIVE — weights are released after a short idle instead of being
+ *    pinned indefinitely, so closing the chat gives the memory back.
+ *
+ * A user who deliberately sets these in their own environment is NOT
+ * overridden here; see `engineResourceEnv`.
+ */
+export const ENGINE_RESOURCE_DEFAULTS: Record<string, string> = {
+  OLLAMA_MAX_LOADED_MODELS: "1",
+  OLLAMA_NUM_PARALLEL: "1",
+  OLLAMA_KEEP_ALIVE: "5m",
+};
+
+/**
+ * Build the resource environment for a launch.
+ *
+ * Deliberately does not clobber a value the user already set: someone who has
+ * chosen `OLLAMA_KEEP_ALIVE=1h` on their own machine has made a decision about
+ * their own hardware, and silently reversing it would be the product deciding
+ * it knows better than the person who owns the computer. Absent values get
+ * OCADE's safe defaults, which is the case that matters — nearly everyone.
+ *
+ * `OLLAMA_HOST` is NOT part of this: the bind address is a safety control, not
+ * a preference, and it is forced unconditionally at the call site.
+ */
+export function engineResourceEnv(
+  ambient: Record<string, string | undefined> = {},
+): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(ENGINE_RESOURCE_DEFAULTS)) {
+    const existing = ambient[key];
+    if (existing === undefined || existing.trim() === "") env[key] = value;
+  }
+  return env;
+}
+
 const fail = (failure: SupervisorFailure, reason: string): SupervisorError => ({
   ok: false,
   failure,
@@ -208,6 +258,12 @@ export interface StartOptions {
   /** Gap between readiness probes. */
   pollMs?: number;
   signal?: { aborted: boolean };
+  /**
+   * The environment the engine would inherit. Only read to decide which
+   * resource ceilings the user has already chosen for themselves; passing
+   * nothing applies OCADE's defaults in full.
+   */
+  ambientEnv?: Record<string, string | undefined>;
 }
 
 export interface StartOutcome {
@@ -266,6 +322,9 @@ export async function startRuntime(
 
   try {
     await deps.spawnDetached(binary, ["serve"], {
+      // Resource ceilings first, so a stray ambient value can never widen them
+      // past what the bind decision below assumes.
+      ...engineResourceEnv(options.ambientEnv ?? {}),
       // Force loopback even if the ambient environment says otherwise. This is
       // the whole point of the control: an inherited OLLAMA_HOST=0.0.0.0 must
       // not be able to publish the engine.

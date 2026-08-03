@@ -29,7 +29,14 @@ function implementedInCatchAll(): string[] {
   const src = readFileSync(CATCH_ALL, "utf8");
   const start = src.indexOf("IMPLEMENTED_SECTIONS");
   const end = src.indexOf("};", start);
-  return [...src.slice(start, end).matchAll(/^\s{2}([a-zA-Z0-9_-]+):\s*\(\)\s*=>/gm)].map(
+  /*
+   * Quoted keys count too. A hyphenated slug such as `local-engine` cannot be
+   * a bare identifier in JavaScript, so it MUST appear as `"local-engine":` —
+   * and an identifier-only pattern reports that correctly implemented section
+   * as missing. Exactly the false-failure this file's header warns about,
+   * reached by a different route.
+   */
+  return [...src.slice(start, end).matchAll(/^\s{2}"?([a-zA-Z0-9_-]+)"?:\s*\(\)\s*=>/gm)].map(
     (m) => m[1],
   );
 }
@@ -78,7 +85,8 @@ describe("settings sections that claim to be active can actually render", () => 
   it("keeps every catch-all implementation pointing at a real component file", () => {
     const src = readFileSync(CATCH_ALL, "utf8");
     for (const slug of implemented) {
-      const match = new RegExp(`^\\s{2}${slug}:\\s*\\(\\)\\s*=>\\s*<([A-Za-z0-9_]+)`, "m").exec(
+      // Quoted keys again — see `implementedInCatchAll`.
+      const match = new RegExp(`^\\s{2}"?${slug}"?:\\s*\\(\\)\\s*=>\\s*<([A-Za-z0-9_]+)`, "m").exec(
         src,
       );
       expect(match, `${slug} has no component`).toBeTruthy();

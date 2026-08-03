@@ -23,6 +23,10 @@
  */
 import type { LocalModelInfo } from "../ocade-local";
 import { modelFit } from "../ocade-local";
+// Shared with the tier policy on purpose. Two copies of "which tags need a GPU"
+// is precisely how the router and the tier policy came to choose different
+// models for the same machine.
+import { GPU_REQUIRED_TAGS, QUARANTINED_TAGS } from "./tier-policy";
 
 export type TaskKind = "code" | "general" | "vision" | "summarise" | "embed";
 
@@ -114,6 +118,26 @@ export interface RoutePolicy {
   totalRamBytes?: number;
   /** When true, cloud is not an option at all and refusal is local-only. */
   privateOnly?: boolean;
+  /**
+   * Whether this machine has real graphics acceleration.
+   *
+   * Fitting in RAM is not the same as being usable. Some tiers are measured at
+   * under half the speed of a smaller model without a GPU — they do not fail,
+   * they degrade silently, which is worse for a user because nothing announces
+   * it. Pass `false` to exclude them; omit it only when the answer is genuinely
+   * unknown, which leaves them in play.
+   */
+  hasDiscreteGpu?: boolean;
+  /**
+   * The tier the hardware policy selected for this device, when it is known.
+   *
+   * Without this the router and `selectTier` disagreed: on a 16 GB CPU-only
+   * machine the tier policy chose the 8B tier while the router chose the 14B
+   * one purely because it also fitted in memory — the user got 50-128 s
+   * replies from a machine that answers in seconds. When the device-matched
+   * model is installed and suitable, it wins.
+   */
+  deviceMatchedModelId?: string | null;
 }
 
 export interface RejectedCandidate {
@@ -124,8 +148,11 @@ export interface RejectedCandidate {
 export interface RouteReceipt {
   task: TaskKind;
   chosen: string | null;
-  /** How the winner was chosen — measured, or declared profile only. */
-  basis: "measured" | "unmeasured" | "none";
+  /**
+   * How the winner was chosen: from real measurements, because it is the tier
+   * this hardware was matched to, from declared profile only, or not at all.
+   */
+  basis: "measured" | "device_matched" | "unmeasured" | "none";
   rejected: RejectedCandidate[];
   /** Present when nothing could be chosen. */
   refusal?: string;
@@ -190,6 +217,33 @@ export function routeTask(
     pool = next;
   }
 
+  /*
+   * 1b. Usability on THIS machine, not merely residency.
+   *
+   * Shares its source of truth with `tier-policy.ts` rather than keeping a
+   * second list: two copies of "which models need a GPU" is how the router and
+   * the tier policy came to disagree in the first place.
+   */
+  {
+    const next: LocalModelInfo[] = [];
+    for (const m of pool) {
+      const quarantine = QUARANTINED_TAGS[m.id];
+      if (quarantine) {
+        rejected.push({ modelId: m.id, why: quarantine });
+        continue;
+      }
+      if (GPU_REQUIRED_TAGS.has(m.id) && policy.hasDiscreteGpu === false) {
+        rejected.push({
+          modelId: m.id,
+          why: "needs a dedicated graphics card; without one it is measurably slower than a smaller model",
+        });
+        continue;
+      }
+      next.push(m);
+    }
+    pool = next;
+  }
+
   // 2. Profile suitability.
   const prefs = profilePreference(task);
   const suitable = pool.filter((m) => prefs.includes(m.profile));
@@ -239,6 +293,22 @@ export function routeTask(
   // 5. Nothing measured. Fall back to declared profile order, and SAY that the
   //    choice was unmeasured rather than implying it was earned.
   if (unmeasured.length > 0) {
+    /*
+     * The device-matched tier wins outright when it survived every filter
+     * above. "Largest that fits" is the right instinct on a machine with
+     * acceleration and the wrong one without it, and the hardware policy has
+     * already done that reasoning against benchmarks.
+     */
+    const deviceMatched = policy.deviceMatchedModelId
+      ? unmeasured.find((m) => m.id === policy.deviceMatchedModelId)
+      : undefined;
+    if (deviceMatched) {
+      return {
+        ok: true,
+        model: deviceMatched,
+        receipt: { task, chosen: deviceMatched.id, basis: "device_matched", rejected, policy, at },
+      };
+    }
     const byPref = [...unmeasured].sort(
       (a, b) => prefs.indexOf(a.profile) - prefs.indexOf(b.profile) || b.sizeBytes - a.sizeBytes,
     );

@@ -60,6 +60,55 @@ describe("classifyLocalModel", () => {
     expect(classifyLocalModel(raw).label).toBe(label);
   });
 
+  /*
+   * These cases come from a real installation, not from imagination. The
+   * runtime reports `capabilities: ["vision", "completion"]` for
+   * `qwen2.5vl:7b` while its family is "qwen25vl" and its name contains no
+   * hyphen before "vl" — so every name/family heuristic missed it and OCADE
+   * refused image questions on a machine that could answer them.
+   */
+  it("trusts the runtime's declared vision capability over any name heuristic", () => {
+    const m = classifyLocalModel({
+      name: "qwen2.5vl:7b",
+      size: 5.97e9,
+      details: { family: "qwen25vl", families: ["qwen25vl"], parameter_size: "8.3B" },
+      capabilities: ["vision", "completion"],
+    });
+    expect(m.vision).toBe(true);
+    expect(m.profile).toBe("vision");
+    expect(m.label).toBe("OCADE Local Vision");
+  });
+
+  it("recognises that same model by name shape when the runtime declares nothing", () => {
+    const m = classifyLocalModel({
+      name: "qwen2.5vl:7b",
+      size: 5.97e9,
+      details: { family: "qwen25vl", families: ["qwen25vl"], parameter_size: "8.3B" },
+    });
+    expect(m.vision).toBe(true);
+  });
+
+  it("does NOT overrule a runtime that lists capabilities without vision", () => {
+    // A name-shaped false positive must lose to the runtime's own statement:
+    // sending images to a text-only model yields a confident answer about
+    // nothing, which is worse than refusing.
+    const m = classifyLocalModel({
+      name: "vision-tuned-writer:7b",
+      size: 4e9,
+      details: { parameter_size: "7B" },
+      capabilities: ["completion", "tools"],
+    });
+    expect(m.vision).toBe(false);
+    expect(m.profile).not.toBe("vision");
+  });
+
+  it.each(["internvl2:8b", "pixtral:12b", "llava:7b", "minicpm-v:8b"])(
+    "still classifies %s as vision without any declared capability",
+    (name) => {
+      expect(classifyLocalModel({ name, size: 5e9 }).vision).toBe(true);
+    },
+  );
+
   it("flags a :cloud pointer as not on-device", () => {
     expect(classifyLocalModel({ name: "deepseek-v4-pro:cloud", size: 0 }).isCloudPointer).toBe(
       true,
@@ -195,6 +244,88 @@ describe("discoverLocalModels (injected fetch)", () => {
     expect(d.ok).toBe(false);
     expect(d.reachable).toBe(false);
     expect(d.reason).toBeTruthy();
+  });
+
+  /*
+   * These four cover a defect observed on a real machine: nine models were
+   * installed and the engine was serving, but discovery shared ONE deadline
+   * across two probes, the first was briefly slow after loading a 6 GB model,
+   * and the product told the user "No on-device engine is installed" — a false
+   * statement about their own computer, on the strength of a 4-second budget.
+   */
+  const abort = () => {
+    const error = new Error("aborted");
+    error.name = "AbortError";
+    return Promise.reject(error);
+  };
+
+  it("still finds models when the cosmetic version probe fails outright", async () => {
+    const f = ((url: string) =>
+      url.endsWith("/api/version")
+        ? Promise.reject(new Error("ECONNRESET"))
+        : Promise.resolve(
+            new Response(
+              JSON.stringify({
+                models: [{ name: "qwen3:8b", size: 5.2e9, details: { parameter_size: "8.2B" } }],
+              }),
+              { status: 200 },
+            ),
+          )) as unknown as (input: string, init?: RequestInit) => Promise<Response>;
+    const d = await discoverLocalModels("http://localhost:11434", f);
+    expect(d.ok).toBe(true);
+    expect(d.models).toHaveLength(1);
+    expect(d.version).toBeUndefined();
+  });
+
+  it("retries the model list once after a timeout and succeeds", async () => {
+    let tagCalls = 0;
+    const f = ((url: string) => {
+      if (url.endsWith("/api/version")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ version: "0.30.11" }), { status: 200 }),
+        );
+      }
+      tagCalls += 1;
+      if (tagCalls === 1) return abort();
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            models: [{ name: "qwen3:8b", size: 5.2e9, details: { parameter_size: "8.2B" } }],
+          }),
+          { status: 200 },
+        ),
+      );
+    }) as unknown as (input: string, init?: RequestInit) => Promise<Response>;
+    const d = await discoverLocalModels("http://localhost:11434", f);
+    expect(tagCalls).toBe(2);
+    expect(d.ok).toBe(true);
+    expect(d.models).toHaveLength(1);
+  });
+
+  it("does NOT retry a refused connection — nothing is listening, so waiting is pointless", async () => {
+    let tagCalls = 0;
+    const f = ((url: string) => {
+      if (url.endsWith("/api/version")) return Promise.reject(new Error("ECONNREFUSED"));
+      tagCalls += 1;
+      return Promise.reject(new Error("ECONNREFUSED"));
+    }) as unknown as (input: string, init?: RequestInit) => Promise<Response>;
+    const d = await discoverLocalModels("http://localhost:11434", f);
+    expect(tagCalls).toBe(1);
+    expect(d.reachable).toBe(false);
+    expect(d.reason).toMatch(/unreachable/i);
+  });
+
+  it("calls a persistent timeout busy, not missing, because something IS listening", async () => {
+    const f = ((url: string) =>
+      url.endsWith("/api/version")
+        ? Promise.resolve(new Response(JSON.stringify({ version: "0.30.11" }), { status: 200 }))
+        : abort()) as unknown as (input: string, init?: RequestInit) => Promise<Response>;
+    const d = await discoverLocalModels("http://localhost:11434", f);
+    expect(d.ok).toBe(false);
+    expect(d.reachable).toBe(true);
+    expect(d.reason).toMatch(/still be loading a model/i);
+    // The claim "no engine installed" must never be produced by a timeout.
+    expect(d.reason).not.toMatch(/not installed|no on-device models/i);
   });
 });
 

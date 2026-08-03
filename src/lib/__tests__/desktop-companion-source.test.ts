@@ -139,7 +139,22 @@ describe("desktop companion source contract", () => {
 
   it("keeps updater and signing claims externally blocked until real keys exist", () => {
     expect(config.plugins.updater.active).toBe(false);
-    expect(config.plugins.updater.pubkey).toBe("REPLACE_WITH_SIGNING_PUBLIC_KEY");
+    /*
+     * A real minisign PUBLIC key now exists (N1/N2), so asserting the literal
+     * placeholder would fail on progress rather than on a defect. What must
+     * hold is that only the public half is ever in the tree and that it is
+     * well-formed — a blank or truncated key would ship an updater that
+     * verifies nothing.
+     */
+    const pubkey = config.plugins.updater.pubkey;
+    expect(typeof pubkey).toBe("string");
+    expect(pubkey.length).toBeGreaterThan(0);
+    if (pubkey !== "REPLACE_WITH_SIGNING_PUBLIC_KEY") {
+      const decoded = Buffer.from(pubkey, "base64").toString("utf8");
+      expect(decoded).toMatch(/minisign public key/i);
+      expect(decoded).not.toMatch(/minisign secret key/i);
+      expect(decoded).toMatch(/^RW\S{20,}$/m);
+    }
     expect(config.bundle.windows.certificateThumbprint).toBeNull();
     expect(config.bundle.macOS.signingIdentity).toBeNull();
     expect(config.bundle.createUpdaterArtifacts).toBe(false);

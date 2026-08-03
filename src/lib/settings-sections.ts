@@ -35,6 +35,11 @@ import {
   ClipboardCheck,
   PenTool,
   Brain,
+  MessageSquare,
+  Server,
+  Image as ImageIcon,
+  Activity,
+  Scale,
 } from "lucide-react";
 
 export type SettingsStatus = "active" | "setup_required" | "external";
@@ -217,6 +222,52 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     id: "ocade",
     label: "OCADE",
     items: [
+      {
+        slug: "chat",
+        label: "Chat",
+        icon: MessageSquare,
+        status: "active",
+        description:
+          "Which engine new chats start on, how messages are sent, and how the transcript is shown.",
+        keywords: ["chat", "engine", "send", "enter", "density", "markdown", "drafts"],
+      },
+      {
+        slug: "local-engine",
+        label: "Local Engine",
+        icon: Server,
+        status: "active",
+        description:
+          "The AI engine that runs on this computer: measured device specification, start and stop, install, verify, repair and remove.",
+        keywords: [
+          "local",
+          "engine",
+          "offline",
+          "on-device",
+          "ollama",
+          "model",
+          "download",
+          "repair",
+          "storage",
+        ],
+      },
+      {
+        slug: "providers",
+        label: "Online providers",
+        icon: Plug,
+        status: "active",
+        description:
+          "Whether OCADE may use a cloud engine at all, which one, and a real connection test. Keys stay on the server.",
+        keywords: ["provider", "cloud", "openai", "api key", "online", "routing"],
+      },
+      {
+        slug: "images",
+        label: "Images",
+        icon: ImageIcon,
+        status: "active",
+        description:
+          "Reading images you attach to a chat, and the exact requirements for creating images.",
+        keywords: ["image", "vision", "screenshot", "ocr", "chart", "generation"],
+      },
       {
         slug: "ocade-preferences",
         label: "OCADE Preferences",
@@ -425,6 +476,24 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         description:
           "API keys, personal access tokens and CLI setup live here once the developer program opens.",
         keywords: ["developer", "api", "cli"],
+      },
+      {
+        slug: "diagnostics",
+        label: "Diagnostics",
+        icon: Activity,
+        status: "active",
+        description:
+          "Live engine, routing and connection detail for working out why something behaved the way it did.",
+        keywords: ["diagnostics", "debug", "latency", "engine", "routing", "logs"],
+      },
+      {
+        slug: "about",
+        label: "About and licences",
+        icon: Scale,
+        status: "active",
+        description:
+          "Build details, the model weights OCADE can install with their licences, and every bundled package's licence.",
+        keywords: ["about", "licence", "license", "version", "third party", "notices", "model"],
       },
     ],
   },

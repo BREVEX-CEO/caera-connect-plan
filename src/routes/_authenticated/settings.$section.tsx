@@ -10,6 +10,12 @@ import { PermissionsPanel } from "@/components/settings/PermissionsPanel";
 import { ConnectorsPanel } from "@/components/settings/ConnectorsPanel";
 import { AccessibilityPanel } from "@/components/settings/AccessibilityPanel";
 import { UpdatePolicyPanel } from "@/components/settings/UpdatePolicyPanel";
+import { ChatSettingsPanel } from "@/components/settings/ChatSettingsPanel";
+import { LocalEngineSettingsPanel } from "@/components/settings/LocalEngineSettingsPanel";
+import { OnlineProvidersPanel } from "@/components/settings/OnlineProvidersPanel";
+import { ImageSettingsPanel } from "@/components/settings/ImageSettingsPanel";
+import { AboutLicencesPanel } from "@/components/settings/AboutLicencesPanel";
+import { DiagnosticsSettingsPanel } from "@/components/settings/DiagnosticsSettingsPanel";
 
 /**
  * Settings sections that are REAL and rendered here rather than falling through
@@ -22,6 +28,12 @@ const IMPLEMENTED_SECTIONS: Record<string, () => React.ReactElement> = {
   connectors: () => <ConnectorsPanel />,
   accessibility: () => <AccessibilityPanel />,
   updates: () => <UpdatePolicyPanel />,
+  chat: () => <ChatSettingsPanel />,
+  "local-engine": () => <LocalEngineSettingsPanel />,
+  providers: () => <OnlineProvidersPanel />,
+  images: () => <ImageSettingsPanel />,
+  diagnostics: () => <DiagnosticsSettingsPanel />,
+  about: () => <AboutLicencesPanel />,
 };
 
 export const Route = createFileRoute("/_authenticated/settings/$section")({

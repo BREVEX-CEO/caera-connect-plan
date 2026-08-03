@@ -213,15 +213,56 @@ const output = lines.join("\n") + "\n";
  */
 const normalizeNewlines = (text) => text.replace(/\r\n/g, "\n");
 
+/*
+ * A compact companion to the full notices.
+ *
+ * The About page has to be able to state what OCADE ships and under which
+ * licences. It cannot import the notices themselves: that file is ~600 KB of
+ * licence text and putting it in the client bundle to render four numbers
+ * would be an absurd cost. This summary is derived from the SAME scan in the
+ * same run, so it cannot drift from the document it summarises — a
+ * hand-maintained count would.
+ */
+const SUMMARY_OUTPUT = "release/THIRD_PARTY_SUMMARY.json";
+const summary = {
+  schemaVersion: 1,
+  generatedBy: "scripts/generate-licence-notices.mjs",
+  product: `${rootPkg.name}@${rootPkg.version}`,
+  productionPackages: packages.length,
+  licenceTypes: Object.keys(byLicence).length,
+  needingReview: attention.map((p) => ({
+    package: `${p.name}@${p.version}`,
+    licence: p.licence ?? null,
+  })),
+  undetermined: unknown.map((p) => `${p.name}@${p.version}`),
+  withoutShippedText: withoutText.length,
+  byLicence: Object.fromEntries(
+    Object.entries(byLicence)
+      .sort()
+      .map(([licence, list]) => [licence, list.length]),
+  ),
+  fullNoticesPath: OUTPUT,
+};
+const summaryOutput = `${JSON.stringify(summary, null, 2)}\n`;
+
 if (checkOnly) {
   const current = existsSync(OUTPUT) ? readFileSync(OUTPUT, "utf8") : "";
   if (normalizeNewlines(current) !== normalizeNewlines(output)) {
     console.error(`${OUTPUT} is stale. Run \`npm run licences:generate\` and commit the result.`);
     process.exit(1);
   }
+  const currentSummary = existsSync(SUMMARY_OUTPUT) ? readFileSync(SUMMARY_OUTPUT, "utf8") : "";
+  if (normalizeNewlines(currentSummary) !== normalizeNewlines(summaryOutput)) {
+    console.error(
+      `${SUMMARY_OUTPUT} is stale. Run \`npm run licences:generate\` and commit the result.`,
+    );
+    process.exit(1);
+  }
   console.log(`Licence notices are current: ${packages.length} production packages.`);
 } else {
   writeFileSync(OUTPUT, output);
+  writeFileSync(SUMMARY_OUTPUT, summaryOutput);
+  console.log(`Wrote ${SUMMARY_OUTPUT}`);
   console.log(`Wrote ${OUTPUT}: ${packages.length} production packages.`);
   console.log(`  licence types: ${Object.keys(byLicence).length}`);
   console.log(`  needing review: ${attention.length}`);
