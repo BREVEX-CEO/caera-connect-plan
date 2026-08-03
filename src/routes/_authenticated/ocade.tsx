@@ -56,6 +56,8 @@ import {
 import { getModeFor } from "@/lib/storage/resolver";
 import { OCADE_DEFAULT_MODEL_ID, OCADE_MODELS, getOcadeModel } from "@/lib/ocade-models";
 import { ocadeHonestDisclosure } from "@/lib/ocade-identity";
+import { recordAction } from "@/lib/actions";
+
 
 export const Route = createFileRoute("/_authenticated/ocade")({
   head: () => ({
