@@ -39,7 +39,22 @@ import { resolve } from "node:path";
 const root = process.cwd();
 const jsonOnly = process.argv.includes("--json");
 
-const SNAPSHOT = "release/OCADE_REQUIREMENT_STATUS_SNAPSHOT.json";
+/**
+ * The snapshot under test.
+ *
+ * Defaults to the tracked one, which is what CI and `npm run` want. The
+ * override exists for the mutation suite that proves this gate refuses:
+ * corrupting the TRACKED file made it a shared mutable resource, and once
+ * Vitest ran files in parallel, `final-readiness.test.ts` began reading the
+ * snapshot mid-corruption and failing intermittently for reasons that had
+ * nothing to do with readiness. Pointing the mutation tests at their own copy
+ * removes the shared resource rather than serialising around it.
+ */
+const snapshotArg = process.argv.findIndex((a) => a === "--snapshot");
+const SNAPSHOT =
+  snapshotArg >= 0 && process.argv[snapshotArg + 1]
+    ? process.argv[snapshotArg + 1]
+    : "release/OCADE_REQUIREMENT_STATUS_SNAPSHOT.json";
 const TEST_KINDS = "release/OCADE_TEST_KINDS.json";
 
 /** Statuses that assert the thing was observed working on its real target. */

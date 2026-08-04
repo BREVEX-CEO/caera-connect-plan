@@ -77,6 +77,8 @@ import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
 import { useDevicePolicy } from "@/lib/use-device-policy";
 import { useChatPrefs, readChatPrefs } from "@/lib/use-chat-prefs";
+import { MessageList } from "@/components/ocade/chat/MessageList";
+import type { ChatMessageView } from "@/components/ocade/chat/chat-types";
 import { reason } from "@/lib/reasoning/engine";
 import { browserReasonDeps } from "@/lib/reasoning/browser-deps";
 import {
@@ -203,6 +205,32 @@ type Message = {
   model_id: string | null;
   created_at: string;
 };
+
+/**
+ * Adapt a stored row to what the shared chat components render.
+ *
+ * Kept as a function rather than changing the row type: the row is what the
+ * database and the vault hand back, and reshaping those to suit a component
+ * would put presentation concerns into storage.
+ */
+function toMessageView(message: Message): ChatMessageView {
+  return {
+    id: message.id,
+    role: message.role,
+    content: message.content,
+    createdAt: message.created_at,
+    attachments: message.attachments?.map((a) => ({
+      kind: a.kind,
+      name: a.name,
+      mime: a.mime,
+      sizeBytes: a.sizeBytes,
+      dataUrl: a.dataUrl,
+    })),
+    engineLabel: message.model_id
+      ? capabilityLabelFor({ locality: getOcadeModel(message.model_id).locality })
+      : null,
+  };
+}
 
 type Mode = "chat" | "work";
 type PermissionMode = "manual" | "assisted" | "autonomous";
@@ -2498,40 +2526,60 @@ function ChatSurface(props: {
             </div>
           ) : (
             <div className={chatPrefs.density === "compact" ? "space-y-2.5" : "space-y-5"}>
-              {messages.map((m, index) => (
-                <MessageRow
-                  key={m.id}
-                  message={m}
-                  showTimestamp={chatPrefs.showTimestamps}
-                  renderMarkdown={chatPrefs.renderMarkdown}
-                  onCopy={() => navigator.clipboard.writeText(m.content)}
-                  onSpeak={() => readAloud(m.content)}
-                  onSave={
-                    m.role === "assistant" && !m.id.startsWith("local-")
-                      ? () => void saveAssistantOutput(m, index)
-                      : undefined
-                  }
-                  onEdit={m.role === "user" ? () => void prepareEdit(m) : undefined}
-                  onBranch={
-                    m.role === "assistant" && !m.id.startsWith("local-")
-                      ? () => void branchFrom(m)
-                      : undefined
-                  }
-                />
-              ))}
-              {streaming && streamText ? (
-                <MessageRow
-                  renderMarkdown={chatPrefs.renderMarkdown}
-                  message={{
-                    id: "streaming",
-                    role: "assistant",
-                    content: streamText,
-                    attachments: [],
-                    model_id: model,
-                    created_at: new Date().toISOString(),
-                  }}
-                />
-              ) : null}
+              {/*
+                The transcript renders through the SHARED chat components, the
+                same ones the public demo uses. Two implementations of a message
+                row is how a product ends up advertising an interface it does
+                not ship — and it is also how the scroll-follow bug survived,
+                because only one of the two ever got fixed.
+              */}
+              <MessageList
+                messages={[
+                  ...messages.map(toMessageView),
+                  ...(streaming && streamText
+                    ? [
+                        {
+                          id: "streaming",
+                          role: "assistant" as const,
+                          content: streamText,
+                          createdAt: new Date().toISOString(),
+                          engineLabel: capabilityLabelFor({ locality: modelInfo.locality }),
+                          streaming: true,
+                        },
+                      ]
+                    : []),
+                ]}
+                showTimestamps={chatPrefs.showTimestamps}
+                renderMarkdown={chatPrefs.renderMarkdown}
+                density={chatPrefs.density}
+                actions={{
+                  onSpeak: (m) => readAloud(m.content),
+                  onEdit: (m) => {
+                    const original = messages.find((x) => x.id === m.id);
+                    if (original?.role === "user") void prepareEdit(original);
+                  },
+                  onSave: (m) => {
+                    const index = messages.findIndex((x) => x.id === m.id);
+                    const original = messages[index];
+                    if (original?.role === "assistant" && !original.id.startsWith("local-")) {
+                      void saveAssistantOutput(original, index);
+                    }
+                  },
+                  onBranch: (m) => {
+                    const original = messages.find((x) => x.id === m.id);
+                    if (original?.role === "assistant" && !original.id.startsWith("local-")) {
+                      void branchFrom(original);
+                    }
+                  },
+                  // Offered only on the newest assistant turn: regenerating an
+                  // answer from the middle of a thread would silently discard
+                  // everything after it.
+                  onRegenerate: (m) =>
+                    m.id === messages.at(-1)?.id && m.role === "assistant"
+                      ? void regenerate()
+                      : undefined,
+                }}
+              />
               {/* Visual response is OFFERED, never auto-rendered (decision #41). */}
               {!streaming && lastAssistantText ? (
                 visualAnswer ? (

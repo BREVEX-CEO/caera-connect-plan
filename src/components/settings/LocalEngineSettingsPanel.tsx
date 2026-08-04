@@ -4,7 +4,7 @@ import { GlassPanel } from "@/components/shell/GlassPanel";
 import { StatusBadge } from "@/components/shell/StatusBadge";
 import { LocalEngineControl } from "@/components/ocade/LocalEngineControl";
 import { LocalModelLifecyclePanel } from "@/components/ocade/LocalModelLifecyclePanel";
-import { useDevicePolicy } from "@/lib/use-device-policy";
+import { useDevicePolicy, describeDeviceSource } from "@/lib/use-device-policy";
 
 /**
  * OCADE Local Engine settings.
@@ -64,7 +64,7 @@ export function LocalEngineSettingsPanel() {
           ) : device.measured ? (
             <StatusBadge status="active">Device measured</StatusBadge>
           ) : (
-            <StatusBadge status="setup_required">Estimated</StatusBadge>
+            <StatusBadge status="setup_required">Estimated in browser</StatusBadge>
           )
         }
       />
@@ -86,8 +86,23 @@ export function LocalEngineSettingsPanel() {
                 <Spec
                   icon={MemoryStick}
                   label="Memory"
-                  value={`${profile.totalRamGib} GB total`}
-                  hint={`${profile.availableRamGib} GB free right now`}
+                  /*
+                   * A browser reports memory CAPPED AT 8 GiB, so on an estimate
+                   * this is a floor and has to read like one. "8 GB total" on a
+                   * 16 GB laptop is a wrong fact, not a rounded one.
+                   */
+                  value={
+                    device.measured
+                      ? `${profile.totalRamGib} GB total`
+                      : profile.totalRamGib > 0
+                        ? `at least ${profile.totalRamGib} GB`
+                        : "not reported"
+                  }
+                  hint={
+                    device.measured
+                      ? `${profile.availableRamGib} GB free right now`
+                      : "Browsers cap this figure, so OCADE does not use it to rule engines out."
+                  }
                 />
                 <Spec icon={Cpu} label="Processor" value={`${profile.cpuCount} logical cores`} />
                 <Spec
@@ -130,7 +145,9 @@ export function LocalEngineSettingsPanel() {
             </p>
           )}
 
-          <p className="mt-4 text-[12px] text-muted-foreground">
+          <p className="mt-4 text-[12px] text-muted-foreground">{describeDeviceSource(device)}</p>
+
+          <p className="mt-2 text-[12px] text-muted-foreground">
             Memory limits are measured against TOTAL memory, not the amount free at this instant.
             Free memory moves constantly as the system releases cache, and selecting on it would
             refuse engines this machine demonstrably runs.

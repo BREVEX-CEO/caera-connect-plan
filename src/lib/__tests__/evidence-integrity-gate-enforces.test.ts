@@ -1,6 +1,8 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
 import { execFile } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
 const run = promisify(execFile);
@@ -15,20 +17,29 @@ const run = promisify(execFile);
  * below is proven to FAIL on a specific, realistic corruption — not merely
  * asserted to be present in the source.
  *
- * SAFETY: original bytes captured at module load and rewritten in `afterEach`,
- * so the snapshot is byte-identical after every test including on failure.
+ * SAFETY: the TRACKED snapshot is never written. Each corruption goes to its
+ * own temporary file and the gate is pointed at it with `--snapshot`.
+ *
+ * It did corrupt the tracked file and restore it in `afterEach`, which was safe
+ * only while Vitest ran one file at a time. In parallel that made the snapshot
+ * a shared mutable resource, and `final-readiness.test.ts` — which only READS
+ * it — began failing intermittently on a half-corrupted file. The defect was
+ * here, not there. Removing the shared resource beats serialising two suites
+ * around it.
  */
 
 const GATE = "scripts/check-evidence-integrity.mjs";
 const SNAPSHOT = "release/OCADE_REQUIREMENT_STATUS_SNAPSHOT.json";
 
 const ORIGINAL = readFileSync(SNAPSHOT, "utf8");
+const WORKSPACE = mkdtempSync(join(tmpdir(), "ocade-evidence-gate-"));
+let scratchCounter = 0;
 
 type GateResult = { ok: boolean; stdout: string; stderr: string };
 
-async function runGate(): Promise<GateResult> {
+async function runGate(snapshotPath: string = SNAPSHOT): Promise<GateResult> {
   try {
-    const { stdout, stderr } = await run(process.execPath, [GATE]);
+    const { stdout, stderr } = await run(process.execPath, [GATE, "--snapshot", snapshotPath]);
     return { ok: true, stdout, stderr };
   } catch (error) {
     const e = error as { stdout?: string; stderr?: string };
@@ -36,14 +47,20 @@ async function runGate(): Promise<GateResult> {
   }
 }
 
-/** Corrupt the snapshot in one specific way, then run the gate against it. */
+/**
+ * Corrupt the snapshot in one specific way, then run the gate against it.
+ *
+ * Each call writes to its OWN temporary file rather than the tracked snapshot,
+ * so nothing else in the suite can observe a half-corrupted state.
+ */
 async function withCorrupted(
   mutate: (snapshot: { requirements: Record<string, unknown>[] } & Record<string, unknown>) => void,
 ): Promise<GateResult> {
   const snapshot = JSON.parse(ORIGINAL);
   mutate(snapshot);
-  writeFileSync(SNAPSHOT, JSON.stringify(snapshot, null, 2) + "\n");
-  return runGate();
+  const scratch = join(WORKSPACE, `snapshot-${scratchCounter++}.json`);
+  writeFileSync(scratch, JSON.stringify(snapshot, null, 2) + "\n");
+  return runGate(scratch);
 }
 
 /** The first row currently holding the given status. */
@@ -56,8 +73,8 @@ function rowWith(
   return row;
 }
 
-afterEach(() => {
-  writeFileSync(SNAPSHOT, ORIGINAL);
+afterAll(() => {
+  rmSync(WORKSPACE, { recursive: true, force: true });
 });
 
 describe("the evidence-integrity gate rejects false progress", () => {
@@ -153,8 +170,10 @@ describe("the evidence-integrity gate rejects false progress", () => {
   });
 });
 
-describe("restoration held", () => {
+describe("the tracked snapshot was never touched", () => {
   it("leaves the snapshot byte-identical to how it was found", () => {
+    // Stronger than it looks now: with corruption confined to temporary files
+    // this can only fail if something reintroduced a write to the real one.
     expect(readFileSync(SNAPSHOT, "utf8")).toBe(ORIGINAL);
   });
 

@@ -1,255 +1,192 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { detectHardwareFn } from "@/lib/hardware.functions";
-import { startLocalRuntimeFn, localRuntimeStatusFn } from "@/lib/local-runtime.functions";
-import {
-  selectTier,
-  consentLine,
-  type TierManifest,
-  type TierSelection,
-} from "@/lib/local/tier-policy";
+import { startLocalRuntimeFn } from "@/lib/local-runtime.functions";
+import { selectTier, type TierManifest, type TierSelection } from "@/lib/local/tier-policy";
 import { pullModel, type PullProgress } from "@/lib/local/model-lifecycle";
-import { DEFAULT_LOCAL_BRIDGE_URL } from "@/lib/ocade-local";
-import { discoverLocalModels } from "@/lib/ocade-local";
+import { discoverLocalModels, DEFAULT_LOCAL_BRIDGE_URL } from "@/lib/ocade-local";
+import { serverIsThisMachine } from "@/lib/hardware/detect.browser";
+import { useDevicePolicy } from "@/lib/use-device-policy";
 import manifestJson from "../../../release/OCADE_LOCAL_ENGINE_MODEL_MANIFEST.json";
 
 /**
- * First-run engine setup (W4).
+ * First-run engine setup — silent, automatic, and out of the way.
  *
- * Before this, OCADE knew nothing about the machine it was running on. Hardware
- * detection existed as a command-line script the app could not call, the tier
- * manifest resolved in B1 was read by no source module, and there was no
- * first-run flow at all — a new user landed in a chat window with no model and
- * no explanation.
+ * WHAT THIS REPLACED, AND WHY
  *
- * WHAT THE USER SEES: one screen, one decision.
+ * This used to be a full-screen modal that blocked the entire application
+ * before the user had done anything, asked them to approve a 4.87 GB download,
+ * and — when the runtime was missing — presented a dead end reading "The OCADE
+ * Local Engine runtime is not installed in any known location on this machine."
+ * Two of those three states were also WRONG whenever OCADE was hosted rather
+ * than run locally, because the figures behind them came from the server, not
+ * the device. A person on a laptop was told their machine had 251.69 GB of
+ * memory.
  *
- * They never pick a model and never see a model list. OCADE measures the
- * machine, selects the tier from the manifest, and asks a single question —
- * whether to download it — naming the real size in gigabytes.
+ * It now does its work in the background and shows a small status pill. OCADE
+ * decides which engine suits the device and fetches it without interrupting
+ * anyone.
  *
- * WHY THERE IS A QUESTION AT ALL
+ * WHERE CONTROL LIVES. This surface informs; it does not control. Pause,
+ * resume, cancel, repair and remove all live in Settings › Local Engine, on the
+ * panel built for them. A transfer nobody can stop would be indefensible; a
+ * modal in front of someone who just wants to type is its own problem. So the
+ * controls exist, one click away, rather than in the doorway.
  *
- * `skills/hardware-profile.ts` records a deliberate rule: a fitting model is
- * "Offered for approval — never auto-installed." Pulling several gigabytes
- * onto someone's connection unannounced is not a detail, and on a metered
- * connection it is a real cost. So this softens that rule precisely and no
- * further: the CHOICE is automatic, the DOWNLOAD is consented once. After that
- * it never asks again.
+ * WHEN IT RENDERS NOTHING AT ALL:
+ *  - a usable model is already installed;
+ *  - no local runtime is reachable AND the server is not this machine, so there
+ *    is nothing on the user's device to manage and cloud already serves them;
+ *  - setup failed, in which case Settings explains it rather than a popup.
  */
 
 const manifest = manifestJson as unknown as TierManifest;
 
-type Phase =
-  | "checking"
-  | "not-needed"
-  | "awaiting-consent"
-  | "starting-engine"
-  | "downloading"
-  | "ready"
-  | "failed";
+/**
+ * Remembered per browser so a failed attempt does not repeat on every
+ * navigation. The Local Engine settings page clears it to retry.
+ */
+export const ENGINE_AUTOSETUP_KEY = "ocade.engine.autosetup.v1";
+
+type Phase = "idle" | "checking" | "starting" | "downloading" | "done" | "unavailable";
+
+function alreadyAttempted(): boolean {
+  try {
+    return window.localStorage.getItem(ENGINE_AUTOSETUP_KEY) === "done";
+  } catch {
+    return false;
+  }
+}
+
+function markAttempted() {
+  try {
+    window.localStorage.setItem(ENGINE_AUTOSETUP_KEY, "done");
+  } catch {
+    /* A browser refusing storage simply retries next time. Harmless. */
+  }
+}
 
 export function FirstRunEngineSetup() {
-  const [phase, setPhase] = useState<Phase>("checking");
-  const [selection, setSelection] = useState<TierSelection | null>(null);
+  const device = useDevicePolicy();
+  const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState<PullProgress | null>(null);
-  const [problem, setProblem] = useState<string | null>(null);
+  const [selection, setSelection] = useState<TierSelection | null>(null);
+  const started = useRef(false);
   const controller = useRef<AbortController | null>(null);
 
-  /** Decide whether anything needs doing at all. */
-  const assess = useCallback(async () => {
+  const run = useCallback(async () => {
     setPhase("checking");
-    setProblem(null);
-    try {
-      // Already have a model? Then there is nothing to set up and the user
-      // should never see this at all.
-      const discovery = await discoverLocalModels(DEFAULT_LOCAL_BRIDGE_URL);
-      if (discovery.ok && discovery.models.some((m) => !m.isCloudPointer)) {
-        setPhase("not-needed");
-        return;
-      }
 
-      const profile = await detectHardwareFn();
-      const chosen = selectTier(profile, manifest);
-      if (!chosen.ok) {
-        // A machine that cannot run any tier is told which limit stopped it,
-        // not shown a spinner forever.
-        setProblem(chosen.reason);
-        setPhase("failed");
-        return;
-      }
-      setSelection(chosen);
-      setPhase("awaiting-consent");
-    } catch (error) {
-      setProblem(
-        `OCADE could not check this device: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      setPhase("failed");
-    }
-  }, []);
-
-  useEffect(() => {
-    void assess();
-  }, [assess]);
-
-  const install = useCallback(async () => {
-    if (!selection) return;
-    setProblem(null);
-    controller.current = new AbortController();
-
-    setPhase("starting-engine");
-    const started = await startLocalRuntimeFn();
-    if (!started.ok) {
-      setProblem(started.reason);
-      setPhase("failed");
+    // 1. Is a usable engine already here? Then there is nothing to do, and the
+    //    user should never learn this check happened.
+    const first = await discoverLocalModels(DEFAULT_LOCAL_BRIDGE_URL);
+    if (first.ok && first.models.length > 0) {
+      setPhase("done");
       return;
     }
 
+    // 2. Nothing listening. Only try to START a runtime when the server really
+    //    is this machine — otherwise that would mean starting an engine on
+    //    somebody else's server, which is both wrong and futile.
+    if (!first.reachable) {
+      if (!serverIsThisMachine()) {
+        setPhase("unavailable");
+        return;
+      }
+      setPhase("starting");
+      try {
+        const startResult = await startLocalRuntimeFn();
+        if (!startResult.ok) {
+          markAttempted();
+          setPhase("unavailable");
+          return;
+        }
+      } catch {
+        markAttempted();
+        setPhase("unavailable");
+        return;
+      }
+    }
+
+    // 3. Engine up, no model. Choose the tier for THIS device and fetch it.
+    if (!device.profile) {
+      setPhase("unavailable");
+      return;
+    }
+    const chosen = selectTier(device.profile, manifest);
+    if (!chosen.ok) {
+      markAttempted();
+      setPhase("unavailable");
+      return;
+    }
+    setSelection(chosen);
     setPhase("downloading");
-    const pulled = await pullModel(DEFAULT_LOCAL_BRIDGE_URL, selection.tier.tag, {
-      expectedBytes: selection.tier.expectedStorageBytes,
+
+    controller.current = new AbortController();
+    const pulled = await pullModel(DEFAULT_LOCAL_BRIDGE_URL, chosen.tier.tag, {
+      expectedBytes: chosen.tier.expectedStorageBytes,
       signal: controller.current.signal,
       onProgress: setProgress,
     });
 
+    markAttempted();
     if (!pulled.ok) {
-      setProblem(
-        pulled.failure === "cancelled"
-          ? "Download cancelled. Nothing was installed, and you can start it again whenever you like."
-          : pulled.reason,
-      );
-      setPhase(pulled.failure === "cancelled" ? "awaiting-consent" : "failed");
+      setPhase("unavailable");
       return;
     }
 
-    // A completed download is not a working engine. Only a model the runtime
+    // A finished transfer is not a working engine. Only a model the runtime
     // will actually list counts as ready.
-    const status = await localRuntimeStatusFn();
-    if (!status.running) {
-      setProblem("The download finished but the engine is not responding. Try starting it again.");
-      setPhase("failed");
+    const confirmed = await discoverLocalModels(DEFAULT_LOCAL_BRIDGE_URL);
+    setPhase(confirmed.ok && confirmed.models.length > 0 ? "done" : "unavailable");
+  }, [device.profile]);
+
+  useEffect(() => {
+    if (started.current) return;
+    // Wait for the device measurement: choosing a tier before knowing the
+    // device is how a phone ends up fetching a workstation model.
+    if (device.loading) return;
+    started.current = true;
+    if (alreadyAttempted()) {
+      setPhase("done");
       return;
     }
-    setPhase("ready");
-  }, [selection]);
+    void run();
+  }, [device.loading, run]);
 
-  const cancel = useCallback(() => controller.current?.abort(), []);
+  useEffect(() => () => controller.current?.abort(), []);
 
-  // Nothing to show once a model exists, or while the first check runs.
-  if (phase === "not-needed" || phase === "checking") return null;
+  // Silent in every state except active work.
+  if (phase !== "downloading" && phase !== "starting") return null;
+
+  const percent = progress?.percent ?? null;
+  const label =
+    phase === "starting" || percent === null
+      ? "Preparing OCADE"
+      : `Setting up OCADE · ${Math.round(percent)}%`;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="first-run-heading"
+      className="pointer-events-none fixed bottom-4 right-4 z-40 w-[min(19rem,calc(100vw-2rem))]"
+      role="status"
+      aria-live="polite"
     >
-      <div className="w-full max-w-lg rounded-lg border border-border bg-card p-6 shadow-lg">
-        <h2 id="first-run-heading" className="text-lg font-semibold">
-          Set up OCADE on this device
-        </h2>
-
-        {phase === "awaiting-consent" && selection && (
-          <>
-            <p className="mt-3 text-sm text-muted-foreground">{selection.because}</p>
-            <p className="mt-3 text-sm font-medium">{consentLine(selection)}</p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Your conversations stay on this computer. The engine listens only to this machine and
-              is never reachable from your network.
-            </p>
-            {problem && (
-              <p className="mt-3 text-xs text-muted-foreground" role="status">
-                {problem}
-              </p>
-            )}
-            <div className="mt-5 flex gap-2">
-              <button
-                type="button"
-                className="rounded bg-primary px-4 py-2 text-sm text-primary-foreground"
-                onClick={() => void install()}
-              >
-                Continue
-              </button>
-              <button
-                type="button"
-                className="rounded border border-border px-4 py-2 text-sm"
-                onClick={() => setPhase("not-needed")}
-              >
-                Not now
-              </button>
-            </div>
-          </>
-        )}
-
-        {phase === "starting-engine" && (
-          <p className="mt-3 text-sm text-muted-foreground" aria-live="polite">
-            Starting the local engine…
-          </p>
-        )}
-
-        {phase === "downloading" && (
-          <>
-            <p className="mt-3 text-sm text-muted-foreground" aria-live="polite">
-              Downloading —{" "}
-              {progress?.percent !== null && progress?.percent !== undefined
-                ? `${Math.round(progress.percent)}%`
-                : "preparing"}
-            </p>
-            <div className="mt-3 h-1.5 w-full overflow-hidden rounded bg-muted">
-              <div
-                className="h-full bg-primary transition-all"
-                style={{ width: `${progress?.percent ?? 0}%` }}
-              />
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              You can cancel and resume later — finished parts are kept, so it will not start over.
-            </p>
-            <button
-              type="button"
-              className="mt-4 rounded border border-border px-3 py-1 text-xs"
-              onClick={cancel}
-            >
-              Cancel
-            </button>
-          </>
-        )}
-
-        {phase === "ready" && (
-          <>
-            <p className="mt-3 text-sm">OCADE is ready. Everything runs on this device.</p>
-            <button
-              type="button"
-              className="mt-4 rounded bg-primary px-4 py-2 text-sm text-primary-foreground"
-              onClick={() => setPhase("not-needed")}
-            >
-              Start using OCADE
-            </button>
-          </>
-        )}
-
-        {phase === "failed" && (
-          <>
-            <p className="mt-3 text-sm text-destructive" role="alert">
-              {problem}
-            </p>
-            <div className="mt-4 flex gap-2">
-              <button
-                type="button"
-                className="rounded border border-border px-3 py-1 text-sm"
-                onClick={() => void assess()}
-              >
-                Try again
-              </button>
-              <button
-                type="button"
-                className="rounded border border-border px-3 py-1 text-sm"
-                onClick={() => setPhase("not-needed")}
-              >
-                Continue without it
-              </button>
-            </div>
-          </>
-        )}
+      <div className="pointer-events-auto rounded-2xl border border-border/60 bg-card/95 px-4 py-3 shadow-lg backdrop-blur">
+        <div className="flex items-center gap-2.5">
+          <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-primary" aria-hidden />
+          <span className="truncate text-[13px] font-medium text-foreground">{label}</span>
+        </div>
+        {percent !== null ? (
+          <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500"
+              style={{ width: `${Math.min(100, Math.max(0, percent))}%` }}
+            />
+          </div>
+        ) : null}
+        <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
+          {selection
+            ? "Runs privately on this device. Manage it in Settings › Local Engine."
+            : "Getting this device ready."}
+        </p>
       </div>
     </div>
   );
