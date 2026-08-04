@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "phase": "P29 - Final production-readiness closure",
-  "calculatedAt": "2026-08-04T00:46:51.334Z",
-  "branch": "integration/restore-old-claude-work",
-  "currentHead": "3b706ac61822db6eb549d66c666ebd869e06ae32",
-  "sourceRevision": "3b706ac61822db6eb549d66c666ebd869e06ae32",
+  "calculatedAt": "2026-08-04T16:39:18.575Z",
+  "branch": "main",
+  "currentHead": "d717d773154947a7dacc00c698b6bb30fe7d43e9",
+  "sourceRevision": "d717d773154947a7dacc00c698b6bb30fe7d43e9",
   "targetVersion": "0.1.0",
   "evidenceBindings": {
-    "sourceRevision": "3b706ac61822db6eb549d66c666ebd869e06ae32",
+    "sourceRevision": "d717d773154947a7dacc00c698b6bb30fe7d43e9",
     "targetVersion": "0.1.0",
     "dependencyLockSha256": "21e378ff9dc2e6260e18bcda165eda4d9cd53b344cd6dcdea219d8425741bc88",
     "environment": "windows-x64-node22+",
