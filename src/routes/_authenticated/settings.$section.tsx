@@ -4,16 +4,44 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { StatusBadge } from "@/components/shell/StatusBadge";
 import { findSection } from "@/lib/settings-sections";
+import { MemoryPanel } from "@/components/settings/MemoryPanel";
+import { ComputerUsePanel } from "@/components/settings/ComputerUsePanel";
+import { PermissionsPanel } from "@/components/settings/PermissionsPanel";
+import { ConnectorsPanel } from "@/components/settings/ConnectorsPanel";
+import { AccessibilityPanel } from "@/components/settings/AccessibilityPanel";
+import { UpdatePolicyPanel } from "@/components/settings/UpdatePolicyPanel";
+import { ChatSettingsPanel } from "@/components/settings/ChatSettingsPanel";
+import { LocalEngineSettingsPanel } from "@/components/settings/LocalEngineSettingsPanel";
+import { OnlineProvidersPanel } from "@/components/settings/OnlineProvidersPanel";
+import { ImageSettingsPanel } from "@/components/settings/ImageSettingsPanel";
+import { AboutLicencesPanel } from "@/components/settings/AboutLicencesPanel";
+import { DiagnosticsSettingsPanel } from "@/components/settings/DiagnosticsSettingsPanel";
+
+/**
+ * Settings sections that are REAL and rendered here rather than falling through
+ * to the Setup-Required state. Keep in sync with settings-sections.ts statuses.
+ */
+const IMPLEMENTED_SECTIONS: Record<string, () => React.ReactElement> = {
+  memory: () => <MemoryPanel />,
+  work: () => <ComputerUsePanel />,
+  permissions: () => <PermissionsPanel />,
+  connectors: () => <ConnectorsPanel />,
+  accessibility: () => <AccessibilityPanel />,
+  updates: () => <UpdatePolicyPanel />,
+  chat: () => <ChatSettingsPanel />,
+  "local-engine": () => <LocalEngineSettingsPanel />,
+  providers: () => <OnlineProvidersPanel />,
+  images: () => <ImageSettingsPanel />,
+  diagnostics: () => <DiagnosticsSettingsPanel />,
+  about: () => <AboutLicencesPanel />,
+};
 
 export const Route = createFileRoute("/_authenticated/settings/$section")({
   head: ({ params }) => {
     const found = findSection(params.section);
     const label = found?.item.label ?? "Settings";
     return {
-      meta: [
-        { title: `${label} — CAERA CADANE` },
-        { name: "robots", content: "noindex" },
-      ],
+      meta: [{ title: `${label} — CAERA CADANE` }, { name: "robots", content: "noindex" }],
     };
   },
   component: SectionCatchall,
@@ -47,6 +75,10 @@ function SectionCatchall() {
     return <Navigate to={item.externalTo} replace />;
   }
 
+  // Real, implemented sections render their own UI.
+  const Implemented = IMPLEMENTED_SECTIONS[section];
+  if (Implemented) return Implemented();
+
   const Icon = item.icon;
 
   return (
@@ -64,12 +96,10 @@ function SectionCatchall() {
         </div>
         <div className="min-w-0 space-y-2">
           <p className="text-foreground">
-            This page is planned. Nothing here is enabled yet, so we do not show
-            fake controls or fake data.
+            This page is planned. Nothing here is enabled yet, so we do not show fake controls or
+            fake data.
           </p>
-          <p className="text-xs text-muted-foreground">
-            {item.description}
-          </p>
+          <p className="text-xs text-muted-foreground">{item.description}</p>
           <div className="flex flex-wrap gap-2 pt-2">
             <Link
               to="/settings"
@@ -93,12 +123,8 @@ function SectionCatchall() {
       <GlassPanel className="mt-4 flex items-start gap-3 p-4 text-xs text-muted-foreground">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
         <p>
-          CAERA CADANE ships in vertical slices. If you need this feature sooner,
-          use the feedback form inside {" "}
-          <Link to="/settings/activity" className="underline underline-offset-4">
-            Activity
-          </Link>{" "}
-          to record the request in your account log.
+          No feedback or support connector is configured in this build. This destination remains
+          unavailable until the named source slice is implemented and verified.
         </p>
       </GlassPanel>
     </>

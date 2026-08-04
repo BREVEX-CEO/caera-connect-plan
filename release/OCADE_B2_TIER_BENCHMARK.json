@@ -1,0 +1,316 @@
+{
+  "schemaVersion": 1,
+  "item": "B2 - install and benchmark the tiers this machine can run",
+  "generatedAt": "2026-08-01T14:59:01.110Z",
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v24.16.0",
+    "note": "Hardware figures are recorded in release/OCADE_P30_PHASE0_BASELINE.json: 15.6 GB RAM, i5-1135G7 4c/8t, Intel Iris Xe integrated, no dedicated GPU."
+  },
+  "bridge": "http://127.0.0.1:11434",
+  "manifestSource": "release/OCADE_LOCAL_ENGINE_MODEL_MANIFEST.json",
+  "tiersAttempted": [
+    "qwen3:1.7b",
+    "qwen3:4b",
+    "qwen3:8b"
+  ],
+  "installedVia": "src/lib/local/model-lifecycle.ts pullModel and verifyInstalled - OCADE's own production lifecycle path, not the runtime CLI.",
+  "verdict": "PROVEN",
+  "results": [
+    {
+      "tag": "qwen3:1.7b",
+      "deviceClass": "Phone (any)",
+      "installed": true,
+      "installElapsedMs": 1880,
+      "expectedStorageBytes": 1359292957,
+      "digest": {
+        "b1ManifestDigest": "sha256:8f68893c685c3ddff2aa3fffce2aa60a30bb2da65ca488b61fff134a4d1730e7",
+        "runtimeReportedDigest": "8f68893c685c3ddff2aa3fffce2aa60a30bb2da65ca488b61fff134a4d1730e7",
+        "runtimeDigestMatchesB1": true,
+        "b1ModelLayerDigest": "sha256:3d0b790534fe4b79525fc3692950408dca41171676ed7e21db57af5c65ef6ab6",
+        "onDiskLayerSha256": "sha256:3d0b790534fe4b79525fc3692950408dca41171676ed7e21db57af5c65ef6ab6",
+        "onDiskLayerMatchesB1": true,
+        "note": "The on-disk hash is the check that matters: a runtime that mis-stored a blob would still report the digest it intended to store."
+      },
+      "evictedBeforeMeasuring": [
+        "qwen3:8b"
+      ],
+      "resourcesBeforeLoad": {
+        "freeRamBytes": 6855065600,
+        "totalRamBytes": 16801841152,
+        "usedRamBytes": 9946775552,
+        "freeRamGib": 6.38,
+        "totalRamGib": 15.65,
+        "rssBytes": 78548992
+      },
+      "resourcesAfterGeneration": {
+        "freeRamBytes": 4969140224,
+        "totalRamBytes": 16801841152,
+        "usedRamBytes": 11832700928,
+        "freeRamGib": 4.63,
+        "totalRamGib": 15.65,
+        "rssBytes": 67743744
+      },
+      "modelsResidentAfterGeneration": {
+        "models": [
+          {
+            "name": "qwen3:1.7b",
+            "model": "qwen3:1.7b",
+            "size": 1882424605,
+            "digest": "8f68893c685c3ddff2aa3fffce2aa60a30bb2da65ca488b61fff134a4d1730e7",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen3",
+              "families": [
+                "qwen3"
+              ],
+              "parameter_size": "2.0B",
+              "quantization_level": "Q4_K_M"
+            },
+            "expires_at": "2026-08-01T20:32:26.1265126+05:30",
+            "size_vram": 0,
+            "context_length": 4096
+          }
+        ]
+      },
+      "generation": {
+        "prompt": "In exactly two sentences, explain what a checksum is and why verifying one matters before installing software.",
+        "reply": "A checksum is a value calculated from a block of data to detect errors or corruption during transmission or storage. Verifying a checksum before installing software ensures that the file is not corrupted and matches the expected integrity, preventing potential issues with functionality or security.",
+        "promptEvalCount": 35,
+        "evalCount": 50,
+        "evalDurationNs": 2307359000,
+        "totalDurationNs": 5462924700,
+        "wallMs": 5466,
+        "latencySeconds": 5.5,
+        "measuredTokensPerSecond": 21.67,
+        "wallClockTokensPerSecond": 9.15,
+        "method": "measuredTokensPerSecond = eval_count / (eval_duration / 1e9), from the runtime's own instrumentation of the generation loop. wallClockTokensPerSecond divides by total HTTP round-trip time and is necessarily lower; both are recorded so the gap is visible rather than hidden."
+      }
+    },
+    {
+      "tag": "qwen3:4b",
+      "deviceClass": "Weak PC, 4-8 GB RAM",
+      "installed": true,
+      "installElapsedMs": 1560,
+      "expectedStorageBytes": 2497293444,
+      "digest": {
+        "b1ManifestDigest": "sha256:359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7",
+        "runtimeReportedDigest": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7",
+        "runtimeDigestMatchesB1": true,
+        "b1ModelLayerDigest": "sha256:3e4cb14174460404e7a233e531675303b2fbf7749c02f91864fe311ab6344e4f",
+        "onDiskLayerSha256": "sha256:3e4cb14174460404e7a233e531675303b2fbf7749c02f91864fe311ab6344e4f",
+        "onDiskLayerMatchesB1": true,
+        "note": "The on-disk hash is the check that matters: a runtime that mis-stored a blob would still report the digest it intended to store."
+      },
+      "evictedBeforeMeasuring": [
+        "qwen3:1.7b"
+      ],
+      "resourcesBeforeLoad": {
+        "freeRamBytes": 6843392000,
+        "totalRamBytes": 16801841152,
+        "usedRamBytes": 9958449152,
+        "freeRamGib": 6.37,
+        "totalRamGib": 15.65,
+        "rssBytes": 88637440
+      },
+      "resourcesAfterGeneration": {
+        "freeRamBytes": 3645427712,
+        "totalRamBytes": 16801841152,
+        "usedRamBytes": 13156413440,
+        "freeRamGib": 3.4,
+        "totalRamGib": 15.65,
+        "rssBytes": 83849216
+      },
+      "modelsResidentAfterGeneration": {
+        "models": [
+          {
+            "name": "qwen3:4b",
+            "model": "qwen3:4b",
+            "size": 3184001022,
+            "digest": "359d7dd4bcdab3d86b87d73ac27966f4dbb9f5efdfcc75d34a8764a09474fae7",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen3",
+              "families": [
+                "qwen3"
+              ],
+              "parameter_size": "4.0B",
+              "quantization_level": "Q4_K_M"
+            },
+            "expires_at": "2026-08-01T20:33:24.5969147+05:30",
+            "size_vram": 0,
+            "context_length": 4096
+          }
+        ]
+      },
+      "generation": {
+        "prompt": "In exactly two sentences, explain what a checksum is and why verifying one matters before installing software.",
+        "reply": "We are to explain what a checksum is and why verifying one matters before installing software, in exactly two sentences.\n\nFirst, we define a checksum: It's a small amount of data (a value) that is calculated from the data being stored or transmitted. This value is used to detect errors or tampering.\n\nSecond, we explain why verifying it matters for software installation: By comparing the checksum of the downloaded software with the expected checksum (provided by the software vendor), you can ensure that the software has not been altered or corrupted during transfer, thus preventing the installation of malicious or incorrect software.\n\nLet's write two sentences:\n\n1. A checksum is a unique, calculated value derived from the data that acts as a fingerprint to detect changes or corruption.\n2. Verifying the checksum before installing software ensures that the downloaded file matches the original version provided by the vendor, preventing the installation of potentially malicious or corrupted software.\n\nBut note: the question says \"exactly two sentences\". So we must be precise and within two sentences.\n\nAlternative (more concise):\n\nA checksum is a small, fixed-size string of characters that uniquely identifies a piece of data by being calculated from it. Verifying the checksum before installing software is crucial because it confirms the integrity of the downloaded file, ensuring it hasn't been tampered with or corrupted during transfer.\n\nHowever, the problem says \"exactly two sentences\", so we'll write:\n\nA checksum is a unique value generated from the data to detect errors or tampering. Verifying the checksum before installation ensures the software file is authentic and unaltered, preventing security risks and incorrect functionality.\n\nBut let's make sure it's two sentences and covers the points.\n\nFinal two-sentence answer:\n\nA checksum is a short, unique string of characters that represents the data it's derived from, used to detect changes. Verifying the checksum before installing software guarantees that the file hasn't been modified or corrupted, thus ensuring security and correctness.\n</think>\n\nA checksum is a unique, short string of characters generated from a file's data to detect alterations or corruption. Verifying it before installing software ensures the downloaded file matches the original version provided by the vendor, preventing malicious tampering or faulty installations that could compromise security or functionality.",
+        "promptEvalCount": 29,
+        "evalCount": 448,
+        "evalDurationNs": 44437709000,
+        "totalDurationNs": 48249258900,
+        "wallMs": 48255,
+        "latencySeconds": 48.3,
+        "measuredTokensPerSecond": 10.08,
+        "wallClockTokensPerSecond": 9.28,
+        "method": "measuredTokensPerSecond = eval_count / (eval_duration / 1e9), from the runtime's own instrumentation of the generation loop. wallClockTokensPerSecond divides by total HTTP round-trip time and is necessarily lower; both are recorded so the gap is visible rather than hidden."
+      }
+    },
+    {
+      "tag": "qwen3:8b",
+      "deviceClass": "Mid PC, 16 GB RAM, no dedicated GPU",
+      "installed": true,
+      "installElapsedMs": 2300,
+      "expectedStorageBytes": 5225387677,
+      "digest": {
+        "b1ManifestDigest": "sha256:500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+        "runtimeReportedDigest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+        "runtimeDigestMatchesB1": true,
+        "b1ModelLayerDigest": "sha256:a3de86cd1c132c822487ededd47a324c50491393e6565cd14bafa40d0b8e686f",
+        "onDiskLayerSha256": "sha256:a3de86cd1c132c822487ededd47a324c50491393e6565cd14bafa40d0b8e686f",
+        "onDiskLayerMatchesB1": true,
+        "note": "The on-disk hash is the check that matters: a runtime that mis-stored a blob would still report the digest it intended to store."
+      },
+      "evictedBeforeMeasuring": [
+        "qwen3:4b"
+      ],
+      "resourcesBeforeLoad": {
+        "freeRamBytes": 6764687360,
+        "totalRamBytes": 16801841152,
+        "usedRamBytes": 10037153792,
+        "freeRamGib": 6.3,
+        "totalRamGib": 15.65,
+        "rssBytes": 96149504
+      },
+      "resourcesAfterGeneration": {
+        "freeRamBytes": 1158799360,
+        "totalRamBytes": 16801841152,
+        "usedRamBytes": 15643041792,
+        "freeRamGib": 1.08,
+        "totalRamGib": 15.65,
+        "rssBytes": 96153600
+      },
+      "modelsResidentAfterGeneration": {
+        "models": [
+          {
+            "name": "qwen3:8b",
+            "model": "qwen3:8b",
+            "size": 5937267997,
+            "digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+            "details": {
+              "parent_model": "",
+              "format": "gguf",
+              "family": "qwen3",
+              "families": [
+                "qwen3"
+              ],
+              "parameter_size": "8.2B",
+              "quantization_level": "Q4_K_M"
+            },
+            "expires_at": "2026-08-01T20:34:01.108219+05:30",
+            "size_vram": 0,
+            "context_length": 4096
+          }
+        ]
+      },
+      "generation": {
+        "prompt": "In exactly two sentences, explain what a checksum is and why verifying one matters before installing software.",
+        "reply": "A checksum is a sequence of numbers and letters that represents the unique data of a file, used to verify its integrity. Verifying a checksum before installing software ensures that the file hasn't been altered or corrupted during download, helping to prevent the installation of malicious or faulty software.",
+        "promptEvalCount": 35,
+        "evalCount": 56,
+        "evalDurationNs": 8886625000,
+        "totalDurationNs": 20889941800,
+        "wallMs": 20893,
+        "latencySeconds": 20.9,
+        "measuredTokensPerSecond": 6.3,
+        "wallClockTokensPerSecond": 2.68,
+        "method": "measuredTokensPerSecond = eval_count / (eval_duration / 1e9), from the runtime's own instrumentation of the generation loop. wallClockTokensPerSecond divides by total HTTP round-trip time and is necessarily lower; both are recorded so the gap is visible rather than hidden."
+      }
+    }
+  ],
+  "measurementVariance": {
+    "why": "Every tier was measured more than once while the harness was being corrected. The spread is wide enough that quoting any single run as THE throughput would be misleading, so all observations are recorded.",
+    "method": "Single-shot generation per run, tokens/sec from the runtime eval_count/eval_duration. No warm-up pass, no repetition, no averaging inside a run.",
+    "observations": {
+      "qwen3:1.7b": [
+        {
+          "tokensPerSecond": 30.24,
+          "freeRamGibBeforeLoad": 5.09,
+          "note": "no eviction between tiers"
+        },
+        {
+          "tokensPerSecond": 27.42,
+          "freeRamGibBeforeLoad": 0.82,
+          "note": "free-RAM figure sampled before the OS reclaimed the evicted model; the RAM number is wrong, the throughput is real"
+        },
+        {
+          "tokensPerSecond": 27.29,
+          "freeRamGibBeforeLoad": 6.39,
+          "note": "reclaim-aware eviction"
+        },
+        {
+          "tokensPerSecond": 21.67,
+          "freeRamGibBeforeLoad": 6.38,
+          "note": "reclaim-aware eviction"
+        }
+      ],
+      "qwen3:4b": [
+        {
+          "tokensPerSecond": 10.99,
+          "freeRamGibBeforeLoad": 3.29,
+          "evalCount": 274
+        },
+        {
+          "tokensPerSecond": 11.1,
+          "freeRamGibBeforeLoad": 4.59,
+          "evalCount": 274
+        },
+        {
+          "tokensPerSecond": 10.08,
+          "freeRamGibBeforeLoad": 6.37,
+          "evalCount": 448
+        }
+      ],
+      "qwen3:8b": [
+        {
+          "tokensPerSecond": 6.84,
+          "freeRamGibBeforeLoad": 6.23
+        },
+        {
+          "tokensPerSecond": 5.7,
+          "freeRamGibBeforeLoad": 3.37
+        },
+        {
+          "tokensPerSecond": 6.44,
+          "freeRamGibBeforeLoad": 6.5
+        },
+        {
+          "tokensPerSecond": 6.3,
+          "freeRamGibBeforeLoad": 6.3
+        }
+      ]
+    },
+    "observedRanges": {
+      "qwen3:1.7b": "21.7-30.2 tok/s",
+      "qwen3:4b": "10.1-11.1 tok/s",
+      "qwen3:8b": "5.7-6.8 tok/s"
+    },
+    "findings": [
+      "1.7b varies by about 30% run to run on this host. A tiering rule must not be built on a single sample.",
+      "8b throughput tracks free RAM: 5.70 tok/s at 3.37 GiB free versus 6.84 at 6.23 GiB. 4b does not, because 2.33 GiB of weights sits comfortably under the available headroom while 4.87 GiB does not.",
+      "An earlier claim in this session that the numbers were stable was drawn from 4b alone and was wrong for 8b."
+    ]
+  },
+  "qualityFindings": [
+    {
+      "tag": "qwen3:4b",
+      "issue": "Leaks chain-of-thought into the reply despite think:false",
+      "evidence": "Replies opened with \"Okay, the user wants a two-sentence explanation... Hmm, they are probably a tech-savvy perso...\" and ran to 274 and 448 tokens across runs, against a two-sentence prompt answered in 50-59 tokens by the other tiers.",
+      "consequence": "As configured this tier is unusable on a product surface regardless of throughput, and its low tokens/sec is mostly this verbosity rather than compute. The weak-PC tier needs a suppression fix or a different model before it can ship."
+    }
+  ]
+}

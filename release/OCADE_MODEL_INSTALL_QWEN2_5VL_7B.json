@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-03T14:51:30.971Z",
+  "modelId": "qwen2.5vl:7b",
+  "bridge": "http://localhost:11434",
+  "preflight": {
+    "freeStorageGib": 56.38,
+    "disk": {
+      "needBytes": 6864632734,
+      "freeBytes": 60537564037.12,
+      "sufficient": true
+    }
+  },
+  "transfer": {
+    "elapsedMs": 43280,
+    "lastStatus": "success",
+    "statusesSeen": [
+      "pulling manifest",
+      "pulling a99b7f834d75",
+      "pulling a242d8dfdc8f",
+      "pulling 75357d685f23",
+      "pulling 832dd9e00a68",
+      "pulling 52d2a7aa3a38",
+      "pulling 83b9da835d9f",
+      "verifying sha256 digest",
+      "writing manifest",
+      "success"
+    ],
+    "reportedTotalBytes": 5969233408,
+    "firstReportedOffsetBytes": 5969233408,
+    "resumedFromExistingBlobs": true
+  },
+  "verification": {
+    "installed": true,
+    "sizeBytes": 5969245856,
+    "digest": "5ced39dfa4bac325dc183dd1e4febaa1c46b3ea28bce48896c8e69c1e79611cc",
+    "digestVerified": true
+  },
+  "activation": {
+    "ok": true,
+    "inferenceOk": true,
+    "cancellationOk": true,
+    "firstTokenMs": 27377,
+    "replyPreview": "OCADE_READY"
+  }
+}

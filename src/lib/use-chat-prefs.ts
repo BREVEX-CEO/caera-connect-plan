@@ -1,0 +1,136 @@
+import { useCallback, useState } from "react";
+
+/**
+ * OCADE Chat preferences.
+ *
+ * Deliberately local to the browser rather than a server table. These are
+ * per-device presentation and input choices — how a message is sent, how dense
+ * the transcript is, which engine a new chat starts on — and a person using a
+ * laptop and a desktop reasonably wants different answers on each. Nothing here
+ * is private content, so nothing here needs to travel.
+ *
+ * Every field below is READ by the chat screen. A preference no surface
+ * consults is a dead control with a switch on it, which is worse than an
+ * absent feature because it looks like it works.
+ *
+ * Parsing is total: any stored value that is missing, corrupt, or out of range
+ * falls back to the default rather than throwing, because a settings file
+ * someone hand-edited must not be able to break the chat screen.
+ */
+
+export type EngineTierPreference = "auto" | "local" | "cloud";
+export type SendKeyPreference = "enter" | "mod_enter";
+export type MessageDensity = "comfortable" | "compact";
+
+export interface ChatPrefs {
+  /** Which engine a NEW conversation starts on. */
+  defaultEngineTier: EngineTierPreference;
+  /** Enter sends, or Enter newlines and Ctrl/Cmd+Enter sends. */
+  sendKey: SendKeyPreference;
+  showTimestamps: boolean;
+  density: MessageDensity;
+  /** Render markdown, or show the model's literal output. */
+  renderMarkdown: boolean;
+  /**
+   * Keep the last unsent draft per conversation. Off means a closed tab
+   * discards it, which some people prefer on a shared machine.
+   */
+  keepDrafts: boolean;
+}
+
+export const DEFAULT_CHAT_PREFS: ChatPrefs = {
+  defaultEngineTier: "auto",
+  sendKey: "enter",
+  showTimestamps: false,
+  density: "comfortable",
+  renderMarkdown: true,
+  keepDrafts: true,
+};
+
+const KEY = "ocade.chat.prefs.v1";
+
+const TIERS: EngineTierPreference[] = ["auto", "local", "cloud"];
+const SEND_KEYS: SendKeyPreference[] = ["enter", "mod_enter"];
+const DENSITIES: MessageDensity[] = ["comfortable", "compact"];
+
+export interface ChatPrefsStorage {
+  getItem: (key: string) => string | null;
+  setItem: (key: string, value: string) => void;
+}
+
+/** Total parse: unknown or corrupt input yields defaults, never an exception. */
+export function parseChatPrefs(raw: string | null): ChatPrefs {
+  if (!raw) return { ...DEFAULT_CHAT_PREFS };
+  try {
+    const p = JSON.parse(raw) as Partial<Record<keyof ChatPrefs, unknown>>;
+    const bool = (key: keyof ChatPrefs) =>
+      typeof p[key] === "boolean" ? (p[key] as boolean) : DEFAULT_CHAT_PREFS[key] === true;
+    return {
+      defaultEngineTier: TIERS.includes(p.defaultEngineTier as EngineTierPreference)
+        ? (p.defaultEngineTier as EngineTierPreference)
+        : DEFAULT_CHAT_PREFS.defaultEngineTier,
+      sendKey: SEND_KEYS.includes(p.sendKey as SendKeyPreference)
+        ? (p.sendKey as SendKeyPreference)
+        : DEFAULT_CHAT_PREFS.sendKey,
+      showTimestamps: bool("showTimestamps"),
+      density: DENSITIES.includes(p.density as MessageDensity)
+        ? (p.density as MessageDensity)
+        : DEFAULT_CHAT_PREFS.density,
+      renderMarkdown: bool("renderMarkdown"),
+      keepDrafts: bool("keepDrafts"),
+    };
+  } catch {
+    return { ...DEFAULT_CHAT_PREFS };
+  }
+}
+
+/** Persist one exact snapshot, and report failure instead of implying success. */
+export function saveChatPrefs(
+  storage: ChatPrefsStorage,
+  prefs: ChatPrefs,
+): { ok: true } | { ok: false; reason: string } {
+  try {
+    storage.setItem(KEY, JSON.stringify(prefs));
+    return { ok: true };
+  } catch {
+    return {
+      ok: false,
+      reason:
+        "OCADE couldn't save chat settings in this browser. Your previous settings are still active.",
+    };
+  }
+}
+
+export function readChatPrefs(): ChatPrefs {
+  if (typeof window === "undefined") return { ...DEFAULT_CHAT_PREFS };
+  try {
+    return parseChatPrefs(window.localStorage.getItem(KEY));
+  } catch {
+    return { ...DEFAULT_CHAT_PREFS };
+  }
+}
+
+export function useChatPrefs() {
+  const [state, setState] = useState<{ prefs: ChatPrefs; storageError: string | null }>(() => ({
+    prefs: readChatPrefs(),
+    storageError: null,
+  }));
+
+  const update = useCallback((patch: Partial<ChatPrefs>) => {
+    setState((current) => {
+      const next = parseChatPrefs(JSON.stringify({ ...current.prefs, ...patch }));
+      if (typeof window === "undefined") return { prefs: next, storageError: null };
+      const saved = saveChatPrefs(window.localStorage, next);
+      // On a failed write the IN-MEMORY state is not advanced either: showing a
+      // toggle in its new position while the stored value stayed put would be
+      // the interface lying about what it did.
+      return saved.ok
+        ? { prefs: next, storageError: null }
+        : { prefs: current.prefs, storageError: saved.reason };
+    });
+  }, []);
+
+  const reset = useCallback(() => update({ ...DEFAULT_CHAT_PREFS }), [update]);
+
+  return { prefs: state.prefs, update, reset, storageError: state.storageError };
+}

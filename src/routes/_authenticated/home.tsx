@@ -9,10 +9,7 @@ import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({
-    meta: [
-      { title: "Home — CAERA CADANE" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Home — CAERA CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: HomePage,
 });

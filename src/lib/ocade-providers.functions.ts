@@ -25,7 +25,8 @@ const prefsInput = z.object({
     .nullable()
     .optional()
     .refine(
-      (v) => !v || /^https?:\/\/(localhost|127\.0\.0\.1|[0-9.]+|[a-zA-Z0-9.-]+)(:\d+)?(\/.*)?$/.test(v),
+      (v) =>
+        !v || /^https?:\/\/(localhost|127\.0\.0\.1|[0-9.]+|[a-zA-Z0-9.-]+)(:\d+)?(\/.*)?$/.test(v),
       { message: "Bridge URL must be http(s)://host[:port]" },
     ),
   openaiDirectEnabled: z.boolean().optional(),
@@ -59,9 +60,11 @@ export const saveProviderPrefs = createServerFn({ method: "POST" })
     if (data.costPref !== undefined) patch.cost_pref = data.costPref;
     if (data.speedPref !== undefined) patch.speed_pref = data.speedPref;
     if (data.visionRequired !== undefined) patch.vision_required = data.visionRequired;
-    if (data.sessionOverrideModel !== undefined) patch.session_override_model = data.sessionOverrideModel;
+    if (data.sessionOverrideModel !== undefined)
+      patch.session_override_model = data.sessionOverrideModel;
     if (data.ollamaBridgeUrl !== undefined) patch.ollama_bridge_url = data.ollamaBridgeUrl;
-    if (data.openaiDirectEnabled !== undefined) patch.openai_direct_enabled = data.openaiDirectEnabled;
+    if (data.openaiDirectEnabled !== undefined)
+      patch.openai_direct_enabled = data.openaiDirectEnabled;
     const { error, data: row } = await context.supabase
       .from("ocade_provider_prefs")
       .upsert(patch as never, { onConflict: "user_id" })
@@ -96,9 +99,18 @@ export const testLovableGateway = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) {
-      await recordEvent(context.supabase, context.userId, "connection_test", "lovable_gateway", null, false, 0, {
-        reason: "missing_key",
-      });
+      await recordEvent(
+        context.supabase,
+        context.userId,
+        "connection_test",
+        "lovable_gateway",
+        null,
+        false,
+        0,
+        {
+          reason: "missing_key",
+        },
+      );
       return { ok: false as const, reason: "LOVABLE_API_KEY is not configured.", latencyMs: 0 };
     }
     const started = Date.now();
@@ -109,10 +121,19 @@ export const testLovableGateway = createServerFn({ method: "POST" })
       const latencyMs = Date.now() - started;
       const ok = res.ok;
       const bodySnippet = ok ? "" : (await res.text()).slice(0, 300);
-      await recordEvent(context.supabase, context.userId, "connection_test", "lovable_gateway", null, ok, latencyMs, {
-        status: res.status,
-        body: bodySnippet,
-      });
+      await recordEvent(
+        context.supabase,
+        context.userId,
+        "connection_test",
+        "lovable_gateway",
+        null,
+        ok,
+        latencyMs,
+        {
+          status: res.status,
+          body: bodySnippet,
+        },
+      );
       return {
         ok,
         latencyMs,
@@ -122,9 +143,18 @@ export const testLovableGateway = createServerFn({ method: "POST" })
     } catch (e) {
       const latencyMs = Date.now() - started;
       const reason = e instanceof Error ? e.message : String(e);
-      await recordEvent(context.supabase, context.userId, "connection_test", "lovable_gateway", null, false, latencyMs, {
-        error: reason,
-      });
+      await recordEvent(
+        context.supabase,
+        context.userId,
+        "connection_test",
+        "lovable_gateway",
+        null,
+        false,
+        latencyMs,
+        {
+          error: reason,
+        },
+      );
       return { ok: false as const, latencyMs, reason };
     }
   });
@@ -135,12 +165,22 @@ export const testOpenAIDirect = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const key = process.env.OPENAI_API_KEY;
     if (!key) {
-      await recordEvent(context.supabase, context.userId, "connection_test", "openai_direct", null, false, 0, {
-        reason: "missing_key",
-      });
+      await recordEvent(
+        context.supabase,
+        context.userId,
+        "connection_test",
+        "openai_direct",
+        null,
+        false,
+        0,
+        {
+          reason: "missing_key",
+        },
+      );
       return {
         ok: false as const,
-        reason: "OPENAI_API_KEY is not configured. Add it in project secrets to enable OpenAI Direct.",
+        reason:
+          "OPENAI_API_KEY is not configured. Add it in project secrets to enable OpenAI Direct.",
         latencyMs: 0,
         setupRequired: true as const,
       };
@@ -157,30 +197,52 @@ export const testOpenAIDirect = createServerFn({ method: "POST" })
       const latencyMs = Date.now() - started;
       const ok = res.ok;
       const bodySnippet = ok ? "" : (await res.text()).slice(0, 300);
-      await recordEvent(context.supabase, context.userId, "connection_test", "openai_direct", null, ok, latencyMs, {
-        status: res.status,
-        body: bodySnippet,
-      });
+      await recordEvent(
+        context.supabase,
+        context.userId,
+        "connection_test",
+        "openai_direct",
+        null,
+        ok,
+        latencyMs,
+        {
+          status: res.status,
+          body: bodySnippet,
+        },
+      );
       let modelCount = 0;
       if (ok) {
         try {
           const j = (await res.json()) as { data?: unknown[] };
           modelCount = Array.isArray(j.data) ? j.data.length : 0;
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       }
       return {
         ok,
         latencyMs,
         status: res.status,
         modelCount,
-        reason: ok ? `OpenAI reachable. ${modelCount} models available.` : `HTTP ${res.status}: ${bodySnippet}`,
+        reason: ok
+          ? `OpenAI reachable. ${modelCount} models available.`
+          : `HTTP ${res.status}: ${bodySnippet}`,
       };
     } catch (e) {
       const latencyMs = Date.now() - started;
       const reason = e instanceof Error ? e.message : String(e);
-      await recordEvent(context.supabase, context.userId, "connection_test", "openai_direct", null, false, latencyMs, {
-        error: reason,
-      });
+      await recordEvent(
+        context.supabase,
+        context.userId,
+        "connection_test",
+        "openai_direct",
+        null,
+        false,
+        latencyMs,
+        {
+          error: reason,
+        },
+      );
       return { ok: false as const, latencyMs, reason };
     }
   });
@@ -189,14 +251,22 @@ export const testOpenAIDirect = createServerFn({ method: "POST" })
 export const logProviderEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i) =>
-    z.object({
-      eventKind: z.enum(["connection_test", "usage", "error", "provider_switch", "bridge_url_set"]),
-      provider: z.enum(PROVIDERS),
-      model: z.string().max(200).nullable().optional(),
-      ok: z.boolean().nullable().optional(),
-      latencyMs: z.number().int().nonnegative().nullable().optional(),
-      detail: z.record(z.string(), z.unknown()).optional(),
-    }).parse(i),
+    z
+      .object({
+        eventKind: z.enum([
+          "connection_test",
+          "usage",
+          "error",
+          "provider_switch",
+          "bridge_url_set",
+        ]),
+        provider: z.enum(PROVIDERS),
+        model: z.string().max(200).nullable().optional(),
+        ok: z.boolean().nullable().optional(),
+        latencyMs: z.number().int().nonnegative().nullable().optional(),
+        detail: z.record(z.string(), z.unknown()).optional(),
+      })
+      .parse(i),
   )
   .handler(async ({ data, context }) => {
     await context.supabase.from("ocade_provider_events").insert({
@@ -250,7 +320,9 @@ async function recordEvent(
   latencyMs: number,
   detail: Record<string, unknown>,
 ) {
-  const sb = supabase as { from: (t: string) => { insert: (r: Record<string, unknown>) => Promise<unknown> } };
+  const sb = supabase as {
+    from: (t: string) => { insert: (r: Record<string, unknown>) => Promise<unknown> };
+  };
   await sb.from("ocade_provider_events").insert({
     user_id: userId,
     event_kind: eventKind,

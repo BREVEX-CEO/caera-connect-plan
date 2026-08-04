@@ -83,14 +83,14 @@
   --secondary: oklch(0.21 0.008 262);
   --secondary-foreground: oklch(0.93 0.004 250);
   --muted: oklch(0.2 0.006 262);
-  --muted-foreground: oklch(0.68 0.012 255);
+  --muted-foreground: oklch(0.8 0.012 255);
   --accent: oklch(0.24 0.01 250);
   --accent-foreground: oklch(0.96 0.004 250);
   --destructive: oklch(0.62 0.19 25);
   --destructive-foreground: oklch(0.98 0.005 250);
   --border: oklch(1 0 0 / 8%);
   --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.76 0.11 210 / 55%);
+  --ring: oklch(0.76 0.11 210 / 90%);
 
   --chart-1: oklch(0.76 0.11 210);
   --chart-2: oklch(0.72 0.14 165);
@@ -109,16 +109,16 @@
   --sidebar-ring: oklch(0.76 0.11 210 / 55%);
 
   /* Module accents */
-  --accent-ocade: oklch(0.78 0.12 210);   /* cyan */
-  --accent-ficia: oklch(0.74 0.13 165);   /* teal-green */
-  --accent-madee: oklch(0.7 0.15 300);    /* violet */
-  --accent-cania: oklch(0.78 0.13 75);    /* amber */
+  --accent-ocade: oklch(0.78 0.12 210); /* cyan */
+  --accent-ficia: oklch(0.74 0.13 165); /* teal-green */
+  --accent-madee: oklch(0.7 0.15 300); /* violet */
+  --accent-cania: oklch(0.78 0.13 75); /* amber */
 
   /* States */
-  --state-success: oklch(0.75 0.14 155);
-  --state-warning: oklch(0.8 0.15 80);
-  --state-info: oklch(0.78 0.12 210);
-  --state-pending: oklch(0.7 0.02 255);
+  --state-success: oklch(0.82 0.12 155);
+  --state-warning: oklch(0.9 0.12 85);
+  --state-info: oklch(0.84 0.1 210);
+  --state-pending: oklch(0.8 0.02 255);
 
   /* Glass surfaces — used only on menus / modals / floating controls */
   --surface-glass: oklch(1 0 0 / 4%);
@@ -129,14 +129,14 @@
 
 /* Light theme: soft silver + warm ivory panels + restrained gold */
 .light {
-  --background: oklch(0.965 0.004 90);        /* soft silver-ivory */
+  --background: oklch(0.965 0.004 90); /* soft silver-ivory */
   --foreground: oklch(0.18 0.015 260);
   --card: oklch(0.99 0.003 90);
   --card-foreground: oklch(0.18 0.015 260);
   --popover: oklch(0.995 0.002 90);
   --popover-foreground: oklch(0.18 0.015 260);
-  --primary: oklch(0.6 0.11 82);              /* restrained gold */
-  --primary-foreground: oklch(0.14 0.01 260);
+  --primary: oklch(0.45 0.11 82); /* restrained dark gold: AA on light surfaces */
+  --primary-foreground: oklch(0.99 0.002 90);
   --secondary: oklch(0.93 0.005 90);
   --secondary-foreground: oklch(0.18 0.015 260);
   --muted: oklch(0.94 0.004 90);
@@ -147,23 +147,37 @@
   --destructive-foreground: oklch(0.99 0 0);
   --border: oklch(0.2 0.01 260 / 14%);
   --input: oklch(0.2 0.01 260 / 16%);
-  --ring: oklch(0.6 0.11 82 / 45%);
+  --ring: oklch(0.42 0.1 82);
   --sidebar: oklch(0.945 0.005 90);
   --sidebar-foreground: oklch(0.2 0.015 260);
-  --sidebar-primary: oklch(0.6 0.11 82);
-  --sidebar-primary-foreground: oklch(0.14 0.01 260);
+  --sidebar-primary: oklch(0.45 0.11 82);
+  --sidebar-primary-foreground: oklch(0.99 0.002 90);
   --sidebar-accent: oklch(0.895 0.006 90);
   --sidebar-accent-foreground: oklch(0.15 0.015 260);
   --sidebar-border: oklch(0.2 0.01 260 / 12%);
-  --sidebar-ring: oklch(0.6 0.11 82 / 45%);
+  --sidebar-ring: oklch(0.42 0.1 82);
   --accent-ocade: oklch(0.5 0.13 220);
   --accent-ficia: oklch(0.48 0.12 165);
   --accent-madee: oklch(0.48 0.15 300);
   --accent-cania: oklch(0.55 0.13 65);
+  --state-success: oklch(0.38 0.12 155);
+  --state-warning: oklch(0.38 0.1 75);
+  --state-info: oklch(0.4 0.1 220);
+  --state-pending: oklch(0.4 0.02 255);
   --surface-glass: oklch(0 0 0 / 3%);
   --surface-glass-strong: oklch(0 0 0 / 5%);
   --surface-glass-border: oklch(0 0 0 / 10%);
   --blur-glass: 10px;
+}
+
+/*
+ * Tailwind's light amber text utilities are designed for dark surfaces. The
+ * demo badge and blocked-state notice are present in every theme, so keep their
+ * warning meaning while using a dark amber that clears AA on light surfaces.
+ */
+.light .text-amber-200,
+.light .text-amber-300 {
+  color: oklch(0.38 0.1 80);
 }
 
 /* REAL theme: elegant animated gradients, morphing light, liquid depth. */
@@ -179,7 +193,7 @@
   --secondary: oklch(0.26 0.03 268 / 65%);
   --secondary-foreground: oklch(0.96 0.005 250);
   --muted: oklch(0.24 0.03 268 / 55%);
-  --muted-foreground: oklch(0.78 0.02 255);
+  --muted-foreground: oklch(0.9 0.015 255);
   --accent: oklch(0.3 0.05 250 / 70%);
   --accent-foreground: oklch(0.97 0.005 250);
   --border: oklch(1 0 0 / 14%);
@@ -218,7 +232,9 @@
   scroll-behavior: auto !important;
 }
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
@@ -247,8 +263,12 @@
   html {
     color-scheme: dark;
   }
-  html.light { color-scheme: light; }
-  html.real  { color-scheme: dark; }
+  html.light {
+    color-scheme: light;
+  }
+  html.real {
+    color-scheme: dark;
+  }
 
   body {
     background-color: var(--color-background);
@@ -267,8 +287,16 @@
       radial-gradient(55% 45% at 85% 20%, oklch(0.6 0.19 200 / 34%), transparent 65%),
       radial-gradient(70% 55% at 50% 100%, oklch(0.55 0.18 300 / 32%), transparent 65%),
       radial-gradient(50% 40% at 100% 90%, oklch(0.6 0.16 160 / 28%), transparent 60%);
-    background-size: 200% 200%, 200% 200%, 200% 200%, 200% 200%;
-    background-position: 0% 0%, 100% 0%, 50% 100%, 100% 100%;
+    background-size:
+      200% 200%,
+      200% 200%,
+      200% 200%,
+      200% 200%;
+    background-position:
+      0% 0%,
+      100% 0%,
+      50% 100%,
+      100% 100%;
     animation: caera-aurora 28s ease-in-out infinite alternate;
   }
 
@@ -291,12 +319,107 @@
   html.cursor-accessibility * {
     cursor: auto !important;
   }
+
+  /*
+    Keyboard focus.
+
+    `:focus-visible` only, so pointer users don't get a ring on click while
+    keyboard users always can see where they are. The offset keeps the ring
+    legible against the glass surfaces, and the colour is a token so it stays
+    visible in Dark, Light and REAL.
+  */
+  :focus-visible {
+    outline: 2px solid var(--color-ring, var(--color-foreground));
+    outline-offset: 2px;
+    border-radius: var(--radius-sm, 0.25rem);
+  }
+
+  /* Never remove focus for keyboard users, whatever a component sets. */
+  [tabindex]:focus-visible,
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [role="button"]:focus-visible,
+  [role="tab"]:focus-visible,
+  [role="menuitem"]:focus-visible {
+    outline: 2px solid var(--color-ring, var(--color-foreground));
+    outline-offset: 2px;
+  }
+
+  /*
+    Honour the OS setting even before the app's own reduced-motion class is
+    applied, so the very first paint is already calm.
+  */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/*
+  Skip-to-content link.
+
+  Deliberately UNLAYERED and written as explicit CSS:
+   - the `sr-only focus:not-sr-only` utility form depends on variant generation
+     and cascade order, and when that silently fails the link stays 1×1 and is
+     unusable — precisely the failure this control exists to prevent;
+   - unlayered rules outrank everything inside `@layer base`, so no utility can
+     accidentally pin it off-screen while focused.
+
+  Verified at runtime: off-screen when idle, visible and focus-ringed on Tab.
+*/
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.skip-link:focus,
+.skip-link:focus-visible {
+  left: 0.75rem;
+  top: 0.75rem;
+  outline: 2px solid var(--color-ring, var(--color-foreground));
+  outline-offset: 2px;
 }
 
 @keyframes caera-aurora {
-  0%   { background-position: 0% 0%, 100% 0%, 50% 100%, 100% 100%; }
-  50%  { background-position: 30% 20%, 70% 30%, 40% 70%, 70% 80%; }
-  100% { background-position: 60% 40%, 40% 60%, 60% 40%, 40% 60%; }
+  0% {
+    background-position:
+      0% 0%,
+      100% 0%,
+      50% 100%,
+      100% 100%;
+  }
+  50% {
+    background-position:
+      30% 20%,
+      70% 30%,
+      40% 70%,
+      70% 80%;
+  }
+  100% {
+    background-position:
+      60% 40%,
+      40% 60%,
+      60% 40%,
+      40% 60%;
+  }
 }
 
 @utility glass {
@@ -314,7 +437,10 @@
 @utility ocade-scroll {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in oklch, var(--border) 70%, transparent) transparent;
-  &::-webkit-scrollbar { width: 10px; height: 10px; }
+  &::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
   &::-webkit-scrollbar-thumb {
     background: color-mix(in oklch, var(--border) 70%, transparent);
     border-radius: 8px;

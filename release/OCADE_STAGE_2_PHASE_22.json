@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "phase": 22,
+  "name": "Multi-provider local model fabric",
+  "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+  "branch": "feat/ocade-implementation",
+  "head": "52cd6cf4cc312d9072d8e1ce1fefdc740d193a76",
+  "sourceScore": 94,
+  "controlledHttpRuntimeScore": 60,
+  "liveInstalledProviderRuntimeScore": 0,
+  "stage2Readiness": {
+    "source": 36,
+    "sourceRemaining": 64,
+    "runtime": 0,
+    "verifiedApplicationCoverage": 0,
+    "production": 18
+  },
+  "implementationPhasesRemaining": 17,
+  "externalValidationTracksRemaining": 8,
+  "nextDependency": {
+    "phase": 23,
+    "name": "Secure generated-code sandbox"
+  },
+  "providers": [
+    "ollama",
+    "lm_studio",
+    "llama_cpp",
+    "localai",
+    "vllm",
+    "jan",
+    "koboldcpp",
+    "openai_compatible",
+    "openai"
+  ],
+  "verifiedSourceCapabilities": [
+    "client-safe base URL, authentication method and discovery protocol manifests",
+    "health, latency, rate-limit, circuit-breaker and last-success runtime state",
+    "context, structured-output, tool-use, vision, coding, embedding, RAM and GPU model capabilities",
+    "user-enabled state and priority",
+    "smallest-capable healthy local-first routing",
+    "privacy, metering, context, latency and resource gates",
+    "bounded retries across providers with one attempt per failed provider",
+    "timeout, cancellation, malformed output, rate limit, context overflow, memory and unhealthy failure classes",
+    "optional OpenAI use only when enabled, metered use allowed and cloud privacy allowed",
+    "request-time credential resolution with no secret in manifests, snapshots, failures or receipts",
+    "Phase 21 Brain adapter that returns untrusted structured proposals without tool authority",
+    "active model-control UI inventory and prompt-free local health/model probes"
+  ],
+  "controlledRuntimeEvidence": {
+    "transport": "real loopback HTTP servers bound during Vitest",
+    "providersAvailable": 2,
+    "firstProviderResult": "HTTP 503 and circuit opened",
+    "secondProviderResult": "bounded completion returned and independently asserted",
+    "duplicateProviderRetry": false,
+    "deterministicUnavailableFixtures": true
+  },
+  "runtimeClaims": {
+    "installedOllama": false,
+    "installedLmStudio": false,
+    "installedLlamaCpp": false,
+    "installedLocalAI": false,
+    "installedVllm": false,
+    "installedJan": false,
+    "installedKoboldCpp": false,
+    "configuredGenericEndpoint": false,
+    "configuredOpenAI": false,
+    "productionFailover": false
+  },
+  "runtimeBlockers": [
+    "No required third-party model runtime is installed and approved in this environment.",
+    "No user-owned OpenAI credential or cloud transfer approval was used.",
+    "CORS, model-specific capabilities, real memory pressure and real provider rate limits require installed-provider validation.",
+    "The existing chat path remains Ollama-specific until an enabled non-Ollama local runtime is configured and externally exercised."
+  ]
+}

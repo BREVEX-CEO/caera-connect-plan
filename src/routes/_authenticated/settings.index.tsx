@@ -1,6 +1,16 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Check, LogOut, Loader2, Palette, MousePointer, User as UserIcon, Sun, Moon, Waves } from "lucide-react";
+import {
+  Check,
+  LogOut,
+  Loader2,
+  Palette,
+  MousePointer,
+  User as UserIcon,
+  Sun,
+  Moon,
+  Waves,
+} from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,10 +21,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/settings/")({
   head: () => ({
-    meta: [
-      { title: "General — CAERA CADANE" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "General — CAERA CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: GeneralPage,
 });
@@ -207,6 +214,7 @@ function GeneralPage() {
           <div className="min-w-0 flex-1 grid gap-3 sm:grid-cols-2">
             <Field label="Full name">
               <input
+                aria-label="Full name"
                 type="text"
                 value={view?.full_name ?? ""}
                 onChange={(e) => update("full_name", e.target.value)}
@@ -216,6 +224,7 @@ function GeneralPage() {
             </Field>
             <Field label="Preferred name">
               <input
+                aria-label="Preferred name"
                 type="text"
                 value={view?.preferred_name ?? ""}
                 onChange={(e) => update("preferred_name", e.target.value)}
@@ -225,6 +234,7 @@ function GeneralPage() {
             </Field>
             <Field label="Occupation or role" className="sm:col-span-2">
               <input
+                aria-label="Occupation or role"
                 type="text"
                 value={view?.occupation ?? ""}
                 onChange={(e) => update("occupation", e.target.value)}
@@ -240,10 +250,11 @@ function GeneralPage() {
       <GlassPanel className="mt-4 p-5">
         <SectionHeading title="Personal OCADE instructions" />
         <p className="mt-1 text-xs text-muted-foreground">
-          A short note OCADE reads before every conversation. Kept in your account
-          under RLS. Do not paste secrets or passwords.
+          A short note OCADE reads before every conversation. Kept in your account under RLS. Do not
+          paste secrets or passwords.
         </p>
         <textarea
+          aria-label="Custom instructions"
           value={view?.custom_instructions ?? ""}
           onChange={(e) => update("custom_instructions", e.target.value)}
           placeholder="Prefer concise replies. Use metric units. Explain financial terms in plain English."
@@ -252,7 +263,7 @@ function GeneralPage() {
           className="mt-3 w-full rounded-md border border-border/60 bg-background/60 px-2.5 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-primary/40"
         />
         <p className="mt-1 text-[11px] text-muted-foreground">
-          {(view?.custom_instructions?.length ?? 0)} / 2000 characters
+          {view?.custom_instructions?.length ?? 0} / 2000 characters
         </p>
       </GlassPanel>
 
@@ -262,23 +273,29 @@ function GeneralPage() {
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Field label="Language">
             <select
+              aria-label="Language"
               value={view?.locale ?? "en-US"}
               onChange={(e) => update("locale", e.target.value)}
               className={inputCls}
             >
               {LOCALES.map((l) => (
-                <option key={l.value} value={l.value}>{l.label}</option>
+                <option key={l.value} value={l.value}>
+                  {l.label}
+                </option>
               ))}
             </select>
           </Field>
           <Field label="Time zone">
             <select
+              aria-label="Time zone"
               value={view?.timezone ?? "UTC"}
               onChange={(e) => update("timezone", e.target.value)}
               className={inputCls}
             >
               {tzList.map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </select>
           </Field>
@@ -289,11 +306,15 @@ function GeneralPage() {
       <div className="sticky bottom-3 mt-4 flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/90 px-4 py-2.5 backdrop-blur">
         <span className="text-xs text-muted-foreground">
           {saving ? (
-            <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3 w-3 animate-spin" /> Saving…</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Loader2 className="h-3 w-3 animate-spin" /> Saving…
+            </span>
           ) : hasChanges ? (
             "Unsaved changes"
           ) : savedAt ? (
-            <span className="inline-flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> Saved</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Check className="h-3 w-3 text-primary" /> Saved
+            </span>
           ) : (
             "All changes saved"
           )}
@@ -322,11 +343,17 @@ function GeneralPage() {
       <GlassPanel className="mt-4 p-5">
         <SectionHeading icon={Palette} title="Quick appearance" />
         <p className="mt-1 text-xs text-muted-foreground">
-          Full controls live in <Link to="/settings/appearance" className="underline underline-offset-4">Appearance</Link>.
+          Full controls live in{" "}
+          <Link to="/settings/appearance" className="underline underline-offset-4">
+            Appearance
+          </Link>
+          .
         </p>
 
         <div className="mt-3">
-          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Theme</div>
+          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            Theme
+          </div>
           <div className="mt-2 flex flex-wrap gap-2">
             {THEMES.map((t) => {
               const active = appearance.theme === t.id;
@@ -350,7 +377,9 @@ function GeneralPage() {
         </div>
 
         <div className="mt-4">
-          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">Cursor</div>
+          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+            Cursor
+          </div>
           <div className="mt-2 flex flex-wrap gap-2">
             {CURSORS.map((c) => {
               const active = appearance.cursor === c.id;
@@ -395,7 +424,9 @@ function GeneralPage() {
             <span
               className={cn(
                 "absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform",
-                appearance.reducedMotion || appearance.osReducedMotion ? "translate-x-5" : "translate-x-0.5",
+                appearance.reducedMotion || appearance.osReducedMotion
+                  ? "translate-x-5"
+                  : "translate-x-0.5",
               )}
             />
           </button>
@@ -407,7 +438,9 @@ function GeneralPage() {
         <div className="min-w-0">
           <div className="text-sm font-medium text-foreground">Sign out</div>
           <div className="text-xs text-muted-foreground">
-            Signed in as <span className="text-foreground">{user?.email ?? user?.phone ?? "your account"}</span>. This ends the current session on this browser only.
+            Signed in as{" "}
+            <span className="text-foreground">{user?.email ?? user?.phone ?? "your account"}</span>.
+            This ends the current session on this browser only.
           </div>
         </div>
         <button
@@ -425,7 +458,15 @@ function GeneralPage() {
 const inputCls =
   "h-9 w-full rounded-md border border-border/60 bg-background/60 px-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-primary/40";
 
-function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+function Field({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <label className={cn("block", className)}>
       <span className="mb-1 block text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">

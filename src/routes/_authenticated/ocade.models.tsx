@@ -1,13 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { AlertTriangle, Check, Cpu, Cloud, HardDrive, Rocket, RefreshCcw, Info, ChevronLeft } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Cpu,
+  Cloud,
+  HardDrive,
+  Rocket,
+  RefreshCcw,
+  Info,
+  ChevronLeft,
+} from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { recordAction } from "@/lib/actions";
 import {
   OCADE_MODELS,
+  OCADE_MODEL_FABRIC_PROVIDERS,
   OCADE_PROVIDERS,
   autoSelectModel,
   getOcadeProvider,
@@ -18,6 +29,11 @@ import {
   type SpeedPref,
 } from "@/lib/ocade-models";
 import {
+  ModelProviderFabric,
+  type ModelProviderId,
+  type ProviderManifest,
+} from "@/lib/providers/model-fabric";
+import {
   getProviderPrefs,
   saveProviderPrefs,
   testLovableGateway,
@@ -26,13 +42,13 @@ import {
   getUsageDiagnostics,
 } from "@/lib/ocade-providers.functions";
 import { cn } from "@/lib/utils";
+import { ocadeIntro, ocadeHonestDisclosure } from "@/lib/ocade-identity";
+import { LocalModelLifecyclePanel } from "@/components/ocade/LocalModelLifecyclePanel";
+import { LocalEngineControl } from "@/components/ocade/LocalEngineControl";
 
 export const Route = createFileRoute("/_authenticated/ocade/models")({
   head: () => ({
-    meta: [
-      { title: "OCADE Model Control — CAERA CADANE" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "OCADE Model Control — CAERA CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: OcadeModelsPage,
 });
@@ -76,13 +92,19 @@ function OcadeModelsPage() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState<OcadeProviderId | null>(null);
   const [results, setResults] = useState<Partial<Record<OcadeProviderId, TestResult>>>({});
+  const [fabricResults, setFabricResults] = useState<Partial<Record<ModelProviderId, TestResult>>>(
+    {},
+  );
+  const [fabricTesting, setFabricTesting] = useState<ModelProviderId | null>(null);
   const [diag, setDiag] = useState<Diagnostics | null>(null);
 
   const refreshDiag = useCallback(async () => {
     try {
       const d = await loadDiag();
       setDiag(d as Diagnostics);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, [loadDiag]);
 
   useEffect(() => {
@@ -138,7 +160,8 @@ function OcadeModelsPage() {
         let res: TestResult;
         if (id === "lovable_gateway") res = (await testLovable()) as TestResult;
         else if (id === "openai_direct") res = (await testOpenAI()) as TestResult;
-        else if (id === "ollama_local") res = await testOllamaFromBrowser(prefs?.ollama_bridge_url, logEvent);
+        else if (id === "ollama_local")
+          res = await testOllamaFromBrowser(prefs?.ollama_bridge_url, logEvent);
         else
           res = {
             ok: false,
@@ -158,6 +181,38 @@ function OcadeModelsPage() {
     },
     [testLovable, testOpenAI, logEvent, prefs?.ollama_bridge_url, refreshDiag],
   );
+
+  const runFabricTest = useCallback(async (provider: ProviderManifest) => {
+    if (provider.privacyClass === "cloud") return;
+    setFabricTesting(provider.id);
+    const started = performance.now();
+    try {
+      const fabric = new ModelProviderFabric([{ ...provider, userEnabled: true }]);
+      const snapshot = await fabric.discover(provider.id);
+      const result: TestResult = {
+        ok: snapshot.health === "healthy",
+        reason:
+          snapshot.health === "healthy"
+            ? `${snapshot.displayName} responded with ${snapshot.models.length} usable model${
+                snapshot.models.length === 1 ? "" : "s"
+              }.`
+            : (snapshot.lastFailure ?? `${snapshot.displayName} is unavailable.`),
+        latencyMs: snapshot.latencyMs ?? Math.round(performance.now() - started),
+      };
+      setFabricResults((current) => ({ ...current, [provider.id]: result }));
+      await recordAction({
+        actionId: "ocade.providers.test_fabric_provider",
+        metadata: {
+          provider: provider.id,
+          ok: result.ok,
+          latency_ms: result.latencyMs,
+          model_count: snapshot.models.length,
+        },
+      });
+    } finally {
+      setFabricTesting(null);
+    }
+  }, []);
 
   if (!prefs) {
     return (
@@ -183,6 +238,19 @@ function OcadeModelsPage() {
       />
 
       <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 pb-16">
+        {/* On-device engine lifecycle: install, verify, activate, remove. */}
+        <GlassPanel className="p-5">
+          {/*
+            Start/stop comes BEFORE the lifecycle panel because it is the
+            prerequisite: installing or activating a model against a runtime
+            that is not listening fails for a reason the user cannot see from
+            the download UI.
+          */}
+          <LocalEngineControl />
+          <div className="mt-5" />
+          <LocalModelLifecyclePanel />
+        </GlassPanel>
+
         {/* Identity contract notice */}
         <GlassPanel className="p-5">
           <div className="flex gap-3">
@@ -191,10 +259,24 @@ function OcadeModelsPage() {
               <p className="font-medium text-fg">Identity contract</p>
               <p className="mt-1">
                 In normal conversation OCADE introduces itself as{" "}
-                <span className="text-fg">"OCADE by CAERA CADANE"</span> and does not casually name
-                its underlying model. If a user asks directly which provider or model is answering,
-                OCADE answers truthfully with the values shown on this page. Provider names remain
-                available in diagnostics, expandable usage records and audit logs.
+                <span className="text-fg">{ocadeIntro()}</span> and does not casually name its
+                underlying model. If a user asks directly which provider or model is answering,
+                OCADE answers truthfully. Provider names remain available in diagnostics, expandable
+                usage records and audit logs.
+              </p>
+
+              {/*
+                Show the ACTUAL disclosure for the current selection, generated
+                by the same function OCADE uses. Describing the behaviour in
+                prose here would drift from what really gets said; this cannot.
+              */}
+              <p className="mt-2 rounded-md border border-white/10 bg-white/[0.03] p-2 text-xs">
+                <span className="text-fg">Right now OCADE would answer:</span>{" "}
+                {ocadeHonestDisclosure({
+                  providerId: autoPreview?.model.providerDisplay ?? null,
+                  modelId: autoPreview?.model.display ?? null,
+                  locality: autoPreview?.model.locality ?? null,
+                })}
               </p>
             </div>
           </div>
@@ -234,9 +316,7 @@ function OcadeModelsPage() {
                     {selected && <Check className="h-4 w-4 text-accent" />}
                   </div>
                   <span className="mt-1 text-xs text-fg-muted">
-                    {mode === "auto"
-                      ? "Follow the preferences below."
-                      : info?.description}
+                    {mode === "auto" ? "Follow the preferences below." : info?.description}
                   </span>
                   {info?.status === "setup_required" && (
                     <span className="mt-2 inline-flex items-center gap-1 text-xs text-amber-400">
@@ -254,6 +334,92 @@ function OcadeModelsPage() {
           </div>
         </GlassPanel>
 
+        {/* Stage 2 provider fabric */}
+        <GlassPanel className="p-5">
+          <h3 className="text-sm font-semibold text-fg">Local model provider fabric</h3>
+          <p className="mt-1 text-sm text-fg-muted">
+            Supported discovery contracts and default endpoints. Only Ollama is enabled by default;
+            every other local runtime remains disabled until you intentionally start and probe it.
+            Credentials are never stored in this browser-visible catalog.
+          </p>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-xs">
+              <thead className="text-fg-muted">
+                <tr className="border-b border-white/10">
+                  <th className="py-2 pr-3">Provider</th>
+                  <th className="py-2 pr-3">Default endpoint</th>
+                  <th className="py-2 pr-3">Discovery</th>
+                  <th className="py-2 pr-3">Privacy / cost</th>
+                  <th className="py-2 pr-3">Default state</th>
+                  <th className="py-2">Probe</th>
+                </tr>
+              </thead>
+              <tbody>
+                {OCADE_MODEL_FABRIC_PROVIDERS.map((provider) => {
+                  const result = fabricResults[provider.id];
+                  const cloud = provider.privacyClass === "cloud";
+                  return (
+                    <tr key={provider.id} className="border-b border-white/5 align-top text-fg">
+                      <td className="py-3 pr-3">
+                        <div className="font-medium">{provider.displayName}</div>
+                        <div className="text-fg-muted">
+                          {provider.authentication.method.replaceAll("_", " ")}
+                        </div>
+                      </td>
+                      <td className="max-w-56 break-all py-3 pr-3 font-mono text-fg-muted">
+                        {provider.baseUrl}
+                      </td>
+                      <td className="py-3 pr-3 text-fg-muted">
+                        {provider.discovery.replaceAll("_", " ")}
+                      </td>
+                      <td className="py-3 pr-3 text-fg-muted">
+                        {provider.privacyClass.replaceAll("_", " ")} /{" "}
+                        {provider.costClass.replaceAll("_", " ")}
+                      </td>
+                      <td className="py-3 pr-3">{provider.userEnabled ? "Enabled" : "Disabled"}</td>
+                      <td className="py-3">
+                        <button
+                          type="button"
+                          disabled={cloud || fabricTesting === provider.id}
+                          title={
+                            cloud
+                              ? "Use the server-side OpenAI Direct connection test above."
+                              : `Probe ${provider.displayName} without sending a prompt`
+                          }
+                          onClick={() => void runFabricTest(provider)}
+                          className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-fg hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <RefreshCcw
+                            className={cn(
+                              "h-3 w-3",
+                              fabricTesting === provider.id && "animate-spin",
+                            )}
+                          />
+                          {cloud ? "Server test above" : "Probe"}
+                        </button>
+                        {result && (
+                          <div
+                            className={cn(
+                              "mt-1 max-w-64",
+                              result.ok ? "text-emerald-300" : "text-amber-300",
+                            )}
+                          >
+                            {result.reason} ({result.latencyMs} ms)
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-xs text-fg-muted">
+            A successful probe verifies health and model discovery only. It does not claim that a
+            model completed a chat, tool call, or real application task.
+          </p>
+        </GlassPanel>
+
         {/* Preferences */}
         <GlassPanel className="p-5">
           <h3 className="text-sm font-semibold text-fg">Preferences</h3>
@@ -266,7 +432,11 @@ function OcadeModelsPage() {
                 { v: "balanced", l: "Balanced" },
                 { v: "cloud_ok", l: "Cloud OK" },
               ]}
-              onChange={(v) => update({ privacy_pref: v as PrivacyPref }, "ocade.providers.save_prefs", { privacy_pref: v })}
+              onChange={(v) =>
+                update({ privacy_pref: v as PrivacyPref }, "ocade.providers.save_prefs", {
+                  privacy_pref: v,
+                })
+              }
             />
             <PrefSelect
               label="Cost"
@@ -276,7 +446,9 @@ function OcadeModelsPage() {
                 { v: "balanced", l: "Balanced" },
                 { v: "best_quality", l: "Best quality" },
               ]}
-              onChange={(v) => update({ cost_pref: v as CostPref }, "ocade.providers.save_prefs", { cost_pref: v })}
+              onChange={(v) =>
+                update({ cost_pref: v as CostPref }, "ocade.providers.save_prefs", { cost_pref: v })
+              }
             />
             <PrefSelect
               label="Speed"
@@ -286,7 +458,11 @@ function OcadeModelsPage() {
                 { v: "balanced", l: "Balanced" },
                 { v: "best_quality", l: "Best quality" },
               ]}
-              onChange={(v) => update({ speed_pref: v as SpeedPref }, "ocade.providers.save_prefs", { speed_pref: v })}
+              onChange={(v) =>
+                update({ speed_pref: v as SpeedPref }, "ocade.providers.save_prefs", {
+                  speed_pref: v,
+                })
+              }
             />
             <label className="flex items-center gap-3 rounded-md border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-fg">
               <input
@@ -308,11 +484,9 @@ function OcadeModelsPage() {
                 ...OCADE_MODELS.map((m) => ({ v: m.id, l: `${m.display} — ${m.providerDisplay}` })),
               ]}
               onChange={(v) =>
-                update(
-                  { session_override_model: v === "" ? null : v },
-                  "ocade.model.change",
-                  { model: v || null },
-                )
+                update({ session_override_model: v === "" ? null : v }, "ocade.model.change", {
+                  model: v || null,
+                })
               }
             />
           </div>
@@ -346,7 +520,8 @@ function OcadeModelsPage() {
           <div className="mt-4 space-y-3">
             {OCADE_PROVIDERS.map((p) => {
               const r = results[p.id];
-              const Icon = p.locality === "local" ? HardDrive : p.id === "caera_native" ? Cpu : Cloud;
+              const Icon =
+                p.locality === "local" ? HardDrive : p.id === "caera_native" ? Cpu : Cloud;
               return (
                 <div key={p.id} className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -394,6 +569,7 @@ function OcadeModelsPage() {
                     <div className="mt-3 rounded-md border border-white/10 bg-white/[0.02] p-3 text-xs">
                       <label className="block text-fg">Local bridge URL</label>
                       <input
+                        aria-label="Local bridge URL"
                         type="url"
                         placeholder="http://localhost:11434"
                         defaultValue={prefs.ollama_bridge_url ?? ""}
@@ -426,7 +602,8 @@ function OcadeModelsPage() {
                       )}
                     >
                       {r.ok ? "✓ " : r.setupRequired ? "Setup required — " : "✗ "}
-                      {r.reason} {r.latencyMs > 0 && <span className="opacity-70">({r.latencyMs} ms)</span>}
+                      {r.reason}{" "}
+                      {r.latencyMs > 0 && <span className="opacity-70">({r.latencyMs} ms)</span>}
                     </div>
                   )}
                 </div>
@@ -462,7 +639,9 @@ function OcadeModelsPage() {
                     <td className="py-2 pr-3">{m.capabilities.image ? "✓" : "—"}</td>
                     <td className="py-2 pr-3">{m.capabilities.files ? "✓" : "—"}</td>
                     <td className="py-2 pr-3">{m.capabilities.voice ? "✓" : "—"}</td>
-                    <td className="py-2 pr-3">{(m.capabilities.contextTokens / 1000).toFixed(0)}k</td>
+                    <td className="py-2 pr-3">
+                      {(m.capabilities.contextTokens / 1000).toFixed(0)}k
+                    </td>
                     <td className="py-2 pr-3">{m.capabilities.speedTier}</td>
                     <td className="py-2 pr-3">{m.capabilities.costTier}</td>
                   </tr>
@@ -491,9 +670,7 @@ function OcadeModelsPage() {
                 <div className="text-xs text-fg-muted">Assistant messages recorded</div>
                 <div className="mt-1 text-2xl font-semibold text-fg">{diag.assistantMessages}</div>
                 <div className="mt-3 space-y-1 text-xs">
-                  {diag.byModel.length === 0 && (
-                    <div className="text-fg-muted">No usage yet.</div>
-                  )}
+                  {diag.byModel.length === 0 && <div className="text-fg-muted">No usage yet.</div>}
                   {diag.byModel.map((row) => (
                     <div key={row.model} className="flex justify-between">
                       <span className="text-fg-muted">{row.model}</span>
@@ -517,7 +694,9 @@ function OcadeModelsPage() {
                       )}
                     >
                       <div className="flex justify-between text-fg">
-                        <span>{e.event_kind} · {e.provider}</span>
+                        <span>
+                          {e.event_kind} · {e.provider}
+                        </span>
                         <span className="text-fg-muted">
                           {new Date(e.created_at).toLocaleTimeString()}
                         </span>
@@ -588,7 +767,8 @@ async function testOllamaFromBrowser(
     });
     return {
       ok: false,
-      reason: "No local bridge URL set. Install the Native Companion or set http://localhost:11434.",
+      reason:
+        "No local bridge URL set. Install the Native Companion or set http://localhost:11434.",
       latencyMs: 0,
       setupRequired: true,
     };
@@ -597,7 +777,9 @@ async function testOllamaFromBrowser(
   try {
     const controller = new AbortController();
     const to = setTimeout(() => controller.abort(), 4000);
-    const res = await fetch(`${bridgeUrl.replace(/\/$/, "")}/api/tags`, { signal: controller.signal });
+    const res = await fetch(`${bridgeUrl.replace(/\/$/, "")}/api/tags`, {
+      signal: controller.signal,
+    });
     clearTimeout(to);
     const latencyMs = Math.round(performance.now() - started);
     if (!res.ok) {
@@ -625,7 +807,10 @@ async function testOllamaFromBrowser(
     });
     return {
       ok: true,
-      reason: count > 0 ? `Bridge reachable. ${count} local models available.` : "Bridge reachable. No models pulled yet.",
+      reason:
+        count > 0
+          ? `Bridge reachable. ${count} local models available.`
+          : "Bridge reachable. No models pulled yet.",
       latencyMs,
     };
   } catch (e) {

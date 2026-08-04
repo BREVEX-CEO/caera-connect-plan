@@ -9,21 +9,37 @@ import { EmptyState } from "@/components/shell/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  deleteResumeProject, duplicateResumeProject, listResumeProjects,
+  deleteResumeProject,
+  duplicateResumeProject,
+  listResumeProjects,
 } from "@/lib/madee.functions";
 import { executeAction } from "@/lib/actions";
 import { isDemoActive } from "@/lib/demo/context";
 
 export const Route = createFileRoute("/_authenticated/madee/")({
-  head: () => ({ meta: [{ title: "MADEE Studio — CAERA CADANE" }, { name: "robots", content: "noindex" }] }),
+  head: () => ({
+    meta: [{ title: "MADEE Studio — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+  }),
   component: MadeeIndex,
 });
 
@@ -65,8 +81,8 @@ function MadeeIndex() {
 
       {demoBanner && (
         <div className="mt-4 rounded-lg border border-dashed border-border/70 bg-muted/40 p-3 text-sm text-muted-foreground">
-          Demo mode is on. Projects you create are still saved to your real account —
-          use it to experiment safely with your own data.
+          Demo mode is on. Projects you create are still saved to your real account — use it to
+          experiment safely with your own data.
         </div>
       )}
 
@@ -168,8 +184,12 @@ function labelStorage(mode: string) {
 }
 
 function DuplicateButton({
-  defaultTitle, onConfirm,
-}: { defaultTitle: string; onConfirm: (t: string) => Promise<void> }) {
+  defaultTitle,
+  onConfirm,
+}: {
+  defaultTitle: string;
+  onConfirm: (t: string) => Promise<void>;
+}) {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(defaultTitle);
   const [busy, setBusy] = useState(false);
@@ -185,7 +205,9 @@ function DuplicateButton({
         </DialogHeader>
         <Input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} />
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            Cancel
+          </Button>
           <Button
             disabled={busy || !title.trim()}
             onClick={async () => {
@@ -207,8 +229,12 @@ function DuplicateButton({
 }
 
 function DeleteProjectDialog({
-  title, onConfirm,
-}: { title: string; onConfirm: (phrase: string) => Promise<void> }) {
+  title,
+  onConfirm,
+}: {
+  title: string;
+  onConfirm: (phrase: string) => Promise<void>;
+}) {
   const [phrase, setPhrase] = useState("");
   const [busy, setBusy] = useState(false);
   return (
@@ -216,8 +242,8 @@ function DeleteProjectDialog({
       <AlertDialogHeader>
         <AlertDialogTitle>Delete “{title}”?</AlertDialogTitle>
         <AlertDialogDescription>
-          This deletes the project and every version. It cannot be undone. To confirm,
-          type <b>delete resume</b> below.
+          This deletes the project and every version. It cannot be undone. To confirm, type{" "}
+          <b>delete resume</b> below.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <Input

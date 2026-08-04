@@ -19,6 +19,9 @@ export function OnboardingShell({
   const pct = Math.round((step / total) * 100);
   return (
     <div className="min-h-screen">
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
       <header className="border-b border-border/60">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
           <Link to="/" aria-label="CAERA CADANE home">
@@ -36,12 +39,14 @@ export function OnboardingShell({
           />
         </div>
       </header>
-      <main className="mx-auto w-full max-w-3xl px-4 py-8">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-3xl px-4 py-8 focus:outline-none"
+      >
         <div className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
-          {subtitle ? (
-            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-          ) : null}
+          {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
         </div>
         <GlassPanel strong className="p-6">
           {children}

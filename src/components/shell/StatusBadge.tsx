@@ -14,13 +14,19 @@ export type Status =
   | "pending";
 
 const styles: Record<Status, string> = {
-  active: "bg-[color:var(--state-success)]/15 text-[color:var(--state-success)] ring-[color:var(--state-success)]/30",
-  success: "bg-[color:var(--state-success)]/15 text-[color:var(--state-success)] ring-[color:var(--state-success)]/30",
-  connected: "bg-[color:var(--state-success)]/15 text-[color:var(--state-success)] ring-[color:var(--state-success)]/30",
+  active:
+    "bg-[color:var(--state-success)]/15 text-[color:var(--state-success)] ring-[color:var(--state-success)]/30",
+  success:
+    "bg-[color:var(--state-success)]/15 text-[color:var(--state-success)] ring-[color:var(--state-success)]/30",
+  connected:
+    "bg-[color:var(--state-success)]/15 text-[color:var(--state-success)] ring-[color:var(--state-success)]/30",
   beta: "bg-[color:var(--state-info)]/15 text-[color:var(--state-info)] ring-[color:var(--state-info)]/30",
-  running: "bg-[color:var(--state-info)]/15 text-[color:var(--state-info)] ring-[color:var(--state-info)]/30",
-  setup_required: "bg-[color:var(--state-warning)]/15 text-[color:var(--state-warning)] ring-[color:var(--state-warning)]/30",
-  paused: "bg-[color:var(--state-warning)]/15 text-[color:var(--state-warning)] ring-[color:var(--state-warning)]/30",
+  running:
+    "bg-[color:var(--state-info)]/15 text-[color:var(--state-info)] ring-[color:var(--state-info)]/30",
+  setup_required:
+    "bg-[color:var(--state-warning)]/5 text-[color:var(--state-warning)] ring-[color:var(--state-warning)]/30",
+  paused:
+    "bg-[color:var(--state-warning)]/5 text-[color:var(--state-warning)] ring-[color:var(--state-warning)]/30",
   planned: "bg-muted text-muted-foreground ring-border",
   pending: "bg-muted text-muted-foreground ring-border",
   disconnected: "bg-muted text-muted-foreground ring-border",

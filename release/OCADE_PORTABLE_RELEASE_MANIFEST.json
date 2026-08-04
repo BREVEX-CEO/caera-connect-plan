@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "owner": "release-engineering",
+  "toolchain": {
+    "node": "22.18.0",
+    "npm": "10.9.3",
+    "rust": "1.88.0",
+    "typescript": "5.8.3",
+    "lockfiles": [
+      "package-lock.json",
+      "native/companion/safety/Cargo.lock",
+      "native/companion/tauri/Cargo.lock"
+    ],
+    "environmentAllowlist": [
+      "CI",
+      "NODE_OPTIONS",
+      "CARGO_TERM_COLOR",
+      "RUST_BACKTRACE"
+    ],
+    "pathPolicy": "toolchain-owned-paths-before-host-path"
+  },
+  "policy": {
+    "timeoutMinutes": 60,
+    "maxRetries": 1,
+    "secrets": [],
+    "network": "dependency-registry-only-during-bootstrap",
+    "artifactRetentionDays": 14
+  },
+  "jobs": [
+    {
+      "id": "web-verification",
+      "operatingSystem": "windows",
+      "architecture": "x64",
+      "commands": [
+        "npm ci",
+        "npm run typecheck",
+        "npm run lint",
+        "npm run test",
+        "npm run build",
+        "npm run readiness:check"
+      ],
+      "artifacts": [
+        ".output"
+      ],
+      "requiredSecrets": []
+    },
+    {
+      "id": "native-safety",
+      "operatingSystem": "windows",
+      "architecture": "x64",
+      "commands": [
+        "cargo test --manifest-path native/companion/safety/Cargo.toml --all-targets",
+        "cargo clippy --manifest-path native/companion/safety/Cargo.toml --all-targets -- -D warnings",
+        "cargo check --manifest-path native/companion/tauri/Cargo.toml --all-targets"
+      ],
+      "artifacts": [],
+      "requiredSecrets": []
+    }
+  ],
+  "providers": [
+    {
+      "id": "github-hosted",
+      "kind": "hosted",
+      "runner": "windows-latest"
+    },
+    {
+      "id": "github-self-hosted",
+      "kind": "self-hosted",
+      "runner": "self-hosted-windows-x64"
+    },
+    {
+      "id": "gitlab-cloud",
+      "kind": "alternate-cloud",
+      "runner": "saas-windows-medium-amd64"
+    }
+  ],
+  "sidecars": [],
+  "sidecarPolicy": {
+    "productionRequiresPublishedArtifact": true,
+    "sourceBuildFallback": "development-only",
+    "signatureRequired": true,
+    "checksum": "sha256",
+    "interruptedDownload": "resume-verified-chunks-or-discard",
+    "healthFailure": "restore-previous-verified-version"
+  },
+  "cleanMachine": {
+    "platforms": [
+      "windows",
+      "linux",
+      "android",
+      "macos"
+    ],
+    "lifecycle": [
+      "install",
+      "first-launch",
+      "repair",
+      "upgrade",
+      "rollback",
+      "uninstall",
+      "leftover-scan"
+    ],
+    "repositoryCheckout": false,
+    "developerToolsPreinstalled": false,
+    "cachedCredentials": false,
+    "destroyAfterEvidenceExport": true
+  }
+}

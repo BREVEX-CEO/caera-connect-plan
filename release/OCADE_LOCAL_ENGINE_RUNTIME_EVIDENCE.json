@@ -1,0 +1,280 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-29T16:31:54.959Z",
+  "tier": "REAL TARGET RUNTIME VERIFIED",
+  "caveat": "Observed on ONE machine (Windows 10 build 19045, i5-1135G7, 15.6GB RAM, Intel Iris Xe, no CUDA). Single-host evidence is not a platform matrix and must not be reported as one.",
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v24.16.0",
+    "ollamaClient": "ollama version is 0.30.11",
+    "bridge": "http://localhost:11434"
+  },
+  "summary": {
+    "observed": 15,
+    "failed": 0,
+    "skipped": 0,
+    "total": 15
+  },
+  "steps": [
+    {
+      "id": "E01",
+      "what": "ollama --version",
+      "status": "observed",
+      "detail": "ollama version is 0.30.11"
+    },
+    {
+      "id": "E02",
+      "what": "discoverLocalModels() against the live bridge",
+      "status": "observed",
+      "detail": {
+        "ok": true,
+        "reachable": true,
+        "serverVersion": "0.30.11",
+        "models": [
+          {
+            "id": "deepseek-coder:6.7b",
+            "gb": 3.83,
+            "paramsB": 7,
+            "profile": "code",
+            "label": "OCADE Local Code",
+            "vision": false
+          },
+          {
+            "id": "qwen3-coder:30b",
+            "gb": 18.56,
+            "paramsB": 30.5,
+            "profile": "code",
+            "label": "OCADE Local Code",
+            "vision": false
+          },
+          {
+            "id": "qwen2.5-coder:7b",
+            "gb": 4.68,
+            "paramsB": 7.6,
+            "profile": "code",
+            "label": "OCADE Local Code",
+            "vision": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "E03",
+      "what": "a :cloud pointer is present in the raw API but excluded from on-device models",
+      "status": "observed",
+      "detail": {
+        "rawNames": [
+          "deepseek-coder:6.7b",
+          "qwen3-coder:30b",
+          "qwen2.5-coder:7b",
+          "deepseek-v4-pro:cloud"
+        ],
+        "pointers": [
+          "deepseek-v4-pro:cloud"
+        ],
+        "leakedIntoDiscovery": []
+      }
+    },
+    {
+      "id": "E04.general",
+      "what": "pickLocalModel(\"general\")",
+      "status": "observed",
+      "detail": {
+        "picked": {
+          "id": "qwen3-coder:30b",
+          "gb": 18.56,
+          "paramsB": 30.5,
+          "profile": "code",
+          "label": "OCADE Local Code",
+          "vision": false
+        }
+      }
+    },
+    {
+      "id": "E04.code",
+      "what": "pickLocalModel(\"code\")",
+      "status": "observed",
+      "detail": {
+        "picked": {
+          "id": "qwen3-coder:30b",
+          "gb": 18.56,
+          "paramsB": 30.5,
+          "profile": "code",
+          "label": "OCADE Local Code",
+          "vision": false
+        }
+      }
+    },
+    {
+      "id": "E04.fast",
+      "what": "pickLocalModel(\"fast\")",
+      "status": "observed",
+      "detail": {
+        "picked": {
+          "id": "deepseek-coder:6.7b",
+          "gb": 3.83,
+          "paramsB": 7,
+          "profile": "code",
+          "label": "OCADE Local Code",
+          "vision": false
+        }
+      }
+    },
+    {
+      "id": "E04.vision",
+      "what": "pickLocalModel(\"vision\")",
+      "status": "observed",
+      "detail": {
+        "picked": null
+      }
+    },
+    {
+      "id": "E05",
+      "what": "real local inference on deepseek-coder:6.7b",
+      "status": "observed",
+      "detail": {
+        "model": "deepseek-coder:6.7b",
+        "gb": 3.83,
+        "firstTokenMs": 1265,
+        "totalMs": 2656,
+        "reply": "OCADE_LOCAL_OK",
+        "containsMarker": true
+      }
+    },
+    {
+      "id": "E06",
+      "what": "cancellation aborts an in-flight stream and reports `cancelled`",
+      "status": "observed",
+      "detail": {
+        "ok": false,
+        "reason": "cancelled",
+        "elapsedMs": 1521
+      }
+    },
+    {
+      "id": "E07",
+      "what": "structured (tool-shaped) output parses as JSON",
+      "status": "observed",
+      "detail": {
+        "totalMs": 6471,
+        "parsed": {
+          "tool": "open_file",
+          "path": "/tmp/a.txt"
+        },
+        "rawPreview": "{\n\"tool\": \"open_file\",\n\"path\": \"/tmp/a.txt\"\n}"
+      }
+    },
+    {
+      "id": "E08",
+      "what": "unreachable bridge reports unhealthy without throwing or fabricating models",
+      "status": "observed",
+      "detail": {
+        "ok": false,
+        "reachable": false,
+        "reason": "Local engine unreachable.",
+        "models": 0
+      }
+    },
+    {
+      "id": "E09",
+      "what": "no local engine + no cloud permission produces an explicit failure step",
+      "status": "observed",
+      "detail": [
+        {
+          "kind": "fail",
+          "label": null,
+          "modelId": null,
+          "detail": "You're offline and no local engine is installed yet."
+        }
+      ]
+    },
+    {
+      "id": "E10",
+      "what": "hardware-BLIND chain (pre-fix behaviour, kept for contrast)",
+      "status": "observed",
+      "detail": [
+        {
+          "kind": "local_preferred",
+          "label": "OCADE Local Code",
+          "modelId": "qwen3-coder:30b",
+          "detail": "Preferred on-device engine (OCADE Local Code)."
+        },
+        {
+          "kind": "local_secondary",
+          "label": "OCADE Local Code",
+          "modelId": "qwen2.5-coder:7b",
+          "detail": "Secondary on-device engine."
+        },
+        {
+          "kind": "local_lightweight",
+          "label": "OCADE Local Fast",
+          "modelId": "deepseek-coder:6.7b",
+          "detail": "Lightweight on-device engine for low resources."
+        },
+        {
+          "kind": "local_reduced",
+          "label": "OCADE Local",
+          "modelId": null,
+          "detail": "Reduced offline response from local capability only."
+        }
+      ]
+    },
+    {
+      "id": "E11",
+      "what": "hardware-aware chain excludes every model this machine cannot hold",
+      "status": "observed",
+      "detail": {
+        "totalRamGb": 16.8,
+        "ceilingGb": 13.44,
+        "excluded": [
+          {
+            "id": "qwen3-coder:30b",
+            "needsGb": 22.27,
+            "reason": "qwen3-coder:30b needs about 22.3 GB of RAM but only 13.4 GB of this machine's 16.8 GB can safely be used."
+          }
+        ],
+        "chain": [
+          {
+            "kind": "local_preferred",
+            "modelId": "qwen2.5-coder:7b"
+          },
+          {
+            "kind": "local_secondary",
+            "modelId": "deepseek-coder:6.7b"
+          },
+          {
+            "kind": "local_reduced",
+            "modelId": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "E12",
+      "what": "selection for `code` is now runnable on this machine",
+      "status": "observed",
+      "detail": {
+        "hardwareBlindPick": {
+          "id": "qwen3-coder:30b",
+          "gb": 18.56,
+          "paramsB": 30.5,
+          "profile": "code",
+          "label": "OCADE Local Code",
+          "vision": false
+        },
+        "hardwareAwarePick": {
+          "id": "qwen2.5-coder:7b",
+          "gb": 4.68,
+          "paramsB": 7.6,
+          "profile": "code",
+          "label": "OCADE Local Code",
+          "vision": false
+        },
+        "excluded": [
+          "qwen3-coder:30b"
+        ]
+      }
+    }
+  ]
+}

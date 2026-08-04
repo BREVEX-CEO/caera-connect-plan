@@ -42,7 +42,10 @@ function DemoMadee() {
           <h3 className="mb-2 text-sm font-semibold text-foreground">Skills</h3>
           <div className="flex flex-wrap gap-2">
             {r.skills.map((s) => (
-              <span key={s} className="rounded-full border border-border/60 bg-background/40 px-2.5 py-0.5 text-xs text-muted-foreground">
+              <span
+                key={s}
+                className="rounded-full border border-border/60 bg-background/40 px-2.5 py-0.5 text-xs text-muted-foreground"
+              >
                 {s}
               </span>
             ))}
@@ -51,7 +54,12 @@ function DemoMadee() {
         <div className="flex items-center gap-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
           <Ban className="h-3.5 w-3.5 text-amber-300" aria-hidden />
           <span>Editing and exporting are disabled in demo.</span>
-          <button disabled className="ml-auto inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border border-border/60 bg-background/30 px-2 py-1 opacity-60">
+          <button
+            disabled
+            title="Exporting is disabled in demo mode. Sign in to export a real resume."
+            aria-label="Export PDF (disabled in demo mode)"
+            className="ml-auto inline-flex cursor-not-allowed items-center gap-1.5 rounded-md border border-border/60 bg-background/30 px-2 py-1 opacity-60"
+          >
             <Download className="h-3.5 w-3.5" aria-hidden />
             Export PDF
           </button>

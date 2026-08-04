@@ -23,16 +23,22 @@ export function calcIncomeTaxNewRegime(
   const std = Number(it.standard_deduction_salary ?? 0);
   const rebateUpto = Number(it.rebate_87a_new_regime_upto ?? 0);
 
-  const taxable = Math.max(
-    0,
-    (input.gross_salary ?? 0) + (input.other_income ?? 0) - std,
-  );
-  let remaining = taxable;
+  const taxable = Math.max(0, (input.gross_salary ?? 0) + (input.other_income ?? 0) - std);
   let prev = 0;
   let tax = 0;
   for (const s of slabs) {
     const cap = s.upto ?? Infinity;
-    const band = Math.max(0, Math.min(remaining, cap - prev));
+    /**
+     * Only the income that actually falls INSIDE this slab is taxed at its
+     * rate: that is the width of the band (`cap - prev`) capped by how much
+     * income is left above the previous slab (`taxable - prev`).
+     *
+     * Using the full taxable amount here instead of the remainder above `prev`
+     * charges the final, partially-filled slab at its whole width — e.g. a
+     * taxable income of 1,000,000 against the standard slabs would be taxed
+     * 90,000 instead of the correct 60,000.
+     */
+    const band = Math.max(0, Math.min(taxable - prev, cap - prev));
     tax += (band * s.rate) / 100;
     prev = cap;
     if (taxable <= cap) break;
@@ -99,11 +105,7 @@ export function calcEsi(rules: Rules, input: { wage: number }) {
   };
 }
 
-export type CalculatorId =
-  | "income_tax.new_regime"
-  | "tds.section"
-  | "payroll.pf"
-  | "payroll.esi";
+export type CalculatorId = "income_tax.new_regime" | "tds.section" | "payroll.pf" | "payroll.esi";
 
 export function runCalculator(
   calc: string,

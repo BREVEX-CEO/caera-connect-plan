@@ -10,6 +10,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import {
+  evaluateRolloutAdvance,
+  validateControlledGateAttestation,
+  type LaunchGateStatus,
+  type RolloutLaunchGate,
+  type RolloutStage,
+} from "@/lib/control/controlled-rollout";
 
 const STATUS = [
   "not_started",
@@ -29,16 +36,17 @@ const updateItemInput = z.object({
   reviewer: z.string().max(200).nullable().optional(),
   evidence_url: z.string().url().max(500).nullable().optional(),
   applicable_modules: z.array(z.string().max(64)).max(20).optional(),
-  due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  due_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
   blocker: z.boolean().optional(),
   notes: z.string().max(2000).nullable().optional(),
   history_note: z.string().max(500).optional(),
 });
 
-async function assertAdmin(
-  supabase: { from: (t: string) => any },
-  userId: string,
-) {
+async function assertAdmin(supabase: { from: (t: string) => any }, userId: string) {
   const { data, error } = await supabase
     .from("user_roles")
     .select("role")
@@ -49,7 +57,6 @@ async function assertAdmin(
     throw new Response("Forbidden: admin role required", { status: 403 });
   }
 }
-
 
 export const updateLaunchGateItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -65,6 +72,30 @@ export const updateLaunchGateItem = createServerFn({ method: "POST" })
       .maybeSingle();
     if (readErr || !existing) {
       throw new Response("Launch gate item not found", { status: 404 });
+    }
+
+    const attestationIssues = validateControlledGateAttestation({
+      key: existing.key,
+      status: (data.status ?? existing.status) as LaunchGateStatus,
+      owner: data.owner !== undefined ? data.owner : existing.owner,
+      reviewer: data.reviewer !== undefined ? data.reviewer : existing.reviewer,
+      evidence_url: data.evidence_url !== undefined ? data.evidence_url : existing.evidence_url,
+    });
+    if (attestationIssues.length > 0) {
+      await supabaseAdmin.from("compliance_audit_log").insert({
+        user_id: context.userId,
+        tenant_id: null,
+        action: "admin.launch_gate.refused",
+        feature_id: "admin.launch_gate",
+        category: "approval",
+        preview: {
+          item_id: data.id,
+          key: existing.key,
+          to_status: data.status ?? existing.status,
+          refusal_reasons: attestationIssues,
+        } as never,
+      });
+      return { ok: false as const, message: attestationIssues.join(" ") };
     }
 
     const patch: Record<string, unknown> = { updated_by: context.userId };
@@ -129,11 +160,17 @@ export const upsertFeatureFlag = createServerFn({ method: "POST" })
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { data: existing } = await supabaseAdmin
+    const { data: existing, error: existingError } = await supabaseAdmin
       .from("feature_flags")
       .select("*")
       .eq("id", data.id)
       .maybeSingle();
+    if (existingError) {
+      return {
+        ok: false as const,
+        message: `Feature flag state could not be verified: ${existingError.message}`,
+      };
+    }
 
     const row: Record<string, unknown> = {
       id: data.id,
@@ -143,6 +180,44 @@ export const upsertFeatureFlag = createServerFn({ method: "POST" })
     row.stage = data.stage ?? existing?.stage ?? "demo";
     row.applicable_modules = data.applicable_modules ?? existing?.applicable_modules ?? [];
     row.description = data.description ?? existing?.description ?? null;
+
+    const { data: gateRows, error: gatesError } = await supabaseAdmin
+      .from("launch_gate_items")
+      .select("key,status,blocker,owner,reviewer,evidence_url,applicable_modules");
+    if (gatesError) {
+      return {
+        ok: false as const,
+        message: `Rollout gates could not be verified: ${gatesError.message}`,
+      };
+    }
+
+    const decision = evaluateRolloutAdvance({
+      fromStage: (existing?.stage ?? null) as RolloutStage | null,
+      toStage: row.stage as RolloutStage,
+      enabled: row.enabled as boolean,
+      applicableModules: row.applicable_modules as string[],
+      gates: (gateRows ?? []) as RolloutLaunchGate[],
+    });
+    if (!decision.allowed) {
+      await supabaseAdmin.from("compliance_audit_log").insert({
+        user_id: context.userId,
+        tenant_id: null,
+        action: "admin.feature_flag.refused",
+        feature_id: "admin.launch_gate",
+        category: "approval",
+        preview: {
+          flag_id: data.id,
+          from_stage: decision.fromStage,
+          to_stage: decision.toStage,
+          refusal_codes: decision.refusals.map((refusal) => refusal.code),
+          gate_keys: decision.checkedGateKeys,
+        } as never,
+      });
+      return {
+        ok: false as const,
+        message: decision.refusals.map((refusal) => refusal.message).join(" "),
+      };
+    }
 
     const { error } = await supabaseAdmin.from("feature_flags").upsert(row as never);
     if (error) {

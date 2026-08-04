@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "item": "H3 - real DOM control on a real public site, Chrome and Edge",
+  "generatedAt": "2026-08-02T11:55:19.864Z",
+  "site": "https://en.wikipedia.org/wiki/Main_Page?useskin=monobook",
+  "verdict": "PROVEN",
+  "method": "OCADE filled a real input and submitted a real form through its own form.fill / form.submit protocol. Every outcome was then read back independently from the page — the value sitting in the DOM, and the URL and title after submission — rather than trusting the extension's reply.",
+  "permissionNote": "chrome.permissions.request requires a user activation, so it was called with Runtime.evaluate userGesture. That supplies the same activation a real click does; it does not bypass the consent check, which still had to return true.",
+  "browsers": [
+    {
+      "browser": "chrome",
+      "version": "Chrome/150.0.7871.187",
+      "site": "https://en.wikipedia.org/wiki/Main_Page?useskin=monobook",
+      "permissionGranted": true,
+      "fillReply": {
+        "ok": true,
+        "kind": "form.fill",
+        "data": {
+          "filled": 1,
+          "healed": 0,
+          "ok": true
+        }
+      },
+      "valueReadBackFromDom": "Extensible Markup Language",
+      "fillVerifiedIndependently": true,
+      "submitReply": {
+        "ok": true,
+        "kind": "form.submit",
+        "data": {
+          "healed": false,
+          "ok": true
+        }
+      },
+      "urlAfterSubmit": "https://en.wikipedia.org/wiki/XML",
+      "titleAfterSubmit": "XML - Wikipedia",
+      "navigated": true,
+      "resultingUrlCarriesTheQuery": true
+    },
+    {
+      "browser": "edge",
+      "version": "Edg/151.0.4129.59",
+      "site": "https://en.wikipedia.org/wiki/Main_Page?useskin=monobook",
+      "permissionGranted": true,
+      "fillReply": {
+        "ok": true,
+        "kind": "form.fill",
+        "data": {
+          "filled": 1,
+          "healed": 0,
+          "ok": true
+        }
+      },
+      "valueReadBackFromDom": "Extensible Markup Language",
+      "fillVerifiedIndependently": true,
+      "submitReply": {
+        "ok": true,
+        "kind": "form.submit",
+        "data": {
+          "healed": false,
+          "ok": true
+        }
+      },
+      "urlAfterSubmit": "https://en.wikipedia.org/wiki/XML",
+      "titleAfterSubmit": "XML - Wikipedia",
+      "navigated": true,
+      "resultingUrlCarriesTheQuery": true
+    }
+  ]
+}

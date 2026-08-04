@@ -10,10 +10,22 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import {
-  aesGcmDecrypt, aesGcmEncrypt, b64decode, b64encode,
-  createPrfCredential, deriveKeyFromPassphrase, evaluatePrf,
-  exportRawKey, formatRecoveryKit, generateDek, generateRecoveryKey,
-  importRawKey, keyFromMaterial, parseRecoveryKit, randomBytes, sha256,
+  aesGcmDecrypt,
+  aesGcmEncrypt,
+  b64decode,
+  b64encode,
+  createPrfCredential,
+  deriveKeyFromPassphrase,
+  evaluatePrf,
+  exportRawKey,
+  formatRecoveryKit,
+  generateDek,
+  generateRecoveryKey,
+  importRawKey,
+  keyFromMaterial,
+  parseRecoveryKit,
+  randomBytes,
+  sha256,
   webauthnPrfSupported,
 } from "./vault-crypto";
 import { lock, setLockTimeout, unlockWith } from "./vault-session";
@@ -36,7 +48,12 @@ type VaultRow = {
 };
 
 export async function loadVaultConfig(userId: string): Promise<VaultRow | null> {
-  const { data } = await supabase.from("vault_config").select("*").eq("user_id", userId).maybeSingle();
+  const { data, error } = await supabase
+    .from("vault_config")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
   return (data as VaultRow | null) ?? null;
 }
 
@@ -56,11 +73,14 @@ async function unwrapDek(kek: CryptoKey, wrappedB64: string, ivB64: string): Pro
 // ---------- Setup ----------
 
 export interface SetupResult {
-  recoveryKit: string;      // display once, never stored
+  recoveryKit: string; // display once, never stored
   credentialKind: "passphrase" | "webauthn_prf";
 }
 
-export async function setupWithPassphrase(userId: string, passphrase: string): Promise<SetupResult> {
+export async function setupWithPassphrase(
+  userId: string,
+  passphrase: string,
+): Promise<SetupResult> {
   if (passphrase.length < 12) throw new Error("Use a passphrase of at least 12 characters.");
   const dek = await generateDek();
   const dekRaw = await exportRawKey(dek);
@@ -70,7 +90,7 @@ export async function setupWithPassphrase(userId: string, passphrase: string): P
   const wrap = await wrapDek(kek, dekRaw);
   const recovery = await buildRecoveryWrap(dekRaw);
 
-  const { error } = await supabase.from("vault_config").upsert({
+  const { error } = await supabase.from("vault_config").insert({
     user_id: userId,
     credential_kind: "passphrase",
     kdf_algo: "PBKDF2-SHA256",
@@ -102,7 +122,7 @@ export async function setupWithWebAuthn(userId: string, label: string): Promise<
   const wrap = await wrapDek(kek, dekRaw);
   const recovery = await buildRecoveryWrap(dekRaw);
 
-  const { error } = await supabase.from("vault_config").upsert({
+  const { error } = await supabase.from("vault_config").insert({
     user_id: userId,
     credential_kind: "webauthn_prf",
     kdf_algo: "HKDF-SHA256",
@@ -143,38 +163,64 @@ async function buildRecoveryWrap(dekRaw: Uint8Array) {
 export async function unlockWithPassphrase(userId: string, passphrase: string): Promise<void> {
   const cfg = await loadVaultConfig(userId);
   if (!cfg) throw new Error("No vault configured.");
-  if (cfg.credential_kind !== "passphrase") throw new Error("This vault uses a different unlock method.");
-  const kek = await deriveKeyFromPassphrase(passphrase, b64decode(cfg.kdf_salt), cfg.kdf_iterations);
+  if (cfg.credential_kind !== "passphrase")
+    throw new Error("This vault uses a different unlock method.");
+  const kek = await deriveKeyFromPassphrase(
+    passphrase,
+    b64decode(cfg.kdf_salt),
+    cfg.kdf_iterations,
+  );
   const dek = await unwrapDek(kek, cfg.wrapped_dek, cfg.wrapped_dek_iv).catch(() => {
     throw new Error("Wrong passphrase.");
   });
   setLockTimeout(cfg.lock_timeout_seconds);
   unlockWith(dek);
-  await supabase.from("vault_config").update({ last_unlocked_at: new Date().toISOString() }).eq("user_id", userId);
+  await supabase
+    .from("vault_config")
+    .update({ last_unlocked_at: new Date().toISOString() })
+    .eq("user_id", userId);
 }
 
 export async function unlockWithWebAuthn(userId: string): Promise<void> {
   const cfg = await loadVaultConfig(userId);
-  if (!cfg || cfg.credential_kind !== "webauthn_prf" || !cfg.webauthn_credential_id || !cfg.webauthn_prf_salt)
+  if (
+    !cfg ||
+    cfg.credential_kind !== "webauthn_prf" ||
+    !cfg.webauthn_credential_id ||
+    !cfg.webauthn_prf_salt
+  )
     throw new Error("This vault does not use WebAuthn.");
-  const prf = await evaluatePrf(b64decode(cfg.webauthn_credential_id), b64decode(cfg.webauthn_prf_salt));
+  const prf = await evaluatePrf(
+    b64decode(cfg.webauthn_credential_id),
+    b64decode(cfg.webauthn_prf_salt),
+  );
   const kek = await keyFromMaterial(prf, b64decode(cfg.kdf_salt));
   const dek = await unwrapDek(kek, cfg.wrapped_dek, cfg.wrapped_dek_iv).catch(() => {
     throw new Error("Authenticator did not unlock this vault.");
   });
   setLockTimeout(cfg.lock_timeout_seconds);
   unlockWith(dek);
-  await supabase.from("vault_config").update({ last_unlocked_at: new Date().toISOString() }).eq("user_id", userId);
+  await supabase
+    .from("vault_config")
+    .update({ last_unlocked_at: new Date().toISOString() })
+    .eq("user_id", userId);
 }
 
 export async function unlockWithRecoveryKit(userId: string, kit: string): Promise<void> {
   const raw = parseRecoveryKit(kit);
   if (!raw) throw new Error("Recovery kit format is invalid.");
   const cfg = await loadVaultConfig(userId);
-  if (!cfg || !cfg.recovery_wrapped_dek || !cfg.recovery_wrapped_dek_iv || !cfg.recovery_salt || !cfg.recovery_verifier)
+  if (
+    !cfg ||
+    !cfg.recovery_wrapped_dek ||
+    !cfg.recovery_wrapped_dek_iv ||
+    !cfg.recovery_salt ||
+    !cfg.recovery_verifier
+  )
     throw new Error("No recovery kit is registered on this vault.");
   const verifier = await sha256(raw);
-  if (b64encode(verifier) !== cfg.recovery_verifier) throw new Error("Recovery kit does not match.");
+  if (b64encode(verifier) !== cfg.recovery_verifier)
+    throw new Error("Recovery kit does not match.");
   const kek = await keyFromMaterial(raw, b64decode(cfg.recovery_salt));
   const dek = await unwrapDek(kek, cfg.recovery_wrapped_dek, cfg.recovery_wrapped_dek_iv);
   setLockTimeout(cfg.lock_timeout_seconds);
@@ -195,21 +241,28 @@ export async function rotatePassphrase(userId: string, next: string): Promise<vo
   const { requireKey } = await import("./vault-session");
   const dekRaw = await exportRawKey(requireKey());
   const wrap = await wrapDek(kek, dekRaw);
-  const { error } = await supabase.from("vault_config").update({
-    credential_kind: "passphrase",
-    kdf_algo: "PBKDF2-SHA256",
-    kdf_salt: b64encode(salt),
-    kdf_iterations: iterations,
-    wrapped_dek: wrap.wrapped,
-    wrapped_dek_iv: wrap.iv,
-    last_rotated_at: new Date().toISOString(),
-  }).eq("user_id", userId);
+  const { error } = await supabase
+    .from("vault_config")
+    .update({
+      credential_kind: "passphrase",
+      kdf_algo: "PBKDF2-SHA256",
+      kdf_salt: b64encode(salt),
+      kdf_iterations: iterations,
+      wrapped_dek: wrap.wrapped,
+      wrapped_dek_iv: wrap.iv,
+      last_rotated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userId);
   if (error) throw error;
 }
 
 export async function updateLockTimeout(userId: string, seconds: number) {
+  if (!Number.isFinite(seconds)) throw new Error("Choose a valid auto-lock timeout.");
   const clamped = Math.min(86400, Math.max(60, Math.round(seconds)));
-  const { error } = await supabase.from("vault_config").update({ lock_timeout_seconds: clamped }).eq("user_id", userId);
+  const { error } = await supabase
+    .from("vault_config")
+    .update({ lock_timeout_seconds: clamped })
+    .eq("user_id", userId);
   if (error) throw error;
   setLockTimeout(clamped);
 }

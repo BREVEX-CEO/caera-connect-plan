@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "phase": 27,
+  "name": "Unknown-App Learning and Digital Twins",
+  "classification": "VERIFIED COMPLETE",
+  "runtimeClassification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+  "branch": "feat/ocade-implementation",
+  "head": "52cd6cf4cc312d9072d8e1ce1fefdc740d193a76",
+  "sourceScore": 96,
+  "deterministicFixtureRuntimeScore": 94,
+  "liveApplicationRuntimeScore": 0,
+  "verifiedApplicationCoverage": 0,
+  "stage2Readiness": {
+    "source": 56,
+    "sourceRemaining": 44,
+    "windowsRuntime": 2,
+    "browserRuntime": 0,
+    "verifiedApplicationCoverage": 0,
+    "production": 24
+  },
+  "implementationPhasesRemaining": 12,
+  "externalValidationTracksRemaining": 8,
+  "nextDependency": {
+    "phase": 28,
+    "name": "Chrome and Edge control"
+  },
+  "verifiedSourceCapabilities": [
+    "explicitly approved unfamiliar-application probing",
+    "executable publisher signature product and version identity",
+    "locale theme display-scale plug-in and layout discovery",
+    "window view menu control command shortcut and file-type maps",
+    "approved local help log and project-format evidence boundaries",
+    "capability graph closed over observed route candidates",
+    "protected and destructive area declarations",
+    "independent verification and ready recovery methods",
+    "resource profile and compatibility constraints",
+    "complete versioned Application Digital Twin",
+    "structural fingerprint across every required invalidator",
+    "bounded temporary-file duplicate-project undoable or no-op rehearsal",
+    "task and application scoped permission",
+    "single bounded execution through the universal route selector",
+    "post-execution independent verification",
+    "recovery on execution or verification failure",
+    "private fingerprint and version constrained skill compilation",
+    "coupled twin and compiled-skill cache invalidation",
+    "safe stale-fingerprint refusal before execution",
+    "production Software Skills status integration",
+    "specification-exact honest support labels"
+  ],
+  "controlledEvidence": [
+    "a controlled unfamiliar test application is probed and learned",
+    "the controlled application is rehearsed on a temporary copy",
+    "a task-scoped export permission is requested before execution",
+    "the universal selector chooses the observed CLI route",
+    "one bounded CLI step is executed and independently file-verified",
+    "the verified recipe is compiled as private and fingerprint-bound",
+    "a version plug-in and layout change invalidates both twin and skill before execution",
+    "the changed controlled application is relearned operated and verified",
+    "permission denial prevents execution",
+    "failed verification invokes recovery and compiles no skill",
+    "high-risk coordinate-only control is refused before rehearsal",
+    "cancellation prevents probing"
+  ],
+  "runtimeClaims": {
+    "unfamiliarInstalledApplicationProbed": false,
+    "liveApplicationTwinBuilt": false,
+    "liveApplicationRehearsed": false,
+    "liveApplicationOperated": false,
+    "liveApplicationVerified": false,
+    "livePrivateSkillCompiled": false,
+    "liveApplicationInvalidatedAndRelearned": false
+  },
+  "runtimeBlockers": [
+    "The unfamiliar application lifecycle is verified against a deterministic controlled host, not an installed third-party application.",
+    "The signed Tauri companion cannot link because MSVC link.exe is absent.",
+    "This managed session exposes no approved interactive application window for safe temporary-data probing.",
+    "No real application identity, licence, project copy, accessibility tree, CLI or official integration has been approved for Phase 27 runtime evidence.",
+    "Verified application coverage remains zero until a live app is learned operated verified invalidated and relearned with recorded receipts."
+  ]
+}

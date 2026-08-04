@@ -1,0 +1,354 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-03T15:46:38.160Z",
+  "tier": "REAL TARGET RUNTIME VERIFIED",
+  "caveat": "Observed on ONE machine against ONE local engine build. Single-host evidence is not a platform matrix. This covers the engine and the modules the chat screen calls; it does NOT cover the authenticated browser UI, which requires a signed-in session.",
+  "host": {
+    "platform": "win32",
+    "arch": "x64",
+    "node": "v24.16.0",
+    "bridge": "http://localhost:11434"
+  },
+  "summary": {
+    "observed": 19,
+    "failed": 0,
+    "skipped": 0,
+    "total": 19
+  },
+  "steps": [
+    {
+      "id": "E01",
+      "what": "local engine client version",
+      "status": "observed",
+      "detail": "ollama version is 0.30.11"
+    },
+    {
+      "id": "E02",
+      "what": "measureHardware() + profileFrom() on this machine",
+      "status": "observed",
+      "detail": {
+        "platform": "win32 10.0.19045",
+        "cpu": "11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz",
+        "totalRamGib": 15.65,
+        "freeRamGib": 1.17,
+        "freeStorageGib": 56.38,
+        "discreteGpu": false,
+        "gpuCertain": true
+      }
+    },
+    {
+      "id": "E03",
+      "what": "selectTier() picks a tier this machine can run",
+      "status": "observed",
+      "detail": {
+        "chosen": "qwen3:8b",
+        "downloadGib": 4.87,
+        "because": "This machine has 15.65 GB of memory and no dedicated graphics card, so OCADE selected the engine matched to that hardware. It downloads about 4.87 GB and runs entirely on this computer.",
+        "skipped": [
+          {
+            "tag": "qwen3:30b-a3b",
+            "why": "needs a dedicated graphics card; measured at under half the speed of a smaller model without one"
+          },
+          {
+            "tag": "qwen3:14b",
+            "why": "needs a dedicated graphics card; measured at under half the speed of a smaller model without one"
+          }
+        ]
+      }
+    },
+    {
+      "id": "E04",
+      "what": "discoverLocalModels() against the live engine",
+      "status": "observed",
+      "detail": {
+        "reachable": true,
+        "version": "0.30.11",
+        "models": [
+          {
+            "id": "qwen2.5vl:7b",
+            "gb": 5.97,
+            "profile": "vision",
+            "label": "OCADE Local Vision",
+            "vision": true
+          },
+          {
+            "id": "qwen3:14b",
+            "gb": 9.28,
+            "profile": "general",
+            "label": "OCADE Local",
+            "vision": false
+          },
+          {
+            "id": "qwen3:8b",
+            "gb": 5.23,
+            "profile": "general",
+            "label": "OCADE Local",
+            "vision": false
+          },
+          {
+            "id": "qwen3:4b",
+            "gb": 2.5,
+            "profile": "fast",
+            "label": "OCADE Local Fast",
+            "vision": false
+          },
+          {
+            "id": "qwen3:1.7b",
+            "gb": 1.36,
+            "profile": "fast",
+            "label": "OCADE Local Fast",
+            "vision": false
+          },
+          {
+            "id": "deepseek-coder:6.7b",
+            "gb": 3.83,
+            "profile": "code",
+            "label": "OCADE Local Code",
+            "vision": false
+          },
+          {
+            "id": "qwen3-coder:30b",
+            "gb": 18.56,
+            "profile": "code",
+            "label": "OCADE Local Code",
+            "vision": false
+          },
+          {
+            "id": "qwen2.5-coder:7b",
+            "gb": 4.68,
+            "profile": "code",
+            "label": "OCADE Local Code",
+            "vision": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "E05",
+      "what": "remote ':cloud' aliases are excluded from on-device discovery",
+      "status": "observed",
+      "detail": {
+        "rawNames": [
+          "qwen2.5vl:7b",
+          "qwen3:14b",
+          "qwen3:8b",
+          "qwen3:4b",
+          "qwen3:1.7b",
+          "deepseek-coder:6.7b",
+          "qwen3-coder:30b",
+          "qwen2.5-coder:7b",
+          "deepseek-v4-pro:cloud"
+        ],
+        "pointers": [
+          "deepseek-v4-pro:cloud"
+        ],
+        "leaked": []
+      }
+    },
+    {
+      "id": "E06",
+      "what": "routeTask('general') chooses the device-matched engine, not merely the largest that fits",
+      "status": "observed",
+      "detail": {
+        "chosen": "qwen3:8b",
+        "tierPolicyChose": "qwen3:8b",
+        "basis": "device_matched",
+        "rejected": [
+          {
+            "modelId": "qwen3-coder:30b",
+            "why": "qwen3-coder:30b needs about 22.3 GB of RAM but only 13.4 GB of this machine's 16.8 GB can safely be used."
+          },
+          {
+            "modelId": "qwen3:14b",
+            "why": "needs a dedicated graphics card; without one it is measurably slower than a smaller model"
+          },
+          {
+            "modelId": "qwen3:4b",
+            "why": "leaks its own reasoning into replies despite think:false, producing 274-448 tokens where other tiers use 50-56"
+          },
+          {
+            "modelId": "qwen2.5vl:7b",
+            "why": "profile \"vision\" is not suitable for general"
+          }
+        ],
+        "priorDefectMeasured": "Before this policy was applied the router chose qwen3:14b on this same machine and took 184,260 ms to first token for a one-word answer."
+      }
+    },
+    {
+      "id": "E07",
+      "what": "verifyInstalled() confirms presence and reads a digest",
+      "status": "observed",
+      "detail": {
+        "ok": true,
+        "modelId": "qwen3:8b",
+        "sizeBytes": 5225388164,
+        "digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+        "digestVerified": true
+      }
+    },
+    {
+      "id": "E08",
+      "what": "streamLocalChat() returns a REAL answer, verified against ground truth",
+      "status": "observed",
+      "detail": {
+        "model": "qwen3:8b",
+        "firstTokenMs": 27217,
+        "totalMs": 28370,
+        "tokensPerSecondApprox": 0.05,
+        "groundTruth": "Tokyo",
+        "containsGroundTruth": true,
+        "reply": "Tokyo."
+      }
+    },
+    {
+      "id": "E09",
+      "what": "output arrives incrementally over time rather than in one final chunk",
+      "status": "observed",
+      "detail": {
+        "chunks": 9,
+        "firstChunkMs": 3984,
+        "lastChunkMs": 6310,
+        "spreadMs": 2326,
+        "charsStreamed": 36
+      }
+    },
+    {
+      "id": "E10",
+      "what": "stop cancels a real in-flight generation and no further tokens arrive",
+      "status": "observed",
+      "detail": {
+        "reason": "cancelled",
+        "cancelledAfterMs": 5060,
+        "tokensBeforeStop": 5,
+        "tokensAfterStopIncludingGracePeriod": 0,
+        "returnedMs": 5840
+      }
+    },
+    {
+      "id": "E11",
+      "what": "a failed request reports honestly, and an immediate retry succeeds",
+      "status": "observed",
+      "detail": {
+        "failure": "Local engine unreachable.",
+        "retrySucceeded": true,
+        "retryReply": "OCADE_RETRY_OK"
+      }
+    },
+    {
+      "id": "E12",
+      "what": "activateModel() proves readiness by inference AND cancellation",
+      "status": "observed",
+      "detail": {
+        "ok": true,
+        "inferenceOk": true,
+        "cancellationOk": true,
+        "firstTokenMs": 3797,
+        "replyPreview": "OCADE_READY"
+      }
+    },
+    {
+      "id": "E13",
+      "what": "a real vision model reads a generated image, checked against ground truth",
+      "status": "observed",
+      "detail": {
+        "model": "qwen2.5vl:7b",
+        "elapsedMs": 238187,
+        "groundTruth": {
+          "code": "742913",
+          "tallestBar": "C"
+        },
+        "readCodeCorrectly": true,
+        "identifiedTallestBar": true,
+        "reply": "(1) The exact code printed in red is 742913.\n(2) The tallest bar is C.",
+        "artefact": "release/artefacts/OCADE_VISION_GROUND_TRUTH.png"
+      }
+    },
+    {
+      "id": "E14",
+      "what": "an unreachable engine reports unhealthy without fabricating models",
+      "status": "observed",
+      "detail": {
+        "ok": false,
+        "reachable": false,
+        "models": [],
+        "reason": "Local engine unreachable."
+      }
+    },
+    {
+      "id": "E15",
+      "what": "vision with no vision model refuses instead of substituting a text model",
+      "status": "observed",
+      "detail": {
+        "picked": null,
+        "planKinds": [
+          "local_secondary",
+          "local_lightweight",
+          "local_reduced"
+        ]
+      }
+    },
+    {
+      "id": "E16",
+      "what": "the disk pre-flight refuses before a download, not after it fails",
+      "status": "observed",
+      "detail": {
+        "modelGb": 5.23,
+        "refusedWhenHalfTheModelIsFree": true,
+        "refusalReason": "Needs about 6.0 GB of free disk (model plus working space) but only 2.6 GB is free.",
+        "allowedWithHeadroom": true
+      }
+    },
+    {
+      "id": "E17",
+      "what": "models this machine cannot hold are excluded with a stated reason",
+      "status": "observed",
+      "detail": {
+        "totalRamGib": 15.65,
+        "excluded": [
+          {
+            "id": "qwen3-coder:30b",
+            "needGb": 22.27,
+            "reason": "qwen3-coder:30b needs about 22.3 GB of RAM but only 13.4 GB of this machine's 16.8 GB can safely be used."
+          }
+        ]
+      }
+    },
+    {
+      "id": "E18",
+      "what": "a missing/corrupt model is detected and a concrete repair is planned",
+      "status": "observed",
+      "detail": {
+        "verify": {
+          "ok": false,
+          "failure": "not_installed",
+          "reason": "ocade-does-not-exist:latest is not installed — the download reported success but the model is not present."
+        },
+        "missingModelRepair": {
+          "kind": "reinstall",
+          "modelId": "ocade-does-not-exist:latest",
+          "why": "ocade-does-not-exist:latest is missing and needs to be downloaded again."
+        },
+        "damagedModelRepair": {
+          "kind": "reinstall",
+          "modelId": "qwen3:8b",
+          "why": "qwen3:8b is installed but failed to answer, which usually means a damaged download."
+        }
+      }
+    },
+    {
+      "id": "E19",
+      "what": "rollback targets the manifest's previous tier, and refuses when it is absent",
+      "status": "observed",
+      "detail": {
+        "rollback": {
+          "target": "qwen3:4b",
+          "reason": "Going back to qwen3:4b, which was working before qwen3:8b."
+        },
+        "refusedWhenTargetMissing": {
+          "target": null,
+          "reason": "The earlier model qwen3:0.1b-not-installed is no longer installed, so rolling back would leave no engine at all."
+        }
+      }
+    }
+  ]
+}

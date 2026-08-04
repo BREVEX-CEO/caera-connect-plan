@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "owner": "media-lab-runtime-owner",
+  "runtimeBoundary": "CI_OR_DISPOSABLE_VM_ONLY",
+  "evidenceClass": "SIMULATED MEDIA-LAB EVIDENCE ONLY",
+  "disposableRuntimeRequired": true,
+  "rawPayloadEvidenceAllowed": false,
+  "protectedContentRetentionAllowed": false,
+  "adapters": [
+    { "id": "audio-output", "permission": "media.audio.simulate" },
+    { "id": "microphone", "permission": "media.microphone.simulate" },
+    { "id": "camera", "permission": "media.camera.simulate" },
+    { "id": "display", "permission": "media.display.simulate" },
+    { "id": "clipboard", "permission": "media.clipboard.simulate" }
+  ],
+  "fixtures": [
+    {
+      "id": "audio.nominal",
+      "adapter": "audio-output",
+      "scenario": "nominal",
+      "seed": "ocade-audio",
+      "bytes": 2048
+    },
+    {
+      "id": "microphone.silence",
+      "adapter": "microphone",
+      "scenario": "silence",
+      "seed": "ocade-silence",
+      "bytes": 2048
+    },
+    {
+      "id": "microphone.noise",
+      "adapter": "microphone",
+      "scenario": "noise",
+      "seed": "ocade-noise",
+      "bytes": 4096
+    },
+    {
+      "id": "microphone.protected",
+      "adapter": "microphone",
+      "scenario": "protected-speech",
+      "seed": "ocade-protected",
+      "bytes": 1024
+    },
+    {
+      "id": "camera.nominal",
+      "adapter": "camera",
+      "scenario": "nominal",
+      "seed": "ocade-camera",
+      "bytes": 4096
+    },
+    {
+      "id": "camera.malformed",
+      "adapter": "camera",
+      "scenario": "malformed-frame",
+      "seed": "ocade-malformed",
+      "bytes": 512
+    },
+    {
+      "id": "display.long",
+      "adapter": "display",
+      "scenario": "long-stream",
+      "seed": "ocade-display",
+      "bytes": 8192
+    },
+    {
+      "id": "clipboard.nominal",
+      "adapter": "clipboard",
+      "scenario": "nominal",
+      "seed": "ocade-clipboard",
+      "bytes": 256
+    },
+    {
+      "id": "device.absent",
+      "adapter": "camera",
+      "scenario": "device-absence",
+      "seed": "ocade-absent",
+      "bytes": 64
+    },
+    {
+      "id": "permission.denied",
+      "adapter": "microphone",
+      "scenario": "permission-denial",
+      "seed": "ocade-denied",
+      "bytes": 64
+    },
+    {
+      "id": "device.unplugged",
+      "adapter": "camera",
+      "scenario": "hot-unplug",
+      "seed": "ocade-unplug",
+      "bytes": 64
+    },
+    {
+      "id": "resource.exhausted",
+      "adapter": "display",
+      "scenario": "resource-limit",
+      "seed": "ocade-limit",
+      "bytes": 131073
+    }
+  ],
+  "limits": {
+    "maxSessionMilliseconds": 60000,
+    "maxFixtureBytes": 131072,
+    "maxFrames": 600,
+    "maxClipboardCharacters": 4096,
+    "maxConcurrentSessions": 1
+  },
+  "requiredObservationFields": [
+    "fixtureId",
+    "inputDigest",
+    "consumedBytes",
+    "emittedDigest",
+    "frames",
+    "rawPayloadRetained"
+  ],
+  "recovery": {
+    "checkpointBeforeRun": true,
+    "maximumRetries": 1,
+    "releaseAdaptersOnExit": true,
+    "clearClipboardOnExit": true,
+    "userVisibleReasonRequired": true,
+    "auditReceiptRequired": true
+  }
+}

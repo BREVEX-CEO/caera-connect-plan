@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "phase": 23,
+  "name": "Secure generated-code sandbox",
+  "classification": "PARTIAL",
+  "branch": "feat/ocade-implementation",
+  "head": "52cd6cf4cc312d9072d8e1ce1fefdc740d193a76",
+  "sourceScore": 90,
+  "controlledJavascriptRuntimeScore": 84,
+  "securePythonRuntimeScore": 0,
+  "stage2Readiness": {
+    "source": 40,
+    "sourceRemaining": 60,
+    "runtime": 2,
+    "verifiedApplicationCoverage": 0,
+    "production": 20
+  },
+  "implementationPhasesRemaining": 16,
+  "externalValidationTracksRemaining": 8,
+  "nextDependency": {
+    "phase": 24,
+    "name": "Windows companion and permission setup"
+  },
+  "verifiedSourceCapabilities": [
+    "strict JavaScript and Python request admission with bounded source, files and limits",
+    "relative path normalization and disjoint read-only input and writable output scopes",
+    "import allowlist and explicit network approval contract",
+    "hard wall-time, CPU-time, memory, storage and output ceilings",
+    "Node permission model host with filesystem and child-process restrictions",
+    "isolated VM API exposing only readText, writeText, log and bounded sleep",
+    "dynamic string and WebAssembly code generation disabled",
+    "undeclared output, traversal, process, require, fetch and eval refusal",
+    "forced cancellation with observed child exit and no descendant creation authority",
+    "disposable temporary root removal before observation is returned",
+    "read-only input hash verification and declared output hash, byte, media-type and aggregate validation",
+    "exact before/after output previews",
+    "secret redaction from observations and accepted artifacts",
+    "verified-only script, receipt and output acceptance",
+    "active Code UI admission with an explicit disconnected-host boundary"
+  ],
+  "controlledRuntimeEvidence": {
+    "runtime": "Node.js v24 permission model plus isolated vm context",
+    "language": "javascript",
+    "realChildProcesses": true,
+    "escapeAttempts": [
+      "../ output traversal",
+      "undeclared output",
+      "process global",
+      "require global",
+      "fetch global",
+      "dynamic eval"
+    ],
+    "cancellation": "live 60-second script cancelled and child exit observed",
+    "cleanup": "temporary execution root removed before result validation",
+    "networkUsed": false
+  },
+  "runtimeClaims": {
+    "browserCanSpawnSandbox": false,
+    "desktopCompanionSandboxConnected": false,
+    "securePythonRuntime": false,
+    "networkEnabledSandbox": false,
+    "productionOsSandbox": false
+  },
+  "runtimeBlockers": [
+    "The browser cannot spawn the Node permission host; desktop companion wiring remains a later dependency.",
+    "No approved OS-grade Python isolation runtime is installed. OCADE refuses ordinary Python subprocess execution.",
+    "Production Windows AppContainer or equivalent macOS/Linux sandbox validation requires native toolchains and target hosts.",
+    "CPU accounting is bounded by wall-time in the JavaScript host; OS-level CPU quota attestation remains native work."
+  ]
+}

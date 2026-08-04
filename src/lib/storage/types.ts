@@ -50,8 +50,16 @@ export class StorageLockedError extends Error {
 }
 
 export class NativeCompanionRequiredError extends Error {
-  constructor() {
-    super("PC Device Vault requires the CAERA Native Companion. Not available in the browser yet.");
+  /**
+   * `message` is optional so other companion-gated surfaces (computer control,
+   * local engines) can give their own honest reason. Existing callers pass
+   * nothing and keep the original vault wording unchanged.
+   */
+  constructor(message?: string) {
+    super(
+      message ??
+        "PC Device Vault requires the CAERA Native Companion. Not available in the browser yet.",
+    );
     this.name = "NativeCompanionRequiredError";
   }
 }

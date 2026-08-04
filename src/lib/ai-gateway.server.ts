@@ -15,8 +15,24 @@ export function createLovableGateway(apiKey: string) {
   });
 }
 
+/**
+ * Direct OpenAI provider (server-only). Real alternate cloud path used when the
+ * user selects OpenAI-direct routing AND the platform has an OPENAI_API_KEY.
+ * The key is admin-managed infra and never reaches the client (decision #16).
+ */
+export function createOpenAIDirectGateway(apiKey: string) {
+  return createOpenAICompatible({
+    name: "openai",
+    baseURL: "https://api.openai.com/v1",
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+}
+
 export const OCADE_DEFAULT_MODEL = "google/gemini-3.5-flash";
-export const OCADE_MODEL_DISPLAY: Record<string, { display: string; provider: string; locality: "cloud" | "local"; vision: boolean }> = {
+export const OCADE_MODEL_DISPLAY: Record<
+  string,
+  { display: string; provider: string; locality: "cloud" | "local"; vision: boolean }
+> = {
   "google/gemini-3.5-flash": {
     display: "Gemini 3.5 Flash",
     provider: "Google via Lovable AI",

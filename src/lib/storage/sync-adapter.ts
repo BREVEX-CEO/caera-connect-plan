@@ -43,10 +43,12 @@ export const syncAdapter: StorageAdapter = {
 
   async put<T>(dataClass: DataClass, id: string, value: T) {
     const user_id = await uid();
-    const { error } = await supabase.from("user_private_records").upsert(
-      { user_id, data_class: dataClass, id, value: value as Json },
-      { onConflict: "user_id,data_class,id" },
-    );
+    const { error } = await supabase
+      .from("user_private_records")
+      .upsert(
+        { user_id, data_class: dataClass, id, value: value as Json },
+        { onConflict: "user_id,data_class,id" },
+      );
     if (error) throw error;
   },
   async get<T>(dataClass: DataClass, id: string) {

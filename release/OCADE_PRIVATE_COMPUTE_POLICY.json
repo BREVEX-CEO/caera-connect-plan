@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "owner": "private-compute-runtime-owner",
+  "evidenceClasses": {
+    "burst": "ENCRYPTED BURST EXECUTION CANDIDATE - PROVIDER RUNTIME REQUIRED",
+    "mesh": "AUTHORISED MESH EXECUTION CANDIDATE - NODE RUNTIME REQUIRED",
+    "lan": "LAN-ONLY POLICY VERIFIED - LIVE NETWORK CAPTURE REQUIRED"
+  },
+  "burst": {
+    "approvedProviders": ["operator-approved-burst"],
+    "protectedDataAllowed": false,
+    "explicitConsentRequired": true,
+    "minimumPayloadRequired": true,
+    "encryptionRequired": true,
+    "retentionDisclosureRequired": true,
+    "maximumJobMilliseconds": 300000,
+    "maximumRetries": 1,
+    "localFallbackRequired": true
+  },
+  "mesh": {
+    "signedJobsRequired": true,
+    "measuredCapabilitiesRequired": true,
+    "tenantAndUserBindingRequired": true,
+    "maximumLogicalCores": 1024,
+    "maximumMemoryMiB": 16777216,
+    "maximumRetries": 1,
+    "duplicateProtectionRequired": true,
+    "instantRevocationRequired": true,
+    "allowedTransports": ["lan-mutual-tls", "e2e-peer"]
+  },
+  "lanOnly": {
+    "externalDnsAllowed": false,
+    "publicAddressAllowed": false,
+    "relayAllowed": false,
+    "mutualAuthenticationRequired": true,
+    "localCertificateRequired": true,
+    "pairingMethods": ["qr", "short-code"],
+    "certificateRotationRequired": true,
+    "networkScopeIndicatorRequired": true,
+    "emergencyStopRequired": true
+  }
+}

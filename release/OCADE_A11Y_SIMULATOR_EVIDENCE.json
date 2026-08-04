@@ -1,0 +1,187 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-29T17:21:55.824Z",
+  "tier": "SIMULATED RUNTIME VERIFIED",
+  "subject": "HWE-10 headless accessibility-tree simulator",
+  "notRealApplicationSupport": "No real application, accessibility API or operating system was involved. This proves the governed control path refuses, cancels, halts and recovers correctly against scripted adversarial conditions. It proves NOTHING about driving real applications, and must never be promoted to REAL TARGET RUNTIME VERIFIED.",
+  "summary": {
+    "observed": 13,
+    "failed": 0,
+    "total": 13
+  },
+  "steps": [
+    {
+      "id": "S01",
+      "what": "healthy control is actioned",
+      "expected": "success",
+      "actual": "success",
+      "ok": true,
+      "simulated": true,
+      "nodeId": "save",
+      "evidence": [
+        "SIMULATED: disturbance applied: none",
+        "SIMULATED: clicked \"Save\""
+      ],
+      "unlabelledEvidenceLines": 0
+    },
+    {
+      "id": "S02",
+      "what": "destroyed (stale) node is refused, not actioned",
+      "expected": "stale_target",
+      "actual": "stale_target",
+      "ok": true,
+      "simulated": true,
+      "nodeId": "save",
+      "evidence": [
+        "SIMULATED: disturbance applied: node_goes_stale",
+        "SIMULATED: refused: node \"save\" is stale and must be re-resolved"
+      ],
+      "unlabelledEvidenceLines": 0
+    },
+    {
+      "id": "S03",
+      "what": "renamed control is reported missing, not substituted",
+      "expected": "target_not_found",
+      "actual": "target_not_found",
+      "ok": true,
+      "simulated": true,
+      "nodeId": null,
+      "evidence": [
+        "SIMULATED: disturbance applied: control_renamed",
+        "SIMULATED: refused: no control named \"Save\" — it may have been renamed by a version change"
+      ],
+      "unlabelledEvidenceLines": 0
+    },
+    {
+      "id": "S04",
+      "what": "disabled control is refused",
+      "expected": "disabled_target",
+      "actual": "disabled_target",
+      "ok": true,
+      "simulated": true,
+      "nodeId": "save",
+      "evidence": [
+        "SIMULATED: disturbance applied: control_disabled",
+        "SIMULATED: refused: \"Save\" is disabled"
+      ],
+      "unlabelledEvidenceLines": 0
+    },
+    {
+      "id": "S05",
+      "what": "modal dialog blocks the target",
+      "expected": "modal_blocked",
+      "actual": "modal_blocked",
+      "ok": true,
+      "simulated": true,
+      "nodeId": "save",
+      "evidence": [
+        "SIMULATED: disturbance applied: modal_appears",
+        "SIMULATED: refused: modal \"Unsaved changes\" is blocking \"Save\""
+      ],
+      "unlabelledEvidenceLines": 0
+    },
+    {
+      "id": "S06",
+      "what": "focus theft blocks typing rather than sending keys elsewhere",
+      "expected": "focus_lost",
+      "actual": "focus_lost",
+      "ok": true,
+      "simulated": true,
+      "nodeId": "save",
+      "evidence": [
+        "SIMULATED: disturbance applied: focus_theft",
+        "SIMULATED: refused: \"Save\" does not have focus; keystrokes would go elsewhere"
+      ],
+      "unlabelledEvidenceLines": 0
+    },
+    {
+      "id": "S07",
+      "what": "application exiting mid-step is refused",
+      "expected": "app_gone",
+      "actual": "app_gone",
+      "ok": true,
+      "simulated": true,
+      "nodeId": null,
+      "evidence": [
+        "SIMULATED: disturbance applied: app_interrupted",
+        "SIMULATED: refused: the application exited during the step"
+      ],
+      "unlabelledEvidenceLines": 0
+    },
+    {
+      "id": "S08",
+      "what": "missing permission is refused",
+      "expected": "permission_denied",
+      "actual": "permission_denied",
+      "ok": true,
+      "simulated": true,
+      "nodeId": null,
+      "evidence": [
+        "SIMULATED: refused: permission \"control.ui\" not granted"
+      ],
+      "unlabelledEvidenceLines": 0
+    },
+    {
+      "id": "S09",
+      "what": "emergency stop refuses before permission is even evaluated",
+      "expected": "halted",
+      "actual": "halted",
+      "ok": true,
+      "simulated": true,
+      "nodeId": null,
+      "evidence": [
+        "SIMULATED: refused: emergency stop is engaged"
+      ],
+      "unlabelledEvidenceLines": 0
+    },
+    {
+      "id": "S10",
+      "what": "cancellation refuses and applies no mutation",
+      "expected": "cancelled",
+      "actual": "cancelled",
+      "ok": true,
+      "simulated": true,
+      "nodeId": null,
+      "evidence": [
+        "SIMULATED: refused: cancelled before execution"
+      ],
+      "unlabelledEvidenceLines": 0
+    },
+    {
+      "id": "S11",
+      "what": "a route this simulator cannot honestly serve is refused",
+      "expected": "unsupported_route",
+      "actual": "unsupported_route",
+      "ok": true,
+      "simulated": true,
+      "nodeId": null,
+      "evidence": [
+        "SIMULATED: refused: this simulator models an accessibility tree and cannot honestly serve the \"api\" route"
+      ],
+      "unlabelledEvidenceLines": 0
+    },
+    {
+      "id": "S12",
+      "what": "version drift is recorded and the action still evaluated",
+      "expected": "success",
+      "actual": "success",
+      "ok": true,
+      "simulated": true,
+      "nodeId": "save",
+      "evidence": [
+        "SIMULATED: disturbance applied: version_drift",
+        "SIMULATED: clicked \"Save\""
+      ],
+      "unlabelledEvidenceLines": 0
+    },
+    {
+      "id": "S13",
+      "what": "renamed control is recovered by re-resolution",
+      "ok": true,
+      "detail": {
+        "ok": true,
+        "nodeId": "save"
+      }
+    }
+  ]
+}

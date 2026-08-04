@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "owner": "compatibility-evidence-owner",
+  "allowedProbeIds": [
+    "cpu.logical-cores",
+    "memory.total-mib",
+    "gpu.adapter-class",
+    "display.scale",
+    "accessibility.available",
+    "camera.synthetic-loopback",
+    "microphone.synthetic-loopback"
+  ],
+  "allowedFaults": [
+    "device-removed",
+    "low-disk",
+    "low-memory",
+    "thermal-throttle",
+    "gpu-loss",
+    "permission-revoked",
+    "network-change",
+    "clock-jump",
+    "process-crash"
+  ],
+  "forbiddenEvidenceFields": [
+    "userName",
+    "email",
+    "hostName",
+    "serialNumber",
+    "rawFilePath",
+    "notificationBody",
+    "clipboardContent"
+  ],
+  "lab": {
+    "maxActions": 20,
+    "lowRiskOnly": true,
+    "rehearsalRequired": true,
+    "publicationConsentDefault": false,
+    "localOnlyDefault": true
+  },
+  "support": {
+    "directControl": false,
+    "allowedUnapprovedOperations": [
+      "request-redacted-diagnostics",
+      "prepare-repair-plan"
+    ],
+    "localApprovalRequiredForMutation": true,
+    "protectedContentVisibleByDefault": false,
+    "maximumSessionMinutes": 60
+  },
+  "offlinePack": {
+    "signatureRequired": true,
+    "minimumComponents": 1,
+    "licenceNoticeRequired": true,
+    "rollbackRequired": true,
+    "replayProtection": true,
+    "tenantBindingRequired": true
+  }
+}

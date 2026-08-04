@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-07-30T13:08:36.700Z",
+  "purpose": "Zero-defect P19 accessibility baseline. The gate fails if any statically decidable keyboard or screen-reader defect appears.",
+  "total": 0,
+  "byKind": {},
+  "filesAffected": 0,
+  "files": [],
+  "owed": "No known statically decidable keyboard or screen-reader defects remain.",
+  "notCheckedHere": [
+    "colour contrast — needs computed styles from a rendered page",
+    "focus-visible appearance — needs a real focus event and computed styles",
+    "screen-reader announcement order — needs an actual assistive technology"
+  ]
+}

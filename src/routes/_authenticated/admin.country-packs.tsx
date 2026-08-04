@@ -10,10 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/_authenticated/admin/country-packs")({
   ssr: false,
   head: () => ({
-    meta: [
-      { title: "Country Packs — CAERA CADANE Admin" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Country Packs — CAERA CADANE Admin" }, { name: "robots", content: "noindex" }],
   }),
   beforeLoad: async () => {
     const { data: u } = await supabase.auth.getUser();
@@ -53,7 +50,9 @@ type Version = {
   ga_ready: boolean;
 };
 
-function statusKind(s: string): "success" | "beta" | "setup_required" | "failed" | "pending" | "running" {
+function statusKind(
+  s: string,
+): "success" | "beta" | "setup_required" | "failed" | "pending" | "running" {
   if (s === "ga") return "success";
   if (s === "pilot" || s === "approved") return "beta";
   if (s === "in_review") return "pending";
@@ -99,9 +98,9 @@ function CountryPacksList() {
         <div className="flex items-start gap-3 text-sm">
           <ShieldAlert className="size-4 text-warning mt-0.5" />
           <p className="text-muted-foreground">
-            Rules ship only as structural scaffolding. Nothing here is legal advice.
-            A version cannot go GA without an approved professional review, pilot evidence,
-            and all historical test cases passing (enforced by database trigger).
+            Rules ship only as structural scaffolding. Nothing here is legal advice. A version
+            cannot go GA without an approved professional review, pilot evidence, and all historical
+            test cases passing (enforced by database trigger).
           </p>
         </div>
       </GlassPanel>
@@ -115,7 +114,9 @@ function CountryPacksList() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs text-muted-foreground">{p.country_code}</span>
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {p.country_code}
+                    </span>
                     <h3 className="text-base font-semibold">{p.name}</h3>
                     <StatusBadge status={statusKind(p.status)}>{p.status}</StatusBadge>
                   </div>
@@ -138,7 +139,9 @@ function CountryPacksList() {
                   {vs.map((v) => (
                     <li key={v.id} className="flex items-center gap-2 text-muted-foreground">
                       <span className="font-mono">v{v.version}</span>
-                      <span>· {v.effective_from} → {v.effective_to ?? "—"}</span>
+                      <span>
+                        · {v.effective_from} → {v.effective_to ?? "—"}
+                      </span>
                       <StatusBadge status={statusKind(v.status)}>{v.status}</StatusBadge>
                       {v.ga_ready && (
                         <span className="inline-flex items-center gap-1 text-success">

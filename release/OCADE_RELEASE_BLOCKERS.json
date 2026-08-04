@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "0.1.0",
+  "status": "externally_blocked",
+  "blockers": [
+    {
+      "id": "web-cloudflare-runtime",
+      "area": "web",
+      "status": "externally_blocked",
+      "requiredEvidence": [
+        "Wrangler available in an authorized release environment",
+        "Cloudflare deployment authority and production domain configured",
+        "Supabase and provider values entered through platform secret storage",
+        "Deployed /api/health and critical-route smoke tests"
+      ]
+    },
+    {
+      "id": "supabase-apply-and-rls",
+      "area": "supabase",
+      "status": "externally_blocked",
+      "requiredEvidence": [
+        "Authorized project access",
+        "All OCADE migrations applied in documented order",
+        "Verification SQL and cross-tenant attack tests passed",
+        "Generated database types refreshed after apply"
+      ]
+    },
+    {
+      "id": "desktop-build-sign-update",
+      "area": "desktop",
+      "status": "externally_blocked",
+      "requiredEvidence": [
+        "Target-OS builders for macOS and Linux (the Windows build is NOT blocked - verified building on x86_64-pc-windows-msvc, see release/OCADE_P24_COMPANION_BUILD_EVIDENCE.json)",
+        "Platform signing and notarization identities",
+        "Updater signing key and controlled update endpoint",
+        "Clean-machine install update rollback and emergency-stop runtime tests"
+      ],
+      "correctionNote": "An earlier version of this blocker listed the MSVC linker as missing. It is present and the Windows companion builds. Only signing, notarisation, updater trust, non-Windows builders and a supervised runtime session remain."
+    },
+    {
+      "id": "android-build-sign-device",
+      "area": "android",
+      "status": "externally_blocked",
+      "requiredEvidence": [
+        "Java Android SDK ADB and target emulator or physical device",
+        "Release keystore supplied outside the repository",
+        "Push-notification project configuration",
+        "Signed bundle install pairing approval stop and recovery tests"
+      ]
+    },
+    {
+      "id": "ios-build-sign-device",
+      "area": "ios",
+      "status": "externally_blocked",
+      "requiredEvidence": [
+        "macOS Xcode and target simulator or physical device",
+        "Apple team provisioning and distribution signing",
+        "Push-notification capability and production entitlement",
+        "Archive validation install pairing approval stop and recovery tests"
+      ]
+    },
+    {
+      "id": "browser-extension-store",
+      "area": "browser-extension",
+      "status": "externally_blocked",
+      "requiredEvidence": [
+        "Load-unpacked tests in supported Chrome and Edge versions",
+        "Observed DOM accessibility masked-capture upload download and stop tests",
+        "Store identities review listings signing and publication",
+        "Installed-store upgrade and permission-revocation tests"
+      ]
+    },
+    {
+      "id": "real-application-and-device-matrix",
+      "area": "universal-control",
+      "status": "externally_blocked",
+      "requiredEvidence": [
+        "Licensed target applications and exact version matrix",
+        "Observed adapter actions receipts cancellation and recovery",
+        "GPU media voice vision and long-duration workload evidence",
+        "Cross-device revocation offline recovery and security validation"
+      ]
+    },
+    {
+      "id": "db01-schema-authority",
+      "area": "supabase",
+      "status": "externally_blocked",
+      "requiredEvidence": [
+        "Authenticated access to the Supabase project that owns public.ficia_time_entries",
+        "Definition dump including RLS policies GRANTs indexes and foreign-key actions",
+        "CREATE TABLE migration ordered before 20260721153321 with verification and rollback",
+        "Full migration set applies cleanly to an empty database"
+      ],
+      "detail": "release/OCADE_DB01_SCHEMA_AUTHORITY_BLOCKER.json"
+    }
+  ]
+}

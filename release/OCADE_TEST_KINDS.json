@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "phase": "P20 — test architecture correction",
+  "purpose": "Every test that asserts on source TEXT rather than behaviour is declared here with the reason it cannot execute instead. A structural test proves a string is present; it does not prove behaviour. The gate (scripts/check-test-kinds.mjs) fails when this list disagrees with reality, so a test cannot quietly stay structural after its target becomes executable.",
+  "note": "P12 removed extension/background.js from the unexecutable set by proving it runs in a VM with a fake chrome API. P09 did the same for the Rust safety core via cargo test. Both are recorded below as targets whose structural tests are now SUPPLEMENTARY rather than sole evidence.",
+  "structuralOnly": [
+    {
+      "path": "src/lib/__tests__/accessibility-gate.test.ts",
+      "why": "Runs the real accessibility gate as a subprocess against deliberately inaccessible temporary TSX fixtures. File reads verify command and CI wiring and prove the tracked zero baseline stays byte-identical.",
+      "couldBeStronger": "No for gate enforcement: it already executes the production gate and proves real regressions fail. Rendered-browser and assistive-technology evidence remain separate acceptance layers."
+    },
+    {
+      "path": "src/lib/__tests__/automation-worker-sql.test.ts",
+      "why": "Asserts on migration SQL. Executing it needs a live PostgreSQL with the OCADE schema; no migration has been applied to any database, so behaviour cannot be run here.",
+      "couldBeStronger": "Yes, once a database twin or staging instance exists (P16)."
+    },
+    {
+      "path": "src/lib/__tests__/chat-phase5-source.test.ts",
+      "why": "Asserts on the ordering of operations inside routes/api/ocade.chat.ts. The handler needs a Supabase session, a provider key and a request context to execute.",
+      "couldBeStronger": "Superseded in part. src/lib/__tests__/chat-route-execution.test.ts now imports the real route module, invokes the real POST handler with a real Request and asserts on the real Response, covering the authentication and configuration gate. This file still covers operation ORDERING inside the handler, which is only reachable past a real Supabase session, so it remains structural by necessity rather than by neglect."
+    },
+    {
+      "path": "src/lib/__tests__/ci-workflow.test.ts",
+      "why": "Asserts on .github/workflows YAML. A workflow is executed by the CI runner, not by vitest; running it locally would need act or a hosted runner.",
+      "couldBeStronger": "No, not locally. Hosted evidence arrives when CI runs (P23)."
+    },
+    {
+      "path": "src/lib/__tests__/ci-workflows.test.ts",
+      "why": "Asserts on .github/workflows YAML for the platform matrix. Same constraint: workflows execute on the runner.",
+      "couldBeStronger": "No, not locally."
+    },
+    {
+      "path": "src/lib/__tests__/controlled-rollout-sql.test.ts",
+      "why": "Asserts the ready-to-apply controlled-rollout migration, verification and rollback package. The local PostgreSQL twin cannot reach this late migration until the known missing ficia_time_entries CREATE migration is recovered.",
+      "couldBeStronger": "Yes. Execute it in the database twin after the missing schema migration is recovered, then in an isolated authorized Supabase project."
+    },
+    {
+      "path": "src/lib/__tests__/dead-controls.test.ts",
+      "why": "Scans component source for controls with no handler. This is deliberately a static scan: the point is to find a dead control WITHOUT needing to click every button in every state.",
+      "couldBeStronger": "No. Static analysis is the correct tool for this property."
+    },
+    {
+      "path": "src/lib/__tests__/desktop-companion-source.test.ts",
+      "why": "Asserts on Rust source in native/companion. Rust executes under cargo, not vitest.",
+      "couldBeStronger": "Partly. P09 now executes 25 Rust tests via cargo test, so this file is supplementary rather than sole evidence for the safety core."
+    },
+    {
+      "path": "src/lib/__tests__/evidence-collector.test.ts",
+      "why": "Asserts on the shape of retained evidence JSON produced by scripts/collect-evidence.mjs, which shells out to build tooling.",
+      "couldBeStronger": "Yes, by invoking the collector against a temporary directory."
+    },
+    {
+      "path": "src/lib/__tests__/extension-package.test.ts",
+      "why": "Asserts on the shipped extension manifest and packaging layout — packaging shape, not runtime behaviour.",
+      "couldBeStronger": "Behaviour is now covered separately: extension-zero-touch.test.ts (P12) executes background.js in a VM with a recording chrome double."
+    },
+    {
+      "path": "src/lib/__tests__/integration-gate-enforces.test.ts",
+      "why": "Runs the real gate as a subprocess against corrupted COPIES of the ledger, then reads its stderr. The file reads are fixtures for a subprocess, not assertions about source text.",
+      "couldBeStronger": "No. It already executes the gate; the classifier sees readFileSync because that is how the fixture is built."
+    },
+    {
+      "path": "src/lib/__tests__/licence-notices.test.ts",
+      "why": "Asserts the generated THIRD_PARTY_NOTICES file is current. The generator is executed by the licences:check gate.",
+      "couldBeStronger": "No; the gate executes the generator."
+    },
+    {
+      "path": "src/lib/__tests__/mobile-native-parity.test.ts",
+      "why": "Compares the Android Java plugin and iOS Swift plugin against the TypeScript contract. Neither can execute without the Android SDK or Xcode.",
+      "couldBeStronger": "No, not without the mobile toolchains (externally blocked)."
+    },
+    {
+      "path": "src/lib/__tests__/mobile-native-source.test.ts",
+      "why": "Asserts on Java and Swift plugin source for required permission and stop handling. Same toolchain constraint.",
+      "couldBeStronger": "No, not without the mobile toolchains."
+    },
+    {
+      "path": "src/lib/__tests__/native-operation-idempotency-source.test.ts",
+      "why": "Asserts the Rust host never replays a Started journal record. Rust executes under cargo.",
+      "couldBeStronger": "Partly — P09 executes the safety core, though this specific journal path is in the Tauri host, which is still not built."
+    },
+    {
+      "path": "src/lib/__tests__/ocade-integration-audit.test.ts",
+      "why": "Reads the integration ledger and asserts the recorded classifications. The gate that enforces it is executed separately.",
+      "couldBeStronger": "No; the enforcing gate runs as a subprocess in integration-gate-enforces.test.ts."
+    },
+    {
+      "path": "src/lib/__tests__/ocade-supabase-package.test.ts",
+      "why": "Asserts migration and RLS policy SQL. Needs a database to execute.",
+      "couldBeStronger": "Yes, once a database twin exists (P16)."
+    },
+    {
+      "path": "src/lib/__tests__/platform-workflows.test.ts",
+      "why": "Asserts the Android/iOS/Windows platform workflow definitions. Executed by CI runners.",
+      "couldBeStronger": "No, not locally."
+    },
+    {
+      "path": "src/lib/__tests__/release-gate-enforces.test.ts",
+      "why": "Runs the release gate as a subprocess against corrupted copies of its input; the file reads build the fixture.",
+      "couldBeStronger": "No. It already executes the gate."
+    },
+    {
+      "path": "src/lib/__tests__/evidence-integrity-gate-enforces.test.ts",
+      "why": "Runs the evidence-integrity gate as a subprocess against a snapshot corrupted one specific way per test; the file reads build the fixture and restore it byte-identically afterwards.",
+      "couldBeStronger": "No. It already executes the production gate and proves each of its conditions rejects. One of its own tests previously passed while proving nothing, because it looked for a ledger key that does not exist; it now asserts the fixture is non-empty before using it."
+    },
+    {
+      "path": "src/lib/__tests__/sandbox-worker-runtime.test.ts",
+      "why": "Asserts on the sandbox worker script that runs in a spawned process with a restricted permission set.",
+      "couldBeStronger": "Yes — P21 wired the Node sandbox host behind a server function, so the worker can now be driven end to end."
+    },
+    {
+      "path": "src/lib/__tests__/settings-sections-reachable.test.ts",
+      "why": "Cross-checks the settings section registry against route files on disk, catching a section with no route.",
+      "couldBeStronger": "Partly — route reachability is now also proven behaviourally by route-router-render.test.tsx."
+    },
+    {
+      "path": "src/lib/__tests__/setup-readiness.test.ts",
+      "why": "Asserts on the setup checker script, which probes the host environment.",
+      "couldBeStronger": "Yes, by invoking the checker with an injected environment."
+    },
+    {
+      "path": "src/lib/__tests__/stage2-baseline.test.ts",
+      "why": "Asserts the recorded Stage 2 baseline evidence file matches the declared gate set.",
+      "couldBeStronger": "No; the gates themselves execute."
+    },
+    {
+      "path": "src/lib/__tests__/stage2-phase21-source.test.ts",
+      "why": "Phase-21 source conformance check against the declared Stage 2 specification.",
+      "couldBeStronger": "Partly; the behaviour it describes is covered by the modules' own execution tests."
+    },
+    {
+      "path": "src/lib/__tests__/stage2-phase22-source.test.ts",
+      "why": "Phase-22 source conformance check against the declared Stage 2 specification.",
+      "couldBeStronger": "Partly; same as phase 21."
+    },
+    {
+      "path": "src/lib/__tests__/stage2-phase36-source.test.ts",
+      "why": "Phase-36 source conformance check against the declared Stage 2 specification.",
+      "couldBeStronger": "Partly; same as phase 21."
+    },
+    {
+      "path": "src/lib/__tests__/supabase-sql-discipline.test.ts",
+      "why": "Asserts every migration ships a verification and a rollback script, and that RLS is enabled. Structural by design — it is a discipline check across 31 file triples, not a behaviour.",
+      "couldBeStronger": "No. Applying the migrations is externally blocked and is a separate claim."
+    },
+    {
+      "path": "src/lib/__tests__/test-kinds.test.ts",
+      "why": "Runs the test-kind gate itself as a subprocess against corrupted COPIES of this ledger. The file reads build the fixture and read back the tracked ledger to prove it was never written; the gate is genuinely executed.",
+      "couldBeStronger": "No. It already executes the gate; the classifier sees readFileSync because that is how a subprocess fixture is built."
+    }
+  ]
+}

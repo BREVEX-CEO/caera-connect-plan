@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "phase": 25,
+  "name": "Perception, Set-of-Mark and state fingerprints",
+  "classification": "VERIFIED COMPLETE",
+  "runtimeClassification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+  "branch": "feat/ocade-implementation",
+  "head": "52cd6cf4cc312d9072d8e1ce1fefdc740d193a76",
+  "sourceScore": 92,
+  "deterministicFixtureRuntimeScore": 85,
+  "liveDesktopRuntimeScore": 0,
+  "verifiedApplicationCoverage": 0,
+  "stage2Readiness": {
+    "source": 48,
+    "sourceRemaining": 52,
+    "windowsRuntime": 2,
+    "browserRuntime": 0,
+    "verifiedApplicationCoverage": 0,
+    "production": 22
+  },
+  "implementationPhasesRemaining": 14,
+  "externalValidationTracksRemaining": 8,
+  "nextDependency": {
+    "phase": 26,
+    "name": "Universal route selector"
+  },
+  "verifiedSourceCapabilities": [
+    "bounded fail-closed UIA OCR icon and vision observation contracts",
+    "approved target-window and display identity binding",
+    "physical window logical and display logical coordinate normalization",
+    "negative-origin multi-monitor and non-unit display scale handling",
+    "strict rejection of cross-window candidate coordinates",
+    "protected label and protected-region removal before structured output",
+    "fused overlapping evidence with authoritative UIA geometry",
+    "deterministic numbered Set-of-Mark targets",
+    "text-free SVG marker overlay generation",
+    "application version title bounds scale accessibility visible-text perceptual-hash and active-file fingerprinting",
+    "fresh fingerprint revalidation before target resolution",
+    "stale screenshot moving resized scaled and visually changed refusal",
+    "hidden occluded disabled low-confidence and protected target exclusion",
+    "bounded physical and logical target-point resolution",
+    "cancellation before input dispatch",
+    "mandatory newer post-action re-observation",
+    "independent verifier requirement with unverified fallback",
+    "production Computer Use readiness projection that fails closed on missing companion permissions or perception providers"
+  ],
+  "controlledEvidence": [
+    "UIA OCR and icon observations fuse into one target without shifting authoritative UIA bounds",
+    "a negative-origin 150-percent display resolves physical and window-logical coordinates deterministically",
+    "moving resizing scaling accessibility text perceptual hash and active-file changes alter the state fingerprint",
+    "protected controls do not survive serialization or enter the marker overlay",
+    "stale or invented marker identifiers never reach the executor",
+    "executor acknowledgement alone cannot produce verified completion"
+  ],
+  "runtimeClaims": {
+    "signedCompanionObservation": false,
+    "realWindowCapture": false,
+    "liveOcrProvider": false,
+    "liveIconDetector": false,
+    "liveVisionModel": false,
+    "realSetOfMarkOverlay": false,
+    "realApplicationAction": false
+  },
+  "runtimeBlockers": [
+    "The signed Tauri companion cannot link because MSVC link.exe is absent.",
+    "The managed desktop session exposes no visible application windows and screen capture has no valid desktop handle.",
+    "No installed OCR icon-detection or vision provider is available for live observation.",
+    "Controlled tests use bounded deterministic observations rather than claiming a real desktop action.",
+    "Verified real-application coverage remains zero until an approved interactive application is independently observed."
+  ]
+}

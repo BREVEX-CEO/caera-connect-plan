@@ -30,9 +30,12 @@ const cache = new Map<string, StorageMode>(); // key = `${userId}:${dataClass}`
 
 function adapterFor(mode: StorageMode): StorageAdapter {
   switch (mode) {
-    case "browser_only": return indexedDbAdapter;
-    case "pc_vault": return pcVaultAdapter;
-    case "private_sync": return syncAdapter;
+    case "browser_only":
+      return indexedDbAdapter;
+    case "pc_vault":
+      return pcVaultAdapter;
+    case "private_sync":
+      return syncAdapter;
   }
 }
 
@@ -46,16 +49,15 @@ export async function getModeFor(userId: string, dataClass: DataClass): Promise<
     .eq("user_id", userId)
     .eq("data_class", dataClass)
     .maybeSingle();
-  const mode = ((data?.mode as StorageMode | undefined) ?? DEFAULT_MODE[dataClass]);
+  const mode = (data?.mode as StorageMode | undefined) ?? DEFAULT_MODE[dataClass];
   cache.set(key, mode);
   return mode;
 }
 
 export async function setModeFor(userId: string, dataClass: DataClass, mode: StorageMode) {
-  const { error } = await supabase.from("data_class_privacy").upsert(
-    { user_id: userId, data_class: dataClass, mode },
-    { onConflict: "user_id,data_class" },
-  );
+  const { error } = await supabase
+    .from("data_class_privacy")
+    .upsert({ user_id: userId, data_class: dataClass, mode }, { onConflict: "user_id,data_class" });
   if (error) throw error;
   cache.set(`${userId}:${dataClass}`, mode);
 }
@@ -73,7 +75,10 @@ export async function loadAllModes(userId: string): Promise<Record<DataClass, St
   return out;
 }
 
-export async function resolveAdapter(userId: string, dataClass: DataClass): Promise<StorageAdapter> {
+export async function resolveAdapter(
+  userId: string,
+  dataClass: DataClass,
+): Promise<StorageAdapter> {
   return adapterFor(await getModeFor(userId, dataClass));
 }
 

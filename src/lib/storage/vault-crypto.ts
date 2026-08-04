@@ -42,7 +42,10 @@ export async function generateDek(): Promise<CryptoKey> {
 export async function exportRawKey(key: CryptoKey): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.exportKey("raw", key));
 }
-export async function importRawKey(raw: Uint8Array, usages: KeyUsage[] = ["encrypt", "decrypt"]): Promise<CryptoKey> {
+export async function importRawKey(
+  raw: Uint8Array,
+  usages: KeyUsage[] = ["encrypt", "decrypt"],
+): Promise<CryptoKey> {
   return crypto.subtle.importKey("raw", ab(raw), { name: "AES-GCM" }, false, usages);
 }
 
@@ -98,7 +101,11 @@ export const bytesToJson = <T>(b: Uint8Array): T => JSON.parse(dec.decode(b)) as
 // ---------- WebAuthn PRF ----------
 
 export function webauthnPrfSupported(): boolean {
-  return typeof PublicKeyCredential !== "undefined" && typeof navigator !== "undefined" && !!navigator.credentials;
+  return (
+    typeof PublicKeyCredential !== "undefined" &&
+    typeof navigator !== "undefined" &&
+    !!navigator.credentials
+  );
 }
 
 export async function createPrfCredential(userId: string, userLabel: string, prfSalt: Uint8Array) {
@@ -123,7 +130,10 @@ export async function createPrfCredential(userId: string, userLabel: string, prf
   return { credentialId: new Uint8Array(cred.rawId), prfOutput: new Uint8Array(first) };
 }
 
-export async function evaluatePrf(credentialId: Uint8Array, prfSalt: Uint8Array): Promise<Uint8Array> {
+export async function evaluatePrf(
+  credentialId: Uint8Array,
+  prfSalt: Uint8Array,
+): Promise<Uint8Array> {
   const assertion = (await navigator.credentials.get({
     publicKey: {
       challenge: ab(randomBytes(32)),
@@ -134,7 +144,9 @@ export async function evaluatePrf(credentialId: Uint8Array, prfSalt: Uint8Array)
     },
   })) as PublicKeyCredential | null;
   if (!assertion) throw new Error("WebAuthn assertion failed.");
-  const ext = assertion.getClientExtensionResults() as { prf?: { results?: { first?: ArrayBuffer } } };
+  const ext = assertion.getClientExtensionResults() as {
+    prf?: { results?: { first?: ArrayBuffer } };
+  };
   const first = ext.prf?.results?.first;
   if (!first) throw new Error("Authenticator did not return PRF output.");
   return new Uint8Array(first);
@@ -154,23 +166,53 @@ export async function keyFromMaterial(material: Uint8Array, salt: Uint8Array): P
 export function generateRecoveryKey(): Uint8Array {
   return randomBytes(32);
 }
+
+const RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const RECOVERY_KEY_BYTES = 32;
+const RECOVERY_CODE_CHARS = 52;
+
 export function formatRecoveryKit(raw: Uint8Array): string {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let s = "";
-  for (const b of raw) s += alphabet[b % alphabet.length];
-  return s.match(/.{1,5}/g)?.join("-") ?? s;
-}
-export function parseRecoveryKit(text: string): Uint8Array | null {
-  const cleaned = text.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
-  if (cleaned.length !== 32) return null;
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const out = new Uint8Array(32);
-  for (let i = 0; i < 32; i++) {
-    const idx = alphabet.indexOf(cleaned[i]);
-    if (idx < 0) return null;
-    out[i] = idx;
+  if (raw.byteLength !== RECOVERY_KEY_BYTES) {
+    throw new Error("A recovery kit requires exactly 256 bits of key material.");
   }
-  return out;
+  let encoded = "";
+  let buffer = 0;
+  let bits = 0;
+  for (const byte of raw) {
+    buffer = (buffer << 8) | byte;
+    bits += 8;
+    while (bits >= 5) {
+      bits -= 5;
+      encoded += RECOVERY_ALPHABET[(buffer >>> bits) & 31];
+      buffer &= (1 << bits) - 1;
+    }
+  }
+  if (bits > 0) encoded += RECOVERY_ALPHABET[(buffer << (5 - bits)) & 31];
+  return encoded.match(/.{1,4}/g)?.join("-") ?? encoded;
+}
+
+export function parseRecoveryKit(text: string): Uint8Array | null {
+  if (typeof text !== "string" || !/^[A-Za-z0-9\s-]+$/.test(text)) return null;
+  const cleaned = text.replace(/[\s-]/g, "").toUpperCase();
+  if (cleaned.length !== RECOVERY_CODE_CHARS) return null;
+
+  const bytes: number[] = [];
+  let buffer = 0;
+  let bits = 0;
+  for (const character of cleaned) {
+    const value = RECOVERY_ALPHABET.indexOf(character);
+    if (value < 0) return null;
+    buffer = (buffer << 5) | value;
+    bits += 5;
+    while (bits >= 8) {
+      bits -= 8;
+      bytes.push((buffer >>> bits) & 0xff);
+      buffer &= (1 << bits) - 1;
+    }
+  }
+  // 256 bits occupy 52 Base32 symbols; the final four padding bits must be 0.
+  if (bytes.length !== RECOVERY_KEY_BYTES || buffer !== 0) return null;
+  return Uint8Array.from(bytes);
 }
 export async function sha256(data: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(await crypto.subtle.digest("SHA-256", ab(data)));

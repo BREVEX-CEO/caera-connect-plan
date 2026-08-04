@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-07-30T14:13:00.000Z",
+  "phase": "P25 - Security hardening on real runtime",
+  "branch": "feat/ocade-implementation",
+  "baseHead": "19d3414633b9167632514aaf4e98e1c6a93065df",
+  "sourceManifest": {
+    "algorithm": "SHA-256 over sorted path-tab-contentSHA lines with a trailing newline",
+    "files": [
+      {
+        "path": "native/companion/safety/src/lib.rs",
+        "sha256": "0ccecc56d8b6df7a92f998254ae7ea11ec600d999567cd99ea09c9abbd21eb9c"
+      },
+      {
+        "path": "native/companion/tauri/src/main.rs",
+        "sha256": "32a0fdaa12d46fa66f50a1ccf217dcb267a576d6e89c2b29cb861b089f826796"
+      },
+      {
+        "path": "native/companion/tauri/src/platform.rs",
+        "sha256": "185e44e1ca7f4b2b113455c232509a08f8a7715dce38af0199b628e643751a6e"
+      },
+      {
+        "path": "src/lib/__tests__/desktop-companion-source.test.ts",
+        "sha256": "646b26f0b0515072d073f330d4af3eed98868c870e0d45519e9d2ed57d891d5d"
+      }
+    ],
+    "sha256": "60e3a5a1962426df84f164bd5bb7eb222b0589ddc64d3dd0ba9da45487fd8d8b"
+  },
+  "environment": {
+    "platform": "Windows x86_64-pc-windows-msvc",
+    "rustc": "1.96.0 (ac68faa20 2026-05-25)",
+    "cargo": "1.96.0 (30a34c682 2026-05-25)",
+    "node": "v24.16.0",
+    "npm": "11.13.0",
+    "nativePackage": "caera-companion 0.1.0",
+    "safetyPackage": "caera-companion-safety 0.1.0"
+  },
+  "runtimeEvidence": {
+    "compiledNativeSafetyCore": {
+      "classification": "REAL TARGET RUNTIME VERIFIED",
+      "tests": "30/30 passed in a compiled Windows MSVC Rust test binary",
+      "newAdversarialTests": 5,
+      "load": "512 simultaneously registered native cancellation tokens",
+      "bound": "all tokens cancelled within the asserted 250 ms in-process bound",
+      "race": "64 concurrent registrations racing halt; every admitted token was cancelled and every later registration was refused",
+      "failureRecovery": "a deliberately poisoned registry lock did not disable halt, reset, or later registration"
+    },
+    "tauriHost": {
+      "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+      "cargoCheck": "PASS",
+      "cargoClippy": "PASS with -D warnings",
+      "integration": "execute admission, signed cancel, IPC emergency stop, tray stop, global-hotkey stop, signed reset and status all use EmergencyStopRegistry",
+      "compileRepairs": [
+        "AccessibilityNode now satisfies PlatformOutput deserialization",
+        "backend capability discovery has a stable Vec<String> contract",
+        "active-file verification no longer borrows from a temporary path",
+        "platform cfg paths compile without unreachable or dead-code warnings"
+      ]
+    },
+    "webAndControlRuntime": {
+      "vitest": "3919 passed, 1 skipped, 3920 collected across 236 files",
+      "securityOwnersExercised": [
+        "control-plane replay and stale-grant refusal",
+        "generated sandbox injection, traversal, cancellation and secret redaction",
+        "extension service-worker origin, injection, suspension and emergency-stop refusal",
+        "mobile encrypted replay, revoked-session and tampering refusal",
+        "skill signature, capability and publisher revocation",
+        "focus-theft refusal and recovery",
+        "update signature tampering, wrong-key, forged and unsigned refusal"
+      ]
+    }
+  },
+  "acceptance": {
+    "P25.S01": "PASS - replay, injection, traversal, focus theft, origin confusion, stale permission and leakage attacks fail closed in their real owners.",
+    "P25.S02": "PASS - emergency stop is race-free under a 512-token load and survives a poisoned registry.",
+    "P25.S03": "PASS WITH RUNTIME BOUNDARY - compromised skill, model, extension, mobile and companion cases execute in controlled owners; no installed browser extension or signed companion is claimed.",
+    "P25.S04": "PASS - revocation, explicit signed reset, cleanup and recovery outcomes are verified.",
+    "P25.S05": "PASS - planted malicious inputs and a planted lock failure cause the relevant production gates to refuse or cancel."
+  },
+  "notClaimed": [
+    "No signed or installed Tauri application was launched.",
+    "No physical keyboard, mouse, screen-capture or accessibility target was controlled.",
+    "No Chrome or Edge extension was installed into a user profile.",
+    "No mobile binary or physical device was exercised.",
+    "No production update key, installer signature or deployment was created."
+  ]
+}

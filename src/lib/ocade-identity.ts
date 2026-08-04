@@ -20,6 +20,14 @@ export const OCADE_IDENTITY = {
 } as const;
 
 /**
+ * Confirmed creator wording (decision #1). Truthful about the OCADE PRODUCT —
+ * never implies CAERA CADANE trained a third-party foundation model.
+ */
+export function ocadeCreatorStatement(): string {
+  return `I am OCADE, developed and created by ${OCADE_IDENTITY.vendor}.`;
+}
+
+/**
  * Casual introduction — used in chat greetings, voice hellos, empty states.
  * Must never leak provider identity.
  */
@@ -34,13 +42,13 @@ export function ocadeIntro(): string {
  * Never fabricate. If provider metadata is missing, say so.
  */
 export interface ProviderContext {
-  providerId?: string | null;   // e.g. "openai", "ollama"
-  modelId?: string | null;      // e.g. "gpt-4o-mini", "llama3.1:8b"
+  providerId?: string | null; // e.g. "openai", "ollama"
+  modelId?: string | null; // e.g. "gpt-4o-mini", "llama3.1:8b"
   locality?: "local" | "cloud" | null;
 }
 
 export function ocadeHonestDisclosure(ctx: ProviderContext): string {
-  const parts = [`I'm ${OCADE_IDENTITY.fullName}, the assistant built by ${OCADE_IDENTITY.vendor}.`];
+  const parts = [ocadeCreatorStatement()];
   if (ctx.providerId && ctx.modelId) {
     parts.push(
       `For this request I'm running on ${ctx.modelId} via ${ctx.providerId}${
@@ -48,11 +56,22 @@ export function ocadeHonestDisclosure(ctx: ProviderContext): string {
       }. You can change this in Model Settings.`,
     );
   } else if (ctx.providerId) {
-    parts.push(`For this request I'm using ${ctx.providerId}. You can change this in Model Settings.`);
+    parts.push(
+      `For this request I'm using ${ctx.providerId}. You can change this in Model Settings.`,
+    );
   } else {
     parts.push("The active model is shown in Model Settings.");
   }
   return parts.join(" ");
+}
+
+/**
+ * Ordinary-chat identity line (decisions #10, #18). Truthful but expressed in
+ * OCADE capability terms — it never prints the raw runtime/provider/model name.
+ * The exact model stays available in advanced/technical settings only.
+ */
+export function ocadeChatCapabilityDisclosure(capabilityLabel: string): string {
+  return `${ocadeCreatorStatement()} For this request I'm using ${capabilityLabel}. Exact technical details are in advanced settings.`;
 }
 
 /**

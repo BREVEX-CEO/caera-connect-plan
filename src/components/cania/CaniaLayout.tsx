@@ -20,17 +20,14 @@ export function CaniaLayout() {
   const groups = useMemo(
     () => ({
       overview: CANIA_SECTIONS.filter((s) => s.id === "overview"),
-      signals: CANIA_SECTIONS.filter(
-        (s) =>
-          !s.adminOnly &&
-          s.id !== "overview",
-      ),
+      signals: CANIA_SECTIONS.filter((s) => !s.adminOnly && s.id !== "overview"),
       tools: CANIA_SECTIONS.filter((s) => s.adminOnly),
     }),
     [],
   );
 
-  const currentSlug = location.pathname.replace(/\/+$/, "").split("/cania")[1]?.replace(/^\//, "") ?? "";
+  const currentSlug =
+    location.pathname.replace(/\/+$/, "").split("/cania")[1]?.replace(/^\//, "") ?? "";
   const current = CANIA_SECTIONS.find((s) => s.slug === currentSlug) ?? CANIA_SECTIONS[0];
 
   return (
@@ -55,8 +52,16 @@ export function CaniaLayout() {
             <span className="text-muted-foreground">{current.title}</span>
           </button>
           <GlassPanel className={cn("p-2 lg:block", openMobile ? "block" : "hidden")}>
-            <NavGroup label="Overview" items={groups.overview} onNavigate={() => setOpenMobile(false)} />
-            <NavGroup label="Signals" items={groups.signals} onNavigate={() => setOpenMobile(false)} />
+            <NavGroup
+              label="Overview"
+              items={groups.overview}
+              onNavigate={() => setOpenMobile(false)}
+            />
+            <NavGroup
+              label="Signals"
+              items={groups.signals}
+              onNavigate={() => setOpenMobile(false)}
+            />
             <NavGroup label="Manage" items={groups.tools} onNavigate={() => setOpenMobile(false)} />
           </GlassPanel>
         </aside>

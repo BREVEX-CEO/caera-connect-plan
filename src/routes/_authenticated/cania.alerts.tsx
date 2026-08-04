@@ -40,7 +40,8 @@ function AlertsPage() {
     onError: (e) => toast.error((e as Error).message),
   });
 
-  if (q.isLoading) return <GlassPanel className="p-6 text-sm text-muted-foreground">Loading…</GlassPanel>;
+  if (q.isLoading)
+    return <GlassPanel className="p-6 text-sm text-muted-foreground">Loading…</GlassPanel>;
   const alerts = q.data ?? [];
   if (alerts.length === 0) {
     return (
@@ -53,7 +54,8 @@ function AlertsPage() {
   return (
     <div className="flex flex-col gap-2">
       <p className="text-xs text-muted-foreground">
-        Alerts you configure here are stored per user. They will start firing once the underlying provider adapter is connected.
+        Alerts you configure here are stored per user. They will start firing once the underlying
+        provider adapter is connected.
       </p>
       <GlassPanel className="divide-y divide-border/60">
         {alerts.map((a) => {
@@ -63,7 +65,8 @@ function AlertsPage() {
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium text-foreground">{a.label}</div>
                 <div className="truncate text-xs text-muted-foreground">
-                  {s?.title ?? a.section} · {a.channel === "in_app" ? "In-app" : a.channel === "email" ? "Email" : "Push"}
+                  {s?.title ?? a.section} ·{" "}
+                  {a.channel === "in_app" ? "In-app" : a.channel === "email" ? "Email" : "Push"}
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -72,7 +75,12 @@ function AlertsPage() {
                   onCheckedChange={(v) => toggle.mutate({ id: a.id, enabled: v })}
                   aria-label="Enable alert"
                 />
-                <Button size="sm" variant="ghost" onClick={() => del.mutate(a.id)} aria-label="Remove alert">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => del.mutate(a.id)}
+                  aria-label="Remove alert"
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
