@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -78,12 +79,14 @@ import { useLocalEngine } from "@/lib/use-local-engine";
 import { useDevicePolicy } from "@/lib/use-device-policy";
 import { useChatPrefs, readChatPrefs } from "@/lib/use-chat-prefs";
 import { MessageList } from "@/components/ocade/chat/MessageList";
-import type { ChatMessageView } from "@/components/ocade/chat/chat-types";
+import { ChatSidebar } from "@/components/ocade/chat/ChatSidebar";
+import { EngineBadge } from "@/components/ocade/chat/EngineBadge";
+import { useBrain } from "@/lib/brain/use-brain";
+import type { ChatMessageView, ChatConversationView } from "@/components/ocade/chat/chat-types";
 import { reason } from "@/lib/reasoning/engine";
 import { browserReasonDeps } from "@/lib/reasoning/browser-deps";
 import {
   buildLocalFirstPlan,
-  preloadLocalModel,
   DEFAULT_LOCAL_BRIDGE_URL,
   type LocalChatMessage,
 } from "@/lib/ocade-local";
@@ -564,112 +567,81 @@ function OcadeContextualSidebar(props: {
     onExport,
   } = props;
 
+  /*
+   * Delegates to the SHARED chat sidebar, the same one the public demo uses.
+   * Its own hand-rolled list had a flat "Pinned / Recent" split, which made
+   * anything past a dozen conversations effectively unreachable — the shared
+   * one groups by when the chat happened, which is how people actually look.
+   *
+   * Every action this sidebar used to own is preserved and passed through as a
+   * row menu: pin, rename, export, archive, delete.
+   */
+  const view: ChatConversationView[] = (showArchived ? recent : [...pinned, ...recent]).map(
+    (c) => ({
+      id: c.id,
+      title: c.title,
+      updatedAt: c.updated_at,
+      pinned: !!c.pinned,
+    }),
+  );
+  const byId = new Map<string, Conversation>([...pinned, ...recent].map((c) => [c.id, c]));
+
   return (
-    <aside className="hidden w-[248px] shrink-0 flex-col border-r border-border/70 bg-sidebar md:flex">
-      <div className="flex items-center gap-2 px-3 py-2.5">
-        <button
-          onClick={onNew}
-          className="flex flex-1 items-center gap-2 rounded-md border border-sidebar-border bg-sidebar-accent/40 px-2.5 py-1.5 text-[13px] font-medium text-foreground hover:bg-sidebar-accent"
-        >
-          <Plus className="h-3.5 w-3.5" /> New
-        </button>
-        <Link
-          to="/ocade/models"
-          className="rounded-md border border-sidebar-border px-2 py-1.5 text-[11px] text-muted-foreground hover:text-foreground"
-          title="Model control (technical)"
-        >
-          Models
-        </Link>
-      </div>
-
-      {/* Static context sections */}
-      <div className="space-y-0.5 px-2">
-        <SidebarLink icon={BriefcaseBusiness} label="Work" to="/ocade/work" />
-        <SidebarLink icon={FileCode2} label="Code" to="/ocade/code" />
-        <SidebarLink icon={FolderOpen} label="Projects" to="/ocade/projects" />
-        <SidebarLink icon={FileOutput} label="Outputs" to="/ocade/artifacts" />
-        <SidebarLink icon={CalendarClock} label="Scheduled" to="/ocade/automations" />
-        <SidebarLink icon={Workflow} label="Automations" to="/ocade/automations" />
-        <StaticRow
-          icon={SlidersHorizontal}
-          label="Customize"
-          onClick={() => setShowArchived(!showArchived)}
-          note={showArchived ? "Viewing archived" : undefined}
-        />
-      </div>
-
-      <div className="mt-1 px-2">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search conversations"
-            // A placeholder is not an accessible name: it disappears as soon as
-            // the user types and is not reliably announced.
-            aria-label="Search conversations"
-            type="search"
-            className="h-8 border-sidebar-border bg-background/50 pl-7 text-xs"
-          />
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-2 py-2">
-        {pinned.length > 0 && !showArchived ? (
-          <>
-            <SectionLabel>Pinned</SectionLabel>
-            <ul className="mb-2 space-y-0.5">
-              {pinned.map((c) => (
-                <ConvRow
-                  key={c.id}
-                  c={c}
-                  active={c.id === activeId}
-                  onSelect={() => onSelect(c.id)}
-                  onPin={() => onPin(c)}
-                  onArchive={() => onArchive(c)}
-                  onRename={() => onRename(c)}
-                  onDelete={() => onDelete(c)}
-                  onExport={() => onExport(c)}
-                />
-              ))}
-            </ul>
-          </>
-        ) : null}
-
-        <SectionLabel>
-          {showArchived ? "Archived" : "Recent"}
-          <button
-            onClick={() => setShowArchived(!showArchived)}
-            className="ml-auto text-[10px] font-normal text-muted-foreground hover:text-foreground"
-          >
-            {showArchived ? "← Active" : "Archived →"}
-          </button>
-        </SectionLabel>
-
-        {loading ? (
-          <div className="p-3 text-center text-xs text-muted-foreground">Loading…</div>
-        ) : recent.length === 0 ? (
-          <div className="p-3 text-center text-xs text-muted-foreground">
-            {showArchived ? "No archived chats." : "No conversations yet."}
+    <aside className="hidden w-[17.5rem] shrink-0 flex-col border-r border-border/70 bg-sidebar md:flex">
+      <ChatSidebar
+        conversations={view}
+        activeId={activeId}
+        onSelect={onSelect}
+        onNewChat={onNew}
+        emptyLabel={
+          loading
+            ? "Loading conversations…"
+            : showArchived
+              ? "Nothing archived."
+              : "No conversations yet."
+        }
+        renderRowMenu={(row: ChatConversationView) => {
+          const c = byId.get(row.id);
+          if (!c) return null;
+          return (
+            <span className="flex items-center rounded-md bg-sidebar/90 backdrop-blur">
+              <IconMini title={c.pinned ? "Unpin" : "Pin"} onClick={() => onPin(c)}>
+                {c.pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+              </IconMini>
+              <IconMini title="Rename" onClick={() => onRename(c)}>
+                <Pencil className="h-3 w-3" />
+              </IconMini>
+              <IconMini title="Export" onClick={() => onExport(c)}>
+                <Download className="h-3 w-3" />
+              </IconMini>
+              <IconMini title={c.archived ? "Unarchive" : "Archive"} onClick={() => onArchive(c)}>
+                {c.archived ? (
+                  <ArchiveRestore className="h-3 w-3" />
+                ) : (
+                  <Archive className="h-3 w-3" />
+                )}
+              </IconMini>
+              <IconMini title="Delete" onClick={() => onDelete(c)}>
+                <Trash2 className="h-3 w-3 text-destructive" />
+              </IconMini>
+            </span>
+          );
+        }}
+        footer={
+          <div className="space-y-0.5">
+            <SidebarLink icon={BriefcaseBusiness} label="Work" to="/ocade/work" />
+            <SidebarLink icon={FileCode2} label="Code" to="/ocade/code" />
+            <SidebarLink icon={FolderOpen} label="Projects" to="/ocade/projects" />
+            <SidebarLink icon={FileOutput} label="Files" to="/ocade/artifacts" />
+            <SidebarLink icon={Workflow} label="Automations" to="/ocade/automations" />
+            <StaticRow
+              icon={Archive}
+              label={showArchived ? "Back to active chats" : "Archived chats"}
+              onClick={() => setShowArchived(!showArchived)}
+            />
           </div>
-        ) : (
-          <ul className="space-y-0.5">
-            {recent.map((c) => (
-              <ConvRow
-                key={c.id}
-                c={c}
-                active={c.id === activeId}
-                onSelect={() => onSelect(c.id)}
-                onPin={() => onPin(c)}
-                onArchive={() => onArchive(c)}
-                onRename={() => onRename(c)}
-                onDelete={() => onDelete(c)}
-                onExport={() => onExport(c)}
-              />
-            ))}
-          </ul>
-        )}
-      </div>
+        }
+      />
     </aside>
   );
 }
@@ -1092,6 +1064,11 @@ function ChatSurface(props: {
    */
   const devicePolicy = useDevicePolicy();
   const { prefs: chatPrefs } = useChatPrefs();
+  /** A local engine that is genuinely serving, not merely installed. */
+  const localEngineReady = localEngine.status === "ready" && localEngine.models.length > 0;
+  const navigate = useNavigate();
+  /** Engine selection and honest refusals across every device mode. */
+  const brain = useBrain();
   /*
    * The user's chosen starting engine, from Settings › Chat. Read once as the
    * initial value so switching engine inside a conversation is not overwritten
@@ -1250,7 +1227,9 @@ function ChatSurface(props: {
     const id = route.model.id;
     if (warmedRef.current.has(id)) return;
     warmedRef.current.add(id);
-    void preloadLocalModel(DEFAULT_LOCAL_BRIDGE_URL, id);
+    // Through the Brain, so one place owns "which engine, and get it ready" —
+    // rather than the chat screen reaching for a specific runtime directly.
+    brain.warm();
   }
 
   async function sendMessage(
@@ -1299,13 +1278,26 @@ function ChatSurface(props: {
     const localPick = localRoute?.ok ? localRoute.model : null;
 
     if (engineTier === "local" && (!localReady || !localPick)) {
-      toast.error(
-        !localReady
-          ? "OCADE Local isn't available right now. Switch to OCADE Cloud or Automatic."
-          : hasImage
-            ? "Image understanding needs a local vision engine or OCADE Cloud."
+      /*
+       * Ask the Brain router why, rather than guessing.
+       *
+       * It knows this device's mode and every engine's own reason for being
+       * unavailable, so the message names the actual obstacle and the actions
+       * that clear it — "Install OCADE", "Pair a computer", "Start the engine"
+       * — instead of the old blanket sentence that told a user to switch to
+       * cloud even when cloud was the thing they had deliberately turned off.
+       */
+      const outcome = await brain.route({ visionRequired: hasImage });
+      if (!outcome.ok) {
+        const actions = outcome.remedies.map(brain.remedyLabel).join(" · ");
+        toast.error(outcome.reason, actions ? { description: actions } : undefined);
+      } else {
+        toast.error(
+          hasImage
+            ? "Image understanding needs an image-reading engine on this device."
             : "No suitable on-device engine is installed.",
-      );
+        );
+      }
       return;
     }
     if ((engineTier === "local" || engineTier === "auto") && localReady && localPick) {
@@ -2483,31 +2475,37 @@ function ChatSurface(props: {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* Minimal top strip — no big rectangle */}
-      <div className="flex flex-wrap items-center gap-2 border-b border-border/60 px-5 py-2">
+      {/*
+        Top bar: what this chat is, and where its answers come from.
+        Technical detail is deliberately absent — the raw model name lives in
+        Settings › Models and About, and the badge here states the CAPABILITY
+        and the locality, which is what a person needs to know before typing
+        something private.
+      */}
+      <div className="flex h-14 shrink-0 flex-wrap items-center gap-2 border-b border-border/60 px-4 sm:px-5">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[13px] font-medium">{conversation.title}</div>
-          <div className="mt-0.5 flex items-center gap-2 text-[11px] text-muted-foreground">
-            <PrivacyBadge mode={chatsMode === "private_sync" ? "private_sync" : "device_only"} />
-            <span>·</span>
-            <span>{capabilityLabelFor({ locality: modelInfo.locality })}</span>
-            {!online ? (
-              <span
-                className="rounded bg-[color:var(--warning)]/15 px-1.5 py-0.5 text-[10px] text-[color:var(--warning)]"
-                title="You're offline. Cloud features are paused; local features stay available."
-              >
-                Offline
-              </span>
-            ) : null}
-            {localEngine.status === "ready" ? (
-              <span
-                className="rounded bg-[color:var(--success)]/15 px-1.5 py-0.5 text-[10px] text-[color:var(--success)]"
-                title={`On-device engine detected — ${localEngine.models.length} local model${localEngine.models.length === 1 ? "" : "s"} available.`}
-              >
-                OCADE Local ready
-              </span>
-            ) : null}
+          <div className="truncate text-[14px] font-medium text-foreground">
+            {conversation.title}
           </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <PrivacyBadge mode={chatsMode === "private_sync" ? "private_sync" : "device_only"} />
+          <EngineBadge
+            status={{
+              locality: localEngineReady ? "local" : modelInfo.locality,
+              label: localEngineReady
+                ? "OCADE Local"
+                : capabilityLabelFor({ locality: modelInfo.locality }),
+              online,
+              detail: localEngineReady
+                ? "Answers are generated on this computer. Nothing is sent anywhere."
+                : devicePolicy.because,
+              preparing: localEngine.status === "checking",
+            }}
+            onClick={() =>
+              void navigate({ to: "/settings/$section", params: { section: "local-engine" } })
+            }
+          />
         </div>
       </div>
 

@@ -86,14 +86,20 @@ describe("Chat outputs and project navigation are real surfaces", () => {
   });
 
   it("routes project and output controls instead of disabling planned buttons", () => {
-    expect(chat).toContain(
-      '<SidebarLink icon={FolderOpen} label="Projects" to="/ocade/projects" />',
-    );
-    expect(chat).toContain(
-      '<SidebarLink icon={FileOutput} label="Outputs" to="/ocade/artifacts" />',
-    );
+    /*
+     * The property under test is that these controls GO SOMEWHERE REAL. It was
+     * previously written as an exact-string match including the human label,
+     * which made renaming "Outputs" to "Files" — presentation, decided by the
+     * product — look like the control had been removed. The destination and
+     * the absence of a "planned" placeholder are what actually matter, so
+     * those are what is asserted.
+     */
+    expect(chat).toMatch(/<SidebarLink[^>]*to="\/ocade\/projects"/);
+    expect(chat).toMatch(/<SidebarLink[^>]*to="\/ocade\/artifacts"/);
     expect(chat).not.toContain('label="Projects" state="planned"');
     expect(chat).not.toContain('title="Project or folder — planned"');
+    // A route that exists only as a disabled button is the defect this guards.
+    expect(chat).not.toMatch(/to="\/ocade\/(projects|artifacts)"[^>]*disabled/);
   });
 
   it("uses reviewable local memory in local Chat and scoped cloud memory in cloud Chat", () => {
