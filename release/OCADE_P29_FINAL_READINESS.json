@@ -1,15 +1,15 @@
 {
   "schemaVersion": 1,
   "phase": "P29 - Final production-readiness closure",
-  "calculatedAt": "2026-08-04T16:39:18.575Z",
+  "calculatedAt": "2026-08-04T19:01:42.439Z",
   "branch": "main",
-  "currentHead": "d717d773154947a7dacc00c698b6bb30fe7d43e9",
-  "sourceRevision": "d717d773154947a7dacc00c698b6bb30fe7d43e9",
+  "currentHead": "4971be1983401b2e24754e665d1f993b30304996",
+  "sourceRevision": "4971be1983401b2e24754e665d1f993b30304996",
   "targetVersion": "0.1.0",
   "evidenceBindings": {
-    "sourceRevision": "d717d773154947a7dacc00c698b6bb30fe7d43e9",
+    "sourceRevision": "4971be1983401b2e24754e665d1f993b30304996",
     "targetVersion": "0.1.0",
-    "dependencyLockSha256": "21e378ff9dc2e6260e18bcda165eda4d9cd53b344cd6dcdea219d8425741bc88",
+    "dependencyLockSha256": "cebe247d59bab6546aabb7d813ff1471e4931d15dfa97fa43faa476fd8fd288a",
     "environment": "windows-x64-node22+",
     "verificationRuleVersion": "p29-v1"
   },
