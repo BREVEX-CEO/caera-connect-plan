@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "phase": "P29 - Final production-readiness closure",
-  "calculatedAt": "2026-08-03T16:32:14.879Z",
-  "branch": "feat/ocade-implementation",
-  "currentHead": "d4a50866d0f0e19cdf4fb85c4ef368af301ff72a",
-  "sourceRevision": "d4a50866d0f0e19cdf4fb85c4ef368af301ff72a",
+  "calculatedAt": "2026-08-04T00:46:51.334Z",
+  "branch": "integration/restore-old-claude-work",
+  "currentHead": "3b706ac61822db6eb549d66c666ebd869e06ae32",
+  "sourceRevision": "3b706ac61822db6eb549d66c666ebd869e06ae32",
   "targetVersion": "0.1.0",
   "evidenceBindings": {
-    "sourceRevision": "d4a50866d0f0e19cdf4fb85c4ef368af301ff72a",
+    "sourceRevision": "3b706ac61822db6eb549d66c666ebd869e06ae32",
     "targetVersion": "0.1.0",
     "dependencyLockSha256": "21e378ff9dc2e6260e18bcda165eda4d9cd53b344cd6dcdea219d8425741bc88",
     "environment": "windows-x64-node22+",
