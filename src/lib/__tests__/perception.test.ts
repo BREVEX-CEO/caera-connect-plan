@@ -429,9 +429,21 @@ describe("selecting a marked target by description", () => {
     return plan(
       frame({
         accessibility: [
-          element({ sourceId: "remove-a", name: "Remove", bounds: { x: 10, y: 10, width: 60, height: 24 } }),
-          element({ sourceId: "remove-b", name: "Remove", bounds: { x: 90, y: 10, width: 60, height: 24 } }),
-          element({ sourceId: "save-a11y", name: "Save", bounds: { x: 10, y: 60, width: 60, height: 24 } }),
+          element({
+            sourceId: "remove-a",
+            name: "Remove",
+            bounds: { x: 10, y: 10, width: 60, height: 24 },
+          }),
+          element({
+            sourceId: "remove-b",
+            name: "Remove",
+            bounds: { x: 90, y: 10, width: 60, height: 24 },
+          }),
+          element({
+            sourceId: "save-a11y",
+            name: "Save",
+            bounds: { x: 10, y: 60, width: 60, height: 24 },
+          }),
         ],
         ocr: [],
         icons: [],
@@ -501,8 +513,16 @@ describe("selecting a marked target by description", () => {
     const mixed = plan(
       frame({
         accessibility: [
-          element({ sourceId: "save-a11y", name: "Save", bounds: { x: 10, y: 10, width: 60, height: 24 } }),
-          element({ sourceId: "save-as", name: "Save as copy", bounds: { x: 90, y: 10, width: 90, height: 24 } }),
+          element({
+            sourceId: "save-a11y",
+            name: "Save",
+            bounds: { x: 10, y: 10, width: 60, height: 24 },
+          }),
+          element({
+            sourceId: "save-as",
+            name: "Save as copy",
+            bounds: { x: 90, y: 10, width: 90, height: 24 },
+          }),
         ],
         ocr: [],
         icons: [],

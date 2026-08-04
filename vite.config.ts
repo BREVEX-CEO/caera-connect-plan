@@ -100,8 +100,7 @@ export default defineConfig({
               },
               {
                 name: "vendor-charts",
-                test: (id) =>
-                  fromPackage("recharts")(id) || /\/node_modules\/d3-[^/]+\//.test(id),
+                test: (id) => fromPackage("recharts")(id) || /\/node_modules\/d3-[^/]+\//.test(id),
                 priority: 50,
               },
             ],

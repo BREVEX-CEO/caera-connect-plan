@@ -291,7 +291,12 @@ function ThreadView({
       .channel(`msg_thread_${thread.id}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "msg_messages", filter: `thread_id=eq.${thread.id}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "msg_messages",
+          filter: `thread_id=eq.${thread.id}`,
+        },
         () => {
           qc.invalidateQueries({ queryKey: ["msg_messages", thread.id] });
           qc.invalidateQueries({ queryKey: ["msg_threads"] });
@@ -305,7 +310,6 @@ function ThreadView({
   }, [thread.id, qc]);
 
   const messages = messagesQ.data?.messages ?? [];
-
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;

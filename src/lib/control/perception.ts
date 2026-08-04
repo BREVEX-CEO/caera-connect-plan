@@ -810,8 +810,7 @@ export function resolveSetOfMarkTarget(input: {
 }
 
 export type MarkerSelection =
-  | { ok: true; target: SetOfMarkTarget }
-  | { ok: false; reason: string; candidateNumbers: number[] };
+  { ok: true; target: SetOfMarkTarget } | { ok: false; reason: string; candidateNumbers: number[] };
 
 /**
  * Resolve a described target to exactly ONE marker, or refuse.
@@ -853,7 +852,8 @@ export function selectMarkerByDescription(
   const exact = selectable.filter((marker) => marker.name.toLowerCase() === wanted);
   // Fall back to containment only when nothing matched exactly, so a precise
   // name is never dragged into ambiguity by a longer label that contains it.
-  const candidates = exact.length > 0 ? exact : selectable.filter((m) => m.name.toLowerCase().includes(wanted));
+  const candidates =
+    exact.length > 0 ? exact : selectable.filter((m) => m.name.toLowerCase().includes(wanted));
 
   if (candidates.length === 0) {
     return {

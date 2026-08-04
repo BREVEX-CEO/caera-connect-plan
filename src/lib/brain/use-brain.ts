@@ -1,9 +1,12 @@
 import { useCallback, useMemo, useRef } from "react";
 import { DesktopBridgeAdapter } from "./adapters/desktop-bridge";
+import { BrowserWebGpuAdapter } from "./adapters/browser-webgpu";
+import { BrowserWasmAdapter } from "./adapters/browser-wasm";
 import { detectDeviceSignals, resolveDeviceMode, type DeviceMode } from "./device-mode";
 import { routeBrain, type RouteOutcome } from "./router";
 import { REMEDY_LABELS, type AdapterId, type BrainAdapter, type RemedyAction } from "./adapter";
 import { useDevicePolicy } from "../use-device-policy";
+import { serverIsThisMachine } from "../hardware/detect.browser";
 import type { RoutePolicy } from "../local/router-policy";
 
 /**
@@ -11,16 +14,17 @@ import type { RoutePolicy } from "../local/router-policy";
  *
  * WHAT IS REGISTERED TODAY, and what is not.
  *
- * Only the desktop bridge is registered, because it is the only adapter that
- * has been built AND proven against a real engine. The router already knows
- * the full preference order for all five device modes, so registering a new
- * adapter is a one-line change here — but an adapter that is listed and not
- * implemented would make the router report an engine the product cannot
- * actually run, which is the precise failure this architecture exists to stop.
+ * Three of five: the desktop bridge, the browser's WebGPU engine and the
+ * browser's WebAssembly fallback. The paired-desktop and mobile-native
+ * adapters are NOT registered, because neither is implemented — and an adapter
+ * that is listed but absent would make the router report an engine the product
+ * cannot actually run, which is the precise failure this architecture exists
+ * to prevent.
  *
- * The consequence is honest and visible rather than hidden: a browser with no
- * paired desktop routes to nothing, and `routeBrain` returns a refusal naming
- * "Install OCADE" and "Pair a computer" — which is the truth about this build.
+ * The consequence stays honest and visible: a phone with no paired computer
+ * still routes to the browser engines, and if those cannot run either,
+ * `routeBrain` refuses and names "Install OCADE" and "Pair a computer" — which
+ * is the truth about this build.
  */
 export interface BrainHandle {
   mode: DeviceMode;
@@ -43,6 +47,15 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
   const registry = useMemo(() => {
     const map = new Map<AdapterId, BrainAdapter>();
     map.set("desktop_bridge", new DesktopBridgeAdapter({ policy: () => policyRef.current }));
+    /*
+     * Both browser engines are registered unconditionally. Their `probe()`
+     * decides availability from the real environment — WebGPU presence, the
+     * adapter's memory limit, storage quota — so registering them costs
+     * nothing on a device that cannot run them, and neither library is loaded
+     * until one is actually routed to.
+     */
+    map.set("browser_webgpu", new BrowserWebGpuAdapter());
+    map.set("browser_wasm", new BrowserWasmAdapter());
     return map;
   }, []);
 
@@ -52,13 +65,17 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
   );
 
   /*
-   * A browser on a computer has no desktop bridge in its preference order, yet
-   * this build's only working engine IS that bridge — and in local development
-   * the bridge genuinely is on the same machine. Rather than pretend the mode
-   * is something it is not, the bridge is offered as an extra candidate when
-   * it is actually reachable, and the router still records what it tried.
+   * When the OCADE server IS this machine — the desktop build, and local
+   * development — the desktop bridge is a genuine on-device engine and should
+   * be preferred over a browser one, which is slower and needs its own
+   * download. Everywhere else the mode stands as measured, so a hosted browser
+   * routes to the browser engines exactly as the preference table says.
+   *
+   * This replaced a blanket "treat pc_web as desktop_app" override that made
+   * sense only while the bridge was the sole working adapter.
    */
-  const effectiveMode: DeviceMode = mode === "pc_web" ? "desktop_app" : mode;
+  const effectiveMode: DeviceMode =
+    mode === "pc_web" && serverIsThisMachine() ? "desktop_app" : mode;
 
   const route = useCallback(
     (opts?: { heavy?: boolean; visionRequired?: boolean }) =>

@@ -25,7 +25,10 @@ export const Route = createFileRoute("/_authenticated/admin/country-packs")({
     if (!data)
       throw redirect({
         to: "/access-denied",
-        search: { area: "Country Packs administration", reason: "This area requires the admin role on your CAERA CADANE account." },
+        search: {
+          area: "Country Packs administration",
+          reason: "This area requires the admin role on your CAERA CADANE account.",
+        },
       });
   },
   component: CountryPacksList,

@@ -50,21 +50,17 @@ interface NavigatorWithHints extends Navigator {
   userAgentData?: { mobile?: boolean; platform?: string };
 }
 
-interface GpuNavigator extends Navigator {
-  gpu?: {
-    requestAdapter: (options?: { powerPreference?: string }) => Promise<null | {
-      info?: { vendor?: string; architecture?: string; device?: string; description?: string };
-      requestAdapterInfo?: () => Promise<{
-        vendor?: string;
-        architecture?: string;
-        device?: string;
-        description?: string;
-      }>;
-      features?: Set<string>;
-      limits?: Record<string, number>;
-    }>;
-  };
-}
+/**
+ * `navigator.gpu` is typed by `@webgpu/types`, but it is NOT present in every
+ * browser — Firefox and Safari have shipped without it. The real type says it
+ * always exists, so it is read through an optional view rather than trusted,
+ * and `requestAdapterInfo` is declared here because it is the older spelling
+ * some browsers still ship in place of `adapter.info`.
+ */
+type MaybeWebGpuNavigator = Omit<Navigator, "gpu"> & { gpu?: GPU };
+type AdapterWithLegacyInfo = GPUAdapter & {
+  requestAdapterInfo?: () => Promise<GPUAdapterInfo>;
+};
 
 /** Vendors whose adapters genuinely accelerate inference. */
 const ACCELERATING_VENDOR = /nvidia|amd|apple|intel/i;
@@ -77,7 +73,7 @@ async function probeGpu(): Promise<{
   discrete: string[];
   reason: string;
 }> {
-  const nav = typeof navigator === "undefined" ? undefined : (navigator as GpuNavigator);
+  const nav = typeof navigator === "undefined" ? undefined : (navigator as MaybeWebGpuNavigator);
   if (!nav?.gpu) {
     return {
       present: "unknown",
@@ -87,7 +83,9 @@ async function probeGpu(): Promise<{
     };
   }
   try {
-    const adapter = await nav.gpu.requestAdapter({ powerPreference: "high-performance" });
+    const adapter = (await nav.gpu.requestAdapter({
+      powerPreference: "high-performance",
+    })) as AdapterWithLegacyInfo | null;
     if (!adapter) {
       return {
         present: false,

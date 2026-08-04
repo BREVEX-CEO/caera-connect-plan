@@ -311,6 +311,19 @@ function buildIncomingImportCounts(files) {
     const specifiers = [...source.matchAll(/(?:from\s*|import\s*\()\s*["']([^"']+)["']/g)].map(
       (match) => match[1],
     );
+    /*
+     * A worker entry is referenced as `new Worker(new URL("./x.ts", import.meta.url))`,
+     * which is a real dependency the bundler resolves but contains no `import`
+     * or `from`. Without this the scan reported `webllm.worker.ts` as an
+     * unreachable module while the WebGPU adapter was actively spawning it —
+     * a false orphan, which is exactly as damaging as a missed one because it
+     * pushes people to silence the gate.
+     */
+    specifiers.push(
+      ...[...source.matchAll(/new\s+URL\(\s*["']([^"']+)["']\s*,\s*import\.meta\.url\s*\)/g)].map(
+        (match) => match[1],
+      ),
+    );
     for (const specifier of specifiers) {
       const resolved = resolveImport(sourcePath, specifier, known);
       if (resolved) incoming.set(resolved, (incoming.get(resolved) ?? 0) + 1);

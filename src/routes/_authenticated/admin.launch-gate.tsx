@@ -74,7 +74,10 @@ export const Route = createFileRoute("/_authenticated/admin/launch-gate")({
     if (!data)
       throw redirect({
         to: "/access-denied",
-        search: { area: "the Launch Gate administration console", reason: "This area requires the admin role on your CAERA CADANE account." },
+        search: {
+          area: "the Launch Gate administration console",
+          reason: "This area requires the admin role on your CAERA CADANE account.",
+        },
       });
   },
   component: LaunchGatePage,

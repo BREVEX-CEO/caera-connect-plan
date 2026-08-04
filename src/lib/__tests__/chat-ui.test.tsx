@@ -106,10 +106,7 @@ describe("a message row offers only the actions it was given", () => {
 
   it("hides the action row while a reply is still arriving", () => {
     const html = renderToStaticMarkup(
-      <MessageBubble
-        message={message({ streaming: true })}
-        actions={{ onRegenerate: () => {} }}
-      />,
+      <MessageBubble message={message({ streaming: true })} actions={{ onRegenerate: () => {} }} />,
     );
     // Regenerating a half-finished answer is meaningless, so it is not offered.
     expect(html).not.toContain("Regenerate answer");
@@ -135,9 +132,9 @@ describe("the composer", () => {
   });
 
   it("becomes sendable once there is text", () => {
-    expect(sendButton(renderToStaticMarkup(<ChatComposer {...base} value="hello" />))).not.toContain(
-      "disabled",
-    );
+    expect(
+      sendButton(renderToStaticMarkup(<ChatComposer {...base} value="hello" />)),
+    ).not.toContain("disabled");
   });
 
   it("becomes sendable with an attachment even when the text is empty", () => {
@@ -208,7 +205,12 @@ describe("history is grouped by when it happened", () => {
     const buckets = groupConversations(
       [
         { id: "a", title: "recent", updatedAt: at(1000) },
-        { id: "b", title: "pinned but ancient", updatedAt: at(90 * 24 * 60 * 60 * 1000), pinned: true },
+        {
+          id: "b",
+          title: "pinned but ancient",
+          updatedAt: at(90 * 24 * 60 * 60 * 1000),
+          pinned: true,
+        },
       ],
       now,
     );
@@ -217,7 +219,10 @@ describe("history is grouped by when it happened", () => {
   });
 
   it("files an unparseable date under Older instead of losing the chat", () => {
-    const buckets = groupConversations([{ id: "a", title: "broken", updatedAt: "not a date" }], now);
+    const buckets = groupConversations(
+      [{ id: "a", title: "broken", updatedAt: "not a date" }],
+      now,
+    );
     expect(buckets).toHaveLength(1);
     expect(buckets[0].label).toBe("Older");
     expect(buckets[0].items[0].id).toBe("a");

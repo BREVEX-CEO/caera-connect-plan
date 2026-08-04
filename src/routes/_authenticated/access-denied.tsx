@@ -15,7 +15,10 @@ export const Route = createFileRoute("/_authenticated/access-denied")({
   head: () => ({
     meta: [
       { title: "Access denied — CAERA CADANE" },
-      { name: "description", content: "You do not have permission to open this area of your CAERA CADANE workspace." },
+      {
+        name: "description",
+        content: "You do not have permission to open this area of your CAERA CADANE workspace.",
+      },
       { name: "robots", content: "noindex" },
     ],
   }),

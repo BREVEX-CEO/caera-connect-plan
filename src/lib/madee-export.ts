@@ -21,7 +21,8 @@ export function exportPdfViaPrint() {
 }
 
 export async function exportDocx(title: string, r: ResumeContent) {
-  const { Document, Packer, Paragraph, HeadingLevel, TextRun, AlignmentType } = await import("docx");
+  const { Document, Packer, Paragraph, HeadingLevel, TextRun, AlignmentType } =
+    await import("docx");
 
   const paragraphs: DocxParagraph[] = [];
 
