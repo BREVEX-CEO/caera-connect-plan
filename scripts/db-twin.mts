@@ -2,7 +2,7 @@
  * HWE-30 — local database and identity twin (P16).
  *
  * Every migration in this repository ships with a verification script and a
- * rollback script — 32 of each — and NONE had ever been applied to anything.
+ * rollback script — 33 of each — and NONE had ever been applied to anything.
  * The SQL tests could only read the files and match strings, because there was
  * no database to run them against and no Docker on this machine.
  *

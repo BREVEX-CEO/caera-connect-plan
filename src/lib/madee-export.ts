@@ -2,8 +2,12 @@
  * Client-side resume export helpers.
  * - PDF: browser print of the preview page (native, no server, deterministic).
  * - DOCX: assembled with the `docx` package, downloaded as a Blob.
+ *
+ * The `docx` writer is imported DYNAMICALLY: it is a large document library and
+ * only the export action needs it, so a preview that is never exported must not
+ * pay for it. The import is type-only at module scope, which erases completely.
  */
-import { Document, Packer, Paragraph, HeadingLevel, TextRun, AlignmentType } from "docx";
+import type { Paragraph as DocxParagraph } from "docx";
 import type { ResumeContent } from "./madee-resume-types";
 
 function fileNameSafe(s: string) {
@@ -17,7 +21,9 @@ export function exportPdfViaPrint() {
 }
 
 export async function exportDocx(title: string, r: ResumeContent) {
-  const paragraphs: Paragraph[] = [];
+  const { Document, Packer, Paragraph, HeadingLevel, TextRun, AlignmentType } = await import("docx");
+
+  const paragraphs: DocxParagraph[] = [];
 
   if (r.personal.fullName) {
     paragraphs.push(

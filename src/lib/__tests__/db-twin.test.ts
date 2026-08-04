@@ -4,7 +4,7 @@ import { DatabaseTwin } from "../../../scripts/db-twin.mts";
 /**
  * DATABASE AND IDENTITY TWIN (P16 / HWE-30).
  *
- * 32 migrations, 32 verification scripts and 32 rollback scripts had never been
+ * 33 migrations, 33 verification scripts and 33 rollback scripts had never been
  * applied to anything. The SQL tests could only read the files and match
  * strings, because there was no database available and no Docker on this
  * machine.
@@ -35,8 +35,22 @@ afterAll(async () => {
 });
 
 describe("every migration applies in the declared order", () => {
-  it("finds all 32 migrations", () => {
-    expect(DatabaseTwin.migrationFiles()).toHaveLength(32);
+  /**
+   * A CENSUS, not a magic number.
+   *
+   * The literal pins the size of the on-disk migration corpus so that a
+   * deletion, or a migration added but never committed, breaks the build. It is
+   * meant to be updated — by one — when a migration is genuinely added, and the
+   * two parity tests at the bottom of this file then force the paired
+   * verification and rollback scripts to arrive with it.
+   *
+   * Last raised for `20260803172048_07f01536-9981-4240-abe2-06d98cc07387.sql`
+   * (msg_cross_company_grants UPDATE policy + realtime publication). Loosening
+   * this to a range would defeat the point: an exact count is what catches a
+   * migration going missing.
+   */
+  it("finds all 33 migrations", () => {
+    expect(DatabaseTwin.migrationFiles()).toHaveLength(33);
   });
 
   /**

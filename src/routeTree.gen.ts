@@ -36,13 +36,25 @@ import { Route as AuthenticatedMadeeIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedFiciaIndexRouteImport } from './routes/_authenticated/ficia.index'
 import { Route as AuthenticatedCaniaIndexRouteImport } from './routes/_authenticated/cania.index'
 import { Route as ApiOcadeChatRouteImport } from './routes/api/ocade.chat'
+import { Route as AuthenticatedSettingsVoiceRouteImport } from './routes/_authenticated/settings.voice'
 import { Route as AuthenticatedSettingsVaultRouteImport } from './routes/_authenticated/settings.vault'
+import { Route as AuthenticatedSettingsUsageRouteImport } from './routes/_authenticated/settings.usage'
+import { Route as AuthenticatedSettingsSkillsRouteImport } from './routes/_authenticated/settings.skills'
 import { Route as AuthenticatedSettingsPrivacyRouteImport } from './routes/_authenticated/settings.privacy'
+import { Route as AuthenticatedSettingsMobileRouteImport } from './routes/_authenticated/settings.mobile'
 import { Route as AuthenticatedSettingsDevicesRouteImport } from './routes/_authenticated/settings.devices'
+import { Route as AuthenticatedSettingsBrowserRouteImport } from './routes/_authenticated/settings.browser'
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings.appearance'
 import { Route as AuthenticatedSettingsActivityRouteImport } from './routes/_authenticated/settings.activity'
 import { Route as AuthenticatedSettingsSectionRouteImport } from './routes/_authenticated/settings.$section'
+import { Route as AuthenticatedOcadeWorkRouteImport } from './routes/_authenticated/ocade.work'
+import { Route as AuthenticatedOcadeStudioRouteImport } from './routes/_authenticated/ocade.studio'
+import { Route as AuthenticatedOcadeProjectsRouteImport } from './routes/_authenticated/ocade.projects'
+import { Route as AuthenticatedOcadeMonitorsRouteImport } from './routes/_authenticated/ocade.monitors'
 import { Route as AuthenticatedOcadeModelsRouteImport } from './routes/_authenticated/ocade.models'
+import { Route as AuthenticatedOcadeCodeRouteImport } from './routes/_authenticated/ocade.code'
+import { Route as AuthenticatedOcadeAutomationsRouteImport } from './routes/_authenticated/ocade.automations'
+import { Route as AuthenticatedOcadeArtifactsRouteImport } from './routes/_authenticated/ocade.artifacts'
 import { Route as AuthenticatedMadeeNewRouteImport } from './routes/_authenticated/madee.new'
 import { Route as AuthenticatedMadeeProjectIdRouteImport } from './routes/_authenticated/madee.$projectId'
 import { Route as AuthenticatedFiciaNewRouteImport } from './routes/_authenticated/ficia.new'
@@ -214,10 +226,28 @@ const ApiOcadeChatRoute = ApiOcadeChatRouteImport.update({
   path: '/api/ocade/chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedSettingsVoiceRoute =
+  AuthenticatedSettingsVoiceRouteImport.update({
+    id: '/voice',
+    path: '/voice',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsVaultRoute =
   AuthenticatedSettingsVaultRouteImport.update({
     id: '/vault',
     path: '/vault',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsUsageRoute =
+  AuthenticatedSettingsUsageRouteImport.update({
+    id: '/usage',
+    path: '/usage',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsSkillsRoute =
+  AuthenticatedSettingsSkillsRouteImport.update({
+    id: '/skills',
+    path: '/skills',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
 const AuthenticatedSettingsPrivacyRoute =
@@ -226,10 +256,22 @@ const AuthenticatedSettingsPrivacyRoute =
     path: '/privacy',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsMobileRoute =
+  AuthenticatedSettingsMobileRouteImport.update({
+    id: '/mobile',
+    path: '/mobile',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsDevicesRoute =
   AuthenticatedSettingsDevicesRouteImport.update({
     id: '/devices',
     path: '/devices',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsBrowserRoute =
+  AuthenticatedSettingsBrowserRouteImport.update({
+    id: '/browser',
+    path: '/browser',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
 const AuthenticatedSettingsAppearanceRoute =
@@ -250,10 +292,50 @@ const AuthenticatedSettingsSectionRoute =
     path: '/$section',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedOcadeWorkRoute = AuthenticatedOcadeWorkRouteImport.update({
+  id: '/work',
+  path: '/work',
+  getParentRoute: () => AuthenticatedOcadeRoute,
+} as any)
+const AuthenticatedOcadeStudioRoute =
+  AuthenticatedOcadeStudioRouteImport.update({
+    id: '/studio',
+    path: '/studio',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
+const AuthenticatedOcadeProjectsRoute =
+  AuthenticatedOcadeProjectsRouteImport.update({
+    id: '/projects',
+    path: '/projects',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
+const AuthenticatedOcadeMonitorsRoute =
+  AuthenticatedOcadeMonitorsRouteImport.update({
+    id: '/monitors',
+    path: '/monitors',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
 const AuthenticatedOcadeModelsRoute =
   AuthenticatedOcadeModelsRouteImport.update({
     id: '/models',
     path: '/models',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
+const AuthenticatedOcadeCodeRoute = AuthenticatedOcadeCodeRouteImport.update({
+  id: '/code',
+  path: '/code',
+  getParentRoute: () => AuthenticatedOcadeRoute,
+} as any)
+const AuthenticatedOcadeAutomationsRoute =
+  AuthenticatedOcadeAutomationsRouteImport.update({
+    id: '/automations',
+    path: '/automations',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
+const AuthenticatedOcadeArtifactsRoute =
+  AuthenticatedOcadeArtifactsRouteImport.update({
+    id: '/artifacts',
+    path: '/artifacts',
     getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedMadeeNewRoute = AuthenticatedMadeeNewRouteImport.update({
@@ -502,13 +584,25 @@ export interface FileRoutesByFullPath {
   '/ficia/new': typeof AuthenticatedFiciaNewRoute
   '/madee/$projectId': typeof AuthenticatedMadeeProjectIdRouteWithChildren
   '/madee/new': typeof AuthenticatedMadeeNewRoute
+  '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
+  '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
+  '/ocade/code': typeof AuthenticatedOcadeCodeRoute
   '/ocade/models': typeof AuthenticatedOcadeModelsRoute
+  '/ocade/monitors': typeof AuthenticatedOcadeMonitorsRoute
+  '/ocade/projects': typeof AuthenticatedOcadeProjectsRoute
+  '/ocade/studio': typeof AuthenticatedOcadeStudioRoute
+  '/ocade/work': typeof AuthenticatedOcadeWorkRoute
   '/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/settings/browser': typeof AuthenticatedSettingsBrowserRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
+  '/settings/mobile': typeof AuthenticatedSettingsMobileRoute
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
+  '/settings/skills': typeof AuthenticatedSettingsSkillsRoute
+  '/settings/usage': typeof AuthenticatedSettingsUsageRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
+  '/settings/voice': typeof AuthenticatedSettingsVoiceRoute
   '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/cania/': typeof AuthenticatedCaniaIndexRoute
   '/ficia/': typeof AuthenticatedFiciaIndexRoute
@@ -566,13 +660,25 @@ export interface FileRoutesByTo {
   '/ficia/new': typeof AuthenticatedFiciaNewRoute
   '/madee/$projectId': typeof AuthenticatedMadeeProjectIdRouteWithChildren
   '/madee/new': typeof AuthenticatedMadeeNewRoute
+  '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
+  '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
+  '/ocade/code': typeof AuthenticatedOcadeCodeRoute
   '/ocade/models': typeof AuthenticatedOcadeModelsRoute
+  '/ocade/monitors': typeof AuthenticatedOcadeMonitorsRoute
+  '/ocade/projects': typeof AuthenticatedOcadeProjectsRoute
+  '/ocade/studio': typeof AuthenticatedOcadeStudioRoute
+  '/ocade/work': typeof AuthenticatedOcadeWorkRoute
   '/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/settings/browser': typeof AuthenticatedSettingsBrowserRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
+  '/settings/mobile': typeof AuthenticatedSettingsMobileRoute
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
+  '/settings/skills': typeof AuthenticatedSettingsSkillsRoute
+  '/settings/usage': typeof AuthenticatedSettingsUsageRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
+  '/settings/voice': typeof AuthenticatedSettingsVoiceRoute
   '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/cania': typeof AuthenticatedCaniaIndexRoute
   '/ficia': typeof AuthenticatedFiciaIndexRoute
@@ -637,13 +743,25 @@ export interface FileRoutesById {
   '/_authenticated/ficia/new': typeof AuthenticatedFiciaNewRoute
   '/_authenticated/madee/$projectId': typeof AuthenticatedMadeeProjectIdRouteWithChildren
   '/_authenticated/madee/new': typeof AuthenticatedMadeeNewRoute
+  '/_authenticated/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
+  '/_authenticated/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
+  '/_authenticated/ocade/code': typeof AuthenticatedOcadeCodeRoute
   '/_authenticated/ocade/models': typeof AuthenticatedOcadeModelsRoute
+  '/_authenticated/ocade/monitors': typeof AuthenticatedOcadeMonitorsRoute
+  '/_authenticated/ocade/projects': typeof AuthenticatedOcadeProjectsRoute
+  '/_authenticated/ocade/studio': typeof AuthenticatedOcadeStudioRoute
+  '/_authenticated/ocade/work': typeof AuthenticatedOcadeWorkRoute
   '/_authenticated/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/_authenticated/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/_authenticated/settings/browser': typeof AuthenticatedSettingsBrowserRoute
   '/_authenticated/settings/devices': typeof AuthenticatedSettingsDevicesRoute
+  '/_authenticated/settings/mobile': typeof AuthenticatedSettingsMobileRoute
   '/_authenticated/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
+  '/_authenticated/settings/skills': typeof AuthenticatedSettingsSkillsRoute
+  '/_authenticated/settings/usage': typeof AuthenticatedSettingsUsageRoute
   '/_authenticated/settings/vault': typeof AuthenticatedSettingsVaultRoute
+  '/_authenticated/settings/voice': typeof AuthenticatedSettingsVoiceRoute
   '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/_authenticated/cania/': typeof AuthenticatedCaniaIndexRoute
   '/_authenticated/ficia/': typeof AuthenticatedFiciaIndexRoute
@@ -708,13 +826,25 @@ export interface FileRouteTypes {
     | '/ficia/new'
     | '/madee/$projectId'
     | '/madee/new'
+    | '/ocade/artifacts'
+    | '/ocade/automations'
+    | '/ocade/code'
     | '/ocade/models'
+    | '/ocade/monitors'
+    | '/ocade/projects'
+    | '/ocade/studio'
+    | '/ocade/work'
     | '/settings/$section'
     | '/settings/activity'
     | '/settings/appearance'
+    | '/settings/browser'
     | '/settings/devices'
+    | '/settings/mobile'
     | '/settings/privacy'
+    | '/settings/skills'
+    | '/settings/usage'
     | '/settings/vault'
+    | '/settings/voice'
     | '/api/ocade/chat'
     | '/cania/'
     | '/ficia/'
@@ -772,13 +902,25 @@ export interface FileRouteTypes {
     | '/ficia/new'
     | '/madee/$projectId'
     | '/madee/new'
+    | '/ocade/artifacts'
+    | '/ocade/automations'
+    | '/ocade/code'
     | '/ocade/models'
+    | '/ocade/monitors'
+    | '/ocade/projects'
+    | '/ocade/studio'
+    | '/ocade/work'
     | '/settings/$section'
     | '/settings/activity'
     | '/settings/appearance'
+    | '/settings/browser'
     | '/settings/devices'
+    | '/settings/mobile'
     | '/settings/privacy'
+    | '/settings/skills'
+    | '/settings/usage'
     | '/settings/vault'
+    | '/settings/voice'
     | '/api/ocade/chat'
     | '/cania'
     | '/ficia'
@@ -842,13 +984,25 @@ export interface FileRouteTypes {
     | '/_authenticated/ficia/new'
     | '/_authenticated/madee/$projectId'
     | '/_authenticated/madee/new'
+    | '/_authenticated/ocade/artifacts'
+    | '/_authenticated/ocade/automations'
+    | '/_authenticated/ocade/code'
     | '/_authenticated/ocade/models'
+    | '/_authenticated/ocade/monitors'
+    | '/_authenticated/ocade/projects'
+    | '/_authenticated/ocade/studio'
+    | '/_authenticated/ocade/work'
     | '/_authenticated/settings/$section'
     | '/_authenticated/settings/activity'
     | '/_authenticated/settings/appearance'
+    | '/_authenticated/settings/browser'
     | '/_authenticated/settings/devices'
+    | '/_authenticated/settings/mobile'
     | '/_authenticated/settings/privacy'
+    | '/_authenticated/settings/skills'
+    | '/_authenticated/settings/usage'
     | '/_authenticated/settings/vault'
+    | '/_authenticated/settings/voice'
     | '/api/ocade/chat'
     | '/_authenticated/cania/'
     | '/_authenticated/ficia/'
@@ -1065,11 +1219,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOcadeChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/settings/voice': {
+      id: '/_authenticated/settings/voice'
+      path: '/voice'
+      fullPath: '/settings/voice'
+      preLoaderRoute: typeof AuthenticatedSettingsVoiceRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/vault': {
       id: '/_authenticated/settings/vault'
       path: '/vault'
       fullPath: '/settings/vault'
       preLoaderRoute: typeof AuthenticatedSettingsVaultRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/usage': {
+      id: '/_authenticated/settings/usage'
+      path: '/usage'
+      fullPath: '/settings/usage'
+      preLoaderRoute: typeof AuthenticatedSettingsUsageRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/skills': {
+      id: '/_authenticated/settings/skills'
+      path: '/skills'
+      fullPath: '/settings/skills'
+      preLoaderRoute: typeof AuthenticatedSettingsSkillsRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
     '/_authenticated/settings/privacy': {
@@ -1079,11 +1254,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsPrivacyRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/mobile': {
+      id: '/_authenticated/settings/mobile'
+      path: '/mobile'
+      fullPath: '/settings/mobile'
+      preLoaderRoute: typeof AuthenticatedSettingsMobileRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/devices': {
       id: '/_authenticated/settings/devices'
       path: '/devices'
       fullPath: '/settings/devices'
       preLoaderRoute: typeof AuthenticatedSettingsDevicesRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/browser': {
+      id: '/_authenticated/settings/browser'
+      path: '/browser'
+      fullPath: '/settings/browser'
+      preLoaderRoute: typeof AuthenticatedSettingsBrowserRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
     '/_authenticated/settings/appearance': {
@@ -1107,11 +1296,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsSectionRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/ocade/work': {
+      id: '/_authenticated/ocade/work'
+      path: '/work'
+      fullPath: '/ocade/work'
+      preLoaderRoute: typeof AuthenticatedOcadeWorkRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/studio': {
+      id: '/_authenticated/ocade/studio'
+      path: '/studio'
+      fullPath: '/ocade/studio'
+      preLoaderRoute: typeof AuthenticatedOcadeStudioRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/projects': {
+      id: '/_authenticated/ocade/projects'
+      path: '/projects'
+      fullPath: '/ocade/projects'
+      preLoaderRoute: typeof AuthenticatedOcadeProjectsRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/monitors': {
+      id: '/_authenticated/ocade/monitors'
+      path: '/monitors'
+      fullPath: '/ocade/monitors'
+      preLoaderRoute: typeof AuthenticatedOcadeMonitorsRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
     '/_authenticated/ocade/models': {
       id: '/_authenticated/ocade/models'
       path: '/models'
       fullPath: '/ocade/models'
       preLoaderRoute: typeof AuthenticatedOcadeModelsRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/code': {
+      id: '/_authenticated/ocade/code'
+      path: '/code'
+      fullPath: '/ocade/code'
+      preLoaderRoute: typeof AuthenticatedOcadeCodeRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/automations': {
+      id: '/_authenticated/ocade/automations'
+      path: '/automations'
+      fullPath: '/ocade/automations'
+      preLoaderRoute: typeof AuthenticatedOcadeAutomationsRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/artifacts': {
+      id: '/_authenticated/ocade/artifacts'
+      path: '/artifacts'
+      fullPath: '/ocade/artifacts'
+      preLoaderRoute: typeof AuthenticatedOcadeArtifactsRouteImport
       parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/madee/new': {
@@ -1496,11 +1734,25 @@ const AuthenticatedMadeeRouteWithChildren =
   AuthenticatedMadeeRoute._addFileChildren(AuthenticatedMadeeRouteChildren)
 
 interface AuthenticatedOcadeRouteChildren {
+  AuthenticatedOcadeArtifactsRoute: typeof AuthenticatedOcadeArtifactsRoute
+  AuthenticatedOcadeAutomationsRoute: typeof AuthenticatedOcadeAutomationsRoute
+  AuthenticatedOcadeCodeRoute: typeof AuthenticatedOcadeCodeRoute
   AuthenticatedOcadeModelsRoute: typeof AuthenticatedOcadeModelsRoute
+  AuthenticatedOcadeMonitorsRoute: typeof AuthenticatedOcadeMonitorsRoute
+  AuthenticatedOcadeProjectsRoute: typeof AuthenticatedOcadeProjectsRoute
+  AuthenticatedOcadeStudioRoute: typeof AuthenticatedOcadeStudioRoute
+  AuthenticatedOcadeWorkRoute: typeof AuthenticatedOcadeWorkRoute
 }
 
 const AuthenticatedOcadeRouteChildren: AuthenticatedOcadeRouteChildren = {
+  AuthenticatedOcadeArtifactsRoute: AuthenticatedOcadeArtifactsRoute,
+  AuthenticatedOcadeAutomationsRoute: AuthenticatedOcadeAutomationsRoute,
+  AuthenticatedOcadeCodeRoute: AuthenticatedOcadeCodeRoute,
   AuthenticatedOcadeModelsRoute: AuthenticatedOcadeModelsRoute,
+  AuthenticatedOcadeMonitorsRoute: AuthenticatedOcadeMonitorsRoute,
+  AuthenticatedOcadeProjectsRoute: AuthenticatedOcadeProjectsRoute,
+  AuthenticatedOcadeStudioRoute: AuthenticatedOcadeStudioRoute,
+  AuthenticatedOcadeWorkRoute: AuthenticatedOcadeWorkRoute,
 }
 
 const AuthenticatedOcadeRouteWithChildren =
@@ -1510,9 +1762,14 @@ interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsSectionRoute: typeof AuthenticatedSettingsSectionRoute
   AuthenticatedSettingsActivityRoute: typeof AuthenticatedSettingsActivityRoute
   AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute
+  AuthenticatedSettingsBrowserRoute: typeof AuthenticatedSettingsBrowserRoute
   AuthenticatedSettingsDevicesRoute: typeof AuthenticatedSettingsDevicesRoute
+  AuthenticatedSettingsMobileRoute: typeof AuthenticatedSettingsMobileRoute
   AuthenticatedSettingsPrivacyRoute: typeof AuthenticatedSettingsPrivacyRoute
+  AuthenticatedSettingsSkillsRoute: typeof AuthenticatedSettingsSkillsRoute
+  AuthenticatedSettingsUsageRoute: typeof AuthenticatedSettingsUsageRoute
   AuthenticatedSettingsVaultRoute: typeof AuthenticatedSettingsVaultRoute
+  AuthenticatedSettingsVoiceRoute: typeof AuthenticatedSettingsVoiceRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
 }
 
@@ -1520,9 +1777,14 @@ const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsSectionRoute: AuthenticatedSettingsSectionRoute,
   AuthenticatedSettingsActivityRoute: AuthenticatedSettingsActivityRoute,
   AuthenticatedSettingsAppearanceRoute: AuthenticatedSettingsAppearanceRoute,
+  AuthenticatedSettingsBrowserRoute: AuthenticatedSettingsBrowserRoute,
   AuthenticatedSettingsDevicesRoute: AuthenticatedSettingsDevicesRoute,
+  AuthenticatedSettingsMobileRoute: AuthenticatedSettingsMobileRoute,
   AuthenticatedSettingsPrivacyRoute: AuthenticatedSettingsPrivacyRoute,
+  AuthenticatedSettingsSkillsRoute: AuthenticatedSettingsSkillsRoute,
+  AuthenticatedSettingsUsageRoute: AuthenticatedSettingsUsageRoute,
   AuthenticatedSettingsVaultRoute: AuthenticatedSettingsVaultRoute,
+  AuthenticatedSettingsVoiceRoute: AuthenticatedSettingsVoiceRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
 }
 
@@ -1622,3 +1884,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
