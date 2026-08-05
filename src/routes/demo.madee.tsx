@@ -52,7 +52,7 @@ function DemoMadee() {
           </div>
         </div>
         <div className="flex items-center gap-2 border-t border-border/60 pt-3 text-xs text-muted-foreground">
-          <Ban className="h-3.5 w-3.5 text-amber-300" aria-hidden />
+          <Ban className="h-3.5 w-3.5 text-[color:var(--state-warning)]" aria-hidden />
           <span>Editing and exporting are disabled in demo.</span>
           <button
             disabled

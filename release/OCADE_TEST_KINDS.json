@@ -50,6 +50,11 @@
       "couldBeStronger": "Yes, by invoking the collector against a temporary directory."
     },
     {
+      "path": "src/lib/__tests__/evidence-integrity-gate-enforces.test.ts",
+      "why": "Runs the evidence-integrity gate as a subprocess against a snapshot corrupted one specific way per test; the file reads build the fixture and restore it byte-identically afterwards.",
+      "couldBeStronger": "No. It already executes the production gate and proves each of its conditions rejects. One of its own tests previously passed while proving nothing, because it looked for a ledger key that does not exist; it now asserts the fixture is non-empty before using it."
+    },
+    {
       "path": "src/lib/__tests__/extension-package.test.ts",
       "why": "Asserts on the shipped extension manifest and packaging layout — packaging shape, not runtime behaviour.",
       "couldBeStronger": "Behaviour is now covered separately: extension-zero-touch.test.ts (P12) executes background.js in a VM with a recording chrome double."
@@ -90,6 +95,11 @@
       "couldBeStronger": "Yes, once a database twin exists (P16)."
     },
     {
+      "path": "src/lib/__tests__/palette.test.ts",
+      "why": "The palette lives in CSS custom properties, so the only place to read it is the stylesheet — there is no production module to import. It is nonetheless computing rather than pattern-matching: it parses every oklch declaration, converts it to sRGB with the same transform a browser applies, and computes real WCAG contrast ratios. The figures it produces were confirmed against the running application, which reported 17.11:1 for text on background in the dark theme; this file derives the same number from the same declarations. One block IS a genuine source-text assertion — the sweep for hard-coded Tailwind palette utilities across every TSX file — because a hard-coded colour is invisible to the theme and that is exactly a property of the source.",
+      "couldBeStronger": "Yes, once a rendered-browser test environment exists: contrast computed from the stylesheet cannot see a component that layers a translucent surface over another, which only computed styles on a real page would catch."
+    },
+    {
       "path": "src/lib/__tests__/platform-workflows.test.ts",
       "why": "Asserts the Android/iOS/Windows platform workflow definitions. Executed by CI runners.",
       "couldBeStronger": "No, not locally."
@@ -98,11 +108,6 @@
       "path": "src/lib/__tests__/release-gate-enforces.test.ts",
       "why": "Runs the release gate as a subprocess against corrupted copies of its input; the file reads build the fixture.",
       "couldBeStronger": "No. It already executes the gate."
-    },
-    {
-      "path": "src/lib/__tests__/evidence-integrity-gate-enforces.test.ts",
-      "why": "Runs the evidence-integrity gate as a subprocess against a snapshot corrupted one specific way per test; the file reads build the fixture and restore it byte-identically afterwards.",
-      "couldBeStronger": "No. It already executes the production gate and proves each of its conditions rejects. One of its own tests previously passed while proving nothing, because it looked for a ledger key that does not exist; it now asserts the fixture is non-empty before using it."
     },
     {
       "path": "src/lib/__tests__/sandbox-worker-runtime.test.ts",

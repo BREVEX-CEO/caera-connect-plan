@@ -1,13 +1,9 @@
 import { useEffect, useState } from "react";
 import { detectHardwareFn } from "./hardware.functions";
-import { selectTier, type TierManifest } from "./local/tier-policy";
 import type { HardwareProfile } from "./hardware/detect";
 import type { RoutePolicy } from "./local/router-policy";
 import { measureBrowserProfile, serverIsThisMachine } from "./hardware/detect.browser";
-import manifestJson from "../../release/OCADE_LOCAL_ENGINE_MODEL_MANIFEST.json";
-
-const manifest = manifestJson as unknown as TierManifest;
-const GIB = 1024 ** 3;
+import { routePolicyFor, tierFor } from "./local/device-route-policy";
 
 /**
  * The device facts model routing needs — measured on the machine that will
@@ -67,25 +63,15 @@ const EMPTY: DevicePolicy = {
   problem: null,
 };
 
-/**
- * Turn a profile into routing policy.
- *
- * `precise` is the whole point of the parameter: an imprecise memory figure
- * omits `totalRamBytes` entirely. `modelFit` documents that an absent total
- * disables the check, which is the correct behaviour for a number known to be
- * too low — refusing a model on a cap the browser imposed is worse than not
- * checking.
+/*
+ * Policy construction lives in `local/device-route-policy` so that the paired
+ * bridge and the evidence harness build the SAME policy this screen does.
+ * While it lived here it was reachable only from React, and every non-React
+ * caller therefore routed with no constraints at all — which selects the
+ * largest installed model rather than the one this machine was matched to.
  */
-function toPolicy(profile: HardwareProfile, precise: boolean): RoutePolicy {
-  const tier = selectTier(profile, manifest);
-  return {
-    totalRamBytes: precise && profile.totalRamGib > 0 ? profile.totalRamGib * GIB : undefined,
-    // Only assert "no GPU" when the probe was actually certain. An
-    // inconclusive probe must not exclude tiers.
-    hasDiscreteGpu: profile.gpuCertain ? profile.hasDiscreteGpu : undefined,
-    deviceMatchedModelId: tier.ok ? tier.tier.tag : null,
-  };
-}
+const toPolicy = (profile: HardwareProfile, precise: boolean): RoutePolicy =>
+  routePolicyFor(profile, precise);
 
 export function useDevicePolicy(): DevicePolicy {
   const [state, setState] = useState<DevicePolicy>(EMPTY);
@@ -103,7 +89,7 @@ export function useDevicePolicy(): DevicePolicy {
         try {
           const profile = await detectHardwareFn();
           if (!active) return;
-          const tier = selectTier(profile, manifest);
+          const tier = tierFor(profile);
           setState({
             policy: toPolicy(profile, true),
             profile,
@@ -124,7 +110,7 @@ export function useDevicePolicy(): DevicePolicy {
       try {
         const profile = await measureBrowserProfile();
         if (!active) return;
-        const tier = selectTier(profile, manifest);
+        const tier = tierFor(profile);
         setState({
           policy: toPolicy(profile, false),
           profile,

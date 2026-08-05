@@ -170,7 +170,7 @@ function NewResume() {
               </p>
             )}
             {uploadedContent && (
-              <p className="mt-2 text-sm text-emerald-500">
+              <p className="mt-2 text-sm text-[color:var(--state-success)]">
                 Parsed. {uploadedContent.work.length} role(s), {uploadedContent.skills.length}{" "}
                 skill(s).
               </p>

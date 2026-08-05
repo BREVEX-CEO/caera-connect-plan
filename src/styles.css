@@ -5,9 +5,25 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * CAERA CADANE design system.
- * Premium dark obsidian glass with restrained cyan/blue module accents.
- * All colors use oklch. Tokens are semantic; components never hard-code hex.
+ * CAERA CADANE design system: BLACK, SILVER, GOLD.
+ *
+ * Three materials and nothing else. Black is the surface, silver is the text
+ * and the hairline, gold is the single accent — and because there is only one
+ * accent, gold always means "this is the thing you act on". The previous
+ * cyan/teal/violet/amber module palette is gone rather than layered over: four
+ * competing accents made every screen argue with itself, and a colour that
+ * appears everywhere tells the eye nothing.
+ *
+ * TWO HUES SURVIVE THE REBRAND, AND ONLY FOR SAFETY. Destructive stays red and
+ * success stays a restrained sage. "Deleted" and "saved" must differ by HUE,
+ * not by shade: rendered in gold-on-black they would be told apart only by
+ * brightness, which is exactly what a colour-blind or low-contrast user cannot
+ * do. Their chroma is pulled down so they sit inside this palette instead of
+ * shouting over it.
+ *
+ * All colours are oklch, so lightness is perceptual and a token can be moved a
+ * step darker without also changing how saturated it looks. Tokens are
+ * semantic; components never hard-code a hex.
  */
 
 @theme inline {
@@ -67,159 +83,186 @@
 :root {
   --radius: 0.5rem;
 
-  /* Obsidian / graphite palette — calm, near-black, low chroma */
-  --background: oklch(0.135 0.006 260);
-  --foreground: oklch(0.95 0.004 250);
+  /*
+   * BLACK. Warm-neutral rather than blue-black: at these lightnesses a hue of
+   * 260 reads as cold slate against gold, while 90 reads as ink. The steps are
+   * deliberately close together — surfaces are separated by a silver hairline,
+   * not by a lightness jump, which is what keeps a dense screen calm.
+   */
+  --background: oklch(0.115 0.003 90);
+  --foreground: oklch(0.94 0.003 90);
 
-  --card: oklch(0.175 0.008 262);
-  --card-foreground: oklch(0.95 0.004 250);
-  --popover: oklch(0.19 0.01 262);
-  --popover-foreground: oklch(0.95 0.004 250);
+  --card: oklch(0.155 0.004 90);
+  --card-foreground: oklch(0.94 0.003 90);
+  --popover: oklch(0.175 0.004 90);
+  --popover-foreground: oklch(0.94 0.003 90);
 
-  /* Primary = restrained cyan (used sparingly on active/selected states) */
-  --primary: oklch(0.76 0.11 210);
-  --primary-foreground: oklch(0.14 0.01 260);
+  /* GOLD. The only accent, so it always means "act here". */
+  --primary: oklch(0.8 0.125 88);
+  --primary-foreground: oklch(0.16 0.02 88);
 
-  --secondary: oklch(0.21 0.008 262);
-  --secondary-foreground: oklch(0.93 0.004 250);
-  --muted: oklch(0.2 0.006 262);
-  --muted-foreground: oklch(0.8 0.012 255);
-  --accent: oklch(0.24 0.01 250);
-  --accent-foreground: oklch(0.96 0.004 250);
-  --destructive: oklch(0.62 0.19 25);
-  --destructive-foreground: oklch(0.98 0.005 250);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.76 0.11 210 / 90%);
+  --secondary: oklch(0.2 0.004 90);
+  --secondary-foreground: oklch(0.93 0.003 90);
+  --muted: oklch(0.185 0.004 90);
+  /* SILVER. 0.76 against a 0.115 ground clears AA for body text comfortably. */
+  --muted-foreground: oklch(0.76 0.006 90);
+  --accent: oklch(0.235 0.006 88);
+  --accent-foreground: oklch(0.95 0.003 90);
+  --destructive: oklch(0.62 0.17 27);
+  --destructive-foreground: oklch(0.98 0.004 90);
+  /* Hairlines are silver at low alpha, never pure white: white borders on near
+     black flare and make a bordered grid look like a spreadsheet. */
+  --border: oklch(0.86 0.012 90 / 12%);
+  --input: oklch(0.86 0.012 90 / 15%);
+  --ring: oklch(0.8 0.125 88 / 90%);
 
-  --chart-1: oklch(0.76 0.11 210);
-  --chart-2: oklch(0.72 0.14 165);
-  --chart-3: oklch(0.75 0.15 85);
-  --chart-4: oklch(0.7 0.18 320);
-  --chart-5: oklch(0.68 0.2 25);
+  /*
+   * Charts run gold → champagne → silver → graphite. Sequential by lightness
+   * on purpose: a series stays distinguishable in greyscale and to anyone who
+   * cannot separate hues, which a five-hue rainbow never manages.
+   */
+  --chart-1: oklch(0.82 0.13 88);
+  --chart-2: oklch(0.9 0.06 92);
+  --chart-3: oklch(0.82 0.01 90);
+  --chart-4: oklch(0.66 0.02 90);
+  --chart-5: oklch(0.72 0.07 84);
 
-  /* Sidebar = darker charcoal, subtle 1px border */
-  --sidebar: oklch(0.115 0.005 262);
-  --sidebar-foreground: oklch(0.9 0.004 250);
-  --sidebar-primary: oklch(0.76 0.11 210);
-  --sidebar-primary-foreground: oklch(0.14 0.01 260);
-  --sidebar-accent: oklch(0.22 0.01 262);
-  --sidebar-accent-foreground: oklch(0.97 0.004 250);
-  --sidebar-border: oklch(1 0 0 / 6%);
-  --sidebar-ring: oklch(0.76 0.11 210 / 55%);
+  /* Sidebar = the deepest black in the app, edged in silver */
+  --sidebar: oklch(0.085 0.002 90);
+  --sidebar-foreground: oklch(0.89 0.004 90);
+  --sidebar-primary: oklch(0.8 0.125 88);
+  --sidebar-primary-foreground: oklch(0.16 0.02 88);
+  --sidebar-accent: oklch(0.205 0.005 88);
+  --sidebar-accent-foreground: oklch(0.96 0.003 90);
+  --sidebar-border: oklch(0.86 0.012 90 / 9%);
+  --sidebar-ring: oklch(0.8 0.125 88 / 55%);
 
-  /* Module accents */
-  --accent-ocade: oklch(0.78 0.12 210); /* cyan */
-  --accent-ficia: oklch(0.74 0.13 165); /* teal-green */
-  --accent-madee: oklch(0.7 0.15 300); /* violet */
-  --accent-cania: oklch(0.78 0.13 75); /* amber */
+  /*
+   * Module accents. OCADE is the product, so OCADE gets the gold; the modules
+   * that remain disabled are silver at descending weight rather than four
+   * different colours competing with it.
+   */
+  --accent-ocade: oklch(0.82 0.13 88); /* gold */
+  --accent-ficia: oklch(0.82 0.008 90); /* silver */
+  --accent-madee: oklch(0.7 0.008 90); /* graphite silver */
+  --accent-cania: oklch(0.74 0.06 78); /* bronze */
 
-  /* States */
-  --state-success: oklch(0.82 0.12 155);
-  --state-warning: oklch(0.9 0.12 85);
-  --state-info: oklch(0.84 0.1 210);
-  --state-pending: oklch(0.8 0.02 255);
+  /* States — see the note at the top about why two hues survived. */
+  --state-success: oklch(0.84 0.09 148);
+  --state-warning: oklch(0.87 0.12 88);
+  --state-info: oklch(0.85 0.01 90);
+  --state-pending: oklch(0.7 0.006 90);
 
   /* Glass surfaces — used only on menus / modals / floating controls */
-  --surface-glass: oklch(1 0 0 / 4%);
-  --surface-glass-strong: oklch(1 0 0 / 7%);
-  --surface-glass-border: oklch(1 0 0 / 10%);
+  --surface-glass: oklch(0.9 0.01 90 / 4%);
+  --surface-glass-strong: oklch(0.9 0.01 90 / 7%);
+  --surface-glass-border: oklch(0.88 0.015 90 / 13%);
   --blur-glass: 16px;
 }
 
-/* Light theme: soft silver + warm ivory panels + restrained gold */
+/*
+ * Light theme: the same three materials inverted — brushed silver ground, ink
+ * text, and a deeper gold. Gold has to darken here or it disappears: the same
+ * 0.8 lightness that glows on black is nearly invisible on silver.
+ */
 .light {
-  --background: oklch(0.965 0.004 90); /* soft silver-ivory */
-  --foreground: oklch(0.18 0.015 260);
-  --card: oklch(0.99 0.003 90);
-  --card-foreground: oklch(0.18 0.015 260);
-  --popover: oklch(0.995 0.002 90);
-  --popover-foreground: oklch(0.18 0.015 260);
-  --primary: oklch(0.45 0.11 82); /* restrained dark gold: AA on light surfaces */
+  --background: oklch(0.955 0.002 90); /* brushed silver */
+  --foreground: oklch(0.16 0.004 90); /* ink */
+  --card: oklch(0.985 0.001 90);
+  --card-foreground: oklch(0.16 0.004 90);
+  --popover: oklch(0.995 0.001 90);
+  --popover-foreground: oklch(0.16 0.004 90);
+  --primary: oklch(0.47 0.1 82); /* struck gold: clears AA on light surfaces */
   --primary-foreground: oklch(0.99 0.002 90);
-  --secondary: oklch(0.93 0.005 90);
-  --secondary-foreground: oklch(0.18 0.015 260);
-  --muted: oklch(0.94 0.004 90);
-  --muted-foreground: oklch(0.4 0.015 260);
-  --accent: oklch(0.92 0.005 90);
-  --accent-foreground: oklch(0.18 0.015 260);
-  --destructive: oklch(0.55 0.22 25);
+  --secondary: oklch(0.915 0.003 90);
+  --secondary-foreground: oklch(0.16 0.004 90);
+  --muted: oklch(0.93 0.002 90);
+  --muted-foreground: oklch(0.42 0.006 90);
+  --accent: oklch(0.9 0.004 90);
+  --accent-foreground: oklch(0.16 0.004 90);
+  --destructive: oklch(0.52 0.2 27);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.2 0.01 260 / 14%);
-  --input: oklch(0.2 0.01 260 / 16%);
-  --ring: oklch(0.42 0.1 82);
-  --sidebar: oklch(0.945 0.005 90);
-  --sidebar-foreground: oklch(0.2 0.015 260);
-  --sidebar-primary: oklch(0.45 0.11 82);
+  --border: oklch(0.2 0.005 90 / 15%);
+  --input: oklch(0.2 0.005 90 / 17%);
+  --ring: oklch(0.47 0.1 82);
+  --sidebar: oklch(0.93 0.003 90);
+  --sidebar-foreground: oklch(0.18 0.004 90);
+  --sidebar-primary: oklch(0.47 0.1 82);
   --sidebar-primary-foreground: oklch(0.99 0.002 90);
-  --sidebar-accent: oklch(0.895 0.006 90);
-  --sidebar-accent-foreground: oklch(0.15 0.015 260);
-  --sidebar-border: oklch(0.2 0.01 260 / 12%);
-  --sidebar-ring: oklch(0.42 0.1 82);
-  --accent-ocade: oklch(0.5 0.13 220);
-  --accent-ficia: oklch(0.48 0.12 165);
-  --accent-madee: oklch(0.48 0.15 300);
-  --accent-cania: oklch(0.55 0.13 65);
-  --state-success: oklch(0.38 0.12 155);
-  --state-warning: oklch(0.38 0.1 75);
-  --state-info: oklch(0.4 0.1 220);
-  --state-pending: oklch(0.4 0.02 255);
-  --surface-glass: oklch(0 0 0 / 3%);
-  --surface-glass-strong: oklch(0 0 0 / 5%);
-  --surface-glass-border: oklch(0 0 0 / 10%);
+  --sidebar-accent: oklch(0.885 0.004 90);
+  --sidebar-accent-foreground: oklch(0.14 0.004 90);
+  --sidebar-border: oklch(0.2 0.005 90 / 13%);
+  --sidebar-ring: oklch(0.47 0.1 82);
+  --chart-1: oklch(0.52 0.11 84);
+  --chart-2: oklch(0.66 0.08 88);
+  --chart-3: oklch(0.45 0.008 90);
+  --chart-4: oklch(0.62 0.01 90);
+  --chart-5: oklch(0.36 0.05 78);
+  --accent-ocade: oklch(0.47 0.11 82);
+  --accent-ficia: oklch(0.42 0.006 90);
+  --accent-madee: oklch(0.52 0.006 90);
+  --accent-cania: oklch(0.45 0.06 70);
+  --state-success: oklch(0.42 0.1 148);
+  --state-warning: oklch(0.44 0.09 80);
+  --state-info: oklch(0.4 0.008 90);
+  --state-pending: oklch(0.46 0.005 90);
+  --surface-glass: oklch(0.2 0.005 90 / 3%);
+  --surface-glass-strong: oklch(0.2 0.005 90 / 5%);
+  --surface-glass-border: oklch(0.2 0.005 90 / 11%);
   --blur-glass: 10px;
 }
 
 /*
- * Tailwind's light amber text utilities are designed for dark surfaces. The
- * demo badge and blocked-state notice are present in every theme, so keep their
- * warning meaning while using a dark amber that clears AA on light surfaces.
+ * The `.light .text-amber-*` override that used to sit here is gone with the
+ * classes it patched. Warning text now reads `--state-warning`, which is
+ * already defined per theme, so the light-mode correction happens in the token
+ * rather than in a rule that had to know which utilities a component picked.
  */
-.light .text-amber-200,
-.light .text-amber-300 {
-  color: oklch(0.38 0.1 80);
-}
 
-/* REAL theme: elegant animated gradients, morphing light, liquid depth. */
+/*
+ * REAL theme: the same black, lit. Gold and champagne move slowly behind the
+ * glass instead of the old blue/violet aurora, so the depth comes from the
+ * brand's own light rather than from a second palette.
+ */
 .real {
-  --background: oklch(0.13 0.02 265);
-  --foreground: oklch(0.97 0.005 250);
-  --card: oklch(0.2 0.03 268 / 62%);
-  --card-foreground: oklch(0.97 0.005 250);
-  --popover: oklch(0.22 0.035 268 / 82%);
-  --popover-foreground: oklch(0.97 0.005 250);
-  --primary: oklch(0.82 0.14 205);
-  --primary-foreground: oklch(0.14 0.02 260);
-  --secondary: oklch(0.26 0.03 268 / 65%);
-  --secondary-foreground: oklch(0.96 0.005 250);
-  --muted: oklch(0.24 0.03 268 / 55%);
-  --muted-foreground: oklch(0.9 0.015 255);
-  --accent: oklch(0.3 0.05 250 / 70%);
-  --accent-foreground: oklch(0.97 0.005 250);
-  --border: oklch(1 0 0 / 14%);
-  --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.82 0.14 205 / 65%);
-  --sidebar: oklch(0.15 0.025 265 / 75%);
-  --sidebar-accent: oklch(0.26 0.04 268 / 70%);
-  --sidebar-border: oklch(1 0 0 / 12%);
-  --surface-glass: oklch(1 0 0 / 7%);
-  --surface-glass-strong: oklch(1 0 0 / 11%);
-  --surface-glass-border: oklch(1 0 0 / 16%);
+  --background: oklch(0.1 0.004 88);
+  --foreground: oklch(0.96 0.004 90);
+  --card: oklch(0.19 0.008 88 / 62%);
+  --card-foreground: oklch(0.96 0.004 90);
+  --popover: oklch(0.21 0.009 88 / 82%);
+  --popover-foreground: oklch(0.96 0.004 90);
+  --primary: oklch(0.84 0.135 88);
+  --primary-foreground: oklch(0.15 0.02 88);
+  --secondary: oklch(0.25 0.008 88 / 65%);
+  --secondary-foreground: oklch(0.95 0.004 90);
+  --muted: oklch(0.23 0.008 88 / 55%);
+  --muted-foreground: oklch(0.88 0.008 90);
+  --accent: oklch(0.29 0.02 88 / 70%);
+  --accent-foreground: oklch(0.96 0.004 90);
+  --border: oklch(0.88 0.02 90 / 16%);
+  --input: oklch(0.88 0.02 90 / 18%);
+  --ring: oklch(0.84 0.135 88 / 65%);
+  --sidebar: oklch(0.13 0.005 88 / 75%);
+  --sidebar-accent: oklch(0.25 0.012 88 / 70%);
+  --sidebar-border: oklch(0.88 0.02 90 / 14%);
+  --surface-glass: oklch(0.9 0.02 90 / 7%);
+  --surface-glass-strong: oklch(0.9 0.02 90 / 11%);
+  --surface-glass-border: oklch(0.88 0.03 90 / 18%);
   --blur-glass: 26px;
 }
 
 /* High contrast (accessibility) */
 .high-contrast {
-  --border: oklch(1 0 0 / 32%);
-  --muted-foreground: oklch(0.88 0.01 250);
-  --surface-glass-border: oklch(1 0 0 / 28%);
-  --ring: oklch(0.9 0.05 210);
+  --border: oklch(0.92 0.01 90 / 34%);
+  --muted-foreground: oklch(0.9 0.006 90);
+  --surface-glass-border: oklch(0.92 0.01 90 / 30%);
+  --ring: oklch(0.88 0.11 88);
 }
 
 .light.high-contrast {
-  --border: oklch(0.25 0.02 260 / 55%);
-  --muted-foreground: oklch(0.28 0.02 260);
-  --surface-glass-border: oklch(0 0 0 / 22%);
+  --border: oklch(0.18 0.005 90 / 55%);
+  --muted-foreground: oklch(0.26 0.005 90);
+  --surface-glass-border: oklch(0.18 0.005 90 / 24%);
 }
 
 /* Reduced motion — OS pref or user override */
@@ -282,11 +325,12 @@
   /* REAL: liquid animated aurora background */
   html.real body {
     background-color: var(--color-background);
+    /* Gold, champagne, bronze, silver — one family, four weights. */
     background-image:
-      radial-gradient(60% 40% at 20% 10%, oklch(0.55 0.18 260 / 42%), transparent 65%),
-      radial-gradient(55% 45% at 85% 20%, oklch(0.6 0.19 200 / 34%), transparent 65%),
-      radial-gradient(70% 55% at 50% 100%, oklch(0.55 0.18 300 / 32%), transparent 65%),
-      radial-gradient(50% 40% at 100% 90%, oklch(0.6 0.16 160 / 28%), transparent 60%);
+      radial-gradient(60% 40% at 20% 10%, oklch(0.68 0.12 88 / 34%), transparent 65%),
+      radial-gradient(55% 45% at 85% 20%, oklch(0.74 0.08 95 / 26%), transparent 65%),
+      radial-gradient(70% 55% at 50% 100%, oklch(0.58 0.09 72 / 26%), transparent 65%),
+      radial-gradient(50% 40% at 100% 90%, oklch(0.72 0.01 90 / 18%), transparent 60%);
     background-size:
       200% 200%,
       200% 200%,

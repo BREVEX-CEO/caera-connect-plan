@@ -319,7 +319,7 @@ function OcadeModelsPage() {
                     {mode === "auto" ? "Follow the preferences below." : info?.description}
                   </span>
                   {info?.status === "setup_required" && (
-                    <span className="mt-2 inline-flex items-center gap-1 text-xs text-amber-400">
+                    <span className="mt-2 inline-flex items-center gap-1 text-xs text-[color:var(--state-warning)]">
                       <AlertTriangle className="h-3 w-3" /> Setup required
                     </span>
                   )}
@@ -401,7 +401,9 @@ function OcadeModelsPage() {
                           <div
                             className={cn(
                               "mt-1 max-w-64",
-                              result.ok ? "text-emerald-300" : "text-amber-300",
+                              result.ok
+                                ? "text-[color:var(--state-success)]"
+                                : "text-[color:var(--state-warning)]",
                             )}
                           >
                             {result.reason} ({result.latencyMs} ms)
@@ -501,7 +503,7 @@ function OcadeModelsPage() {
                   <li key={i}>{r}</li>
                 ))}
                 {autoPreview.localFallbackNeeded && (
-                  <li className="text-amber-400">
+                  <li className="text-[color:var(--state-warning)]">
                     A local model is preferred but none is connected yet — cloud fallback shown.
                   </li>
                 )}
@@ -597,8 +599,8 @@ function OcadeModelsPage() {
                       className={cn(
                         "mt-3 rounded-md border p-2 text-xs",
                         r.ok
-                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                          : "border-amber-500/30 bg-amber-500/10 text-amber-300",
+                          ? "border-[color:var(--state-success)]/30 bg-[color:var(--state-success)]/10 text-[color:var(--state-success)]"
+                          : "border-[color:var(--state-warning)]/30 bg-[color:var(--state-warning)]/10 text-[color:var(--state-warning)]",
                       )}
                     >
                       {r.ok ? "✓ " : r.setupRequired ? "Setup required — " : "✗ "}
@@ -690,7 +692,7 @@ function OcadeModelsPage() {
                       key={e.id}
                       className={cn(
                         "rounded border border-white/5 bg-white/[0.02] px-2 py-1",
-                        e.ok === false && "border-amber-500/30",
+                        e.ok === false && "border-[color:var(--state-warning)]/30",
                       )}
                     >
                       <div className="flex justify-between text-fg">

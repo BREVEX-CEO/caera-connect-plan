@@ -156,9 +156,11 @@ function DemoFicia() {
                       <span
                         className={cn(
                           "rounded-full px-2 py-0.5 text-xs",
-                          r.status === "Paid" && "bg-emerald-500/15 text-emerald-300",
-                          r.status === "Overdue" && "bg-red-500/15 text-red-300",
-                          r.status === "Sent" && "bg-blue-500/15 text-blue-300",
+                          r.status === "Paid" &&
+                            "bg-[color:var(--state-success)]/15 text-[color:var(--state-success)]",
+                          r.status === "Overdue" && "bg-destructive/15 text-destructive",
+                          r.status === "Sent" &&
+                            "bg-[color:var(--state-info)]/15 text-[color:var(--state-info)]",
                         )}
                       >
                         {r.status}
@@ -169,7 +171,7 @@ function DemoFicia() {
               </tbody>
             </table>
             <div className="flex items-center gap-2 border-t border-border/60 p-3 text-xs text-muted-foreground">
-              <Ban className="h-3.5 w-3.5 text-amber-300" aria-hidden />
+              <Ban className="h-3.5 w-3.5 text-[color:var(--state-warning)]" aria-hidden />
               Sending, e-invoice filing, digital signature and payment collection are disabled in
               demo.
             </div>

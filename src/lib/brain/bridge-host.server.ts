@@ -14,7 +14,8 @@ import {
   type PairingRequest,
 } from "./pairing";
 import { discoverLocalModels, streamLocalChat, DEFAULT_LOCAL_BRIDGE_URL } from "../ocade-local";
-import { routeTask, PerfLedger } from "../local/router-policy";
+import { routeTask, PerfLedger, type RoutePolicy } from "../local/router-policy";
+import { routePolicyFor } from "../local/device-route-policy";
 
 /**
  * The listener side of pairing: what actually runs `bridge-server` on a machine.
@@ -134,6 +135,35 @@ let state: PairingState | null = null;
 let loadedFrom: string | null = null;
 const ledger = new PerfLedger();
 
+/*
+ * Measured once and kept.
+ *
+ * A paired request must be routed against THIS machine's policy — the same one
+ * the local screen uses. Routing with no policy picks the largest installed
+ * model regardless of whether the machine can run it well, which on the
+ * reference machine meant a 14B model at roughly three minutes to the first
+ * token in place of the tier it was matched to. The measurement is stable for
+ * the life of the process, so it is taken lazily and cached rather than
+ * repeated for every request.
+ */
+let cachedPolicy: RoutePolicy | null = null;
+
+async function machinePolicy(): Promise<RoutePolicy> {
+  if (cachedPolicy) return cachedPolicy;
+  try {
+    const [{ measureHardware }, { profileFrom }] = await Promise.all([
+      import("../hardware/detect.node"),
+      import("../hardware/detect"),
+    ]);
+    cachedPolicy = routePolicyFor(profileFrom(await measureHardware()), true);
+  } catch {
+    // An unmeasurable machine gets no constraints rather than invented ones —
+    // the same direction the local screen takes when its probe fails.
+    cachedPolicy = {};
+  }
+  return cachedPolicy;
+}
+
 async function pairingState(config: BridgeHostConfig): Promise<PairingState> {
   if (state && loadedFrom === config.deviceFile) return state;
   let devices: PairedDevice[] = [];
@@ -172,7 +202,7 @@ export async function approvedOrigins(config = readBridgeConfig()): Promise<Set<
 async function describeEngine(engineUrl: string) {
   const discovery = await discoverLocalModels(engineUrl);
   if (!discovery.reachable || discovery.models.length === 0) return null;
-  const route = routeTask("general", discovery.models, ledger, {});
+  const route = routeTask("general", discovery.models, ledger, await machinePolicy());
   if (!route.ok) return null;
   return {
     label: "Paired computer",
@@ -202,7 +232,12 @@ export function bridgeDeps(state: PairingState, engineUrl = DEFAULT_LOCAL_BRIDGE
       // text-only model to look at an image does not fail loudly — it answers
       // about nothing, which is worse than refusing.
       const needsVision = messages.some((message) => (message.images?.length ?? 0) > 0);
-      const route = routeTask(needsVision ? "vision" : "general", discovery.models, ledger, {});
+      const route = routeTask(
+        needsVision ? "vision" : "general",
+        discovery.models,
+        ledger,
+        await machinePolicy(),
+      );
       if (!route.ok) {
         return {
           ok: false,

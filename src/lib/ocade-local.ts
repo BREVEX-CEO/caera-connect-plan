@@ -166,6 +166,33 @@ async function fetchWithDeadline(f: FetchLike, url: string, timeoutMs: number): 
 
 const isAbort = (e: unknown) => e instanceof Error && e.name === "AbortError";
 
+/**
+ * Did the transport give up waiting, rather than fail to connect?
+ *
+ * Node's fetch abandons a request whose first response byte takes longer than
+ * 300 seconds. Measured here: a 5,849-token document sent to a model that had
+ * to be RELOADED at a new context window ran past that limit and surfaced as
+ * "unreachable" — on a machine where the engine was running and working. The
+ * same request, once the model was warm at that window, returned headers in
+ * 37.9 seconds and the correct answer in 40.6.
+ *
+ * The distinction matters because it decides what the user is told to do:
+ * "start the engine" is useless advice for an engine that is already running.
+ */
+function isSlowResponseError(e: unknown): boolean {
+  if (!(e instanceof Error)) return false;
+  const cause = (e as { cause?: { code?: string; name?: string } }).cause;
+  const code = cause?.code ?? "";
+  const name = cause?.name ?? e.name;
+  return (
+    code === "UND_ERR_HEADERS_TIMEOUT" ||
+    code === "UND_ERR_BODY_TIMEOUT" ||
+    code === "ETIMEDOUT" ||
+    /timeout/i.test(name) ||
+    /timeout/i.test(e.message)
+  );
+}
+
 /** Health + installed-model discovery against the local bridge. */
 export async function discoverLocalModels(
   bridgeUrl: string = DEFAULT_LOCAL_BRIDGE_URL,
@@ -550,6 +577,172 @@ export interface LocalChatMessage {
   images?: string[];
 }
 
+/**
+ * The context window a request needs — and why OCADE has to name it.
+ *
+ * THE DEFECT THIS EXISTS TO CLOSE. The runtime defaults to a 4,096-token
+ * context and SILENTLY DROPS whatever does not fit. It does not warn, it does
+ * not fail, and the model answers confidently from the fragment that survived.
+ * Measured on this machine: a 220-line log with an access code on line 147 came
+ * to 5,654 tokens, and the same question that returns "742913" with a large
+ * enough window returned "74" — a number that appears nowhere in the document.
+ * A user attaching a report and getting an answer about the half of it that
+ * happened to fit is the worst failure this product can have, because nothing
+ * on screen says anything went wrong.
+ *
+ * WHY IT IS NOT SIMPLY SET LARGE. The KV cache scales with the window, and it
+ * is resident memory on a machine that is also running everything else the
+ * person is doing. So the window is sized to the REQUEST: short chats send no
+ * override at all and pay nothing, and only a request that genuinely needs more
+ * asks for more.
+ */
+const CONTEXT_DEFAULT = 4096;
+/**
+ * Steps rather than an exact figure: the runtime reallocates and reloads when
+ * the window changes, so a value that drifts with every message would reload
+ * the model constantly. Rounding to a step means consecutive turns in the same
+ * conversation usually ask for the same window and reuse the loaded weights.
+ */
+const CONTEXT_STEPS = [4096, 8192, 16384, 32768] as const;
+/** Room for the answer itself. A window that fits only the prompt cannot reply. */
+const CONTEXT_REPLY_RESERVE = 1024;
+/**
+ * A picture is not free. Vision models expand an image into hundreds of tokens
+ * before a word is read; 1,200 is a conservative figure that errs towards
+ * asking for a larger window rather than silently truncating one.
+ */
+const CONTEXT_TOKENS_PER_IMAGE = 1200;
+/**
+ * The largest window OCADE will ever ask for.
+ *
+ * Beyond this the KV cache stops being affordable on any hardware this product
+ * targets. A request larger than the machine's ceiling is REPORTED rather than
+ * quietly cut.
+ */
+export const CONTEXT_CEILING = 32768;
+
+/**
+ * How large a window this particular machine can afford.
+ *
+ * MEASURED, not assumed. On the reference machine (15.65 GB, no acceleration)
+ * the 8B tier occupies 5.53 GB at the runtime's default window and 7.35 GB at
+ * 16,384 — an extra 1.82 GB of resident memory for the KV cache alone. At
+ * 32,768 the same model would approach 9 GB, which on a 16 GB laptop that is
+ * also running a browser and everything else is the point where the machine
+ * starts swapping and the whole system becomes unpleasant, not just the chat.
+ *
+ * So the ceiling scales with total memory. An unknown total gets the smallest
+ * step above the default: guessing upwards here is paid for by the user in
+ * responsiveness, and that is not OCADE's to spend.
+ */
+export function contextCeilingFor(totalRamBytes?: number): number {
+  const GIB = 1024 ** 3;
+  if (!totalRamBytes || totalRamBytes <= 0) return 8192;
+  if (totalRamBytes < 12 * GIB) return 8192;
+  if (totalRamBytes < 20 * GIB) return 16384;
+  return CONTEXT_CEILING;
+}
+
+/**
+ * Roughly how many tokens a message list costs.
+ *
+ * 3.5 characters per token is deliberately pessimistic for English — real
+ * tokenisers average closer to 4 — because underestimating means truncation
+ * and overestimating merely costs a little memory.
+ */
+export function estimateTokens(messages: LocalChatMessage[]): number {
+  let characters = 0;
+  let images = 0;
+  for (const message of messages) {
+    characters += message.content.length;
+    images += message.images?.length ?? 0;
+  }
+  return Math.ceil(characters / 3.5) + images * CONTEXT_TOKENS_PER_IMAGE;
+}
+
+export interface ContextPlan {
+  /** Null when the runtime's own default is enough; nothing is then sent. */
+  numCtx: number | null;
+  estimatedTokens: number;
+  /** True when the request is too large even for the ceiling. */
+  exceedsCeiling: boolean;
+  /**
+   * Roughly how long this machine will spend READING the prompt before it says
+   * anything, or null when there is no measured basis to say.
+   */
+  estimatedReadSeconds: number | null;
+}
+
+/**
+ * Prompt-evaluation speed on a machine with no graphics acceleration.
+ *
+ * MEASURED, from the engine's own counters on the reference machine: a 5,654-
+ * token prompt took 458.4 seconds to evaluate — 12.3 tokens per second — after
+ * which generation itself took 3.8 seconds and the answer was correct. Reading
+ * is the whole cost; answering is almost free.
+ *
+ * This is the figure behind the warning. Eight minutes of silence with a
+ * spinner is indistinguishable from a hang, and a user who is told "this will
+ * take a few minutes" can decide to trim the document instead of concluding
+ * the product is broken.
+ */
+const CPU_PROMPT_TOKENS_PER_SECOND = 12.3;
+
+/** Long enough that silence starts to look like a hang. */
+export const SLOW_READ_WARNING_SECONDS = 45;
+
+/**
+ * How long the engine will spend reading, when that can be said honestly.
+ *
+ * Returns null unless the machine was MEASURED to have no acceleration. With a
+ * graphics card the figure is different by an order of magnitude and nothing
+ * here has measured it, so no estimate is offered rather than a made-up one —
+ * a wrong time estimate is worse than none, because people plan around it.
+ */
+export function estimatedReadSeconds(
+  estimatedTokens: number,
+  hasDiscreteGpu: boolean | undefined,
+): number | null {
+  if (hasDiscreteGpu !== false) return null;
+  return Math.round(estimatedTokens / CPU_PROMPT_TOKENS_PER_SECOND);
+}
+
+/**
+ * Decide the window for one request. Pure, so the arithmetic is testable.
+ *
+ * `totalRamBytes` is what keeps this honest about the machine rather than about
+ * the model: pass the measured total and the ceiling scales with it; omit it
+ * and the smallest ceiling applies, because an unmeasured machine must not be
+ * charged for an assumption.
+ */
+export function planContextWindow(
+  messages: LocalChatMessage[],
+  totalRamBytes?: number,
+  hasDiscreteGpu?: boolean,
+): ContextPlan {
+  const ceiling = contextCeilingFor(totalRamBytes);
+  const estimatedTokens = estimateTokens(messages);
+  const readSeconds = estimatedReadSeconds(estimatedTokens, hasDiscreteGpu);
+  const needed = estimatedTokens + CONTEXT_REPLY_RESERVE;
+  if (needed <= CONTEXT_DEFAULT) {
+    return {
+      numCtx: null,
+      estimatedTokens,
+      exceedsCeiling: false,
+      estimatedReadSeconds: readSeconds,
+    };
+  }
+  const step = CONTEXT_STEPS.filter((size) => size <= ceiling).find((size) => size >= needed);
+  return {
+    numCtx: step ?? ceiling,
+    estimatedTokens,
+    // Still asks for the ceiling rather than giving up: a truncated answer with
+    // a warning beats no answer at all. The caller is the one that must say so.
+    exceedsCeiling: needed > ceiling,
+    estimatedReadSeconds: readSeconds,
+  };
+}
+
 export interface LocalStreamHandlers {
   onToken: (chunk: string) => void;
   signal?: AbortSignal;
@@ -574,6 +767,22 @@ export interface LocalStreamHandlers {
    * ordinary conversation — pass `true` explicitly.
    */
   think?: boolean;
+  /**
+   * How big this request turned out to be, reported before it is sent.
+   *
+   * Exists so a surface can WARN when `exceedsCeiling` is true. Without it the
+   * only honest alternative would be refusing the message outright, and a
+   * warned partial answer is more useful than no answer.
+   */
+  onContextPlan?: (plan: ContextPlan) => void;
+  /**
+   * This machine's total memory, when it was measured precisely.
+   *
+   * Omitted means unknown, and unknown deliberately gets the SMALLEST context
+   * ceiling — the extra memory a large window costs is paid in responsiveness
+   * by the person using the computer, so it is not spent on a guess.
+   */
+  totalRamBytes?: number;
 }
 
 /**
@@ -604,6 +813,20 @@ export async function preloadLocalModel(
   bridgeUrl: string,
   modelId: string,
   fetchImpl?: FetchLike,
+  /**
+   * Warm the model at THE WINDOW THE SEND WILL USE.
+   *
+   * Without this the optimisation defeated itself exactly when it mattered
+   * most: the runtime reloads the weights whenever the context window changes,
+   * so warming at the default and then sending a long document at a larger
+   * window paid the full multi-gigabyte load anyway — after the user pressed
+   * send, not while they were typing.
+   *
+   * Measured on this machine: that reload plus prompt evaluation ran past five
+   * minutes and was abandoned by the transport; the identical request against
+   * an already-warm model at the same window answered in 40.6 seconds.
+   */
+  numCtx?: number | null,
 ): Promise<boolean> {
   const f = getFetch(fetchImpl);
   if (!f) return false;
@@ -611,7 +834,11 @@ export async function preloadLocalModel(
     const res = await f(`${bridgeUrl.replace(/\/+$/, "")}/api/chat`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ model: modelId, messages: [] }),
+      body: JSON.stringify({
+        model: modelId,
+        messages: [],
+        ...(numCtx ? { options: { num_ctx: numCtx } } : {}),
+      }),
     });
     return res.ok;
   } catch {
@@ -635,6 +862,15 @@ export async function streamLocalChat(
   if (!f) return { ok: false, reason: "No fetch available." };
   const base = bridgeUrl.replace(/\/+$/, "");
 
+  /*
+   * Size the context to this request before sending it. Short conversations
+   * get no override and keep the runtime's own default, so nothing extra is
+   * allocated for the ordinary case; a long document asks for the window it
+   * actually needs instead of being cut down without anybody being told.
+   */
+  const context = planContextWindow(messages, handlers.totalRamBytes);
+  handlers.onContextPlan?.(context);
+
   const send = (includeThink: boolean) =>
     f(`${base}/api/chat`, {
       method: "POST",
@@ -647,6 +883,7 @@ export async function streamLocalChat(
         // the behaviour cannot change underneath the product when a model is
         // updated.
         ...(includeThink ? { think: handlers.think === true } : {}),
+        ...(context.numCtx === null ? {} : { options: { num_ctx: context.numCtx } }),
       }),
       signal: handlers.signal,
     });
@@ -666,6 +903,26 @@ export async function streamLocalChat(
     }
   } catch (e) {
     if (e instanceof Error && e.name === "AbortError") return { ok: false, reason: "cancelled" };
+    /*
+     * A TRANSPORT TIMEOUT IS NOT AN ABSENT ENGINE, and saying so sends the user
+     * to the wrong remedy — "start the engine" for a machine where it is
+     * already running and working hard.
+     *
+     * Observed: a 220-line document, 5,849 estimated tokens, on this
+     * CPU-only machine. Prompt evaluation alone ran past five minutes before a
+     * single byte came back, and Node's fetch gives up at 300 seconds. The
+     * request was reported as "unreachable" while the engine was in fact
+     * mid-evaluation. Browsers do not impose that limit, so this is mostly the
+     * paired-bridge and tooling path — but a wrong diagnosis is worth the same
+     * on either.
+     */
+    if (isSlowResponseError(e)) {
+      return {
+        ok: false,
+        reason:
+          "The engine did not send anything back in time. A long document can take several minutes to read on this computer.",
+      };
+    }
     return { ok: false, reason: "Local engine unreachable." };
   }
   if (!res.ok || !res.body) {

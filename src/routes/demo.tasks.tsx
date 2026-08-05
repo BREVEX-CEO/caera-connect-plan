@@ -28,7 +28,7 @@ function DemoTasks() {
                   onClick={() => markTaskDone(t.id)}
                   aria-label={done ? "Already done" : `Mark ${t.title} as done`}
                   disabled={done}
-                  className="text-muted-foreground disabled:text-emerald-400"
+                  className="text-muted-foreground disabled:text-[color:var(--state-success)]"
                 >
                   {done ? <CheckCircle2 className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
                 </button>

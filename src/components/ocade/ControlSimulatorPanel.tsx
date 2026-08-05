@@ -188,7 +188,7 @@ export function ControlSimulatorPanel() {
             nothing at all about driving real applications on this machine.
           </p>
         </div>
-        <span className="shrink-0 rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">
+        <span className="shrink-0 rounded bg-[color:var(--state-warning)]/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[color:var(--state-warning)]">
           Simulated
         </span>
       </div>
@@ -342,7 +342,7 @@ function TransactionBench() {
             can propose an action, never approve, cage, confirm or execute one.
           </p>
         </div>
-        <span className="shrink-0 rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">
+        <span className="shrink-0 rounded bg-[color:var(--state-warning)]/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[color:var(--state-warning)]">
           Simulated
         </span>
       </div>
@@ -522,7 +522,7 @@ function TwinLabBench() {
             checked against that truth rather than against its own report.
           </p>
         </div>
-        <span className="shrink-0 rounded bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">
+        <span className="shrink-0 rounded bg-[color:var(--state-warning)]/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[color:var(--state-warning)]">
           Twin
         </span>
       </div>

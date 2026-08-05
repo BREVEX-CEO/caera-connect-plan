@@ -3,6 +3,7 @@ import { ArrowUp, Square, Paperclip, ImagePlus, X, FileText } from "lucide-react
 import { cn } from "@/lib/utils";
 import type { ChatAttachmentView, EngineStatusView } from "./chat-types";
 import { EngineBadge } from "./EngineBadge";
+import { dragCarriesFiles, dragDepthAfter, acceptsFiles } from "./composer-drop";
 
 /**
  * The composer.
@@ -19,6 +20,11 @@ import { EngineBadge } from "./EngineBadge";
  *    is in force, rather than a fixed sentence that is wrong for half of them.
  *  - **Attachments are removable before sending.** Attaching the wrong file and
  *    having no way back is a small thing that feels awful.
+ *  - **A screenshot can be pasted and a file can be dropped.** Win+Shift+S then
+ *    Ctrl+V is how most people send a picture to an assistant; requiring the
+ *    file dialog for it makes the product feel a decade old. Dropping also has
+ *    to be handled for a harder reason: without a drop handler the browser
+ *    NAVIGATES AWAY to the dropped file and the conversation and draft are gone.
  */
 
 export interface ChatComposerProps {
@@ -69,6 +75,29 @@ export function ChatComposer({
   const imageRef = useRef<HTMLInputElement>(null);
   const typedOnce = useRef(false);
   const [focused, setFocused] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  /*
+   * dragenter/dragleave fire for every child the pointer crosses, so a plain
+   * boolean flickers the overlay off as soon as the cursor moves over the
+   * textarea inside the zone. Counting is the only way to know it really left.
+   */
+  const dragDepth = useRef(0);
+
+  const acceptDropped = (files: FileList | null) => {
+    if (
+      !acceptsFiles({
+        hasHandler: !!onAddFiles,
+        disabled,
+        streaming,
+        fileCount: files?.length ?? 0,
+      })
+    ) {
+      return;
+    }
+    // Same entry point as the Attach button, so the size limit, the count and
+    // what gets read on this device are decided in exactly one place.
+    onAddFiles!(files, false);
+  };
 
   // Auto-grow to a ceiling, then scroll.
   useEffect(() => {
@@ -89,11 +118,44 @@ export function ChatComposer({
       {children}
 
       <div
+        data-testid="composer-dropzone"
         className={cn(
-          "rounded-2xl border bg-card/80 shadow-sm backdrop-blur transition",
+          "relative rounded-2xl border bg-card/80 shadow-sm backdrop-blur transition",
           focused ? "border-[color:var(--accent-ocade)]/50 shadow-md" : "border-border/70",
+          dragging && "border-primary/70",
         )}
+        onDragEnter={(e) => {
+          if (!onAddFiles || !dragCarriesFiles(e.dataTransfer?.types)) return;
+          e.preventDefault();
+          dragDepth.current = dragDepthAfter(dragDepth.current, "enter");
+          setDragging(true);
+        }}
+        onDragOver={(e) => {
+          if (!onAddFiles || !dragCarriesFiles(e.dataTransfer?.types)) return;
+          // Without preventDefault here the drop never fires and the browser
+          // opens the file instead, taking the conversation with it.
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+        }}
+        onDragLeave={() => {
+          dragDepth.current = dragDepthAfter(dragDepth.current, "leave");
+          if (dragDepth.current === 0) setDragging(false);
+        }}
+        onDrop={(e) => {
+          if (!onAddFiles) return;
+          e.preventDefault();
+          dragDepth.current = dragDepthAfter(dragDepth.current, "drop");
+          setDragging(false);
+          acceptDropped(e.dataTransfer?.files ?? null);
+        }}
       >
+        {dragging ? (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl border-2 border-dashed border-primary/70 bg-background/85 text-[13px] font-medium text-foreground">
+            <Paperclip className="mr-2 h-4 w-4" aria-hidden />
+            Drop to attach — read on this device
+          </div>
+        ) : null}
+
         {attachments.length > 0 ? (
           <ul className="flex flex-wrap gap-2 border-b border-border/60 p-2.5">
             {attachments.map((a, index) => (
@@ -140,6 +202,14 @@ export function ChatComposer({
               typedOnce.current = true;
               onTypingStarted?.();
             }
+          }}
+          onPaste={(e) => {
+            const files = e.clipboardData?.files;
+            // Guarded on files only: an ordinary text paste keeps the browser's
+            // own behaviour, including undo, which preventDefault would break.
+            if (!files || files.length === 0) return;
+            e.preventDefault();
+            acceptDropped(files);
           }}
           onKeyDown={(e) => {
             if (e.key !== "Enter") return;

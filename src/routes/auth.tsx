@@ -171,7 +171,7 @@ function AuthPage() {
 
         <Link
           to="/demo"
-          className="flex items-center justify-between rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 hover:bg-amber-500/20"
+          className="flex items-center justify-between rounded-md border border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 px-3 py-2 text-xs text-[color:var(--state-warning)] hover:bg-[color:var(--state-warning)]/20"
         >
           <span>Just looking? Try the demo — no sign-in, sample data only.</span>
           <span className="font-semibold uppercase tracking-wider">Demo →</span>

@@ -908,7 +908,7 @@ export function CodeWorkspacePanel() {
               </div>
               <pre
                 aria-label="Terminal output"
-                className="mt-3 min-h-44 max-h-72 overflow-auto rounded border border-border/60 bg-black/80 p-3 font-mono text-[10px] leading-5 text-zinc-100"
+                className="mt-3 min-h-44 max-h-72 overflow-auto rounded border border-border/60 bg-black/80 p-3 font-mono text-[10px] leading-5 text-foreground"
               >
                 {terminal.length > 0
                   ? terminal.filter((line) => line !== "").join("\n")

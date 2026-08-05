@@ -164,4 +164,38 @@ describe("preloading warms the engine without sending anything", () => {
       false,
     );
   });
+
+  it("warms at the window the send will use, not at the default", async () => {
+    /*
+     * The runtime reloads the weights when the context window changes. Warming
+     * at the default and then sending a long document at a larger window pays
+     * the whole multi-gigabyte load again — after the user presses send, which
+     * is precisely the wait this optimisation exists to remove. Measured on the
+     * reference machine: that reload plus prompt evaluation ran past five
+     * minutes and the transport abandoned it; the same request against an
+     * already-warm model at the same window answered in 40.6 seconds.
+     */
+    let body: Record<string, unknown> | null = null;
+    const fetchImpl = vi.fn(async (_input: string, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      return new Response("{}", { status: 200 });
+    });
+    await preloadLocalModel("http://127.0.0.1:11434", "qwen3:8b", fetchImpl, 16384);
+    expect(body).toEqual({
+      model: "qwen3:8b",
+      messages: [],
+      options: { num_ctx: 16384 },
+    });
+  });
+
+  it("sends no window at all when the next message needs no more than the default", async () => {
+    // A short chat must not reserve memory it will never use.
+    let body: Record<string, unknown> | null = null;
+    const fetchImpl = vi.fn(async (_input: string, init?: RequestInit) => {
+      body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      return new Response("{}", { status: 200 });
+    });
+    await preloadLocalModel("http://127.0.0.1:11434", "qwen3:8b", fetchImpl, null);
+    expect(body).toEqual({ model: "qwen3:8b", messages: [] });
+  });
 });

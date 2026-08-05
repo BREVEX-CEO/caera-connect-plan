@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ChatComposer } from "@/components/ocade/chat/ChatComposer";
+import {
+  dragCarriesFiles,
+  dragDepthAfter,
+  acceptsFiles,
+} from "@/components/ocade/chat/composer-drop";
 import { MessageBubble } from "@/components/ocade/chat/MessageBubble";
 import { EngineBadge } from "@/components/ocade/chat/EngineBadge";
 import { groupConversations } from "@/components/ocade/chat/ChatSidebar";
@@ -226,5 +231,59 @@ describe("history is grouped by when it happened", () => {
     expect(buckets).toHaveLength(1);
     expect(buckets[0].label).toBe("Older");
     expect(buckets[0].items[0].id).toBe("a");
+  });
+});
+
+describe("attaching by paste and by drop", () => {
+  it("shows the drop overlay only for a file drag, not a text drag", () => {
+    // Dragging selected text across the composer fires the same events. An
+    // overlay promising "drop to attach" for a text drag is a lie about what
+    // is about to happen.
+    expect(dragCarriesFiles(["Files"])).toBe(true);
+    expect(dragCarriesFiles(["Files", "text/plain"])).toBe(true);
+    expect(dragCarriesFiles(["text/plain"])).toBe(false);
+    expect(dragCarriesFiles(undefined)).toBe(false);
+  });
+
+  it("keeps the overlay up while the pointer moves between the box's own children", () => {
+    // The defect this prevents: entering the box, then the textarea inside it,
+    // fires enter/enter/leave — and a boolean flag would blank the overlay
+    // while the file is still held over the target.
+    let depth = 0;
+    depth = dragDepthAfter(depth, "enter"); // over the composer
+    depth = dragDepthAfter(depth, "enter"); // over the textarea inside it
+    depth = dragDepthAfter(depth, "leave"); // off the textarea, still inside
+    expect(depth).toBeGreaterThan(0);
+    depth = dragDepthAfter(depth, "leave"); // off the composer entirely
+    expect(depth).toBe(0);
+  });
+
+  it("never lets the counter go negative and strand the overlay on screen", () => {
+    expect(dragDepthAfter(0, "leave")).toBe(0);
+    expect(dragDepthAfter(3, "drop")).toBe(0);
+  });
+
+  it("ignores a paste that carries no files, so ordinary text paste still works", () => {
+    expect(
+      acceptsFiles({ hasHandler: true, disabled: false, streaming: false, fileCount: 0 }),
+    ).toBe(false);
+  });
+
+  it("refuses files while a reply is streaming", () => {
+    // The attachment list is read when the NEXT message is assembled, so a file
+    // added mid-stream looks like it belongs to the turn already in flight and
+    // silently arrives with the following one.
+    expect(acceptsFiles({ hasHandler: true, disabled: false, streaming: true, fileCount: 1 })).toBe(
+      false,
+    );
+    expect(acceptsFiles({ hasHandler: true, disabled: true, streaming: false, fileCount: 1 })).toBe(
+      false,
+    );
+    expect(
+      acceptsFiles({ hasHandler: false, disabled: false, streaming: false, fileCount: 1 }),
+    ).toBe(false);
+    expect(
+      acceptsFiles({ hasHandler: true, disabled: false, streaming: false, fileCount: 1 }),
+    ).toBe(true);
   });
 });

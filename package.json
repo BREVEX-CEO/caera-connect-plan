@@ -45,6 +45,7 @@
     "engine:manifest-write": "node scripts/resolve-model-manifest.mjs --write",
     "engine:cold-start-evidence": "node --experimental-strip-types scripts/local-runtime-evidence.mts --write",
     "chat:runtime-evidence": "vite-node scripts/ocade-chat-runtime-evidence.mts -- --write",
+    "chat:capability-evidence": "vite-node scripts/ocade-chat-capability-evidence.mts -- --write",
     "engine:model-install-evidence": "vite-node scripts/ocade-model-pull-evidence.mts --",
     "untracked:classify": "node scripts/classify-untracked.mjs",
     "setup:check": "node scripts/check-setup.mjs",

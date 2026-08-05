@@ -2,6 +2,7 @@ import {
   discoverLocalModels,
   streamLocalChat,
   preloadLocalModel,
+  planContextWindow,
   DEFAULT_LOCAL_BRIDGE_URL,
   type LocalModelInfo,
 } from "../../ocade-local";
@@ -94,11 +95,30 @@ export class DesktopBridgeAdapter implements BrainAdapter {
     };
   }
 
-  /** Warm the weights while the user is still typing. */
-  async preload(): Promise<void> {
+  /**
+   * Warm the weights while the user is still typing.
+   *
+   * `pending` is whatever is already staged for the next message — attachments
+   * and the conversation so far. It is used to warm at THE SAME context window
+   * the send will ask for, because the runtime reloads the weights when that
+   * window changes: warming at the default and then sending a long document
+   * pays the whole multi-gigabyte load again, after the send rather than
+   * before it, which is precisely when the optimisation was supposed to help.
+   */
+  async preload(pending?: BrainMessage[]): Promise<void> {
     const id = this.lastChoice?.id;
     if (!id) return;
-    await preloadLocalModel(this.bridgeUrl, id);
+    const plan = pending?.length
+      ? planContextWindow(
+          pending.map((message) => ({
+            role: message.role as "system" | "user" | "assistant",
+            content: message.content,
+            ...(message.images?.length ? { images: message.images } : {}),
+          })),
+          this.policy().totalRamBytes,
+        )
+      : null;
+    await preloadLocalModel(this.bridgeUrl, id, undefined, plan?.numCtx ?? null);
   }
 
   async stream(
@@ -148,6 +168,10 @@ export class DesktopBridgeAdapter implements BrainAdapter {
       {
         signal: handlers.signal,
         think: handlers.think,
+        // The measured total, so the context window is sized to this machine
+        // rather than to the smallest ceiling. Omitted when the device could
+        // not be measured, which deliberately keeps the smallest ceiling.
+        ...(this.policy().totalRamBytes ? { totalRamBytes: this.policy().totalRamBytes } : {}),
         onToken: (chunk) => {
           if (firstTokenMs === null) firstTokenMs = Date.now() - startedAt;
           handlers.onToken(chunk);

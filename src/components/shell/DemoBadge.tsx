@@ -16,13 +16,13 @@ export function DemoBadge({
       role="status"
       aria-label="Demo mode active"
       className={cn(
-        "pointer-events-none inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300",
+        "pointer-events-none inline-flex items-center gap-1.5 rounded-full border border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[color:var(--state-warning)]",
         floating &&
-          "fixed bottom-3 right-3 z-50 shadow-lg shadow-amber-500/10 sm:bottom-4 sm:right-4",
+          "fixed bottom-3 right-3 z-50 shadow-lg shadow-[color:var(--state-warning)]/10 sm:bottom-4 sm:right-4",
         className,
       )}
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
+      <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--state-warning)]" />
       Demo
     </span>
   );

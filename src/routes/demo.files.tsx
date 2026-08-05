@@ -20,7 +20,7 @@ function DemoFiles() {
       />
       <GlassPanel className="mt-6 overflow-hidden">
         <div className="flex items-center gap-2 border-b border-border/60 p-3 text-xs text-muted-foreground">
-          <Ban className="h-3.5 w-3.5 text-amber-300" aria-hidden />
+          <Ban className="h-3.5 w-3.5 text-[color:var(--state-warning)]" aria-hidden />
           Uploads disabled in demo.
           <button
             disabled

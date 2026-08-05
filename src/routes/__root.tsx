@@ -93,7 +93,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "CAERA CADANE is a privacy-first cross-platform AI work platform. OCADE assistant, FICIA commerce, MADEE studio, and CANIA world intelligence in one workspace.",
       },
       { name: "author", content: "CAERA CADANE" },
-      { name: "theme-color", content: "#0b0d12" },
+      // Matches --background in the default (black) theme, so the browser
+      // chrome and the app do not meet at a visible seam on mobile.
+      { name: "theme-color", content: "#0a0a09" },
       { property: "og:title", content: "CAERA CADANE — Private AI workspace" },
       {
         property: "og:description",

@@ -266,7 +266,7 @@ export function ComputerUsePanel() {
           </p>
         )}
         {status.installGuidance && status.installGuidance.length > 0 ? (
-          <div className="mt-3 rounded border border-amber-500/30 bg-amber-500/5 p-3">
+          <div className="mt-3 rounded border border-[color:var(--state-warning)]/30 bg-[color:var(--state-warning)]/5 p-3">
             <p className="text-xs font-medium">Setup needed</p>
             <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-muted-foreground">
               {status.installGuidance.map((guidance) => (
@@ -289,7 +289,7 @@ export function ComputerUsePanel() {
             "mt-3 text-xs font-medium",
             perception.liveReady
               ? "text-[color:var(--state-success)]"
-              : "text-amber-600 dark:text-amber-400",
+              : "text-[color:var(--state-warning)]",
           )}
         >
           {perception.liveReady ? "Live perception ready" : "Live perception setup required"}

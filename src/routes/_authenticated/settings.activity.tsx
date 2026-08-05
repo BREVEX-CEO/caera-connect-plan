@@ -258,7 +258,7 @@ function ActivityPage() {
               />
               <button
                 onClick={clearOldOperational}
-                className="rounded-md bg-red-500/80 px-2 py-1 font-medium text-white hover:bg-red-500"
+                className="rounded-md bg-destructive/80 px-2 py-1 font-medium text-white hover:bg-destructive"
               >
                 Delete
               </button>

@@ -114,7 +114,10 @@ function VaultPage() {
       </div>
 
       <GlassPanel className="mt-4 flex items-start gap-3 p-4 text-xs text-muted-foreground">
-        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" aria-hidden />
+        <AlertTriangle
+          className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--state-warning)]"
+          aria-hidden
+        />
         <p>
           Browser Only data belongs to <strong>this browser on this device</strong>. Clearing site
           data, uninstalling the browser, or wiping the OS profile will delete it permanently.
@@ -136,7 +139,7 @@ function VaultPage() {
       <GlassPanel className="mt-6 p-5">
         <div className="flex items-center gap-3">
           {unlocked ? (
-            <ShieldCheck className="h-5 w-5 text-emerald-400" aria-hidden />
+            <ShieldCheck className="h-5 w-5 text-[color:var(--state-success)]" aria-hidden />
           ) : (
             <Shield className="h-5 w-5 text-muted-foreground" aria-hidden />
           )}
@@ -209,11 +212,11 @@ function VaultPage() {
 
 function RecoveryKitPanel({ kit, onClose }: { kit: string; onClose: () => void }) {
   return (
-    <GlassPanel className="mt-4 border-amber-400/40 bg-amber-500/10 p-5">
-      <div className="flex items-center gap-2 text-sm font-semibold text-amber-200">
+    <GlassPanel className="mt-4 border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 p-5">
+      <div className="flex items-center gap-2 text-sm font-semibold text-[color:var(--state-warning)]">
         <KeyRound className="h-4 w-4" /> Recovery kit — save now, we cannot show it again
       </div>
-      <p className="mt-2 text-xs text-amber-100/80">
+      <p className="mt-2 text-xs text-[color:var(--state-warning)]/80">
         Store this in a password manager or print it. If you lose your passphrase or authenticator
         AND this recovery kit, all Browser Only data on this device becomes permanently unreadable.
       </p>

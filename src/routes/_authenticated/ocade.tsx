@@ -11,6 +11,7 @@ import {
   Mic,
   MicOff,
   Paperclip,
+  Keyboard,
   Pencil,
   Pin,
   PinOff,
@@ -49,6 +50,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { matchChatShortcut, CHAT_SHORTCUTS } from "@/lib/chat-shortcuts";
 import {
   Select,
   SelectContent,
@@ -82,11 +84,14 @@ import { MessageList } from "@/components/ocade/chat/MessageList";
 import { ChatSidebar } from "@/components/ocade/chat/ChatSidebar";
 import { EngineBadge } from "@/components/ocade/chat/EngineBadge";
 import { useBrain } from "@/lib/brain/use-brain";
+import type { BrainMessage } from "@/lib/brain/adapter";
 import type { ChatMessageView, ChatConversationView } from "@/components/ocade/chat/chat-types";
 import { reason } from "@/lib/reasoning/engine";
 import { browserReasonDeps } from "@/lib/reasoning/browser-deps";
 import {
   buildLocalFirstPlan,
+  planContextWindow,
+  SLOW_READ_WARNING_SECONDS,
   DEFAULT_LOCAL_BRIDGE_URL,
   type LocalChatMessage,
 } from "@/lib/ocade-local";
@@ -292,6 +297,8 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   const [mode, setMode] = useState<Mode>("chat");
   const [permission, setPermission] = useState<PermissionMode>("manual");
   const [pendingMessage, setPendingMessage] = useState<PendingChatMessage | null>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [sidebarHidden, setSidebarHidden] = useState(false);
 
   const refreshList = useCallback(async () => {
     try {
@@ -337,6 +344,64 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
     setActiveId(null);
     setMode("chat");
   }
+
+  /*
+   * Keyboard shortcuts.
+   *
+   * What each one may do is decided by `matchChatShortcut`, which is where the
+   * two rules that matter live: never fire on a bare letter while somebody is
+   * writing, and never take a combination the browser owns. This listener only
+   * carries out the decision.
+   *
+   * Focus moves by id rather than through a ref chain because the two targets
+   * live in different subtrees — the search box is inside the shared sidebar
+   * and the message box inside the composer — and threading refs through both
+   * for two shortcuts would be more fragile than the query.
+   */
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const action = matchChatShortcut({
+        key: event.key,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        target: event.target as { tagName?: string; isContentEditable?: boolean } | null,
+      });
+      // Escape belongs to whatever is streaming, and to any open dialog. It is
+      // deliberately not handled here.
+      if (!action || action === "stop") return;
+
+      event.preventDefault();
+      switch (action) {
+        case "new_chat":
+          void handleNew();
+          break;
+        case "search": {
+          setSidebarHidden(false);
+          const field = document.getElementById("ocade-chat-search");
+          if (field instanceof HTMLInputElement) {
+            field.focus();
+            field.select();
+          }
+          break;
+        }
+        case "focus_composer": {
+          const box = document.getElementById("ocade-chat-composer");
+          if (box instanceof HTMLTextAreaElement) box.focus();
+          break;
+        }
+        case "toggle_sidebar":
+          setSidebarHidden((hidden) => !hidden);
+          break;
+        case "show_help":
+          setShortcutsOpen(true);
+          break;
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   async function ensureActive(): Promise<Conversation> {
     if (active) return active;
@@ -434,27 +499,31 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
       <CopilotMount />
       {/* Break out of centered workspace column and take the full height under the top bar. */}
       <div className="-mx-5 -my-6 flex h-[calc(100vh-2.75rem)] min-h-0 sm:-mx-8">
-        {/* Contextual OCADE sidebar */}
-        <OcadeContextualSidebar
-          onNew={handleNew}
-          search={search}
-          setSearch={setSearch}
-          showArchived={showArchived}
-          setShowArchived={setShowArchived}
-          pinned={pinned}
-          recent={recent}
-          loading={loadingList}
-          activeId={activeId}
-          onSelect={(id) => {
-            setActiveId(id);
-            setMode("chat");
-          }}
-          onPin={togglePin}
-          onArchive={toggleArchive}
-          onRename={(c) => setRenameTarget(c)}
-          onDelete={(c) => setDeleteTarget(c)}
-          onExport={handleExport}
-        />
+        {/* Contextual OCADE sidebar. Hidden on request (Ctrl+Shift+S) so a
+            narrow screen or a long transcript can have the full width. */}
+        {sidebarHidden ? null : (
+          <OcadeContextualSidebar
+            onNew={handleNew}
+            search={search}
+            setSearch={setSearch}
+            showArchived={showArchived}
+            setShowArchived={setShowArchived}
+            pinned={pinned}
+            recent={recent}
+            loading={loadingList}
+            activeId={activeId}
+            onSelect={(id) => {
+              setActiveId(id);
+              setMode("chat");
+            }}
+            onPin={togglePin}
+            onArchive={toggleArchive}
+            onRename={(c) => setRenameTarget(c)}
+            onDelete={(c) => setDeleteTarget(c)}
+            onExport={handleExport}
+            onShowShortcuts={() => setShortcutsOpen(true)}
+          />
+        )}
 
         {/* Main workspace canvas */}
         <div className="flex min-h-0 flex-1 flex-col">
@@ -526,7 +595,47 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
       />
+      <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </AppShell>
+  );
+}
+
+/**
+ * The shortcut sheet.
+ *
+ * Read from `CHAT_SHORTCUTS` rather than written out again here, so a binding
+ * cannot exist without appearing on this list — an undiscoverable keyboard
+ * shortcut is, for almost every user, the same as one that was never built.
+ */
+function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Keyboard shortcuts</DialogTitle>
+        </DialogHeader>
+        <ul className="mt-1 space-y-2">
+          {CHAT_SHORTCUTS.map((entry) => (
+            <li key={entry.action} className="flex items-center justify-between gap-4 text-[13px]">
+              <span className="text-muted-foreground">{entry.description}</span>
+              <span className="flex shrink-0 items-center gap-1">
+                {entry.keys.map((cap) => (
+                  <kbd
+                    key={cap}
+                    className="rounded border border-border/70 bg-secondary px-1.5 py-0.5 font-mono text-[11px] text-foreground"
+                  >
+                    {cap}
+                  </kbd>
+                ))}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-2 text-[12px] text-muted-foreground">
+          On a Mac, use Command wherever Ctrl is shown.
+        </p>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -548,6 +657,7 @@ function OcadeContextualSidebar(props: {
   onRename: (c: Conversation) => void;
   onDelete: (c: Conversation) => void;
   onExport: (c: Conversation) => void;
+  onShowShortcuts: () => void;
 }) {
   const {
     onNew,
@@ -565,6 +675,7 @@ function OcadeContextualSidebar(props: {
     onRename,
     onDelete,
     onExport,
+    onShowShortcuts,
   } = props;
 
   /*
@@ -639,6 +750,9 @@ function OcadeContextualSidebar(props: {
               label={showArchived ? "Back to active chats" : "Archived chats"}
               onClick={() => setShowArchived(!showArchived)}
             />
+            {/* A visible way in. Shortcuts that can only be found by already
+                knowing the shortcut are shortcuts almost nobody finds. */}
+            <StaticRow icon={Keyboard} label="Keyboard shortcuts" onClick={onShowShortcuts} />
           </div>
         }
       />
@@ -964,7 +1078,7 @@ function WorkModePanel({
                 </button>
                 <span
                   id="run-controls-setup-required"
-                  className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-300"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-[color:var(--state-warning)]/10 px-2.5 py-1 text-[11px] text-[color:var(--state-warning)]"
                 >
                   <ShieldCheck className="h-3 w-3" /> Setup Required
                 </span>
@@ -1227,9 +1341,27 @@ function ChatSurface(props: {
     const id = route.model.id;
     if (warmedRef.current.has(id)) return;
     warmedRef.current.add(id);
+    /*
+     * Warm at the window this message will actually need.
+     *
+     * The draft and whatever is already attached are handed over, because the
+     * runtime reloads the weights when the context window changes: warming at
+     * the default and then sending a long attachment pays the whole load again
+     * AFTER the send, which is exactly the wait this optimisation exists to
+     * remove. Measured on this machine, that reload plus prompt evaluation ran
+     * past five minutes, against 40.6 seconds once warm at the same window.
+     */
+    const pending: BrainMessage[] = [
+      ...messages.map((m) => ({ role: m.role, content: m.content })),
+      {
+        role: "user" as const,
+        content: draft,
+        ...(attachments.some((a) => a.kind === "image") ? { images: [""] } : {}),
+      },
+    ];
     // Through the Brain, so one place owns "which engine, and get it ready" —
     // rather than the chat screen reaching for a specific runtime directly.
-    brain.warm();
+    brain.warm(pending);
   }
 
   async function sendMessage(
@@ -1707,6 +1839,51 @@ function ChatSurface(props: {
           ...(images.length > 0 ? { images } : {}),
         });
 
+        /*
+         * Say so when the request is bigger than any window OCADE will
+         * allocate. `streamLocalChat` sizes the context to the request, so an
+         * ordinary long chat is now served in full rather than silently cut —
+         * but past the ceiling something MUST be dropped, and the one thing
+         * that must never happen is an answer drawn from a truncated document
+         * with nothing on screen to say so.
+         */
+        const contextPlan = planContextWindow(
+          localMessages,
+          devicePolicy.policy.totalRamBytes,
+          devicePolicy.policy.hasDiscreteGpu,
+        );
+        /*
+         * Warn about a long WAIT, not just a long document.
+         *
+         * Reading is where the time goes on a machine without acceleration:
+         * measured from the engine's own counters here, a 5,654-token prompt
+         * took 458 seconds to read and 3.8 seconds to answer. Eight minutes of
+         * spinner is indistinguishable from a hang, and someone told what it
+         * will cost can trim the attachment instead of concluding the product
+         * is broken.
+         */
+        if (
+          contextPlan.estimatedReadSeconds !== null &&
+          contextPlan.estimatedReadSeconds > SLOW_READ_WARNING_SECONDS
+        ) {
+          const minutes = Math.round(contextPlan.estimatedReadSeconds / 60);
+          toast.info(
+            minutes >= 2
+              ? `This will take around ${minutes} minutes to read on this computer.`
+              : "This will take about a minute to read on this computer.",
+            {
+              description:
+                "This computer has no graphics acceleration, so reading a long document is the slow part — the answer itself arrives in seconds. Shortening the attachment is the quickest way to speed it up.",
+            },
+          );
+        }
+        if (contextPlan.exceedsCeiling) {
+          toast.warning("This conversation is longer than OCADE can hold on this device at once.", {
+            description:
+              "The oldest part will not be visible to the engine. Start a new chat, or remove an attachment, to keep the whole thing in view.",
+          });
+        }
+
         let acc = "";
         setStreamText("");
         /*
@@ -1731,18 +1908,21 @@ function ChatSurface(props: {
          * branch is a separate step in the same chain, so a prompt can never
          * leave the machine as a side effect of the local path failing.
          */
-        const reasoned = await reason(browserReasonDeps(DEFAULT_LOCAL_BRIDGE_URL), {
-          messages: localMessages,
-          task: hasImage ? "vision" : "general",
-          modelId: step.modelId!,
-          allowCloud: false,
-          signal: controller.signal,
-          onToken: (c) => {
-            if (firstTokenMs === null) firstTokenMs = Date.now() - routeStarted;
-            acc += c;
-            setStreamText(acc);
+        const reasoned = await reason(
+          browserReasonDeps(DEFAULT_LOCAL_BRIDGE_URL, undefined, devicePolicy.policy.totalRamBytes),
+          {
+            messages: localMessages,
+            task: hasImage ? "vision" : "general",
+            modelId: step.modelId!,
+            allowCloud: false,
+            signal: controller.signal,
+            onToken: (c) => {
+              if (firstTokenMs === null) firstTokenMs = Date.now() - routeStarted;
+              acc += c;
+              setStreamText(acc);
+            },
           },
-        });
+        );
         const result: { ok: boolean; reason?: string } = reasoned.ok
           ? { ok: true }
           : { ok: false, reason: reasoned.failure === "cancelled" ? "cancelled" : reasoned.reason };
@@ -2166,6 +2346,27 @@ function ChatSurface(props: {
   function stop() {
     abortRef.current?.abort();
   }
+
+  /*
+   * Escape stops the reply.
+   *
+   * Bound here rather than with the other shortcuts because this is the only
+   * component that holds the abort controller, and it is bound ONLY while
+   * something is actually streaming — an Escape that silently does nothing is
+   * worse than no binding, since it trains people not to reach for it. It also
+   * has to work while the cursor is in the message box, which is where it
+   * already is when a reply starts going wrong.
+   */
+  useEffect(() => {
+    if (!streaming) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (matchChatShortcut({ key: event.key }) !== "stop") return;
+      event.preventDefault();
+      stop();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [streaming]);
 
   useEffect(() => {
     if (
@@ -2927,6 +3128,14 @@ function Composer(props: {
   // React may not rerender between pointer-down and pointer-up on a short
   // press, so remember whether this gesture started recognition.
   const voiceHoldStartedRef = useRef(false);
+  const [dragging, setDragging] = useState(false);
+  /*
+   * dragenter/dragleave fire for every child element the pointer crosses, so a
+   * boolean alone flickers the overlay off the moment the cursor moves over the
+   * textarea inside the drop zone. Counting enters and leaves is the only way
+   * to know when the pointer has actually left.
+   */
+  const dragDepth = useRef(0);
 
   async function handleFiles(files: FileList | null, imagesOnly: boolean) {
     if (!files) return;
@@ -3028,10 +3237,53 @@ function Composer(props: {
   return (
     <div
       className={cn(
-        "rounded-xl border border-border/70 bg-card/80 shadow-sm backdrop-blur",
+        "relative rounded-xl border border-border/70 bg-card/80 shadow-sm backdrop-blur",
         floating && "shadow-md",
+        dragging && "border-primary/70",
       )}
+      /*
+       * Dropping a file onto the composer.
+       *
+       * Without this the browser NAVIGATES AWAY to the dropped file — the
+       * conversation is gone and the draft with it. That is the real reason
+       * every drop target here calls preventDefault, not the overlay.
+       */
+      onDragEnter={(e) => {
+        if (!e.dataTransfer?.types?.includes("Files")) return;
+        e.preventDefault();
+        dragDepth.current += 1;
+        setDragging(true);
+      }}
+      onDragOver={(e) => {
+        if (!e.dataTransfer?.types?.includes("Files")) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      }}
+      onDragLeave={() => {
+        dragDepth.current = Math.max(0, dragDepth.current - 1);
+        if (dragDepth.current === 0) setDragging(false);
+      }}
+      onDrop={(e) => {
+        if (!e.dataTransfer?.files?.length) return;
+        e.preventDefault();
+        dragDepth.current = 0;
+        setDragging(false);
+        if (streaming) {
+          toast.error("Wait for the current reply to finish before adding files.");
+          return;
+        }
+        // Same path as the Attach button: one place decides the size limit, the
+        // attachment count, and what gets read on this device.
+        void handleFiles(e.dataTransfer.files, false);
+      }}
     >
+      {dragging ? (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-xl border-2 border-dashed border-primary/70 bg-background/85 text-[13px] font-medium text-foreground">
+          <Paperclip className="mr-2 h-4 w-4" aria-hidden />
+          Drop to attach — files are read on this device
+        </div>
+      ) : null}
+
       {attachments.length > 0 ? (
         <div className="flex flex-wrap gap-1.5 border-b border-border/60 px-3 py-2">
           {attachments.map((a, i) => (
@@ -3068,12 +3320,32 @@ function Composer(props: {
       ) : null}
 
       <Textarea
+        id="ocade-chat-composer"
         value={draft}
         onChange={(e) => {
           setDraft(e.target.value);
           // Typing is the first honest signal that a message is coming. Warm
           // the on-device engine now so the send does not pay a cold start.
           onTypingStarted?.();
+        }}
+        /*
+         * Pasting a screenshot.
+         *
+         * This is how most people send an image to an assistant — Win+Shift+S,
+         * then Ctrl+V — and without it the paste dropped a filename or nothing
+         * at all into the box. Text pastes are left entirely alone: the guard
+         * is on `files.length`, so ordinary copy-paste keeps the browser's own
+         * behaviour including undo.
+         */
+        onPaste={(e) => {
+          const files = e.clipboardData?.files;
+          if (!files || files.length === 0) return;
+          e.preventDefault();
+          if (streaming) {
+            toast.error("Wait for the current reply to finish before adding files.");
+            return;
+          }
+          void handleFiles(files, false);
         }}
         onKeyDown={(e) => {
           if (e.key !== "Enter") return;

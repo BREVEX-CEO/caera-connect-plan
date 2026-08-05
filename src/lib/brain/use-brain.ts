@@ -6,7 +6,13 @@ import { PairedDesktopAdapter } from "./adapters/paired-desktop";
 import { pairedCredentials, hasPairing } from "./paired-credentials";
 import { detectDeviceSignals, resolveDeviceMode, type DeviceMode } from "./device-mode";
 import { routeBrain, type RouteOutcome } from "./router";
-import { REMEDY_LABELS, type AdapterId, type BrainAdapter, type RemedyAction } from "./adapter";
+import {
+  REMEDY_LABELS,
+  type AdapterId,
+  type BrainAdapter,
+  type BrainMessage,
+  type RemedyAction,
+} from "./adapter";
 import { useDevicePolicy } from "../use-device-policy";
 import { serverIsThisMachine } from "../hardware/detect.browser";
 import type { RoutePolicy } from "../local/router-policy";
@@ -33,7 +39,15 @@ export interface BrainHandle {
   /** Decide which engine serves a request. Never throws. */
   route: (options?: { heavy?: boolean; visionRequired?: boolean }) => Promise<RouteOutcome>;
   /** Load weights ahead of a send, so the first message is not a cold start. */
-  warm: () => void;
+  /**
+   * Get the on-device engine ready.
+   *
+   * `pending` is what the next message is shaping up to be. It is optional but
+   * it matters for anything large: the runtime reloads the weights when the
+   * context window changes, so warming without it warms at the wrong window
+   * and the load is paid again after the user presses send.
+   */
+  warm: (pending?: BrainMessage[]) => void;
   /** Labels for the remedy buttons a refusal offers. */
   remedyLabel: (remedy: RemedyAction) => string;
 }
@@ -92,17 +106,20 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
     [effectiveMode, registry],
   );
 
-  const warm = useCallback(() => {
-    const adapter = registry.get("desktop_bridge");
-    if (adapter instanceof DesktopBridgeAdapter) {
-      // Fire and forget: a failed warm-up must never surface as an error for a
-      // message the user has not sent yet.
-      void adapter
-        .probe()
-        .then(() => adapter.preload())
-        .catch(() => {});
-    }
-  }, [registry]);
+  const warm = useCallback(
+    (pending?: BrainMessage[]) => {
+      const adapter = registry.get("desktop_bridge");
+      if (adapter instanceof DesktopBridgeAdapter) {
+        // Fire and forget: a failed warm-up must never surface as an error for a
+        // message the user has not sent yet.
+        void adapter
+          .probe()
+          .then(() => adapter.preload(pending))
+          .catch(() => {});
+      }
+    },
+    [registry],
+  );
 
   return {
     mode: effectiveMode,

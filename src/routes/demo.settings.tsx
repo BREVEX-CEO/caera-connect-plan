@@ -107,7 +107,7 @@ function DemoSettings() {
               Create your account
             </Link>
           </div>
-          <div className="mt-2 flex items-center gap-2 rounded-lg border border-amber-400/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200">
+          <div className="mt-2 flex items-center gap-2 rounded-lg border border-[color:var(--state-warning)]/30 bg-[color:var(--state-warning)]/5 px-3 py-2 text-xs text-[color:var(--state-warning)]">
             <Ban className="h-3.5 w-3.5" aria-hidden />
             Payments, filings, e-signatures, native device control and destructive account actions
             are disabled in demo.

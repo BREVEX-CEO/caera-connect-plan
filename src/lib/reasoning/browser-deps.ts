@@ -27,6 +27,15 @@ export const sessionPerfLedger = new PerfLedger();
 export function browserReasonDeps(
   bridgeUrl: string = DEFAULT_LOCAL_BRIDGE_URL,
   streamCloud?: ReasonDeps["streamCloud"],
+  /**
+   * Total memory, when this machine was measured precisely.
+   *
+   * Passed through so the context window can be sized to the hardware. Left
+   * out it is treated as unknown, and unknown takes the smallest ceiling —
+   * which is the safe direction, since the cost of a larger window is resident
+   * memory on somebody's laptop.
+   */
+  totalRamBytes?: number,
 ): ReasonDeps {
   return {
     listLocalModels: async () => {
@@ -37,6 +46,7 @@ export function browserReasonDeps(
       streamLocalChat(bridgeUrl, modelId, messages, {
         onToken: handlers.onToken,
         signal: handlers.signal,
+        ...(totalRamBytes ? { totalRamBytes } : {}),
       }),
     ...(streamCloud ? { streamCloud } : {}),
     ledger: sessionPerfLedger,
