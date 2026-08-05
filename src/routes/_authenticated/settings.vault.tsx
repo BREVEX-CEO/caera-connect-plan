@@ -13,6 +13,7 @@ import {
   Unlock,
 } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
+import { BrowserStoragePanel } from "@/components/settings/BrowserStoragePanel";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { useSession } from "@/lib/session";
 import { recordAction } from "@/lib/actions";
@@ -101,6 +102,16 @@ function VaultPage() {
           </Link>
         }
       />
+
+      {/*
+        Engine storage sits alongside the vault because they answer the same
+        question — "what is OCADE keeping on this device, and how do I remove
+        it?" — and someone hunting for hundreds of megabytes of model weights
+        should not have to know they are a different subsystem.
+      */}
+      <div className="mt-4">
+        <BrowserStoragePanel />
+      </div>
 
       <GlassPanel className="mt-4 flex items-start gap-3 p-4 text-xs text-muted-foreground">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" aria-hidden />

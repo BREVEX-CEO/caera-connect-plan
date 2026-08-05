@@ -25,6 +25,16 @@ export interface BrowserModelTier {
   webllmId?: string;
   /** Hugging Face repo + file, used only by the WASM adapter. */
   gguf?: { repo: string; path: string };
+  /**
+   * SHA-256 the downloaded weights must match.
+   *
+   * Absent for now, and that absence is deliberate rather than forgotten: a
+   * digest is only meaningful if it was obtained independently of the download
+   * it verifies. Publishing one copied from the same server it protects proves
+   * nothing. Until OCADE publishes its own signed catalogue the file is stored
+   * as UNVERIFIED and says so, which is the honest state.
+   */
+  sha256?: string;
   /** Approximate download in bytes, for the storage pre-check. */
   downloadBytes: number;
   /**
@@ -92,6 +102,18 @@ export const WASM_TIERS: BrowserModelTier[] = [
       "This browser cannot use its graphics card for OCADE, so the engine runs on the processor instead. It is slower, and it is the reason OCADE still works here at all.",
   },
 ];
+
+/** Where a GGUF tier's weights are fetched from. Static hosting, no AI server. */
+export function ggufUrl(tier: BrowserModelTier): string | null {
+  if (!tier.gguf) return null;
+  return `https://huggingface.co/${tier.gguf.repo}/resolve/main/${tier.gguf.path}?download=true`;
+}
+
+/** Stable storage key for a tier's weights. */
+export function storageKeyFor(tier: BrowserModelTier): string | null {
+  if (!tier.gguf) return null;
+  return `wasm/${tier.gguf.repo.replace(/[^a-z0-9]+/gi, "-")}/${tier.gguf.path}`;
+}
 
 export function tiersFor(kind: BrowserEngineKind): BrowserModelTier[] {
   return kind === "webgpu" ? WEBGPU_TIERS : WASM_TIERS;

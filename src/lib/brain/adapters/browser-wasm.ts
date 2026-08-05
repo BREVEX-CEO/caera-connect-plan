@@ -6,7 +6,15 @@ import {
   type BrainStreamHandlers,
   type BrainStreamResult,
 } from "../adapter";
-import { chooseBrowserTier, formatSize, type BrowserModelTier } from "../browser-catalogue";
+import {
+  chooseBrowserTier,
+  formatSize,
+  ggufUrl,
+  storageKeyFor,
+  type BrowserModelTier,
+} from "../browser-catalogue";
+import { modelStore, ModelStore } from "../model-store";
+import { downloadModel } from "../model-download";
 import { loadBenchmark, recordBenchmark } from "../tier-benchmark-store";
 
 /**
@@ -108,7 +116,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
   }
 
   private async ensureLoaded(tier: BrowserModelTier): Promise<WllamaInstance> {
-    const key = tier.gguf ? `${tier.gguf.repo}/${tier.gguf.path}` : null;
+    const key = storageKeyFor(tier);
     if (this.instance && this.loadedRepo === key) return this.instance;
     if (this.instance) await this.dispose();
 
@@ -127,20 +135,53 @@ export class BrowserWasmAdapter implements BrainAdapter {
       { allowOffline: true },
     );
 
-    if (!tier.gguf) throw new Error("This browser tier has no model file configured.");
+    /*
+     * Weights come from OCADE'S OWN STORE, not the library's internal cache.
+     *
+     * That is what makes pause, resume, digest verification, repair and
+     * removal possible at all: wllama's cache is opaque, so a user could not
+     * be told how much space the engine uses, could not resume an interrupted
+     * transfer, and could not delete it from a settings page. Storage the
+     * product cannot see is storage the product cannot be honest about.
+     */
+    const url = ggufUrl(tier);
+    if (!key || !url || !tier.gguf) {
+      throw new Error("This browser tier has no model file configured.");
+    }
 
-    await instance.loadModelFromHF(
-      { repo: tier.gguf.repo, file: tier.gguf.path },
-      {
-        useCache: true,
-        progressCallback: ({ loaded, total }: { loaded: number; total: number }) => {
+    if (ModelStore.isSupported()) {
+      const download = await downloadModel({
+        key,
+        url,
+        expectedBytes: tier.downloadBytes,
+        sha256: tier.sha256,
+        onProgress: (p) =>
           this.onProgress?.({
-            fraction: total > 0 ? loaded / total : null,
+            fraction: p.fraction,
             text: `Downloading ${tier.label}`,
-          });
+          }),
+      });
+      if (!download.ok) throw new Error(download.reason);
+
+      const blob = await modelStore.readBlob(key);
+      if (!blob) throw new Error("The engine was downloaded but could not be read back.");
+      await instance.loadModel([blob]);
+    } else {
+      // No OPFS: fall back to the library's own fetch so the engine still
+      // works, accepting that it cannot be managed from Settings.
+      await instance.loadModelFromHF(
+        { repo: tier.gguf.repo, file: tier.gguf.path },
+        {
+          useCache: true,
+          progressCallback: ({ loaded, total }: { loaded: number; total: number }) => {
+            this.onProgress?.({
+              fraction: total > 0 ? loaded / total : null,
+              text: `Downloading ${tier.label}`,
+            });
+          },
         },
-      },
-    );
+      );
+    }
 
     this.instance = instance;
     this.loadedRepo = key;
