@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/shell/StatusBadge";
 import { LocalEngineControl } from "@/components/ocade/LocalEngineControl";
 import { LocalModelLifecyclePanel } from "@/components/ocade/LocalModelLifecyclePanel";
 import { useDevicePolicy, describeDeviceSource } from "@/lib/use-device-policy";
+import { PairedComputerPanel } from "@/components/settings/PairedComputerPanel";
 
 /**
  * OCADE Local Engine settings.
@@ -164,6 +165,8 @@ export function LocalEngineSettingsPanel() {
           <div className="mt-5" />
           <LocalModelLifecyclePanel />
         </GlassPanel>
+
+        <PairedComputerPanel />
 
         <GlassPanel className="p-5">
           <h2 className="text-sm font-semibold text-foreground">Keeping this computer usable</h2>

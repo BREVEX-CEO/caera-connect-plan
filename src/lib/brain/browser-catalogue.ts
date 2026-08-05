@@ -14,7 +14,29 @@
  * offered only after a real memory check, never on optimism.
  */
 
+import catalogueJson from "../../../release/OCADE_BROWSER_MODEL_CATALOGUE.json";
+
 export type BrowserEngineKind = "webgpu" | "wasm";
+
+/**
+ * Resolved facts about each downloadable tier — size, digest and URL — read
+ * from the publisher's own file index at review time and committed.
+ *
+ * Imported rather than hand-written so a tier's declared size and its real
+ * size cannot drift apart, and so the digest the downloader enforces is one a
+ * human reviewed in a diff. `npm run browser-catalogue` regenerates it.
+ */
+interface CatalogueEntry {
+  id: string;
+  repo: string;
+  path: string;
+  sizeBytes: number;
+  sha256: string;
+  url: string;
+}
+const RESOLVED = new Map<string, CatalogueEntry>(
+  (catalogueJson.entries as CatalogueEntry[]).map((entry) => [entry.id, entry]),
+);
 
 export interface BrowserModelTier {
   /** Ordering key: lower is smaller and safer. */
@@ -23,18 +45,13 @@ export interface BrowserModelTier {
   label: string;
   /** WebLLM's own model id, used only by the WebGPU adapter. */
   webllmId?: string;
-  /** Hugging Face repo + file, used only by the WASM adapter. */
-  gguf?: { repo: string; path: string };
   /**
-   * SHA-256 the downloaded weights must match.
+   * Key into the committed catalogue, for tiers OCADE downloads itself.
    *
-   * Absent for now, and that absence is deliberate rather than forgotten: a
-   * digest is only meaningful if it was obtained independently of the download
-   * it verifies. Publishing one copied from the same server it protects proves
-   * nothing. Until OCADE publishes its own signed catalogue the file is stored
-   * as UNVERIFIED and says so, which is the honest state.
+   * Absent on WebGPU tiers: WebLLM fetches and caches its own shards, so
+   * OCADE has no file to verify there and does not pretend to.
    */
-  sha256?: string;
+  catalogueId?: string;
   /** Approximate download in bytes, for the storage pre-check. */
   downloadBytes: number;
   /**
@@ -92,27 +109,34 @@ export const WASM_TIERS: BrowserModelTier[] = [
   {
     rank: 0,
     label: "OCADE Browser (compatibility)",
-    gguf: {
-      repo: "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
-      path: "qwen2.5-0.5b-instruct-q4_k_m.gguf",
-    },
-    downloadBytes: 400 * MB,
+    catalogueId: "wasm-qwen2.5-0.5b-instruct-q4_k_m",
+    // The real published size, not an estimate: 491,400,032 bytes.
+    downloadBytes: 469 * MB,
     requiredMemoryBytes: 700 * MB,
     because:
       "This browser cannot use its graphics card for OCADE, so the engine runs on the processor instead. It is slower, and it is the reason OCADE still works here at all.",
   },
 ];
 
-/** Where a GGUF tier's weights are fetched from. Static hosting, no AI server. */
+/** The committed, reviewed facts for a tier — or null if OCADE cannot fetch it. */
+export function resolvedFor(tier: BrowserModelTier): CatalogueEntry | null {
+  return tier.catalogueId ? (RESOLVED.get(tier.catalogueId) ?? null) : null;
+}
+
+/** Where a tier's weights are fetched from. Static hosting, no AI server. */
 export function ggufUrl(tier: BrowserModelTier): string | null {
-  if (!tier.gguf) return null;
-  return `https://huggingface.co/${tier.gguf.repo}/resolve/main/${tier.gguf.path}?download=true`;
+  return resolvedFor(tier)?.url ?? null;
+}
+
+/** The digest the download must match, from the committed catalogue. */
+export function sha256For(tier: BrowserModelTier): string | undefined {
+  return resolvedFor(tier)?.sha256;
 }
 
 /** Stable storage key for a tier's weights. */
 export function storageKeyFor(tier: BrowserModelTier): string | null {
-  if (!tier.gguf) return null;
-  return `wasm/${tier.gguf.repo.replace(/[^a-z0-9]+/gi, "-")}/${tier.gguf.path}`;
+  const entry = resolvedFor(tier);
+  return entry ? `wasm/${entry.repo.replace(/[^a-z0-9]+/gi, "-")}/${entry.path}` : null;
 }
 
 export function tiersFor(kind: BrowserEngineKind): BrowserModelTier[] {

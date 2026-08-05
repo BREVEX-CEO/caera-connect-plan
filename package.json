@@ -73,7 +73,9 @@
     "extension:package": "node scripts/extension-policy-install.mjs --print",
     "extension:package-evidence": "node scripts/extension-policy-install.mjs --write-evidence",
     "engine:tier-benchmark": "vite-node scripts/ocade-tier-benchmark.mts -- --write",
-    "engine:preload-evidence": "vite-node scripts/ocade-preload-evidence.mts -- --write"
+    "engine:preload-evidence": "vite-node scripts/ocade-preload-evidence.mts -- --write",
+    "browser-catalogue": "node scripts/resolve-browser-catalogue.mjs --write",
+    "browser-catalogue:check": "node scripts/resolve-browser-catalogue.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.12",

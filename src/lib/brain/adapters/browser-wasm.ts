@@ -11,6 +11,8 @@ import {
   formatSize,
   ggufUrl,
   storageKeyFor,
+  sha256For,
+  resolvedFor,
   type BrowserModelTier,
 } from "../browser-catalogue";
 import { modelStore, ModelStore } from "../model-store";
@@ -101,7 +103,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
       available: true,
       label: tier.label,
       locality: "on_device",
-      modelId: tier.gguf ? `${tier.gguf.repo}/${tier.gguf.path}` : null,
+      modelId: storageKeyFor(tier),
       capabilities: { text: true, vision: false, imageGeneration: false, tools: false },
     };
   }
@@ -145,7 +147,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
      * product cannot see is storage the product cannot be honest about.
      */
     const url = ggufUrl(tier);
-    if (!key || !url || !tier.gguf) {
+    if (!key || !url) {
       throw new Error("This browser tier has no model file configured.");
     }
 
@@ -154,7 +156,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
         key,
         url,
         expectedBytes: tier.downloadBytes,
-        sha256: tier.sha256,
+        sha256: sha256For(tier),
         onProgress: (p) =>
           this.onProgress?.({
             fraction: p.fraction,
@@ -169,8 +171,10 @@ export class BrowserWasmAdapter implements BrainAdapter {
     } else {
       // No OPFS: fall back to the library's own fetch so the engine still
       // works, accepting that it cannot be managed from Settings.
+      const entry = resolvedFor(tier);
+      if (!entry) throw new Error("This browser tier has no model file configured.");
       await instance.loadModelFromHF(
-        { repo: tier.gguf.repo, file: tier.gguf.path },
+        { repo: entry.repo, file: entry.path },
         {
           useCache: true,
           progressCallback: ({ loaded, total }: { loaded: number; total: number }) => {

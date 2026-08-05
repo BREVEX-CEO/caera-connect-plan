@@ -4,6 +4,10 @@ import {
   formatSize,
   tiersFor,
   PROMOTION_LATENCY_CEILING_MS,
+  resolvedFor,
+  sha256For,
+  ggufUrl,
+  storageKeyFor,
   WEBGPU_TIERS,
   WASM_TIERS,
 } from "../brain/browser-catalogue";
@@ -123,5 +127,56 @@ describe("sizes are readable before a download starts", () => {
   it("uses MB below a gigabyte and GB above it", () => {
     expect(formatSize(340 * MB)).toBe("340 MB");
     expect(formatSize(2 * 1024 * MB)).toBe("2.00 GB");
+  });
+});
+
+/*
+ * The catalogue is what makes a download verifiable at all. Before it existed
+ * every browser engine was stored as UNVERIFIED, because there was no digest
+ * to check against and inventing one would have been worse than none.
+ */
+describe("downloadable tiers carry a reviewed digest", () => {
+  it("resolves a real size and digest for every tier OCADE fetches itself", () => {
+    for (const tier of WASM_TIERS) {
+      const entry = resolvedFor(tier);
+      expect(entry, `${tier.label} has no catalogue entry`).not.toBeNull();
+      expect(entry!.sha256).toMatch(/^[0-9a-f]{64}$/);
+      expect(entry!.sizeBytes).toBeGreaterThan(0);
+      expect(sha256For(tier)).toBe(entry!.sha256);
+    }
+  });
+
+  it("declares a size within a few percent of the published one", () => {
+    // A declared size wildly apart from reality makes the storage pre-check
+    // meaningless — it would refuse or allow on a number that is not the file.
+    for (const tier of WASM_TIERS) {
+      const entry = resolvedFor(tier)!;
+      const drift = Math.abs(tier.downloadBytes - entry.sizeBytes) / entry.sizeBytes;
+      expect(drift, `${tier.label} declared size drifts ${(drift * 100).toFixed(1)}%`).toBeLessThan(
+        0.05,
+      );
+    }
+  });
+
+  it("fetches weights over https from the publisher, never over plain http", () => {
+    for (const tier of WASM_TIERS) {
+      expect(ggufUrl(tier)).toMatch(/^https:\/\//);
+    }
+  });
+
+  it("gives each downloadable tier a storage key that cannot collide", () => {
+    const keys = WASM_TIERS.map((t) => storageKeyFor(t));
+    expect(new Set(keys).size).toBe(keys.length);
+    for (const key of keys) expect(key).toMatch(/^wasm\//);
+  });
+
+  it("claims nothing for WebGPU tiers, which fetch their own shards", () => {
+    // WebLLM manages its own cache, so OCADE has no file to verify and must
+    // not imply that it does.
+    for (const tier of WEBGPU_TIERS) {
+      expect(resolvedFor(tier)).toBeNull();
+      expect(sha256For(tier)).toBeUndefined();
+      expect(ggufUrl(tier)).toBeNull();
+    }
   });
 });

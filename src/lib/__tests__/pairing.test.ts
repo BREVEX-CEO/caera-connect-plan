@@ -12,6 +12,7 @@ import {
   type PairedDevice,
   type PairingRequest,
 } from "../brain/pairing";
+import { parsePairingCode } from "@/components/settings/PairedComputerPanel";
 
 /**
  * Authorisation for a paired desktop.
@@ -277,5 +278,64 @@ describe("denials read as sentences, not codes", () => {
       expect(describeDenial(code).length).toBeGreaterThan(3);
       expect(describeDenial(code)).not.toContain("_");
     }
+  });
+});
+
+/*
+ * The pairing code a user pastes.
+ *
+ * Parsed strictly because a partly-applied pairing fails later in a way nobody
+ * can diagnose — and because the address inside it decides whether the
+ * conversation travels encrypted.
+ */
+describe("the pairing code a user pastes", () => {
+  const encode = (deviceId: string, bridgeUrl: string, secret: string) =>
+    btoa(`${deviceId}|${bridgeUrl}|${secret}`);
+
+  it("accepts a well-formed code over https", () => {
+    const parsed = parsePairingCode(encode("dev-1", "https://laptop.local:7443", "s3cret"));
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.deviceId).toBe("dev-1");
+      expect(parsed.bridgeUrl).toBe("https://laptop.local:7443");
+      expect(parsed.secret).toBe("s3cret");
+    }
+  });
+
+  it("tolerates whitespace introduced by copying and pasting", () => {
+    const code = encode("dev-1", "https://laptop.local:7443", "s3cret");
+    const wrapped = `${code.slice(0, 8)}\n  ${code.slice(8)}`;
+    expect(parsePairingCode(wrapped).ok).toBe(true);
+  });
+
+  it("accepts loopback over plain http, for a desktop talking to itself", () => {
+    expect(parsePairingCode(encode("dev-1", "http://127.0.0.1:7443", "s")).ok).toBe(true);
+  });
+
+  it("REFUSES plain http to another machine", () => {
+    // Otherwise the signed request and the conversation cross whatever network
+    // the two devices share in clear text.
+    const parsed = parsePairingCode(encode("dev-1", "http://laptop.local:7443", "s"));
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) expect(parsed.reason).toMatch(/unencrypted/i);
+  });
+
+  it("refuses a truncated code rather than applying half of it", () => {
+    const parsed = parsePairingCode(btoa("dev-1|https://laptop.local"));
+    expect(parsed.ok).toBe(false);
+    if (!parsed.ok) expect(parsed.reason).toMatch(/incomplete/i);
+  });
+
+  it("refuses a code with an empty field", () => {
+    expect(parsePairingCode(encode("dev-1", "https://laptop.local", "")).ok).toBe(false);
+  });
+
+  it("refuses something that is not a code at all", () => {
+    expect(parsePairingCode("hello there").ok).toBe(false);
+    expect(parsePairingCode("").ok).toBe(false);
+  });
+
+  it("refuses a code carrying an unusable address", () => {
+    expect(parsePairingCode(encode("dev-1", "not a url", "s")).ok).toBe(false);
   });
 });
