@@ -2,6 +2,8 @@ import { useCallback, useMemo, useRef } from "react";
 import { DesktopBridgeAdapter } from "./adapters/desktop-bridge";
 import { BrowserWebGpuAdapter } from "./adapters/browser-webgpu";
 import { BrowserWasmAdapter } from "./adapters/browser-wasm";
+import { PairedDesktopAdapter } from "./adapters/paired-desktop";
+import { pairedCredentials, hasPairing } from "./paired-credentials";
 import { detectDeviceSignals, resolveDeviceMode, type DeviceMode } from "./device-mode";
 import { routeBrain, type RouteOutcome } from "./router";
 import { REMEDY_LABELS, type AdapterId, type BrainAdapter, type RemedyAction } from "./adapter";
@@ -14,12 +16,12 @@ import type { RoutePolicy } from "../local/router-policy";
  *
  * WHAT IS REGISTERED TODAY, and what is not.
  *
- * Three of five: the desktop bridge, the browser's WebGPU engine and the
- * browser's WebAssembly fallback. The paired-desktop and mobile-native
- * adapters are NOT registered, because neither is implemented — and an adapter
- * that is listed but absent would make the router report an engine the product
- * cannot actually run, which is the precise failure this architecture exists
- * to prevent.
+ * Four of five: the desktop bridge, the browser's WebGPU engine, the browser's
+ * WebAssembly fallback and a paired computer. The mobile-native adapter is NOT
+ * registered, because it is not implemented — and an adapter that is listed
+ * but absent would make the router report an engine the product cannot
+ * actually run, which is the precise failure this architecture exists to
+ * prevent.
  *
  * The consequence stays honest and visible: a phone with no paired computer
  * still routes to the browser engines, and if those cannot run either,
@@ -38,6 +40,9 @@ export interface BrainHandle {
 
 export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle {
   const device = useDevicePolicy();
+  // A stored pairing is what makes this a paired device mode. Read rather than
+  // assumed so the mode reflects what is actually configured here.
+  const paired = options?.hasPairedDesktop ?? hasPairing();
 
   // Read lazily: the device measurement lands after the first render, and an
   // adapter constructed with an empty policy would route on no hardware facts.
@@ -56,13 +61,11 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
      */
     map.set("browser_webgpu", new BrowserWebGpuAdapter());
     map.set("browser_wasm", new BrowserWasmAdapter());
+    map.set("paired_desktop", new PairedDesktopAdapter({ credentials: pairedCredentials }));
     return map;
   }, []);
 
-  const mode = useMemo(
-    () => resolveDeviceMode(detectDeviceSignals(options?.hasPairedDesktop ?? false)),
-    [options?.hasPairedDesktop],
-  );
+  const mode = useMemo(() => resolveDeviceMode(detectDeviceSignals(paired)), [paired]);
 
   /*
    * When the OCADE server IS this machine — the desktop build, and local
