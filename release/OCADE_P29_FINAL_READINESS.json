@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "phase": "P29 - Final production-readiness closure",
-  "calculatedAt": "2026-08-05T17:38:14.571Z",
+  "calculatedAt": "2026-08-05T20:16:18.509Z",
   "branch": "main",
-  "currentHead": "419e1bf9d8c3b3091b6b1558f6899adb0c806ce9",
-  "sourceRevision": "419e1bf9d8c3b3091b6b1558f6899adb0c806ce9",
+  "currentHead": "0344e58c2133fcf62cc8d0a2070c6d19bbbfd611",
+  "sourceRevision": "0344e58c2133fcf62cc8d0a2070c6d19bbbfd611",
   "targetVersion": "0.1.0",
   "evidenceBindings": {
-    "sourceRevision": "419e1bf9d8c3b3091b6b1558f6899adb0c806ce9",
+    "sourceRevision": "0344e58c2133fcf62cc8d0a2070c6d19bbbfd611",
     "targetVersion": "0.1.0",
     "dependencyLockSha256": "cebe247d59bab6546aabb7d813ff1471e4931d15dfa97fa43faa476fd8fd288a",
     "environment": "windows-x64-node22+",
