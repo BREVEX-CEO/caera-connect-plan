@@ -62,7 +62,7 @@ describe("Phase 19 integration honesty audit", () => {
     // Zero is the correct number and it must stay earned: the gate compares
     // declared against observed, so a module drifting back to zero incoming
     // imports fails the build rather than silently rejoining the list.
-    expect(audit.nonRuntimeModules).toHaveLength(0);
+    expect(audit.nonRuntimeModules).toEqual([]);
     expect(audit.nonRuntimeModules.some((entry) => entry.path === "src/lib/media/inspect.ts")).toBe(
       false,
     );

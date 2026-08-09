@@ -98,7 +98,7 @@ const AREA_TO_TESTS = [
   ],
   [
     "Shared Types Contracts and Versioning",
-    ["adapter-sdk", "extension-protocol-parity", "mobile-native-parity", "compatibility-evidence"],
+    ["adapter-sdk", "managed-browser-bridge", "mobile-native-parity", "compatibility-evidence"],
   ],
   [
     "Event Journal Receipts and Auditability",
@@ -166,7 +166,6 @@ const AREA_TO_TESTS = [
     [
       "deployment-controller",
       "controlled-rollout",
-      "enterprise-browser-policy",
       "device-revocation",
     ],
   ],
@@ -182,7 +181,7 @@ const AREA_TO_TESTS = [
   ],
   [
     "Legal Privacy Licence and Compliance Review",
-    ["licence-notices", "transcript-redaction", "enterprise-browser-policy"],
+    ["licence-notices", "transcript-redaction"],
   ],
   [
     "Design System and Accessibility",
@@ -318,19 +317,13 @@ function casesFor(base) {
 }
 
 const snapshot = JSON.parse(readFileSync(SNAPSHOT, "utf8"));
-const bound = (r) =>
-  typeof r.evidence === "string" &&
-  r.evidence.trim().length >= 20 &&
-  typeof r.resolvedInPhase === "string" &&
-  r.resolvedInPhase.trim().length >= 2;
-
 const TEST_TIERS = new Set(["UNIT TESTED", "INTEGRATION TESTED"]);
 
 let boundCount = 0;
 const unmapped = new Map();
 
 for (const req of snapshot.requirements) {
-  if (!TEST_TIERS.has(req.status) || bound(req)) continue;
+  if (!TEST_TIERS.has(req.status)) continue;
 
   const area = String(req.area ?? "");
   const override = ID_TO_TESTS.get(req.id);

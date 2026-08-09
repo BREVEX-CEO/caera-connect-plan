@@ -154,7 +154,7 @@ function AuthPage() {
   return (
     <AuthShell
       title="Welcome to CAERA CADANE"
-      subtitle="One account for OCADE, FICIA, MADEE and CANIA."
+      subtitle="One account for OCADE."
       footer={
         <>
           By continuing you agree to our terms and privacy notice. Your workspace defaults to

@@ -24,6 +24,40 @@ jobs:
       with:
         targets: x86_64-pc-windows-msvc
 
+    - name: Setup Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: pip
+
+    - name: Install Tesseract OCR
+      run: choco install tesseract --yes --no-progress
+
+    - name: Install pinned Python control stack
+      shell: pwsh
+      run: |
+        python -m venv .venv
+        .\.venv\Scripts\python.exe -m pip install --upgrade pip
+        .\.venv\Scripts\python.exe -m pip install -r native/python-host/requirements.lock.txt
+        .\.venv\Scripts\python.exe -m pip check
+
+    - name: Verify and build native sidecars
+      run: |
+        npm run python:models
+        npm run python:lint
+        npm run python:typecheck
+        npm run python:test
+        npm run browser:sidecar-build
+        npm run python:sidecar-build
+
+    - name: Test both packaged sidecars through the Rust supervisor
+      working-directory: native/companion/tauri
+      shell: pwsh
+      run: |
+        $env:OCADE_REQUIRE_BROWSER_SIDECAR_TEST = "1"
+        $env:OCADE_REQUIRE_PYTHON_SIDECAR_TEST = "1"
+        cargo test --all-targets
+
     - name: Build Web App
       run: npm run build
 
@@ -39,4 +73,4 @@ jobs:
         releaseBody: 'See the assets to download this version and install.'
         releaseDraft: true
         prerelease: false
-        projectPath: ./native/companion
+        projectPath: ./native/companion/tauri

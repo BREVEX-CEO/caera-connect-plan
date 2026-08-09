@@ -8,7 +8,7 @@ import {
 } from "@/components/ocade/chat/composer-drop";
 import { MessageBubble } from "@/components/ocade/chat/MessageBubble";
 import { EngineBadge } from "@/components/ocade/chat/EngineBadge";
-import { groupConversations } from "@/components/ocade/chat/ChatSidebar";
+import { groupConversations } from "@/lib/chat/group-conversations";
 import type { ChatMessageView } from "@/components/ocade/chat/chat-types";
 
 /**
@@ -172,7 +172,18 @@ describe("the composer", () => {
     );
   });
 
-  it("gives a disabled image control its reason as the accessible name", () => {
+  it("puts every add action behind one labelled trigger", () => {
+    /*
+     * The composer used to carry a bare paperclip and a bare picture icon, and
+     * a disabled picture had to smuggle its reason into an `aria-label`. Both
+     * are now inside a single `+`, which is where a new chat and a link also
+     * live — the row was growing an icon per capability.
+     *
+     * The reason for a disabled action moved with it, from an aria-label to
+     * VISIBLE TEXT under the menu item. That is stronger, not weaker: a
+     * sighted user could not read the old one at all without hovering.
+     * `voice-and-composer.test.ts` pins the menu's own contents.
+     */
     const html = renderToStaticMarkup(
       <ChatComposer
         {...base}
@@ -180,8 +191,10 @@ describe("the composer", () => {
         imageDisabledReason="No image-reading engine is installed."
       />,
     );
-    // A grey icon with no explanation is the defect; the reason IS the label.
-    expect(html).toContain('aria-label="No image-reading engine is installed."');
+    expect(html).toContain('aria-label="Add to this conversation"');
+    expect(html).toContain('aria-haspopup="menu"');
+    // Closed by default, so it cannot cover the message being written.
+    expect(html).toContain('aria-expanded="false"');
   });
 
   it("labels the text area, so it is not an anonymous box", () => {

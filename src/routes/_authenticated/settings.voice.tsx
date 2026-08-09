@@ -45,15 +45,44 @@ function VoiceSettingsPage() {
           wakeReason: "Wake phrase availability can only be checked in a browser.",
         };
 
-  const loadVoices = useCallback(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    setVoices(toVoiceOptions(window.speechSynthesis.getVoices()));
+  /**
+   * @param announce - true when a person pressed "Refresh voices", false for
+   *   the automatic loads on mount and on `voiceschanged`.
+   *
+   * A refresh that reports nothing is indistinguishable from a dead button.
+   * The voice list is usually identical between two reads — the browser has
+   * already loaded it — so pressing refresh changed no pixel and gave the user
+   * no reason to believe the control existed. Worse, a browser with no speech
+   * engine returned early and silently, which is precisely the case where an
+   * explanation is owed.
+   *
+   * The automatic loads stay silent: nobody asked, so nobody needs telling.
+   */
+  const loadVoices = useCallback((announce = false) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      if (announce)
+        toast.error("This browser has no speech engine, so there are no voices to list.");
+      return;
+    }
+    const next = toVoiceOptions(window.speechSynthesis.getVoices());
+    setVoices(next);
+    if (!announce) return;
+    if (next.length === 0) {
+      toast.error("No voices found. The operating system may still be installing them.", {
+        description: "Voices are provided by the system, not by OCADE.",
+      });
+      return;
+    }
+    toast.success(`${next.length} voice${next.length === 1 ? "" : "s"} available.`);
   }, []);
 
   useEffect(() => {
     loadVoices();
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
+      // Wrapped, not passed directly: the handler receives an Event, which as a
+      // positional argument would land in `announce` and be truthy — toasting
+      // on every automatic reload the browser performs on its own.
+      window.speechSynthesis.onvoiceschanged = () => loadVoices(false);
     }
     void listAudioDevices().then(setDevices);
     return () => {
@@ -204,7 +233,7 @@ function VoiceSettingsPage() {
                 </button>
               );
             })}
-            <Button variant="ghost" size="sm" onClick={loadVoices}>
+            <Button variant="ghost" size="sm" onClick={() => loadVoices(true)}>
               <RefreshCw className="mr-1.5 h-4 w-4" /> Refresh voices
             </Button>
           </div>
@@ -265,6 +294,7 @@ function VoiceSettingsPage() {
           <div className="flex flex-wrap gap-2">
             {langs.map((l) => (
               <button
+                aria-pressed={prefs.language === l.code}
                 key={l.code}
                 onClick={() => update({ language: l.code, voiceName: null })}
                 className={cn(
@@ -442,6 +472,7 @@ function VoiceSettingsPage() {
               ] as const
             ).map(([value, label]) => (
               <button
+                aria-pressed={prefs.addressStyle === value}
                 key={value}
                 onClick={() => update({ addressStyle: value })}
                 className={cn(

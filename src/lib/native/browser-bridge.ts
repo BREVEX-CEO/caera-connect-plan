@@ -2,7 +2,7 @@
  * OCADE browser control bridge (Plan §26).
  *
  * Contract + policy engine for driving a browser through the signed companion
- * or a paired extension. This module is the DECISION layer: it decides what is
+ * by the companion-supervised Playwright/CDP host. This module is the DECISION layer: it decides what is
  * permitted, what needs confirmation and what is refused. Execution lives in the
  * companion; with none connected every action reports honestly as unavailable.
  *
@@ -18,10 +18,9 @@ import { isProtectedText, type ActionRisk } from "./companion-bridge";
 import {
   hasProtectedFields,
   screenshotRedaction,
-  type ExtensionIdentity,
   type PageSummary,
   type ScreenshotRedaction,
-} from "./extension-protocol";
+} from "./browser-dom";
 
 export type BrowserActionKind =
   | "tabs.list"
@@ -91,6 +90,28 @@ export const DEFAULT_SITE_POLICY: SitePolicy = {
   fillOrigins: [],
   allowPrivate: false,
 };
+
+export const BROWSER_POLICY_STORAGE_KEY = "caera:browser:policy:v1";
+
+/** Read the current per-device browser policy at dispatch time. */
+export function readBrowserSitePolicy(): SitePolicy {
+  if (typeof localStorage === "undefined") return { ...DEFAULT_SITE_POLICY };
+  try {
+    const raw = localStorage.getItem(BROWSER_POLICY_STORAGE_KEY);
+    if (!raw) return { ...DEFAULT_SITE_POLICY };
+    const policy = JSON.parse(raw) as Partial<SitePolicy>;
+    return {
+      ...DEFAULT_SITE_POLICY,
+      allowOrigins: Array.isArray(policy.allowOrigins) ? policy.allowOrigins : [],
+      denyOrigins: Array.isArray(policy.denyOrigins) ? policy.denyOrigins : [],
+      readOrigins: Array.isArray(policy.readOrigins) ? policy.readOrigins : [],
+      fillOrigins: Array.isArray(policy.fillOrigins) ? policy.fillOrigins : [],
+      allowPrivate: false,
+    };
+  } catch {
+    return { ...DEFAULT_SITE_POLICY };
+  }
+}
 
 /** Field names that must never be auto-filled or read. */
 const PROTECTED_FIELD =
@@ -223,7 +244,12 @@ export function decideBrowserAction(
 export interface BrowserBridgeStatus {
   available: boolean;
   reason?: string;
-  identity?: ExtensionIdentity;
+  identity?: {
+    host: "ocade-managed-browser";
+    protocolVersion: number;
+    browser?: "chrome" | "edge";
+    sessionId?: string;
+  };
 }
 
 export interface BrowserActionResult {
@@ -263,7 +289,7 @@ export interface PerformOptions {
   fileHandoff?: BrowserFileHandoff;
   verification?: BrowserVerificationExpectation;
   /**
-   * Masking the extension MUST apply before a screenshot is captured. Always
+   * Masking in the managed host MUST apply before a screenshot is captured. Always
    * present for `screenshot` actions — a bridge that ignores it is a bug, and a
    * capture must never be taken without it.
    */
@@ -292,18 +318,20 @@ export interface BrowserRunProgress {
 }
 
 export const BROWSER_BRIDGE_UNAVAILABLE =
-  "Browser control needs the CAERA Native Companion or the OCADE browser extension, which isn't connected.";
+  "Browser control needs the OCADE Native Companion and a managed Chrome or Edge session, which isn't connected.";
 
 /**
- * Active bridge until a companion/extension is connected. Refuses everything
+ * Active bridge until the managed companion host is connected. Refuses everything
  * loudly — it never reports a fabricated success.
  */
 export class UnavailableBrowserBridge implements BrowserBridge {
+  constructor(private readonly reason = BROWSER_BRIDGE_UNAVAILABLE) {}
+
   async status(): Promise<BrowserBridgeStatus> {
-    return { available: false, reason: BROWSER_BRIDGE_UNAVAILABLE };
+    return { available: false, reason: this.reason };
   }
   async perform(_action: BrowserAction, _opts: PerformOptions): Promise<BrowserActionResult> {
-    return { ok: false, detail: BROWSER_BRIDGE_UNAVAILABLE };
+    return { ok: false, detail: this.reason };
   }
 }
 
@@ -313,7 +341,7 @@ export function getBrowserBridge(): BrowserBridge {
   return bridge;
 }
 
-/** Installed by the desktop build once a signed companion/extension verifies. */
+/** Installed by the desktop build once the signed companion browser host verifies. */
 export function setBrowserBridge(next: BrowserBridge): void {
   bridge = next;
 }
@@ -467,7 +495,7 @@ export async function runBrowserAction(
         status: "completed_unverified",
         executionEvidence: result.detail,
         verificationEvidence:
-          "The extension acknowledged the action, but no independent post-action observation was available.",
+          "The managed browser host acknowledged the action, but no independent post-action observation was available.",
       },
     };
   }

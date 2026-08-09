@@ -599,6 +599,7 @@ export function CodeWorkspacePanel() {
               <div className="max-h-[520px] space-y-0.5 overflow-auto">
                 {workspace.files.map((file) => (
                   <button
+                    aria-current={selectedPath === file.path ? "true" : undefined}
                     key={file.path}
                     onClick={() => setSelectedPath(file.path)}
                     className={`block w-full truncate rounded px-2 py-1.5 text-left font-mono text-[11px] ${

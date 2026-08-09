@@ -27,6 +27,7 @@ export function MessageList({
   renderMarkdown,
   density = "comfortable",
   emptyState,
+  renderFooter,
 }: {
   messages: ChatMessageView[];
   actions: MessageActions;
@@ -34,6 +35,8 @@ export function MessageList({
   renderMarkdown?: boolean;
   density?: "comfortable" | "compact";
   emptyState?: React.ReactNode;
+  /** Rendered under each message. Used for the answer receipt. */
+  renderFooter?: (message: ChatMessageView) => React.ReactNode;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -85,6 +88,13 @@ export function MessageList({
               renderMarkdown={renderMarkdown}
               density={density}
             />
+            {/*
+              A render slot rather than a receipt-shaped prop. The transcript
+              should not know what a provenance receipt is — the signed-in chat
+              and the demo attach different things here, and a component that
+              named one of them would have to grow a branch for each.
+            */}
+            {renderFooter?.(message)}
           </li>
         ))}
       </ol>

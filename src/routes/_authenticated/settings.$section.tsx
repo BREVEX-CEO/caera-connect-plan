@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { StatusBadge } from "@/components/shell/StatusBadge";
 import { findSection } from "@/lib/settings-sections";
+import { useSettingsAccess } from "@/components/settings/use-settings-access";
 import { MemoryPanel } from "@/components/settings/MemoryPanel";
 import { ComputerUsePanel } from "@/components/settings/ComputerUsePanel";
 import { PermissionsPanel } from "@/components/settings/PermissionsPanel";
@@ -13,6 +14,10 @@ import { UpdatePolicyPanel } from "@/components/settings/UpdatePolicyPanel";
 import { ChatSettingsPanel } from "@/components/settings/ChatSettingsPanel";
 import { LocalEngineSettingsPanel } from "@/components/settings/LocalEngineSettingsPanel";
 import { OnlineProvidersPanel } from "@/components/settings/OnlineProvidersPanel";
+import { MotionPanel } from "@/components/settings/MotionPanel";
+import { OfflineSection } from "@/components/settings/OfflineSection";
+import { AccountPanel } from "@/components/settings/AccountPanel";
+import { CloudPermissionPanel } from "@/components/settings/CloudPermissionPanel";
 import { ImageSettingsPanel } from "@/components/settings/ImageSettingsPanel";
 import { AboutLicencesPanel } from "@/components/settings/AboutLicencesPanel";
 import { DiagnosticsSettingsPanel } from "@/components/settings/DiagnosticsSettingsPanel";
@@ -31,6 +36,10 @@ const IMPLEMENTED_SECTIONS: Record<string, () => React.ReactElement> = {
   chat: () => <ChatSettingsPanel />,
   "local-engine": () => <LocalEngineSettingsPanel />,
   providers: () => <OnlineProvidersPanel />,
+  motion: () => <MotionPanel />,
+  offline: () => <OfflineSection />,
+  account: () => <AccountPanel />,
+  "cloud-permission": () => <CloudPermissionPanel />,
   images: () => <ImageSettingsPanel />,
   diagnostics: () => <DiagnosticsSettingsPanel />,
   about: () => <AboutLicencesPanel />,
@@ -50,6 +59,9 @@ export const Route = createFileRoute("/_authenticated/settings/$section")({
 function SectionCatchall() {
   const { section } = Route.useParams();
   const found = findSection(section);
+  // Signed out, every section is readable but nothing may be opened that sits
+  // behind the gate — see the external-section comment below.
+  const { canEdit: canEditSettings } = useSettingsAccess();
 
   if (!found) {
     return (
@@ -70,8 +82,23 @@ function SectionCatchall() {
 
   const { group, item } = found;
 
-  // External redirect (e.g. Model Settings → /ocade/models)
-  if (item.status === "external" && item.externalTo) {
+  /*
+   * External sections (e.g. Model Settings → /ocade/models) forward to a real
+   * page — but ONLY for someone who can actually open it.
+   *
+   * THE DEAD ROUTE THIS FIXES. `/settings/ocade-models` redirected
+   * unconditionally, and its destination is behind the authentication gate. A
+   * signed-out visitor reading through Settings clicked "Model Settings" and
+   * was thrown out to the sign-in page — no explanation, and the settings
+   * screen they were reading was gone. Every other section shows itself
+   * read-only, so this one entry silently punished the person exploring the
+   * product before signing up.
+   *
+   * Signed out, it now renders the same descriptive panel as every other
+   * unavailable section, with the destination offered as a link they can
+   * choose rather than a redirect that happens to them.
+   */
+  if (item.status === "external" && item.externalTo && canEditSettings) {
     return <Navigate to={item.externalTo} replace />;
   }
 

@@ -348,6 +348,20 @@ export async function extractBinaryDocument(
   };
 }
 
+/**
+ * How much extracted text OCADE KEEPS, as opposed to how much it sends.
+ *
+ * These are two different limits and conflating them broke retrieval before it
+ * started: clamping the extraction to the send budget meant a long report was
+ * cut to its first few pages on arrival, and searching it could then only ever
+ * find things in the part that survived. Retrieval needs the whole document;
+ * the send budget is applied afterwards, to the passages it chose.
+ *
+ * The bound here exists only so a pathological file cannot exhaust the tab's
+ * memory. It is far above any document a person attaches by hand.
+ */
+export const DOCUMENT_RETAIN_MAX_CHARS = 2_000_000;
+
 /** Bound extracted text so a large file can't blow the model context. */
 export function clampForContext(
   text: string,

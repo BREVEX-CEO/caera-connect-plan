@@ -137,6 +137,103 @@ for (const file of files) {
       });
     }
   }
+
+  /*
+   * 5. RAW <button> ELEMENTS, which nothing above ever looked at.
+   *
+   * Rules 1–4 match `<Button` (the shadcn component) or a disabled control.
+   * A plain lowercase `<button>` with no handler at all passed every one of
+   * them, and that is not hypothetical: the landing page rendered its eight
+   * capability cards as raw `<button>` elements wired only to `onMouseEnter`
+   * and `onFocus`. This audit reported "No dead controls found" while the main
+   * interactive explanation of the product did nothing when clicked.
+   *
+   * HOVER-ONLY IS THE WORSE HALF. A control that responds to hover but not to
+   * click is not merely unpolished — it is unreachable on a phone. There is no
+   * hover on touch, and iOS Safari does not focus a `<button>` on tap, so the
+   * `onFocus` fallback does not save it either. Most people meet a landing page
+   * on a phone, so "works with a mouse" is the smaller half of the audience.
+   */
+  for (const m of source.matchAll(/<button\b([^>]*)>/g)) {
+    const attrs = m[1] + source.slice(m.index, m.index + 2500);
+    const acts =
+      /\bonClick\b/.test(attrs) ||
+      /\bonSubmit\b/.test(attrs) ||
+      /\bonPointerDown\b/.test(attrs) ||
+      /\bonKeyDown\b/.test(attrs) ||
+      /\btype=\{?["']?submit/.test(attrs) ||
+      /\{\.\.\./.test(attrs); // a spread may carry the handler
+
+    // Same parent-supplies-behaviour exemptions as rule 3.
+    const before = source.slice(Math.max(0, m.index - 200), m.index);
+    const navigational =
+      /<Link\b[^>]*>\s*$|<a\b[^>]*>\s*$/.test(before) ||
+      /[A-Za-z]*Trigger\b[^>]*asChild[^>]*>\s*$/.test(before);
+    if (acts || navigational) continue;
+
+    const hoverOnly = /\bonMouseEnter\b|\bonMouseOver\b|\bonFocus\b|\bonPointerEnter\b/.test(attrs);
+    const disabled = /\bdisabled\b/.test(attrs);
+    if (disabled) continue; // rule 4 owns disabled controls
+
+    findings.push({
+      file,
+      line: lineAt(m.index),
+      kind: hoverOnly ? "hover-only" : "no-handler",
+      detail: `<button${(m[1] || "").slice(0, 50)}>`,
+    });
+  }
+
+  /*
+   * 6. SELECTION STATE CARRIED BY COLOUR ALONE.
+   *
+   * A button whose className switches on `x === selected` is a selection
+   * control, and half of what it does is REPORT which option is chosen. When
+   * that report exists only as a background colour, a screen reader announces
+   * eight identically-named buttons with no way to tell which one is active,
+   * and so does a high-contrast or forced-colours mode that discards the
+   * palette. WCAG 1.4.1 and 4.1.2, and the reason the audit found "Operational"
+   * pressing to no effect: it was the already-selected tab, and nothing in the
+   * accessibility tree said so.
+   *
+   * `aria-pressed`, `aria-selected`, `aria-checked`, `aria-current` and an
+   * explicit tab/radio/option role all answer it; any one is enough.
+   */
+  for (const m of source.matchAll(/<button\b/g)) {
+    // Walk to the end of the opening tag, counting braces so that a `>` inside
+    // a JSX expression (`x > 2`, an arrow) does not end the tag early.
+    let i = m.index;
+    let depth = 0;
+    let end = -1;
+    while (i < source.length) {
+      const c = source[i];
+      if (c === "{") depth += 1;
+      else if (c === "}") depth -= 1;
+      else if (c === ">" && depth === 0) {
+        end = i;
+        break;
+      }
+      i += 1;
+    }
+    if (end === -1) continue;
+    const tag = source.slice(m.index, end + 1);
+
+    const isSelection =
+      /className=\{[^]*?(===|!==|\bisActive\b|\bisSelected\b|\bselected\b|\bactive\b)/.test(tag);
+    if (!isSelection) continue;
+
+    const announcesState =
+      /\baria-(pressed|selected|checked|current|expanded)=/.test(tag) ||
+      /\brole="(tab|radio|option|switch)"/.test(tag) ||
+      /\bdisabled\b/.test(tag);
+    if (announcesState) continue;
+
+    findings.push({
+      file,
+      line: lineAt(m.index),
+      kind: "visual-only-state",
+      detail: tag.replace(/\s+/g, " ").slice(0, 60),
+    });
+  }
 }
 
 const byKind = findings.reduce((acc, f) => {

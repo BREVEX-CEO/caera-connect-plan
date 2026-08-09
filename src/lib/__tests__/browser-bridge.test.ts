@@ -13,7 +13,7 @@ import {
   type PerformOptions,
   type SitePolicy,
 } from "../native/browser-bridge";
-import { summarisePage } from "../native/extension-protocol";
+import { summarisePage } from "../native/browser-dom";
 
 const SITE = "https://app.example.com";
 

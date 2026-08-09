@@ -70,23 +70,74 @@ describe("the composer never offers a Stop it cannot honour", () => {
 });
 
 describe("blocked controls explain themselves to assistive technology", () => {
-  it("the run controls name the prerequisite and point at the badge", () => {
+  it("the unified surface does not leave orphaned Work controls behind", () => {
     const ocade = readFileSync("src/routes/_authenticated/ocade.tsx", "utf8");
-    // A "Setup Required" badge NEXT TO a button is not programmatically
-    // associated with it: a screen reader would announce "Pause, dimmed" alone.
-    expect(ocade).toMatch(/id="run-controls-setup-required"/);
-    const described = ocade.match(/aria-describedby="run-controls-setup-required"/g) ?? [];
-    expect(described.length).toBe(3); // Pause, Stop, Replay
-    expect(ocade).toMatch(/title="Pause is available once the Native Companion is connected\."/);
+    const legacyWork = readFileSync("src/routes/_authenticated/ocade.work.tsx", "utf8");
+    expect(ocade).not.toMatch(/run-controls-setup-required/);
+    expect(ocade).not.toMatch(/to="\/ocade\/work"/);
+    expect(legacyWork).toMatch(/redirect\(\{ to: "\/ocade", replace: true \}\)/);
   });
 
-  it("demo-mode controls say they are disabled BECAUSE of demo mode", () => {
-    const files = readFileSync("src/routes/demo.files.tsx", "utf8");
-    const madee = readFileSync("src/routes/demo.madee.tsx", "utf8");
-    expect(files).toMatch(/title="Uploads are disabled in demo mode/);
-    expect(files).toMatch(/aria-label="Upload \(disabled in demo mode\)"/);
-    expect(madee).toMatch(/title="Exporting is disabled in demo mode/);
-    expect(madee).toMatch(/aria-label="Export PDF \(disabled in demo mode\)"/);
+  it("demo-mode controls say WHY they are unavailable, not just that they are", () => {
+    /*
+     * This used to check the demo Files page, which was a separate top-level
+     * product inside a product that has one. Files are a tool inside a
+     * conversation now, so the control that is genuinely unavailable in the
+     * demo is attachment upload in the composer — and it carries a reason
+     * naming the fix rather than a bare disabled state.
+     */
+    const demo = readFileSync("src/routes/demo.ocade.tsx", "utf8");
+    expect(demo).toMatch(/imageDisabledReason=/);
+    expect(demo).toMatch(/create an account/i);
+  });
+
+  it("the demo no longer claims its replies are canned", () => {
+    // The demo runs the real on-device engine. Copy left over from when it did
+    // not would now be a false statement in the other direction.
+    const demo = readFileSync("src/routes/demo.ocade.tsx", "utf8");
+    const code = demo.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+    expect(code).not.toMatch(/replies are canned/i);
+    expect(code).not.toMatch(/no model is running/i);
+    expect(code).not.toMatch(/sign in to talk to a real engine/i);
+  });
+});
+
+describe("the OCADE pass preserves the existing product routes", () => {
+  /*
+   * The failure this guards against is a placeholder that quietly grows back
+   * into a product: a link to a removed page, a data fetch, a table of sample
+   * employees. Each route must render one page and say the same sentence.
+   */
+  const RETIRED = ["ficia", "madee", "cania"] as const;
+
+  it("keeps each existing product's nested route outlet", () => {
+    for (const name of RETIRED) {
+      const source = readFileSync(`src/routes/_authenticated/${name}.tsx`, "utf8");
+      expect(source).toMatch(/<Outlet|component:/);
+    }
+  });
+
+  it("keeps the product roots routing-only", () => {
+    for (const name of RETIRED) {
+      const source = readFileSync(`src/routes/_authenticated/${name}.tsx`, "utf8");
+      expect(source).not.toMatch(/supabase|useQuery|createServerFn|\.functions/);
+      // A single screen. Sub-routes were the unfinished dashboards.
+      expect(source).toMatch(/<Outlet|component:/);
+    }
+  });
+
+  it("their navigation offers no sub-pages that no longer exist", () => {
+    const nav = readFileSync("src/lib/shell-nav.ts", "utf8");
+    for (const dead of [
+      "/people",
+      "/roles",
+      "/messenger",
+      "/time",
+      "/madee/new",
+      "/cania/search",
+    ]) {
+      expect(nav).not.toContain(`"${dead}"`);
+    }
   });
 });
 

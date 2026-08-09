@@ -2,7 +2,11 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ArrowLeft, ChevronRight, ExternalLink, Search, X } from "lucide-react";
 import { SETTINGS_GROUPS } from "@/lib/settings-sections";
+import { useSettingsAccess } from "./use-settings-access";
 import { cn } from "@/lib/utils";
+
+/** Where the opt-in for the Advanced group is remembered. */
+const ADVANCED_KEY = "ocade.settings.advanced.v1";
 
 function slugToPath(slug: string) {
   return slug ? `/settings/${slug}` : "/settings";
@@ -19,18 +23,70 @@ export function SettingsShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const active = currentSlug(pathname);
   const [query, setQuery] = useState("");
+  /*
+   * WHERE "CLOSE" GOES DEPENDS ON WHETHER THERE IS AN ACCOUNT.
+   *
+   * Settings is deliberately readable signed out — that is the whole point of
+   * `SettingsAccessProvider`. But this button navigated to `/home` for
+   * everyone, and `/home` is auth-gated, so the one exit from the screen threw
+   * a signed-out visitor into a sign-in wall with a hard document reload. The
+   * product invites them in and then punishes them for leaving.
+   *
+   * Signed out, "close" means back to the public site.
+   */
+  const { canEdit: signedIn } = useSettingsAccess();
+
+  /*
+   * ADVANCED IS OPT-IN, AND STAYS OPTED IN.
+   *
+   * Remembered per device rather than per session: someone who turned it on to
+   * reach Diagnostics should not have to find the switch again on their next
+   * visit, and someone who never turns it on never sees eight engineering
+   * sections presented as peers of "Voice".
+   *
+   * Reading storage inside the initialiser rather than in an effect keeps the
+   * first paint correct — revealing the group a frame after the list has
+   * already been drawn is a visible jump.
+   */
+  const [showAdvanced, setShowAdvanced] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.localStorage.getItem(ADVANCED_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleAdvanced = () => {
+    setShowAdvanced((current) => {
+      const next = !current;
+      try {
+        window.localStorage.setItem(ADVANCED_KEY, next ? "1" : "0");
+      } catch {
+        /* Private browsing. The choice lasts this session, which is enough. */
+      }
+      return next;
+    });
+  };
 
   const filteredGroups = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return SETTINGS_GROUPS;
-    return SETTINGS_GROUPS.map((g) => ({
-      ...g,
-      items: g.items.filter((i) => {
-        const hay = [i.label, i.description, ...(i.keywords ?? [])].join(" ").toLowerCase();
-        return hay.includes(q);
-      }),
-    })).filter((g) => g.items.length > 0);
-  }, [query]);
+    // Searching reaches the advanced sections whether or not they are revealed:
+    // someone typing "diagnostics" has already asked for it, and hiding the
+    // answer to a direct search is how a settings screen earns a reputation for
+    // not containing the thing you are looking for.
+    const groups = SETTINGS_GROUPS.filter((g) => !g.advanced || showAdvanced || q.length > 0);
+    if (!q) return groups;
+    return groups
+      .map((g) => ({
+        ...g,
+        items: g.items.filter((i) => {
+          const hay = [i.label, i.description, ...(i.keywords ?? [])].join(" ").toLowerCase();
+          return hay.includes(q);
+        }),
+      }))
+      .filter((g) => g.items.length > 0);
+  }, [query, showAdvanced]);
 
   const onList = active === "" && (pathname === "/settings" || pathname === "/settings/");
   const isDetail = !onList;
@@ -102,15 +158,14 @@ export function SettingsShell({ children }: { children: ReactNode }) {
                         >
                           <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
                           <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                          {/*
+                            The "Setup" pill is gone with the sixteen
+                            placeholder sections it labelled. A badge that says
+                            a destination does not work yet is a queue of
+                            promises rendered as navigation.
+                          */}
                           {item.status === "external" ? (
                             <ExternalLink className="h-3 w-3 opacity-60" aria-hidden />
-                          ) : item.status === "setup_required" ? (
-                            <span
-                              className="ml-1 rounded-sm bg-muted/50 px-1 py-[1px] text-[9px] font-medium uppercase tracking-wide text-muted-foreground"
-                              title="Setup Required"
-                            >
-                              Setup
-                            </span>
                           ) : null}
                           <ChevronRight
                             className={cn(
@@ -127,11 +182,32 @@ export function SettingsShell({ children }: { children: ReactNode }) {
               </div>
             ))
           )}
+
+          {/*
+            The one switch that reveals the engineering sections. Placed at the
+            bottom, styled as a quiet line rather than a control, because it is
+            not something an ordinary reader needs to decide about — it is a
+            door for the people who already know they want it.
+          */}
+          {!query ? (
+            <button
+              type="button"
+              onClick={toggleAdvanced}
+              aria-pressed={showAdvanced}
+              className="mt-2 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[11.5px] text-muted-foreground/70 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ChevronRight
+                className={cn("h-3 w-3 transition-transform", showAdvanced && "rotate-90")}
+                aria-hidden
+              />
+              {showAdvanced ? "Hide advanced" : "Show advanced"}
+            </button>
+          ) : null}
         </nav>
 
         <div className="border-t border-border/50 px-3 py-2">
           <button
-            onClick={() => navigate({ to: "/home" })}
+            onClick={() => navigate({ to: signedIn ? "/home" : "/" })}
             className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
           >
             <X className="h-3 w-3" aria-hidden /> Close settings

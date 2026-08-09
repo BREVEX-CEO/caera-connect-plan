@@ -109,11 +109,29 @@ const UNCLOSED = JSON.stringify({
   ],
 });
 
-const PNG_1X1 = Uint8Array.from(
-  Buffer.from(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
-    "base64",
-  ),
+/*
+ * BROWSER-NATIVE BYTES. `Buffer` is a Node global and does not exist in a
+ * browser, and both of these are evaluated at module scope — so importing this
+ * file in the browser threw `ReferenceError: Buffer is not defined` before the
+ * first line of the page could render. That took down the whole of
+ * `/settings/skills` with the generic "This page didn't load" boundary, on a
+ * route whose tests all passed because vitest runs under Node, where `Buffer`
+ * is defined.
+ *
+ * `atob` and `TextEncoder` are available in both, so the fixtures are now
+ * identical bytes in either environment.
+ */
+function bytesFromBase64(b64: string): Uint8Array {
+  const binary = atob(b64);
+  const out = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) out[i] = binary.charCodeAt(i);
+  return out;
+}
+
+const utf8 = (s: string): Uint8Array => new TextEncoder().encode(s);
+
+const PNG_1X1 = bytesFromBase64(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
 );
 
 /** A DICOM file that still carries a patient name. Built in `dicomFixture`. */
@@ -510,7 +528,7 @@ export const BENCHMARK_TASKS: BenchmarkTask[] = [
     expect: "succeed",
     trap: "Trust the extension — the route by which an upload becomes stored XSS.",
     run: () => {
-      const html = Uint8Array.from(Buffer.from("<html><script>alert(1)</script>", "utf8"));
+      const html = utf8("<html><script>alert(1)</script>");
       const r = checkExtension("avatar.png", html);
       return {
         answered: r.ok,

@@ -9,7 +9,7 @@
  * A capability is only marked `tested: true` when it is exercised by a real
  * automated test in this repository. The built-in packs below therefore cover
  * exactly the three surfaces OCADE has genuine, tested adapters for — the
- * browser extension, the companion's file/window commands, and its clipboard
+ * managed browser host, the companion's file/window commands, and its clipboard
  * and selection commands. Everything else is honestly absent.
  */
 import {
@@ -36,17 +36,16 @@ import { STREAMING_PACK } from "./packs/streaming-pack";
 /* ------------------------------------------------------- built-in packs -- */
 
 /**
- * Web pages, driven through the OCADE browser extension.
+ * Web pages, driven through the OCADE-managed Playwright/CDP host.
  *
- * Every capability here is exercised by `extension-bridge.test.ts` and
- * `browser-bridge.test.ts`, including the refusals.
+ * Every capability here is exercised by managed-browser and browser-policy
+ * tests, including the refusals.
  */
 const WEB_PAGE_PACK: SkillPack = {
   appId: "ocade.web",
   displayName: "Web pages",
   category: "browsers_transfer",
-  // Pinned to the extension protocol version, not a browser version: the
-  // contract OCADE depends on is the extension's, and it is versioned.
+  // Pinned to the managed browser-host protocol, not a browser version.
   testedVersions: ["1."],
   requiresLicensedInstall: false,
   capabilities: [

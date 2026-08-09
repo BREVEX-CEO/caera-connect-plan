@@ -28,12 +28,14 @@ const PATHS = [
   "/auth",
   "/demo",
   "/demo/ocade",
-  "/demo/cania",
-  "/demo/ficia",
-  "/demo/madee",
   "/demo/files",
   "/demo/tasks",
   "/demo/settings",
+  // The retired products keep a route, so they keep a render check. A
+  // placeholder that throws is still a broken page.
+  "/ficia",
+  "/madee",
+  "/cania",
 ];
 
 async function renderAt(path: string): Promise<string> {
@@ -83,7 +85,7 @@ describe("the router tree is the one the application ships", () => {
     const ids = Object.keys(router.routesById);
     // If this collapsed to a handful, the suite would still pass while testing
     // almost nothing.
-    expect(ids.length).toBeGreaterThanOrEqual(70);
+    expect(ids.length).toBeGreaterThanOrEqual(40);
     expect(ids).toContain("/_authenticated/ocade");
     expect(ids).toContain("/_authenticated/settings");
   });
@@ -124,7 +126,7 @@ const ALL_PATHS = allRoutePaths();
 
 describe("every shipped route assembles at its real URL", () => {
   it("derives the URL list from the router, not by hand", () => {
-    expect(ALL_PATHS.length).toBeGreaterThanOrEqual(60);
+    expect(ALL_PATHS.length).toBeGreaterThanOrEqual(34);
     expect(ALL_PATHS).toContain("/");
   });
 

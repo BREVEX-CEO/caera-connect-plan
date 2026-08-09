@@ -36,12 +36,19 @@ function DemoFicia() {
         actions={<StatusBadge status="active" />}
       />
 
-      <div className="mt-6 flex flex-wrap gap-1 rounded-lg bg-muted/40 p-1 text-xs">
+      <div
+        role="tablist"
+        aria-label="FICIA demo sections"
+        className="mt-6 flex flex-wrap gap-1 rounded-lg bg-muted/40 p-1 text-xs"
+      >
         {tabs.map((t) => {
           const Icon = t.icon;
           return (
             <button
               key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
               onClick={() => setTab(t.id)}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition-colors",

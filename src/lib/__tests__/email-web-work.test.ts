@@ -19,7 +19,7 @@ import {
   type BrowserRunResult,
   type SitePolicy,
 } from "../native/browser-bridge";
-import type { PageSummary } from "../native/extension-protocol";
+import type { PageSummary } from "../native/browser-dom";
 
 const ORIGIN = "https://mail.example.test";
 const NOW = new Date("2026-07-26T08:00:00.000Z");

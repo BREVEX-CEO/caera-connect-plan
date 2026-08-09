@@ -5,7 +5,6 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { getCompanion, subscribeCompanionAdapter } from "@/lib/native/companion-bridge";
 import { getBrowserBridge } from "@/lib/native/browser-bridge";
-import { initExtensionBridge } from "@/lib/native/extension-bridge";
 import { activeDevices } from "@/lib/mobile/device-store";
 import { getEmailConnectorStatus } from "@/lib/control/email-web-work";
 import { cn } from "@/lib/utils";
@@ -27,7 +26,6 @@ export function ConnectorsPanel() {
 
   const refresh = useCallback(async () => {
     setChecking(true);
-    initExtensionBridge(import.meta.env.VITE_OCADE_EXTENSION_ID as string | undefined);
     const [native, browser, email] = await Promise.all([
       getCompanion().status(),
       getBrowserBridge().status(),
@@ -49,12 +47,13 @@ export function ConnectorsPanel() {
       },
       {
         id: "browser",
-        label: "OCADE browser extension",
-        description: "Per-site DOM and accessibility route with protected-field boundaries.",
+        label: "OCADE managed browser",
+        description:
+          "Extensionless Playwright/CDP route with per-site and protected-field boundaries.",
         available: browser.available,
         detail: browser.available
-          ? "Paired and reachable."
-          : (browser.reason ?? "Browser extension is not paired."),
+          ? "Managed Chrome or Edge session is reachable."
+          : (browser.reason ?? "Managed browser session is not connected."),
         to: "/settings/browser",
         action: "Browser permissions",
         icon: Globe,
@@ -76,7 +75,7 @@ export function ConnectorsPanel() {
         id: "email_web",
         label: "Email and authenticated web work",
         description:
-          "Connector-first drafts and sends, with a paired-browser fallback for user-authenticated sites.",
+          "Connector-first drafts and sends, with a managed-browser fallback for approved authenticated sites.",
         available:
           Boolean(email?.available && email.authenticated && email.officialOrApproved) ||
           browser.available,
@@ -84,8 +83,8 @@ export function ConnectorsPanel() {
           email?.available && email.authenticated && email.officialOrApproved
             ? `${email.providerId} is authenticated through its approved ${email.route.toUpperCase()} route.`
             : browser.available
-              ? "No email API is connected; the paired browser can use explicitly allowed sites after you sign in."
-              : "No approved email connector or paired browser route is available. Draft previews remain local and nothing can be sent.",
+              ? "No email API is connected; the managed browser can use explicitly allowed sites after you sign in."
+              : "No approved email connector or managed browser route is available. Draft previews remain local and nothing can be sent.",
         to: "/settings/browser",
         action: "Email and site permissions",
         icon: Plug,

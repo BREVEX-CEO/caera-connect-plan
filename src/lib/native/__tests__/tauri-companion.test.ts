@@ -107,6 +107,50 @@ describe("every request is signed", () => {
     expect(env.mac).toBe(computeMac(KEY, canonical(unsigned(env))));
   });
 
+  it("signs the complete managed-browser request before forwarding it", async () => {
+    const reply = { id: 7, ok: true, data: { connected: true, browser: "chrome" } };
+    const { companion, calls } = make(reply);
+    const hostRequest = {
+      version: 1,
+      command: "status",
+      sessionId: "s1",
+    };
+
+    await expect(companion.browserHostRequest(hostRequest)).resolves.toEqual(reply);
+    expect(calls[0].cmd).toBe("browser_host_request");
+    expect(calls[0].args?.hostRequest).toEqual(hostRequest);
+    const envelope = calls[0].args?.request as IpcEnvelope;
+    expect(envelope.mac).toBe(computeMac(KEY, canonical(unsigned(envelope))));
+    expect(parseBody(envelope.body)).toEqual({
+      command: "browser_host_request",
+      args: { hostRequest },
+    });
+  });
+
+  it("routes managed-browser emergency stop through the global host latch", async () => {
+    const { companion, calls } = make(true);
+    const result = await companion.browserHostRequest({ version: 1, command: "emergency_stop" });
+    expect(result.ok).toBe(true);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].cmd).toBe("emergency_stop");
+  });
+
+  it("signs the complete bounded Python-host request before forwarding it", async () => {
+    const reply = { id: 9, ok: true, result: { transport: "inherited-stdio-only" } };
+    const { companion, calls } = make(reply);
+    const hostRequest = { version: 1 as const, command: "health", params: {} };
+
+    await expect(companion.pythonHostRequest(hostRequest)).resolves.toEqual(reply);
+    expect(calls[0].cmd).toBe("python_host_request");
+    expect(calls[0].args?.hostRequest).toEqual(hostRequest);
+    const envelope = calls[0].args?.request as IpcEnvelope;
+    expect(envelope.mac).toBe(computeMac(KEY, canonical(unsigned(envelope))));
+    expect(parseBody(envelope.body)).toEqual({
+      command: "python_host_request",
+      args: { hostRequest },
+    });
+  });
+
   it("signs authenticated application inventory and validates bounded redacted entries", async () => {
     const { companion, calls } = make([
       { appId: "notepad", label: "Notes", processId: 42, windowTitle: "Notes" },

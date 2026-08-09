@@ -31,12 +31,15 @@ import {
   CalendarClock,
   Workflow,
   SlidersHorizontal,
-  MessagesSquare,
-  Bot,
-  Terminal,
   ShieldCheck,
   FileCode2,
-  BriefcaseBusiness,
+  /*
+   * Aliased because `Lock` is also a DOM global — the Web Locks API interface —
+   * and the unaliased name resolves to that instead of the icon, producing a
+   * "cannot be used as a JSX component" error that reads as nonsense.
+   */
+  Lock as LockIcon,
+  Unlock as UnlockIcon,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { AppShell } from "@/components/shell/AppShell";
@@ -84,6 +87,21 @@ import { MessageList } from "@/components/ocade/chat/MessageList";
 import { ChatSidebar } from "@/components/ocade/chat/ChatSidebar";
 import { EngineBadge } from "@/components/ocade/chat/EngineBadge";
 import { useBrain } from "@/lib/brain/use-brain";
+import { resolveEngine } from "@/lib/engine/resolve";
+import { NetworkWitness, limits as networkLimits } from "@/lib/provenance/network-witness";
+import { buildReceipt, type AnswerReceipt, type SourceUse } from "@/lib/provenance/receipt";
+import { sha256OfText } from "@/lib/provenance/digest";
+import { splitIntoPassages } from "@/lib/retrieval/passages";
+import { AnswerReceiptPanel } from "@/components/ocade/chat/AnswerReceiptPanel";
+import { ConversationIntegrity } from "@/components/ocade/chat/ConversationIntegrity";
+import { Seal, describeSeal } from "@/lib/edge/sealed-mode";
+import { installConversationSeal } from "@/lib/edge/seal-policy";
+import { preflight, summarise as summarisePreflight } from "@/lib/edge/preflight";
+import { measureRun, total as totalCost, describeTotals, type RunCost } from "@/lib/edge/meter";
+import { CLOUD_ALLOWANCE } from "@/lib/payments/pricing";
+import { append as appendLedger, type LedgerEntry } from "@/lib/edge/ledger";
+import { emptyTree, type Tree } from "@/lib/edge/checkpoints";
+import { recordTurn } from "@/lib/edge/session";
 import type { BrainMessage } from "@/lib/brain/adapter";
 import type { ChatMessageView, ChatConversationView } from "@/components/ocade/chat/chat-types";
 import { reason } from "@/lib/reasoning/engine";
@@ -109,23 +127,20 @@ import {
   extractDocument,
   extractBinaryDocument,
   clampForContext,
+  DOCUMENT_RETAIN_MAX_CHARS,
   type ExtractResult,
 } from "@/lib/ocade-documents";
 import { isDecodableBinary } from "@/lib/ocade-decoders";
-import {
-  scanUntrustedContent,
-  wrapUntrustedContent,
-  describeScan,
-} from "@/lib/ocade-injection-guard";
+import { scanUntrustedContent, describeScan } from "@/lib/ocade-injection-guard";
 import {
   buildSourceIndex,
-  citationInstruction,
   parseCitations,
   stripCitationMarkers,
   describeLocator,
   type IndexedSource,
   type Citation,
 } from "@/lib/ocade-citations";
+import { buildDocumentContext } from "@/lib/retrieval/document-context";
 import { CopilotMount } from "@/components/ocade/CopilotPanel";
 import { VisualResponse } from "@/components/ocade/VisualResponse";
 import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
@@ -160,6 +175,8 @@ import { redactForSpeech, redactSpokenSecrets } from "@/lib/voice/transcript-red
 import { useVoicePrefs } from "@/lib/use-voice-prefs";
 import { saveChatOutput } from "@/lib/artifacts/chat-output-flow";
 import { listProjectFiles, saveProjectFile, type ProjectFile } from "@/lib/project-files";
+import { buildContextTray, type ContextEntry } from "@/lib/chat/context-tray";
+import { ContextTray } from "@/components/ocade/chat/ContextTray";
 import { localMemoryContext } from "@/lib/local-memory";
 import {
   getChatCitations,
@@ -240,7 +257,6 @@ function toMessageView(message: Message): ChatMessageView {
   };
 }
 
-type Mode = "chat" | "work";
 type PermissionMode = "manual" | "assisted" | "autonomous";
 type PendingChatMessage = {
   id: string;
@@ -294,7 +310,6 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   );
   const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null);
   const [renameTarget, setRenameTarget] = useState<Conversation | null>(null);
-  const [mode, setMode] = useState<Mode>("chat");
   const [permission, setPermission] = useState<PermissionMode>("manual");
   const [pendingMessage, setPendingMessage] = useState<PendingChatMessage | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
@@ -342,7 +357,6 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   async function handleNew() {
     setPendingMessage(null);
     setActiveId(null);
-    setMode("chat");
   }
 
   /*
@@ -514,7 +528,6 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
             activeId={activeId}
             onSelect={(id) => {
               setActiveId(id);
-              setMode("chat");
             }}
             onPin={togglePin}
             onArchive={toggleArchive}
@@ -527,9 +540,7 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
 
         {/* Main workspace canvas */}
         <div className="flex min-h-0 flex-1 flex-col">
-          {mode === "work" ? (
-            <WorkModePanel permission={permission} onExitWork={() => setMode("chat")} />
-          ) : active ? (
+          {active ? (
             <ChatSurface
               key={active.id}
               conversation={active}
@@ -543,8 +554,6 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
                 await refreshList();
               }}
               chatsMode={chatsMode}
-              mode={mode}
-              setMode={setMode}
               permission={permission}
               setPermission={setPermission}
               onRefreshList={refreshList}
@@ -557,7 +566,6 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
               }
               onOpenConversation={(id) => {
                 setActiveId(id);
-                setMode("chat");
               }}
             />
           ) : (
@@ -566,8 +574,6 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
               model={model}
               setModel={setModel}
               chatsMode={chatsMode}
-              mode={mode}
-              setMode={setMode}
               permission={permission}
               setPermission={setPermission}
               onSubmit={async (text, atts) => {
@@ -740,7 +746,6 @@ function OcadeContextualSidebar(props: {
         }}
         footer={
           <div className="space-y-0.5">
-            <SidebarLink icon={BriefcaseBusiness} label="Work" to="/ocade/work" />
             <SidebarLink icon={FileCode2} label="Code" to="/ocade/code" />
             <SidebarLink icon={FolderOpen} label="Projects" to="/ocade/projects" />
             <SidebarLink icon={FileOutput} label="Files" to="/ocade/artifacts" />
@@ -775,7 +780,7 @@ function SidebarLink({
 }: {
   icon: typeof FolderOpen;
   label: string;
-  to: "/ocade/work" | "/ocade/code" | "/ocade/projects" | "/ocade/artifacts" | "/ocade/automations";
+  to: "/ocade/code" | "/ocade/projects" | "/ocade/artifacts" | "/ocade/automations";
 }) {
   return (
     <Link
@@ -896,23 +901,11 @@ function HomeSurface(props: {
   model: string;
   setModel: (m: string) => void;
   chatsMode: "browser_only" | "pc_vault" | "private_sync";
-  mode: Mode;
-  setMode: (m: Mode) => void;
   permission: PermissionMode;
   setPermission: (p: PermissionMode) => void;
   onSubmit: (text: string, atts: Attachment[]) => Promise<void>;
 }) {
-  const {
-    userLabel,
-    model,
-    setModel,
-    chatsMode,
-    mode,
-    setMode,
-    permission,
-    setPermission,
-    onSubmit,
-  } = props;
+  const { userLabel, model, setModel, chatsMode, permission, setPermission, onSubmit } = props;
   const modelInfo = getOcadeModel(model);
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -962,8 +955,6 @@ function HomeSurface(props: {
           // nothing to cancel, so no Stop button is offered. Send disables
           // itself while the request is in flight.
           streaming={busy}
-          mode={mode}
-          setMode={setMode}
           permission={permission}
           setPermission={setPermission}
           model={model}
@@ -999,113 +990,6 @@ const SUGGESTIONS = [
   "Plan my next work session",
 ];
 
-/* ---------- Work Mode Panel ---------- */
-
-function WorkModePanel({
-  permission,
-  onExitWork,
-}: {
-  permission: PermissionMode;
-  onExitWork: () => void;
-}) {
-  return (
-    <div className="flex flex-1 flex-col overflow-y-auto">
-      <div className="mx-auto w-full max-w-2xl px-6 py-10">
-        <div className="mb-4 flex items-center gap-2">
-          <Terminal className="h-4 w-4 text-[color:var(--accent-ocade)]" />
-          <h2 className="text-[18px] font-semibold">OCADE Work</h2>
-          <button
-            onClick={onExitWork}
-            className="ml-auto rounded-md border border-border/60 px-2.5 py-1 text-[12px] text-muted-foreground hover:text-foreground"
-          >
-            Exit Work mode
-          </button>
-        </div>
-
-        <div className="rounded-lg border border-border/70 bg-card p-5">
-          <div className="flex items-start gap-3">
-            <Bot className="mt-0.5 h-5 w-5 text-[color:var(--accent-ocade)]" />
-            <div className="flex-1">
-              <h3 className="text-[14px] font-semibold text-foreground">
-                Native Companion Required
-              </h3>
-              <p className="mt-1 text-[12px] text-muted-foreground">
-                OCADE Work coordinates real desktop tasks — plan, permissions, live steps, pause,
-                stop, verification and replay. In the browser alpha, OCADE cannot control your
-                mouse, keyboard, terminal or filesystem. Install the CAERA Native Companion on your
-                PC to enable this mode.
-              </p>
-              <div className="mt-3 grid gap-2 text-[12px] sm:grid-cols-2">
-                <PlanRow label="Task" value="Not started" />
-                <PlanRow label="Plan" value="Awaiting request" />
-                <PlanRow label="Application" value="—" />
-                <PlanRow label="Project folder" value="—" />
-                <PlanRow label="Permissions" value={permission} />
-                <PlanRow label="Current step" value="—" />
-              </div>
-              {/*
-                These three controls are disabled until the Native Companion is
-                connected. The "Setup Required" badge explains that visually,
-                but a badge sitting next to a button is not programmatically
-                associated with it: a screen-reader user tabbing here would hear
-                "Pause, dimmed" and no reason at all. Each control therefore
-                states its own blocked reason and points at the badge.
-              */}
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  disabled
-                  title="Pause is available once the Native Companion is connected."
-                  aria-describedby="run-controls-setup-required"
-                  className="cursor-not-allowed rounded-md border border-border/60 px-3 py-1.5 text-[12px] text-muted-foreground"
-                >
-                  Pause
-                </button>
-                <button
-                  disabled
-                  title="Stop is available once the Native Companion is connected."
-                  aria-describedby="run-controls-setup-required"
-                  className="cursor-not-allowed rounded-md border border-border/60 px-3 py-1.5 text-[12px] text-muted-foreground"
-                >
-                  Stop
-                </button>
-                <button
-                  disabled
-                  title="Replay is available once the Native Companion is connected."
-                  aria-describedby="run-controls-setup-required"
-                  className="cursor-not-allowed rounded-md border border-border/60 px-3 py-1.5 text-[12px] text-muted-foreground"
-                >
-                  Replay
-                </button>
-                <span
-                  id="run-controls-setup-required"
-                  className="inline-flex items-center gap-1.5 rounded-md bg-[color:var(--state-warning)]/10 px-2.5 py-1 text-[11px] text-[color:var(--state-warning)]"
-                >
-                  <ShieldCheck className="h-3 w-3" /> Setup Required
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <p className="mt-4 text-[11px] text-muted-foreground">
-          Native mouse, keyboard, screen, clipboard, terminal, PowerShell/shell, filesystem and
-          application control are only performed when the CAERA Native Companion is installed and
-          connected. OCADE will never pretend an OS action happened.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function PlanRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/40 px-2.5 py-1.5">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="truncate font-medium text-foreground">{value}</span>
-    </div>
-  );
-}
-
 /* ---------- Chat Surface (open conversation) ---------- */
 
 function ChatSurface(props: {
@@ -1116,8 +1000,6 @@ function ChatSurface(props: {
   model: string;
   setModel: (m: string) => void;
   chatsMode: "browser_only" | "pc_vault" | "private_sync";
-  mode: Mode;
-  setMode: (m: Mode) => void;
   permission: PermissionMode;
   setPermission: (p: PermissionMode) => void;
   onRefreshList: () => Promise<void>;
@@ -1136,8 +1018,6 @@ function ChatSurface(props: {
     model,
     setModel,
     chatsMode,
-    mode,
-    setMode,
     permission,
     setPermission,
     onRefreshList,
@@ -1197,6 +1077,97 @@ function ChatSurface(props: {
   const sourceIndexRef = useRef<IndexedSource[]>([]);
   const [citations, setCitations] = useState<Citation[]>([]);
   const [citationError, setCitationError] = useState<string | null>(null);
+  /**
+   * What retrieval did to the attachments on the last request, in one sentence.
+   *
+   * Shown rather than logged. The whole point of searching a document instead
+   * of reading it is that OCADE answers from part of the file, and a user who
+   * is not told that will read the answer as covering the whole of it.
+   */
+  const [retrievalNotice, setRetrievalNotice] = useState<string | null>(null);
+  /**
+   * Provenance receipts, keyed by the assistant message they describe.
+   *
+   * Held in component state rather than persisted: a receipt describes one
+   * generation on one device, and restoring it from a database on a different
+   * machine would present a claim nothing here measured.
+   */
+  const [receipts, setReceipts] = useState<Record<string, AnswerReceipt>>({});
+
+  /**
+   * Sealed mode for this conversation.
+   *
+   * The demo got this first because it was the easier surface to prove it on.
+   * This is the one where it matters: real documents, real privacy modes, and
+   * a user who may be pasting something they genuinely cannot afford to have
+   * leave the machine.
+   *
+   * Off by default and per conversation, not global — sealing every chat would
+   * break the ones that legitimately need the network, and a guarantee people
+   * have to keep switching off is a guarantee they stop trusting.
+   */
+  const [sealed, setSealed] = useState(false);
+
+  /**
+   * Hold the seal for as long as the control says it is held.
+   *
+   * The send path below installs its own strict seal around `generate()`. That
+   * covers the moment an answer is produced and nothing else, which is far less
+   * than "Sealed: nothing may leave this device" claims. Overlapping seals
+   * intersect, so this conversation-long barrier does not loosen the send-time
+   * one — it only closes the gap between sends.
+   *
+   * See `edge/seal-policy.ts` for why assets and loopback are the two
+   * exceptions, and why allowing them is what makes a persistent seal possible
+   * at all.
+   */
+  useEffect(
+    () =>
+      installConversationSeal(
+        sealed,
+        (allow) => new Seal(undefined, allow),
+        typeof window === "undefined" ? undefined : window.location.origin,
+      ),
+    [sealed],
+  );
+
+  /**
+   * The tamper-evident record of this conversation, and its branch history.
+   *
+   * Refs because they are appended from inside async callbacks; `ledgerVersion`
+   * is what tells the integrity panel to re-verify, since a ref change alone
+   * does not re-render and a stale "intact" is the worst thing to be
+   * confidently wrong about.
+   */
+  const ledgerRef = useRef<LedgerEntry[]>([]);
+  const treeRef = useRef<Tree>(emptyTree());
+  const [ledgerVersion, setLedgerVersion] = useState(0);
+
+  /**
+   * What this conversation has actually cost.
+   *
+   * More meaningful here than in the demo, because this surface has a REAL
+   * allowance to compare against. "You have used 0 of your 28 cloud requests,
+   * and about 0.02p of electricity" is a fact the user can check against their
+   * own bill and their own usage page — which is the honest form of the claim
+   * the whole product rests on.
+   */
+  const [costs, setCosts] = useState<RunCost[]>([]);
+
+  /*
+   * The chain describes ONE conversation. Switching to another must not leave
+   * the panel verifying the previous one and reporting it intact — the same
+   * defect the demo had across three separate reset paths.
+   */
+  useEffect(() => {
+    ledgerRef.current = [];
+    treeRef.current = emptyTree();
+    setLedgerVersion((v) => v + 1);
+    setReceipts({});
+    // The tally describes THIS conversation's runs. Carrying it across would
+    // attribute one conversation's electricity to another.
+    setCosts([]);
+  }, [conversation.id]);
   // Voice: shared preferences drive captions, wake phrase, device and output.
   const { prefs: voicePrefs, emergencyMute } = useVoicePrefs();
   const [caption, setCaption] = useState("");
@@ -1208,6 +1179,45 @@ function ChatSurface(props: {
   const [visualAnswer, setVisualAnswer] = useState<string | null>(null);
   const [projectFiles, setProjectFiles] = useState<ProjectFile[]>([]);
   const [projectFileError, setProjectFileError] = useState<string | null>(null);
+  /**
+   * Sources the user has excluded from the NEXT question.
+   *
+   * Per-question rather than persistent: removing a project file here means
+   * "not for this one", not "detach it from the project". Silently unfiling a
+   * document because someone skipped it once would be a destructive action
+   * behind a dismissal control.
+   */
+  const [excludedContext, setExcludedContext] = useState<Set<string>>(() => new Set());
+
+  /** What the tray shows: everything that will be read, minus what was removed. */
+  const contextEntries = useMemo(
+    () =>
+      buildContextTray({
+        attachments: attachments.map((a) => ({
+          name: a.name,
+          extractedText: a.extractedText,
+          unreadableReason: a.extract?.status !== "ok" ? a.extract?.reason : undefined,
+        })),
+        projectFiles: projectFiles.map((f) => ({
+          id: f.id,
+          name: f.folder ? `${f.folder}/${f.name}` : f.name,
+          text: f.text,
+        })),
+      }).filter((entry) => !excludedContext.has(entry.id)),
+    [attachments, projectFiles, excludedContext],
+  );
+
+  const removeContextEntry = useCallback((entry: ContextEntry) => {
+    // An attachment is detached outright — it belongs to this unsent message
+    // and nothing else refers to it. A project file is only excluded, because
+    // it belongs to the project and must survive the question.
+    if (entry.origin === "attachment") {
+      const index = Number(entry.id.split(":")[1]);
+      setAttachments((current) => current.filter((_, i) => i !== index));
+      return;
+    }
+    setExcludedContext((current) => new Set(current).add(entry.id));
+  }, []);
   const [projectDetails, setProjectDetails] = useState<OcadeProject | null>(null);
   const [projectContextError, setProjectContextError] = useState<string | null>(null);
   const [projectContextLoading, setProjectContextLoading] = useState(false);
@@ -1252,6 +1262,15 @@ function ChatSurface(props: {
       live = false;
     };
   }, [conversation.project_id]);
+
+  /*
+   * The retrieval sentence describes the last request in THIS conversation.
+   * Carrying it across a conversation switch would attribute one chat's
+   * document search to another chat's answer.
+   */
+  useEffect(() => {
+    setRetrievalNotice(null);
+  }, [conversation.id]);
 
   useEffect(() => {
     if (streaming) return;
@@ -1387,6 +1406,35 @@ function ChatSurface(props: {
       return;
     }
 
+    /*
+     * WHAT IS ABOUT TO BE EXPOSED, CHECKED BEFORE IT CAN BE.
+     *
+     * The rule here is stricter than the demo's, and deliberately so. The demo
+     * skips the scan whenever the conversation is sealed, because sealed means
+     * nothing can leave. That reasoning does not transfer: a signed-in message
+     * is also PERSISTED, and on `private_sync` it is persisted to a server. A
+     * credential pasted into a synced conversation ends up in a database even
+     * if the answer never left the machine.
+     *
+     * So the trigger is exposure, not transmission: scan whenever the message
+     * will be synced or may reach cloud. A Browser-Only conversation answered
+     * on-device genuinely cannot expose it, and warning there would train the
+     * user to dismiss the warning in the one case where it is harmless — which
+     * is how it stops working in the case where it is not.
+     */
+    const willBeExposed = chatsMode === "private_sync" || engineTier === "cloud" || !sealed;
+    if (willBeExposed) {
+      const findings = preflight(text);
+      const critical = findings.filter((f) => f.severity === "critical");
+      if (critical.length > 0) {
+        toast.error(summarisePreflight(findings), {
+          description: `${critical[0].explain} Remove it, or seal this conversation, before sending.`,
+          duration: 12_000,
+        });
+        return;
+      }
+    }
+
     // Local-first routing (P4c). On-device inference is unlimited and keeps the
     // prompt on the machine — no cloud approval needed. "Automatic" prefers
     // local when a suitable engine is ready, else falls through to cloud.
@@ -1409,39 +1457,96 @@ function ChatSurface(props: {
       : null;
     const localPick = localRoute?.ok ? localRoute.model : null;
 
-    if (engineTier === "local" && (!localReady || !localPick)) {
+    /*
+     * Is there an image-capable engine on this device, independent of whether
+     * THIS message needs one? `resolveEngine` wants the capability, not the
+     * outcome for one request, so it can tell "no engine at all" apart from
+     * "an engine that cannot read pictures" and refuse with the right words.
+     */
+    const localVisionRoute = localReady
+      ? routeTask("vision", localEngine.models, localPerfLedger, devicePolicy.policy)
+      : null;
+
+    /*
+     * ONE AUTHORITY DECIDES WHETHER THIS REQUEST MAY LEAVE THE DEVICE.
+     *
+     * This block used to make that decision itself, in three separate `if`s,
+     * including its own copy of the privacy rule:
+     *
+     *     if (chatsMode !== "private_sync" && !allowCloud) { askApproval(); }
+     *
+     * That is the same rule `resolveEngine` already owns, written a second
+     * time. Both were correct, and the failure mode was drift: relax one of
+     * them — a new privacy mode, an added exemption, a flipped default — and a
+     * Browser-Only conversation starts reaching a server while the authority
+     * still says it must not. Nothing would fail; the product would just
+     * quietly stop keeping its central promise.
+     *
+     * The order below is the policy, and it now exists in exactly one place:
+     * privacy → local → cloud → a named refusal.
+     */
+    const decision = resolveEngine({
+      preference:
+        engineTier === "local" ? "local_only" : engineTier === "cloud" ? "cloud_only" : "auto",
+      privacyMode: chatsMode,
+      deviceMode: brain.mode,
+      localAvailable: Boolean(localReady && localPick),
+      localLabel: localPick ? "OCADE Local" : null,
+      localVision: Boolean(localVisionRoute?.ok),
+      visionRequired: hasImage,
       /*
-       * Ask the Brain router why, rather than guessing.
-       *
-       * It knows this device's mode and every engine's own reason for being
-       * unavailable, so the message names the actual obstacle and the actions
-       * that clear it — "Install OCADE", "Pair a computer", "Start the engine"
-       * — instead of the old blanket sentence that told a user to switch to
-       * cloud even when cloud was the thing they had deliberately turned off.
+       * The SERVER is the authority on these three, and it refuses with a real
+       * message and a reset time when they fail — see the allowance handling
+       * further down. The client genuinely does not know them at send time, so
+       * it passes the permissive value rather than inventing a number and
+       * refusing on a guess. Privacy, which the client DOES know, is decided
+       * here and is never delegated.
        */
-      const outcome = await brain.route({ visionRequired: hasImage });
-      if (!outcome.ok) {
-        const actions = outcome.remedies.map(brain.remedyLabel).join(" · ");
-        toast.error(outcome.reason, actions ? { description: actions } : undefined);
-      } else {
-        toast.error(
-          hasImage
-            ? "Image understanding needs an image-reading engine on this device."
-            : "No suitable on-device engine is installed.",
-        );
+      cloudConfigured: true,
+      cloudEntitled: true,
+      cloudRemaining: 1,
+      cloudResetsAt: null,
+      cloudApprovedForConversation: allowCloud,
+      online,
+    });
+
+    if (!decision.ok) {
+      if (decision.needsCloudApproval) {
+        setCloudApprovalNeeded({ text, attachments: atts });
+        return;
       }
-      return;
-    }
-    if ((engineTier === "local" || engineTier === "auto") && localReady && localPick) {
-      await sendViaLocal(text, atts, hasImage);
+      /*
+       * When the obstacle is the local engine, ask the Brain router for the
+       * detail. It knows this device's mode and each adapter's own reason, so
+       * the message names the real obstacle and the actions that clear it —
+       * "Install OCADE", "Pair a computer", "Start the engine" — rather than a
+       * blanket sentence telling the user to switch to cloud when cloud is
+       * exactly what they turned off.
+       */
+      if (
+        decision.code === "local_only_and_no_local_engine" ||
+        decision.code === "vision_unavailable_locally"
+      ) {
+        const outcome = await brain.route({ visionRequired: hasImage });
+        if (!outcome.ok) {
+          const actions = outcome.remedies.map(brain.remedyLabel).join(" · ");
+          toast.error(outcome.reason, actions ? { description: actions } : undefined);
+          return;
+        }
+      }
+      const actions = decision.remedies.map(brain.remedyLabel).join(" · ");
+      toast.error(
+        decision.reason ?? "OCADE cannot answer this here.",
+        actions ? { description: actions } : undefined,
+      );
       return;
     }
 
-    if (chatsMode !== "private_sync" && !allowCloud) {
-      setCloudApprovalNeeded({ text, attachments: atts });
+    if (decision.target?.kind === "local") {
+      await sendViaLocal(text, atts, hasImage);
       return;
     }
-    const requestContext = buildRequestContext(atts, chatsMode !== "private_sync");
+    const requestContext = buildRequestContext(atts, chatsMode !== "private_sync", text);
     if (!requestContext.ok) {
       toast.error(requestContext.reason);
       return;
@@ -1749,6 +1854,34 @@ function ChatSurface(props: {
    * permission to cross to OCADE Cloud (never silently). Cancellation is
    * honoured at any step and the partial answer is preserved.
    */
+  /**
+   * Turn the retrieval index into per-document usage for a receipt.
+   *
+   * Reports the sections ACTUALLY put in front of the engine against the
+   * sections the document was split into — the difference between "OCADE read
+   * your file" and "OCADE searched your file and used four sections of it".
+   * Both are legitimate; only one of them is what happened, and a user reads
+   * the answer differently depending on which.
+   *
+   * An unreadable source is listed with zero sections rather than omitted: it
+   * is visibly attached, so its absence here would read as inclusion.
+   */
+  async function sourceUsesFor(sources: IndexedSource[]): Promise<SourceUse[]> {
+    return Promise.all(
+      sources.map(async (source) => {
+        const text = source.text ?? "";
+        const passagesTotal = source.readable ? splitIntoPassages(text).length : 0;
+        return {
+          name: source.name,
+          sha256: await sha256OfText(text),
+          // The index holds exactly what was sent, so everything in it was used.
+          passagesUsed: passagesTotal,
+          passagesTotal,
+        };
+      }),
+    );
+  }
+
   async function sendViaLocal(text: string, atts: Attachment[], hasImage: boolean) {
     const plan = buildLocalFirstPlan({
       desired: hasImage ? "vision" : "general",
@@ -1772,7 +1905,7 @@ function ChatSurface(props: {
       toast.error("No on-device engine can serve this request.");
       return;
     }
-    const requestContext = buildRequestContext(atts, true);
+    const requestContext = buildRequestContext(atts, true, text);
     if (!requestContext.ok) {
       toast.error(requestContext.reason);
       return;
@@ -1878,9 +2011,24 @@ function ChatSurface(props: {
           );
         }
         if (contextPlan.exceedsCeiling) {
+          /*
+           * Names the attachments, rather than saying "an attachment".
+           *
+           * `planContextWindow` already owns context sizing for this surface,
+           * so this deliberately does NOT introduce a second budget system —
+           * two implementations of "what fits" would drift, and the one that
+           * drifted would be silently wrong about what the engine actually
+           * saw. What it adds is the part that was missing: a user who
+           * attached a contract and is told only that "the oldest part" was
+           * dropped has no idea whether their contract was in it.
+           */
+          const named = atts.map((a) => a.name).filter(Boolean);
           toast.warning("This conversation is longer than OCADE can hold on this device at once.", {
             description:
-              "The oldest part will not be visible to the engine. Start a new chat, or remove an attachment, to keep the whole thing in view.",
+              named.length > 0
+                ? `The oldest part will not be visible to the engine, and that may include ${named.join(", ")}. Start a new chat, or remove an attachment, to keep the whole thing in view.`
+                : "The oldest part will not be visible to the engine. Start a new chat to keep the whole thing in view.",
+            duration: 9000,
           });
         }
 
@@ -1894,6 +2042,24 @@ function ChatSurface(props: {
          */
         const routeStarted = Date.now();
         let firstTokenMs: number | null = null;
+        /*
+         * Open the provenance window around THIS generation.
+         *
+         * It reads the browser's own resource-timing log, so it records every
+         * request the page made while answering — whatever issued it. On the
+         * on-device branch that should be nothing, and this is what turns that
+         * from an assurance into a measurement the user can see.
+         */
+        const witness = new NetworkWitness();
+        witness.start();
+        /*
+         * The seal goes up around the generation itself, not around the whole
+         * send. Narrower is correct: the persistence calls after an answer are
+         * the user's own storage, and sealing those would break saving the
+         * conversation they just asked to keep.
+         */
+        const seal = sealed ? new Seal() : null;
+        seal?.seal();
         /*
          * Chat goes through the shared reasoning service (W1) rather than
          * calling the engine directly, so local-first, the deterministic-work
@@ -1923,6 +2089,19 @@ function ChatSurface(props: {
             },
           },
         );
+        /*
+         * Unsealed FIRST, before anything else runs. A thrown persistence call
+         * with the seal still up would leave the page offline for the rest of
+         * the session, which is a worse bug than whatever caused it and would
+         * look like the seal itself was broken.
+         */
+        const sealReport = seal?.unseal() ?? null;
+        const observation = witness.stop();
+        if (sealReport && sealReport.attempts.length > 0) {
+          // Named, not swallowed. Something tried to leave while the user had
+          // asked for silence, and they are entitled to know what.
+          toast.warning(describeSeal(sealReport));
+        }
         const result: { ok: boolean; reason?: string } = reasoned.ok
           ? { ok: true }
           : { ok: false, reason: reasoned.failure === "cancelled" ? "cancelled" : reasoned.reason };
@@ -1998,6 +2177,83 @@ function ChatSurface(props: {
           const rows = await refreshAfterLocal();
           const assistant = [...rows].reverse().find((message) => message.role === "assistant");
           recordCitations(acc, assistant?.id);
+
+          /*
+           * The receipt for this answer.
+           *
+           * Richer than the demo's, because this chat HAS documents: each
+           * source is listed with its fingerprint and how much of it was
+           * actually used, so "did it read my file?" is answered with a count
+           * rather than an impression. `leftDevice` still comes only from the
+           * measurement — never from the fact that this is the local branch.
+           */
+          if (assistant?.id) {
+            const receipt = await buildReceipt({
+              messageId: assistant.id,
+              producedOn: "this_device",
+              engineLabel: label,
+              prompt: text,
+              answer: acc,
+              sources: await sourceUsesFor(sourceIndexRef.current),
+              observation,
+              blindSpots: networkLimits(),
+              startedAt: new Date(routeStarted),
+              durationMs: Date.now() - routeStarted,
+            });
+            setReceipts((current) => ({ ...current, [assistant.id]: receipt }));
+
+            /*
+             * Cost derived from the RECEIPT, not from the branch this code sits
+             * in. This is the on-device path, so it is tempting to record
+             * "local" unconditionally — but then a cost line saying "free, no
+             * allowance used" could sit directly beneath a receipt reporting
+             * that data left. Reading the measurement keeps them consistent by
+             * construction rather than by discipline.
+             */
+            setCosts((current) => [
+              ...current,
+              measureRun({
+                where: receipt.leftDevice ? "cloud" : "local",
+                durationMs: Date.now() - routeStarted,
+              }),
+            ]);
+          }
+
+          /*
+           * The question AND the answer, into both records.
+           *
+           * The question goes in first because a branch point is identified by
+           * what was asked before it — a tree of unlabelled answers cannot be
+           * navigated, and a chain missing the questions would verify only
+           * half the conversation.
+           */
+          const askedAt = new Date(routeStarted);
+          ledgerRef.current = [
+            ...ledgerRef.current,
+            await appendLedger(ledgerRef.current, { role: "user", content: text, at: askedAt }),
+          ];
+          ledgerRef.current = [
+            ...ledgerRef.current,
+            await appendLedger(ledgerRef.current, {
+              role: "assistant",
+              content: acc,
+              at: new Date(),
+            }),
+          ];
+          treeRef.current = recordTurn(treeRef.current, {
+            id: optimistic.id,
+            role: "user",
+            content: text,
+            at: askedAt,
+          }).tree;
+          treeRef.current = recordTurn(treeRef.current, {
+            id: assistant?.id ?? `a-${Date.now()}`,
+            role: "assistant",
+            content: acc,
+            at: new Date(),
+          }).tree;
+          setLedgerVersion((v) => v + 1);
+
           clearDraft(conversation.id);
           return;
         }
@@ -2057,28 +2313,51 @@ function ChatSurface(props: {
   /**
    * Assemble on-device-extracted document text into a single bounded context
    * block. Only extracted TEXT travels — never the raw file.
+   *
+   * `question` is what makes this a SEARCH rather than a dump: long attachments
+   * are cut into sections, ranked against the question, and only the sections
+   * that matched are sent. The user is told which of those two things happened
+   * — see `setRetrievalNotice` below — because "OCADE read your file" and
+   * "OCADE searched your file and read four sections of it" are different
+   * claims and only one of them is true at a time.
    */
-  function buildDocContext(atts: Attachment[]): string | undefined {
-    const projectAttachments: Attachment[] = projectFiles.map((file) => ({
-      kind: "file",
-      name: file.folder ? `${file.folder}/${file.name}` : file.name,
-      mime: file.mime,
-      sizeBytes: file.sizeBytes,
-      extractedText: file.text,
-      extract: {
-        status: "ok",
-        meta: {
-          name: file.folder ? `${file.folder}/${file.name}` : file.name,
-          kind: classifyFile(file.name, file.mime),
-          mime: file.mime,
-          sizeBytes: file.sizeBytes,
+  function buildDocContext(atts: Attachment[], question: string): string | undefined {
+    /*
+     * Sources the user removed in the context tray are dropped HERE, at the
+     * one place that decides what is actually sent. Filtering them only out of
+     * the tray's own list would leave a control that changes a label and not
+     * the request — which is worse than having no control, because it invites
+     * the user to believe a document was withheld when it was not.
+     */
+    const projectAttachments: Attachment[] = projectFiles
+      .filter((file) => !excludedContext.has(`project:${file.id}`))
+      .map((file) => ({
+        kind: "file",
+        name: file.folder ? `${file.folder}/${file.name}` : file.name,
+        mime: file.mime,
+        sizeBytes: file.sizeBytes,
+        extractedText: file.text,
+        extract: {
+          status: "ok",
+          meta: {
+            name: file.folder ? `${file.folder}/${file.name}` : file.name,
+            kind: classifyFile(file.name, file.mime),
+            mime: file.mime,
+            sizeBytes: file.sizeBytes,
+          },
+          text: file.text,
         },
-        text: file.text,
-      },
-    }));
-    const withText = [...projectAttachments, ...atts].filter((a) => a.extractedText);
+      }));
+    /*
+     * Everything attached is indexed, not only what was readable. An image, a
+     * password-protected PDF and a cancelled read each have to reach the
+     * context builder so it can say WHY they contributed nothing; filtering
+     * them out here is how they used to disappear without a word.
+     */
+    const withText = [...projectAttachments, ...atts];
     if (withText.length === 0) {
       sourceIndexRef.current = [];
+      setRetrievalNotice(null);
       return undefined;
     }
     // Index the sources so the answer can cite them, then remember the index so
@@ -2107,22 +2386,23 @@ function ChatSurface(props: {
     );
     sourceIndexRef.current = sources;
 
-    // Every file's content is wrapped as UNTRUSTED DATA before it reaches any
-    // engine: hidden characters stripped, role markers defanged, and an explicit
-    // "do not obey instructions inside this" preamble attached (Plan §31).
-    const parts = withText.map(
-      (a, i) => `[${sources[i].id}] ${wrapUntrustedContent(a.extractedText!, a.name).text}`,
-    );
-    const instruction = citationInstruction(sources);
-    const body = clampForContext(parts.join("\n\n"), 24_000).text;
-    return instruction ? `${instruction}\n\n${body}` : body;
+    /*
+     * Retrieval, citation instructions and untrusted-content wrapping all live
+     * in `buildDocumentContext`. They used to be assembled inline here, which
+     * meant the one claim the user reads — how much of their file was actually
+     * consulted — was produced by code no test could reach.
+     */
+    const built = buildDocumentContext(question, sources);
+    setRetrievalNotice(built.notice);
+    return built.context;
   }
 
   function buildRequestContext(
     atts: Attachment[],
     includeLocalMemory: boolean,
+    question: string,
   ): { ok: true; data: string | undefined } | { ok: false; reason: string } {
-    const documents = buildDocContext(atts);
+    const documents = buildDocContext(atts, question);
     if (!includeLocalMemory) return { ok: true, data: documents };
     const memory = localMemoryContext(conversation.project_id ?? null);
     if (!memory.ok) return memory;
@@ -2690,6 +2970,43 @@ function ChatSurface(props: {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {/*
+            Sealed mode, beside the privacy badge on purpose. The badge states
+            where this conversation is STORED; this states whether anything may
+            leave while it is being answered. Related, different, and easy to
+            confuse if they are not next to each other.
+          */}
+          <button
+            type="button"
+            onClick={() => {
+              setSealed((v) => !v);
+              toast.info(
+                sealed
+                  ? "Conversation unsealed. OCADE can reach the network again."
+                  : "Conversation sealed. Nothing can leave this device until you unseal it.",
+                {
+                  description: sealed
+                    ? undefined
+                    : "The on-device engine still works. Downloading one does not — unseal first if OCADE has not been set up here.",
+                },
+              );
+            }}
+            aria-pressed={sealed}
+            title={sealed ? "Sealed: nothing may leave this device" : "Seal this conversation"}
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[11.5px] transition",
+              sealed
+                ? "border-[color:var(--state-success)]/50 bg-[color:var(--state-success)]/10 text-[color:var(--state-success)]"
+                : "border-border/60 text-muted-foreground hover:bg-accent",
+            )}
+          >
+            {sealed ? (
+              <LockIcon className="h-3 w-3" aria-hidden />
+            ) : (
+              <UnlockIcon className="h-3 w-3" aria-hidden />
+            )}
+            {sealed ? "Sealed" : "Seal"}
+          </button>
           <PrivacyBadge mode={chatsMode === "private_sync" ? "private_sync" : "device_only"} />
           <EngineBadge
             status={{
@@ -2751,6 +3068,19 @@ function ChatSurface(props: {
                 showTimestamps={chatPrefs.showTimestamps}
                 renderMarkdown={chatPrefs.renderMarkdown}
                 density={chatPrefs.density}
+                /*
+                 * The provenance receipt, under the answer it describes. Only
+                 * present for answers this session actually generated — a
+                 * message loaded from history was measured on some other run,
+                 * possibly on another machine, and inventing a receipt for it
+                 * would be exactly the unfounded claim the receipt exists to
+                 * replace.
+                 */
+                renderFooter={(message) =>
+                  chatPrefs.showDiagnostics && receipts[message.id] ? (
+                    <AnswerReceiptPanel receipt={receipts[message.id]} className="pl-1" />
+                  ) : null
+                }
                 actions={{
                   onSpeak: (m) => readAloud(m.content),
                   onEdit: (m) => {
@@ -2799,6 +3129,49 @@ function ChatSurface(props: {
                     Create visual response
                   </button>
                 )
+              ) : null}
+              {/*
+                What retrieval actually did, shown next to the answer it shaped.
+                Rendered while streaming as well as after it: a user watching an
+                answer form from four sections of a 200-page report needs to
+                know that before they read it, not once they have finished.
+              */}
+              {retrievalNotice ? (
+                <div
+                  role="status"
+                  className="mt-3 flex items-start gap-2 rounded-lg border border-border/60 bg-secondary/25 px-3 py-2 text-[12px] text-muted-foreground"
+                >
+                  <Search className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                  <span>{retrievalNotice}</span>
+                </div>
+              ) : null}
+
+              {/*
+                Whether this conversation is the one that happened.
+
+                Rendered only once there is something to verify — an integrity
+                panel on an empty chat is a claim about nothing, and it would
+                train people to skip past it before it ever mattered.
+              */}
+              {chatPrefs.showDiagnostics && ledgerRef.current.length > 0 ? (
+                <ConversationIntegrity
+                  key={ledgerVersion}
+                  chain={ledgerRef.current}
+                  tree={treeRef.current}
+                  messages={messages.map((m) => m.content)}
+                  className="mt-3"
+                />
+              ) : null}
+
+              {/*
+                What this conversation cost, against the allowance the user
+                actually has. Hidden until there is something real to report —
+                a running total of zero is noise.
+              */}
+              {costs.length > 0 ? (
+                <p className="mt-2 px-1 text-[11px] leading-relaxed text-muted-foreground">
+                  {describeTotals(totalCost(costs), CLOUD_ALLOWANCE)}
+                </p>
               ) : null}
               {!streaming && citationError ? (
                 <div className="mt-3 rounded-lg border border-[color:var(--warning)]/40 bg-[color:var(--warning)]/5 p-3 text-xs text-muted-foreground">
@@ -2856,6 +3229,29 @@ function ChatSurface(props: {
       {/* Composer pinned to bottom */}
       <div className="border-t border-border/60 bg-background/60 px-5 py-3 backdrop-blur">
         <div className="mx-auto w-full max-w-2xl">
+          {/*
+            What will be read, ABOVE the composer — the only place the
+            disclosure is still actionable. A note under the reply explains
+            what already happened; this lets the user change it first.
+          */}
+          <ContextTray entries={contextEntries} onRemove={removeContextEntry} className="mb-2" />
+          {/*
+            Removing a source must be reversible. Without this the file simply
+            vanishes from the tray with no way back, and the user is left
+            wondering why OCADE has stopped knowing about a document that is
+            still plainly in the project.
+          */}
+          {excludedContext.size > 0 ? (
+            <button
+              type="button"
+              onClick={() => setExcludedContext(new Set())}
+              className="mb-2 text-[11.5px] text-muted-foreground underline underline-offset-4 transition hover:text-foreground"
+            >
+              {excludedContext.size} project {excludedContext.size === 1 ? "file is" : "files are"}{" "}
+              being left out — use everything again
+            </button>
+          ) : null}
+
           {/* Microphone privacy indicator + live captions (Plan §22). */}
           {listening || speaking ? (
             <div className="mb-1.5 flex items-start gap-2 rounded-md border border-border/60 bg-secondary/40 px-2.5 py-1.5 text-[12px]">
@@ -2948,6 +3344,7 @@ function ChatSurface(props: {
             <span className="text-muted-foreground">Voice</span>
             {(["female", "male"] as const).map((g) => (
               <button
+                aria-pressed={voiceGender === g}
                 key={g}
                 type="button"
                 onClick={() => chooseVoice(g)}
@@ -2980,8 +3377,6 @@ function ChatSurface(props: {
             onTypingStarted={warmLocalEngine}
             onStop={stop}
             streaming={streaming}
-            mode={mode}
-            setMode={setMode}
             permission={permission}
             setPermission={setPermission}
             model={model}
@@ -3070,8 +3465,6 @@ function Composer(props: {
   onStop?: () => void;
   /** Something is in flight. With `onStop`, shows Stop; without it, disables Send. */
   streaming: boolean;
-  mode: Mode;
-  setMode: (m: Mode) => void;
   permission: PermissionMode;
   setPermission: (p: PermissionMode) => void;
   model: string;
@@ -3100,8 +3493,6 @@ function Composer(props: {
     onSubmit,
     onStop,
     streaming,
-    mode,
-    setMode,
     permission,
     setPermission,
     model,
@@ -3203,7 +3594,9 @@ function Composer(props: {
           });
         }
         if (result.status === "ok" && result.text) {
-          extractedText = clampForContext(result.text).text;
+          // Retain the whole document so retrieval can search all of it. The
+          // send budget is applied later, to the passages retrieval chose.
+          extractedText = clampForContext(result.text, DOCUMENT_RETAIN_MAX_CHARS).text;
           // File contents are untrusted input: warn immediately if the document
           // tries to issue instructions (Plan §31). It is wrapped as data on send.
           const scan = scanUntrustedContent(extractedText);
@@ -3370,11 +3763,9 @@ function Composer(props: {
         }}
         rows={2}
         placeholder={
-          mode === "work"
-            ? "Describe the task for OCADE Work…"
-            : sendKey === "mod_enter"
-              ? "Message OCADE…  (Ctrl+Enter to send, Enter for newline)"
-              : "Message OCADE…  (Enter to send, Shift+Enter for newline)"
+          sendKey === "mod_enter"
+            ? "Ask OCADE or describe an outcome…  (Ctrl+Enter to send, Enter for newline)"
+            : "Ask OCADE or describe an outcome…  (Enter to send, Shift+Enter for newline)"
         }
         className="min-h-[52px] resize-none border-0 bg-transparent px-3 py-2.5 text-sm shadow-none focus-visible:ring-0"
         disabled={streaming}
@@ -3467,11 +3858,6 @@ function Composer(props: {
             {listening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
           </ComposerIcon>
         ) : null}
-
-        <div className="mx-1 h-4 w-px bg-border/60" />
-
-        {/* Chat / Work switch */}
-        <ModeSwitch mode={mode} setMode={setMode} />
 
         {/* Project assignment is managed on the live Projects surface. */}
         <Link
@@ -3573,35 +3959,6 @@ function Composer(props: {
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function ModeSwitch({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void }) {
-  return (
-    <div className="inline-flex overflow-hidden rounded-md border border-border/60 text-[11px]">
-      <button
-        onClick={() => setMode("chat")}
-        className={cn(
-          "inline-flex h-7 items-center gap-1 px-2",
-          mode === "chat"
-            ? "bg-secondary text-foreground"
-            : "bg-background/40 text-muted-foreground hover:text-foreground",
-        )}
-      >
-        <MessagesSquare className="h-3 w-3" /> Chat
-      </button>
-      <button
-        onClick={() => setMode("work")}
-        className={cn(
-          "inline-flex h-7 items-center gap-1 border-l border-border/60 px-2",
-          mode === "work"
-            ? "bg-secondary text-foreground"
-            : "bg-background/40 text-muted-foreground hover:text-foreground",
-        )}
-      >
-        <Bot className="h-3 w-3" /> OCADE Work
-      </button>
     </div>
   );
 }

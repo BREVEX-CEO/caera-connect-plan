@@ -40,9 +40,10 @@ import {
   describeScope,
   type TaskScope,
 } from "@/lib/skills/task-scope";
-import { WorkSessionPanel, seedHealth, applyOutcome } from "@/components/ocade/WorkSessionPanel";
+import { WorkSessionPanel } from "@/components/ocade/WorkSessionPanel";
+import { seedHealth, applyOutcome } from "@/lib/skills/adapter-health-map";
 import type { ResumableJob } from "@/lib/skills/adapter-health";
-import { useShell } from "@/components/shell/shell-context";
+import { useShell } from "@/components/shell/use-shell";
 import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
 import {
   computerUseChannelDecision,

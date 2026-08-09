@@ -7,20 +7,29 @@ name: Platform harnesses
 #
 # WHY THIS IS A SEPARATE WORKFLOW, NOT PART OF ci.yml
 #
-# These jobs have never been executed. They were written against the real
-# project layout (capacitor.config.json webDir=mobile/www, android/gradlew,
-# ios/App/App.xcodeproj, native/companion) but a first run may still need
-# adjustment. Wiring unvalidated jobs into the push-triggered CI would turn the
-# main pipeline red on config rather than on code, and a pipeline people learn
-# to ignore is worse than no pipeline.
-#
-# So: manual dispatch, plus a weekly run once someone has confirmed a green
-# first execution. Promote whichever jobs pass into ci.yml at that point.
-#
-# STATUS: PREPARED, NOT YET VERIFIED. Do not cite this workflow as evidence
-# until an actual run is green.
+# These are real required platform gates. They run on relevant changes, remain
+# manually dispatchable, and also run weekly to expose SDK/toolchain drift.
 
 on:
+  pull_request:
+    paths:
+      - "android/**"
+      - "ios/**"
+      - "mobile/**"
+      - "native/**"
+      - "scripts/build-*-sidecar.mjs"
+      - "capacitor.config.*"
+      - ".github/workflows/platforms.yml"
+  push:
+    branches: [main, feat/ocade-implementation]
+    paths:
+      - "android/**"
+      - "ios/**"
+      - "mobile/**"
+      - "native/**"
+      - "scripts/build-*-sidecar.mjs"
+      - "capacitor.config.*"
+      - ".github/workflows/platforms.yml"
   workflow_dispatch:
     inputs:
       run_android:
@@ -47,7 +56,7 @@ concurrency:
 jobs:
   android:
     name: Android (build + emulator instrumented tests)
-    if: ${{ github.event_name == 'schedule' || inputs.run_android }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_android }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -107,7 +116,7 @@ jobs:
 
   ios:
     name: iOS (simulator build)
-    if: ${{ github.event_name == 'schedule' || inputs.run_ios }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_ios }}
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -140,7 +149,7 @@ jobs:
 
   desktop-windows:
     name: Windows companion (build + Rust tests)
-    if: ${{ github.event_name == 'schedule' || inputs.run_desktop }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_desktop }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -156,8 +165,37 @@ jobs:
         with:
           targets: x86_64-pc-windows-msvc
 
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Tesseract OCR
+        run: choco install tesseract --yes --no-progress
+
       - name: Install dependencies
         run: npm ci
+
+      - name: Install pinned Python control stack
+        shell: pwsh
+        run: |
+          python -m venv .venv
+          .\.venv\Scripts\python.exe -m pip install --upgrade pip
+          .\.venv\Scripts\python.exe -m pip install -r native/python-host/requirements.lock.txt
+          .\.venv\Scripts\python.exe -m pip check
+
+      - name: Verify Python host and acquire checksummed hand model
+        run: |
+          npm run python:models
+          npm run python:lint
+          npm run python:typecheck
+          npm run python:test
+
+      - name: Build both bounded native sidecars
+        run: |
+          npm run browser:sidecar-build
+          npm run python:sidecar-build
 
       - name: Build web app
         run: npm run build
@@ -174,14 +212,21 @@ jobs:
       #
       # Unsigned: producing a signed installer needs a certificate, which is a
       # deliberate human step and belongs in release.yml.
-      - name: Build the companion (unsigned)
+      - name: Test the companion against both real sidecars
         working-directory: native/companion/tauri
-        run: cargo build --release
+        shell: pwsh
+        run: |
+          $env:OCADE_REQUIRE_BROWSER_SIDECAR_TEST = "1"
+          $env:OCADE_REQUIRE_PYTHON_SIDECAR_TEST = "1"
+          cargo test --all-targets
+
+      - name: Build the companion installer (unsigned)
+        run: npm run desktop:bundle:windows
 
       - name: Upload companion binary
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ocade-companion-windows-unsigned
-          path: native/companion/tauri/target/release/*.exe
-          if-no-files-found: warn
+          name: ocade-companion-windows-installer-unsigned
+          path: native/companion/tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error

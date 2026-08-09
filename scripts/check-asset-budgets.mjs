@@ -53,6 +53,13 @@ const engineBudgets = Object.freeze({
   largestBytes: 8_000_000,
 });
 
+// The GPU solar renderer is also optional: capable clients fetch it only after
+// the OCADE route mounts and passes a WebGL precision probe. Canvas 2D is the
+// independently tested fallback. Keep the measured renderer under a separate,
+// tight ceiling and prove below that it never becomes a static entry import.
+const OPTIONAL_VISUAL_PATTERN = /^solar-scene-/;
+const optionalVisualBudget = 600_000;
+
 function formatBytes(bytes) {
   return `${(bytes / 1024).toFixed(1)} KiB`;
 }
@@ -79,7 +86,10 @@ async function loadAssets() {
 const allAssets = (await loadAssets()).filter((asset) => asset.bytes > 0);
 
 const engineAssets = allAssets.filter((asset) => ENGINE_PATTERN.test(asset.name));
-const assets = allAssets.filter((asset) => !ENGINE_PATTERN.test(asset.name));
+const optionalVisualAssets = allAssets.filter((asset) => OPTIONAL_VISUAL_PATTERN.test(asset.name));
+const assets = allAssets.filter(
+  (asset) => !ENGINE_PATTERN.test(asset.name) && !OPTIONAL_VISUAL_PATTERN.test(asset.name),
+);
 const javascript = assets.filter((asset) => asset.name.endsWith(".js"));
 const css = assets.filter((asset) => asset.name.endsWith(".css"));
 const totalBytes = assets.reduce((sum, asset) => sum + asset.bytes, 0);
@@ -152,6 +162,24 @@ if (eagerEngines.length > 0) {
       .join(", ")}.`,
   );
 }
+
+const optionalVisualBytes = optionalVisualAssets.reduce((sum, asset) => sum + asset.bytes, 0);
+check("Optional visual bytes", optionalVisualBytes, optionalVisualBudget);
+const eagerOptionalVisuals = optionalVisualAssets.filter((asset) =>
+  staticallyReachable.has(asset.name),
+);
+if (optionalVisualAssets.length !== 1) {
+  failures.push(
+    `Expected exactly one optional solar renderer chunk, observed ${optionalVisualAssets.length}.`,
+  );
+}
+if (eagerOptionalVisuals.length > 0) {
+  failures.push(
+    `Optional visual chunks must load lazily; these are in the entry graph: ${eagerOptionalVisuals
+      .map((asset) => asset.name)
+      .join(", ")}.`,
+  );
+}
 if (entryChunks.length === 0) {
   // Without an entry chunk the laziness check proves nothing, and a check that
   // cannot run must not be reported as one that passed.
@@ -185,6 +213,7 @@ console.log(
     `largest JS ${largestJavascript.name} ${formatBytes(largestJavascript.bytes)}/${formatBytes(budgets.largestJavascriptBytes)}`,
     `lazy PDF chunks ${pdfChunks.length}`,
     `on-device engines ${formatBytes(engineBytes)}/${formatBytes(engineBudgets.bytes)} (all lazy: ${eagerEngines.length === 0})`,
+    `optional visual ${formatBytes(optionalVisualBytes)}/${formatBytes(optionalVisualBudget)} (lazy: ${eagerOptionalVisuals.length === 0})`,
   ].join("\n"),
 );
 

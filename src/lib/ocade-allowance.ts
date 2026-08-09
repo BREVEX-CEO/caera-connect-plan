@@ -15,12 +15,28 @@
  * Pure and deterministic so it is fully unit-testable without a database.
  */
 
-export const CLOUD_ALLOWANCE = 28;
+import {
+  PLANS as PRICING_PLANS,
+  CLOUD_ALLOWANCE as PRICING_CLOUD_ALLOWANCE,
+  type PlanId as PricingPlanId,
+} from "./payments/pricing";
+
+/** Re-exported so callers have one import for the allowance rules. */
+export const CLOUD_ALLOWANCE = PRICING_CLOUD_ALLOWANCE;
 export const WINDOW_HOURS = 8;
 const HOUR_MS = 60 * 60 * 1000;
 const WINDOW_MS = WINDOW_HOURS * HOUR_MS;
 
-export type PlanId = "trial_2d" | "std_8d" | "month_1m" | "year_1y";
+/**
+ * Plan identity, duration and device limits come from the pricing config.
+ *
+ * They used to be restated here, which meant two files had to agree about how
+ * long a plan lasts and how many devices it approves — and only one of them
+ * carried the prices, so a change to either could silently disagree with the
+ * other. `payments/pricing.ts` is the single source; this module owns the
+ * ALLOWANCE ARITHMETIC and nothing else.
+ */
+export type PlanId = Exclude<PricingPlanId, "demo">;
 
 export interface PlanDef {
   id: PlanId;
@@ -32,40 +48,21 @@ export interface PlanDef {
   mobileDevices: number;
 }
 
-export const PLANS: Record<PlanId, PlanDef> = {
-  trial_2d: {
-    id: "trial_2d",
-    label: "2 days",
-    durationDays: 2,
-    cloudAllowancePerWindow: CLOUD_ALLOWANCE,
-    desktopDevices: 2,
-    mobileDevices: 2,
-  },
-  std_8d: {
-    id: "std_8d",
-    label: "8 days",
-    durationDays: 8,
-    cloudAllowancePerWindow: CLOUD_ALLOWANCE,
-    desktopDevices: 2,
-    mobileDevices: 2,
-  },
-  month_1m: {
-    id: "month_1m",
-    label: "1 month",
-    durationDays: 30,
-    cloudAllowancePerWindow: CLOUD_ALLOWANCE,
-    desktopDevices: 2,
-    mobileDevices: 2,
-  },
-  year_1y: {
-    id: "year_1y",
-    label: "1 year",
-    durationDays: 365,
-    cloudAllowancePerWindow: CLOUD_ALLOWANCE,
-    desktopDevices: 2,
-    mobileDevices: 2,
-  },
-};
+const DAY_MS = 24 * HOUR_MS;
+
+export const PLANS: Record<PlanId, PlanDef> = Object.fromEntries(
+  PRICING_PLANS.filter((plan) => plan.id !== "demo").map((plan) => [
+    plan.id,
+    {
+      id: plan.id as PlanId,
+      label: plan.name,
+      durationDays: Math.round(plan.durationMs / DAY_MS),
+      cloudAllowancePerWindow: plan.cloudAllowance,
+      desktopDevices: plan.desktopDevices,
+      mobileDevices: plan.mobileDevices,
+    },
+  ]),
+) as Record<PlanId, PlanDef>;
 
 /* ------------------------------------------------------------- windowing -- */
 

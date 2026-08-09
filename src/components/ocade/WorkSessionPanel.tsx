@@ -220,19 +220,3 @@ export function WorkSessionPanel({
     </div>
   );
 }
-
-/** Seed a health map so the panel has real entries to report. */
-export function seedHealth(methods: ControlMethod[]): Map<ControlMethod, AdapterHealth> {
-  return new Map(methods.map((m) => [m, initialHealth(m)]));
-}
-
-/** Fold an observed outcome into a health map. */
-export function applyOutcome(
-  health: Map<ControlMethod, AdapterHealth>,
-  method: ControlMethod,
-  outcome: { ok: boolean; latencyMs?: number; reason?: string },
-): Map<ControlMethod, AdapterHealth> {
-  const next = new Map(health);
-  next.set(method, recordOutcome(health.get(method) ?? initialHealth(method), outcome));
-  return next;
-}

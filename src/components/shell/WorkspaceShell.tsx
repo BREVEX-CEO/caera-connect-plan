@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { MotionScope } from "@/components/motion/MotionScope";
 import {
   PanelLeft,
   ArrowLeft,
@@ -21,10 +22,12 @@ import {
 } from "lucide-react";
 import { BrandMark } from "./BrandMark";
 import { DemoBadge } from "./DemoBadge";
-import { ShellProvider, useShell } from "./shell-context";
+import { ShellProvider } from "./shell-context";
+import { useShell } from "./use-shell";
 import { cn } from "@/lib/utils";
-import { useAppearance } from "@/lib/theme-provider";
+import { useAppearance } from "@/lib/use-appearance";
 import { useSession } from "@/lib/session";
+import { useHistoryReach } from "./use-history-reach";
 import { supabase } from "@/integrations/supabase/client";
 import { closeActiveCompanionSession } from "@/lib/native/tauri-companion";
 import {
@@ -75,6 +78,7 @@ function WorkspaceShellInner({
   const { user } = useSession();
   const shell = useShell();
   const isDemo = variant === "demo";
+  const reach = useHistoryReach();
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -138,6 +142,25 @@ function WorkspaceShellInner({
     const next = theme === "dark" ? "light" : theme === "light" ? "real" : "dark";
     void update({ theme: next });
   }
+
+  /**
+   * Send the top-bar search where a search actually exists.
+   *
+   * It used to open CANIA's search page — a different product, and now not a
+   * product at all. What OCADE really has is the conversation filter in its own
+   * sidebar, so this navigates there and puts the cursor in it. The label says
+   * "Search chats" rather than "Search workspace" because chats are what it
+   * searches; the wider label promised documents and projects too.
+   */
+  function openChatSearch() {
+    void navigate({ to: "/ocade" }).then(() => {
+      // The field belongs to the OCADE route, which may only mount after the
+      // navigation resolves. One frame is enough and avoids a polling loop.
+      requestAnimationFrame(() => {
+        document.getElementById("ocade-chat-search")?.focus();
+      });
+    });
+  }
   const ThemeIcon = theme === "light" ? Sun : theme === "real" ? Waves : Moon;
   const initials =
     (user?.user_metadata?.preferred_name as string | undefined) ??
@@ -198,34 +221,57 @@ function WorkspaceShellInner({
           <PanelLeft className="h-4 w-4" aria-hidden />
         </button>
         <div className="mx-1 hidden h-4 w-px bg-border/70 md:block" />
+        {/*
+          Disabled when there is genuinely nowhere to go — see `useHistoryReach`
+          for why `history.length` cannot answer this and why an unmeasurable
+          browser leaves both enabled. The titles carry the reason so these do
+          not become `silent-disabled` findings in the dead-control audit.
+        */}
         <button
           onClick={() => typeof window !== "undefined" && window.history.back()}
+          disabled={!reach.canGoBack}
           aria-label="Back"
-          className="hidden h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground md:inline-flex"
+          title={reach.canGoBack ? "Back" : "Nothing to go back to"}
+          className="hidden h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40 md:inline-flex"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden />
         </button>
         <button
           onClick={() => typeof window !== "undefined" && window.history.forward()}
+          disabled={!reach.canGoForward}
           aria-label="Forward"
-          className="hidden h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground md:inline-flex"
+          title={reach.canGoForward ? "Forward" : "Nothing to go forward to"}
+          className="hidden h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40 md:inline-flex"
         >
           <ArrowRight className="h-4 w-4" aria-hidden />
         </button>
 
-        {isDemo ? (
+        {/*
+          NO ACCOUNT MEANS NO CHATS TO SEARCH.
+
+          This was keyed on `isDemo` alone, but the demo is not the only place
+          the shell renders without a session: settings is deliberately readable
+          signed out, and it renders `variant="app"`. So a signed-out visitor
+          got a live "Search chats" button that navigated to `/ocade`, which is
+          auth-gated — a hard redirect into the sign-in wall, from a screen the
+          product had just invited them to browse.
+
+          The honest placeholder the demo already used is the right answer for
+          both cases, so both now use it.
+        */}
+        {isDemo || !user ? (
           <div className="ml-2 hidden h-8 max-w-md flex-1 items-center gap-2 rounded-md border border-border/70 bg-secondary/40 px-2.5 text-xs text-muted-foreground md:inline-flex">
             <Search className="h-3.5 w-3.5" aria-hidden />
             <span>Search — available after sign-in</span>
           </div>
         ) : (
           <button
-            onClick={() => navigate({ to: "/cania/search" })}
+            onClick={openChatSearch}
             className="ml-2 hidden h-8 max-w-md flex-1 items-center gap-2 rounded-md border border-border/70 bg-secondary/40 px-2.5 text-xs text-muted-foreground hover:bg-secondary md:inline-flex"
-            aria-label="Search workspace"
+            aria-label="Search chats"
           >
             <Search className="h-3.5 w-3.5" aria-hidden />
-            <span>Search workspace</span>
+            <span>Search chats</span>
           </button>
         )}
 
@@ -443,7 +489,17 @@ function WorkspaceShellInner({
 
         {/* Spacious workspace */}
         <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 focus:outline-none">
-          <div className="mx-auto w-full max-w-6xl px-6 py-8 sm:px-10">{children}</div>
+          {/*
+            The camera for the workspace. `ocade-scene` sits on the scrolling
+            container rather than on each panel so every surface shares ONE
+            vanishing point — per-element perspective gives each panel its own
+            centre and the workspace stops reading as a single space.
+          */}
+          <div className="ocade-scene mx-auto w-full max-w-6xl px-6 py-8 sm:px-10">
+            {/* Scroll motion for every workspace route. Content stays visible
+                if the observer never runs — see MotionScope. */}
+            <MotionScope>{children}</MotionScope>
+          </div>
         </main>
 
         {/* Adaptive Copilot panel */}

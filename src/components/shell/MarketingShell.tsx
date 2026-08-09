@@ -1,13 +1,17 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { BrandMark } from "./BrandMark";
+import { MotionScope } from "@/components/motion/MotionScope";
 
-const marketingNav = [
-  { to: "/product/ocade", label: "OCADE" },
-  { to: "/product/ficia", label: "FICIA" },
-  { to: "/product/madee", label: "MADEE" },
-  { to: "/product/cania", label: "CANIA" },
-];
+/**
+ * Marketing links, rendered as dimmed labels rather than anchors.
+ *
+ * None of these `/product/*` pages exist. They are kept as visible-but-inert
+ * labels — the `title` says "Ships next" — because that is what they are. The
+ * three retired products are dropped: a label promising a product page for
+ * something that is not being built is a promise, not a placeholder.
+ */
+const marketingNav = [{ to: "/product/ocade", label: "OCADE" }];
 
 export function MarketingShell({ children }: { children: ReactNode }) {
   return (
@@ -47,8 +51,11 @@ export function MarketingShell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
-      <main id="main-content" tabIndex={-1} className="focus:outline-none">
-        {children}
+      <main id="main-content" tabIndex={-1} className="ocade-scene focus:outline-none">
+        {/* Scroll motion for every marketing route, including ones added
+            later. Falls back to plain visible content — see MotionScope.
+            `ocade-scene` is the shared vanishing point — see WorkspaceShell. */}
+        <MotionScope>{children}</MotionScope>
       </main>
       <footer className="border-t border-border/60 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground sm:flex-row">

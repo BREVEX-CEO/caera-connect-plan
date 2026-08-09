@@ -31,8 +31,8 @@ const navigation = read("src/lib/shell-nav.ts");
 const companionMain = read("native/companion/tauri/src/main.rs");
 const companionUi = read("native/companion/ui/overlay.js");
 const companionAdapter = read("src/lib/native/tauri-companion.ts");
-const extensionProtocol = read("src/lib/native/extension-protocol.ts");
-const extensionBackground = read("extension/background.js");
+const managedBrowserBridge = read("src/lib/native/cdp-browser-bridge.ts");
+const managedBrowserHost = read("native/browser-host/index.mjs");
 const mobileShell = read("mobile/www/index.html");
 const applyOrder = read("supabase/APPLY_ORDER.md");
 
@@ -47,7 +47,7 @@ for (const surface of [
   "server_functions",
   "native_commands",
   "mobile_intents",
-  "extension_messages",
+  "managed_browser_messages",
   "migrations",
   "adapters",
   "artifacts",
@@ -140,25 +140,17 @@ for (const command of [
   );
 }
 
-const extensionMessages = [
+const managedBrowserMessages = [
+  "launch",
   "connect",
-  "tabs.list",
-  "tab.activate",
-  "page.summary",
-  "page.a11y",
-  "page.screenshot",
-  "page.navigate",
-  "page.verify",
-  "form.fill",
-  "form.submit",
-  "file.download",
-  "file.upload",
-  "run.cancel",
-  "emergency.stop",
+  "status",
+  "perform",
+  "cancel",
+  "emergency_stop",
 ];
-for (const kind of extensionMessages) {
-  check(extensionProtocol.includes(`"${kind}"`), `extension protocol omits: ${kind}`);
-  check(extensionBackground.includes(`"${kind}"`), `extension worker omits: ${kind}`);
+for (const kind of managedBrowserMessages) {
+  check(managedBrowserBridge.includes(`"${kind}"`), `managed browser bridge omits: ${kind}`);
+  check(managedBrowserHost.includes(`"${kind}"`), `managed browser host omits: ${kind}`);
 }
 
 let migrationIndex = -1;
@@ -180,17 +172,14 @@ for (const migration of audit.unappliedMigrations) {
   );
 }
 
-const manifest = json("extension/manifest.json");
-for (const asset of [
-  manifest.background?.service_worker,
-  manifest.action?.default_popup,
-  manifest.icons?.["128"],
-]) {
-  check(
-    typeof asset === "string" && existsSync(resolve(root, "extension", asset)),
-    `extension asset missing: ${String(asset)}`,
-  );
-}
+check(
+  existsSync(resolve(root, "native/browser-host/index.mjs")),
+  "managed browser host is missing",
+);
+check(
+  existsSync(resolve(root, "scripts/browser-cdp-parity.mjs")),
+  "real browser parity check is missing",
+);
 for (const asset of [
   "native/companion/tauri/icons/icon.ico",
   "native/companion/tauri/icons/icon.png",
@@ -262,10 +251,10 @@ const secretShape =
   /AKIA[0-9A-Z]{16}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|sk-[A-Za-z0-9_-]{20,}/;
 for (const sourcePath of [
   "src/lib/native/companion-bridge.ts",
-  "src/lib/native/extension-protocol.ts",
+  "src/lib/native/cdp-browser-bridge.ts",
   "src/lib/mobile/secure-channel.ts",
   "native/companion/tauri/tauri.conf.json",
-  "extension/manifest.json",
+  "native/browser-host/index.mjs",
   "capacitor.config.json",
   "wrangler.json",
 ]) {

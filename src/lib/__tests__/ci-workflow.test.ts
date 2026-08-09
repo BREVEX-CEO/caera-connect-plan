@@ -29,10 +29,37 @@ describe("the Rust safety core is executed somewhere", () => {
     expect(ci).toMatch(/^ {2}rust:/m);
   });
 
-  it("runs the rust job on a windows runner, which has the MSVC linker", () => {
-    // Without MSVC the crate cannot link and `cargo test` cannot run at all.
-    const rustJob = ci.slice(ci.indexOf("\n  rust:"), ci.indexOf("\n  audit:"));
-    expect(rustJob).toMatch(/runs-on:\s*windows-latest/);
+  it("runs the rust job on every desktop platform it ships to", () => {
+    /*
+     * Windows is the one that cannot be dropped — without MSVC the crate does
+     * not link and `cargo test` cannot run at all, which is what the original
+     * single-runner assertion protected.
+     *
+     * macOS and Linux are now required too. This crate decides what the
+     * assistant is NOT allowed to do — protected text, prohibited typing, path
+     * traversal — and the companion ships on all three. Proving those rules
+     * hold on one platform proves them on one platform.
+     */
+    const rustJob = ci.slice(ci.indexOf("\n  rust:"), ci.indexOf("\n  worker-bundle:"));
+    expect(rustJob).toMatch(/runs-on:\s*\$\{\{\s*matrix\.os\s*\}\}/);
+    for (const os of ["windows-latest", "macos-latest", "ubuntu-latest"]) {
+      expect(rustJob, `rust job does not cover ${os}`).toContain(os);
+    }
+  });
+
+  it("typechecks, lints, tests and builds on every supported platform", () => {
+    // The defects a single-platform build hides are specific: a backslash in a
+    // path, a case-only import mismatch, a line-ending assumption.
+    const buildJob = ci.slice(ci.indexOf("\n  build:"), ci.indexOf("\n  gates:"));
+    for (const os of ["windows-latest", "macos-latest", "ubuntu-latest"]) {
+      expect(buildJob, `build job does not cover ${os}`).toContain(os);
+    }
+    for (const step of ["npm run typecheck", "npm run lint", "npm run test", "npm run build"]) {
+      expect(buildJob, `build job does not run ${step}`).toContain(step);
+    }
+    // A matrix that stops at the first red platform hides whether the break is
+    // platform-specific, which is most of the diagnosis.
+    expect(buildJob).toMatch(/fail-fast:\s*false/);
   });
 
   it("actually RUNS cargo test — not merely cargo check", () => {
@@ -74,6 +101,43 @@ describe("the web job runs every gate that has been proven to enforce", () => {
     const invoked = [...ci.matchAll(/npm run ([\w:-]+)/g)].map((m) => m[1]);
     const missing = [...new Set(invoked)].filter((s) => !(s in pkg.scripts));
     expect(missing, `workflow calls undefined npm scripts: ${missing.join(", ")}`).toEqual([]);
+  });
+});
+
+describe("the surfaces that used to have no CI job at all", () => {
+  /*
+   * AZ-353 and AZ-354 were both downgraded to PARTIAL SOURCE with the same
+   * finding: "No extension CI job exists" / "No database CI job exists". Their
+   * tests DID run, inside the web job's test step, which is why the gap was
+   * easy to miss — a failure was attributed to "tests", and nothing named the
+   * extension or the database as a thing CI covers.
+   *
+   * A named job is the difference between a red build somebody has to read and
+   * a red build that says which surface broke.
+   */
+  it("gives the database its own job, not a step inside the test run", () => {
+    expect(ci).toMatch(/^ {2}database:/m);
+    const job = ci.slice(ci.indexOf("\n  database:"), ci.indexOf("\n  managed-browser:"));
+    // The twin is the only thing that proves the migration set rebuilds from
+    // zero; running only the SQL text assertions would pass on a broken set.
+    expect(job).toContain("db-twin.test.ts");
+    expect(job).toContain("supabase-sql-discipline.test.ts");
+    expect(job).toContain("npm run supabase:types-check");
+  });
+
+  it("gives the extensionless managed browser host its own job", () => {
+    expect(ci).toMatch(/^ {2}managed-browser:/m);
+    const job = ci.slice(ci.indexOf("\n  managed-browser:"), ci.indexOf("\n  audit:"));
+    expect(job).toContain("npm run browser:host-check");
+    expect(job).toContain("managed-browser-bridge.test.ts");
+  });
+
+  it("needs no database service or credentials to run either", () => {
+    // The twin is PostgreSQL in WebAssembly. If this ever grows a `services:`
+    // block or a secret, the job stops being runnable on a fork's PR.
+    const job = ci.slice(ci.indexOf("\n  database:"), ci.indexOf("\n  managed-browser:"));
+    expect(job).not.toMatch(/services:/);
+    expect(job).not.toMatch(/secrets\./);
   });
 });
 

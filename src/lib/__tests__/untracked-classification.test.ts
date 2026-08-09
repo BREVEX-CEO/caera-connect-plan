@@ -168,6 +168,17 @@ describe("the rules classify synthetic paths correctly", () => {
     expect(kindOf("scripts/check-x.mjs")).toBe("script");
     expect(kindOf("release/NOTES.md")).toBe("docs");
     expect(kindOf("public/logo.png")).toBe("asset");
+    /*
+     * Served CODE is not a static asset, and the difference matters at review
+     * time: `public/sw.js` runs on the site's own origin and can rewrite every
+     * response the application sees, so it must not be waved through with the
+     * icons. Images under `public/` stay assets — the rule for code is a narrow
+     * extension list and does not shadow the asset rule below it.
+     */
+    expect(kindOf("public/sw.js")).toBe("source");
+    expect(kindOf("public/offline.html")).toBe("source");
+    expect(kindOf("public/manifest.webmanifest")).toBe("source");
+    expect(kindOf("public/cursors/pointer.svg")).toBe("asset");
     expect(kindOf("android/app/build.gradle")).toBe("platform-config");
     expect(kindOf("wrangler.json")).toBe("config");
   });

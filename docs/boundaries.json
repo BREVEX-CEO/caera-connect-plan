@@ -1,0 +1,366 @@
+{
+  "schemaVersion": 1,
+  "note": "Machine-checked architecture facts. Every entry here is asserted against the real tree by src/lib/__tests__/governance-artefacts.test.ts. A claim that stops being true fails the build rather than going stale, which is the whole reason this is JSON and not prose.",
+  "trustBoundaries": [
+    {
+      "id": "TB-01",
+      "name": "Service-role database credential",
+      "crosses": "server handler -> Supabase with RLS bypassed",
+      "rule": "The service-role client may only be constructed in a *.server.ts module and may only be imported from inside a server handler body.",
+      "enforcedBy": "src/integrations/supabase/client.server.ts",
+      "check": "service_role_only_in_server_modules",
+      "ifBreached": "A route file importing it at module scope would ship a database key that bypasses row-level security into the browser bundle."
+    },
+    {
+      "id": "TB-02",
+      "name": "Untrusted document content",
+      "crosses": "user's file -> model context",
+      "rule": "Text extracted from an attachment must be wrapped by wrapUntrustedContent before it reaches any engine.",
+      "enforcedBy": "src/lib/ocade-injection-guard.ts",
+      "check": "document_context_is_wrapped",
+      "ifBreached": "A document containing 'ignore your instructions' would be read as an instruction rather than as data."
+    },
+    {
+      "id": "TB-03",
+      "name": "Provider identity",
+      "crosses": "engine vendor -> user-visible surface",
+      "rule": "No user-facing copy names the underlying provider or model. Advanced settings are the declared exception and are listed by name.",
+      "enforcedBy": "src/lib/ocade-capability-labels.ts",
+      "check": "public_copy_names_no_provider",
+      "ifBreached": "OCADE's stated identity and what the screen says would disagree."
+    },
+    {
+      "id": "TB-04",
+      "name": "Local engine bind address",
+      "crosses": "OCADE -> the user's network",
+      "rule": "A local inference runtime may only be started bound to loopback; anything else is refused.",
+      "enforcedBy": "src/lib/local/runtime-supervisor.ts",
+      "check": "engine_binds_loopback_only",
+      "ifBreached": "An unauthenticated prompt and file-read endpoint would be exposed to every device on the user's network."
+    },
+    {
+      "id": "TB-05",
+      "name": "Paired-device link",
+      "crosses": "phone -> computer",
+      "rule": "A pairing address must be loopback or https, and only a private address may be treated as a direct (non-relay) path.",
+      "enforcedBy": "src/lib/brain/pairing-code.ts",
+      "check": "pairing_refuses_public_plaintext",
+      "ifBreached": "Conversation traffic would cross a shared network in clear text, or cross the internet while labelled local."
+    },
+    {
+      "id": "TB-06",
+      "name": "Cached HTTP responses",
+      "crosses": "service worker -> stored response",
+      "rule": "API, server-function and auth responses are never written to or served from the offline cache.",
+      "enforcedBy": "public/sw.js",
+      "check": "service_worker_never_caches_privileged",
+      "ifBreached": "A cached 200 for a request that should now be 401, or one account's chat reply surviving another's sign-in."
+    }
+  ],
+  "runtimeBoundaries": [
+    {
+      "id": "RB-01",
+      "runtime": "browser",
+      "entry": "src/router.tsx",
+      "mayNotImport": [
+        "node:fs",
+        "node:child_process",
+        "node:net",
+        "node:os"
+      ],
+      "check": "browser_code_imports_no_node_builtins",
+      "why": "The client bundle runs in a browser and on Cloudflare Workers. A Node built-in resolves at build time and fails at runtime, on the edge, in front of users."
+    },
+    {
+      "id": "RB-02",
+      "runtime": "cloudflare-worker",
+      "entry": "src/server.ts",
+      "mayNotImport": [
+        "node:child_process"
+      ],
+      "check": "worker_code_spawns_no_process",
+      "why": "Workers cannot spawn processes. The engine supervisor is companion-only for this reason."
+    },
+    {
+      "id": "RB-03",
+      "runtime": "node",
+      "entry": "scripts/",
+      "mayNotImport": [],
+      "why": "Gates and evidence scripts run under Node with full access. Nothing here ships to a user."
+    },
+    {
+      "id": "RB-04",
+      "runtime": "native-companion",
+      "entry": "native/companion/",
+      "mayNotImport": [],
+      "why": "The only runtime with operating-system authority. Its safety rules are enforced in Rust and executed in CI on all three desktop platforms."
+    }
+  ],
+  "integrationContracts": [
+    {
+      "id": "IC-01",
+      "name": "Supabase",
+      "host": "supabase.co",
+      "direction": "outbound",
+      "carries": "account identity, conversation rows under Private Sync, usage and entitlement",
+      "credential": "SUPABASE_PUBLISHABLE_KEY (caller-scoped), SUPABASE_SERVICE_ROLE_KEY (server only)",
+      "failureMode": "Named 503 with a reason; never a partial-context answer.",
+      "declaredIn": "src/integrations/supabase/client.ts"
+    },
+    {
+      "id": "IC-02",
+      "name": "Cloud inference gateway",
+      "host": "ai.gateway.lovable.dev",
+      "direction": "outbound",
+      "carries": "prompt, approved history, extracted document passages",
+      "credential": "LOVABLE_API_KEY (server only)",
+      "failureMode": "502 with the gateway error; the allowance is not charged.",
+      "declaredIn": "src/lib/ai-gateway.server.ts"
+    },
+    {
+      "id": "IC-03",
+      "name": "OpenAI direct",
+      "host": "api.openai.com",
+      "direction": "outbound",
+      "carries": "prompt, approved history, extracted document passages",
+      "credential": "OPENAI_API_KEY (server only, opt-in per user)",
+      "failureMode": "502 with the provider error; the allowance is not charged.",
+      "declaredIn": "src/lib/ai-gateway.server.ts"
+    },
+    {
+      "id": "IC-04",
+      "name": "Local engine bridge",
+      "host": "127.0.0.1:11434",
+      "direction": "outbound-loopback",
+      "carries": "prompt and document passages, on-device only",
+      "credential": "none",
+      "failureMode": "Honest refusal naming the obstacle and the action that clears it.",
+      "declaredIn": "src/lib/ocade-local.ts"
+    },
+    {
+      "id": "IC-05",
+      "name": "Update server",
+      "host": "updates.caeracadane.com",
+      "direction": "outbound",
+      "carries": "version check only",
+      "credential": "none",
+      "failureMode": "Update check is skipped; the application continues.",
+      "declaredIn": "src/lib/packaging"
+    }
+  ],
+  "ownership": [
+    {
+      "area": "src/lib/brain",
+      "owner": "OCADE engine",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/local",
+      "owner": "OCADE engine",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/retrieval",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/chat",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/control",
+      "owner": "OCADE control plane",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/skills",
+      "owner": "OCADE control plane",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/mobile",
+      "owner": "OCADE devices",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/native",
+      "owner": "OCADE devices",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/storage",
+      "owner": "OCADE privacy",
+      "requirementPrefix": "CXR"
+    },
+    {
+      "area": "src/lib/providers",
+      "owner": "OCADE engine",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/packaging",
+      "owner": "OCADE release",
+      "requirementPrefix": "CXR"
+    },
+    {
+      "area": "src/lib/artifacts",
+      "owner": "OCADE release",
+      "requirementPrefix": "CXR"
+    },
+    {
+      "area": "src/lib/research",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/work",
+      "owner": "OCADE control plane",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/code",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/voice",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/media",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/vision3d",
+      "owner": "OCADE control plane",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/files",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/payments",
+      "owner": "OCADE release",
+      "requirementPrefix": "CXR"
+    },
+    {
+      "area": "src/lib/telemetry",
+      "owner": "OCADE release",
+      "requirementPrefix": "CXR"
+    },
+    {
+      "area": "src/lib/hardware",
+      "owner": "OCADE engine",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/hwe",
+      "owner": "OCADE engine",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/healing",
+      "owner": "OCADE control plane",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/engineering",
+      "owner": "OCADE control plane",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/creative",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/reasoning",
+      "owner": "OCADE engine",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/demo",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/landing",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/attachments",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/engine",
+      "owner": "OCADE engine",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/offline",
+      "owner": "OCADE engine",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/motion",
+      "owner": "OCADE shell",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/provenance",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/edge",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    }
+  ],
+  "compatibility": {
+    "supportedNode": [
+      20,
+      22
+    ],
+    "targetVersion": "0.1.0",
+    "sharedTypeSurfaces": [
+      "src/integrations/supabase/types.ts",
+      "src/lib/mobile/secure-channel.ts",
+      "src/lib/brain/adapter.ts"
+    ],
+    "rule": "A change to a shared type surface that removes or renames an exported member is breaking and requires a version bump. The mobile envelope carries an explicit protocol version so a mismatched peer is refused rather than misread.",
+    "check": "mobile_protocol_is_versioned"
+  },
+  "deprecation": {
+    "rule": "A capability that is going away is marked in the feature registry with a non-active status and a user-facing reason before it is removed. Nothing user-visible is deleted while still reachable from navigation.",
+    "currentlyDeprecated": [
+      {
+        "id": "ficia.placeholder",
+        "since": "0.1.0",
+        "reason": "Coming later — not an AI model.",
+        "removalPlan": "Route and name retained; no removal planned."
+      },
+      {
+        "id": "madee.placeholder",
+        "since": "0.1.0",
+        "reason": "Coming later — not an AI model.",
+        "removalPlan": "Route and name retained; no removal planned."
+      },
+      {
+        "id": "cania.placeholder",
+        "since": "0.1.0",
+        "reason": "Coming later — not an AI model.",
+        "removalPlan": "Route and name retained; no removal planned."
+      }
+    ],
+    "check": "deprecated_features_are_registered_with_reasons"
+  }
+}

@@ -3,7 +3,7 @@
  * with no companion and no network.
  *
  * This is deliberately a short list. Most packs describe work that needs the
- * signed companion (files, windows, git, archives) or the browser extension
+ * signed companion (files, windows, git, archives) or its managed browser host
  * (pages), and neither can run inside the web app itself. Registering those
  * here would produce controls that look available and fail on use.
  *
@@ -179,5 +179,5 @@ export function createDefaultExecutors(getInput: () => DataInput | undefined): E
 export const RUNTIME_REALITY =
   "Reading and analysing data works entirely on this device, including offline. " +
   "Controlling files, windows and other applications needs the CAERA companion app, " +
-  "and acting on web pages needs the OCADE browser extension. OCADE says so rather " +
+  "and acting on web pages needs its managed Playwright/CDP browser host. OCADE says so rather " +
   "than showing a control that would fail.";

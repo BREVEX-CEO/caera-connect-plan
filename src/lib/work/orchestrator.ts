@@ -79,6 +79,7 @@ export interface WorkHistoryEntry {
     | "batch_finished"
     | "retry"
     | "recovered"
+    | "redirected"
     | "paused"
     | "blocked"
     | "completed";
@@ -144,6 +145,15 @@ export interface WorkSupervisorCommand {
   issuedAt: string;
 }
 
+export interface WorkRedirectCommand {
+  sequence: number;
+  source: "local" | "mobile";
+  kind: "redirect";
+  issuedAt: string;
+  /** User-visible reason for superseding the previous branch. */
+  reason: string;
+}
+
 export interface WorkGraphPlan {
   waves: string[][];
   specSha256: string;
@@ -205,6 +215,7 @@ const WORK_HISTORY_KINDS = new Set<WorkHistoryEntry["kind"]>([
   "batch_finished",
   "retry",
   "recovered",
+  "redirected",
   "paused",
   "blocked",
   "completed",
@@ -238,6 +249,18 @@ function canonicalSpec(spec: WorkMissionSpec): string {
       maxAttempts: step.maxAttempts,
     })),
     budget: spec.budget,
+  });
+}
+
+function canonicalStep(step: WorkStep): string {
+  return JSON.stringify({
+    id: step.id,
+    intent: step.intent,
+    kind: step.kind,
+    role: step.role,
+    dependsOn: [...step.dependsOn],
+    estimatedMs: step.estimatedMs,
+    maxAttempts: step.maxAttempts,
   });
 }
 
@@ -573,6 +596,128 @@ async function persist(
       checkpoint,
     };
   }
+}
+
+/**
+ * Supersede an active mission graph without replaying already verified work.
+ *
+ * Redirection is deliberately a checkpoint-bound operation: an in-flight host
+ * mutation must first be reconciled by `runWorkMission`, so a user steering the
+ * task can never strand or duplicate an irreversible action. Completed steps
+ * are reused only when their full deterministic definition is unchanged.
+ */
+export async function redirectWorkMission(input: {
+  previousSpec: WorkMissionSpec;
+  revisedSpec: WorkMissionSpec;
+  store: WorkCheckpointStore;
+  command: WorkRedirectCommand;
+}): Promise<WorkOutcome<WorkCheckpoint>> {
+  const { previousSpec, revisedSpec, store, command } = input;
+  if (
+    command.kind !== "redirect" ||
+    !Number.isInteger(command.sequence) ||
+    command.sequence < 1 ||
+    !Number.isFinite(Date.parse(command.issuedAt)) ||
+    !command.reason.trim() ||
+    command.reason.length > 2_000
+  ) {
+    return { ok: false, reason: "The task redirection command is malformed." };
+  }
+  if (previousSpec.id !== revisedSpec.id) {
+    return { ok: false, reason: "A redirected task must retain the same durable mission id." };
+  }
+
+  const [previousGraph, revisedGraph] = await Promise.all([
+    validateWorkGraph(previousSpec),
+    validateWorkGraph(revisedSpec),
+  ]);
+  if (!previousGraph.ok) return previousGraph;
+  if (!revisedGraph.ok) return revisedGraph;
+
+  let checkpoint: WorkCheckpoint | null;
+  try {
+    checkpoint = await store.load(previousSpec.id);
+  } catch (error) {
+    return {
+      ok: false,
+      reason: `The work checkpoint could not be loaded for redirection: ${
+        error instanceof Error ? error.message : "storage refused it"
+      }.`,
+    };
+  }
+  if (!checkpoint) return { ok: false, reason: "The task has no durable checkpoint to redirect." };
+  if (checkpoint.specSha256 !== previousGraph.data.specSha256) {
+    return {
+      ok: false,
+      reason: "The stored task graph does not match the branch being redirected.",
+      checkpoint,
+    };
+  }
+  const shapeError = checkpointShapeError(previousSpec, checkpoint);
+  if (shapeError) {
+    return { ok: false, reason: `The stored task cannot be redirected: ${shapeError}`, checkpoint };
+  }
+  if (command.sequence <= checkpoint.lastSupervisorSequence) {
+    return { ok: true, data: checkpoint, evidence: "Replayed redirection ignored." };
+  }
+  if (Object.values(checkpoint.nodes).some((node) => node.status === "in_flight")) {
+    return {
+      ok: false,
+      reason:
+        "The task has an in-flight action. Pause and reconcile its host journal before redirecting.",
+      checkpoint,
+    };
+  }
+  if (checkpoint.status === "succeeded" || checkpoint.status === "cancelled") {
+    return {
+      ok: false,
+      reason: `A ${checkpoint.status} task cannot be redirected; start a new mission instead.`,
+      checkpoint,
+    };
+  }
+
+  const previousSteps = new Map(previousSpec.steps.map((step) => [step.id, step]));
+  const preserved: string[] = [];
+  const nodes = Object.fromEntries(
+    revisedSpec.steps.map((step) => {
+      const oldStep = previousSteps.get(step.id);
+      const oldNode = checkpoint!.nodes[step.id];
+      if (oldStep && oldNode?.status === "done" && canonicalStep(oldStep) === canonicalStep(step)) {
+        preserved.push(step.id);
+        return [step.id, { ...oldNode }];
+      }
+      return [
+        step.id,
+        {
+          status: "pending",
+          attempts: 0,
+          operationId: null,
+          receipt: null,
+          reason: null,
+          recovered: false,
+        } satisfies WorkNodeCheckpoint,
+      ];
+    }),
+  );
+  const superseded = previousSpec.steps.filter((step) => !nodes[step.id]).map((step) => step.id);
+  const next = appendHistory(
+    {
+      ...checkpoint,
+      specSha256: revisedGraph.data.specSha256,
+      status: "ready",
+      reason: `Redirected by ${command.source} supervisor: ${command.reason.trim()}`,
+      nodes,
+      lastSupervisorSequence: command.sequence,
+      receiptArtifactId: null,
+      receiptEvidence: null,
+    },
+    {
+      at: command.issuedAt,
+      kind: "redirected",
+      detail: `Revision redirected; preserved ${preserved.length} verified step(s), superseded ${superseded.length} obsolete step(s). ${command.reason.trim()}`,
+    },
+  );
+  return persist(store, next);
 }
 
 function operationIdFor(spec: WorkMissionSpec, step: WorkStep, attempt: number): string {

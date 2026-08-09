@@ -12,7 +12,7 @@ import {
   type PairedDevice,
   type PairingRequest,
 } from "../brain/pairing";
-import { parsePairingCode } from "@/components/settings/PairedComputerPanel";
+import { parsePairingCode } from "@/lib/brain/pairing-code";
 
 /**
  * Authorisation for a paired desktop.

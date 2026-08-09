@@ -53,7 +53,18 @@ function VaultPage() {
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      /*
+       * No account is a FINISHED state, not a pending one.
+       *
+       * This used to `return` with `loading` left true, so a signed-out
+       * visitor sat on a spinner that could never resolve — the vault config
+       * is keyed by user id, and there was no id coming. Settings is readable
+       * without an account, so this page was reachable and permanently stuck.
+       */
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const c = await loadVaultConfig(user.id);
     setCfg(c);
@@ -80,12 +91,58 @@ function VaultPage() {
     }
   };
 
-  if (!user || loading) {
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+      </div>
+    );
+  }
+
+  /*
+   * Readable without an account, like every other settings section — and
+   * describing the real thing rather than showing controls that cannot work.
+   * A vault is keyed to an account, so there is nothing to unlock yet; saying
+   * so is more useful than a spinner or a hidden page.
+   */
+  if (!user) {
     return (
       <>
-        <div className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-        </div>
+        <PageHeader
+          eyebrow="Privacy and data"
+          title="Browser Vault"
+          description="Conversations kept only on this device, encrypted with a key derived from your passphrase or passkey."
+        />
+        <GlassPanel className="flex items-start gap-3 p-5 text-sm">
+          <div className="rounded-md bg-primary/10 p-2 text-primary">
+            <Shield className="h-4 w-4" aria-hidden />
+          </div>
+          <div className="min-w-0 space-y-2">
+            <p className="text-foreground">
+              A vault belongs to an account, so there is nothing to unlock here yet.
+            </p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Once you have one, Browser-Only conversations are encrypted with AES-GCM under a key
+              that never leaves this device. OCADE cannot read them, and neither can anyone holding
+              the database — which is also why a forgotten passphrase cannot be reset for you, only
+              recovered with the recovery kit you save when you set it up.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Link
+                to="/auth"
+                className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90"
+              >
+                Create an account
+              </Link>
+              <Link
+                to="/settings"
+                className="inline-flex h-8 items-center rounded-md border border-border/60 bg-background/40 px-3 text-xs text-foreground hover:bg-accent"
+              >
+                Back to Settings
+              </Link>
+            </div>
+          </div>
+        </GlassPanel>
       </>
     );
   }

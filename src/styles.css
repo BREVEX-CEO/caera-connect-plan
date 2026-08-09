@@ -158,6 +158,16 @@
   --surface-glass-strong: oklch(0.9 0.01 90 / 7%);
   --surface-glass-border: oklch(0.88 0.015 90 / 13%);
   --blur-glass: 16px;
+
+  /*
+   * The colour a surface casts at depth. Its SPREAD is computed from the
+   * surface's Z — see `.ocade-depth` — so this is only the ink.
+   *
+   * Near-black and strong on the dark theme, because the ground is already
+   * near-black: a subtle shadow here is invisible, and depth that cannot be
+   * seen is depth that is not doing anything.
+   */
+  --depth-shadow: oklch(0 0 0 / 34%);
 }
 
 /*
@@ -210,6 +220,12 @@
   --surface-glass-strong: oklch(0.2 0.005 90 / 5%);
   --surface-glass-border: oklch(0.2 0.005 90 / 11%);
   --blur-glass: 10px;
+  /*
+   * Much lighter than the dark theme's. On a silver ground the dark theme's
+   * 34% black reads as grime around every panel rather than as distance —
+   * the same shadow that is barely visible on near-black is oppressive here.
+   */
+  --depth-shadow: oklch(0.35 0.01 90 / 16%);
 }
 
 /*
@@ -494,5 +510,312 @@
   &::-webkit-scrollbar-thumb:hover {
     background: color-mix(in oklch, var(--border) 100%, transparent);
     background-clip: padding-box;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Application-wide motion.
+ *
+ * THE RESTING STATE IS VISIBLE. `.ocade-reveal` on its own does nothing but
+ * describe a transition. Content is hidden ONLY by `.ocade-reveal-hidden`,
+ * which JavaScript adds after an IntersectionObserver has accepted the element
+ * — so if that script never runs, the page is unanimated rather than blank.
+ * Starting at `opacity: 0` in the stylesheet is the ordinary way to do this and
+ * it holds the content hostage to a script. See src/lib/motion/reveal.ts.
+ * ------------------------------------------------------------------------- */
+
+.ocade-reveal {
+  transition:
+    opacity 420ms cubic-bezier(0.22, 0.61, 0.36, 1) var(--reveal-delay, 0ms),
+    transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1) var(--reveal-delay, 0ms);
+}
+
+.ocade-reveal-hidden {
+  opacity: 0;
+  /* 16px, not 40: a large rise competes with reading in an application people
+     work inside, rather than orienting them. */
+  transform: translate3d(0, 16px, 0);
+}
+
+/* Smooth in-page scrolling, and the scroll-margin that stops an anchored
+   heading landing underneath a sticky header. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+[id] {
+  scroll-margin-top: 5rem;
+}
+
+/* ---------------------------------------------------------------------------
+ * DEPTH — the application's third dimension.
+ *
+ * Surfaces sit at real Z coordinates inside a perspective scene rather than
+ * being stacked flat with shadows painted on. See src/lib/motion/depth.ts for
+ * the geometry and the argument for CSS 3D over WebGL; the short version is
+ * that the DOM *is* the scene, so every button in a tilted panel is still a
+ * real focusable button.
+ *
+ * NOTHING HERE APPLIES UNLESS `[data-depth-scene]` SAYS SO. `DepthScene` sets
+ * that attribute after measuring the device, on the client only. Server-rendered
+ * markup and any browser that cannot composite 3D transforms therefore get the
+ * two-dimensional layout unchanged, rather than a half-applied scene.
+ * ------------------------------------------------------------------------- */
+
+[data-depth-scene="full"],
+[data-depth-scene="static"] {
+  --depth-active: 1;
+}
+
+/*
+ * The camera. Applied to the scroll container rather than the panels so that
+ * every surface shares ONE vanishing point — perspective on each element
+ * separately gives each its own centre, and the layout stops reading as a
+ * single space.
+ */
+.ocade-scene {
+  perspective: var(--scene-perspective, 1400px);
+  perspective-origin: 50% 40%;
+  transform-style: preserve-3d;
+}
+
+/*
+ * A surface at a depth.
+ *
+ * `--depth-z` is set per level by the utilities below; `--tilt-x`/`--tilt-y`
+ * come from the pointer variables the scene publishes. When depth is off,
+ * `--depth-active` is 0 and every term multiplies away to the identity
+ * transform, so one rule serves all three modes with no second code path.
+ */
+.ocade-depth {
+  /*
+   * Depth is composed, not assigned: the LEVEL is the surface's resting plane
+   * and the BOOST is a temporary lift for hover or focus. Composing them means
+   * a focused overlay rises from 64px rather than being reset down to a level
+   * that was written for content panels — which is what a rule that simply
+   * overwrote `--depth-z` did, occasionally pushing a focused menu behind the
+   * panel it belonged to.
+   *
+   * THE DEFAULTS LIVE IN THE `var()` FALLBACKS, NOT IN DECLARATIONS HERE, and
+   * that is the whole reason this works. Declaring `--depth-level: 0px` on this
+   * rule puts it in a CASCADE FIGHT with `.depth-raised` — and it wins, because
+   * Tailwind emits the level classes inside `@layer utilities` while this rule
+   * is unlayered, and unlayered CSS beats layered CSS regardless of specificity
+   * or source order. Every panel rendered flat while carrying the correct
+   * class, with no error anywhere and nothing in the DOM to suggest why.
+   *
+   * A fallback inside `var()` is not a declaration, so there is no cascade to
+   * lose: a surface with no level set reads 0px, and one with `.depth-raised`
+   * reads 12px, whatever layer that class ended up in.
+   */
+  --depth-z: calc(var(--depth-level, 0px) + var(--depth-boost, 0px));
+  --depth-parallax: 0.06;
+  --tilt-max: 3.5deg;
+  transform: translate3d(
+      calc(var(--pointer-x, 0) * var(--depth-z) * var(--depth-parallax) * var(--depth-active, 0)),
+      calc(var(--pointer-y, 0) * var(--depth-z) * var(--depth-parallax) * var(--depth-active, 0)),
+      calc(var(--depth-z) * var(--depth-active, 0))
+    )
+    rotateX(calc(var(--pointer-y, 0) * var(--tilt-max) * var(--depth-active, 0)))
+    rotateY(calc(var(--pointer-x, 0) * var(--tilt-max) * -1 * var(--depth-active, 0)));
+  transform-style: preserve-3d;
+  /*
+   * Eased so a surface settles rather than snapping when the pointer jumps or
+   * leaves the window. Short enough not to lag behind a moving cursor.
+   */
+  transition: transform 260ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  /*
+   * Promotes the surface to its own compositor layer. Without it the browser
+   * re-rasterises the panel's text on every tilt, which is exactly the blurry,
+   * expensive result that gives CSS 3D its reputation.
+   */
+  will-change: transform;
+}
+
+/*
+ * Depth levels. The pixel values match DEPTH in src/lib/motion/depth.ts and are
+ * asserted equal by depth.test.ts — a scale that drifts between the stylesheet
+ * and the module is a scene where the shadows disagree with the positions.
+ *
+ * These set `--depth-level` and nothing else. They do not need to WIN a cascade
+ * against `.ocade-depth`, because that rule no longer declares a default —
+ * see the note there. Which layer these end up in is therefore irrelevant,
+ * which is the only reliable position to be in.
+ */
+.depth-base {
+  --depth-level: 0px;
+}
+.depth-raised {
+  --depth-level: 12px;
+}
+.depth-elevated {
+  --depth-level: 24px;
+}
+.depth-floating {
+  --depth-level: 40px;
+}
+.depth-overlay {
+  --depth-level: 64px;
+}
+.depth-modal {
+  --depth-level: 96px;
+}
+
+/*
+ * Shadow scales WITH depth, because that is what makes the position legible.
+ * A panel 40px nearer the camera casts a longer, softer shadow than one at
+ * 12px; give them the same shadow and the parallax reads as a glitch rather
+ * than as distance. Kept as a colour token so it survives theme changes.
+ */
+[data-depth-scene="full"] .ocade-depth,
+[data-depth-scene="static"] .ocade-depth {
+  box-shadow:
+    0 calc(var(--depth-z) * 0.25) calc(var(--depth-z) * 0.9) calc(var(--depth-z) * -0.25)
+      var(--depth-shadow, oklch(0 0 0 / 28%)),
+    0 calc(var(--depth-z) * 0.06) calc(var(--depth-z) * 0.18) calc(var(--depth-z) * -0.06)
+      var(--depth-shadow, oklch(0 0 0 / 22%));
+}
+
+/*
+ * A DEPTH SURFACE INSIDE ANOTHER ONE.
+ *
+ * `transform-style: preserve-3d` means a nested surface already inherits its
+ * parent's rotation — so applying the full tilt again lands it at twice the
+ * angle, and a third level at three times. Past the first nesting the text
+ * visibly shears, which is the one way this system produces something that
+ * looks broken rather than deep.
+ *
+ * Only the ROTATION is suppressed. `--depth-level` still applies, and it should:
+ * a card 12px in front of the panel containing it is exactly right in a
+ * preserved 3D context, and it is what makes nesting read as depth at all.
+ */
+.ocade-depth .ocade-depth {
+  --tilt-max: 0deg;
+}
+
+/*
+ * A surface that is ALREADY transformed.
+ *
+ * `.ocade-depth` sets `transform` outright, so putting it on an element that
+ * relies on a transform of its own silently destroys that transform. The dialog
+ * is the case that matters: it centres itself with
+ * `translate(-50%, -50%)`, and `.ocade-depth` would have replaced that and
+ * dropped every modal in the product to the bottom-right quadrant of the
+ * screen. This variant folds the centring in, so depth composes with it instead
+ * of competing.
+ *
+ * A portalled dialog renders OUTSIDE `.ocade-scene`, so it has no shared
+ * vanishing point to sit in and carries its own perspective. That is correct
+ * for a modal — it is meant to be its own plane in front of everything — and it
+ * is why this does not simply reuse the scene's camera.
+ */
+.ocade-depth-centered {
+  --depth-z: calc(var(--depth-level, 96px) + var(--depth-boost, 0px));
+  perspective: var(--scene-perspective, 1400px);
+  transform: translate(-50%, -50%) translateZ(calc(var(--depth-z) * var(--depth-active, 0)));
+  transform-style: preserve-3d;
+}
+
+[data-depth-scene="full"] .ocade-depth-centered,
+[data-depth-scene="static"] .ocade-depth-centered {
+  box-shadow:
+    0 24px 64px -16px var(--depth-shadow, oklch(0 0 0 / 45%)),
+    0 6px 16px -6px var(--depth-shadow, oklch(0 0 0 / 30%));
+}
+
+/*
+ * DEPTH AS A CUE ONLY — shadow, no transform.
+ *
+ * For surfaces that cannot give up their `transform` because something else is
+ * already using it. Radix positions and animates its popovers, selects,
+ * tooltips and sheets with transforms of their own — the slide-in-from-side
+ * offsets and the open/close zoom are all `transform` — so applying
+ * `.ocade-depth` to them would replace the animation with a static translate
+ * and leave the surface appearing without any transition at all.
+ *
+ * These surfaces already read as "in front" through stacking order, so what
+ * they actually need from the depth system is the matching SHADOW. Claiming
+ * less and delivering it is the right trade here: a cue, not a coordinate.
+ */
+.ocade-depth-cue {
+  --depth-z: var(--depth-level, 64px);
+}
+
+[data-depth-scene="full"] .ocade-depth-cue,
+[data-depth-scene="static"] .ocade-depth-cue {
+  box-shadow:
+    0 calc(var(--depth-z) * 0.25) calc(var(--depth-z) * 0.9) calc(var(--depth-z) * -0.25)
+      var(--depth-shadow, oklch(0 0 0 / 34%)),
+    0 calc(var(--depth-z) * 0.06) calc(var(--depth-z) * 0.18) calc(var(--depth-z) * -0.06)
+      var(--depth-shadow, oklch(0 0 0 / 26%));
+}
+
+/*
+ * Lifting on hover is the one depth change driven by intent rather than by the
+ * pointer's position, so it is worth 8px of Z: it tells you a surface is
+ * interactive before you commit to clicking it.
+ */
+@media (hover: hover) {
+  [data-depth-scene="full"] .ocade-depth-lift:hover {
+    --depth-boost: 8px;
+  }
+}
+
+/*
+ * FOCUS MUST LIFT TOO, and this is not decoration.
+ *
+ * A keyboard user gets none of the pointer tilt and none of the hover lift, so
+ * without this the entire depth system is invisible to them — and worse, a
+ * focused control inside a panel sitting BEHIND another panel can be genuinely
+ * occluded while it holds focus. Raising the focused surface to the overlay
+ * plane guarantees the thing with focus is the thing in front.
+ */
+.ocade-depth:focus-within {
+  --depth-boost: 24px;
+}
+
+/*
+ * The system preference is honoured LAST and unconditionally, so it overrides
+ * everything above regardless of specificity or source order. A user who asked
+ * their operating system for less motion has asked every application, and this
+ * one does not get to reinterpret that as a suggestion.
+ *
+ * NOTE WHAT IS AND IS NOT SWITCHED OFF. The tilt and the transition go; the
+ * DEPTH STAYS. Reduced motion is a request to stop things moving, not a request
+ * for a flatter product, and a still 3D scene contains no motion. `--pointer-x`
+ * and `--pointer-y` are forced to zero here so the transform collapses to a
+ * pure `translateZ` even if a stale pointer value is still on the element.
+ */
+@media (prefers-reduced-motion: reduce) {
+  [data-depth-scene] {
+    --pointer-x: 0 !important;
+    --pointer-y: 0 !important;
+  }
+
+  .ocade-depth {
+    transition: none !important;
+    /* No longer animating, so the compositor layer is pure cost. */
+    will-change: auto !important;
+  }
+
+  .ocade-reveal,
+  .ocade-reveal-hidden {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -63,16 +63,15 @@ describe("every path the workflow references exists", () => {
   });
 });
 
-describe("the workflow does not pretend to have run", () => {
-  it("states plainly that it is prepared but unverified", () => {
-    expect(workflow).toMatch(/PREPARED, NOT YET VERIFIED/);
+describe("the platform workflow is a required gate", () => {
+  it("runs on relevant pushes and pull requests", () => {
+    expect(workflow).toMatch(/pull_request:/);
+    expect(workflow).toMatch(/push:/);
+    expect(workflow).toMatch(/schedule:/);
   });
 
-  it("is manually dispatched rather than wired into push CI", () => {
-    // Unvalidated jobs on every push would turn the main pipeline red on config
-    // rather than code, and a pipeline people ignore is worse than none.
+  it("also remains manually dispatchable for targeted reruns", () => {
     expect(workflow).toMatch(/workflow_dispatch:/);
-    expect(workflow).not.toMatch(/^on:\s*\n\s*push:/m);
   });
 
   it("explains why it is separate from ci.yml", () => {

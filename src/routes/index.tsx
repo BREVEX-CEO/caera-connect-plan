@@ -80,7 +80,7 @@ const pillars = [
   {
     icon: Cpu,
     title: "Local or cloud AI",
-    body: "OCADE routes between Ollama on your device and metered cloud models. Never called free. Never hidden.",
+    body: "OCADE routes between intelligence on your device and metered cloud processing. Never called free. Never hidden.",
   },
   {
     icon: ShieldCheck,

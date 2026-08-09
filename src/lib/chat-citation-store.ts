@@ -136,6 +136,45 @@ export function getChatCitations(
   };
 }
 
+/**
+ * Remove every citation that quotes one source, across all conversations.
+ *
+ * WHY THIS EXISTS. A citation carries a `snippet` — a verbatim excerpt of the
+ * document it cites. Deleting the file while leaving its citations behind means
+ * the user asked for a document to be gone and its text is still on disk, still
+ * rendered under old assistant replies. The excerpt is small, which is exactly
+ * why it gets forgotten, and it is still their content.
+ *
+ * Matched on `name`, because that is the only identifier a Citation carries.
+ * Records that end up with no citations left are dropped entirely rather than
+ * kept as empty shells — an empty record still names the conversation.
+ */
+export function removeCitationsForSource(name: string): ArtifactOutcome<{ removed: number }> {
+  const target = name.trim();
+  if (!target) return { ok: false, reason: "A source name is required." };
+  const current = read();
+  if (!current.ok) return current;
+
+  let removed = 0;
+  const next: CitationRecord[] = [];
+  for (const row of current.data) {
+    const kept = row.citations.filter((citation) => citation.name !== target);
+    removed += row.citations.length - kept.length;
+    if (kept.length > 0) next.push({ ...row, citations: kept });
+  }
+
+  if (removed === 0) {
+    return { ok: true, data: { removed: 0 }, evidence: "No stored citations quote that source." };
+  }
+  const saved = write(next);
+  if (!saved.ok) return saved;
+  return {
+    ok: true,
+    data: { removed },
+    evidence: `${removed} stored ${removed === 1 ? "excerpt" : "excerpts"} of “${target}” deleted.`,
+  };
+}
+
 export function removeConversationCitations(
   conversationId: string,
 ): ArtifactOutcome<{ removed: number }> {

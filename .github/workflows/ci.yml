@@ -12,18 +12,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  web:
-    name: Web (typecheck, lint, tests, build, gates)
-    runs-on: windows-latest
+  # ---------------------------------------------------------------------------
+  # Cross-platform correctness.
+  #
+  # WHY A MATRIX. This job used to run on windows-latest only, for a product
+  # that ships a macOS and a Linux desktop build. The defects that hides are
+  # specific and real: a path joined with a backslash, a case-insensitive import
+  # that resolves on Windows and 404s on Linux, a line-ending assumption in a
+  # snapshot. None of those fail on the machine they were written on.
+  #
+  # Node 22 is the deployed runtime; Node 20 is carried because it is still in
+  # maintenance and a contributor on it should not discover the incompatibility
+  # in review. The gate suite runs once, on the deployment platform — see the
+  # `gates` job — because those gates assert on repository content, not on
+  # platform behaviour, and running them three times proves the same thing
+  # three times.
+  # ---------------------------------------------------------------------------
+  build:
+    name: ${{ matrix.os }} · Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # One platform's failure must not cancel the others: knowing whether a
+      # break is platform-specific is most of the diagnosis.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [22]
+        include:
+          # The older supported runtime, checked on one platform rather than
+          # three — a Node-version incompatibility is not OS-specific.
+          - os: ubuntu-latest
+            node: 20
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ matrix.node }}
           cache: npm
 
+      # `npm ci` and not `npm install`: it installs exactly the committed
+      # lockfile and fails if package.json and the lockfile disagree.
       - name: Install dependencies
         run: npm ci
 
@@ -36,14 +66,61 @@ jobs:
       - name: Unit tests
         run: npm run test
 
+      # Runs the same suite with the FILE order randomised, so a test file that
+      # only passes because another ran first is caught here rather than months
+      # later when somebody adds a file in between.
+      #
+      # This found real defects: two suites deleted a shared scratch directory
+      # from inside an assertion, one corrupted a tracked ledger that a
+      # different file reads, and a git suite shared one repository across
+      # blocks that each mutated it.
+      #
+      # Test order WITHIN a file is deliberately left alone — some suites are
+      # sequential on purpose ("refuses a duplicate" only means something after
+      # "creates it"), and shuffling those would test nothing but the shuffler.
+      - name: Test isolation (shuffled file order)
+        run: npm run test:isolation
+
       - name: Production build
         run: npm run build
 
-      # These gates read the build output, so they run after it. Each has been
-      # verified to genuinely FAIL on a bad input (see the *-gate-enforces
-      # suites), so a green result here is evidence rather than decoration.
+  # ---------------------------------------------------------------------------
+  # The evidence gates.
+  #
+  # These read the repository and the build output and assert that what the
+  # project CLAIMS matches what it contains. They are platform-independent, so
+  # they run once on the deployment platform.
+  # ---------------------------------------------------------------------------
+  gates:
+    name: Evidence and honesty gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Several gates read `.output/`, so the build has to exist first.
+      - name: Production build
+        run: npm run build
+
+      # Each gate below has been verified to genuinely FAIL on a bad input (see
+      # the *-gate-enforces suites), so a green result here is evidence rather
+      # than decoration.
       - name: Performance budget
         run: npm run performance:budget
+
+      # Runs early: when the generated types fall behind the migrations, the
+      # usual workaround is an `any` escape that turns off checking for every
+      # query in the file. This makes the drift itself the failure.
+      - name: Supabase types match the migrations
+        run: npm run supabase:types-check
 
       - name: Integration honesty gate
         run: npm run integration:source-check
@@ -75,9 +152,6 @@ jobs:
       - name: Private compute and LAN-only trust gate
         run: npm run private-compute:check
 
-      - name: Enterprise browser-policy trust gate
-        run: npm run enterprise-browser-policy:check
-
       - name: Credential and signing-eligibility trust gate
         run: npm run trust-setup:check
 
@@ -99,6 +173,13 @@ jobs:
       - name: No-dead-button audit
         run: npm run controls:check
 
+      # Node globals in browser code throw at import time and take the whole
+      # page down, and no test can see them: vitest runs under Node, where
+      # `Buffer` and `process` exist — adding jsdom does not change that. This
+      # is the only gate that can catch the class.
+      - name: Browser-safety audit (no Node globals in browser code)
+        run: npm run browser-safety:check
+
       - name: Keyboard and screen-reader accessibility audit
         run: npm run a11y:check
 
@@ -119,21 +200,27 @@ jobs:
       - name: Stage 2 baseline integrity gate
         run: npm run stage2:baseline-check
 
+  # ---------------------------------------------------------------------------
+  # The Rust safety core, compiled and EXECUTED on all three desktop targets.
+  #
+  # The companion ships on Windows, macOS and Linux, and this crate is the part
+  # of it that decides what the assistant is not allowed to do — protected-text
+  # detection, prohibited typing, path-traversal rejection. Linking and running
+  # its assertions on one platform proves them on one platform.
+  # ---------------------------------------------------------------------------
   rust:
-    name: Rust companion safety core
-    runs-on: windows-latest
+    name: Rust safety core · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
 
-      # windows-latest ships the MSVC toolchain, so the safety crate can be
-      # LINKED and its tests EXECUTED here. That is the entire point of this
-      # job: on a developer machine without the C++ build tools, `cargo test`
-      # cannot link, so the safety assertions never run and the crate is only
-      # compile-verified. This turns them into executed evidence on every push.
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-pc-windows-msvc
           components: clippy, rustfmt
 
       - name: Cache cargo
@@ -145,11 +232,15 @@ jobs:
             native/companion/safety/target
           key: cargo-${{ runner.os }}-${{ hashFiles('native/companion/safety/Cargo.lock') }}
 
+      # Formatting and lint are platform-independent; run them once rather than
+      # reporting the same three failures for one misplaced brace.
       - name: Formatting
+        if: matrix.os == 'ubuntu-latest'
         working-directory: native/companion/safety
         run: cargo fmt --check
 
       - name: Clippy (warnings are errors)
+        if: matrix.os == 'ubuntu-latest'
         working-directory: native/companion/safety
         run: cargo clippy --all-targets -- -D warnings
 
@@ -157,10 +248,217 @@ jobs:
         working-directory: native/companion/safety
         run: cargo check --all-targets
 
-      # The 10 safety assertions: protected-text detection, prohibited typing,
+      # The safety assertions: protected-text detection, prohibited typing,
       # path-traversal rejection, unapproved-app refusal, audit redaction.
       - name: Test (executes the safety assertions)
         working-directory: native/companion/safety
+        run: cargo test --all-targets -- --nocapture
+
+  # ---------------------------------------------------------------------------
+  # Cloudflare Worker readiness.
+  #
+  # The application is deployed to Workers, which is neither Node nor a browser.
+  # What CI can check without an account is that the build emits a valid Worker
+  # bundle and that the deployment controller correctly REFUSES when its
+  # credentials are absent — a controller that quietly proceeds without a token
+  # is the failure worth catching here.
+  #
+  # A real `wrangler deploy --dry-run` would bundle-validate too, and is
+  # deliberately NOT used: the string `wrangler deploy` must not appear in a
+  # push-triggered workflow at all, because it is one deleted flag away from
+  # publishing on every commit. `ci-workflow.test.ts` enforces that.
+  # Credentialed deployment lives in the tag-triggered release workflow.
+  # ---------------------------------------------------------------------------
+  worker-bundle:
+    name: Cloudflare Worker readiness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Production build
+        run: npm run build
+
+      # Validates .output/server/wrangler.json against the committed config.
+      - name: Worker bundle is present and declared
+        run: npm run release:source-check
+
+      # The runner has no Cloudflare credentials, so `deploy:check` MUST refuse.
+      # Asserted as a refusal rather than run for success: a controller that
+      # returned 0 here would be one that had decided to proceed without a
+      # token, which is the failure this step exists to catch. A green tick on
+      # `npm run deploy:check` would mean the opposite of what it looks like.
+      - name: Deployment controller refuses without credentials
+        shell: bash
+        run: |
+          set +e
+          output="$(npm run deploy:check 2>&1)"
+          status=$?
+          set -e
+          echo "$output"
+          if [ "$status" -eq 0 ]; then
+            echo "::error::deploy:check succeeded with no credentials present."
+            exit 1
+          fi
+          echo "$output" | grep -q "BLOCKED" || {
+            echo "::error::deploy:check failed for some reason other than missing credentials."
+            exit 1
+          }
+
+  # ---------------------------------------------------------------------------
+  # The database (AZ-354).
+  #
+  # A dedicated job, not a step inside the test run. The migration set is the
+  # one artefact here that can be correct on the machine that wrote it and
+  # broken everywhere else, and it stayed broken for exactly that reason: DB-01
+  # (a COMMENT on a table no migration creates) meant a from-scratch rebuild
+  # aborted at migration 27, and DB-02 (an unconditional ALTER PUBLICATION on a
+  # Supabase platform object) was hidden behind it because the twin stops at the
+  # first failure.
+  #
+  # The twin applies all 33 migrations to a real PostgreSQL 18.3 in WebAssembly
+  # and runs the cross-tenant RLS attacks against the result, so this needs no
+  # database service and no credentials.
+  # ---------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # Do the safety tests actually bite?
+  #
+  # A green suite proves the tests pass. It does not prove any of them would
+  # FAIL if the code were wrong, and that gap is not theoretical: deleting the
+  # entire `/api/` service-worker cache exclusion — the rule that stops a
+  # signed-out user being served somebody's cached chat reply — once left all
+  # eighteen service-worker tests green. The test exercised a path with no file
+  # extension, so the asset check skipped it either way. It passed for the wrong
+  # reason and verified nothing.
+  #
+  # This job deletes each safety-critical guarantee in turn and requires the
+  # suite to notice: privacy routing, provenance honesty, credential detection,
+  # tamper evidence, network sealing, deletion ordering, and tenant isolation.
+  #
+  # SEPARATE JOB, ON PURPOSE. It runs the full suite once per mutation, so it is
+  # far slower than everything else here. As its own job it runs in parallel and
+  # never lengthens the feedback loop on the ordinary build.
+  # ---------------------------------------------------------------------------
+  mutation:
+    name: Safety guarantees fail when broken
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Exits non-zero if any mutation SURVIVES — and also if one is SKIPPED,
+      # because a mutation whose target text has moved is silently testing
+      # nothing, which is the same failure one level up.
+      - name: Mutation safety check
+        run: npm run test:mutation
+
+  database:
+    name: Database migrations, RLS and type parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Applies every migration to an empty database, asserts RLS is enabled on
+      # every public table, and runs the cross-tenant read/write attacks under
+      # `SET ROLE authenticated` (a superuser bypasses RLS and would pass
+      # regardless).
+      - name: Migration set rebuilds from zero, with RLS enforced
+        run: npx vitest run src/lib/__tests__/db-twin.test.ts
+
+      # Migration/rollback/verification parity and SQL discipline.
+      - name: SQL discipline
+        run: npx vitest run src/lib/__tests__/supabase-sql-discipline.test.ts
+
+      # The generated types must describe the migrations, or the usual
+      # workaround is an `any` escape that disables checking for a whole file.
+      - name: Types match the migrations
+        run: npm run supabase:types-check
+
+  # ---------------------------------------------------------------------------
+  # Extensionless managed-browser host.
+  #
+  # Real Chrome and Edge parity evidence is collected on Windows hardware.
+  # CI keeps the host syntax, protocol unit tests, and dependency graph honest.
+  # ---------------------------------------------------------------------------
+  managed-browser:
+    name: Managed browser host
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Browser host syntax and runtime dependency
+        run: npm run browser:host-check
+
+      - name: Browser policy and managed-host bridge tests
+        run: npx vitest run src/lib/__tests__/browser-bridge.test.ts src/lib/__tests__/managed-browser-bridge.test.ts
+
+  desktop-browser-supervisor:
+    name: Desktop browser supervisor · Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and self-test managed-browser sidecar
+        run: npm run browser:sidecar-build
+
+      - name: Format
+        working-directory: native/companion/tauri
+        run: cargo fmt --check
+
+      - name: Clippy
+        working-directory: native/companion/tauri
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Compile and test supervisor
+        working-directory: native/companion/tauri
         run: cargo test --all-targets -- --nocapture
 
   audit:
@@ -180,5 +478,12 @@ jobs:
 
       # Production dependency tree only: a dev-only advisory must not block a
       # release, but a production one must.
+      #
+      # NOTE ON A CONTROL THAT WAS LOST. `bunfig.toml` set `minimumReleaseAge`
+      # to 24 hours, refusing packages published in the last day as a
+      # supply-chain guard. That file is gone with the second package manager
+      # (CI has always used npm, and two lockfiles are free to drift), and npm
+      # has no equivalent setting. This audit is not a replacement for it — it
+      # finds KNOWN advisories, not a package published twenty minutes ago.
       - name: Audit production dependencies
         run: npm audit --omit=dev

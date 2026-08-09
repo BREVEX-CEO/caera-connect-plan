@@ -17,14 +17,13 @@ beforeEach(() => {
 const html = () => renderToStaticMarkup(<WorkOrchestratorPanel />);
 const source = (path: string) => readFileSync(path, "utf8");
 
-describe("the Work mission surface", () => {
-  it("is a real routed OCADE destination", () => {
+describe("the Work mission runtime", () => {
+  it("stays beneath the unified OCADE surface", () => {
     const entry = MODULE_CONTEXT.ocade.find((item) => item.to === "/ocade/work");
-    expect(entry?.label).toBe("Work");
-    expect(entry?.planned).toBeUndefined();
-    expect(source("src/routes/_authenticated/ocade.work.tsx")).toContain(
-      "<WorkOrchestratorPanel />",
-    );
+    expect(entry).toBeUndefined();
+    const legacyRoute = source("src/routes/_authenticated/ocade.work.tsx");
+    expect(legacyRoute).toContain('redirect({ to: "/ocade", replace: true })');
+    expect(source("src/routes/_authenticated/ocade.tsx")).not.toContain('to="/ocade/work"');
   });
 
   it("renders graph, role, budget, checkpoint, and supervision state", () => {

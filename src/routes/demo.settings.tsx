@@ -3,8 +3,8 @@ import { RotateCcw, LogIn, Palette, MousePointer2, Ban } from "lucide-react";
 import { DemoShell } from "@/components/shell/DemoShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
-import { useDemo } from "@/lib/demo/context";
-import { useAppearance } from "@/lib/theme-provider";
+import { useDemo } from "@/lib/demo/use-demo";
+import { useAppearance } from "@/lib/use-appearance";
 
 export const Route = createFileRoute("/demo/settings")({
   component: DemoSettings,
@@ -35,6 +35,7 @@ function DemoSettings() {
           <div className="grid grid-cols-3 gap-2">
             {themes.map((t) => (
               <button
+                aria-pressed={theme === t}
                 key={t}
                 onClick={() => update({ theme: t })}
                 className={
@@ -58,6 +59,7 @@ function DemoSettings() {
           <div className="grid grid-cols-2 gap-2">
             {cursors.map((c) => (
               <button
+                aria-pressed={cursor === c}
                 key={c}
                 onClick={() => update({ cursor: c })}
                 className={

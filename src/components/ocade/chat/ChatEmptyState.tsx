@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { SolarWorkScene, type WorkSceneActivity } from "./SolarWorkScene";
 
 /**
  * The first screen of an empty chat.
@@ -15,7 +16,7 @@ export interface Suggestion {
   hint?: string;
 }
 
-export const DEFAULT_SUGGESTIONS: Suggestion[] = [
+const DEFAULT_SUGGESTIONS: Suggestion[] = [
   {
     label: "Explain this error",
     prompt: "Explain this error message and the most likely cause:\n\n",
@@ -44,32 +45,41 @@ export function ChatEmptyState({
   suggestions = DEFAULT_SUGGESTIONS,
   onPick,
   privacyLine,
+  activity = "idle",
+  voiceAmplitude = 0,
   className,
 }: {
   greeting?: string;
   suggestions?: Suggestion[];
   onPick?: (prompt: string) => void;
   privacyLine?: string | null;
+  activity?: WorkSceneActivity;
+  voiceAmplitude?: number;
   className?: string;
 }) {
   return (
     <div
       className={cn(
-        "mx-auto flex w-full max-w-3xl flex-col items-center justify-center px-4 py-16 text-center sm:px-6",
+        "relative mx-auto flex min-h-[520px] w-full max-w-4xl flex-col items-center justify-center overflow-hidden px-4 py-16 text-center sm:px-6",
         className,
       )}
     >
-      <h1 className="text-balance text-2xl font-semibold tracking-tight text-foreground sm:text-[28px]">
+      <SolarWorkScene
+        activity={activity}
+        voiceAmplitude={voiceAmplitude}
+        className="absolute inset-x-0 top-0 h-[340px] opacity-80 [mask-image:linear-gradient(to_bottom,black_55%,transparent)]"
+      />
+      <h1 className="relative z-10 mt-36 text-balance text-2xl font-semibold tracking-tight text-foreground drop-shadow-[0_1px_14px_rgba(0,0,0,0.8)] sm:text-[28px]">
         {greeting ?? "What can OCADE do for you?"}
       </h1>
       {privacyLine ? (
-        <p className="mt-2 max-w-md text-balance text-[13px] text-muted-foreground">
+        <p className="relative z-10 mt-2 max-w-md text-balance text-[13px] text-muted-foreground">
           {privacyLine}
         </p>
       ) : null}
 
       {onPick && suggestions.length > 0 ? (
-        <ul className="mt-8 grid w-full gap-2 sm:grid-cols-2">
+        <ul className="relative z-10 mt-8 grid w-full max-w-3xl gap-2 sm:grid-cols-2">
           {suggestions.map((s) => (
             <li key={s.label}>
               <button

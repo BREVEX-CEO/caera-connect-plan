@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -73,6 +73,23 @@ describe("the test-kind gate", () => {
 
   it("leaves the tracked ledger byte-identical", () => {
     expect(readFileSync(LEDGER, "utf8")).toBe(ORIGINAL);
-    rmSync(scratch, { recursive: true, force: true });
   });
+});
+
+/*
+ * Cleanup belongs in a hook, not in a test.
+ *
+ * `rmSync(scratch)` used to sit at the end of the assertion above, which made
+ * the whole file order-dependent: run with `--sequence.shuffle` and that test
+ * can execute FIRST, deleting the scratch directory out from under every case
+ * that still needs it. They then failed with ENOENT — a failure that says
+ * nothing about the gate being tested.
+ *
+ * Found by shuffling deliberately. It never fired in normal runs because the
+ * default order happens to put that test last, which is exactly the kind of
+ * accident that survives for years and then breaks when somebody adds a test
+ * above it.
+ */
+afterAll(() => {
+  rmSync(scratch, { recursive: true, force: true });
 });

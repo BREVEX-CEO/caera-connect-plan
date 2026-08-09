@@ -8,23 +8,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const uuid = z.string().uuid();
 
-/**
- * Temporary bridge for `project_id`, which exists in the ready-to-apply OCADE
- * migration but not in the generated Supabase type until that migration is
- * applied and types are regenerated.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function pendingConversationFrom(supabase: unknown): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (supabase as { from: (table: string) => any }).from("ocade_conversations");
-}
-
 /* -------------------- Conversations -------------------- */
 
 export const listConversations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await pendingConversationFrom(context.supabase)
+    const { data, error } = await context.supabase
+      .from("ocade_conversations")
       .select(
         "id, title, pinned, archived, model_id, privacy_mode, project_id, updated_at, created_at",
       )
@@ -36,13 +26,14 @@ export const listConversations = createServerFn({ method: "GET" })
 
 export const createConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) =>
+  .validator((i) =>
     z
       .object({ title: z.string().max(200).optional(), modelId: z.string().max(200).optional() })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await pendingConversationFrom(context.supabase)
+    const { data: row, error } = await context.supabase
+      .from("ocade_conversations")
       .insert({
         user_id: context.userId,
         title: data.title ?? "New chat",
@@ -66,7 +57,7 @@ const updateInput = z.object({
 
 export const updateConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => updateInput.parse(i))
+  .validator((i) => updateInput.parse(i))
   .handler(async ({ data, context }) => {
     const patch: Record<string, unknown> = {};
     if (data.title !== undefined) patch.title = data.title;
@@ -83,7 +74,7 @@ export const updateConversation = createServerFn({ method: "POST" })
 
 export const deleteConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ id: uuid }).parse(i))
+  .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("ocade_conversations").delete().eq("id", data.id);
     if (error) throw new Response(error.message, { status: 500 });
@@ -94,7 +85,7 @@ export const deleteConversation = createServerFn({ method: "POST" })
 
 export const listMessages = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ conversationId: uuid }).parse(i))
+  .validator((i) => z.object({ conversationId: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { data: rows, error } = await context.supabase
       .from("ocade_messages")
@@ -107,7 +98,7 @@ export const listMessages = createServerFn({ method: "GET" })
 
 export const deleteMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ id: uuid }).parse(i))
+  .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("ocade_messages").delete().eq("id", data.id);
     if (error) throw new Response(error.message, { status: 500 });
@@ -124,7 +115,7 @@ export const deleteMessage = createServerFn({ method: "POST" })
  */
 export const appendOcadeMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) =>
+  .validator((i) =>
     z
       .object({
         conversationId: uuid,
@@ -185,7 +176,7 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
 
 export const exportConversation = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ conversationId: uuid }).parse(i))
+  .validator((i) => z.object({ conversationId: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const [{ data: conv }, { data: msgs }] = await Promise.all([
       context.supabase
@@ -212,7 +203,7 @@ export const exportConversation = createServerFn({ method: "GET" })
 
 export const improvePrompt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ text: z.string().min(1).max(4000) }).parse(i))
+  .validator((i) => z.object({ text: z.string().min(1).max(4000) }).parse(i))
   .handler(async ({ data }) => {
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Response("AI gateway not configured", { status: 500 });

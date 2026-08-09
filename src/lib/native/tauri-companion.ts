@@ -30,6 +30,18 @@ import {
 } from "./companion-bridge";
 import type { NativeObservationAdapter, NativeObservationRequest } from "./automation-observer";
 import { NativeCompanionRequiredError } from "../storage/types";
+import {
+  installManagedCdpBrowserBridge,
+  MANAGED_BROWSER_PROTOCOL_VERSION,
+  type BrowserHostReply,
+  type BrowserHostTransport,
+} from "./cdp-browser-bridge";
+import {
+  readBrowserSitePolicy,
+  setBrowserBridge,
+  UnavailableBrowserBridge,
+  type BrowserBridgeStatus,
+} from "./browser-bridge";
 
 export const COMPANION_SESSION_CLOSED_REASON =
   "The secure companion session is closed. Reconnect before running computer actions.";
@@ -76,6 +88,22 @@ export interface TauriCompanionOptions {
   /** Shared key established during pairing. Never leaves the machine. */
   key: Uint8Array;
   invokeFn?: (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
+}
+
+export interface PythonHostRequest {
+  version: 1;
+  command: string;
+  params?: Record<string, unknown>;
+  approved?: true;
+  scope?: string;
+}
+
+export interface PythonHostReply<T = unknown> {
+  id?: string | number;
+  ok: boolean;
+  result?: T;
+  elapsedMs?: number;
+  error?: { type?: string; message?: string };
 }
 
 function parseNativeOutput(value: unknown): ExecuteResult["output"] | undefined {
@@ -297,6 +325,101 @@ export class TauriCompanion implements NativeCompanionAdapter, NativeObservation
     await this.call("set_allowlist", { request, apps, paths });
   }
 
+  /** Signed transport for the companion-supervised Playwright sidecar. */
+  async browserHostRequest<T = unknown>(
+    hostRequest: Record<string, unknown>,
+    signal?: AbortSignal,
+  ): Promise<BrowserHostReply<T>> {
+    this.ensureOpen();
+    if (hostRequest.command === "emergency_stop") {
+      await this.emergencyStop();
+      return {
+        ok: true,
+        data: {
+          acknowledged: true,
+          detail: "Emergency stop latched and all managed browser sessions closed.",
+        } as T,
+      };
+    }
+    if (signal?.aborted) throw abortError();
+    const signedArgs = { hostRequest };
+    const request = this.session.sign("browser_host_request", signedArgs);
+    const pending = this.call("browser_host_request", { request, hostRequest }) as Promise<
+      BrowserHostReply<T>
+    >;
+    if (!signal) return pending;
+
+    return new Promise<BrowserHostReply<T>>((resolve, reject) => {
+      const onAbort = () => {
+        const runId = typeof hostRequest.runId === "string" ? hostRequest.runId : null;
+        if (runId && hostRequest.command === "perform") {
+          void this.browserHostRequest({
+            version: MANAGED_BROWSER_PROTOCOL_VERSION,
+            command: "cancel",
+            runId,
+          }).catch(() => undefined);
+        }
+        reject(abortError());
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+      void pending.then(
+        (reply) => {
+          signal.removeEventListener("abort", onAbort);
+          resolve(reply);
+        },
+        (error) => {
+          signal.removeEventListener("abort", onAbort);
+          reject(error);
+        },
+      );
+    });
+  }
+
+  browserHostTransport(): BrowserHostTransport {
+    return { request: (request, signal) => this.browserHostRequest(request, signal) };
+  }
+
+  /** Signed transport for bounded Python perception, gesture, voice, and system commands. */
+  async pythonHostRequest<T = unknown>(
+    hostRequest: PythonHostRequest,
+    signal?: AbortSignal,
+  ): Promise<PythonHostReply<T>> {
+    this.ensureOpen();
+    if (signal?.aborted) throw abortError("The local control request was cancelled.");
+    const signedArgs = { hostRequest };
+    const request = this.session.sign("python_host_request", signedArgs);
+    const pending = this.call("python_host_request", { request, hostRequest }) as Promise<
+      PythonHostReply<T>
+    >;
+    if (!signal) return pending;
+
+    return new Promise<PythonHostReply<T>>((resolve, reject) => {
+      const onAbort = () => {
+        void this.pythonHostRequest({
+          version: 1,
+          command: "emergency.stop",
+          params: {},
+        }).catch(() => undefined);
+        reject(abortError("The local control request was cancelled."));
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+      void pending.then(
+        (reply) => {
+          signal.removeEventListener("abort", onAbort);
+          resolve(reply);
+        },
+        (error) => {
+          signal.removeEventListener("abort", onAbort);
+          reject(error);
+        },
+      );
+    });
+  }
+
+  managedBrowserSessionId(): string {
+    return this.sessionId;
+  }
+
   /** Host audit trail. Already redacted host-side before it is stored. */
   async auditLog(): Promise<AuditEntry[]> {
     if (this.closed) return [];
@@ -342,6 +465,7 @@ export class TauriCompanion implements NativeCompanionAdapter, NativeObservation
     invalidateCompanionBootstrap(this);
     if (getCompanion() === this) {
       setCompanionAdapter(new UnavailableCompanion(COMPANION_SESSION_CLOSED_REASON));
+      setBrowserBridge(new UnavailableBrowserBridge(COMPANION_SESSION_CLOSED_REASON));
     }
 
     this.closeAttempt = (async () => {
@@ -439,6 +563,31 @@ export class TauriCompanion implements NativeCompanionAdapter, NativeObservation
       throw new NativeCompanionRequiredError(COMPANION_SESSION_CLOSED_REASON);
     }
   }
+}
+
+function abortError(message = "The managed browser request was cancelled."): Error {
+  const error = new Error(message);
+  error.name = "AbortError";
+  return error;
+}
+
+/** Install a managed Chrome session, falling back to Edge when Chrome is unavailable. */
+export async function installCompanionManagedBrowserBridge(
+  companion: TauriCompanion,
+): Promise<BrowserBridgeStatus> {
+  const config = {
+    sessionId: companion.managedBrowserSessionId(),
+    approvedOrigins: () => readBrowserSitePolicy().allowOrigins,
+  } as const;
+  const chrome = await installManagedCdpBrowserBridge(companion.browserHostTransport(), {
+    ...config,
+    browser: "chrome",
+  });
+  if (chrome.available) return chrome;
+  return installManagedCdpBrowserBridge(companion.browserHostTransport(), {
+    ...config,
+    browser: "edge",
+  });
 }
 
 /**
@@ -555,6 +704,9 @@ export function bootstrapCompanion(
       bytes.fill(0);
       bootstrappedAdapter = adapter;
       setCompanionAdapter(adapter);
+      if (!invokeFn && detectTauri()) {
+        await installCompanionManagedBrowserBridge(adapter);
+      }
       return { installed: true };
     } catch (e) {
       // Deliberately does NOT include the error verbatim — a pairing failure

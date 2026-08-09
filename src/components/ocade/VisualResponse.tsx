@@ -3,7 +3,7 @@ import { Sparkles, Download, Save, X, Volume2, Loader2, ChevronRight } from "luc
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useAppearance } from "@/lib/theme-provider";
+import { useAppearance } from "@/lib/use-appearance";
 import {
   planVisualResponse,
   chooseVisualMode,

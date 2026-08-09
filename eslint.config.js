@@ -20,7 +20,23 @@ export default tseslint.config(
      * They are excluded from version control already; excluding them here just
      * makes the linter agree with the repository about what the source is.
      */
-    ignores: ["dist", ".output", ".vinxi", "native/**/target/**", ".codex/**", ".claude/**"],
+    ignores: [
+      "dist",
+      ".output",
+      ".vinxi",
+      ".browser-sidecar/**",
+      ".python-sidecar/**",
+      ".venv/**",
+      "**/__pycache__/**",
+      "**/.pytest_cache/**",
+      "**/.ruff_cache/**",
+      "**/.mypy_cache/**",
+      "native/**/binaries/**",
+      "native/**/gen/**",
+      "native/**/target/**",
+      ".codex/**",
+      ".claude/**",
+    ],
   },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],

@@ -150,13 +150,13 @@ describe("a claim may not outrun its evidence", () => {
         version: "123.0",
         supportedActions: ["navigate"],
         evidence: ["chrome --version returned 123.0"],
-        limitations: ["The extension is not paired, so DOM inspection is unavailable."],
+        limitations: ["The managed browser host is not connected, so DOM inspection is unavailable."],
       }),
     );
 
     const app = registry.getAppCoverage("app.chrome");
     expect(app?.coverageLevel).toBe("PARTIAL");
-    expect(app?.evidence.join(" ")).toMatch(/extension is not paired/i);
+    expect(app?.evidence.join(" ")).toMatch(/managed browser host is not connected/i);
   });
 
   it("publishes FULL only for a detected app with evidence and no limitation", async () => {

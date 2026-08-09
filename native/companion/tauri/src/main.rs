@@ -1,8 +1,8 @@
 //! CAERA Native Companion — Tauri application entry point.
 //!
-//! STATUS: source complete; NOT built or signed in this environment (the MSVC
-//! linker is unavailable here, so only `cargo check` runs). No capability is
-//! advertised to the app as working until a signed binary is runtime-proven.
+//! STATUS: capabilities are discovered at runtime and advertised only when the
+//! corresponding packaged sidecars and operating-system facilities exist. Code
+//! signing remains a release-pipeline responsibility, never a source-level claim.
 //!
 //! Trust model
 //! -----------
@@ -43,6 +43,7 @@ use tauri::{
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
+mod browser_host;
 mod platform;
 
 /// Everything the companion needs at runtime, guarded for cross-thread access.
@@ -60,6 +61,10 @@ struct Companion {
     artifact_dir: Mutex<Option<PathBuf>>,
     allowlist_path: Mutex<Option<PathBuf>>,
     observations: Mutex<HashMap<String, ObservationExpectation>>,
+    /// The only parent of the extensionless Playwright/CDP sidecar.
+    browser: browser_host::BrowserHostSupervisor,
+    /// The only parent of the bounded Python perception/control sidecar.
+    python: browser_host::BrowserHostSupervisor,
 }
 
 impl Companion {
@@ -73,6 +78,8 @@ impl Companion {
             artifact_dir: Mutex::new(None),
             allowlist_path: Mutex::new(None),
             observations: Mutex::new(HashMap::new()),
+            browser: browser_host::BrowserHostSupervisor::default(),
+            python: browser_host::BrowserHostSupervisor::python(),
         }
     }
 
@@ -482,6 +489,7 @@ fn close_session(
             session_id: &session_id,
         },
     )?;
+    state.browser.close_session(&session_id);
     state
         .ipc
         .lock()
@@ -493,6 +501,17 @@ fn close_session(
 #[tauri::command]
 fn status(state: State<'_, Companion>) -> StatusReply {
     let backend = platform::discover();
+    let mut capabilities = backend.capabilities;
+    if state.browser.available() {
+        capabilities.push("browser_cdp".into());
+    }
+    if state.python.available() {
+        capabilities.extend(
+            ["python_control", "gesture", "vision_ocr", "local_voice"]
+                .into_iter()
+                .map(String::from),
+        );
+    }
     StatusReply {
         // This can be true only inside a real built companion whose backend
         // discovery found the required OS facilities.
@@ -500,10 +519,110 @@ fn status(state: State<'_, Companion>) -> StatusReply {
         version: env!("CARGO_PKG_VERSION").to_string(),
         halted: state.emergency.is_halted(),
         reason: backend.reason,
-        capabilities: backend.capabilities,
+        capabilities,
         permissions: backend.permissions,
         install_guidance: backend.install_guidance,
     }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct BrowserHostArgs<'a> {
+    host_request: &'a serde_json::Value,
+}
+
+/// Forward one typed request to the supervised browser sidecar.
+///
+/// The request is signed as a whole and checked again by the Rust supervisor
+/// before it reaches the pipe. There is no arbitrary command or script field.
+#[tauri::command]
+async fn browser_host_request(
+    app: tauri::AppHandle,
+    state: State<'_, Companion>,
+    request: SignedRequest,
+    host_request: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    verify_signed(
+        &state,
+        &request,
+        "browser_host_request",
+        &BrowserHostArgs {
+            host_request: &host_request,
+        },
+    )?;
+    let command = host_request
+        .get("command")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("invalid")
+        .to_string();
+    if state.emergency.is_halted() && !matches!(command.as_str(), "status" | "emergency_stop") {
+        return Err("Emergency stop is active. Reset it before controlling a browser.".into());
+    }
+    let worker_app = app.clone();
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        worker_app
+            .state::<Companion>()
+            .browser
+            .request(host_request)
+    })
+    .await
+    .map_err(|_| "The managed-browser worker stopped unexpectedly.".to_string())?;
+    state.record(
+        "-",
+        &format!("Managed-browser command {command}."),
+        result.is_ok(),
+    );
+    result
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PythonHostArgs<'a> {
+    host_request: &'a serde_json::Value,
+}
+
+/// Forward one signed, allowlisted request to the bounded Python sidecar.
+/// The sidecar inherits pipes only and cannot accept arbitrary shell commands.
+#[tauri::command]
+async fn python_host_request(
+    app: tauri::AppHandle,
+    state: State<'_, Companion>,
+    request: SignedRequest,
+    host_request: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    verify_signed(
+        &state,
+        &request,
+        "python_host_request",
+        &PythonHostArgs {
+            host_request: &host_request,
+        },
+    )?;
+    let command = host_request
+        .get("command")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("invalid")
+        .to_string();
+    if state.emergency.is_halted()
+        && !matches!(
+            command.as_str(),
+            "health" | "system.read" | "emergency.stop"
+        )
+    {
+        return Err("Emergency stop is active. Reset it before using local control.".into());
+    }
+    let worker_app = app.clone();
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        worker_app.state::<Companion>().python.request(host_request)
+    })
+    .await
+    .map_err(|_| "The Python-control worker stopped unexpectedly.".to_string())?;
+    state.record(
+        "-",
+        &format!("Python-control command {command}."),
+        result.is_ok(),
+    );
+    result
 }
 
 #[tauri::command]
@@ -1106,6 +1225,8 @@ fn cancel(
 #[tauri::command]
 fn emergency_stop(app: tauri::AppHandle, state: State<'_, Companion>) -> Result<bool, String> {
     state.emergency.halt();
+    state.browser.emergency_stop();
+    state.python.emergency_stop();
     state.record("-", "EMERGENCY STOP — all companion actions halted.", true);
     let _ = app.emit("ocade://emergency-stop", true);
     Ok(true)
@@ -1154,6 +1275,12 @@ fn main() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Companion::new())
         .setup(|app| {
+            app.state::<Companion>()
+                .browser
+                .configure(browser_host::locate_sidecar());
+            app.state::<Companion>()
+                .python
+                .configure(browser_host::locate_python_sidecar());
             let data_dir = app.path().app_data_dir()?;
             let journal_path = data_dir.join("operation-journal-v1.jsonl");
             app.state::<Companion>()
@@ -1220,6 +1347,8 @@ fn main() {
                     "stop" => {
                         if let Some(state) = app.try_state::<Companion>() {
                             state.emergency.halt();
+                            state.browser.emergency_stop();
+                            state.python.emergency_stop();
                             state.record("-", "EMERGENCY STOP from tray.", true);
                         }
                         let _ = app.emit("ocade://emergency-stop", true);
@@ -1251,6 +1380,8 @@ fn main() {
                             if shortcut == &stop_key {
                                 if let Some(state) = handle.try_state::<Companion>() {
                                     state.emergency.halt();
+                                    state.browser.emergency_stop();
+                                    state.python.emergency_stop();
                                     state.record("-", "EMERGENCY STOP from global hotkey.", true);
                                 }
                                 let _ = handle.emit("ocade://emergency-stop", true);
@@ -1285,6 +1416,8 @@ fn main() {
             application_inventory,
             get_allowlist,
             set_allowlist,
+            browser_host_request,
+            python_host_request,
             execute,
             observe,
             cancel,

@@ -20,7 +20,7 @@ import {
   type SitePolicy,
 } from "../native/browser-bridge";
 import { isProtectedText } from "../native/companion-bridge";
-import { hasProtectedFields, type PageSummary } from "../native/extension-protocol";
+import { hasProtectedFields, type PageSummary } from "../native/browser-dom";
 import {
   selectUniversalRoute,
   type UniversalRouteCandidate,
@@ -515,7 +515,7 @@ function browserCandidate(
   return {
     candidateId: "email-browser-dom",
     route: "dom",
-    interfaceId: "ocade.browser-extension",
+    interfaceId: "ocade.managed-browser",
     available: available && authenticatedByUser,
     officialOrApproved: true,
     supportedAppIds: ["ocade.email"],
@@ -529,7 +529,7 @@ function browserCandidate(
     health: available ? "healthy" : "failing",
     supportsRecording: true,
     evidence:
-      "Paired browser extension with per-origin fill permission and post-submit observation.",
+      "OCADE-managed Playwright/CDP session with per-origin fill permission and post-submit observation.",
   };
 }
 
@@ -703,7 +703,7 @@ async function sendViaBrowser(input: {
     receipt: {
       runId: input.runId,
       route: "dom",
-      providerId: "ocade.browser-extension",
+      providerId: "ocade.managed-browser",
       previewHash: input.preview.previewHash,
       status: submitted.receipt.status,
       recipientCount: input.preview.recipientCount,

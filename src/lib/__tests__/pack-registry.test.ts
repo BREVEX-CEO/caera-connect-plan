@@ -319,7 +319,7 @@ describe("desktop packs stay honest about the unbuilt companion", () => {
     }
   });
 
-  it("the web pack IS version-pinned to the extension protocol", () => {
+  it("the web pack is version-pinned to the managed browser protocol", () => {
     const m = matchPack(
       { appId: "ocade.web", displayName: "Web pages", version: "1.0" },
       new PackRegistry().list(),

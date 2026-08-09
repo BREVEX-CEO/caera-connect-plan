@@ -31,3 +31,19 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Generated managed-browser sidecars. CI/release builds recreate the
+# target-specific executable and Tauri bundles it through externalBin.
+.browser-sidecar/
+.python-sidecar/
+.venv/
+**/__pycache__/
+**/.pytest_cache/
+native/companion/tauri/binaries/ocade-browser-host-*
+native/companion/tauri/binaries/ocade-python-host-*
+native/companion/tauri/target/
+native/companion/tauri/gen/
+native/**/target/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.mypy_cache/

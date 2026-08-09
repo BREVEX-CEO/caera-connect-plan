@@ -104,12 +104,13 @@ describe("CI never calls a script that does not exist", () => {
 });
 
 describe("the platform workflows do not overstate themselves", () => {
-  it("keeps the unverified platform jobs manually triggered and labelled", () => {
-    // Android, iOS and Windows packaging have never run. If those jobs fired on
-    // every push, a green tick would read as device evidence that does not exist.
+  it("runs required platform jobs on changes while retaining manual dispatch", () => {
     const src = sources.get("platforms.yml")!;
     expect(src).toMatch(/workflow_dispatch/);
-    expect(src).toMatch(/NOT YET VERIFIED/i);
+    expect(src).toMatch(/pull_request:/);
+    expect(src).toMatch(/push:/);
+    expect(src).toMatch(/schedule:/);
+    expect(src).toMatch(/desktop:bundle:windows/);
   });
 
   it("runs the Rust safety tests in CI, where a linker exists", () => {

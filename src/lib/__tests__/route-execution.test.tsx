@@ -95,9 +95,16 @@ const CANNOT_RENDER_STANDALONE: Record<string, string> = {
 
 describe("every route module loads", () => {
   it("finds the whole route tree, not a subset", () => {
-    // If a glob change silently narrowed this, coverage would drop to nothing
-    // while every test still passed.
-    expect(entries.length).toBeGreaterThanOrEqual(75);
+    /*
+     * If a glob change silently narrowed this, coverage would drop to nothing
+     * while every test still passed.
+     *
+     * The floor was 75 when FICIA, MADEE and CANIA shipped 34 screens between
+     * them. Those are now three placeholder routes, so the real tree is 41
+     * modules and a floor of 75 would fail for the right reason — which is
+     * exactly why the number is recalibrated here rather than deleted.
+     */
+    expect(entries.length).toBeGreaterThanOrEqual(38);
   });
 
   it("imports every route without a module-level throw", () => {
@@ -120,7 +127,9 @@ describe("every route renders", () => {
   );
 
   it("has components to render", () => {
-    expect(renderable.length).toBeGreaterThanOrEqual(70);
+    // The compatibility-only /ocade/work module redirects into the unified
+    // surface and deliberately has no page component of its own.
+    expect(renderable.length).toBeGreaterThanOrEqual(35);
   });
 
   it.each(renderable.map(([path, mod]) => [path, mod] as const))(

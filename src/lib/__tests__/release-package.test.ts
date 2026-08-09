@@ -8,16 +8,14 @@ const read = (path: string) => readFileSync(resolve(root, path), "utf8");
 const json = <T>(path: string): T => JSON.parse(read(path)) as T;
 
 describe("OCADE release source package", () => {
-  it("uses one prerelease version across web, extension, desktop, Android, and iOS", () => {
+  it("uses one prerelease version across web, desktop, Android, and iOS", () => {
     const pkg = json<{ name: string; version: string }>("package.json");
-    const extension = json<{ version: string }>("extension/manifest.json");
     const tauri = json<{ version: string }>("native/companion/tauri/tauri.conf.json");
     const android = read("android/app/build.gradle");
     const ios = read("ios/App/App.xcodeproj/project.pbxproj");
 
     expect(pkg.name).toBe("caera-cadane-ocade");
     expect(pkg.version).toBe(OCADE_RELEASE_VERSION);
-    expect(extension.version).toBe(OCADE_RELEASE_VERSION);
     expect(tauri.version).toBe(OCADE_RELEASE_VERSION);
     expect(android).toContain(`versionName "${OCADE_RELEASE_VERSION}"`);
     expect(ios.match(/MARKETING_VERSION = ([^;]+);/g)).toEqual([
