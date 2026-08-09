@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-03T16:18:25.754Z",
+  "generatedAt": "2026-08-09T04:03:38.667Z",
   "tier": "REAL TARGET RUNTIME VERIFIED",
   "caveat": "One machine, one engine build, one point in time. Free memory at the start is recorded because it dominates the cold figure; a run taken on a busy machine is not comparable to one taken on an idle one. This is not a platform matrix.",
   "method": {
@@ -14,23 +14,23 @@
     "cpu": "11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz",
     "logicalCores": 8,
     "totalRamGib": 15.65,
-    "freeRamGibAtStart": 7.22,
+    "freeRamGibAtStart": 6.49,
     "engineVersion": "0.30.11"
   },
   "skipped": [],
   "results": [
     {
       "tag": "qwen3:1.7b",
-      "coldFirstTokenMs": 8975,
-      "coldTotalMs": 8976,
+      "coldFirstTokenMs": 7057,
+      "coldTotalMs": 7057,
       "warmFirstTokenMs": [
-        9477,
-        2811
+        448,
+        3698
       ],
-      "medianWarmFirstTokenMs": 6144,
+      "medianWarmFirstTokenMs": 2073,
       "warmTotalMs": [
-        9477,
-        2812
+        548,
+        3698
       ],
       "visibleChars": [
         7,
@@ -40,43 +40,43 @@
       "leakedReasoning": false,
       "overlongForTheQuestion": false,
       "replySample": "Jupiter",
-      "freeRamGibAfter": 5.23
+      "freeRamGibAfter": 4.35
     },
     {
       "tag": "qwen3:4b",
-      "coldFirstTokenMs": 13213,
-      "coldTotalMs": 53507,
+      "coldFirstTokenMs": 9196,
+      "coldTotalMs": 35480,
       "warmFirstTokenMs": [
-        1090,
-        2631
+        411,
+        441
       ],
-      "medianWarmFirstTokenMs": 1861,
+      "medianWarmFirstTokenMs": 426,
       "warmTotalMs": [
-        47380,
-        43655
+        36484,
+        25702
       ],
       "visibleChars": [
-        1104,
-        908
+        1307,
+        904
       ],
       "answeredCorrectly": true,
       "leakedReasoning": true,
       "overlongForTheQuestion": true,
-      "replySample": "Hmm, the user is asking for the largest planet in our solar system. They want just the name, no extra stuff. \n\nOkay, let me think... Solar system planets... The",
-      "freeRamGibAfter": 3.94
+      "replySample": "Hmm, the user is asking for the largest planet in our solar system. They want just the name as the answer, no extra stuff. \n\nOkay, let me think... Solar system ",
+      "freeRamGibAfter": 3.62
     },
     {
       "tag": "qwen3:8b",
-      "coldFirstTokenMs": 26932,
-      "coldTotalMs": 27597,
+      "coldFirstTokenMs": 15156,
+      "coldTotalMs": 15575,
       "warmFirstTokenMs": [
-        2627,
-        1757
+        472,
+        471
       ],
-      "medianWarmFirstTokenMs": 2192,
+      "medianWarmFirstTokenMs": 472,
       "warmTotalMs": [
-        3267,
-        2352
+        868,
+        835
       ],
       "visibleChars": [
         7,
@@ -86,7 +86,7 @@
       "leakedReasoning": false,
       "overlongForTheQuestion": false,
       "replySample": "Jupiter",
-      "freeRamGibAfter": 1.13
+      "freeRamGibAfter": 1.26
     }
   ]
 }

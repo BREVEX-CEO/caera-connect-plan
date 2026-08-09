@@ -1,0 +1,570 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-09T04:48:51.886703+00:00",
+  "target": "real-local-windows",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "summary": {
+    "passed": 12,
+    "blocked": 0
+  },
+  "observations": [
+    {
+      "name": "python-packages",
+      "status": "passed",
+      "elapsedMs": 136.14,
+      "result": [
+        {
+          "package": "pywin32",
+          "version": "312",
+          "license": "PSF-2.0",
+          "homepage": "Homepage, https://github.com/mhammond/pywin32"
+        },
+        {
+          "package": "pywinauto",
+          "version": "0.6.9",
+          "license": "BSD-3-Clause",
+          "homepage": "https://github.com/pywinauto/pywinauto"
+        },
+        {
+          "package": "PyAutoGUI",
+          "version": "0.9.54",
+          "license": "BSD-3-Clause",
+          "homepage": "https://github.com/asweigart/pyautogui"
+        },
+        {
+          "package": "pynput",
+          "version": "1.8.2",
+          "license": "LGPL-3.0-only",
+          "homepage": "https://github.com/moses-palmer/pynput"
+        },
+        {
+          "package": "psutil",
+          "version": "7.2.2",
+          "license": "BSD-3-Clause",
+          "homepage": "https://github.com/giampaolo/psutil"
+        },
+        {
+          "package": "opencv-contrib-python",
+          "version": "4.14.0.94",
+          "license": "Apache-2.0",
+          "homepage": "https://github.com/opencv/opencv-python"
+        },
+        {
+          "package": "mediapipe",
+          "version": "0.10.35",
+          "license": "Apache-2.0",
+          "homepage": "https://github.com/google/mediapipe"
+        },
+        {
+          "package": "mss",
+          "version": "10.2.0",
+          "license": "MIT",
+          "homepage": "Homepage, https://github.com/BoboTiG/python-mss"
+        },
+        {
+          "package": "dxcam",
+          "version": "0.3.0",
+          "license": "MIT",
+          "homepage": "Source, https://github.com/ra1nty/DXcam"
+        },
+        {
+          "package": "pytesseract",
+          "version": "0.3.13",
+          "license": "Apache-2.0",
+          "homepage": "https://github.com/madmaze/pytesseract"
+        },
+        {
+          "package": "sounddevice",
+          "version": "0.5.5",
+          "license": "MIT",
+          "homepage": "Documentation, https://python-sounddevice.readthedocs.io/"
+        },
+        {
+          "package": "faster-whisper",
+          "version": "1.2.1",
+          "license": "MIT",
+          "homepage": "https://github.com/SYSTRAN/faster-whisper"
+        },
+        {
+          "package": "webrtcvad-wheels",
+          "version": "2.0.14",
+          "license": "MIT",
+          "homepage": "https://github.com/daanzu/py-webrtcvad-wheels"
+        },
+        {
+          "package": "pyttsx3",
+          "version": "2.99",
+          "license": "MPL-2.0",
+          "homepage": "Homepage, https://github.com/nateshmbhat/pyttsx3"
+        },
+        {
+          "package": "adb-shell",
+          "version": "0.4.4",
+          "license": "Apache-2.0",
+          "homepage": "https://github.com/JeffLIrion/adb_shell"
+        },
+        {
+          "package": "pytest",
+          "version": "9.1.1",
+          "license": "MIT",
+          "homepage": "Changelog, https://docs.pytest.org/en/stable/changelog.html"
+        },
+        {
+          "package": "ruff",
+          "version": "0.16.2",
+          "license": "MIT",
+          "homepage": "https://docs.astral.sh/ruff"
+        },
+        {
+          "package": "mypy",
+          "version": "2.3.0",
+          "license": "MIT",
+          "homepage": "Homepage, https://www.mypy-lang.org/"
+        },
+        {
+          "package": "pyinstaller",
+          "version": "6.22.0",
+          "license": "GPL-2.0-or-later WITH Bootloader-exception",
+          "homepage": "Homepage, https://pyinstaller.org"
+        }
+      ]
+    },
+    {
+      "name": "psutil-system",
+      "status": "passed",
+      "elapsedMs": 223.98,
+      "result": {
+        "platform": "Windows-10-10.0.19045-SP0",
+        "python": "3.12.10",
+        "logicalCpus": 8,
+        "physicalCpus": 4,
+        "cpuPercent": 81.9,
+        "memory": {
+          "total": 16801841152,
+          "available": 6417874944,
+          "percent": 61.8
+        },
+        "disk": {
+          "total": 510672236544,
+          "free": 30287912960,
+          "percent": 94.1
+        },
+        "battery": {
+          "percent": 100,
+          "plugged": true,
+          "secondsLeft": -2
+        },
+        "processCount": 291,
+        "elapsedMs": 223.95
+      }
+    },
+    {
+      "name": "pyautogui-pynput-pointer",
+      "status": "passed",
+      "elapsedMs": 74.2,
+      "result": {
+        "requested": [
+          640,
+          360
+        ],
+        "observed": [
+          640,
+          360
+        ],
+        "restored": [
+          1530,
+          261
+        ],
+        "moveAndReadbackMs": 30.75,
+        "pynputEmergencyListenerStarted": true
+      }
+    },
+    {
+      "name": "mss-opencv-capture",
+      "status": "passed",
+      "elapsedMs": 171.43,
+      "result": {
+        "bounds": {
+          "left": 0,
+          "top": 0,
+          "width": 1920,
+          "height": 1080
+        },
+        "width": 1920,
+        "height": 1080,
+        "captureMs": 139.55,
+        "sha256": "4e821753c1b61b34eb2eb67c729d8c9e0d322409e0d51909c1dcf06b1e4ec766"
+      }
+    },
+    {
+      "name": "dxcam-capture",
+      "status": "passed",
+      "elapsedMs": 130.15,
+      "result": {
+        "shape": [
+          1080,
+          1920,
+          3
+        ],
+        "captureMs": 12.49
+      }
+    },
+    {
+      "name": "pywin32-pywinauto-notepad-ocr-som",
+      "status": "passed",
+      "elapsedMs": 2622.62,
+      "result": {
+        "pid": 12900,
+        "handle": 81462572,
+        "typeAndReadbackMs": 212.27,
+        "uiaReadback": "OCADE PYTHON OCR 73",
+        "ocrReadback": "\u201cUNTITLED - NOTEPAD - AG X FILE EDIT FORMAT VIEW HELP JOCADE PYTHON OCR 73] LN 1, COL20 100% WINDOWS (CRLF) \u2014_UTF-8",
+        "ocrMs": 844.5,
+        "setOfMarkCount": 22,
+        "layoutHash": "a722852c156fda9fd13e3274355836c4228b863d275ef4944d14cd5e90041b9d"
+      }
+    },
+    {
+      "name": "mediapipe-hand-landmarker-camera",
+      "status": "passed",
+      "elapsedMs": 11399.77,
+      "result": {
+        "frames": 216,
+        "handsSeen": 0,
+        "gestureEvents": 0,
+        "applyActions": false,
+        "emergencyHotkey": "F12",
+        "meanFrameToDecisionMs": 35.54,
+        "p95FrameToDecisionMs": 53.03,
+        "events": [],
+        "cursorMutationEnabled": false
+      }
+    },
+    {
+      "name": "voice-devices",
+      "status": "passed",
+      "elapsedMs": 0.7,
+      "result": {
+        "devices": [
+          {
+            "index": 0,
+            "name": "Microsoft Sound Mapper - Input",
+            "inputs": 2,
+            "outputs": 0,
+            "defaultRate": 44100.0
+          },
+          {
+            "index": 1,
+            "name": "Microphone Array (2- Intel\u00ae Sma",
+            "inputs": 4,
+            "outputs": 0,
+            "defaultRate": 44100.0
+          },
+          {
+            "index": 2,
+            "name": "Microsoft Sound Mapper - Output",
+            "inputs": 0,
+            "outputs": 2,
+            "defaultRate": 44100.0
+          },
+          {
+            "index": 3,
+            "name": "Speaker (2- Realtek(R) Audio)",
+            "inputs": 0,
+            "outputs": 2,
+            "defaultRate": 44100.0
+          },
+          {
+            "index": 4,
+            "name": "Primary Sound Capture Driver",
+            "inputs": 2,
+            "outputs": 0,
+            "defaultRate": 44100.0
+          },
+          {
+            "index": 5,
+            "name": "Microphone Array (2- Intel\u00ae Smart Sound Technology for Digital Microphones)",
+            "inputs": 4,
+            "outputs": 0,
+            "defaultRate": 44100.0
+          },
+          {
+            "index": 6,
+            "name": "Primary Sound Driver",
+            "inputs": 0,
+            "outputs": 2,
+            "defaultRate": 44100.0
+          },
+          {
+            "index": 7,
+            "name": "Speaker (2- Realtek(R) Audio)",
+            "inputs": 0,
+            "outputs": 2,
+            "defaultRate": 44100.0
+          },
+          {
+            "index": 8,
+            "name": "Speaker (2- Realtek(R) Audio)",
+            "inputs": 0,
+            "outputs": 2,
+            "defaultRate": 48000.0
+          },
+          {
+            "index": 9,
+            "name": "Microphone Array (2- Intel\u00ae Smart Sound Technology for Digital Microphones)",
+            "inputs": 2,
+            "outputs": 0,
+            "defaultRate": 48000.0
+          },
+          {
+            "index": 10,
+            "name": "Headphones ()",
+            "inputs": 0,
+            "outputs": 2,
+            "defaultRate": 44100.0
+          },
+          {
+            "index": 11,
+            "name": "Speakers 1 (Realtek HD Audio output with SST)",
+            "inputs": 0,
+            "outputs": 2,
+            "defaultRate": 48000.0
+          },
+          {
+            "index": 12,
+            "name": "Speakers 2 (Realtek HD Audio output with SST)",
+            "inputs": 0,
+            "outputs": 2,
+            "defaultRate": 44100.0
+          },
+          {
+            "index": 13,
+            "name": "PC Speaker (Realtek HD Audio output with SST)",
+            "inputs": 2,
+            "outputs": 0,
+            "defaultRate": 48000.0
+          },
+          {
+            "index": 14,
+            "name": "Headphones 1 (Realtek HD Audio 2nd output with SST)",
+            "inputs": 0,
+            "outputs": 2,
+            "defaultRate": 48000.0
+          },
+          {
+            "index": 15,
+            "name": "Headphones 2 (Realtek HD Audio 2nd output with SST)",
+            "inputs": 0,
+            "outputs": 2,
+            "defaultRate": 44100.0
+          },
+          {
+            "index": 16,
+            "name": "PC Speaker (Realtek HD Audio 2nd output with SST)",
+            "inputs": 2,
+            "outputs": 0,
+            "defaultRate": 48000.0
+          },
+          {
+            "index": 17,
+            "name": "Microphone (Realtek HD Audio Mic input)",
+            "inputs": 2,
+            "outputs": 0,
+            "defaultRate": 44100.0
+          },
+          {
+            "index": 18,
+            "name": "Stereo Mix (Realtek HD Audio Stereo input)",
+            "inputs": 2,
+            "outputs": 0,
+            "defaultRate": 48000.0
+          },
+          {
+            "index": 19,
+            "name": "Headphones ()",
+            "inputs": 0,
+            "outputs": 2,
+            "defaultRate": 44100.0
+          },
+          {
+            "index": 20,
+            "name": "Headphones ()",
+            "inputs": 0,
+            "outputs": 2,
+            "defaultRate": 44100.0
+          },
+          {
+            "index": 21,
+            "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free AG Audio%0\r\n;(JBL TUNE700BT))",
+            "inputs": 0,
+            "outputs": 1,
+            "defaultRate": 8000.0
+          },
+          {
+            "index": 22,
+            "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free AG Audio%0\r\n;(JBL TUNE700BT))",
+            "inputs": 1,
+            "outputs": 0,
+            "defaultRate": 8000.0
+          },
+          {
+            "index": 23,
+            "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free AG Audio%0\r\n;(OnePlus Nord Buds))",
+            "inputs": 0,
+            "outputs": 1,
+            "defaultRate": 8000.0
+          },
+          {
+            "index": 24,
+            "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free AG Audio%0\r\n;(OnePlus Nord Buds))",
+            "inputs": 1,
+            "outputs": 0,
+            "defaultRate": 8000.0
+          },
+          {
+            "index": 25,
+            "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free AG Audio%0\r\n;(ZEB-THUNDER))",
+            "inputs": 0,
+            "outputs": 1,
+            "defaultRate": 8000.0
+          },
+          {
+            "index": 26,
+            "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free AG Audio%0\r\n;(ZEB-THUNDER))",
+            "inputs": 1,
+            "outputs": 0,
+            "defaultRate": 8000.0
+          },
+          {
+            "index": 27,
+            "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free AG Audio%0\r\n;(Rockerz 550))",
+            "inputs": 0,
+            "outputs": 1,
+            "defaultRate": 8000.0
+          },
+          {
+            "index": 28,
+            "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free AG Audio%0\r\n;(Rockerz 550))",
+            "inputs": 1,
+            "outputs": 0,
+            "defaultRate": 8000.0
+          },
+          {
+            "index": 29,
+            "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free AG Audio%0\r\n;(Dubstep Buzz X3))",
+            "inputs": 0,
+            "outputs": 1,
+            "defaultRate": 8000.0
+          },
+          {
+            "index": 30,
+            "name": "Headset (@System32\\drivers\\bthhfenum.sys,#2;%1 Hands-Free AG Audio%0\r\n;(Dubstep Buzz X3))",
+            "inputs": 1,
+            "outputs": 0,
+            "defaultRate": 8000.0
+          },
+          {
+            "index": 31,
+            "name": "Microphone Array 1 ()",
+            "inputs": 2,
+            "outputs": 0,
+            "defaultRate": 48000.0
+          },
+          {
+            "index": 32,
+            "name": "Microphone Array 2 ()",
+            "inputs": 2,
+            "outputs": 0,
+            "defaultRate": 48000.0
+          },
+          {
+            "index": 33,
+            "name": "Microphone Array 3 ()",
+            "inputs": 4,
+            "outputs": 0,
+            "defaultRate": 16000.0
+          },
+          {
+            "index": 34,
+            "name": "Headphones ()",
+            "inputs": 0,
+            "outputs": 2,
+            "defaultRate": 44100.0
+          },
+          {
+            "index": 35,
+            "name": "Headphones ()",
+            "inputs": 0,
+            "outputs": 2,
+            "defaultRate": 44100.0
+          }
+        ],
+        "defaultInput": 1,
+        "defaultOutput": 3
+      }
+    },
+    {
+      "name": "microphone-capture-vad",
+      "status": "passed",
+      "elapsedMs": 1951.04,
+      "result": {
+        "sampleRate": 16000,
+        "samples": 16000,
+        "peak": 2803,
+        "rms": 582.67,
+        "voicedFrames": 24,
+        "totalFrames": 33,
+        "elapsedMs": 1950.8
+      }
+    },
+    {
+      "name": "local-female-tts-and-stt",
+      "status": "passed",
+      "elapsedMs": 8841.64,
+      "result": {
+        "tts": {
+          "voice": "Microsoft Hazel Desktop - English (Great Britain)",
+          "characters": 44,
+          "firstAudioMs": 458.29,
+          "elapsedMs": 4964.45
+        },
+        "stt": {
+          "text": "Okid local voice verification 73.",
+          "language": "en",
+          "languageProbability": 1,
+          "firstPartialMs": 3705.51,
+          "elapsedMs": 3705.96,
+          "model": "tiny.en"
+        }
+      }
+    },
+    {
+      "name": "adb-readonly-probe",
+      "status": "passed",
+      "elapsedMs": 309.89,
+      "result": {
+        "transportClass": "AdbDeviceTcp",
+        "probes": [
+          {
+            "host": "127.0.0.1",
+            "port": 5037,
+            "reachable": false
+          },
+          {
+            "host": "127.0.0.1",
+            "port": 5555,
+            "reachable": false
+          }
+        ],
+        "authorizedDeviceProven": false,
+        "reason": "No pairing, authentication or device mutation is performed by a discovery probe."
+      }
+    },
+    {
+      "name": "tesseract-version",
+      "status": "passed",
+      "elapsedMs": 226.61,
+      "result": "tesseract v5.5.3.20260724"
+    }
+  ]
+}

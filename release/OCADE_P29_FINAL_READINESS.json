@@ -1,33 +1,32 @@
 {
   "schemaVersion": 1,
   "phase": "P29 - Final production-readiness closure",
-  "calculatedAt": "2026-08-05T20:16:18.509Z",
-  "branch": "main",
-  "currentHead": "0344e58c2133fcf62cc8d0a2070c6d19bbbfd611",
-  "sourceRevision": "0344e58c2133fcf62cc8d0a2070c6d19bbbfd611",
+  "calculatedAt": "2026-08-09T05:28:19.753Z",
+  "branch": "codex/ocade-closure-20260809",
+  "currentHead": "8df172a9781657a654582fd7468288c809341cf3",
+  "sourceRevision": "8df172a9781657a654582fd7468288c809341cf3",
   "targetVersion": "0.1.0",
   "evidenceBindings": {
-    "sourceRevision": "0344e58c2133fcf62cc8d0a2070c6d19bbbfd611",
+    "sourceRevision": "8df172a9781657a654582fd7468288c809341cf3",
     "targetVersion": "0.1.0",
-    "dependencyLockSha256": "cebe247d59bab6546aabb7d813ff1471e4931d15dfa97fa43faa476fd8fd288a",
+    "dependencyLockSha256": "455509eb66ed51972b7ea949738468a7af3721df51cbc2599384a089c6944fba",
     "environment": "windows-x64-node22+",
     "verificationRuleVersion": "p29-v1"
   },
   "productionReady": false,
-  "declaredNumerator": 258.5,
-  "evidenceBoundNumerator": 258.5,
+  "declaredNumerator": 272.2,
+  "evidenceBoundNumerator": 272.2,
   "denominator": 510,
-  "declaredPercent": 50.7,
-  "evidenceBoundPercent": 50.7,
+  "declaredPercent": 53.4,
+  "evidenceBoundPercent": 53.4,
   "statusCounts": {
-    "UNIT TESTED": 225,
+    "UNIT TESTED": 250,
     "INTEGRATION TESTED": 59,
-    "SOURCE COMPLETE": 17,
+    "SOURCE COMPLETE": 21,
     "SIMULATED RUNTIME VERIFIED": 52,
-    "NOT STARTED": 27,
     "EXTERNALLY BLOCKED": 99,
     "REAL TARGET RUNTIME VERIFIED": 27,
-    "PARTIAL SOURCE": 4
+    "PARTIAL SOURCE": 2
   },
   "dimensions": [
     {
@@ -63,32 +62,32 @@
     {
       "area": "Architecture Decisions and System Boundaries",
       "denominator": 6,
-      "declaredNumerator": 0,
-      "evidenceBoundNumerator": 0,
-      "notStarted": 6,
+      "declaredNumerator": 2.9,
+      "evidenceBoundNumerator": 2.9,
+      "notStarted": 0,
       "unverifiedPositiveWeight": 0,
-      "declaredPercent": 0,
-      "evidenceBoundPercent": 0
+      "declaredPercent": 48.3,
+      "evidenceBoundPercent": 48.3
     },
     {
       "area": "Architecture Decisions and System Boundaries; Shared Types Contracts and Versioning; Desktop Companion Foundation",
       "denominator": 1,
-      "declaredNumerator": 0,
-      "evidenceBoundNumerator": 0,
-      "notStarted": 1,
+      "declaredNumerator": 0.5,
+      "evidenceBoundNumerator": 0.5,
+      "notStarted": 0,
       "unverifiedPositiveWeight": 0,
-      "declaredPercent": 0,
-      "evidenceBoundPercent": 0
+      "declaredPercent": 50,
+      "evidenceBoundPercent": 50
     },
     {
       "area": "Architecture Decisions and System Boundaries; Skill Registry Reuse and Governance; Product Governance and Long-Term Evolution",
       "denominator": 1,
-      "declaredNumerator": 0,
-      "evidenceBoundNumerator": 0,
-      "notStarted": 1,
+      "declaredNumerator": 0.5,
+      "evidenceBoundNumerator": 0.5,
+      "notStarted": 0,
       "unverifiedPositiveWeight": 0,
-      "declaredPercent": 0,
-      "evidenceBoundPercent": 0
+      "declaredPercent": 50,
+      "evidenceBoundPercent": 50
     },
     {
       "area": "Audit governance",
@@ -119,46 +118,6 @@
       "unverifiedPositiveWeight": 0,
       "declaredPercent": 46,
       "evidenceBoundPercent": 46
-    },
-    {
-      "area": "Browser Extension and Web Control",
-      "denominator": 5,
-      "declaredNumerator": 2.3,
-      "evidenceBoundNumerator": 2.3,
-      "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
-      "declaredPercent": 46,
-      "evidenceBoundPercent": 46
-    },
-    {
-      "area": "Browser Extension and Web Control; Mobile Application and Native Bridge",
-      "denominator": 1,
-      "declaredNumerator": 0.4,
-      "evidenceBoundNumerator": 0.4,
-      "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
-      "declaredPercent": 40,
-      "evidenceBoundPercent": 40
-    },
-    {
-      "area": "Browser Extension and Web Control; Relay Service and Remote Sessions",
-      "denominator": 1,
-      "declaredNumerator": 0.4,
-      "evidenceBoundNumerator": 0.4,
-      "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
-      "declaredPercent": 40,
-      "evidenceBoundPercent": 40
-    },
-    {
-      "area": "Browser Extension and Web Control; Updater Staging Verification and Rollback",
-      "denominator": 1,
-      "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
-      "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
-      "declaredPercent": 50,
-      "evidenceBoundPercent": 50
     },
     {
       "area": "CAD Engineering and Solver Workflows",
@@ -253,12 +212,12 @@
     {
       "area": "Continuous Integration and Platform Workflows",
       "denominator": 8,
-      "declaredNumerator": 2.8,
-      "evidenceBoundNumerator": 2.8,
+      "declaredNumerator": 3.7,
+      "evidenceBoundNumerator": 3.7,
       "notStarted": 0,
       "unverifiedPositiveWeight": 0,
-      "declaredPercent": 35,
-      "evidenceBoundPercent": 35
+      "declaredPercent": 46.3,
+      "evidenceBoundPercent": 46.3
     },
     {
       "area": "Copilot and Cowork Orchestration",
@@ -541,6 +500,46 @@
       "evidenceBoundPercent": 50
     },
     {
+      "area": "Extensionless Browser and Web Control",
+      "denominator": 5,
+      "declaredNumerator": 2.3,
+      "evidenceBoundNumerator": 2.3,
+      "notStarted": 0,
+      "unverifiedPositiveWeight": 0,
+      "declaredPercent": 46,
+      "evidenceBoundPercent": 46
+    },
+    {
+      "area": "Extensionless Browser and Web Control; Mobile Application and Native Bridge",
+      "denominator": 1,
+      "declaredNumerator": 0.4,
+      "evidenceBoundNumerator": 0.4,
+      "notStarted": 0,
+      "unverifiedPositiveWeight": 0,
+      "declaredPercent": 40,
+      "evidenceBoundPercent": 40
+    },
+    {
+      "area": "Extensionless Browser and Web Control; Relay Service and Remote Sessions",
+      "denominator": 1,
+      "declaredNumerator": 0.4,
+      "evidenceBoundNumerator": 0.4,
+      "notStarted": 0,
+      "unverifiedPositiveWeight": 0,
+      "declaredPercent": 40,
+      "evidenceBoundPercent": 40
+    },
+    {
+      "area": "Extensionless Browser and Web Control; Updater Staging Verification and Rollback",
+      "denominator": 1,
+      "declaredNumerator": 0.5,
+      "evidenceBoundNumerator": 0.5,
+      "notStarted": 0,
+      "unverifiedPositiveWeight": 0,
+      "declaredPercent": 50,
+      "evidenceBoundPercent": 50
+    },
+    {
       "area": "External Beta and Controlled Expansion",
       "denominator": 5,
       "declaredNumerator": 2.3,
@@ -593,12 +592,12 @@
     {
       "area": "Hardware/tooling/cost/manual-step elimination",
       "denominator": 50,
-      "declaredNumerator": 24.6,
-      "evidenceBoundNumerator": 24.6,
-      "notStarted": 2,
+      "declaredNumerator": 25.6,
+      "evidenceBoundNumerator": 25.6,
+      "notStarted": 0,
       "unverifiedPositiveWeight": 0,
-      "declaredPercent": 49.2,
-      "evidenceBoundPercent": 49.2
+      "declaredPercent": 51.2,
+      "evidenceBoundPercent": 51.2
     },
     {
       "area": "Identity Sessions and Tenant Isolation",
@@ -793,12 +792,12 @@
     {
       "area": "Product Governance and Long-Term Evolution",
       "denominator": 6,
-      "declaredNumerator": 0,
-      "evidenceBoundNumerator": 0,
-      "notStarted": 6,
+      "declaredNumerator": 2.4,
+      "evidenceBoundNumerator": 2.4,
+      "notStarted": 0,
       "unverifiedPositiveWeight": 0,
-      "declaredPercent": 0,
-      "evidenceBoundPercent": 0
+      "declaredPercent": 40,
+      "evidenceBoundPercent": 40
     },
     {
       "area": "Production Launch",
@@ -823,12 +822,12 @@
     {
       "area": "Programme Charter and Product Definition",
       "denominator": 8,
-      "declaredNumerator": 0.4,
-      "evidenceBoundNumerator": 0.4,
-      "notStarted": 7,
+      "declaredNumerator": 3.5,
+      "evidenceBoundNumerator": 3.5,
+      "notStarted": 0,
       "unverifiedPositiveWeight": 0,
-      "declaredPercent": 5,
-      "evidenceBoundPercent": 5
+      "declaredPercent": 43.8,
+      "evidenceBoundPercent": 43.8
     },
     {
       "area": "Programme measurement",
@@ -903,12 +902,12 @@
     {
       "area": "Release governance",
       "denominator": 1,
-      "declaredNumerator": 0.4,
-      "evidenceBoundNumerator": 0.4,
+      "declaredNumerator": 0.5,
+      "evidenceBoundNumerator": 0.5,
       "notStarted": 0,
       "unverifiedPositiveWeight": 0,
-      "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "declaredPercent": 50,
+      "evidenceBoundPercent": 50
     },
     {
       "area": "Reliability No-Progress Detection and Long Tasks",
@@ -953,22 +952,22 @@
     {
       "area": "Requirements Decomposition and Traceability",
       "denominator": 7,
-      "declaredNumerator": 1.6,
-      "evidenceBoundNumerator": 1.6,
-      "notStarted": 3,
+      "declaredNumerator": 3.5,
+      "evidenceBoundNumerator": 3.5,
+      "notStarted": 0,
       "unverifiedPositiveWeight": 0,
-      "declaredPercent": 22.9,
-      "evidenceBoundPercent": 22.9
+      "declaredPercent": 50,
+      "evidenceBoundPercent": 50
     },
     {
       "area": "Requirements Decomposition and Traceability; Maintenance Upgrades and Application Drift",
       "denominator": 1,
-      "declaredNumerator": 0,
-      "evidenceBoundNumerator": 0,
-      "notStarted": 1,
+      "declaredNumerator": 0.4,
+      "evidenceBoundNumerator": 0.4,
+      "notStarted": 0,
       "unverifiedPositiveWeight": 0,
-      "declaredPercent": 0,
-      "evidenceBoundPercent": 0
+      "declaredPercent": 40,
+      "evidenceBoundPercent": 40
     },
     {
       "area": "Research and Source Acquisition",
@@ -1282,11 +1281,6 @@
     }
   ],
   "issueSummary": {},
-  "recoveryPlan": [
-    {
-      "code": "not_started",
-      "action": "Implement and execute the missing requirement, or record a genuine external boundary with an accountable owner and evidence."
-    }
-  ],
+  "recoveryPlan": [],
   "conclusion": "NOT PRODUCTION READY - source, live-runtime, signing, deployment, device, and requirement-bound evidence gaps remain."
 }

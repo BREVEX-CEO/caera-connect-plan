@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "generatedBy": "scripts/generate-licence-notices.mjs",
   "product": "caera-cadane-ocade@0.1.0",
-  "productionPackages": 377,
+  "productionPackages": 381,
   "licenceTypes": 16,
   "needingReview": [
     {
@@ -21,7 +21,7 @@
     "(MIT AND Zlib)": 1,
     "(MIT OR GPL-3.0-or-later)": 1,
     "0BSD": 1,
-    "Apache-2.0": 14,
+    "Apache-2.0": 16,
     "BSD": 1,
     "BSD-2-Clause": 4,
     "BSD-3-Clause": 5,
@@ -29,7 +29,7 @@
     "CC-BY-4.0": 1,
     "ISC": 20,
     "MIT AND ISC": 1,
-    "MIT": 322,
+    "MIT": 324,
     "MPL-2.0": 1,
     "Python-2.0": 1,
     "Unlicense": 1

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "phase": "P20 — test architecture correction",
   "purpose": "Every test that asserts on source TEXT rather than behaviour is declared here with the reason it cannot execute instead. A structural test proves a string is present; it does not prove behaviour. The gate (scripts/check-test-kinds.mjs) fails when this list disagrees with reality, so a test cannot quietly stay structural after its target becomes executable.",
-  "note": "P12 removed extension/background.js from the unexecutable set by proving it runs in a VM with a fake chrome API. P09 did the same for the Rust safety core via cargo test. Both are recorded below as targets whose structural tests are now SUPPLEMENTARY rather than sole evidence.",
+  "note": "P12 removed native/browser-host/index.mjs from the unexecutable set by proving it runs in a VM with a injected authenticated transport. P09 did the same for the Rust safety core via cargo test. Both are recorded below as targets whose structural tests are now SUPPLEMENTARY rather than sole evidence.",
   "structuralOnly": [
     {
       "path": "src/lib/__tests__/accessibility-gate.test.ts",
@@ -13,6 +13,11 @@
       "path": "src/lib/__tests__/automation-worker-sql.test.ts",
       "why": "Asserts on migration SQL. Executing it needs a live PostgreSQL with the OCADE schema; no migration has been applied to any database, so behaviour cannot be run here.",
       "couldBeStronger": "Yes, once a database twin or staging instance exists (P16)."
+    },
+    {
+      "path": "src/lib/__tests__/brain-handle-stability.test.tsx",
+      "why": "Pins the hook-identity contract that caused a real render loop: useBrain returned a fresh object literal every render, so any consumer depending on the handle's identity re-ran its effects forever. The demo chat screen hit 'Maximum update depth exceeded' on mount and the error boundary tore it down. The property is a structural one — the return goes through useMemo and every exposed function is a useCallback — and it is visible in the source exactly as written.",
+      "couldBeStronger": "Yes, by rendering the hook and counting identities across renders, which needs React Testing Library — not currently a dependency. The behaviour it protects IS covered end to end in the browser: the demo now probes on mount, generates, and reports no console errors. This file exists so a regression fails in CI rather than only in a manual browser check."
     },
     {
       "path": "src/lib/__tests__/chat-phase5-source.test.ts",
@@ -55,9 +60,9 @@
       "couldBeStronger": "No. It already executes the production gate and proves each of its conditions rejects. One of its own tests previously passed while proving nothing, because it looked for a ledger key that does not exist; it now asserts the fixture is non-empty before using it."
     },
     {
-      "path": "src/lib/__tests__/extension-package.test.ts",
-      "why": "Asserts on the shipped extension manifest and packaging layout — packaging shape, not runtime behaviour.",
-      "couldBeStronger": "Behaviour is now covered separately: extension-zero-touch.test.ts (P12) executes background.js in a VM with a recording chrome double."
+      "path": "src/lib/__tests__/governance-artefacts.test.ts",
+      "why": "Asserts the architecture documents against the tree they describe: that the service-role client is never statically imported outside a server module, that no Node-only module reaches the client graph, that every external host the shipping code calls is a declared integration contract, that every src/lib area has a living owner, and that the charter's success metrics still match the register. It reads source text on purpose — the claims are about the SHAPE of the codebase, which is not observable by executing any one module.",
+      "couldBeStronger": "Partly. The boundaries it checks are also enforced by executing suites elsewhere (loopback bind refusal in runtime-supervisor tests, injection wrapping in ocade-injection-guard tests, service-worker cache rules in web-supervisor tests). What only this file can check is that the DOCUMENTED set stays complete and current — a boundary silently dropped from boundaries.json would leave every other suite still green."
     },
     {
       "path": "src/lib/__tests__/integration-gate-enforces.test.ts",
@@ -113,6 +118,21 @@
       "path": "src/lib/__tests__/sandbox-worker-runtime.test.ts",
       "why": "Asserts on the sandbox worker script that runs in a spawned process with a restricted permission set.",
       "couldBeStronger": "Yes — P21 wired the Node sandbox host behind a server function, so the worker can now be driven end to end."
+    },
+    {
+      "path": "src/lib/__tests__/service-worker-rules.test.ts",
+      "why": "public/sw.js is a classic worker script that reads self.location at module scope and registers listeners on self, so it cannot be imported. The two caching predicates are extracted from the source and evaluated against a stubbed self, which executes the real logic — inverting a rule changes what these tests see. The gate classifies the file as structural because it reads the source to get there.",
+      "couldBeStronger": "Yes, once the worker is built from an importable module rather than a standalone file. The behaviour that matters most — that an API response is never served from cache — would then be assertable against a real Cache Storage."
+    },
+    {
+      "path": "src/lib/__tests__/service-worker-runtime.test.ts",
+      "why": "Classified structural because it reads public/sw.js with readFileSync, but it reads that source in order to EXECUTE it: the file is evaluated against a fake worker scope (Cache Storage, fetch, an event with respondWith/waitUntil) and the real install, activate and fetch handlers are then fired. The classifier cannot distinguish reading source to assert on its text from reading source to run it. A classic worker script cannot be imported — it reads self.location at module scope and registers listeners on self — so evaluation is the only way to execute it at all.",
+      "couldBeStronger": "Yes, in two ways. The handlers are exercised against a fake Cache Storage rather than a real one, and nothing here proves a browser registers the worker or that an actual offline reload succeeds; registration is covered separately by web-supervisor. The logic itself is genuinely executed, and three mutations were used to confirm these tests fail when the worker is broken — one of which initially slipped through and led to the assertions being strengthened."
+    },
+    {
+      "path": "src/lib/__tests__/settings-read-only.test.ts",
+      "why": "Asserts on the source of the authenticated route gate and the settings field wrapper. Executing it would need a rendered React tree, and React Testing Library is deliberately not a dependency of this repository; the two properties that matter — that /settings is exempt from the redirect, and that a disabled field passes inert as a real boolean — are both visible in the source and were each verified once in a real browser.",
+      "couldBeStronger": "Yes, once a rendering harness exists. The React 19 inert regression it pins was caught in the browser (document.activeElement reached a control the source appeared to disable), not by this file."
     },
     {
       "path": "src/lib/__tests__/settings-sections-reachable.test.ts",

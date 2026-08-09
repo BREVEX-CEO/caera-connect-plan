@@ -8,7 +8,7 @@
     "server_functions",
     "native_commands",
     "mobile_intents",
-    "extension_messages",
+    "managed_browser_messages",
     "migrations",
     "adapters",
     "artifacts",
@@ -21,7 +21,6 @@
   ],
   "activeOcadeRoutes": [
     "/ocade",
-    "/ocade/work",
     "/ocade/code",
     "/ocade/projects",
     "/ocade/artifacts",
@@ -51,13 +50,13 @@
     },
     {
       "id": "desktop-link-and-sign",
-      "classification": "EXTERNALLY BLOCKED",
-      "reason": "The Rust source checks offline, but a full Windows build needs MSVC link.exe and release signing."
+      "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+      "reason": "The Rust companion compiles, links and passes all-target tests on Windows, including a packaged sidecar round trip. Its current frontend is a minimal overlay rather than the authenticated OCADE application, so an installed desktop application route and signed installer still require release integration and publisher credentials."
     },
     {
       "id": "browser-live-coverage",
-      "classification": "EXTERNALLY BLOCKED",
-      "reason": "The MV3 package and protocol are source-verified but require loading in real Chrome and Edge profiles."
+      "classification": "REAL TARGET RUNTIME VERIFIED",
+      "reason": "scripts/browser-cdp-parity.mjs passed against installed Chrome and Edge through the extensionless Playwright/CDP host, including protected-field refusal, independently observed DOM mutation, upload, download, tabs, immediate cancellation and emergency stop. The self-contained Windows sidecar passed its self-test, and the Rust supervisor launched both real browsers through that packaged executable before closing both through emergency stop. This proves the bounded Windows host path, not standalone-web connectivity, release signing or cross-platform installers."
     },
     {
       "id": "companion-update-engine",
