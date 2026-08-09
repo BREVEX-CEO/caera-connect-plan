@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-09T04:07:28.427Z",
-  "tier": "REAL TARGET RUNTIME — FAILURES PRESENT",
+  "generatedAt": "2026-08-09T07:44:34.061Z",
+  "tier": "REAL TARGET RUNTIME VERIFIED",
   "caveat": "Observed on ONE machine against ONE local engine build. Single-host evidence is not a platform matrix. This covers the engine and the modules the chat screen calls; it does NOT cover the authenticated browser UI, which requires a signed-in session.",
   "host": {
     "platform": "win32",
@@ -10,8 +10,8 @@
     "bridge": "http://localhost:11434"
   },
   "summary": {
-    "observed": 18,
-    "failed": 1,
+    "observed": 19,
+    "failed": 0,
     "skipped": 0,
     "total": 19
   },
@@ -30,8 +30,8 @@
         "platform": "win32 10.0.19045",
         "cpu": "11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz",
         "totalRamGib": 15.65,
-        "freeRamGib": 1.71,
-        "freeStorageGib": 28.31,
+        "freeRamGib": 6.62,
+        "freeStorageGib": 25.99,
         "discreteGpu": false,
         "gpuCertain": true
       }
@@ -192,9 +192,9 @@
       "status": "observed",
       "detail": {
         "model": "qwen3:8b",
-        "firstTokenMs": 7784,
-        "totalMs": 7784,
-        "tokensPerSecondApprox": 0.19,
+        "firstTokenMs": 21161,
+        "totalMs": 21952,
+        "tokensPerSecondApprox": 0.07,
         "groundTruth": "Tokyo",
         "containsGroundTruth": true,
         "reply": "Tokyo."
@@ -203,13 +203,15 @@
     {
       "id": "E09",
       "what": "output arrives incrementally over time rather than in one final chunk",
-      "status": "failed",
+      "status": "observed",
       "detail": {
-        "chunks": 9,
-        "firstChunkMs": 6501,
-        "lastChunkMs": 6501,
-        "spreadMs": 0,
-        "charsStreamed": 36
+        "chunks": 46,
+        "firstChunkMs": 2467.5324000000037,
+        "lastChunkMs": 14361.5521,
+        "spreadMs": 11894.019699999997,
+        "charsStreamed": 155,
+        "transportChunks": 47,
+        "transportSpreadMs": 12140.715099999994
       }
     },
     {
@@ -218,10 +220,10 @@
       "status": "observed",
       "detail": {
         "reason": "cancelled",
-        "cancelledAfterMs": 3182,
+        "cancelledAfterMs": 3524,
         "tokensBeforeStop": 5,
         "tokensAfterStopIncludingGracePeriod": 0,
-        "returnedMs": 3959
+        "returnedMs": 4298
       }
     },
     {
@@ -242,7 +244,7 @@
         "ok": true,
         "inferenceOk": true,
         "cancellationOk": true,
-        "firstTokenMs": 2045,
+        "firstTokenMs": 2395,
         "replyPreview": "OCADE_READY"
       }
     },
@@ -252,7 +254,7 @@
       "status": "observed",
       "detail": {
         "model": "qwen2.5vl:7b",
-        "elapsedMs": 153686,
+        "elapsedMs": 181939,
         "groundTruth": {
           "code": "742913",
           "tallestBar": "C"
