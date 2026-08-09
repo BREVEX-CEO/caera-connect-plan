@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-09T05:28:19.749Z",
-  "head": "8df172a9781657a654582fd7468288c809341cf3",
+  "generatedAt": "2026-08-09T05:32:42.907Z",
+  "head": "d6a4f867a072c8bc5d5ec3abcf2eb00ccf6fdbd2",
   "branch": "feat/ocade-implementation",
   "phase": "Phase 0 complete - OCADE-only scope verified; next Phase 1 local model lifecycle",
   "evidenceBindings": {
-    "sourceRevision": "8df172a9781657a654582fd7468288c809341cf3",
+    "sourceRevision": "d6a4f867a072c8bc5d5ec3abcf2eb00ccf6fdbd2",
     "targetVersion": "0.1.0",
     "dependencyLockSha256": "455509eb66ed51972b7ea949738468a7af3721df51cbc2599384a089c6944fba",
     "environment": "windows-x64-node22+",

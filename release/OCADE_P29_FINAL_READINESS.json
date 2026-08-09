@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "phase": "P29 - Final production-readiness closure",
-  "calculatedAt": "2026-08-09T05:28:19.753Z",
+  "calculatedAt": "2026-08-09T05:32:42.913Z",
   "branch": "codex/ocade-closure-20260809",
-  "currentHead": "8df172a9781657a654582fd7468288c809341cf3",
-  "sourceRevision": "8df172a9781657a654582fd7468288c809341cf3",
+  "currentHead": "d6a4f867a072c8bc5d5ec3abcf2eb00ccf6fdbd2",
+  "sourceRevision": "d6a4f867a072c8bc5d5ec3abcf2eb00ccf6fdbd2",
   "targetVersion": "0.1.0",
   "evidenceBindings": {
-    "sourceRevision": "8df172a9781657a654582fd7468288c809341cf3",
+    "sourceRevision": "d6a4f867a072c8bc5d5ec3abcf2eb00ccf6fdbd2",
     "targetVersion": "0.1.0",
     "dependencyLockSha256": "455509eb66ed51972b7ea949738468a7af3721df51cbc2599384a089c6944fba",
     "environment": "windows-x64-node22+",
