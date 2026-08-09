@@ -33,8 +33,9 @@ const ev = (line: string) => `${TWIN_PREFIX} ${line}`;
  */
 export const ROUTE_LADDER: readonly ActionRoute[] = [
   "api",
-  "plugin",
   "mcp",
+  "plugin",
+  "os_integration",
   "cli",
   "file",
   "dom",

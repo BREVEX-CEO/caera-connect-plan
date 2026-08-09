@@ -14,6 +14,7 @@ import {
   type OcadeActionRequest,
   type ToolDefinition,
 } from "../control/control-plane";
+import { ConnectorRegistry } from "../control/connector-registry";
 
 const NOW = new Date("2026-07-26T00:00:00.000Z");
 
@@ -244,6 +245,100 @@ describe("strict Brain and Director boundary", () => {
         now: NOW,
       }),
     ).toMatchObject({ status: "verified" });
+  });
+
+  it("lets the typed connector broker contribute the strongest governed route", async () => {
+    const registry = new ConnectorRegistry();
+    registry.register({
+      schemaVersion: 1,
+      connectorId: "local-files-mcp",
+      displayName: "Approved local files MCP",
+      kind: "mcp",
+      route: "mcp",
+      capabilities: [
+        {
+          id: "file.write",
+          access: "write",
+          risk: "high",
+          requiredScopes: ["files.write"],
+          verificationRoute: "file",
+          reversible: true,
+        },
+      ],
+      scope: { appIds: ["ocade.files"], domains: [], deviceIds: [] },
+      auth: {
+        state: "ready",
+        requiredScopes: [],
+        humanControlledFields: ["password", "otp", "captcha", "biometric", "payment"],
+      },
+      availability: "local_only",
+      health: "healthy",
+      latencyMs: 30,
+      privacy: "on_device",
+      enabled: true,
+      observedAt: NOW.toISOString(),
+      evidence: ["The local MCP health probe passed."],
+    });
+    const connectorSelection = registry.select({
+      capabilityId: "file.write",
+      access: "write",
+      maximumRisk: "high",
+      grantedScopes: ["files.write"],
+      appId: "ocade.files",
+      online: false,
+      allowedPrivacy: ["on_device"],
+    });
+    expect(
+      connectorSelection,
+      connectorSelection.ok ? "" : connectorSelection.reason,
+    ).toMatchObject({ ok: true });
+    const result = await directBrainProposal(
+      proposal,
+      context({
+        tools: [
+          {
+            ...tool,
+            routeCandidates: () => [
+              {
+                candidateId: "documented-cli",
+                route: "cli",
+                interfaceId: "files-cli",
+                available: true,
+                officialOrApproved: true,
+                supportedAppIds: ["ocade.files"],
+                taskTypes: ["file.write"],
+                requiredPermissions: ["file.write"],
+                confidence: 1,
+                expectedLatencyMs: 200,
+                verification: { route: "file", confidence: 1, independent: true },
+                recovery: { route: "file", ready: true },
+                health: "healthy",
+                supportsRecording: false,
+                evidence: "The CLI is healthy.",
+              },
+            ],
+          },
+        ],
+        routePolicy: { taskType: "file.write", recordingPreference: "video_off" },
+        connectorRegistry: registry,
+        connectorPolicy: {
+          online: false,
+          allowedPrivacy: ["on_device"],
+          grantedScopes: ["files.write"],
+        },
+      }),
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      data: {
+        actions: [
+          {
+            request: { route: "mcp" },
+            routeSelection: { candidateId: "connector:local-files-mcp", route: "mcp" },
+          },
+        ],
+      },
+    });
   });
 
   it("refuses multi-interface actions without policy or an adequate semantic route", async () => {

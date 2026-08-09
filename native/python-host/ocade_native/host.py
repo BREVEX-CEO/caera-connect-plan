@@ -11,6 +11,7 @@ from typing import Any
 
 from . import __version__
 from .adb_adapter import probe_loopback_ports
+from .application_discovery import discover_applications, inspect_application
 from .capture import capture_frame, ocr_window, set_of_mark
 from .gesture import run_camera
 from .policy import MAX_REQUEST_BYTES, PolicyError, validate_request
@@ -59,6 +60,10 @@ def execute(command: str, params: dict[str, Any], request_id: str | int) -> Any:
             }
         case "system.read":
             return read_system()
+        case "apps.discover":
+            return discover_applications(int(params.get("limit", 100)))
+        case "app.inspect":
+            return inspect_application(str(params["appId"]))
         case "windows.list":
             return list_windows(int(params.get("limit", 40)))
         case "window.read":

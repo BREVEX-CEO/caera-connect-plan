@@ -745,6 +745,12 @@ export function planContextWindow(
 
 export interface LocalStreamHandlers {
   onToken: (chunk: string) => void;
+  /**
+   * Raw transport instrumentation. This fires before NDJSON parsing so a
+   * runtime receipt can distinguish server/network buffering from parser or
+   * UI batching without changing token delivery.
+   */
+  onTransportChunk?: (sample: { bytes: number; receivedAtMs: number }) => void;
   signal?: AbortSignal;
   /**
    * Let the model run a hidden reasoning pass before answering.
@@ -936,6 +942,7 @@ export async function streamLocalChat(
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
+      handlers.onTransportChunk?.({ bytes: value.byteLength, receivedAtMs: performance.now() });
       const piece = decoder.decode(value, { stream: true });
       streamedChars += piece.length;
       buffer += piece;

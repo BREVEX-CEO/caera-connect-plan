@@ -49,7 +49,12 @@ export interface BridgeDeps extends AuthoriseDeps {
   /** Stream a reply. Only ever called after authorisation succeeds. */
   streamChat: (
     messages: { role: string; content: string; images?: string[] }[],
-    handlers: { onToken: (chunk: string) => void; signal?: AbortSignal; think?: boolean },
+    handlers: {
+      onToken: (chunk: string) => void;
+      onProgress?: (detail: string) => void;
+      signal?: AbortSignal;
+      think?: boolean;
+    },
   ) => Promise<{ ok: boolean; modelId?: string | null; reason?: string }>;
 }
 
@@ -195,6 +200,7 @@ export async function handleChat(
         signal,
         think: body?.think === true,
         onToken: (token) => write(`${JSON.stringify({ token })}\n`),
+        onProgress: (detail) => write(`${JSON.stringify({ progress: detail })}\n`),
       });
       if (result.modelId) write(`${JSON.stringify({ modelId: result.modelId })}\n`);
       if (!result.ok && result.reason) {

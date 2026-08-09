@@ -356,8 +356,9 @@ async function main() {
 
   // E09 — STREAMING is incremental, not one buffered blob at the end.
   const arrivals: number[] = [];
+  const transportArrivals: number[] = [];
   let streamed = "";
-  const s0 = Date.now();
+  const s0 = performance.now();
   await streamLocalChat(
     BRIDGE,
     chosen.id,
@@ -365,12 +366,13 @@ async function main() {
     // incrementally, which a short answer demonstrates as well as a long one —
     // and a long one on a CPU-only machine turns this check into a ten-minute
     // wait that proves nothing extra.
-    [{ role: "user", content: "List five colours, one per line, nothing else." }],
+    [{ role: "user", content: "List twenty colours, one per line, nothing else." }],
     {
       onToken: (c) => {
-        arrivals.push(Date.now() - s0);
+        arrivals.push(performance.now() - s0);
         streamed += c;
       },
+      onTransportChunk: ({ receivedAtMs }) => transportArrivals.push(receivedAtMs - s0),
     },
   );
   const spread = arrivals.length > 1 ? arrivals[arrivals.length - 1] - arrivals[0] : 0;
@@ -384,6 +386,11 @@ async function main() {
       lastChunkMs: arrivals[arrivals.length - 1] ?? null,
       spreadMs: spread,
       charsStreamed: streamed.length,
+      transportChunks: transportArrivals.length,
+      transportSpreadMs:
+        transportArrivals.length > 1
+          ? transportArrivals[transportArrivals.length - 1] - transportArrivals[0]
+          : 0,
     },
   );
 

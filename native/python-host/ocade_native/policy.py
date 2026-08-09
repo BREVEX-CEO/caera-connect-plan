@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,6 +23,8 @@ class CommandPolicy:
 COMMANDS: dict[str, CommandPolicy] = {
     "health": CommandPolicy(False, None, 5),
     "system.read": CommandPolicy(False, None, 5),
+    "apps.discover": CommandPolicy(False, "desktop.inspect", 30),
+    "app.inspect": CommandPolicy(False, "desktop.inspect", 30),
     "windows.list": CommandPolicy(False, None, 5),
     "window.read": CommandPolicy(False, None, 8),
     "window.focus": CommandPolicy(True, "desktop.focus", 8),
@@ -48,6 +51,8 @@ APP_ALIASES = {
     "explorer": ["explorer.exe"],
     "calculator": ["calc.exe"],
 }
+
+DISCOVERED_APP_ID = re.compile(r"^winapp:[0-9a-f]{64}$")
 
 SAFE_KEYS = {
     "enter",
@@ -117,8 +122,22 @@ def validate_request(payload: Any) -> tuple[str | int, str, dict[str, Any], Comm
         payload.get("approved") is not True or payload.get("scope") != policy.scope
     ):
         raise PolicyError(f"explicit {policy.scope} approval is required")
-    if command == "app.launch" and params.get("app") not in APP_ALIASES:
-        raise PolicyError("application alias is not allowlisted")
+    if command == "app.launch":
+        app = params.get("app")
+        if not isinstance(app, str) or (
+            app not in APP_ALIASES and DISCOVERED_APP_ID.fullmatch(app) is None
+        ):
+            raise PolicyError(
+                "application must be an approved alias or a discovered application id"
+            )
+    if command == "app.inspect":
+        app_id = params.get("appId")
+        if not isinstance(app_id, str) or DISCOVERED_APP_ID.fullmatch(app_id) is None:
+            raise PolicyError("application id must come from discovery")
+    if command == "apps.discover" and not (
+        isinstance(params.get("limit", 100), int) and 1 <= int(params.get("limit", 100)) <= 250
+    ):
+        raise PolicyError("application discovery limit must be between 1 and 250")
     if command == "key.press" and params.get("key") not in SAFE_KEYS:
         raise PolicyError("key chord is not allowlisted")
     for name in ("x", "y"):

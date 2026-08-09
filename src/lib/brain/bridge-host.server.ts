@@ -1,5 +1,6 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import {
   handleBridgeRequest,
   type BridgeDeps,
@@ -16,6 +17,11 @@ import {
 import { discoverLocalModels, streamLocalChat, DEFAULT_LOCAL_BRIDGE_URL } from "../ocade-local";
 import { routeTask, PerfLedger, type RoutePolicy } from "../local/router-policy";
 import { routePolicyFor } from "../local/device-route-policy";
+import {
+  runLongDocument,
+  type LongDocumentCheckpoint,
+  type LongDocumentStore,
+} from "../local/long-document";
 
 /**
  * The listener side of pairing: what actually runs `bridge-server` on a machine.
@@ -134,6 +140,48 @@ export function constantTimeEqual(a: string, b: string): boolean {
 let state: PairingState | null = null;
 let loadedFrom: string | null = null;
 const ledger = new PerfLedger();
+const LONG_DOCUMENT_MIN_CHARS = 6_000;
+
+class BridgeLongDocumentStore implements LongDocumentStore {
+  private path(jobId: string): string {
+    const root =
+      process.env.OCADE_LONG_DOCUMENT_STATE_DIR ??
+      join(
+        process.env.LOCALAPPDATA ?? process.env.XDG_STATE_HOME ?? process.cwd(),
+        "OCADE",
+        "long-document-jobs",
+      );
+    return join(root, `${jobId}.json`);
+  }
+
+  async load(jobId: string): Promise<LongDocumentCheckpoint | null> {
+    try {
+      const value = JSON.parse(await readFile(this.path(jobId), "utf8")) as LongDocumentCheckpoint;
+      return value.jobId === jobId ? value : null;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+      throw error;
+    }
+  }
+
+  async save(checkpoint: LongDocumentCheckpoint): Promise<void> {
+    const path = this.path(checkpoint.jobId);
+    await mkdir(dirname(path), { recursive: true });
+    const temporary = `${path}.tmp`;
+    await writeFile(temporary, `${JSON.stringify(checkpoint)}\n`, "utf8");
+    await rename(temporary, path);
+  }
+
+  async remove(jobId: string): Promise<void> {
+    try {
+      await unlink(this.path(jobId));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+}
+
+const longDocumentStore = new BridgeLongDocumentStore();
 
 /*
  * Measured once and kept.
@@ -247,6 +295,41 @@ export function bridgeDeps(state: PairingState, engineUrl = DEFAULT_LOCAL_BRIDGE
               ? "That computer has no model installed that can read images."
               : "That computer has no model it can run."),
         };
+      }
+      const longText = messages
+        .filter((message) => message.role === "user")
+        .map((message) => message.content)
+        .join("\n\n");
+      if (!needsVision && longText.length >= LONG_DOCUMENT_MIN_CHARS) {
+        const mapRoute = routeTask("summarise", discovery.models, ledger, await machinePolicy());
+        if (!mapRoute.ok) return { ok: false, reason: mapRoute.receipt.refusal };
+        const fingerprint = createHash("sha256").update(longText).digest("hex");
+        const outcome = await runLongDocument({
+          jobId: `bridge:${fingerprint.slice(0, 48)}`,
+          documentName: "paired-conversation-document",
+          text: longText,
+          query: "Answer the user's latest request using all relevant evidence in this document.",
+          mapModelId: mapRoute.model.id,
+          reduceModelId: route.model.id,
+          store: longDocumentStore,
+          signal: handlers.signal,
+          concurrency: 1,
+          generate: async (request) =>
+            await streamLocalChat(
+              engineUrl,
+              request.modelId,
+              [{ role: "user", content: request.prompt }],
+              {
+                onToken: request.onToken,
+                signal: request.signal,
+                think: false,
+              },
+            ),
+          onProgress: (progress) => handlers.onProgress?.(progress.detail),
+        });
+        if (!outcome.ok) return { ok: false, reason: outcome.reason, modelId: route.model.id };
+        handlers.onToken(outcome.answer);
+        return { ok: true, modelId: route.model.id };
       }
       const result = await streamLocalChat(
         engineUrl,

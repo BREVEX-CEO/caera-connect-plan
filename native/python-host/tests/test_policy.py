@@ -31,7 +31,7 @@ def test_mutation_requires_exact_scope_and_approval() -> None:
 def test_arbitrary_executable_and_key_are_refused() -> None:
     launch = request("app.launch", approved=True, scope="desktop.launch")
     launch["params"] = {"app": "powershell"}
-    with pytest.raises(PolicyError, match="application alias"):
+    with pytest.raises(PolicyError, match="application"):
         validate_request(launch)
     key = request("key.press", approved=True, scope="desktop.input")
     key["params"] = {"key": "win+r"}
@@ -46,4 +46,35 @@ def test_coordinates_and_payloads_are_bounded() -> None:
         validate_request(payload)
     payload["params"] = {"x": 0.5, "y": 0.5, "note": "x" * 4_001}
     with pytest.raises(PolicyError, match="4000"):
+        validate_request(payload)
+
+
+def test_discovery_is_read_only_but_scope_gated() -> None:
+    payload = request("apps.discover")
+    payload["params"] = {"limit": 25}
+    with pytest.raises(PolicyError, match=r"desktop\.inspect"):
+        validate_request(payload)
+    payload.update({"approved": True, "scope": "desktop.inspect"})
+    _, command, _, policy = validate_request(payload)
+    assert command == "apps.discover"
+    assert policy.mutates is False
+
+
+def test_only_discovery_shaped_ids_can_reach_dynamic_launch() -> None:
+    discovered = "winapp:" + "a" * 64
+    launch = request("app.launch", approved=True, scope="desktop.launch")
+    launch["params"] = {"app": discovered}
+    assert validate_request(launch)[1] == "app.launch"
+    inspect = request("app.inspect", approved=True, scope="desktop.inspect")
+    inspect["params"] = {"appId": discovered}
+    assert validate_request(inspect)[1] == "app.inspect"
+    inspect["params"] = {"appId": "winapp:not-a-digest"}
+    with pytest.raises(PolicyError, match="discovery"):
+        validate_request(inspect)
+
+
+def test_discovery_limits_are_bounded() -> None:
+    payload = request("apps.discover", approved=True, scope="desktop.inspect")
+    payload["params"] = {"limit": 251}
+    with pytest.raises(PolicyError, match="between 1 and 250"):
         validate_request(payload)

@@ -13,13 +13,19 @@ import {
   type UniversalRouteCandidate,
   type UniversalRouteDecision,
 } from "./route-selector";
+import type {
+  ConnectorPrivacy,
+  ConnectorRegistry,
+  ConnectorRequirement,
+} from "./connector-registry";
 
 export type RiskLevel = "read" | "low" | "medium" | "high" | "protected";
 
 export type ActionRoute =
   | "api"
-  | "plugin"
   | "mcp"
+  | "plugin"
+  | "os_integration"
   | "cli"
   | "file"
   | "dom"
@@ -168,6 +174,13 @@ export interface DirectorContext {
     minimumConfidence?: number;
     maxExpectedLatencyMs?: number;
   };
+  /** Optional typed connector broker; it contributes a route, never authority. */
+  connectorRegistry?: Pick<ConnectorRegistry, "select">;
+  connectorPolicy?: {
+    online: boolean;
+    allowedPrivacy: ConnectorPrivacy[];
+    grantedScopes?: string[];
+  };
   maxActions?: number;
   now?: Date;
 }
@@ -271,8 +284,9 @@ export type ControlOutcome =
 const SAFE_ID = /^[a-z0-9][a-z0-9._:-]{0,199}$/i;
 const ROUTES = new Set<ActionRoute>([
   "api",
-  "plugin",
   "mcp",
+  "plugin",
+  "os_integration",
   "cli",
   "file",
   "dom",
@@ -750,13 +764,56 @@ export async function directBrainProposal(
             proposalAction.stepId,
           );
         }
+        const candidates = tool.routeCandidates(resolvedArguments, app);
+        if (context.connectorRegistry && context.connectorPolicy) {
+          const requirement: ConnectorRequirement = {
+            capabilityId: tool.capability,
+            access: tool.mutating ? "write" : "read",
+            maximumRisk: risk,
+            grantedScopes: context.connectorPolicy.grantedScopes ?? context.permission!.permissions,
+            appId: app.appId,
+            online: context.connectorPolicy.online,
+            allowedPrivacy: context.connectorPolicy.allowedPrivacy,
+          };
+          const connector = context.connectorRegistry.select(requirement);
+          if (connector.ok) {
+            candidates.push({
+              candidateId: `connector:${connector.connector.connectorId}`,
+              route: connector.connector.route,
+              interfaceId: connector.connector.connectorId,
+              available: true,
+              officialOrApproved: true,
+              supportedAppIds: [app.appId],
+              taskTypes: [context.routePolicy.taskType],
+              requiredPermissions: [tool.requiredPermission],
+              confidence: connector.connector.health === "healthy" ? 1 : 0.85,
+              expectedLatencyMs: connector.connector.latencyMs ?? 30_000,
+              verification: {
+                route: connector.capability.verificationRoute,
+                confidence: 0.9,
+                independent: true,
+              },
+              recovery:
+                risk === "read"
+                  ? null
+                  : {
+                      route: connector.capability.verificationRoute,
+                      ready: connector.capability.reversible,
+                    },
+              health: connector.connector.health === "healthy" ? "healthy" : "degraded",
+              supportsRecording: false,
+              fallbackPolicy: "explicit",
+              evidence: connector.evidence.join(" ").slice(0, 2_000),
+            });
+          }
+        }
         const selected = selectUniversalRoute({
           appIdentity: app,
           taskType: context.routePolicy.taskType,
           risk,
           grantedPermissions: context.permission!.permissions,
           recordingPreference: context.routePolicy.recordingPreference,
-          candidates: tool.routeCandidates(resolvedArguments, app),
+          candidates,
           explicitCoordinateFallbackApproval:
             context.routePolicy.explicitCoordinateFallbackApproval,
           minimumConfidence: context.routePolicy.minimumConfidence,

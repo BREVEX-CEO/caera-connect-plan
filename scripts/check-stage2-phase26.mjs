@@ -59,6 +59,7 @@ includesAll(
     '"api"',
     '"plugin"',
     '"mcp"',
+    '"os_integration"',
     '"cli"',
     '"file"',
     '"dom"',
@@ -101,7 +102,7 @@ includesAll(
   [
     "universal route selector representative routes",
     "it.each(UNIVERSAL_ROUTE_ORDER)",
-    "exact API, approved bridge, CLI, file, DOM, accessibility, native, vision, input order",
+    "exact API, MCP, plug-in, OS integration, CLI, file, DOM, accessibility, native, vision, input order",
     "identity",
     "version",
     "task",

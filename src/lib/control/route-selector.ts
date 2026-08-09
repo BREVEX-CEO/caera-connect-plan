@@ -10,8 +10,9 @@ import type { ActionRoute, OcadeAppIdentity, RiskLevel } from "./control-plane";
 
 export const UNIVERSAL_ROUTE_ORDER: readonly ActionRoute[] = [
   "api",
-  "plugin",
   "mcp",
+  "plugin",
+  "os_integration",
   "cli",
   "file",
   "dom",
@@ -110,28 +111,30 @@ const MAX_CANDIDATES = 100;
 const COORDINATE_ROUTES = new Set<ActionRoute>(["vision", "input"]);
 const RISKS = new Set<RiskLevel>(["read", "low", "medium", "high", "protected"]);
 
-/** Plug-in and MCP are the same specification tier. */
 export function universalRouteRank(route: ActionRoute): number {
   switch (route) {
     case "api":
       return 1;
-    case "plugin":
     case "mcp":
       return 2;
-    case "cli":
+    case "plugin":
       return 3;
-    case "file":
+    case "os_integration":
       return 4;
-    case "dom":
+    case "cli":
       return 5;
-    case "accessibility":
+    case "file":
       return 6;
-    case "native":
+    case "dom":
       return 7;
-    case "vision":
+    case "accessibility":
       return 8;
-    case "input":
+    case "native":
       return 9;
+    case "vision":
+      return 10;
+    case "input":
+      return 11;
   }
 }
 
@@ -232,7 +235,10 @@ function evaluateCandidate(
   const rank = universalRouteRank(candidate.route);
   if (!candidate.available) reasons.push("interface unavailable");
   if (
-    (candidate.route === "api" || candidate.route === "plugin" || candidate.route === "mcp") &&
+    (candidate.route === "api" ||
+      candidate.route === "mcp" ||
+      candidate.route === "plugin" ||
+      candidate.route === "os_integration") &&
     !candidate.officialOrApproved
   ) {
     reasons.push("interface is not official or approved");
@@ -375,7 +381,7 @@ export function selectUniversalRoute(input: RouteSelectionInput): RouteSelection
 
   const minimumRank = Math.min(
     ...input.candidates.map((candidate) => universalRouteRank(candidate.route)),
-    10,
+    UNIVERSAL_ROUTE_ORDER.length + 1,
   );
   const evaluations = input.candidates
     .map((candidate) => evaluateCandidate(candidate, input, minimumRank))

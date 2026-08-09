@@ -606,7 +606,7 @@ async fn python_host_request(
     if state.emergency.is_halted()
         && !matches!(
             command.as_str(),
-            "health" | "system.read" | "emergency.stop"
+            "health" | "system.read" | "apps.discover" | "app.inspect" | "emergency.stop"
         )
     {
         return Err("Emergency stop is active. Reset it before using local control.".into());

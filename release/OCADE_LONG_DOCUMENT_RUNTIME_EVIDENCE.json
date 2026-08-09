@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "kind": "OCADE_LONG_DOCUMENT_REAL_RUNTIME_EVIDENCE",
+  "startedAt": "2026-08-09T07:00:33.772Z",
+  "finishedAt": "2026-08-09T07:01:51.550Z",
+  "result": "PASS",
+  "claimBoundary": "This proves one real bounded local map/reduce, cancellation and restart run on this Windows machine; it is not a universal throughput claim.",
+  "runtime": {
+    "bridge": "http://localhost:11434",
+    "mapModel": "qwen3:1.7b",
+    "reduceModel": "qwen3:8b",
+    "thinking": false
+  },
+  "document": {
+    "characters": 7041,
+    "plantedFact": "AURORA-7319",
+    "query": "What is the final approved recovery identifier? Return it exactly."
+  },
+  "checks": {
+    "immediateVisibleProgress": true,
+    "interruptionHonored": true,
+    "checkpointPersisted": true,
+    "restartResumed": true,
+    "mapReduceCompleted": true,
+    "plantedFactRecovered": true,
+    "rawTransportProgressive": true,
+    "tokenDeliveryProgressive": true,
+    "checkpointCleared": true
+  },
+  "interruption": {
+    "ok": false,
+    "reason": "The long-document job was cancelled.",
+    "cancelled": true,
+    "completedChunks": 1,
+    "totalChunks": 3,
+    "fingerprint": "62be5c93f1b7a485753676a8803c8d727d9419b4e248de24b9ef25164fad91ee"
+  },
+  "completion": {
+    "ok": true,
+    "answer": "AURORA-7319.",
+    "fingerprint": "62be5c93f1b7a485753676a8803c8d727d9419b4e248de24b9ef25164fad91ee",
+    "chunks": 3,
+    "resumedChunks": 1,
+    "elapsedMs": 60335
+  },
+  "answer": "AURORA-7319.",
+  "progress": {
+    "firstEvent": {
+      "kind": "planned",
+      "completed": 0,
+      "total": 3,
+      "detail": "Planned 3 bounded semantic chunk(s).",
+      "elapsedMs": 42
+    },
+    "interruptedEvents": 18,
+    "resumedFirstEvent": {
+      "kind": "resumed",
+      "completed": 1,
+      "total": 3,
+      "detail": "Resuming 1/3 persisted map result(s).",
+      "elapsedMs": 392
+    },
+    "resumedEvents": 148
+  },
+  "streaming": {
+    "requests": 4,
+    "transportChunks": 130,
+    "tokenCallbacks": 156,
+    "progressiveRequests": 2,
+    "samples": [
+      {
+        "stage": "map",
+        "modelId": "qwen3:1.7b",
+        "firstTransportMs": 16608,
+        "transportChunks": 1,
+        "transportSpreadMs": 0,
+        "tokenCallbacks": 15,
+        "outputChars": 45,
+        "result": {
+          "ok": true
+        }
+      },
+      {
+        "stage": "map",
+        "modelId": "qwen3:1.7b",
+        "firstTransportMs": 11092,
+        "transportChunks": 1,
+        "transportSpreadMs": 0,
+        "tokenCallbacks": 15,
+        "outputChars": 54,
+        "result": {
+          "ok": true
+        }
+      },
+      {
+        "stage": "map",
+        "modelId": "qwen3:1.7b",
+        "firstTransportMs": 7622,
+        "transportChunks": 118,
+        "transportSpreadMs": 7773,
+        "tokenCallbacks": 117,
+        "outputChars": 535,
+        "result": {
+          "ok": true
+        }
+      },
+      {
+        "stage": "reduce",
+        "modelId": "qwen3:8b",
+        "firstTransportMs": 31048,
+        "transportChunks": 10,
+        "transportSpreadMs": 2308,
+        "tokenCallbacks": 9,
+        "outputChars": 12,
+        "result": {
+          "ok": true
+        }
+      }
+    ]
+  }
+}

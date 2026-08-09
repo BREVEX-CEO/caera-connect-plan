@@ -10,6 +10,7 @@ import win32gui
 from pywinauto import Desktop
 from pywinauto.application import Application
 
+from .application_discovery import resolve_discovered_executable
 from .policy import APP_ALIASES, SAFE_KEYS, PolicyError
 
 pyautogui.FAILSAFE = True
@@ -87,7 +88,10 @@ def read_window(handle: int) -> dict[str, Any]:
 def launch_app(alias: str) -> dict[str, Any]:
     command = APP_ALIASES.get(alias)
     if command is None:
-        raise PolicyError("application alias is not allowlisted")
+        discovered = resolve_discovered_executable(alias)
+        command = [discovered] if discovered else None
+    if command is None:
+        raise PolicyError("application was not returned by the current discovery session")
     process = subprocess.Popen(command, close_fds=True)
     return {"pid": process.pid, "app": alias}
 

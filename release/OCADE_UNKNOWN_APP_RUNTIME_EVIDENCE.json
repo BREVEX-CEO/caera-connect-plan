@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "kind": "OCADE_UNKNOWN_APP_REAL_RUNTIME_EVIDENCE",
+  "startedAt": "2026-08-09T06:56:59.355Z",
+  "finishedAt": "2026-08-09T06:57:15.088Z",
+  "result": "PASS",
+  "boundary": "PROBED_AND_REHEARSED",
+  "claimBoundary": "This proves a real read-only learn/rehearse/verify/compile cycle. It does not claim arbitrary mutation support or LIVE_TESTED status.",
+  "discovery": {
+    "installedApplicationsObserved": 74,
+    "sources": [
+      "running_process",
+      "windows.app_paths",
+      "windows.uninstall_registry"
+    ]
+  },
+  "target": {
+    "appId": "winapp:13cc28f2a59ed4a4690e82daeb07dc3be22df542ef3002d0872611af10399f64",
+    "displayName": "VLC media player",
+    "executableName": "vlc.exe",
+    "version": "3.0.16",
+    "publisher": "VideoLAN",
+    "selectedDynamically": true,
+    "hardcodedProductAdapter": false
+  },
+  "observation": {
+    "exactProcessId": 5124,
+    "windows": 1,
+    "controls": 1,
+    "uiaPatterns": [],
+    "signature": {
+      "status": "unknown",
+      "signer": "",
+      "message": "Signature probe failed."
+    }
+  },
+  "learning": {
+    "status": "verified",
+    "fingerprint": "uat1:1bc410c4",
+    "confidence": 0.74,
+    "supportLabel": "PROBED_AND_REHEARSED",
+    "compiledPrivateSkill": "private:winapp:13cc28f2a59ed4a4690e82daeb07dc3be22df542ef3002d0872611af10399f64:inspect-current-structure",
+    "private": true,
+    "invalidatingChanges": [
+      "version",
+      "plugins",
+      "locale",
+      "theme",
+      "display_scale",
+      "layout"
+    ]
+  }
+}

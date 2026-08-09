@@ -145,6 +145,48 @@ const MUTATIONS = [
     replace: 'return ["remote_row", "remote_object"];',
   },
   {
+    name: "native permission: protected input is permitted to reach an adapter",
+    file: "src/lib/native/companion-bridge.ts",
+    tests: ["src/lib/native/__tests__/tauri-companion.test.ts"],
+    find: 'if (risk === "prohibited") {',
+    replace: "if (false) {",
+  },
+  {
+    name: "universal routing: a missing exact permission is ignored",
+    file: "src/lib/control/route-selector.ts",
+    tests: ["src/lib/__tests__/route-selector.test.ts"],
+    find: "if (!input.grantedPermissions.includes(permission)) {",
+    replace: "if (false) {",
+  },
+  {
+    name: "universal routing: a mutation may run without recovery",
+    file: "src/lib/control/route-selector.ts",
+    tests: ["src/lib/__tests__/route-selector.test.ts"],
+    find: "if (isMutation(input.risk) && !candidate.recovery?.ready) {",
+    replace: "if (false) {",
+  },
+  {
+    name: "universal routing: protected actions receive executable routes",
+    file: "src/lib/control/route-selector.ts",
+    tests: ["src/lib/__tests__/route-selector.test.ts"],
+    find: 'if (input.risk === "protected") {',
+    replace: "if (false) {",
+  },
+  {
+    name: "unknown app: a changed structural fingerprint reuses the stale map",
+    file: "src/lib/skills/unknown-app-learning.ts",
+    tests: ["src/lib/__tests__/unknown-app-learning.test.ts"],
+    find: "if (observedFingerprint !== twin.fingerprint) {",
+    replace: "if (false) {",
+  },
+  {
+    name: "unknown app: failed independent verification still compiles a skill",
+    file: "src/lib/skills/unknown-app-learning.ts",
+    tests: ["src/lib/__tests__/unknown-app-learning.test.ts"],
+    find: "!verification.verified ||",
+    replace: "false ||",
+  },
+  {
     name: "service worker: the /api/ cache exclusion is removed",
     file: "public/sw.js",
     tests: [

@@ -65,23 +65,23 @@ describe("universal route selector representative routes", () => {
     });
   });
 
-  it("uses the exact API, approved bridge, CLI, file, DOM, accessibility, native, vision, input order", () => {
+  it("uses the exact API, MCP, plug-in, OS integration, CLI, file, DOM, accessibility, native, vision, input order", () => {
     const candidates = [...UNIVERSAL_ROUTE_ORDER].reverse().map((route) => candidate(route));
     const result = selectUniversalRoute(input(candidates));
     expect(result).toMatchObject({ ok: true, data: { route: "api" } });
 
     const api = candidates.find((item) => item.route === "api")!;
-    const plugin = candidates.find((item) => item.route === "plugin")!;
+    const mcp = candidates.find((item) => item.route === "mcp")!;
     api.health = "failing";
-    plugin.confidence = 0.94;
+    mcp.confidence = 0.94;
     const fallback = selectUniversalRoute(input(candidates));
     expect(fallback).toMatchObject({
       ok: true,
-      data: { route: "plugin", fallbackFrom: ["api"] },
+      data: { route: "mcp", fallbackFrom: ["api"] },
     });
   });
 
-  it("uses confidence and latency inside a hierarchy tier without crossing the route order", () => {
+  it("never lets a faster lower route outrank the hierarchy", () => {
     const result = selectUniversalRoute(
       input([
         candidate("mcp", {
@@ -99,7 +99,7 @@ describe("universal route selector representative routes", () => {
     );
     expect(result).toMatchObject({
       ok: true,
-      data: { candidateId: "plugin-faster", route: "plugin" },
+      data: { candidateId: "mcp-slower", route: "mcp" },
     });
 
     const equalConfidence = selectUniversalRoute(
@@ -118,7 +118,7 @@ describe("universal route selector representative routes", () => {
     );
     expect(equalConfidence).toMatchObject({
       ok: true,
-      data: { candidateId: "plugin-faster" },
+      data: { candidateId: "mcp-slower" },
     });
   });
 });
@@ -195,6 +195,16 @@ describe("universal route selector safety and fallback", () => {
       expect(result).toHaveProperty("reason");
     },
   );
+
+  it("refuses a protected action before evaluating an otherwise adequate semantic route", () => {
+    expect(
+      selectUniversalRoute(input([candidate("api", { confidence: 1 })], { risk: "protected" })),
+    ).toMatchObject({
+      ok: false,
+      code: "protected",
+      evaluations: [],
+    });
+  });
 
   it("refuses duplicate, malformed and unbounded route candidates", () => {
     const duplicate = candidate("api");
