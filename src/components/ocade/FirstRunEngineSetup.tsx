@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { startLocalRuntimeFn } from "@/lib/local-runtime.functions";
-import { selectTier, type TierManifest, type TierSelection } from "@/lib/local/tier-policy";
 import { pullModel, type PullProgress } from "@/lib/local/model-lifecycle";
 import { discoverLocalModels, DEFAULT_LOCAL_BRIDGE_URL } from "@/lib/ocade-local";
 import { serverIsThisMachine } from "@/lib/hardware/detect.browser";
 import { useDevicePolicy } from "@/lib/use-device-policy";
-import manifestJson from "../../../release/OCADE_LOCAL_ENGINE_MODEL_MANIFEST.json";
+import {
+  detectPlatform,
+  formatBytes,
+  resolveFixedModel,
+  storagePreflight,
+  type StorageDecision,
+} from "@/lib/local/fixed-model";
 
 /**
  * First-run engine setup — silent, automatic, and out of the way.
@@ -38,7 +43,16 @@ import manifestJson from "../../../release/OCADE_LOCAL_ENGINE_MODEL_MANIFEST.jso
  *  - setup failed, in which case Settings explains it rather than a popup.
  */
 
-const manifest = manifestJson as unknown as TierManifest;
+/**
+ * WHICH ENGINE: decided by platform, not by this machine's specification.
+ *
+ * This used to call `selectTier(device.profile, manifest)` — a hardware read
+ * that picked between model sizes, and one of the five inputs that could
+ * disagree with the router about the same computer. There is one desktop model
+ * and one mobile model now, so the manifest and the tier selection are gone
+ * from this path entirely.
+ */
+const FIXED_SPEC = resolveFixedModel(detectPlatform());
 
 /**
  * Remembered per browser so a failed attempt does not repeat on every
@@ -46,7 +60,17 @@ const manifest = manifestJson as unknown as TierManifest;
  */
 export const ENGINE_AUTOSETUP_KEY = "ocade.engine.autosetup.v1";
 
-type Phase = "idle" | "checking" | "starting" | "downloading" | "done" | "unavailable";
+type Phase =
+  | "idle"
+  | "checking"
+  | "starting"
+  | "downloading"
+  | "done"
+  | "unavailable"
+  // Distinct from "unavailable": nothing is broken, the disk is simply full.
+  // Collapsing the two would send someone to diagnostics for a problem they
+  // could fix in a minute by clearing space.
+  | "insufficient_storage";
 
 function alreadyAttempted(): boolean {
   try {
@@ -68,7 +92,7 @@ export function FirstRunEngineSetup() {
   const device = useDevicePolicy();
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState<PullProgress | null>(null);
-  const [selection, setSelection] = useState<TierSelection | null>(null);
+  const [storage, setStorage] = useState<StorageDecision | null>(null);
   const started = useRef(false);
   const controller = useRef<AbortController | null>(null);
 
@@ -106,23 +130,36 @@ export function FirstRunEngineSetup() {
       }
     }
 
-    // 3. Engine up, no model. Choose the tier for THIS device and fetch it.
-    if (!device.profile) {
-      setPhase("unavailable");
-      return;
+    /*
+     * 3. Engine up, no model. There is nothing to choose — this platform has
+     *    one engine — so the only question left is whether it will fit.
+     *
+     *    THE SHORTFALL IS NAMED, NOT SWALLOWED. A bare "not enough space"
+     *    makes someone guess how much to clear. Required, available and the
+     *    difference are all reported, and the setup stops rather than retrying
+     *    into a disk that cannot take it. Nothing is deleted to make room.
+     */
+    // The measured profile reports gibibytes, rounded. Converting here rather
+    // than trusting a byte field that does not exist on it — the typechecker
+    // caught that, and a silently-undefined free-space figure would have
+    // skipped the check entirely and let the download start on a full disk.
+    const freeGib = device.profile?.freeStorageGib;
+    const free = typeof freeGib === "number" ? Math.round(freeGib * 1024 ** 3) : undefined;
+    if (typeof free === "number") {
+      const room = storagePreflight(FIXED_SPEC, free);
+      if (!room.ok) {
+        setStorage(room);
+        markAttempted();
+        setPhase("insufficient_storage");
+        return;
+      }
     }
-    const chosen = selectTier(device.profile, manifest);
-    if (!chosen.ok) {
-      markAttempted();
-      setPhase("unavailable");
-      return;
-    }
-    setSelection(chosen);
     setPhase("downloading");
 
     controller.current = new AbortController();
-    const pulled = await pullModel(DEFAULT_LOCAL_BRIDGE_URL, chosen.tier.tag, {
-      expectedBytes: chosen.tier.expectedStorageBytes,
+    const pulled = await pullModel(DEFAULT_LOCAL_BRIDGE_URL, FIXED_SPEC.id, {
+      expectedBytes: FIXED_SPEC.approxBytes,
+      ...(typeof free === "number" ? { freeStorageBytes: free } : {}),
       signal: controller.current.signal,
       onProgress: setProgress,
     });
@@ -155,13 +192,27 @@ export function FirstRunEngineSetup() {
   useEffect(() => () => controller.current?.abort(), []);
 
   // Silent in every state except active work.
-  if (phase !== "downloading" && phase !== "starting") return null;
+  if (phase !== "downloading" && phase !== "starting" && phase !== "insufficient_storage") {
+    return null;
+  }
 
   const percent = progress?.percent ?? null;
   const label =
-    phase === "starting" || percent === null
-      ? "Preparing OCADE"
-      : `Setting up OCADE · ${Math.round(percent)}%`;
+    phase === "insufficient_storage"
+      ? "Not enough space for OCADE's engine"
+      : phase === "starting" || percent === null
+        ? "Preparing OCADE"
+        : `Setting up OCADE · ${Math.round(percent)}%`;
+
+  /*
+   * Real figures, not a spinner. Someone watching several gigabytes arrive is
+   * entitled to know how many have landed and how many are left; a percentage
+   * alone hides a stall, and an unlabelled spinner hides everything.
+   */
+  const transferred =
+    progress?.completedBytes !== undefined && progress.completedBytes > 0
+      ? `${formatBytes(progress.completedBytes)} of ${formatBytes(progress.totalBytes ?? FIXED_SPEC.approxBytes)}`
+      : null;
 
   return (
     <div
@@ -182,11 +233,20 @@ export function FirstRunEngineSetup() {
             />
           </div>
         ) : null}
-        <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
-          {selection
-            ? "Runs privately on this device. Manage it in Settings › Local Engine."
-            : "Getting this device ready."}
-        </p>
+        {phase === "insufficient_storage" && storage ? (
+          <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
+            OCADE needs {formatBytes(storage.requiredBytes)} and this device has{" "}
+            {formatBytes(storage.availableBytes)} free — {formatBytes(storage.shortfallBytes)}{" "}
+            short. Free up space and reopen OCADE, or keep using it with cloud processing, which
+            needs no local model. Nothing was downloaded and nothing was deleted.
+          </p>
+        ) : (
+          <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
+            {transferred
+              ? `${transferred} · runs privately on this device. Pause or cancel in Settings › Local Engine.`
+              : "Getting this device ready."}
+          </p>
+        )}
       </div>
     </div>
   );
