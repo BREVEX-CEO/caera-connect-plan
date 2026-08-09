@@ -8,13 +8,36 @@ import {
 } from "../local/router-policy";
 import { classifyLocalModel, type LocalModelInfo } from "../ocade-local";
 
+/**
+ * These tests were rewritten, not relaxed.
+ *
+ * The previous suite asserted hardware-based selection: exclude what will not
+ * fit in `totalRamBytes`, drop GPU tiers when `hasDiscreteGpu` is false, prefer
+ * the fastest MEASURED model, fall back to a device-matched tier. Every one of
+ * those behaviours was deliberately removed — the product now uses one fixed
+ * model per platform — so a test asserting them would be pinning a rule that no
+ * longer exists.
+ *
+ * What replaces them is stricter in the way that matters: the old suite checked
+ * that the machine was consulted CORRECTLY; this one checks that the machine is
+ * not consulted AT ALL. That is a harder property to hold accidentally, and it
+ * is the actual guarantee — the same computer, the same answer, every time.
+ */
+
 const m = (id: string, sizeBytes: number, params: string): LocalModelInfo =>
   classifyLocalModel({ name: id, size: sizeBytes, details: { parameter_size: params } });
 
+/** The desktop fixed model. Everything else is present to be ignored. */
+const FIXED = m("qwen3:8b", 5.23e9, "8.2B");
 const SMALL = m("deepseek-coder:6.7b", 3.83e9, "7B");
 const MID = m("qwen2.5-coder:7b", 4.68e9, "7.6B");
 const HUGE = m("qwen3-coder:30b", 18.56e9, "30.5B");
-const VISION = m("llava:7b", 4.5e9, "7B");
+const VISION = classifyLocalModel({
+  name: "qwen2.5vl:7b",
+  size: 5.97e9,
+  details: { parameter_size: "8.3B" },
+  capabilities: ["vision", "completion"],
+});
 const REAL_RAM = 16_801_841_152;
 
 describe("deterministic work never routes to a model", () => {
@@ -27,228 +50,155 @@ describe("deterministic work never routes to a model", () => {
       expect(isDeterministic(t)).toBe(false);
     }
   });
-});
 
-describe("routeTask", () => {
-  it("excludes a model this machine cannot hold, before anything else", () => {
-    const r = routeTask("code", [SMALL, HUGE], new PerfLedger(), { totalRamBytes: REAL_RAM });
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.model.id).not.toBe("qwen3-coder:30b");
-    expect(r.receipt.rejected.some((x) => x.modelId === "qwen3-coder:30b")).toBe(true);
-  });
-
-  it("prefers the FASTEST MEASURED model, not the largest", () => {
-    const led = new PerfLedger();
-    // MID is bigger, so size heuristics would pick it. Measurements say SMALL is faster.
-    led.record({ modelId: MID.id, task: "code", firstTokenMs: 9000, totalMs: 12000, ok: true });
-    led.record({ modelId: SMALL.id, task: "code", firstTokenMs: 1200, totalMs: 2000, ok: true });
-    const r = routeTask("code", [SMALL, MID], led, { totalRamBytes: REAL_RAM });
-    expect(r.ok).toBe(true);
-    if (r.ok) {
-      expect(r.model.id).toBe(SMALL.id);
-      expect(r.receipt.basis).toBe("measured");
-    }
-  });
-
-  it("marks an unmeasured choice as unmeasured rather than implying it was earned", () => {
-    const r = routeTask("code", [SMALL, MID], new PerfLedger(), { totalRamBytes: REAL_RAM });
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.receipt.basis).toBe("unmeasured");
-  });
-
-  it("does not bury an unmeasured model beneath a measured-but-failing one", () => {
-    // MID has been measured and is terrible; SMALL has never been measured.
-    // Scoring an unmeasured model as 0 would pick MID. It must not.
-    const led = new PerfLedger();
-    led.record({ modelId: MID.id, task: "code", firstTokenMs: 60_000, totalMs: 90_000, ok: true });
-    const r = routeTask("code", [SMALL, MID], led, {
-      totalRamBytes: REAL_RAM,
-      latencyBudgetMs: 5000,
-    });
-    expect(r.ok).toBe(true);
-    if (r.ok) {
-      expect(r.model.id).toBe(SMALL.id);
-      expect(r.receipt.basis).toBe("unmeasured");
-    }
-    expect(r.receipt.rejected.some((x) => /exceeds the 5000 ms budget/.test(x.why))).toBe(true);
-  });
-
-  it("rejects a model below the required success rate, with the number in the reason", () => {
-    const led = new PerfLedger();
-    for (let i = 0; i < 4; i++) {
-      led.record({ modelId: MID.id, task: "code", firstTokenMs: 100, totalMs: 200, ok: i === 0 });
-    }
-    const r = routeTask("code", [MID], led, { minSuccessRate: 0.9 });
-    expect(r.ok).toBe(false);
-    expect(r.receipt.rejected[0].why).toMatch(/success rate 25%/);
-  });
-
-  it("refuses honestly when nothing suits the task", () => {
-    const r = routeTask("vision", [SMALL, MID], new PerfLedger());
-    expect(r.ok).toBe(false);
-    expect(r.receipt.chosen).toBeNull();
-    expect(r.receipt.basis).toBe("none");
-    expect(r.receipt.refusal).toMatch(/No on-device engine/);
-  });
-
-  it("routes vision to a vision model", () => {
-    const r = routeTask("vision", [SMALL, VISION], new PerfLedger());
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.model.id).toBe(VISION.id);
-  });
-
-  it("emits a receipt that explains every rejection", () => {
-    const r = routeTask("vision", [SMALL, MID, HUGE], new PerfLedger(), {
-      totalRamBytes: REAL_RAM,
-    });
-    expect(r.receipt.rejected.length).toBeGreaterThan(0);
-    for (const rej of r.receipt.rejected) {
-      expect(rej.why.trim().length).toBeGreaterThan(0);
-      expect(rej.modelId.trim().length).toBeGreaterThan(0);
-    }
-    expect(r.receipt.at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  it("refuses deterministic work even when the fixed engine is installed", () => {
+    const outcome = routeTask("shell" as never, [FIXED], new PerfLedger());
+    expect(outcome.ok).toBe(false);
+    expect(outcome.receipt.refusal).toMatch(/deterministic/i);
   });
 });
 
-describe("PerfLedger", () => {
+describe("the platform decides, and nothing else does", () => {
+  it("chooses the fixed engine when it is installed", () => {
+    const outcome = routeTask("general", [SMALL, FIXED, HUGE], new PerfLedger());
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) expect(outcome.model.id).toBe("qwen3:8b");
+    expect(outcome.receipt.basis).toBe("fixed");
+  });
+
+  it("ignores memory entirely — the same answer on 2 GB and on 64 GB", () => {
+    const models = [SMALL, FIXED, HUGE];
+    const tiny = routeTask("general", models, new PerfLedger(), { totalRamBytes: 2e9 });
+    const huge = routeTask("general", models, new PerfLedger(), { totalRamBytes: 64e9 });
+    expect(tiny.ok && tiny.model.id).toBe("qwen3:8b");
+    expect(huge.ok && huge.model.id).toBe("qwen3:8b");
+  });
+
+  it("ignores whether the machine has a graphics card", () => {
+    const models = [SMALL, FIXED, HUGE];
+    const without = routeTask("general", models, new PerfLedger(), { hasDiscreteGpu: false });
+    const with_ = routeTask("general", models, new PerfLedger(), { hasDiscreteGpu: true });
+    expect(without.ok && without.model.id).toBe("qwen3:8b");
+    expect(with_.ok && with_.model.id).toBe("qwen3:8b");
+  });
+
+  it("ignores measurements, however lopsided", () => {
+    // The old rule would have chosen MID here by a wide margin.
+    const ledger = new PerfLedger();
+    for (let i = 0; i < 5; i += 1) {
+      ledger.record({ modelId: MID.id, task: "general", firstTokenMs: 20, totalMs: 40, ok: true });
+      ledger.record({
+        modelId: FIXED.id,
+        task: "general",
+        firstTokenMs: 30_000,
+        totalMs: 60_000,
+        ok: true,
+      });
+    }
+    const outcome = routeTask("general", [MID, FIXED], ledger, { totalRamBytes: REAL_RAM });
+    expect(outcome.ok && outcome.model.id).toBe("qwen3:8b");
+    expect(outcome.receipt.basis).toBe("fixed");
+  });
+
+  it("ignores a device-matched hint pointing somewhere else", () => {
+    const outcome = routeTask("general", [MID, FIXED], new PerfLedger(), {
+      deviceMatchedModelId: MID.id,
+    });
+    expect(outcome.ok && outcome.model.id).toBe("qwen3:8b");
+  });
+
+  it("never routes to a model the user installed for their own reasons", () => {
+    const outcome = routeTask("general", [SMALL, FIXED, HUGE, MID], new PerfLedger());
+    expect(outcome.ok && outcome.model.id).toBe("qwen3:8b");
+    // ...but it does say why each was passed over, rather than hiding them.
+    const passedOver = outcome.receipt.rejected.map((r) => r.modelId).sort();
+    expect(passedOver).toEqual(["deepseek-coder:6.7b", "qwen2.5-coder:7b", "qwen3-coder:30b"]);
+    for (const entry of outcome.receipt.rejected) {
+      expect(entry.why).toMatch(/own configured engine/i);
+    }
+  });
+
+  it("refuses honestly when its own engine is not installed", () => {
+    const outcome = routeTask("general", [SMALL, HUGE], new PerfLedger());
+    expect(outcome.ok).toBe(false);
+    expect(outcome.receipt.basis).toBe("none");
+    expect(outcome.receipt.refusal).toMatch(/not installed/i);
+  });
+
+  it("refuses when nothing at all is installed", () => {
+    const outcome = routeTask("general", [], new PerfLedger());
+    expect(outcome.ok).toBe(false);
+  });
+});
+
+describe("vision is capability, not preference", () => {
+  it("uses an installed vision engine when the request carries an image", () => {
+    const outcome = routeTask("vision", [FIXED, VISION], new PerfLedger());
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) expect(outcome.model.id).toBe("qwen2.5vl:7b");
+    expect(outcome.receipt.basis).toBe("vision_capability");
+  });
+
+  it("refuses rather than handing a picture to a text-only engine", () => {
+    const outcome = routeTask("vision", [FIXED], new PerfLedger());
+    expect(outcome.ok).toBe(false);
+    expect(outcome.receipt.refusal).toMatch(/read images/i);
+  });
+
+  it("does not use the vision engine for ordinary text", () => {
+    const outcome = routeTask("general", [FIXED, VISION], new PerfLedger());
+    expect(outcome.ok && outcome.model.id).toBe("qwen3:8b");
+  });
+});
+
+describe("PerfLedger measures but no longer chooses", () => {
   it("returns null for a model it has never seen, not a zero score", () => {
-    expect(new PerfLedger().stats("nope:1b", "code")).toBeNull();
+    expect(new PerfLedger().stats("x", "general")).toBeNull();
   });
 
-  it("uses the median so one cold start does not condemn a model", () => {
-    const led = new PerfLedger();
-    led.record({ modelId: SMALL.id, task: "code", firstTokenMs: 30_000, totalMs: 1, ok: true });
-    for (let i = 0; i < 4; i++) {
-      led.record({ modelId: SMALL.id, task: "code", firstTokenMs: 500, totalMs: 1, ok: true });
+  it("uses the median so one cold start does not distort the record", () => {
+    const ledger = new PerfLedger();
+    for (const ms of [100, 120, 30_000]) {
+      ledger.record({ modelId: "a", task: "general", firstTokenMs: ms, totalMs: ms, ok: true });
     }
-    expect(led.stats(SMALL.id, "code")!.medianFirstTokenMs).toBe(500);
+    expect(ledger.stats("a", "general")?.medianFirstTokenMs).toBe(120);
   });
 
   it("bounds its history", () => {
-    const led = new PerfLedger(3);
-    for (let i = 0; i < 10; i++) {
-      led.record({ modelId: SMALL.id, task: "code", firstTokenMs: i, totalMs: 1, ok: true });
+    const ledger = new PerfLedger(3);
+    for (let i = 0; i < 10; i += 1) {
+      ledger.record({ modelId: "a", task: "general", firstTokenMs: i, totalMs: i, ok: true });
     }
-    expect(led.stats(SMALL.id, "code")!.samples).toBe(3);
+    expect(ledger.stats("a", "general")?.samples).toBe(3);
   });
 
   it("keeps tasks separate", () => {
-    const led = new PerfLedger();
-    led.record({ modelId: SMALL.id, task: "code", firstTokenMs: 100, totalMs: 1, ok: true });
-    expect(led.stats(SMALL.id, "general")).toBeNull();
+    const ledger = new PerfLedger();
+    ledger.record({ modelId: "a", task: "general", firstTokenMs: 1, totalMs: 1, ok: true });
+    expect(ledger.stats("a", "vision")).toBeNull();
   });
 });
 
 describe("hotSwap", () => {
-  it("never reselects the model that just failed", () => {
-    const led = new PerfLedger();
-    const r = hotSwap("code", [SMALL, MID], led, SMALL.id, { totalRamBytes: REAL_RAM });
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.model.id).toBe(MID.id);
-    expect(r.receipt.rejected[0]).toEqual({
-      modelId: SMALL.id,
-      why: "failed during this task and was swapped out",
-    });
+  it("refuses instead of falling back to another model when the fixed engine fails", () => {
+    /*
+     * A swap used to drop to the next-best model by size or measurement. There
+     * is no "next best" any more, and inventing one would reintroduce exactly
+     * the ranking this change removed — quietly, at the worst moment, when
+     * something has already gone wrong.
+     *
+     * hotSwap excludes the model that just failed, which leaves nothing this
+     * platform is allowed to use, so it refuses. The caller reports that the
+     * engine failed rather than silently answering from a different one.
+     */
+    const outcome = hotSwap("general", [FIXED, MID], new PerfLedger(), FIXED.id);
+    expect(outcome.ok).toBe(false);
+    expect(outcome.receipt.refusal).toMatch(/not installed|no on-device engine/i);
   });
 
-  it("records the failure so the model is penalised on later routes", () => {
-    const led = new PerfLedger();
-    hotSwap("code", [SMALL, MID], led, SMALL.id, { totalRamBytes: REAL_RAM });
-    expect(led.stats(SMALL.id, "code")!.successRate).toBe(0);
-  });
-
-  it("refuses honestly when the failed model was the only option", () => {
-    const r = hotSwap("code", [SMALL], new PerfLedger(), SMALL.id);
-    expect(r.ok).toBe(false);
-    expect(r.receipt.refusal).toBeTruthy();
-  });
-});
-
-/*
- * The router and the tier policy used to disagree about the same machine.
- *
- * Measured on a 16 GB CPU-only host: the tier policy chose the 8B tier, while
- * the router chose 14B purely because it also fitted in RAM. 14B on that
- * machine benchmarked at 1.32-2.98 tok/s — 50-128 s for one short answer. It
- * did not fail, it degraded silently, which is the worst outcome because
- * nothing tells the user why their computer became unresponsive.
- */
-describe("routeTask respects the same hardware limits as the tier policy", () => {
-  const EIGHT_B = m("qwen3:8b", 5.23e9, "8.2B");
-  const FOURTEEN_B = m("qwen3:14b", 9.28e9, "14.8B");
-  const FOUR_B = m("qwen3:4b", 2.5e9, "4.0B");
-
-  it("refuses a GPU-tier model on a machine with no dedicated GPU", () => {
-    const r = routeTask("general", [EIGHT_B, FOURTEEN_B], new PerfLedger(), {
-      totalRamBytes: REAL_RAM,
-      hasDiscreteGpu: false,
-    });
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.model.id).toBe("qwen3:8b");
-    expect(r.receipt.rejected.find((x) => x.modelId === "qwen3:14b")?.why).toMatch(
-      /dedicated graphics card/i,
-    );
-  });
-
-  it("keeps the GPU tier in play when the machine actually has a GPU", () => {
-    const r = routeTask("general", [EIGHT_B, FOURTEEN_B], new PerfLedger(), {
-      totalRamBytes: REAL_RAM,
-      hasDiscreteGpu: true,
-    });
-    expect(r.receipt.rejected.some((x) => x.modelId === "qwen3:14b")).toBe(false);
-  });
-
-  it("leaves the GPU tier in play when GPU presence is genuinely unknown", () => {
-    const r = routeTask("general", [EIGHT_B, FOURTEEN_B], new PerfLedger(), {
-      totalRamBytes: REAL_RAM,
-    });
-    expect(r.receipt.rejected.some((x) => x.modelId === "qwen3:14b")).toBe(false);
-  });
-
-  it("never routes to a quarantined tier, and says why", () => {
-    const r = routeTask("general", [FOUR_B, EIGHT_B], new PerfLedger(), {
-      totalRamBytes: REAL_RAM,
-      hasDiscreteGpu: false,
-    });
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.model.id).not.toBe("qwen3:4b");
-    expect(r.receipt.rejected.find((x) => x.modelId === "qwen3:4b")?.why).toMatch(
-      /leaks its own reasoning/i,
-    );
-  });
-
-  it("chooses the device-matched tier over a merely larger one", () => {
-    const r = routeTask("general", [FOUR_B, EIGHT_B, MID], new PerfLedger(), {
-      totalRamBytes: REAL_RAM,
-      hasDiscreteGpu: false,
-      deviceMatchedModelId: "qwen3:8b",
-    });
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.model.id).toBe("qwen3:8b");
-    expect(r.receipt.basis).toBe("device_matched");
-  });
-
-  it("does not let a device-matched id resurrect a model that cannot run here", () => {
-    const r = routeTask("general", [EIGHT_B, HUGE], new PerfLedger(), {
-      totalRamBytes: REAL_RAM,
-      hasDiscreteGpu: false,
-      deviceMatchedModelId: "qwen3-coder:30b",
-    });
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.model.id).toBe("qwen3:8b");
-    expect(r.receipt.basis).toBe("unmeasured");
-  });
-
-  it("still prefers a real measurement over the device-matched default", () => {
+  it("records the failure even though it no longer changes the choice", () => {
     const ledger = new PerfLedger();
-    ledger.record({ modelId: MID.id, task: "general", firstTokenMs: 300, totalMs: 900, ok: true });
-    const r = routeTask("general", [EIGHT_B, MID], ledger, {
-      totalRamBytes: REAL_RAM,
-      hasDiscreteGpu: false,
-      deviceMatchedModelId: "qwen3:8b",
-    });
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.model.id).toBe(MID.id);
-    expect(r.receipt.basis).toBe("measured");
+    hotSwap("general", [FIXED, MID], ledger, FIXED.id);
+    expect(ledger.stats(FIXED.id, "general")?.successRate).toBe(0);
   });
 });

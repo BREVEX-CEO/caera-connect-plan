@@ -22,11 +22,10 @@
  *    be handed work whose correctness is not a matter of opinion.
  */
 import type { LocalModelInfo } from "../ocade-local";
-import { modelFit } from "../ocade-local";
-// Shared with the tier policy on purpose. Two copies of "which tags need a GPU"
-// is precisely how the router and the tier policy came to choose different
-// models for the same machine.
-import { GPU_REQUIRED_TAGS, QUARANTINED_TAGS } from "./tier-policy";
+// The single authority on which engine answers. `modelFit`, `GPU_REQUIRED_TAGS`
+// and `QUARANTINED_TAGS` are deliberately no longer imported: they existed to
+// choose BETWEEN model sizes from hardware, and that decision no longer exists.
+import { detectPlatform, selectFixedModel } from "./fixed-model";
 
 export type TaskKind = "code" | "general" | "vision" | "summarise" | "embed";
 
@@ -152,7 +151,15 @@ export interface RouteReceipt {
    * How the winner was chosen: from real measurements, because it is the tier
    * this hardware was matched to, from declared profile only, or not at all.
    */
-  basis: "measured" | "device_matched" | "unmeasured" | "none";
+  /**
+   * How the engine was chosen.
+   *
+   * `measured`, `device_matched` and `unmeasured` are gone with the hardware
+   * selection that produced them. What remains describes the only two things
+   * that now decide: the platform's fixed engine, or a capability substitution
+   * because the request carried an image.
+   */
+  basis: "fixed" | "vision_capability" | "none";
   rejected: RejectedCandidate[];
   /** Present when nothing could be chosen. */
   refusal?: string;
@@ -190,146 +197,114 @@ export function isDeterministic(task: string): task is DeterministicTask {
 }
 
 /**
- * Choose a local model for a task, on measurements where they exist.
+ * Choose the local model for a task.
  *
- * Order: exclude what cannot run → exclude what policy forbids → prefer the
- * fastest MEASURED model that meets the budget → otherwise the best-profile
- * unmeasured model. Every exclusion is recorded with its reason.
+ * THIS NO LONGER INSPECTS THE MACHINE.
+ *
+ * It used to: memory was filtered on `totalRamBytes`, tiers needing a GPU were
+ * excluded on `hasDiscreteGpu`, a quarantine list removed known-slow tags, and
+ * the winner was the fastest MEASURED model in a rolling performance ledger,
+ * with a "device-matched tier" as a tiebreak. Five inputs, four of them proxies
+ * for a question nobody asked, and the file's own comments record them
+ * disagreeing about the same computer.
+ *
+ * The rule now: PLATFORM DECIDES, AND NOTHING ELSE DOES. `local/fixed-model`
+ * owns it — Qwen3 8B on desktop, Qwen3 1.7B on mobile — and this function is
+ * the adapter that keeps the existing callers and their receipts working.
+ *
+ * WHAT SURVIVES, AND WHY IT IS NOT SELECTION:
+ *   - `PerfLedger` still records how long a model took. Measuring is not
+ *     choosing; the numbers are for diagnostics and the performance report,
+ *     and nothing reads them to pick an engine.
+ *   - Vision still branches, because it is a CAPABILITY requirement. An image
+ *     needs an engine that can read images, and the fixed model cannot.
+ *   - Deterministic work is still refused outright.
+ *
+ * `RoutePolicy`'s hardware fields are accepted and ignored, so the eleven call
+ * sites keep compiling while they are simplified one at a time. They are marked
+ * deprecated rather than deleted in one sweep, because silently changing eleven
+ * behaviours at once is how a regression arrives without a name.
  */
 export function routeTask(
   task: TaskKind,
   models: LocalModelInfo[],
-  ledger: PerfLedger,
+  _ledger: PerfLedger,
   policy: RoutePolicy = {},
 ): RouteOutcome {
   const at = new Date().toISOString();
-  const rejected: RejectedCandidate[] = [];
-  let pool = models;
 
-  // 1. Hardware. A model that cannot be resident is not a candidate at all.
-  if (policy.totalRamBytes !== undefined) {
-    const next: LocalModelInfo[] = [];
-    for (const m of pool) {
-      const fit = modelFit(m, policy.totalRamBytes);
-      if (fit.fits) next.push(m);
-      else rejected.push({ modelId: m.id, why: fit.reason ?? "does not fit in memory" });
-    }
-    pool = next;
-  }
-
-  /*
-   * 1b. Usability on THIS machine, not merely residency.
-   *
-   * Shares its source of truth with `tier-policy.ts` rather than keeping a
-   * second list: two copies of "which models need a GPU" is how the router and
-   * the tier policy came to disagree in the first place.
-   */
-  {
-    const next: LocalModelInfo[] = [];
-    for (const m of pool) {
-      const quarantine = QUARANTINED_TAGS[m.id];
-      if (quarantine) {
-        rejected.push({ modelId: m.id, why: quarantine });
-        continue;
-      }
-      if (GPU_REQUIRED_TAGS.has(m.id) && policy.hasDiscreteGpu === false) {
-        rejected.push({
-          modelId: m.id,
-          why: "needs a dedicated graphics card; without one it is measurably slower than a smaller model",
-        });
-        continue;
-      }
-      next.push(m);
-    }
-    pool = next;
-  }
-
-  // 2. Profile suitability.
-  const prefs = profilePreference(task);
-  const suitable = pool.filter((m) => prefs.includes(m.profile));
-  for (const m of pool) {
-    if (!suitable.includes(m)) {
-      rejected.push({ modelId: m.id, why: `profile "${m.profile}" is not suitable for ${task}` });
-    }
-  }
-  pool = suitable;
-
-  // 3. Measured policy. Only models WITH measurements can fail these.
-  const measured: Array<{ m: LocalModelInfo; s: PerfStats }> = [];
-  const unmeasured: LocalModelInfo[] = [];
-  for (const m of pool) {
-    const s = ledger.stats(m.id, task);
-    if (!s) {
-      unmeasured.push(m);
-      continue;
-    }
-    if (policy.minSuccessRate !== undefined && s.successRate < policy.minSuccessRate) {
-      rejected.push({
-        modelId: m.id,
-        why: `measured success rate ${(s.successRate * 100).toFixed(0)}% is below the required ${(policy.minSuccessRate * 100).toFixed(0)}%`,
-      });
-      continue;
-    }
-    if (policy.latencyBudgetMs !== undefined && s.medianFirstTokenMs > policy.latencyBudgetMs) {
-      rejected.push({
-        modelId: m.id,
-        why: `measured first token ${Math.round(s.medianFirstTokenMs)} ms exceeds the ${policy.latencyBudgetMs} ms budget`,
-      });
-      continue;
-    }
-    measured.push({ m, s });
-  }
-
-  // 4. Prefer the fastest model that has actually been measured.
-  if (measured.length > 0) {
-    measured.sort((a, b) => a.s.medianFirstTokenMs - b.s.medianFirstTokenMs);
+  if (isDeterministic(task as string)) {
     return {
-      ok: true,
-      model: measured[0].m,
-      receipt: { task, chosen: measured[0].m.id, basis: "measured", rejected, policy, at },
+      ok: false,
+      receipt: {
+        task,
+        chosen: null,
+        basis: "none",
+        rejected: [],
+        refusal: `${task} is deterministic work and must be executed by a tool, never generated.`,
+        policy,
+        at,
+      },
     };
   }
 
-  // 5. Nothing measured. Fall back to declared profile order, and SAY that the
-  //    choice was unmeasured rather than implying it was earned.
-  if (unmeasured.length > 0) {
-    /*
-     * The device-matched tier wins outright when it survived every filter
-     * above. "Largest that fits" is the right instinct on a machine with
-     * acceleration and the wrong one without it, and the hardware policy has
-     * already done that reasoning against benchmarks.
-     */
-    const deviceMatched = policy.deviceMatchedModelId
-      ? unmeasured.find((m) => m.id === policy.deviceMatchedModelId)
-      : undefined;
-    if (deviceMatched) {
-      return {
-        ok: true,
-        model: deviceMatched,
-        receipt: { task, chosen: deviceMatched.id, basis: "device_matched", rejected, policy, at },
-      };
-    }
-    const byPref = [...unmeasured].sort(
-      (a, b) => prefs.indexOf(a.profile) - prefs.indexOf(b.profile) || b.sizeBytes - a.sizeBytes,
-    );
+  const selection = selectFixedModel({
+    platform: detectPlatform(),
+    installed: models.map((model) => ({
+      id: model.id,
+      vision: model.vision,
+      sizeBytes: model.sizeBytes,
+      isCloudPointer: model.isCloudPointer,
+    })),
+    visionRequired: task === "vision",
+  });
+
+  const rejected: RejectedCandidate[] = selection.notChosen.map((entry) => ({
+    modelId: entry.modelId,
+    why: entry.why,
+  }));
+
+  if (!selection.ok || !selection.modelId) {
     return {
-      ok: true,
-      model: byPref[0],
-      receipt: { task, chosen: byPref[0].id, basis: "unmeasured", rejected, policy, at },
+      ok: false,
+      receipt: {
+        task,
+        chosen: null,
+        basis: "none",
+        rejected,
+        refusal: selection.reason ?? `No on-device engine is installed for ${task}.`,
+        policy,
+        at,
+      },
+    };
+  }
+
+  const chosen = models.find((model) => model.id === selection.modelId);
+  if (!chosen) {
+    return {
+      ok: false,
+      receipt: {
+        task,
+        chosen: null,
+        basis: "none",
+        rejected,
+        refusal: selection.reason ?? `No on-device engine is installed for ${task}.`,
+        policy,
+        at,
+      },
     };
   }
 
   return {
-    ok: false,
+    ok: true,
+    model: chosen,
     receipt: {
       task,
-      chosen: null,
-      basis: "none",
+      chosen: chosen.id,
+      // "fixed" everywhere except the one capability substitution, so a
+      // receipt can never imply a measurement that no longer happens.
+      basis: selection.basis === "fixed_vision_substitute" ? "vision_capability" : "fixed",
       rejected,
-      refusal:
-        rejected.length > 0
-          ? `No on-device engine can serve ${task}: ${rejected[0].why}.`
-          : `No on-device engine is installed for ${task}.`,
       policy,
       at,
     },
