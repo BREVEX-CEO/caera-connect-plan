@@ -40,9 +40,10 @@ import {
   describeScope,
   type TaskScope,
 } from "@/lib/skills/task-scope";
-import { WorkSessionPanel, seedHealth, applyOutcome } from "@/components/ocade/WorkSessionPanel";
+import { WorkSessionPanel } from "@/components/ocade/WorkSessionPanel";
+import { seedHealth, applyOutcome } from "@/lib/skills/adapter-health-map";
 import type { ResumableJob } from "@/lib/skills/adapter-health";
-import { useShell } from "@/components/shell/shell-context";
+import { useShell } from "@/components/shell/use-shell";
 import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
 import {
   computerUseChannelDecision,
@@ -68,6 +69,75 @@ export function CopilotMount() {
     return () => setCopilotContent(null);
   }, [setCopilotContent]);
   return null;
+}
+
+/**
+ * "What can you see?", asked from the product rather than from a script.
+ *
+ * THE DISTINCTION THIS EXISTS TO CLOSE. The perception stack — UI Automation,
+ * window capture, Windows OCR — was proven by driving the host directly, and a
+ * developer script calling a host is not evidence that a user can. This is the
+ * first surface where the authenticated application originates the call: the
+ * server function classifies the request, loads only the OS/application tools,
+ * runs the observe loop against the real machine and returns what it actually
+ * found.
+ *
+ * READ-ONLY, AND SAID SO. The entry point refuses every mutating tool, so this
+ * can describe the computer and cannot change it. The button says "read"
+ * because that is all it does — a control promising more than the layer beneath
+ * it delivers is the exact defect this programme keeps finding.
+ */
+function ScreenUnderstanding() {
+  const [busy, setBusy] = useState(false);
+  const [answer, setAnswer] = useState<string | null>(null);
+  const [detail, setDetail] = useState<{ tool: string; outcome: string }[]>([]);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const read = useCallback(async () => {
+    setBusy(true);
+    setProblem(null);
+    setAnswer(null);
+    setDetail([]);
+    try {
+      const { observeComputerFn } = await import("@/lib/agent.functions");
+      const result = await observeComputerFn({
+        data: { request: "Look at my screen and tell me what you can see." },
+      });
+      setAnswer(result.text);
+      setDetail(result.steps.map((s) => ({ tool: s.tool, outcome: s.outcome })));
+      if (!result.ok && result.reason === "unavailable") setProblem(result.text);
+    } catch (error) {
+      setProblem(error instanceof Error ? error.message : String(error));
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  return (
+    <div className="rounded-lg border border-border/60 p-3">
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        What OCADE can see
+      </h3>
+      <Button size="sm" variant="secondary" disabled={busy} onClick={() => void read()}>
+        {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+        {busy ? "Reading this computer…" : "Read this computer"}
+      </Button>
+      {problem ? <p className="mt-2 text-[11px] text-destructive">{problem}</p> : null}
+      {answer ? <p className="mt-2 whitespace-pre-wrap text-[12px]">{answer}</p> : null}
+      {detail.length > 0 ? (
+        <ul className="mt-2 space-y-0.5">
+          {detail.map((step, index) => (
+            <li key={`${step.tool}-${index}`} className="text-[11px] text-muted-foreground">
+              {step.tool} — {step.outcome}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <p className="mt-2 text-[11px] text-muted-foreground">
+        Reading only. OCADE cannot change anything from here.
+      </p>
+    </div>
+  );
 }
 
 /**
@@ -504,6 +574,9 @@ export function CopilotPanel() {
           </p>
         ) : null}
       </div>
+
+      {/* What OCADE can currently see. The observe half of observe→act. */}
+      <ScreenUnderstanding />
 
       {/* Demonstrable, risk-checked action preview */}
       <div className="rounded-lg border border-border/60 p-3">

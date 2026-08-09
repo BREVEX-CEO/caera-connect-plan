@@ -8,7 +8,7 @@
     "server_functions",
     "native_commands",
     "mobile_intents",
-    "extension_messages",
+    "managed_browser_messages",
     "migrations",
     "adapters",
     "artifacts",
@@ -21,7 +21,6 @@
   ],
   "activeOcadeRoutes": [
     "/ocade",
-    "/ocade/work",
     "/ocade/code",
     "/ocade/projects",
     "/ocade/artifacts",
