@@ -89,7 +89,7 @@ function memoryStore<T>() {
   };
 }
 
-describe("HWE-36 signed application-skill marketplace", () => {
+describe("signed application-skill marketplace", () => {
   it("admits a genuinely signed, independently reviewed, locally revalidated skill", async () => {
     const result = await evaluateMarketplaceSubmission(await submission(), { now: NOW });
     expect(result.admitted).toBe(true);
@@ -233,7 +233,7 @@ function bountyInput() {
   };
 }
 
-describe("HWE-37 community compatibility bounty engine", () => {
+describe("community compatibility bounty engine", () => {
   it("creates a bounded, non-financial priority request and rejects duplicates", async () => {
     const store = memoryStore<CompatibilityBounty>();
     const engine = new CompatibilityBountyEngine(store as BountyStore);

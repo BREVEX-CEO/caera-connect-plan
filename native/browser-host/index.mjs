@@ -332,6 +332,21 @@ async function executeAction(request, signal) {
     case "page.read":
       output = await readPage(page);
       break;
+    case "media.read":
+      output = await page.locator("audio,video").evaluateAll((elements) =>
+        elements.slice(0, 25).map((element) => ({
+          tag: element.tagName.toLowerCase(),
+          paused: element.paused,
+          ended: element.ended,
+          currentTime: Number(element.currentTime.toFixed(3)),
+          duration: Number.isFinite(element.duration) ? Number(element.duration.toFixed(3)) : null,
+          readyState: element.readyState,
+          networkState: element.networkState,
+          muted: element.muted,
+          volume: Number(element.volume.toFixed(3)),
+        })),
+      );
+      break;
     case "navigate":
       requireAllowedOrigin(boundedText(action.url, "url", 8_000), request.approvedOrigins);
       await page.goto(action.url, {

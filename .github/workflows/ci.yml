@@ -128,14 +128,10 @@ jobs:
       - name: Release source gate
         run: npm run release:source-check
 
-      # Runs BEFORE the readiness gate on purpose. Readiness computes a score
-      # from the register; this proves the register's rows are honest in the
-      # first place. Scoring dishonest rows accurately is not much use.
-      - name: Evidence-integrity gate (false-progress detector)
-        run: npm run evidence:integrity
-
-      - name: Evidence-bound final-readiness gate
-        run: npm run readiness:check
+      # Development-only categorical release status. It validates real proof
+      # paths and external blockers without adding a product runtime or score.
+      - name: Capability-status and legacy-removal gate
+        run: npm run capability:check
 
       - name: Provider-neutral portable-release gate
         run: npm run portable-release:check
@@ -314,7 +310,7 @@ jobs:
           }
 
   # ---------------------------------------------------------------------------
-  # The database (AZ-354).
+  # The database runtime and isolation boundary.
   #
   # A dedicated job, not a step inside the test run. The migration set is the
   # one artefact here that can be correct on the machine that wrote it and

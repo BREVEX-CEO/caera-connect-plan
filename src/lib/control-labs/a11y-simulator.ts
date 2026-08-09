@@ -1,5 +1,5 @@
 /**
- * HWE-10 — headless accessibility-tree simulator.
+ * Headless accessibility-tree simulator.
  *
  * SIMULATED. THIS IS NOT APPLICATION SUPPORT.
  * ==========================================

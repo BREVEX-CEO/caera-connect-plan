@@ -3,13 +3,13 @@ import { GlassPanel } from "@/components/shell/GlassPanel";
 
 const controls = [
   {
-    id: "AZ-442",
+    id: "application-drift",
     title: "Application drift",
     detail:
       "Version, fingerprint, capability, layout or plug-in drift disables the adapter and private recipes until a fresh probe, rehearsal and independent verification pass.",
   },
   {
-    id: "AZ-443",
+    id: "security-patch",
     title: "Security patches",
     detail:
       "Critical or high advisories block affected adapters. OCADE can stage a plan only after trusted evidence, approval, rehearsal, a real artifact digest and known-good rollback exist.",

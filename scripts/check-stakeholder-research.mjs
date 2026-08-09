@@ -47,5 +47,5 @@ if (failures.length > 0) {
   console.log(
     "Stakeholder-research gate: intake contract valid; 0 production participants recorded.",
   );
-  console.log("AZ-009 through AZ-015 remain externally blocked on authorised human research.");
+  console.log("Stakeholder research remains blocked on authorised human participation.");
 }

@@ -258,30 +258,20 @@ describe("ownership covers the whole codebase", () => {
     expect(stale, "ownership entries for directories that no longer exist").toEqual([]);
   });
 
-  it("maps each area to a real requirement prefix", () => {
-    const snapshot = JSON.parse(
-      readFileSync("release/OCADE_REQUIREMENT_STATUS_SNAPSHOT.json", "utf8"),
-    );
-    const prefixes = new Set(snapshot.requirements.map((r: { id: string }) => r.id.split("-")[0]));
+  it("names a human-readable owner for every area", () => {
     for (const o of boundaries.ownership) {
-      expect(
-        prefixes.has(o.requirementPrefix),
-        `${o.area} claims prefix ${o.requirementPrefix}`,
-      ).toBe(true);
+      expect(o.owner.length, `${o.area} has no accountable owner`).toBeGreaterThan(5);
     }
   });
 });
 
-describe("the charter's success metrics are measured, not asserted (AZ-008)", () => {
+describe("the charter's success metrics are measured, not asserted", () => {
   /*
    * A metrics table full of numbers nobody recomputes is the most persuasive
    * kind of stale claim — it looks like measurement. Each metric below that CAN
    * be evaluated from the repository is evaluated here, so the table fails the
    * build when it stops matching.
    */
-  const snapshot = JSON.parse(
-    readFileSync("release/OCADE_REQUIREMENT_STATUS_SNAPSHOT.json", "utf8"),
-  );
   const charter = readFileSync("docs/CHARTER.md", "utf8");
 
   it("M7 — no database type bypass survives anywhere in the tree", () => {
@@ -291,41 +281,17 @@ describe("the charter's success metrics are measured, not asserted (AZ-008)", ()
     expect(offenders, "a pendingFrom-style `any` bridge has come back").toEqual([]);
   });
 
-  it("M8 — the register carries no open defect", () => {
-    expect(snapshot.openDefects ?? []).toEqual([]);
-    expect(charter, "the charter claims a different open-defect count").toMatch(/\|\s*M8\s*\|/);
-  });
-
-  it("M9 and M10 — the counts quoted in the charter match the register", () => {
-    const executed = snapshot.requirements.filter((r: { status: string }) =>
-      [
-        "UNIT TESTED",
-        "INTEGRATION TESTED",
-        "SIMULATED RUNTIME VERIFIED",
-        "REAL TARGET RUNTIME VERIFIED",
-      ].includes(r.status),
-    ).length;
-    const real = snapshot.requirements.filter(
-      (r: { status: string }) => r.status === "REAL TARGET RUNTIME VERIFIED",
-    ).length;
-    const total = snapshot.requirements.length;
-    // Quoted as "367/510" and "27/510" in the table. The point of pinning them
-    // is that the gap between the two is the honest readiness measure, and a
-    // stale numerator would hide it closing or widening.
-    expect(charter, `M9 should read ${executed}/${total}`).toContain(`${executed}/${total}`);
-    expect(charter, `M10 should read ${real}/${total}`).toContain(`${real}/${total}`);
-  });
-
-  it("M12 — no requirement claims positive weight without evidence", () => {
-    const unverified = snapshot.requirements.filter(
-      (r: { weight: number; evidence?: string; resolvedInPhase?: string }) =>
-        r.weight > 0 && (!r.evidence || !r.resolvedInPhase),
+  it("the categorical capability report is the only status authority", () => {
+    const report = JSON.parse(readFileSync("release/OCADE_CAPABILITY_STATUS.json", "utf8"));
+    expect(report.capabilities).toHaveLength(18);
+    expect(JSON.stringify(report)).not.toMatch(
+      /"(?:weight|score|percent|numerator|denominator)"\s*:/i,
     );
-    expect(unverified.map((r: { id: string }) => r.id)).toEqual([]);
+    expect(charter).toContain("OCADE_CAPABILITY_STATUS.json");
   });
 });
 
-describe("change control is the workflow, not a description of one (AZ-022)", () => {
+describe("change control is the workflow, not a description of one", () => {
   const ci = readFileSync(".github/workflows/ci.yml", "utf8");
 
   it("every stage the policy names is a real CI job", () => {

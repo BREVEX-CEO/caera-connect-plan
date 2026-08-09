@@ -1,12 +1,8 @@
 # OCADE — Governance and Process
 
-Register rows: AZ-019 acceptance criteria · AZ-020 dependencies · AZ-022 change control ·
-AZ-024 ownership · AZ-048 deprecation · AZ-445 roadmap · AZ-446 feature intake ·
-AZ-447 architecture review · AZ-448 safety review · AZ-449 migration · AZ-450 portfolio.
-
 ---
 
-## 1. Change control (AZ-022)
+## 1. Change control
 
 Every change reaches `main` through a pull request, and the pull request is gated by
 `.github/workflows/ci.yml`. Nothing here is advisory; the workflow is the process.
@@ -16,8 +12,8 @@ Every change reaches `main` through a pull request, and the pull request is gate
 | Typecheck, lint, tests, build on Linux, Windows, macOS × Node 20/22 | `build` job |
 | Migration set rebuilds an empty database; RLS attacks; type parity | `database` job |
 | Rust safety core linked and executed on all three desktop platforms | `rust` job |
-| 22 evidence and honesty gates | `gates` job |
-| Extension manifest and package contents | `extension` job |
+| Product, capability and honesty gates | `gates` job |
+| Extensionless managed-browser parity | `managed-browser` job |
 | Worker bundle present; deploy controller refuses without credentials | `worker-bundle` job |
 | Production dependency advisories | `audit` job |
 
@@ -32,7 +28,7 @@ Every change reaches `main` through a pull request, and the pull request is gate
    deletion away from publishing on every commit.
 4. Secrets are never inlined. A test scans the workflow for credential-shaped literals.
 
-## 2. Feature intake (AZ-446)
+## 2. Feature intake
 
 A capability enters the product through the **feature registry**
 (`src/lib/features.ts`), not through a screen. `registerFeature` throws when a
@@ -50,7 +46,7 @@ skip:
 
 The order matters: a control cannot exist before the thing it triggers is declared.
 
-## 3. Architecture review (AZ-447)
+## 3. Architecture review
 
 Required when a change would:
 
@@ -66,7 +62,7 @@ The output is an ADR in [`adr/`](adr/) with Status, Context, Decision and Conseq
 Consequences is not optional — it is the section read two years later by someone deciding
 whether the decision still holds.
 
-## 4. Safety review (AZ-448)
+## 4. Safety review
 
 Required for anything touching files, accounts, messages, databases, operating-system
 controls, or an external service. The standard is set by the Rust safety core and the
@@ -85,11 +81,11 @@ Safety-relevant refusals are proven by executed tests, and the Rust assertions �
 protected-text detection, prohibited typing, path-traversal rejection, unapproved-app
 refusal, audit redaction — run on Linux, Windows and macOS in CI.
 
-## 5. Database migration policy (AZ-449)
+## 5. Database migration policy
 
 1. Every migration ships with a **rollback** and a **verification** script. Parity is
    asserted by `db-twin.test.ts`, which counts all three sets.
-2. Every migration applies to an **empty database**. Proven by applying all 33 to a real
+2. Every migration applies to an **empty database**. Proven by applying all 34 to a real
    PostgreSQL 18.3 (PGlite) in CI — not by reading the SQL.
 3. **Row-level security on every public table**, with policies, verified under
    `SET ROLE authenticated`. A superuser bypasses RLS and would pass regardless, so the
@@ -104,7 +100,7 @@ refusal, audit redaction — run on Linux, Windows and macOS in CI.
 6. **Migrations are not deleted once applied.** The hosted project's ledger recorded
    them; removing a file rewrites history the database already has.
 
-## 6. Deprecation policy (AZ-048)
+## 6. Deprecation policy
 
 A capability going away is marked in the feature registry with a non-active status and a
 user-facing reason **before** it is removed. Nothing user-visible is deleted while still
@@ -116,67 +112,40 @@ three keep a route and a rail entry so existing links resolve and the names stay
 reserved; each shows one sentence. Their sub-routes, dashboards and data are gone, and a
 test asserts the navigation offers no path to them.
 
-## 7. Requirement acceptance criteria (AZ-019)
+## 7. Capability acceptance and dependencies
 
-A requirement's status is its acceptance criterion, and the weights are not negotiable:
+Release status is categorical: `REAL WORKING`, `PARTIAL`, `BLOCKED`, or `NOT IMPLEMENTED`.
+`REAL WORKING` requires retained real-target evidence. `PARTIAL` requires evidence plus a
+concrete remaining gap. `BLOCKED` requires one external owner action. The development-only
+`capability:check` gate validates those contracts and proves the retired scoring machinery
+is not referenced by active source, scripts, CI, or release configuration.
 
-| Status | Weight | Means |
-|---|---:|---|
-| NOT STARTED | 0 | Nothing exists |
-| PARTIAL SOURCE | 0.2 | Some code, incomplete |
-| SOURCE COMPLETE | 0.4 | Written, no executing test |
-| EXTERNALLY BLOCKED | 0.4 | Complete as far as this repository can take it |
-| UNIT TESTED | 0.5 | Executing tests over the owning modules |
-| INTEGRATION TESTED | 0.6 | Executed across a real seam |
-| SIMULATED RUNTIME VERIFIED | 0.7 | Executed against a faithful simulation |
-| REAL TARGET RUNTIME VERIFIED | 1.0 | **Observed working on the real target** |
+Dependencies remain structural: production build precedes gates that inspect build output;
+permission precedes mutation; verification precedes a success receipt; recovery state is
+persisted before an external action is acknowledged.
 
-Enforced by `scripts/check-evidence-integrity.mjs`:
-
-- evidence must cite files that exist;
-- a structural test — one that reads source text rather than executing it — can never
-  support a runtime claim;
-- an `EXTERNALLY BLOCKED` row may not exceed 0.6, because if the work is genuinely
-  blocked then nobody has seen it run;
-- a row with positive weight must name the phase that observed the evidence.
-
-Only 1.0 means complete. A row at 0.5 is tested code that has never run where it ships,
-and the distance between those two is the honest measure of readiness.
-
-## 8. Requirement dependencies (AZ-020)
-
-Dependencies are structural rather than a hand-maintained graph, which cannot go stale:
-
-- **Evidence tier ordering.** A row cannot claim a tier above what its evidence supports.
-- **Blocker records.** An externally blocked row names its exit condition and its owner
-  (`ownerKind: "external"`), and the gate fails if either is missing.
-- **Gate ordering in CI.** Evidence integrity runs *before* readiness, because scoring
-  dishonest rows accurately is not much use.
-- **Build ordering.** Gates reading `.output/` run after the production build.
-
-## 9. Roadmap (AZ-445)
+## 8. Roadmap
 
 Ordered by what unblocks the most, not by size.
 
 **Now — no external dependency**
 1. Consolidate the six overlapping engine-selection layers into one tested decision path.
 2. Break up the oversized screens (`ocade.tsx` is 3,936 lines).
-3. Raise `SOURCE COMPLETE` rows to executed evidence where a test is possible.
+3. Replace source-only capability claims with executed evidence where a test is possible.
 
 **Next — needs credentials or infrastructure**
 4. Apply the Supabase migrations to the hosted project and regenerate types from the live
    schema.
 5. Observe a green hosted CI run across all three platforms.
-6. Staging deployment, so rows can move from unit-tested to integration-tested.
+6. Staging deployment and real tenant-isolation verification.
 
 **Later — needs hardware, accounts or people**
-7. Signed desktop companion → unblocks process control, window control, clean-machine
-   install (≈30 rows).
-8. Mobile store accounts and devices → unblocks the mobile and pairing rows.
-9. Consented stakeholder research → the only route for those rows, whose evidence
+7. Signed desktop companion → unblocks packaged process control, window control and clean-machine install.
+8. Mobile store accounts and devices → unblock mobile and pairing proof.
+9. Consented stakeholder research → the only route for those capabilities, whose evidence
    contract explicitly excludes synthetic fixtures.
 
-## 10. Portfolio management (AZ-450)
+## 9. Portfolio management
 
 One product ships: **OCADE**. FICIA, MADEE and CANIA are reserved names behind
 placeholder routes.

@@ -10,7 +10,7 @@ import type { EncryptedMobileEnvelope } from "../mobile/secure-channel";
 import type { MobileTransportStatus } from "../mobile/companion-link";
 
 /**
- * PEER-TO-PEER RELAY MINIMISATION (HWE-26).
+ * PEER-TO-PEER RELAY MINIMISATION.
  *
  * The requirement was recorded as NOT STARTED with a precise reason: the
  * transport factory always built a relay socket, so there was no second path

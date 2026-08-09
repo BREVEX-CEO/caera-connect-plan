@@ -55,9 +55,9 @@
       "couldBeStronger": "Yes, by invoking the collector against a temporary directory."
     },
     {
-      "path": "src/lib/__tests__/evidence-integrity-gate-enforces.test.ts",
-      "why": "Runs the evidence-integrity gate as a subprocess against a snapshot corrupted one specific way per test; the file reads build the fixture and restore it byte-identically afterwards.",
-      "couldBeStronger": "No. It already executes the production gate and proves each of its conditions rejects. One of its own tests previously passed while proving nothing, because it looked for a ledger key that does not exist; it now asserts the fixture is non-empty before using it."
+      "path": "src/lib/__tests__/capability-status.test.ts",
+      "why": "Executes the categorical capability gate as a subprocess, then structurally checks that CI and package scripts call that gate and contain no old weighted readiness commands.",
+      "couldBeStronger": "The gate itself executes here; CI wiring is configuration and therefore remains a structural assertion."
     },
     {
       "path": "src/lib/__tests__/governance-artefacts.test.ts",

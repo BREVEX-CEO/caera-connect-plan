@@ -4,7 +4,7 @@
  * `ocade-local.ts` could discover, classify and stream from a model that was
  * ALREADY installed — it had no way to obtain one. Download, digest
  * verification, repair, update, rollback and removal did not exist, which is
- * why AZ-120/121/124/125 scored zero despite the adapter looking complete. An
+ * why lifecycle behavior was previously unproven despite the adapter looking complete. An
  * adapter is not a lifecycle.
  *
  * Everything here speaks to the local runtime's HTTP API on 127.0.0.1. Nothing

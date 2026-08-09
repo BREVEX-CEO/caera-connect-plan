@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "kind": "OCADE_BROWSER_LIVE_ACCEPTANCE",
+  "result": "PASS",
+  "recordedAt": "2026-08-09T09:19:36.296Z",
+  "executor": "ocade-production-playwright-cdp-host",
+  "extensionInstalled": false,
+  "claimBoundary": "This proves the production browser host on live public sites. The authenticated conversational Tauri UI was not the command source.",
+  "browser": {
+    "family": "chrome",
+    "connected": true,
+    "profile": "ephemeral-approved"
+  },
+  "youtube": {
+    "queryDerivedAtRuntime": true,
+    "queryMonth": "August 2026",
+    "chosenTitle": "Top Hits 2026 🌍 | Trending English Songs 🔥 Shakira, Bruno Mars, Billie Eilish, The Weeknd, Dua Lipa - YouTube",
+    "chosenUrl": "https://www.youtube.com/watch?v=KTyFjjVNFNI&list=RDKTyFjjVNFNI&start_radio=1",
+    "playback": {
+      "tag": "video",
+      "paused": false,
+      "ended": false,
+      "currentTime": 3.04,
+      "duration": 181.061,
+      "readyState": 4,
+      "networkState": 2,
+      "muted": false,
+      "volume": 1
+    },
+    "verified": true
+  },
+  "publicSite": {
+    "site": "Example Domain to IANA",
+    "interaction": "opened a second tab, read the public page and followed its ordinary link",
+    "url": "https://www.iana.org/help/example-domains",
+    "title": "Example Domains",
+    "verified": true
+  }
+}

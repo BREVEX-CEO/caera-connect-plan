@@ -37,7 +37,7 @@
         "npm run lint",
         "npm run test",
         "npm run build",
-        "npm run readiness:check"
+        "npm run capability:check"
       ],
       "artifacts": [
         ".output"

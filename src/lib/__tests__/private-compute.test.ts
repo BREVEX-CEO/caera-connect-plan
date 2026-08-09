@@ -86,7 +86,7 @@ const lanRequest = {
   },
 };
 
-describe("HWE-18, HWE-19 and HWE-28 private compute", () => {
+describe("private compute", () => {
   it("validates one owner and fail-closed burst, mesh and LAN policies", () => {
     expect(validatePrivateComputePolicy(policy)).toEqual({ ok: true, issues: [] });
   });

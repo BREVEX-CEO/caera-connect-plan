@@ -29,6 +29,7 @@ export type BrowserActionKind =
   | "navigate"
   | "dom.read"
   | "a11y.read"
+  | "media.read"
   | "screenshot"
   | "page.wait"
   | "form.fill"
@@ -53,6 +54,7 @@ export type BrowserAction =
   | { kind: "navigate"; url: string }
   | { kind: "dom.read"; url: string }
   | { kind: "a11y.read"; url: string }
+  | { kind: "media.read"; url: string }
   | { kind: "screenshot"; url: string }
   | {
       kind: "page.wait";
@@ -184,6 +186,7 @@ export function decideBrowserAction(
 
     case "dom.read":
     case "a11y.read":
+    case "media.read":
     case "screenshot":
     case "page.wait": {
       if (!policy.readOrigins.includes(origin)) {
@@ -428,6 +431,7 @@ const READ_ACTIONS = new Set<BrowserActionKind>([
   "tabs.list",
   "dom.read",
   "a11y.read",
+  "media.read",
   "screenshot",
   "page.wait",
 ]);

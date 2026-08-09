@@ -33,7 +33,7 @@ function evidence(
   };
 }
 
-describe("AZ-009 through AZ-015 stakeholder research intake", () => {
+describe("stakeholder research intake", () => {
   it("accepts current consented pseudonymous external-human evidence", () => {
     expect(validateStakeholderResearchEvidence(evidence(), { now: NOW })).toMatchObject({
       valid: true,

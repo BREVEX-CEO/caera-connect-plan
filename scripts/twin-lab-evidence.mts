@@ -1,5 +1,5 @@
 /**
- * SIMULATED-runtime evidence for HWE-11 (application digital-twin laboratory).
+ * Simulated runtime evidence for the application digital-twin laboratory.
  *
  * Drives every adversarial twin through the route ladder and records what was
  * refused, what was downgraded, and what was verified against ground truth.
@@ -11,8 +11,13 @@
  * Usage: npx vite-node scripts/twin-lab-evidence.mts
  */
 import { writeFileSync } from "node:fs";
-import { buildTwinLab, TWIN_PREFIX, type TwinAction, type TwinKind } from "../src/lib/hwe/twin-lab.ts";
-import { assertNotRealEvidence } from "../src/lib/hwe/a11y-simulator.ts";
+import {
+  buildTwinLab,
+  TWIN_PREFIX,
+  type TwinAction,
+  type TwinKind,
+} from "../src/lib/control-labs/twin-lab.ts";
+import { assertNotRealEvidence } from "../src/lib/control-labs/a11y-simulator.ts";
 
 type Case = {
   id: string;
@@ -51,7 +56,7 @@ const CASES: Case[] = [
 ];
 
 async function main() {
-  console.log("\nHWE-11 application digital-twin laboratory — SIMULATED evidence\n");
+  console.log("\nApplication digital-twin laboratory — SIMULATED evidence\n");
   const steps: Array<Record<string, unknown>> = [];
   let failed = 0;
 
@@ -107,7 +112,7 @@ async function main() {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
     tier: "SIMULATED RUNTIME VERIFIED",
-    subject: "HWE-11 application digital-twin laboratory",
+    subject: "Application digital-twin laboratory",
     notRealApplicationSupport:
       "A twin models an application; it is not one. No licensed application, real GUI toolkit, real display or real input device was involved. This proves route selection, unsafe-downgrade refusal, ground-truth verification, interruption, cancellation, emergency stop and rollback behave correctly against adversarial models. It proves NOTHING about driving real applications and must never be promoted to REAL TARGET RUNTIME VERIFIED.",
     routeLadder: "api -> plugin -> mcp -> cli -> file -> dom -> accessibility -> native -> vision -> input",

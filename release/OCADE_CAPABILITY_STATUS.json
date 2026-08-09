@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-09T09:18:02.533Z",
+  "claimBoundary": "Capability states are categorical and evidence-backed. This report contains no weighted points, percentage, or requirement-row denominator.",
+  "capabilities": [
+    {
+      "capability": "Chat/Brain",
+      "status": "REAL WORKING",
+      "proof": [
+        {
+          "kind": "real-target",
+          "path": "release/OCADE_CHAT_RUNTIME_EVIDENCE.json",
+          "summary": "The production local chat client returned verified answers, progressive chunks, cancellation, retry and recovery."
+        }
+      ]
+    },
+    {
+      "capability": "Control+Work",
+      "status": "PARTIAL",
+      "proof": [
+        {
+          "kind": "integration",
+          "path": "src/lib/__tests__/control-plane.test.ts",
+          "summary": "The Director, permission broker, route selection, connector mediation and verification execute together in the product control plane."
+        }
+      ],
+      "remainingBlocker": "The authenticated packaged desktop interface has not completed a restart-persistent end-to-end action on this machine."
+    },
+    {
+      "capability": "Universal Software Control",
+      "status": "PARTIAL",
+      "proof": [
+        {
+          "kind": "real-target",
+          "path": "release/OCADE_UNKNOWN_APP_RUNTIME_EVIDENCE.json",
+          "summary": "A dynamically selected installed application completed read-only discovery, rehearsal, verification and private skill compilation."
+        }
+      ],
+      "remainingBlocker": "Representative reversible mutation, cancellation and planted-failure recovery across several dynamically chosen application categories remain unobserved."
+    },
+    {
+      "capability": "Browser",
+      "status": "PARTIAL",
+      "proof": [
+        {
+          "kind": "real-target",
+          "path": "release/OCADE_BROWSER_LIVE_ACCEPTANCE.json",
+          "summary": "The production extensionless Chrome host dynamically selected a current YouTube result, observed real HTML video playback, then opened a second tab and verified ordinary public-site navigation."
+        },
+        {
+          "kind": "integration",
+          "path": "scripts/browser-cdp-parity.mjs",
+          "summary": "Chrome and Edge exercise the same extensionless Playwright/CDP host for navigation, state, files, tabs, cancellation and emergency stop."
+        }
+      ],
+      "remainingBlocker": "The same live journey has not yet been commanded from the authenticated conversational Tauri interface."
+    },
+    {
+      "capability": "Desktop",
+      "status": "PARTIAL",
+      "proof": [
+        {
+          "kind": "real-target",
+          "path": "release/OCADE_PYTHON_RUNTIME_EVIDENCE.json",
+          "summary": "Real Windows capture, pointer restoration, Notepad UI Automation, OCR and Set-of-Mark readback executed on this host."
+        }
+      ],
+      "remainingBlocker": "A signed installed Tauri application has not executed the full authenticated GUI-to-native route."
+    },
+    {
+      "capability": "Files",
+      "status": "PARTIAL",
+      "proof": [
+        {
+          "kind": "integration",
+          "path": "release/OCADE_PC_TRANSACTION_EVIDENCE.json",
+          "summary": "File transaction safety exercises preview, backup, verification, refusal and rollback without claiming a real target."
+        }
+      ],
+      "remainingBlocker": "A representative real file mutation still needs production-path execution and independent readback through the packaged application."
+    },
+    {
+      "capability": "Voice",
+      "status": "PARTIAL",
+      "proof": [
+        {
+          "kind": "real-target",
+          "path": "release/OCADE_PYTHON_RUNTIME_EVIDENCE.json",
+          "summary": "The microphone, VAD, local female speech output and local speech recognition paths executed on this host."
+        }
+      ],
+      "remainingBlocker": "Conversational barge-in and the deterministic stop/continue phrase path still need retained end-to-end latency proof."
+    },
+    {
+      "capability": "Gestures",
+      "status": "PARTIAL",
+      "proof": [
+        {
+          "kind": "real-target",
+          "path": "release/OCADE_PYTHON_RUNTIME_EVIDENCE.json",
+          "summary": "The real camera delivered frames through MediaPipe with measured frame-to-decision latency and mutation disabled."
+        }
+      ],
+      "remainingBlocker": "No human hand was visible, so cursor, pinch, drag, scroll, swipe, zoom and air-click remain physically unproven."
+    },
+    {
+      "capability": "Vision",
+      "status": "REAL WORKING",
+      "proof": [
+        {
+          "kind": "real-target",
+          "path": "release/OCADE_PYTHON_RUNTIME_EVIDENCE.json",
+          "summary": "MSS, DXCam, OpenCV, OCR, Set-of-Mark and structural Notepad readback executed against the real Windows desktop."
+        }
+      ]
+    },
+    {
+      "capability": "Research",
+      "status": "PARTIAL",
+      "proof": [
+        {
+          "kind": "real-target",
+          "path": "release/OCADE_L1_RESEARCH_CITATIONS.json",
+          "summary": "The research pipeline performed real network retrieval with citations, timestamps and an explicit authenticated-UI boundary."
+        }
+      ],
+      "remainingBlocker": "Current-data retrieval has not been driven through an authenticated packaged OCADE conversation."
+    },
+    {
+      "capability": "Mobile",
+      "status": "BLOCKED",
+      "proof": [
+        {
+          "kind": "source",
+          "path": "release/OCADE_K_MOBILE_PREREQUISITES.json",
+          "summary": "The mobile prerequisite probe records the present native projects and every absent build or device dependency."
+        }
+      ],
+      "remainingBlocker": "This host has no Android SDK, ADB, emulator, JDK, connected device, macOS runner or authenticated cloud runner.",
+      "ownerAction": "Connect an authorized Android device or emulator and provide a macOS/Xcode runner for iOS proof."
+    },
+    {
+      "capability": "Connectors",
+      "status": "PARTIAL",
+      "proof": [
+        {
+          "kind": "integration",
+          "path": "src/lib/__tests__/connector-registry.test.ts",
+          "summary": "Typed capability, scope, authentication, health, latency, privacy and human-confirmation contracts are wired into route selection."
+        }
+      ],
+      "remainingBlocker": "No user-approved third-party account connector is authenticated for a real service transaction."
+    },
+    {
+      "capability": "GUI",
+      "status": "PARTIAL",
+      "proof": [
+        {
+          "kind": "source",
+          "path": "src/components/landing/SolarSystem.tsx",
+          "summary": "The conversation-first Solar interface and responsive rendering implementation are present in the shipping source graph."
+        }
+      ],
+      "remainingBlocker": "Authenticated packaged-desktop FPS and input-latency proof under simultaneous model, voice, capture and gesture load is absent."
+    },
+    {
+      "capability": "Local Model",
+      "status": "REAL WORKING",
+      "proof": [
+        {
+          "kind": "real-target",
+          "path": "release/OCADE_LONG_DOCUMENT_RUNTIME_EVIDENCE.json",
+          "summary": "Qwen models completed real progressive map/reduce, cancellation, persisted checkpoint recovery and exact planted-fact retrieval."
+        }
+      ]
+    },
+    {
+      "capability": "Database",
+      "status": "PARTIAL",
+      "proof": [
+        {
+          "kind": "integration",
+          "path": "src/lib/__tests__/db-twin.test.ts",
+          "summary": "All current migrations, verification scripts and rollback scripts execute against real PostgreSQL semantics in the database twin."
+        }
+      ],
+      "remainingBlocker": "Authorized staging credentials and two ordinary tenant accounts are absent, so external row-isolation proof cannot run."
+    },
+    {
+      "capability": "Installer/Updates",
+      "status": "BLOCKED",
+      "proof": [
+        {
+          "kind": "integration",
+          "path": "release/OCADE_N_PACKAGING_PREREQUISITES.json",
+          "summary": "Update provenance and refusal paths execute while unsigned and clean-machine boundaries remain explicit."
+        }
+      ],
+      "remainingBlocker": "Publisher signing identities and clean Windows, macOS and Linux release machines are unavailable.",
+      "ownerAction": "Provide the platform signing identities and authorized clean release runners."
+    },
+    {
+      "capability": "Security/Recovery",
+      "status": "REAL WORKING",
+      "proof": [
+        {
+          "kind": "real-target",
+          "path": "release/OCADE_P25_SECURITY_RUNTIME_EVIDENCE.json",
+          "summary": "The compiled native safety core exercised authenticated envelopes, replay refusal, emergency stop and bounded recovery behavior."
+        }
+      ]
+    },
+    {
+      "capability": "Cross-platform",
+      "status": "BLOCKED",
+      "proof": [
+        {
+          "kind": "source",
+          "path": "release/OCADE_PORTABLE_RELEASE_MANIFEST.json",
+          "summary": "Provider-neutral Windows, Linux, Android and macOS build plans and clean-machine lifecycle declarations are source-validated."
+        }
+      ],
+      "remainingBlocker": "No authorized macOS or Linux clean-machine runtime and no signed multi-platform artifacts are available.",
+      "ownerAction": "Run the retained release plan on authorized clean macOS and Linux machines with signing identities."
+    }
+  ]
+}

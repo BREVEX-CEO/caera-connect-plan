@@ -11,7 +11,7 @@ import {
 } from "@/lib/telemetry/failure-telemetry";
 
 /**
- * Production owner for opt-in failure telemetry (HWE-38).
+ * Production owner for opt-in failure telemetry.
  *
  * The panel shows the ACTUAL fields that would be transmitted, from the real
  * queue, rather than describing them in prose. A privacy claim a user cannot

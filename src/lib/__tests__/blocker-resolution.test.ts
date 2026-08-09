@@ -42,14 +42,14 @@ function assessment(overrides: Partial<BlockerAssessment> = {}): BlockerAssessme
   return {
     id: "blocker-1",
     tenantId: "tenant-a",
-    requirementId: "AZ-429",
+    capabilityId: "release-signing",
     owner: "readiness-owner",
     attempts: BLOCKER_RESOLUTION_STRATEGIES.map((strategy) => attempt(strategy.id)),
     ...overrides,
   };
 }
 
-describe("CXR-09 systematic blocker reduction", () => {
+describe("systematic blocker reduction", () => {
   it("classifies a blocker external only after all ten ordered alternatives have evidence", () => {
     expect(classifyHardwareOrToolingBlocker(assessment(), { now: NOW })).toMatchObject({
       classification: "EXTERNALLY_BLOCKED",

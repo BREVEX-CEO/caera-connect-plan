@@ -1,5 +1,5 @@
 /**
- * HWE-30 — local database and identity twin (P16).
+ * Local database and identity twin.
  *
  * Every migration in this repository ships with a verification script and a
  * rollback script — 33 of each — and NONE had ever been applied to anything.

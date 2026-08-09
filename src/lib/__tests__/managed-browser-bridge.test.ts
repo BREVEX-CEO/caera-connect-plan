@@ -90,6 +90,45 @@ describe("extensionless managed browser bridge", () => {
     expect(result.detail).toMatch(/human-controlled/i);
   });
 
+  it("reads actual HTML media state for independent playback verification", async () => {
+    const { bridge, request } = bridgeWith(() => ({
+      ok: true,
+      data: {
+        output: [
+          {
+            tag: "video",
+            paused: false,
+            ended: false,
+            currentTime: 2.5,
+            duration: 180,
+            readyState: 4,
+            networkState: 1,
+            muted: false,
+            volume: 1,
+          },
+        ],
+        observation: {
+          url: "https://example.test/watch",
+          title: "Playing",
+          verified: true,
+          failures: [],
+        },
+      },
+    }));
+    const result = await bridge.perform(
+      { kind: "media.read", url: "https://example.test/watch" },
+      { confirmed: false, runId: "media-1" },
+    );
+    expect(result.ok).toBe(true);
+    expect(result.observation).toMatchObject({
+      media: [{ tag: "video", paused: false, currentTime: 2.5, readyState: 4 }],
+    });
+    expect(request.mock.calls[0]?.[0]).toMatchObject({
+      command: "perform",
+      action: { kind: "media.read" },
+    });
+  });
+
   it("routes cancellation and emergency stop to the independent host controls", async () => {
     const { bridge, request } = bridgeWith((value) =>
       value.command === "cancel"

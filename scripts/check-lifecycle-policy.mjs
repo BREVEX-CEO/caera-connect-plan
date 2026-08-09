@@ -53,6 +53,6 @@ if (issues.length > 0) {
   process.exit(1);
 }
 console.log("Application lifecycle gate: policy is internally consistent.");
-console.log("- AZ-442 app drift: invalidates adapters and private recipes before execution.");
-console.log("- AZ-443 security patches: affected critical/high adapters block before staging.");
+console.log("- App drift invalidates adapters and private recipes before execution.");
+console.log("- Critical/high security patches block affected adapters before staging.");
 console.log("- Runtime boundary: no advisory feed, host patch executor or applied-patch claim.");

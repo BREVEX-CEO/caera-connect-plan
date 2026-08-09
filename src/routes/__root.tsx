@@ -126,7 +126,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       */
       ...(appCss ? [{ rel: "stylesheet", href: appCss }] : []),
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-      // Makes OCADE installable as its own window (HWE-35). Without it the
+      // Makes OCADE installable as its own window. Without it the
       // offline shell registered below has an application to open but no
       // application to BE — a tab that gets closed rather than an app that
       // stays.
@@ -192,7 +192,7 @@ function RootComponent() {
   }, [router, queryClient]);
 
   /**
-   * Install the offline shell (HWE-35).
+   * Install the offline shell.
    *
    * Fire-and-forget on purpose: a browser that refuses a service worker —
    * private browsing, an insecure origin, a locked-down enterprise profile — is

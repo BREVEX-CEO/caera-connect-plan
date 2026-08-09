@@ -75,7 +75,7 @@ export async function buildMobileTransport(
   const identity = config.identity ?? (await generateMobileChannelIdentity());
 
   /*
-   * Relay minimisation (HWE-26).
+   * Relay minimisation.
    *
    * This used to be one line: always a WebSocketRelayAdapter. Every message
    * between a phone and a computer sitting on the same network went out to a

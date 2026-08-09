@@ -45,7 +45,7 @@ function observation(fixtureId: string, overrides: Record<string, unknown> = {})
   };
 }
 
-describe("HWE-09 virtual media laboratory", () => {
+describe("virtual media laboratory", () => {
   it("validates the owner, deterministic adapters, required scenarios and recovery policy", () => {
     expect(validateMediaLabPolicy(policy)).toEqual({ ok: true, issues: [] });
     expect(policy.fixtures).toHaveLength(12);

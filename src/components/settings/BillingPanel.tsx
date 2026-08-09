@@ -24,7 +24,7 @@ import { PLANS as PRICING_PLANS } from "@/lib/payments/pricing";
  *
  * OCADE had no payment code at all, so there was no surface to own it. This is
  * that surface — and it is deliberately explicit that nothing here can charge
- * money: the provider is the HWE-29 twin, `LIVE_PAYMENTS_ENABLED` is a
+ * money: the provider is the synthetic payment twin, `LIVE_PAYMENTS_ENABLED` is a
  * compile-time `false`, and `checkoutAllowed` refuses any provider claiming not
  * to be simulated.
  *

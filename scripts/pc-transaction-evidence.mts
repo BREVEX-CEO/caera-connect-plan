@@ -23,7 +23,7 @@ import {
   EmergencyStop,
   assertNotRealEvidence,
   type A11yNode,
-} from "../src/lib/hwe/a11y-simulator.ts";
+} from "../src/lib/control-labs/a11y-simulator.ts";
 import type { ControlOutcome, OcadeActionRequest } from "../src/lib/control/control-plane.ts";
 
 const PERM = "control.ui";

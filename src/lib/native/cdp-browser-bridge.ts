@@ -198,24 +198,26 @@ export class ManagedCdpBrowserBridge implements BrowserBridge {
                 ? { kind: "navigate", url: action.url }
                 : action.kind === "dom.read" || action.kind === "a11y.read"
                   ? { kind: "page.read" }
-                  : action.kind === "screenshot"
-                    ? { kind: "screenshot", fullPage: true }
-                    : action.kind === "page.wait"
-                      ? {
-                          kind: "wait",
-                          timeoutMs: action.timeoutMs,
-                          ...(action.expectation.text ? { text: action.expectation.text } : {}),
-                          ...(action.expectation.target
-                            ? { target: target(action.expectation.target) }
-                            : {}),
-                        }
-                      : action.kind === "form.submit"
-                        ? { kind: "click", target: target(action.target) }
-                        : action.kind === "download"
-                          ? { kind: "download", target: target(action.target) }
-                          : action.kind === "upload" || action.kind === "drop"
-                            ? { kind: "upload", path: action.path, target: target(action.target) }
-                            : { kind: "unsupported" };
+                  : action.kind === "media.read"
+                    ? { kind: "media.read" }
+                    : action.kind === "screenshot"
+                      ? { kind: "screenshot", fullPage: true }
+                      : action.kind === "page.wait"
+                        ? {
+                            kind: "wait",
+                            timeoutMs: action.timeoutMs,
+                            ...(action.expectation.text ? { text: action.expectation.text } : {}),
+                            ...(action.expectation.target
+                              ? { target: target(action.expectation.target) }
+                              : {}),
+                          }
+                        : action.kind === "form.submit"
+                          ? { kind: "click", target: target(action.target) }
+                          : action.kind === "download"
+                            ? { kind: "download", target: target(action.target) }
+                            : action.kind === "upload" || action.kind === "drop"
+                              ? { kind: "upload", path: action.path, target: target(action.target) }
+                              : { kind: "unsupported" };
 
       if (action.kind === "tab.create") {
         await this.performHost(hostAction, opts);
@@ -251,6 +253,17 @@ export class ManagedCdpBrowserBridge implements BrowserBridge {
           content: wrapped.text,
           injectionRisk: wrapped.scan.risk,
           observation: summary,
+        };
+      }
+      if (action.kind === "media.read") {
+        const media = Array.isArray(reply.output) ? reply.output : [];
+        return {
+          ok: reply.observation.verified,
+          detail:
+            media.length > 0
+              ? `Observed ${media.length} media element(s) through the managed browser.`
+              : "The managed page exposed no HTML media element.",
+          observation: { ...reply.observation, media },
         };
       }
       return {

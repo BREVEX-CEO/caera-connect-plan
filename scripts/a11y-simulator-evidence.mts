@@ -1,5 +1,5 @@
 /**
- * SIMULATED-runtime evidence for HWE-10 (accessibility-tree simulator).
+ * Simulated runtime evidence for the accessibility-tree simulator.
  *
  * Runs the governed control path against every adversarial scenario and writes
  * down what was refused and why. The tier this produces is SIMULATED RUNTIME
@@ -19,7 +19,7 @@ import {
   type A11yWindow,
   type Disturbance,
   type SimReceipt,
-} from "../src/lib/hwe/a11y-simulator.ts";
+} from "../src/lib/control-labs/a11y-simulator.ts";
 import type { OcadeActionRequest } from "../src/lib/control/control-plane.ts";
 
 const PERM = "control.ui";
@@ -161,7 +161,7 @@ const CASES: Case[] = [
 ];
 
 async function main() {
-  console.log(`\nHWE-10 accessibility-tree simulator — SIMULATED evidence\n`);
+  console.log(`\nAccessibility-tree simulator — SIMULATED evidence\n`);
   const steps: Array<Record<string, unknown>> = [];
   let failed = 0;
 
@@ -217,7 +217,7 @@ async function main() {
     schemaVersion: 1,
     generatedAt: new Date().toISOString(),
     tier: "SIMULATED RUNTIME VERIFIED",
-    subject: "HWE-10 headless accessibility-tree simulator",
+    subject: "Headless accessibility-tree simulator",
     notRealApplicationSupport:
       "No real application, accessibility API or operating system was involved. This proves the governed control path refuses, cancels, halts and recovers correctly against scripted adversarial conditions. It proves NOTHING about driving real applications, and must never be promoted to REAL TARGET RUNTIME VERIFIED.",
     summary: { observed: steps.filter((s) => s.ok).length, failed, total: steps.length },

@@ -12,7 +12,7 @@ import {
 } from "../telemetry/failure-telemetry";
 
 /**
- * Opt-in, privacy-safe failure telemetry (HWE-38).
+ * Opt-in, privacy-safe failure telemetry.
  *
  * A crash report is the most dangerous thing a product sends: generated when
  * things went wrong, from state nobody curated, routinely carrying file paths,

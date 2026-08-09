@@ -1,9 +1,5 @@
 # OCADE — Architecture
 
-Register rows: AZ-041 ADRs · AZ-042 context diagrams · AZ-043 trust boundaries ·
-AZ-044 runtime boundaries · AZ-045 integration contracts · AZ-046 ownership maps ·
-AZ-047 compatibility.
-
 Every fact below that can be checked is checked. The machine-readable form is
 [`boundaries.json`](boundaries.json); the assertions are in
 `src/lib/__tests__/governance-artefacts.test.ts`. This file explains *why* each
@@ -11,7 +7,7 @@ boundary exists — a test can prove a rule holds but cannot say what it is for.
 
 ---
 
-## 1. Context (AZ-042)
+## 1. Context
 
 ```mermaid
 graph TB
@@ -105,7 +101,7 @@ The `428` branch is the one worth reading twice: a conversation stored in a brow
 vault does not go to the cloud because a model was selected. It goes when the user
 approves that specific turn.
 
-## 3. Trust boundaries (AZ-043)
+## 3. Trust boundaries
 
 Six, each with an enforcing module and a test. Full detail in
 [`boundaries.json`](boundaries.json).
@@ -124,7 +120,7 @@ lazily and is imported with `await import()` *inside* handler bodies, never at m
 scope. The test asserts no static import exists outside a `.server.ts` module, because a
 static import is what puts a module into the client bundle graph.
 
-## 4. Runtime boundaries (AZ-044)
+## 4. Runtime boundaries
 
 Four runtimes, and the rule is which built-ins each may reach.
 
@@ -140,7 +136,7 @@ Node-touching module into the client graph — `generated-sandbox-node.ts` spawn
 and is perfectly safe, because the only thing that reaches it is an `await import()`
 inside a server function.
 
-## 5. Integration contracts (AZ-045)
+## 5. Integration contracts
 
 Five external dependencies. Each declares what it carries, which credential it uses, and
 what happens when it fails — the third being the field that matters at 3am and the one
@@ -158,7 +154,7 @@ The test enforces this **in the direction that catches drift**: it scans the shi
 code for external hosts and requires each to be declared. A list checked the other way
 is complete on paper and silent about the host somebody added last week.
 
-## 6. Ownership (AZ-046)
+## 6. Ownership
 
 Every directory under `src/lib` maps to one of five owning areas — OCADE engine, chat,
 control plane, devices, privacy, release — in [`boundaries.json`](boundaries.json). The
@@ -166,7 +162,7 @@ test asserts both directions: no directory without an owner, and no owner pointi
 directory that no longer exists. The second half is the one that rots; FICIA's areas were
 listed until its code was removed.
 
-## 7. Compatibility (AZ-047)
+## 7. Compatibility
 
 - **Node 20 and 22**, both proven by the CI matrix rather than asserted here.
 - **Three shared type surfaces** — the Supabase schema types, the mobile secure channel,
@@ -180,7 +176,7 @@ listed until its code was removed.
   is an `any` escape that disables checking for a whole file. That is not hypothetical —
   it is what four `pendingFrom()` helpers were doing across ~55 database calls.
 
-## 8. Architecture decisions (AZ-041)
+## 8. Architecture decisions
 
 Records live in [`adr/`](adr/). Each carries Status, Context, Decision and Consequences;
 the test rejects any that does not.

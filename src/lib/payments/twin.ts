@@ -1,5 +1,5 @@
 /**
- * HWE-29 — synthetic payment-provider twin (P17).
+ * Synthetic payment-provider twin.
  *
  * SIMULATED. NO MONEY MOVES. There is no network call, no API key and no live
  * endpoint anywhere in this file. `simulated` is `true` and cannot be set

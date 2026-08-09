@@ -9,7 +9,7 @@ import {
 } from "./direct-path";
 
 /**
- * The adapter that actually keeps traffic off the relay (HWE-26).
+ * The adapter that actually keeps traffic off the relay.
  *
  * It holds both candidates and connects exactly one. The decision itself is in
  * `direct-path.ts` and is pure; this class is the small amount of I/O around

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "generatedAt": "2026-07-29T17:21:55.824Z",
   "tier": "SIMULATED RUNTIME VERIFIED",
-  "subject": "HWE-10 headless accessibility-tree simulator",
+  "subject": "Headless accessibility-tree simulator",
   "notRealApplicationSupport": "No real application, accessibility API or operating system was involved. This proves the governed control path refuses, cancels, halts and recovers correctly against scripted adversarial conditions. It proves NOTHING about driving real applications, and must never be promoted to REAL TARGET RUNTIME VERIFIED.",
   "summary": {
     "observed": 13,

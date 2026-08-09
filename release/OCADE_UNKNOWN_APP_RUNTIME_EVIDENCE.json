@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "kind": "OCADE_UNKNOWN_APP_REAL_RUNTIME_EVIDENCE",
-  "startedAt": "2026-08-09T06:56:59.355Z",
-  "finishedAt": "2026-08-09T06:57:15.088Z",
+  "startedAt": "2026-08-09T09:06:09.345Z",
+  "finishedAt": "2026-08-09T09:06:25.832Z",
   "result": "PASS",
   "boundary": "PROBED_AND_REHEARSED",
   "claimBoundary": "This proves a real read-only learn/rehearse/verify/compile cycle. It does not claim arbitrary mutation support or LIVE_TESTED status.",
   "discovery": {
-    "installedApplicationsObserved": 74,
+    "installedApplicationsObserved": 75,
     "sources": [
       "running_process",
       "windows.app_paths",
@@ -24,7 +24,7 @@
     "hardcodedProductAdapter": false
   },
   "observation": {
-    "exactProcessId": 5124,
+    "exactProcessId": 19140,
     "windows": 1,
     "controls": 1,
     "uiaPatterns": [],

@@ -38,7 +38,7 @@ export interface BlockerAttempt {
 export interface BlockerAssessment {
   readonly id: string;
   readonly tenantId: string;
-  readonly requirementId: string;
+  readonly capabilityId: string;
   readonly owner: string;
   readonly attempts: readonly BlockerAttempt[];
 }
@@ -103,7 +103,7 @@ export function classifyHardwareOrToolingBlocker(
     throw new DOMException("Blocker assessment cancelled.", "AbortError");
   }
   const now = options.now ?? new Date();
-  if (!assessment.id || !assessment.tenantId || !assessment.requirementId || !assessment.owner) {
+  if (!assessment.id || !assessment.tenantId || !assessment.capabilityId || !assessment.owner) {
     return {
       classification: "UNVERIFIED",
       missingOrInvalid: BLOCKER_RESOLUTION_STRATEGIES.map((strategy) => strategy.id),

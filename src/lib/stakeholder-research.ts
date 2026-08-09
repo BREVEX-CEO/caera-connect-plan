@@ -2,13 +2,13 @@ const SHA256 = /^[a-f0-9]{64}$/;
 const PII_SHAPE = /@|https?:\/\/|(?:\+?\d[\d ().-]{7,}\d)/;
 
 export const STAKEHOLDER_RESEARCH_DIMENSIONS = [
-  { id: "AZ-009", key: "interviews", label: "Interviews" },
-  { id: "AZ-010", key: "workflow_observation", label: "Workflow observation" },
-  { id: "AZ-011", key: "pain_points", label: "Pain points" },
-  { id: "AZ-012", key: "task_frequency", label: "Task frequency" },
-  { id: "AZ-013", key: "risk_mapping", label: "Risk mapping" },
-  { id: "AZ-014", key: "accessibility", label: "Accessibility" },
-  { id: "AZ-015", key: "regional_needs", label: "Regional needs" },
+  { id: "interviews", key: "interviews", label: "Interviews" },
+  { id: "workflow-observation", key: "workflow_observation", label: "Workflow observation" },
+  { id: "pain-points", key: "pain_points", label: "Pain points" },
+  { id: "task-frequency", key: "task_frequency", label: "Task frequency" },
+  { id: "risk-mapping", key: "risk_mapping", label: "Risk mapping" },
+  { id: "accessibility", key: "accessibility", label: "Accessibility" },
+  { id: "regional-needs", key: "regional_needs", label: "Regional needs" },
 ] as const;
 
 export type ResearchDimensionKey = (typeof STAKEHOLDER_RESEARCH_DIMENSIONS)[number]["key"];

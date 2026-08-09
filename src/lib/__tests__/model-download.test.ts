@@ -311,7 +311,7 @@ describe("interruption and refusal", () => {
 
 describe("a finished download stays finished", () => {
   /**
-   * DEFECT HWE-40, FIXED.
+   * Interrupted-download resume defect, fixed.
    *
    * Completion used to be decided by `alreadyHave >= expectedBytes`, which made
    * a hand-written catalogue constant load-bearing for correctness. The WASM

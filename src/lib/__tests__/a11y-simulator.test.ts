@@ -9,7 +9,7 @@ import {
   type A11yWindow,
   type Disturbance,
   type SimReceipt,
-} from "../hwe/a11y-simulator";
+} from "../control-labs/a11y-simulator";
 import type { OcadeActionRequest } from "../control/control-plane";
 
 const rect = (x = 0, y = 0, w = 100, h = 20) => ({ x, y, width: w, height: h });

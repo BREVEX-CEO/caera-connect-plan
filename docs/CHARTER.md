@@ -1,15 +1,12 @@
 # OCADE — Programme Charter
 
-Register rows: AZ-001 vision · AZ-002 personas · AZ-003 outcomes · AZ-004 non-goals ·
-AZ-005 ethical boundaries · AZ-007 governance · AZ-008 success metrics.
-
 This document is descriptive, not aspirational. Every claim about what the product
 does is a claim about code in this repository, and the machine-checkable ones live in
 [`boundaries.json`](boundaries.json) where a test fails when they stop being true.
 
 ---
 
-## 1. Vision (AZ-001)
+## 1. Vision
 
 **OCADE is an AI assistant that runs on the user's own hardware wherever it can, and
 tells the truth about the times it cannot.**
@@ -34,7 +31,7 @@ So the product is built around three commitments:
 3. **Say what happened.** Where the request went, how much of a document was read, what
    was searched, what could not be read, and why.
 
-## 2. Personas (AZ-002)
+## 2. Personas
 
 Three, in the order the product was designed for.
 
@@ -71,7 +68,7 @@ _What they need:_ declared integrations, a schema that rebuilds from zero, gates
 fail on a false claim. _What breaks them:_ a status document that says "complete" over
 code that was never run.
 
-## 3. Outcomes (AZ-003)
+## 3. Outcomes
 
 The product succeeds if:
 
@@ -83,7 +80,7 @@ The product succeeds if:
 | A failure is legible                                           | Every dependency failure returns a named reason, not a generic error                 |
 | A claim in this repository can be checked                      | Every gate fails on a bad input, verified by mutation                                |
 
-## 4. Non-goals (AZ-004)
+## 4. Non-goals
 
 Recorded because a non-goal that is never written down gets built anyway.
 
@@ -100,7 +97,7 @@ Recorded because a non-goal that is never written down gets built anyway.
 - **Not FICIA, MADEE or CANIA.** Three products were started and are not shipping. Their
   routes say so in one sentence rather than showing half-built dashboards.
 
-## 5. Ethical boundaries (AZ-005)
+## 5. Ethical boundaries
 
 These are enforced in code. The trust boundaries in
 [`boundaries.json`](boundaries.json) are the mechanisms; these are the commitments.
@@ -133,42 +130,35 @@ those pages are listed by name in the identity test's exemption list, and
 must know whose account it is. Anyone reviewing this should know the tension exists
 rather than discover it.
 
-## 6. Governance (AZ-007)
+## 6. Governance
 
 - **The repository is the authority.** Where a planning document and the code disagree,
   the code wins and the document is corrected.
-- **A declared status is not evidence.** The readiness engine publishes two numbers — a
-  declared score and an evidence-bound score — and a row with no requirement-specific
-  evidence carries no weight.
+- **A declared status is not evidence.** A capability may be called real working only
+  when a retained real-target receipt proves the production path it names.
 - **Gates must fail.** Every gate has a paired `*-gate-enforces` suite proving it rejects
   a bad input. A gate that cannot fail is decoration.
-- **External blockers are named, not absorbed.** 99 register rows are owned externally
-  (signing certificates, store accounts, physical devices, consented human research).
-  They are recorded as `EXTERNALLY BLOCKED` and capped below "proven" weight, because if
-  work is genuinely blocked then nobody has seen it run.
+- **External blockers are named, not absorbed.** Signing certificates, store accounts,
+  physical devices and consented human research remain `BLOCKED` with one owner action.
 - **Process is in [`GOVERNANCE.md`](GOVERNANCE.md).**
 
-## 7. Success metrics (AZ-008)
+## 7. Success metrics
 
-Measured, with the current value where one exists. Sources are the test suite, the
-gates, and the requirement register — no metric here is self-reported prose.
+Measured, with the current value where one exists. Sources are the test suite, gates and
+retained runtime receipts—no metric here is inferred from a weighted checklist.
 
 | #   | Metric                                             | Target | Current                    |
 | --- | -------------------------------------------------- | ------ | -------------------------- |
 | M1  | Test failures on `main`                            | 0      | 0                          |
 | M2  | TypeScript errors                                  | 0      | 0                          |
 | M3  | Lint errors and warnings                           | 0      | 0                          |
-| M4  | Gates passing                                      | all    | 24/24                      |
-| M5  | Migration set rebuilds an empty database           | yes    | yes, 33/33                 |
+| M4  | Development and release gates passing              | all    | measured in CI             |
+| M5  | Migration set rebuilds an empty database           | yes    | yes, 34/34                 |
 | M6  | Public tables without row-level security           | 0      | 0                          |
 | M7  | Database type bypasses (`pendingFrom`-style `any`) | 0      | 0                          |
-| M8  | Open defects in the register                       | 0      | 0                          |
-| M9  | Requirements with executed test evidence           | rising | 388/510                    |
-| M10 | Requirements verified on their real target         | rising | 35/510                     |
-| M11 | Document context sent, as a share of the document  | < 25%  | ~20% on the reference case |
-| M12 | Unverified positive-weight requirement claims      | 0      | 0                          |
+| M8  | Capability states without proof or a blocker       | 0      | 0                          |
+| M9  | Real-target capabilities with retained receipts    | rising | categorical report         |
+| M10 | Document context sent, as a share of the document  | < 25%  | ~20% on the reference case |
 
-M9 and M10 are deliberately separate. M9 says the code is tested; M10 says it has been
-observed working on the thing it ships to. The gap between them is the honest measure of
-how far this product is from production, and collapsing them into one number is the
-specific dishonesty the register exists to prevent.
+The authoritative release view is [`OCADE_CAPABILITY_STATUS.json`](../release/OCADE_CAPABILITY_STATUS.json):
+`REAL WORKING`, `PARTIAL`, `BLOCKED`, or `NOT IMPLEMENTED`, with no score or percentage.

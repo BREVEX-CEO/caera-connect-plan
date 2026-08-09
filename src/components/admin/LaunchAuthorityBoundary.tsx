@@ -2,10 +2,10 @@ import { Megaphone } from "lucide-react";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 
 const stages = [
-  ["AZ-429", "Signing"],
-  ["AZ-430", "Deployment"],
-  ["AZ-431", "Support readiness"],
-  ["AZ-432", "Announcement"],
+  ["signing", "Signing"],
+  ["deployment", "Deployment"],
+  ["support", "Support readiness"],
+  ["announcement", "Announcement"],
 ] as const;
 
 export function LaunchAuthorityBoundary() {

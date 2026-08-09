@@ -61,7 +61,7 @@ const request = {
   expectedProjectId: "project-a",
 };
 
-describe("HWE-31 through HWE-33 trust setup", () => {
+describe("trust setup", () => {
   it("validates OS secure stores, scoped capabilities, test-trust boundaries and signing eligibility", () => {
     expect(validateTrustSetupPolicy(policy)).toEqual({ ok: true, issues: [] });
   });

@@ -137,7 +137,7 @@ function modelFixture(overrides: Record<string, unknown> = {}) {
   };
 }
 
-describe("HWE-12 through HWE-17 substitution and local-model fabric", () => {
+describe("substitution and local-model fabric", () => {
   it("validates one owner, six honest evidence classes, every route and bounded recovery", () => {
     expect(validateSubstitutionPolicy(policy)).toEqual({ ok: true, issues: [] });
   });

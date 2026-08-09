@@ -1,5 +1,5 @@
 /**
- * Preferring a direct link over the relay (HWE-26).
+ * Preferring a direct link over the relay.
  *
  * WHAT THE RELAY COSTS. Every message between a paired phone and computer went
  * through `WebSocketRelayAdapter` — a rented server on the public internet.

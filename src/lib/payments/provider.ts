@@ -3,7 +3,7 @@
  *
  * OCADE had no payment code of any kind — no provider SDK, no checkout, no
  * webhook handling, no entitlement synchronisation. This defines the contract
- * a real provider must satisfy, so the twin (HWE-29) and a future Stripe or
+ * a real provider must satisfy, so the synthetic twin and a future Stripe or
  * Paddle adapter are interchangeable and neither is special-cased.
  *
  * NOTHING HERE CAN CHARGE MONEY. There is no network call, no API key and no

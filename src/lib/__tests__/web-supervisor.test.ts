@@ -7,7 +7,7 @@ import {
 } from "../local/web-supervisor";
 
 /**
- * PROGRESSIVE WEB SUPERVISOR FALLBACK (HWE-35).
+ * PROGRESSIVE WEB SUPERVISOR FALLBACK.
  *
  * Recorded NOT STARTED with a precise reason: "no progressive web app exists:
  * there is no web manifest and no service worker in the tree." The consequence

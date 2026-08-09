@@ -1,5 +1,5 @@
 /**
- * HWE-38 — opt-in, privacy-safe failure telemetry (P18.S01).
+ * Opt-in, privacy-safe failure telemetry.
  *
  * There was no telemetry of any kind. That is a defensible starting position —
  * shipping none is safer than shipping careless telemetry — but it also means

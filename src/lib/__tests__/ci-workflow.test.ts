@@ -106,7 +106,7 @@ describe("the web job runs every gate that has been proven to enforce", () => {
 
 describe("the surfaces that used to have no CI job at all", () => {
   /*
-   * AZ-353 and AZ-354 were both downgraded to PARTIAL SOURCE with the same
+   * Worker and database deployment were both previously treated as partial source with the same
    * finding: "No extension CI job exists" / "No database CI job exists". Their
    * tests DID run, inside the web job's test step, which is why the gap was
    * easy to miss — a failure was attributed to "tests", and nothing named the

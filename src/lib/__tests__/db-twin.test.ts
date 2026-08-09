@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { DatabaseTwin } from "../../../scripts/db-twin.mts";
 
 /**
- * DATABASE AND IDENTITY TWIN (P16 / HWE-30).
+ * DATABASE AND IDENTITY TWIN.
  *
  * 33 migrations, 33 verification scripts and 33 rollback scripts had never been
  * applied to anything. The SQL tests could only read the files and match

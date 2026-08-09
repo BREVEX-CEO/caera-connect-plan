@@ -50,7 +50,7 @@ function completeEvidence() {
   };
 }
 
-describe("AZ-429 through AZ-432 production launch authority", () => {
+describe("production launch authority", () => {
   it("validates the dependency-ordered source policy", () => {
     expect(validateLaunchAuthorityPolicy(policy)).toEqual({ ok: true, issues: [] });
   });

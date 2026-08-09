@@ -1,5 +1,5 @@
 /**
- * HWE-11 — application digital-twin laboratory.
+ * Application digital-twin laboratory.
  *
  * SIMULATED. THIS IS NOT APPLICATION SUPPORT.
  * ==========================================

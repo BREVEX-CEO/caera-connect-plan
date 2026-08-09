@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "generatedAt": "2026-07-29T17:28:35.045Z",
   "tier": "SIMULATED RUNTIME VERIFIED",
-  "subject": "HWE-11 application digital-twin laboratory",
+  "subject": "Application digital-twin laboratory",
   "notRealApplicationSupport": "A twin models an application; it is not one. No licensed application, real GUI toolkit, real display or real input device was involved. This proves route selection, unsafe-downgrade refusal, ground-truth verification, interruption, cancellation, emergency stop and rollback behave correctly against adversarial models. It proves NOTHING about driving real applications and must never be promoted to REAL TARGET RUNTIME VERIFIED.",
   "routeLadder": "api -> plugin -> mcp -> cli -> file -> dom -> accessibility -> native -> vision -> input",
   "summary": {

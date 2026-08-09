@@ -1,5 +1,5 @@
 /**
- * The supervisor that exists when there is no process to supervise (HWE-35).
+ * The supervisor that exists when there is no process to supervise.
  *
  * `runtime-supervisor.ts` starts a local engine binary. It needs a companion
  * that can spawn a process, so in a plain browser tab it can do nothing at all

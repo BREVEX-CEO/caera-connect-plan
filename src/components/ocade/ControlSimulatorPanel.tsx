@@ -5,9 +5,14 @@ import {
   SIMULATED_PREFIX,
   type Disturbance,
   type SimReceipt,
-} from "@/lib/hwe/a11y-simulator";
+} from "@/lib/control-labs/a11y-simulator";
 import type { ActionRoute, OcadeActionRequest } from "@/lib/control/control-plane";
-import { buildTwinLab, TWIN_PREFIX, type TwinKind, type TwinReceipt } from "@/lib/hwe/twin-lab";
+import {
+  buildTwinLab,
+  TWIN_PREFIX,
+  type TwinKind,
+  type TwinReceipt,
+} from "@/lib/control-labs/twin-lab";
 import {
   runPcTransaction,
   isDestructive,
@@ -17,7 +22,7 @@ import {
 } from "@/lib/control/pc-transaction";
 
 /**
- * Production owner for the HWE-10 accessibility-tree simulator.
+ * Production owner for the accessibility-tree simulator.
  *
  * Without a reachable entry point the simulator would be a module imported
  * only by tests — precisely the shape this programme's audit counts as
@@ -485,7 +490,7 @@ const TWINS: Array<{ kind: TwinKind; label: string; target: string; blurb: strin
 const ROUTES: ActionRoute[] = ["api", "dom", "accessibility", "vision", "input"];
 
 /**
- * HWE-11 bench.
+ * Application digital-twin bench.
  *
  * The interesting control here is "allow coordinate fallback". Leaving it off
  * is the safe default and produces refusals on purpose — a coordinate route is

@@ -1,5 +1,5 @@
 /**
- * OCADE offline shell (HWE-35).
+ * OCADE offline shell.
  *
  * WHY A LOCAL-FIRST PRODUCT NEEDS ONE. OCADE tells people their conversations
  * can stay on their device and that the engine can run on their own hardware.

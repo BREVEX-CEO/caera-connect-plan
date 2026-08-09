@@ -7,7 +7,7 @@ import {
   COORDINATE_ROUTES,
   TWIN_PREFIX,
   type TwinAction,
-} from "../hwe/twin-lab";
+} from "../control-labs/twin-lab";
 
 const act = (over: Partial<TwinAction> & { targetId: string }): TwinAction => ({
   intent: "activate",
