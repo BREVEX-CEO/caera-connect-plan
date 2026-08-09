@@ -67,11 +67,14 @@ function changedPathsSince(recorded, head) {
   }
 }
 
-const boundRevision = effectiveBoundRevision(
-  snapshot?.head,
-  currentHead,
-  changedPathsSince(snapshot?.head, currentHead),
-);
+const writePublication = process.argv.includes("--write");
+const boundRevision = writePublication
+  ? currentHead
+  : effectiveBoundRevision(
+      snapshot?.head,
+      currentHead,
+      changedPathsSince(snapshot?.head, currentHead),
+    );
 const expectedEvidenceBindings = {
   sourceRevision: boundRevision,
   targetVersion,
@@ -79,13 +82,13 @@ const expectedEvidenceBindings = {
   environment: verificationEnvironment,
   verificationRuleVersion: "p29-v1",
 };
-const writePublication = process.argv.includes("--write");
 if (writePublication) {
   // Publishing after an intentional lockfile change must refresh the binding
   // in the source snapshot as well as the derived publication. Leaving the
   // old digest in place made `readiness:publish` write a report that it then
   // immediately rejected as stale. The calculated statuses are untouched;
   // this records only the exact environment they were just checked against.
+  snapshot.head = boundRevision;
   snapshot.evidenceBindings = expectedEvidenceBindings;
   snapshot.generatedAt = new Date().toISOString();
   writeFileSync(snapshotPath, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
