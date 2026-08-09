@@ -78,12 +78,47 @@ const RULES = [
     re: /(^|\/)entitlements\.plist$|\.entitlements$/i,
   },
   { kind: "migration", why: "database migration or safety SQL", re: /^supabase\/.*\.sql$/ },
+  // Code and documents served verbatim from the site root: the web manifest,
+  // the service worker, and the offline shell it serves (HWE-35).
+  //
+  // Classified as SOURCE, not as a static asset, and the distinction is the
+  // point. `public/sw.js` executes with the site's own origin and can rewrite
+  // every response the application sees; `public/offline.html` is markup a user
+  // reads. Neither is a picture. Images and fonts under `public/` are left to
+  // the `asset` rule further down, which already claims them.
+  //
+  // Anchored to `^public/` and to an explicit extension list for the same
+  // reason every rule above is narrow: a catch-all would let anything dropped
+  // into the one directory served unmodified to browsers pass classification
+  // silently, which is precisely the review this gate exists to force.
+  {
+    kind: "source",
+    why: "served application code or document",
+    re: /^public\/.*\.(webmanifest|html|js|css)$/i,
+  },
   {
     kind: "config",
     why: "configuration",
     re: /^(\.github\/|\.vscode\/)|(^|\/)(package\.json|tsconfig.*\.json|vite\.config\.[cm]?[jt]s|vitest\.config\.[cm]?[jt]s|eslint\.config\.[cm]?[jt]s|docker-compose\.ya?ml|Dockerfile|capacitor\.config\.json|wrangler\.json|Cargo\.toml|Cargo\.lock|\.gitignore)$/,
   },
   { kind: "config", why: "configuration file", re: /\.(json|ya?ml|toml|conf|ini)$/i },
+  // The OCADE-owned native-control sidecar. Product source, not a script: it is
+  // bundled with the desktop application and is the only component with UI
+  // Automation, screen-capture and physical-input authority.
+  //
+  // Anchored to `ocade_host/` rather than to `native/python-host/` as a whole,
+  // so the installed `.venv` — several hundred megabytes of third-party wheels
+  // that must never be committed — cannot slip through as product source.
+  {
+    kind: "source",
+    why: "native-control sidecar source",
+    re: /^native\/python-host\/ocade_host\/.*\.py$/,
+  },
+  {
+    kind: "config",
+    why: "pinned native-control dependency set",
+    re: /^native\/python-host\/requirements\.txt$/,
+  },
   // `[cm]?[jt]s` covers .js/.cjs/.mjs AND .ts/.cts/.mts — tool scripts under
   // `scripts/` are increasingly TypeScript (run via vite-node), and a .mts
   // helper is no less an automation script than its .mjs sibling.

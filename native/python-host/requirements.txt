@@ -1,0 +1,44 @@
+# OCADE native-control sidecar — pinned, exact versions.
+#
+# PINNED RATHER THAN RANGED, deliberately. This environment drives a real
+# mouse, reads a real accessibility tree and captures a real screen; a minor
+# release of pywinauto or PyAutoGUI that changes a default is a behavioural
+# change to computer control, and it must arrive because someone chose it, not
+# because someone reinstalled on a Tuesday.
+#
+# Verified together on Windows 10 19045 with CPython 3.12.10.
+# Install with:
+#   python -m venv native/python-host/.venv
+#   native/python-host/.venv/Scripts/python -m pip install -r native/python-host/requirements.txt
+
+# Windows API access: windows, processes, monitors, DPI.
+pywin32==311
+
+# UI Automation. The structured route — roles, names, automation ids, bounds,
+# state — and the reason OCADE does not start by clicking pixels.
+pywinauto==0.6.9
+comtypes==1.4.16
+
+# Physical input. The LAST resort in the control ladder, never the first.
+PyAutoGUI==0.9.54
+pynput==1.8.2
+
+# Machine facts for system status and "why is my computer slow".
+psutil==7.1.0
+
+# Screen capture. DXCam uses Desktop Duplication and is markedly faster; MSS is
+# the fallback for display configurations where DXCam cannot attach.
+dxcam==0.0.5
+mss==10.1.0
+
+# Frame handling and the perceptual fingerprint used to verify that a window
+# actually changed after an action.
+opencv-python==4.12.0.88
+numpy==2.2.6
+
+# Windows Runtime bindings, for the OCR engine already present in Windows.
+# No third-party OCR model is downloaded or bundled.
+winsdk==1.0.0b10
+
+# Reversible deletion. OCADE has no permanent-delete path at all.
+Send2Trash==1.8.3

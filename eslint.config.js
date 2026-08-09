@@ -20,7 +20,21 @@ export default tseslint.config(
      * They are excluded from version control already; excluding them here just
      * makes the linter agree with the repository about what the source is.
      */
-    ignores: ["dist", ".output", ".vinxi", "native/**/target/**", ".codex/**", ".claude/**"],
+    ignores: [
+      "dist",
+      ".output",
+      ".vinxi",
+      ".browser-sidecar/**",
+      "native/**/binaries/**",
+      "native/**/gen/**",
+      "native/**/target/**",
+      // The OCADE-owned Python environment. Its site-packages ship third-party
+      // .js test fixtures (win32com's scriptlet tests, urllib3's emscripten
+      // worker) that are not product code and must not be reformatted.
+      "native/python-host/.venv/**",
+      ".codex/**",
+      ".claude/**",
+    ],
   },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],

@@ -31,3 +31,16 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Generated managed-browser sidecars. CI/release builds recreate the
+# target-specific executable and Tauri bundles it through externalBin.
+.browser-sidecar/
+native/companion/tauri/binaries/ocade-browser-host-*
+native/companion/tauri/target/
+native/companion/tauri/gen/
+
+# The OCADE-owned Python environment. The PINNED REQUIREMENTS are tracked
+# (native/python-host/requirements.txt); the installed tree is not — it is
+# ~400 MB of platform-specific wheels that setup recreates on each machine.
+native/python-host/.venv/
+native/python-host/**/__pycache__/
