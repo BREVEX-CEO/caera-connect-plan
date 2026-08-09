@@ -1,12 +1,17 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-09T09:18:02.533Z",
+  "generatedAt": "2026-08-09T10:20:00.000Z",
   "claimBoundary": "Capability states are categorical and evidence-backed. This report contains no weighted points, percentage, or requirement-row denominator.",
   "capabilities": [
     {
       "capability": "Chat/Brain",
       "status": "REAL WORKING",
       "proof": [
+        {
+          "kind": "real-target",
+          "path": "release/OCADE_LIVE_WORLD_OLLAMA_EVIDENCE.json",
+          "summary": "Qwen3 8B used Ollama's native streamed /api/chat tool interface, selected an OCADE-owned screen tool, consumed its typed result plus a fresh WorldState, and completed a second grounded turn."
+        },
         {
           "kind": "real-target",
           "path": "release/OCADE_CHAT_RUNTIME_EVIDENCE.json",
@@ -24,7 +29,7 @@
           "summary": "The Director, permission broker, route selection, connector mediation and verification execute together in the product control plane."
         }
       ],
-      "remainingBlocker": "The authenticated packaged desktop interface has not completed a restart-persistent end-to-end action on this machine."
+      "remainingBlocker": "The authenticated packaged desktop interface has not yet completed several previously unseen real-world missions through this new loop, including interruption and independent outcome verification."
     },
     {
       "capability": "Universal Software Control",
@@ -59,6 +64,11 @@
       "capability": "Desktop",
       "status": "PARTIAL",
       "proof": [
+        {
+          "kind": "real-target",
+          "path": "release/OCADE_PACKAGED_STARTUP_EVIDENCE.json",
+          "summary": "The rebuilt Windows release executable remained alive beyond the startup gate after the reproduced Tauri plugin-configuration panic was repaired; the receipt binds the executable and unsigned NSIS installer by SHA-256."
+        },
         {
           "kind": "real-target",
           "path": "release/OCADE_PYTHON_RUNTIME_EVIDENCE.json",

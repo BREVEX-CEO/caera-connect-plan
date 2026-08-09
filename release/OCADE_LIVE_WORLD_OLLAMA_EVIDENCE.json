@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-09T10:07:05.452Z",
+  "runtime": {
+    "bridgeUrl": "http://127.0.0.1:11434",
+    "modelId": "qwen3:8b",
+    "endpoint": "/api/chat",
+    "streaming": true,
+    "think": false
+  },
+  "assertions": {
+    "nativeToolCallSelected": true,
+    "sequentialToolResultFedBack": true,
+    "updatedWorldStateFedBack": true,
+    "finalAnswerUsedObservedState": true,
+    "rawShellExposed": false
+  },
+  "selectedTool": {
+    "function": {
+      "name": "world.screen.read",
+      "arguments": {}
+    }
+  },
+  "finalAnswer": "The current screen shows the following visible text:\n\n- \"Release evidence\"\n- \"Continue\"",
+  "timeline": [
+    {
+      "stage": "ollama.request",
+      "atMs": 0.304,
+      "detail": "tool selection turn"
+    },
+    {
+      "stage": "ollama.socket",
+      "atMs": 4640.713,
+      "detail": "225 bytes at 9223.272"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 4641.667,
+      "detail": "message"
+    },
+    {
+      "stage": "tool.loop",
+      "atMs": 4642.504,
+      "detail": "world.screen.read"
+    },
+    {
+      "stage": "ollama.socket",
+      "atMs": 5903.582,
+      "detail": "296 bytes at 10486.277"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 5903.648,
+      "detail": "done"
+    },
+    {
+      "stage": "state.event",
+      "atMs": 5904.125,
+      "detail": "fresh WorldState revision 2 delivered"
+    },
+    {
+      "stage": "ollama.request",
+      "atMs": 5904.132,
+      "detail": "post-tool completion turn"
+    },
+    {
+      "stage": "ollama.socket",
+      "atMs": 26256.116,
+      "detail": "2586 bytes at 30838.809"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26256.205,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26256.281,
+      "detail": "3 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26256.381,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26256.385,
+      "detail": "8 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26256.394,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26256.396,
+      "detail": "7 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26256.404,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26256.405,
+      "detail": "6 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26256.412,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26256.423,
+      "detail": "4 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26256.43,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26256.432,
+      "detail": "10 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26256.456,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26256.461,
+      "detail": "8 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26256.472,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26256.474,
+      "detail": "5 visible characters"
+    },
+    {
+      "stage": "react.delivery-yield",
+      "atMs": 26256.934,
+      "detail": "8 NDJSON messages delivered"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26256.955,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26256.957,
+      "detail": "3 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26256.965,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26256.968,
+      "detail": "1 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26256.973,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26256.975,
+      "detail": "2 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26256.98,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26256.981,
+      "detail": "7 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26256.985,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26256.987,
+      "detail": "9 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26256.992,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26256.993,
+      "detail": "2 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26256.997,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26256.998,
+      "detail": "1 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26257.003,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26257.004,
+      "detail": "2 visible characters"
+    },
+    {
+      "stage": "react.delivery-yield",
+      "atMs": 26904.557,
+      "detail": "16 NDJSON messages delivered"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26904.598,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26904.602,
+      "detail": "8 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26904.611,
+      "detail": "message"
+    },
+    {
+      "stage": "reasoning.service",
+      "atMs": 26904.612,
+      "detail": "1 visible characters"
+    },
+    {
+      "stage": "ndjson.parser",
+      "atMs": 26904.647,
+      "detail": "done"
+    },
+    {
+      "stage": "conversation.visible",
+      "atMs": 26904.885,
+      "detail": "87 characters ready for React rendering"
+    }
+  ]
+}

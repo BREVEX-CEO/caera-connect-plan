@@ -154,6 +154,7 @@
     { "area": "src/lib/retrieval", "owner": "OCADE chat" },
     { "area": "src/lib/chat", "owner": "OCADE chat" },
     { "area": "src/lib/control", "owner": "OCADE control plane" },
+    { "area": "src/lib/agent", "owner": "OCADE control plane" },
     { "area": "src/lib/skills", "owner": "OCADE control plane" },
     { "area": "src/lib/mobile", "owner": "OCADE devices" },
     { "area": "src/lib/native", "owner": "OCADE devices" },

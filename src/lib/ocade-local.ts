@@ -577,6 +577,32 @@ export interface LocalChatMessage {
   images?: string[];
 }
 
+export interface LocalToolChatMessage {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string;
+  images?: string[];
+  /** Present only when replaying an assistant tool-selection turn. */
+  tool_calls?: LocalToolCall[];
+  /** Ollama associates a tool result with its declared function by name. */
+  tool_name?: string;
+}
+
+export interface LocalToolCall {
+  function: {
+    name: string;
+    arguments: Record<string, unknown>;
+  };
+}
+
+export interface LocalToolDefinition {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}
+
 /**
  * The context window a request needs — and why OCADE has to name it.
  *
@@ -650,7 +676,9 @@ export function contextCeilingFor(totalRamBytes?: number): number {
  * tokenisers average closer to 4 — because underestimating means truncation
  * and overestimating merely costs a little memory.
  */
-export function estimateTokens(messages: LocalChatMessage[]): number {
+export function estimateTokens(
+  messages: Array<Pick<LocalChatMessage, "content" | "images">>,
+): number {
   let characters = 0;
   let images = 0;
   for (const message of messages) {
@@ -716,7 +744,7 @@ export function estimatedReadSeconds(
  * charged for an assumption.
  */
 export function planContextWindow(
-  messages: LocalChatMessage[],
+  messages: Array<Pick<LocalChatMessage, "content" | "images">>,
   totalRamBytes?: number,
   hasDiscreteGpu?: boolean,
 ): ContextPlan {
@@ -751,6 +779,10 @@ export interface LocalStreamHandlers {
    * UI batching without changing token delivery.
    */
   onTransportChunk?: (sample: { bytes: number; receivedAtMs: number }) => void;
+  /** Fires after one complete NDJSON object is parsed, before UI delivery. */
+  onNdjsonMessage?: (sample: { parsedAtMs: number; done: boolean }) => void;
+  /** Fires when a coalesced socket burst yields so the UI can paint progressively. */
+  onDeliveryYield?: (sample: { yieldedAtMs: number; deliveredMessages: number }) => void;
   signal?: AbortSignal;
   /**
    * Let the model run a hidden reasoning pass before answering.
@@ -789,6 +821,37 @@ export interface LocalStreamHandlers {
    * by the person using the computer, so it is not spent on a guess.
    */
   totalRamBytes?: number;
+}
+
+const UI_BURST_MESSAGES = 8;
+const MAX_UI_DELIVERY_YIELDS = 64;
+
+async function yieldCoalescedStreamToUi(
+  deliveredMessages: number,
+  handlers: Pick<LocalStreamHandlers, "onDeliveryYield">,
+): Promise<void> {
+  if (
+    deliveredMessages === 0 ||
+    deliveredMessages > UI_BURST_MESSAGES * MAX_UI_DELIVERY_YIELDS ||
+    deliveredMessages % UI_BURST_MESSAGES !== 0
+  )
+    return;
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  handlers.onDeliveryYield?.({ yieldedAtMs: performance.now(), deliveredMessages });
+}
+
+export interface LocalToolTurnHandlers extends Omit<LocalStreamHandlers, "onToken"> {
+  onToken?: (chunk: string) => void;
+  /** Fires as soon as a complete tool call arrives from the local model. */
+  onToolCall?: (call: LocalToolCall, receivedAtMs: number) => void;
+}
+
+export interface LocalToolTurnResult {
+  ok: boolean;
+  reason?: string;
+  content: string;
+  toolCalls: LocalToolCall[];
+  assistantMessage?: LocalToolChatMessage;
 }
 
 /**
@@ -939,6 +1002,7 @@ export async function streamLocalChat(
   let buffer = "";
   try {
     let streamedChars = 0;
+    let deliveredMessages = 0;
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -961,12 +1025,24 @@ export async function streamLocalChat(
         if (!line) continue;
         try {
           const obj = JSON.parse(line) as { message?: { content?: string }; done?: boolean };
+          handlers.onNdjsonMessage?.({ parsedAtMs: performance.now(), done: obj.done === true });
           const piece = obj.message?.content;
-          if (piece) handlers.onToken(piece);
+          if (piece) {
+            handlers.onToken(piece);
+            deliveredMessages += 1;
+            await yieldCoalescedStreamToUi(deliveredMessages, handlers);
+          }
         } catch {
           /* ignore partial/non-JSON keepalive lines */
         }
       }
+    }
+    const finalLine = buffer.trim();
+    if (finalLine) {
+      const obj = JSON.parse(finalLine) as { message?: { content?: string }; done?: boolean };
+      handlers.onNdjsonMessage?.({ parsedAtMs: performance.now(), done: obj.done === true });
+      const piece = obj.message?.content;
+      if (piece) handlers.onToken(piece);
     }
     return { ok: true };
   } catch (e) {
@@ -975,4 +1051,147 @@ export async function streamLocalChat(
     if (e instanceof StreamLimitError) return { ok: false, reason: e.message };
     return { ok: false, reason: "Local stream interrupted." };
   }
+}
+
+function normalizeLocalToolCall(value: unknown): LocalToolCall | null {
+  if (!value || typeof value !== "object") return null;
+  const candidate = value as { function?: { name?: unknown; arguments?: unknown } };
+  const name = candidate.function?.name;
+  if (typeof name !== "string" || !/^[a-z][a-z0-9_.-]{0,127}$/i.test(name)) return null;
+  let arguments_: unknown = candidate.function?.arguments;
+  if (typeof arguments_ === "string") {
+    try {
+      arguments_ = JSON.parse(arguments_);
+    } catch {
+      return null;
+    }
+  }
+  if (!arguments_ || typeof arguments_ !== "object" || Array.isArray(arguments_)) return null;
+  const encoded = JSON.stringify(arguments_);
+  if (encoded.length > 32_768) return null;
+  return { function: { name, arguments: arguments_ as Record<string, unknown> } };
+}
+
+/**
+ * One native Ollama tool-selection turn. The caller owns authority and runs
+ * selected tools; this transport only streams model output and returns bounded
+ * typed requests. Keeping a single turn here makes sequential execution in the
+ * live-world loop explicit: result, fresh observation, then another turn.
+ */
+export async function streamLocalToolTurn(
+  bridgeUrl: string,
+  modelId: string,
+  messages: LocalToolChatMessage[],
+  tools: LocalToolDefinition[],
+  handlers: LocalToolTurnHandlers = {},
+  fetchImpl?: FetchLike,
+): Promise<LocalToolTurnResult> {
+  const fail = (reason: string): LocalToolTurnResult => ({
+    ok: false,
+    reason,
+    content: "",
+    toolCalls: [],
+  });
+  const f = getFetch(fetchImpl);
+  if (!f) return fail("No fetch available.");
+  if (tools.length === 0 || tools.length > 128) return fail("The typed tool catalogue is invalid.");
+  if (
+    tools.some(
+      (tool) =>
+        tool.type !== "function" ||
+        !/^[a-z][a-z0-9_.-]{0,127}$/i.test(tool.function.name) ||
+        tool.function.description.length > 2_000 ||
+        JSON.stringify(tool.function.parameters).length > 32_768,
+    )
+  ) {
+    return fail("The typed tool catalogue is malformed or too large.");
+  }
+
+  const context = planContextWindow(messages, handlers.totalRamBytes);
+  handlers.onContextPlan?.(context);
+  let response: Response;
+  try {
+    response = await f(`${bridgeUrl.replace(/\/+$/, "")}/api/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        model: modelId,
+        messages,
+        tools,
+        stream: true,
+        think: handlers.think === true,
+        ...(context.numCtx === null ? {} : { options: { num_ctx: context.numCtx } }),
+      }),
+      signal: handlers.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") return fail("cancelled");
+    return fail(
+      isSlowResponseError(error)
+        ? "The local engine response timed out."
+        : "Local engine unreachable.",
+    );
+  }
+  if (!response.ok || !response.body) return fail(`Local engine HTTP ${response.status}.`);
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const toolCalls: LocalToolCall[] = [];
+  let content = "";
+  let buffer = "";
+  let streamedChars = 0;
+  let deliveredMessages = 0;
+  const consume = async (line: string) => {
+    const parsed = JSON.parse(line) as {
+      done?: boolean;
+      message?: { content?: unknown; tool_calls?: unknown };
+    };
+    handlers.onNdjsonMessage?.({ parsedAtMs: performance.now(), done: parsed.done === true });
+    if (typeof parsed.message?.content === "string" && parsed.message.content) {
+      content += parsed.message.content;
+      handlers.onToken?.(parsed.message.content);
+      deliveredMessages += 1;
+      await yieldCoalescedStreamToUi(deliveredMessages, handlers);
+    }
+    if (Array.isArray(parsed.message?.tool_calls)) {
+      for (const raw of parsed.message.tool_calls) {
+        const call = normalizeLocalToolCall(raw);
+        if (!call || toolCalls.length >= 32) continue;
+        toolCalls.push(call);
+        handlers.onToolCall?.(call, performance.now());
+      }
+    }
+  };
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      handlers.onTransportChunk?.({ bytes: value.byteLength, receivedAtMs: performance.now() });
+      const decoded = decoder.decode(value, { stream: true });
+      streamedChars += decoded.length;
+      buffer += decoded;
+      assertStreamWithinLimit(streamedChars, MAX_STREAM_CHARS, "local tool reply");
+      assertStreamWithinLimit(buffer.length, MAX_STREAM_LINE_CHARS, "local tool reply line");
+      let newline: number;
+      while ((newline = buffer.indexOf("\n")) >= 0) {
+        const line = buffer.slice(0, newline).trim();
+        buffer = buffer.slice(newline + 1);
+        if (line) await consume(line);
+      }
+    }
+    const finalLine = buffer.trim();
+    if (finalLine) await consume(finalLine);
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") return fail("cancelled");
+    if (error instanceof StreamLimitError) return fail(error.message);
+    return fail("Local tool stream interrupted.");
+  }
+
+  const assistantMessage: LocalChatMessage = {
+    role: "assistant",
+    content,
+    ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
+  };
+  return { ok: true, content, toolCalls, assistantMessage };
 }

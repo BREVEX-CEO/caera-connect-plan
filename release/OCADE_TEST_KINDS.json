@@ -95,6 +95,11 @@
       "couldBeStronger": "No; the enforcing gate runs as a subprocess in integration-gate-enforces.test.ts."
     },
     {
+      "path": "src/lib/__tests__/packaged-startup-config.test.ts",
+      "why": "Reads the Tauri plugin configuration to pin the exact unit-config regression that previously made the packaged executable panic before opening. Vitest cannot initialize a Windows Tauri process.",
+      "couldBeStronger": "Yes, and it is: scripts/packaged-startup-evidence.mjs launches the rebuilt release executable, waits beyond the startup gate, rejects plugin-initialization panics, and writes a hash-bound receipt."
+    },
+    {
       "path": "src/lib/__tests__/ocade-supabase-package.test.ts",
       "why": "Asserts migration and RLS policy SQL. Needs a database to execute.",
       "couldBeStronger": "Yes, once a database twin exists (P16)."

@@ -114,6 +114,8 @@ import {
   type LocalChatMessage,
 } from "@/lib/ocade-local";
 import { PerfLedger, routeTask } from "@/lib/local/router-policy";
+import { LiveWorldAgent } from "@/lib/agent/live-world-loop";
+import { createDesktopLiveWorldRuntime } from "@/lib/agent/live-world-fabric";
 
 /**
  * One ledger per tab. Routing prefers the fastest MEASURED model, so
@@ -1043,6 +1045,7 @@ function ChatSurface(props: {
     attachments: Attachment[];
   }>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const activeLiveAgentRef = useRef<LiveWorldAgent | null>(null);
   /**
    * Models already asked to load in this session. Typing fires on EVERY
    * keystroke; without this the runtime would receive a load request per
@@ -1847,6 +1850,7 @@ function ChatSurface(props: {
         }
       }
     } finally {
+      activeLiveAgentRef.current = null;
       setStreaming(false);
       setStreamText("");
       abortRef.current = null;
@@ -2079,21 +2083,94 @@ function ChatSurface(props: {
          * branch is a separate step in the same chain, so a prompt can never
          * leave the machine as a side effect of the local path failing.
          */
-        const reasoned = await reason(
-          browserReasonDeps(DEFAULT_LOCAL_BRIDGE_URL, undefined, devicePolicy.policy.totalRamBytes),
-          {
-            messages: localMessages,
-            task: hasImage ? "vision" : "general",
+        let result: { ok: boolean; reason?: string };
+        const liveRuntime = createDesktopLiveWorldRuntime({
+          // Autonomous is a user-selected GUI permission mode. Manual and
+          // assisted modes still stop at the contextual confirmation boundary.
+          confirmed: () => permission === "autonomous",
+          voiceState: () => ({
+            listening,
+            speaking,
+            muted: voicePausedRef.current,
+            recognizerAvailable:
+              typeof window !== "undefined" &&
+              Boolean(
+                (
+                  window as unknown as {
+                    SpeechRecognition?: unknown;
+                    webkitSpeechRecognition?: unknown;
+                  }
+                ).SpeechRecognition ||
+                (
+                  window as unknown as {
+                    SpeechRecognition?: unknown;
+                    webkitSpeechRecognition?: unknown;
+                  }
+                ).webkitSpeechRecognition,
+              ),
+          }),
+        });
+        const liveReady =
+          !hasImage && atts.length === 0 ? await liveRuntime.ready() : { ready: false };
+        if (liveReady.ready) {
+          const liveAgent = new LiveWorldAgent({
+            bridgeUrl: DEFAULT_LOCAL_BRIDGE_URL,
             modelId: step.modelId!,
-            allowCloud: false,
-            signal: controller.signal,
-            onToken: (c) => {
+            tools: liveRuntime.tools,
+            observe: liveRuntime.observe,
+            totalRamBytes: devicePolicy.policy.totalRamBytes,
+            initialMessages: priorMessages
+              .filter((message) => message.role === "user" || message.role === "assistant")
+              .map((message) => ({
+                role: message.role as "user" | "assistant",
+                content: message.content,
+              })),
+            onText: (chunk) => {
               if (firstTokenMs === null) firstTokenMs = Date.now() - routeStarted;
-              acc += c;
+              acc += chunk;
               setStreamText(acc);
             },
-          },
-        );
+          });
+          activeLiveAgentRef.current = liveAgent;
+          const liveResult = await liveAgent.run(text, controller.signal);
+          activeLiveAgentRef.current = null;
+          // Progress narration is transient. The persisted answer is the
+          // mission's concise final state, including honest blocked outcomes.
+          acc = liveResult.message;
+          setStreamText(acc);
+          result =
+            liveResult.status === "completed"
+              ? { ok: true }
+              : liveResult.status === "cancelled"
+                ? { ok: false, reason: "cancelled" }
+                : { ok: true };
+        } else {
+          const reasoned = await reason(
+            browserReasonDeps(
+              DEFAULT_LOCAL_BRIDGE_URL,
+              undefined,
+              devicePolicy.policy.totalRamBytes,
+            ),
+            {
+              messages: localMessages,
+              task: hasImage ? "vision" : "general",
+              modelId: step.modelId!,
+              allowCloud: false,
+              signal: controller.signal,
+              onToken: (c) => {
+                if (firstTokenMs === null) firstTokenMs = Date.now() - routeStarted;
+                acc += c;
+                setStreamText(acc);
+              },
+            },
+          );
+          result = reasoned.ok
+            ? { ok: true }
+            : {
+                ok: false,
+                reason: reasoned.failure === "cancelled" ? "cancelled" : reasoned.reason,
+              };
+        }
         /*
          * Unsealed FIRST, before anything else runs. A thrown persistence call
          * with the seal still up would leave the page offline for the rest of
@@ -2107,9 +2184,6 @@ function ChatSurface(props: {
           // asked for silence, and they are entitled to know what.
           toast.warning(describeSeal(sealReport));
         }
-        const result: { ok: boolean; reason?: string } = reasoned.ok
-          ? { ok: true }
-          : { ok: false, reason: reasoned.failure === "cancelled" ? "cancelled" : reasoned.reason };
         // A cancellation is the user's choice, not the model failing, so it is
         // not recorded as a failure against the model.
         if (result.reason !== "cancelled") {
@@ -2309,6 +2383,7 @@ function ChatSurface(props: {
         }
       }
     } finally {
+      activeLiveAgentRef.current = null;
       setStreaming(false);
       setStreamText("");
       abortRef.current = null;
@@ -2629,6 +2704,7 @@ function ChatSurface(props: {
   }
 
   function stop() {
+    activeLiveAgentRef.current?.cancel();
     abortRef.current?.abort();
   }
 
@@ -2793,7 +2869,8 @@ function ChatSurface(props: {
     void executePriorityVoiceCommand(command, {
       stopSpeech: stopSpeaking,
       pauseWork: () => {
-        abortRef.current?.abort();
+        if (activeLiveAgentRef.current) activeLiveAgentRef.current.pause();
+        else abortRef.current?.abort();
         voicePausedRef.current = true;
       },
       releaseHeldInput: async () => {

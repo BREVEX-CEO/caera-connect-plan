@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-09T10:50:06.195Z",
+  "executable": "C:\\Users\\haans\\.codex\\visualizations\\2026\\08\\08\\019fe25f-7f3a-7ea1-b53d-8096b651a01c\\ocade-closure-worktree\\native\\companion\\tauri\\target\\release\\caera-companion.exe",
+  "bytes": 5273088,
+  "sha256": "afd3d33df8788f2902f5c644281f3d9595aa7b80159ab5a19fb6fc9246261396",
+  "signed": false,
+  "installer": {
+    "path": "C:\\Users\\haans\\.codex\\visualizations\\2026\\08\\08\\019fe25f-7f3a-7ea1-b53d-8096b651a01c\\ocade-closure-worktree\\native\\companion\\tauri\\target\\release\\bundle\\nsis\\CAERA Companion_0.1.0_x64-setup.exe",
+    "bytes": 280719683,
+    "sha256": "71b1d4075142f278452e52dec277bb1c0fd6e9dd3b3ff544f3b027fb262621da",
+    "signed": false
+  },
+  "assertions": {
+    "processAliveAfterFiveSeconds": true,
+    "startupPanicAbsent": true,
+    "browserExtensionRequired": false,
+    "legacy510Required": false
+  },
+  "startedAt": "2026-08-09T10:50:01.168Z",
+  "stoppedAfterEvidence": true,
+  "claimBoundary": "This proves the rebuilt unpackaged Windows release executable starts and stays alive. It does not prove code signing, installer execution, authentication, or a full GUI mission."
+}

@@ -72,12 +72,6 @@
       "endpoints": [
         "https://updates.caeracadane.com/companion/{{target}}/{{arch}}/{{current_version}}"
       ]
-    },
-    "global-shortcut": {
-      "all": false
-    },
-    "clipboard-manager": {
-      "all": false
     }
   }
 }
