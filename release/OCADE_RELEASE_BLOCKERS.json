@@ -60,15 +60,16 @@
       ]
     },
     {
-      "id": "browser-extension-store",
-      "area": "browser-extension",
+      "id": "browser-cdp-real-matrix",
+      "area": "browser",
       "status": "externally_blocked",
       "requiredEvidence": [
-        "Load-unpacked tests in supported Chrome and Edge versions",
-        "Observed DOM accessibility masked-capture upload download and stop tests",
-        "Store identities review listings signing and publication",
-        "Installed-store upgrade and permission-revocation tests"
-      ]
+        "Real supported Chrome and Edge profiles controlled through the extensionless Playwright/CDP host",
+        "Observed DOM accessibility masked-capture upload download and emergency-stop tests",
+        "Persistent approved-context authentication handoff and revocation tests",
+        "Extension-removal gate remains green; no store identity publication or extension bundle exists"
+      ],
+      "correctionNote": "The prior blocker referred to extension-store publication. OCADE deliberately deleted the extension; its browser boundary is the persistent local Playwright/CDP host."
     },
     {
       "id": "real-application-and-device-matrix",

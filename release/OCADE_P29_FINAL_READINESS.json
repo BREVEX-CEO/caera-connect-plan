@@ -1,31 +1,31 @@
 {
   "schemaVersion": 1,
   "phase": "P29 - Final production-readiness closure",
-  "calculatedAt": "2026-08-09T05:32:42.913Z",
+  "calculatedAt": "2026-08-09T07:16:23.390Z",
   "branch": "codex/ocade-closure-20260809",
-  "currentHead": "d6a4f867a072c8bc5d5ec3abcf2eb00ccf6fdbd2",
-  "sourceRevision": "d6a4f867a072c8bc5d5ec3abcf2eb00ccf6fdbd2",
+  "currentHead": "20ca305eb628e91dcffa22203d75118dfbdcb313",
+  "sourceRevision": "20ca305eb628e91dcffa22203d75118dfbdcb313",
   "targetVersion": "0.1.0",
   "evidenceBindings": {
-    "sourceRevision": "d6a4f867a072c8bc5d5ec3abcf2eb00ccf6fdbd2",
+    "sourceRevision": "20ca305eb628e91dcffa22203d75118dfbdcb313",
     "targetVersion": "0.1.0",
     "dependencyLockSha256": "455509eb66ed51972b7ea949738468a7af3721df51cbc2599384a089c6944fba",
     "environment": "windows-x64-node22+",
     "verificationRuleVersion": "p29-v1"
   },
   "productionReady": false,
-  "declaredNumerator": 272.2,
-  "evidenceBoundNumerator": 272.2,
+  "declaredNumerator": 275.2,
+  "evidenceBoundNumerator": 275.2,
   "denominator": 510,
-  "declaredPercent": 53.4,
-  "evidenceBoundPercent": 53.4,
+  "declaredPercent": 54,
+  "evidenceBoundPercent": 54,
   "statusCounts": {
-    "UNIT TESTED": 250,
-    "INTEGRATION TESTED": 59,
+    "UNIT TESTED": 248,
+    "INTEGRATION TESTED": 57,
     "SOURCE COMPLETE": 21,
-    "SIMULATED RUNTIME VERIFIED": 52,
+    "SIMULATED RUNTIME VERIFIED": 48,
     "EXTERNALLY BLOCKED": 99,
-    "REAL TARGET RUNTIME VERIFIED": 27,
+    "REAL TARGET RUNTIME VERIFIED": 35,
     "PARTIAL SOURCE": 2
   },
   "dimensions": [
@@ -132,12 +132,12 @@
     {
       "area": "Chat Core and Conversation Lifecycle",
       "denominator": 8,
-      "declaredNumerator": 4,
-      "evidenceBoundNumerator": 4,
+      "declaredNumerator": 4.5,
+      "evidenceBoundNumerator": 4.5,
       "notStarted": 0,
       "unverifiedPositiveWeight": 0,
-      "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "declaredPercent": 56.3,
+      "evidenceBoundPercent": 56.3
     },
     {
       "area": "Clean-Machine Installation and First Run",
@@ -912,12 +912,12 @@
     {
       "area": "Reliability No-Progress Detection and Long Tasks",
       "denominator": 7,
-      "declaredNumerator": 3.5,
-      "evidenceBoundNumerator": 3.5,
+      "declaredNumerator": 4,
+      "evidenceBoundNumerator": 4,
       "notStarted": 0,
       "unverifiedPositiveWeight": 0,
-      "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "declaredPercent": 57.1,
+      "evidenceBoundPercent": 57.1
     },
     {
       "area": "Repository Branching and Baseline Integrity",
@@ -1202,12 +1202,12 @@
     {
       "area": "Unknown Application Learning and App Maps",
       "denominator": 7,
-      "declaredNumerator": 4.6,
-      "evidenceBoundNumerator": 4.6,
+      "declaredNumerator": 6.6,
+      "evidenceBoundNumerator": 6.6,
       "notStarted": 0,
       "unverifiedPositiveWeight": 0,
-      "declaredPercent": 65.7,
-      "evidenceBoundPercent": 65.7
+      "declaredPercent": 94.3,
+      "evidenceBoundPercent": 94.3
     },
     {
       "area": "Unknown Application Learning and App Maps; Supported Application Certification",
