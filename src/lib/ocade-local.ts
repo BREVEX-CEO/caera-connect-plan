@@ -783,6 +783,27 @@ export interface LocalStreamHandlers {
    * by the person using the computer, so it is not spent on a guess.
    */
   totalRamBytes?: number;
+  /**
+   * Tool schemas this turn may use.
+   *
+   * THE FIELD WHOSE ABSENCE WAS THE WHOLE PROBLEM. Until now this request
+   * carried a model, messages, streaming, thinking and a context size — and
+   * nothing else. The installed models advertise `tools` in their own
+   * capability list, so OCADE could always have asked them to act and simply
+   * never did. Passing schemas here is what turns a chat into an assistant.
+   *
+   * Deliberately per-call rather than global: the domain router decides which
+   * handful of tools this turn sees, and a permanent catalogue would undo that.
+   */
+  tools?: unknown[];
+  /**
+   * Called when the model asks to run a tool.
+   *
+   * Separate from `onToken` because a tool call is not text: it must never be
+   * rendered into the reply the user reads, and a UI that concatenated the two
+   * would show raw JSON mid-sentence.
+   */
+  onToolCall?: (call: { id?: string; name: string; arguments: Record<string, unknown> }) => void;
 }
 
 /**
@@ -846,10 +867,51 @@ export async function preloadLocalModel(
   }
 }
 
+/** The tool-call shape the runtime emits, before it has been checked. */
+interface RawToolCall {
+  id?: unknown;
+  function?: { name?: unknown; arguments?: unknown };
+}
+
+/**
+ * Read one tool call, refusing anything that is not usable.
+ *
+ * Arguments arrive as an object from Ollama and as a JSON STRING from
+ * OpenAI-compatible runtimes, and a model under pressure sometimes emits a
+ * string that is not valid JSON at all. All three are handled here so the agent
+ * loop only ever sees a real object — a malformed call is dropped rather than
+ * passed on as `{}`, because an empty argument set on, say, a file action is
+ * not a harmless default.
+ */
+export function readToolCall(
+  raw: RawToolCall,
+): { id?: string; name: string; arguments: Record<string, unknown> } | null {
+  const name = raw?.function?.name;
+  if (typeof name !== "string" || !name.trim()) return null;
+  const rawArgs = raw.function?.arguments;
+  let args: Record<string, unknown> = {};
+  if (typeof rawArgs === "string") {
+    try {
+      const parsed: unknown = JSON.parse(rawArgs);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+      args = parsed as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  } else if (rawArgs && typeof rawArgs === "object" && !Array.isArray(rawArgs)) {
+    args = rawArgs as Record<string, unknown>;
+  }
+  return {
+    ...(typeof raw.id === "string" ? { id: raw.id } : {}),
+    name: name.trim(),
+    arguments: args,
+  };
+}
+
 /**
  * Stream a chat completion directly from the local runtime (browser → device).
  * The prompt never leaves the machine. Parses Ollama's NDJSON /api/chat stream.
- * Supports cancellation via `signal`.
+ * Supports cancellation via `signal`, and tool calls via `handlers.tools`.
  */
 export async function streamLocalChat(
   bridgeUrl: string,
@@ -883,6 +945,7 @@ export async function streamLocalChat(
         // the behaviour cannot change underneath the product when a model is
         // updated.
         ...(includeThink ? { think: handlers.think === true } : {}),
+        ...(handlers.tools && handlers.tools.length > 0 ? { tools: handlers.tools } : {}),
         ...(context.numCtx === null ? {} : { options: { num_ctx: context.numCtx } }),
       }),
       signal: handlers.signal,
@@ -953,9 +1016,19 @@ export async function streamLocalChat(
         buffer = buffer.slice(nl + 1);
         if (!line) continue;
         try {
-          const obj = JSON.parse(line) as { message?: { content?: string }; done?: boolean };
+          const obj = JSON.parse(line) as {
+            message?: { content?: string; tool_calls?: RawToolCall[] };
+            done?: boolean;
+          };
           const piece = obj.message?.content;
           if (piece) handlers.onToken(piece);
+          const calls = obj.message?.tool_calls;
+          if (calls && handlers.onToolCall) {
+            for (const call of calls) {
+              const parsed = readToolCall(call);
+              if (parsed) handlers.onToolCall(parsed);
+            }
+          }
         } catch {
           /* ignore partial/non-JSON keepalive lines */
         }
