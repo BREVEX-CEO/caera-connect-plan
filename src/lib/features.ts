@@ -206,6 +206,14 @@ const features: Feature[] = [
     platforms: ["web"],
     reason: "Ships with the FICIA tax / benefits slice.",
   },
+  {
+    id: "ficia.placeholder",
+    module: "ficia",
+    title: "FICIA legacy placeholder",
+    status: "hidden",
+    platforms: ["web"],
+    reason: "Coming later — not an AI model.",
+  },
 
   // MADEE
   {
@@ -222,6 +230,14 @@ const features: Feature[] = [
     status: "setup_required",
     platforms: ["web"],
     reason: "AI assist runs when the Lovable AI Gateway is reachable. Manual editing always works.",
+  },
+  {
+    id: "madee.placeholder",
+    module: "madee",
+    title: "MADEE legacy placeholder",
+    status: "hidden",
+    platforms: ["web"],
+    reason: "Coming later — not an AI model.",
   },
 
   // CANIA — design + honest empty states now, providers later
@@ -262,6 +278,14 @@ const features: Feature[] = [
     status: "setup_required",
     platforms: ["web"],
     reason: "Cross-section search runs once providers are connected.",
+  },
+  {
+    id: "cania.placeholder",
+    module: "cania",
+    title: "CANIA legacy placeholder",
+    status: "hidden",
+    platforms: ["web"],
+    reason: "Coming later — not an AI model.",
   },
 ];
 
