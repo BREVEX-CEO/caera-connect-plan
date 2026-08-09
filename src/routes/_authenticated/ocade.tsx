@@ -169,8 +169,11 @@ import {
   captionSentenceAt,
   matchesWakePhrase,
   buildGreeting,
+  matchPriorityVoiceCommand,
+  executePriorityVoiceCommand,
   type VoiceGender,
 } from "@/lib/ocade-voice";
+import { getCompanion } from "@/lib/native/companion-bridge";
 import { redactForSpeech, redactSpokenSecrets } from "@/lib/voice/transcript-redaction";
 import { useVoicePrefs } from "@/lib/use-voice-prefs";
 import { saveChatOutput } from "@/lib/artifacts/chat-output-flow";
@@ -1175,6 +1178,8 @@ function ChatSurface(props: {
   const [spokenCaption, setSpokenCaption] = useState("");
   const [speaking, setSpeaking] = useState(false);
   const wakeRef = useRef<SpeechRecognitionLike | null>(null);
+  const voicePausedRef = useRef(false);
+  const lastPriorityCommandRef = useRef<{ command: string; at: number } | null>(null);
   // Visual responses are opt-in per answer.
   const [visualAnswer, setVisualAnswer] = useState<string | null>(null);
   const [projectFiles, setProjectFiles] = useState<ProjectFile[]>([]);
@@ -2746,6 +2751,8 @@ function ChatSurface(props: {
        * three. Redaction is local and runs on interim results too, so a secret
        * never even flashes up in the live caption.
        */
+      const priorityText = final || interim;
+      if (handlePriorityVoiceCommand(priorityText)) return;
       const safeFinal = redactSpokenSecrets(final).text;
       const safeInterim = redactSpokenSecrets(interim).text;
       if (voicePrefs.captionsEnabled) setCaption(safeFinal || safeInterim);
@@ -2773,6 +2780,53 @@ function ChatSurface(props: {
       setCaption("");
       toast.error("The browser couldn't start speech recognition.");
     }
+  }
+
+  function handlePriorityVoiceCommand(transcript: string): boolean {
+    const command = matchPriorityVoiceCommand(transcript);
+    if (!command) return false;
+    const now = performance.now();
+    const previous = lastPriorityCommandRef.current;
+    if (previous?.command === command && now - previous.at < 1_000) return true;
+    lastPriorityCommandRef.current = { command, at: now };
+
+    void executePriorityVoiceCommand(command, {
+      stopSpeech: stopSpeaking,
+      pauseWork: () => {
+        abortRef.current?.abort();
+        voicePausedRef.current = true;
+      },
+      releaseHeldInput: async () => {
+        await getCompanion().emergencyStop();
+      },
+      reobserveAndContinue: async () => {
+        if (!voicePausedRef.current) throw new Error("There is no voice-paused task to continue.");
+        const companion = getCompanion();
+        const status = await companion.status();
+        if (!status.available)
+          throw new Error(status.reason ?? "The desktop target is unavailable.");
+        if (!companion.resetEmergencyStop) {
+          throw new Error("The connected companion cannot safely reset its stop latch.");
+        }
+        await companion.resetEmergencyStop();
+        voicePausedRef.current = false;
+      },
+    }).then((result) => {
+      if (command === "quiet") {
+        toast.info("I’ll keep working quietly.");
+      } else if (command === "pause_work") {
+        toast.info(
+          result.nativeAcknowledged
+            ? `Paused in ${result.immediateMs.toFixed(1)} ms; held input was released.`
+            : `Paused locally in ${result.immediateMs.toFixed(1)} ms. The native host did not acknowledge input release.`,
+        );
+      } else if (result.nativeAcknowledged) {
+        toast.success("Target re-checked. Continuing is enabled.");
+      } else {
+        toast.error(result.reason ?? "OCADE could not continue safely.");
+      }
+    });
+    return true;
   }
 
   /** Fall back to a verified pack rather than advertising an unverified one. */
@@ -2813,6 +2867,7 @@ function ChatSurface(props: {
     rec.onresult = (ev) => {
       for (let i = 0; i < ev.results.length; i++) {
         const text = ev.results[i]?.[0]?.transcript ?? "";
+        if (handlePriorityVoiceCommand(text)) return;
         if (matchesWakePhrase(text)) {
           stopped = true;
           rec.stop();

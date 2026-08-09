@@ -28,6 +28,101 @@ export type AddressStyle = "first_name" | "full_name" | "custom_title" | "none";
 
 export const DEFAULT_WAKE_PHRASES = ["hello ocade", "hey ocade"] as const;
 
+export type PriorityVoiceCommand = "pause_work" | "continue_work" | "quiet";
+
+/**
+ * High-priority commands are intentionally exact and local. They never enter
+ * the model prompt, so stopping does not depend on inference latency and an
+ * incidental sentence containing the word "stop" cannot halt the computer.
+ */
+export function matchPriorityVoiceCommand(transcript: string): PriorityVoiceCommand | null {
+  const text = normalizeTranscript(transcript);
+  if (/^ocade (?:stop talking|quiet)(?: please)?$/.test(text)) return "quiet";
+  if (/^ocade stop(?: now| please)?$/.test(text)) return "pause_work";
+  if (/^ocade continue(?: now| please)?$/.test(text)) return "continue_work";
+  return null;
+}
+
+export interface PriorityVoiceCommandDeps {
+  stopSpeech(): void;
+  pauseWork(): void;
+  releaseHeldInput(): void | Promise<void>;
+  reobserveAndContinue(): void | Promise<void>;
+  now?(): number;
+}
+
+export interface PriorityVoiceCommandResult {
+  command: PriorityVoiceCommand;
+  immediateMs: number;
+  settledMs: number;
+  nativeAcknowledged: boolean;
+  reason?: string;
+}
+
+/** Execute the deterministic stop/continue path and retain both latency edges. */
+export async function executePriorityVoiceCommand(
+  command: PriorityVoiceCommand,
+  deps: PriorityVoiceCommandDeps,
+): Promise<PriorityVoiceCommandResult> {
+  const now = deps.now ?? (() => performance.now());
+  const started = now();
+  if (command === "quiet") {
+    deps.stopSpeech();
+    const stopped = now();
+    return {
+      command,
+      immediateMs: Math.max(0, stopped - started),
+      settledMs: Math.max(0, stopped - started),
+      nativeAcknowledged: true,
+    };
+  }
+  if (command === "pause_work") {
+    // These two calls are synchronous by contract: outgoing speech and the
+    // local AbortController stop before any IPC round trip is awaited.
+    deps.stopSpeech();
+    deps.pauseWork();
+    const immediate = now();
+    try {
+      await deps.releaseHeldInput();
+      return {
+        command,
+        immediateMs: Math.max(0, immediate - started),
+        settledMs: Math.max(0, now() - started),
+        nativeAcknowledged: true,
+      };
+    } catch (error) {
+      return {
+        command,
+        immediateMs: Math.max(0, immediate - started),
+        settledMs: Math.max(0, now() - started),
+        nativeAcknowledged: false,
+        reason:
+          error instanceof Error
+            ? error.message
+            : "The native input host did not acknowledge the stop.",
+      };
+    }
+  }
+  try {
+    await deps.reobserveAndContinue();
+    return {
+      command,
+      immediateMs: Math.max(0, now() - started),
+      settledMs: Math.max(0, now() - started),
+      nativeAcknowledged: true,
+    };
+  } catch (error) {
+    return {
+      command,
+      immediateMs: Math.max(0, now() - started),
+      settledMs: Math.max(0, now() - started),
+      nativeAcknowledged: false,
+      reason:
+        error instanceof Error ? error.message : "The target could not be re-observed safely.",
+    };
+  }
+}
+
 /** Normalise a transcript for tolerant, local wake-phrase matching. */
 export function normalizeTranscript(raw: string): string {
   return raw

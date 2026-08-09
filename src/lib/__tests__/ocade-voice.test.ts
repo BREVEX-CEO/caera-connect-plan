@@ -17,8 +17,59 @@ import {
   resolveVoiceLanguage,
   captionSentenceAt,
   DEFAULT_WAKE_PHRASES,
+  matchPriorityVoiceCommand,
+  executePriorityVoiceCommand,
   type LanguagePack,
 } from "../ocade-voice";
+
+describe("deterministic priority voice commands", () => {
+  it.each([
+    ["OCADE stop", "pause_work"],
+    ["ocade stop now", "pause_work"],
+    ["OCADE continue", "continue_work"],
+    ["OCADE stop talking", "quiet"],
+    ["ocade quiet please", "quiet"],
+  ])("recognises %s locally", (text, command) => {
+    expect(matchPriorityVoiceCommand(text)).toBe(command);
+  });
+
+  it.each(["please stop", "OCADE should stop after this", "don't stop talking", "continue"])(
+    "does not over-trigger on %s",
+    (text) => expect(matchPriorityVoiceCommand(text)).toBeNull(),
+  );
+
+  it("stops speech and local work before awaiting native input release", async () => {
+    const order: string[] = [];
+    const ticks = [0, 2, 19];
+    const result = await executePriorityVoiceCommand("pause_work", {
+      stopSpeech: () => order.push("speech"),
+      pauseWork: () => order.push("work"),
+      releaseHeldInput: async () => {
+        order.push("native");
+      },
+      reobserveAndContinue: async () => undefined,
+      now: () => ticks.shift() ?? 19,
+    });
+    expect(order).toEqual(["speech", "work", "native"]);
+    expect(result).toMatchObject({ immediateMs: 2, settledMs: 19, nativeAcknowledged: true });
+  });
+
+  it("quiet stops only speech", async () => {
+    const calls: string[] = [];
+    await executePriorityVoiceCommand("quiet", {
+      stopSpeech: () => calls.push("speech"),
+      pauseWork: () => calls.push("work"),
+      releaseHeldInput: () => {
+        calls.push("native");
+      },
+      reobserveAndContinue: () => {
+        calls.push("continue");
+      },
+      now: () => 1,
+    });
+    expect(calls).toEqual(["speech"]);
+  });
+});
 
 describe("wake phrase (local, opt-in)", () => {
   it("normalises punctuation and spacing", () => {

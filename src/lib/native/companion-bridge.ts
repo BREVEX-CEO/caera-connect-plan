@@ -172,6 +172,8 @@ export interface NativeCompanionAdapter {
   cancel(runId: string): Promise<void>;
   /** Immediately halt all in-flight actions. */
   emergencyStop(): Promise<void>;
+  /** Re-enable control only after the caller has re-observed the target. */
+  resetEmergencyStop?(): Promise<void>;
 }
 
 export const COMPANION_UNAVAILABLE_REASON =
