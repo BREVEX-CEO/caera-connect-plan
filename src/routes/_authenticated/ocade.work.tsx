@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { ControlWorkPanel } from "@/components/ocade/control/ControlWorkPanel";
 import { useMissionBrain } from "@/lib/work/use-mission-brain";
 
@@ -25,7 +26,17 @@ export const Route = createFileRoute("/_authenticated/ocade/work")({
 });
 
 function ControlWorkRoute() {
-  const { brain } = useMissionBrain();
+  const { brain, warm } = useMissionBrain();
+
+  /*
+   * WARM ON ARRIVAL. A cold 7B took over two minutes to answer its first
+   * Control + Work turn on this machine, nearly all of it loading weights from
+   * disk while the screen said "Thinking". Starting that load when the user
+   * opens the room moves it to the seconds they spend reading the empty state.
+   */
+  useEffect(() => {
+    warm();
+  }, [warm]);
   return (
     <div className="h-[calc(100svh-4rem)] w-full overflow-hidden rounded-xl border border-border/50">
       <ControlWorkPanel brain={brain} headerNote="Signed in · this computer" />

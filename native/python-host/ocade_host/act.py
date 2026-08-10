@@ -425,13 +425,53 @@ _FORBIDDEN_CHORDS = {
 }
 
 
-def type_text(request) -> dict[str, Any]:
-    """Type into whatever currently has focus, verifying that it landed.
+def _read_editable_value(hwnd: int) -> str | None:
+    """The text actually sitting in this window's editable control.
 
-    Descends the ladder described above and reports which rung worked. A caller
-    that is told ``method: "pyautogui"`` knows the text was typed blind and that
-    ``verified`` came from looking at the screen rather than reading the field
-    back, which is a weaker claim and is presented as one.
+    THE INDEPENDENT OBSERVATION. Typing writes through one path; this reads back
+    through another — a fresh UIA walk of the window, not the element handle the
+    write used — so a write that silently did nothing cannot also report that it
+    worked. Returns None when the window exposes nothing readable, which is a
+    third answer and is treated as one: not verified, not refuted.
+    """
+    try:
+        from pywinauto import Desktop  # noqa: PLC0415
+
+        window = Desktop(backend="uia").window(handle=hwnd)
+        for element in window.descendants():
+            info = element.element_info
+            if (info.control_type or "") not in ("Edit", "Document"):
+                continue
+            if not info.enabled or not info.visible:
+                continue
+            try:
+                value = element.get_value()
+            except Exception:
+                continue
+            if value is not None:
+                return clamp_text(value, 2_000)
+    except Exception:
+        return None
+    return None
+
+
+def type_text(request) -> dict[str, Any]:
+    """Type into whatever currently has focus, then read the field back.
+
+    WHY A CHANGED SCREEN IS NOT PROOF, WHICH THIS USED TO TREAT AS PROOF
+    --------------------------------------------------------------------
+    The first version reported ``verified`` when the window's visual fingerprint
+    differed before and after. Measured on a live run: OCADE "typed" into
+    Notepad, the fingerprint changed because the window had just been focused
+    and its title bar redrew, and OCADE reported success over an empty document.
+    That is the worst class of bug this product can have — a confident false
+    claim about the user's own machine.
+
+    A fingerprint says SOMETHING happened. Only reading the text back says the
+    right thing happened. So verification now requires the value to be readable
+    and to contain what was typed; a changed screen with no readback is reported
+    as unverified, and an empty field after typing is reported as a FAILURE
+    rather than as an unknown.
     """
     payload = getattr(request, "payload", {}) or {}
     value = bounded_text(payload.get("text"), "text", 20_000)
@@ -445,38 +485,72 @@ def type_text(request) -> dict[str, Any]:
 
     hwnd = payload.get("hwnd")
     if not isinstance(hwnd, int) or hwnd <= 0:
-        hwnd = win32gui.GetForegroundWindow()
+        # The window OCADE just opened or focused, BEFORE the OS foreground.
+        # Windows will not let a background host take foreground, so after
+        # "open Notepad" the foreground is often still the user's browser — and
+        # typing there is how text lands in a stranger's window.
+        from .desktop import recent_window  # noqa: PLC0415
+
+        hwnd = recent_window() or win32gui.GetForegroundWindow()
     if not hwnd or not win32gui.IsWindow(hwnd):
-        raise Refusal("No window has focus, so there is nowhere to type.", "state_changed")
+        raise Refusal("There is no window to type into.", "state_changed")
 
     before = _fingerprint(_grab(_window_bounds(hwnd)))
     method = None
-    readback = ""
 
-    # Rung 2: the focused element, through its value pattern.
+    def _append_through_value(element) -> bool:
+        """Write through the control's value pattern. No keystrokes involved."""
+        try:
+            existing = element.get_value() or ""
+        except Exception:
+            existing = ""
+        element.set_edit_text(existing + value)
+        return True
+
+    # Rung 1: the focused element, through its value pattern.
     try:
         from pywinauto import Desktop  # noqa: PLC0415
 
         focused = Desktop(backend="uia").window(handle=hwnd).get_focus()
-        if focused is not None:
-            try:
-                existing = focused.get_value() or ""
-            except Exception:
-                existing = ""
-            focused.set_edit_text(existing + value)
-            method = "uia.value"
-            try:
-                readback = clamp_text(focused.get_value(), 400)
-            except Exception:
-                readback = ""
+        if focused is not None and _append_through_value(focused):
+            method = "uia.value.focused"
     except Exception:
         method = None
 
-    # Rung 3: keystrokes aimed at the window.
+    # Rung 2: the window's own editable control, through its value pattern.
+    #
+    # THE RUNG THAT WAS MISSING. `get_focus()` returns nothing useful for a
+    # window that is not in front, which is the normal state after OCADE opens
+    # something — so the ladder fell straight past the reliable path to
+    # keystrokes. This is the same resolution `set_text` uses, and it is the one
+    # that actually put text in Notepad.
+    if method is None:
+        try:
+            window = _desktop().window(handle=hwnd)
+            for element in window.descendants():
+                info = element.element_info
+                if (info.control_type or "") not in ("Edit", "Document"):
+                    continue
+                if not info.enabled or not info.visible:
+                    continue
+                if _append_through_value(element):
+                    method = "uia.value.editable"
+                    break
+        except Exception:
+            method = None
+
+    # Rung 3: synthesised keystrokes, WITH the foreground taken.
+    #
+    # `set_foreground=False` was the blank-Notepad bug. Keystrokes are delivered
+    # to whatever owns input focus, so aiming them at a window that is not in
+    # front sends them nowhere — and the visual fingerprint still changed,
+    # because the window had just been raised. OCADE reported success over an
+    # empty document. If the keys are going to be physical, the window has to be
+    # in front to receive them; that is not optional, so it is no longer a flag.
     if method is None:
         try:
             _desktop().window(handle=hwnd).type_keys(
-                value, with_spaces=True, with_newlines=True, set_foreground=False
+                value, with_spaces=True, with_newlines=True, set_foreground=True
             )
             method = "uia.type_keys"
         except Exception:
@@ -493,19 +567,54 @@ def type_text(request) -> dict[str, Any]:
     time.sleep(0.25)
     after = _fingerprint(_grab(_window_bounds(hwnd))) if win32gui.IsWindow(hwnd) else None
     changed = after is not None and after != before
+
+    # THE INDEPENDENT OBSERVATION. A fresh walk of the window, not the element
+    # the write used — so a write that silently did nothing cannot also be the
+    # thing that reports it worked.
+    #
+    # `None` and `""` ARE DIFFERENT ANSWERS and collapsing them was a bug in the
+    # first version of this check: `None` means the window exposes nothing
+    # readable, while `""` means OCADE read the field and it is EMPTY. The second
+    # is a failure. Treating it as "cannot tell" is how a blank Notepad passes.
+    readback = _read_editable_value(hwnd)
+    readable = readback is not None
+    needle = value.strip()[:60]
+    landed = readable and needle in (readback or "")
+
+    if readable and not landed:
+        # The field is readable and the text is not in it. That is not an
+        # unknown — it is a failure, and calling it anything softer is how a
+        # blank document gets reported as written.
+        return {
+            "hwnd": hwnd,
+            "typed": 0,
+            "method": method,
+            "readback": readback[:200],
+            "screenChanged": changed,
+            "verified": False,
+            "detail": (
+                "The text was sent but the field does not contain it. "
+                "Nothing was typed — try focusing the field first."
+            ),
+        }
+
     return {
         "hwnd": hwnd,
         "typed": len(value),
         "method": method,
-        "readback": readback,
+        "readback": (readback or "")[:200],
         "screenChanged": changed,
-        # Reading the value back is proof the characters are in the field.
-        # A changed fingerprint is only proof that something happened.
-        "verified": bool(readback and value[:40] in readback) or changed,
+        # True only on a real readback. `None` when the window exposes nothing
+        # readable — an honest "cannot tell", which the loop reports as
+        # unconfirmed rather than as done.
+        "verified": True if landed else None,
         "detail": (
-            f"Typed {len(value)} characters and the window changed."
-            if changed
-            else f"Typed {len(value)} characters, but nothing in that window changed."
+            f"Typed {len(value)} characters and read them back from the field."
+            if landed
+            else (
+                f"Typed {len(value)} characters. This window exposes no readable text, "
+                "so OCADE cannot confirm they landed."
+            )
         ),
     }
 

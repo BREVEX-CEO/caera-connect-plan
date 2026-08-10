@@ -5,6 +5,7 @@ import { ControlSolarScene } from "./ControlSolarScene";
 import { useDictation } from "@/lib/voice/use-dictation";
 import { cn } from "@/lib/utils";
 import { useMission, type MissionBrain, type TimelineEntry } from "@/lib/work/use-mission";
+import { directControl } from "@/lib/work/fast-router";
 
 /**
  * OCADE Control + Work: the room where OCADE is asked to DO things to this
@@ -78,8 +79,31 @@ export function ControlWorkPanel({
     const text = prompt.trim();
     if (!text) return;
     setPrompt("");
-    // Mid-task, a new sentence is a change of plan rather than a new task: the
-    // work already done is kept and only what happens next changes.
+
+    /*
+     * "STOP" IS A STOP, NOT A CHANGE OF PLAN.
+     *
+     * Typed mid-task it used to be handed to the loop as a revision, which
+     * meant it went to the engine, waited for a turn to finish and then asked
+     * the model what the user had meant. Somebody typing "stop" while their
+     * mouse is being moved is not opening a negotiation.
+     */
+    const control = directControl(text);
+    if (control === "stop") {
+      mission.stop();
+      return;
+    }
+    if (control === "pause") {
+      mission.setPaused(true);
+      return;
+    }
+    if (control === "continue") {
+      mission.setPaused(false);
+      return;
+    }
+
+    // Otherwise, mid-task a new sentence is a change of plan: the work already
+    // done is kept and only what happens next changes.
     if (mission.busy) mission.revise(text);
     else void mission.send(text);
   }, [prompt, mission]);

@@ -68,6 +68,41 @@ _KNOWN_WINDOWS_APPS: dict[str, tuple[str, ...]] = {
 
 _MAC_APP_HINTS = ("/Applications", os.path.expanduser("~/Applications"))
 
+# The window OCADE most recently opened or brought forward.
+#
+# WHY THIS IS NOT "THE FOREGROUND WINDOW". Windows refuses foreground changes
+# from a process that does not own input focus, and OCADE's host is a background
+# child process — so after "open Notepad", `GetForegroundWindow()` frequently
+# still returns whatever the user was looking at. Typing then went to the wrong
+# application entirely, and the only thing that caught it was the readback check
+# declining to confirm.
+#
+# So the host remembers what it just acted on, and that becomes the default
+# target for the next action. It is a one-slot memory, deliberately: anything
+# larger is a session model, and a session model that drifts out of step with
+# the real desktop is worse than no memory at all. Every read still checks the
+# handle is a live window before returning it.
+_last_touched: int | None = None
+
+
+def remember_window(hwnd: int | None) -> None:
+    """Record the window OCADE just opened or focused."""
+    global _last_touched
+    if isinstance(hwnd, int) and hwnd > 0:
+        _last_touched = hwnd
+
+
+def recent_window() -> int | None:
+    """The remembered window, if it still exists."""
+    if _last_touched is None:
+        return None
+    try:
+        import win32gui  # noqa: PLC0415
+
+        return _last_touched if win32gui.IsWindow(_last_touched) else None
+    except Exception:
+        return None
+
 
 def _expand(path: str) -> str:
     return os.path.expandvars(path)
@@ -364,6 +399,7 @@ def launch_application(request) -> dict[str, Any]:
         existing = _windows_for_process(executable)
         if existing:
             focused = _foreground(existing[0])
+            remember_window(existing[0])
             import win32gui  # noqa: PLC0415
 
             return {
@@ -414,6 +450,16 @@ def launch_application(request) -> dict[str, Any]:
                 hwnd = windows[0]
                 title = clamp_text(win32gui.GetWindowText(hwnd), 256)
 
+        # BRING IT FORWARD. "Open Notepad" means a Notepad the user can type
+        # into, and the next step in almost every task is typing. Without this
+        # the new window opened behind whatever had focus, the following
+        # `input.type` went to the wrong application, and the only thing that
+        # stopped it being written into a stranger's window was the readback
+        # check refusing to confirm.
+        if hwnd is not None:
+            _foreground(hwnd)
+            remember_window(hwnd)
+
     return {
         "application": clamp_text(label, 200),
         "started": True,
@@ -448,6 +494,7 @@ def focus_application(request) -> dict[str, Any]:
     import win32gui  # noqa: PLC0415
 
     focused = _foreground(windows[0])
+    remember_window(windows[0])
     return {
         "application": clamp_text(label, 200),
         "hwnd": windows[0],

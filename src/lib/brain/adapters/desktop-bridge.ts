@@ -8,6 +8,7 @@ import {
 } from "../../ocade-local";
 import { routeTask, PerfLedger } from "../../local/router-policy";
 import type { RoutePolicy } from "../../local/router-policy";
+import { detectPlatform, selectFixedModel } from "../../local/fixed-model";
 import {
   unavailable,
   type AdapterAvailability,
@@ -67,24 +68,40 @@ export class DesktopBridgeAdapter implements BrainAdapter {
       ]);
     }
 
-    const route = routeTask("general", discovery.models, this.ledger, this.policy());
-    if (!route.ok) {
+    /*
+     * ONE MODEL. `routeTask` used to choose here, from RAM, GPU presence and a
+     * measured-latency ledger — and on this machine it chose a Qwen3 build
+     * whose `/no_think` control token leaked into a tool argument and became a
+     * YouTube search for "/no_think". Selection is not a feature; it is four
+     * ways for the product to behave differently on Tuesday.
+     */
+    const fixed = selectFixedModel({
+      platform: detectPlatform(),
+      installed: discovery.models.map((m) => ({
+        id: m.id,
+        vision: m.vision,
+        sizeBytes: m.sizeBytes,
+        isCloudPointer: m.isCloudPointer,
+      })),
+    });
+    if (!fixed.ok || !fixed.modelId) {
       return unavailable(
-        "insufficient_memory",
-        route.receipt.refusal ?? "No installed model can run on this computer.",
+        "no_model",
+        fixed.reason ?? "OCADE's engine is not installed on this computer yet.",
         ["download_model"],
       );
     }
 
-    this.lastChoice = route.model;
-    const stats = this.ledger.stats(route.model.id, "general");
+    const chosen = discovery.models.find((m) => m.id === fixed.modelId) ?? null;
+    this.lastChoice = chosen;
+    const stats = this.ledger.stats(fixed.modelId, "general");
     const visionModel = discovery.models.find((m) => m.vision) ?? null;
 
     return {
       available: true,
-      label: route.model.label,
+      label: chosen?.label ?? "OCADE Local",
       locality: "on_device",
-      modelId: route.model.id,
+      modelId: fixed.modelId,
       measuredFirstTokenMs: stats ? Math.round(stats.medianFirstTokenMs) : null,
       capabilities: {
         text: true,
@@ -136,12 +153,30 @@ export class DesktopBridgeAdapter implements BrainAdapter {
       };
     }
 
-    const route = routeTask(
-      needsVision ? "vision" : "general",
-      discovery.models,
-      this.ledger,
-      this.policy(),
-    );
+    // Same one model, and the same single exception: an image needs a model
+    // that can read images, which is a capability requirement rather than a
+    // preference. `selectFixedModel` owns that branch.
+    const fixed = selectFixedModel({
+      platform: detectPlatform(),
+      installed: discovery.models.map((m) => ({
+        id: m.id,
+        vision: m.vision,
+        sizeBytes: m.sizeBytes,
+        isCloudPointer: m.isCloudPointer,
+      })),
+      visionRequired: needsVision,
+    });
+    const route =
+      fixed.ok && fixed.modelId
+        ? {
+            ok: true as const,
+            model: discovery.models.find((m) => m.id === fixed.modelId) ?? {
+              id: fixed.modelId,
+              label: "OCADE Local",
+            },
+            receipt: { refusal: undefined as string | undefined },
+          }
+        : { ok: false as const, model: null, receipt: { refusal: fixed.reason } };
     if (!route.ok) {
       return {
         ok: false,

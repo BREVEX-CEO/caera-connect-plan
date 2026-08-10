@@ -67,6 +67,28 @@ function text(value: unknown, name: string): string {
   return value.trim();
 }
 
+/**
+ * Turn a detected human-verification challenge into a terminal outcome.
+ *
+ * `blocked` rather than `retryable_failure`, deliberately: the loop retries
+ * retryables, and retrying a CAPTCHA is both futile and exactly the behaviour
+ * that gets a user's address rate-limited. A blocked outcome ends the step and
+ * puts the next move where it belongs — with the person.
+ */
+function humanCheckIn(reply: HostReply): ToolOutcome | null {
+  const observation = (
+    reply.data as {
+      observation?: { humanCheck?: { present?: boolean; kind?: string } };
+    }
+  )?.observation;
+  if (!observation?.humanCheck?.present) return null;
+  return fail(
+    "blocked",
+    "That site is asking for human verification, and OCADE does not complete those. " +
+      "Take over in the browser window if you want to continue there, or ask OCADE to try a different source.",
+  );
+}
+
 export class OcadeAdapters {
   private python: NativeHostClient | null = null;
   private browser: NativeHostClient | null = null;
@@ -179,6 +201,8 @@ export class OcadeAdapters {
         return this.browserTabs();
       case "web_search":
         return this.webSearch(a);
+      case "youtube_search":
+        return this.youtubeSearch(a);
       default:
         return fail("unsupported", `${call.name} is not connected on this device yet.`);
     }
@@ -625,14 +649,94 @@ export class OcadeAdapters {
 
   private async browserOpen(args: Record<string, unknown>): Promise<ToolOutcome> {
     const kind = args.browser === "edge" ? "edge" : "chrome";
-    const sessionId = this.browserSession ?? `ocade${Date.now().toString(36)}`;
+
+    /*
+     * ALREADY OPEN IS A SUCCESS, NOT A REASON TO OPEN ANOTHER.
+     *
+     * Measured on a live run: the model called this on three consecutive turns
+     * because each reply read like a fresh start, and the user got three Chrome
+     * windows for one task. The old code reused the session ID but still sent
+     * `launch` every time, so the host opened another context each round.
+     *
+     * Now an existing, answering session short-circuits — and the reply says so
+     * plainly, which is what stops the model trying again.
+     */
+    if (this.browserSession) {
+      const status = await this.browserHost().raw(
+        { command: "status", sessionId: this.browserSession },
+        { timeoutMs: 10_000 },
+      );
+      if (status.ok) {
+        return {
+          ...ok(status.data, "The browser is already open — no need to open it again."),
+          verified: true,
+        };
+      }
+      // The session died (the user closed the window). Fall through and start a
+      // new one rather than reporting a browser that is not there.
+      this.browserSession = null;
+    }
+
+    const sessionId = `ocade${Date.now().toString(36)}`;
     const launched = await this.browserHost().raw(
       { command: "launch", sessionId, browser: kind, headless: false },
       { timeoutMs: 90_000 },
     );
     if (!launched.ok) return outcomeFor(launched, "The managed browser could not be started.");
     this.browserSession = sessionId;
-    return ok(launched.data, `Opened a managed ${kind} window.`);
+    return { ...ok(launched.data, `Opened a managed ${kind} window.`), verified: true };
+  }
+
+  /**
+   * Search YouTube, with a query that is guaranteed to be real.
+   *
+   * THE BUG THIS REPLACES. A live run produced
+   * `youtube.com/results?search_query=` — empty — because the query never
+   * survived extraction and nothing checked. OCADE opened a blank results page
+   * and reported that it had searched. So the check is here, at the boundary,
+   * as well as in the contract layer above: an empty query is refused rather
+   * than encoded into a URL.
+   *
+   * Verification reads the query back OUT of the page's address afterwards, so
+   * "searched for X" means the browser is genuinely on a results page for X.
+   */
+  private async youtubeSearch(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const query = typeof args.query === "string" ? args.query.trim() : "";
+    if (!/[\p{L}\p{N}]/u.test(query)) {
+      return fail(
+        "unsupported",
+        "A YouTube search needs something to search for, and none was given. OCADE did not open a blank search.",
+      );
+    }
+    if (!this.browserSession) {
+      const opened = await this.browserOpen({});
+      if (opened.kind !== "success") return opened;
+    }
+
+    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+    const reply = await this.browserPerform(
+      { kind: "navigate", url },
+      { approvedOrigins: ["https://www.youtube.com"] },
+    );
+    if (!reply.ok) return outcomeFor(reply, "That YouTube search could not be run.");
+
+    const observation = (reply.data as { observation?: { url?: string; title?: string } })
+      ?.observation;
+    // Read the query back out of the address the browser actually landed on.
+    const landed = observation?.url ?? "";
+    const echoed = /search_query=([^&]*)/.exec(landed)?.[1] ?? "";
+    const verified = decodeURIComponent(echoed.replace(/\+/g, " ")).trim().length > 0;
+
+    return {
+      ...ok(
+        { query, url: landed, title: observation?.title },
+        verified
+          ? `Searched YouTube for “${query}”.`
+          : "The page opened but does not show that search.",
+      ),
+      verified,
+      observation: { query, url: landed, title: observation?.title },
+    };
   }
 
   private async browserPerform(
@@ -675,6 +779,8 @@ export class OcadeAdapters {
       { approvedOrigins: approved },
     );
     if (!reply.ok) return outcomeFor(reply, "That page could not be opened.");
+    const challenge = humanCheckIn(reply);
+    if (challenge) return challenge;
     const observation = (reply.data as { observation?: { url?: string; title?: string } })
       ?.observation;
     return {
@@ -808,6 +914,9 @@ export class OcadeAdapters {
     if (!navigated.ok) return outcomeFor(navigated, "That search could not be run.");
 
     const read = await this.browserPerform({ kind: "page.read" });
+    const challenge = humanCheckIn(navigated);
+    if (challenge) return challenge;
+
     if (!read.ok) return outcomeFor(read, "The results could not be read.");
     const output = (
       read.data as {

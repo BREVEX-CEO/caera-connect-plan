@@ -16,10 +16,24 @@
  * measured last Tuesday. They want OCADE to behave the same way on Monday as it
  * did on Friday, and the same way on their laptop as in the documentation.
  *
- * So the rule is now: PLATFORM DECIDES, AND NOTHING ELSE DOES.
+ * So the rule is now: THERE IS ONE MODEL, AND NOTHING CHOOSES.
  *
- *   desktop (Windows, macOS, Linux) → Qwen3 8B, Q4_K_M, ~5 GB
- *   mobile  (Android, iOS)          → Qwen3 1.7B, Q4_K_M, ~1.1 GB
+ *   every platform → Qwen2.5-Coder 7B, Q4_K_M, ~4.7 GB
+ *
+ * ONE MODEL RATHER THAN ONE PER FORM FACTOR, and that changed for a reason.
+ * A desktop 8B and a mobile 1.7B meant Control + Work behaved differently on a
+ * phone than on a laptop: the small model narrated actions instead of emitting
+ * them, and the tool protocol that worked on one silently failed on the other.
+ * A product whose central claim is "OCADE operates your computer" cannot have
+ * that claim be true on some devices. So the same weights everywhere, and the
+ * form factor decides only HOW the model is hosted — an HTTP runtime on a
+ * desktop, an in-process build on a phone — never WHICH model answers.
+ *
+ * WHY A CODER MODEL FOR AN ASSISTANT. Control + Work's hot path is emitting a
+ * strictly-shaped JSON tool call and nothing else. That is the task a
+ * code-tuned model is best at, and it is the task the general model was worst
+ * at: measured on this machine, the general small model wrapped its calls in
+ * prose and announced steps it never took.
  *
  * WHAT IS DELIBERATELY KEPT
  * -------------------------
@@ -79,27 +93,24 @@ export interface FixedModelSpec {
   readonly vision: false;
 }
 
-/** ~5 GB. Every desktop installation gets exactly this. */
-export const FIXED_DESKTOP_MODEL: FixedModelSpec = {
-  id: "qwen3:8b",
-  family: "Qwen3",
-  parameters: "8B",
+/**
+ * ~4.7 GB. Every OCADE installation, on every platform, gets exactly this.
+ *
+ * The id is the runtime's own name for it and is never shown to a user; the
+ * interface says "OCADE Local" and nothing else. Changing this constant changes
+ * the model for the whole product, which is the point — there is no second
+ * place to look.
+ */
+export const OCADE_MODEL_ID = "qwen2.5-coder:7b";
+
+export const FIXED_MODEL: FixedModelSpec = {
+  id: OCADE_MODEL_ID,
+  family: "Qwen2.5-Coder",
+  parameters: "7B",
   quantisation: "Q4_K_M",
-  approxBytes: 5_225_388_164,
+  approxBytes: 4_683_073_184,
   runtime: "gguf_http",
   formFactor: "desktop",
-  vision: false,
-};
-
-/** ~1.1 GB. Every mobile installation gets exactly this. */
-export const FIXED_MOBILE_MODEL: FixedModelSpec = {
-  id: "qwen3:1.7b",
-  family: "Qwen3",
-  parameters: "1.7B",
-  quantisation: "Q4_K_M",
-  approxBytes: 1_359_293_444,
-  runtime: "gguf_embedded",
-  formFactor: "mobile",
   vision: false,
 };
 
@@ -108,16 +119,21 @@ export function formFactorOf(platform: OcadePlatform): OcadeFormFactor {
 }
 
 /**
- * The one function that decides which model OCADE uses.
+ * The one function that says which model OCADE uses. It takes a platform and
+ * ignores it for the WEIGHTS, using it only to say how they are hosted.
  *
- * Total on purpose: there is no "unknown platform" branch that could quietly
- * pick something else. An unrecognised platform is treated as desktop, because
- * the alternative — refusing to have a model at all — is worse than shipping
- * the larger of two known-good specs on a machine that is, by elimination, not
- * a phone.
+ * Kept as a function rather than exporting the constant directly so every
+ * caller keeps going through one place — and so the day a platform genuinely
+ * cannot host this model, there is somewhere to say so rather than a constant
+ * scattered through forty files.
  */
 export function resolveFixedModel(platform: OcadePlatform): FixedModelSpec {
-  return formFactorOf(platform) === "mobile" ? FIXED_MOBILE_MODEL : FIXED_DESKTOP_MODEL;
+  const formFactor = formFactorOf(platform);
+  if (formFactor === "desktop") return FIXED_MODEL;
+  // Same weights, same quantisation, same id. A phone has no local HTTP model
+  // server, so the runtime is in-process; that is a hosting difference, not a
+  // different model, and the receipt reflects it as such.
+  return { ...FIXED_MODEL, runtime: "gguf_embedded", formFactor: "mobile" };
 }
 
 /**

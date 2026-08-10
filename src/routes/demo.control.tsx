@@ -46,7 +46,17 @@ export const Route = createFileRoute("/demo/control")({
  */
 function DemoControlWork() {
   const navigate = useNavigate();
-  const { brain } = useMissionBrain();
+  const { brain, warm } = useMissionBrain();
+
+  /*
+   * WARM ON ARRIVAL. A cold 7B took over two minutes to answer its first
+   * Control + Work turn on this machine, nearly all of it loading weights from
+   * disk while the screen said "Thinking". Starting that load when the user
+   * opens the room moves it to the seconds they spend reading the empty state.
+   */
+  useEffect(() => {
+    warm();
+  }, [warm]);
   const endedRef = useRef(false);
 
   const finish = useCallback(async () => {

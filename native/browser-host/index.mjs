@@ -218,8 +218,67 @@ async function protectedLocator(locator) {
   return PROTECTED_FIELD.test(Object.values(attrs).join(" "));
 }
 
+/**
+ * Is this page asking a human to prove they are one?
+ *
+ * DETECTED, REPORTED, NEVER SOLVED. A CAPTCHA is a site saying "not automation,
+ * please"; the correct response is to stop and hand the keyboard back, not to
+ * find a way through. OCADE has no CAPTCHA-solving path and this function is
+ * not the first step towards one — it exists so the loop STOPS instead of
+ * clicking blindly at a challenge frame and reporting that it searched.
+ *
+ * Checked structurally rather than by scraping text, because the text is
+ * localised and the structure is not: reCAPTCHA and hCaptcha both mount named
+ * iframes, and Google's interstitial lives at a recognisable path.
+ */
+async function detectHumanCheck(page) {
+  try {
+    const url = page.url();
+    if (/\/sorry\/index|\/recaptcha\/|captcha|challenges?\.cloudflare\.com/i.test(url)) {
+      return { present: true, kind: "interstitial", where: url.slice(0, 200) };
+    }
+    const found = await page.evaluate(() => {
+      const frames = [...document.querySelectorAll("iframe")].map((f) => f.src || "");
+      const recaptcha = frames.some((src) => /recaptcha|hcaptcha|turnstile/i.test(src));
+      const widget = Boolean(
+        document.querySelector(
+          ".g-recaptcha, #captcha, [data-sitekey], .h-captcha, .cf-turnstile, form[action*='sorry']",
+        ),
+      );
+      const heading = (document.body?.innerText || "").slice(0, 400);
+      const wording =
+        /unusual traffic|are you a robot|verify (that )?you'?re human|confirm you'?re not a robot|prove you'?re human/i.test(
+          heading,
+        );
+      return { recaptcha, widget, wording };
+    });
+    if (found.recaptcha || found.widget || found.wording) {
+      return {
+        present: true,
+        kind: found.recaptcha ? "recaptcha" : found.widget ? "widget" : "wording",
+        where: url.slice(0, 200),
+      };
+    }
+  } catch {
+    /* a page that cannot be inspected is not evidence of a challenge */
+  }
+  return { present: false };
+}
+
 async function observe(page, expectation = {}) {
   const observation = { url: page.url(), title: await page.title(), verified: true, failures: [] };
+
+  const humanCheck = await detectHumanCheck(page);
+  if (humanCheck.present) {
+    observation.humanCheck = humanCheck;
+    observation.verified = false;
+    // Said in the words the user needs, because this failure ends the task and
+    // the next move belongs to a person.
+    observation.failures.push(
+      "This site is asking for human verification. OCADE does not complete those — take over in the browser window, or try somewhere else.",
+    );
+  }
+
   if (expectation.url && observation.url !== expectation.url) {
     observation.verified = false;
     observation.failures.push("URL did not match.");

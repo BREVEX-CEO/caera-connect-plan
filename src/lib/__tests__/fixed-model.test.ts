@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  FIXED_DESKTOP_MODEL,
-  FIXED_MOBILE_MODEL,
+  FIXED_MODEL,
   detectPlatform,
   formatBytes,
   resolveFixedModel,
@@ -9,24 +8,30 @@ import {
   storagePreflight,
 } from "@/lib/local/fixed-model";
 
-describe("the fixed model is decided by platform and nothing else", () => {
-  it("gives every desktop platform the same model", () => {
-    for (const platform of ["windows", "macos", "linux"] as const) {
-      expect(resolveFixedModel(platform)).toBe(FIXED_DESKTOP_MODEL);
+describe("there is one model, and nothing chooses", () => {
+  it("gives every platform the same weights", () => {
+    // The claim being pinned: a phone and a laptop run the SAME model. When
+    // they did not, the tool protocol that worked on one silently failed on the
+    // other, and "OCADE operates your computer" was true only on some devices.
+    for (const platform of ["windows", "macos", "linux", "android", "ios"] as const) {
+      const spec = resolveFixedModel(platform);
+      expect(spec.id).toBe(FIXED_MODEL.id);
+      expect(spec.parameters).toBe(FIXED_MODEL.parameters);
+      expect(spec.quantisation).toBe("Q4_K_M");
     }
   });
 
-  it("gives every mobile platform the same model", () => {
-    for (const platform of ["android", "ios"] as const) {
-      expect(resolveFixedModel(platform)).toBe(FIXED_MOBILE_MODEL);
-    }
+  it("is the coder model, by id", () => {
+    expect(FIXED_MODEL.id).toBe("qwen2.5-coder:7b");
   });
 
-  it("uses a runtime family a phone can actually host", () => {
-    // Ollama does not exist on Android or iOS. A mobile spec that asked for an
-    // HTTP runtime would ship a build that can never start its engine.
-    expect(FIXED_MOBILE_MODEL.runtime).toBe("gguf_embedded");
-    expect(FIXED_DESKTOP_MODEL.runtime).toBe("gguf_http");
+  it("hosts it in a way each form factor can actually run", () => {
+    // Ollama does not exist on Android or iOS, so a mobile build that asked for
+    // an HTTP runtime could never start its engine. Same model, hosted
+    // differently — a hosting difference, not a second model.
+    expect(resolveFixedModel("windows").runtime).toBe("gguf_http");
+    expect(resolveFixedModel("android").runtime).toBe("gguf_embedded");
+    expect(resolveFixedModel("ios").runtime).toBe("gguf_embedded");
   });
 
   it("puts Capacitor ahead of every browser-shaped signal", () => {
@@ -40,7 +45,7 @@ describe("the fixed model is decided by platform and nothing else", () => {
 
 describe("selection ignores size, memory and speed", () => {
   const installed = [
-    { id: "qwen3:8b" },
+    { id: "qwen2.5-coder:7b" },
     { id: "qwen3-coder:30b", sizeBytes: 18_556_700_761 },
     { id: "qwen3:14b", sizeBytes: 9_276_198_565 },
   ];
@@ -48,7 +53,7 @@ describe("selection ignores size, memory and speed", () => {
   it("chooses the configured model even when far larger ones are present", () => {
     const choice = selectFixedModel({ platform: "windows", installed });
     expect(choice.ok).toBe(true);
-    expect(choice.modelId).toBe("qwen3:8b");
+    expect(choice.modelId).toBe("qwen2.5-coder:7b");
     expect(choice.basis).toBe("fixed");
   });
 
@@ -102,13 +107,13 @@ describe("vision is a capability requirement, not a size preference", () => {
 
 describe("storage refusal names the three numbers a person needs", () => {
   it("passes when there is genuinely room", () => {
-    const decision = storagePreflight(FIXED_DESKTOP_MODEL, 30_834_651_136);
+    const decision = storagePreflight(FIXED_MODEL, 30_834_651_136);
     expect(decision.ok).toBe(true);
     expect(decision.shortfallBytes).toBe(0);
   });
 
   it("reports required, available and shortfall rather than just failing", () => {
-    const decision = storagePreflight(FIXED_DESKTOP_MODEL, 2_000_000_000);
+    const decision = storagePreflight(FIXED_MODEL, 2_000_000_000);
     expect(decision.ok).toBe(false);
     expect(decision.requiredBytes).toBeGreaterThan(decision.availableBytes);
     expect(decision.shortfallBytes).toBe(decision.requiredBytes - decision.availableBytes);
@@ -118,12 +123,12 @@ describe("storage refusal names the three numbers a person needs", () => {
   it("asks for more than the bare model size", () => {
     // Sizing the check at exactly the model size passes the preflight and then
     // fails at the final atomic rename, after gigabytes have been downloaded.
-    const decision = storagePreflight(FIXED_DESKTOP_MODEL, FIXED_DESKTOP_MODEL.approxBytes);
+    const decision = storagePreflight(FIXED_MODEL, FIXED_MODEL.approxBytes);
     expect(decision.ok).toBe(false);
   });
 
   it("refuses when free space cannot be read at all", () => {
-    expect(storagePreflight(FIXED_DESKTOP_MODEL, Number.NaN).ok).toBe(false);
+    expect(storagePreflight(FIXED_MODEL, Number.NaN).ok).toBe(false);
   });
 
   it("formats sizes for a person, not a machine", () => {

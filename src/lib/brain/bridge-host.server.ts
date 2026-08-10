@@ -16,6 +16,7 @@ import {
 import { discoverLocalModels, streamLocalChat, DEFAULT_LOCAL_BRIDGE_URL } from "../ocade-local";
 import { routeTask, PerfLedger, type RoutePolicy } from "../local/router-policy";
 import { routePolicyFor } from "../local/device-route-policy";
+import { detectPlatform, selectFixedModel } from "../local/fixed-model";
 
 /**
  * The listener side of pairing: what actually runs `bridge-server` on a machine.
@@ -199,14 +200,40 @@ export async function approvedOrigins(config = readBridgeConfig()): Promise<Set<
 }
 
 /** Describe this machine's engine, or null when it has none ready. */
+/**
+ * The one model, for the paired-device path too.
+ *
+ * A phone talking to this computer must get the SAME engine the computer's own
+ * screen gets. When selection lived in `routeTask`, the paired path could pick
+ * a different model than the local one on the same machine — so the answer a
+ * user got depended on which device they asked from, which is indefensible for
+ * a product whose whole promise is consistency.
+ */
+async function fixedModelFor(
+  models: { id: string; vision?: boolean; sizeBytes?: number; isCloudPointer?: boolean }[],
+  visionRequired: boolean,
+): Promise<{ ok: boolean; modelId: string | null; reason?: string }> {
+  const choice = selectFixedModel({
+    platform: detectPlatform(),
+    installed: models.map((m) => ({
+      id: m.id,
+      vision: m.vision,
+      sizeBytes: m.sizeBytes,
+      isCloudPointer: m.isCloudPointer,
+    })),
+    visionRequired,
+  });
+  return { ok: choice.ok, modelId: choice.modelId, reason: choice.reason };
+}
+
 async function describeEngine(engineUrl: string) {
   const discovery = await discoverLocalModels(engineUrl);
   if (!discovery.reachable || discovery.models.length === 0) return null;
-  const route = routeTask("general", discovery.models, ledger, await machinePolicy());
-  if (!route.ok) return null;
+  const chosen = await fixedModelFor(discovery.models, false);
+  if (!chosen.ok || !chosen.modelId) return null;
   return {
     label: "Paired computer",
-    modelId: route.model.id,
+    modelId: chosen.modelId,
     vision: discovery.models.some((model) => model.vision),
     // Reported as absent rather than assumed: the classifier keeps the
     // runtime's vision capability but not its tool capability, and claiming a
@@ -232,25 +259,20 @@ export function bridgeDeps(state: PairingState, engineUrl = DEFAULT_LOCAL_BRIDGE
       // text-only model to look at an image does not fail loudly — it answers
       // about nothing, which is worse than refusing.
       const needsVision = messages.some((message) => (message.images?.length ?? 0) > 0);
-      const route = routeTask(
-        needsVision ? "vision" : "general",
-        discovery.models,
-        ledger,
-        await machinePolicy(),
-      );
-      if (!route.ok) {
+      const chosen = await fixedModelFor(discovery.models, needsVision);
+      if (!chosen.ok || !chosen.modelId) {
         return {
           ok: false,
           reason:
-            route.receipt.refusal ??
+            chosen.reason ??
             (needsVision
               ? "That computer has no model installed that can read images."
-              : "That computer has no model it can run."),
+              : "That computer does not have OCADE's engine installed."),
         };
       }
       const result = await streamLocalChat(
         engineUrl,
-        route.model.id,
+        chosen.modelId,
         messages.map((message) => ({
           role: message.role as "system" | "user" | "assistant",
           content: message.content,
@@ -258,7 +280,7 @@ export function bridgeDeps(state: PairingState, engineUrl = DEFAULT_LOCAL_BRIDGE
         })),
         { onToken: handlers.onToken, signal: handlers.signal, think: handlers.think },
       );
-      return { ...result, modelId: route.model.id };
+      return { ...result, modelId: chosen.modelId };
     },
   };
 }

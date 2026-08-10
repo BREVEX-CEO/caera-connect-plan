@@ -22,6 +22,8 @@ export function useMissionBrain(): {
   status: string;
   /** Stops generation without ending the mission. */
   stop: () => void;
+  /** Load the weights now. Called when Control + Work opens. */
+  warm: () => void;
 } {
   const engine = useLocalChatEngine();
 
@@ -60,7 +62,8 @@ export function useMissionBrain(): {
       ready: engine.state.status === "ready" || engine.state.status === "generating",
       status: engine.state.status,
       stop: engine.stop,
+      warm: engine.warm,
     }),
-    [brain, engine.state.status, engine.stop],
+    [brain, engine.state.status, engine.stop, engine.warm],
   );
 }

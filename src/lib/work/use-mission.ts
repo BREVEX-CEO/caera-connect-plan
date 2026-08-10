@@ -17,6 +17,8 @@ import {
 } from "@/lib/control-work.functions";
 import type { BrainMessage } from "@/lib/brain/adapter";
 import type { ControlState } from "./control-solar";
+import { routeDirect } from "./fast-router";
+import { TaskLedger, checkCall } from "./tool-contract";
 
 /**
  * A Control + Work mission, driven from the browser.
@@ -126,6 +128,7 @@ const SPOKEN: Record<string, string> = {
   browser_media: "Controlling the media",
   browser_tabs: "Reading the open tabs",
   web_search: "Searching the web",
+  youtube_search: "Searching YouTube",
 };
 
 export function describeTool(name: string): string {
@@ -206,6 +209,15 @@ export function useMission(brain: MissionBrain) {
   // Sticky until the next instruction, so a Stop stays visible on the scene
   // through the reconnect that follows it.
   const stoppedRef = useRef(false);
+  // What this task has already done, so an exact repeat can be refused.
+  const ledgerRef = useRef(new TaskLedger());
+  // Where the time went on the last step, so 'is the router actually faster?'
+  // is a measurement rather than a belief.
+  const latencyRef = useRef<{ routerMs: number; modelMs: number; toolMs: number; rule?: string }>({
+    routerMs: 0,
+    modelMs: 0,
+    toolMs: 0,
+  });
   pausedRef.current = paused;
 
   const connect = useCallback(async () => {
@@ -288,6 +300,42 @@ export function useMission(brain: MissionBrain) {
     ]);
   }, []);
 
+  /**
+   * Run one already-decided tool call, with permission and verification.
+   *
+   * Shared by the fast path and the model path so BOTH go through the same
+   * contract check, the same approval bands and the same server. The fast
+   * router decides what to do; it does not get a private route to the machine.
+   */
+  const runOneCall = useCallback(
+    async (
+      call: ToolCall,
+      missionId: string,
+      askPermission: (call: ToolCall, risk: string) => Promise<boolean>,
+    ): Promise<{ ok: boolean; detail: string; verified?: boolean }> => {
+      const checked = checkCall(call, ledgerRef.current);
+      if (!checked.ok) return { ok: false, detail: checked.reason };
+
+      const tool = findTool(checked.call.name);
+      if (tool?.mutating) {
+        const allowed = await askPermission(checked.call, tool.risk);
+        if (!allowed) return { ok: false, detail: "You did not approve that, so it was not done." };
+      }
+      ledgerRef.current.note(checked.call);
+      setPhase(tool?.mutating ? "controlling" : "observing");
+      const outcome = await runControlActionFn({
+        data: {
+          missionId,
+          tool: checked.call.name,
+          args: (checked.call.arguments ?? {}) as Record<string, unknown>,
+          confirmed: tool?.risk === "high",
+        },
+      });
+      return { ok: outcome.kind === "success", detail: outcome.detail, verified: outcome.verified };
+    },
+    [],
+  );
+
   const send = useCallback(
     async (request: string) => {
       const missionId = missionRef.current;
@@ -303,6 +351,7 @@ export function useMission(brain: MissionBrain) {
       // does a stop: asking for something new is what clears both.
       grantedRef.current = new Set();
       stoppedRef.current = false;
+      ledgerRef.current.reset();
       setPhase("thinking");
 
       const controller = new AbortController();
@@ -322,6 +371,97 @@ export function useMission(brain: MissionBrain) {
           await new Promise((resolve) => setTimeout(resolve, 150));
         }
       };
+
+      const askPermission = async (call: ToolCall, risk: string): Promise<boolean> => {
+        await waitWhilePaused();
+        if (controller.signal.aborted) return false;
+        const tool = findTool(call.name);
+        if (!tool) return false;
+        if (risk === "low") return true;
+
+        const signatureKey = `${call.name}:${JSON.stringify(call.arguments ?? {})}`;
+        if (risk === "medium" && grantedRef.current.has(signatureKey)) return true;
+
+        const question = approvalQuestion(call, tool);
+        setPhase("paused");
+        const allowed = await new Promise<boolean>((resolve) => {
+          approvalRefResolve.current = resolve;
+          setApproval({
+            call,
+            tool,
+            question,
+            risk: risk === "high" ? "high" : "medium",
+            resolve,
+          });
+        });
+        approvalRefResolve.current = null;
+        setApproval(null);
+        push({
+          id: `a${Date.now()}${entries.length}`,
+          kind: allowed ? "asked" : "refused",
+          label: question,
+          detail: allowed ? "You allowed it." : "You said no.",
+        });
+        if (allowed && risk === "medium") grantedRef.current.add(signatureKey);
+        return allowed;
+      };
+
+      /* ------------------------------------------------------- fast path --
+       * A request the router understands completely never reaches the model.
+       *
+       * "Stop", "open Notepad", "what's on my screen" are not questions that
+       * need a 7B model's opinion — they are one regular expression and one
+       * tool call. Sending them to the engine cost eight to twenty seconds each
+       * and occasionally produced a different answer than the last time.
+       *
+       * Everything below the router is IDENTICAL to the model path: the same
+       * contract check, the same approval bands, the same server, the same
+       * verification. Only the decision is cheaper.
+       */
+      const routerStarted = performance.now();
+      const direct = routeDirect(request);
+      const routerMs = Math.round(performance.now() - routerStarted);
+
+      if (direct && direct.calls.length > 0) {
+        push({ id: `d${Date.now()}`, kind: "acting", label: direct.say, detail: "" });
+        const lines: string[] = [];
+        let allOk = true;
+        try {
+          for (const call of direct.calls) {
+            if (controller.signal.aborted) break;
+            await waitWhilePaused();
+            const started = performance.now();
+            const outcome = await runOneCall(call, missionId, askPermission);
+            const elapsed = Math.round(performance.now() - started);
+            push({
+              id: `dr${Date.now()}${lines.length}`,
+              kind: outcome.ok ? "done" : "problem",
+              label: describeTool(call.name),
+              detail: outcome.detail,
+              verified: outcome.verified,
+            });
+            lines.push(outcome.detail);
+            if (!outcome.ok) allOk = false;
+            latencyRef.current = { routerMs, modelMs: 0, toolMs: elapsed, rule: direct.rule };
+          }
+          setTurns((current) => [
+            ...current,
+            {
+              id: `${id}-r`,
+              role: "ocade",
+              text: lines.join(" ") || direct.say,
+              entries: [...entries],
+              verified: allOk,
+            },
+          ]);
+        } finally {
+          abortRef.current = null;
+          revisionRef.current = null;
+          setLive([]);
+          setPhase((current) => (current === "stopped" ? "stopped" : "idle"));
+        }
+        return;
+      }
 
       try {
         const result = await runAgentTask(
@@ -399,62 +539,39 @@ export function useMission(brain: MissionBrain) {
 
               return parsed;
             },
-            permit: async (call, risk) => {
-              await waitWhilePaused();
-              if (controller.signal.aborted) return false;
-              const tool = findTool(call.name);
-              if (!tool) return false;
-              if (risk === "low") return true;
-
-              const signature = `${call.name}:${JSON.stringify(call.arguments ?? {})}`;
-              // Medium risk is asked once per exact action per task. High risk
-              // is asked every single time and never remembered.
-              if (risk === "medium" && grantedRef.current.has(signature)) return true;
-
-              const question = approvalQuestion(call, tool);
-              /*
-               * The question goes in the timeline only AFTER it is answered.
-               * Pushing it when asked put the same sentence on screen twice —
-               * once in the list and once in the card right below it — which
-               * reads as a glitch at the exact moment the user is being asked
-               * to decide something. The permanent record is worth keeping; the
-               * duplicate is not.
-               */
-              setPhase("paused");
-              const allowed = await new Promise<boolean>((resolve) => {
-                approvalRefResolve.current = resolve;
-                setApproval({
-                  call,
-                  tool,
-                  question,
-                  risk: risk === "high" ? "high" : "medium",
-                  resolve,
-                });
-              });
-              approvalRefResolve.current = null;
-              setApproval(null);
-              push({
-                id: `a${Date.now()}${entries.length}`,
-                kind: allowed ? "asked" : "refused",
-                label: question,
-                detail: allowed ? "You allowed it." : "You said no.",
-              });
-              if (allowed && risk === "medium") grantedRef.current.add(signature);
-              return allowed;
-            },
+            // One approval implementation, shared with the fast path above, so
+            // the two routes cannot drift into different consent rules.
+            permit: askPermission,
             execute: async (call, signal): Promise<ToolOutcome> => {
               await waitWhilePaused();
               if (signal?.aborted || controller.signal.aborted) {
                 return { kind: "cancelled", detail: "The task was stopped." };
               }
-              const tool = findTool(call.name);
+              /*
+               * THE CONTRACT, BEFORE THE MACHINE.
+               *
+               * Empty required arguments and exact repeats are refused here and
+               * the reason goes back to the model as a tool result, so it can
+               * correct itself on the next turn. A blank YouTube query and a
+               * third `browser_open` both died at this line.
+               */
+              const checked = checkCall(call, ledgerRef.current);
+              if (!checked.ok) {
+                return {
+                  kind: checked.code === "repeated" ? "state_changed" : "unsupported",
+                  detail: checked.reason,
+                };
+              }
+              ledgerRef.current.note(checked.call);
+
+              const tool = findTool(checked.call.name);
               setPhase(tool?.mutating ? "controlling" : "observing");
               try {
                 const outcome = await runControlActionFn({
                   data: {
                     missionId,
-                    tool: call.name,
-                    args: (call.arguments ?? {}) as Record<string, unknown>,
+                    tool: checked.call.name,
+                    args: (checked.call.arguments ?? {}) as Record<string, unknown>,
                     // A `high` action only reaches here after `permit` returned
                     // true, and the server checks that claim against the tool's
                     // own band rather than trusting this flag on its own.
@@ -559,7 +676,7 @@ export function useMission(brain: MissionBrain) {
         setPhase((current) => (current === "stopped" || current === "error" ? current : "idle"));
       }
     },
-    [brain],
+    [brain, runOneCall],
   );
 
   const busy = phase === "thinking" || phase === "observing" || phase === "controlling";
@@ -583,6 +700,8 @@ export function useMission(brain: MissionBrain) {
     send,
     stop,
     error,
+    /** Where the time went on the last step. */
+    lastLatency: latencyRef.current,
     /** Which tools this device actually offers, for the capability line. */
     toolCount: toolsFor(["os_app", "files", "web"] as Domain[]).length,
   };

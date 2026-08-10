@@ -530,6 +530,17 @@ const WEB: ToolDefinition[] = [
     risk: "low",
   },
   {
+    name: "youtube_search",
+    domain: "web",
+    description:
+      "Search YouTube for something and open the results. Needs an actual thing to search for — never call this without one.",
+    parameters: object({ query: { type: "string", description: "What to search YouTube for." } }, [
+      "query",
+    ]),
+    mutating: true,
+    risk: "low",
+  },
+  {
     name: "browser_tabs",
     domain: "web",
     description: "List the open tabs in the managed browser with their titles and addresses.",

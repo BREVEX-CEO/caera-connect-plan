@@ -119,8 +119,30 @@ export interface ParsedTurn {
  * is an answer — the loop treats that as the model having finished, which is
  * the correct reading of "OCADE said something and asked for nothing".
  */
+/**
+ * Runtime control directives that are not content.
+ *
+ * `/no_think` and `/think` are Qwen switches. They are meant for the runtime,
+ * not for anybody reading the reply, and the model echoes them back often
+ * enough that they end up in the output stream.
+ *
+ * OBSERVED, NOT ANTICIPATED. Asked "search youtube for" with no term, the model
+ * emitted a `youtube_search` call whose query was the literal string
+ * "/no_think" — and OCADE searched YouTube for it. A control token is never a
+ * search term, a filename or a sentence, so it is removed before anything reads
+ * the reply.
+ */
+const CONTROL_TOKEN = /(^|\s)\/(no_?think|think|nothink)\b/gi;
+
+export function stripControlTokens(text: string): string {
+  return text
+    .replace(CONTROL_TOKEN, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 export function parseModelReply(reply: string, known: readonly string[]): ParsedTurn {
-  const withoutThinking = reply.replace(/<think>[\s\S]*?<\/think>/gi, "");
+  const withoutThinking = stripControlTokens(reply.replace(/<think>[\s\S]*?<\/think>/gi, ""));
   const candidate = firstJsonObject(withoutThinking);
   if (!candidate) return { text: withoutThinking.trim(), toolCalls: [] };
 
