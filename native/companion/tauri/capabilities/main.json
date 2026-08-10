@@ -1,0 +1,20 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main-window",
+  "description": "Permissions for the OCADE Control + Work window. The window loads the packaged application server over loopback, so the origin must be named here — Tauri v2 grants a remote page no IPC at all unless it is. Scoped to 127.0.0.1 and localhost ONLY: the application server binds to loopback and nothing else may ever address these commands. This grants the ABILITY TO ASK; it grants no authority. Every computer action still carries a MAC-signed envelope with a monotonic counter and a single-use nonce, is re-validated host-side against the safety core, and is refused outright for protected input. Filesystem, shell, HTTP and process permissions are deliberately absent here as they are for the overlay.",
+  "windows": ["main"],
+  "remote": {
+    "urls": ["http://127.0.0.1:*", "http://localhost:*"]
+  },
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-focus",
+    "core:window:allow-is-visible",
+    "core:window:allow-start-dragging",
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text"
+  ]
+}

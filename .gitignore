@@ -47,3 +47,10 @@ native/**/target/
 **/.pytest_cache/
 **/.ruff_cache/
 **/.mypy_cache/
+
+# The packaged application server. `scripts/build-app-sidecar.mjs` recreates
+# both from source: the binary is a copy of the Node runtime and the resource
+# tree is the Nitro build output. Neither belongs in version control.
+.app-sidecar/
+native/companion/tauri/binaries/ocade-app-host-*
+native/companion/tauri/resources/app-host/

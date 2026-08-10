@@ -43,6 +43,7 @@ use tauri::{
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
+mod app_host;
 mod browser_host;
 mod platform;
 
@@ -65,6 +66,10 @@ struct Companion {
     browser: browser_host::BrowserHostSupervisor,
     /// The only parent of the bounded Python perception/control sidecar.
     python: browser_host::BrowserHostSupervisor,
+    /// The packaged OCADE application server that the main window loads.
+    /// Without it this shell has no conversation and the companion has no
+    /// caller — which is precisely the gap that made PC control unreachable.
+    app_server: app_host::AppHostSupervisor,
 }
 
 impl Companion {
@@ -78,6 +83,7 @@ impl Companion {
             artifact_dir: Mutex::new(None),
             allowlist_path: Mutex::new(None),
             observations: Mutex::new(HashMap::new()),
+            app_server: app_host::AppHostSupervisor::default(),
             browser: browser_host::BrowserHostSupervisor::default(),
             python: browser_host::BrowserHostSupervisor::python(),
         }
@@ -1281,6 +1287,69 @@ fn main() {
             app.state::<Companion>()
                 .python
                 .configure(browser_host::locate_python_sidecar());
+
+            /*
+             * THE MAIN WINDOW: the real OCADE Control + Work conversation.
+             *
+             * This is the link the product was missing. Until now this shell
+             * opened only the status overlay, so the conversation lived in an
+             * ordinary browser where `detectTauri()` is false and the companion
+             * is permanently unavailable — which is why `liveRuntime.ready()`
+             * could never be true and PC control was unreachable from the GUI.
+             *
+             * Failure is deliberately NOT fatal. The overlay, the audit log and
+             * emergency stop must survive an application server that will not
+             * start; a shell that refuses to launch takes the stop button with
+             * it, which is the one control that must always be reachable.
+             */
+            /*
+             * Resolution is by EXISTENCE, not by whether the call succeeded.
+             *
+             * `resolve` returns Ok for a path that was never created, which is
+             * exactly what a plain `cargo build` produces: resources are only
+             * copied by `tauri build`. Trusting Ok meant the fallback never ran,
+             * the entry did not exist, and the shell came up with a tray icon
+             * and no conversation — silently, because the refusal went to the
+             * audit log rather than to a console nobody was reading.
+             */
+            let bundled = app
+                .path()
+                .resolve(
+                    "app-host/server/index.mjs",
+                    tauri::path::BaseDirectory::Resource,
+                )
+                .ok()
+                .filter(|path| path.is_file());
+            let app_entry = bundled.unwrap_or_else(|| {
+                // Development: the built server sits in the worktree rather
+                // than in a bundle's resource directory.
+                PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                    .join("resources/app-host/server/index.mjs")
+            });
+            match app.state::<Companion>().app_server.start(&app_entry) {
+                Ok(origin) => {
+                    let url = tauri::Url::parse(&origin)
+                        .map_err(|_| std::io::Error::other("Invalid application origin."))?;
+                    tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::External(url))
+                        .title("OCADE")
+                        .inner_size(1280.0, 860.0)
+                        .min_inner_size(880.0, 600.0)
+                        .resizable(true)
+                        .visible(true)
+                        .center()
+                        .build()?;
+                }
+                Err(reason) => {
+                    // Recorded rather than swallowed: the overlay reads this
+                    // log, so the user is told why the conversation is missing
+                    // instead of meeting an empty window. Also written to
+                    // stderr, because a shell that starts without its
+                    // conversation and explains itself only inside an invisible
+                    // window is indistinguishable from one that silently broke.
+                    eprintln!("OCADE application server did not start: {reason}");
+                    app.state::<Companion>().record("-", &reason, false);
+                }
+            }
             let data_dir = app.path().app_data_dir()?;
             let journal_path = data_dir.join("operation-journal-v1.jsonl");
             app.state::<Companion>()
@@ -1425,6 +1494,22 @@ fn main() {
             reset_emergency_stop,
             audit_log
         ])
-        .run(tauri::generate_context!())
-        .expect("failed to start the CAERA Companion");
+        .build(tauri::generate_context!())
+        .expect("failed to start the CAERA Companion")
+        .run(|app, event| {
+            /*
+             * The application server must not outlive the shell.
+             *
+             * A stranded Node process keeps its loopback port, and the next
+             * launch then fails to bind in a way nobody can diagnose from the
+             * outside — the window simply never appears. Killing it on exit is
+             * what makes a second launch behave like the first.
+             */
+            if matches!(
+                event,
+                tauri::RunEvent::Exit | tauri::RunEvent::ExitRequested { .. }
+            ) {
+                app.state::<Companion>().app_server.stop();
+            }
+        });
 }

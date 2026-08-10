@@ -34,6 +34,11 @@ export default tseslint.config(
       "native/**/binaries/**",
       "native/**/gen/**",
       "native/**/target/**",
+      // The packaged application server: a copy of the Nitro build output, so
+      // linting it means linting the bundler's work twice and, on this machine,
+      // spending ten minutes doing it.
+      ".app-sidecar/**",
+      "native/companion/tauri/resources/**",
       ".codex/**",
       ".claude/**",
     ],
