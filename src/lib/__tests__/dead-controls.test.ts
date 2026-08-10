@@ -70,12 +70,15 @@ describe("the composer never offers a Stop it cannot honour", () => {
 });
 
 describe("blocked controls explain themselves to assistive technology", () => {
-  it("the unified surface does not leave orphaned Work controls behind", () => {
+  it("Control + Work is a real surface rather than a redirect", () => {
+    // Previously this asserted the redirect. A redirect-only route IS the dead
+    // control this suite exists to catch: a navigation entry that takes you
+    // somewhere other than where it says.
     const ocade = readFileSync("src/routes/_authenticated/ocade.tsx", "utf8");
-    const legacyWork = readFileSync("src/routes/_authenticated/ocade.work.tsx", "utf8");
+    const work = readFileSync("src/routes/_authenticated/ocade.work.tsx", "utf8");
     expect(ocade).not.toMatch(/run-controls-setup-required/);
-    expect(ocade).not.toMatch(/to="\/ocade\/work"/);
-    expect(legacyWork).toMatch(/redirect\(\{ to: "\/ocade", replace: true \}\)/);
+    expect(work).not.toMatch(/redirect\(/);
+    expect(work).toMatch(/ControlWorkSurface/);
   });
 
   it("demo-mode controls say WHY they are unavailable, not just that they are", () => {

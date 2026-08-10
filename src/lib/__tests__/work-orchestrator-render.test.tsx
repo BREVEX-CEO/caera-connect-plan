@@ -18,12 +18,36 @@ const html = () => renderToStaticMarkup(<WorkOrchestratorPanel />);
 const source = (path: string) => readFileSync(path, "utf8");
 
 describe("the Work mission runtime", () => {
-  it("stays beneath the unified OCADE surface", () => {
+  /*
+   * REWRITTEN, NOT RELAXED.
+   *
+   * This used to assert that /ocade/work redirected to Chat — that Control +
+   * Work was a name with nothing behind it. Control + Work is now its own
+   * surface, so pinning the redirect would pin the absence of the feature.
+   *
+   * What replaces it is a stronger property than the old one: the two surfaces
+   * must be structurally distinguishable. Chat must not be able to act on the
+   * machine even if a message sounds like an instruction, and the only way to
+   * guarantee that is for Chat never to construct a live-world runtime.
+   */
+  it("gives Control + Work its own reachable surface", () => {
     const entry = MODULE_CONTEXT.ocade.find((item) => item.to === "/ocade/work");
-    expect(entry).toBeUndefined();
-    const legacyRoute = source("src/routes/_authenticated/ocade.work.tsx");
-    expect(legacyRoute).toContain('redirect({ to: "/ocade", replace: true })');
-    expect(source("src/routes/_authenticated/ocade.tsx")).not.toContain('to="/ocade/work"');
+    expect(entry).toBeDefined();
+    expect(entry?.label).toBe("Control + Work");
+
+    const workRoute = source("src/routes/_authenticated/ocade.work.tsx");
+    expect(workRoute).not.toContain("redirect(");
+    expect(workRoute).toContain("ControlWorkSurface");
+  });
+
+  it("keeps computer control out of the Chat surface", () => {
+    // The separation is enforced here rather than trusted: a future edit that
+    // wires the live-world runtime into Chat fails this test rather than
+    // silently making every question a potential action.
+    const chat = source("src/routes/_authenticated/ocade.tsx");
+    expect(chat).not.toContain("useControlWork");
+    const work = source("src/lib/agent/use-control-work.ts");
+    expect(work).toContain("createDesktopLiveWorldRuntime");
   });
 
   it("renders graph, role, budget, checkpoint, and supervision state", () => {

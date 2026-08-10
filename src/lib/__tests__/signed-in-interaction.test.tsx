@@ -58,13 +58,14 @@ import { ThemeProvider } from "@/lib/theme-provider";
 const NO_COMPONENT: Record<string, string> = {
   "_authenticated/home.tsx":
     "/home is a redirect to /ocade and deliberately has no component — it exists so old links and the end of onboarding still land somewhere.",
-  "_authenticated/ocade.work.tsx":
-    "/ocade/work is a compatibility redirect to the unified /ocade surface and deliberately has no component.",
 };
 
 /** Routes that require an account, and therefore had no interaction coverage. */
 const SIGNED_IN_ROUTES = [
   "_authenticated/ocade.tsx",
+  // Control + Work is no longer a redirect, so it joins the interaction audit
+  // rather than sitting on the excluded list.
+  "_authenticated/ocade.work.tsx",
   "_authenticated/ocade.artifacts.tsx",
   "_authenticated/ocade.automations.tsx",
   "_authenticated/ocade.code.tsx",
@@ -241,7 +242,10 @@ describe("every signed-in route exposes a component to audit", () => {
   });
 
   it("keeps the component-less list short, specific and justified", () => {
-    expect(Object.keys(NO_COMPONENT)).toHaveLength(2);
+    // Was 2. Control + Work left this list by GAINING a component: it is a
+    // real surface now rather than a redirect, so it is audited like every
+    // other signed-in route instead of being excused from the audit.
+    expect(Object.keys(NO_COMPONENT)).toHaveLength(1);
     for (const [name, reason] of Object.entries(NO_COMPONENT)) {
       expect(componentFor(name), `${name} is excluded but now HAS a component`).toBeUndefined();
       expect(reason.length, `${name} is excluded without a reason`).toBeGreaterThan(40);

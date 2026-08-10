@@ -19,6 +19,7 @@ import {
   Radar,
   Boxes,
   FileCode2,
+  MonitorCog,
   type LucideIcon,
 } from "lucide-react";
 
@@ -105,7 +106,14 @@ export const MODULE_CONTEXT: Record<ModuleId, NavItem[]> = {
    * sidebar: an unreachable page is a page nobody maintains.
    */
   ocade: [
+    /*
+     * Chat and Control + Work are the two things OCADE does, and they are named
+     * next to each other so the difference is a choice rather than a discovery.
+     * One answers; the other acts on the machine. A person must never have to
+     * guess which of those is about to happen.
+     */
     { to: "/ocade", label: "Chat", icon: MessageSquare, exact: true },
+    { to: "/ocade/work", label: "Control + Work", icon: MonitorCog },
     { to: "/ocade/projects", label: "Projects", icon: FolderOpen },
     { to: "/ocade/artifacts", label: "Artifacts", icon: Package },
     { to: "/ocade/code", label: "Code", icon: FileCode2 },
