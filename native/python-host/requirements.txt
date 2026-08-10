@@ -36,9 +36,14 @@ mss==10.1.0
 opencv-python==4.12.0.88
 numpy==2.2.6
 
-# Windows Runtime bindings, for the OCR engine already present in Windows.
-# No third-party OCR model is downloaded or bundled.
+# Windows Runtime bindings. Two jobs: the OCR engine already present in Windows,
+# and Windows.Media.SpeechSynthesis — OCADE's free voice. No third-party OCR
+# model and no cloud speech service is downloaded, bundled or required.
 winsdk==1.0.0b10
+
+# The microphone. PortAudio ships inside the wheel, so speech input needs no
+# system package. Used only for bounded listens; nothing is ever recorded.
+sounddevice==0.5.2
 
 # Reversible deletion. OCADE has no permanent-delete path at all.
 Send2Trash==1.8.3

@@ -1,19 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  DEMO_COMPANY,
-  DEMO_INVOICES,
-  DEMO_TIMESHEET,
-  DEMO_TASKS,
-  DEMO_FILES,
-  DEMO_COMPANY_CHAT,
-  DEMO_OCADE_MESSAGES,
-  DEMO_RESUME,
-  DEMO_REPORTS,
-} from "./data";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { DemoContext, type DemoContextValue } from "./use-demo";
+import { endSession } from "./session";
 
 const DEMO_FLAG_KEY = "caera:demo";
 
-export function isDemoActive(): boolean {
+function readFlag(): boolean {
   if (typeof window === "undefined") return false;
   try {
     return window.sessionStorage.getItem(DEMO_FLAG_KEY) === "1";
@@ -22,110 +14,60 @@ export function isDemoActive(): boolean {
   }
 }
 
-export function markDemoActive(): void {
+function writeFlag(active: boolean): void {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(DEMO_FLAG_KEY, "1");
+    if (active) window.sessionStorage.setItem(DEMO_FLAG_KEY, "1");
+    else window.sessionStorage.removeItem(DEMO_FLAG_KEY);
   } catch {
-    /* ignore */
+    /* Private browsing with storage denied. Demo mode still works for this page. */
   }
 }
 
-export function clearDemoActive(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.removeItem(DEMO_FLAG_KEY);
-  } catch {
-    /* ignore */
-  }
-}
-
-type DemoState = {
-  company: typeof DEMO_COMPANY;
-  invoices: typeof DEMO_INVOICES;
-  timesheet: typeof DEMO_TIMESHEET;
-  tasks: typeof DEMO_TASKS;
-  files: typeof DEMO_FILES;
-  companyChat: typeof DEMO_COMPANY_CHAT;
-  ocadeMessages: { role: "assistant" | "user"; content: string }[];
-  resume: typeof DEMO_RESUME;
-  reports: typeof DEMO_REPORTS;
-};
-
-function seed(): DemoState {
-  return {
-    company: DEMO_COMPANY,
-    invoices: [...DEMO_INVOICES],
-    timesheet: [...DEMO_TIMESHEET],
-    tasks: [...DEMO_TASKS],
-    files: [...DEMO_FILES],
-    companyChat: [...DEMO_COMPANY_CHAT],
-    ocadeMessages: [...DEMO_OCADE_MESSAGES] as { role: "assistant" | "user"; content: string }[],
-    resume: DEMO_RESUME,
-    reports: [...DEMO_REPORTS],
-  };
-}
-
-type DemoContextValue = {
-  active: boolean;
-  state: DemoState;
-  /** In-memory sample update. Never touches Supabase. */
-  addOcadeMessage: (role: "assistant" | "user", content: string) => void;
-  addChatMessage: (author: string, body: string) => void;
-  markTaskDone: (id: string) => void;
-  reset: () => void;
-  exit: () => void;
-};
-
-const Ctx = createContext<DemoContextValue | null>(null);
-
+/**
+ * Marks the browser as being in demo mode, and owns the way out.
+ *
+ * WHAT THIS NO LONGER HOLDS: a fictional company's invoices, timesheets, tasks,
+ * files and message threads. Those belonged to demo screens for products that
+ * have been removed, and to a chat that answered from a fixed string.
+ *
+ * The conversation is deliberately NOT here either. It lives in the demo
+ * route's own state, because a demo conversation that survived a provider
+ * re-render — or a trip to settings and back — would outlive the 8-minute
+ * session it belongs to. Temporary has to mean temporary.
+ */
 export function DemoProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<DemoState>(() => seed());
+  const navigate = useNavigate();
   const [active, setActive] = useState(false);
 
+  /*
+   * Read after mount rather than during render. `sessionStorage` does not exist
+   * on the server, and seeding state from it during render makes the first
+   * client render disagree with the server's markup.
+   */
   useEffect(() => {
-    markDemoActive();
+    writeFlag(true);
     setActive(true);
   }, []);
 
+  const exit = useCallback(() => {
+    endSession();
+    writeFlag(false);
+    setActive(false);
+    void navigate({ to: "/", replace: true });
+  }, [navigate]);
+
+  const reset = useCallback(() => {
+    // Clearing the deadline is what makes the next visit start a fresh 8
+    // minutes; the reload drops the in-memory conversation with it.
+    endSession();
+    if (typeof window !== "undefined") window.location.assign("/demo/ocade");
+  }, []);
+
   const value = useMemo<DemoContextValue>(
-    () => ({
-      active,
-      state,
-      addOcadeMessage: (role, content) =>
-        setState((s) => ({ ...s, ocadeMessages: [...s.ocadeMessages, { role, content }] })),
-      addChatMessage: (author, body) =>
-        setState((s) => ({
-          ...s,
-          companyChat: [
-            ...s.companyChat,
-            {
-              id: `c${s.companyChat.length + 1}`,
-              author,
-              ts: new Date().toISOString().slice(11, 16),
-              body,
-            },
-          ],
-        })),
-      markTaskDone: (id) =>
-        setState((s) => ({
-          ...s,
-          tasks: s.tasks.map((t) => (t.id === id ? { ...t, status: "Done" } : t)),
-        })),
-      reset: () => setState(seed()),
-      exit: () => {
-        clearDemoActive();
-        setActive(false);
-      },
-    }),
-    [state, active],
+    () => ({ active: active || readFlag(), reset, exit }),
+    [active, reset, exit],
   );
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
-}
-
-export function useDemo(): DemoContextValue {
-  const v = useContext(Ctx);
-  if (!v) throw new Error("useDemo must be used inside DemoProvider (route under /demo/*).");
-  return v;
+  return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
 }

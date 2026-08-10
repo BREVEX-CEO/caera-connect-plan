@@ -50,6 +50,15 @@ const RULES = [
   { kind: "log", why: "log file", re: /\.log$/i },
   { kind: "temp", why: "temporary file", re: /\.(tmp|temp|swp|orig|rej)$|~$/i },
   { kind: "test", why: "test file", re: /(^|\/)__tests__\/|\.(test|spec)\.[cm]?[jt]sx?$/ },
+  // Pytest for the native-control sidecar. Named separately from the rule
+  // above because Python's convention is `test_*.py` rather than `*.test.py`,
+  // and anchored to that host's `tests/` directory so nothing in the installed
+  // `.venv` — which is full of third-party `test_*.py` files — can match it.
+  {
+    kind: "test",
+    why: "native-control sidecar test",
+    re: /^native\/python-host\/tests\/test_[\w-]+\.py$/,
+  },
   {
     kind: "source",
     why: "application source",

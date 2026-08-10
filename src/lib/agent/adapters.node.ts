@@ -131,6 +131,14 @@ export class OcadeAdapters {
         return this.windowFocus(a);
       case "app_list_installed":
         return this.installedApps();
+      case "app_open":
+        return this.appOpen(a);
+      case "app_focus":
+        return this.appFocus(a);
+      case "display_list":
+        return this.displayList();
+      case "window_arrange":
+        return this.windowArrange(a);
       case "system_status":
         return this.systemStatus();
       case "control_find":
@@ -139,6 +147,26 @@ export class OcadeAdapters {
         return this.controlActivate(a);
       case "control_set_text":
         return this.controlSetText(a);
+      case "type_text":
+        return this.typeText(a);
+      case "press_key":
+        return this.pressKey(a);
+      case "workspace_list":
+        return this.workspaceList(a);
+      case "workspace_read":
+        return this.workspaceRead(a);
+      case "workspace_write":
+        return this.workspaceWrite(a);
+      case "workspace_open":
+        return this.workspaceOpen(a);
+      case "workspace_discard":
+        return this.workspaceDiscard(a);
+      case "browser_scroll":
+        return this.browserScroll(a);
+      case "browser_key":
+        return this.browserKey(a);
+      case "browser_media":
+        return this.browserMedia(a);
       case "browser_open":
         return this.browserOpen(a);
       case "browser_navigate":
@@ -149,6 +177,8 @@ export class OcadeAdapters {
         return this.browserClick(a);
       case "browser_tabs":
         return this.browserTabs();
+      case "web_search":
+        return this.webSearch(a);
       default:
         return fail("unsupported", `${call.name} is not connected on this device yet.`);
     }
@@ -269,6 +299,253 @@ export class OcadeAdapters {
     };
   }
 
+  /* ------------------------------------ applications and placement -- */
+
+  /**
+   * Open an application by NAME, never by path.
+   *
+   * The host resolves the name against what this machine reports as installed;
+   * nothing here hands it a string to execute. That is the whole distinction
+   * between an application launcher and remote code execution, and it lives on
+   * the host side so this adapter cannot weaken it by accident.
+   */
+  private async appOpen(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const name = text(args.name, "name");
+    const reply = await this.pythonHost().request<{
+      application: string;
+      detail: string;
+      verified: boolean | null;
+      reused: boolean;
+      // Sixty rather than thirty. A cold application launch on a machine that
+      // is already short of memory is genuinely slow, and the first live run
+      // reported a failure for a Notepad that had in fact opened. The host's
+      // own wait is short and it answers "started, no window yet" rather than
+      // blocking, so this ceiling is now a backstop rather than the schedule.
+    }>("app.launch", { name, reuse: args.reuse !== false }, { timeoutMs: 60_000 });
+    if (!reply.ok) return outcomeFor(reply, `${name} could not be opened.`);
+    return {
+      ...ok(reply.data, reply.data?.detail ?? `Opened ${name}.`),
+      // The host verifies by waiting for a real window, not by a process
+      // spawning. `null` means the platform cannot check, and stays undefined.
+      verified: reply.data?.verified ?? undefined,
+      observation: reply.data,
+    };
+  }
+
+  private async appFocus(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const name = text(args.name, "name");
+    const reply = await this.pythonHost().request<{ detail: string; verified: boolean }>(
+      "app.focus",
+      { name },
+    );
+    if (!reply.ok) return outcomeFor(reply, `${name} could not be brought to the front.`);
+    return {
+      ...ok(reply.data, reply.data?.detail ?? `${name} is now in front.`),
+      verified: reply.data?.verified,
+    };
+  }
+
+  private async displayList(): Promise<ToolOutcome> {
+    const reply = await this.pythonHost().request<{ displays: unknown[]; count: number }>(
+      "display.list",
+    );
+    if (!reply.ok) return outcomeFor(reply, "The displays could not be read.");
+    const count = reply.data?.count ?? 0;
+    return ok(reply.data, `This computer has ${count} display${count === 1 ? "" : "s"}.`);
+  }
+
+  private async windowArrange(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const hwnd = await this.resolveWindow(args);
+    if (hwnd === null) return fail("state_changed", "That window is not open.");
+    const display = Number(args.display);
+    const reply = await this.pythonHost().request<{ detail: string; verified: boolean }>(
+      "window.arrange",
+      {
+        hwnd,
+        layout: typeof args.layout === "string" ? args.layout : "maximise",
+        ...(Number.isFinite(display) && display > 0 ? { display: Math.trunc(display) } : {}),
+      },
+    );
+    if (!reply.ok) return outcomeFor(reply, "That window could not be moved.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Moved the window."),
+      verified: reply.data?.verified,
+      observation: reply.data,
+    };
+  }
+
+  /* ------------------------------------------------ keyboard and text -- */
+
+  private async typeText(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const hwnd = await this.resolveWindow(args);
+    const reply = await this.pythonHost().request<{
+      detail: string;
+      verified: boolean;
+      method: string;
+      typed: number;
+    }>("input.type", { text: text(args.text, "text"), ...(hwnd ? { hwnd } : {}) });
+    if (!reply.ok) return outcomeFor(reply, "That text could not be typed.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Typed the text."),
+      verified: reply.data?.verified,
+      observation: reply.data,
+    };
+  }
+
+  private async pressKey(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const raw = args.modifiers;
+    const modifiers =
+      typeof raw === "string"
+        ? raw
+            .split(/[+,\s]+/)
+            .map((part) => part.trim().toLowerCase())
+            .filter(Boolean)
+        : Array.isArray(raw)
+          ? raw.map((part) => String(part).toLowerCase())
+          : [];
+    const reply = await this.pythonHost().request<{ detail: string; verified: boolean }>(
+      "input.key",
+      { key: text(args.key, "key"), modifiers },
+    );
+    if (!reply.ok) return outcomeFor(reply, "That key could not be pressed.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Pressed the key."),
+      verified: reply.data?.verified,
+    };
+  }
+
+  /* ----------------------------------------------- the temporary folder -- */
+
+  private async workspaceList(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.pythonHost().request<{ detail: string; count: number }>(
+      "workspace.list",
+      { match: typeof args.match === "string" ? args.match : "" },
+    );
+    if (!reply.ok) return outcomeFor(reply, "The folder could not be read.");
+    return ok(reply.data, reply.data?.detail ?? "Listed the folder.");
+  }
+
+  private async workspaceRead(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.pythonHost().request<{ detail: string; content: string }>(
+      "workspace.read",
+      { name: text(args.name, "name") },
+    );
+    if (!reply.ok) return outcomeFor(reply, "That file could not be read.");
+    return ok(reply.data, reply.data?.detail ?? "Read the file.");
+  }
+
+  private async workspaceWrite(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.pythonHost().request<{ detail: string; verified: boolean }>(
+      "workspace.write",
+      { name: text(args.name, "name"), content: text(args.content, "content") },
+    );
+    if (!reply.ok) return outcomeFor(reply, "That file could not be written.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Wrote the file."),
+      verified: reply.data?.verified,
+    };
+  }
+
+  private async workspaceOpen(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.pythonHost().request<{
+      detail: string;
+      verified: boolean | null;
+      title: string;
+    }>("workspace.open", { name: text(args.name, "name") }, { timeoutMs: 30_000 });
+    if (!reply.ok) return outcomeFor(reply, "That file could not be opened.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Opened the file."),
+      verified: reply.data?.verified ?? undefined,
+      observation: reply.data,
+    };
+  }
+
+  private async workspaceDiscard(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.pythonHost().request<{ detail: string; verified: boolean }>(
+      "workspace.discard",
+      { name: text(args.name, "name") },
+    );
+    if (!reply.ok) return outcomeFor(reply, "That file could not be discarded.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Moved the file to the recycle bin."),
+      verified: reply.data?.verified,
+    };
+  }
+
+  /* ------------------------------------------------ voice and hearing -- */
+
+  /**
+   * Say something aloud with the voice this operating system already owns.
+   *
+   * Not a model tool, and deliberately so: this is called by the Control + Work
+   * runtime when the user has asked for spoken replies. A tool the model could
+   * reach for on its own initiative is a product that talks unprompted.
+   */
+  async speak(sentence: string, language = "en"): Promise<ToolOutcome> {
+    const reply = await this.pythonHost().request<{ engine: string; voice: { name?: string } }>(
+      "voice.speak",
+      { text: sentence, language },
+      { timeoutMs: 30_000 },
+    );
+    if (!reply.ok) return outcomeFor(reply, "OCADE could not speak on this computer.");
+    return ok(reply.data, `Spoken with ${reply.data?.voice?.name ?? "the system voice"}.`);
+  }
+
+  /** What this device can say and hear, without claiming anything untested. */
+  async voiceCapability(): Promise<{ speech: HostReply; microphone: HostReply }> {
+    const host = this.pythonHost();
+    const [speech, microphone] = await Promise.all([
+      host.request("voice.list"),
+      host.request("audio.microphones", {}, { timeoutMs: 20_000 }),
+    ]);
+    return { speech, microphone };
+  }
+
+  /**
+   * Reach the host, read the machine, and take one harmless real action.
+   *
+   * The action is `input.release` — letting go of any held modifier key or mouse
+   * button. It is chosen because it genuinely touches the input stack, so a
+   * success here means the control path works end to end, and because its effect
+   * on a machine where nothing is held down is precisely nothing. A smoke test
+   * that opened an application would prove the same thing while leaving a window
+   * on somebody's screen.
+   */
+  async preflight(): Promise<{
+    reachable: boolean;
+    detail: string;
+    snapshot: unknown;
+    activeWindow: unknown;
+    action: { name: string; ok: boolean; detail: string } | null;
+  }> {
+    const host = this.pythonHost();
+    const snapshot = await host.request<Record<string, unknown>>("system.snapshot");
+    if (!snapshot.ok) {
+      return {
+        reachable: false,
+        detail: snapshot.error ?? "The computer-control host did not answer.",
+        snapshot: null,
+        activeWindow: null,
+        action: null,
+      };
+    }
+    const active = await host.request<Record<string, unknown>>("window.active");
+    const released = await host.request<{ detail: string }>("input.release");
+    return {
+      reachable: true,
+      detail: "OCADE reached this computer, read its state, and completed one real action.",
+      snapshot: snapshot.data,
+      activeWindow: active.ok ? active.data : null,
+      action: {
+        name: "input.release",
+        ok: released.ok,
+        detail: released.ok
+          ? (released.data?.detail ?? "Released all held keys and mouse buttons.")
+          : (released.error ?? "The action did not complete."),
+      },
+    };
+  }
+
   /* ---------------------------------------------------------- action -- */
 
   private async resolveWindow(args: Record<string, unknown>): Promise<number | null> {
@@ -323,14 +600,24 @@ export class OcadeAdapters {
   private async controlSetText(args: Record<string, unknown>): Promise<ToolOutcome> {
     const hwnd = await this.resolveWindow(args);
     if (hwnd === null) return fail("state_changed", "That window is not open.");
-    const reply = await this.pythonHost().request<{ verified: boolean | null; written: number }>(
-      "control.set_text",
-      { hwnd, name: text(args.name, "name"), value: text(args.value, "value") },
-    );
+    const reply = await this.pythonHost().request<{
+      verified: boolean | null;
+      written: number;
+      detail: string;
+    }>("control.set_text", {
+      hwnd,
+      name: text(args.name, "name"),
+      role: typeof args.role === "string" ? args.role : undefined,
+      value: text(args.value, "value"),
+    });
     if (!reply.ok) return outcomeFor(reply, "That field could not be filled in.");
     return {
-      ...ok(reply.data, `Wrote ${reply.data?.written ?? 0} characters into the field.`),
+      // The host's own sentence names the field it actually wrote into and says
+      // whether it read the value back. Replacing that with a generic count
+      // threw away the only part the user could check.
+      ...ok(reply.data, reply.data?.detail ?? `Wrote ${reply.data?.written ?? 0} characters.`),
       verified: reply.data?.verified ?? undefined,
+      observation: reply.data,
     };
   }
 
@@ -426,6 +713,141 @@ export class OcadeAdapters {
       verified: changed ? true : undefined,
       observation,
     };
+  }
+
+  private async browserScroll(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const direction = args.direction === "up" ? "up" : "down";
+    const reply = await this.browserPerform({ kind: "scroll", direction, amount: 700 });
+    if (!reply.ok) return outcomeFor(reply, "The page could not be scrolled.");
+    const output = (reply.data as { output?: { moved?: boolean; atEnd?: boolean } })?.output;
+    return {
+      ...ok(
+        output,
+        output?.moved
+          ? `Scrolled ${direction}.`
+          : output?.atEnd
+            ? "The page is already at the end."
+            : "The page did not move.",
+      ),
+      // Scrolling verifies itself: the position either changed or it did not.
+      verified: output?.moved,
+      observation: output,
+    };
+  }
+
+  private async browserKey(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const wanted = text(args.key, "key");
+    const key = wanted.charAt(0).toUpperCase() + wanted.slice(1);
+    const reply = await this.browserPerform({ kind: "key", key });
+    if (!reply.ok) return outcomeFor(reply, `${wanted} could not be sent to the page.`);
+    const output = (reply.data as { output?: { urlChanged?: boolean } })?.output;
+    return {
+      ...ok(output, `Pressed ${key} on the page.`),
+      verified: output?.urlChanged ? true : undefined,
+    };
+  }
+
+  private async browserMedia(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const action = text(args.action, "action").toLowerCase();
+    const reply = await this.browserPerform({ kind: "media", action });
+    if (!reply.ok) return outcomeFor(reply, "The media on that page could not be controlled.");
+    const output = (
+      reply.data as {
+        output?: { found?: number; applied?: boolean; paused?: boolean; muted?: boolean };
+      }
+    )?.output;
+    if (!output?.applied) {
+      return fail("state_changed", "There is no video or audio on that page.");
+    }
+    return {
+      ...ok(
+        output,
+        `${action === "play" ? "Playing" : action === "pause" ? "Paused" : action === "mute" ? "Muted" : "Unmuted"} the media on that page.`,
+      ),
+      // Read back from the element itself, not assumed from the call.
+      verified:
+        action === "play"
+          ? output.paused === false
+          : action === "pause"
+            ? output.paused === true
+            : action === "mute"
+              ? output.muted === true
+              : output.muted === false,
+      observation: output,
+    };
+  }
+
+  /**
+   * Search the live web, through the same managed browser as everything else.
+   *
+   * NO SEARCH API, AND THAT IS THE POINT. An API key would mean a third party
+   * in the middle of every question the user asks, a bill, and a service that
+   * can go away. The managed browser is already here, already permissioned, and
+   * returns the page a person would have seen — so the answer is citable
+   * against a real address rather than against a JSON blob nobody can check.
+   *
+   * DuckDuckGo because it answers without a consent wall or a sign-in, which
+   * matters when the caller cannot click through one.
+   *
+   * `web_search` opens the browser itself when nothing is open yet. The model
+   * should not have to know that searching requires a browser first; that is an
+   * implementation detail leaking into a tool description.
+   */
+  private async webSearch(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const query = text(args.query, "query");
+    if (!this.browserSession) {
+      const opened = await this.browserOpen({});
+      if (opened.kind !== "success") return opened;
+    }
+
+    const url = `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
+    const navigated = await this.browserPerform(
+      { kind: "navigate", url },
+      { approvedOrigins: ["https://duckduckgo.com"] },
+    );
+    if (!navigated.ok) return outcomeFor(navigated, "That search could not be run.");
+
+    const read = await this.browserPerform({ kind: "page.read" });
+    if (!read.ok) return outcomeFor(read, "The results could not be read.");
+    const output = (
+      read.data as {
+        output?: { title?: string; text?: string; links?: { text: string; href: string }[] };
+      }
+    )?.output;
+
+    // Bounded hard. A results page is mostly chrome, and the model has a
+    // context window to spend on the task rather than on a navigation bar.
+    const body = (output?.text ?? "").replace(/\s+/g, " ").trim().slice(0, 2_000);
+    const sources = (output?.links ?? [])
+      .filter((link) => /^https?:\/\//.test(link.href) && !link.href.includes("duckduckgo.com"))
+      .slice(0, 8)
+      .map((link) => ({ title: link.text.slice(0, 120), url: link.href }));
+
+    return {
+      ...ok(
+        { query, results: body, sources, address: url },
+        `Searched the web for “${query}” and read the results.`,
+      ),
+      verified: body.length > 0,
+      observation: { query, results: body, sources },
+    };
+  }
+
+  /**
+   * Let go of everything the machine is holding.
+   *
+   * Called when a mission stops, before the sidecars are disposed. Returns a
+   * boolean rather than a `ToolOutcome` because the caller is a shutdown path,
+   * not the loop — and a shutdown must not be able to fail in a way that
+   * prevents the shutdown.
+   */
+  async releaseHeldInput(): Promise<boolean> {
+    try {
+      const reply = await this.pythonHost().request("input.release", {}, { timeoutMs: 8_000 });
+      return reply.ok;
+    } catch {
+      return false;
+    }
   }
 
   private async browserTabs(): Promise<ToolOutcome> {

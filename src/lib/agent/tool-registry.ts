@@ -131,6 +131,46 @@ const OS_APP: ToolDefinition[] = [
     risk: "read",
   },
   {
+    name: "app_focus",
+    domain: "os_app",
+    description:
+      "Bring an application that is already running to the front. Does not start anything.",
+    parameters: object({ name: { type: "string", description: "The application's name." } }, [
+      "name",
+    ]),
+    mutating: true,
+    risk: "low",
+  },
+  {
+    name: "display_list",
+    domain: "os_app",
+    description:
+      "List the screens attached to this computer, with their size and position. Use this before moving a window to a particular screen.",
+    parameters: NO_ARGS,
+    mutating: false,
+    risk: "read",
+  },
+  {
+    name: "window_arrange",
+    domain: "os_app",
+    description:
+      "Move or resize a window: fill a screen, take the left or right half, or sit centred. Say which screen by its number from display_list.",
+    parameters: object(
+      {
+        layout: {
+          type: "string",
+          description: "Where the window should go.",
+          enum: ["maximise", "left", "right", "centre"],
+        },
+        windowTitle: { type: "string", description: "Optional. Defaults to the focused window." },
+        display: { type: "string", description: "Optional screen number, e.g. '2'." },
+      },
+      ["layout"],
+    ),
+    mutating: true,
+    risk: "low",
+  },
+  {
     name: "control_find",
     domain: "os_app",
     description:
@@ -179,6 +219,39 @@ const OS_APP: ToolDefinition[] = [
     risk: "medium",
   },
   {
+    name: "type_text",
+    domain: "os_app",
+    description:
+      "Type text into whatever currently has focus — a document, a search box, an editor. Use control_set_text instead when the field has a name. Refuses anything that looks like a password, code or payment value.",
+    parameters: object(
+      {
+        text: { type: "string", description: "The text to type." },
+        windowTitle: { type: "string", description: "Optional. Defaults to the focused window." },
+      },
+      ["text"],
+    ),
+    mutating: true,
+    risk: "medium",
+  },
+  {
+    name: "press_key",
+    domain: "os_app",
+    description:
+      "Press a single key such as Enter, Escape, Tab or a function key, optionally with Ctrl, Shift or Alt.",
+    parameters: object(
+      {
+        key: { type: "string", description: "The key, e.g. 'enter', 'escape', 's', 'f5'." },
+        modifiers: {
+          type: "string",
+          description: "Optional, e.g. 'ctrl' or 'ctrl+shift'.",
+        },
+      },
+      ["key"],
+    ),
+    mutating: true,
+    risk: "medium",
+  },
+  {
     name: "system_status",
     domain: "os_app",
     description:
@@ -191,7 +264,71 @@ const OS_APP: ToolDefinition[] = [
 
 /* ------------------------------------------------------------- files -- */
 
+/*
+ * OCADE's own temporary folder.
+ *
+ * Separate from the approved-folder tools below, and narrower on purpose: these
+ * take a NAME, never a path, and the host resolves it inside one directory it
+ * owns. That makes "write this down and open it" a safe thing to ask for
+ * without the user first having to approve a folder full of their own work.
+ */
+const WORKSPACE: ToolDefinition[] = [
+  {
+    name: "workspace_list",
+    domain: "files",
+    description:
+      "List the files in OCADE's own temporary working folder. Use this to see what has already been made during this task.",
+    parameters: object({
+      match: { type: "string", description: "Optional part of a file name to filter by." },
+    }),
+    mutating: false,
+    risk: "read",
+  },
+  {
+    name: "workspace_read",
+    domain: "files",
+    description: "Read a text file from OCADE's own temporary working folder.",
+    parameters: object({ name: { type: "string", description: "The file's name." } }, ["name"]),
+    mutating: false,
+    risk: "read",
+  },
+  {
+    name: "workspace_write",
+    domain: "files",
+    description:
+      "Write a text file into OCADE's own temporary working folder — notes, a draft, a summary. Read back afterwards to confirm what landed.",
+    parameters: object(
+      {
+        name: { type: "string", description: "The file's name, e.g. 'notes.txt'." },
+        content: { type: "string", description: "The text to write." },
+      },
+      ["name", "content"],
+    ),
+    mutating: true,
+    risk: "low",
+  },
+  {
+    name: "workspace_open",
+    domain: "files",
+    description:
+      "Open a file from OCADE's temporary folder in this computer's default editor, so the user can see it.",
+    parameters: object({ name: { type: "string", description: "The file's name." } }, ["name"]),
+    mutating: true,
+    risk: "medium",
+  },
+  {
+    name: "workspace_discard",
+    domain: "files",
+    description:
+      "Move a file in OCADE's temporary folder to the recycle bin. Always reversible from there.",
+    parameters: object({ name: { type: "string", description: "The file's name." } }, ["name"]),
+    mutating: true,
+    risk: "high",
+  },
+];
+
 const FILES: ToolDefinition[] = [
+  ...WORKSPACE,
   {
     name: "file_search",
     domain: "files",
@@ -344,6 +481,53 @@ const WEB: ToolDefinition[] = [
     ),
     mutating: true,
     risk: "medium",
+  },
+  {
+    name: "browser_scroll",
+    domain: "web",
+    description:
+      "Scroll the page down or up by one screen, then read where it ended up. Use this to see the rest of a long page before deciding what to click.",
+    parameters: object({
+      direction: { type: "string", description: "Which way to scroll.", enum: ["down", "up"] },
+    }),
+    mutating: false,
+    risk: "read",
+  },
+  {
+    name: "browser_key",
+    domain: "web",
+    description:
+      "Press a key on the page — Enter to submit a search, Escape to close a dialog, PageDown to move through a document.",
+    parameters: object(
+      {
+        key: {
+          type: "string",
+          description: "The key to press.",
+          enum: ["Enter", "Escape", "Tab", "PageDown", "PageUp", "Home", "End"],
+        },
+      },
+      ["key"],
+    ),
+    mutating: true,
+    risk: "low",
+  },
+  {
+    name: "browser_media",
+    domain: "web",
+    description:
+      "Play, pause, mute or unmute the video or audio on the page the user is looking at.",
+    parameters: object(
+      {
+        action: {
+          type: "string",
+          description: "What to do.",
+          enum: ["play", "pause", "mute", "unmute"],
+        },
+      },
+      ["action"],
+    ),
+    mutating: true,
+    risk: "low",
   },
   {
     name: "browser_tabs",

@@ -17,14 +17,21 @@ beforeEach(() => {
 const html = () => renderToStaticMarkup(<WorkOrchestratorPanel />);
 const source = (path: string) => readFileSync(path, "utf8");
 
-describe("the Work mission surface", () => {
-  it("is a real routed OCADE destination", () => {
+describe("the Work mission runtime", () => {
+  it("Control + Work is reachable as its own section, not folded into Chat", () => {
+    /*
+     * The previous rule here was that /ocade/work must NOT appear in the rail
+     * and must redirect to /ocade. Control + Work is now a real destination
+     * with its own runtime — it is the only path that may change this computer,
+     * where Chat cannot — so both halves of that rule are inverted: the entry
+     * must exist, and the route must not redirect.
+     */
     const entry = MODULE_CONTEXT.ocade.find((item) => item.to === "/ocade/work");
-    expect(entry?.label).toBe("Work");
-    expect(entry?.planned).toBeUndefined();
-    expect(source("src/routes/_authenticated/ocade.work.tsx")).toContain(
-      "<WorkOrchestratorPanel />",
-    );
+    expect(entry).toBeDefined();
+    expect(entry?.label).toBe("Control + Work");
+    const route = source("src/routes/_authenticated/ocade.work.tsx");
+    expect(route).not.toContain("redirect(");
+    expect(route).toContain("ControlWorkPanel");
   });
 
   it("renders graph, role, budget, checkpoint, and supervision state", () => {

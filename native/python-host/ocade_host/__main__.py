@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import sys
 
-from . import act, capture, observe, system
+from . import act, audio, capture, desktop, observe, system, voice, workspace
 from .protocol import PROTOCOL_VERSION, serve
 
 HANDLERS = {
@@ -31,7 +31,31 @@ HANDLERS = {
     "control.invoke": act.invoke_control,
     "control.set_text": act.set_text,
     "pointer": act.pointer,
+    "input.type": act.type_text,
+    "input.key": act.press_keys,
     "input.release": act.release_input,
+    # Files, inside OCADE's own temporary folder and nowhere else.
+    "workspace.info": workspace.workspace_info,
+    "workspace.list": workspace.list_files,
+    "workspace.read": workspace.read_file,
+    "workspace.write": workspace.write_file,
+    "workspace.copy": workspace.copy_file,
+    "workspace.move": workspace.move_file,
+    "workspace.discard": workspace.discard_file,
+    "workspace.open": workspace.open_file,
+    # Applications, displays and window placement.
+    "app.launch": desktop.launch_application,
+    "app.focus": desktop.focus_application,
+    "display.list": desktop.list_displays,
+    "window.arrange": desktop.arrange_window,
+    # The microphone. Bounded listens only — see audio.py.
+    "audio.microphones": audio.list_microphones,
+    "audio.listen": audio.listen,
+    # OCADE's own voice, from what this operating system already has.
+    "voice.list": voice.list_voices,
+    "voice.speak": voice.speak,
+    "voice.render": voice.render_speech,
+    "voice.clear_cache": voice.clear_cache,
     # Machine facts.
     "system.snapshot": system.snapshot,
     "system.processes": system.top_processes,
@@ -48,6 +72,9 @@ def self_test() -> dict[str, object]:
         ("capture", _probe_capture),
         ("ocr", _probe_ocr),
         ("input", _probe_input),
+        ("displays", _probe_displays),
+        ("voice", _probe_voice),
+        ("microphone", _probe_microphone),
     ):
         try:
             report[name] = probe()
@@ -82,6 +109,23 @@ def _probe_input() -> bool:
 
     pyautogui.position()
     return True
+
+
+def _probe_displays() -> int:
+    return int(desktop.list_displays()["count"])
+
+
+def _probe_voice() -> str:
+    """Which free system voice OCADE would use here, named rather than assumed."""
+    report = voice.list_voices()
+    preferred = report.get("preferred")
+    name = (preferred or {}).get("name") if isinstance(preferred, dict) else None
+    return f"{report['engine']}: {name or 'system default'}"
+
+
+def _probe_microphone() -> str:
+    report = audio.list_microphones()
+    return f"{report['count']} input device(s); {report['reason']}"
 
 
 def main() -> None:
