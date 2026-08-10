@@ -31,6 +31,7 @@ import { Route as DemoMadeeRouteImport } from './routes/demo.madee'
 import { Route as DemoOcadeRouteImport } from './routes/demo.ocade'
 import { Route as DemoSettingsRouteImport } from './routes/demo.settings'
 import { Route as DemoTasksRouteImport } from './routes/demo.tasks'
+import { Route as DemoWorkRouteImport } from './routes/demo.work'
 import { Route as AuthenticatedAdminCountryPacksRouteImport } from './routes/_authenticated/admin.country-packs'
 import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_authenticated/admin.launch-gate'
 import { Route as AuthenticatedCaniaIndexRouteImport } from './routes/_authenticated/cania.index'
@@ -199,6 +200,11 @@ const DemoSettingsRoute = DemoSettingsRouteImport.update({
 const DemoTasksRoute = DemoTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
+  getParentRoute: () => DemoRoute,
+} as any)
+const DemoWorkRoute = DemoWorkRouteImport.update({
+  id: '/work',
+  path: '/work',
   getParentRoute: () => DemoRoute,
 } as any)
 const AuthenticatedAdminCountryPacksRoute =
@@ -565,6 +571,7 @@ export interface FileRoutesByFullPath {
   '/demo/ocade': typeof DemoOcadeRoute
   '/demo/settings': typeof DemoSettingsRoute
   '/demo/tasks': typeof DemoTasksRoute
+  '/demo/work': typeof DemoWorkRoute
   '/demo/': typeof DemoIndexRoute
   '/admin/country-packs': typeof AuthenticatedAdminCountryPacksRouteWithChildren
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
@@ -642,6 +649,7 @@ export interface FileRoutesByTo {
   '/demo/ocade': typeof DemoOcadeRoute
   '/demo/settings': typeof DemoSettingsRoute
   '/demo/tasks': typeof DemoTasksRoute
+  '/demo/work': typeof DemoWorkRoute
   '/demo': typeof DemoIndexRoute
   '/admin/country-packs': typeof AuthenticatedAdminCountryPacksRouteWithChildren
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
@@ -726,6 +734,7 @@ export interface FileRoutesById {
   '/demo/ocade': typeof DemoOcadeRoute
   '/demo/settings': typeof DemoSettingsRoute
   '/demo/tasks': typeof DemoTasksRoute
+  '/demo/work': typeof DemoWorkRoute
   '/demo/': typeof DemoIndexRoute
   '/_authenticated/admin/country-packs': typeof AuthenticatedAdminCountryPacksRouteWithChildren
   '/_authenticated/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
@@ -810,6 +819,7 @@ export interface FileRouteTypes {
     | '/demo/ocade'
     | '/demo/settings'
     | '/demo/tasks'
+    | '/demo/work'
     | '/demo/'
     | '/admin/country-packs'
     | '/admin/launch-gate'
@@ -887,6 +897,7 @@ export interface FileRouteTypes {
     | '/demo/ocade'
     | '/demo/settings'
     | '/demo/tasks'
+    | '/demo/work'
     | '/demo'
     | '/admin/country-packs'
     | '/admin/launch-gate'
@@ -970,6 +981,7 @@ export interface FileRouteTypes {
     | '/demo/ocade'
     | '/demo/settings'
     | '/demo/tasks'
+    | '/demo/work'
     | '/demo/'
     | '/_authenticated/admin/country-packs'
     | '/_authenticated/admin/launch-gate'
@@ -1195,6 +1207,13 @@ declare module '@tanstack/react-router' {
       path: '/tasks'
       fullPath: '/demo/tasks'
       preLoaderRoute: typeof DemoTasksRouteImport
+      parentRoute: typeof DemoRoute
+    }
+    '/demo/work': {
+      id: '/demo/work'
+      path: '/work'
+      fullPath: '/demo/work'
+      preLoaderRoute: typeof DemoWorkRouteImport
       parentRoute: typeof DemoRoute
     }
     '/_authenticated/admin/country-packs': {
@@ -1878,6 +1897,7 @@ interface DemoRouteChildren {
   DemoOcadeRoute: typeof DemoOcadeRoute
   DemoSettingsRoute: typeof DemoSettingsRoute
   DemoTasksRoute: typeof DemoTasksRoute
+  DemoWorkRoute: typeof DemoWorkRoute
   DemoIndexRoute: typeof DemoIndexRoute
 }
 
@@ -1889,6 +1909,7 @@ const DemoRouteChildren: DemoRouteChildren = {
   DemoOcadeRoute: DemoOcadeRoute,
   DemoSettingsRoute: DemoSettingsRoute,
   DemoTasksRoute: DemoTasksRoute,
+  DemoWorkRoute: DemoWorkRoute,
   DemoIndexRoute: DemoIndexRoute,
 }
 

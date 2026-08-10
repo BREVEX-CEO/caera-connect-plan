@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Settings2, Lock, Unlock } from "lucide-react";
+import { ArrowLeft, Settings2, Lock, Unlock, MonitorCog } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ChatShell } from "@/components/ocade/chat/ChatShell";
@@ -578,6 +578,21 @@ function DemoOcade() {
                 look like an audit tool before they had sent a message.
                 The evidence still exists behind Chat's diagnostics switch.
               */}
+              {/*
+                The demo's own way into Control + Work.
+
+                Chat and Control + Work are the two things OCADE does, and the
+                demo showed only one of them. The link says which is which, so
+                nobody has to discover that the other exists — or wonder why the
+                chat they are in will not open their applications.
+              */}
+              <Link
+                to="/demo/work"
+                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-muted-foreground transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <MonitorCog className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                Control + Work
+              </Link>
               <Link
                 to="/settings"
                 className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-muted-foreground transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

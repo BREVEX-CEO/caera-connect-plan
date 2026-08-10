@@ -1328,8 +1328,27 @@ fn main() {
             });
             match app.state::<Companion>().app_server.start(&app_entry) {
                 Ok(origin) => {
-                    let url = tauri::Url::parse(&origin)
+                    /*
+                     * The window opens at the application root, unless a local
+                     * start path is named.
+                     *
+                     * `OCADE_START_PATH` exists so a specific surface can be
+                     * opened directly during local testing and acceptance runs
+                     * — reaching Demo Control + Work otherwise means clicking
+                     * through the landing page every launch.
+                     *
+                     * It is a PATH, never a URL: the origin is always the
+                     * loopback server this shell just started, so this can move
+                     * the window within OCADE and can never point it at
+                     * somewhere else.
+                     */
+                    let mut url = tauri::Url::parse(&origin)
                         .map_err(|_| std::io::Error::other("Invalid application origin."))?;
+                    if let Ok(path) = std::env::var("OCADE_START_PATH") {
+                        if path.starts_with('/') && !path.starts_with("//") {
+                            url.set_path(&path);
+                        }
+                    }
                     tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::External(url))
                         .title("OCADE")
                         .inner_size(1280.0, 860.0)
