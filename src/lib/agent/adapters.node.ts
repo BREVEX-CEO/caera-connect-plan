@@ -264,6 +264,27 @@ export class OcadeAdapters {
    * falls through to it automatically and the reply says which source answered.
    */
   private async screenObserve(args: Record<string, unknown>): Promise<ToolOutcome> {
+    /*
+     * The engine's screen read runs the same ladder — UI Automation first, a
+     * capture only when the window described itself with fewer than ten nodes —
+     * and returns the open-window list in the same call, so the loop sees the
+     * whole picture in one round trip instead of three.
+     */
+    const viaEngine = await this.viaEngine<{ detail: string; elementCount: number }>(
+      "screen.observe",
+      {
+        ...(typeof args.windowTitle === "string" ? { windowTitle: args.windowTitle } : {}),
+        ...(args.includeText === "yes" ? { includeText: "yes" } : {}),
+      },
+    );
+    if (viaEngine) {
+      if (!viaEngine.ok) return outcomeFor(viaEngine, "The screen could not be read.");
+      return {
+        ...ok(viaEngine.data, viaEngine.data?.detail ?? "Read the screen."),
+        observation: viaEngine.data,
+      };
+    }
+
     const host = this.pythonHost();
     const wanted = typeof args.windowTitle === "string" ? args.windowTitle.toLowerCase() : null;
 
@@ -558,6 +579,19 @@ export class OcadeAdapters {
   /* ----------------------------------------------- the temporary folder -- */
 
   private async workspaceList(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const viaEngine = await this.viaEngine<{ detail: string; verified: boolean }>("workspace", {
+      action: "list",
+      ...{},
+    });
+    if (viaEngine) {
+      if (!viaEngine.ok) return outcomeFor(viaEngine, "The folder could not be read.");
+      return {
+        ...ok(viaEngine.data, viaEngine.data?.detail ?? "Done."),
+        verified: viaEngine.data?.verified,
+        observation: viaEngine.data,
+      };
+    }
+
     const reply = await this.pythonHost().request<{ detail: string; count: number }>(
       "workspace.list",
       { match: typeof args.match === "string" ? args.match : "" },
@@ -567,6 +601,19 @@ export class OcadeAdapters {
   }
 
   private async workspaceRead(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const viaEngine = await this.viaEngine<{ detail: string; verified: boolean }>("workspace", {
+      action: "read",
+      ...{ name: text(args.name, "name") },
+    });
+    if (viaEngine) {
+      if (!viaEngine.ok) return outcomeFor(viaEngine, "That file could not be read.");
+      return {
+        ...ok(viaEngine.data, viaEngine.data?.detail ?? "Done."),
+        verified: viaEngine.data?.verified,
+        observation: viaEngine.data,
+      };
+    }
+
     const reply = await this.pythonHost().request<{ detail: string; content: string }>(
       "workspace.read",
       { name: text(args.name, "name") },
@@ -576,6 +623,19 @@ export class OcadeAdapters {
   }
 
   private async workspaceWrite(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const viaEngine = await this.viaEngine<{ detail: string; verified: boolean }>("workspace", {
+      action: "write",
+      ...{ name: text(args.name, "name"), content: text(args.content, "content") },
+    });
+    if (viaEngine) {
+      if (!viaEngine.ok) return outcomeFor(viaEngine, "That file could not be written.");
+      return {
+        ...ok(viaEngine.data, viaEngine.data?.detail ?? "Done."),
+        verified: viaEngine.data?.verified,
+        observation: viaEngine.data,
+      };
+    }
+
     const reply = await this.pythonHost().request<{ detail: string; verified: boolean }>(
       "workspace.write",
       { name: text(args.name, "name"), content: text(args.content, "content") },

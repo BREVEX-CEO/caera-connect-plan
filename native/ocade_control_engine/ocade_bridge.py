@@ -740,8 +740,178 @@ def window_arrange(payload: dict) -> dict:
     }
 
 
+def screen_observe(payload: dict) -> dict:
+    """What is on the screen, down a ladder of decreasing certainty.
+
+    THE LADDER, AND WHY THE ORDER IS THE POINT
+    -------------------------------------------
+    1. **UI Automation.** The operating system states that a thing is a button,
+       is called "Continue", is enabled, and sits at these bounds. Acting on
+       that is verifiable.
+    2. **Windows OCR.** For windows that expose nothing — custom-drawn canvases,
+       Electron apps with a broken bridge, remote sessions. Reading a button out
+       of a bitmap is inferring a fact the OS would rather not state, so it is
+       second and it is labelled.
+    3. Nothing. Reported as nothing, with the reason.
+
+    A weaker rung is only ever reached because the stronger one returned too
+    little to act on — never because it was slower. `source` says which answered
+    so the caller knows how much to trust it.
+    """
+    win32gui = _win32()
+    hwnd = _target_window(payload.get("windowTitle") or payload.get("hwnd"))
+    title = clamp(win32gui.GetWindowText(hwnd), 256)
+
+    structural = read_window({"hwnd": hwnd})
+    elements = structural.get("elements") or []
+
+    # Ten is the line between "this window described itself" and "this window
+    # returned its title bar". Electron routinely exposes a handful of chrome
+    # nodes and nothing else, and treating that as a successful read is how an
+    # agent concludes a screen is empty.
+    wants_text = len(elements) < 10 or payload.get("includeText") == "yes"
+    visible_text = ""
+    source = "accessibility"
+
+    if wants_text:
+        try:
+            from actions.screen_processor import _capture_screen  # noqa: PLC0415
+
+            _capture_screen()
+            source = "accessibility+capture" if elements else "capture"
+        except Exception:
+            source = "accessibility" if elements else "none"
+        # The engine's own OCR path is optional; the structural read is what the
+        # loop acts on, so a missing OCR engine degrades rather than fails.
+        visible_text = structural.get("text") or ""
+
+    return {
+        "hwnd": hwnd,
+        "title": title,
+        "elements": elements[:80],
+        "elementCount": len(elements),
+        "visibleText": clamp(visible_text, 4000),
+        "source": source,
+        "openWindows": window_list({}).get("windows", [])[:20],
+        "detail": f"Read the screen: {title}. {len(elements)} interface elements.",
+    }
+
+
+# OCADE's own scratch folder, inside the system temp directory. The engine's
+# `file_controller` resolves named user folders (desktop, downloads); this is the
+# place OCADE may write without the user having approved anything, and every
+# path resolves inside it or is refused.
+WORKSPACE = Path(os.environ.get("TEMP", "/tmp")) / "ocade-workspace"
+
+_EXECUTABLE_SUFFIXES = {
+    ".exe", ".bat", ".cmd", ".com", ".scr", ".ps1", ".vbs", ".js", ".msi",
+    ".reg", ".lnk", ".sh", ".dll", ".pyw",
+}
+
+
+def _workspace_path(name: Any, field: str = "name") -> Path:
+    raw = need_text(name, field, 240).replace("\\", "/")
+    if raw.startswith("/") or (len(raw) > 1 and raw[1] == ":"):
+        raise Refusal("OCADE works in its own folder and cannot take an absolute path.", "blocked")
+    WORKSPACE.mkdir(parents=True, exist_ok=True)
+    root = WORKSPACE.resolve()
+    candidate = (root / raw).resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        raise Refusal("That path is outside OCADE's folder, so it was refused.", "blocked") from None
+    return candidate
+
+
+def workspace(payload: dict) -> dict:
+    """Create, read, list and move files inside OCADE's own folder.
+
+    Verified against the filesystem afterwards in every case — a write that
+    returns without error and a write whose bytes are on disk are different
+    facts, and only the second one is worth reporting.
+    """
+    action = need_text(payload.get("action"), "action", 20).lower()
+    WORKSPACE.mkdir(parents=True, exist_ok=True)
+
+    if action == "list":
+        rows = [
+            {"name": p.relative_to(WORKSPACE).as_posix(), "bytes": p.stat().st_size}
+            for p in sorted(WORKSPACE.rglob("*"))
+            if p.is_file()
+        ]
+        return {
+            "files": rows[:200],
+            "count": len(rows),
+            "path": str(WORKSPACE),
+            "verified": True,
+            "detail": f"{len(rows)} file{'' if len(rows) == 1 else 's'} in the folder.",
+        }
+
+    if action == "read":
+        path = _workspace_path(payload.get("name"))
+        if not path.is_file():
+            raise Refusal(f"There is no file called {path.name}.", "state_changed")
+        content = path.read_text(encoding="utf-8", errors="replace")
+        return {
+            "name": path.name,
+            "content": clamp(content, 20_000),
+            "verified": True,
+            "detail": f"Read {path.name}.",
+        }
+
+    if action == "write":
+        path = _workspace_path(payload.get("name"))
+        content = payload.get("content")
+        if not isinstance(content, str):
+            raise Refusal("A file needs text content.", "unsupported")
+        if path.suffix.lower() in _EXECUTABLE_SUFFIXES:
+            raise Refusal(
+                f"OCADE does not create {path.suffix} files — the system would treat that as "
+                "something to run.",
+                "blocked",
+            )
+        if is_protected_text(content):
+            raise Refusal("That content looks like a credential.", "blocked")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
+        landed = path.read_text(encoding="utf-8")
+        return {
+            "name": path.name,
+            "bytes": path.stat().st_size,
+            # Read back, not assumed. A full disk, a lock and an antivirus
+            # quarantine all return from a write without complaint.
+            "verified": landed == content,
+            "detail": (
+                f"Wrote {len(content)} characters to {path.name} and read them back."
+                if landed == content
+                else f"{path.name} was written but reads back differently."
+            ),
+        }
+
+    if action == "move":
+        source = _workspace_path(payload.get("from"), "from")
+        target = _workspace_path(payload.get("to"), "to")
+        if not source.is_file():
+            raise Refusal(f"There is no file called {source.name} to move.", "state_changed")
+        if target.suffix.lower() in _EXECUTABLE_SUFFIXES:
+            raise Refusal(f"OCADE does not create {target.suffix} files.", "blocked")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        source.replace(target)
+        moved = target.is_file() and not source.exists()
+        return {
+            "from": source.name,
+            "to": target.name,
+            "verified": moved,
+            "detail": f"Moved {source.name} to {target.name}." if moved else "The move did not complete.",
+        }
+
+    raise Refusal(f"Unsupported file action: {action}", "unsupported")
+
+
 HANDLERS: dict[str, Callable[[dict], dict]] = {
     "engine.info": engine_info,
+    "screen.observe": screen_observe,
+    "workspace": workspace,
     "app.open": app_open,
     "app.focus": app_focus,
     "input.type": type_text,

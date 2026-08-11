@@ -151,9 +151,56 @@ class TestTheProtocol:
             "window.list",
             "window.arrange",
             "files",
+            "workspace",
+            "screen.observe",
             "system.status",
         ):
             assert command in bridge.HANDLERS, command
+
+
+class TestTheWorkspaceIsOneFolder:
+    """Every path resolves inside OCADE's own folder or is refused."""
+
+    def test_a_relative_escape_is_refused_rather_than_clamped(self) -> None:
+        with pytest.raises(bridge.Refusal) as caught:
+            bridge.workspace({"action": "write", "name": "../escaped.txt", "content": "no"})
+        assert caught.value.code == "blocked"
+
+    def test_an_absolute_path_is_refused(self) -> None:
+        with pytest.raises(bridge.Refusal):
+            bridge.workspace({"action": "write", "name": "C:/Windows/x.txt", "content": "no"})
+
+    @pytest.mark.parametrize("name", ["run.bat", "go.ps1", "thing.exe", "x.vbs"])
+    def test_files_the_system_would_run_are_refused(self, name: str) -> None:
+        with pytest.raises(bridge.Refusal) as caught:
+            bridge.workspace({"action": "write", "name": name, "content": "echo"})
+        assert caught.value.code == "blocked"
+
+    def test_a_credential_is_never_written_to_disk(self) -> None:
+        with pytest.raises(bridge.Refusal):
+            bridge.workspace({"action": "write", "name": "n.txt", "content": "my password is x"})
+
+    def test_write_read_move_are_each_verified_against_the_filesystem(self) -> None:
+        written = bridge.workspace(
+            {"action": "write", "name": "regression.txt", "content": "verified by readback"}
+        )
+        assert written["verified"] is True
+        assert bridge.workspace({"action": "read", "name": "regression.txt"})["content"] == (
+            "verified by readback"
+        )
+        moved = bridge.workspace(
+            {"action": "move", "from": "regression.txt", "to": "regression-moved.txt"}
+        )
+        assert moved["verified"] is True
+
+    def test_reading_a_file_that_is_not_there_says_so(self) -> None:
+        with pytest.raises(bridge.Refusal) as caught:
+            bridge.workspace({"action": "read", "name": "definitely-absent.txt"})
+        assert caught.value.code == "state_changed"
+
+    def test_an_unsupported_action_is_refused(self) -> None:
+        with pytest.raises(bridge.Refusal):
+            bridge.workspace({"action": "shred", "name": "x.txt"})
 
 
 class TestTheProtocolChannelStaysClean:
