@@ -57,6 +57,15 @@ export async function resolveAdapterConfig(): Promise<AdapterConfigResult> {
   const pythonExecutable = pythonExecutableFor(root);
   const pythonHostDir = resolve(root, "native/python-host");
   const browserHostEntry = resolve(root, "native/browser-host/index.mjs");
+  /*
+   * The Mark-L control engine's headless door.
+   *
+   * Resolved like the other sidecars — from the project root, checked for
+   * existence, reported missing rather than substituted. It runs on the same
+   * OCADE-owned interpreter as the other Python host, so there is still exactly
+   * one interpreter path in this file and no way for a caller to name another.
+   */
+  const engineBridgeEntry = resolve(root, "native/ocade_control_engine/ocade_bridge.py");
 
   const missing: string[] = [];
   if (!existsSync(pythonExecutable)) missing.push("the computer-control host (Python environment)");
@@ -64,6 +73,7 @@ export async function resolveAdapterConfig(): Promise<AdapterConfigResult> {
     missing.push("the computer-control host (program files)");
   }
   if (!existsSync(browserHostEntry)) missing.push("the managed-browser host");
+  if (!existsSync(engineBridgeEntry)) missing.push("the control engine");
 
   if (missing.length > 0) {
     return {
@@ -73,5 +83,8 @@ export async function resolveAdapterConfig(): Promise<AdapterConfigResult> {
     };
   }
 
-  return { ok: true, config: { pythonExecutable, pythonHostDir, browserHostEntry } };
+  return {
+    ok: true,
+    config: { pythonExecutable, pythonHostDir, browserHostEntry, engineBridgeEntry },
+  };
 }

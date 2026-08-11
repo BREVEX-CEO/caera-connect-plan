@@ -36,6 +36,8 @@ export interface AdapterConfig {
   pythonHostDir: string;
   /** Absolute path to `native/browser-host/index.mjs`. */
   browserHostEntry: string;
+  /** Absolute path to the control engine's headless bridge. */
+  engineBridgeEntry: string;
   nodeExecutable?: string;
   /** Folders the user has approved for file work. Nothing outside is reachable. */
   approvedFolders?: string[];
@@ -92,6 +94,7 @@ function humanCheckIn(reply: HostReply): ToolOutcome | null {
 export class OcadeAdapters {
   private python: NativeHostClient | null = null;
   private browser: NativeHostClient | null = null;
+  private engine: NativeHostClient | null = null;
   private browserSession: string | null = null;
 
   constructor(private readonly config: AdapterConfig) {}
@@ -108,6 +111,46 @@ export class OcadeAdapters {
     return this.python;
   }
 
+  /**
+   * The Mark-L control engine, as OCADE's primary executor.
+   *
+   * PRIMARY, NOT ADDITIONAL. Where the engine implements an action — opening an
+   * application, typing into a window, reading one — it is what runs, and the
+   * older `ocade_host` path is the fallback for the case where the engine
+   * refuses or is not installed. Two executors racing for the same job is how a
+   * product ends up with two behaviours for one button.
+   */
+  private engineHost(): NativeHostClient {
+    this.engine ??= new NativeHostClient({
+      command: this.config.pythonExecutable,
+      args: [this.config.engineBridgeEntry],
+      cwd: this.config.pythonHostDir,
+      label: "The control engine",
+      timeoutMs: 45_000,
+    });
+    return this.engine;
+  }
+
+  /**
+   * Run a command on the engine, falling back only on a REFUSAL OR ABSENCE.
+   *
+   * A failure that means "the engine cannot do this here" falls through to the
+   * old path. A failure that means "this did not work" does NOT: retrying the
+   * same impossible thing on a second executor produces two error messages
+   * instead of one and hides which layer actually broke.
+   */
+  private async viaEngine<T = unknown>(
+    command: string,
+    payload: Record<string, unknown>,
+    timeoutMs?: number,
+  ): Promise<HostReply<T> | null> {
+    const reply = await this.engineHost().request<T>(command, payload, { timeoutMs });
+    if (!reply.ok && (reply.code === "unsupported" || reply.code === "retryable_failure")) {
+      return null;
+    }
+    return reply;
+  }
+
   private browserHost(): NativeHostClient {
     this.browser ??= new NativeHostClient({
       command: this.config.nodeExecutable ?? process.execPath,
@@ -121,8 +164,10 @@ export class OcadeAdapters {
   dispose(): void {
     this.python?.dispose();
     this.browser?.dispose();
+    this.engine?.dispose();
     this.python = null;
     this.browser = null;
+    this.engine = null;
     this.browserSession = null;
   }
 
@@ -335,6 +380,27 @@ export class OcadeAdapters {
    */
   private async appOpen(args: Record<string, unknown>): Promise<ToolOutcome> {
     const name = text(args.name, "name");
+
+    /*
+     * THE ENGINE FIRST. Its `open_app` normalises names across three platforms
+     * and knows about store apps and shell verbs; the bridge then confirms a
+     * window that was not there before now is. That is a better launcher AND a
+     * real verification, so it leads.
+     */
+    const viaEngine = await this.viaEngine<{
+      detail: string;
+      verified: boolean;
+      title: string;
+    }>("app.open", { name }, 30_000);
+    if (viaEngine) {
+      if (!viaEngine.ok) return outcomeFor(viaEngine, `${name} could not be opened.`);
+      return {
+        ...ok(viaEngine.data, viaEngine.data?.detail ?? `Opened ${name}.`),
+        verified: viaEngine.data?.verified,
+        observation: viaEngine.data,
+      };
+    }
+
     const reply = await this.pythonHost().request<{
       application: string;
       detail: string;
@@ -358,6 +424,21 @@ export class OcadeAdapters {
 
   private async appFocus(args: Record<string, unknown>): Promise<ToolOutcome> {
     const name = text(args.name, "name");
+
+    const viaEngine = await this.viaEngine<{ detail: string; verified: boolean | null }>(
+      "app.focus",
+      { name },
+    );
+    if (viaEngine) {
+      if (!viaEngine.ok)
+        return outcomeFor(viaEngine, "That application could not be brought to the front.");
+      return {
+        ...ok(viaEngine.data, viaEngine.data?.detail ?? "Done."),
+        verified: viaEngine.data?.verified ?? undefined,
+        observation: viaEngine.data,
+      };
+    }
+
     const reply = await this.pythonHost().request<{ detail: string; verified: boolean }>(
       "app.focus",
       { name },
@@ -379,6 +460,22 @@ export class OcadeAdapters {
   }
 
   private async windowArrange(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const viaEngine = await this.viaEngine<{ detail: string; verified: boolean | null }>(
+      "window.arrange",
+      {
+        layout: typeof args.layout === "string" ? args.layout : "maximise",
+        ...(typeof args.windowTitle === "string" ? { windowTitle: args.windowTitle } : {}),
+      },
+    );
+    if (viaEngine) {
+      if (!viaEngine.ok) return outcomeFor(viaEngine, "That window could not be moved.");
+      return {
+        ...ok(viaEngine.data, viaEngine.data?.detail ?? "Done."),
+        verified: viaEngine.data?.verified ?? undefined,
+        observation: viaEngine.data,
+      };
+    }
+
     const hwnd = await this.resolveWindow(args);
     if (hwnd === null) return fail("state_changed", "That window is not open.");
     const display = Number(args.display);
@@ -401,6 +498,26 @@ export class OcadeAdapters {
   /* ------------------------------------------------ keyboard and text -- */
 
   private async typeText(args: Record<string, unknown>): Promise<ToolOutcome> {
+    // The engine's bridge runs the UI-Automation-first ladder and reads the
+    // field back through a separate walk, which is exactly the discipline this
+    // tool needs, so it leads here too.
+    const viaEngine = await this.viaEngine<{
+      detail: string;
+      verified: boolean | null;
+      method: string;
+    }>("input.type", {
+      text: text(args.text, "text"),
+      ...(typeof args.windowTitle === "string" ? { windowTitle: args.windowTitle } : {}),
+    });
+    if (viaEngine) {
+      if (!viaEngine.ok) return outcomeFor(viaEngine, "That text could not be typed.");
+      return {
+        ...ok(viaEngine.data, viaEngine.data?.detail ?? "Typed the text."),
+        verified: viaEngine.data?.verified ?? undefined,
+        observation: viaEngine.data,
+      };
+    }
+
     const hwnd = await this.resolveWindow(args);
     const reply = await this.pythonHost().request<{
       detail: string;

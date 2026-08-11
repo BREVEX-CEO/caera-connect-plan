@@ -18,7 +18,7 @@
  *
  * So the rule is now: THERE IS ONE MODEL, AND NOTHING CHOOSES.
  *
- *   every platform → Qwen2.5-Coder 7B, Q4_K_M, ~4.7 GB
+ *   every platform → Qwen3 4B, Q4_K_M, ~2.5 GB
  *
  * ONE MODEL RATHER THAN ONE PER FORM FACTOR, and that changed for a reason.
  * A desktop 8B and a mobile 1.7B meant Control + Work behaved differently on a
@@ -29,11 +29,16 @@
  * form factor decides only HOW the model is hosted — an HTTP runtime on a
  * desktop, an in-process build on a phone — never WHICH model answers.
  *
- * WHY A CODER MODEL FOR AN ASSISTANT. Control + Work's hot path is emitting a
- * strictly-shaped JSON tool call and nothing else. That is the task a
- * code-tuned model is best at, and it is the task the general model was worst
- * at: measured on this machine, the general small model wrapped its calls in
- * prose and announced steps it never took.
+ * WHY 4B RATHER THAN THE 7B IT REPLACED. Measured on this machine: the 7B took
+ * 138-183 s for a two-step Control + Work task and over two minutes just to
+ * load. 4B is 2.5 GB rather than 4.7 GB, which is the difference between a
+ * model a phone can host and one it cannot — and the whole point of a single
+ * model is that the phone and the laptop run the same thing.
+ *
+ * WHY A THINKING MODEL, WITH THINKING SPENT DELIBERATELY. Qwen3 can reason
+ * before it answers, and that is worth paying for in Chat and worth refusing in
+ * Control + Work. See `thinkingFor` below: it is the second half of this
+ * decision and lives here so the two cannot drift apart.
  *
  * WHAT IS DELIBERATELY KEPT
  * -------------------------
@@ -101,18 +106,60 @@ export interface FixedModelSpec {
  * the model for the whole product, which is the point — there is no second
  * place to look.
  */
-export const OCADE_MODEL_ID = "qwen2.5-coder:7b";
+export const OCADE_MODEL_ID = "qwen3:4b";
 
 export const FIXED_MODEL: FixedModelSpec = {
   id: OCADE_MODEL_ID,
-  family: "Qwen2.5-Coder",
-  parameters: "7B",
+  family: "Qwen3",
+  parameters: "4B",
   quantisation: "Q4_K_M",
-  approxBytes: 4_683_073_184,
+  approxBytes: 2_497_281_408,
   runtime: "gguf_http",
   formFactor: "desktop",
   vision: false,
 };
+
+/**
+ * The two rooms OCADE answers in, and the only thing that differs between them.
+ */
+export type OcadeSurface = "chat" | "control";
+
+/**
+ * Whether the model reasons before answering, per surface.
+ *
+ * BOTH SURFACES REASON, AND THE REASON FOR CONTROL IS A MEASUREMENT
+ * ------------------------------------------------------------------
+ * The obvious setting for Control + Work is `think: false` — the turn is "emit
+ * one JSON action", which is not a reasoning problem, so switching thinking off
+ * should be faster and cleaner. It is neither, and this was measured against
+ * qwen3:4b on the target machine with the same prompt, warm:
+ *
+ *   think:false              24.2 s   content: "Okay, the user is asking what's
+ *                                     on their screen. Since I control the…"
+ *                                     — the reasoning, in the content field,
+ *                                     with the JSON buried after it.
+ *   think:false + /no_think  38.4 s   worse: it reasons ABOUT the token.
+ *   think:true               25.7 s   content: {"tool":"screen_observe",
+ *                                              "arguments":{}}
+ *
+ * `think: false` does not stop Qwen3 reasoning. It stops OLLAMA SEPARATING the
+ * reasoning, so it lands in `content` — the exact channel the tool parser reads
+ * — at no speed benefit whatsoever. With thinking on, the reasoning goes to its
+ * own `thinking` field and `content` is a clean, parseable tool call.
+ *
+ * So the rule is: reason on both surfaces, and let the runtime keep the
+ * reasoning out of the answer. The real latency win for PC control comes from
+ * not calling the model at all — see `work/fast-router.ts`, which answers
+ * deterministic instructions in under a millisecond.
+ *
+ * A FUNCTION, NOT A CONSTANT, because the day a model handles `think:false`
+ * properly this is the one line to change, and the measurement above is the
+ * evidence to re-take before changing it.
+ */
+export function thinkingFor(surface: OcadeSurface): boolean {
+  void surface;
+  return true;
+}
 
 export function formFactorOf(platform: OcadePlatform): OcadeFormFactor {
   return platform === "android" || platform === "ios" ? "mobile" : "desktop";

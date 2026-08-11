@@ -25,7 +25,15 @@ export function useMissionBrain(): {
   /** Load the weights now. Called when Control + Work opens. */
   warm: () => void;
 } {
-  const engine = useLocalChatEngine();
+  /*
+   * CONTROL + WORK DOES NOT THINK OUT LOUD.
+   *
+   * Declared here rather than left to the default because this is the surface
+   * where the difference is felt: the turn is "emit one JSON action", a
+   * reasoning pass buys nothing for that, and it costs seconds while the user
+   * watches their own mouse. `thinkingFor` owns the rule; this names the room.
+   */
+  const engine = useLocalChatEngine({ surface: "control" });
 
   const brain = useCallback<MissionBrain>(
     async (messages, onToken, signal) => {

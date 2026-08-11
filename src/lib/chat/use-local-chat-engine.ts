@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useBrain } from "../brain/use-brain";
 import { resolveEngine, type EngineContext } from "../engine/resolve";
 import type { BrainMessage, RemedyAction } from "../brain/adapter";
+import { thinkingFor, type OcadeSurface } from "../local/fixed-model";
 
 /**
  * One on-device chat engine, shared by the demo and the signed-in product.
@@ -80,6 +81,15 @@ export interface SendResult {
  * account — can omit all of it and still get the right answer.
  */
 export interface ChatEngineContext {
+  /**
+   * Which room this engine is answering in.
+   *
+   * The ONLY thing it changes is whether the model reasons before replying —
+   * `thinkingFor` in `local/fixed-model.ts` owns that decision. Defaults to
+   * `chat`, because a caller that has not thought about it is a chat surface,
+   * and thinking on is the safer default for an answer a person will read.
+   */
+  surface?: OcadeSurface;
   preference?: EngineContext["preference"];
   privacyMode?: EngineContext["privacyMode"];
   cloudConfigured?: boolean;
@@ -253,6 +263,8 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
       let sawToken = false;
       const result = await outcome.adapter.stream(messages, {
         signal: controller.signal,
+        // Chat reasons; Control + Work does not. One authority decides.
+        think: thinkingFor(context.surface ?? "chat"),
         onToken: (chunk) => {
           /*
            * The first token is what turns "preparing" into a visibly working
@@ -289,7 +301,9 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
       });
       return { ok: false, reason: result.reason };
     },
-    [apply, decide, contextVision],
+    // `context.surface` decides whether the model reasons, so a screen that
+    // changed rooms must not keep streaming with the previous room's setting.
+    [apply, decide, contextVision, context.surface],
   );
 
   const stop = useCallback(() => {

@@ -99,7 +99,8 @@ interface DemoTurn {
 
 function DemoOcade() {
   const navigate = useNavigate();
-  const engine = useLocalChatEngine();
+  // Chat reasons before it answers. See `thinkingFor` in local/fixed-model.ts.
+  const engine = useLocalChatEngine({ surface: "chat" });
   const [turns, setTurns] = useState<DemoTurn[]>([]);
   const [draft, setDraft] = useState("");
   const [streaming, setStreaming] = useState(false);

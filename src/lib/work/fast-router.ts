@@ -390,6 +390,22 @@ export function routeDirect(request: string): DirectRoute | null {
     };
   }
 
+  /* ------------------------------------------------------- keyboard -- */
+  // Named keys only, and only when the sentence is about pressing one. "press
+  // enter" is unambiguous; "press the blue button" is not, and falls through.
+  const key =
+    /^press (?:the )?(enter|return|escape|esc|tab|space|backspace|delete|page ?down|page ?up|home|end|f\d{1,2})\b/i.exec(
+      text,
+    );
+  if (key) {
+    const named = key[1].toLowerCase().replace(/\s+/g, "").replace("return", "enter");
+    return {
+      calls: [{ name: "press_key", arguments: { key: named } }],
+      say: `Pressing ${named}.`,
+      rule: "input.key",
+    };
+  }
+
   /* ------------------------------------------------------------- files -- */
   if (
     /\bwhat (files|notes) (are |do you have )?(in your folder|saved)\b|\blist your files\b/i.test(
