@@ -99,21 +99,46 @@ export interface FixedModelSpec {
 }
 
 /**
- * ~4.7 GB. Every OCADE installation, on every platform, gets exactly this.
+ * ~1.9 GB. Every OCADE installation, on every platform, gets exactly this.
  *
  * The id is the runtime's own name for it and is never shown to a user; the
  * interface says "OCADE Local" and nothing else. Changing this constant changes
  * the model for the whole product, which is the point — there is no second
  * place to look.
+ *
+ * WHY THIS IS QWEN2.5 AND NOT QWEN3
+ * ---------------------------------
+ * qwen3:4b cannot be stopped from reasoning. Its chat template ends the
+ * generation prompt with an unconditional `<think>` — no guard on the line —
+ * so every single generation begins inside a reasoning block whatever the
+ * request asks for, and Ollama's `think` field only decides which field the
+ * reasoning is filed under. Driving `/api/generate` with `raw:true` and a
+ * prompt that closes the block immediately did not help either: still 40
+ * seconds of "Okay, let's see, the user wants..." before anything usable.
+ *
+ * For Chat that is a cost. For Control + Work it was a defect, because the
+ * reasoning consumed the whole token budget before the tool call was written:
+ *
+ *     num_predict 300    no tool call at all      24 s
+ *     num_predict 800    no tool call at all      83 s
+ *     num_predict 2000   tool call, finally       125 s  (+94 s next turn)
+ *
+ * A tool call that never arrives is not a slow success. Qwen2.5 has no forced
+ * thinking block, supports Ollama tool calling, and at 3B is smaller than the
+ * model it replaces — so the reasoning tax disappears and the weights are
+ * ~600 MB lighter to download on first run.
+ *
+ * `scripts/measure-thinking-modes.mjs` is how these numbers were taken, and
+ * how to re-take them before changing this line again.
  */
-export const OCADE_MODEL_ID = "qwen3:4b";
+export const OCADE_MODEL_ID = "qwen2.5:3b";
 
 export const FIXED_MODEL: FixedModelSpec = {
   id: OCADE_MODEL_ID,
-  family: "Qwen3",
-  parameters: "4B",
+  family: "Qwen2.5",
+  parameters: "3B",
   quantisation: "Q4_K_M",
-  approxBytes: 2_497_281_408,
+  approxBytes: 1_929_000_000,
   runtime: "gguf_http",
   formFactor: "desktop",
   vision: false,
@@ -170,10 +195,58 @@ export type OcadeSurface = "chat" | "control";
  * re-take the measurement before changing it.
  */
 export function thinkingFor(surface: OcadeSurface, preference?: boolean): boolean {
-  // Control never reasons: it has to emit a call the loop can run.
+  // Control never deliberates: it has to emit a call the loop can run.
   if (surface === "control") return false;
-  // Chat is the user's choice, and reasons unless they turn it off.
+  // Chat is the user's choice, and deliberates unless they turn it off.
   return preference ?? true;
+}
+
+/**
+ * Whether Ollama's `think` field may be sent for this model at all.
+ *
+ * IT MAY NOT, AND SENDING IT IS A 400 RATHER THAN A NO-OP.
+ *
+ *   POST /api/chat  {"model":"qwen2.5:3b","think":true}
+ *   → 400 {"error":"\"qwen2.5:3b\" does not support thinking"}
+ *
+ * Qwen2.5 has no reasoning mode to switch, so Ollama rejects the field rather
+ * than ignoring it. `think:false` happens to be accepted today, but relying on
+ * one of two values being tolerated is relying on an implementation detail —
+ * and the failure is a hard error that would take Chat down entirely, not a
+ * degraded answer somebody notices later.
+ *
+ * So the field is not sent. This function exists so that decision is made in
+ * one place with the evidence attached, rather than as an omission somebody
+ * later "fixes" by adding the flag back.
+ */
+export function supportsThinkingField(modelId: string = OCADE_MODEL_ID): boolean {
+  // Qwen3 accepts it (and ignores it in practice — see the note above).
+  // Qwen2.5 rejects it outright. Anything unknown is assumed not to.
+  return /^qwen3[:-]/i.test(modelId);
+}
+
+/**
+ * The system-prompt clause that makes Chat's thinking switch a real thing.
+ *
+ * WHY A PROMPT CLAUSE AND NOT A FLAG
+ * -----------------------------------
+ * The switch has to change what the model is actually asked, or it is
+ * decoration. On a model with a native reasoning mode the flag does that. On
+ * qwen2.5 there is no such mode and the flag is refused, so the honest
+ * equivalent is an instruction: it changes the request bytes, it changes the
+ * answer, and the user can see the difference.
+ *
+ * Deliberately NOT "think step by step and show your working" — that produces
+ * a wall of reasoning in the reply, which is the thing the reasoning field
+ * existed to keep out. It asks for the deliberation to happen and the answer
+ * to arrive whole.
+ */
+export function deliberationClause(thinking: boolean): string {
+  return thinking
+    ? " Work the question through carefully before answering, considering the" +
+        " cases that could make a quick answer wrong. Give the reasoned answer" +
+        " itself, not a transcript of arriving at it."
+    : " Answer directly and briefly. Do not deliberate at length.";
 }
 
 /**

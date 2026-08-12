@@ -39,11 +39,21 @@ const model = (id: string, extra: Partial<LocalModelInfo> = {}): LocalModelInfo 
   }) as LocalModelInfo;
 
 describe("the one fixed model", () => {
-  it("is qwen3:4b at Q4_K_M", () => {
-    expect(OCADE_MODEL_ID).toBe("qwen3:4b");
-    expect(FIXED_MODEL.id).toBe("qwen3:4b");
-    expect(FIXED_MODEL.family).toBe("Qwen3");
-    expect(FIXED_MODEL.parameters).toBe("4B");
+  it("is qwen2.5:3b at Q4_K_M", () => {
+    /*
+     * It was qwen3:4b. That model cannot be stopped from reasoning — its chat
+     * template opens an unguarded `<think>` on every generation — and the
+     * reasoning consumed the token budget before a tool call was ever written:
+     * no call at 300 tokens, none at 800, and one only at 2000 tokens and 125
+     * seconds. A tool call that never arrives is not a slow success.
+     *
+     * Qwen2.5 has no forced thinking block, supports Ollama tool calling, and
+     * is 600 MB smaller to download on first run.
+     */
+    expect(OCADE_MODEL_ID).toBe("qwen2.5:3b");
+    expect(FIXED_MODEL.id).toBe("qwen2.5:3b");
+    expect(FIXED_MODEL.family).toBe("Qwen2.5");
+    expect(FIXED_MODEL.parameters).toBe("3B");
     expect(FIXED_MODEL.quantisation).toBe("Q4_K_M");
   });
 
@@ -126,7 +136,12 @@ describe("thinking is spent where it is worth spending", () => {
     // no `think` flag at all — so the signed-in product reasoned while the
     // policy said it did. Pinned as source because that is where the bug was.
     const chatHook = readFileSync("src/lib/chat/use-local-chat-engine.ts", "utf8");
-    expect(chatHook).toMatch(/think:\s*thinkingFor\(/);
+    // Destructured, not read off `context` — an unlisted dependency would make
+    // the switch take effect only after a remount.
+    expect(chatHook).toMatch(/thinkingFor\(contextSurface, contextThinking\)/);
+    // And the switch has to reach the request, not just the variable: on a
+    // model with no reasoning mode the flag alone would leave it decorative.
+    expect(chatHook).toMatch(/deliberationClause\(deliberate\)/);
 
     const reasoning = readFileSync("src/lib/reasoning/browser-deps.ts", "utf8");
     expect(reasoning).toMatch(/think:\s*thinkingFor\("chat"\)/);

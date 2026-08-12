@@ -43,12 +43,12 @@ _DEFAULTS = {
     "llm_url":      "http://localhost:11434",
     # OCADE's single fixed model. Not a default to be overridden by taste: the
     # product ships one model so that behaviour is the same on every machine.
-    "llm_model":    "qwen3:4b",
+    "llm_model":    "qwen2.5:3b",
     "llm_provider": "ollama",   # "ollama" | "openai"
 }
 
 # The model OCADE runs, wherever this engine is embedded.
-OCADE_MODEL = "qwen3:4b"
+OCADE_MODEL = "qwen2.5:3b"
 
 
 def _thinking_payload(think: bool) -> dict:

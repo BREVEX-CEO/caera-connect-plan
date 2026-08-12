@@ -43,41 +43,26 @@ const OUT = "release/OCADE_LOCAL_ENGINE_MODEL_MANIFEST.json";
  * The device tiers, straight from the plan's §2 matrix. `tag` is a CANDIDATE
  * here — it is only recorded as resolved once its manifest returns 200.
  */
+/*
+ * ONE ENTRY, BECAUSE OCADE INSTALLS ONE MODEL.
+ *
+ * This was a five-row device matrix — phone / weak PC / mid PC / GPU PC /
+ * high-end — each with a different tag. That matrix is the thing the single
+ * model authority replaced: OCADE does not pick a model from RAM, GPU
+ * presence or device class, so a manifest advertising five tiers described a
+ * product that no longer exists and offered downloads nothing would ever use.
+ *
+ * The row below is the model, and `local/fixed-model.ts` is where it is
+ * decided. If those two ever disagree, the settings screen shows a licence for
+ * weights the product will not install, which is worse than showing none.
+ */
 const TIERS = [
   {
-    id: "phone",
-    deviceClass: "Phone (any)",
-    tag: "qwen3:1.7b",
-    why: "Phones cannot run more. Standalone chat and voice only; real desktop work routes to the paired PC.",
-    acceleration: "CPU (mobile NPU/GPU not used by this runtime)",
-  },
-  {
-    id: "weak-pc",
-    deviceClass: "Weak PC, 4-8 GB RAM",
-    tag: "qwen3:4b",
-    why: "Smallest tier that still handles tool-calling reliably.",
-    acceleration: "CPU",
-  },
-  {
-    id: "mid-pc-cpu",
-    deviceClass: "Mid PC, 16 GB RAM, no dedicated GPU",
-    tag: "qwen3:8b",
-    why: "Best accuracy-to-latency balance with no GPU available. This is the tier of the current development host.",
-    acceleration: "CPU",
-  },
-  {
-    id: "strong-pc-gpu",
-    deviceClass: "Strong PC, 16 GB+ with a capable GPU",
-    tag: "qwen3:14b",
-    why: "Meaningfully better reasoning once real GPU acceleration exists.",
-    acceleration: "GPU (CUDA/ROCm/Metal) with CPU fallback",
-  },
-  {
-    id: "high-end",
-    deviceClass: "High-end, 24 GB+ VRAM",
-    tag: "qwen3:30b-a3b",
-    why: "Mixture-of-experts tier. Needs real VRAM; on a CPU-only host it is slower than the 8B despite being 'bigger'.",
-    acceleration: "GPU required for usable latency",
+    id: "every-device",
+    deviceClass: "Every device OCADE runs on",
+    tag: "qwen2.5:3b",
+    why: "The one model, on phones and desktops alike. Small enough for the device with least room, and it emits tool calls without a reasoning pass in front of them — the model this replaced could not be stopped from reasoning and produced no usable call until 2000 tokens and two minutes had gone by.",
+    acceleration: "CPU, with GPU used automatically when the runtime finds one",
   },
 ];
 

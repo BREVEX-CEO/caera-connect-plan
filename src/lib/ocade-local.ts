@@ -22,6 +22,7 @@ import {
   type OcadeCapabilityLabel,
   type OcadeLocalProfile,
 } from "./ocade-capability-labels";
+import { supportsThinkingField } from "./local/fixed-model";
 // Value imports only; these depend on nothing in this module, so there
 // is no cycle. Shared deliberately — a second copy of "which tiers need a GPU"
 // is how the router and the tier policy came to disagree about one machine.
@@ -957,12 +958,22 @@ export async function streamLocalChat(
 
   let res: Response;
   try {
-    res = await send(true);
     /*
-     * Older runtimes, and models with no reasoning mode at all, reject the
-     * `think` field outright. Retrying without it keeps those models working
-     * instead of making a latency optimisation a hard dependency — they have
-     * no hidden reasoning pass to disable, so nothing is lost by omitting it.
+     * Do not send `think` to a model that has no reasoning mode.
+     *
+     *   POST /api/chat {"model":"qwen2.5:3b","think":true}
+     *   → 400 "qwen2.5:3b" does not support thinking
+     *
+     * The retry below already recovered from that, but it paid a whole failed
+     * round trip on every single message to learn something knowable from the
+     * model id. Asking first turns a guaranteed retry into no retry at all.
+     */
+    res = await send(supportsThinkingField(modelId));
+    /*
+     * The retry stays, for models this list does not know about. Older
+     * runtimes and models with no reasoning mode reject the field outright;
+     * they have no hidden reasoning pass to disable, so nothing is lost by
+     * omitting it.
      */
     if (res.status === 400) {
       const detail = await res.clone().text();

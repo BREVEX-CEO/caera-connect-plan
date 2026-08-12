@@ -154,7 +154,7 @@ class TestThereIsOneBrainAndItIsLocal:
 
     def test_the_local_client_is_pinned_to_the_one_model(self) -> None:
         client = (ENGINE / "core" / "llm_client.py").read_text(encoding="utf-8")
-        assert 'OCADE_MODEL = "qwen3:4b"' in client
+        assert 'OCADE_MODEL = "qwen2.5:3b"' in client
 
     def test_the_local_client_refuses_images_rather_than_guessing(self) -> None:
         # qwen3:4b is text-only. A caller that asks what is in a picture and

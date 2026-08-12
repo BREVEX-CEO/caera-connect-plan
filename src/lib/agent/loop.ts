@@ -332,8 +332,37 @@ export async function runAgentTask(
  * Render a tool result for the model.
  *
  * Prose rather than raw JSON: a small local model follows "The window did not
- * change" far more reliably than `{"verified":false}`, and the observation is
- * appended as compact JSON only when there is something structural to read.
+ * change" far more reliably than `{"verified":false}`, and the payload is
+ * appended as compact JSON only when there is something to read.
+ *
+ * FOUND LIVE: THIS USED TO SHOW THE MODEL NO RESULTS AT ALL.
+ *
+ * It appended `outcome.observation` and nothing else. But `ok(data, detail)`
+ * — the helper almost every adapter returns — puts the payload in
+ * `outcome.data`. Only the handful of adapters that also passed
+ * `observation:` explicitly were ever readable.
+ *
+ * So "check how much memory this computer is using, then save that number to
+ * a file" produced exactly one tool call and stopped. The model asked for the
+ * system status, and was told:
+ *
+ *     Result: success. Read this computer's processor, memory, disk and
+ *     battery state.
+ *
+ * That is the tool's own description with no numbers in it. There was nothing
+ * to write to the file, so the model stopped — and because the only step so
+ * far was a read, nothing downgraded the run and it ended as "verified".
+ *
+ * The failure looks identical to a model too weak to plan, which is what it
+ * was mistaken for: the same task was blamed on qwen3:4b being slow, then on
+ * qwen2.5 stopping early. Neither was true. A raw two-turn probe against the
+ * same model, handed the actual numbers, called `workspace_write` correctly
+ * on the second turn.
+ *
+ * `observation` is still preferred where an adapter sets it deliberately —
+ * it is the post-action re-read, which is the more truthful thing to show —
+ * and `data` is the fallback rather than an addition, so a tool that provides
+ * both does not send the same payload twice.
  */
 export function describe(outcome: ToolOutcome): string {
   const lines = [`Result: ${outcome.kind}. ${outcome.detail}`];
@@ -341,9 +370,14 @@ export function describe(outcome: ToolOutcome): string {
     lines.push("The expected change was NOT observed. Do not report this as done.");
   }
   if (outcome.verified === true) lines.push("This was confirmed by looking afterwards.");
-  if (outcome.observation !== undefined) {
-    const json = JSON.stringify(outcome.observation);
-    lines.push(`Observed: ${json.length > 6000 ? `${json.slice(0, 6000)}…` : json}`);
+
+  const payload = outcome.observation !== undefined ? outcome.observation : outcome.data;
+  if (payload !== undefined && payload !== null) {
+    const json = JSON.stringify(payload);
+    // An empty object carries nothing and costs context, so it is not sent.
+    if (json && json !== "{}" && json !== "[]") {
+      lines.push(`Observed: ${json.length > 6000 ? `${json.slice(0, 6000)}…` : json}`);
+    }
   }
   return lines.join("\n");
 }

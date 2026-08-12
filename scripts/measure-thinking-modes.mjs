@@ -54,7 +54,7 @@
  */
 
 const BRIDGE = process.env.OCADE_BRIDGE_URL ?? "http://127.0.0.1:11434";
-const MODEL = "qwen3:4b";
+const MODEL = process.env.OCADE_MODEL ?? "qwen2.5:3b";
 const RUNS = Number(process.argv[process.argv.indexOf("--runs") + 1]) || 3;
 
 /** A real Control + Work turn: one instruction, one tool, one expected call. */
@@ -97,7 +97,13 @@ async function turn({ think, noThinkToken, noThinkInSystem, predict }) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!response.ok) throw new Error(`${response.status} ${await response.text()}`);
+  if (!response.ok) {
+    const detail = await response.text();
+    if (detail.includes("does not support thinking")) {
+      return { ms: Date.now() - started, refused: true };
+    }
+    throw new Error(`${response.status} ${detail}`);
+  }
 
   const json = await response.json();
   const message = json.message ?? {};
@@ -150,7 +156,7 @@ console.log(`model=${MODEL}  runs=${RUNS}  bridge=${BRIDGE}\n`);
  * every request, so the model is resident before the first timed turn.
  */
 try {
-  for (let i = 0; i < 3; i += 1) await turn({ think: false });
+  for (let i = 0; i < 3; i += 1) await turn({});
 } catch (error) {
   console.error(`Cannot reach Ollama at ${BRIDGE}: ${error.message}`);
   process.exit(1);
@@ -160,6 +166,20 @@ const table = [];
 for (const mode of MODES) {
   const runs = [];
   for (let i = 0; i < RUNS; i += 1) runs.push(await turn(mode.options));
+
+  if (runs.every((r) => r.refused)) {
+    // Not a failure: a model that rejects the flag has no reasoning tax.
+    table.push({
+      mode: mode.label,
+      median: "-",
+      best: "-",
+      worst: "-",
+      clean: "refused by model",
+      leaked: "-",
+      thinking: "-",
+    });
+    continue;
+  }
 
   const times = runs.map((r) => r.ms).sort((a, b) => a - b);
   table.push({

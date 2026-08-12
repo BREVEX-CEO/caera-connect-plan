@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { streamLocalChat, preloadLocalModel } from "../ocade-local";
+import { OCADE_MODEL_ID } from "../local/fixed-model";
 
 describe("local Chat transport", () => {
   it("sends image bytes to a local vision engine instead of dropping them", async () => {
@@ -81,7 +82,27 @@ describe("hidden reasoning is disabled unless the caller asks for it", () => {
     expect(bodies[0].think).toBe(true);
   });
 
-  it("retries without the field when the runtime rejects it, rather than failing the chat", async () => {
+  it("never sends the field to the shipped model, which rejects it outright", async () => {
+    /*
+     * OCADE's model answers `400 "qwen2.5:3b" does not support thinking` to
+     * ANY value of `think`. The retry below recovers from that, but it paid a
+     * whole failed round trip on every message to learn something the model id
+     * already told us. One request, and no `think` in it.
+     */
+    const { bodies, fetchImpl } = capture();
+    await streamLocalChat(
+      "http://127.0.0.1:11434",
+      OCADE_MODEL_ID,
+      [{ role: "user", content: "hi" }],
+      { onToken: () => {}, think: true },
+      fetchImpl,
+    );
+    expect(bodies).toHaveLength(1);
+    expect("think" in bodies[0]).toBe(false);
+  });
+
+  it("retries without the field when a model we did send it to rejects it", async () => {
+    // The safety net stays, for runtimes and models this does not know about.
     const bodies: Record<string, unknown>[] = [];
     const fetchImpl = vi.fn(async (_input: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
@@ -94,7 +115,7 @@ describe("hidden reasoning is disabled unless the caller asks for it", () => {
     let answer = "";
     const result = await streamLocalChat(
       "http://127.0.0.1:11434",
-      "deepseek-coder:6.7b",
+      "qwen3:8b",
       [{ role: "user", content: "hi" }],
       { onToken: (c) => (answer += c) },
       fetchImpl,
@@ -134,9 +155,9 @@ describe("preloading warms the engine without sending anything", () => {
       body = JSON.parse(String(init?.body)) as Record<string, unknown>;
       return new Response("{}", { status: 200 });
     });
-    const ok = await preloadLocalModel("http://127.0.0.1:11434", "qwen3:8b", fetchImpl);
+    const ok = await preloadLocalModel("http://127.0.0.1:11434", OCADE_MODEL_ID, fetchImpl);
     expect(ok).toBe(true);
-    expect(body).toEqual({ model: "qwen3:8b", messages: [] });
+    expect(body).toEqual({ model: OCADE_MODEL_ID, messages: [] });
   });
 
   it("targets the chat endpoint on the given bridge", async () => {
@@ -145,7 +166,7 @@ describe("preloading warms the engine without sending anything", () => {
       urls.push(input);
       return new Response("{}", { status: 200 });
     });
-    await preloadLocalModel("http://127.0.0.1:11434/", "qwen3:8b", fetchImpl);
+    await preloadLocalModel("http://127.0.0.1:11434/", OCADE_MODEL_ID, fetchImpl);
     expect(urls).toEqual(["http://127.0.0.1:11434/api/chat"]);
   });
 
@@ -153,16 +174,16 @@ describe("preloading warms the engine without sending anything", () => {
     const rejecting = vi.fn(async () => {
       throw new Error("ECONNREFUSED");
     });
-    await expect(preloadLocalModel("http://127.0.0.1:11434", "qwen3:8b", rejecting)).resolves.toBe(
-      false,
-    );
+    await expect(
+      preloadLocalModel("http://127.0.0.1:11434", OCADE_MODEL_ID, rejecting),
+    ).resolves.toBe(false);
   });
 
   it("reports a refusing runtime as not warmed", async () => {
     const failing = vi.fn(async () => new Response("nope", { status: 500 }));
-    await expect(preloadLocalModel("http://127.0.0.1:11434", "qwen3:8b", failing)).resolves.toBe(
-      false,
-    );
+    await expect(
+      preloadLocalModel("http://127.0.0.1:11434", OCADE_MODEL_ID, failing),
+    ).resolves.toBe(false);
   });
 
   it("warms at the window the send will use, not at the default", async () => {
@@ -180,9 +201,9 @@ describe("preloading warms the engine without sending anything", () => {
       body = JSON.parse(String(init?.body)) as Record<string, unknown>;
       return new Response("{}", { status: 200 });
     });
-    await preloadLocalModel("http://127.0.0.1:11434", "qwen3:8b", fetchImpl, 16384);
+    await preloadLocalModel("http://127.0.0.1:11434", OCADE_MODEL_ID, fetchImpl, 16384);
     expect(body).toEqual({
-      model: "qwen3:8b",
+      model: OCADE_MODEL_ID,
       messages: [],
       options: { num_ctx: 16384 },
     });
@@ -195,7 +216,7 @@ describe("preloading warms the engine without sending anything", () => {
       body = JSON.parse(String(init?.body)) as Record<string, unknown>;
       return new Response("{}", { status: 200 });
     });
-    await preloadLocalModel("http://127.0.0.1:11434", "qwen3:8b", fetchImpl, null);
-    expect(body).toEqual({ model: "qwen3:8b", messages: [] });
+    await preloadLocalModel("http://127.0.0.1:11434", OCADE_MODEL_ID, fetchImpl, null);
+    expect(body).toEqual({ model: OCADE_MODEL_ID, messages: [] });
   });
 });

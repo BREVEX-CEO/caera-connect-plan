@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useBrain } from "../brain/use-brain";
 import { resolveEngine, type EngineContext } from "../engine/resolve";
 import type { BrainMessage, RemedyAction } from "../brain/adapter";
-import { thinkingFor, type OcadeSurface } from "../local/fixed-model";
+import { deliberationClause, thinkingFor, type OcadeSurface } from "../local/fixed-model";
 
 /**
  * One on-device chat engine, shared by the demo and the signed-in product.
@@ -84,19 +84,20 @@ export interface ChatEngineContext {
   /**
    * Which room this engine is answering in.
    *
-   * The ONLY thing it changes is whether the model reasons before replying —
-   * `thinkingFor` in `local/fixed-model.ts` owns that decision. Defaults to
-   * `chat`, because a caller that has not thought about it is a chat surface,
-   * and thinking on is the safer default for an answer a person will read.
+   * The ONLY thing it changes is whether the model is asked to deliberate
+   * before replying — `thinkingFor` in `local/fixed-model.ts` owns that
+   * decision. Defaults to `chat`, because a caller that has not thought about
+   * it is a chat surface, and deliberating is the safer default for an answer
+   * a person will read.
    */
   surface?: OcadeSurface;
   /**
    * The user's thinking switch, from Chat settings.
    *
-   * Only consulted on the `chat` surface: Control + Work suppresses reasoning
-   * unconditionally, because with it on this model narrates the tool call
-   * instead of emitting one. Undefined means the user has expressed no
-   * preference, and thinking stays on.
+   * Only consulted on the `chat` surface: Control + Work never deliberates,
+   * because the turn has to produce a call the loop can execute rather than a
+   * description of one. Undefined means no preference expressed, and the
+   * switch stays on.
    */
   thinking?: boolean;
   preference?: EngineContext["preference"];
@@ -167,6 +168,12 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
     cloudResetsAt = null,
     cloudApprovedForConversation = false,
     visionRequired: contextVision = false,
+    // Destructured for the same reason as the rest: read off `context` inside
+    // the callback it would be an unlisted dependency, and the switch would go
+    // on working with whatever value it held when the callback was last built —
+    // a toggle that only takes effect after a remount.
+    surface: contextSurface = "chat",
+    thinking: contextThinking,
   } = context;
 
   const decide = useCallback(
@@ -269,12 +276,32 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
         remedies: [],
       });
 
+      /*
+       * MAKE THE THINKING SWITCH A REAL THING ON A MODEL THAT HAS NO FLAG.
+       *
+       * qwen2.5 has no reasoning mode — Ollama answers `400 does not support
+       * thinking` to the field — so passing `think` alone would leave the
+       * toggle doing nothing at all, which is the definition of a decorative
+       * control. The clause goes into the system message instead: it changes
+       * the bytes of the request, it changes the answer, and the difference is
+       * visible to whoever flipped the switch.
+       *
+       * `think` is still passed for models that do have the mode, so this is
+       * an addition rather than a replacement.
+       */
+      const deliberate = thinkingFor(contextSurface, contextThinking);
+      const withDeliberation = messages.map((message, index) =>
+        index === 0 && message.role === "system"
+          ? { ...message, content: `${message.content}${deliberationClause(deliberate)}` }
+          : message,
+      );
+
       let sawToken = false;
-      const result = await outcome.adapter.stream(messages, {
+      const result = await outcome.adapter.stream(withDeliberation, {
         signal: controller.signal,
-        // Chat reasons unless the user turned it off; Control never does.
+        // Chat deliberates unless the user turned it off; Control never does.
         // One authority decides, and it is asked here rather than remembered.
-        think: thinkingFor(context.surface ?? "chat", context.thinking),
+        think: deliberate,
         onToken: (chunk) => {
           /*
            * The first token is what turns "preparing" into a visibly working
@@ -311,9 +338,11 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
       });
       return { ok: false, reason: result.reason };
     },
-    // `context.surface` decides whether the model reasons, so a screen that
-    // changed rooms must not keep streaming with the previous room's setting.
-    [apply, decide, contextVision, context.surface],
+    // The room decides whether the model deliberates, and the switch decides
+    // it within Chat. A screen that changed either must not keep streaming
+    // with the previous value — which is exactly what an unlisted dependency
+    // would do, silently, until the next remount.
+    [apply, decide, contextVision, contextSurface, contextThinking],
   );
 
   const stop = useCallback(() => {
