@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-08T19:46:39.459Z",
-  "head": "0344e58c2133fcf62cc8d0a2070c6d19bbbfd611",
+  "generatedAt": "2026-08-12T09:49:29.113Z",
+  "head": "84ff4949aa7da35cc5895512db8d053f403dc812",
   "branch": "feat/ocade-implementation",
   "phase": "Phase 0 complete - OCADE-only scope verified; next Phase 1 local model lifecycle",
   "evidenceBindings": {
-    "sourceRevision": "0344e58c2133fcf62cc8d0a2070c6d19bbbfd611",
+    "sourceRevision": "84ff4949aa7da35cc5895512db8d053f403dc812",
     "targetVersion": "0.1.0",
     "dependencyLockSha256": "05885237196f81a20eef25e2d06266f595e30f5859282379db99c830db62c991",
     "environment": "windows-x64-node22+",
@@ -18,9 +18,9 @@
   },
   "readiness": {
     "originalCore": {
-      "numerator": 228.9,
+      "numerator": 241.5,
       "denominator": 450,
-      "percent": 50.9
+      "percent": 53.7
     },
     "expanded": {
       "numerator": 272.2,
@@ -6478,7 +6478,7 @@
     "gates": 28
   },
   "openDefects": [],
-  "headRebindNote": "Bound to 3b706ac. The commit that writes this binding cannot contain its own hash, so HEAD ends one ahead; effectiveBoundRevision in scripts/readiness-engine.mjs tolerates a diff limited to BINDING_ONLY_PATHS and nothing else. Phase evidence files belong in the content commit, never here.",
+  "headRebindNote": "Bound to 84ff494. The commit that writes this binding cannot contain its own hash, so HEAD ends one ahead; effectiveBoundRevision in scripts/readiness-engine.mjs tolerates a diff limited to BINDING_ONLY_PATHS and nothing else. Phase evidence files belong in the content commit, never here.",
   "resolvedDefects": [
     {
       "id": "DB-01",
