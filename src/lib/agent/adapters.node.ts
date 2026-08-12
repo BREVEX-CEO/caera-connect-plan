@@ -228,6 +228,20 @@ export class OcadeAdapters {
         return this.workspaceOpen(a);
       case "workspace_discard":
         return this.workspaceDiscard(a);
+      case "file_search":
+        return this.fileSearch(a);
+      case "file_read":
+        return this.fileRead(a);
+      case "file_copy":
+        return this.fileCopy(a);
+      case "file_move":
+        return this.fileMove(a);
+      case "file_trash":
+        return this.fileTrash(a);
+      case "file_restore":
+        return this.fileRestore(a);
+      case "browser_type":
+        return this.browserType(a);
       case "browser_scroll":
         return this.browserScroll(a);
       case "browser_key":
@@ -673,6 +687,94 @@ export class OcadeAdapters {
     };
   }
 
+  /* --------------------------------------------------- the user's files -- */
+
+  /*
+   * These six were registered, described to the model, and had no dispatch arm
+   * at all: every call fell through to `default` and came back "not connected
+   * on this device yet". A planner cannot route around a tool that claims to
+   * exist, so it would pick one, fail, and try again — which is how a task
+   * burns its whole step budget without touching a file.
+   *
+   * They run against the engine's `files` command, which takes a folder NAME
+   * out of a closed set rather than a path. Nothing here can name a directory
+   * the vocabulary does not contain.
+   */
+
+  private async fileCommand(
+    payload: Record<string, unknown>,
+    whenItFails: string,
+    timeoutMs?: number,
+  ): Promise<ToolOutcome> {
+    const reply = await this.engineHost().request<{ detail?: string; verified?: boolean }>(
+      "files",
+      payload,
+      timeoutMs ? { timeoutMs } : undefined,
+    );
+    if (!reply.ok) return outcomeFor(reply, whenItFails);
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Done."),
+      verified: reply.data?.verified,
+      observation: reply.data,
+    };
+  }
+
+  private async fileSearch(args: Record<string, unknown>): Promise<ToolOutcome> {
+    return this.fileCommand(
+      { action: "search", folder: text(args.folder, "folder"), match: text(args.match, "match") },
+      "That folder could not be searched.",
+      30_000,
+    );
+  }
+
+  private async fileRead(args: Record<string, unknown>): Promise<ToolOutcome> {
+    return this.fileCommand(
+      { action: "read", folder: text(args.folder, "folder"), path: text(args.path, "path") },
+      "That file could not be read.",
+    );
+  }
+
+  private async fileCopy(args: Record<string, unknown>): Promise<ToolOutcome> {
+    return this.fileCommand(
+      {
+        action: "copy",
+        folder: text(args.folder, "folder"),
+        from: text(args.from, "from"),
+        to: text(args.to, "to"),
+      },
+      "That file could not be copied.",
+      60_000,
+    );
+  }
+
+  private async fileMove(args: Record<string, unknown>): Promise<ToolOutcome> {
+    return this.fileCommand(
+      {
+        action: "move",
+        folder: text(args.folder, "folder"),
+        from: text(args.from, "from"),
+        to: text(args.to, "to"),
+      },
+      "That file could not be moved.",
+      60_000,
+    );
+  }
+
+  private async fileTrash(args: Record<string, unknown>): Promise<ToolOutcome> {
+    return this.fileCommand(
+      { action: "trash", folder: text(args.folder, "folder"), path: text(args.path, "path") },
+      "That file could not be moved to the recycle bin.",
+    );
+  }
+
+  private async fileRestore(args: Record<string, unknown>): Promise<ToolOutcome> {
+    return this.fileCommand(
+      { action: "restore", id: text(args.id, "id") },
+      "That file could not be restored.",
+      30_000,
+    );
+  }
+
   /* ------------------------------------------------ voice and hearing -- */
 
   /**
@@ -995,6 +1097,49 @@ export class OcadeAdapters {
       // reports undefined rather than claiming a verification it did not do.
       verified: changed ? true : undefined,
       observation,
+    };
+  }
+
+  /**
+   * Type into a field on the page.
+   *
+   * Registered and undispatched until now, which mattered more here than for
+   * the file tools: a form is the one thing on a page you cannot finish
+   * without typing, so any task that reached one ended there.
+   *
+   * The host refuses password, OTP and payment fields on its own, and refuses
+   * credential-shaped values whatever field they are aimed at. This adds the
+   * readback: the field is asked what it holds afterwards, so a fill that
+   * silently landed nowhere reports `verified: false` rather than success.
+   */
+  private async browserType(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const selector = text(args.selector, "selector");
+    const value = text(args.value, "value");
+    const reply = await this.browserPerform({
+      kind: "type",
+      target: { selector },
+      value,
+    });
+    if (!reply.ok) return outcomeFor(reply, `Nothing on the page matched "${selector}".`);
+
+    const readback = await this.browserPerform({ kind: "page.read" });
+    const fields = (
+      readback.data as { output?: { fields?: { selector?: string; value?: string }[] } }
+    )?.output?.fields;
+    const landed = fields?.find((field) => field.selector === selector)?.value;
+    // A field OCADE cannot find again reports undefined, not false: unreadable
+    // and empty are different facts, and only one of them is a failure.
+    const verified = landed === undefined ? undefined : landed.includes(value.slice(0, 40));
+
+    return {
+      ...ok(
+        reply.data,
+        verified === false
+          ? `Typed into "${selector}" but the field does not hold it.`
+          : `Typed into "${selector}".`,
+      ),
+      verified,
+      observation: (reply.data as { observation?: unknown })?.observation,
     };
   }
 

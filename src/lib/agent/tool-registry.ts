@@ -327,16 +327,30 @@ const WORKSPACE: ToolDefinition[] = [
   },
 ];
 
+/*
+ * The user's own documents.
+ *
+ * `folder` is a name out of a closed list, never a path. The engine refuses
+ * anything else, so the description below has to say so plainly — a model
+ * told it may name "an approved folder" will invent one, spend a step being
+ * refused, and invent another.
+ */
+const USER_FOLDERS = "desktop, downloads, documents, pictures, music or videos";
+
+const folderArg = {
+  type: "string" as const,
+  description: `Which folder: ${USER_FOLDERS}. Nothing else is reachable.`,
+};
+
 const FILES: ToolDefinition[] = [
   ...WORKSPACE,
   {
     name: "file_search",
     domain: "files",
-    description:
-      "Search for files by name inside a folder the user has approved. Returns paths and sizes.",
+    description: `Search for files by name in one of the user's folders (${USER_FOLDERS}). Returns names, sizes and dates.`,
     parameters: object(
       {
-        folder: { type: "string", description: "The approved folder to search in." },
+        folder: folderArg,
         match: { type: "string", description: "Part of the file name to look for." },
       },
       ["folder", "match"],
@@ -347,11 +361,11 @@ const FILES: ToolDefinition[] = [
   {
     name: "file_read",
     domain: "files",
-    description: "Read the text content of a file inside an approved folder.",
+    description: `Read the text content of a file in one of the user's folders (${USER_FOLDERS}).`,
     parameters: object(
       {
-        folder: { type: "string", description: "The approved folder the file is in." },
-        path: { type: "string", description: "The file to read." },
+        folder: folderArg,
+        path: { type: "string", description: "The file's name inside that folder." },
       },
       ["folder", "path"],
     ),
@@ -362,12 +376,12 @@ const FILES: ToolDefinition[] = [
     name: "file_copy",
     domain: "files",
     description:
-      "Copy a file inside an approved folder. The copy is verified by comparing content hashes, not by assuming success.",
+      "Copy a file. The copy is verified by comparing content hashes afterwards, not by assuming success. Refuses rather than overwrite anything that already exists.",
     parameters: object(
       {
-        folder: { type: "string", description: "The approved folder." },
+        folder: folderArg,
         from: { type: "string", description: "The file to copy." },
-        to: { type: "string", description: "Where to put the copy." },
+        to: { type: "string", description: "The name for the copy." },
       },
       ["folder", "from", "to"],
     ),
@@ -377,12 +391,13 @@ const FILES: ToolDefinition[] = [
   {
     name: "file_move",
     domain: "files",
-    description: "Move or rename a file inside an approved folder.",
+    description:
+      "Move or rename a file within one folder. Refuses rather than overwrite an existing name.",
     parameters: object(
       {
-        folder: { type: "string", description: "The approved folder." },
+        folder: folderArg,
         from: { type: "string", description: "The file to move." },
-        to: { type: "string", description: "Its new location or name." },
+        to: { type: "string", description: "Its new name." },
       },
       ["folder", "from", "to"],
     ),
@@ -393,11 +408,11 @@ const FILES: ToolDefinition[] = [
     name: "file_trash",
     domain: "files",
     description:
-      "Move a file to the trash. This is always reversible — OCADE cannot permanently delete a file.",
+      "Move a file to the recycle bin. Always reversible — OCADE cannot permanently delete a file. Returns an id that file_restore takes.",
     parameters: object(
       {
-        folder: { type: "string", description: "The approved folder." },
-        path: { type: "string", description: "The file to move to the trash." },
+        folder: folderArg,
+        path: { type: "string", description: "The file to move to the recycle bin." },
       },
       ["folder", "path"],
     ),
@@ -407,13 +422,11 @@ const FILES: ToolDefinition[] = [
   {
     name: "file_restore",
     domain: "files",
-    description: "Put a file back from the trash, refusing unless its content still matches.",
+    description:
+      "Put a file back from the recycle bin using the id file_trash returned, confirming afterwards that its contents are unchanged.",
     parameters: object(
-      {
-        folder: { type: "string", description: "The approved folder." },
-        id: { type: "string", description: "The trash record's id." },
-      },
-      ["folder", "id"],
+      { id: { type: "string", description: "The id file_trash returned." } },
+      ["id"],
     ),
     mutating: true,
     risk: "low",
