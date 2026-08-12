@@ -98,7 +98,7 @@ const AREA_TO_TESTS = [
   ],
   [
     "Shared Types Contracts and Versioning",
-    ["adapter-sdk", "extension-protocol-parity", "mobile-native-parity", "compatibility-evidence"],
+    ["adapter-sdk", "managed-browser-bridge", "mobile-native-parity", "compatibility-evidence"],
   ],
   [
     "Event Journal Receipts and Auditability",
@@ -221,7 +221,17 @@ const AREA_TO_TESTS = [
   ],
   [
     "Provider Gateway and Model Routing",
-    ["ai-gateway-server", "router-policy", "route-selector", "model-fabric", "substitution-fabric"],
+    [
+      "ai-gateway-server",
+      // `router-policy` used to own model SELECTION and had its own suite. The
+      // selection is gone — there is one fixed engine — and the suite that
+      // proves the replacement is `local-model-authority`, which asserts that
+      // nothing selects, on any input.
+      "local-model-authority",
+      "route-selector",
+      "model-fabric",
+      "substitution-fabric",
+    ],
   ],
   ["Generated Code Sandbox", ["generated-sandbox", "sandbox-worker-runtime"]],
   [

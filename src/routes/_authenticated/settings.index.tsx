@@ -16,7 +16,8 @@ import { GlassPanel } from "@/components/shell/GlassPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { recordAction } from "@/lib/actions";
-import { useAppearance, type ThemeMode, type CursorKind } from "@/lib/theme-provider";
+import { type ThemeMode, type CursorKind } from "@/lib/theme-provider";
+import { useAppearance } from "@/lib/use-appearance";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/settings/")({
@@ -360,6 +361,7 @@ function GeneralPage() {
               const Icon = t.icon;
               return (
                 <button
+                  aria-pressed={active}
                   key={t.id}
                   onClick={() => appearance.update({ theme: t.id })}
                   className={cn(
@@ -385,6 +387,7 @@ function GeneralPage() {
               const active = appearance.cursor === c.id;
               return (
                 <button
+                  aria-pressed={active}
                   key={c.id}
                   onClick={() => appearance.update({ cursor: c.id })}
                   className={cn(

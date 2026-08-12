@@ -1,25 +1,12 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import { ShellContext, type ShellContextValue } from "./use-shell";
 
 /**
- * Workspace shell context (Plan §37).
+ * Provider for the workspace shell context.
  *
- * Lets a module inject its own contextual sidebar content (e.g. OCADE's
- * conversation list, which owns that state) and control the adaptive Copilot
- * panel, without the shell needing to know about each module's internals.
+ * The context object, its type and `useShell` live in `./use-shell` — see the
+ * note there for why the split exists.
  */
-export interface ShellContextValue {
-  /** Module-provided contextual sidebar content, rendered under the module nav. */
-  contextualNav: ReactNode | null;
-  setContextualNav: (node: ReactNode | null) => void;
-  /** Adaptive right-hand Copilot panel. */
-  copilotOpen: boolean;
-  setCopilotOpen: (open: boolean) => void;
-  copilotContent: ReactNode | null;
-  setCopilotContent: (node: ReactNode | null) => void;
-}
-
-const ShellContext = createContext<ShellContextValue | null>(null);
-
 export function ShellProvider({ children }: { children: ReactNode }) {
   const [contextualNav, setContextualNav] = useState<ReactNode | null>(null);
   const [copilotOpen, setCopilotOpen] = useState(false);
@@ -38,12 +25,4 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   );
 
   return <ShellContext.Provider value={value}>{children}</ShellContext.Provider>;
-}
-
-/**
- * Safe accessor — returns null outside a ShellProvider so pages that render
- * standalone (auth, onboarding, marketing) don't crash.
- */
-export function useShell(): ShellContextValue | null {
-  return useContext(ShellContext);
 }

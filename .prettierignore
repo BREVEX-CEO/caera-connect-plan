@@ -6,3 +6,13 @@ pnpm-lock.yaml
 package-lock.json
 bun.lock
 routeTree.gen.ts
+
+# The incoming control engine, held read-only until it is connected.
+# `npm run format` is `prettier --write .`, so without this line one routine
+# formatting run would rewrite a directory that must not change.
+native/ocade_control_engine/
+
+# The OCADE-owned Python environment and build output. Third-party wheels and
+# generated artefacts, never product source.
+native/python-host/.venv/
+native/companion/*/target/

@@ -345,14 +345,14 @@ export class EncryptedMobileTransport implements MobileTransport {
     return this.peerFingerprint;
   }
 
-  subscribe(onMessage: (payload: any) => void): () => void {
+  subscribe(onMessage: (payload: unknown) => void): () => void {
     if (!this.link.subscribe) return () => {};
     return this.link.subscribe((envelope) => {
       // Process strictly one at a time so the replay watermark below cannot be
       // read by two concurrent arrivals before either has advanced it.
       this.intake = this.intake
         .then(async () => {
-          const opened = await openMobileMessage<any>(envelope, {
+          const opened = await openMobileMessage<unknown>(envelope, {
             recipientPrivateKey: this.identity.privateKey,
             expectedSenderFingerprint: await this.pinnedPeerFingerprint(),
             lastSequence: this.receivedSequence,

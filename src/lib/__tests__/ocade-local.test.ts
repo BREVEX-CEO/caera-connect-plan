@@ -466,73 +466,55 @@ describe("buildLocalFirstPlan is hardware-aware", () => {
  * reference machine that model needed roughly three minutes to produce a
  * one-word answer.
  */
-describe("buildLocalFirstPlan excludes models that fit but are not usable here", () => {
+describe("buildLocalFirstPlan no longer excludes models by GPU or quarantine", () => {
+  /*
+   * WHAT THESE TESTS USED TO ASSERT, AND WHY THE OPPOSITE IS NOW CORRECT.
+   *
+   * They pinned two hard-coded lists — "tiers that need a discrete GPU" and
+   * "quarantined tiers" — that the fallback chain used to drop candidates. Both
+   * existed to stop the chain reaching for a 14B model on a machine that would
+   * take three minutes to answer with it.
+   *
+   * OCADE now ships exactly one engine. There is no chain of alternatives to
+   * protect, nothing larger to fall back to, and the lists had already drifted
+   * out of step with the router once — which is how two files came to disagree
+   * about the same machine. Keeping a filter alive with no selection behind it
+   * is dead policy that still costs a reader time.
+   *
+   * What remains asserted is the part that is still true and still matters:
+   * memory is a real constraint, and a plan that can serve nothing says so.
+   */
   const model = (id: string, bytes: number, params: string) =>
     classifyLocalModel({ name: id, size: bytes, details: { parameter_size: params } });
-  const EIGHT_B = model("qwen3:8b", 5.23e9, "8.2B");
-  const FOURTEEN_B = model("qwen3:14b", 9.28e9, "14.8B");
   const FOUR_B = model("qwen3:4b", 2.5e9, "4.0B");
-  const RAM = 16_801_841_152;
-
+  const FOURTEEN_B = model("qwen3:14b", 9.28e9, "14.8B");
+  const RAM = 16.8e9;
   const modelIds = (steps: ReturnType<typeof buildLocalFirstPlan>) =>
-    steps.map((s) => s.modelId).filter(Boolean);
+    steps.filter((s) => s.modelId).map((s) => s.modelId);
 
-  it("never offers a GPU-tier model on a machine with no dedicated graphics", () => {
-    const steps = buildLocalFirstPlan({
-      desired: "general",
-      models: [EIGHT_B, FOURTEEN_B],
-      cloudAllowed: false,
-      online: false,
-      totalRamBytes: RAM,
-      hasDiscreteGpu: false,
-    });
-    expect(modelIds(steps)).not.toContain("qwen3:14b");
-    expect(modelIds(steps)).toContain("qwen3:8b");
+  it("offers a model that fits, whatever the graphics situation is", () => {
+    for (const hasDiscreteGpu of [true, false, undefined]) {
+      const steps = buildLocalFirstPlan({
+        desired: "general",
+        models: [FOUR_B],
+        cloudAllowed: false,
+        online: false,
+        totalRamBytes: RAM,
+        ...(hasDiscreteGpu === undefined ? {} : { hasDiscreteGpu }),
+      });
+      expect(modelIds(steps), String(hasDiscreteGpu)).toContain("qwen3:4b");
+    }
   });
 
-  it("keeps the GPU tier when the machine has one", () => {
-    const steps = buildLocalFirstPlan({
-      desired: "general",
-      models: [EIGHT_B, FOURTEEN_B],
-      cloudAllowed: false,
-      online: false,
-      totalRamBytes: RAM,
-      hasDiscreteGpu: true,
-    });
-    expect(modelIds(steps)).toContain("qwen3:14b");
-  });
-
-  it("keeps the GPU tier when acceleration is genuinely unknown", () => {
-    const steps = buildLocalFirstPlan({
-      desired: "general",
-      models: [EIGHT_B, FOURTEEN_B],
-      cloudAllowed: false,
-      online: false,
-      totalRamBytes: RAM,
-    });
-    expect(modelIds(steps)).toContain("qwen3:14b");
-  });
-
-  it("never offers a quarantined tier at any position in the chain", () => {
-    const steps = buildLocalFirstPlan({
-      desired: "general",
-      models: [FOUR_B, EIGHT_B],
-      cloudAllowed: false,
-      online: false,
-      totalRamBytes: RAM,
-      hasDiscreteGpu: false,
-    });
-    expect(modelIds(steps)).not.toContain("qwen3:4b");
-  });
-
-  it("still fails explicitly when exclusions leave nothing runnable", () => {
+  it("still refuses a model that cannot fit in memory", () => {
+    // The one exclusion that was never a preference: weights that do not fit
+    // do not run, and saying so beforehand beats failing at load.
     const steps = buildLocalFirstPlan({
       desired: "general",
       models: [FOURTEEN_B],
       cloudAllowed: false,
       online: false,
-      totalRamBytes: RAM,
-      hasDiscreteGpu: false,
+      totalRamBytes: 4e9,
     });
     expect(steps.at(-1)?.kind).toBe("fail");
     expect(modelIds(steps)).toHaveLength(0);

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { WorkSessionPanel, seedHealth, applyOutcome } from "@/components/ocade/WorkSessionPanel";
+import { WorkSessionPanel } from "@/components/ocade/WorkSessionPanel";
+import { seedHealth, applyOutcome } from "@/lib/skills/adapter-health-map";
 import { createTaskScope } from "../skills/task-scope";
 import type { ResumableJob } from "../skills/adapter-health";
 import type { InputEvent } from "../skills/session-recording";

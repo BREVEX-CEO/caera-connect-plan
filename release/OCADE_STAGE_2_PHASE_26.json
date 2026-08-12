@@ -67,8 +67,8 @@
   },
   "runtimeBlockers": [
     "No approved interactive application exposes a live multi-route capability in this managed session.",
-    "The signed Tauri companion cannot link because MSVC link.exe is absent.",
-    "The browser extension is source-complete but not installed and paired in a real Chrome or Edge profile.",
+    "The Tauri companion and managed-browser supervisor compile and execute on this Windows host, but the authenticated application is not yet packaged as the companion frontend.",
+    "The extensionless managed-browser host is real-target verified in Chrome and Edge; release signing and cross-platform installer evidence remain external.",
     "No approved plugin MCP server CLI application or external vision provider is connected for live route competition.",
     "Verified application coverage remains zero until route choice execution observation verification and recovery are recorded against real temporary data."
   ]

@@ -9,6 +9,8 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   evaluateRolloutAdvance,
@@ -17,6 +19,16 @@ import {
   type RolloutLaunchGate,
   type RolloutStage,
 } from "@/lib/control/controlled-rollout";
+
+/**
+ * The caller-scoped Supabase client, typed against the real schema.
+ *
+ * It was `{ from: (t: string) => any }`, which meant a typo in the query
+ * below — a wrong table, a wrong column, a missing filter — compiled silently
+ * inside the function that decides whether someone may change launch gates.
+ * The generated `Database` types check every part of that query.
+ */
+type AdminRoleQuery = SupabaseClient<Database>;
 
 const STATUS = [
   "not_started",
@@ -46,7 +58,7 @@ const updateItemInput = z.object({
   history_note: z.string().max(500).optional(),
 });
 
-async function assertAdmin(supabase: { from: (t: string) => any }, userId: string) {
+async function assertAdmin(supabase: AdminRoleQuery, userId: string) {
   const { data, error } = await supabase
     .from("user_roles")
     .select("role")
@@ -60,7 +72,7 @@ async function assertAdmin(supabase: { from: (t: string) => any }, userId: strin
 
 export const updateLaunchGateItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => updateItemInput.parse(input))
+  .validator((input) => updateItemInput.parse(input))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -155,7 +167,7 @@ const updateFlagInput = z.object({
 
 export const upsertFeatureFlag = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => updateFlagInput.parse(input))
+  .validator((input) => updateFlagInput.parse(input))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

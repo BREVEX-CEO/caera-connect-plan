@@ -13,6 +13,7 @@
  */
 import { discoverLocalModels, streamLocalChat, DEFAULT_LOCAL_BRIDGE_URL } from "../ocade-local";
 import { PerfLedger } from "../local/router-policy";
+import { thinkingFor } from "../local/fixed-model";
 import type { ReasonDeps } from "./engine";
 
 /**
@@ -46,6 +47,16 @@ export function browserReasonDeps(
       streamLocalChat(bridgeUrl, modelId, messages, {
         onToken: handlers.onToken,
         signal: handlers.signal,
+        /*
+         * Signed-in Chat reasons before answering.
+         *
+         * This is the third path to the engine — the demo chat and Control +
+         * Work go through `use-local-chat-engine` — and it was the one still
+         * sending no `think` flag at all, so the signed-in product silently
+         * had thinking off while the policy said on. `thinkingFor` is the
+         * single authority; this call now asks it like the others do.
+         */
+        think: thinkingFor("chat"),
         ...(totalRamBytes ? { totalRamBytes } : {}),
       }),
     ...(streamCloud ? { streamCloud } : {}),

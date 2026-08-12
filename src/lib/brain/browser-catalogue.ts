@@ -110,8 +110,20 @@ export const WASM_TIERS: BrowserModelTier[] = [
     rank: 0,
     label: "OCADE Browser (compatibility)",
     catalogueId: "wasm-qwen2.5-0.5b-instruct-q4_k_m",
-    // The real published size, not an estimate: 491,400,032 bytes.
-    downloadBytes: 469 * MB,
+    /*
+     * EXACT, and it has to be. `469 * MB` was written here beside a comment
+     * correctly stating the real size — 382,112 bytes more than the file that
+     * actually exists. The download completed and then never opened again:
+     * `alreadyHave >= expectedBytes` stayed false, so every later launch
+     * re-requested `Range: bytes=491400032-`, the server answered 416, and the
+     * engine reported a network failure. A rounded constant permanently
+     * bricked on-device inference for anyone who successfully downloaded it.
+     *
+     * `model-download.ts` no longer trusts this number for completeness — the
+     * verified digest decides that — but it stays exact so progress reaches
+     * 100% instead of stalling at 99.9%.
+     */
+    downloadBytes: 491_400_032,
     requiredMemoryBytes: 700 * MB,
     because:
       "This browser cannot use its graphics card for OCADE, so the engine runs on the processor instead. It is slower, and it is the reason OCADE still works here at all.",
@@ -126,6 +138,29 @@ export function resolvedFor(tier: BrowserModelTier): CatalogueEntry | null {
 /** Where a tier's weights are fetched from. Static hosting, no AI server. */
 export function ggufUrl(tier: BrowserModelTier): string | null {
   return resolvedFor(tier)?.url ?? null;
+}
+
+/**
+ * The path this deployment would serve the weights from itself.
+ *
+ * WHY THIS IS NOT THE SAME QUESTION AS `ggufUrl`. The catalogue URL points at
+ * the publisher's host, which is correct for a public deployment and useless
+ * for the ones that most need a local engine: an air-gapped install, a site
+ * whose egress policy blocks the model host, a fleet that must not fetch
+ * anything from a third party on first run. Those are exactly the environments
+ * where "download it once while online" is not a step anyone can take.
+ *
+ * An operator who drops the .gguf into `public/models/` therefore gets a
+ * first run with no external request at all, and one who does not is
+ * unaffected — this is probed, and a 404 simply means the catalogue URL is
+ * used as before. Nothing is assumed present.
+ *
+ * The digest is enforced identically either way: self-hosting changes where
+ * the bytes come from, never whether they are checked.
+ */
+export function sameOriginGgufUrl(tier: BrowserModelTier): string | null {
+  const entry = resolvedFor(tier);
+  return entry ? `/models/${entry.path}` : null;
 }
 
 /** The digest the download must match, from the committed catalogue. */

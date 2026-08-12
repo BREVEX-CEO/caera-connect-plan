@@ -10,13 +10,14 @@ import {
   chooseBrowserTier,
   formatSize,
   ggufUrl,
+  sameOriginGgufUrl,
   storageKeyFor,
   sha256For,
   resolvedFor,
   type BrowserModelTier,
 } from "../browser-catalogue";
 import { modelStore, ModelStore } from "../model-store";
-import { downloadModel } from "../model-download";
+import { downloadModel, preferredWeightsUrl } from "../model-download";
 import { loadBenchmark, recordBenchmark } from "../tier-benchmark-store";
 
 /**
@@ -152,9 +153,25 @@ export class BrowserWasmAdapter implements BrainAdapter {
     }
 
     if (ModelStore.isSupported()) {
+      /*
+       * Weights this deployment serves itself win over the publisher's host,
+       * so an air-gapped or egress-restricted install can reach a working
+       * engine on first run without an external request. A deployment that
+       * does not self-host is unaffected — the probe 404s and `url` is used.
+       *
+       * SKIPPED ENTIRELY once the engine is on disk and verified. `downloadModel`
+       * would return from storage without fetching anything, so probing first
+       * would put a request on every single engine load — on the offline path,
+       * where the whole point is that nothing is requested at all.
+       */
+      const stored = await modelStore.readMeta(key);
+      const alreadyVerified = stored?.verified === true && (await modelStore.sizeOf(key)) > 0;
+      const source = alreadyVerified
+        ? { url, local: false }
+        : await preferredWeightsUrl(sameOriginGgufUrl(tier), url);
       const download = await downloadModel({
         key,
-        url,
+        url: source.url,
         expectedBytes: tier.downloadBytes,
         sha256: sha256For(tier),
         onProgress: (p) =>

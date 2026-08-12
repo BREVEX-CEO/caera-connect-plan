@@ -20,10 +20,6 @@ export const DEFAULT_MODE: Record<DataClass, StorageMode> = {
   recordings: "browser_only",
   copilot: "browser_only",
   learning_replays: "browser_only",
-  resumes: "private_sync",
-  company: "private_sync",
-  timesheets: "private_sync",
-  accounting: "private_sync",
 };
 
 const cache = new Map<string, StorageMode>(); // key = `${userId}:${dataClass}`

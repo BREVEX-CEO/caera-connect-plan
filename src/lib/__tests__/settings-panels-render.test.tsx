@@ -6,6 +6,7 @@ import { AboutLicencesPanel } from "@/components/settings/AboutLicencesPanel";
 import { DEFAULT_CHAT_PREFS, parseChatPrefs } from "../use-chat-prefs";
 import summary from "../../../release/THIRD_PARTY_SUMMARY.json";
 import manifest from "../../../release/OCADE_LOCAL_ENGINE_MODEL_MANIFEST.json";
+import { OCADE_MODEL_ID } from "../local/fixed-model";
 
 /**
  * RENDER PROOF for the settings surfaces added with OCADE Chat.
@@ -87,10 +88,22 @@ describe("About and licences reach the screen", () => {
     expect(() => about()).not.toThrow();
   });
 
-  it("names every model tier the product can install", () => {
+  it("names the one engine the product installs, and no others", () => {
+    /*
+     * INVERTED DELIBERATELY. This used to require every tier in the manifest to
+     * appear on the licensing page, which was correct when OCADE chose between
+     * five engines and became a lie the moment it stopped. A licensing page
+     * listing four models the product never loads is not thorough; it tells the
+     * reader the product does something it does not do.
+     *
+     * The manifest still carries all five — it is a resolved registry artefact
+     * with provenance — so this asserts the FILTER, at the point of display.
+     */
     const html = about();
+    expect(html).toContain(OCADE_MODEL_ID);
     for (const tier of manifest.tiers) {
-      expect(html, `missing tier: ${tier.tag}`).toContain(tier.tag);
+      if (tier.tag === OCADE_MODEL_ID) continue;
+      expect(html, `licensing page still advertises ${tier.tag}`).not.toContain(tier.tag);
     }
   });
 

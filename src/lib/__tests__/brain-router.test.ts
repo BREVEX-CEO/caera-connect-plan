@@ -103,6 +103,45 @@ describe("engine preference per device", () => {
       "browser_wasm",
     ]);
   });
+
+  /*
+   * EVERY MODE MUST END SOMEWHERE IT CAN ACTUALLY RUN.
+   *
+   * `desktop_app` used to list only `desktop_bridge` and `mobile_app` only
+   * `paired_desktop` and `mobile_native`. Both looked reasonable and both left
+   * a real user with nothing: a desktop whose engine has not been started, and
+   * a phone with no pairing, each had an empty set of reachable adapters and a
+   * permanently disabled composer — inside a webview that could have answered.
+   *
+   * This asserts the property rather than the literal lists, so a mode added
+   * later cannot reintroduce the same dead end.
+   */
+  it("gives every device mode an engine it can reach without a network", () => {
+    for (const mode of Object.keys(ADAPTER_PREFERENCE) as DeviceMode[]) {
+      const order = ADAPTER_PREFERENCE[mode];
+      expect(order.includes("browser_webgpu") || order.includes("browser_wasm")).toBe(true);
+    }
+  });
+
+  it("never puts a browser engine ahead of a device's own engine", () => {
+    // The fallback must not become the default: a real local engine is faster
+    // and larger than anything a browser can hold.
+    for (const [mode, native] of [
+      ["desktop_app", "desktop_bridge"],
+      ["mobile_app", "paired_desktop"],
+    ] as const) {
+      const order = ADAPTER_PREFERENCE[mode];
+      expect(order.indexOf(native)).toBeLessThan(order.indexOf("browser_webgpu"));
+    }
+  });
+
+  it("leaves a phone doing light work a fallback after its own engine", () => {
+    // `mobile_native` is not registered in this build, so without the tail a
+    // phone on light work resolves to nothing at all.
+    const order = preferenceFor("mobile_app", false);
+    expect(order[0]).toBe("mobile_native");
+    expect(order).toContain("browser_wasm");
+  });
 });
 
 describe("routing picks the first available engine", () => {
@@ -216,6 +255,43 @@ describe("refusing honestly is the point", () => {
       expect(outcome.remedies).not.toContain("install_ocade");
       expect(outcome.remedies).toContain("start_engine");
     }
+  });
+
+  /*
+   * The failure that produced the fallback, reproduced exactly.
+   *
+   * Observed in the running demo: the bridge was not up, the route refused, and
+   * the composer went read-only with "This browser cannot run an on-device
+   * engine" — on a machine where `BrowserWebGpuAdapter.probe()` returned
+   * `available: true` when called by hand a second later.
+   */
+  it("falls back to a browser engine when the desktop bridge is not running", async () => {
+    const outcome = await routeBrain({
+      mode: "desktop_app",
+      adapters: registry(
+        fakeAdapter("desktop_bridge", unavailable("not_running", "Engine stopped.")),
+        fakeAdapter("browser_webgpu", ready("OCADE Browser")),
+      ),
+    });
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) {
+      expect(outcome.availability.locality).toBe("on_device");
+      // The failed bridge is still reported, so the fallback is visible rather
+      // than silent — the user should know why they are on the slower engine.
+      expect(outcome.attempts[0]?.id).toBe("desktop_bridge");
+    }
+  });
+
+  it("still prefers the desktop bridge whenever it is actually running", async () => {
+    const outcome = await routeBrain({
+      mode: "desktop_app",
+      adapters: registry(
+        fakeAdapter("desktop_bridge", ready("OCADE Engine")),
+        fakeAdapter("browser_webgpu", ready("OCADE Browser")),
+      ),
+    });
+    expect(outcome.ok).toBe(true);
+    if (outcome.ok) expect(outcome.adapter.id).toBe("desktop_bridge");
   });
 
   it("does not repeat a remedy suggested by several engines", async () => {

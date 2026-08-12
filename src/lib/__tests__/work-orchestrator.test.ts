@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   BrowserWorkCheckpointStore,
   createWorkCheckpoint,
+  redirectWorkMission,
   runWorkMission,
   validateWorkGraph,
   type WorkCheckpoint,
@@ -222,6 +223,68 @@ describe("dependency-safe execution", () => {
     expect(resumed.data.checkpoint.status).toBe("succeeded");
     expect(calls.filter((id) => id === "read-a")).toHaveLength(1);
     expect(calls.filter((id) => id === "read-b")).toHaveLength(1);
+  });
+
+  it("redirects a paused mission without replaying unchanged verified work", async () => {
+    const store = new MemoryStore();
+    const calls: string[] = [];
+    const host = successfulHost(async (step, operationId) => {
+      calls.push(step.id);
+      return observed(operationId, step);
+    });
+
+    const paused = await runWorkMission({
+      spec: spec(),
+      host,
+      store,
+      checkpointLimit: 1,
+      recordReceipt: false,
+    });
+    expect(paused.ok).toBe(true);
+    if (!paused.ok) return;
+    expect(paused.data.checkpoint.status).toBe("paused");
+
+    const redirectedMutation: WorkStep = {
+      ...mutate,
+      intent: "Publish the verified report to the newly selected destination",
+    };
+    const revised = spec({
+      intent: "Prepare and publish a verified report to the new destination",
+      finalState: "Verified report exists at the new destination",
+      steps: [readA, readB, redirectedMutation, verify],
+    });
+    const redirected = await redirectWorkMission({
+      previousSpec: spec(),
+      revisedSpec: revised,
+      store,
+      command: {
+        sequence: 1,
+        source: "local",
+        kind: "redirect",
+        issuedAt: "2026-07-25T00:00:01.000Z",
+        reason: "The user selected a different destination.",
+      },
+    });
+    expect(redirected.ok).toBe(true);
+    if (!redirected.ok) return;
+    expect(redirected.data.revision).toBeGreaterThan(paused.data.checkpoint.revision);
+    expect(redirected.data.nodes["read-a"].status).toBe("done");
+    expect(redirected.data.nodes["read-b"].status).toBe("done");
+    expect(redirected.data.nodes["write-report"].status).toBe("pending");
+    expect(redirected.data.history.at(-1)?.kind).toBe("redirected");
+
+    const resumed = await runWorkMission({
+      spec: revised,
+      host,
+      store,
+      recordReceipt: false,
+    });
+    expect(resumed.ok).toBe(true);
+    if (!resumed.ok) return;
+    expect(resumed.data.checkpoint.status).toBe("succeeded");
+    expect(calls.filter((id) => id === "read-a")).toHaveLength(1);
+    expect(calls.filter((id) => id === "read-b")).toHaveLength(1);
+    expect(calls.filter((id) => id === "write-report")).toHaveLength(1);
   });
 
   it("bounds a safe retry after an observed non-commit", async () => {

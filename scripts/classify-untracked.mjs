@@ -110,6 +110,23 @@ const RULES = [
     why: "configuration",
     re: /^(\.github\/|\.vscode\/)|(^|\/)(package\.json|tsconfig.*\.json|vite\.config\.[cm]?[jt]s|vitest\.config\.[cm]?[jt]s|eslint\.config\.[cm]?[jt]s|docker-compose\.ya?ml|Dockerfile|capacitor\.config\.json|wrangler\.json|Cargo\.toml|Cargo\.lock|\.gitignore)$/,
   },
+  /*
+   * The incoming control engine, held read-only until it is connected.
+   *
+   * FIRST IN THE LIST, ahead of the generic extension rules, because it must
+   * classify as ONE thing whatever it happens to contain — Python, an icon, a
+   * vendored `.min.js` in its dashboard. Letting the generic rules split it up
+   * would report parts of an immutable directory as separate concerns and
+   * invite somebody to act on one of them.
+   *
+   * Classified as source rather than as generated: it is real code, staged
+   * deliberately, and nothing in the running product imports it yet.
+   */
+  {
+    kind: "source",
+    why: "incoming control engine — present, read-only, not yet connected",
+    re: /^native\/ocade_control_engine\//,
+  },
   { kind: "config", why: "configuration file", re: /\.(json|ya?ml|toml|conf|ini)$/i },
   // The OCADE-owned native-control sidecar. Product source, not a script: it is
   // bundled with the desktop application and is the only component with UI

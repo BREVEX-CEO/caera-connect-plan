@@ -250,5 +250,4 @@ export function LocalModelLifecyclePanel({
 }
 
 /** Exported for the panel's tests — the disclosure must match the check. */
-export const disclosedInstallBytes = (approxBytes: number) =>
-  checkDisk(approxBytes, Number.NaN).needBytes;
+const disclosedInstallBytes = (approxBytes: number) => checkDisk(approxBytes, Number.NaN).needBytes;

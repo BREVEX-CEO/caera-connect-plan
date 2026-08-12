@@ -3,7 +3,8 @@ import { detectHardwareFn } from "./hardware.functions";
 import type { HardwareProfile } from "./hardware/detect";
 import type { RoutePolicy } from "./local/router-policy";
 import { measureBrowserProfile, serverIsThisMachine } from "./hardware/detect.browser";
-import { routePolicyFor, tierFor } from "./local/device-route-policy";
+import { routePolicyFor } from "./local/device-route-policy";
+import { FIXED_MODEL, OCADE_MODEL_ID } from "./local/fixed-model";
 
 /**
  * The device facts model routing needs — measured on the machine that will
@@ -89,13 +90,17 @@ export function useDevicePolicy(): DevicePolicy {
         try {
           const profile = await detectHardwareFn();
           if (!active) return;
-          const tier = tierFor(profile);
           setState({
             policy: toPolicy(profile, true),
             profile,
             source: "this_machine",
-            deviceMatchedModelId: tier.ok ? tier.tier.tag : null,
-            because: tier.ok ? tier.because : tier.reason,
+            /*
+             * Measured, and reported — but no longer used to pick anything.
+             * These figures still size the context window and drive the
+             * diagnostics screen; the engine is the same on every machine.
+             */
+            deviceMatchedModelId: OCADE_MODEL_ID,
+            because: `OCADE runs ${FIXED_MODEL.family} ${FIXED_MODEL.parameters} on every device, so nothing here changes which engine answers.`,
             measured: true,
             loading: false,
             problem: null,
@@ -110,13 +115,12 @@ export function useDevicePolicy(): DevicePolicy {
       try {
         const profile = await measureBrowserProfile();
         if (!active) return;
-        const tier = tierFor(profile);
         setState({
           policy: toPolicy(profile, false),
           profile,
           source: "browser_estimate",
-          deviceMatchedModelId: tier.ok ? tier.tier.tag : null,
-          because: tier.ok ? tier.because : tier.reason,
+          deviceMatchedModelId: OCADE_MODEL_ID,
+          because: `OCADE runs ${FIXED_MODEL.family} ${FIXED_MODEL.parameters} on every device, so nothing here changes which engine answers.`,
           measured: false,
           loading: false,
           problem: null,

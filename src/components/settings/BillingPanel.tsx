@@ -17,6 +17,7 @@ import {
   type Entitlement,
 } from "@/lib/payments/entitlements";
 import { PaymentProviderTwin } from "@/lib/payments/twin";
+import { PLANS as PRICING_PLANS } from "@/lib/payments/pricing";
 
 /**
  * Production owner for the payment and entitlement system (P17).
@@ -34,12 +35,16 @@ import { PaymentProviderTwin } from "@/lib/payments/twin";
  * once. Each button below drives the real state machine, not a mock of it.
  */
 
-const PLANS: Array<{ code: PlanCode; label: string }> = [
-  { code: "trial_2d", label: "Trial (2 days)" },
-  { code: "std_8d", label: "Standard (8 days)" },
-  { code: "month_1m", label: "Monthly" },
-  { code: "year_1y", label: "Yearly" },
-];
+/**
+ * Plan labels come from the pricing configuration, not from a list here.
+ *
+ * This file used to restate them, which made a third place that had to agree
+ * about which plans exist and what they are called. `payments/pricing.ts` owns
+ * that now; this panel owns the entitlement state machine.
+ */
+const PLANS: Array<{ code: PlanCode; label: string }> = PRICING_PLANS.filter(
+  (plan) => plan.id !== "demo",
+).map((plan) => ({ code: plan.id as PlanCode, label: plan.name }));
 
 export function BillingPanel() {
   const [plan, setPlan] = useState<PlanCode>("month_1m");

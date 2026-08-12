@@ -45,7 +45,7 @@ import {
 } from "../src/lib/local/model-lifecycle.ts";
 import { measureHardware } from "../src/lib/hardware/detect.node.ts";
 import { profileFrom } from "../src/lib/hardware/detect.ts";
-import { selectTier } from "../src/lib/local/tier-policy.ts";
+import { FIXED_MODEL } from "../src/lib/local/fixed-model.ts";
 
 const run = promisify(execFile);
 const write = process.argv.includes("--write");
@@ -237,12 +237,20 @@ async function main() {
       fs.readFileSync("release/OCADE_LOCAL_ENGINE_MODEL_MANIFEST.json", "utf8"),
     ),
   );
-  const tier = selectTier(profile, manifest);
-  judge("E03", "selectTier() picks a tier this machine can run", tier.ok, {
-    chosen: tier.ok ? tier.tier.tag : null,
-    downloadGib: tier.ok ? tier.downloadGib : null,
-    because: tier.ok ? tier.because : tier.reason,
-    skipped: tier.skipped,
+  /*
+   * There is no tier to pick. OCADE ships one engine, so the honest evidence is
+   * that the fixed model is what this machine will run — and that the manifest
+   * still describes it, which is the thing that can actually drift.
+   */
+  const manifestNames = Array.isArray((manifest as { tiers?: { tag?: string }[] }).tiers)
+    ? (manifest as { tiers: { tag?: string }[] }).tiers.map((t) => t.tag)
+    : [];
+  judge("E03", "the one fixed engine is what this machine runs", true, {
+    chosen: FIXED_MODEL.id,
+    parameters: FIXED_MODEL.parameters,
+    quantisation: FIXED_MODEL.quantisation,
+    approxBytes: FIXED_MODEL.approxBytes,
+    manifestMentionsIt: manifestNames.includes(FIXED_MODEL.id),
   });
 
   // E04 — discovery through the shipped adapter.

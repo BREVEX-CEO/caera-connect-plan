@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offline — OCADE</title>
+    <meta name="theme-color" content="#0a0a09" />
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #0a0a09;
+        color: #e8e8e6;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        padding: 1.5rem;
+      }
+      main {
+        max-width: 30rem;
+        text-align: center;
+      }
+      h1 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0 0 0.75rem;
+      }
+      p {
+        font-size: 0.875rem;
+        line-height: 1.6;
+        color: #a3a3a0;
+        margin: 0 0 0.75rem;
+      }
+      button {
+        margin-top: 0.5rem;
+        padding: 0.5rem 1rem;
+        font: inherit;
+        font-size: 0.875rem;
+        color: #e8e8e6;
+        background: transparent;
+        border: 1px solid #33332f;
+        border-radius: 0.5rem;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #171715;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>OCADE is offline</h1>
+      <!--
+        Says what is and is not available, rather than "no internet connection".
+        A local-first product that stores conversations in the browser vault and
+        can run an engine on the device genuinely does keep working here — but
+        only the parts that never needed the network, and the user is entitled
+        to know which those are before they start typing.
+      -->
+      <p>
+        This device has no connection, so pages that have not been opened before cannot load.
+      </p>
+      <p>
+        Conversations kept in Browser Only or PC Vault storage stay on this device and are not
+        affected. OCADE Cloud is unavailable until the connection returns.
+      </p>
+      <button type="button" onclick="location.reload()">Try again</button>
+    </main>
+  </body>
+</html>

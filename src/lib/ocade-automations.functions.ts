@@ -13,6 +13,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Json } from "@/integrations/supabase/types";
 import {
   planRun,
   initialStatus,
@@ -28,18 +30,6 @@ import {
 import { redactForAudit, type CompanionAction } from "@/lib/native/companion-bridge";
 
 const uuid = z.string().uuid();
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function pendingFrom(supabase: unknown, table: string): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (supabase as { from: (t: string) => any }).from(table);
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function pendingRpc(supabase: unknown, name: string, args?: Record<string, unknown>): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (supabase as { rpc: (n: string, a?: Record<string, unknown>) => any }).rpc(name, args);
-}
 
 const triggerSchema: z.ZodType<AutomationTrigger> = z.union([
   z.object({ kind: z.literal("manual") }),
@@ -129,7 +119,8 @@ function toEngine(row: AutomationRow): Automation {
 export const listAutomations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await pendingFrom(context.supabase, "ocade_automations")
+    const { data, error } = await context.supabase
+      .from("ocade_automations")
       .select(
         "id, name, enabled, paused, trigger, actions, requires_approval, dry_run, max_attempts, next_run_at, last_run_at, updated_at",
       )
@@ -141,7 +132,7 @@ export const listAutomations = createServerFn({ method: "GET" })
 
 export const createAutomation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) =>
+  .validator((i) =>
     z
       .object({
         name: z.string().trim().min(1).max(200),
@@ -155,7 +146,8 @@ export const createAutomation = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const next = nextRunAt(data.trigger, new Date());
-    const { data: row, error } = await pendingFrom(context.supabase, "ocade_automations")
+    const { data: row, error } = await context.supabase
+      .from("ocade_automations")
       .insert({
         user_id: context.userId,
         name: data.name,
@@ -174,7 +166,7 @@ export const createAutomation = createServerFn({ method: "POST" })
 
 export const updateAutomation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) =>
+  .validator((i) =>
     z
       .object({
         id: uuid,
@@ -190,7 +182,9 @@ export const updateAutomation = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = {};
+    // Typed against the table's Update shape: a misspelled column is now a
+    // compile error rather than a key the database silently ignores.
+    const patch: Database["public"]["Tables"]["ocade_automations"]["Update"] = {};
     if (data.name !== undefined) patch.name = data.name;
     if (data.enabled !== undefined) patch.enabled = data.enabled;
     if (data.paused !== undefined) patch.paused = data.paused;
@@ -203,7 +197,8 @@ export const updateAutomation = createServerFn({ method: "POST" })
       const next = nextRunAt(data.trigger, new Date());
       patch.next_run_at = next ? next.toISOString() : null;
     }
-    const { error } = await pendingFrom(context.supabase, "ocade_automations")
+    const { error } = await context.supabase
+      .from("ocade_automations")
       .update(patch)
       .eq("id", data.id)
       .eq("user_id", context.userId);
@@ -213,9 +208,10 @@ export const updateAutomation = createServerFn({ method: "POST" })
 
 export const deleteAutomation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ id: uuid }).parse(i))
+  .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
-    const { error } = await pendingFrom(context.supabase, "ocade_automations")
+    const { error } = await context.supabase
+      .from("ocade_automations")
       .delete()
       .eq("id", data.id)
       .eq("user_id", context.userId);
@@ -226,11 +222,12 @@ export const deleteAutomation = createServerFn({ method: "POST" })
 /* ---------------------------------------------------------------- runs ---- */
 
 async function loadAutomation(
-  supabase: unknown,
+  supabase: SupabaseClient<Database>,
   userId: string,
   id: string,
 ): Promise<AutomationRow> {
-  const { data } = await pendingFrom(supabase, "ocade_automations")
+  const { data } = await supabase
+    .from("ocade_automations")
     .select(
       "id, name, enabled, paused, trigger, actions, requires_approval, dry_run, max_attempts, next_run_at, last_run_at, updated_at",
     )
@@ -247,7 +244,7 @@ async function loadAutomation(
  */
 export const previewAutomation = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ id: uuid }).parse(i))
+  .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
     const row = await loadAutomation(context.supabase, context.userId, data.id);
     const plan = planRun(toEngine(row));
@@ -260,7 +257,7 @@ export const previewAutomation = createServerFn({ method: "GET" })
 /** Start a run. Blocked plans are recorded as blocked and never execute. */
 export const startAutomationRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) =>
+  .validator((i) =>
     z
       .object({
         id: uuid,
@@ -317,21 +314,21 @@ export const startAutomationRun = createServerFn({ method: "POST" })
      */
     const startedAt = new Date();
     const next = dryRun ? null : nextRunAt(automation.trigger, startedAt, startedAt);
-    const { data: persisted, error } = await pendingRpc(
-      context.supabase,
-      "ocade_enqueue_automation_run",
-      {
-        p_automation_id: row.id,
-        p_status: status,
-        p_dry_run: dryRun,
-        p_plan: redactedPlan,
-        p_execution_steps: plan.blocked || dryRun ? [] : plan.steps,
-        p_highest_risk: plan.highestRisk,
-        p_blocked_reason: plan.blockedReason ?? null,
-        p_deadline_at: data.deadlineAt ?? null,
-        p_next_run_at: next ? next.toISOString() : null,
-      },
-    );
+    const { data: persisted, error } = await context.supabase.rpc("ocade_enqueue_automation_run", {
+      p_automation_id: row.id,
+      p_status: status,
+      p_dry_run: dryRun,
+      p_plan: redactedPlan,
+      // jsonb column: the step objects are serialised as-is. `Json` is a
+      // structural type and RunStep has no index signature, so the cast
+      // states what the round-trip already does rather than hiding a shape
+      // mismatch — `runStepsFromJson` parses it back on the way out.
+      p_execution_steps: (plan.blocked || dryRun ? [] : plan.steps) as unknown as Json,
+      p_highest_risk: plan.highestRisk,
+      p_blocked_reason: plan.blockedReason ?? null,
+      p_deadline_at: data.deadlineAt ?? null,
+      p_next_run_at: next ? next.toISOString() : null,
+    });
     if (error) throw new Response(error.message, { status: 500 });
     const run = (Array.isArray(persisted) ? persisted[0] : persisted) as {
       id?: unknown;
@@ -362,9 +359,10 @@ export const startAutomationRun = createServerFn({ method: "POST" })
 
 export const listAutomationRuns = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ automationId: uuid.optional() }).parse(i ?? {}))
+  .validator((i) => z.object({ automationId: uuid.optional() }).parse(i ?? {}))
   .handler(async ({ data, context }) => {
-    let q = pendingFrom(context.supabase, "ocade_automation_runs")
+    let q = context.supabase
+      .from("ocade_automation_runs")
       .select(
         "id, automation_id, status, attempt, dry_run, highest_risk, blocked_reason, error, approval_decision, approval_expires_at, cancel_requested_at, pause_requested_at, deadline_at, created_at, finished_at, plan",
       )
@@ -378,13 +376,14 @@ export const listAutomationRuns = createServerFn({ method: "GET" })
 /** Approve or deny a run awaiting a human decision. */
 export const decideAutomationRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) =>
+  .validator((i) =>
     z
       .object({ runId: uuid, decision: z.enum(["approved", "denied"]), deviceId: uuid.optional() })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
-    const { data: run } = await pendingFrom(context.supabase, "ocade_automation_runs")
+    const { data: run } = await context.supabase
+      .from("ocade_automation_runs")
       .select("id, status")
       .eq("id", data.runId)
       .eq("user_id", context.userId)
@@ -394,15 +393,11 @@ export const decideAutomationRun = createServerFn({ method: "POST" })
     // The engine decides the resulting status: approved -> queued (pending),
     // denied -> cancelled. It also refuses runs that weren't awaiting approval.
     const { status: next, reason } = applyApproval(run.status as RunStatus, data.decision);
-    const { data: persisted, error } = await pendingRpc(
-      context.supabase,
-      "ocade_decide_automation_run",
-      {
-        p_run_id: data.runId,
-        p_decision: data.decision,
-        p_device_id: data.deviceId ?? null,
-      },
-    );
+    const { data: persisted, error } = await context.supabase.rpc("ocade_decide_automation_run", {
+      p_run_id: data.runId,
+      p_decision: data.decision,
+      p_device_id: data.deviceId ?? null,
+    });
     if (error) throw new Response(error.message, { status: 500 });
     if (persisted === "approval_expired") {
       throw new Response("The approval request expired before it was answered.", { status: 410 });
@@ -416,9 +411,10 @@ export const decideAutomationRun = createServerFn({ method: "POST" })
 /** Cancel a run. Terminal runs are rejected by the engine's canCancel guard. */
 export const cancelAutomationRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ runId: uuid }).parse(i))
+  .validator((i) => z.object({ runId: uuid }).parse(i))
   .handler(async ({ data, context }) => {
-    const { data: run } = await pendingFrom(context.supabase, "ocade_automation_runs")
+    const { data: run } = await context.supabase
+      .from("ocade_automation_runs")
       .select("id, status")
       .eq("id", data.runId)
       .eq("user_id", context.userId)
@@ -427,11 +423,9 @@ export const cancelAutomationRun = createServerFn({ method: "POST" })
     if (!canCancel(run.status as RunStatus)) {
       throw new Response("This run has already finished and can't be cancelled.", { status: 409 });
     }
-    const { data: status, error } = await pendingRpc(
-      context.supabase,
-      "ocade_request_automation_cancel",
-      { p_run_id: data.runId },
-    );
+    const { data: status, error } = await context.supabase.rpc("ocade_request_automation_cancel", {
+      p_run_id: data.runId,
+    });
     if (error) throw new Response(error.message, { status: 500 });
     if (status !== "cancelled" && status !== "cancellation_requested") {
       throw new Response("This run is no longer cancellable.", { status: 409 });
@@ -441,9 +435,10 @@ export const cancelAutomationRun = createServerFn({ method: "POST" })
 
 export const pauseAutomationRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ runId: uuid }).parse(i))
+  .validator((i) => z.object({ runId: uuid }).parse(i))
   .handler(async ({ data, context }) => {
-    const { data: run } = await pendingFrom(context.supabase, "ocade_automation_runs")
+    const { data: run } = await context.supabase
+      .from("ocade_automation_runs")
       .select("id, status")
       .eq("id", data.runId)
       .eq("user_id", context.userId)
@@ -452,11 +447,9 @@ export const pauseAutomationRun = createServerFn({ method: "POST" })
     if (!canPause(run.status as RunStatus)) {
       throw new Response("This run is not currently pausable.", { status: 409 });
     }
-    const { data: status, error } = await pendingRpc(
-      context.supabase,
-      "ocade_request_automation_pause",
-      { p_run_id: data.runId },
-    );
+    const { data: status, error } = await context.supabase.rpc("ocade_request_automation_pause", {
+      p_run_id: data.runId,
+    });
     if (error) throw new Response(error.message, { status: 500 });
     if (status !== "paused" && status !== "pause_requested") {
       throw new Response("This run is no longer pausable.", { status: 409 });
@@ -466,9 +459,10 @@ export const pauseAutomationRun = createServerFn({ method: "POST" })
 
 export const resumeAutomationRun = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ runId: uuid }).parse(i))
+  .validator((i) => z.object({ runId: uuid }).parse(i))
   .handler(async ({ data, context }) => {
-    const { data: run } = await pendingFrom(context.supabase, "ocade_automation_runs")
+    const { data: run } = await context.supabase
+      .from("ocade_automation_runs")
       .select("id, status")
       .eq("id", data.runId)
       .eq("user_id", context.userId)
@@ -477,11 +471,9 @@ export const resumeAutomationRun = createServerFn({ method: "POST" })
     if (!canResume(run.status as RunStatus)) {
       throw new Response("Only a paused run can be resumed.", { status: 409 });
     }
-    const { data: status, error } = await pendingRpc(
-      context.supabase,
-      "ocade_resume_automation_run",
-      { p_run_id: data.runId },
-    );
+    const { data: status, error } = await context.supabase.rpc("ocade_resume_automation_run", {
+      p_run_id: data.runId,
+    });
     if (error) throw new Response(error.message, { status: 500 });
     if (status !== "pending" && status !== "awaiting_approval") {
       throw new Response("This run is no longer resumable.", { status: 409 });
@@ -493,10 +485,13 @@ export const resumeAutomationRun = createServerFn({ method: "POST" })
 export const cancelAllRuns = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await pendingRpc(context.supabase, "ocade_cancel_all_automation_runs");
+    const { data, error } = await context.supabase.rpc("ocade_cancel_all_automation_runs");
     if (error) throw new Response(error.message, { status: 500 });
+    // The RPC returns jsonb. Narrow before reading: an unexpected shape must
+    // report zero cancellations, not crash while reporting an emergency stop.
+    const counts = data && typeof data === "object" && !Array.isArray(data) ? data : {};
     return {
-      cancelled: Number(data?.cancelled ?? 0),
-      cancellationRequested: Number(data?.cancellation_requested ?? 0),
+      cancelled: Number(counts.cancelled ?? 0),
+      cancellationRequested: Number(counts.cancellation_requested ?? 0),
     };
   });

@@ -1,6 +1,8 @@
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
 import { execFile } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
 const run = promisify(execFile);
@@ -18,10 +20,10 @@ const run = promisify(execFile);
  * requires a non-zero exit naming that problem. Without this, the release claim
  * rests on a check nobody has ever seen reject anything.
  *
- * SAFETY: original bytes captured at module load, rewritten in `afterEach`, so
- * the file is byte-identical after every test including on failure. This file
- * is UNTRACKED, so there is no git recovery path — closing tests assert the
- * restoration actually held.
+ * SAFETY: the tracked ledger is never written to. Each case corrupts its own
+ * temporary copy and points the gate at it via `OCADE_RELEASE_BLOCKERS`. The
+ * closing tests confirm the real file is untouched and still passes — see the
+ * note on `scratch` below for the race this replaced.
  */
 
 const GATE = "scripts/check-release-source.mjs";
@@ -29,9 +31,34 @@ const LEDGER = "release/OCADE_RELEASE_BLOCKERS.json";
 
 const ORIGINAL = readFileSync(LEDGER, "utf8");
 
-async function runGate(): Promise<{ ok: boolean; stdout: string; stderr: string }> {
+/**
+ * A scratch directory, so the tracked ledger is never written to.
+ *
+ * THE DEFECT THIS FIXES. These tests used to corrupt the REAL ledger and
+ * restore it in `afterEach`. Vitest runs test files in parallel, and
+ * `release-package.test.ts` reads the same file — so it could observe a
+ * deliberately corrupted ledger mid-flight and fail for reasons that had
+ * nothing to do with it. That presented as an intermittent failure of five or
+ * six tests in this file, which passed in isolation every time, and it was
+ * repeatedly written off as a Windows file-lock quirk. It was a
+ * shared-mutable-state race between test files.
+ *
+ * The gate now takes `OCADE_RELEASE_BLOCKERS`, so each case can point it at its
+ * own corrupted copy. Nothing shared is mutated, the race is gone, and the
+ * hazard the old approach carried goes with it: this ledger is UNTRACKED, so a
+ * crash between corrupt and restore had no git recovery path.
+ */
+const scratch = mkdtempSync(join(tmpdir(), "ocade-release-gate-"));
+
+async function runGate(ledgerPath?: string): Promise<{
+  ok: boolean;
+  stdout: string;
+  stderr: string;
+}> {
   try {
-    const { stdout, stderr } = await run(process.execPath, [GATE]);
+    const { stdout, stderr } = await run(process.execPath, [GATE], {
+      env: ledgerPath ? { ...process.env, OCADE_RELEASE_BLOCKERS: ledgerPath } : process.env,
+    });
     return { ok: true, stdout, stderr };
   } catch (error) {
     const e = error as { stdout?: string; stderr?: string };
@@ -44,12 +71,13 @@ async function withCorrupted(
 ): Promise<{ ok: boolean; stdout: string; stderr: string }> {
   const ledger = JSON.parse(ORIGINAL) as Record<string, unknown>;
   mutate(ledger);
-  writeFileSync(LEDGER, JSON.stringify(ledger, null, 2) + "\n");
-  return runGate();
+  const path = join(scratch, `ledger-${Math.random().toString(36).slice(2)}.json`);
+  writeFileSync(path, JSON.stringify(ledger, null, 2) + "\n");
+  return runGate(path);
 }
 
-afterEach(() => {
-  writeFileSync(LEDGER, ORIGINAL);
+afterAll(() => {
+  rmSync(scratch, { recursive: true, force: true });
 });
 
 describe("the release gate rejects an overstated ledger", () => {

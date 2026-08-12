@@ -145,7 +145,7 @@ export function ComputerUsePanel() {
           <SwitchRow
             icon={Globe}
             label="Web Control"
-            description="Use the paired browser extension on sites allowed in Browser control."
+            description="Use an OCADE-managed Chrome or Edge session on sites allowed in Browser control."
             checked={settings.webControl}
             disabled={!settings.enabled}
             onChange={(webControl) => update({ webControl })}

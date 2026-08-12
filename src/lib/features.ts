@@ -148,120 +148,41 @@ const features: Feature[] = [
     reason: "Requires the Native Companion (Cursor / Tauri build).",
   },
 
-  // FICIA
+  /*
+   * FICIA, MADEE and CANIA are placeholders in this release.
+   *
+   * One entry each, marked `planned` with the reason the user actually sees on
+   * the page. This registry is what the No-Dead-Button policy checks against,
+   * so leaving the old rows at "active" would assert that a company workspace,
+   * a resume builder and a market feed are live after their code has been
+   * removed — the registry would be the last place still claiming they work.
+   */
   {
-    id: "ficia.company",
+    id: "ficia.placeholder",
     module: "ficia",
-    title: "Company workspace",
-    status: "active",
-    platforms: ["web"],
-  },
-  {
-    id: "ficia.access",
-    module: "ficia",
-    title: "Company access requests",
-    status: "active",
-    platforms: ["web"],
-  },
-  {
-    id: "ficia.people",
-    module: "ficia",
-    title: "People, employments & org units",
-    status: "active",
-    platforms: ["web"],
-  },
-  {
-    id: "ficia.roles",
-    module: "ficia",
-    title: "Roles, templates & grants",
-    status: "active",
-    platforms: ["web"],
-  },
-  {
-    id: "ficia.approvals",
-    module: "ficia",
-    title: "Approvals & segregation of duties",
-    status: "active",
-    platforms: ["web"],
-  },
-  {
-    id: "ficia.messenger",
-    module: "ficia",
-    title: "Business messenger",
-    status: "active",
-    platforms: ["web"],
-  },
-  {
-    id: "ficia.timesheet",
-    module: "ficia",
-    title: "Timesheets & attendance",
-    status: "active",
-    platforms: ["web"],
-  },
-  {
-    id: "ficia.family_planning",
-    module: "ficia",
-    title: "Family, Marriage & Asset Protection",
+    title: "FICIA",
     status: "planned",
     platforms: ["web"],
-    reason: "Ships with the FICIA tax / benefits slice.",
+    reason: "Coming later — not an AI model.",
+    viewOnly: true,
   },
-
-  // MADEE
   {
-    id: "madee.resume",
+    id: "madee.placeholder",
     module: "madee",
-    title: "Resume Builder",
-    status: "active",
+    title: "MADEE",
+    status: "planned",
     platforms: ["web"],
+    reason: "Coming later — not an AI model.",
+    viewOnly: true,
   },
   {
-    id: "madee.resume_ai",
-    module: "madee",
-    title: "Resume AI assist",
-    status: "setup_required",
-    platforms: ["web"],
-    reason: "AI assist runs when the Lovable AI Gateway is reachable. Manual editing always works.",
-  },
-
-  // CANIA — design + honest empty states now, providers later
-  {
-    id: "cania.center",
+    id: "cania.placeholder",
     module: "cania",
-    title: "World intelligence center",
-    status: "setup_required",
+    title: "CANIA",
+    status: "planned",
     platforms: ["web"],
-    reason: "Provider setup required. Data sources not connected yet.",
-  },
-  {
-    id: "cania.topics",
-    module: "cania",
-    title: "CANIA saved topics",
-    status: "active",
-    platforms: ["web"],
-  },
-  {
-    id: "cania.alerts",
-    module: "cania",
-    title: "CANIA alerts",
-    status: "setup_required",
-    platforms: ["web"],
-    reason: "Alerts fire once provider adapters are connected.",
-  },
-  {
-    id: "cania.settings",
-    module: "cania",
-    title: "CANIA settings",
-    status: "active",
-    platforms: ["web"],
-  },
-  {
-    id: "cania.search",
-    module: "cania",
-    title: "CANIA search",
-    status: "setup_required",
-    platforms: ["web"],
-    reason: "Cross-section search runs once providers are connected.",
+    reason: "Coming later — not an AI model.",
+    viewOnly: true,
   },
 ];
 

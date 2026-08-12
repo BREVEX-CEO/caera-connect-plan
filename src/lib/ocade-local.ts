@@ -22,10 +22,9 @@ import {
   type OcadeCapabilityLabel,
   type OcadeLocalProfile,
 } from "./ocade-capability-labels";
-// Value imports only; `tier-policy` depends on nothing in this module, so there
+// Value imports only; these depend on nothing in this module, so there
 // is no cycle. Shared deliberately — a second copy of "which tiers need a GPU"
 // is how the router and the tier policy came to disagree about one machine.
-import { GPU_REQUIRED_TAGS, QUARANTINED_TAGS } from "./local/tier-policy";
 
 export const DEFAULT_LOCAL_BRIDGE_URL = "http://localhost:11434";
 
@@ -480,17 +479,16 @@ export function buildLocalFirstPlan(input: FallbackPlanInput): FallbackStep[] {
    * on the reference machine that model needed three minutes for a one-word
    * answer. The same two lists decide here, imported rather than copied.
    */
-  const unusableIds = new Set(
-    input.models
-      .filter(
-        (m) =>
-          QUARANTINED_TAGS[m.id] !== undefined ||
-          (GPU_REQUIRED_TAGS.has(m.id) && input.hasDiscreteGpu === false),
-      )
-      .map((m) => m.id),
-  );
-
-  const models = input.models.filter((m) => !excludedIds.has(m.id) && !unusableIds.has(m.id));
+  /*
+   * THE QUARANTINE AND GPU LISTS ARE GONE WITH THE SELECTION THEY SERVED.
+   *
+   * They existed to stop a fallback chain reaching for a 14B model on a machine
+   * that would take three minutes to answer with it. OCADE now has exactly one
+   * engine, so there is no chain to protect and no larger model to fall back
+   * to — and a hard-coded list of "models that need a GPU" was a maintenance
+   * burden that had already drifted out of step with the router once.
+   */
+  const models = input.models.filter((m) => !excludedIds.has(m.id));
 
   const preferred = pickLocalModel(models, desired);
   if (preferred) {
@@ -809,14 +807,20 @@ export interface LocalStreamHandlers {
 /**
  * Ask the runtime to load a model's weights WITHOUT sending a prompt.
  *
- * Cold start is the remaining lag, and it is entirely disk time. Measured on
- * the reference machine, first token for the same question:
+ * Cold start is the remaining lag, and it is entirely disk time. Re-measured on
+ * the reference machine against the engine OCADE actually ships, first token
+ * for the same question:
  *
- *     qwen3:8b    cold 26,932 ms   warm 2,192 ms
- *     qwen3:1.7b  cold  8,975 ms   warm 6,144 ms
+ *     cold  294,547 ms
+ *     warm      672 ms
  *
- * The warm figure is a usable chat; the cold one is what a person meets when
- * they open the app, and it is twelve times worse for no reason they can see.
+ * Four hundred times. The warm figure is a genuinely fast assistant; the cold
+ * one is what a person meets when they open the app, and nothing on screen
+ * explains it to them. That gap is the entire argument for this function.
+ *
+ * The cold figure is a worst case — that machine was under heavy memory
+ * pressure when it was taken — and it is quoted rather than averaged away
+ * because the worst case is the one a user remembers.
  *
  * WHY THIS IS NOT CALLED ON MOUNT. Loading several gigabytes because someone
  * glanced at a screen is its own way of making a machine unusable. The right

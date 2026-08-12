@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/shell/StatusBadge";
 import { OCADE_IDENTITY } from "@/lib/ocade-identity";
 import summaryJson from "../../../release/THIRD_PARTY_SUMMARY.json";
 import manifestJson from "../../../release/OCADE_LOCAL_ENGINE_MODEL_MANIFEST.json";
+import { OCADE_MODEL_ID } from "@/lib/local/fixed-model";
 
 /**
  * About and licences.
@@ -46,12 +47,25 @@ interface ManifestTierRow {
 }
 
 const summary = summaryJson as unknown as LicenceSummary;
+/*
+ * THE LICENCE TABLE SHOWS WHAT OCADE SHIPS, WHICH IS ONE MODEL.
+ *
+ * It used to render every row in the manifest — five engines, five device
+ * classes — which told the reader that OCADE picks between them. It does not,
+ * and has not since selection was removed. A licensing page that lists four
+ * models the product never loads is not thorough, it is wrong.
+ *
+ * The manifest still carries all five because it is a resolved registry
+ * artefact with provenance; the filter is here, at the point of display.
+ */
 const manifest = manifestJson as unknown as {
   registry: string;
   ownership: string;
   provenance: string;
   tiers: ManifestTierRow[];
 };
+
+const shippedTiers = manifest.tiers.filter((tier) => tier.tag === OCADE_MODEL_ID);
 
 export function AboutLicencesPanel() {
   const topLicences = useMemo(
@@ -108,7 +122,7 @@ export function AboutLicencesPanel() {
             <table className="w-full min-w-[560px] text-left text-[13px]">
               <thead className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
                 <tr>
-                  <th className="px-1 pb-2 font-medium">Device class</th>
+                  <th className="px-1 pb-2 font-medium">Runs on</th>
                   <th className="px-1 pb-2 font-medium">Model</th>
                   <th className="px-1 pb-2 font-medium">Size</th>
                   <th className="px-1 pb-2 font-medium">Quantisation</th>
@@ -116,9 +130,9 @@ export function AboutLicencesPanel() {
                 </tr>
               </thead>
               <tbody className="text-muted-foreground">
-                {manifest.tiers.map((tier) => (
+                {shippedTiers.map((tier) => (
                   <tr key={tier.id} className="border-t border-white/10">
-                    <td className="px-1 py-2 text-foreground">{tier.deviceClass}</td>
+                    <td className="px-1 py-2 text-foreground">Every device</td>
                     <td className="px-1 py-2 font-mono text-[12px]">{tier.tag}</td>
                     <td className="px-1 py-2">
                       {typeof tier.model?.gib === "number" ? `${tier.model.gib} GiB` : "—"}

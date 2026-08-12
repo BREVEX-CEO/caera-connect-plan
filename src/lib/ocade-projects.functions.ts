@@ -1,12 +1,11 @@
 /**
  * OCADE projects, outputs and opt-in memory — server functions (Plan §17/§19/§20).
  *
- * STATUS: the backing tables ship in the READY-TO-APPLY migration
- * `20260722090000_ocade_projects_outputs_memory.sql`. Until that migration is
- * applied and Supabase types are regenerated, the generated `Database` type has
- * no knowledge of these tables, so table access goes through the single
- * documented bridge below. Remove `pendingFrom` once the types include them —
- * nothing else in this file changes.
+ * The backing tables ship in `20260722090000_ocade_projects_outputs_memory.sql`
+ * and are declared in the generated `Database` type, so every query here is
+ * checked against the real schema. `scripts/check-supabase-types.mjs` keeps the
+ * two in step; the `pendingFrom(): any` bridge that used to stand in for the
+ * missing declarations is gone, along with the type checking it disabled.
  *
  * Access control: every table is RLS own-row scoped to auth.uid(); these
  * handlers additionally scope by context.userId so a bug can't widen access.
@@ -14,6 +13,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Database } from "@/integrations/supabase/types";
 
 const uuid = z.string().uuid();
 
@@ -56,16 +56,6 @@ export const forkConversationBeforeInput = z.object({
   title: z.string().max(200).optional(),
 });
 
-/**
- * TEMPORARY type bridge for tables that exist in an unapplied migration.
- * Intentionally the ONLY loosely-typed access point in this module.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function pendingFrom(supabase: unknown, table: string): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (supabase as { from: (t: string) => any }).from(table);
-}
-
 export interface OcadeProject {
   id: string;
   name: string;
@@ -90,9 +80,10 @@ export interface OcadeMemoryRow {
 
 export const listProjects = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ includeArchived: z.boolean().optional() }).parse(i ?? {}))
+  .validator((i) => z.object({ includeArchived: z.boolean().optional() }).parse(i ?? {}))
   .handler(async ({ data, context }) => {
-    let q = pendingFrom(context.supabase, "ocade_projects")
+    let q = context.supabase
+      .from("ocade_projects")
       .select("id, name, instructions, archived, created_at, updated_at")
       .eq("user_id", context.userId);
     if (!data.includeArchived) q = q.eq("archived", false);
@@ -103,9 +94,10 @@ export const listProjects = createServerFn({ method: "GET" })
 
 export const getProject = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ id: uuid }).parse(input))
+  .validator((input) => z.object({ id: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await pendingFrom(context.supabase, "ocade_projects")
+    const { data: row, error } = await context.supabase
+      .from("ocade_projects")
       .select("id, name, instructions, archived, created_at, updated_at")
       .eq("id", data.id)
       .eq("user_id", context.userId)
@@ -117,9 +109,10 @@ export const getProject = createServerFn({ method: "GET" })
 
 export const createProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => createProjectInput.parse(i))
+  .validator((i) => createProjectInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await pendingFrom(context.supabase, "ocade_projects")
+    const { data: row, error } = await context.supabase
+      .from("ocade_projects")
       .insert({
         user_id: context.userId,
         name: data.name,
@@ -133,21 +126,25 @@ export const createProject = createServerFn({ method: "POST" })
 
 export const updateProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => updateProjectInput.parse(i))
+  .validator((i) => updateProjectInput.parse(i))
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = {};
+    // Typed against the table's own Update shape, so a renamed or misspelled
+    // column is a compile error rather than a patch key the database ignores.
+    const patch: Database["public"]["Tables"]["ocade_projects"]["Update"] = {};
     if (data.name !== undefined) patch.name = data.name;
     if (data.instructions !== undefined) patch.instructions = data.instructions;
     if (data.archived !== undefined) patch.archived = data.archived;
     const { data: row, error } =
       Object.keys(patch).length > 0
-        ? await pendingFrom(context.supabase, "ocade_projects")
+        ? await context.supabase
+            .from("ocade_projects")
             .update(patch)
             .eq("id", data.id)
             .eq("user_id", context.userId)
             .select("id")
             .maybeSingle()
-        : await pendingFrom(context.supabase, "ocade_projects")
+        : await context.supabase
+            .from("ocade_projects")
             .select("id")
             .eq("id", data.id)
             .eq("user_id", context.userId)
@@ -159,9 +156,10 @@ export const updateProject = createServerFn({ method: "POST" })
 
 export const deleteProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ id: uuid }).parse(i))
+  .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await pendingFrom(context.supabase, "ocade_projects")
+    const { data: row, error } = await context.supabase
+      .from("ocade_projects")
       .delete()
       .eq("id", data.id)
       .eq("user_id", context.userId)
@@ -194,9 +192,10 @@ async function sha256Text(content: string): Promise<string> {
 
 export const listOutputs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ projectId: uuid.nullable().optional() }).parse(i ?? {}))
+  .validator((i) => z.object({ projectId: uuid.nullable().optional() }).parse(i ?? {}))
   .handler(async ({ data, context }) => {
-    let q = pendingFrom(context.supabase, "ocade_outputs")
+    let q = context.supabase
+      .from("ocade_outputs")
       .select(
         "id, project_id, conversation_id, kind, title, mime, size_bytes, lineage_id, version, content_sha256, expires_at, created_at",
       )
@@ -209,17 +208,15 @@ export const listOutputs = createServerFn({ method: "GET" })
 
 export const createOutput = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => createOutputInput.parse(i))
+  .validator((i) => createOutputInput.parse(i))
   .handler(async ({ data, context }) => {
     let lineageId: string | undefined;
     let version = 1;
     let projectId = data.projectId ?? null;
     let conversationId = data.conversationId ?? null;
     if (data.parentOutputId) {
-      const { data: parent, error: parentError } = await pendingFrom(
-        context.supabase,
-        "ocade_outputs",
-      )
+      const { data: parent, error: parentError } = await context.supabase
+        .from("ocade_outputs")
         .select("id, lineage_id, project_id, conversation_id, kind, title")
         .eq("id", data.parentOutputId)
         .eq("user_id", context.userId)
@@ -240,10 +237,8 @@ export const createOutput = createServerFn({ method: "POST" })
       projectId = parent.project_id;
       conversationId = parent.conversation_id;
       lineageId = parent.lineage_id;
-      const { data: latest, error: versionError } = await pendingFrom(
-        context.supabase,
-        "ocade_outputs",
-      )
+      const { data: latest, error: versionError } = await context.supabase
+        .from("ocade_outputs")
         .select("version")
         .eq("user_id", context.userId)
         .eq("lineage_id", lineageId)
@@ -259,7 +254,8 @@ export const createOutput = createServerFn({ method: "POST" })
       data.retentionDays == null
         ? null
         : new Date(Date.now() + data.retentionDays * 24 * 60 * 60 * 1000).toISOString();
-    const { data: row, error } = await pendingFrom(context.supabase, "ocade_outputs")
+    const { data: row, error } = await context.supabase
+      .from("ocade_outputs")
       .insert({
         user_id: context.userId,
         project_id: projectId,
@@ -295,9 +291,10 @@ export interface ProjectConversation {
 /** Conversations filed under a project (or unfiled when projectId is null). */
 export const listProjectConversations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ projectId: uuid.nullable() }).parse(i))
+  .validator((i) => z.object({ projectId: uuid.nullable() }).parse(i))
   .handler(async ({ data, context }) => {
-    let q = pendingFrom(context.supabase, "ocade_conversations")
+    let q = context.supabase
+      .from("ocade_conversations")
       .select("id, title, pinned, archived, project_id, updated_at")
       .eq("user_id", context.userId);
     q = data.projectId === null ? q.is("project_id", null) : q.eq("project_id", data.projectId);
@@ -309,14 +306,15 @@ export const listProjectConversations = createServerFn({ method: "GET" })
 /** File, move between projects, or unfile (projectId null) a conversation. */
 export const setConversationProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => setConversationProjectInput.parse(i))
+  .validator((i) => setConversationProjectInput.parse(i))
   .handler(async ({ data, context }) => {
     // Filing into a project must prove the project is YOURS. RLS scopes the
     // conversation update, but not the project_id being written into it, so
     // without this check a conversation could be filed under someone else's
     // project id.
     if (data.projectId !== null) {
-      const { data: project } = await pendingFrom(context.supabase, "ocade_projects")
+      const { data: project } = await context.supabase
+        .from("ocade_projects")
         .select("id")
         .eq("id", data.projectId)
         .eq("user_id", context.userId)
@@ -324,7 +322,8 @@ export const setConversationProject = createServerFn({ method: "POST" })
       if (!project) throw new Response("Project not found", { status: 404 });
     }
 
-    const { data: row, error } = await pendingFrom(context.supabase, "ocade_conversations")
+    const { data: row, error } = await context.supabase
+      .from("ocade_conversations")
       .update({ project_id: data.projectId })
       .eq("id", data.conversationId)
       .eq("user_id", context.userId)
@@ -342,9 +341,10 @@ export const setConversationProject = createServerFn({ method: "POST" })
  */
 export const branchConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => branchConversationInput.parse(i))
+  .validator((i) => branchConversationInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { data: source } = await pendingFrom(context.supabase, "ocade_conversations")
+    const { data: source } = await context.supabase
+      .from("ocade_conversations")
       .select("id, title, project_id, model_id, provider_id, privacy_mode")
       .eq("id", data.conversationId)
       .eq("user_id", context.userId)
@@ -370,10 +370,8 @@ export const branchConversation = createServerFn({ method: "POST" })
       .lte("created_at", pivot.created_at)
       .order("created_at", { ascending: true });
 
-    const { data: created, error: cErr } = await pendingFrom(
-      context.supabase,
-      "ocade_conversations",
-    )
+    const { data: created, error: cErr } = await context.supabase
+      .from("ocade_conversations")
       .insert({
         user_id: context.userId,
         title: data.title ?? `${source.title} (branch)`,
@@ -408,9 +406,10 @@ export const branchConversation = createServerFn({ method: "POST" })
  */
 export const forkConversationBeforeMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => forkConversationBeforeInput.parse(i))
+  .validator((i) => forkConversationBeforeInput.parse(i))
   .handler(async ({ data, context }) => {
-    const { data: source } = await pendingFrom(context.supabase, "ocade_conversations")
+    const { data: source } = await context.supabase
+      .from("ocade_conversations")
       .select("id, title, project_id, model_id, provider_id, privacy_mode")
       .eq("id", data.conversationId)
       .eq("user_id", context.userId)
@@ -430,10 +429,8 @@ export const forkConversationBeforeMessage = createServerFn({ method: "POST" })
       throw new Response("Edit and retry must begin from a user message", { status: 409 });
     }
 
-    const { data: created, error: conversationError } = await pendingFrom(
-      context.supabase,
-      "ocade_conversations",
-    )
+    const { data: created, error: conversationError } = await context.supabase
+      .from("ocade_conversations")
       .insert({
         user_id: context.userId,
         title: data.title ?? `${source.title} (branch)`,
@@ -468,9 +465,10 @@ export const forkConversationBeforeMessage = createServerFn({ method: "POST" })
 
 export const getOutput = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ id: uuid }).parse(i))
+  .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await pendingFrom(context.supabase, "ocade_outputs")
+    const { data: row, error } = await context.supabase
+      .from("ocade_outputs")
       .select(
         "id, project_id, conversation_id, kind, title, content, mime, size_bytes, lineage_id, version, parent_output_id, content_sha256, expires_at, created_at",
       )
@@ -484,9 +482,10 @@ export const getOutput = createServerFn({ method: "GET" })
 
 export const deleteOutput = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ id: uuid }).parse(i))
+  .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await pendingFrom(context.supabase, "ocade_outputs")
+    const { data: row, error } = await context.supabase
+      .from("ocade_outputs")
       .delete()
       .eq("id", data.id)
       .eq("user_id", context.userId)
@@ -501,7 +500,8 @@ export const deleteOutput = createServerFn({ method: "POST" })
 export const purgeExpiredOutputs = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await pendingFrom(context.supabase, "ocade_outputs")
+    const { data, error } = await context.supabase
+      .from("ocade_outputs")
       .delete()
       .eq("user_id", context.userId)
       .lt("expires_at", new Date().toISOString())
@@ -516,7 +516,8 @@ export const purgeExpiredOutputs = createServerFn({ method: "POST" })
 export const getMemoryEnabled = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await pendingFrom(context.supabase, "user_settings")
+    const { data, error } = await context.supabase
+      .from("user_settings")
       .select("ocade_memory_enabled")
       .eq("user_id", context.userId)
       .maybeSingle();
@@ -526,21 +527,24 @@ export const getMemoryEnabled = createServerFn({ method: "GET" })
 
 export const setMemoryEnabled = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ enabled: z.boolean() }).parse(i))
+  .validator((i) => z.object({ enabled: z.boolean() }).parse(i))
   .handler(async ({ data, context }) => {
-    const { error } = await pendingFrom(context.supabase, "user_settings").upsert(
-      { user_id: context.userId, ocade_memory_enabled: data.enabled },
-      { onConflict: "user_id" },
-    );
+    const { error } = await context.supabase
+      .from("user_settings")
+      .upsert(
+        { user_id: context.userId, ocade_memory_enabled: data.enabled },
+        { onConflict: "user_id" },
+      );
     if (error) throw new Response(error.message, { status: 500 });
     return { enabled: data.enabled };
   });
 
 export const listMemory = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ projectId: uuid.nullable().optional() }).parse(i ?? {}))
+  .validator((i) => z.object({ projectId: uuid.nullable().optional() }).parse(i ?? {}))
   .handler(async ({ data, context }) => {
-    let q = pendingFrom(context.supabase, "ocade_memory")
+    let q = context.supabase
+      .from("ocade_memory")
       .select("id, scope, project_id, content, source, pinned, expires_at, updated_at")
       .eq("user_id", context.userId);
     if (data.projectId) q = q.eq("project_id", data.projectId);
@@ -551,7 +555,7 @@ export const listMemory = createServerFn({ method: "GET" })
 
 export const addMemory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) =>
+  .validator((i) =>
     z
       .object({
         content: z.string().trim().min(1).max(8000),
@@ -564,10 +568,8 @@ export const addMemory = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     // Memory must be opted in before anything is written.
-    const { data: settings, error: settingsError } = await pendingFrom(
-      context.supabase,
-      "user_settings",
-    )
+    const { data: settings, error: settingsError } = await context.supabase
+      .from("user_settings")
       .select("ocade_memory_enabled")
       .eq("user_id", context.userId)
       .maybeSingle();
@@ -577,7 +579,8 @@ export const addMemory = createServerFn({ method: "POST" })
         status: 409,
       });
     }
-    const { data: row, error } = await pendingFrom(context.supabase, "ocade_memory")
+    const { data: row, error } = await context.supabase
+      .from("ocade_memory")
       .insert({
         user_id: context.userId,
         scope: data.scope,
@@ -594,7 +597,7 @@ export const addMemory = createServerFn({ method: "POST" })
 
 export const updateMemory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) =>
+  .validator((i) =>
     z
       .object({
         id: uuid,
@@ -605,19 +608,21 @@ export const updateMemory = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = {};
+    const patch: Database["public"]["Tables"]["ocade_memory"]["Update"] = {};
     if (data.content !== undefined) patch.content = data.content;
     if (data.pinned !== undefined) patch.pinned = data.pinned;
     if (data.expiresAt !== undefined) patch.expires_at = data.expiresAt;
     const { data: row, error } =
       Object.keys(patch).length > 0
-        ? await pendingFrom(context.supabase, "ocade_memory")
+        ? await context.supabase
+            .from("ocade_memory")
             .update(patch)
             .eq("id", data.id)
             .eq("user_id", context.userId)
             .select("id")
             .maybeSingle()
-        : await pendingFrom(context.supabase, "ocade_memory")
+        : await context.supabase
+            .from("ocade_memory")
             .select("id")
             .eq("id", data.id)
             .eq("user_id", context.userId)
@@ -629,9 +634,10 @@ export const updateMemory = createServerFn({ method: "POST" })
 
 export const deleteMemory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => z.object({ id: uuid }).parse(i))
+  .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
-    const { data: row, error } = await pendingFrom(context.supabase, "ocade_memory")
+    const { data: row, error } = await context.supabase
+      .from("ocade_memory")
       .delete()
       .eq("id", data.id)
       .eq("user_id", context.userId)
@@ -646,7 +652,8 @@ export const deleteMemory = createServerFn({ method: "POST" })
 export const clearAllMemory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { error } = await pendingFrom(context.supabase, "ocade_memory")
+    const { error } = await context.supabase
+      .from("ocade_memory")
       .delete()
       .eq("user_id", context.userId);
     if (error) throw new Response(error.message, { status: 500 });
@@ -656,7 +663,8 @@ export const clearAllMemory = createServerFn({ method: "POST" })
 export const purgeExpiredMemory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await pendingFrom(context.supabase, "ocade_memory")
+    const { data, error } = await context.supabase
+      .from("ocade_memory")
       .delete()
       .eq("user_id", context.userId)
       .lt("expires_at", new Date().toISOString())

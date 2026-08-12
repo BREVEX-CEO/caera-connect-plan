@@ -3,7 +3,8 @@ import { useRef, useState } from "react";
 import { Palette, Check, Upload, RefreshCcw } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
-import { useAppearance, type ThemeMode, type CursorKind } from "@/lib/theme-provider";
+import { type ThemeMode, type CursorKind } from "@/lib/theme-provider";
+import { useAppearance } from "@/lib/use-appearance";
 import { recordAction } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 
@@ -116,6 +117,7 @@ function AppearancePage() {
               const active = appearance.theme === t.id;
               return (
                 <button
+                  aria-pressed={active}
                   key={t.id}
                   onClick={() => selectTheme(t.id)}
                   className={cn(
@@ -193,6 +195,7 @@ function AppearancePage() {
               const hasCustom = c.id === "custom" && appearance.cursorCustom;
               return (
                 <button
+                  aria-pressed={active}
                   key={c.id}
                   onClick={() => selectCursor(c.id)}
                   className={cn(

@@ -16,13 +16,14 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
 type AccountType = "solo" | "small_business" | "enterprise";
 type PrivacyMode = "device_only" | "private_sync";
 
-const modules = [
-  { id: "ocade", label: "OCADE — assistant" },
-  { id: "ficia", label: "FICIA — commerce & finance" },
-  { id: "ficia_family", label: "FICIA — Family, Marriage & Asset Protection" },
-  { id: "madee", label: "MADEE — studio & resume" },
-  { id: "cania", label: "CANIA — world intelligence" },
-] as const;
+/**
+ * What a new account can actually turn on.
+ *
+ * Offering FICIA, MADEE and CANIA here would ask someone to choose modules
+ * that do not exist, and then store the answer as a preference nothing reads.
+ * They are reserved names, not options.
+ */
+const modules = [{ id: "ocade", label: "OCADE — assistant" }] as const;
 
 type ModuleId = (typeof modules)[number]["id"];
 
@@ -40,7 +41,7 @@ function OnboardingPage() {
   );
   const [accountType, setAccountType] = useState<AccountType>("solo");
   const [privacy, setPrivacy] = useState<PrivacyMode>("private_sync");
-  const [enabled, setEnabled] = useState<ModuleId[]>(["ocade", "ficia", "madee"]);
+  const [enabled, setEnabled] = useState<ModuleId[]>(["ocade"]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,7 +91,11 @@ function OnboardingPage() {
         privacy_company: privacy,
         privacy_timesheets: privacy,
         modules: enabled,
-        family_planning_enabled: enabled.includes("ficia_family"),
+        // The FICIA family-planning slice was never built and its module option
+        // is gone, so this can only ever be false. Written explicitly rather
+        // than left out: the column is NOT NULL and an existing account that
+        // once ticked the box must not keep an enabled flag for absent code.
+        family_planning_enabled: false,
       },
       { onConflict: "user_id" },
     );
@@ -190,6 +195,7 @@ function OnboardingPage() {
             const active = enabled.includes(m.id);
             return (
               <button
+                aria-pressed={active}
                 key={m.id}
                 type="button"
                 onClick={() => toggle(m.id)}

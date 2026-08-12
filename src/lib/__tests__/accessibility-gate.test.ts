@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -84,6 +84,17 @@ describe("the accessibility gate", () => {
 
   it("leaves the tracked baseline byte-identical", () => {
     expect(readFileSync(BASELINE, "utf8")).toBe(ORIGINAL);
-    rmSync(scratch, { recursive: true, force: true });
   });
+});
+
+/*
+ * Cleanup in a hook, not at the end of an assertion.
+ *
+ * The `rmSync` used to live inside the test above, which made this file
+ * order-dependent: under `--sequence.shuffle` that test can run first and
+ * delete the scratch directory out from under every case that still needs it,
+ * producing ENOENT failures that say nothing about the gate being tested.
+ */
+afterAll(() => {
+  rmSync(scratch, { recursive: true, force: true });
 });

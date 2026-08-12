@@ -43,11 +43,15 @@ organisation, system settings. Those are called straight through.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
 import os
+import shutil
 import sys
 import time
 import traceback
+import uuid
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
@@ -512,46 +516,308 @@ def browser(payload: dict) -> dict:
     }
 
 
-def files(payload: dict) -> dict:
-    """The engine's file controller, with the filesystem consulted afterwards."""
+# ---------------------------------------------------------------------------
+# The user's own files
+# ---------------------------------------------------------------------------
+#
+# WHY A CLOSED SET OF FOLDER NAMES, AND NOT A PATH
+#
+# `file_controller` refuses anything outside the home directory, which is a
+# real boundary but a wide one: it puts .ssh, browser profiles, saved tokens
+# and every other application's private state inside OCADE's reach the moment
+# a model produces a plausible-looking path.
+#
+# So the tools do not take a path. They take a FOLDER NAME out of the six
+# below, and a name relative to it. There is no spelling of `..`, no absolute
+# path and no home directory that reaches anything else. This is the same
+# shape as the keyboard vocabulary and the window layouts — the argument is
+# picked from a list rather than parsed, which is what makes it checkable.
+#
+# `home` is deliberately NOT in the set. It is the whole boundary again under
+# a friendlier name.
+
+_FILE_FOLDERS = ("desktop", "downloads", "documents", "pictures", "music", "videos")
+
+# Where a trashed file's paperwork lives. Not in the workspace: the workspace
+# is a scratch folder the user may empty, and losing the ledger would turn a
+# reversible operation into an irreversible one.
+_TRASH_LEDGER = Path.home() / ".ocade" / "trash-ledger.json"
+
+
+def _file_base(folder: Any) -> Path:
     from actions import file_controller as fc  # noqa: PLC0415
 
-    action = need_text(payload.get("action"), "action", 40)
-    handler: Callable[..., str] | None = {
-        "list": fc.list_files,
-        "create_file": fc.create_file,
-        "create_folder": fc.create_folder,
-    }.get(action)
-    if handler is None:
-        raise Refusal(f"Unsupported file action: {action}", "unsupported")
-
-    content = payload.get("content") or ""
-    if content and is_protected_text(str(content)):
+    name = need_text(folder, "folder", 40).strip().lower()
+    if name not in _FILE_FOLDERS:
         raise Refusal(
-            "That content looks like a credential. OCADE does not write those to a file.",
-            "blocked",
+            f"OCADE works in {', '.join(_FILE_FOLDERS)} — not '{name}'.",
+            "unsupported",
         )
+    base = fc._resolve_path(name)  # noqa: SLF001 - the engine's own resolver
+    if not base.is_dir():
+        raise Refusal(f"This computer has no {name} folder.", "state_changed")
+    return base.resolve()
 
+
+def _file_path(folder: Any, raw: Any, field: str = "path") -> Path:
+    base = _file_base(folder)
+    rel = need_text(raw, field, 400).replace("\\", "/")
+    if rel.startswith("/") or (len(rel) > 1 and rel[1] == ":"):
+        raise Refusal("OCADE takes a name inside the folder, not an absolute path.", "blocked")
+    candidate = (base / rel).resolve()
+    try:
+        candidate.relative_to(base)
+    except ValueError:
+        raise Refusal(
+            f"That path leaves the {folder} folder, so it was refused.", "blocked"
+        ) from None
+    return candidate
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(131_072), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _read_ledger() -> list[dict]:
+    try:
+        return json.loads(_TRASH_LEDGER.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+
+
+def _write_ledger(rows: list[dict]) -> None:
+    _TRASH_LEDGER.parent.mkdir(parents=True, exist_ok=True)
+    _TRASH_LEDGER.write_text(json.dumps(rows[-500:], indent=1), encoding="utf-8")
+
+
+def files(payload: dict) -> dict:
+    """Search, read, copy, move and trash the user's own files.
+
+    Every mutation is confirmed against the filesystem afterwards, and every
+    one that destroys information is reversible: nothing here deletes.
+    """
+    from actions import file_controller as fc  # noqa: PLC0415
+
+    action = need_text(payload.get("action"), "action", 40).strip().lower()
+
+    # ---- read-only ------------------------------------------------------
     if action == "list":
-        said = handler(payload.get("path") or "desktop")
-        return {"action": action, "listing": clamp(said, 4000), "verified": True}
+        folder = need_text(payload.get("folder") or payload.get("path"), "folder", 40)
+        _file_base(folder)
+        return {
+            "action": action,
+            "listing": clamp(fc.list_files(folder.strip().lower()), 4000),
+            "verified": True,
+        }
 
-    path = need_text(payload.get("path"), "path", 400)
-    name = need_text(payload.get("name"), "name", 240)
-    said = handler(path, name, content) if action == "create_file" else handler(path, name)
+    if action == "search":
+        base = _file_base(payload.get("folder"))
+        match = need_text(payload.get("match"), "match", 120).lower()
+        rows = [
+            {
+                "name": p.relative_to(base).as_posix(),
+                "bytes": p.stat().st_size,
+                "modified": datetime.fromtimestamp(p.stat().st_mtime).isoformat(timespec="seconds"),
+            }
+            for p in sorted(base.rglob("*"))
+            if p.is_file() and match in p.name.lower()
+        ]
+        return {
+            "action": action,
+            "files": rows[:200],
+            "count": len(rows),
+            "verified": True,
+            "detail": f"{len(rows)} file{'' if len(rows) == 1 else 's'} matching '{match}'.",
+        }
 
-    # Verified by asking the filesystem, not by reading the sentence.
-    resolved = fc._resolve_path(path) / name  # noqa: SLF001 - the engine's own resolver
-    exists = resolved.exists()
-    return {
-        "action": action,
-        "path": str(resolved),
-        "engineSaid": clamp(said, 300),
-        "verified": exists,
-        "detail": (
-            f"{'Created' if exists else 'Did not create'} {resolved.name}."
-        ),
-    }
+    if action == "read":
+        path = _file_path(payload.get("folder"), payload.get("path"))
+        if not path.is_file():
+            raise Refusal(f"There is no file called {path.name}.", "state_changed")
+        if path.stat().st_size > 4_000_000:
+            raise Refusal(
+                f"{path.name} is {path.stat().st_size // 1_000_000} MB — too large to read as text.",
+                "unsupported",
+            )
+        return {
+            "action": action,
+            "name": path.name,
+            "content": clamp(path.read_text(encoding="utf-8", errors="replace"), 20_000),
+            "verified": True,
+            "detail": f"Read {path.name}.",
+        }
+
+    # ---- mutations ------------------------------------------------------
+    if action == "copy":
+        source = _file_path(payload.get("folder"), payload.get("from"), "from")
+        target = _file_path(payload.get("folder"), payload.get("to"), "to")
+        if not source.is_file():
+            raise Refusal(f"There is no file called {source.name} to copy.", "state_changed")
+        if target.exists():
+            raise Refusal(f"{target.name} already exists — OCADE will not overwrite it.", "state_changed")
+        if target.suffix.lower() in _EXECUTABLE_SUFFIXES:
+            raise Refusal(f"OCADE does not create {target.suffix} files.", "blocked")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+        # Verified by hashing both, not by trusting copy2 to have raised.
+        same = target.is_file() and _sha256(source) == _sha256(target)
+        return {
+            "action": action,
+            "from": source.name,
+            "to": target.name,
+            "verified": same,
+            "detail": (
+                f"Copied {source.name} to {target.name}; both hash the same."
+                if same
+                else f"{target.name} was written but does not match {source.name}."
+            ),
+        }
+
+    if action == "move":
+        source = _file_path(payload.get("folder"), payload.get("from"), "from")
+        target = _file_path(payload.get("folder"), payload.get("to"), "to")
+        if not source.is_file():
+            raise Refusal(f"There is no file called {source.name} to move.", "state_changed")
+        if target.exists():
+            raise Refusal(f"{target.name} already exists — OCADE will not overwrite it.", "state_changed")
+        if target.suffix.lower() in _EXECUTABLE_SUFFIXES:
+            raise Refusal(f"OCADE does not create {target.suffix} files.", "blocked")
+        before = _sha256(source)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        source.replace(target)
+        moved = target.is_file() and not source.exists() and _sha256(target) == before
+        return {
+            "action": action,
+            "from": source.name,
+            "to": target.name,
+            "verified": moved,
+            "detail": (
+                f"Moved {source.name} to {target.name}, unchanged."
+                if moved
+                else "The move did not complete cleanly."
+            ),
+        }
+
+    if action == "trash":
+        path = _file_path(payload.get("folder"), payload.get("path"))
+        if not path.is_file():
+            raise Refusal(f"There is no file called {path.name} to trash.", "state_changed")
+        digest = _sha256(path)
+        # The paperwork is written BEFORE the file moves. A crash between the
+        # two leaves a stale row, which is recoverable; the other order leaves
+        # a trashed file nobody can name, which is not.
+        entry = {
+            "id": uuid.uuid4().hex[:12],
+            "name": path.name,
+            "originalPath": str(path),
+            "sha256": digest,
+            "trashedAt": datetime.now().isoformat(timespec="seconds"),
+        }
+        _write_ledger([*_read_ledger(), entry])
+        said = fc._safe_trash(path)  # noqa: SLF001 - the engine's send2trash wrapper
+        gone = not path.exists()
+        return {
+            "action": action,
+            "id": entry["id"],
+            "name": entry["name"],
+            "engineSaid": clamp(said, 200),
+            "verified": gone,
+            "detail": (
+                f"{path.name} is in the recycle bin. Reversible with its id, {entry['id']}."
+                if gone
+                else f"{path.name} is still on disk — {clamp(said, 120)}"
+            ),
+        }
+
+    if action == "restore":
+        wanted = need_text(payload.get("id"), "id", 40).strip().lower()
+        rows = _read_ledger()
+        entry = next((row for row in rows if row.get("id") == wanted), None)
+        if entry is None:
+            raise Refusal(f"OCADE has no record of a trashed file with id {wanted}.", "state_changed")
+        original = Path(entry["originalPath"])
+        if original.exists():
+            raise Refusal(
+                f"{original.name} is already back in place — nothing to restore.", "state_changed"
+            )
+        restored = _restore_from_recycle_bin(original)
+        if not restored:
+            raise Refusal(
+                f"OCADE could not restore {original.name} automatically. It is still in the "
+                f"recycle bin and can be put back from there; its place was {original}.",
+                "state_changed",
+            )
+        # Restored is not enough — it has to be the same file.
+        matches = original.is_file() and _sha256(original) == entry["sha256"]
+        _write_ledger([row for row in rows if row.get("id") != wanted])
+        return {
+            "action": action,
+            "name": original.name,
+            "path": str(original),
+            "verified": matches,
+            "detail": (
+                f"Restored {original.name}; its contents still hash the same."
+                if matches
+                else f"{original.name} came back but its contents have changed since it was trashed."
+            ),
+        }
+
+    raise Refusal(f"Unsupported file action: {action}", "unsupported")
+
+
+def _restore_from_recycle_bin(original: Path) -> bool:
+    """Put one file back where it came from, using the shell's own undelete.
+
+    The verb is localised — "Restore" on an English Windows, "Geri Yükle" on a
+    Turkish one — so it is matched by position-independent normalisation across
+    every verb the shell offers for the item, and by the item's recorded
+    original location rather than its display name. Returns False rather than
+    raising: the caller turns that into an honest "do it from the recycle bin",
+    which is a worse outcome but a true one.
+    """
+    if sys.platform != "win32":
+        return False
+    try:
+        import win32com.client  # noqa: PLC0415
+    except ImportError:
+        return False
+
+    try:
+        shell = win32com.client.Dispatch("Shell.Application")
+        recycle_bin = shell.NameSpace(10)  # ssfBITBUCKET
+        if recycle_bin is None:
+            return False
+        for item in recycle_bin.Items():
+            # Column 1 is the original location; the shell reports the folder,
+            # so the file name is compared separately.
+            where = recycle_bin.GetDetailsOf(item, 1)
+            if not where:
+                continue
+            if Path(where) != original.parent or item.Name != original.name:
+                continue
+            for verb in item.Verbs():
+                normalised = verb.Name.replace("&", "").strip().lower()
+                if normalised in _UNDELETE_VERBS:
+                    verb.DoIt()
+                    return original.exists()
+            return False
+    except Exception:
+        return False
+    return False
+
+
+# The shell's undelete verb, in the languages Windows ships it under. A miss
+# here costs an automatic restore, never correctness: the caller reports the
+# file's original location and leaves it in the bin.
+_UNDELETE_VERBS = {
+    "restore", "undelete", "geri yükle", "wiederherstellen", "restaurer",
+    "restaurar", "ripristina", "herstellen", "återställ", "gendan",
+    "przywróć", "восстановить", "还原", "復元", "복원",
+}
 
 
 def system_status(_payload: dict) -> dict:

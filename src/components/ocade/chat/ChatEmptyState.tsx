@@ -15,7 +15,7 @@ export interface Suggestion {
   hint?: string;
 }
 
-export const DEFAULT_SUGGESTIONS: Suggestion[] = [
+const DEFAULT_SUGGESTIONS: Suggestion[] = [
   {
     label: "Explain this error",
     prompt: "Explain this error message and the most likely cause:\n\n",

@@ -19,7 +19,7 @@ describe("authenticated relay channel and reconnect protocol", () => {
     const desktopReliable = new ReliableMobileEnvelopeLink(desktopAdapter, () => NOW);
     await desktopAdapter.connect();
 
-    const receivedIntents: any[] = [];
+    const receivedIntents: number[] = [];
     desktopReliable.subscribe(async (envelope) => {
       // simulate PC receiving it
       receivedIntents.push(envelope.sequence);

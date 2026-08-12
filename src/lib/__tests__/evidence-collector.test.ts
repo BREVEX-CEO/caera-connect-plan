@@ -121,7 +121,7 @@ describe("the generated report", () => {
 describe("device- and credential-gated work is declared, not hidden", () => {
   for (const id of [
     "supabase-apply",
-    "browser-extension-runtime",
+    "managed-browser-runtime",
     "android-runtime",
     "ios-runtime",
     "voice-runtime",

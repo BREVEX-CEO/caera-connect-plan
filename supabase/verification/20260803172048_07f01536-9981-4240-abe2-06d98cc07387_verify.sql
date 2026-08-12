@@ -21,6 +21,26 @@ BEGIN
     RAISE EXCEPTION 'grants_update WITH CHECK is not securely restricted';
   END IF;
 
+  /*
+   * GUARDED THE SAME WAY THE MIGRATION IS.
+   *
+   * `supabase_realtime` is created by the Supabase platform's bootstrap, not by
+   * any migration here. The migration already skips its `ALTER PUBLICATION`
+   * when the publication is absent — that was defect DB-02 — but this check did
+   * not, so on any non-Supabase PostgreSQL it failed on a condition the
+   * migration had deliberately declined to create. A bare rebuild, a staging
+   * box and the PGlite twin all hit it.
+   *
+   * A verification that contradicts its own migration is worse than none: it
+   * teaches whoever runs it that a red result is normal and can be ignored,
+   * which is exactly how a real failure gets waved through.
+   */
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    RAISE NOTICE
+      'supabase_realtime is absent, so realtime membership is not checked here. This is expected on any PostgreSQL that is not a hosted Supabase project; the migration skips the same step.';
+    RETURN;
+  END IF;
+
   SELECT count(*)
   INTO realtime_table_count
   FROM pg_publication_tables

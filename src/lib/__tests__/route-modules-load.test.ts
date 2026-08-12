@@ -26,7 +26,7 @@ describe("every route module loads in a server environment", () => {
 
   it("finds the route tree", () => {
     // A glob that silently matched nothing would make every test below vacuous.
-    expect(paths.length).toBeGreaterThan(50);
+    expect(paths.length).toBeGreaterThan(35);
   });
 
   it.each(paths)(

@@ -13,16 +13,17 @@ import {
   dispatchBrowserAction,
   getBrowserBridge,
   originOf,
-  DEFAULT_SITE_POLICY,
   BROWSER_BRIDGE_UNAVAILABLE,
+  BROWSER_POLICY_STORAGE_KEY,
+  readBrowserSitePolicy,
+  type BrowserBridgeStatus,
   type SitePolicy,
 } from "@/lib/native/browser-bridge";
-import { initExtensionBridge } from "@/lib/native/extension-bridge";
 import {
   computerUseChannelDecision,
   computerUsePermissionDecision,
 } from "@/lib/computer-use-settings";
-import type { ExtensionIdentity } from "@/lib/native/extension-protocol";
+import { bootstrapCompanion } from "@/lib/native/tauri-companion";
 
 export const Route = createFileRoute("/_authenticated/settings/browser")({
   head: () => ({
@@ -31,78 +32,26 @@ export const Route = createFileRoute("/_authenticated/settings/browser")({
   component: BrowserSettingsPage,
 });
 
-const STORAGE_KEY = "caera:browser:policy:v1";
-
 function loadPolicy(): SitePolicy {
-  if (typeof localStorage === "undefined") return { ...DEFAULT_SITE_POLICY };
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { ...DEFAULT_SITE_POLICY };
-    const p = JSON.parse(raw) as Partial<SitePolicy>;
-    return {
-      ...DEFAULT_SITE_POLICY,
-      allowOrigins: Array.isArray(p.allowOrigins) ? p.allowOrigins : [],
-      denyOrigins: Array.isArray(p.denyOrigins) ? p.denyOrigins : [],
-      readOrigins: Array.isArray(p.readOrigins) ? p.readOrigins : [],
-      fillOrigins: Array.isArray(p.fillOrigins) ? p.fillOrigins : [],
-      // Private browsing is never permitted, whatever is stored.
-      allowPrivate: false,
-    };
-  } catch {
-    return { ...DEFAULT_SITE_POLICY };
-  }
+  return readBrowserSitePolicy();
 }
 
 function BrowserSettingsPage() {
   const [policy, setPolicy] = useState<SitePolicy>(() => loadPolicy());
   const [site, setSite] = useState("");
   const [bridgeReason, setBridgeReason] = useState<string | null>(null);
-  const [pairingCode, setPairingCode] = useState("");
-  const [pairing, setPairing] = useState(false);
-  const [bridgeIdentity, setBridgeIdentity] = useState<ExtensionIdentity | null>(null);
+  const [bridgeIdentity, setBridgeIdentity] = useState<NonNullable<
+    BrowserBridgeStatus["identity"]
+  > | null>(null);
 
   useEffect(() => {
-    // Install the extension bridge first. In a browser without the extension
-    // this is a no-op and the honest "not connected" state remains.
-    initExtensionBridge(import.meta.env.VITE_OCADE_EXTENSION_ID as string | undefined);
-    void getBrowserBridge()
-      .status()
+    void bootstrapCompanion()
+      .then(() => getBrowserBridge().status())
       .then((s) => {
         setBridgeReason(s.available ? null : (s.reason ?? BROWSER_BRIDGE_UNAVAILABLE));
         setBridgeIdentity(s.available ? (s.identity ?? null) : null);
       });
   }, []);
-
-  async function pairExtension() {
-    const extensionId = import.meta.env.VITE_OCADE_EXTENSION_ID as string | undefined;
-    if (!extensionId) {
-      toast.error("This build has no browser extension ID configured.");
-      return;
-    }
-    if (!/^\d{6}$/.test(pairingCode.trim())) {
-      toast.error("Enter the six-digit code shown by the OCADE extension.");
-      return;
-    }
-    setPairing(true);
-    try {
-      if (!initExtensionBridge(extensionId, pairingCode.trim())) {
-        setBridgeReason(BROWSER_BRIDGE_UNAVAILABLE);
-        toast.error("The browser extension runtime isn't reachable.");
-        return;
-      }
-      const status = await getBrowserBridge().status();
-      setBridgeReason(status.available ? null : (status.reason ?? BROWSER_BRIDGE_UNAVAILABLE));
-      setBridgeIdentity(status.available ? (status.identity ?? null) : null);
-      if (status.available) {
-        setPairingCode("");
-        toast.success("Browser extension paired for this browser session.");
-      } else {
-        toast.error(status.reason ?? BROWSER_BRIDGE_UNAVAILABLE);
-      }
-    } finally {
-      setPairing(false);
-    }
-  }
 
   /**
    * Returns whether the change was actually saved.
@@ -115,7 +64,7 @@ function BrowserSettingsPage() {
   const persist = useCallback((next: SitePolicy): boolean => {
     setPolicy(next);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      localStorage.setItem(BROWSER_POLICY_STORAGE_KEY, JSON.stringify(next));
       return true;
     } catch {
       toast.error(
@@ -209,32 +158,10 @@ function BrowserSettingsPage() {
               <p className="font-medium text-foreground">Browser control isn't connected</p>
               <p className="mt-0.5 text-xs text-muted-foreground">{bridgeReason}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                You can still set permissions now — they apply as soon as it connects.
+                Managed Chrome or Edge control is available in the OCADE desktop build. This
+                standalone web session can still save site permissions, but it cannot control a
+                browser on this computer.
               </p>
-              <div className="mt-3 flex max-w-sm gap-2">
-                <Input
-                  value={pairingCode}
-                  onChange={(event) =>
-                    setPairingCode(event.target.value.replace(/\D/g, "").slice(0, 6))
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") void pairExtension();
-                  }}
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  aria-label="Browser extension pairing code"
-                  placeholder="6-digit pairing code"
-                  className="h-9"
-                />
-                <Button
-                  size="sm"
-                  className="h-9"
-                  disabled={pairing || pairingCode.length !== 6}
-                  onClick={() => void pairExtension()}
-                >
-                  {pairing ? "Pairing..." : "Pair"}
-                </Button>
-              </div>
             </div>
           </GlassPanel>
         ) : null}
@@ -246,14 +173,14 @@ function BrowserSettingsPage() {
               aria-hidden
             />
             <div>
-              <p className="font-medium text-foreground">Browser extension paired</p>
+              <p className="font-medium text-foreground">Managed browser connected</p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {bridgeIdentity.name} {bridgeIdentity.version} · runtime{" "}
-                {bridgeIdentity.runtimeId.slice(0, 8)}… · Manifest V{bridgeIdentity.manifestVersion}
+                {bridgeIdentity.browser === "edge" ? "Microsoft Edge" : "Google Chrome"} · local
+                Playwright/CDP protocol V{bridgeIdentity.protocolVersion}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                This proves the extension identity only. Each website still requires its own browser
-                permission.
+                The desktop host owns this session. Each website still requires its own browser
+                permission, and protected fields remain human-controlled.
               </p>
             </div>
           </GlassPanel>

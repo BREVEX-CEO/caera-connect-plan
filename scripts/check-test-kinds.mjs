@@ -38,9 +38,8 @@ const GLOB_IMPORT = /import\.meta\.glob/;
 /**
  * Targets that genuinely cannot be executed by vitest, with the reason.
  *
- * `extension/background.js` is deliberately NOT here: P12 proved it executable
- * in a VM with a fake chrome, so a structural-only test of it would now be a
- * weaker test than the one that exists.
+ * The managed browser host is deliberately NOT here: it is executed by the
+ * real Chrome/Edge parity harness, so a structural-only test would be weaker.
  */
 const UNEXECUTABLE = [
   { match: /\.rs$/, why: "Rust source; executed by `cargo test`, not vitest" },

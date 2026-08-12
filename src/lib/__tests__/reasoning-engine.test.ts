@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { reason, explainReceipt, type ReasonDeps, type ReasonRequest } from "../reasoning/engine";
 import { PerfLedger, DETERMINISTIC_TASKS } from "../local/router-policy";
 import type { LocalModelInfo } from "../ocade-local";
+import { OCADE_MODEL_ID } from "../local/fixed-model";
 
 /**
  * The reasoning service's six paths, and the rule that matters most: a prompt
@@ -10,7 +11,10 @@ import type { LocalModelInfo } from "../ocade-local";
 
 function model(over: Partial<LocalModelInfo> = {}): LocalModelInfo {
   return {
-    id: "qwen3:8b",
+    // OCADE's one engine. The default fixture must BE the fixed model: routing
+    // no longer picks whatever is installed, so a fixture naming anything else
+    // makes every "local first" test exercise the refusal path instead.
+    id: OCADE_MODEL_ID,
     sizeBytes: 5_225_374_496,
     paramsB: 8.2,
     vision: false,
@@ -91,7 +95,7 @@ describe("success — local first", () => {
     const h = harness();
     const r = await reason(h.deps, ask());
     if (!r.ok) throw new Error(r.reason);
-    expect(r.receipt.modelId).toBe("qwen3:8b");
+    expect(r.receipt.modelId).toBe(OCADE_MODEL_ID);
     expect(r.receipt.routing).not.toBeNull();
     expect(explainReceipt(r.receipt)).toMatch(/nothing left your machine/i);
   });

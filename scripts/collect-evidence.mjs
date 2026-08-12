@@ -227,12 +227,14 @@ checks.push(
     "No database connection is available in this environment.",
     "Apply the 32 migrations via Lovable, then run each supabase/verification/*_verify.sql — all are self-checking and raise on any gap.",
   ),
-  notAttempted(
-    "browser-extension-runtime",
-    "Extension loaded and driving a real page",
-    "No Chrome/Edge profile is available here.",
-    "Load extension/ unpacked in Chrome and Edge, then pair with the local runtime.",
-  ),
+  run({
+    id: "managed-browser-runtime",
+    description: "Packaged extensionless browser host drives real Chrome and Edge",
+    command: npm,
+    args: ["run", "browser:cdp-parity"],
+    evidence: () =>
+      "Real Chrome and Edge passed navigation, protected-field refusal, verified DOM action, upload, download, tabs, immediate cancellation and emergency stop.",
+  }),
   notAttempted(
     "android-runtime",
     "Android app installed and paired on a device",

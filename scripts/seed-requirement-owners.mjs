@@ -141,13 +141,14 @@ const EXTERNAL_OWNERS = [
     },
   ],
   [
-    "Browser Extension and Web Control",
+    "Managed Browser and Web Control",
     {
       owner: REPO_OWNER,
-      thirdParty: "Google (Chrome Web Store), Microsoft (Edge Add-ons)",
-      requires: "supported Chrome and Edge installations, then store identities for publication",
+      thirdParty: "Google (Chrome), Microsoft (Edge)",
+      requires:
+        "supported Chrome and Edge installations plus platform-specific signed companion builds",
       proofWhenUnblocked:
-        "silent policy-based install, observed DOM control, and permission-revocation tests",
+        "packaged sidecar launch, observed DOM control, immediate stop, and permission-revocation tests",
     },
   ],
   [

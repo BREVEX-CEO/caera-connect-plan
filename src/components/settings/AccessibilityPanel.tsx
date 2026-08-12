@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Accessibility, Captions, Eye, Keyboard, MousePointer2 } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
-import { useAppearance } from "@/lib/theme-provider";
+import { useAppearance } from "@/lib/use-appearance";
 import { cn } from "@/lib/utils";
 
 export function AccessibilityPanel() {
@@ -64,6 +64,7 @@ export function AccessibilityPanel() {
           artwork.
         </p>
         <button
+          aria-pressed={appearance.cursor === "accessibility"}
           type="button"
           onClick={() => void appearance.update({ cursor: "accessibility" })}
           className={cn(

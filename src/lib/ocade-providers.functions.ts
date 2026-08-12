@@ -52,7 +52,7 @@ export const getProviderPrefs = createServerFn({ method: "GET" })
 
 export const saveProviderPrefs = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) => prefsInput.parse(i))
+  .validator((i) => prefsInput.parse(i))
   .handler(async ({ data, context }) => {
     const patch: Record<string, unknown> = { user_id: context.userId };
     if (data.routing !== undefined) patch.routing = data.routing;
@@ -250,7 +250,7 @@ export const testOpenAIDirect = createServerFn({ method: "POST" })
 /** Record a diagnostic event (used by client-side Ollama tests). */
 export const logProviderEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) =>
+  .validator((i) =>
     z
       .object({
         eventKind: z.enum([

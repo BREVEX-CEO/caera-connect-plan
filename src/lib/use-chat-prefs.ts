@@ -36,6 +36,20 @@ export interface ChatPrefs {
    * discards it, which some people prefer on a shared machine.
    */
   keepDrafts: boolean;
+  /**
+   * Show the verification machinery inside the transcript.
+   *
+   * OFF, AND OFF IS THE POINT. Answer receipts, engine provenance cards,
+   * conversation-integrity chains, fingerprints and turn counts are real and
+   * they are worth having — but under every single answer they turned a chat
+   * into an audit log. Someone asking a question does not need a hash to read
+   * the reply, and putting one there taught them to scroll past the whole
+   * region, including on the day it would have mattered.
+   *
+   * The evidence is not deleted; it is moved behind this one switch, so the
+   * people who need it can still see it and nobody else is charged for it.
+   */
+  showDiagnostics: boolean;
 }
 
 export const DEFAULT_CHAT_PREFS: ChatPrefs = {
@@ -45,6 +59,7 @@ export const DEFAULT_CHAT_PREFS: ChatPrefs = {
   density: "comfortable",
   renderMarkdown: true,
   keepDrafts: true,
+  showDiagnostics: false,
 };
 
 const KEY = "ocade.chat.prefs.v1";
@@ -78,6 +93,7 @@ export function parseChatPrefs(raw: string | null): ChatPrefs {
         : DEFAULT_CHAT_PREFS.density,
       renderMarkdown: bool("renderMarkdown"),
       keepDrafts: bool("keepDrafts"),
+      showDiagnostics: bool("showDiagnostics"),
     };
   } catch {
     return { ...DEFAULT_CHAT_PREFS };

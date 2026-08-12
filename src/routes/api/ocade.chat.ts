@@ -5,6 +5,7 @@
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import { streamText, type ModelMessage } from "ai";
 import {
   createLovableGateway,
@@ -50,14 +51,6 @@ type ChatBody = {
   message: { content: string; attachments?: Attachment[] };
 };
 
-// Temporary type bridge for columns/tables in the ready-to-apply Phase 3
-// migration. Remove after applying it and regenerating Supabase types.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function pendingFrom(client: unknown, table: string): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (client as { from: (name: string) => any }).from(table);
-}
-
 export const Route = createFileRoute("/api/ocade/chat")({
   server: {
     handlers: {
@@ -73,7 +66,17 @@ export const Route = createFileRoute("/api/ocade/chat")({
         if (!supabaseUrl || !publishable)
           return new Response("Backend misconfigured", { status: 500 });
 
-        const supabase = createClient(supabaseUrl, publishable, {
+        /*
+         * Typed against the generated schema.
+         *
+         * Without the `<Database>` parameter this client accepts any table and
+         * column name at all, which is how the endpoint came to query
+         * `ocade_projects`, `ocade_memory` and `ocade_memory_enabled` through a
+         * hand-written `pendingFrom(): any` escape while the checked-in types
+         * had never heard of them. Nothing then verified that the code and the
+         * migrations agreed. Now they must.
+         */
+        const supabase = createClient<Database>(supabaseUrl, publishable, {
           global: { headers: { Authorization: `Bearer ${token}` } },
           auth: { persistSession: false },
         });
@@ -95,10 +98,8 @@ export const Route = createFileRoute("/api/ocade/chat")({
         }
 
         // Verify conversation ownership (RLS also enforces this).
-        const { data: conv, error: conversationError } = await pendingFrom(
-          supabase,
-          "ocade_conversations",
-        )
+        const { data: conv, error: conversationError } = await supabase
+          .from("ocade_conversations")
           .select("id, title, privacy_mode, project_id")
           .eq("id", body.conversationId)
           .eq("user_id", user.id)
@@ -113,10 +114,8 @@ export const Route = createFileRoute("/api/ocade/chat")({
 
         let projectContext: { id: string; name: string; instructions: string | null } | null = null;
         if (conv.project_id) {
-          const { data: project, error: projectError } = await pendingFrom(
-            supabase,
-            "ocade_projects",
-          )
+          const { data: project, error: projectError } = await supabase
+            .from("ocade_projects")
             .select("id, name, instructions")
             .eq("id", conv.project_id)
             .eq("user_id", user.id)
@@ -140,10 +139,8 @@ export const Route = createFileRoute("/api/ocade/chat")({
         // a settings list. Authority and rows are resolved before persistence;
         // if an enabled memory set cannot be read, OCADE refuses a partial-
         // context answer instead of silently forgetting user-approved facts.
-        const { data: memorySettings, error: memorySettingsError } = await pendingFrom(
-          supabase,
-          "user_settings",
-        )
+        const { data: memorySettings, error: memorySettingsError } = await supabase
+          .from("user_settings")
           .select("ocade_memory_enabled")
           .eq("user_id", user.id)
           .maybeSingle();
@@ -155,10 +152,8 @@ export const Route = createFileRoute("/api/ocade/chat")({
         }
         let memoryContext = "";
         if (memorySettings?.ocade_memory_enabled) {
-          const { data: memoryRows, error: memoryError } = await pendingFrom(
-            supabase,
-            "ocade_memory",
-          )
+          const { data: memoryRows, error: memoryError } = await supabase
+            .from("ocade_memory")
             .select("scope, project_id, content, pinned, expires_at, updated_at")
             .eq("user_id", user.id)
             .order("pinned", { ascending: false })
@@ -300,7 +295,7 @@ export const Route = createFileRoute("/api/ocade/chat")({
         const allowance = allowanceState(Number(usageRow?.used_count ?? 0));
 
         const { data: subRow, error: subscriptionError } = await supabase
-          .from("ocade_subscriptions" as never)
+          .from("ocade_subscriptions")
           .select("expires_at, status")
           .eq("user_id", user.id)
           .order("expires_at", { ascending: false })
@@ -350,12 +345,15 @@ export const Route = createFileRoute("/api/ocade/chat")({
               user_id: user.id,
               role: "user",
               content: body.message.content,
+              // The column is jsonb; the generated type is `Json`. Naming the
+              // element shape here documents what is actually stored and keeps
+              // the array assignable without an escape.
               attachments: attachments.map((a) => ({
                 kind: a.kind,
                 name: a.name,
                 mime: a.mime,
                 sizeBytes: a.sizeBytes,
-              })) as never,
+              })) satisfies Array<Record<string, string | number>>,
             })
             .select("id")
             .single();
@@ -370,10 +368,7 @@ export const Route = createFileRoute("/api/ocade/chat")({
         // Rename conversation from first user message if still default.
         if ((conv.title ?? "").toLowerCase() === "new chat" && body.message.content.trim()) {
           const auto = body.message.content.trim().slice(0, 60);
-          await supabase
-            .from("ocade_conversations")
-            .update({ title: auto } as never)
-            .eq("id", conv.id);
+          await supabase.from("ocade_conversations").update({ title: auto }).eq("id", conv.id);
         }
 
         // Load cloud history only for Private Sync. Vault-backed history comes
@@ -552,7 +547,7 @@ export const Route = createFileRoute("/api/ocade/chat")({
               }
               const conversationUpdateResult = await supabase
                 .from("ocade_conversations")
-                .update({ model_id: engine.model, provider_id: engine.provider } as never)
+                .update({ model_id: engine.model, provider_id: engine.provider })
                 .eq("id", conv.id);
               if (conversationUpdateResult.error) {
                 throw new Error(
@@ -569,14 +564,11 @@ export const Route = createFileRoute("/api/ocade/chat")({
                 // The caller was authenticated above; load the privileged
                 // client only inside this server-side completion callback.
                 const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-                const chargeResult = await supabaseAdmin.rpc(
-                  "ocade_consume_cloud_use" as never,
-                  {
-                    p_user_id: user.id,
-                    p_window_start: window.start.toISOString(),
-                    p_limit: CLOUD_ALLOWANCE,
-                  } as never,
-                );
+                const chargeResult = await supabaseAdmin.rpc("ocade_consume_cloud_use", {
+                  p_user_id: user.id,
+                  p_window_start: window.start.toISOString(),
+                  p_limit: CLOUD_ALLOWANCE,
+                });
                 if (chargeResult.error) {
                   throw new Error(
                     `Cloud response completed but allowance accounting failed: ${chargeResult.error.message}`,

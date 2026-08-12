@@ -32,6 +32,18 @@ export default tseslint.config(
       // .js test fixtures (win32com's scriptlet tests, urllib3's emscripten
       // worker) that are not product code and must not be reformatted.
       "native/python-host/.venv/**",
+      /*
+       * The incoming control engine, held READ-ONLY until it is deliberately
+       * connected.
+       *
+       * Not merely noise-suppression. Without this, `eslint .` walked into it
+       * and reported on a vendored `crypto-js.min.js` in its dashboard — which
+       * means `eslint --fix`, a command run casually and often, would have
+       * REWRITTEN a file inside a directory that is supposed to be immutable.
+       * A convention that the folder must not be touched is not protection; an
+       * ignore rule is.
+       */
+      "native/ocade_control_engine/**",
       ".codex/**",
       ".claude/**",
     ],

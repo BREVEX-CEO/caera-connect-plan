@@ -149,7 +149,14 @@ export interface MobileTransport {
     intent: MobileIntent,
     options?: { idempotencyKey: string },
   ): Promise<{ ok: boolean; detail: string }>;
-  subscribe?(onMessage: (payload: any) => void): () => void;
+  /**
+   * Inbound messages from the paired device.
+   *
+   * `unknown`, not a decoded intent type: this payload arrived over a network
+   * from another machine. Typing it as a known shape would let every consumer
+   * read fields off it as though they had been checked. The receiver validates.
+   */
+  subscribe?(onMessage: (payload: unknown) => void): () => void;
 }
 
 export interface MobileBiometricGate {

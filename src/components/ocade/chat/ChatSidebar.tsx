@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Search, Plus, MessageSquare, Pin, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatConversationView } from "./chat-types";
+import { groupConversations } from "@/lib/chat/group-conversations";
 
 /**
  * Conversation history.
@@ -23,50 +24,21 @@ import type { ChatConversationView } from "./chat-types";
 export interface ChatSidebarProps {
   conversations: ChatConversationView[];
   activeId?: string | null;
-  onSelect: (id: string) => void;
+  /**
+   * Open a conversation.
+   *
+   * Optional so a surface with a single conversation — the demo — can decline
+   * to offer selection rather than passing `() => {}`. An empty handler makes a
+   * row that looks clickable and does nothing, which is the dead control the
+   * no-dead-button audit exists to catch.
+   */
+  onSelect?: (id: string) => void;
   onNewChat: () => void;
   /** Rendered as the row's overflow menu. Omitted rows simply have no menu. */
   renderRowMenu?: (conversation: ChatConversationView) => React.ReactNode;
   /** Extra navigation (projects, files, models, settings) under the list. */
   footer?: React.ReactNode;
   emptyLabel?: string;
-}
-
-type Bucket = { label: string; items: ChatConversationView[] };
-
-const DAY = 24 * 60 * 60 * 1000;
-
-export function groupConversations(
-  conversations: ChatConversationView[],
-  now = Date.now(),
-): Bucket[] {
-  const pinned: ChatConversationView[] = [];
-  const today: ChatConversationView[] = [];
-  const yesterday: ChatConversationView[] = [];
-  const week: ChatConversationView[] = [];
-  const older: ChatConversationView[] = [];
-
-  for (const c of conversations) {
-    if (c.pinned) {
-      pinned.push(c);
-      continue;
-    }
-    const at = Date.parse(c.updatedAt);
-    // An unparseable date sorts into Older rather than crashing or vanishing.
-    const age = Number.isFinite(at) ? now - at : Number.POSITIVE_INFINITY;
-    if (age < DAY) today.push(c);
-    else if (age < 2 * DAY) yesterday.push(c);
-    else if (age < 7 * DAY) week.push(c);
-    else older.push(c);
-  }
-
-  return [
-    { label: "Pinned", items: pinned },
-    { label: "Today", items: today },
-    { label: "Yesterday", items: yesterday },
-    { label: "Previous 7 days", items: week },
-    { label: "Older", items: older },
-  ].filter((b) => b.items.length > 0);
 }
 
 export function ChatSidebar({
@@ -149,7 +121,7 @@ export function ChatSidebar({
                     <li key={c.id} className="group relative">
                       <button
                         type="button"
-                        onClick={() => onSelect(c.id)}
+                        onClick={onSelect ? () => onSelect(c.id) : undefined}
                         aria-current={active ? "page" : undefined}
                         className={cn(
                           "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[13px] transition",

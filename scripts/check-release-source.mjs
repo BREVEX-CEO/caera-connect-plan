@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
-import { resolve } from "node:path";
+import { resolve, isAbsolute } from "node:path";
 
 const root = process.cwd();
 const failures = [];
@@ -81,7 +81,7 @@ for (const path of [
   "release/OCADE_PRODUCTION_OPERATIONS.json",
   "release/OCADE_INCIDENT_RESPONSE_RUNBOOK.md",
   "src/lib/release-health.ts",
-  "extension/manifest.json",
+  "native/browser-host/index.mjs",
   "native/companion/tauri/tauri.conf.json",
   "native/companion/tauri/tauri.windows.conf.json",
   "native/companion/tauri/tauri.macos.conf.json",
@@ -97,10 +97,30 @@ for (const path of [
 
 const pkg = json("package.json");
 const lock = json("package-lock.json");
-const extension = json("extension/manifest.json");
 const tauri = json("native/companion/tauri/tauri.conf.json");
 const wrangler = json("wrangler.json");
-const blockers = json("release/OCADE_RELEASE_BLOCKERS.json");
+/**
+ * The blocker ledger, overridable for the enforcement tests.
+ *
+ * WHY THE OVERRIDE EXISTS. The tests that prove this gate REJECTS an overstated
+ * ledger used to corrupt the real file and restore it afterwards. Vitest runs
+ * files in parallel, so `release-package.test.ts` — which reads the same
+ * ledger — could observe a deliberately corrupted version mid-flight and fail
+ * for reasons that had nothing to do with it. That presented as an
+ * intermittent Windows flake for a long time; it was a shared-mutable-state
+ * race between test files.
+ *
+ * Pointing the gate at a temporary copy removes the race entirely, and also
+ * removes the hazard the old approach carried: the ledger is untracked, so a
+ * crash between corrupt and restore had no git recovery path.
+ *
+ * An override is normally an ABSOLUTE temp path, so it is used as given rather
+ * than resolved against the repository root.
+ */
+const blockersPath = process.env.OCADE_RELEASE_BLOCKERS ?? "release/OCADE_RELEASE_BLOCKERS.json";
+const blockers = JSON.parse(
+  readFileSync(isAbsolute(blockersPath) ? blockersPath : resolve(root, blockersPath), "utf8"),
+);
 const operations = json("release/OCADE_PRODUCTION_OPERATIONS.json");
 const android = read("android/app/build.gradle");
 const androidManifest = read("android/app/src/main/AndroidManifest.xml");
@@ -123,7 +143,6 @@ check(
     lock.packages?.["node_modules/glob/node_modules/brace-expansion"]?.dev === true,
   "lockfile classifies the Capacitor CLI toolchain as production",
 );
-check(extension.version === version, "extension version differs from web");
 check(tauri.version === version, "desktop version differs from web");
 check(android.includes(`versionName "${version}"`), "Android version differs from web");
 check(

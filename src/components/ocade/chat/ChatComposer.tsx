@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Square, Paperclip, ImagePlus, X, FileText } from "lucide-react";
+import { ArrowUp, Square, X, FileText, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatAttachmentView, EngineStatusView } from "./chat-types";
 import { EngineBadge } from "./EngineBadge";
 import { dragCarriesFiles, dragDepthAfter, acceptsFiles } from "./composer-drop";
+import { ComposerMenu } from "./ComposerMenu";
+import { DictateButton } from "./DictateButton";
+import type { DictationState } from "@/lib/voice/use-dictation";
 
 /**
  * The composer.
@@ -46,6 +49,28 @@ export interface ChatComposerProps {
   sendKey?: "enter" | "mod_enter";
   /** Fired on the first keystroke, so the engine can warm while they type. */
   onTypingStarted?: () => void;
+  /** Start a new conversation, offered inside the + menu. */
+  onNewChat?: () => void;
+  /** Capture a URL, offered inside the + menu. */
+  onAddLink?: () => void;
+  /**
+   * False on the demo, where text chat is fully open but anything that stores a
+   * file needs an account. The + menu answers with a sign-in prompt rather than
+   * greying the item out — see ComposerMenu.
+   */
+  signedIn?: boolean;
+  /**
+   * Dictation wiring. Absent means no microphone is offered at all, which is
+   * correct for a surface that cannot accept speech — an always-present button
+   * that never works is worse than none.
+   */
+  dictation?: {
+    state: DictationState;
+    supported: boolean;
+    error: string | null;
+    toggle: () => void;
+    languageLabel: string;
+  };
   /** Rendered above the input — quick prompts, warnings, anything contextual. */
   children?: React.ReactNode;
 }
@@ -67,6 +92,10 @@ export function ChatComposer({
   engine,
   onOpenEngineSettings,
   sendKey = "enter",
+  onNewChat,
+  onAddLink,
+  signedIn = true,
+  dictation,
   onTypingStarted,
   children,
 }: ChatComposerProps) {
@@ -254,17 +283,29 @@ export function ChatComposer({
                   e.target.value = "";
                 }}
               />
-              <ComposerIcon label="Attach a file" onClick={() => fileRef.current?.click()}>
-                <Paperclip className="h-4 w-4" />
-              </ComposerIcon>
-              <ComposerIcon
-                label={imageDisabledReason ?? "Attach an image"}
-                disabled={!!imageDisabledReason}
-                onClick={() => imageRef.current?.click()}
-              >
-                <ImagePlus className="h-4 w-4" />
-              </ComposerIcon>
+              {/*
+                One + rather than a growing row of icons. It opens UPWARD so it
+                never covers the message being written — see ComposerMenu.
+              */}
+              <ComposerMenu
+                onNewChat={onNewChat}
+                onUploadFile={() => fileRef.current?.click()}
+                onUploadImage={() => imageRef.current?.click()}
+                onAddLink={onAddLink}
+                imageDisabledReason={imageDisabledReason}
+                signedIn={signedIn}
+              />
             </>
+          ) : null}
+
+          {dictation ? (
+            <DictateButton
+              state={dictation.state}
+              supported={dictation.supported}
+              error={dictation.error}
+              onToggle={dictation.toggle}
+              languageLabel={dictation.languageLabel}
+            />
           ) : null}
 
           <div className="mx-1 min-w-0 flex-1">

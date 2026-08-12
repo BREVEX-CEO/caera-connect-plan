@@ -174,6 +174,7 @@ function ActivityPage() {
       <div className="mt-6 flex flex-wrap items-center gap-2">
         <div className="inline-flex rounded-lg bg-muted/40 p-1 text-xs">
           <button
+            aria-pressed={tab === "operational"}
             onClick={() => setTab("operational")}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5",
@@ -186,6 +187,7 @@ function ActivityPage() {
             Operational
           </button>
           <button
+            aria-pressed={tab === "compliance"}
             onClick={() => setTab("compliance")}
             className={cn(
               "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5",

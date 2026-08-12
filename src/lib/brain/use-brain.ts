@@ -121,10 +121,24 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
     [registry],
   );
 
-  return {
-    mode: effectiveMode,
-    route,
-    warm,
-    remedyLabel: (remedy) => REMEDY_LABELS[remedy],
-  };
+  /*
+   * MEMOISED, and that is not a micro-optimisation.
+   *
+   * This used to return a fresh object literal on every render, with a fresh
+   * `remedyLabel` arrow inside it. Any caller that put the handle in a
+   * dependency array — `useCallback([brain])`, `useEffect([check])` — got a new
+   * identity every render, so the effect re-ran, set state, and re-rendered.
+   * The demo screen probed the engine in a mount effect and hit
+   * "Maximum update depth exceeded" immediately.
+   *
+   * `route` and `warm` are already stable `useCallback`s; wrapping the handle
+   * makes the whole thing stable, which is what a hook returning callbacks owes
+   * its callers.
+   */
+  const remedyLabel = useCallback((remedy: RemedyAction) => REMEDY_LABELS[remedy], []);
+
+  return useMemo(
+    () => ({ mode: effectiveMode, route, warm, remedyLabel }),
+    [effectiveMode, route, warm, remedyLabel],
+  );
 }

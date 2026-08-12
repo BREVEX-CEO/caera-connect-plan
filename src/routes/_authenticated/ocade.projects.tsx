@@ -50,10 +50,10 @@ import {
 import {
   listProjectFiles,
   saveProjectFile,
-  removeProjectFile,
   removeProjectFilesForProject,
   type ProjectFile,
 } from "@/lib/project-files";
+import { deleteAttachment, describeSite } from "@/lib/attachments/deletion";
 import {
   createProjectFolder,
   listProjectFolders,
@@ -263,16 +263,28 @@ function ProjectsPage() {
     toast.success(removed.evidence);
   }
 
-  function deleteProjectFile(id: string) {
-    const result = removeProjectFile(id);
-    if (!result.ok) {
-      toast.error(result.reason);
+  /**
+   * Delete a project file from EVERY place it left a trace.
+   *
+   * This used to call `removeProjectFile` alone, which deletes the extracted
+   * text and nothing else. Verbatim excerpts of the same document stayed in
+   * saved citations under old assistant replies, and cached copies stayed in
+   * Cache Storage — so a user who deleted a document to make it go away was
+   * shown a success toast while its text was still readable in the app.
+   */
+  async function deleteProjectFile(id: string, name: string) {
+    const receipt = await deleteAttachment({ fileId: id, name });
+    if (selected) refreshLocalProjectItems(selected.id);
+
+    if (receipt.complete) {
+      toast.success(receipt.summary);
       return;
     }
-    toast.success(result.evidence);
-    if (selected) {
-      refreshLocalProjectItems(selected.id);
-    }
+    // Names the places that still hold data instead of a bare "failed", so a
+    // retry is informed and the user knows exactly what remains.
+    toast.error(receipt.summary, {
+      description: receipt.remaining.map(describeSite).join(", "),
+    });
   }
 
   async function handleCreate() {
@@ -328,7 +340,21 @@ function ProjectsPage() {
   async function reallyDelete(p: OcadeProject) {
     setBusy(true);
     try {
+      /*
+       * Sweep each file's OTHER traces before the bulk removal.
+       *
+       * `removeProjectFilesForProject` deletes the project-file records and
+       * nothing else. Read the names first — after the bulk delete there is
+       * nothing left to tell us which documents were quoted, and the excerpts
+       * would stay behind with no record that they belong to a deleted file.
+       */
+      const doomed = listProjectFiles(p.id);
       await deleteProject({ data: { id: p.id } });
+      if (doomed.ok) {
+        for (const file of doomed.data) {
+          await deleteAttachment({ name: file.name });
+        }
+      }
       const localRemoval = removeProjectFilesForProject(p.id);
       const folderRemoval = removeProjectFoldersForProject(p.id);
       setConfirmDelete(null);
@@ -726,6 +752,7 @@ function ProjectsPage() {
                 {projectFolders && projectFolders.length > 0 ? (
                   <div className="mb-2 flex flex-wrap gap-1">
                     <button
+                      aria-pressed={uploadFolder === ""}
                       type="button"
                       onClick={() => setUploadFolder("")}
                       className={cn(
@@ -797,7 +824,7 @@ function ProjectsPage() {
                           {file.sha256.slice(0, 10)}…
                         </span>
                         <button
-                          onClick={() => deleteProjectFile(file.id)}
+                          onClick={() => void deleteProjectFile(file.id, file.name)}
                           aria-label={`Delete ${file.name}`}
                           className="ml-auto text-muted-foreground hover:text-destructive"
                         >

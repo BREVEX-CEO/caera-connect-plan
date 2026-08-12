@@ -1,9 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { CaniaLayout } from "@/components/cania/CaniaLayout";
+import { Globe2 } from "lucide-react";
+import { ComingLater } from "@/components/shell/ComingLater";
 
 export const Route = createFileRoute("/_authenticated/cania")({
   head: () => ({
     meta: [{ title: "CANIA — CAERA CADANE" }, { name: "robots", content: "noindex" }],
   }),
-  component: CaniaLayout,
+  component: () => (
+    <ComingLater
+      name="CANIA"
+      icon={Globe2}
+      wasGoingToBe="a country and market intelligence board"
+    />
+  ),
 });

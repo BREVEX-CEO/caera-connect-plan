@@ -10,6 +10,19 @@
 
 export type StorageMode = "browser_only" | "pc_vault" | "private_sync";
 
+/**
+ * Every kind of data this product can create.
+ *
+ * "resumes", "company", "timesheets" and "accounting" were removed with the
+ * products that produced them. A privacy control for a data class nothing can
+ * write is a switch with no wire behind it — worse than useless, because it
+ * invites someone to believe they have configured where their company records
+ * are stored when no company record can exist.
+ *
+ * The `data_class_privacy` rows for those classes are left untouched in the
+ * database. Deleting a user's stated privacy preference is not a cleanup, and
+ * if those products are ever built the preference should still be theirs.
+ */
 export const DATA_CLASSES = [
   "chats",
   "images",
@@ -17,10 +30,6 @@ export const DATA_CLASSES = [
   "recordings",
   "copilot",
   "learning_replays",
-  "resumes",
-  "company",
-  "timesheets",
-  "accounting",
 ] as const;
 
 export type DataClass = (typeof DATA_CLASSES)[number];

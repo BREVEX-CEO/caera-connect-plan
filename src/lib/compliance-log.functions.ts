@@ -32,7 +32,7 @@ const inputSchema = z.object({
 
 export const writeComplianceLog = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => inputSchema.parse(input))
+  .validator((input) => inputSchema.parse(input))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 

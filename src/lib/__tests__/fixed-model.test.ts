@@ -21,8 +21,8 @@ describe("there is one model, and nothing chooses", () => {
     }
   });
 
-  it("is the coder model, by id", () => {
-    expect(FIXED_MODEL.id).toBe("qwen2.5-coder:7b");
+  it("is qwen3:4b, by id", () => {
+    expect(FIXED_MODEL.id).toBe("qwen3:4b");
   });
 
   it("hosts it in a way each form factor can actually run", () => {
@@ -45,7 +45,7 @@ describe("there is one model, and nothing chooses", () => {
 
 describe("selection ignores size, memory and speed", () => {
   const installed = [
-    { id: "qwen2.5-coder:7b" },
+    { id: "qwen3:4b" },
     { id: "qwen3-coder:30b", sizeBytes: 18_556_700_761 },
     { id: "qwen3:14b", sizeBytes: 9_276_198_565 },
   ];
@@ -53,7 +53,7 @@ describe("selection ignores size, memory and speed", () => {
   it("chooses the configured model even when far larger ones are present", () => {
     const choice = selectFixedModel({ platform: "windows", installed });
     expect(choice.ok).toBe(true);
-    expect(choice.modelId).toBe("qwen2.5-coder:7b");
+    expect(choice.modelId).toBe("qwen3:4b");
     expect(choice.basis).toBe("fixed");
   });
 
@@ -75,7 +75,7 @@ describe("selection ignores size, memory and speed", () => {
   it("never routes to a cloud pointer", () => {
     const choice = selectFixedModel({
       platform: "windows",
-      installed: [{ id: "qwen3:8b", isCloudPointer: true }],
+      installed: [{ id: "qwen3:4b", isCloudPointer: true }],
     });
     expect(choice.ok).toBe(false);
   });
@@ -85,7 +85,7 @@ describe("vision is a capability requirement, not a size preference", () => {
   it("substitutes an installed vision model only when an image is present", () => {
     const choice = selectFixedModel({
       platform: "windows",
-      installed: [{ id: "qwen3:8b" }, { id: "qwen2.5vl:7b", vision: true }],
+      installed: [{ id: "qwen3:4b" }, { id: "qwen2.5vl:7b", vision: true }],
       visionRequired: true,
     });
     expect(choice.ok).toBe(true);
@@ -96,7 +96,7 @@ describe("vision is a capability requirement, not a size preference", () => {
   it("refuses rather than sending an image to a text-only model", () => {
     const choice = selectFixedModel({
       platform: "windows",
-      installed: [{ id: "qwen3:8b" }],
+      installed: [{ id: "qwen3:4b" }],
       visionRequired: true,
     });
     expect(choice.ok).toBe(false);

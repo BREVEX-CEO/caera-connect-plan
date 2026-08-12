@@ -47,7 +47,7 @@ Each row: everything codeable is done; the named step is all that remains.
 | Rust safety assertions (local) | Install VS Build Tools "Desktop development with C++", run cargo from the **x64 Native Tools prompt** (GNU `link.exe` from Git Bash otherwise shadows MSVC's linker). CI already covers this without any human step. |
 | Supabase schema + RLS | Apply the 32 migrations via Lovable. All 32 have paired, **self-checking** rollback + verification SQL that raises on any gap. |
 | Windows companion binary | Same MSVC install, then `cargo build --release` / `tauri build`. |
-| Browser extension runtime | Load unpacked into Chrome/Edge. Protocol parity with the TypeScript side and package safety already pinned by tests. |
+| Managed browser release matrix | Windows real-target parity and packaged supervision are verified. Build and sign the macOS/Linux companion sidecars and installers on their native runners. |
 | Android runtime | Android SDK/JDK + a device or emulator. Native/TS bridge parity already pinned. |
 | iOS runtime | macOS + Xcode + device. Same parity coverage. |
 

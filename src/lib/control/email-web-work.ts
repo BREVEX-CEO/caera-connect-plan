@@ -20,7 +20,7 @@ import {
   type SitePolicy,
 } from "../native/browser-bridge";
 import { isProtectedText } from "../native/companion-bridge";
-import { hasProtectedFields, type PageSummary } from "../native/extension-protocol";
+import { hasProtectedFields, type PageSummary } from "../native/browser-dom";
 import {
   selectUniversalRoute,
   type UniversalRouteCandidate,
@@ -529,7 +529,7 @@ function browserCandidate(
     health: available ? "healthy" : "failing",
     supportsRecording: true,
     evidence:
-      "Paired browser extension with per-origin fill permission and post-submit observation.",
+      "OCADE-managed Playwright/CDP session with per-origin fill permission and post-submit observation.",
   };
 }
 

@@ -1,4 +1,4 @@
-﻿-- Restore the previous cross-company grant policy and remove messenger realtime configuration.
+-- Restore the previous cross-company grant policy and remove messenger realtime configuration.
 BEGIN;
 DROP POLICY IF EXISTS grants_update
 ON public.msg_cross_company_grants;

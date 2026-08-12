@@ -50,7 +50,7 @@ describe("what actually runs in the browser", () => {
   it("states plainly which parts need which component", () => {
     expect(RUNTIME_REALITY).toMatch(/including offline/i);
     expect(RUNTIME_REALITY).toMatch(/companion app/i);
-    expect(RUNTIME_REALITY).toMatch(/browser extension/i);
+    expect(RUNTIME_REALITY).toMatch(/Playwright\/CDP browser host/i);
     expect(RUNTIME_REALITY).toMatch(/rather than showing a control that would fail/i);
   });
 

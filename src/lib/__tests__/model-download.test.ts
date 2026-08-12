@@ -308,3 +308,137 @@ describe("interruption and refusal", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
+
+describe("a finished download stays finished", () => {
+  /**
+   * DEFECT HWE-40, FIXED.
+   *
+   * Completion used to be decided by `alreadyHave >= expectedBytes`, which made
+   * a hand-written catalogue constant load-bearing for correctness. The WASM
+   * tier declared `469 * MB` — 491,782,144 — beside a comment giving the real
+   * size, 491,400,032. The 382,112-byte gap meant the check never passed for a
+   * file that had downloaded perfectly.
+   *
+   * The consequence was the worst-shaped bug available: on-device inference
+   * broke *because* the download had succeeded. Every subsequent launch resumed
+   * from the full length, the server answered 416 Range Not Satisfiable, and
+   * that was reported as a network failure. The engine was permanently
+   * unreachable for exactly the users who had waited out a 491 MB transfer.
+   *
+   * Two fixes, both pinned below: the digest decides completeness, and a 416 on
+   * a resume means "already complete" rather than "unreachable".
+   */
+  const digestOf = async (bytes: Uint8Array) => (await sha256OfBlob(new Blob([bytes.slice()])))!;
+
+  it("uses a verified file without going to the network at all", async () => {
+    const { store, files, meta } = fakeStore();
+    files.set("k", payload.slice() as Uint8Array<ArrayBuffer>);
+    meta.set("k", { verified: true, expectedBytes: payload.length });
+
+    const fetchImpl = vi.fn();
+    const result = await downloadModel({
+      key: "k",
+      url: "u",
+      // Deliberately WRONG, and larger than the file — the exact shape of the
+      // original defect. A verified file must be used regardless.
+      expectedBytes: payload.length + 382_112,
+      store,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.verified).toBe(true);
+    expect(fetchImpl, "a completed engine was re-downloaded").not.toHaveBeenCalled();
+  });
+
+  it("treats a 416 on resume as a complete download, not a network failure", async () => {
+    const { store, files } = fakeStore();
+    files.set("k", payload.slice() as Uint8Array<ArrayBuffer>);
+
+    const result = await downloadModel({
+      key: "k",
+      url: "u",
+      sha256: await digestOf(payload),
+      store,
+      fetchImpl: (async () => new Response(null, { status: 416 })) as unknown as typeof fetch,
+    });
+
+    expect(result.ok, "a finished engine reported itself unreachable").toBe(true);
+    expect(result.ok && result.verified).toBe(true);
+    expect(result.ok && result.bytes).toBe(payload.length);
+  });
+
+  it("does not delete the completed file while handling the 416", async () => {
+    /*
+     * ORDERING. The range-ignored branch treats any non-206 as "the server sent
+     * the whole file" and clears what is on disk. Running it before the 416
+     * check would destroy the very download being rescued, then hash a file
+     * that no longer exists.
+     */
+    const { store, files } = fakeStore();
+    files.set("k", payload.slice() as Uint8Array<ArrayBuffer>);
+
+    await downloadModel({
+      key: "k",
+      url: "u",
+      sha256: await digestOf(payload),
+      store,
+      fetchImpl: (async () => new Response(null, { status: 416 })) as unknown as typeof fetch,
+    });
+
+    expect(files.get("k"), "the completed download was deleted").toHaveLength(payload.length);
+  });
+
+  it("still deletes a corrupt file that answers 416", async () => {
+    // "Already complete" must not become a way to skip verification: a wrong
+    // file of the right length would otherwise load and answer nonsense.
+    const { store, files } = fakeStore();
+    files.set("k", payload.slice() as Uint8Array<ArrayBuffer>);
+
+    const result = await downloadModel({
+      key: "k",
+      url: "u",
+      sha256: "0".repeat(64),
+      store,
+      fetchImpl: (async () => new Response(null, { status: 416 })) as unknown as typeof fetch,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.failure).toBe("digest_mismatch");
+    expect(files.has("k"), "corrupt weights were kept").toBe(false);
+  });
+
+  it("does not short-circuit on an unverified file", async () => {
+    // Only a checked digest may skip the network. Bytes on disk with no proof
+    // are just bytes.
+    const { store, files, meta } = fakeStore();
+    files.set("k", payload.slice(0, 32) as Uint8Array<ArrayBuffer>);
+    meta.set("k", { verified: false, expectedBytes: payload.length });
+
+    const fetchImpl = vi.fn(async () =>
+      streamingResponse(payload.slice(32) as Uint8Array<ArrayBuffer>, { status: 206 }),
+    );
+    await downloadModel({
+      key: "k",
+      url: "u",
+      expectedBytes: payload.length,
+      store,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    expect(fetchImpl, "an unverified partial file was treated as done").toHaveBeenCalled();
+  });
+});
+
+describe("the published catalogue matches the file it points at", () => {
+  it("declares the exact byte count, not a rounded one", async () => {
+    /*
+     * The number that caused the defect. Verified against a live HEAD request
+     * to the published URL: content-length 491,400,032. `469 * MB` rounds to
+     * 491,782,144 and is what bricked the engine.
+     */
+    const { WASM_TIERS } = await import("../brain/browser-catalogue");
+    expect(WASM_TIERS[0].downloadBytes).toBe(491_400_032);
+    // Not a whole number of MiB — a rounded constant is the bug returning.
+    expect(WASM_TIERS[0].downloadBytes % (1024 * 1024)).not.toBe(0);
+  });
+});

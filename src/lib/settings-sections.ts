@@ -1,55 +1,66 @@
 import type { LucideIcon } from "lucide-react";
 import {
   User,
-  IdCard,
-  KeyRound,
   ShieldCheck,
-  Shield,
   HardDrive,
   Database,
-  ScrollText,
   Monitor,
-  Smartphone,
-  CreditCard,
   Gauge,
   SlidersHorizontal,
   Cpu,
   Mic,
-  Wand2,
   Lock,
-  GraduationCap,
   Palette,
-  MousePointer,
-  Bell,
-  Languages,
-  Timer,
-  Accessibility,
+  Cloud,
   Puzzle,
   Plug,
-  Blocks,
   Terminal,
-  Building2,
-  Users,
-  CheckSquare,
   Globe,
-  ClipboardCheck,
-  PenTool,
   Brain,
   MessageSquare,
-  Server,
   Image as ImageIcon,
   Activity,
-  Scale,
+  Wand2,
 } from "lucide-react";
 
-export type SettingsStatus = "active" | "setup_required" | "external";
+/**
+ * The settings map.
+ *
+ * WHAT THIS REPLACED. Fifty entries in seven groups, of which SIXTEEN were
+ * `setup_required` — pages that existed only to say they did not exist yet.
+ * Someone looking for the one switch they came for read past a Profile page
+ * that could not be edited, a Billing page with no plan, a Notifications page
+ * that notified nothing, and four more, in a sidebar long enough to scroll.
+ * Placeholders are not navigation; they are a list of promises filed under
+ * settings.
+ *
+ * ELEVEN CATEGORIES, and the count is the design. Everything a person actually
+ * changes belongs in one of them, and if a new control does not obviously
+ * belong in one, that is a signal about the control rather than a reason for a
+ * twelfth category.
+ *
+ * ADVANCED IS OPT-IN AND SEPARATE. Software skills, browser control,
+ * connectors, computer control, diagnostics and the rest are real and some
+ * people need them — but presenting them as peers of "Voice" and "Account"
+ * told every ordinary user that this is an engineering tool. They now sit
+ * behind one switch, off by default. `advanced: true` is the only thing that
+ * marks them; the shell decides whether to show the group.
+ *
+ * A SECTION HERE MUST HAVE A PAGE. Every slug below resolves to either a
+ * dedicated route or an entry in the catch-all's implementation map — asserted
+ * by `settings-sections-reachable.test.ts`. That guard is why removing the
+ * placeholders was safe: it fails if this file ever again lists a destination
+ * that does not render.
+ */
+
+export type SettingsStatus = "active" | "external";
 
 export type SettingsSection = {
   slug: string; // URL slug (empty string for the /settings root)
   label: string;
   icon: LucideIcon;
   status: SettingsStatus;
-  description: string; // shown on setup_required pages
+  description: string;
   keywords?: string[]; // for search
   externalTo?: string; // for status "external"
   externalHint?: string;
@@ -59,494 +70,294 @@ export type SettingsGroup = {
   id: string;
   label: string;
   items: SettingsSection[];
+  /**
+   * Hidden unless the reader has asked for it. One group carries this, and one
+   * switch reveals it — see the note at the top of this file.
+   */
+  advanced?: boolean;
 };
 
 export const SETTINGS_GROUPS: SettingsGroup[] = [
   {
-    id: "account",
-    label: "Account",
+    id: "general",
+    label: "General",
     items: [
       {
         slug: "",
         label: "General",
-        icon: User,
+        icon: SlidersHorizontal,
         status: "active",
-        description: "Name, preferred name, language, timezone and quick appearance controls.",
-        keywords: ["general", "name", "profile", "language", "timezone"],
+        description: "How OCADE opens and behaves.",
+        keywords: ["general", "start", "default", "home"],
       },
-      {
-        slug: "profile",
-        label: "Profile",
-        icon: IdCard,
-        status: "setup_required",
-        description:
-          "Extended public profile, avatar collections and pronouns arrive with the People slice.",
-        keywords: ["profile", "avatar", "bio"],
-      },
-      {
-        slug: "account",
-        label: "Account",
-        icon: User,
-        status: "setup_required",
-        description:
-          "Change email, phone and merge duplicate accounts. Available with the identity slice.",
-        keywords: ["account", "email", "phone", "delete"],
-      },
-      {
-        slug: "authentication",
-        label: "Authentication",
-        icon: KeyRound,
-        status: "setup_required",
-        description:
-          "Passkeys, hardware keys and provider linking (Google, Apple, phone, email OTP) ship with the auth hardening slice.",
-        keywords: ["auth", "password", "passkey", "webauthn", "oauth", "otp"],
-      },
-      {
-        slug: "security",
-        label: "Security",
-        icon: ShieldCheck,
-        status: "setup_required",
-        description:
-          "Session review, sign-out everywhere and login alerts arrive with the security slice.",
-        keywords: ["security", "sessions", "sign out"],
-      },
-    ],
-  },
-  {
-    id: "privacy",
-    label: "Privacy and Data",
-    items: [
-      {
-        slug: "privacy",
-        label: "Privacy",
-        icon: Shield,
-        status: "active",
-        description: "Per-data-class privacy: Browser Only, PC Vault (native) or Private Sync.",
-        keywords: ["privacy", "storage", "browser only", "cloud"],
-      },
-      {
-        slug: "vault",
-        label: "Storage",
-        icon: HardDrive,
-        status: "active",
-        description: "Browser Vault setup, passphrase, WebAuthn and recovery kit.",
-        keywords: ["storage", "vault", "encryption", "passphrase", "webauthn", "recovery"],
-      },
-      {
-        slug: "data-controls",
-        label: "Data Controls",
-        icon: Database,
-        status: "setup_required",
-        description:
-          "Export a copy of your data, request erasure and manage retention windows. Ships with the compliance slice.",
-        keywords: ["export", "erasure", "gdpr", "dpdp", "retention"],
-      },
-      {
-        slug: "activity",
-        label: "Activity",
-        icon: ScrollText,
-        status: "active",
-        description: "Operational activity and immutable compliance events.",
-        keywords: ["activity", "audit", "logs", "compliance"],
-      },
-      {
-        slug: "memory",
-        label: "Memory",
-        icon: Brain,
-        status: "active",
-        description:
-          "Review, edit and delete what OCADE remembers. Opt-in and separate from chat history.",
-        keywords: ["memory", "remember", "personalisation", "forget"],
-      },
-      {
-        slug: "devices",
-        label: "Devices",
-        icon: Monitor,
-        status: "active",
-        description: "Two desktop and two mobile devices per account. Approve, name and revoke.",
-        keywords: ["devices", "browsers", "revoke"],
-      },
-      {
-        slug: "mobile",
-        label: "Mobile companion",
-        icon: Smartphone,
-        status: "active",
-        description:
-          "Pair a phone to monitor OCADE, approve or cancel actions and trigger emergency stop. A phone can never take arbitrary control of your computer.",
-        keywords: [
-          "mobile",
-          "phone",
-          "pairing",
-          "qr",
-          "approve",
-          "emergency stop",
-          "android",
-          "ios",
-        ],
-      },
-    ],
-  },
-  {
-    id: "plans",
-    label: "Plans and Usage",
-    items: [
-      {
-        slug: "billing",
-        label: "Billing",
-        icon: CreditCard,
-        status: "setup_required",
-        description: "Plans, payment methods and invoices ship with the billing slice.",
-        keywords: ["billing", "plans", "invoice", "payment"],
-      },
-      {
-        slug: "usage",
-        label: "Usage",
-        icon: Gauge,
-        status: "active",
-        description:
-          "Cloud allowance remaining, reset time, plan status and what stays available if a plan lapses. Local use is unlimited.",
-        keywords: ["usage", "meter", "allowance", "cloud", "plan", "limits"],
-      },
-      {
-        slug: "limits",
-        label: "Limits",
-        icon: Gauge,
-        status: "setup_required",
-        description:
-          "Per-account and per-tenant limits are configured on the admin side. User-facing view arrives with the metering slice.",
-        keywords: ["limits", "quota"],
-      },
-    ],
-  },
-  {
-    id: "ocade",
-    label: "OCADE",
-    items: [
       {
         slug: "chat",
         label: "Chat",
         icon: MessageSquare,
         status: "active",
-        description:
-          "Which engine new chats start on, how messages are sent, and how the transcript is shown.",
-        keywords: ["chat", "engine", "send", "enter", "density", "markdown", "drafts"],
-      },
-      {
-        slug: "local-engine",
-        label: "Local Engine",
-        icon: Server,
-        status: "active",
-        description:
-          "The AI engine that runs on this computer: measured device specification, start and stop, install, verify, repair and remove.",
-        keywords: [
-          "local",
-          "engine",
-          "offline",
-          "on-device",
-          "ollama",
-          "model",
-          "download",
-          "repair",
-          "storage",
-        ],
-      },
-      {
-        slug: "providers",
-        label: "Online providers",
-        icon: Plug,
-        status: "active",
-        description:
-          "Whether OCADE may use a cloud engine at all, which one, and a real connection test. Keys stay on the server.",
-        keywords: ["provider", "cloud", "openai", "api key", "online", "routing"],
-      },
-      {
-        slug: "images",
-        label: "Images",
-        icon: ImageIcon,
-        status: "active",
-        description:
-          "Reading images you attach to a chat, and the exact requirements for creating images.",
-        keywords: ["image", "vision", "screenshot", "ocr", "chart", "generation"],
-      },
-      {
-        slug: "ocade-preferences",
-        label: "OCADE Preferences",
-        icon: SlidersHorizontal,
-        status: "setup_required",
-        description:
-          "Default reply length, tone, system instructions and default project ship with OCADE personalization.",
-        keywords: ["ocade", "preferences", "tone", "instructions"],
-      },
-      {
-        slug: "ocade-models",
-        label: "Model Settings",
-        icon: Cpu,
-        status: "external",
-        externalTo: "/ocade/models",
-        externalHint: "Opens the OCADE model control centre.",
-        description:
-          "Provider connections, latency tests and technical diagnostics live in the OCADE model control centre.",
-        keywords: ["models", "openai", "ollama", "providers"],
-      },
-      {
-        slug: "voice",
-        label: "Voice",
-        icon: Mic,
-        status: "active",
-        description:
-          "Choose your OCADE voice, speed and language, pick a microphone, enable the local wake phrase, captions and greetings.",
-        keywords: ["voice", "tts", "stt", "read aloud", "wake phrase", "captions", "microphone"],
-      },
-      {
-        slug: "work",
-        label: "Work and Computer Control",
-        icon: Wand2,
-        status: "active",
-        description:
-          "Master Computer Use policy, separate web, computer and paired-device channels, background and remote sessions, recording, replay and emergency stop.",
-        keywords: [
-          "work",
-          "computer use",
-          "computer control",
-          "native companion",
-          "emergency stop",
-          "recording",
-          "replay",
-        ],
-      },
-      {
-        slug: "permissions",
-        label: "Permissions",
-        icon: Lock,
-        status: "active",
-        description:
-          "Default and time-limited Computer Use permission posture with immutable protected-input boundaries and links to app and site-specific policy.",
-        keywords: [
-          "permissions",
-          "browser",
-          "clipboard",
-          "filesystem",
-          "apps",
-          "risk",
-          "allowance",
-        ],
-      },
-      {
-        slug: "learning",
-        label: "Learning and Replay",
-        icon: GraduationCap,
-        status: "setup_required",
-        description:
-          "Intern Learning Mode captures, practice replays and skill profiles arrive after OCADE Work.",
-        keywords: ["learning", "replay", "intern"],
+        description: "How the transcript reads and how a message is sent.",
+        keywords: ["chat", "markdown", "density", "enter", "send", "drafts"],
       },
     ],
   },
   {
-    id: "application",
-    label: "Application",
+    id: "appearance",
+    label: "Appearance & Motion",
     items: [
       {
         slug: "appearance",
         label: "Appearance",
         icon: Palette,
         status: "active",
-        description: "Dark, Light and REAL themes; motion and performance controls.",
-        keywords: ["appearance", "theme", "dark", "light", "real", "motion"],
+        description: "Theme, contrast and text size.",
+        keywords: ["appearance", "theme", "dark", "light", "contrast", "font", "cursor"],
       },
       {
-        slug: "cursor",
-        label: "Cursor",
-        icon: MousePointer,
-        status: "external",
-        externalTo: "/settings/appearance",
-        externalHint: "Opens Appearance › Cursor.",
-        description:
-          "Cursor selection, size, trail and accessibility fallback live inside Appearance.",
-        keywords: ["cursor", "pointer"],
-      },
-      {
-        slug: "notifications",
-        label: "Notifications",
-        icon: Bell,
-        status: "setup_required",
-        description:
-          "Per-channel notifications (mentions, approvals, alerts) arrive with the messenger and alerts slice.",
-        keywords: ["notifications", "alerts"],
-      },
-      {
-        slug: "language",
-        label: "Language and Region",
-        icon: Languages,
-        status: "setup_required",
-        description:
-          "Interface language, number format and country pack are set during onboarding today. Standalone editor ships with the localization slice.",
-        keywords: ["language", "locale", "region", "country"],
-      },
-      {
-        slug: "time-focus",
-        label: "Time and Focus",
-        icon: Timer,
-        status: "setup_required",
-        description:
-          "Focus windows, quiet hours and Do-Not-Disturb schedules arrive with the focus slice.",
-        keywords: ["time", "focus", "dnd"],
-      },
-      {
-        slug: "accessibility",
-        label: "Accessibility",
-        icon: Accessibility,
+        slug: "motion",
+        label: "Motion & depth",
+        icon: Wand2,
         status: "active",
-        description:
-          "Always-on keyboard, focus and screen-reader semantics plus reduced motion, high contrast, system pointer and caption routing.",
-        keywords: [
-          "accessibility",
-          "a11y",
-          "contrast",
-          "screen reader",
-          "keyboard",
-          "focus",
-          "captions",
-        ],
-      },
-      {
-        slug: "updates",
-        label: "Updates",
-        icon: ShieldCheck,
-        status: "active",
-        description:
-          "What OCADE does with an offered update, decided by the updater's own policy engine. Unsigned or unhashed updates are refused, never installed with a warning. Automatic updates stay unavailable until a real signing key replaces the placeholder.",
-        keywords: ["update", "updater", "rollback", "signature", "signing", "version", "upgrade"],
+        description: "How much the interface moves on this device.",
+        keywords: ["motion", "animation", "3d", "depth", "reduced"],
       },
     ],
   },
   {
-    id: "extensions",
-    label: "Extensions",
+    id: "privacy",
+    label: "Privacy",
     items: [
+      {
+        slug: "privacy",
+        label: "Privacy mode",
+        icon: ShieldCheck,
+        status: "active",
+        description: "Where your work is allowed to go.",
+        keywords: ["privacy", "device only", "sync", "cloud", "mode"],
+      },
+      {
+        slug: "cloud-permission",
+        label: "Cloud permission",
+        icon: Cloud,
+        status: "active",
+        description: "Which conversations may use the cloud.",
+        keywords: ["cloud", "permission", "consent", "allow"],
+      },
+      {
+        slug: "permissions",
+        label: "Permissions",
+        icon: Lock,
+        status: "active",
+        description: "What OCADE may do without asking again.",
+        keywords: ["permission", "approval", "confirm", "allow"],
+      },
+    ],
+  },
+  {
+    id: "local",
+    label: "Local & Offline",
+    items: [
+      {
+        slug: "local-engine",
+        label: "Local engine",
+        icon: Cpu,
+        status: "active",
+        description: "The engine that answers on this device.",
+        keywords: ["local", "engine", "on device", "model", "download"],
+      },
+      {
+        slug: "offline",
+        label: "Offline storage",
+        icon: HardDrive,
+        status: "active",
+        description: "What is kept here so OCADE works with no connection.",
+        keywords: ["offline", "storage", "cache", "download", "install"],
+      },
+      {
+        slug: "providers",
+        label: "Cloud engines",
+        icon: Globe,
+        status: "active",
+        description: "Metered engines, used only when you allow them.",
+        keywords: ["cloud", "provider", "metered", "online"],
+      },
+    ],
+  },
+  {
+    id: "voice",
+    label: "Voice",
+    items: [
+      {
+        slug: "voice",
+        label: "Voice",
+        icon: Mic,
+        status: "active",
+        description: "Speaking to OCADE, and hearing it back.",
+        keywords: ["voice", "speech", "dictation", "microphone", "read aloud"],
+      },
+    ],
+  },
+  {
+    id: "memory",
+    label: "Memory",
+    items: [
+      {
+        slug: "memory",
+        label: "Memory",
+        icon: Brain,
+        status: "active",
+        description: "What OCADE remembers between conversations.",
+        keywords: ["memory", "remember", "forget", "context"],
+      },
+    ],
+  },
+  {
+    id: "devices",
+    label: "Devices",
+    items: [
+      {
+        slug: "devices",
+        label: "Devices",
+        icon: Monitor,
+        status: "active",
+        description: "The computers and phones approved for this account.",
+        keywords: ["device", "computer", "phone", "pair", "revoke", "mobile"],
+      },
+    ],
+  },
+  {
+    id: "subscription",
+    label: "Subscription",
+    items: [
+      {
+        slug: "usage",
+        label: "Usage & plan",
+        icon: Gauge,
+        status: "active",
+        description: "What you have used, and what your plan allows.",
+        keywords: ["usage", "plan", "billing", "subscription", "allowance", "limit"],
+      },
+    ],
+  },
+  {
+    id: "data",
+    label: "Data",
+    items: [
+      {
+        slug: "vault",
+        label: "Your data",
+        icon: Database,
+        status: "active",
+        description: "Export or delete what OCADE holds.",
+        keywords: ["data", "export", "delete", "vault", "download"],
+      },
+      {
+        slug: "activity",
+        label: "Activity",
+        icon: Activity,
+        status: "active",
+        description: "What has been done on this account.",
+        keywords: ["activity", "history", "log", "audit"],
+      },
+    ],
+  },
+  {
+    id: "account",
+    label: "Account",
+    items: [
+      {
+        slug: "account",
+        label: "Account",
+        icon: User,
+        status: "active",
+        description: "Your sign-in and account details.",
+        keywords: ["account", "email", "password", "sign in", "profile", "security"],
+      },
+    ],
+  },
+  {
+    id: "about",
+    label: "About",
+    items: [
+      {
+        slug: "about",
+        label: "About",
+        icon: ShieldCheck,
+        status: "active",
+        description: "Version, licences and third-party notices.",
+        keywords: ["about", "licence", "license", "version", "notices"],
+      },
+    ],
+  },
+
+  /* ------------------------------------------------------------ advanced -- */
+  {
+    id: "advanced",
+    label: "Advanced",
+    advanced: true,
+    items: [
+      {
+        slug: "images",
+        label: "Images",
+        icon: ImageIcon,
+        status: "active",
+        description: "How OCADE reads and produces images.",
+        keywords: ["image", "vision", "picture", "generate"],
+      },
+      {
+        slug: "work",
+        label: "Computer control",
+        icon: Terminal,
+        status: "active",
+        description: "Letting OCADE operate this computer.",
+        keywords: ["work", "computer", "control", "automation", "desktop"],
+      },
       {
         slug: "skills",
         label: "Software skills",
         icon: Puzzle,
         status: "active",
-        description:
-          "What OCADE can actually operate on your behalf, which software categories are not supported yet, and the apps it has learned.",
-        keywords: ["skills", "software", "apps", "adapters", "coverage", "packs", "automation"],
+        description: "Applications OCADE has been taught to drive.",
+        keywords: ["skill", "software", "application", "trust"],
       },
       {
         slug: "browser",
         label: "Browser control",
         icon: Globe,
         status: "active",
-        description:
-          "Choose which websites OCADE may act on, and grant reading or form-filling per site. Passwords, one-time codes and payment fields are always refused.",
-        keywords: ["browser", "sites", "permissions", "extension", "web", "allowlist"],
+        description: "Letting OCADE read and act in a browser.",
+        keywords: ["browser", "web", "control", "extension"],
       },
       {
         slug: "connectors",
         label: "Connectors",
         icon: Plug,
         status: "active",
-        description:
-          "Live status and setup routes for the Native Companion, browser extension, mobile companion and model engines, with honest boundaries for unimplemented third-party OAuth services.",
-        keywords: [
-          "connectors",
-          "integrations",
-          "oauth",
-          "browser extension",
-          "native companion",
-          "mobile",
-          "models",
-        ],
+        description: "Outside services OCADE may reach.",
+        keywords: ["connector", "integration", "service", "api"],
       },
       {
-        slug: "integrations",
-        label: "Integrations",
-        icon: Blocks,
-        status: "setup_required",
-        description:
-          "Webhooks, incoming events and workspace-wide integrations ship after the connectors slice.",
-        keywords: ["integrations", "webhooks"],
-      },
-      {
-        slug: "developer",
-        label: "Developer",
-        icon: Terminal,
-        status: "setup_required",
-        description:
-          "API keys, personal access tokens and CLI setup live here once the developer program opens.",
-        keywords: ["developer", "api", "cli"],
+        slug: "updates",
+        label: "Updates",
+        icon: Cpu,
+        status: "active",
+        description: "How this application updates itself.",
+        keywords: ["update", "version", "release", "patch"],
       },
       {
         slug: "diagnostics",
         label: "Diagnostics",
-        icon: Activity,
+        icon: Terminal,
         status: "active",
-        description:
-          "Live engine, routing and connection detail for working out why something behaved the way it did.",
-        keywords: ["diagnostics", "debug", "latency", "engine", "routing", "logs"],
+        description: "Verification receipts and technical detail.",
+        keywords: ["diagnostic", "debug", "receipt", "proof", "integrity", "developer"],
       },
       {
-        slug: "about",
-        label: "About and licences",
-        icon: Scale,
+        slug: "accessibility",
+        label: "Accessibility",
+        icon: Monitor,
         status: "active",
-        description:
-          "Build details, the model weights OCADE can install with their licences, and every bundled package's licence.",
-        keywords: ["about", "licence", "license", "version", "third party", "notices", "model"],
-      },
-    ],
-  },
-  {
-    id: "ficia",
-    label: "FICIA",
-    items: [
-      {
-        slug: "companies",
-        label: "Companies",
-        icon: Building2,
-        status: "external",
-        externalTo: "/ficia",
-        externalHint: "Opens the FICIA hub.",
-        description:
-          "Create, join or switch companies from the FICIA hub. Per-company settings live inside each company workspace.",
-        keywords: ["companies", "ficia", "tenants"],
-      },
-      {
-        slug: "roles",
-        label: "Roles",
-        icon: Users,
-        status: "setup_required",
-        description:
-          "Global role defaults and role templates. Per-company roles are edited inside FICIA › People.",
-        keywords: ["roles", "permissions", "rbac"],
-      },
-      {
-        slug: "approvals",
-        label: "Approvals",
-        icon: CheckSquare,
-        status: "setup_required",
-        description:
-          "Personal approval preferences and delegation. Per-company approval chains live inside FICIA › Approvals.",
-        keywords: ["approvals", "delegation"],
-      },
-      {
-        slug: "compliance",
-        label: "Compliance Preferences",
-        icon: ClipboardCheck,
-        status: "setup_required",
-        description:
-          "Personal compliance defaults (evidence pack style, signature preferences). Company compliance lives inside FICIA.",
-        keywords: ["compliance", "evidence"],
-      },
-      {
-        slug: "signature-trust",
-        label: "Signature Trust",
-        icon: PenTool,
-        status: "setup_required",
-        description:
-          "Signature Trust Network onboarding — certificate chain, manifests and verification. Ships with the Signature Trust slice.",
-        keywords: ["signature", "trust", "certificate"],
+        description: "Keyboard and screen-reader behaviour.",
+        keywords: ["accessibility", "keyboard", "screen reader", "a11y"],
       },
     ],
   },

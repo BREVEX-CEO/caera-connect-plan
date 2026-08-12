@@ -20,6 +20,7 @@ import {
 } from "@/lib/ocade-allowance";
 import { getCloudUsage, getEntitlement } from "@/lib/ocade-usage.functions";
 import { BillingPanel } from "@/components/settings/BillingPanel";
+import { PlanComparison } from "@/components/settings/PlanComparison";
 
 export const Route = createFileRoute("/_authenticated/settings/usage")({
   head: () => ({

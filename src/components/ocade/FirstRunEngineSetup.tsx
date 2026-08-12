@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { startLocalRuntimeFn } from "@/lib/local-runtime.functions";
-import { selectTier, type TierManifest, type TierSelection } from "@/lib/local/tier-policy";
+import { FIXED_MODEL } from "@/lib/local/fixed-model";
 import { pullModel, type PullProgress } from "@/lib/local/model-lifecycle";
 import { discoverLocalModels, DEFAULT_LOCAL_BRIDGE_URL } from "@/lib/ocade-local";
 import { serverIsThisMachine } from "@/lib/hardware/detect.browser";
 import { useDevicePolicy } from "@/lib/use-device-policy";
-import manifestJson from "../../../release/OCADE_LOCAL_ENGINE_MODEL_MANIFEST.json";
 
 /**
  * First-run engine setup — silent, automatic, and out of the way.
@@ -38,8 +37,6 @@ import manifestJson from "../../../release/OCADE_LOCAL_ENGINE_MODEL_MANIFEST.jso
  *  - setup failed, in which case Settings explains it rather than a popup.
  */
 
-const manifest = manifestJson as unknown as TierManifest;
-
 /**
  * Remembered per browser so a failed attempt does not repeat on every
  * navigation. The Local Engine settings page clears it to retry.
@@ -68,7 +65,9 @@ export function FirstRunEngineSetup() {
   const device = useDevicePolicy();
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState<PullProgress | null>(null);
-  const [selection, setSelection] = useState<TierSelection | null>(null);
+  // Which engine is being installed. There is only ever one, so this is a
+  // presence flag rather than a choice — see `local/fixed-model.ts`.
+  const [selection, setSelection] = useState<typeof FIXED_MODEL | null>(null);
   const started = useRef(false);
   const controller = useRef<AbortController | null>(null);
 
@@ -106,23 +105,21 @@ export function FirstRunEngineSetup() {
       }
     }
 
-    // 3. Engine up, no model. Choose the tier for THIS device and fetch it.
-    if (!device.profile) {
-      setPhase("unavailable");
-      return;
-    }
-    const chosen = selectTier(device.profile, manifest);
-    if (!chosen.ok) {
-      markAttempted();
-      setPhase("unavailable");
-      return;
-    }
-    setSelection(chosen);
+    /*
+     * 3. Engine up, no model. Fetch THE model.
+     *
+     * This used to call `selectTier` and download whatever tier the hardware
+     * was matched to, which is how a machine could end up installing a 14B
+     * engine that took three minutes to answer. There is one OCADE model now,
+     * so first run installs it and nothing else — the same engine the product
+     * documents, on every device.
+     */
+    setSelection(FIXED_MODEL);
     setPhase("downloading");
 
     controller.current = new AbortController();
-    const pulled = await pullModel(DEFAULT_LOCAL_BRIDGE_URL, chosen.tier.tag, {
-      expectedBytes: chosen.tier.expectedStorageBytes,
+    const pulled = await pullModel(DEFAULT_LOCAL_BRIDGE_URL, FIXED_MODEL.id, {
+      expectedBytes: FIXED_MODEL.approxBytes,
       signal: controller.current.signal,
       onProgress: setProgress,
     });
@@ -137,7 +134,9 @@ export function FirstRunEngineSetup() {
     // will actually list counts as ready.
     const confirmed = await discoverLocalModels(DEFAULT_LOCAL_BRIDGE_URL);
     setPhase(confirmed.ok && confirmed.models.length > 0 ? "done" : "unavailable");
-  }, [device.profile]);
+    // No dependencies: this decides nothing from the device any more. It
+    // checks whether the engine is present and, if not, installs THE engine.
+  }, []);
 
   useEffect(() => {
     if (started.current) return;

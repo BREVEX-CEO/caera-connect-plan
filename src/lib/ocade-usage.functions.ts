@@ -28,12 +28,6 @@ import {
   type RequestOutcome,
 } from "@/lib/ocade-allowance";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function pendingFrom(supabase: unknown, table: string): any {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (supabase as { from: (t: string) => any }).from(table);
-}
-
 export interface CloudUsageResult {
   usedInWindow: number;
   windowStart: string;
@@ -47,7 +41,8 @@ export const getCloudUsage = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<CloudUsageResult> => {
     const w = currentWindow();
-    const { data } = await pendingFrom(context.supabase, "ocade_cloud_usage")
+    const { data } = await context.supabase
+      .from("ocade_cloud_usage")
       .select("used_count")
       .eq("user_id", context.userId)
       .eq("window_start", w.start.toISOString())
@@ -71,7 +66,8 @@ export interface EntitlementResult {
 export const getEntitlement = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<EntitlementResult | null> => {
-    const { data } = await pendingFrom(context.supabase, "ocade_subscriptions")
+    const { data } = await context.supabase
+      .from("ocade_subscriptions")
       .select("plan_id, started_at, expires_at, status")
       .eq("user_id", context.userId)
       .order("expires_at", { ascending: false })
@@ -92,7 +88,7 @@ export const getEntitlement = createServerFn({ method: "GET" })
  */
 export const consumeCloudUse = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((i) =>
+  .validator((i) =>
     z
       .object({
         locality: z.enum(["local", "cloud"]),
@@ -113,14 +109,11 @@ export const consumeCloudUse = createServerFn({ method: "POST" })
     // This function is service-role-only. Authentication above establishes the
     // user ID; the privileged client is loaded only inside the server handler.
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: result, error } = await supabaseAdmin.rpc(
-      "ocade_consume_cloud_use" as never,
-      {
-        p_user_id: context.userId,
-        p_window_start: w.start.toISOString(),
-        p_limit: CLOUD_ALLOWANCE,
-      } as never,
-    );
+    const { data: result, error } = await supabaseAdmin.rpc("ocade_consume_cloud_use", {
+      p_user_id: context.userId,
+      p_window_start: w.start.toISOString(),
+      p_limit: CLOUD_ALLOWANCE,
+    });
     if (error) throw new Response(error.message, { status: 500 });
 
     const used = Number(result ?? 0);

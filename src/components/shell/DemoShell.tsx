@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { WorkspaceShell } from "./WorkspaceShell";
-import { useDemo } from "@/lib/demo/context";
+import { useDemo } from "@/lib/demo/use-demo";
 
 /**
  * Demo variant of the single OCADE shell. Demo isolation is unchanged: state

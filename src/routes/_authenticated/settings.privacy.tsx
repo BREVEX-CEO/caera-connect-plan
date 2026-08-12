@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/settings/privacy")({
 
 const LABELS: Record<DataClass, { label: string; help: string }> = {
   chats: { label: "Chats", help: "OCADE conversations and threads." },
-  files: { label: "Files", help: "Documents uploaded to OCADE / FICIA / MADEE." },
+  files: { label: "Files", help: "Documents attached to OCADE conversations and projects." },
   images: { label: "Images", help: "Generated or uploaded images." },
   recordings: {
     label: "Recordings",
@@ -28,10 +28,6 @@ const LABELS: Record<DataClass, { label: string; help: string }> = {
   },
   copilot: { label: "Copilot history", help: "Plans, steps and results from Copilot runs." },
   learning_replays: { label: "Learning replays", help: "Intern-mode workflow captures." },
-  resumes: { label: "Resumes", help: "MADEE resume projects and versions." },
-  company: { label: "Company records", help: "FICIA company documents and configuration." },
-  timesheets: { label: "Timesheets", help: "Attendance and time entries." },
-  accounting: { label: "Accounting", help: "Ledgers, invoices, tax filings." },
 };
 
 const MODES: { mode: StorageMode; label: string; icon: typeof Cloud }[] = [

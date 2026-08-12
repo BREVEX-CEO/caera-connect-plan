@@ -2403,6 +2403,7 @@ export type Database = {
           created_at: string;
           id: string;
           model_id: string | null;
+          project_id: string | null;
           pinned: boolean;
           privacy_mode: string;
           provider_id: string | null;
@@ -2415,6 +2416,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           model_id?: string | null;
+          project_id?: string | null;
           pinned?: boolean;
           privacy_mode?: string;
           provider_id?: string | null;
@@ -2427,12 +2429,515 @@ export type Database = {
           created_at?: string;
           id?: string;
           model_id?: string | null;
+          project_id?: string | null;
           pinned?: boolean;
           privacy_mode?: string;
           provider_id?: string | null;
           title?: string;
           updated_at?: string;
           user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ocade_conversations_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "ocade_projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      audit_log: {
+        Row: {
+          action: string;
+          created_at: string;
+          feature_id: string | null;
+          id: string;
+          ip: string | null;
+          preview: Json | null;
+          result: Json | null;
+          tenant_id: string | null;
+          user_agent: string | null;
+          user_id: string | null;
+        };
+        Insert: {
+          action: string;
+          created_at?: string;
+          feature_id?: string | null;
+          id?: string;
+          ip?: string | null;
+          preview?: Json | null;
+          result?: Json | null;
+          tenant_id?: string | null;
+          user_agent?: string | null;
+          user_id?: string | null;
+        };
+        Update: {
+          action?: string;
+          created_at?: string;
+          feature_id?: string | null;
+          id?: string;
+          ip?: string | null;
+          preview?: Json | null;
+          result?: Json | null;
+          tenant_id?: string | null;
+          user_agent?: string | null;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
+      ocade_automations: {
+        Row: {
+          actions: Json;
+          created_at: string;
+          dry_run: boolean;
+          enabled: boolean;
+          id: string;
+          last_run_at: string | null;
+          max_attempts: number;
+          name: string;
+          next_run_at: string | null;
+          paused: boolean;
+          requires_approval: boolean;
+          trigger: Json;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          actions?: Json;
+          created_at?: string;
+          dry_run?: boolean;
+          enabled?: boolean;
+          id?: string;
+          last_run_at?: string | null;
+          max_attempts?: number;
+          name: string;
+          next_run_at?: string | null;
+          paused?: boolean;
+          requires_approval?: boolean;
+          trigger?: Json;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          actions?: Json;
+          created_at?: string;
+          dry_run?: boolean;
+          enabled?: boolean;
+          id?: string;
+          last_run_at?: string | null;
+          max_attempts?: number;
+          name?: string;
+          next_run_at?: string | null;
+          paused?: boolean;
+          requires_approval?: boolean;
+          trigger?: Json;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      ocade_automation_runs: {
+        Row: {
+          approval_decision: string | null;
+          approval_expires_at: string | null;
+          approved_at: string | null;
+          approved_by_device: string | null;
+          attempt: number;
+          automation_id: string;
+          blocked_reason: string | null;
+          cancel_requested_at: string | null;
+          cancelled_at: string | null;
+          claim_token: string | null;
+          claimed_at: string | null;
+          created_at: string;
+          deadline_at: string | null;
+          dry_run: boolean;
+          error: string | null;
+          execution_steps: Json;
+          finished_at: string | null;
+          heartbeat_at: string | null;
+          highest_risk: string | null;
+          id: string;
+          lease_expires_at: string | null;
+          next_attempt_at: string | null;
+          next_step_index: number;
+          pause_requested_at: string | null;
+          plan: Json;
+          started_at: string | null;
+          status: string;
+          user_id: string;
+          worker_id: string | null;
+        };
+        Insert: {
+          approval_decision?: string | null;
+          approval_expires_at?: string | null;
+          approved_at?: string | null;
+          approved_by_device?: string | null;
+          attempt?: number;
+          automation_id: string;
+          blocked_reason?: string | null;
+          cancel_requested_at?: string | null;
+          cancelled_at?: string | null;
+          claim_token?: string | null;
+          claimed_at?: string | null;
+          created_at?: string;
+          deadline_at?: string | null;
+          dry_run?: boolean;
+          error?: string | null;
+          execution_steps?: Json;
+          finished_at?: string | null;
+          heartbeat_at?: string | null;
+          highest_risk?: string | null;
+          id?: string;
+          lease_expires_at?: string | null;
+          next_attempt_at?: string | null;
+          next_step_index?: number;
+          pause_requested_at?: string | null;
+          plan?: Json;
+          started_at?: string | null;
+          status?: string;
+          user_id: string;
+          worker_id?: string | null;
+        };
+        Update: {
+          approval_decision?: string | null;
+          approval_expires_at?: string | null;
+          approved_at?: string | null;
+          approved_by_device?: string | null;
+          attempt?: number;
+          automation_id?: string;
+          blocked_reason?: string | null;
+          cancel_requested_at?: string | null;
+          cancelled_at?: string | null;
+          claim_token?: string | null;
+          claimed_at?: string | null;
+          created_at?: string;
+          deadline_at?: string | null;
+          dry_run?: boolean;
+          error?: string | null;
+          execution_steps?: Json;
+          finished_at?: string | null;
+          heartbeat_at?: string | null;
+          highest_risk?: string | null;
+          id?: string;
+          lease_expires_at?: string | null;
+          next_attempt_at?: string | null;
+          next_step_index?: number;
+          pause_requested_at?: string | null;
+          plan?: Json;
+          started_at?: string | null;
+          status?: string;
+          user_id?: string;
+          worker_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ocade_automation_runs_automation_id_fkey";
+            columns: ["automation_id"];
+            isOneToOne: false;
+            referencedRelation: "ocade_automations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ocade_automation_step_receipts: {
+        Row: {
+          action_kind: string;
+          attempt: number;
+          created_at: string;
+          detail: string;
+          execution_ok: boolean;
+          finished_at: string;
+          id: string;
+          operation_id: string;
+          phase: string;
+          run_id: string;
+          started_at: string;
+          status: string;
+          step_index: number;
+          user_id: string;
+          verified: boolean;
+        };
+        Insert: {
+          action_kind: string;
+          attempt: number;
+          created_at?: string;
+          detail: string;
+          execution_ok: boolean;
+          finished_at: string;
+          id?: string;
+          operation_id: string;
+          phase: string;
+          run_id: string;
+          started_at: string;
+          status: string;
+          step_index: number;
+          user_id: string;
+          verified: boolean;
+        };
+        Update: {
+          action_kind?: string;
+          attempt?: number;
+          created_at?: string;
+          detail?: string;
+          execution_ok?: boolean;
+          finished_at?: string;
+          id?: string;
+          operation_id?: string;
+          phase?: string;
+          run_id?: string;
+          started_at?: string;
+          status?: string;
+          step_index?: number;
+          user_id?: string;
+          verified?: boolean;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ocade_automation_step_receipts_run_id_fkey";
+            columns: ["run_id"];
+            isOneToOne: false;
+            referencedRelation: "ocade_automation_runs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ocade_memory: {
+        Row: {
+          content: string;
+          created_at: string;
+          expires_at: string | null;
+          id: string;
+          pinned: boolean;
+          project_id: string | null;
+          scope: string;
+          source: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          content: string;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          pinned?: boolean;
+          project_id?: string | null;
+          scope?: string;
+          source?: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          content?: string;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          pinned?: boolean;
+          project_id?: string | null;
+          scope?: string;
+          source?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ocade_memory_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "ocade_projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ocade_project_items: {
+        Row: {
+          created_at: string;
+          id: string;
+          kind: string;
+          project_id: string;
+          ref_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          kind: string;
+          project_id: string;
+          ref_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          kind?: string;
+          project_id?: string;
+          ref_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ocade_project_items_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "ocade_projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ocade_projects: {
+        Row: {
+          archived: boolean;
+          created_at: string;
+          id: string;
+          instructions: string | null;
+          name: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          archived?: boolean;
+          created_at?: string;
+          id?: string;
+          instructions?: string | null;
+          name: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          archived?: boolean;
+          created_at?: string;
+          id?: string;
+          instructions?: string | null;
+          name?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      ocade_outputs: {
+        Row: {
+          content: string | null;
+          content_sha256: string | null;
+          conversation_id: string | null;
+          created_at: string;
+          expires_at: string | null;
+          id: string;
+          kind: string;
+          lineage_id: string;
+          mime: string | null;
+          parent_output_id: string | null;
+          project_id: string | null;
+          size_bytes: number;
+          title: string;
+          user_id: string;
+          version: number;
+        };
+        Insert: {
+          content?: string | null;
+          content_sha256?: string | null;
+          conversation_id?: string | null;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          kind: string;
+          lineage_id?: string;
+          mime?: string | null;
+          parent_output_id?: string | null;
+          project_id?: string | null;
+          size_bytes?: number;
+          title: string;
+          user_id: string;
+          version?: number;
+        };
+        Update: {
+          content?: string | null;
+          content_sha256?: string | null;
+          conversation_id?: string | null;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          kind?: string;
+          lineage_id?: string;
+          mime?: string | null;
+          parent_output_id?: string | null;
+          project_id?: string | null;
+          size_bytes?: number;
+          title?: string;
+          user_id?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ocade_outputs_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "ocade_projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ocade_outputs_conversation_id_fkey";
+            columns: ["conversation_id"];
+            isOneToOne: false;
+            referencedRelation: "ocade_conversations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ocade_subscriptions: {
+        Row: {
+          created_at: string;
+          expires_at: string;
+          id: string;
+          plan_id: string;
+          started_at: string;
+          status: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          expires_at: string;
+          id?: string;
+          plan_id: string;
+          started_at?: string;
+          status?: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          expires_at?: string;
+          id?: string;
+          plan_id?: string;
+          started_at?: string;
+          status?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      ocade_cloud_usage: {
+        Row: {
+          id: string;
+          updated_at: string;
+          used_count: number;
+          user_id: string;
+          window_start: string;
+        };
+        Insert: {
+          id?: string;
+          updated_at?: string;
+          used_count?: number;
+          user_id: string;
+          window_start: string;
+        };
+        Update: {
+          id?: string;
+          updated_at?: string;
+          used_count?: number;
+          user_id?: string;
+          window_start?: string;
         };
         Relationships: [];
       };
@@ -2712,6 +3217,45 @@ export type Database = {
           },
         ];
       };
+      storage_tombstones: {
+        Row: {
+          attempts: number;
+          bucket: string;
+          id: string;
+          last_error: string | null;
+          owner_id: string | null;
+          purged_at: string | null;
+          requested_at: string;
+          source: string;
+          storage_path: string;
+        };
+        Insert: {
+          attempts?: number;
+          bucket: string;
+          id?: string;
+          last_error?: string | null;
+          owner_id?: string | null;
+          purged_at?: string | null;
+          requested_at?: string;
+          source?: string;
+          storage_path: string;
+        };
+        Update: {
+          attempts?: number;
+          bucket?: string;
+          id?: string;
+          last_error?: string | null;
+          owner_id?: string | null;
+          purged_at?: string | null;
+          requested_at?: string;
+          source?: string;
+          storage_path?: string;
+        };
+        // owner_id is deliberately not a foreign key to auth.users: an account
+        // deletion must not cascade away the record proving that account's
+        // files still need purging.
+        Relationships: [];
+      };
       tenant_members: {
         Row: {
           created_at: string;
@@ -2890,6 +3434,7 @@ export type Database = {
           family_planning_enabled: boolean;
           high_contrast: boolean;
           main_purpose: Database["public"]["Enums"]["main_purpose_kind"] | null;
+          ocade_memory_enabled: boolean;
           modules: Json;
           privacy_chats: Database["public"]["Enums"]["privacy_mode"];
           privacy_company: Database["public"]["Enums"]["privacy_mode"];
@@ -2914,6 +3459,7 @@ export type Database = {
           family_planning_enabled?: boolean;
           high_contrast?: boolean;
           main_purpose?: Database["public"]["Enums"]["main_purpose_kind"] | null;
+          ocade_memory_enabled?: boolean;
           modules?: Json;
           privacy_chats?: Database["public"]["Enums"]["privacy_mode"];
           privacy_company?: Database["public"]["Enums"]["privacy_mode"];
@@ -2938,6 +3484,7 @@ export type Database = {
           family_planning_enabled?: boolean;
           high_contrast?: boolean;
           main_purpose?: Database["public"]["Enums"]["main_purpose_kind"] | null;
+          ocade_memory_enabled?: boolean;
           modules?: Json;
           privacy_chats?: Database["public"]["Enums"]["privacy_mode"];
           privacy_company?: Database["public"]["Enums"]["privacy_mode"];
@@ -3022,6 +3569,125 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      attachment_deletion_status: {
+        Args: Record<PropertyKey, never>;
+        Returns: { oldest_pending: string | null; pending: number; purged: number }[];
+      };
+      ocade_enqueue_automation_run: {
+        Args: {
+          p_automation_id: string;
+          p_blocked_reason?: string | null;
+          p_deadline_at?: string | null;
+          p_dry_run: boolean;
+          p_execution_steps: Json;
+          p_highest_risk: string;
+          p_next_run_at?: string | null;
+          p_plan: Json;
+          p_status: string;
+        };
+        Returns: { id: string; reused: boolean; status: string }[];
+      };
+      ocade_claim_automation_run: {
+        Args: { p_run_id: string; p_worker_id: string };
+        Returns: {
+          approval_expires_at: string | null;
+          attempt: number;
+          claim_token: string;
+          confirmed: boolean;
+          deadline_at: string | null;
+          execution_steps: Json;
+          id: string;
+          max_attempts: number;
+          next_step_index: number;
+        }[];
+      };
+      ocade_heartbeat_automation_run: {
+        Args: { p_claim_token: string; p_run_id: string };
+        Returns: boolean;
+      };
+      ocade_append_automation_receipt: {
+        Args: {
+          p_action_kind: string;
+          p_claim_token: string;
+          p_detail: string;
+          p_execution_ok: boolean;
+          p_finished_at: string;
+          p_operation_id: string;
+          p_phase: string;
+          p_run_id: string;
+          p_started_at: string;
+          p_status: string;
+          p_step_index: number;
+          p_verified: boolean;
+        };
+        Returns: boolean;
+      };
+      ocade_complete_automation_run: {
+        Args: {
+          p_claim_token: string;
+          p_error: string | null;
+          p_finished_at: string;
+          p_run_id: string;
+          p_status: string;
+        };
+        Returns: boolean;
+      };
+      ocade_requeue_automation_run: {
+        Args: {
+          p_attempt: number;
+          p_claim_token: string;
+          p_error: string | null;
+          p_next_attempt_at: string;
+          p_run_id: string;
+        };
+        Returns: boolean;
+      };
+      ocade_suspend_automation_run: {
+        Args: {
+          p_claim_token: string;
+          p_paused_at: string;
+          p_reason: string;
+          p_run_id: string;
+        };
+        Returns: boolean;
+      };
+      ocade_expire_automation_approval: {
+        Args: {
+          p_claim_token: string;
+          p_reason: string;
+          p_requested_at: string;
+          p_run_id: string;
+        };
+        Returns: boolean;
+      };
+      ocade_request_automation_pause: {
+        Args: { p_run_id: string };
+        Returns: string;
+      };
+      ocade_resume_automation_run: {
+        Args: { p_run_id: string };
+        Returns: string;
+      };
+      ocade_decide_automation_run: {
+        Args: { p_decision: string; p_device_id?: string | null; p_run_id: string };
+        Returns: string;
+      };
+      ocade_request_automation_cancel: {
+        Args: { p_run_id: string };
+        Returns: string;
+      };
+      ocade_cancel_all_automation_runs: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      ocade_recover_stale_automation_runs: {
+        Args: { p_stale_before: string };
+        Returns: Json;
+      };
+      ocade_consume_cloud_use: {
+        Args: { p_limit: number; p_user_id: string; p_window_start: string };
+        Returns: number;
+      };
       create_company_with_owner: {
         Args: { _payload: Json; _uid: string };
         Returns: string;

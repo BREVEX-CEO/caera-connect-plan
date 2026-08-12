@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "item": "B1 - start/stop the local runtime from OCADE, bound to loopback",
-  "generatedAt": "2026-08-01T14:11:31.279Z",
+  "generatedAt": "2026-08-08T19:13:51.403Z",
   "host": {
     "platform": "win32",
     "arch": "x64",
@@ -13,20 +13,20 @@
   "steps": [
     {
       "step": "resolve-binary",
-      "at": "2026-08-01T14:11:28.900Z",
+      "at": "2026-08-08T19:13:48.290Z",
       "found": true,
       "path": "%LOCALAPPDATA%\\Programs\\Ollama\\ollama.exe",
       "note": "Resolved from the allowlist only; PATH is never consulted. The path is redacted to its environment-variable form — what this step proves is allowlist resolution, not whose machine it ran on."
     },
     {
       "step": "stop-to-go-cold",
-      "at": "2026-08-01T14:11:28.932Z",
+      "at": "2026-08-08T19:13:48.861Z",
       "ok": true,
-      "detail": "alreadyStopped=true waitedMs=30"
+      "detail": "alreadyStopped=false waitedMs=570"
     },
     {
       "step": "verify-cold",
-      "at": "2026-08-01T14:11:28.945Z",
+      "at": "2026-08-08T19:13:48.877Z",
       "portAnswers": false,
       "listeners": [],
       "raw": "",
@@ -34,40 +34,40 @@
     },
     {
       "step": "start-via-ocade",
-      "at": "2026-08-01T14:11:31.263Z",
+      "at": "2026-08-08T19:13:51.375Z",
       "ok": true,
-      "detail": "alreadyRunning=false waitedMs=2318 probes=2",
+      "detail": "alreadyRunning=false waitedMs=2498 probes=2",
       "manualSteps": 0,
-      "elapsedMs": 2318
+      "elapsedMs": 2498
     },
     {
       "step": "verify-open-and-loopback-only",
-      "at": "2026-08-01T14:11:31.275Z",
+      "at": "2026-08-08T19:13:51.396Z",
       "portAnswers": true,
       "listeners": [
         "127.0.0.1"
       ],
-      "raw": "TCP    127.0.0.1:11434        0.0.0.0:0              LISTENING       14324",
+      "raw": "TCP    127.0.0.1:11434        0.0.0.0:0              LISTENING       13992",
       "publishedAddresses": [],
       "verdict": "OPEN and LOOPBACK-ONLY"
     },
     {
       "step": "start-again-is-idempotent",
-      "at": "2026-08-01T14:11:31.277Z",
+      "at": "2026-08-08T19:13:51.399Z",
       "ok": true,
       "alreadyRunning": true,
       "expectation": "already running, nothing spawned"
     },
     {
       "step": "refuse-public-bind",
-      "at": "2026-08-01T14:11:31.277Z",
+      "at": "2026-08-08T19:13:51.400Z",
       "refused": true,
       "failure": "refused_bind",
       "reason": "Refusing to start the local engine on 0.0.0.0: that publishes an unauthenticated inference endpoint to every network this machine is on. Use 127.0.0.1."
     },
     {
       "step": "final-state",
-      "at": "2026-08-01T14:11:31.279Z",
+      "at": "2026-08-08T19:13:51.402Z",
       "engineRunning": true,
       "note": "The engine is left running, as it was found, so this test does not change the machine's state."
     }

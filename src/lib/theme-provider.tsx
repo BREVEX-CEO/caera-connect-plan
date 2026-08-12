@@ -21,21 +21,15 @@ import {
   type ReactNode,
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  ThemeContext,
+  type AppearanceContextValue,
+  type AppearancePrefs,
+  type CursorKind,
+  type ThemeMode,
+} from "./use-appearance";
 
-export type ThemeMode = "dark" | "light" | "real";
-export type CursorKind =
-  "system" | "caera_black" | "caera_white" | "auto_contrast" | "custom" | "accessibility";
-
-export interface AppearancePrefs {
-  theme: ThemeMode;
-  reducedMotion: boolean; // user override; OS preference is always respected on top
-  highContrast: boolean;
-  lowPerformance: boolean; // user override; auto-detector may also flip it on
-  cursor: CursorKind;
-  cursorCustom: string | null; // data URL for uploaded PNG/SVG
-  cursorSize: number; // 16..64
-  cursorTrail: boolean;
-}
+export type { AppearancePrefs, CursorKind, ThemeMode };
 
 const DEFAULT: AppearancePrefs = {
   theme: "dark",
@@ -49,14 +43,6 @@ const DEFAULT: AppearancePrefs = {
 };
 
 const LS_KEY = "caera:appearance:v1";
-
-interface Ctx extends AppearancePrefs {
-  osReducedMotion: boolean;
-  autoLowPerf: boolean;
-  update: (patch: Partial<AppearancePrefs>) => Promise<void>;
-}
-
-const ThemeContext = createContext<Ctx | null>(null);
 
 function readLocal(): AppearancePrefs {
   if (typeof window === "undefined") return DEFAULT;
@@ -253,18 +239,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const value = useMemo<Ctx>(
+  const value = useMemo<AppearanceContextValue>(
     () => ({ ...prefs, osReducedMotion, autoLowPerf, update }),
     [prefs, osReducedMotion, autoLowPerf, update],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
-}
-
-export function useAppearance(): Ctx {
-  const ctx = useContext(ThemeContext);
-  if (!ctx) {
-    throw new Error("useAppearance must be used inside <ThemeProvider>");
-  }
-  return ctx;
 }
