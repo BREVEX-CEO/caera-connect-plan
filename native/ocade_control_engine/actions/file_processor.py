@@ -1,5 +1,5 @@
 """
-file_processor.py — JARVIS Universal File Processor
+file_processor.py — OCADE Universal File Processor
 
 Supported types:
   image   → describe, ocr, resize, convert, compress, crop
@@ -16,30 +16,23 @@ Supported types:
   pptx    → summarize, extract_text, to_pdf
 """
 
-import os
 import re
 import json
 import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from datetime import datetime
 
-def _get_api_key() -> str:
-    config_path = Path(__file__).resolve().parent.parent / "config" / "api_keys.json"
-    with open(config_path, "r", encoding="utf-8") as f:
-        return json.load(f)["gemini_api_key"]
+def _local_model():
+    """The local model, kept under its old name so call sites are unchanged.
 
+    Passing an image raises VisionUnavailable rather than answering: a
+    "describe this picture" that never looked at the picture is worse than
+    an error.
+    """
+    from core.local_llm import local_model  # noqa: PLC0415
 
-def _gemini_client():
-    from google import genai
-    _c = genai.Client(api_key=_get_api_key())
-
-    class _W:
-        def generate_content(self, contents):
-            return _c.models.generate_content(model="gemini-2.5-flash", contents=contents)
-
-    return _W()
+    return local_model()
 
 
 def _detect_type(path: Path) -> str:
@@ -90,7 +83,7 @@ def _process_image(path: Path, action: str, params: dict, speak=None) -> str:
 
     if action in ("describe", "ocr", "analyze", "read", "extract_text"):
         try:
-            model  = _gemini_client()
+            model  = _local_model()
             img    = Image.open(path)
             prompt = {
                 "describe": "Describe this image in detail.",
@@ -210,7 +203,7 @@ def _process_pdf(path: Path, action: str, params: dict, speak=None) -> str:
             "reformat":       f"Reformat this text cleanly with proper structure:\n\n{text}",
         }
         try:
-            model    = _gemini_client()
+            model    = _local_model()
             response = model.generate_content(prompt_map.get(action, f"Analyze:\n\n{text}"))
             result   = response.text.strip()
             if len(result) > 600 and params.get("save", True):
@@ -300,7 +293,7 @@ def _process_text_doc(path: Path, file_type: str, action: str,
         instruction = action
 
     try:
-        model    = _gemini_client()
+        model    = _local_model()
         response = model.generate_content(prompt_map[action])
         result   = response.text.strip()
         if len(result) > 600 and params.get("save", True):
@@ -347,7 +340,7 @@ def _process_data(path: Path, file_type: str, action: str,
                    f"Rows: {len(df)}\nPreview:\n{preview}\n\n"
                    f"Give insights, patterns, and notable findings.")
         try:
-            model    = _gemini_client()
+            model    = _local_model()
             response = model.generate_content(prompt)
             return response.text.strip()
         except Exception as e:
@@ -401,7 +394,7 @@ def _process_data(path: Path, file_type: str, action: str,
 
     preview = df.head(30).to_string()
     try:
-        model    = _gemini_client()
+        model    = _local_model()
         response = model.generate_content(
             f"Task: {action}\nDataset ({len(df)} rows, cols: {list(df.columns)}):\n{preview}"
         )
@@ -432,7 +425,7 @@ def _process_json(path: Path, action: str, params: dict, speak=None) -> str:
         if params.get("instruction"):
             prompt = f"{params['instruction']}\n\nJSON data:\n{preview}"
         try:
-            model    = _gemini_client()
+            model    = _local_model()
             response = model.generate_content(prompt)
             return response.text.strip()
         except Exception as e:
@@ -496,7 +489,7 @@ def _process_code(path: Path, action: str, params: dict, speak=None) -> str:
         prompt = prompt_map[action]
 
     try:
-        model    = _gemini_client()
+        model    = _local_model()
         response = model.generate_content(prompt)
         result   = response.text.strip()
 
@@ -530,7 +523,7 @@ def _process_audio(path: Path, action: str, params: dict, speak=None) -> str:
 
     if action == "transcribe":
         try:
-            model   = _gemini_client()
+            model   = _local_model()
             content = path.read_bytes()
             mime    = {
                 "mp3": "audio/mp3", "wav": "audio/wav",
@@ -767,7 +760,7 @@ def _process_pptx(path: Path, action: str, params: dict, speak=None) -> str:
             out.write_text(text, encoding="utf-8")
             return f"Text extracted. Saved: {out.name}"
         try:
-            model    = _gemini_client()
+            model    = _local_model()
             prompt   = f"{'Summarize' if action == 'summarize' else 'Analyze'} this presentation:\n{text[:30000]}"
             response = model.generate_content(prompt)
             return response.text.strip()
@@ -800,7 +793,7 @@ def file_processor(parameters: dict, player=None, speak=None) -> str:
     if file_type == "unknown":
         try:
             content = path.read_text(encoding="utf-8", errors="ignore")[:10000]
-            model   = _gemini_client()
+            model   = _local_model()
             prompt  = f"File: {path.name}\nContent preview:\n{content}\n\nTask: {action or instruction or 'Describe what this file contains and what can be done with it.'}"
             response = model.generate_content(prompt)
             return response.text.strip()

@@ -12,7 +12,13 @@
  * capability exception vision requests carry.
  */
 
-import { detectPlatform, resolveFixedModel, selectFixedModel } from "../local/fixed-model";
+import {
+  detectPlatform,
+  resolveFixedModel,
+  selectFixedModel,
+  thinkingFor,
+  thinkingSuffix,
+} from "../local/fixed-model";
 import { discoverLocalModels, streamLocalChat, type LocalChatMessage } from "../ocade-local";
 import type { AgentMessage, ModelTurn } from "./loop";
 import type { WireTool } from "./tool-registry";
@@ -90,11 +96,40 @@ export async function turn(
   const model = await resolveModelId();
   if (!model.ok) throw new Error(model.reason);
 
-  const local: LocalChatMessage[] = messages.map((message) =>
-    message.role === "tool"
-      ? { role: "user", content: `Tool ${message.toolName} returned:\n${message.content}` }
-      : { role: message.role, content: message.content },
-  );
+  /*
+   * Suppress reasoning HERE, in the system message, on the way out.
+   *
+   * This is the request the model actually sees, so it is the only place the
+   * policy can be enforced rather than merely declared. A settings toggle or a
+   * constant elsewhere can drift from what is on the wire; this cannot.
+   *
+   * It matters more than it looks: with reasoning on, qwen3:4b narrates the
+   * tool call as prose instead of emitting one, and `ocade-local.ts` reads
+   * `message.tool_calls` only. Those turns came back with nothing to run. See
+   * `thinkingFor` for the measurement.
+   */
+  const thinking = thinkingFor("control");
+  const suffix = thinkingSuffix(thinking);
+  let suffixApplied = false;
+
+  const local: LocalChatMessage[] = messages.map((message) => {
+    if (message.role === "tool") {
+      return {
+        role: "user" as const,
+        content: `Tool ${message.toolName} returned:\n${message.content}`,
+      };
+    }
+    if (message.role === "system" && !suffixApplied) {
+      suffixApplied = true;
+      return { role: "system" as const, content: `${message.content}${suffix}` };
+    }
+    return { role: message.role, content: message.content };
+  });
+
+  // A turn with no system message still needs the token, or it reasons.
+  if (!suffixApplied && suffix) {
+    local.unshift({ role: "system", content: suffix.trim() });
+  }
 
   const toolCalls: ModelTurn["toolCalls"] = [];
   let text = "";
@@ -109,7 +144,7 @@ export async function turn(
       },
       onToolCall: (call) => toolCalls.push(call),
       tools,
-      think: false,
+      think: thinking,
       signal: handlers.signal,
     },
     fetch,

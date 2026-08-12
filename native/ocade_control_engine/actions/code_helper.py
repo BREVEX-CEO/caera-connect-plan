@@ -1,6 +1,5 @@
 import subprocess
 import sys
-import json
 import re
 import time
 from pathlib import Path
@@ -15,23 +14,19 @@ BASE_DIR           = get_base_dir()
 API_CONFIG_PATH    = BASE_DIR / "config" / "api_keys.json"
 DESKTOP            = Path.home() / "Desktop"
 MAX_BUILD_ATTEMPTS = 3
-GEMINI_MODEL       = "gemini-2.5-flash"
+# Kept as the sentinel meaning "whatever the local default is".
+LOCAL_MODEL_SENTINEL       = "local-default"
 
 
-def _get_api_key() -> str:
-    with open(API_CONFIG_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)["gemini_api_key"]
+def _local_model(model: str = LOCAL_MODEL_SENTINEL):
+    """The local model, kept under its old name so call sites are unchanged."""
+    from core.local_llm import local_model  # noqa: PLC0415
+
+    return local_model(model=None if model == LOCAL_MODEL_SENTINEL else model)
 
 
-def _get_gemini(model: str = GEMINI_MODEL):
-    from google import genai
-    _c = genai.Client(api_key=_get_api_key())
-
-    class _W:
-        def generate_content(self, contents):
-            return _c.models.generate_content(model=model, contents=contents)
-
-    return _W()
+# A fenced code block: ```lang, a newline, the body, then the closing fence.
+_FENCED_BLOCK = "```[a-zA-Z]*" + chr(10) + "(.*?)```"
 
 
 def _clean_code(text: str) -> str:
@@ -145,7 +140,7 @@ def _detect_intent(description: str, file_path: str, code: str) -> str:
                 "  optimize     = refactor / clean up / speed up existing code\n\n"
                 "Reply with ONLY the intent word, nothing else."
             )
-            ans = _get_gemini().generate_content(prompt).text.strip().lower()
+            ans = _local_model().generate_content(prompt).text.strip().lower()
             ans = ans.strip("`'\". \n")
             if ans in _VALID_INTENTS:
                 return ans
@@ -161,7 +156,7 @@ def _detect_intent(description: str, file_path: str, code: str) -> str:
 
 def _write(description: str, language: str, output_path: str, player=None) -> tuple[str, Path]:
     lang  = language or "python"
-    model = _get_gemini()
+    model = _local_model()
 
     prompt = f"""You are an expert {lang} developer.
 Write clean, working, well-commented {lang} code for the description below.
@@ -184,7 +179,7 @@ Code:"""
 
 
 def _fix_code(code: str, error_output: str, description: str) -> str:
-    model  = _get_gemini()
+    model  = _local_model()
     prompt = f"""You are an expert debugger.
 The code below failed with the following error. Fix it.
 Return ONLY the corrected code — no explanation, no markdown, no backticks.
@@ -241,7 +236,7 @@ def _run_file(path: Path, args: list, timeout: int) -> str:
 
 def _build(description, language, output_path, args, timeout, speak=None, player=None) -> str:
     if not description:
-        return "Please describe what you want me to build, sir."
+        return "Please describe what you want me to build."
 
     if player:
         player.write_log("[Code] Build started...")
@@ -266,7 +261,7 @@ def _build(description, language, output_path, args, timeout, speak=None, player
 
         if not _has_error(last_output):
             msg = (
-                f"Build complete, sir. "
+                f"Build complete. "
                 f"The code is working after {attempt} attempt{'s' if attempt > 1 else ''}. "
                 f"Saved to {path}."
             )
@@ -286,7 +281,7 @@ def _build(description, language, output_path, args, timeout, speak=None, player
             return msg
 
     msg = (
-        f"I was unable to build a working version after {MAX_BUILD_ATTEMPTS} attempts, sir. "
+        f"I was unable to build a working version after {MAX_BUILD_ATTEMPTS} attempts. "
         f"The last error was: {last_output[:200]}"
     )
     if speak: speak(msg)
@@ -294,7 +289,7 @@ def _build(description, language, output_path, args, timeout, speak=None, player
 
 def _write_action(description, language, output_path, player) -> str:
     if not description:
-        return "Please describe what you want me to write, sir."
+        return "Please describe what you want me to write."
     if player:
         player.write_log("[Code] Writing code...")
     try:
@@ -307,9 +302,9 @@ def _write_action(description, language, output_path, player) -> str:
 
 def _edit_action(file_path, instruction, player) -> str:
     if not file_path:
-        return "Please provide a file path to edit, sir."
+        return "Please provide a file path to edit."
     if not instruction:
-        return "Please describe what change to make, sir."
+        return "Please describe what change to make."
 
     content, err = _read_file(file_path)
     if err:
@@ -318,7 +313,7 @@ def _edit_action(file_path, instruction, player) -> str:
     if player:
         player.write_log("[Code] Editing file...")
 
-    model  = _get_gemini()
+    model  = _local_model()
     prompt = f"""You are an expert code editor.
 Apply the following change to the code below.
 Return ONLY the complete updated code — no explanation, no markdown, no backticks.
@@ -347,12 +342,12 @@ def _explain_action(file_path, code, player) -> str:
         if err:
             return err
     if not code:
-        return "Please provide code or a file path to explain, sir."
+        return "Please provide code or a file path to explain."
 
     if player:
         player.write_log("[Code] Analyzing code...")
 
-    model  = _get_gemini()
+    model  = _local_model()
     prompt = f"""Explain what this code does in simple, clear language.
 Focus on: what it does, how it works, and any important details.
 Be concise — 3 to 6 sentences maximum.
@@ -371,7 +366,7 @@ Explanation:"""
 
 def _run_action(file_path, args, timeout, player) -> str:
     if not file_path:
-        return "Please provide a file path to run, sir."
+        return "Please provide a file path to run."
     p = Path(file_path)
     if not p.exists():
         return f"File not found: {file_path}"
@@ -387,13 +382,13 @@ def _optimize_action(file_path, code, language, output_path, player) -> str:
         if err:
             return err
     if not code:
-        return "Please provide code or a file path to optimize, sir."
+        return "Please provide code or a file path to optimize."
 
     if player:
         player.write_log("[Code] Optimizing code...")
 
     lang  = language or "python"
-    model = _get_gemini()
+    model = _local_model()
 
     prompt = f"""You are an expert {lang} developer and code reviewer.
 Optimize the following code for:
@@ -437,88 +432,63 @@ Optimized code:"""
 
 
 def _screen_debug_action(description, file_path, player, speak=None) -> str:
+    """Debug from the file, and say plainly that the screen is not being read.
 
+    This used to screenshot the display and send the image to Gemini. The
+    local model is text-only, and a debugger that claims to have looked at
+    your screen without looking at it is worse than one that says it cannot:
+    it invents the error message, and an invented error message sends you
+    somewhere real code does not go.
+
+    OCADE reads screens through UI Automation and the system's own OCR — that
+    is the `screen_observe` tool, in the agent loop, not here. So this reads
+    the file it was given and is honest about the rest.
+    """
     if player:
-        player.write_log("[Code] Taking screenshot for analysis...")
+        player.write_log("[Code] Reading the file for analysis...")
 
-    print("[Code] 📸 Capturing screen for debug...")
-
-
-    screenshot_path = _take_screenshot()
-    if not screenshot_path:
-        return "Could not take screenshot, sir. Please make sure PyAutoGUI is installed."
-
-
-    file_content = ""
-    if file_path:
-        file_content, err = _read_file(file_path)
-        if err:
-            print(f"[Code] ⚠️ Could not read file: {err}")
-
-    try:
-        from google import genai
-        from google.genai import types
-
-        client = genai.Client(api_key=_get_api_key())
-
-        image_bytes  = screenshot_path.read_bytes()
-        image_base64 = _image_to_base64(screenshot_path)
-
-        user_question = description or "What error or problem do you see on the screen? How can it be fixed?"
-
-        context = ""
-        if file_content:
-            context = f"\n\nAdditionally, here is the related file content:\n```\n{file_content[:4000]}\n```"
-
-        analysis_prompt = f"""You are an expert programmer and debugger analyzing a screenshot.
-
-User's question: {user_question}{context}
-
-Please:
-1. Identify any errors, exceptions, or problems visible on the screen
-2. Explain what is causing the problem in simple terms
-3. Provide a concrete fix or solution
-4. If there's code visible, show the corrected version
-
-Be specific and actionable. If you see an error message, quote it exactly."""
-
-        contents = [
-            types.Part.from_bytes(data=image_bytes, mime_type="image/png"),
-            analysis_prompt,
-        ]
-
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=contents,
+    if not file_path:
+        return (
+            "OCADE cannot debug from a screenshot — the local model reads text, "
+            "not pictures. Name the file with the problem and it will read that, "
+            "or ask OCADE to look at the screen, which uses the accessibility "
+            "structure and the system's OCR rather than guessing at an image."
         )
 
-        analysis = response.text.strip()
-        print(f"[Code] ✅ Screen analysis complete")
+    file_content, err = _read_file(file_path)
+    if err:
+        return f"Could not read {file_path}: {err}"
 
-        try:
-            screenshot_path.unlink()
-        except Exception:
-            pass
+    user_question = description or "What is wrong with this code, and how is it fixed?"
+    prompt = f"""You are an expert programmer and debugger.
 
-        if file_path and file_content:
+Question: {user_question}
 
-            code_match = re.search(r"```[a-zA-Z]*\n(.*?)```", analysis, re.DOTALL)
-            if code_match:
-                fixed_code = code_match.group(1).strip()
-                save_path  = Path(file_path)
-                _save_file(save_path, fixed_code)
-                analysis += f"\n\n✅ Fixed code has been saved to: {file_path}"
-                print(f"[Code] ✅ Fixed code saved: {file_path}")
+File: {file_path}
+```
+{file_content[:8000]}
+```
 
-        return analysis
+Please:
+1. Identify the errors or problems in this code
+2. Explain the cause in simple terms
+3. Provide a concrete fix
+4. Show the corrected version in a fenced code block
 
+Be specific. Do not invent error messages you were not shown."""
+
+    try:
+        analysis = _local_model().generate_content(prompt).text.strip()
     except Exception as e:
+        return f"Code analysis failed: {e}"
 
-        try:
-            screenshot_path.unlink()
-        except Exception:
-            pass
-        return f"Screen analysis failed: {e}"
+    # A fenced block is the model proposing a replacement for the whole file.
+    code_match = re.search(_FENCED_BLOCK, analysis, re.DOTALL)
+    if code_match:
+        _save_file(Path(file_path), code_match.group(1).strip())
+        analysis += chr(10) + chr(10) + f"Fixed code saved to: {file_path}"
+
+    return analysis
 
 
 def code_helper(

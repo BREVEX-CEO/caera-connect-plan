@@ -17,6 +17,7 @@ import { Seal } from "@/lib/edge/sealed-mode";
 import { installConversationSeal } from "@/lib/edge/seal-policy";
 import { AnswerDiff } from "@/components/ocade/chat/AnswerDiff";
 import { ChatComposer } from "@/components/ocade/chat/ChatComposer";
+import { useChatPrefs } from "@/lib/use-chat-prefs";
 import { ChatEmptyState } from "@/components/ocade/chat/ChatEmptyState";
 import { EngineBadge } from "@/components/ocade/chat/EngineBadge";
 import { DemoSessionBadge } from "@/components/ocade/demo/DemoSessionBadge";
@@ -99,8 +100,11 @@ interface DemoTurn {
 
 function DemoOcade() {
   const navigate = useNavigate();
-  // Chat reasons before it answers. See `thinkingFor` in local/fixed-model.ts.
-  const engine = useLocalChatEngine({ surface: "chat" });
+  // Chat reasons before it answers unless the user turned that off in
+  // Settings › Chat. See `thinkingFor` in local/fixed-model.ts for why Control
+  // + Work does not get the same choice.
+  const { prefs: chatPrefs } = useChatPrefs();
+  const engine = useLocalChatEngine({ surface: "chat", thinking: chatPrefs.thinking });
   const [turns, setTurns] = useState<DemoTurn[]>([]);
   const [draft, setDraft] = useState("");
   const [streaming, setStreaming] = useState(false);

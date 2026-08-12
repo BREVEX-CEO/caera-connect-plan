@@ -11,33 +11,70 @@
 # engine may install packages while it is running — see
 # native/python-host/tests/test_engine_ships_safely.py for why, and for the
 # test that keeps it that way.
+#
+# ── NO GOOGLE SDK ──────────────────────────────────────────────────────────
+# `google-genai` and `google-generativeai` were here. Every module that used
+# them now calls core/local_llm.py, which talks to Ollama on localhost.
+#
+# Removing the packages rather than only the call sites is the point: with no
+# SDK installed there is no path back to a remote model by accident, and the
+# one remaining importer — the standalone PyQt6 app in main.py / ui.py /
+# dashboard/, which OCADE never starts — simply cannot run. That app is
+# scheduled for deletion once ocade_bridge.py reaches capability parity with
+# its tool table; until then it stays as reference and ships to nobody.
+#
+# ── THE LIST BELOW IS WHAT THE CODE ACTUALLY IMPORTS ───────────────────────
+# It was out of sync: a dozen packages the engine imports were missing, so a
+# clean machine installed "successfully" and then failed at the first feature
+# that needed one.
 
-PyQt6
-sounddevice
-google-genai
-google-generativeai
-pillow
+# --- core runtime -----------------------------------------------------------
 requests
-beautifulsoup4
-duckduckgo-search
-playwright
+numpy
+psutil
+pillow
+
+# --- screen, input and windows ---------------------------------------------
+mss
+opencv-python
 pyautogui
 pyperclip
 pygetwindow
-opencv-python
-numpy
-mss
-psutil
 send2trash
+
+# --- web and research -------------------------------------------------------
+beautifulsoup4
+ddgs                     # the maintained name; duckduckgo-search is its old one
+playwright
 youtube-transcript-api
+
+# --- documents and data -----------------------------------------------------
+pandas                   # file_processor: csv/xlsx read, stats, filter, sort
+openpyxl                 # pandas' .xlsx engine — absent, every spreadsheet failed
+python-docx              # file_processor: .docx text extraction
+pdfplumber               # file_processor: pdf text extraction
 python-pptx
-fastapi
-uvicorn[standard]
-cryptography
-python-multipart
+
+# --- audio, speech and hearing ---------------------------------------------
+sounddevice
+soundfile
+miniaudio
+pydub                    # file_processor: audio trim / convert
+edge-tts                 # default TTS engine
+faster-whisper           # local, offline speech-to-text
+
+# --- telemetry --------------------------------------------------------------
+pynvml                   # GPU utilisation, when an NVIDIA card is present
+
+# --- windows only -----------------------------------------------------------
 comtypes; sys_platform == "win32"
 pycaw; sys_platform == "win32"
 win10toast; sys_platform == "win32"
 pywinauto; sys_platform == "win32"
 pywin32; sys_platform == "win32"
-qrcode[pil]
+wmi; sys_platform == "win32"          # CPU temperature, where the board reports it
+
+# --- the standalone PyQt6 app (not shipped; see the note above) -------------
+# PyQt6, fastapi, uvicorn, cryptography, python-multipart and qrcode belonged
+# to main.py / ui.py / dashboard/. They are deliberately NOT installed: the
+# product is OCADE, and the engine is reached through ocade_bridge.py only.

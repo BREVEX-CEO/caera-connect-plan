@@ -28,7 +28,7 @@ def _get_os() -> str:
 
 
 def _scripts_dir() -> Path:
-    d = Path.home() / ".jarvis" / "reminders"
+    d = Path.home() / ".ocade" / "reminders"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -204,7 +204,7 @@ def _schedule_mac(target_dt: datetime, task_name: str,
     agents_dir = Path.home() / "Library" / "LaunchAgents"
     agents_dir.mkdir(parents=True, exist_ok=True)
 
-    label     = f"com.jarvis.reminder.{task_name}"
+    label     = f"com.ocade.reminder.{task_name}"
     plist_path = agents_dir / f"{label}.plist"
 
     plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>

@@ -1,8 +1,6 @@
 #computer_control.py
-import io
 import json
 import platform
-import re
 import string
 import subprocess
 import sys
@@ -53,9 +51,6 @@ def _platform_os() -> str:
 def _get_os() -> str:
     return _load_config().get("os_system", _platform_os()).lower()
 
-
-def _get_api_key() -> str:
-    return _load_config().get("gemini_api_key", "")
 
 _SAFE_SCREENSHOT_ROOTS = (
     Path.home(),
@@ -311,49 +306,33 @@ def _focus_window(title: str) -> str:
     return f"focus_window: unknown OS '{os_name}'"
 
 def _screen_find(description: str) -> tuple[int, int] | None:
-    api_key = _get_api_key()
-    if not api_key:
-        print("[ComputerControl] ⚠️ No API key for screen_find")
-        return None
+    """Removed: it asked a remote vision model where to click.
 
-    try:
-        from google import genai
-        from google.genai import types as gtypes
+    WHAT THIS USED TO DO, AND WHY IT IS NOT COMING BACK IN THIS FORM
 
-        _require_pyautogui()
-        w, h  = pyautogui.size()
-        img   = pyautogui.screenshot()
-        buf   = io.BytesIO()
-        img.save(buf, format="PNG")
-        image_bytes = buf.getvalue()
+    It screenshotted the display, sent the image to Gemini, and asked for
+    "x,y". Then it clicked there. Three separate problems, any one of which
+    is disqualifying for a local-first product that controls a real computer:
 
-        client = genai.Client(api_key=api_key)
-        prompt = (
-            f"This is a screenshot of a {w}×{h} pixel screen. "
-            f"Locate the UI element described as: '{description}'. "
-            f"Reply with ONLY the center coordinates as: x,y "
-            f"If the element is not visible, reply: NOT_FOUND"
-        )
+      1. The whole screen left the machine on every call — whatever happened
+         to be open, including windows the user never meant OCADE to read.
+      2. A coordinate is not verifiable. A wrong pair of numbers is
+         indistinguishable from a right one until the click has already
+         landed somewhere, and by then it has landed.
+      3. `qwen3:4b` is text-only, so there is nothing local to swap in.
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=[
-                gtypes.Part.from_bytes(data=image_bytes, mime_type="image/png"),
-                prompt,
-            ],
-        )
+    OCADE's replacement is not a smaller vision model. It is UI Automation:
+    `control_find` returns named controls with their state, and
+    `control_activate` presses one BY NAME and confirms the window changed
+    afterwards. That path knows what it clicked; this one only knew where.
 
-        text = (response.text or "").strip()
-        if "NOT_FOUND" in text.upper():
-            return None
-
-        match = re.search(r"(\d+)\s*,\s*(\d+)", text)
-        if match:
-            return int(match.group(1)), int(match.group(2))
-
-    except Exception as e:
-        print(f"[ComputerControl] ⚠️ screen_find failed: {e}")
-
+    Kept as a function, rather than deleted, so a caller that still asks for
+    it gets a sentence explaining the alternative instead of an AttributeError.
+    """
+    print(
+        "[ComputerControl] screen_find is not available: OCADE locates controls "
+        "by name through UI Automation, not by asking a model for coordinates."
+    )
     return None
 
 def computer_control(

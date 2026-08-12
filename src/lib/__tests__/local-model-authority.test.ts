@@ -1,11 +1,14 @@
 import { readFileSync, readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   FIXED_MODEL,
+  NO_THINK_TOKEN,
   OCADE_MODEL_ID,
   resolveFixedModel,
   selectFixedModel,
   thinkingFor,
+  thinkingSuffix,
 } from "@/lib/local/fixed-model";
 import { routeTask, PerfLedger, isDeterministic } from "@/lib/local/router-policy";
 import type { LocalModelInfo } from "@/lib/ocade-local";
@@ -59,24 +62,63 @@ describe("the one fixed model", () => {
 });
 
 describe("thinking is spent where it is worth spending", () => {
-  it("reasons on both surfaces, because the measurement said so", () => {
+  it("never reasons on Control + Work, whatever the caller asks for", () => {
     /*
-     * The intuitive setting for Control + Work is `think:false` — the turn is
-     * "emit one JSON action", which is not a reasoning problem. Measured
-     * against qwen3:4b on the target machine, warm, same prompt:
+     * THIS TEST USED TO ASSERT THE OPPOSITE, AND THE MEASUREMENT BEHIND IT WAS
+     * ASKING THE WRONG QUESTION.
      *
-     *   think:false   24.2 s  content began "Okay, the user is asking what's
-     *                         on their screen…" — the reasoning, in the field
-     *                         the tool parser reads, JSON buried after it.
-     *   think:true    25.7 s  content was exactly
-     *                         {"tool":"screen_observe","arguments":{}}
+     * The old note recorded that `think:true` produced a clean
+     * `{"tool":"screen_observe"}` in `content` while `think:false` buried it
+     * under reasoning, and concluded that both surfaces should reason.
      *
-     * `think:false` does not stop Qwen3 reasoning; it stops Ollama SEPARATING
-     * the reasoning. Same latency, dirtier channel. The latency win for PC
-     * control comes from the fast router not calling the model at all.
+     * But `ocade-local.ts` reads `message.tool_calls`. It has no content-JSON
+     * fallback. A tool call written as prose in `content` is not a tool call —
+     * it is a turn the loop cannot execute.
+     *
+     * Re-measured with `scripts/measure-thinking-modes.mjs`, counting NATIVE
+     * tool calls, three warm-ups and five runs per mode:
+     *
+     *   think:false                     0/5 tool calls   22.4 s
+     *   think:true                      0/5 tool calls   21.2 s
+     *   think omitted                   0/5 tool calls   21.6 s
+     *   /no_think in the system prompt   5/5 tool calls   14.4 s
+     *
+     * So the `think` field does not control thinking on this model at all — it
+     * only moves the reasoning between `content` and `thinking`. The token is
+     * what suppresses it, and suppressing it is both necessary and faster.
+     *
+     * `control` is therefore not a preference. A caller cannot switch it on.
      */
+    expect(thinkingFor("control")).toBe(false);
+    expect(thinkingFor("control", true)).toBe(false);
+    expect(thinkingFor("control", false)).toBe(false);
+  });
+
+  it("lets the person using Chat decide, and reasons unless told not to", () => {
+    // Chat is read by a human, the reasoning improves the answer, and there it
+    // goes to its own field rather than into the reply. The cost is roughly a
+    // third more time, which is the user's call to make and nobody else's.
     expect(thinkingFor("chat")).toBe(true);
-    expect(thinkingFor("control")).toBe(true);
+    expect(thinkingFor("chat", undefined)).toBe(true);
+    expect(thinkingFor("chat", true)).toBe(true);
+    expect(thinkingFor("chat", false)).toBe(false);
+  });
+
+  it("keeps the suppression token out of anything the user typed", () => {
+    // A search once ran for the literal string "/no_think" because the token
+    // had been appended to the user's prompt. It belongs in the system
+    // message, where no downstream parser can mistake it for content.
+    expect(thinkingSuffix(false).trim()).toBe(NO_THINK_TOKEN);
+    expect(thinkingSuffix(true)).toBe("");
+
+    const source = readFileSync(
+      fileURLToPath(new URL("../agent/model-turn.node.ts", import.meta.url)),
+      "utf8",
+    );
+    expect(source).toContain('role: "system"');
+    expect(source).toContain("thinkingSuffix");
+    // The token must never be concatenated onto a user turn.
+    expect(source).not.toMatch(/role:\s*"user"[^}]*thinkingSuffix/);
   });
 
   it("is wired into every one of the three engine paths", () => {

@@ -50,6 +50,23 @@ export interface ChatPrefs {
    * people who need it can still see it and nobody else is charged for it.
    */
   showDiagnostics: boolean;
+  /**
+   * Let the model reason before it answers. ON, and on for a reason.
+   *
+   * With reasoning on, Qwen3 works through the question in a separate channel
+   * and `content` comes back as the answer alone — better replies on anything
+   * involving several steps, at roughly a third more time.
+   *
+   * It is a real switch rather than a fixed setting because the tradeoff is
+   * genuinely the user's: someone asking short factual questions is paying for
+   * deliberation they did not want, and they are the only one who knows that.
+   *
+   * Control + Work does NOT read this. There, reasoning is suppressed
+   * unconditionally — this model narrates the tool call instead of emitting one
+   * when it reasons, and a turn the loop cannot execute is not a slower
+   * success. See `thinkingFor` in `local/fixed-model.ts` for the measurement.
+   */
+  thinking: boolean;
 }
 
 export const DEFAULT_CHAT_PREFS: ChatPrefs = {
@@ -60,6 +77,7 @@ export const DEFAULT_CHAT_PREFS: ChatPrefs = {
   renderMarkdown: true,
   keepDrafts: true,
   showDiagnostics: false,
+  thinking: true,
 };
 
 const KEY = "ocade.chat.prefs.v1";
@@ -94,6 +112,7 @@ export function parseChatPrefs(raw: string | null): ChatPrefs {
       renderMarkdown: bool("renderMarkdown"),
       keepDrafts: bool("keepDrafts"),
       showDiagnostics: bool("showDiagnostics"),
+      thinking: bool("thinking"),
     };
   } catch {
     return { ...DEFAULT_CHAT_PREFS };

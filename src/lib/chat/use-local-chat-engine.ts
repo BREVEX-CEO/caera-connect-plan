@@ -90,6 +90,15 @@ export interface ChatEngineContext {
    * and thinking on is the safer default for an answer a person will read.
    */
   surface?: OcadeSurface;
+  /**
+   * The user's thinking switch, from Chat settings.
+   *
+   * Only consulted on the `chat` surface: Control + Work suppresses reasoning
+   * unconditionally, because with it on this model narrates the tool call
+   * instead of emitting one. Undefined means the user has expressed no
+   * preference, and thinking stays on.
+   */
+  thinking?: boolean;
   preference?: EngineContext["preference"];
   privacyMode?: EngineContext["privacyMode"];
   cloudConfigured?: boolean;
@@ -263,8 +272,9 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
       let sawToken = false;
       const result = await outcome.adapter.stream(messages, {
         signal: controller.signal,
-        // Chat reasons; Control + Work does not. One authority decides.
-        think: thinkingFor(context.surface ?? "chat"),
+        // Chat reasons unless the user turned it off; Control never does.
+        // One authority decides, and it is asked here rather than remembered.
+        think: thinkingFor(context.surface ?? "chat", context.thinking),
         onToken: (chunk) => {
           /*
            * The first token is what turns "preparing" into a visibly working

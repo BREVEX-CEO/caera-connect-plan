@@ -1,4 +1,4 @@
-import { MessageSquare, RotateCcw, AlertTriangle } from "lucide-react";
+import { MessageSquare, RotateCcw, AlertTriangle, Brain } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Switch } from "@/components/ui/switch";
@@ -119,6 +119,39 @@ export function ChatSettingsPanel() {
               </label>
             ))}
           </fieldset>
+        </GlassPanel>
+
+        {/*
+          Its own panel, above presentation, because this is the only control
+          on the page that changes the ANSWER rather than how it is shown.
+        */}
+        <GlassPanel className="p-5">
+          <div className="flex items-center gap-2">
+            <Brain className="h-4 w-4 text-accent" />
+            <h2 className="text-sm font-semibold text-foreground">Thinking</h2>
+          </div>
+          <div className="mt-3 flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <Label htmlFor="ocade-thinking" className="text-sm text-foreground">
+                Think before answering
+              </Label>
+              <p className="mt-0.5 text-[13px] text-muted-foreground">
+                OCADE works the question through before it replies. Better answers on anything with
+                several steps to it, and roughly a third slower. Turn it off for short factual
+                questions where you would rather have the reply now.
+              </p>
+              <p className="mt-1.5 text-[13px] text-muted-foreground">
+                This is Chat only. PC control never thinks first — there OCADE has to produce an
+                action it can actually carry out, and thinking makes this model describe the action
+                instead of doing it.
+              </p>
+            </div>
+            <Switch
+              id="ocade-thinking"
+              checked={prefs.thinking}
+              onCheckedChange={(v) => update({ thinking: v })}
+            />
+          </div>
         </GlassPanel>
 
         <GlassPanel className="p-5">

@@ -821,13 +821,13 @@ def _schedule_windows(hour: int, minute: int) -> str:
 def _schedule_mac(hour: int, minute: int) -> str:
     plist_dir   = Path.home() / "Library" / "LaunchAgents"
     plist_dir.mkdir(parents=True, exist_ok=True)
-    plist_path  = plist_dir / "com.jarvis.gameupdater.plist"
+    plist_path  = plist_dir / "com.ocade.gameupdater.plist"
     script_path = Path(__file__).resolve()
     plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-    <key>Label</key><string>com.jarvis.gameupdater</string>
+    <key>Label</key><string>com.ocade.gameupdater</string>
     <key>ProgramArguments</key>
     <array>
         <string>{sys.executable}</string>
@@ -881,7 +881,7 @@ def _cancel_scheduled_update() -> str:
         return ("Scheduled update cancelled."
                 if result.returncode == 0 else "No scheduled update found.")
     if is_mac():
-        plist_path = Path.home() / "Library" / "LaunchAgents" / "com.jarvis.gameupdater.plist"
+        plist_path = Path.home() / "Library" / "LaunchAgents" / "com.ocade.gameupdater.plist"
         if plist_path.exists():
             subprocess.run(["launchctl", "unload", str(plist_path)], capture_output=True)
             plist_path.unlink()
@@ -914,7 +914,7 @@ def _get_schedule_status() -> str:
         return "Game update is scheduled."
     if is_mac():
         plist_path = (Path.home() / "Library" / "LaunchAgents"
-                      / "com.jarvis.gameupdater.plist")
+                      / "com.ocade.gameupdater.plist")
         return ("Game update is scheduled via launchd."
                 if plist_path.exists() else "No scheduled game update found.")
 

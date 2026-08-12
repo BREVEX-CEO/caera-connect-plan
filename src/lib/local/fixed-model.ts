@@ -127,38 +127,76 @@ export type OcadeSurface = "chat" | "control";
 /**
  * Whether the model reasons before answering, per surface.
  *
- * BOTH SURFACES REASON, AND THE REASON FOR CONTROL IS A MEASUREMENT
- * ------------------------------------------------------------------
- * The obvious setting for Control + Work is `think: false` — the turn is "emit
- * one JSON action", which is not a reasoning problem, so switching thinking off
- * should be faster and cleaner. It is neither, and this was measured against
- * qwen3:4b on the target machine with the same prompt, warm:
+ * THE `think` FIELD DOES NOT CONTROL THINKING ON THIS MODEL
+ * ---------------------------------------------------------
+ * Measured against qwen3:4b on the target machine with `scripts/measure-
+ * thinking-modes.mjs`: three warm-up turns, five timed runs per mode, one
+ * instruction ("Open Notepad") and one tool.
  *
- *   think:false              24.2 s   content: "Okay, the user is asking what's
- *                                     on their screen. Since I control the…"
- *                                     — the reasoning, in the content field,
- *                                     with the JSON buried after it.
- *   think:false + /no_think  38.4 s   worse: it reasons ABOUT the token.
- *   think:true               25.7 s   content: {"tool":"screen_observe",
- *                                              "arguments":{}}
+ *   mode                       native tool_calls   median
+ *   think:false                        0/5         22.4 s
+ *   think:true                         0/5         21.2 s
+ *   think omitted                      0/5         21.6 s
+ *   /no_think in the system prompt     5/5         14.4 s
  *
- * `think: false` does not stop Qwen3 reasoning. It stops OLLAMA SEPARATING the
- * reasoning, so it lands in `content` — the exact channel the tool parser reads
- * — at no speed benefit whatsoever. With thinking on, the reasoning goes to its
- * own `thinking` field and `content` is a clean, parseable tool call.
+ * Two things follow, and the second one was a live defect.
  *
- * So the rule is: reason on both surfaces, and let the runtime keep the
- * reasoning out of the answer. The real latency win for PC control comes from
- * not calling the model at all — see `work/fast-router.ts`, which answers
- * deterministic instructions in under a millisecond.
+ * First: the `think` field changes only WHERE the reasoning is put, never
+ * whether it happens. `think:false` leaves ~865 characters of "Okay, the user
+ * wants me to..." in `content`; `think:true` moves the same reasoning to the
+ * separate `thinking` field. Neither is faster. The `/no_think` TOKEN is what
+ * actually suppresses it, and doing so is ~35% quicker.
+ *
+ * Second: with reasoning on, this model narrates the tool call as prose
+ * INSTEAD of emitting one. `ocade-local.ts` reads `message.tool_calls` and has
+ * no content-JSON fallback, so those turns produced nothing to execute. The
+ * agent turn shipped `think: false` and was therefore getting zero tool calls
+ * from a model that looked, in the logs, like it was answering.
+ *
+ * An earlier revision of this comment concluded the opposite. It measured
+ * whether `content` parsed as JSON, which the loop does not read.
+ *
+ * So: Control + Work suppresses thinking with the token, because a turn that
+ * cannot be executed is not a slower success, it is a failure. Chat keeps it,
+ * because a person is reading the answer and the reasoning improves it — and
+ * there the reasoning goes to its own field, out of the reply.
+ *
+ * The real latency win for control is not this flag at all. It is not calling
+ * the model: `work/fast-router.ts` answers deterministic instructions in under
+ * a millisecond, against 14 s here.
  *
  * A FUNCTION, NOT A CONSTANT, because the day a model handles `think:false`
- * properly this is the one line to change, and the measurement above is the
- * evidence to re-take before changing it.
+ * properly this is the one line to change — and the script above is how to
+ * re-take the measurement before changing it.
  */
-export function thinkingFor(surface: OcadeSurface): boolean {
-  void surface;
-  return true;
+export function thinkingFor(surface: OcadeSurface, preference?: boolean): boolean {
+  // Control never reasons: it has to emit a call the loop can run.
+  if (surface === "control") return false;
+  // Chat is the user's choice, and reasons unless they turn it off.
+  return preference ?? true;
+}
+
+/**
+ * Qwen3's own suppression token.
+ *
+ * IT GOES IN THE SYSTEM MESSAGE, NEVER IN THE USER'S TEXT.
+ *
+ * Appending it to the prompt works equally well and cost a real bug: a search
+ * once ran for the literal string "/no_think" because the token had been glued
+ * onto the end of what the user typed and nothing downstream knew it was not
+ * part of the query. Keeping it in the system message means user text is never
+ * something that has to be cleaned up afterwards.
+ */
+export const NO_THINK_TOKEN = "/no_think";
+
+/**
+ * The system-message suffix that enforces `thinking` for one turn.
+ *
+ * Returns the token when reasoning must be off, and an empty string otherwise,
+ * so callers can append unconditionally.
+ */
+export function thinkingSuffix(thinking: boolean): string {
+  return thinking ? "" : ` ${NO_THINK_TOKEN}`;
 }
 
 export function formFactorOf(platform: OcadePlatform): OcadeFormFactor {
