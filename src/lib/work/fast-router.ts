@@ -157,6 +157,34 @@ function asUrl(raw: string | undefined): string | null {
 }
 
 /**
+ * Sequencing words: this instruction asks for more than one thing.
+ *
+ * FOUND LIVE, AND IT WAS THE STALL EVERYTHING ELSE GOT BLAMED FOR.
+ *
+ * "Check how much memory this computer is using, THEN save that number into a
+ * file called memory-check.txt" contains the substring "how much memory". The
+ * system-status rule below matched it, the router answered the first clause,
+ * executed one tool, and ended the mission reporting success. The file was
+ * never written and nothing said so.
+ *
+ * Two model swaps and a classifier fix were made chasing that symptom, because
+ * from the outside it looks exactly like a model that gave up after one step.
+ * It never reached a model at all — one request in the whole run, and it went
+ * straight to the executor.
+ *
+ * The rule the router has to keep is not "match tightly" but "claim only what
+ * you can finish". Every pattern here answers with ONE action; an instruction
+ * naming a second one is, by construction, not something this pass can serve,
+ * however well its first half matches.
+ *
+ * Bare "and" is deliberately excluded: "open notepad and type hello" is two
+ * steps, but "search for cats and dogs" is one, and no cheap test separates
+ * them. The words below cannot mean anything but sequence.
+ */
+const SEQUENCING =
+  /\bthen\b|\bafter (that|which|it)\b|\bfollowed by\b|\band (then|after|also)\b|\bnext,\s|\bonce (that|you)('?ve| have)?\b|;\s*\w/i;
+
+/**
  * Route a request without a model, or return null.
  *
  * Pure and synchronous. Every rule is one regular expression, one extraction and
@@ -167,6 +195,17 @@ export function routeDirect(request: string): DirectRoute | null {
   const text = core(request);
   if (!text) return null;
   const lower = text.toLowerCase();
+
+  /*
+   * A multi-step instruction goes to the model, whatever it looks like.
+   *
+   * Checked before every rule EXCEPT the control words, which are anchored to
+   * the whole string below and so cannot be a clause of something larger —
+   * and which must keep working when someone types "stop" at a running task.
+   */
+  if (SEQUENCING.test(lower) && !/^(stop|halt|cancel|abort|pause|continue|resume)\b/i.test(lower)) {
+    return null;
+  }
 
   /* ------------------------------------------------------------ control -- */
   // Checked first and matched tightly. These have to be instant, and they must

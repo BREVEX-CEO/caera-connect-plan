@@ -157,12 +157,45 @@ export function parseModelReply(reply: string, known: readonly string[]): Parsed
   // `name` and `args` are accepted as aliases: models trained on the OpenAI
   // shape reach for them constantly, and refusing the synonym would make the
   // model look incapable of something it did correctly.
-  const name = typeof record.tool === "string" ? record.tool : record.name;
+  let name = typeof record.tool === "string" ? record.tool : record.name;
+  let rawArguments = record.arguments ?? record.args;
+
+  /*
+   * THE NAME OUTSIDE THE BRACES.
+   *
+   * FOUND LIVE. Asked to save a value to a file, qwen2.5:3b replied:
+   *
+   *     workspace_write {"name": "memory-check.txt", "content": "…"}
+   *
+   * The tool name is there, the arguments are there, and the intent is
+   * unmistakable — but the name sits before the object rather than inside it,
+   * so `record.tool` was undefined and `record.name` was "memory-check.txt",
+   * which is not a tool. The call was dropped and rendered to the user as
+   * prose: the transcript showed raw JSON where an action should have been.
+   *
+   * This is a formatting difference, not a refusal. The model decided
+   * correctly and wrote it down in one of the shapes models write it in.
+   * Rejecting the shape makes the product look incapable of something it in
+   * fact did, which is the same reason `name`/`args` are accepted above.
+   *
+   * The name is still checked against `known`, so nothing is loosened: an
+   * invented tool is refused exactly as before, and the arguments still go
+   * through the full contract afterwards.
+   */
+  if (typeof name !== "string" || !known.includes(name)) {
+    const before = withoutThinking.slice(0, withoutThinking.indexOf(candidate));
+    const prefixed = /([a-z_][a-z0-9_]{2,40})\s*:?\s*$/i.exec(before.trimEnd());
+    if (prefixed && known.includes(prefixed[1])) {
+      name = prefixed[1];
+      // The object was the arguments all along.
+      rawArguments = parsed;
+    }
+  }
+
   if (typeof name !== "string" || !known.includes(name)) {
     return { text: withoutThinking.trim(), toolCalls: [] };
   }
 
-  const rawArguments = record.arguments ?? record.args;
   const args =
     rawArguments && typeof rawArguments === "object" && !Array.isArray(rawArguments)
       ? (rawArguments as Record<string, unknown>)

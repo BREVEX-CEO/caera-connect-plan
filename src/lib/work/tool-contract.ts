@@ -69,6 +69,17 @@ function signature(call: ToolCall): string {
  * `reason` field is being chatty, not dangerous, and refusing the whole call
  * over it costs a step for nothing.
  */
+/**
+ * The shapes a model reaches for when it means "the value goes here".
+ *
+ * Shell substitution `$(...)` and `${...}`, template braces `{{...}}`, format
+ * specifiers `%s`, and angle-bracket slots `<value>`. Single braces are NOT
+ * included: `{ }` appears in ordinary JSON and code a user might legitimately
+ * ask OCADE to write down.
+ */
+const PLACEHOLDER =
+  /\$\([^)]*\)|\$\{[^}]*\}|\{\{[^}]*\}\}|<[a-z_][a-z0-9_ ]{2,30}>|%[sdif]\b|\bYOUR_[A-Z_]{2,}\b|\bTODO:/i;
+
 export function validateArguments(
   definition: ToolDefinition,
   raw: Record<string, unknown>,
@@ -101,6 +112,35 @@ export function validateArguments(
         return {
           ok: false,
           reason: `${name} must be one of: ${spec.enum.join(", ")}. OCADE was given “${text}”.`,
+        };
+      }
+      /*
+       * A placeholder is not a value.
+       *
+       * FOUND LIVE: asked to read the memory figure and save it to a file, the
+       * model read 65.4% correctly and then wrote
+       *
+       *     Memory usage: $(system_status memory) Megabytes
+       *
+       * into the file. Every mechanical check passed — the write happened, the
+       * readback matched, the tool reported verified — because the file did
+       * contain exactly what it was told to write. The verification was
+       * truthful and the result was useless.
+       *
+       * That is the shape of failure a small model produces most often: not a
+       * refusal, not a crash, but a template where the answer should be. It is
+       * caught here rather than at the write, because the reason has to reach
+       * the model as a tool result so it can substitute the real value on the
+       * next turn — and because every tool that takes text is exposed to it,
+       * not just the one that happened to find it.
+       */
+      const placeholder = PLACEHOLDER.exec(text);
+      if (placeholder) {
+        return {
+          ok: false,
+          reason:
+            `${name} still contains the placeholder “${placeholder[0]}” instead of a real value. ` +
+            `Substitute the actual value you were given in the previous result, then call ${definition.name} again.`,
         };
       }
       cleaned[name] = text;

@@ -66,15 +66,77 @@ const CERTAIN: { pattern: RegExp; domains: Domain[] }[] = [
   },
   { pattern: /\b(click|press|tap) (the )?[\w ]{1,30}\b(button)?\b/i, domains: ["os_app"] },
   { pattern: /\bopen (chrome|edge|a browser|the browser)\b/i, domains: ["web", "os_app"] },
-  { pattern: /\b(search|google|look up) (for |the )?\w+/i, domains: ["web"] },
+  /*
+   * Opening or focusing an application, whatever it is called.
+   *
+   * FOUND LIVE: "open notepad and type hello" matched nothing here and fell
+   * through to the model — a two-word instruction that the router should have
+   * answered instantly cost a full classification turn before any work began.
+   * The browser rule above stays: it adds `web` as well, and the domains of
+   * every matching rule are unioned.
+   */
+  {
+    pattern: /\b(open|launch|start|run|focus|switch to|bring up)\s+[\w.\-+ ]{2,40}\b/i,
+    domains: ["os_app"],
+  },
+  { pattern: /\btype\b|\bpress (enter|tab|escape|the \w+ key)\b/i, domains: ["os_app"] },
+  /*
+   * Searching the WEB, and not the user's own machine.
+   *
+   * FOUND LIVE: "search my documents for invoices" classified as `web`. The
+   * user asked about files on their own disk and OCADE would have been given
+   * only browser tools and gone looking on the internet for them. The lookahead
+   * refuses the match when the object of the search is plainly local, and the
+   * files rule below then claims it.
+   */
+  {
+    pattern:
+      /\b(search|google|look up)\b(?!.*\b(my|this|the) (documents?|files?|folders?|desktop|downloads?|pictures?|computer|pc|machine|drive)\b)/i,
+    domains: ["web"],
+  },
   { pattern: /\b(browse|navigate) to\b|\bgo to https?:\/\//i, domains: ["web"] },
   {
     pattern:
-      /\b(find|locate) (my|the|a|all)? ?(file|files|document|documents|folder|pdf|pdfs|spreadsheet)\b/i,
+      /\b(find|locate|search) (my|the|a|all|through)? ?(file|files|document|documents|folder|folders|pdf|pdfs|spreadsheet|desktop|downloads)\b/i,
+    domains: ["files"],
+  },
+  /*
+   * Writing something down.
+   *
+   * FOUND LIVE, AND IT IS THE WHOLE REASON MULTI-STEP TASKS STALLED.
+   *
+   * "Check how much memory this computer is using, then save that number into
+   * a file called memory-check.txt" matched only the `memory` rule below, so
+   * the mission was given `os_app` tools alone. `workspace_write` lives in
+   * `files`, so it was never in the vocabulary the model could see.
+   *
+   * The model did exactly the right thing: it read the memory, found no tool
+   * that could write a file, and answered in prose. The loop saw a turn with
+   * no tool call, and — because the only step so far was a read, so no
+   * mutation existed to fail verification — ended the run reported as
+   * "verified". A task half done, called done.
+   *
+   * The lesson is in the shape rather than the words: a request that spans two
+   * domains needs BOTH, and every rule here fires independently and is unioned
+   * for exactly that reason. A rule that covers only the first half of a
+   * sentence is worse than no rule, because it looks like it worked.
+   */
+  {
+    pattern:
+      /\b(save|write|store|put|record|note|jot)\b.{0,40}\b(to|in|into|as)\b.{0,20}\b(a )?(file|note|txt|text file|document)\b/i,
+    domains: ["files"],
+  },
+  {
+    pattern: /\b(file|note) called\b|\bcalled [\w-]+\.(txt|md|csv|json|log)\b/i,
     domains: ["files"],
   },
   {
     pattern: /\b(organis|organiz)e (these|my|the) (files|photos|documents|downloads)\b/i,
+    domains: ["files"],
+  },
+  {
+    pattern:
+      /\b(copy|move|rename|delete|trash|restore)\b.{0,30}\b(file|files|folder|document|documents)\b/i,
     domains: ["files"],
   },
   {

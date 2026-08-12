@@ -557,8 +557,30 @@ export function useMission(brain: MissionBrain) {
                */
               const checked = checkCall(call, ledgerRef.current);
               if (!checked.ok) {
+                /*
+                 * A CORRECTABLE MISTAKE IS NOT AN IMPOSSIBLE ONE.
+                 *
+                 * Every contract rejection used to come back as `unsupported`,
+                 * which `isTerminal` treats as "this device cannot do this" and
+                 * ends the run on. But bad arguments are the one failure the
+                 * model is genuinely able to fix, and the reason is written for
+                 * it to act on.
+                 *
+                 * FOUND LIVE: asked to read the memory figure and save it, the
+                 * model called workspace_write with `$(memoryFree)` in the
+                 * content. The placeholder guard caught it and said "substitute
+                 * the actual value, then call workspace_write again" — and the
+                 * loop stopped before the model could. A perfect refusal
+                 * followed by a halt is still a task not done.
+                 *
+                 * `state_changed` is the right kind for all of them: not
+                 * retried blindly with the same arguments, not terminal, so the
+                 * next turn is the model reading the reason and correcting.
+                 * `unknown_tool` stays terminal — an invented name is not
+                 * something a retry improves.
+                 */
                 return {
-                  kind: checked.code === "repeated" ? "state_changed" : "unsupported",
+                  kind: checked.code === "unknown_tool" ? "unsupported" : "state_changed",
                   detail: checked.reason,
                 };
               }
