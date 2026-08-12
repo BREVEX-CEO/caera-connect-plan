@@ -424,10 +424,9 @@ const FILES: ToolDefinition[] = [
     domain: "files",
     description:
       "Put a file back from the recycle bin using the id file_trash returned, confirming afterwards that its contents are unchanged.",
-    parameters: object(
-      { id: { type: "string", description: "The id file_trash returned." } },
-      ["id"],
-    ),
+    parameters: object({ id: { type: "string", description: "The id file_trash returned." } }, [
+      "id",
+    ]),
     mutating: true,
     risk: "low",
   },

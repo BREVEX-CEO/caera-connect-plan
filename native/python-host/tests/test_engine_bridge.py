@@ -203,6 +203,146 @@ class TestTheWorkspaceIsOneFolder:
             bridge.workspace({"action": "shred", "name": "x.txt"})
 
 
+class TestTheUsersFoldersAreAClosedSet:
+    """`file_*` reaches six named folders, and no path at all.
+
+    `file_controller` already refused anything outside the home directory,
+    which is a real boundary but a wide one: it puts .ssh, browser profiles
+    and every other application's saved state in reach the moment a model
+    produces a plausible-looking path. So the argument is a NAME out of a
+    list, checked the same way the keyboard vocabulary is.
+    """
+
+    def test_home_is_not_one_of_them(self) -> None:
+        # It is the whole boundary again under a friendlier name.
+        with pytest.raises(bridge.Refusal) as caught:
+            bridge.files({"action": "read", "folder": "home", "path": "x.txt"})
+        assert caught.value.code == "unsupported"
+
+    @pytest.mark.parametrize("folder", ["", "  ", "C:/Windows", "..", "appdata", "system32"])
+    def test_anything_outside_the_set_is_refused(self, folder: str) -> None:
+        with pytest.raises(bridge.Refusal):
+            bridge.files({"action": "read", "folder": folder, "path": "x.txt"})
+
+    def test_a_relative_escape_is_refused_rather_than_clamped(self) -> None:
+        with pytest.raises(bridge.Refusal) as caught:
+            bridge.files(
+                {"action": "read", "folder": "documents", "path": "../../.ssh/id_rsa"}
+            )
+        assert caught.value.code == "blocked"
+
+    def test_an_absolute_path_is_refused(self) -> None:
+        with pytest.raises(bridge.Refusal) as caught:
+            bridge.files(
+                {"action": "read", "folder": "documents", "path": "C:/Windows/win.ini"}
+            )
+        assert caught.value.code == "blocked"
+
+    def test_the_six_are_the_six(self) -> None:
+        # A seventh arriving by accident is the whole point of pinning this.
+        assert bridge._FILE_FOLDERS == (
+            "desktop", "downloads", "documents", "pictures", "music", "videos",
+        )
+
+
+class TestFileWorkIsVerifiedAgainstTheFilesystem:
+    """A call that returns without error and a file that changed on disk are
+    different facts. Only the second one is reported."""
+
+    def test_reading_a_file_that_is_not_there_says_so(self) -> None:
+        with pytest.raises(bridge.Refusal) as caught:
+            bridge.files(
+                {"action": "read", "folder": "documents", "path": "definitely-absent-xyz.txt"}
+            )
+        assert caught.value.code == "state_changed"
+
+    def test_copy_move_and_trash_round_trip_and_are_each_verified(self, tmp_path) -> None:
+        base = bridge._file_base("documents")
+        source = base / "ocade-pytest-probe.txt"
+        source.write_text("verified by readback", encoding="utf-8")
+        try:
+            copied = bridge.files(
+                {
+                    "action": "copy",
+                    "folder": "documents",
+                    "from": source.name,
+                    "to": "ocade-pytest-copy.txt",
+                }
+            )
+            assert copied["verified"] is True
+
+            # Refusing to overwrite is not a nicety: the second copy would
+            # destroy the first with no record that it existed.
+            with pytest.raises(bridge.Refusal) as caught:
+                bridge.files(
+                    {
+                        "action": "copy",
+                        "folder": "documents",
+                        "from": source.name,
+                        "to": "ocade-pytest-copy.txt",
+                    }
+                )
+            assert caught.value.code == "state_changed"
+
+            moved = bridge.files(
+                {
+                    "action": "move",
+                    "folder": "documents",
+                    "from": "ocade-pytest-copy.txt",
+                    "to": "ocade-pytest-moved.txt",
+                }
+            )
+            assert moved["verified"] is True
+            assert (base / "ocade-pytest-moved.txt").is_file()
+
+            trashed = bridge.files(
+                {"action": "trash", "folder": "documents", "path": "ocade-pytest-moved.txt"}
+            )
+            assert trashed["verified"] is True
+            assert not (base / "ocade-pytest-moved.txt").exists()
+            assert trashed["id"]
+        finally:
+            for leftover in ("ocade-pytest-probe.txt", "ocade-pytest-copy.txt", "ocade-pytest-moved.txt"):
+                (base / leftover).unlink(missing_ok=True)
+
+    def test_restoring_an_id_that_was_never_recorded_is_refused(self) -> None:
+        with pytest.raises(bridge.Refusal) as caught:
+            bridge.files({"action": "restore", "id": "notarealid00"})
+        assert caught.value.code == "state_changed"
+
+    def test_a_corrupt_ledger_does_not_take_the_file_tools_down(self, monkeypatch, tmp_path) -> None:
+        broken = tmp_path / "trash-ledger.json"
+        broken.write_text("{not json at all", encoding="utf-8")
+        monkeypatch.setattr(bridge, "_TRASH_LEDGER", broken)
+        assert bridge._read_ledger() == []
+
+    def test_an_unsupported_file_action_is_refused(self) -> None:
+        with pytest.raises(bridge.Refusal) as caught:
+            bridge.files({"action": "shred", "folder": "documents", "path": "x.txt"})
+        assert caught.value.code == "unsupported"
+
+    def test_every_file_action_ocade_calls_is_handled(self) -> None:
+        # The adapter names these directly; a rename here is a tool that goes
+        # back to answering "unsupported" for the rest of its life.
+        #
+        # Called with no arguments, a HANDLED action refuses for a missing
+        # argument and an UNHANDLED one refuses by name. Both carry the code
+        # `unsupported`, so the code cannot tell them apart — the sentence is
+        # what distinguishes "you forgot the folder" from "there is no such
+        # action", and the sentence is what this checks.
+        for action in ("list", "search", "read", "copy", "move", "trash", "restore"):
+            try:
+                bridge.files({"action": action})
+            except bridge.Refusal as refusal:
+                assert "Unsupported file action" not in str(refusal), action
+
+    def test_an_action_nobody_implemented_still_refuses_by_name(self) -> None:
+        # The negative half of the test above: without this, deleting every
+        # branch in files() would leave that test green.
+        with pytest.raises(bridge.Refusal, match="Unsupported file action"):
+            bridge.files({"action": "defenestrate"})
+
+
 class TestTheProtocolChannelStaysClean:
     """The engine's own `print()` output must never reach stdout.
 

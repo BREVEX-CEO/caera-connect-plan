@@ -582,14 +582,18 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _read_ledger() -> list[dict]:
+def _read_ledger() -> list[dict[str, Any]]:
     try:
-        return json.loads(_TRASH_LEDGER.read_text(encoding="utf-8"))
+        rows = json.loads(_TRASH_LEDGER.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return []
+    # A hand-edited or truncated ledger must not take the file tools down with
+    # it: the worst case is a restore that cannot find its row, which already
+    # has an honest refusal.
+    return [row for row in rows if isinstance(row, dict)] if isinstance(rows, list) else []
 
 
-def _write_ledger(rows: list[dict]) -> None:
+def _write_ledger(rows: list[dict[str, Any]]) -> None:
     _TRASH_LEDGER.parent.mkdir(parents=True, exist_ok=True)
     _TRASH_LEDGER.write_text(json.dumps(rows[-500:], indent=1), encoding="utf-8")
 
@@ -736,10 +740,12 @@ def files(payload: dict) -> dict:
     if action == "restore":
         wanted = need_text(payload.get("id"), "id", 40).strip().lower()
         rows = _read_ledger()
-        entry = next((row for row in rows if row.get("id") == wanted), None)
-        if entry is None:
+        record: dict[str, Any] | None = next(
+            (row for row in rows if row.get("id") == wanted), None
+        )
+        if record is None:
             raise Refusal(f"OCADE has no record of a trashed file with id {wanted}.", "state_changed")
-        original = Path(entry["originalPath"])
+        original = Path(str(record["originalPath"]))
         if original.exists():
             raise Refusal(
                 f"{original.name} is already back in place — nothing to restore.", "state_changed"
@@ -752,7 +758,7 @@ def files(payload: dict) -> dict:
                 "state_changed",
             )
         # Restored is not enough — it has to be the same file.
-        matches = original.is_file() and _sha256(original) == entry["sha256"]
+        matches = original.is_file() and _sha256(original) == record["sha256"]
         _write_ledger([row for row in rows if row.get("id") != wanted])
         return {
             "action": action,
