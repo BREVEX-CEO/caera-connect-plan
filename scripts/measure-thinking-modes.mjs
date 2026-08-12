@@ -14,6 +14,42 @@
  * sounds fastest. It reports both numbers separately so the choice is made on
  * evidence rather than on the name of the option.
  *
+ * WHAT THE INVESTIGATION ENDED UP FINDING — READ THIS BEFORE TUNING ANYTHING
+ * --------------------------------------------------------------------------
+ * Thinking cannot be switched off on this model through the API at all.
+ *
+ * `ollama show --template qwen3:4b` ends its generation prompt with:
+ *
+ *     <|im_start|>assistant
+ *     <think>
+ *
+ * That `<think>` is opened UNCONDITIONALLY — there is no `IsThinkSet` guard on
+ * the line. The `think` field only decides how PRIOR assistant messages are
+ * rendered. So every generation begins inside a thinking block whatever the
+ * request says, and `think:false` merely changes which field the reasoning
+ * lands in.
+ *
+ * Nor is it the template alone. Driving `/api/generate` with `raw: true` and a
+ * hand-built prompt that closes the block immediately — `<think>\n\n</think>`,
+ * Qwen3's own documented non-thinking form — still produced 40 s of "Okay,
+ * let's see. The user wants me to..." before anything else.
+ *
+ * The consequence is a product one, and it is about task shape rather than
+ * settings. Measured here with two tools and one two-step instruction:
+ *
+ *     num_predict 300    no tool call      24 s   (reasoning ate the budget)
+ *     num_predict 800    no tool call      83 s
+ *     num_predict 2000   tool call         125 s  (and a second turn at 94 s)
+ *
+ * A single trivial instruction with one tool lands in ~14 s because the
+ * reasoning is short enough to leave room. Anything genuinely multi-step costs
+ * minutes, and a cap low enough to be fast truncates the call itself.
+ *
+ * So the latency work for PC control is NOT in this file. It is in
+ * `work/fast-router.ts`, which answers deterministic instructions in under a
+ * millisecond and must therefore cover as much real usage as possible. The
+ * model is for planning that genuinely needs planning, and it is slow at it.
+ *
  * Usage: node scripts/measure-thinking-modes.mjs [--runs 3]
  */
 
