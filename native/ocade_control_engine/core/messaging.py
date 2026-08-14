@@ -538,7 +538,6 @@ def commit_typed(hwnd: int, body: str) -> dict[str, Any]:
     found by shape (`_find_message_box`) and the transcript by content
     (`_find_in_conversation`).
     """
-    from core.uia import act  # noqa: PLC0415
 
     body = (body or "").strip()
     if not body:

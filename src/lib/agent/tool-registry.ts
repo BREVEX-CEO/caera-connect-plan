@@ -404,7 +404,11 @@ const OS_APP: ToolDefinition[] = [
     parameters: object(
       {
         id: { type: "number", description: "The element's number from screen_map." },
-        action: { type: "string", description: "What to do.", enum: ["click", "type", "read"] },
+        action: {
+          type: "string",
+          description: "What to do.",
+          enum: ["click", "type", "scroll", "read"],
+        },
         text: { type: "string", description: "For 'type': exactly what to type." },
         token: {
           type: "string",

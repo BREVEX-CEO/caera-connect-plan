@@ -3416,7 +3416,6 @@ def folder_empty(payload: dict) -> dict:
     in this folder" and "delete this folder" are different sentences, and a
     person who said the first and got the second has lost work.
     """
-    from pathlib import Path  # noqa: PLC0415
 
     from actions.file_controller import _is_safe_path, _resolve_path, _safe_trash  # noqa: PLC0415
 

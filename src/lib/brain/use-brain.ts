@@ -108,14 +108,32 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
 
   const warm = useCallback(
     (pending?: BrainMessage[]) => {
-      const adapter = registry.get("desktop_bridge");
-      if (adapter instanceof DesktopBridgeAdapter) {
+      const bridge = registry.get("desktop_bridge");
+      if (bridge instanceof DesktopBridgeAdapter) {
         // Fire and forget: a failed warm-up must never surface as an error for a
         // message the user has not sent yet.
-        void adapter
+        void bridge
           .probe()
-          .then(() => adapter.preload(pending))
+          .then(() => bridge.preload(pending))
           .catch(() => {});
+      }
+
+      /*
+       * THE BROWSER ENGINE WARMS TOO, AND ON THE WEB IT IS THE ONLY ONE.
+       *
+       * This warmed the desktop bridge alone. On `pc_web` there is no bridge --
+       * `browser_webgpu` is the whole engine list -- so nothing was prepared
+       * until the user pressed send, and then a 340 MB download started
+       * mid-sentence behind a progress bar they had not asked for.
+       *
+       * Warming both costs nothing when the bridge wins: `preload` probes
+       * first and returns immediately on a browser that cannot run WebGPU, and
+       * WebLLM serves a second visit from Cache Storage without touching the
+       * network.
+       */
+      const webgpu = registry.get("browser_webgpu");
+      if (webgpu instanceof BrowserWebGpuAdapter) {
+        void webgpu.preload().catch(() => {});
       }
     },
     [registry],

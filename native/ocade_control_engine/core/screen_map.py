@@ -322,6 +322,50 @@ def act_on_id(
             used_pointer = True
             how = "pointer_and_keystrokes"
 
+    elif action in ("scroll", "scroll_down", "scroll_up"):
+        # SCROLLING WAS THE ONE THING `screen_do` COULD NOT DO. A model could
+        # number the screen, click and type, and then had no way to reach a row
+        # below the fold -- so a long chat list or a settings page was only
+        # partly reachable, and the failure read as "the item is not there"
+        # rather than "I cannot get to it".
+        #
+        # The KEYBOARD is tried first, on the focused control. A wheel event is
+        # a pointer action in disguise: it goes to whichever pane is under the
+        # cursor, which on a two-pane chat client is routinely the wrong one.
+        # ALIASED, BECAUSE THIS MODULE HAS ITS OWN `_resolve`.
+        #
+        # Importing `core.uia._resolve` under its own name made Python treat
+        # the name as local to this whole function, so the call at the top --
+        # which resolves the ELEMENT ID against the cached map -- raised
+        # "referenced before assignment" on every action, not just scrolling.
+        from core.uia import _resolve as resolve_control  # noqa: PLC0415
+
+        up = action == "scroll_up" or "up" in (text or "").lower()
+        how = "keyboard_page"
+        try:
+            control = resolve_control(
+                hwnd, element["ref"], element.get("fingerprint"), 200
+            )["_element"]
+            control.set_focus()
+            time.sleep(0.1)
+            control.type_keys("{PGUP}" if up else "{PGDN}")
+        except Exception:  # noqa: BLE001
+            # The wheel is the fallback, and it is declared as a pointer action
+            # because that is exactly what it is. `element` is still the MAP
+            # ENTRY here -- deliberately not rebound above, because reading its
+            # bounds is the whole reason this branch can run at all.
+            try:
+                import pyautogui  # noqa: PLC0415
+
+                bounds = element.get("bounds") or {}
+                centre_x = int(bounds.get("x", 0)) + int(bounds.get("width", 0)) // 2
+                centre_y = int(bounds.get("y", 0)) + int(bounds.get("height", 0)) // 2
+                pyautogui.scroll(360 if up else -360, x=centre_x, y=centre_y)
+                used_pointer = True
+                how = "pointer_wheel"
+            except Exception as error:  # noqa: BLE001
+                raise ValueError(f"That element could not be scrolled: {error}") from error
+
     elif action == "read":
         from core.vision_action import read_region as read  # noqa: PLC0415
 
@@ -337,7 +381,9 @@ def act_on_id(
         }
 
     else:
-        raise ValueError(f"Unknown action: {action}. Use click, type or read.")
+        raise ValueError(
+            f"Unknown action: {action}. Use click, type, scroll or read."
+        )
 
     time.sleep(0.4)
 

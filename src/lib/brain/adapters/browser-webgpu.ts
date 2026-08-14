@@ -168,6 +168,36 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
     return this.engine;
   }
 
+  /**
+   * Download and compile the model before anybody asks a question.
+   *
+   * WITHOUT THIS, THE WEB CLIENT DOWNLOADS 340 MB ON THE FIRST MESSAGE.
+   * `warm()` in `use-brain` only ever preloaded the desktop bridge, so on the
+   * web -- where this adapter is the ONLY engine -- nothing happened until the
+   * user pressed send, and then they waited on a progress bar they had not
+   * asked for, mid-sentence.
+   *
+   * Idempotent and fire-and-forget by contract: `ensure` returns the existing
+   * engine when there is one, and every failure is swallowed. A warm-up that
+   * surfaces an error is reporting a problem with a message the user has not
+   * sent yet.
+   *
+   * The bytes land in the browser's Cache Storage, which is where WebLLM keeps
+   * model shards, so a second visit compiles from disk and asks the network for
+   * nothing.
+   */
+  async preload(): Promise<void> {
+    try {
+      const availability = await this.probe();
+      if (!availability.available) return;
+      const chosen = this.plan();
+      if (!chosen) return;
+      await this.ensureEngine(chosen.tier);
+    } catch {
+      /* A browser that cannot warm up can still be told so when it is used. */
+    }
+  }
+
   async stream(
     messages: BrainMessage[],
     handlers: BrainStreamHandlers,
