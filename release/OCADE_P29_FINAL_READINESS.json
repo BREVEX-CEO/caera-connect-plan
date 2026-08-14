@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "phase": "P29 - Final production-readiness closure",
-  "calculatedAt": "2026-08-12T15:35:55.703Z",
-  "branch": "feat/ocade-implementation",
-  "currentHead": "a38d248c3169816b49ba6fdfcd4346eaca136f3c",
+  "calculatedAt": "2026-08-14T12:27:39.664Z",
+  "branch": "safeguard-pre-refactor",
+  "currentHead": "9ca8bba738c1fb8a6d8a1fcc61e4d6af1b155d9c",
   "sourceRevision": "a38d248c3169816b49ba6fdfcd4346eaca136f3c",
   "targetVersion": "0.1.0",
   "evidenceBindings": {
-    "sourceRevision": "a38d248c3169816b49ba6fdfcd4346eaca136f3c",
+    "sourceRevision": "9ca8bba738c1fb8a6d8a1fcc61e4d6af1b155d9c",
     "targetVersion": "0.1.0",
     "dependencyLockSha256": "05885237196f81a20eef25e2d06266f595e30f5859282379db99c830db62c991",
     "environment": "windows-x64-node22+",
@@ -15,10 +15,10 @@
   },
   "productionReady": false,
   "declaredNumerator": 272.2,
-  "evidenceBoundNumerator": 272.2,
+  "evidenceBoundNumerator": 0,
   "denominator": 510,
   "declaredPercent": 53.4,
-  "evidenceBoundPercent": 53.4,
+  "evidenceBoundPercent": 0,
   "statusCounts": {
     "UNIT TESTED": 250,
     "INTEGRATION TESTED": 59,
@@ -33,1254 +33,1266 @@
       "area": "Accessibility and Semantic UI Control",
       "denominator": 8,
       "declaredNumerator": 4.4,
-      "evidenceBoundNumerator": 4.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 8,
       "declaredPercent": 55,
-      "evidenceBoundPercent": 55
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Administration and Operational Controls",
       "denominator": 5,
       "declaredNumerator": 2.5,
-      "evidenceBoundNumerator": 2.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Administration and Operational Controls; External Beta and Controlled Expansion",
       "denominator": 2,
       "declaredNumerator": 1,
-      "evidenceBoundNumerator": 1,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 2,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Architecture Decisions and System Boundaries",
       "denominator": 6,
       "declaredNumerator": 2.9,
-      "evidenceBoundNumerator": 2.9,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 6,
       "declaredPercent": 48.3,
-      "evidenceBoundPercent": 48.3
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Architecture Decisions and System Boundaries; Shared Types Contracts and Versioning; Desktop Companion Foundation",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Architecture Decisions and System Boundaries; Skill Registry Reuse and Governance; Product Governance and Long-Term Evolution",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Audit governance",
       "denominator": 2,
       "declaredNumerator": 1,
-      "evidenceBoundNumerator": 1,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 2,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Audit outputs",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Authentication Accounts and Device Management",
       "denominator": 5,
       "declaredNumerator": 2.3,
-      "evidenceBoundNumerator": 2.3,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 46,
-      "evidenceBoundPercent": 46
+      "evidenceBoundPercent": 0
     },
     {
       "area": "CAD Engineering and Solver Workflows",
       "denominator": 7,
       "declaredNumerator": 3.5,
-      "evidenceBoundNumerator": 3.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Chat Core and Conversation Lifecycle",
       "denominator": 8,
       "declaredNumerator": 4,
-      "evidenceBoundNumerator": 4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 8,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Clean-Machine Installation and First Run",
       "denominator": 6,
       "declaredNumerator": 2,
-      "evidenceBoundNumerator": 2,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 6,
       "declaredPercent": 33.3,
-      "evidenceBoundPercent": 33.3
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Cloud Relay and Service Deployment",
       "denominator": 5,
       "declaredNumerator": 2.3,
-      "evidenceBoundNumerator": 2.3,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 46,
-      "evidenceBoundPercent": 46
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Cloud Relay and Service Deployment; Production Launch; Production Operations and Incident Response",
       "denominator": 1,
       "declaredNumerator": 0.4,
-      "evidenceBoundNumerator": 0.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Code Workspace and Repository Operations",
       "denominator": 7,
       "declaredNumerator": 4,
-      "evidenceBoundNumerator": 4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 57.1,
-      "evidenceBoundPercent": 57.1
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Code Workspace and Repository Operations; Recovery Repair and Idempotency",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Context Memory Citations and Personalisation",
       "denominator": 7,
       "declaredNumerator": 3.5,
-      "evidenceBoundNumerator": 3.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Context Memory Citations and Personalisation; Supported Application Certification",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Continuous Integration and Platform Workflows",
       "denominator": 8,
       "declaredNumerator": 3.7,
-      "evidenceBoundNumerator": 3.7,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 8,
       "declaredPercent": 46.3,
-      "evidenceBoundPercent": 46.3
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Copilot and Cowork Orchestration",
       "denominator": 7,
       "declaredNumerator": 4.2,
-      "evidenceBoundNumerator": 4.2,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 60,
-      "evidenceBoundPercent": 60
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Copilot and Cowork Orchestration; Reliability No-Progress Detection and Long Tasks",
       "denominator": 1,
       "declaredNumerator": 0.6,
-      "evidenceBoundNumerator": 0.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 60,
-      "evidenceBoundPercent": 60
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Creative and Media Workflows",
       "denominator": 7,
       "declaredNumerator": 4.2,
-      "evidenceBoundNumerator": 4.2,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 60,
-      "evidenceBoundPercent": 60
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Data Protection Privacy Modes and Vaults",
       "denominator": 5,
       "declaredNumerator": 2.5,
-      "evidenceBoundNumerator": 2.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Data Protection Privacy Modes and Vaults; Event Journal Receipts and Auditability; Legal Privacy Licence and Compliance Review",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Data Protection Privacy Modes and Vaults; File Artifact and Workspace Foundation",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Data Protection Privacy Modes and Vaults; Generated Code Sandbox; Voice Input Output Wake and Protected Speech",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Database Schema Migrations and Rollback",
       "denominator": 7,
       "declaredNumerator": 4.6,
-      "evidenceBoundNumerator": 4.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 65.7,
-      "evidenceBoundPercent": 65.7
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Design System and Accessibility",
       "denominator": 7,
       "declaredNumerator": 3.8,
-      "evidenceBoundNumerator": 3.8,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 54.3,
-      "evidenceBoundPercent": 54.3
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Design System and Accessibility; Windows Process Application and Window Control",
       "denominator": 1,
       "declaredNumerator": 0.6,
-      "evidenceBoundNumerator": 0.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 60,
-      "evidenceBoundPercent": 60
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Desktop Companion Foundation",
       "denominator": 5,
       "declaredNumerator": 2,
-      "evidenceBoundNumerator": 2,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Desktop Companion Foundation; Internal Alpha and Dogfooding",
       "denominator": 1,
       "declaredNumerator": 0.4,
-      "evidenceBoundNumerator": 0.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Desktop Companion Foundation; Relay Service and Remote Sessions",
       "denominator": 1,
       "declaredNumerator": 0.4,
-      "evidenceBoundNumerator": 0.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Desktop Mobile and Extension Packaging",
       "denominator": 5,
       "declaredNumerator": 2,
-      "evidenceBoundNumerator": 2,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Desktop Mobile and Extension Packaging; Legal Privacy Licence and Compliance Review",
       "denominator": 1,
       "declaredNumerator": 0.4,
-      "evidenceBoundNumerator": 0.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Desktop Mobile and Extension Packaging; Updater Staging Verification and Rollback",
       "denominator": 1,
       "declaredNumerator": 0.4,
-      "evidenceBoundNumerator": 0.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Deterministic Actions and Executor Registry",
       "denominator": 3,
       "declaredNumerator": 2,
-      "evidenceBoundNumerator": 2,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 3,
       "declaredPercent": 66.7,
-      "evidenceBoundPercent": 66.7
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Deterministic Actions and Executor Registry; Screen Capture Vision and Set-of-Mark; Signing and Trust Distribution; Staging Database and Controlled Deployment",
       "denominator": 1,
       "declaredNumerator": 0.7,
-      "evidenceBoundNumerator": 0.7,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 70,
-      "evidenceBoundPercent": 70
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Deterministic Actions and Executor Registry; Skill Registry Reuse and Governance",
       "denominator": 1,
       "declaredNumerator": 0.7,
-      "evidenceBoundNumerator": 0.7,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 70,
-      "evidenceBoundPercent": 70
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Domain Model and Data Ownership",
       "denominator": 5,
       "declaredNumerator": 2.5,
-      "evidenceBoundNumerator": 2.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Domain Model and Data Ownership; Authentication Accounts and Device Management",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Domain Model and Data Ownership; OCADE Studio and Capability Management",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Domain Model and Data Ownership; Payments and Billing",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Domain Model and Data Ownership; Scoped Keyboard Mouse Clipboard and Files",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Event Journal Receipts and Auditability",
       "denominator": 6,
       "declaredNumerator": 3,
-      "evidenceBoundNumerator": 3,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 6,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Event Journal Receipts and Auditability; Recovery Repair and Idempotency",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Evidence governance",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Execution architecture",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Extensionless Browser and Web Control",
       "denominator": 5,
       "declaredNumerator": 2.3,
-      "evidenceBoundNumerator": 2.3,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 46,
-      "evidenceBoundPercent": 46
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Extensionless Browser and Web Control; Mobile Application and Native Bridge",
       "denominator": 1,
       "declaredNumerator": 0.4,
-      "evidenceBoundNumerator": 0.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Extensionless Browser and Web Control; Relay Service and Remote Sessions",
       "denominator": 1,
       "declaredNumerator": 0.4,
-      "evidenceBoundNumerator": 0.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Extensionless Browser and Web Control; Updater Staging Verification and Rollback",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "External Beta and Controlled Expansion",
       "denominator": 5,
       "declaredNumerator": 2.3,
-      "evidenceBoundNumerator": 2.3,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 46,
-      "evidenceBoundPercent": 46
+      "evidenceBoundPercent": 0
     },
     {
       "area": "File Artifact and Workspace Foundation",
       "denominator": 7,
       "declaredNumerator": 3.5,
-      "evidenceBoundNumerator": 3.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Generated Code Sandbox",
       "denominator": 7,
       "declaredNumerator": 6.5,
-      "evidenceBoundNumerator": 6.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 92.9,
-      "evidenceBoundPercent": 92.9
+      "evidenceBoundPercent": 0
     },
     {
       "area": "GUI Integration and No-Dead-Control Enforcement",
       "denominator": 6,
       "declaredNumerator": 3.4,
-      "evidenceBoundNumerator": 3.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 6,
       "declaredPercent": 56.7,
-      "evidenceBoundPercent": 56.7
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Hardware elimination",
       "denominator": 1,
       "declaredNumerator": 0.6,
-      "evidenceBoundNumerator": 0.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 60,
-      "evidenceBoundPercent": 60
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Hardware/tooling/cost/manual-step elimination",
       "denominator": 50,
       "declaredNumerator": 25.6,
-      "evidenceBoundNumerator": 25.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 50,
       "declaredPercent": 51.2,
-      "evidenceBoundPercent": 51.2
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Identity Sessions and Tenant Isolation",
       "denominator": 7,
       "declaredNumerator": 4.3,
-      "evidenceBoundNumerator": 4.3,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 61.4,
-      "evidenceBoundPercent": 61.4
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Identity Sessions and Tenant Isolation; Security Hardening and Adversarial Testing; Authentication Accounts and Device Management",
       "denominator": 1,
       "declaredNumerator": 0.7,
-      "evidenceBoundNumerator": 0.7,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 70,
-      "evidenceBoundPercent": 70
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Internal Alpha and Dogfooding",
       "denominator": 6,
       "declaredNumerator": 2.4,
-      "evidenceBoundNumerator": 2.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 6,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Legal Privacy Licence and Compliance Review",
       "denominator": 5,
       "declaredNumerator": 2.5,
-      "evidenceBoundNumerator": 2.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Local AI Runtime Architecture",
       "denominator": 5,
       "declaredNumerator": 5,
-      "evidenceBoundNumerator": 5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 100,
-      "evidenceBoundPercent": 100
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Local AI Runtime Architecture; Clean-Machine Installation and First Run",
       "denominator": 1,
       "declaredNumerator": 1,
-      "evidenceBoundNumerator": 1,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 100,
-      "evidenceBoundPercent": 100
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Local AI Runtime Architecture; Provider Gateway and Model Routing; Relay Service and Remote Sessions; Observability Telemetry and Diagnostics; Cloud Relay and Service Deployment",
       "denominator": 1,
       "declaredNumerator": 1,
-      "evidenceBoundNumerator": 1,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 100,
-      "evidenceBoundPercent": 100
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Local AI Runtime Architecture; Updater Staging Verification and Rollback; Clean-Machine Installation and First Run",
       "denominator": 1,
       "declaredNumerator": 1,
-      "evidenceBoundNumerator": 1,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 100,
-      "evidenceBoundPercent": 100
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Maintenance Upgrades and Application Drift",
       "denominator": 7,
       "declaredNumerator": 3.7,
-      "evidenceBoundNumerator": 3.7,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 52.9,
-      "evidenceBoundPercent": 52.9
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Mobile Application and Native Bridge",
       "denominator": 6,
       "declaredNumerator": 2.6,
-      "evidenceBoundNumerator": 2.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 6,
       "declaredPercent": 43.3,
-      "evidenceBoundPercent": 43.3
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Observability Telemetry and Diagnostics",
       "denominator": 5,
       "declaredNumerator": 2.5,
-      "evidenceBoundNumerator": 2.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Observability Telemetry and Diagnostics; Product Governance and Long-Term Evolution",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Observability Telemetry and Diagnostics; Production Operations and Incident Response",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "OCADE Studio and Capability Management",
       "denominator": 5,
       "declaredNumerator": 3,
-      "evidenceBoundNumerator": 3,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 60,
-      "evidenceBoundPercent": 60
+      "evidenceBoundPercent": 0
     },
     {
       "area": "OCADE Studio and Capability Management; Performance Budgets and Resource Governance",
       "denominator": 1,
       "declaredNumerator": 0.6,
-      "evidenceBoundNumerator": 0.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 60,
-      "evidenceBoundPercent": 60
+      "evidenceBoundPercent": 0
     },
     {
       "area": "OCADE Studio and Capability Management; Test Architecture and Evidence Ladder",
       "denominator": 1,
       "declaredNumerator": 0.6,
-      "evidenceBoundNumerator": 0.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 60,
-      "evidenceBoundPercent": 60
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Payments and Billing",
       "denominator": 7,
       "declaredNumerator": 4.3,
-      "evidenceBoundNumerator": 4.3,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 61.4,
-      "evidenceBoundPercent": 61.4
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Performance Budgets and Resource Governance",
       "denominator": 7,
       "declaredNumerator": 3.5,
-      "evidenceBoundNumerator": 3.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Product foundation",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Product Governance and Long-Term Evolution",
       "denominator": 6,
       "declaredNumerator": 2.4,
-      "evidenceBoundNumerator": 2.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 6,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Production Launch",
       "denominator": 6,
       "declaredNumerator": 2.6,
-      "evidenceBoundNumerator": 2.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 6,
       "declaredPercent": 43.3,
-      "evidenceBoundPercent": 43.3
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Production Operations and Incident Response",
       "denominator": 5,
       "declaredNumerator": 2,
-      "evidenceBoundNumerator": 2,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Programme Charter and Product Definition",
       "denominator": 8,
       "declaredNumerator": 3.5,
-      "evidenceBoundNumerator": 3.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 8,
       "declaredPercent": 43.8,
-      "evidenceBoundPercent": 43.8
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Programme measurement",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Provider Gateway and Model Routing",
       "denominator": 5,
       "declaredNumerator": 2.8,
-      "evidenceBoundNumerator": 2.8,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 56,
-      "evidenceBoundPercent": 56
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Provider Gateway and Model Routing; Deterministic Actions and Executor Registry; Skill Registry Reuse and Governance",
       "denominator": 1,
       "declaredNumerator": 0.6,
-      "evidenceBoundNumerator": 0.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 60,
-      "evidenceBoundPercent": 60
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Provider Gateway and Model Routing; Legal Privacy Licence and Compliance Review",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Reconnect Replay Protection and Reconciliation",
       "denominator": 7,
       "declaredNumerator": 4.9,
-      "evidenceBoundNumerator": 4.9,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 70,
-      "evidenceBoundPercent": 70
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Recovery Repair and Idempotency",
       "denominator": 5,
       "declaredNumerator": 2.5,
-      "evidenceBoundNumerator": 2.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Relay Service and Remote Sessions",
       "denominator": 5,
       "declaredNumerator": 2.3,
-      "evidenceBoundNumerator": 2.3,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 46,
-      "evidenceBoundPercent": 46
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Release governance",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Reliability No-Progress Detection and Long Tasks",
       "denominator": 7,
       "declaredNumerator": 3.5,
-      "evidenceBoundNumerator": 3.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Repository Branching and Baseline Integrity",
       "denominator": 7,
       "declaredNumerator": 3.5,
-      "evidenceBoundNumerator": 3.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Repository Branching and Baseline Integrity; Deterministic Actions and Executor Registry; Voice Input Output Wake and Protected Speech; Authentication Accounts and Device Management; Internal Alpha and Dogfooding",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Repository safety",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Requirements Decomposition and Traceability",
       "denominator": 7,
       "declaredNumerator": 3.5,
-      "evidenceBoundNumerator": 3.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Requirements Decomposition and Traceability; Maintenance Upgrades and Application Drift",
       "denominator": 1,
       "declaredNumerator": 0.4,
-      "evidenceBoundNumerator": 0.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Research and Source Acquisition",
       "denominator": 7,
       "declaredNumerator": 6,
-      "evidenceBoundNumerator": 6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 85.7,
-      "evidenceBoundPercent": 85.7
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Research and Source Acquisition; Skill Registry Reuse and Governance; Supported Application Certification; Creative and Media Workflows; CAD Engineering and Solver Workflows",
       "denominator": 1,
       "declaredNumerator": 1,
-      "evidenceBoundNumerator": 1,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 100,
-      "evidenceBoundPercent": 100
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Risk Evaluation and Permission UX",
       "denominator": 6,
       "declaredNumerator": 4.5,
-      "evidenceBoundNumerator": 4.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 6,
       "declaredPercent": 75,
-      "evidenceBoundPercent": 75
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Risk Evaluation and Permission UX; Reconnect Replay Protection and Reconciliation",
       "denominator": 1,
       "declaredNumerator": 0.7,
-      "evidenceBoundNumerator": 0.7,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 70,
-      "evidenceBoundPercent": 70
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Risk Permission and Evidence Model",
       "denominator": 5,
       "declaredNumerator": 2.5,
-      "evidenceBoundNumerator": 2.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 5,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Risk Permission and Evidence Model; Deterministic Actions and Executor Registry",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Risk Permission and Evidence Model; Domain Model and Data Ownership; Scoped Keyboard Mouse Clipboard and Files",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Risk Permission and Evidence Model; Risk Evaluation and Permission UX; Trials Plans Entitlements and Usage; Administration and Operational Controls",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Scoped Keyboard Mouse Clipboard and Files",
       "denominator": 6,
       "declaredNumerator": 2.4,
-      "evidenceBoundNumerator": 2.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 6,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Screen Capture Vision and Set-of-Mark",
       "denominator": 7,
       "declaredNumerator": 3.2,
-      "evidenceBoundNumerator": 3.2,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 45.7,
-      "evidenceBoundPercent": 45.7
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Security Hardening and Adversarial Testing",
       "denominator": 7,
       "declaredNumerator": 6.3,
-      "evidenceBoundNumerator": 6.3,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 90,
-      "evidenceBoundPercent": 90
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Shared Types Contracts and Versioning",
       "denominator": 6,
       "declaredNumerator": 3,
-      "evidenceBoundNumerator": 3,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 6,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Shared Types Contracts and Versioning; Database Schema Migrations and Rollback",
       "denominator": 1,
       "declaredNumerator": 0.5,
-      "evidenceBoundNumerator": 0.5,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 50,
-      "evidenceBoundPercent": 50
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Signing and Trust Distribution",
       "denominator": 7,
       "declaredNumerator": 2.8,
-      "evidenceBoundNumerator": 2.8,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Skill Registry Reuse and Governance",
       "denominator": 1,
       "declaredNumerator": 0.6,
-      "evidenceBoundNumerator": 0.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 60,
-      "evidenceBoundPercent": 60
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Skill Registry Reuse and Governance; Mobile Application and Native Bridge; Staging Database and Controlled Deployment",
       "denominator": 1,
       "declaredNumerator": 0.6,
-      "evidenceBoundNumerator": 0.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 60,
-      "evidenceBoundPercent": 60
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Skill Registry Reuse and Governance; Recovery Repair and Idempotency; Updater Staging Verification and Rollback; Cloud Relay and Service Deployment; External Beta and Controlled Expansion; Production Launch; Production Operations and Incident Response",
       "denominator": 1,
       "declaredNumerator": 0.6,
-      "evidenceBoundNumerator": 0.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 60,
-      "evidenceBoundPercent": 60
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Staging Database and Controlled Deployment",
       "denominator": 6,
       "declaredNumerator": 2.4,
-      "evidenceBoundNumerator": 2.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 6,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Stakeholder Discovery and Workflow Research",
       "denominator": 7,
       "declaredNumerator": 2.9,
-      "evidenceBoundNumerator": 2.9,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 41.4,
-      "evidenceBoundPercent": 41.4
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Stakeholder Discovery and Workflow Research; GUI Integration and No-Dead-Control Enforcement",
       "denominator": 1,
       "declaredNumerator": 0.4,
-      "evidenceBoundNumerator": 0.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Supported Application Certification",
       "denominator": 4,
       "declaredNumerator": 1.6,
-      "evidenceBoundNumerator": 1.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 4,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Test Architecture and Evidence Ladder",
       "denominator": 7,
       "declaredNumerator": 4,
-      "evidenceBoundNumerator": 4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 57.1,
-      "evidenceBoundPercent": 57.1
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Trials Plans Entitlements and Usage",
       "denominator": 7,
       "declaredNumerator": 4.3,
-      "evidenceBoundNumerator": 4.3,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 61.4,
-      "evidenceBoundPercent": 61.4
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Unknown Application Learning and App Maps",
       "denominator": 7,
       "declaredNumerator": 4.6,
-      "evidenceBoundNumerator": 4.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 65.7,
-      "evidenceBoundPercent": 65.7
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Unknown Application Learning and App Maps; Supported Application Certification",
       "denominator": 1,
       "declaredNumerator": 0.6,
-      "evidenceBoundNumerator": 0.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 60,
-      "evidenceBoundPercent": 60
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Updater Staging Verification and Rollback",
       "denominator": 4,
       "declaredNumerator": 2.2,
-      "evidenceBoundNumerator": 2.2,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 4,
       "declaredPercent": 55,
-      "evidenceBoundPercent": 55
+      "evidenceBoundPercent": 0
     },
     {
       "area": "UX Information Architecture",
       "denominator": 7,
       "declaredNumerator": 4.1,
-      "evidenceBoundNumerator": 4.1,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 7,
       "declaredPercent": 58.6,
-      "evidenceBoundPercent": 58.6
+      "evidenceBoundPercent": 0
     },
     {
       "area": "UX Information Architecture; GUI Integration and No-Dead-Control Enforcement",
       "denominator": 1,
       "declaredNumerator": 0.6,
-      "evidenceBoundNumerator": 0.6,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 60,
-      "evidenceBoundPercent": 60
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Voice Input Output Wake and Protected Speech",
       "denominator": 6,
       "declaredNumerator": 2.8,
-      "evidenceBoundNumerator": 2.8,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 6,
       "declaredPercent": 46.7,
-      "evidenceBoundPercent": 46.7
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Windows Process Application and Window Control",
       "denominator": 6,
       "declaredNumerator": 2.4,
-      "evidenceBoundNumerator": 2.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 6,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     },
     {
       "area": "Windows Process Application and Window Control; Skill Registry Reuse and Governance; Desktop Mobile and Extension Packaging; Supported Application Certification",
       "denominator": 1,
       "declaredNumerator": 0.4,
-      "evidenceBoundNumerator": 0.4,
+      "evidenceBoundNumerator": 0,
       "notStarted": 0,
-      "unverifiedPositiveWeight": 0,
+      "unverifiedPositiveWeight": 1,
       "declaredPercent": 40,
-      "evidenceBoundPercent": 40
+      "evidenceBoundPercent": 0
     }
   ],
-  "issueSummary": {},
-  "recoveryPlan": [],
+  "issueSummary": {
+    "evidence_stale": 510,
+    "source_revision_drift": 1
+  },
+  "recoveryPlan": [
+    {
+      "code": "source_revision_drift",
+      "action": "Rerun acceptance checks against the current source revision and bind the replacement snapshot to that revision."
+    },
+    {
+      "code": "evidence_stale",
+      "action": "Rerun the applicable acceptance checks and publish a new timestamped snapshot without mutating historical evidence."
+    }
+  ],
   "conclusion": "NOT PRODUCTION READY - source, live-runtime, signing, deployment, device, and requirement-bound evidence gaps remain."
 }
