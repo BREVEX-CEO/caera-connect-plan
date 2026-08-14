@@ -44,6 +44,7 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
 mod browser_host;
+mod integrity;
 mod platform;
 
 /// Everything the companion needs at runtime, guarded for cross-thread access.
@@ -1203,6 +1204,20 @@ fn audit_log(state: State<'_, Companion>) -> Vec<AuditEntry> {
         .unwrap_or_default()
 }
 
+/// Report whether this installation is the one that was licensed and published.
+///
+/// READ-ONLY, AND DELIBERATELY SO. It reports; it does not refuse. The product
+/// surface decides what to do with a `mismatched` verdict, because that decision
+/// is a business one -- a customer whose motherboard died is not a pirate, and a
+/// check that cannot tell the difference costs more than it protects.
+///
+/// Safe to call from the front end: the returned id is a salted hash, so it
+/// identifies the machine to us without carrying a serial number to anyone else.
+#[tauri::command]
+fn integrity_report() -> integrity::IntegrityReport {
+    integrity::verify()
+}
+
 fn main() {
     tauri::Builder::default()
         // The global-shortcut plugin is installed in `setup` instead, so it can
@@ -1344,6 +1359,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            integrity_report,
             open_session,
             close_session,
             status,

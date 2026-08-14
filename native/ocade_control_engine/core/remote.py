@@ -422,9 +422,15 @@ def _handler_class(state: _State) -> type[BaseHTTPRequestHandler]:
             if not isinstance(payload, dict):
                 payload = {}
 
-            # `remote.ask` is the phone's one open door and it is not a bridge
-            # command — it is routed on this machine and lands on a command
-            # from the set below, so the allow-list still governs.
+            # `remote.ask` is the phone's one open door: it carries a sentence
+            # that has not been routed yet, so there is no command here to check.
+            #
+            # This used to claim the allow-list "still governs" because routing
+            # lands on a command from the set below. It did not. `remote_ask`
+            # looked the routed command up in the engine's full handler table,
+            # and this check never saw it — the set stayed small only because no
+            # intent happened to emit anything outside it. The allow-list is now
+            # re-applied in `remote_ask` at the point the command is known.
             if command not in REMOTE_COMMANDS and command != "remote.ask":
                 self._json(
                     403,

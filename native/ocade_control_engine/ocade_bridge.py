@@ -812,7 +812,7 @@ def remote_ask(payload: dict) -> dict:
     other surface uses, expressed in the bridge's own command vocabulary
     because the phone never passes through Node.
     """
-    from core import phone_intents  # noqa: PLC0415
+    from core import phone_intents, remote  # noqa: PLC0415
 
     said = need_text(payload.get("text"), "text", 600)
     routed = phone_intents.route(said) or phone_intents.fallback(said)
@@ -828,6 +828,27 @@ def remote_ask(payload: dict) -> dict:
         }
 
     command, arguments, doing = routed
+
+    # THE ALLOW-LIST IS CHECKED HERE, NOT ONLY AT THE SOCKET.
+    #
+    # `remote.ask` is the one command the HTTP layer waves through, because the
+    # sentence it carries has not been routed yet. Routing happens on this line,
+    # and until this check existed the result was looked up straight in
+    # `HANDLERS` — every one of the engine's ~96 commands, including the ones
+    # that delete files. The socket's allow-list never saw the routed command.
+    #
+    # It was safe, but only by coincidence: every intent `phone_intents` can
+    # currently emit happens to sit inside `REMOTE_COMMANDS`. That is a property
+    # of today's router, not a boundary — one new intent for a destructive
+    # command would have been reachable from a paired phone with nobody at the
+    # keyboard. A phone is lost, lent and stolen in ways a desktop is not, so the
+    # set it can reach has to be enforced where the command is finally known.
+    #
+    # `phone_reachable_commands_stay_inside_the_allow_list` fails the build if
+    # the two sets ever drift apart again.
+    if command not in remote.REMOTE_COMMANDS:
+        raise Refusal(f"{command} needs somebody at the keyboard.", "refused")
+
     handler = HANDLERS.get(command)
     if handler is None:
         raise Refusal(f"{command} is not available on this machine.", "unsupported")
