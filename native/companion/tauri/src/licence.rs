@@ -93,7 +93,21 @@ fn now_seconds() -> u64 {
 /// `document` is the exact bytes that were signed; `signature` is a minisign
 /// signature over them. Both come from the licence file the customer was sent.
 pub fn verify_licence(document: &[u8], signature: &str) -> LicenceStatus {
-    let Some(public_key) = signing_public_key() else {
+    verify_licence_with(signing_public_key(), document, signature)
+}
+
+/// The verification itself, with the key passed in.
+///
+/// Split out so tests can supply a real key and prove a real licence VERIFIES.
+/// Without this the suite could only ever exercise refusals, which is the shape
+/// of a check that is safe and inert -- the exact failure the runtime installer
+/// shipped with, where every test passed while the path did nothing.
+fn verify_licence_with(
+    public_key: Option<&str>,
+    document: &[u8],
+    signature: &str,
+) -> LicenceStatus {
+    let Some(public_key) = public_key else {
         return LicenceStatus {
             verdict: Verdict::Unknown,
             licensee: None,
@@ -264,6 +278,54 @@ mod tests {
         path.push(format!("ocade-{name}-{}.record", now_seconds()));
         let _ = fs::remove_file(&path);
         path
+    }
+
+    /// A real key pair and a real signature, produced by
+    /// `scripts/generate-licence-key.mjs`. Throwaway: generated for this test
+    /// and never used to issue anything.
+    const TEST_PUBLIC_KEY: &str = "RWQpM4QEw2ZypLsuozYkHUGLjPotVV+893r6YO6r9WjaP9n+0ukM0rYG";
+    const TEST_DOCUMENT: &[u8] =
+        br#"{"licensee":"Test Customer","reference":"ORD-1","hardware_id":null,"expires_at":null}"#;
+    const TEST_SIGNATURE: &str = concat!(
+        "untrusted comment: signature from OCADE licence key\n",
+        "RUQpM4QEw2ZypPDHjFBXZGOmFDTxaH90qNRs+iI16xKtfkHkWydAzbLYNZxhQzwWsQP2GhigLKQHvsaebAf46i",
+        "Qiyq8y5EM8TAw=\n",
+        "trusted comment: OCADE licence for Test Customer\n",
+        "iMJUaU+XH7vdgPPHWcxNiUn3A0BY0eS7qhR8FIsXcEs+wPyWVj1kqSh7OdQvLBwbUw4gxz7y0bPgWYkPEGhUAA==\n",
+    );
+
+    #[test]
+    fn a_genuine_licence_actually_verifies() {
+        // THE TEST THAT STOPS THIS BEING A CHECK THAT ONLY EVER SAYS NO.
+        //
+        // Every other case here proves a refusal, and a verifier that refuses
+        // everything passes all of them while being useless. This one proves the
+        // happy path end to end: a real Ed25519 key, a real prehashed minisign
+        // signature, and a Verified verdict.
+        let status = verify_licence_with(Some(TEST_PUBLIC_KEY), TEST_DOCUMENT, TEST_SIGNATURE);
+
+        assert_eq!(status.verdict, Verdict::Verified, "{}", status.detail);
+        assert_eq!(status.licensee.as_deref(), Some("Test Customer"));
+    }
+
+    #[test]
+    fn a_licence_altered_by_one_byte_is_refused() {
+        // The signature covers the document, so changing the name must break it.
+        let tampered =
+            br#"{"licensee":"Other Person","reference":"ORD-1","hardware_id":null,"expires_at":null}"#;
+        let status = verify_licence_with(Some(TEST_PUBLIC_KEY), tampered, TEST_SIGNATURE);
+
+        assert_eq!(status.verdict, Verdict::Mismatched);
+    }
+
+    #[test]
+    fn a_licence_signed_by_a_different_key_is_refused() {
+        // A forger with their own key pair must not be able to mint licences.
+        // The key below is well-formed and simply not ours.
+        let other = "RWSJZQxJHqBGYQV0Ch0iaP7l7B7Jn5w0oVFXCEc0kIQZXm8HGQlSjHqZ";
+        let status = verify_licence_with(Some(other), TEST_DOCUMENT, TEST_SIGNATURE);
+
+        assert_ne!(status.verdict, Verdict::Verified);
     }
 
     #[test]

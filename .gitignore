@@ -79,3 +79,7 @@ __pycache__/
 # ~400 MB of platform-specific wheels that setup recreates on each machine.
 native/python-host/.venv/
 native/python-host/**/__pycache__/
+
+# Licence signing key material — never commit
+*.key
+ocade-licence.*
