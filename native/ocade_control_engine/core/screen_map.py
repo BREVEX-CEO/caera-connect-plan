@@ -290,8 +290,12 @@ def act_on_id(
         if element["source"] == "uia" and element.get("ref"):
             from core.uia import act  # noqa: PLC0415
 
-            act(hwnd, element["ref"], "invoke", fingerprint=element.get("fingerprint"))
-            how = "accessibility_invoke"
+            # "click" is the accessibility tree's own action name here; there is
+            # no "invoke". Using the wrong one raised on every UIA element and
+            # was invisible until a second application was driven, because the
+            # first test only exercised typing.
+            act(hwnd, element["ref"], "click", fingerprint=element.get("fingerprint"))
+            how = "accessibility_click"
         else:
             from core.perception import click_target  # noqa: PLC0415
 
