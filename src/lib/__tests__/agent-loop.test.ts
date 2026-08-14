@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { classify, classifyDeterministic, parseClassification, DOMAINS } from "@/lib/agent/domains";
-import { schemasFor, toolsFor, findTool, allToolNames } from "@/lib/agent/tool-registry";
+import { MAX_TOOLS_PER_TURN, schemasFor, toolsFor, findTool, allToolNames } from "@/lib/agent/tool-registry";
 import {
   Revision,
   runAgentTask,
@@ -55,11 +55,38 @@ describe("stage 1 — the router classifies before any schema is loaded", () => 
 
 describe("stage 2 — only the chosen domains' tools are exposed", () => {
   it("shows OS tools and withholds everything else for an OS request", () => {
-    const names = schemasFor(["os_app"]).map((t) => t.function.name);
+    // The request matters now: the catalogue is ranked against it and capped,
+    // because sixty schemas took the shipped model past its deadline. Domain
+    // separation is the property being asserted, and it is unchanged.
+    const names = schemasFor(["os_app"], "activate the save control in this window").map(
+      (t) => t.function.name,
+    );
     expect(names).toContain("control_activate");
     expect(names).not.toContain("file_trash");
     expect(names).not.toContain("browser_navigate");
     expect(names).not.toContain("web_search");
+  });
+
+  it("never offers more tools in one turn than the model can read in time", () => {
+    /*
+     * MEASURED, AND THE REASON THE CAP EXISTS. On this machine with qwen2.5:3b:
+     * 6 tools 15.7 s, 14 tools 21.5 s, 28 tools 48.1 s, and the full `os_app`
+     * set of sixty ran past the 60 s deadline -- so "type a poem in notepad"
+     * failed with "the engine sent nothing back in 60s". The engine was fine;
+     * the prompt was unanswerable in the time allowed.
+     */
+    for (const request of ["type a poem in notepad", "message someone", ""]) {
+      const offered = schemasFor(["os_app", "files", "web"], request);
+      expect(offered.length, request).toBeLessThanOrEqual(MAX_TOOLS_PER_TURN);
+    }
+  });
+
+  it("always offers a way to look at the screen, whatever was asked", () => {
+    // Ranking on word overlap alone would drop these on a request that shares
+    // no vocabulary with them, leaving a turn that can only guess.
+    const names = schemasFor(["os_app"], "make it bigger").map((t) => t.function.name);
+    expect(names).toContain("screen_map");
+    expect(names).toContain("screen_do");
   });
 
   it("loads strictly fewer tools than the whole catalogue", () => {
@@ -67,9 +94,12 @@ describe("stage 2 — only the chosen domains' tools are exposed", () => {
   });
 
   it("adds a second domain's tools when a task widens", () => {
-    const names = schemasFor(["os_app", "web"]).map((t) => t.function.name);
-    expect(names).toContain("control_activate");
-    expect(names).toContain("browser_navigate");
+    const os = schemasFor(["os_app"], "activate a control").map((t) => t.function.name);
+    const both = schemasFor(["os_app", "web"], "browse to a page and navigate").map(
+      (t) => t.function.name,
+    );
+    expect(os).not.toContain("browser_navigate");
+    expect(both).toContain("browser_navigate");
   });
 
   it("exposes no tool granting a shell, a raw path or pointer coordinates", () => {

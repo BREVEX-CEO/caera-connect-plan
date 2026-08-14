@@ -46,9 +46,9 @@ describe("a failed fast path hands over instead of stopping", () => {
 
   it("names the tools that can see, because the model has to pick one", () => {
     const brief = recoveryBrief("do a thing", "A step", "It did not work.");
+    expect(brief).toContain("screen_map");
     expect(brief).toContain("screen_observe");
     expect(brief).toContain("screen_find");
-    expect(brief).toContain("see");
   });
 
   it("does not tell the model to try the same thing again", () => {
@@ -106,9 +106,18 @@ describe("the loop can be told its domains instead of classifying", () => {
       request: "look at the screen and carry on",
       domains: ["os_app"],
     });
+    /*
+     * Only tools the selection GUARANTEES. `see` was named here and in the
+     * brief, and once the catalogue was capped it stopped being offered on
+     * every turn -- so the brief was promising the model a tool it might not
+     * have. Naming a tool that is not there is worse than not naming one.
+     *
+     * `see` is also the slow rung (a vision model, seconds per call). The
+     * recovery wants the fast ones.
+     */
+    expect(seen.tools).toContain("screen_map");
     expect(seen.tools).toContain("screen_observe");
     expect(seen.tools).toContain("screen_find");
-    expect(seen.tools).toContain("see");
   });
 
   it("still classifies when no domains are given", async () => {

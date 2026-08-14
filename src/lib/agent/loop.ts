@@ -240,7 +240,9 @@ export async function runAgentTask(
       ? { domains: input.domains, basis: "caller" }
       : await classify(input.request, deps, input.signal);
   const domains: Domain[] = classification.domains;
-  const tools = schemasFor(domains);
+  // The request is passed so the catalogue can be narrowed to what it is about.
+  // Sixty schemas took this model past its deadline; see MAX_TOOLS_PER_TURN.
+  const tools = schemasFor(domains, input.request);
   emit({ kind: "classified", classification, tools: tools.map((t) => t.function.name) });
 
   const messages: AgentMessage[] = [

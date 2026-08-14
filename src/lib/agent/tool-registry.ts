@@ -2025,8 +2025,110 @@ export interface WireTool {
   function: { name: string; description: string; parameters: ToolParameterSchema };
 }
 
-export function schemasFor(domains: readonly Domain[]): WireTool[] {
-  return toolsFor(domains).map((tool) => ({
+/**
+ * How many tools may be offered in one turn.
+ *
+ * MEASURED ON THIS MACHINE, WITH THE SHIPPED MODEL, AND THIS IS THE WHOLE
+ * REASON THE CAP EXISTS:
+ *
+ *      6 tools -> 15.7 s
+ *     14 tools -> 21.5 s
+ *     28 tools -> 48.1 s
+ *     60 tools -> past the 60 s deadline, so the request FAILS
+ *
+ * `os_app` alone holds sixty. So "type a poem in notepad" -- an instruction the
+ * product exists to serve -- sent the entire catalogue and timed out with
+ * "the engine accepted the request but sent nothing back in 60s". The engine
+ * was fine. It was reading a prompt nobody could answer quickly.
+ *
+ * Latency is roughly linear in the schema bytes, and every unused tool is pure
+ * cost. Twelve keeps the worst case near twenty seconds and leaves the model a
+ * genuine choice.
+ */
+export const MAX_TOOLS_PER_TURN = 12;
+
+/**
+ * Tools that are almost always worth offering, whatever was asked.
+ *
+ * Ranking on word overlap alone is brittle: "make the window bigger" shares no
+ * word with `window_arrange`, and a turn with no way to LOOK at the screen is a
+ * turn that can only guess. These are cheap, general, and the ones a stuck
+ * model needs to recover.
+ */
+const ALWAYS_OFFER = ["screen_map", "screen_do", "ui_tree", "app_open"] as const;
+
+/** Words too common to indicate anything about which tool is wanted. */
+const NOISE = new Set([
+  "the", "a", "an", "and", "or", "to", "in", "on", "of", "for", "with", "my",
+  "me", "it", "this", "that", "is", "are", "please", "can", "you", "then",
+  "open", "make", "do", "get", "set", "go",
+]);
+
+function relevance(tool: ToolDefinition, words: readonly string[]): number {
+  if (words.length === 0) return 0;
+  const haystack = `${tool.name} ${tool.description}`.toLowerCase();
+  let score = 0;
+  for (const word of words) {
+    if (word.length < 3 || NOISE.has(word)) continue;
+    // A hit in the NAME is worth more than one in prose: `notepad` appearing in
+    // a description is often an example, whereas `type_text` naming `type` is
+    // what the tool is.
+    if (tool.name.toLowerCase().includes(word)) score += 3;
+    else if (haystack.includes(word)) score += 1;
+  }
+  return score;
+}
+
+/**
+ * The tools to offer this turn: the always-useful few, then the best matches.
+ *
+ * Ordering is deliberate. Small models weight earlier items more heavily, so
+ * the closest matches go first and the general fallbacks trail them.
+ */
+export function selectTools(
+  domains: readonly Domain[],
+  request: string,
+  cap: number = MAX_TOOLS_PER_TURN,
+): ToolDefinition[] {
+  const available = toolsFor(domains);
+  if (available.length <= cap) return available;
+
+  const words = request.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const ranked = available
+    .map((tool) => ({ tool, score: relevance(tool, words) }))
+    .sort((a, b) => b.score - a.score);
+
+  const chosen: ToolDefinition[] = [];
+  const taken = new Set<string>();
+  for (const { tool, score } of ranked) {
+    if (score <= 0) break;
+    chosen.push(tool);
+    taken.add(tool.name);
+    if (chosen.length >= cap - ALWAYS_OFFER.length) break;
+  }
+  for (const name of ALWAYS_OFFER) {
+    if (chosen.length >= cap) break;
+    if (taken.has(name)) continue;
+    const tool = available.find((t) => t.name === name);
+    if (tool) {
+      chosen.push(tool);
+      taken.add(name);
+    }
+  }
+  // Nothing matched and the fallbacks were not in these domains -- offer the
+  // first few rather than nothing at all.
+  for (const tool of available) {
+    if (chosen.length >= cap) break;
+    if (!taken.has(tool.name)) {
+      chosen.push(tool);
+      taken.add(tool.name);
+    }
+  }
+  return chosen;
+}
+
+export function schemasFor(domains: readonly Domain[], request = ""): WireTool[] {
+  return selectTools(domains, request).map((tool) => ({
     type: "function",
     function: { name: tool.name, description: tool.description, parameters: tool.parameters },
   }));

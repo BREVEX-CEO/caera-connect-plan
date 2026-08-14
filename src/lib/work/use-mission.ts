@@ -389,9 +389,9 @@ export function recoveryBrief(request: string, attempted: string, failure: strin
     `The user asked: ${request}\n\n` +
     `A direct attempt at "${attempted}" did not work. What came back was: ${failure}\n\n` +
     "Do not repeat that attempt unchanged and do not ask the user what to do. " +
-    "Look at the screen first -- screen_observe reads the controls and is fast, " +
-    "screen_find locates text by OCR, and see describes a window that draws its " +
-    "own graphics -- then decide from what is actually there and carry on with " +
+    "Look at the screen first -- screen_map numbers everything you can act on, " +
+    "screen_observe reads the controls, and screen_find locates text by OCR -- " +
+    "then decide from what is actually there and carry on with " +
     "the request. If the screen shows the step genuinely cannot be completed, " +
     "say what you saw and why, in one or two sentences."
   );
@@ -1270,7 +1270,7 @@ export function useMission(brain: MissionBrain) {
                * call goes through the same contract validation afterwards.
                */
               const names = definitions.map((tool) => tool.name);
-              const wire = schemasFor([...new Set(definitions.map((tool) => tool.domain))]);
+              const wire = schemasFor([...new Set(definitions.map((tool) => tool.domain))], request);
 
               if (local[0]?.role === "system") {
                 local[0] = {
