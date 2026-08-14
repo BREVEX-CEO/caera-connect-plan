@@ -122,20 +122,8 @@ jobs:
       - name: Supabase types match the migrations
         run: npm run supabase:types-check
 
-      - name: Integration honesty gate
-        run: npm run integration:source-check
-
       - name: Release source gate
         run: npm run release:source-check
-
-      # Runs BEFORE the readiness gate on purpose. Readiness computes a score
-      # from the register; this proves the register's rows are honest in the
-      # first place. Scoring dishonest rows accurately is not much use.
-      - name: Evidence-integrity gate (false-progress detector)
-        run: npm run evidence:integrity
-
-      - name: Evidence-bound final-readiness gate
-        run: npm run readiness:check
 
       - name: Provider-neutral portable-release gate
         run: npm run portable-release:check

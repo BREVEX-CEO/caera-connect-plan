@@ -3267,7 +3267,8 @@ def _type_into_conversation(hwnd: int, body: str) -> dict:
     from core.messaging import _find_message_box, _normalise  # noqa: PLC0415
     from core.uia import _resolve, act  # noqa: PLC0415
 
-    box = _find_message_box(hwnd)
+    # (tree, box) -- only the control is needed here.
+    _tree, box = _find_message_box(hwnd)
     try:
         act(hwnd, box["ref"], "set_text", text=body, fingerprint=box.get("fingerprint"))
     except Exception:  # noqa: BLE001, S110

@@ -514,6 +514,142 @@ def resolve_target(hwnd: int, phrase: str) -> dict[str, Any]:
     )
 
 
+def _open_row(hwnd: int, row: dict[str, Any], expect: str = "") -> dict[str, Any]:
+    """Open a conversation row. A GENERIC CLICK IS NOT ENOUGH, MEASURED TWICE.
+
+    `uia.act(..., "click")` tries Toggle, then Selection, then Invoke. A
+    WhatsApp row answers none of them in a way that opens the chat -- the live
+    error is *"DataItem 'Meta AI ...' did not accept 'click'. It exposes no
+    matching pattern."* Discord and Slack rows behave differently again.
+
+    So the ladder is by CAPABILITY, not by application. Nothing here asks which
+    program is running; it asks what this control will accept:
+
+      1. `invoke()` where the row exposes it.
+      2. SELECT then ENTER -- how a keyboard user opens a conversation, and what
+         actually works in WhatsApp. No pointer moves.
+      3. A real double click, declared as a pointer action.
+
+    THE ROW IS RE-FOUND BY NAME FIRST. A chat list is live: a message arriving
+    reorders it, and between the snapshot that produced a ref and the click a
+    moment later, `e99` can be a different conversation. The fingerprint guard
+    catches that and refuses -- correctly, and also fatally, because refusing
+    means the action never happens. A name survives reordering; a slot does not.
+
+    AND THE INNERMOST MATCH WINS. WhatsApp wraps each chat in
+    DataGrid > DataItem > DataItem carrying the same label, so the first match
+    is the outer container: it accepts a double click and does nothing. The
+    last match is the row a person actually clicks.
+    """
+    from core.uia import _resolve, act, snapshot  # noqa: PLC0415
+
+    wanted = _normalise(contact_name_of(row.get("name") or ""))
+    fresh = row
+    try:
+        candidates = [
+            e
+            for e in snapshot(hwnd, limit=200)["elements"]
+            if e["role"] in ROW_ROLES
+            and _normalise(contact_name_of(e.get("name") or "")) == wanted
+        ]
+        if candidates:
+            fresh = candidates[-1]
+    except Exception:  # noqa: BLE001, S110
+        # A window that will not produce a second tree is not a reason to give
+        # up: the row we were handed is still the best information available.
+        pass
+
+# RESOLUTION CAN FAIL, AND THAT MUST NOT BE FATAL.
+    #
+    # `_resolve` raises when the window no longer holds the ref. That is a real
+    # condition -- a list that emptied, a window that closed -- but it is also
+    # what a window under heavy re-render looks like for a moment. Falling back
+    # to the ordinary `act` path means a control that DOES accept a plain click
+    # still gets one, instead of the whole operation failing because the
+    # specialised ladder could not be entered.
+    try:
+        element = _resolve(hwnd, fresh["ref"], None, 200)["_element"]
+    except Exception:  # noqa: BLE001
+        try:
+            plain = act(hwnd, fresh["ref"], "click", fingerprint=fresh.get("fingerprint"))
+            on_target_now = _on_conversation(hwnd, expect)
+            return {
+                "how": plain.get("how", "click"),
+                "pointerUsed": bool(plain.get("pointerUsed")),
+                "onTarget": on_target_now,
+                "verified": bool(on_target_now or plain.get("verified")),
+                "detail": plain.get("detail")
+                or f"Opened the conversation with {expect}.",
+            }
+        except Exception as error:  # noqa: BLE001
+            return {
+                "how": "none",
+                "pointerUsed": False,
+                "verified": False,
+                "detail": f"The conversation with {expect} could not be opened: {error}",
+            }
+
+    def _enter() -> None:
+        from pywinauto import keyboard  # noqa: PLC0415
+
+        keyboard.send_keys("{ENTER}")
+
+    attempts = (
+        (lambda: element.invoke(), "invoke_pattern", False),
+        (lambda: (element.select(), _enter())[0], "select_then_enter", False),
+        (lambda: element.double_click_input(), "pointer_double_click", True),
+    )
+
+    how, pointer_used = None, False
+    for attempt, label, uses_pointer in attempts:
+        try:
+            attempt()
+        except Exception:  # noqa: BLE001, S112
+            continue
+        time.sleep(0.8)
+        how, pointer_used = label, uses_pointer
+        if _on_conversation(hwnd, expect):
+            break
+
+    # VERIFIED BY WHICH CHAT IS OPEN, NOT BY SOMETHING CHANGING.
+    #
+    # Change-detection reports a false failure whenever the requested chat was
+    # ALREADY open -- asking twice, or asking about the conversation on screen.
+    # A composer named after the conversation is positive evidence of WHICH
+    # chat is open, which is the thing actually being asserted.
+    on_target = _on_conversation(hwnd, expect)
+    return {
+        "how": how or "none",
+        "pointerUsed": pointer_used,
+        "onTarget": on_target,
+        "verified": on_target,
+        "detail": (
+            f"The conversation with {expect} is open (via {how})."
+            if on_target
+            else f"The row for {expect} was actioned but no conversation opened."
+        ),
+    }
+
+
+def _on_conversation(hwnd: int, expect: str) -> bool:
+    """Is the named conversation the one currently open?
+
+    Chat clients name the composer after the conversation -- "Type a message to
+    group H" -- which makes it the cheapest positive proof of WHICH chat is on
+    screen. Falls back to False rather than raising: not being able to tell is
+    not the same as being on the right chat.
+    """
+    if not expect:
+        return False
+    try:
+        # Returns (tree, box) -- the tree is reused by other callers; only the
+        # control matters here.
+        _tree, box = _find_message_box(hwnd)
+    except Exception:  # noqa: BLE001
+        return False
+    return _normalise(expect) in _normalise(box.get("name") or "")
+
+
 def find_contact(hwnd: int, query: str) -> dict[str, Any]:
     """Type a name into search and resolve it to ONE conversation, or refuse.
 
@@ -534,7 +670,7 @@ def find_contact(hwnd: int, query: str) -> dict[str, Any]:
 
     Nothing is typed into a conversation here. This only navigates.
     """
-    from core.uia import act  # noqa: PLC0415
+    from core.uia import act, snapshot  # noqa: PLC0415
 
     query = (query or "").strip()
     if not query:
@@ -628,8 +764,8 @@ def find_contact(hwnd: int, query: str) -> dict[str, Any]:
             "OCADE will not guess which one you meant — say the full name."
         )
 
-    opened = act(hwnd, chosen["ref"], "click", fingerprint=chosen["fingerprint"])
-    time.sleep(0.4)
+    opened = _open_row(hwnd, chosen, expect=contact_name_of(chosen.get("name") or ""))
+
     return {
         "query": query,
         # The conversation NAME, cut out of the row label. Callers use this as

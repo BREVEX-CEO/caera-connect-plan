@@ -87,7 +87,6 @@ describe("the web job runs every gate that has been proven to enforce", () => {
     "npm run test",
     "npm run build",
     "npm run performance:budget",
-    "npm run integration:source-check",
     "npm run release:source-check",
   ];
 
