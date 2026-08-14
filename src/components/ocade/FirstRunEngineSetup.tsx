@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { startLocalRuntimeFn } from "@/lib/local-runtime.functions";
+import { installLocalRuntimeFn, startLocalRuntimeFn } from "@/lib/local-runtime.functions";
 import { FIXED_MODEL } from "@/lib/local/fixed-model";
 import { pullModel, type PullProgress } from "@/lib/local/model-lifecycle";
-import { discoverLocalModels, DEFAULT_LOCAL_BRIDGE_URL } from "@/lib/ocade-local";
+import { activateModel } from "@/lib/local/model-lifecycle";
+import {
+  discoverLocalModels,
+  streamLocalChat,
+  DEFAULT_LOCAL_BRIDGE_URL,
+} from "@/lib/ocade-local";
 import { serverIsThisMachine } from "@/lib/hardware/detect.browser";
 import { useDevicePolicy } from "@/lib/use-device-policy";
 
@@ -38,10 +43,57 @@ import { useDevicePolicy } from "@/lib/use-device-policy";
  */
 
 /**
- * Remembered per browser so a failed attempt does not repeat on every
- * navigation. The Local Engine settings page clears it to retry.
+ * Remembered per browser so a SUCCESSFUL setup does not repeat on every
+ * navigation.
+ *
+ * THIS USED TO BE WRITTEN ON FAILURE TOO, WHICH MADE ONE BAD DOWNLOAD FINAL.
+ * A dropped connection, a full disk, a runtime that had not finished starting
+ * -- any of them set the flag, and `alreadyAttempted()` then short-circuited
+ * forever. The user was left with a product that never tried again and gave no
+ * reason. The comment here claimed the Local Engine settings page cleared it;
+ * it did not, and nothing else in the codebase ever referenced this key.
+ *
+ * Now only success is remembered. Failure is counted instead, so setup retries
+ * on the next visit but backs off rather than hammering a machine that is
+ * genuinely unable.
  */
 export const ENGINE_AUTOSETUP_KEY = "ocade.engine.autosetup.v1";
+
+/** How many failed attempts have been made, so retries can back off. */
+export const ENGINE_AUTOSETUP_FAILURES = "ocade.engine.autosetup.failures.v1";
+
+/**
+ * Stop retrying automatically after this many failures.
+ *
+ * Not one -- a transient network drop deserves another go. Not unlimited -- a
+ * machine with no disk space will fail identically every time, and a download
+ * that restarts on every navigation is worse than one that stops and says so.
+ */
+const MAX_AUTO_ATTEMPTS = 3;
+
+function failureCount(): number {
+  try {
+    return Number(window.localStorage.getItem(ENGINE_AUTOSETUP_FAILURES) ?? "0") || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function recordFailure(): void {
+  try {
+    window.localStorage.setItem(ENGINE_AUTOSETUP_FAILURES, String(failureCount() + 1));
+  } catch {
+    /* Storage refused. The next visit simply tries again, which is fine. */
+  }
+}
+
+function clearFailures(): void {
+  try {
+    window.localStorage.removeItem(ENGINE_AUTOSETUP_FAILURES);
+  } catch {
+    /* Nothing to clean up if storage is unavailable. */
+  }
+}
 
 type Phase = "idle" | "checking" | "starting" | "downloading" | "done" | "unavailable";
 
@@ -92,14 +144,31 @@ export function FirstRunEngineSetup() {
       }
       setPhase("starting");
       try {
-        const startResult = await startLocalRuntimeFn();
+        let startResult = await startLocalRuntimeFn();
+
+        /*
+         * NEVER INSTALLED IS NOT THE SAME AS FAILED TO START, AND ONLY ONE OF
+         * THEM IS FIXABLE HERE.
+         *
+         * On a machine that has never had the runtime, `startRuntime` searches
+         * its known install paths, finds nothing and returns `binary_not_found`.
+         * Until now that was the end: first run stopped, and nothing anywhere
+         * would ever install it. Everything else -- a port in use, a refused
+         * bind -- is a different problem that installing would not solve, so
+         * only this one reason triggers a download.
+         */
+        if (!startResult.ok && startResult.reason === "binary_not_found") {
+          const installed = await installLocalRuntimeFn();
+          if (installed.ok) startResult = await startLocalRuntimeFn();
+        }
+
         if (!startResult.ok) {
-          markAttempted();
+          recordFailure();
           setPhase("unavailable");
           return;
         }
       } catch {
-        markAttempted();
+        recordFailure();
         setPhase("unavailable");
         return;
       }
@@ -124,16 +193,63 @@ export function FirstRunEngineSetup() {
       onProgress: setProgress,
     });
 
-    markAttempted();
     if (!pulled.ok) {
+      recordFailure();
       setPhase("unavailable");
       return;
     }
 
-    // A finished transfer is not a working engine. Only a model the runtime
-    // will actually list counts as ready.
-    const confirmed = await discoverLocalModels(DEFAULT_LOCAL_BRIDGE_URL);
-    setPhase(confirmed.ok && confirmed.models.length > 0 ? "done" : "unavailable");
+    /*
+     * A FINISHED TRANSFER IS NOT A WORKING ENGINE, AND LISTING IT DOES NOT
+     * PROVE IT EITHER.
+     *
+     * This used to call `discoverLocalModels` -- a `GET /api/tags` listing --
+     * and declare victory when the name came back. That is precisely the
+     * "bytes on disk prove transfer, not inference" mistake the lifecycle
+     * module refuses to make everywhere else. A truncated or corrupt model
+     * lists perfectly well and then fails on the first question the user asks,
+     * which is the worst possible moment to discover it.
+     *
+     * `activateModel` already existed and does the real thing: it sends an
+     * actual prompt, requires an actual answer, and proves the stream can be
+     * cancelled. It was only ever called from the manual Settings panel. Now
+     * the automatic path uses it too.
+     */
+    const activated = await activateModel(FIXED_MODEL.id, {
+      runInference: async (id, prompt) => {
+        let text = "";
+        const reply = await streamLocalChat(
+          DEFAULT_LOCAL_BRIDGE_URL,
+          id,
+          [{ role: "user", content: prompt }],
+          { onToken: (token) => (text += token) },
+        );
+        return { ok: reply.ok, text };
+      },
+      runCancellable: async (id) => {
+        const abort = new AbortController();
+        setTimeout(() => abort.abort(), 800);
+        const reply = await streamLocalChat(
+          DEFAULT_LOCAL_BRIDGE_URL,
+          id,
+          [{ role: "user", content: "Count slowly from 1 to 900, one per line." }],
+          { onToken: () => {}, signal: abort.signal },
+        );
+        return { cancelled: reply.ok === false && reply.reason === "cancelled" };
+      },
+    });
+
+    if (!activated.ok) {
+      recordFailure();
+      setPhase("unavailable");
+      return;
+    }
+
+    // Only now is setup genuinely complete: the model is installed, it answered
+    // a real question, and it stopped when asked.
+    clearFailures();
+    markAttempted();
+    setPhase("done");
     // No dependencies: this decides nothing from the device any more. It
     // checks whether the engine is present and, if not, installs THE engine.
   }, []);
@@ -144,6 +260,11 @@ export function FirstRunEngineSetup() {
     // device is how a phone ends up fetching a workstation model.
     if (device.loading) return;
     started.current = true;
+    // Success is final; failure is not. Retry on a later visit, up to a limit.
+    if (!alreadyAttempted() && failureCount() >= MAX_AUTO_ATTEMPTS) {
+      setPhase("unavailable");
+      return;
+    }
     if (alreadyAttempted()) {
       setPhase("done");
       return;

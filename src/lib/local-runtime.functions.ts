@@ -61,6 +61,82 @@ export const startLocalRuntimeFn = createServerFn({ method: "POST" })
     });
   });
 
+/**
+ * Install the local engine runtime when the machine has never had one.
+ *
+ * WITHOUT THIS, A CLEAN MACHINE DEAD-ENDS. `startRuntime` searches a fixed list
+ * of install paths and returns `binary_not_found` -- accurate, and useless to
+ * somebody who installed OCADE and was never told a separate runtime existed.
+ *
+ * The Node capabilities live here because `runtime-installer.ts` is deliberately
+ * pure: every dangerous operation (fetch, write, spawn) is injected, so the
+ * refusals can be tested without a network and without executing anything.
+ */
+export const installLocalRuntimeFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async (): Promise<{ ok: boolean; detail: string; reason?: string }> => {
+    const [{ installRuntime }, nodeCrypto, nodeFs, nodeOs, nodePath, nodeChild] =
+      await Promise.all([
+        import("@/lib/local/runtime-installer"),
+        import("node:crypto"),
+        import("node:fs/promises"),
+        import("node:os"),
+        import("node:path"),
+        import("node:child_process"),
+      ]);
+
+    return installRuntime({
+      platform: process.platform,
+      download: async (url) => {
+        const response = await fetch(url, { redirect: "follow" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return {
+          bytes: new Uint8Array(await response.arrayBuffer()),
+          // `response.url` is the URL AFTER redirects, which is the one that
+          // has to be re-checked against the pinned host.
+          finalUrl: response.url || url,
+        };
+      },
+      digest: async (bytes) =>
+        nodeCrypto.createHash("sha256").update(Buffer.from(bytes)).digest("hex"),
+      expectedDigest: async (platform) => {
+        /*
+         * Read from a manifest shipped WITH THE BUILD, never fetched beside the
+         * download. A digest supplied by the same server as the file proves
+         * nothing: whoever replaced one replaced the other.
+         *
+         * Absent until a release pins it, and absent means REFUSE -- see
+         * `verifyDownload`. That is the correct default for a build that has
+         * not yet been told what it should be installing.
+         */
+        try {
+          const raw = await nodeFs.readFile(
+            nodePath.join(process.cwd(), "release", "OCADE_RUNTIME_DIGESTS.json"),
+            "utf8",
+          );
+          const parsed = JSON.parse(raw) as Record<string, string>;
+          return parsed[platform] ?? null;
+        } catch {
+          return null;
+        }
+      },
+      writeTemp: async (fileName, bytes) => {
+        const target = nodePath.join(await nodeFs.mkdtemp(nodePath.join(nodeOs.tmpdir(), "ocade-")), fileName);
+        await nodeFs.writeFile(target, Buffer.from(bytes));
+        return target;
+      },
+      run: async (path, args) =>
+        new Promise<number>((resolve, reject) => {
+          const child = nodeChild.spawn(path, args, { windowsHide: true, stdio: "ignore" });
+          child.on("error", reject);
+          child.on("exit", (code) => resolve(code ?? 1));
+        }),
+      remove: async (path) => {
+        await nodeFs.rm(path, { force: true }).catch(() => {});
+      },
+    });
+  });
+
 export const stopLocalRuntimeFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async (): Promise<SupervisorResult<StopOutcome>> => {
