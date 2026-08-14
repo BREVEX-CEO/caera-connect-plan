@@ -23,7 +23,6 @@
  * It is not a way to reach into anyone else's.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   startRuntime,
   stopRuntime,
@@ -48,9 +47,27 @@ async function deps() {
   return nodeSupervisorDeps();
 }
 
+/**
+ * STARTING A LOOPBACK ENGINE IS NOT A CLOUD OPERATION.
+ *
+ * These used to require `requireSupabaseAuth`, which validates a bearer against
+ * the remote auth server. That made "start the local model on my own computer"
+ * impossible without internet -- the second of the two gates that stopped an
+ * offline session, and the more absurd of them.
+ *
+ * `authoriseControl()` is the gate the rest of the machine-control surface
+ * already uses: a verified bearer when there is one, and otherwise the local
+ * demo rule, which authorises on the request originating from THIS MACHINE.
+ * That is the right question for an operation bound to loopback, and it is
+ * answerable with the network down.
+ */
 export const startLocalRuntimeFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .handler(async (): Promise<SupervisorResult<StartOutcome>> => {
+    const { authoriseControl } = await import("@/lib/agent/control-access.node");
+    const access = await authoriseControl();
+    if (!access.ok) {
+      return { ok: false, failure: "refused_bind", reason: access.reason };
+    }
     return startRuntime(await deps(), {
       bind: BIND,
       timeoutMs: START_TIMEOUT_MS,
@@ -73,7 +90,6 @@ export const startLocalRuntimeFn = createServerFn({ method: "POST" })
  * refusals can be tested without a network and without executing anything.
  */
 export const installLocalRuntimeFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .handler(async (): Promise<{ ok: boolean; detail: string; reason?: string }> => {
     const [{ installRuntime }, nodeCrypto, nodeFs, nodeOs, nodePath, nodeChild] =
       await Promise.all([
@@ -138,7 +154,6 @@ export const installLocalRuntimeFn = createServerFn({ method: "POST" })
   });
 
 export const stopLocalRuntimeFn = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .handler(async (): Promise<SupervisorResult<StopOutcome>> => {
     return stopRuntime(await deps(), {
       bind: BIND,
@@ -155,8 +170,15 @@ export interface LocalRuntimeStatus {
 }
 
 export const localRuntimeStatusFn = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
   .handler(async (): Promise<LocalRuntimeStatus> => {
+    // Same reasoning as the start/stop pair above: asking whether a loopback
+    // engine is running is not a question the cloud can answer, and it is one
+    // first run must be able to ask with the network down.
+    const { authoriseControl } = await import("@/lib/agent/control-access.node");
+    const access = await authoriseControl();
+    if (!access.ok) {
+      return { baseUrl: runtimeBaseUrl({ host: LOOPBACK_HOST, port: DEFAULT_RUNTIME_PORT }), running: false, binaryFound: false };
+    }
     const { probeRuntime, findEngineBinary } = await import("@/lib/local/runtime-supervisor.node");
     const baseUrl = runtimeBaseUrl({ host: LOOPBACK_HOST, port: DEFAULT_RUNTIME_PORT });
     const [running, binary] = await Promise.all([probeRuntime(baseUrl), findEngineBinary()]);

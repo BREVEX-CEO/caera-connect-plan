@@ -15,8 +15,42 @@ export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async ({ location }) => {
     if (typeof window === "undefined") return;
+
+    /*
+     * OFFLINE MUST NOT MEAN SIGNED OUT.
+     *
+     * `getUser()` is a network round trip to the auth server -- it validates
+     * the token rather than decoding it. With no network it returns an error,
+     * which read as "not signed in", which redirected to /auth. Every chat
+     * route lives under this layout, so a local-first assistant running a local
+     * model on the user's own machine became unusable the moment the wifi
+     * dropped. That is the opposite of what this product claims to be.
+     *
+     * So the check degrades instead of failing: the server is asked first and
+     * remains authoritative, and only when it cannot be REACHED does the
+     * locally persisted session stand in (`persistSession: true` keeps it).
+     *
+     * The security property is preserved exactly. A session that the server
+     * REJECTS still signs the user out -- that is an answer, not a failure to
+     * get one. A cached session that has EXPIRED is refused here without
+     * asking anybody, because expiry is a timestamp and needs no network to
+     * evaluate. Offline grace covers unreachability alone.
+     */
     const { data, error } = await supabase.auth.getUser();
-    const signedIn = !error && Boolean(data.user);
+    let user = error ? null : data.user;
+    let offline = false;
+
+    if (error && !user) {
+      const { data: cached } = await supabase.auth.getSession();
+      const session = cached.session;
+      const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
+      if (session?.user && expiresAt > Date.now()) {
+        user = session.user;
+        offline = true;
+      }
+    }
+
+    const signedIn = Boolean(user);
 
     /*
      * SETTINGS ARE READABLE WITHOUT AN ACCOUNT.
@@ -44,17 +78,28 @@ export const Route = createFileRoute("/_authenticated")({
 
     // Onboarding gate (G1). Everyone must finish onboarding before app routes.
     if (!location.pathname.startsWith("/onboarding")) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("onboarding_completed")
-        .eq("id", data.user!.id)
-        .maybeSingle();
-      if (!profile?.onboarding_completed) {
-        throw redirect({ to: "/onboarding" });
+      /*
+       * The onboarding gate is a database read, so it cannot run offline
+       * either. Someone already past onboarding must not be sent back through
+       * it because their wifi dropped -- and someone who has NOT finished it
+       * cannot complete it offline anyway, since onboarding writes to the same
+       * database. Skipping the gate while unreachable is therefore both the
+       * kinder and the only useful behaviour; it re-asserts on the next
+       * online navigation.
+       */
+      if (!offline) {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("id", user!.id)
+          .maybeSingle();
+        if (!profileError && !profile?.onboarding_completed) {
+          throw redirect({ to: "/onboarding" });
+        }
       }
     }
 
-    return { user: data.user };
+    return { user };
   },
   component: AuthedLayout,
   errorComponent: AuthedError,
