@@ -85,6 +85,39 @@ export function installSourceFor(platform: string): InstallSource | null {
  * the cheapest way to defeat a pinned URL, so every hop is re-tested rather
  * than only the first.
  */
+/**
+ * Hosts a runtime download may legitimately end up on.
+ *
+ * WHY THIS IS A LIST AND NOT JUST THE VENDOR. `ollama.com/download/...` is a
+ * redirect to the project's GitHub release assets, so the URL that actually
+ * serves the bytes is `release-assets.githubusercontent.com`. Pinning to the
+ * vendor host alone and re-checking after redirects therefore refused the REAL
+ * download on every machine: the installer reported "Setup could not start
+ * safely" and installed nothing, forever.
+ *
+ * That was not caught by any test, including the end-to-end one, because every
+ * test supplied its own `finalUrl` and none of them followed a redirect to a
+ * different host the way the network does.
+ *
+ * WHAT ACTUALLY PROTECTS THE DOWNLOAD IS THE DIGEST. The bytes are hashed and
+ * compared against a manifest shipped inside the application, and a mismatch or
+ * a missing entry refuses the install. That check does not care which host
+ * served the file -- it cares that the file is the exact one the release pinned.
+ * So a CDN in this list is not being trusted to be honest; it is being allowed
+ * to deliver bytes that are then verified.
+ *
+ * The list stays narrow anyway, as defence in depth: an unexpected host is still
+ * a signal worth refusing on, and a redirect to somewhere arbitrary should never
+ * pass silently even when a digest would catch it afterwards.
+ */
+export const RUNTIME_ASSET_HOSTS = [
+  RUNTIME_HOST,
+  // Where ollama.com's download links actually resolve.
+  "github.com",
+  "release-assets.githubusercontent.com",
+  "objects.githubusercontent.com",
+] as const;
+
 export function isTrustedRuntimeUrl(url: string): boolean {
   let parsed: URL;
   try {
@@ -93,9 +126,11 @@ export function isTrustedRuntimeUrl(url: string): boolean {
     return false;
   }
   if (parsed.protocol !== "https:") return false;
-  // Exact host or a subdomain of it. `evilollama.com` must not pass, which a
+  // Exact host or a subdomain of one. `evilollama.com` must not pass, which a
   // naive `endsWith` would allow.
-  return parsed.hostname === RUNTIME_HOST || parsed.hostname.endsWith(`.${RUNTIME_HOST}`);
+  return RUNTIME_ASSET_HOSTS.some(
+    (host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`),
+  );
 }
 
 export interface VerifyInput {

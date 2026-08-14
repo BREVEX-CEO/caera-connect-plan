@@ -48,6 +48,16 @@ const PAYLOAD_DIGEST = createHash("sha256").update(PAYLOAD).digest("hex");
 /** Bytes that are NOT the payload, for the tampering case. */
 const TAMPERED = randomBytes(64 * 1024);
 
+/**
+ * Where the vendor link really lands.
+ *
+ * Taken from an actual fetch of https://ollama.com/download/OllamaSetup.exe,
+ * which 302s to GitHub's release-asset CDN. Hard-coded rather than fetched so
+ * the suite stays offline and deterministic.
+ */
+const REDIRECTED_TO =
+  "https://release-assets.githubusercontent.com/github-production-release-asset/658928958/asset";
+
 let servePath = "/good";
 
 beforeAll(async () => {
@@ -80,15 +90,20 @@ function realDeps(over: Partial<InstallDeps> = {}): InstallDeps {
   return {
     platform: "win32",
 
-    // A real socket, a real response body, real redirect-final-url semantics.
+    // A real socket, a real response body, and a REAL redirect target.
     download: async (url: string) => {
-      // The installer hands us the real vendor URL; the test serves the bytes.
-      // The URL it CHOSE is asserted separately, so this substitution cannot
-      // hide a wrong or untrusted address.
       expect(url.startsWith("https://")).toBe(true);
       const response = await fetch(`${origin}${servePath}`);
       const bytes = new Uint8Array(await response.arrayBuffer());
-      return { bytes, finalUrl: url };
+      /*
+       * `finalUrl` is the host the bytes really came from, NOT the URL we asked
+       * for. Returning the requested URL here is what let a fatal bug hide: the
+       * vendor link redirects to GitHub's release-asset CDN, the installer
+       * re-checks the host after redirects, and it refused every real download
+       * while every test passed. A fixture that cannot redirect cannot catch
+       * that, so this one redirects.
+       */
+      return { bytes, finalUrl: REDIRECTED_TO };
     },
 
     digest: async (bytes: Uint8Array) =>
@@ -154,6 +169,45 @@ describe("installing the runtime on a machine that has none", () => {
 
     const fromDisk = await readFile(writtenPath);
     expect(createHash("sha256").update(fromDisk).digest("hex")).toBe(PAYLOAD_DIGEST);
+  });
+
+  it("accepts the vendor's REAL redirect to the release-asset CDN", async () => {
+    /*
+     * The regression this file exists for. `ollama.com` redirects to GitHub's
+     * asset host, so an installer that re-checks the host after redirects and
+     * only knows the vendor name refuses every genuine download and installs
+     * nothing, forever. It failed silently -- "Setup could not start safely" --
+     * so no crash ever pointed at it.
+     */
+    servePath = "/good";
+    const result = await installRuntime(realDeps());
+    expect(result.ok).toBe(true);
+    expect(result.reason).not.toBe("untrusted_redirect");
+  });
+
+  it("still REFUSES a redirect to somewhere arbitrary", async () => {
+    // Widening the allow-list must not have widened it to everything.
+    servePath = "/good";
+    let ran = false;
+    const result = await installRuntime(
+      realDeps({
+        download: async () => {
+          const response = await fetch(`${origin}/good`);
+          return {
+            bytes: new Uint8Array(await response.arrayBuffer()),
+            finalUrl: "https://evilollama.com/OllamaSetup.exe",
+          };
+        },
+        run: async () => {
+          ran = true;
+          return 0;
+        },
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe("untrusted_redirect");
+    expect(ran).toBe(false);
   });
 
   it("REFUSES bytes that do not match the promised digest", async () => {

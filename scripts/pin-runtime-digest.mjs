@@ -47,11 +47,30 @@ const SOURCES = {
   darwin: "https://ollama.com/download/Ollama-darwin.zip",
 };
 
-const HOST = "ollama.com";
+/*
+ * Kept in step with RUNTIME_ASSET_HOSTS in the installer.
+ *
+ * `ollama.com/download/...` redirects to the project's GitHub release assets, so
+ * the host that actually serves the bytes is not the host in the link. Checking
+ * only `ollama.com` after redirects refused the real download -- which is how
+ * that same bug was found in the shipped installer.
+ *
+ * The digest this script computes is what protects the download; these hosts are
+ * defence in depth, so that a redirect to somewhere arbitrary still fails loudly.
+ */
+const HOSTS = [
+  "ollama.com",
+  "github.com",
+  "release-assets.githubusercontent.com",
+  "objects.githubusercontent.com",
+];
 
 function assertTrusted(url) {
   const parsed = new URL(url);
-  if (parsed.protocol !== "https:" || parsed.hostname !== HOST) {
+  const trusted = HOSTS.some(
+    (host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`),
+  );
+  if (parsed.protocol !== "https:" || !trusted) {
     throw new Error(`refusing to fetch from an untrusted URL: ${url}`);
   }
 }
@@ -108,11 +127,32 @@ for (const platform of platforms) {
   // The URL AFTER redirects is the one that actually served the bytes.
   assertTrusted(response.url || url);
 
-  const bytes = Buffer.from(await response.arrayBuffer());
-  const digest = createHash("sha256").update(bytes).digest("hex");
+  /*
+   * STREAMED INTO THE HASH, NOT BUFFERED.
+   *
+   * `await response.arrayBuffer()` holds the entire installer in memory, and the
+   * installer is about a gigabyte: the first run of this script was killed by
+   * the OS (exit 137) before it printed anything. A digest is computed over a
+   * stream by definition, so there is no reason to ever hold more than one chunk.
+   */
+  const hash = createHash("sha256");
+  let received = 0;
+  let lastReport = 0;
+
+  for await (const chunk of response.body) {
+    hash.update(chunk);
+    received += chunk.length;
+    // Progress, because a silent gigabyte looks like a hang.
+    if (received - lastReport > 100 * 1048576) {
+      lastReport = received;
+      process.stdout.write(`${(received / 1048576).toFixed(0)}MiB `);
+    }
+  }
+
+  const digest = hash.digest("hex");
   manifest[platform] = digest;
 
-  console.log(`${(bytes.length / 1048576).toFixed(1)} MiB → ${digest}`);
+  console.log(`\n  ${platform}: ${(received / 1048576).toFixed(1)} MiB → ${digest}`);
 }
 
 await mkdir(dirname(MANIFEST), { recursive: true });
