@@ -178,7 +178,8 @@ const CERTAIN: { pattern: RegExp; domains: Domain[] }[] = [
     domains: ["conversation"],
   },
   {
-    pattern: /\b(what do you (know|remember) about|do you remember|forget (that|what|about)|your memory)\b/i,
+    pattern:
+      /\b(what do you (know|remember) about|do you remember|forget (that|what|about)|your memory)\b/i,
     domains: ["conversation"],
   },
   {
@@ -187,11 +188,13 @@ const CERTAIN: { pattern: RegExp; domains: Domain[] }[] = [
     domains: ["conversation"],
   },
   {
-    pattern: /\b(keep an eye on|watch (for|the )?news|follow (the )?(topic|story)|notify me (about|when))\b/i,
+    pattern:
+      /\b(keep an eye on|watch (for|the )?news|follow (the )?(topic|story)|notify me (about|when))\b/i,
     domains: ["conversation"],
   },
   {
-    pattern: /\b(call me|my name is|address me as|i'?m called|what should i call you|your name is|rename yourself|call yourself)\b/i,
+    pattern:
+      /\b(call me|my name is|address me as|i'?m called|what should i call you|your name is|rename yourself|call yourself)\b/i,
     domains: ["conversation"],
   },
   {
@@ -208,7 +211,8 @@ const CERTAIN: { pattern: RegExp; domains: Domain[] }[] = [
   { pattern: /\b(weather|forecast|is it (going to )?rain)\b/i, domains: ["web"] },
   { pattern: /\bflights?\b.{0,30}\b(to|from)\b|\bfly (to|from)\b/i, domains: ["web"] },
   {
-    pattern: /\b(news (on|about)|latest on|compare .+ (and|vs|versus)|how much (is|does)|price of)\b/i,
+    pattern:
+      /\b(news (on|about)|latest on|compare .+ (and|vs|versus)|how much (is|does)|price of)\b/i,
     domains: ["web"],
   },
   // Seeing. Only the phrasings that cannot mean the accessibility tree — a
@@ -218,11 +222,13 @@ const CERTAIN: { pattern: RegExp; domains: Domain[] }[] = [
     domains: ["os_app"],
   },
   {
-    pattern: /\b(review|debug|refactor|explain) (this |my |the )?(code|function|script|file)\b|\bwhat(?:'?s| is) wrong with (this|my) (code|function|script)\b/i,
+    pattern:
+      /\b(review|debug|refactor|explain) (this |my |the )?(code|function|script|file)\b|\bwhat(?:'?s| is) wrong with (this|my) (code|function|script)\b/i,
     domains: ["files"],
   },
   {
-    pattern: /\b(steam|epic games|my games)\b.{0,30}\b(update|updating|installed)\b|\bupdate my games\b/i,
+    pattern:
+      /\b(steam|epic games|my games)\b.{0,30}\b(update|updating|installed)\b|\bupdate my games\b/i,
     domains: ["os_app"],
   },
   {
@@ -234,11 +240,13 @@ const CERTAIN: { pattern: RegExp; domains: Domain[] }[] = [
     domains: ["os_app"],
   },
   {
-    pattern: /\b(start (with|on) (windows|boot|login|start ?up)|launch at (start ?up|login)|auto ?start)\b/i,
+    pattern:
+      /\b(start (with|on) (windows|boot|login|start ?up)|launch at (start ?up|login)|auto ?start)\b/i,
     domains: ["os_app"],
   },
   {
-    pattern: /\b(wifi|wi-fi|shut ?down|restart the (pc|computer)|reboot|lock the (pc|computer|screen)|go to sleep)\b/i,
+    pattern:
+      /\b(wifi|wi-fi|shut ?down|restart the (pc|computer)|reboot|lock the (pc|computer|screen)|go to sleep)\b/i,
     domains: ["os_app"],
   },
   {

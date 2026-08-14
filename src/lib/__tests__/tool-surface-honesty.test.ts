@@ -115,7 +115,9 @@ describe("the continuity layer reaches the engine", () => {
     const names = new Set<string>();
     // `viaEngine("x", …)` and the `simple("x", …)` passthrough, plus the
     // continuity name map, all quote the command as a dotted literal.
-    for (const match of source.matchAll(/(?:viaEngine(?:<[^>]*>)?|this\.simple)\(\s*"([a-z]+\.[a-z.]+)"/g)) {
+    for (const match of source.matchAll(
+      /(?:viaEngine(?:<[^>]*>)?|this\.simple)\(\s*"([a-z]+\.[a-z.]+)"/g,
+    )) {
       names.add(match[1]);
     }
     for (const match of source.matchAll(/^\s+[a-z_]+:\s+"([a-z]+\.[a-z.]+)",$/gm)) {

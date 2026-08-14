@@ -3,11 +3,7 @@ import { installLocalRuntimeFn, startLocalRuntimeFn } from "@/lib/local-runtime.
 import { FIXED_MODEL } from "@/lib/local/fixed-model";
 import { pullModel, type PullProgress } from "@/lib/local/model-lifecycle";
 import { activateModel } from "@/lib/local/model-lifecycle";
-import {
-  discoverLocalModels,
-  streamLocalChat,
-  DEFAULT_LOCAL_BRIDGE_URL,
-} from "@/lib/ocade-local";
+import { discoverLocalModels, streamLocalChat, DEFAULT_LOCAL_BRIDGE_URL } from "@/lib/ocade-local";
 import { serverIsThisMachine } from "@/lib/hardware/detect.browser";
 import { useDevicePolicy } from "@/lib/use-device-policy";
 

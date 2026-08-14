@@ -66,9 +66,7 @@ describe("a failure mid-run is visible, not silent", () => {
   });
 
   it("holds the error state instead of returning to idle", () => {
-    expect(MISSION).toMatch(
-      /current === "stopped" \|\| current === "error" \? current : "idle"/,
-    );
+    expect(MISSION).toMatch(/current === "stopped" \|\| current === "error" \? current : "idle"/);
   });
 
   it("clears a stale error when a new instruction arrives", () => {

@@ -183,15 +183,17 @@ export function parsePlan(reply: string): PlanStep[] | null {
  * being isolated, so it is cut out rather than shortened.
  */
 export function stripPayloads(text: string): string {
-  return text
-    // Balanced-ish blocks of eighty characters or more. Short braces are left
-    // alone because "{}" can legitimately appear in prose about code, and a
-    // one-line object is not what floods a context.
-    .replace(/[{[][\s\S]{80,}?[}\]]/g, " ")
-    // A code fence is the other way models quote payloads.
-    .replace(/```[\s\S]*?```/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return (
+    text
+      // Balanced-ish blocks of eighty characters or more. Short braces are left
+      // alone because "{}" can legitimately appear in prose about code, and a
+      // one-line object is not what floods a context.
+      .replace(/[{[][\s\S]{80,}?[}\]]/g, " ")
+      // A code fence is the other way models quote payloads.
+      .replace(/```[\s\S]*?```/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
 }
 
 /**
@@ -205,7 +207,9 @@ export function summarise(result: AgentResult, limit = 240): string {
   const text = stripPayloads(result.text ?? "");
   if (!text) {
     const last = result.steps[result.steps.length - 1];
-    return last ? `Ran ${last.call.name}: ${last.outcome.detail}`.slice(0, limit) : "Nothing to report.";
+    return last
+      ? `Ran ${last.call.name}: ${last.outcome.detail}`.slice(0, limit)
+      : "Nothing to report.";
   }
   if (text.length <= limit) return text;
   // Cut on a sentence boundary when there is one nearby, so the summary does
@@ -308,7 +312,13 @@ export async function runPlannedTask(
       });
     } catch (cause) {
       const why = cause instanceof Error ? cause.message : "that step failed";
-      done.push({ instruction: step.instruction, summary: why, ok: false, toolCalls: 0, verified: false });
+      done.push({
+        instruction: step.instruction,
+        summary: why,
+        ok: false,
+        toolCalls: 0,
+        verified: false,
+      });
       carried.push(`${step.instruction} — failed: ${why}`);
       continue;
     }

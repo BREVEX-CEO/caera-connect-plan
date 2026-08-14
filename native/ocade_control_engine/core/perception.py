@@ -135,10 +135,10 @@ def _match_score(query: str, label: str) -> float:
     at all — an agent handed a 0.1-confidence "closest thing I saw" will click
     it, so a weak match is worse than no match.
     """
-    q, l = _norm(query), _norm(label)
-    if not q or not l:
+    q, text = _norm(query), _norm(label)
+    if not q or not text:
         return 0.0
-    if q == l:
+    if q == text:
         return 1.0
 
     # SUBSTRING MATCHING NEEDS A LENGTH FLOOR, and this is not hypothetical.
@@ -150,14 +150,14 @@ def _match_score(query: str, label: str) -> float:
     #
     # A substring only counts when it is long enough to be a word and covers a
     # real share of the thing it matched.
-    shorter, longer = (q, l) if len(q) <= len(l) else (l, q)
+    shorter, longer = (q, text) if len(q) <= len(text) else (text, q)
     if len(shorter) >= 3 and shorter and (len(shorter) / len(longer)) >= 0.34:
-        if l.startswith(q) or q.startswith(l):
+        if text.startswith(q) or q.startswith(text):
             return 0.9
-        if q in l or l in q:
+        if q in text or text in q:
             return 0.75
 
-    q_words, l_words = set(q.split()), set(l.split())
+    q_words, l_words = set(q.split()), set(text.split())
     if not q_words:
         return 0.0
     # Word overlap ignores one- and two-letter words for the same reason.
@@ -184,7 +184,6 @@ def _from_uia(hwnd: int, query: str, limit: int, protect=None) -> list[dict[str,
 
     found: list[dict[str, Any]] = []
     for element in tree["elements"]:
-        label = f"{element['name']} {element['automationId']}".strip()
         score = max(_match_score(query, element["name"]), _match_score(query, element["automationId"]))
         if score < MATCH_FLOOR:
             continue

@@ -65,7 +65,7 @@ const TOLERANCE = 0.1;
  * list would otherwise score its bullets as content.
  */
 export function countWords(text: string): number {
-  return (text.match(/[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu) ?? []).length;
+  return (text.match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu) ?? []).length;
 }
 
 export function countLines(text: string): number {

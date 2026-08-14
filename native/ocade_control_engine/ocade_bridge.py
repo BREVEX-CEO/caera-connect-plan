@@ -1311,7 +1311,6 @@ def app_open(payload: dict) -> dict:
 def app_focus(payload: dict) -> dict:
     """Bring an already-open window forward and confirm it came forward."""
     win32gui = _win32()
-    import win32con  # noqa: PLC0415
 
     hwnd = _target_window(payload.get("title") or payload.get("name"))
     # ONE FOREGROUND ROUTINE, SHARED WITH app_open.

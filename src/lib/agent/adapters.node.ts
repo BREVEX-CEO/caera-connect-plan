@@ -267,23 +267,62 @@ export class OcadeAdapters {
       case "whatsapp_send":
         return this.whatsapp("send", { message: text(a.message, "message") });
       case "document_read":
-        return this.simple("file.read", { folder: text(a.folder, "folder"), name: text(a.name, "name") }, "That document could not be read.");
+        return this.simple(
+          "file.read",
+          { folder: text(a.folder, "folder"), name: text(a.name, "name") },
+          "That document could not be read.",
+        );
       case "setup_status":
         return this.simple("setup.status", {}, "Setup status is unavailable.");
       case "screen_map":
-        return this.simple("screen.map", { windowTitle: typeof a.windowTitle === "string" ? a.windowTitle : undefined, includeText: a.includeText === "yes" ? true : a.includeText === "no" ? false : undefined }, "The screen could not be mapped.", 45_000);
+        return this.simple(
+          "screen.map",
+          {
+            windowTitle: typeof a.windowTitle === "string" ? a.windowTitle : undefined,
+            includeText:
+              a.includeText === "yes" ? true : a.includeText === "no" ? false : undefined,
+          },
+          "The screen could not be mapped.",
+          45_000,
+        );
       case "screen_do":
-        return this.simple("screen.do", { id: typeof a.id === "number" ? a.id : Number(a.id), action: text(a.action, "action"), text: typeof a.text === "string" ? a.text : undefined, token: typeof a.token === "string" ? a.token : undefined, submit: a.submit === "yes" }, "That action was not completed.", 45_000);
+        return this.simple(
+          "screen.do",
+          {
+            id: typeof a.id === "number" ? a.id : Number(a.id),
+            action: text(a.action, "action"),
+            text: typeof a.text === "string" ? a.text : undefined,
+            token: typeof a.token === "string" ? a.token : undefined,
+            submit: a.submit === "yes",
+          },
+          "That action was not completed.",
+          45_000,
+        );
       case "file_list":
-        return this.simple("file.list", { folder: text(a.folder, "folder"), pattern: typeof a.pattern === "string" ? a.pattern : undefined }, "That folder could not be listed.");
+        return this.simple(
+          "file.list",
+          {
+            folder: text(a.folder, "folder"),
+            pattern: typeof a.pattern === "string" ? a.pattern : undefined,
+          },
+          "That folder could not be listed.",
+        );
       case "clipboard_watch":
         return this.simple("clipboard.watch", {}, "The clipboard could not be checked.");
       case "screen_watch":
-        return this.simple("screen.watch", { action: text(a.action, "action") }, "The screen watcher did not respond.");
+        return this.simple(
+          "screen.watch",
+          { action: text(a.action, "action") },
+          "The screen watcher did not respond.",
+        );
       case "message_pending":
         return this.simple("message.pending", {}, "Drafts could not be listed.");
       case "message_discard":
-        return this.simple("message.discard", { draftId: text(a.draftId, "draftId") }, "That draft was not discarded.");
+        return this.simple(
+          "message.discard",
+          { draftId: text(a.draftId, "draftId") },
+          "That draft was not discarded.",
+        );
       case "message_to":
         return this.messageTo(a);
       case "message_find_contact":
@@ -397,7 +436,11 @@ export class OcadeAdapters {
 
       /* ------------------------------------------------- the machine -- */
       case "system_wifi":
-        return this.simple("system.wifi", { action: a.action ?? "status" }, "The WiFi state could not be read.");
+        return this.simple(
+          "system.wifi",
+          { action: a.action ?? "status" },
+          "The WiFi state could not be read.",
+        );
       case "system_power":
         return this.systemPower(a);
       case "autostart":
@@ -411,7 +454,9 @@ export class OcadeAdapters {
           "clipboard.act",
           {
             action: text(a.action, "action"),
-            ...(typeof a.language === "string" && a.language.trim() ? { language: a.language } : {}),
+            ...(typeof a.language === "string" && a.language.trim()
+              ? { language: a.language }
+              : {}),
           },
           "The copied text could not be worked on.",
           120_000,
@@ -444,7 +489,11 @@ export class OcadeAdapters {
           60_000,
         );
       case "desktop_organise":
-        return this.fileCommand({ action: "organise" }, "The desktop could not be tidied.", 120_000);
+        return this.fileCommand(
+          { action: "organise" },
+          "The desktop could not be tidied.",
+          120_000,
+        );
       case "see":
         return this.see(a);
       case "camera_list":
@@ -477,7 +526,9 @@ export class OcadeAdapters {
           "game.update",
           {
             ...(typeof a.game === "string" && a.game.trim() ? { game: a.game } : {}),
-            ...(typeof a.launcher === "string" && a.launcher !== "all" ? { launcher: a.launcher } : {}),
+            ...(typeof a.launcher === "string" && a.launcher !== "all"
+              ? { launcher: a.launcher }
+              : {}),
           },
           "The launcher could not be asked to update.",
           60_000,
@@ -602,10 +653,7 @@ export class OcadeAdapters {
    * bridge answers to; keeping the map in one object rather than one case each
    * means a new continuity tool is one line here and one entry in the registry.
    */
-  private async continuity(
-    tool: string,
-    a: Record<string, unknown>,
-  ): Promise<ToolOutcome> {
+  private async continuity(tool: string, a: Record<string, unknown>): Promise<ToolOutcome> {
     const COMMANDS: Record<string, string> = {
       memory_remember: "memory.remember",
       memory_recall: "memory.recall",
@@ -640,7 +688,8 @@ export class OcadeAdapters {
         break;
       case "memory_identity":
         for (const field of ["userName", "gender", "city", "language"] as const) {
-          if (typeof a[field] === "string" && (a[field] as string).trim()) payload[field] = a[field];
+          if (typeof a[field] === "string" && (a[field] as string).trim())
+            payload[field] = a[field];
         }
         /*
          * `assistantName` IS THE ONE FIELD WHERE "" IS A REAL VALUE, and the
@@ -1344,7 +1393,10 @@ export class OcadeAdapters {
     );
     if (!reply) return fail("unsupported", "Speech needs the control engine.");
     if (!reply.ok) return outcomeFor(reply, "OCADE could not speak on this computer.");
-    return ok(reply.data, reply.data?.detail ?? `Spoken with ${reply.data?.voice ?? "the OCADE voice"}.`);
+    return ok(
+      reply.data,
+      reply.data?.detail ?? `Spoken with ${reply.data?.voice ?? "the OCADE voice"}.`,
+    );
   }
 
   /** What this device can say and hear, without claiming anything untested. */
@@ -1489,10 +1541,7 @@ export class OcadeAdapters {
    * read-back — because every one of those needed a WhatsApp-specific fact to
    * get right. The adapter only names the step.
    */
-  private async whatsapp(
-    action: string,
-    extra: Record<string, unknown>,
-  ): Promise<ToolOutcome> {
+  private async whatsapp(action: string, extra: Record<string, unknown>): Promise<ToolOutcome> {
     const reply = await this.viaEngine<{ detail: string; verified: boolean; contact?: string }>(
       "whatsapp",
       { action, ...extra },
@@ -2347,7 +2396,10 @@ export class OcadeAdapters {
     // Adverts are the reason "play it" so often did not play anything. The
     // helper is player-scoped and waits, because most adverts are unskippable
     // for their first seconds.
-    const skipped = await this.browserPerform({ kind: "site.youtube.skip", timeoutMs: 12_000 }, origins);
+    const skipped = await this.browserPerform(
+      { kind: "site.youtube.skip", timeoutMs: 12_000 },
+      origins,
+    );
     const ad = (skipped.data as { output?: { skipped?: boolean; detail?: string } } | null)?.output;
 
     // Some videos need the play command; most autoplay. Sent either way, then

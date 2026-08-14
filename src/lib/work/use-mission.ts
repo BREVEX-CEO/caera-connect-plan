@@ -1206,11 +1206,16 @@ export function useMission(brain: MissionBrain) {
             },
           ]);
         } catch (cause) {
-          const message =
-            cause instanceof Error ? cause.message : "OCADE could not write that.";
+          const message = cause instanceof Error ? cause.message : "OCADE could not write that.";
           setTurns((current) => [
             ...current,
-            { id: `${id}-we`, role: "ocade", text: message, entries: [...entries], verified: false },
+            {
+              id: `${id}-we`,
+              role: "ocade",
+              text: message,
+              entries: [...entries],
+              verified: false,
+            },
           ]);
           setError(message);
           setPhase("error");
@@ -1218,341 +1223,332 @@ export function useMission(brain: MissionBrain) {
           abortRef.current = null;
           revisionRef.current = null;
           setLive([]);
-          setPhase((current) =>
-            current === "stopped" || current === "error" ? current : "idle",
-          );
+          setPhase((current) => (current === "stopped" || current === "error" ? current : "idle"));
         }
         return;
       }
 
       try {
         const agentDeps: AgentDeps = {
-            complete: async (prompt, signal) => {
-              const reply = await brain([{ role: "user", content: prompt }], () => {}, signal);
-              return reply.ok ? reply.text : null;
-            },
-            turn: async (messages, tools, handlers) => {
-              await waitWhilePaused();
-              setPhase("thinking");
-              const definitions = tools
-                .map((tool) => findTool(tool.function.name))
-                .filter((tool): tool is ToolDefinition => tool !== null);
-              const local: BrainMessage[] = messages.map((message: AgentMessage) => ({
-                role:
-                  message.role === "tool"
-                    ? "user"
-                    : (message.role as "system" | "user" | "assistant"),
-                content:
-                  message.role === "tool"
-                    ? `Result of ${message.toolName}:\n${message.content}`
-                    : message.content,
-              }));
-              /*
-               * THE SCHEMA IS THE CONTRACT; THE PROSE IS THE FALLBACK.
-               *
-               * This used to append the whole tool vocabulary to the system
-               * message and hunt for JSON in the reply, because the engine was
-               * believed to have no function-calling channel. It has one — and
-               * the difference is not cosmetic. Measured on the shipped model:
-               * every attempt through the schema produced a well-formed call,
-               * at about a tenth of the latency of the prose route.
-               *
-               * The prose route failed in the way that costs most. Observed
-               * live, mid-task: `{"tool": "system_status", "arguments": {"}}` —
-               * an unterminated object. Unparseable, so the loop saw "no tool
-               * call", read that as "the model has finished", and ended a task
-               * that was one step from done. Nothing errored and nothing said
-               * anything was wrong.
-               *
-               * Both are sent: the schema for runtimes that honour it, the
-               * written instructions for adapters that carry no tools at all
-               * (the browser WebGPU and WASM engines). Whichever answers, the
-               * call goes through the same contract validation afterwards.
-               */
-              const names = definitions.map((tool) => tool.name);
-              const wire = schemasFor([...new Set(definitions.map((tool) => tool.domain))], request);
+          complete: async (prompt, signal) => {
+            const reply = await brain([{ role: "user", content: prompt }], () => {}, signal);
+            return reply.ok ? reply.text : null;
+          },
+          turn: async (messages, tools, handlers) => {
+            await waitWhilePaused();
+            setPhase("thinking");
+            const definitions = tools
+              .map((tool) => findTool(tool.function.name))
+              .filter((tool): tool is ToolDefinition => tool !== null);
+            const local: BrainMessage[] = messages.map((message: AgentMessage) => ({
+              role:
+                message.role === "tool"
+                  ? "user"
+                  : (message.role as "system" | "user" | "assistant"),
+              content:
+                message.role === "tool"
+                  ? `Result of ${message.toolName}:\n${message.content}`
+                  : message.content,
+            }));
+            /*
+             * THE SCHEMA IS THE CONTRACT; THE PROSE IS THE FALLBACK.
+             *
+             * This used to append the whole tool vocabulary to the system
+             * message and hunt for JSON in the reply, because the engine was
+             * believed to have no function-calling channel. It has one — and
+             * the difference is not cosmetic. Measured on the shipped model:
+             * every attempt through the schema produced a well-formed call,
+             * at about a tenth of the latency of the prose route.
+             *
+             * The prose route failed in the way that costs most. Observed
+             * live, mid-task: `{"tool": "system_status", "arguments": {"}}` —
+             * an unterminated object. Unparseable, so the loop saw "no tool
+             * call", read that as "the model has finished", and ended a task
+             * that was one step from done. Nothing errored and nothing said
+             * anything was wrong.
+             *
+             * Both are sent: the schema for runtimes that honour it, the
+             * written instructions for adapters that carry no tools at all
+             * (the browser WebGPU and WASM engines). Whichever answers, the
+             * call goes through the same contract validation afterwards.
+             */
+            const names = definitions.map((tool) => tool.name);
+            const wire = schemasFor([...new Set(definitions.map((tool) => tool.domain))], request);
 
-              if (local[0]?.role === "system") {
-                local[0] = {
-                  ...local[0],
-                  content: `${local[0].content}\n${toolInstructions(definitions)}`,
-                };
-              }
+            if (local[0]?.role === "system") {
+              local[0] = {
+                ...local[0],
+                content: `${local[0].content}\n${toolInstructions(definitions)}`,
+              };
+            }
 
-              const reply = await brain(
-                local,
-                handlers.onToken ?? (() => {}),
+            const reply = await brain(local, handlers.onToken ?? (() => {}), handlers.signal, wire);
+            if (!reply.ok) throw new Error(reply.reason ?? "The engine did not answer.");
+
+            /*
+             * A structured call is preferred over anything found in the text.
+             * The runtime shaped it, so it cannot be half-written; and an
+             * invented name is still refused, because every call is checked
+             * against the registry before it reaches the machine.
+             */
+            const native = (reply.calls ?? []).filter((call) => names.includes(call.name));
+            const parsed = native.length
+              ? { text: stripControlTokens(reply.text).trim(), toolCalls: native }
+              : parseModelReply(reply.text, names);
+
+            /*
+             * ONE CORRECTION WHEN THE MODEL NARRATED INSTEAD OF ACTING.
+             *
+             * A small model will happily reply "I have opened Notepad. Now I
+             * will type ..." with no JSON, and the loop reads no-tool-call as
+             * finished — ending the task one step early while sounding like it
+             * is about to continue. Asking once for the action alone repairs
+             * the formatting without touching the decision.
+             *
+             * Bounded to a single retry, and only when there is an intention
+             * to repair. A loop that keeps nudging is a loop that never ends,
+             * and a model that has genuinely finished must be allowed to.
+             */
+            if (
+              parsed.toolCalls.length === 0 &&
+              names.length > 0 &&
+              announcesAnotherStep(parsed.text) &&
+              !controller.signal.aborted
+            ) {
+              const second = await brain(
+                [
+                  ...local,
+                  { role: "assistant", content: reply.text },
+                  { role: "user", content: ACT_NOW_NUDGE },
+                ],
+                () => {},
                 handlers.signal,
-                wire,
               );
-              if (!reply.ok) throw new Error(reply.reason ?? "The engine did not answer.");
+              if (second.ok) {
+                const retried = parseModelReply(second.text, names);
+                if (retried.toolCalls.length > 0) {
+                  // The sentence the model already streamed is kept: the user
+                  // saw it, and dropping it would make the transcript jump.
+                  return { text: parsed.text, toolCalls: retried.toolCalls };
+                }
+              }
+            }
 
+            return parsed;
+          },
+          // One approval implementation, shared with the fast path above, so
+          // the two routes cannot drift into different consent rules.
+          permit: askPermission,
+          execute: async (call, signal): Promise<ToolOutcome> => {
+            await waitWhilePaused();
+            if (signal?.aborted || controller.signal.aborted) {
+              return { kind: "cancelled", detail: "The task was stopped." };
+            }
+            /*
+             * THE CONTRACT, BEFORE THE MACHINE.
+             *
+             * Empty required arguments and exact repeats are refused here and
+             * the reason goes back to the model as a tool result, so it can
+             * correct itself on the next turn. A blank YouTube query and a
+             * third `browser_open` both died at this line.
+             */
+            const checked = checkCall(call, ledgerRef.current);
+            if (!checked.ok) {
               /*
-               * A structured call is preferred over anything found in the text.
-               * The runtime shaped it, so it cannot be half-written; and an
-               * invented name is still refused, because every call is checked
-               * against the registry before it reaches the machine.
+               * A CORRECTABLE MISTAKE IS NOT AN IMPOSSIBLE ONE.
+               *
+               * Every contract rejection used to come back as `unsupported`,
+               * which `isTerminal` treats as "this device cannot do this" and
+               * ends the run on. But bad arguments are the one failure the
+               * model is genuinely able to fix, and the reason is written for
+               * it to act on.
+               *
+               * FOUND LIVE: asked to read the memory figure and save it, the
+               * model called workspace_write with `$(memoryFree)` in the
+               * content. The placeholder guard caught it and said "substitute
+               * the actual value, then call workspace_write again" — and the
+               * loop stopped before the model could. A perfect refusal
+               * followed by a halt is still a task not done.
+               *
+               * `state_changed` is the right kind for all of them: not
+               * retried blindly with the same arguments, not terminal, so the
+               * next turn is the model reading the reason and correcting.
+               * `unknown_tool` stays terminal — an invented name is not
+               * something a retry improves.
                */
-              const native = (reply.calls ?? []).filter((call) => names.includes(call.name));
-              const parsed = native.length
-                ? { text: stripControlTokens(reply.text).trim(), toolCalls: native }
-                : parseModelReply(reply.text, names);
+              return {
+                kind: checked.code === "unknown_tool" ? "unsupported" : "state_changed",
+                detail: checked.reason,
+              };
+            }
+            ledgerRef.current.note(checked.call);
 
-              /*
-               * ONE CORRECTION WHEN THE MODEL NARRATED INSTEAD OF ACTING.
-               *
-               * A small model will happily reply "I have opened Notepad. Now I
-               * will type ..." with no JSON, and the loop reads no-tool-call as
-               * finished — ending the task one step early while sounding like it
-               * is about to continue. Asking once for the action alone repairs
-               * the formatting without touching the decision.
-               *
-               * Bounded to a single retry, and only when there is an intention
-               * to repair. A loop that keeps nudging is a loop that never ends,
-               * and a model that has genuinely finished must be allowed to.
-               */
-              if (
-                parsed.toolCalls.length === 0 &&
-                names.length > 0 &&
-                announcesAnotherStep(parsed.text) &&
-                !controller.signal.aborted
-              ) {
-                const second = await brain(
+            /*
+             * DOES THE TEXT MEET THE LENGTH THE USER ASKED FOR?
+             *
+             * Checked HERE, before the write, because after the write it is
+             * too late to be a check — it is a complaint about a file that
+             * already exists. Asked for a 200-word essay, OCADE produced 175
+             * words and reported success, and every mechanical receipt in
+             * that run was correct: a window appeared, 1,216 characters
+             * landed, the read-back matched. No step owned the property the
+             * user actually stated, so nothing caught it.
+             *
+             * ONE retry, not a loop. A model that misses twice is not going
+             * to converge on the third attempt, and each round costs the user
+             * about twelve seconds. When the second attempt still misses, the
+             * better text is used anyway and the receipt SAYS it is short —
+             * refusing to write anything would be a worse outcome than
+             * writing something slightly off with an honest note attached.
+             */
+            const authored = contentOf(
+              checked.call.name,
+              checked.call.arguments as Record<string, unknown> | undefined,
+            );
+            if (authored && constraints.length > 0) {
+              const check = checkContent(authored.value, constraints);
+              if (!check.ok) {
+                push({
+                  id: `c${Date.now()}${entries.length}`,
+                  kind: "acting",
+                  label: "Checking the length",
+                  detail: `${check.shortfall} — rewriting.`,
+                });
+                const corrected = await brain(
                   [
-                    ...local,
-                    { role: "assistant", content: reply.text },
-                    { role: "user", content: ACT_NOW_NUDGE },
+                    {
+                      role: "user",
+                      content: correctionPrompt(request, authored.value, check),
+                    },
                   ],
                   () => {},
-                  handlers.signal,
+                  controller.signal,
                 );
-                if (second.ok) {
-                  const retried = parseModelReply(second.text, names);
-                  if (retried.toolCalls.length > 0) {
-                    // The sentence the model already streamed is kept: the user
-                    // saw it, and dropping it would make the transcript jump.
-                    return { text: parsed.text, toolCalls: retried.toolCalls };
+                if (corrected.ok && corrected.text.trim()) {
+                  const retry = checkContent(corrected.text, constraints);
+                  // Keep the rewrite only when it is genuinely closer. A
+                  // "correction" that overshoots by more than the original
+                  // undershot is not an improvement.
+                  if (retry.ok || betterOf(check, retry)) {
+                    checked.call.arguments = {
+                      ...(checked.call.arguments ?? {}),
+                      [authored.field]: corrected.text.trim(),
+                    };
                   }
-                }
-              }
-
-              return parsed;
-            },
-            // One approval implementation, shared with the fast path above, so
-            // the two routes cannot drift into different consent rules.
-            permit: askPermission,
-            execute: async (call, signal): Promise<ToolOutcome> => {
-              await waitWhilePaused();
-              if (signal?.aborted || controller.signal.aborted) {
-                return { kind: "cancelled", detail: "The task was stopped." };
-              }
-              /*
-               * THE CONTRACT, BEFORE THE MACHINE.
-               *
-               * Empty required arguments and exact repeats are refused here and
-               * the reason goes back to the model as a tool result, so it can
-               * correct itself on the next turn. A blank YouTube query and a
-               * third `browser_open` both died at this line.
-               */
-              const checked = checkCall(call, ledgerRef.current);
-              if (!checked.ok) {
-                /*
-                 * A CORRECTABLE MISTAKE IS NOT AN IMPOSSIBLE ONE.
-                 *
-                 * Every contract rejection used to come back as `unsupported`,
-                 * which `isTerminal` treats as "this device cannot do this" and
-                 * ends the run on. But bad arguments are the one failure the
-                 * model is genuinely able to fix, and the reason is written for
-                 * it to act on.
-                 *
-                 * FOUND LIVE: asked to read the memory figure and save it, the
-                 * model called workspace_write with `$(memoryFree)` in the
-                 * content. The placeholder guard caught it and said "substitute
-                 * the actual value, then call workspace_write again" — and the
-                 * loop stopped before the model could. A perfect refusal
-                 * followed by a halt is still a task not done.
-                 *
-                 * `state_changed` is the right kind for all of them: not
-                 * retried blindly with the same arguments, not terminal, so the
-                 * next turn is the model reading the reason and correcting.
-                 * `unknown_tool` stays terminal — an invented name is not
-                 * something a retry improves.
-                 */
-                return {
-                  kind: checked.code === "unknown_tool" ? "unsupported" : "state_changed",
-                  detail: checked.reason,
-                };
-              }
-              ledgerRef.current.note(checked.call);
-
-              /*
-               * DOES THE TEXT MEET THE LENGTH THE USER ASKED FOR?
-               *
-               * Checked HERE, before the write, because after the write it is
-               * too late to be a check — it is a complaint about a file that
-               * already exists. Asked for a 200-word essay, OCADE produced 175
-               * words and reported success, and every mechanical receipt in
-               * that run was correct: a window appeared, 1,216 characters
-               * landed, the read-back matched. No step owned the property the
-               * user actually stated, so nothing caught it.
-               *
-               * ONE retry, not a loop. A model that misses twice is not going
-               * to converge on the third attempt, and each round costs the user
-               * about twelve seconds. When the second attempt still misses, the
-               * better text is used anyway and the receipt SAYS it is short —
-               * refusing to write anything would be a worse outcome than
-               * writing something slightly off with an honest note attached.
-               */
-              const authored = contentOf(
-                checked.call.name,
-                checked.call.arguments as Record<string, unknown> | undefined,
-              );
-              if (authored && constraints.length > 0) {
-                const check = checkContent(authored.value, constraints);
-                if (!check.ok) {
                   push({
-                    id: `c${Date.now()}${entries.length}`,
-                    kind: "acting",
-                    label: "Checking the length",
-                    detail: `${check.shortfall} — rewriting.`,
+                    id: `c2${Date.now()}${entries.length}`,
+                    kind: retry.ok ? "done" : "problem",
+                    label: "Length",
+                    detail: retry.ok
+                      ? `Now ${retry.results[0]?.actual} ${retry.results[0]?.constraint.unit}s.`
+                      : `Still ${retry.shortfall}. Writing it anyway.`,
+                    verified: retry.ok,
                   });
-                  const corrected = await brain(
-                    [
-                      {
-                        role: "user",
-                        content: correctionPrompt(request, authored.value, check),
-                      },
-                    ],
-                    () => {},
-                    controller.signal,
-                  );
-                  if (corrected.ok && corrected.text.trim()) {
-                    const retry = checkContent(corrected.text, constraints);
-                    // Keep the rewrite only when it is genuinely closer. A
-                    // "correction" that overshoots by more than the original
-                    // undershot is not an improvement.
-                    if (retry.ok || betterOf(check, retry)) {
-                      checked.call.arguments = {
-                        ...(checked.call.arguments ?? {}),
-                        [authored.field]: corrected.text.trim(),
-                      };
-                    }
-                    push({
-                      id: `c2${Date.now()}${entries.length}`,
-                      kind: retry.ok ? "done" : "problem",
-                      label: "Length",
-                      detail: retry.ok
-                        ? `Now ${retry.results[0]?.actual} ${retry.results[0]?.constraint.unit}s.`
-                        : `Still ${retry.shortfall}. Writing it anyway.`,
-                      verified: retry.ok,
-                    });
-                  }
                 }
               }
+            }
 
-              const tool = findTool(checked.call.name);
-              setPhase(tool?.mutating ? "controlling" : "observing");
-              try {
-                const outcome = await runControlActionFn({
-                  data: {
-                    missionId,
-                    tool: checked.call.name,
-                    args: (checked.call.arguments ?? {}) as Record<string, unknown>,
-                    // A `high` action only reaches here after `permit` returned
-                    // true, and the server checks that claim against the tool's
-                    // own band rather than trusting this flag on its own.
-                    confirmed: tool?.risk === "high",
-                  },
-                });
-                return {
-                  kind: outcome.kind as ToolOutcome["kind"],
-                  detail: outcome.detail,
-                  verified: outcome.verified,
-                  observation: outcome.observation,
-                  elapsedMs: outcome.elapsedMs,
-                };
-              } catch (cause) {
-                return {
-                  kind: "retryable_failure",
-                  detail:
-                    cause instanceof Error
-                      ? cause.message
-                      : "That action could not be carried out.",
-                };
+            const tool = findTool(checked.call.name);
+            setPhase(tool?.mutating ? "controlling" : "observing");
+            try {
+              const outcome = await runControlActionFn({
+                data: {
+                  missionId,
+                  tool: checked.call.name,
+                  args: (checked.call.arguments ?? {}) as Record<string, unknown>,
+                  // A `high` action only reaches here after `permit` returned
+                  // true, and the server checks that claim against the tool's
+                  // own band rather than trusting this flag on its own.
+                  confirmed: tool?.risk === "high",
+                },
+              });
+              return {
+                kind: outcome.kind as ToolOutcome["kind"],
+                detail: outcome.detail,
+                verified: outcome.verified,
+                observation: outcome.observation,
+                elapsedMs: outcome.elapsedMs,
+              };
+            } catch (cause) {
+              return {
+                kind: "retryable_failure",
+                detail:
+                  cause instanceof Error ? cause.message : "That action could not be carried out.",
+              };
+            }
+          },
+          onEvent: (event) => {
+            if (event.kind === "tool_start") {
+              push({
+                id: `s${Date.now()}${entries.length}`,
+                kind: "acting",
+                label: describeTool(event.call.name),
+                detail: "",
+              });
+            } else if (event.kind === "tool_end") {
+              push({
+                id: `e${Date.now()}${entries.length}`,
+                kind: event.outcome.kind === "success" ? "done" : "problem",
+                label: describeTool(event.call.name),
+                detail: event.outcome.detail,
+                verified: event.outcome.verified,
+              });
+              /*
+               * A TOOL THAT CHANGED WHAT OCADE KNOWS INVALIDATES THE PROMPT
+               * IT IS ABOUT TO BUILD, so the context is re-read here.
+               *
+               * Only for the writes, and only on success — re-reading after
+               * every `memory_recall` would add a round trip to the one tool
+               * whose whole job is being cheap. Fire-and-forget on purpose:
+               * the loop must not wait on a refresh, and a failed one leaves
+               * the previous context in place, which is stale rather than
+               * wrong.
+               */
+              if (
+                event.outcome.kind === "success" &&
+                MEMORY_WRITES.has(event.call.name) &&
+                missionRef.current
+              ) {
+                void refreshMemory(missionRef.current);
               }
-            },
-            onEvent: (event) => {
-              if (event.kind === "tool_start") {
-                push({
-                  id: `s${Date.now()}${entries.length}`,
-                  kind: "acting",
-                  label: describeTool(event.call.name),
-                  detail: "",
-                });
-              } else if (event.kind === "tool_end") {
-                push({
-                  id: `e${Date.now()}${entries.length}`,
-                  kind: event.outcome.kind === "success" ? "done" : "problem",
-                  label: describeTool(event.call.name),
-                  detail: event.outcome.detail,
-                  verified: event.outcome.verified,
-                });
-                /*
-                 * A TOOL THAT CHANGED WHAT OCADE KNOWS INVALIDATES THE PROMPT
-                 * IT IS ABOUT TO BUILD, so the context is re-read here.
-                 *
-                 * Only for the writes, and only on success — re-reading after
-                 * every `memory_recall` would add a round trip to the one tool
-                 * whose whole job is being cheap. Fire-and-forget on purpose:
-                 * the loop must not wait on a refresh, and a failed one leaves
-                 * the previous context in place, which is stale rather than
-                 * wrong.
-                 */
-                if (
-                  event.outcome.kind === "success" &&
-                  MEMORY_WRITES.has(event.call.name) &&
-                  missionRef.current
-                ) {
-                  void refreshMemory(missionRef.current);
-                }
-              } else if (event.kind === "refused") {
-                push({
-                  id: `x${Date.now()}${entries.length}`,
-                  kind: "refused",
-                  label: describeTool(event.call.name),
-                  detail: event.reason,
-                });
-              }
-            },
+            } else if (event.kind === "refused") {
+              push({
+                id: `x${Date.now()}${entries.length}`,
+                kind: "refused",
+                label: describeTool(event.call.name),
+                detail: event.reason,
+              });
+            }
+          },
         };
 
         const taskInput = {
-            request: remainingWork ?? request,
-            signal: controller.signal,
-            revision,
-            /*
-             * A RECOVERY IS NOT A REQUEST TO BE CLASSIFIED.
-             *
-             * The brief was written here, three lines up, for one purpose: look
-             * at the screen and carry on. Sending it to the classifier asks a
-             * 3B model a question this code already knows the answer to, and a
-             * classifier that fails falls back to `conversation` — no tools at
-             * all — which turns the recovery into OCADE describing what it
-             * would have done. `files` and `web` ride along because the step
-             * that failed can be in any of the three, and the recovery has to
-             * be able to finish the original request rather than only look.
-             */
-            ...(recovering ? { domains: ["os_app", "files", "web"] as Domain[] } : {}),
-            /*
-             * WHAT OCADE ALREADY KNOWS ABOUT THIS PERSON, INTO THE PROMPT.
-             *
-             * Read from the ref rather than captured in state so a `remember`
-             * earlier in this same conversation is present on this turn — the
-             * `tool_end` handler refreshes it the moment a memory tool writes.
-             * Without that, "my name is Alex" followed immediately by "what
-             * should you call me" answered from an empty context.
-             */
-            memoryContext: memoryRef.current,
+          request: remainingWork ?? request,
+          signal: controller.signal,
+          revision,
+          /*
+           * A RECOVERY IS NOT A REQUEST TO BE CLASSIFIED.
+           *
+           * The brief was written here, three lines up, for one purpose: look
+           * at the screen and carry on. Sending it to the classifier asks a
+           * 3B model a question this code already knows the answer to, and a
+           * classifier that fails falls back to `conversation` — no tools at
+           * all — which turns the recovery into OCADE describing what it
+           * would have done. `files` and `web` ride along because the step
+           * that failed can be in any of the three, and the recovery has to
+           * be able to finish the original request rather than only look.
+           */
+          ...(recovering ? { domains: ["os_app", "files", "web"] as Domain[] } : {}),
+          /*
+           * WHAT OCADE ALREADY KNOWS ABOUT THIS PERSON, INTO THE PROMPT.
+           *
+           * Read from the ref rather than captured in state so a `remember`
+           * earlier in this same conversation is present on this turn — the
+           * `tool_end` handler refreshes it the moment a memory tool writes.
+           * Without that, "my name is Alex" followed immediately by "what
+           * should you call me" answered from an empty context.
+           */
+          memoryContext: memoryRef.current,
         };
 
         /*

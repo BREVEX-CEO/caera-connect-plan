@@ -106,8 +106,7 @@ export interface VerifyInput {
 }
 
 export type VerifyOutcome =
-  | { ok: true }
-  | { ok: false; reason: "no_expected_digest" | "digest_mismatch"; detail: string };
+  { ok: true } | { ok: false; reason: "no_expected_digest" | "digest_mismatch"; detail: string };
 
 /**
  * Decide whether a downloaded installer may be run. Pure, so it is testable.
@@ -189,7 +188,11 @@ export async function installRuntime(deps: InstallDeps): Promise<InstallResult> 
     bytes = got.bytes;
     finalUrl = got.finalUrl;
   } catch {
-    return { ok: false, reason: "download_failed", detail: "Setup could not finish. It will try again." };
+    return {
+      ok: false,
+      reason: "download_failed",
+      detail: "Setup could not finish. It will try again.",
+    };
   }
 
   // Re-check after redirects: a pinned URL that follows a hop to anywhere is
@@ -211,12 +214,20 @@ export async function installRuntime(deps: InstallDeps): Promise<InstallResult> 
     code = await deps.run(path, source.silentArgs);
   } catch {
     await deps.remove(path).catch(() => {});
-    return { ok: false, reason: "run_failed", detail: "Setup could not finish. It will try again." };
+    return {
+      ok: false,
+      reason: "run_failed",
+      detail: "Setup could not finish. It will try again.",
+    };
   }
   await deps.remove(path).catch(() => {});
 
   if (code !== 0) {
-    return { ok: false, reason: "installer_failed", detail: "Setup could not finish. It will try again." };
+    return {
+      ok: false,
+      reason: "installer_failed",
+      detail: "Setup could not finish. It will try again.",
+    };
   }
   deps.onProgress?.(100);
   return { ok: true, detail: "Setup finished." };

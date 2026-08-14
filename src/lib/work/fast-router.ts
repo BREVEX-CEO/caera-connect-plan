@@ -1579,7 +1579,9 @@ export function routeDirect(request: string): DirectRoute | null {
   }
 
   const watch =
-    /^(?:watch|follow|keep an eye on|track)\s+(?:the\s+)?(?:news (?:on|about)\s+)?(.+)$/i.exec(text);
+    /^(?:watch|follow|keep an eye on|track)\s+(?:the\s+)?(?:news (?:on|about)\s+)?(.+)$/i.exec(
+      text,
+    );
   if (watch && !/\b(?:my screen|the screen|this window)\b/i.test(lower)) {
     const topic = requireText(watch[1]);
     if (topic) {
@@ -1590,7 +1592,9 @@ export function routeDirect(request: string): DirectRoute | null {
       };
     }
   }
-  if (/\b(?:anything new|any news for me|check (?:my )?topics|what(?:'?s| is) new)\b/i.test(lower)) {
+  if (
+    /\b(?:anything new|any news for me|check (?:my )?topics|what(?:'?s| is) new)\b/i.test(lower)
+  ) {
     return {
       calls: [{ name: "topic_check", arguments: {} }],
       say: "Checking what you follow.",

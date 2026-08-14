@@ -273,10 +273,9 @@ const OS_APP: ToolDefinition[] = [
     domain: "os_app",
     description:
       "Type a message into the open WhatsApp conversation WITHOUT sending it. The user can read it before anything goes out.",
-    parameters: object(
-      { message: { type: "string", description: "Exactly what to type." } },
-      ["message"],
-    ),
+    parameters: object({ message: { type: "string", description: "Exactly what to type." } }, [
+      "message",
+    ]),
     mutating: true,
     risk: "low",
   },
@@ -341,7 +340,10 @@ const OS_APP: ToolDefinition[] = [
       "Read and understand a document — PDF, Word, Excel, CSV or text — from an approved folder, and return its contents as readable text. Use this to answer questions about a file's contents. For plain byte reads use file_read.",
     parameters: object(
       {
-        folder: { type: "string", description: "Approved folder, e.g. 'documents' or 'downloads'." },
+        folder: {
+          type: "string",
+          description: "Approved folder, e.g. 'documents' or 'downloads'.",
+        },
         name: { type: "string", description: "The file name." },
       },
       ["folder", "name"],
@@ -396,10 +398,14 @@ const OS_APP: ToolDefinition[] = [
         id: { type: "number", description: "The element's number from screen_map." },
         action: { type: "string", description: "What to do.", enum: ["click", "type", "read"] },
         text: { type: "string", description: "For 'type': exactly what to type." },
-        token: { type: "string", description: "The token screen_map returned. Proves the numbering is current." },
+        token: {
+          type: "string",
+          description: "The token screen_map returned. Proves the numbering is current.",
+        },
         submit: {
           type: "string",
-          description: "'yes' presses Enter after typing — only if the text is confirmed on screen.",
+          description:
+            "'yes' presses Enter after typing — only if the text is confirmed on screen.",
           enum: ["yes", "no"],
         },
       },
@@ -416,7 +422,10 @@ const OS_APP: ToolDefinition[] = [
     parameters: object(
       {
         folder: { type: "string", description: "Approved folder, e.g. 'documents'." },
-        pattern: { type: "string", description: "Optional glob, e.g. '*.pdf'. Defaults to everything." },
+        pattern: {
+          type: "string",
+          description: "Optional glob, e.g. '*.pdf'. Defaults to everything.",
+        },
       },
       ["folder"],
     ),
@@ -637,7 +646,8 @@ const OS_APP: ToolDefinition[] = [
       {
         field: {
           type: "string",
-          description: "The field to type in, described as you would to a person, e.g. 'search box'.",
+          description:
+            "The field to type in, described as you would to a person, e.g. 'search box'.",
         },
         text: { type: "string", description: "Exactly what to type." },
         submit: {
@@ -670,7 +680,8 @@ const OS_APP: ToolDefinition[] = [
         windowTitle: { type: "string", description: "Optional. Defaults to the focused window." },
         allowVision: {
           type: "string",
-          description: "Set to 'yes' ONLY for a window with no controls and no readable text. Slow.",
+          description:
+            "Set to 'yes' ONLY for a window with no controls and no readable text. Slow.",
           enum: ["yes", "no"],
         },
       },
@@ -1033,8 +1044,7 @@ const OS_APP: ToolDefinition[] = [
   {
     name: "clipboard_write",
     domain: "os_app",
-    description:
-      "Put text on the clipboard so the user can paste it. Replaces whatever was there.",
+    description: "Put text on the clipboard so the user can paste it. Replaces whatever was there.",
     parameters: object({ text: { type: "string", description: "The text to copy." } }, ["text"]),
     mutating: true,
     risk: "low",
@@ -1343,7 +1353,8 @@ const FILES: ToolDefinition[] = [
         match: { type: "string", description: "Part of the file name to look for." },
         extension: {
           type: "string",
-          description: "Optional file extension to filter by, e.g. '.pdf'. Use with or without match.",
+          description:
+            "Optional file extension to filter by, e.g. '.pdf'. Use with or without match.",
         },
       },
       ["folder"],
@@ -1376,8 +1387,7 @@ const FILES: ToolDefinition[] = [
   {
     name: "disk_usage",
     domain: "files",
-    description:
-      "How much disk space is used and free. Use this for 'am I running out of space'.",
+    description: "How much disk space is used and free. Use this for 'am I running out of space'.",
     parameters: object({
       folder: { type: "string", description: "Optional. Which drive or folder to measure." },
     }),
@@ -1853,7 +1863,10 @@ const CONTINUITY: ToolDefinition[] = [
       "Read or change who the user is — their name, how to address them (Sir/Mam), their city, their language — and what the assistant itself is called. Takes effect on the very next reply. Pass an empty assistantName to go back to the default.",
     parameters: object({
       userName: { type: "string", description: "What to call the user." },
-      gender: { type: "string", description: "'male' for Sir, 'female' for Mam, or anything else for neither." },
+      gender: {
+        type: "string",
+        description: "'male' for Sir, 'female' for Mam, or anything else for neither.",
+      },
       city: { type: "string", description: "Where they are, used for weather." },
       language: { type: "string", description: "The language they speak." },
       assistantName: {
@@ -1960,7 +1973,11 @@ const CONTINUITY: ToolDefinition[] = [
       "Follow a subject in the background. OCADE checks it at most once a day and only speaks when the headline actually changes. Call with no topic to list what is being watched.",
     parameters: object({
       topic: { type: "string", description: "The subject to follow. Omit to list." },
-      stop: { type: "string", description: "'yes' to stop watching this topic.", enum: ["yes", "no"] },
+      stop: {
+        type: "string",
+        description: "'yes' to stop watching this topic.",
+        enum: ["yes", "no"],
+      },
     }),
     mutating: true,
     risk: "low",
@@ -2059,9 +2076,34 @@ const ALWAYS_OFFER = ["screen_map", "screen_do", "ui_tree", "app_open"] as const
 
 /** Words too common to indicate anything about which tool is wanted. */
 const NOISE = new Set([
-  "the", "a", "an", "and", "or", "to", "in", "on", "of", "for", "with", "my",
-  "me", "it", "this", "that", "is", "are", "please", "can", "you", "then",
-  "open", "make", "do", "get", "set", "go",
+  "the",
+  "a",
+  "an",
+  "and",
+  "or",
+  "to",
+  "in",
+  "on",
+  "of",
+  "for",
+  "with",
+  "my",
+  "me",
+  "it",
+  "this",
+  "that",
+  "is",
+  "are",
+  "please",
+  "can",
+  "you",
+  "then",
+  "open",
+  "make",
+  "do",
+  "get",
+  "set",
+  "go",
 ]);
 
 function relevance(tool: ToolDefinition, words: readonly string[]): number {
@@ -2093,7 +2135,10 @@ export function selectTools(
   const available = toolsFor(domains);
   if (available.length <= cap) return available;
 
-  const words = request.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const words = request
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
   const ranked = available
     .map((tool) => ({ tool, score: relevance(tool, words) }))
     .sort((a, b) => b.score - a.score);

@@ -696,8 +696,6 @@ def find_contact(hwnd: int, query: str) -> dict[str, Any]:
     # client that filters instantly or too short on a slow web one, and the
     # second case is the dangerous one: reading the list before it filters means
     # matching against the UNFILTERED contacts.
-    from core.uia import snapshot  # noqa: PLC0415
-
     wanted = _normalise(query)
     deadline = time.monotonic() + _FILTER_TIMEOUT
     results: list[dict[str, Any]] = []

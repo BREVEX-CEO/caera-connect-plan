@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { classify, classifyDeterministic, parseClassification, DOMAINS } from "@/lib/agent/domains";
-import { MAX_TOOLS_PER_TURN, schemasFor, toolsFor, findTool, allToolNames } from "@/lib/agent/tool-registry";
+import {
+  MAX_TOOLS_PER_TURN,
+  schemasFor,
+  toolsFor,
+  findTool,
+  allToolNames,
+} from "@/lib/agent/tool-registry";
 import {
   Revision,
   runAgentTask,

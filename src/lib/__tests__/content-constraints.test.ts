@@ -18,9 +18,7 @@ import {
 describe("reading a countable constraint out of an instruction", () => {
   it("reads the phrasing that actually failed", () => {
     const found = parseConstraints("Open Notepad and write a 200-word essay about fast cars");
-    expect(found).toEqual([
-      { unit: "word", kind: "about", count: 200, source: "200-word" },
-    ]);
+    expect(found).toEqual([{ unit: "word", kind: "about", count: 200, source: "200-word" }]);
   });
 
   it.each([

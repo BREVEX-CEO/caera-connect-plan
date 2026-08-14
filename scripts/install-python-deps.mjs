@@ -140,9 +140,7 @@ async function importable(moduleName) {
 /** One pass over every package, so before/after can be compared honestly. */
 async function survey() {
   const state = new Map();
-  await Promise.all(
-    PACKAGES.map(async (pkg) => state.set(pkg.pip, await importable(pkg.imports))),
-  );
+  await Promise.all(PACKAGES.map(async (pkg) => state.set(pkg.pip, await importable(pkg.imports))));
   return state;
 }
 
@@ -158,7 +156,12 @@ function table(rows) {
   const line = (cells, pad = " ") =>
     cells.map((cell, index) => String(cell).padEnd(widths[index], pad)).join("  ");
   console.log(`  ${line(headers)}`);
-  console.log(`  ${line(widths.map((width) => bar(width)), "─")}`);
+  console.log(
+    `  ${line(
+      widths.map((width) => bar(width)),
+      "─",
+    )}`,
+  );
   for (const row of rows) console.log(`  ${line(row)}`);
 }
 

@@ -58,7 +58,9 @@ describe("only a goal with real phases gets decomposed", () => {
 
 describe("a plan is read without trusting the model's formatting", () => {
   it("reads a clean plan", () => {
-    const plan = parsePlan('{"steps":[{"do":"search the web","needs":["web"]},{"do":"type it","needs":["os_app"]}]}');
+    const plan = parsePlan(
+      '{"steps":[{"do":"search the web","needs":["web"]},{"do":"type it","needs":["os_app"]}]}',
+    );
     expect(plan).toEqual([
       { instruction: "search the web", domains: ["web"] },
       { instruction: "type it", domains: ["os_app"] },
@@ -75,7 +77,9 @@ describe("a plan is read without trusting the model's formatting", () => {
   it("gives a step with no usable domains the computer rather than nothing", () => {
     // An empty domain list loads zero tools, which turns an action into a
     // description of an action.
-    const plan = parsePlan('{"steps":[{"do":"click send","needs":["nonsense"]},{"do":"x","needs":[]}]}');
+    const plan = parsePlan(
+      '{"steps":[{"do":"click send","needs":["nonsense"]},{"do":"x","needs":[]}]}',
+    );
     expect(plan?.[0].domains).toEqual(["os_app"]);
     expect(plan?.[1].domains).toEqual(["os_app"]);
   });
@@ -89,14 +93,19 @@ describe("a plan is read without trusting the model's formatting", () => {
   });
 
   it("caps the plan length", () => {
-    const many = Array.from({ length: 20 }, (_, i) => `{"do":"step ${i}","needs":["os_app"]}`).join(",");
+    const many = Array.from({ length: 20 }, (_, i) => `{"do":"step ${i}","needs":["os_app"]}`).join(
+      ",",
+    );
     expect(parsePlan(`{"steps":[${many}]}`)!.length).toBe(MAX_STEPS);
   });
 });
 
 describe("a step's verbose internals never reach the next step", () => {
   it("trims a long closing sentence to something a planner can hold", () => {
-    const long = { text: `${"This step did a thing. ".repeat(40)}`, steps: [] } as unknown as AgentResult;
+    const long = {
+      text: `${"This step did a thing. ".repeat(40)}`,
+      steps: [],
+    } as unknown as AgentResult;
     expect(summarise(long).length).toBeLessThanOrEqual(241);
   });
 
@@ -119,7 +128,8 @@ describe("a step's verbose internals never reach the next step", () => {
      */
     const BOUNDING_BOX_NOISE = `{"targets":[${Array.from(
       { length: 40 },
-      (_, i) => `{"label":"row ${i}","bounds":{"x":${i * 13},"y":${i * 7},"width":220,"height":34},"confidence":0.82}`,
+      (_, i) =>
+        `{"label":"row ${i}","bounds":{"x":${i * 13},"y":${i * 7},"width":220,"height":34},"confidence":0.82}`,
     ).join(",")}]}`;
 
     const seenRequests: string[] = [];
@@ -129,7 +139,10 @@ describe("a step's verbose internals never reach the next step", () => {
       complete: async () =>
         '{"steps":[{"do":"find the chat","needs":["os_app"]},{"do":"type the message","needs":["os_app"]}]}',
       turn: async (messages: { role: string; content: string }[]) => {
-        const user = messages.filter((m) => m.role === "user").map((m) => m.content).join("\n");
+        const user = messages
+          .filter((m) => m.role === "user")
+          .map((m) => m.content)
+          .join("\n");
         seenRequests.push(user);
         turn += 1;
         return turn === 1
@@ -162,7 +175,12 @@ describe("a step's verbose internals never reach the next step", () => {
       complete: async () =>
         '{"steps":[{"do":"open the chat","needs":["os_app"]},{"do":"send it","needs":["os_app"]}]}',
       turn: async (messages: { role: string; content: string }[]) => {
-        seen.push(messages.filter((m) => m.role === "user").map((m) => m.content).join("\n"));
+        seen.push(
+          messages
+            .filter((m) => m.role === "user")
+            .map((m) => m.content)
+            .join("\n"),
+        );
         turn += 1;
         if (turn === 1) throw new Error("no conversation called that appeared");
         return { text: "Reported the problem.", toolCalls: [] };

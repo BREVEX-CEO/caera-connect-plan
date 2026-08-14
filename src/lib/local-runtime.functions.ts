@@ -61,8 +61,8 @@ async function deps() {
  * That is the right question for an operation bound to loopback, and it is
  * answerable with the network down.
  */
-export const startLocalRuntimeFn = createServerFn({ method: "POST" })
-  .handler(async (): Promise<SupervisorResult<StartOutcome>> => {
+export const startLocalRuntimeFn = createServerFn({ method: "POST" }).handler(
+  async (): Promise<SupervisorResult<StartOutcome>> => {
     const { authoriseControl } = await import("@/lib/agent/control-access.node");
     const access = await authoriseControl();
     if (!access.ok) {
@@ -76,7 +76,8 @@ export const startLocalRuntimeFn = createServerFn({ method: "POST" })
       // respected rather than silently overwritten.
       ambientEnv: process.env,
     });
-  });
+  },
+);
 
 /**
  * Install the local engine runtime when the machine has never had one.
@@ -89,17 +90,18 @@ export const startLocalRuntimeFn = createServerFn({ method: "POST" })
  * pure: every dangerous operation (fetch, write, spawn) is injected, so the
  * refusals can be tested without a network and without executing anything.
  */
-export const installLocalRuntimeFn = createServerFn({ method: "POST" })
-  .handler(async (): Promise<{ ok: boolean; detail: string; reason?: string }> => {
-    const [{ installRuntime }, nodeCrypto, nodeFs, nodeOs, nodePath, nodeChild] =
-      await Promise.all([
+export const installLocalRuntimeFn = createServerFn({ method: "POST" }).handler(
+  async (): Promise<{ ok: boolean; detail: string; reason?: string }> => {
+    const [{ installRuntime }, nodeCrypto, nodeFs, nodeOs, nodePath, nodeChild] = await Promise.all(
+      [
         import("@/lib/local/runtime-installer"),
         import("node:crypto"),
         import("node:fs/promises"),
         import("node:os"),
         import("node:path"),
         import("node:child_process"),
-      ]);
+      ],
+    );
 
     return installRuntime({
       platform: process.platform,
@@ -137,7 +139,10 @@ export const installLocalRuntimeFn = createServerFn({ method: "POST" })
         }
       },
       writeTemp: async (fileName, bytes) => {
-        const target = nodePath.join(await nodeFs.mkdtemp(nodePath.join(nodeOs.tmpdir(), "ocade-")), fileName);
+        const target = nodePath.join(
+          await nodeFs.mkdtemp(nodePath.join(nodeOs.tmpdir(), "ocade-")),
+          fileName,
+        );
         await nodeFs.writeFile(target, Buffer.from(bytes));
         return target;
       },
@@ -151,16 +156,18 @@ export const installLocalRuntimeFn = createServerFn({ method: "POST" })
         await nodeFs.rm(path, { force: true }).catch(() => {});
       },
     });
-  });
+  },
+);
 
-export const stopLocalRuntimeFn = createServerFn({ method: "POST" })
-  .handler(async (): Promise<SupervisorResult<StopOutcome>> => {
+export const stopLocalRuntimeFn = createServerFn({ method: "POST" }).handler(
+  async (): Promise<SupervisorResult<StopOutcome>> => {
     return stopRuntime(await deps(), {
       bind: BIND,
       timeoutMs: STOP_TIMEOUT_MS,
       pollMs: POLL_MS,
     });
-  });
+  },
+);
 
 export interface LocalRuntimeStatus {
   baseUrl: string;
@@ -169,15 +176,19 @@ export interface LocalRuntimeStatus {
   binaryFound: boolean;
 }
 
-export const localRuntimeStatusFn = createServerFn({ method: "GET" })
-  .handler(async (): Promise<LocalRuntimeStatus> => {
+export const localRuntimeStatusFn = createServerFn({ method: "GET" }).handler(
+  async (): Promise<LocalRuntimeStatus> => {
     // Same reasoning as the start/stop pair above: asking whether a loopback
     // engine is running is not a question the cloud can answer, and it is one
     // first run must be able to ask with the network down.
     const { authoriseControl } = await import("@/lib/agent/control-access.node");
     const access = await authoriseControl();
     if (!access.ok) {
-      return { baseUrl: runtimeBaseUrl({ host: LOOPBACK_HOST, port: DEFAULT_RUNTIME_PORT }), running: false, binaryFound: false };
+      return {
+        baseUrl: runtimeBaseUrl({ host: LOOPBACK_HOST, port: DEFAULT_RUNTIME_PORT }),
+        running: false,
+        binaryFound: false,
+      };
     }
     const { probeRuntime, findEngineBinary } = await import("@/lib/local/runtime-supervisor.node");
     const baseUrl = runtimeBaseUrl({ host: LOOPBACK_HOST, port: DEFAULT_RUNTIME_PORT });
@@ -186,4 +197,5 @@ export const localRuntimeStatusFn = createServerFn({ method: "GET" })
     // absolute path, and the client only needs to know whether the engine is
     // installed, not where someone's home directory is.
     return { baseUrl, running, binaryFound: binary !== null };
-  });
+  },
+);

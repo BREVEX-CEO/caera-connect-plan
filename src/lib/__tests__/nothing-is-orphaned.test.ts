@@ -33,10 +33,7 @@ import { join } from "node:path";
 
 const ROOT = process.cwd();
 
-const BRIDGE = readFileSync(
-  join(ROOT, "native/ocade_control_engine/ocade_bridge.py"),
-  "utf8",
-);
+const BRIDGE = readFileSync(join(ROOT, "native/ocade_control_engine/ocade_bridge.py"), "utf8");
 const REMOTE = readFileSync(join(ROOT, "native/ocade_control_engine/core/remote.py"), "utf8");
 const REGISTRY = readFileSync(join(ROOT, "src/lib/agent/tool-registry.ts"), "utf8");
 const ADAPTERS = readFileSync(join(ROOT, "src/lib/agent/adapters.node.ts"), "utf8");
@@ -125,10 +122,7 @@ describe("every tool the model can see actually runs", () => {
     const names = [...REGISTRY.matchAll(/name:\s*"(\w+)"/g)].map((m) => m[1]);
     expect(names.length).toBeGreaterThan(50);
     const missing = names.filter((name) => !ADAPTERS.includes(`case "${name}":`));
-    expect(
-      missing,
-      `offered to the model but not implemented: ${missing.join(", ")}`,
-    ).toEqual([]);
+    expect(missing, `offered to the model but not implemented: ${missing.join(", ")}`).toEqual([]);
   });
 
   it("registers every tool exactly once", () => {

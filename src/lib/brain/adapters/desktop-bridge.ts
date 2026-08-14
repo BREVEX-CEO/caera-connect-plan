@@ -257,33 +257,33 @@ export class DesktopBridgeAdapter implements BrainAdapter {
     let result: Awaited<ReturnType<typeof streamLocalChat>>;
     try {
       result = await streamLocalChat(
-      this.bridgeUrl,
-      route.model.id,
-      messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-        ...(m.images?.length ? { images: m.images } : {}),
-      })),
-      {
-        signal,
-        think: handlers.think,
-        // The function-call channel. Absent for Chat, present for Control +
-        // Work, where a parseable action matters more than anything else.
-        ...(handlers.tools?.length ? { tools: handlers.tools as never } : {}),
-        ...(handlers.onToolCall ? { onToolCall: handlers.onToolCall } : {}),
-        // The measured total, so the context window is sized to this machine
-        // rather than to the smallest ceiling. Omitted when the device could
-        // not be measured, which deliberately keeps the smallest ceiling.
-        ...(this.policy().totalRamBytes ? { totalRamBytes: this.policy().totalRamBytes } : {}),
-        onToken: (chunk) => {
-          if (firstTokenMs === null) firstTokenMs = Date.now() - startedAt;
-          // Progress resets the clock. This is what makes a long-but-healthy
-          // generation different from a stall: an essay that keeps streaming
-          // re-arms the deadline on every chunk and is never cut off.
-          arm(BETWEEN_TOKEN_TIMEOUT_MS, "mid-stream");
-          handlers.onToken(chunk);
+        this.bridgeUrl,
+        route.model.id,
+        messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+          ...(m.images?.length ? { images: m.images } : {}),
+        })),
+        {
+          signal,
+          think: handlers.think,
+          // The function-call channel. Absent for Chat, present for Control +
+          // Work, where a parseable action matters more than anything else.
+          ...(handlers.tools?.length ? { tools: handlers.tools as never } : {}),
+          ...(handlers.onToolCall ? { onToolCall: handlers.onToolCall } : {}),
+          // The measured total, so the context window is sized to this machine
+          // rather than to the smallest ceiling. Omitted when the device could
+          // not be measured, which deliberately keeps the smallest ceiling.
+          ...(this.policy().totalRamBytes ? { totalRamBytes: this.policy().totalRamBytes } : {}),
+          onToken: (chunk) => {
+            if (firstTokenMs === null) firstTokenMs = Date.now() - startedAt;
+            // Progress resets the clock. This is what makes a long-but-healthy
+            // generation different from a stall: an essay that keeps streaming
+            // re-arms the deadline on every chunk and is never cut off.
+            arm(BETWEEN_TOKEN_TIMEOUT_MS, "mid-stream");
+            handlers.onToken(chunk);
+          },
         },
-      },
       );
     } finally {
       if (timer) clearTimeout(timer);
