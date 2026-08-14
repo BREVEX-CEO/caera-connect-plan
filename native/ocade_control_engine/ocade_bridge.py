@@ -3308,6 +3308,61 @@ def _type_into_conversation(hwnd: int, body: str) -> dict:
     return {"verified": landed, "readback": current()[:200]}
 
 
+def screen_map(payload: dict) -> dict:
+    """Number everything actionable on screen so the model can pick, not guess.
+
+    The whole point of the numbering is that an id can be checked against a
+    real list; a coordinate cannot be checked against anything.
+    """
+    from core.screen_map import map_screen  # noqa: PLC0415
+
+    window = payload.get("windowTitle") or payload.get("hwnd")
+    try:
+        hwnd = _target_window(window) if window else _target_window(None)
+    except Refusal:
+        hwnd = None
+    allow = payload.get("includeText")
+    result = map_screen(
+        hwnd,
+        include_ocr=True if allow is True else False if allow is False else None,
+        limit=int(payload.get("limit") or 60),
+    )
+    if hwnd:
+        _remember(hwnd)
+    return result
+
+
+def screen_do(payload: dict) -> dict:
+    """CLICK 5 / TYPE 3 "hello" / READ 12, against the last numbering."""
+    from core.screen_map import MapExpired, act_on_id  # noqa: PLC0415
+
+    action = need_text(payload.get("action"), "action", 20).lower()
+    raw = payload.get("id")
+    if not isinstance(raw, (int, float)):
+        raise Refusal("An action needs the number of the element to act on.", "unsupported")
+
+    body = str(payload.get("text") or "")
+    if action == "type" and is_protected_text(body):
+        raise Refusal(
+            "That looks like a password, a one-time code or a payment detail. OCADE "
+            "does not type those.",
+            "protected",
+        )
+
+    try:
+        return act_on_id(
+            int(raw),
+            action,
+            token=str(payload.get("token") or "") or None,
+            text=body,
+            submit=payload.get("submit") is True,
+        )
+    except MapExpired as error:
+        raise Refusal(str(error), "state_changed") from error
+    except ValueError as error:
+        raise Refusal(str(error), "unsupported") from error
+
+
 def message_resolve_target(payload: dict) -> dict:
     """Split an ambiguous phrase into a real contact and the words to send.
 
@@ -3453,6 +3508,8 @@ HANDLERS: dict[str, Callable[[dict], dict]] = {
     "message.draft": message_draft,
     "message.findcontact": message_find_contact,
     "message.resolve": message_resolve_target,
+    "screen.map": screen_map,
+    "screen.do": screen_do,
     "message.to": message_to,
     "message.contacts": message_visible_contacts,
     "message.send": message_send,

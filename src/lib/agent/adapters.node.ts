@@ -270,6 +270,10 @@ export class OcadeAdapters {
         return this.simple("file.read", { folder: text(a.folder, "folder"), name: text(a.name, "name") }, "That document could not be read.");
       case "setup_status":
         return this.simple("setup.status", {}, "Setup status is unavailable.");
+      case "screen_map":
+        return this.simple("screen.map", { windowTitle: typeof a.windowTitle === "string" ? a.windowTitle : undefined, includeText: a.includeText === "yes" ? true : a.includeText === "no" ? false : undefined }, "The screen could not be mapped.", 45_000);
+      case "screen_do":
+        return this.simple("screen.do", { id: typeof a.id === "number" ? a.id : Number(a.id), action: text(a.action, "action"), text: typeof a.text === "string" ? a.text : undefined, token: typeof a.token === "string" ? a.token : undefined, submit: a.submit === "yes" }, "That action was not completed.", 45_000);
       case "file_list":
         return this.simple("file.list", { folder: text(a.folder, "folder"), pattern: typeof a.pattern === "string" ? a.pattern : undefined }, "That folder could not be listed.");
       case "clipboard_watch":

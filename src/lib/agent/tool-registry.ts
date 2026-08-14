@@ -359,6 +359,56 @@ const OS_APP: ToolDefinition[] = [
     risk: "read",
   },
   {
+    name: "screen_map",
+    domain: "os_app",
+    /*
+     * THE ANSWER TO "WHERE DO I CLICK", AND IT IS NOT A COORDINATE.
+     *
+     * Measured here: asking a vision model for a pixel took a median 138 s and
+     * put 0 of 4 answers inside the screen. Asking it to pick item 5 from a
+     * list of real elements is instant and cannot be hallucinated, because the
+     * id is checked against the list before anything moves.
+     */
+    description:
+      "Number every element you can act on in a window — buttons, fields, menu items, list rows — and get them back as a numbered list. ALWAYS call this before screen_do. Fast: it reads the accessibility tree first and only falls back to reading screen text when a window publishes almost nothing.",
+    parameters: object(
+      {
+        windowTitle: { type: "string", description: "Optional. Defaults to the focused window." },
+        includeText: {
+          type: "string",
+          description:
+            "'yes' forces reading screen text as well, for a window that draws its own controls. Slower. Leave unset to decide automatically.",
+          enum: ["yes", "no"],
+        },
+      },
+      [],
+    ),
+    mutating: false,
+    risk: "read",
+  },
+  {
+    name: "screen_do",
+    domain: "os_app",
+    description:
+      "Act on one numbered element from screen_map: click it, type into it, or read it. Pass the id and the token from the map. Every action is checked afterwards by looking at the screen again, and reports confirmed, failed, or unverified — never a success it could not see.",
+    parameters: object(
+      {
+        id: { type: "number", description: "The element's number from screen_map." },
+        action: { type: "string", description: "What to do.", enum: ["click", "type", "read"] },
+        text: { type: "string", description: "For 'type': exactly what to type." },
+        token: { type: "string", description: "The token screen_map returned. Proves the numbering is current." },
+        submit: {
+          type: "string",
+          description: "'yes' presses Enter after typing — only if the text is confirmed on screen.",
+          enum: ["yes", "no"],
+        },
+      },
+      ["id", "action"],
+    ),
+    mutating: true,
+    risk: "medium",
+  },
+  {
     name: "file_list",
     domain: "files",
     description:
