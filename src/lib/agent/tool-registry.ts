@@ -297,6 +297,36 @@ const OS_APP: ToolDefinition[] = [
     risk: "high",
   },
   {
+    name: "message_to",
+    domain: "os_app",
+    /*
+     * ONE TOOL FOR "MESSAGE <SOMEBODY> <SOMETHING>", BECAUSE THE SPLIT NEEDS EYES.
+     *
+     * "message meta ai hi" carries no separator between the recipient and the
+     * words. Where one ends and the other begins depends on who exists in this
+     * person's contact list, which is knowable only by looking at the screen.
+     * A caller that had to supply `contact` and `message` separately would have
+     * to guess -- and guessing is what put a whole instruction into somebody's
+     * chat window.
+     *
+     * So this takes the raw phrase and does the looking itself.
+     */
+    description:
+      "Message somebody when you are not sure where their name ends and the message begins. Pass the whole phrase, e.g. 'meta ai hi' or 'mummy I will be late'. OCADE reads the conversation list on screen, works out which contact the phrase starts with, opens that chat and types the rest. Nothing is sent. Use this instead of message_find_contact whenever the recipient and the text arrive together in one phrase.",
+    parameters: object(
+      {
+        phrase: {
+          type: "string",
+          description: "The recipient and message together, exactly as the user said it.",
+        },
+        windowTitle: { type: "string", description: "Optional. Defaults to the focused window." },
+      },
+      ["phrase"],
+    ),
+    mutating: true,
+    risk: "medium",
+  },
+  {
     name: "message_find_contact",
     domain: "os_app",
     /*

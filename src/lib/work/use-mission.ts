@@ -233,6 +233,7 @@ const SPOKEN: Record<string, string> = {
   whatsapp_type: "Writing the message",
   whatsapp_send: "Sending the message",
   message_find_contact: "Opening a conversation",
+  message_to: "Finding who you meant, then writing",
   screen_find: "Looking for something on screen",
   // Named for what the user will SEE happen — their pointer moving — rather
   // than for the mechanism. This is the one action that does that.

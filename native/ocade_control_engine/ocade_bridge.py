@@ -3182,6 +3182,168 @@ def message_send(payload: dict) -> dict:
         raise Refusal(str(error), "refused") from error
 
 
+def message_to(payload: dict) -> dict:
+    """One atomic action: work out who, open that chat, type the words.
+
+    WHY THIS IS ONE CALL AND NOT THREE.
+    ------------------------------------
+    "message meta ai hi" cannot be split before the screen has been read, and
+    the router that receives the sentence is a pure function with no eyes. If
+    it emitted three separate calls it would have to guess the contact to fill
+    in the second one -- which is the original bug.
+
+    So the whole sequence lives here, next to the screen: resolve the phrase
+    against the live conversation list, open the chat that actually matched,
+    then type the remainder into that conversation. Nothing is SENT; the words
+    sit in the box for a person to look at.
+
+    Every step is verified against the screen before the next one runs, and a
+    step that cannot be confirmed stops the sequence rather than continuing on
+    an assumption.
+    """
+    from core.messaging import (  # noqa: PLC0415
+        MessageRefused,
+        find_contact,
+        resolve_target,
+    )
+
+    hwnd = _target_window(payload.get("windowTitle") or payload.get("hwnd"))
+    phrase = need_text(payload.get("phrase"), "phrase", 400)
+
+    try:
+        split = resolve_target(hwnd, phrase)
+        opened = find_contact(hwnd, split["contact"])
+    except MessageRefused as error:
+        raise Refusal(str(error), "refused") from error
+
+    steps = [
+        {"step": "resolve", "contact": split["contact"], "payload": split["payload"], "how": split["how"]},
+        {"step": "open", "contact": opened.get("contact"), "verified": opened.get("verified")},
+    ]
+
+    body = (split.get("payload") or "").strip()
+    if not body:
+        return {
+            "contact": split["contact"],
+            "typed": False,
+            "steps": steps,
+            "verified": bool(opened.get("verified")),
+            "detail": (
+                f"Opened the conversation with {split['contact']}. No message text was given, "
+                "so nothing was typed."
+            ),
+        }
+
+    if is_protected_text(body):
+        raise Refusal(
+            "That looks like a password, a one-time code or a payment detail. OCADE does "
+            "not put those in a message.",
+            "protected",
+        )
+
+    typed = _type_into_conversation(hwnd, body)
+    steps.append({"step": "type", "characters": len(body), "verified": typed.get("verified")})
+
+    return {
+        "contact": split["contact"],
+        "message": body,
+        "typed": True,
+        "sent": False,
+        "steps": steps,
+        "verified": bool(typed.get("verified")),
+        "detail": (
+            f"Opened {split['contact']} and typed {len(body)} characters. Nothing was sent."
+            if typed.get("verified")
+            else (
+                f"Opened {split['contact']}, but the text could not be confirmed in the "
+                f"message box. Reported as unverified rather than done."
+            )
+        ),
+    }
+
+
+def _type_into_conversation(hwnd: int, body: str) -> dict:
+    """Put text in the composer and confirm it by reading the box back."""
+    from core.messaging import _find_message_box, _normalise  # noqa: PLC0415
+    from core.uia import _resolve, act  # noqa: PLC0415
+
+    box = _find_message_box(hwnd)
+    try:
+        act(hwnd, box["ref"], "set_text", text=body, fingerprint=box.get("fingerprint"))
+    except Exception:  # noqa: BLE001, S110
+        pass
+
+    def current() -> str:
+        try:
+            element = _resolve(hwnd, box["ref"], None, 200)["_element"]
+        except Exception:  # noqa: BLE001
+            return ""
+        for reader in (
+            lambda: element.get_value(),
+            lambda: element.iface_text.DocumentRange.GetText(-1),
+        ):
+            try:
+                value = reader()
+            except Exception:  # noqa: BLE001
+                continue
+            if isinstance(value, str):
+                return value
+        return ""
+
+    landed = _normalise(body)[:60] in _normalise(current())
+    if not landed:
+        # A Chromium composer accepts a value write and renders nothing, so the
+        # keystroke path is the fallback -- the same ladder the WhatsApp skill
+        # measured as necessary.
+        try:
+            element = _resolve(hwnd, box["ref"], None, 200)["_element"]
+            element.set_focus()
+            time.sleep(0.2)
+            element.type_keys(body, with_spaces=True, with_newlines=False, pause=0.005)
+            time.sleep(0.4)
+            landed = _normalise(body)[:60] in _normalise(current())
+        except Exception:  # noqa: BLE001, S110
+            pass
+
+    return {"verified": landed, "readback": current()[:200]}
+
+
+def message_resolve_target(payload: dict) -> dict:
+    """Split an ambiguous phrase into a real contact and the words to send.
+
+    "message meta ai hi" carries no separator between the recipient and the
+    message, so no amount of grammar can tell them apart -- it depends on who
+    exists in this person's contact list. This looks at the live screen and
+    answers from what is actually there.
+
+    Navigation-adjacent, not sending: it may type into the SEARCH box to filter
+    the list, and never into a conversation.
+    """
+    from core.messaging import MessageRefused, resolve_target  # noqa: PLC0415
+
+    hwnd = _target_window(payload.get("windowTitle") or payload.get("hwnd"))
+    try:
+        result = resolve_target(hwnd, need_text(payload.get("phrase"), "phrase", 400))
+    except MessageRefused as error:
+        raise Refusal(str(error), "refused") from error
+    _remember(hwnd)
+    return result
+
+
+def message_visible_contacts(payload: dict) -> dict:
+    """Every conversation name currently on screen. Read-only."""
+    from core.messaging import visible_rows  # noqa: PLC0415
+
+    hwnd = _target_window(payload.get("windowTitle") or payload.get("hwnd"))
+    names = visible_rows(hwnd)
+    return {
+        "contacts": names[:60],
+        "count": len(names),
+        "verified": True,
+        "detail": f"{len(names)} conversations are visible.",
+    }
+
+
 def message_find_contact(payload: dict) -> dict:
     """Search a chat app's contact list and open ONE conversation.
 
@@ -3290,6 +3452,9 @@ HANDLERS: dict[str, Callable[[dict], dict]] = {
     "office.write": office_write,
     "message.draft": message_draft,
     "message.findcontact": message_find_contact,
+    "message.resolve": message_resolve_target,
+    "message.to": message_to,
+    "message.contacts": message_visible_contacts,
     "message.send": message_send,
     "message.pending": message_pending,
     "message.discard": message_discard,

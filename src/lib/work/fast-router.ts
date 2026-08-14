@@ -340,6 +340,23 @@ const TRAILING_NOUN = /[\s,]*\b(?:as\s+(?:a|the)\s+)?(?:message|msg|text|note)\b
 const QUOTE_HINGE =
   /^(?:(?:a|an|the)\s+)?(?:message|msg|text|note)?\s*(?:saying|that\s+says|which\s+says|reading|:)\b[\s,:-]*/i;
 
+/**
+ * Does this look like a name with a message stuck to it?
+ *
+ * The cheap test that decides whether to spend a screen read. A single word is
+ * just a name -- "whatsapp find H" needs no resolving and should stay on the
+ * fast deterministic path. Two or more words MIGHT be "Meta AI" (a name), or
+ * "meta ai hi" (a name plus a message), and nothing about the words themselves
+ * distinguishes those two. Only the contact list does.
+ *
+ * So this is deliberately permissive: it decides "worth looking", not "is a
+ * message". `resolve_target` in `core/messaging.py` gives the real answer, and
+ * refuses rather than guessing when no conversation opens the phrase.
+ */
+export function looksLikeNameAndMessage(phrase: string): boolean {
+  return phrase.trim().split(/\s+/).length >= 2;
+}
+
 export function messageClause(rest: string | null, who: string | null): MessageClause {
   const text = requireText(rest);
   if (!text) return {};
@@ -962,6 +979,31 @@ export function routeDirect(request: string): DirectRoute | null {
      * says which kind of leftover this is: words to type, or a job to do.
      */
     const clause = messageClause(rest, who);
+
+    /*
+     * NO SEPARATOR MEANS THE ROUTER CANNOT KNOW, SO IT MUST NOT GUESS.
+     *
+     * "open whatsapp and message meta ai hi" gives this pass the tail
+     * "meta ai hi" with nothing to cut on. Every previous attempt to split it
+     * here was grammar guessing at a fact only the screen holds: whether this
+     * person has a contact called "Meta", "Meta AI", or neither. The guess put
+     * the entire phrase in the search box, and once put fifty-eight characters
+     * of instruction into a real conversation.
+     *
+     * `message_to` takes the raw phrase and resolves it against the live
+     * conversation list, so the split happens where the names are visible.
+     * One call, because the router has no way to fill in a second one.
+     */
+    if (who && !clause.literal && !clause.brief && looksLikeNameAndMessage(who)) {
+      return {
+        calls: [
+          { name: "whatsapp_open", arguments: {} },
+          { name: "message_to", arguments: { phrase: who } },
+        ],
+        say: `Opening WhatsApp and working out who you meant by “${who}”.`,
+        rule: "message.to.screen",
+      };
+    }
 
     if (who) {
       return {

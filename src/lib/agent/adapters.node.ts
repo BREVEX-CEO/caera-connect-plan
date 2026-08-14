@@ -266,6 +266,8 @@ export class OcadeAdapters {
         return this.whatsapp("type", { message: text(a.message, "message") });
       case "whatsapp_send":
         return this.whatsapp("send", { message: text(a.message, "message") });
+      case "message_to":
+        return this.messageTo(a);
       case "message_find_contact":
         return this.messageFindContact(a);
       case "message_send":
@@ -1462,6 +1464,39 @@ export class OcadeAdapters {
     if (!reply.ok) return outcomeFor(reply, "That WhatsApp step did not complete.");
     return {
       ...ok(reply.data, reply.data?.detail ?? "Done."),
+      verified: reply.data?.verified ?? undefined,
+      observation: reply.data,
+    };
+  }
+
+  /**
+   * Resolve, open and type in one engine call.
+   *
+   * `verified` is passed through untouched: the engine confirms the text
+   * against the composer after writing it, and a write it could not confirm
+   * comes back false. Defaulting that to true here would recreate the exact
+   * failure this whole path exists to end -- a receipt saying "typed" over an
+   * empty box.
+   */
+  private async messageTo(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{
+      detail: string;
+      verified: boolean;
+      contact?: string;
+      message?: string;
+      steps?: unknown[];
+    }>(
+      "message.to",
+      {
+        phrase: text(args.phrase, "phrase"),
+        windowTitle: typeof args.windowTitle === "string" ? args.windowTitle : undefined,
+      },
+      60_000,
+    );
+    if (!reply) return fail("unsupported", "Messaging needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "That message was not prepared.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Prepared."),
       verified: reply.data?.verified ?? undefined,
       observation: reply.data,
     };

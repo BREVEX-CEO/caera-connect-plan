@@ -318,6 +318,74 @@ def _row_matches(wanted: str, name: str) -> bool:
     return wanted in normalised
 
 
+def split_on_screen(phrase: str, names: list[str]) -> tuple[str, str] | None:
+    """Which name ON SCREEN opens this phrase, and what is left over?
+
+    THE BUG THIS EXISTS TO KILL, REPORTED THREE TIMES AND REPRODUCED EACH TIME.
+    ---------------------------------------------------------------------------
+        "open whatsapp and message meta ai hi"
+            -> contact "meta ai hi"   (searched for, found nothing)
+            -> message  (none)
+
+    The sentence splitter upstream cuts on joining words -- "and", "then", a
+    comma. Between the recipient and the words to send there is often NO joining
+    word at all, so there is nothing to cut on and the whole tail becomes the
+    name. WhatsApp then correctly reports that nobody is called
+    "meta ai hi", and the run ends having done nothing.
+
+    WHY THE ANSWER HAS TO COME FROM THE SCREEN
+    -------------------------------------------
+    No amount of grammar fixes this. "meta ai hi" is three words and any of the
+    first two splits could be right -- it depends entirely on who actually
+    exists in this person's contact list, which is knowable only by looking.
+    `_row_matches` already asks "is my phrase inside this name?"; that question
+    has no answer here, because the phrase is LONGER than the name. Asked the
+    other way round -- "which name opens my phrase?" -- "Meta AI" answers
+    immediately and "hi" falls out as the remainder.
+
+    This is why the function takes `names` rather than an hwnd: the caller
+    supplies whatever the live accessibility tree just returned, so the same
+    logic serves WhatsApp, Telegram, Slack, Discord, Teams and Outlook without
+    knowing which one it is looking at.
+
+    LONGEST WINS, AND THE BOUNDARY IS NOT OPTIONAL
+    -----------------------------------------------
+    With both "Meta" and "Meta AI" on screen, "meta ai hi" must resolve to the
+    longer one -- picking "Meta" would send "ai hi" to the wrong contact.
+
+    The word-boundary check is what stops a short name matching mid-word: a
+    contact called "Me" is a character-wise prefix of "meta ai hi", and without
+    the boundary test it would win the phrase "ta ai hi". So a name only counts
+    when the phrase either ends there or continues with a space.
+
+    Returns `(name, remainder)` using the name EXACTLY as it appears on screen,
+    or None when nothing opens the phrase -- in which case the caller must ask
+    rather than guess, because a sent message cannot be recalled.
+    """
+    wanted = _normalise(phrase)
+    if not wanted:
+        return None
+
+    best: tuple[str, str] | None = None
+    best_len = 0
+
+    for raw in names:
+        name = contact_name_of(raw)
+        candidate = _normalise(name)
+        if not candidate or len(candidate) <= best_len:
+            continue
+        if not wanted.startswith(candidate):
+            continue
+        # The match must end on a word boundary, or "Me" swallows "Meta".
+        rest = wanted[len(candidate) :]
+        if rest and not rest.startswith(" "):
+            continue
+        best = (name.strip(), rest.strip())
+        best_len = len(candidate)
+
+    return best
+
+
 def _find_search_box(hwnd: int) -> tuple[dict[str, Any], dict[str, Any]]:
     """The search field: the mirror image of `_find_message_box`.
 
@@ -357,6 +425,93 @@ def _find_search_box(hwnd: int) -> tuple[dict[str, Any], dict[str, Any]]:
     # Highest on screen wins: a search field sits above a filter or a tab bar.
     upper.sort(key=lambda e: (e["bounds"]["y"], -e["bounds"]["width"]))
     return tree, upper[0]
+
+
+#: Roles a conversation row can have. `DataItem` is here because WhatsApp
+#: Desktop publishes its chat list as a DataGrid of DataItem rows rather than
+#: the ListItem every other client uses -- a filter written from Discord alone
+#: finds zero WhatsApp contacts while plausibly reporting "no such name".
+ROW_ROLES = ("ListItem", "TreeItem", "DataItem")
+
+
+def visible_rows(hwnd: int) -> list[str]:
+    """Every conversation name currently on screen, as the tree reports it.
+
+    Rows only. `Button` and `Text` were once in this filter and that is what
+    made a one-letter query match 55 things -- "WhatsApp", "Chats", "Archived"
+    and "Resize the chat list panel" all contain an "h". A conversation is a
+    list row; a toolbar button never is.
+    """
+    from core.uia import snapshot  # noqa: PLC0415
+
+    tree = snapshot(hwnd, limit=200)
+    return [
+        element.get("name") or ""
+        for element in tree["elements"]
+        if element["role"] in ROW_ROLES
+        and element["enabled"]
+        and not element.get("textEntry")
+        and (element.get("name") or "").strip()
+    ]
+
+
+def resolve_target(hwnd: int, phrase: str) -> dict[str, Any]:
+    """Split "meta ai hi" into the contact "Meta AI" and the message "hi".
+
+    THE SCREEN DECIDES, NOT THE GRAMMAR.
+    -------------------------------------
+    Where the recipient ends and the message begins is not a language question;
+    it depends on who exists in THIS person's contact list. So this looks,
+    rather than parses. See `split_on_screen` for why the question is asked in
+    that direction.
+
+    THREE ATTEMPTS, BECAUSE THE RIGHT CHAT MAY NOT BE ON SCREEN YET.
+    A chat client shows recent conversations, not all of them. If nothing
+    visible opens the phrase, the first word is typed into search to filter the
+    list, and the question is asked again against what appears. Then the first
+    two words. Bounded at three so a nonsense phrase fails in about a second
+    rather than walking the whole sentence.
+
+    Returns `{contact, payload, how}`. Raises `MessageRefused` when no
+    conversation on screen opens the phrase -- the caller must then ASK. A
+    guess here reaches a real person and cannot be recalled.
+    """
+    from core.uia import act  # noqa: PLC0415
+
+    phrase = " ".join((phrase or "").split())
+    if not phrase:
+        raise MessageRefused("There is nothing to look for.")
+
+    # Attempt 1: whatever is already on screen. Costs one tree read.
+    hit = split_on_screen(phrase, visible_rows(hwnd))
+    if hit:
+        return {"contact": hit[0], "payload": hit[1], "how": "visible"}
+
+    # Attempts 2-3: narrow the list with the leading words, then look again.
+    words = phrase.split()
+    for take in (1, 2):
+        if take >= len(words):
+            break
+        probe = " ".join(words[:take])
+        try:
+            _tree, box = _find_search_box(hwnd)
+            act(hwnd, box["ref"], "set_text", text=probe, fingerprint=box["fingerprint"])
+        except Exception:  # noqa: BLE001
+            break
+        deadline = time.monotonic() + _FILTER_TIMEOUT
+        while True:
+            hit = split_on_screen(phrase, visible_rows(hwnd))
+            if hit or time.monotonic() >= deadline:
+                break
+            time.sleep(_FILTER_INTERVAL)
+        if hit:
+            return {"contact": hit[0], "payload": hit[1], "how": f"searched:{probe}"}
+
+    raise MessageRefused(
+        f"No conversation on screen matches the start of \u201c{phrase}\u201d, so OCADE cannot "
+        "tell where the name ends and the message begins. Name the contact on its own, "
+        "or open the chat and ask again."
+    )
 
 
 def find_contact(hwnd: int, query: str) -> dict[str, Any]:
