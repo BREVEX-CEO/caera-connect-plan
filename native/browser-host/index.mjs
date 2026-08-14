@@ -1129,12 +1129,40 @@ async function executeAction(request, signal) {
           if (!(element instanceof HTMLElement)) return false;
           const rect = element.getBoundingClientRect();
           if (rect.width < 4 || rect.height < 4) return false;
-          const label = `${element.innerText || ""} ${element.getAttribute("aria-label") || ""}`;
-          return wanted.test(label.trim());
+          /*
+           * `textContent` as well as `innerText`, and that is not belt and
+           * braces. `innerText` is LAYOUT-DEPENDENT: it is empty for an element
+           * the browser has not laid out yet, which is exactly the state a skip
+           * button is in for the first moments after an ad starts -- the moment
+           * we are most likely to be looking. `textContent` reads the markup
+           * and is always there.
+           */
+          /*
+           * EACH SOURCE IS TESTED SEPARATELY, NOT JOINED, and that matters
+           * because the pattern is anchored at the start.
+           *
+           * `<a role="button" aria-label="Skip intro">»</a>` is a real shape.
+           * Joining gives "» Skip intro", which does not START with "skip", so
+           * the button was missed. The anchor earns its place -- it is what
+           * stops "don't skip this" matching -- so the fix is to ask each label
+           * on its own rather than to loosen it.
+           *
+           * `textContent` is included as well as `innerText` because
+           * `innerText` is LAYOUT-DEPENDENT and empty for an element the
+           * browser has not laid out yet, which is exactly the state a skip
+           * button is in in the first moments of an ad.
+           */
+          return [element.innerText, element.textContent, element.getAttribute("aria-label")].some(
+            (label) => label && wanted.test(String(label).trim()),
+          );
         });
         if (!target) return { found: false, clicked: false };
         target.click();
-        return { found: true, clicked: true, label: (target.innerText || "").trim().slice(0, 60) };
+        return {
+          found: true,
+          clicked: true,
+          label: (target.innerText || target.textContent || "").trim().slice(0, 60),
+        };
       });
       break;
     }
