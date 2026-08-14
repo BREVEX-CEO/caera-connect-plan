@@ -1061,25 +1061,81 @@ async function executeAction(request, signal) {
      */
     case "media": {
       const wanted = boundedText(action.action, "action", 12);
-      if (!["play", "pause", "mute", "unmute"].includes(wanted)) {
+      if (!["play", "pause", "mute", "unmute", "seek", "forward", "back"].includes(wanted)) {
         throw new Error(`Unsupported media action: ${wanted}`);
       }
-      output = await page.evaluate((operation) => {
-        const elements = [...document.querySelectorAll("video, audio")];
-        if (elements.length === 0) return { found: 0, applied: false };
-        const element = elements.find((item) => !item.paused) ?? elements[0];
-        if (operation === "play") void element.play?.();
-        if (operation === "pause") element.pause?.();
-        if (operation === "mute") element.muted = true;
-        if (operation === "unmute") element.muted = false;
-        return {
-          found: elements.length,
-          applied: true,
-          paused: element.paused,
-          muted: element.muted,
-          currentTime: element.currentTime,
-        };
-      }, wanted);
+      const seconds = Number.isFinite(Number(action.seconds)) ? Number(action.seconds) : 10;
+      output = await page.evaluate(
+        ({ operation, amount }) => {
+          const elements = [...document.querySelectorAll("video, audio")];
+          if (elements.length === 0) return { found: 0, applied: false };
+          const element = elements.find((item) => !item.paused) ?? elements[0];
+          if (operation === "play") void element.play?.();
+          if (operation === "pause") element.pause?.();
+          if (operation === "mute") element.muted = true;
+          if (operation === "unmute") element.muted = false;
+          /*
+           * SEEK IS ABSOLUTE, FORWARD AND BACK ARE RELATIVE, and the difference
+           * matters because people say both. "forward it to 10 seconds" means
+           * position 10; "skip forward 10 seconds" means +10 from here.
+           *
+           * Clamped to the media's own duration: assigning past the end makes
+           * some players stall on a frame that never advances rather than
+           * ending cleanly, which looks exactly like a hang.
+           */
+          if (operation === "seek" || operation === "forward" || operation === "back") {
+            const duration = Number.isFinite(element.duration) ? element.duration : Infinity;
+            const target =
+              operation === "seek"
+                ? amount
+                : element.currentTime + (operation === "back" ? -amount : amount);
+            element.currentTime = Math.max(0, Math.min(target, duration - 0.25));
+          }
+          return {
+            found: elements.length,
+            applied: true,
+            paused: element.paused,
+            muted: element.muted,
+            currentTime: element.currentTime,
+            duration: Number.isFinite(element.duration) ? element.duration : null,
+          };
+        },
+        { operation: wanted, amount: seconds },
+      );
+      break;
+    }
+
+    /*
+     * SKIPPING AN AD IS CLICKING A BUTTON, NOT A MEDIA OPERATION.
+     *
+     * An ad is a real video element -- seeking it does nothing, because the
+     * player refuses, and muting it just makes you wait in silence. The only
+     * thing that ends one is the button the site itself provides, and that
+     * button is found by its TEXT rather than by a class name: YouTube renames
+     * its classes constantly and "Skip" is the one part that cannot change
+     * without the user no longer understanding the page.
+     *
+     * Reports honestly when there is nothing to skip. "No skip button" is a
+     * normal state -- most of the time there is no ad -- and must not read as
+     * a failure.
+     */
+    case "skip_ad": {
+      output = await page.evaluate(() => {
+        const wanted = /^\s*(skip|skip ad|skip ads|skip advertisement|skip intro)\b/i;
+        const clickable = [
+          ...document.querySelectorAll("button, a, [role=button], div[class*=skip]"),
+        ];
+        const target = clickable.find((element) => {
+          if (!(element instanceof HTMLElement)) return false;
+          const rect = element.getBoundingClientRect();
+          if (rect.width < 4 || rect.height < 4) return false;
+          const label = `${element.innerText || ""} ${element.getAttribute("aria-label") || ""}`;
+          return wanted.test(label.trim());
+        });
+        if (!target) return { found: false, clicked: false };
+        target.click();
+        return { found: true, clicked: true, label: (target.innerText || "").trim().slice(0, 60) };
+      });
       break;
     }
     case "screenshot": {

@@ -1436,6 +1436,96 @@ export function routeDirect(request: string): DirectRoute | null {
    * searched Bing for it — the machine answering a question about itself by
    * asking the internet.
    */
+  /* ------------------------------------------------------- clear a folder --
+   *
+   * "delete all the present files inside mummy folder" went to the model,
+   * which could only reach `file_trash` -- one path per call. Twenty files
+   * meant twenty round trips and no way to report the job as a whole, so in
+   * practice it never happened.
+   *
+   * The folder is REQUIRED. A bare "delete everything" matches nothing here
+   * and falls through, because the cost of being wrong about that sentence is
+   * somebody's photographs.
+   */
+  const clearFolder =
+    /^(?:delete|remove|clear|empty|clean out)\s+(?:all\s+)?(?:the\s+)?(?:present\s+)?(?:files?|contents?|everything)\s*(?:that\s+are\s+)?(?:in|inside|within|from|out of)\s+(?:the\s+)?(?<where>.+)$/i.exec(
+      text,
+    );
+  if (clearFolder?.groups?.where) {
+    const where = requireText(clearFolder.groups.where.replace(/\s+folder\s*$/i, ""));
+    const shell = where ? shellFolderFor(where) : null;
+    if (where) {
+      return {
+        calls: [
+          {
+            name: "folder_empty",
+            /*
+             * A shell name resolves on its own; anything else is treated as a
+             * folder INSIDE the one on screen, which is what "the mummy folder"
+             * means in the middle of a sentence about Downloads.
+             */
+            arguments: shell ? { folder: shell } : { folder: "downloads", inside: where },
+          },
+        ],
+        say: `Moving everything in ${where} to the recycle bin.`,
+        rule: "files.empty",
+      };
+    }
+  }
+
+  /* -------------------------------------------------------------- media --
+   *
+   * "skip ads" and "forward it to 10 seconds" both went to the model, which is
+   * absurd for two of the most common things anyone says to a video. They are
+   * unambiguous, they need no writing, and a model round trip costs longer than
+   * the ad it was asked to skip.
+   */
+  if (/^(?:skip|skip the|skip this)\s*(?:ad|ads|advert|advertisement|intro)s?\b/i.test(lower)) {
+    return {
+      calls: [{ name: "browser_skip_ad", arguments: {} }],
+      say: "Skipping the advert.",
+      rule: "web.media.skipad",
+    };
+  }
+
+  /*
+   * ABSOLUTE VERSUS RELATIVE, BECAUSE PEOPLE SAY BOTH AND MEAN DIFFERENT
+   * THINGS. "forward it TO 10 seconds" is a position; "skip forward 10
+   * seconds" is a distance. Getting them the same way round would put a video
+   * ten seconds from the start when the user wanted ten seconds further on.
+   */
+  const seek =
+    /\b(?:forward|skip|jump|go|seek|move)\s+(?:it\s+|ahead\s+|forward\s+)?to\s+(?<at>\d{1,4})\s*(?:seconds?|secs?|s)\b/i.exec(
+      text,
+    );
+  if (seek?.groups?.at) {
+    return {
+      calls: [
+        { name: "browser_media", arguments: { action: "seek", seconds: Number(seek.groups.at) } },
+      ],
+      say: `Jumping to ${seek.groups.at} seconds.`,
+      rule: "web.media.seek",
+    };
+  }
+
+  const nudge =
+    /\b(?:skip|jump|go|move|fast[- ]?forward)\s+(?<dir>forward|ahead|back|backward)?\s*(?:by\s+)?(?<by>\d{1,4})\s*(?:seconds?|secs?|s)\b/i.exec(
+      text,
+    );
+  if (nudge?.groups?.by) {
+    const back = /back/i.test(nudge.groups.dir ?? "");
+    return {
+      calls: [
+        {
+          name: "browser_media",
+          arguments: { action: back ? "back" : "forward", seconds: Number(nudge.groups.by) },
+        },
+      ],
+      say: `Moving ${back ? "back" : "forward"} ${nudge.groups.by} seconds.`,
+      rule: "web.media.nudge",
+    };
+  }
+
   const folder = /^(?:open|show|go to|browse)\s+(.+)$/i.exec(text);
   if (folder) {
     const { name, remainder } = splitAppAndRemainder(folder[1]);
@@ -1459,7 +1549,31 @@ export function routeDirect(request: string): DirectRoute | null {
         /^(?:and\s+)?(?:then\s+)?(?:open|go into|enter|double[- ]?click)\s+(?:the\s+)?(?:folder\s+)?(?:named\s+|called\s+)?(.+)$/i.exec(
           remainder ?? "",
         );
-      const item = inner ? requireText(inner[1]) : null;
+      /*
+       * "MUMMY FOLDER" IS A FOLDER CALLED MUMMY.
+       *
+       * The capture kept the noun, so Explorer was asked to open a row named
+       * "mummy folder" and found nothing. And with no clause break the whole
+       * tail came along: "mummy folder and delete all the present files inside
+       * mummy folder" was passed as ONE item name.
+       *
+       * So the trailing noun comes off, and the name stops at the first
+       * connector -- the same split the messaging rules already make, for the
+       * same reason: a name is a name, not the rest of the sentence.
+       */
+      const rawItem = inner ? inner[1] : "";
+      const itemBreak = rawItem.search(CLAUSE_BREAK);
+      const item = requireText(
+        (itemBreak >= 0 ? rawItem.slice(0, itemBreak) : rawItem).replace(/\s+folder\s*$/i, ""),
+      );
+      const afterItem =
+        itemBreak >= 0
+          ? requireText(
+              rawItem
+                .slice(itemBreak)
+                .replace(/^(?:\s*[,;]\s*|\s*(?:and|then|&|so|but|plus|after that)\s+)+/i, ""),
+            )
+          : null;
       if (item) {
         return {
           calls: [
@@ -1468,6 +1582,7 @@ export function routeDirect(request: string): DirectRoute | null {
           ],
           say: `Opening ${name}, then ${item}.`,
           rule: "folder.open.item",
+          ...(afterItem ? { remainder: afterItem } : {}),
         };
       }
       return {

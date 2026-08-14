@@ -1636,16 +1636,78 @@ const WEB: ToolDefinition[] = [
     risk: "low",
   },
   {
+    name: "folder_empty",
+    domain: "files",
+    /*
+     * RECYCLE BIN, NEVER UNLINK, AND THERE IS NO FLAG TO CHANGE THAT.
+     *
+     * `file_trash` takes one path, so "delete everything in this folder" meant
+     * naming each file in turn -- twenty round trips, each a chance to name a
+     * file that is not there, and no way to report the job as a whole.
+     *
+     * Subfolders survive by default. "Delete the files in this folder" and
+     * "delete this folder" are different sentences, and somebody who said the
+     * first and got the second has lost work.
+     */
+    description:
+      "Move every file in one named folder to the recycle bin. Subfolders and their contents are left alone unless includeFolders is set. Everything is recoverable from the recycle bin — nothing is erased.",
+    parameters: object(
+      {
+        folder: {
+          type: "string",
+          description: "The folder to empty: a shortcut like 'downloads', or a full path.",
+        },
+        inside: {
+          type: "string",
+          description: "Optional. A subfolder by name, e.g. 'holiday photos' inside downloads.",
+        },
+        includeFolders: {
+          type: "string",
+          description: "'yes' also removes subfolders. Off by default.",
+          enum: ["yes", "no"],
+        },
+      },
+      ["folder"],
+    ),
+    mutating: true,
+    // High, and it stays high. This is the one file action that touches many
+    // things at once on a single sentence.
+    risk: "high",
+  },
+  {
+    name: "browser_skip_ad",
+    domain: "web",
+    /*
+     * AN AD IS NOT A MEDIA OPERATION. It is a real video element, so seeking it
+     * does nothing (the player refuses) and muting only makes you wait in
+     * silence. The one thing that ends it is the button the site provides, and
+     * that button is found by its TEXT: class names change constantly, and
+     * "Skip" is the part that cannot change without the page becoming
+     * unusable to a person.
+     */
+    description:
+      "Click the skip button on an advert or intro, if one is showing. Finding no button is a normal result — most of the time there is no ad — and is reported as such rather than as a failure.",
+    parameters: object({}, []),
+    mutating: true,
+    risk: "low",
+  },
+  {
     name: "browser_media",
     domain: "web",
     description:
-      "Play, pause, mute or unmute the video or audio on the page the user is looking at.",
+      "Control the video or audio on the page the user is looking at: play, pause, mute, unmute, or move through it. Use seek with seconds to jump to a position, forward/back to move relative to now.",
     parameters: object(
       {
         action: {
           type: "string",
-          description: "What to do.",
-          enum: ["play", "pause", "mute", "unmute"],
+          description:
+            "What to do. 'seek' jumps to an absolute position in seconds; 'forward' and 'back' move relative to where it is now.",
+          enum: ["play", "pause", "mute", "unmute", "seek", "forward", "back"],
+        },
+        seconds: {
+          type: "number",
+          description:
+            "For seek: the position to jump to. For forward/back: how far to move. Defaults to 10.",
         },
       },
       ["action"],

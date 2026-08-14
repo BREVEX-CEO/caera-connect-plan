@@ -3308,6 +3308,95 @@ def _type_into_conversation(hwnd: int, body: str) -> dict:
     return {"verified": landed, "readback": current()[:200]}
 
 
+def folder_empty(payload: dict) -> dict:
+    """Move every file in one named folder to the recycle bin.
+
+    WHY THIS EXISTS AT ALL. `file.trash` takes one path, so "delete everything
+    in this folder" meant the model naming each file in turn -- twenty round
+    trips, each one a chance to name a file that is not there, and no way to
+    report the job as a whole. It could not be done reliably, so it was not
+    done.
+
+    RECYCLE BIN, NEVER UNLINK. `send2trash` puts the files where the user can
+    get them back with the same gesture they already know. There is no flag
+    here for permanent deletion and there should never be one: an assistant
+    that can erase a folder on a misheard sentence is not a feature. The one
+    irreversible operation on this machine stays a human's to perform.
+
+    THE FOLDER MUST BE NAMED, AND IT MUST RESOLVE INSIDE AN APPROVED ROOT.
+    A bare "delete everything" resolves to nothing here. `_is_safe_path` is the
+    same guard the single-file path uses, so this cannot reach anywhere that
+    one could not.
+
+    SUBFOLDERS ARE LEFT ALONE unless `includeFolders` is set. "Delete the files
+    in this folder" and "delete this folder" are different sentences, and a
+    person who said the first and got the second has lost work.
+    """
+    from pathlib import Path  # noqa: PLC0415
+
+    from actions.file_controller import _is_safe_path, _resolve_path, _safe_trash  # noqa: PLC0415
+
+    raw = need_text(payload.get("folder"), "folder", 260)
+    include_folders = payload.get("includeFolders") is True
+
+    target = _resolve_path(raw)
+    inner = payload.get("inside")
+    if isinstance(inner, str) and inner.strip():
+        # "the mummy folder inside downloads" -- one level, by name.
+        target = target / inner.strip()
+
+    if not target.exists() or not target.is_dir():
+        raise Refusal(f"There is no folder at {target}.", "unsupported")
+    if not _is_safe_path(target):
+        raise Refusal(
+            f"{target} is outside the folders OCADE is allowed to change.", "blocked"
+        )
+
+    entries = sorted(target.iterdir())
+    files = [e for e in entries if e.is_file()]
+    folders = [e for e in entries if e.is_dir()]
+    doomed = files + (folders if include_folders else [])
+
+    if not doomed:
+        return {
+            "folder": str(target),
+            "moved": 0,
+            "kept": len(folders),
+            "verified": True,
+            "detail": f"{target.name} has no files to remove.",
+        }
+
+    moved: list[str] = []
+    failed: list[str] = []
+    for entry in doomed:
+        try:
+            _safe_trash(entry)
+            moved.append(entry.name)
+        except Exception as error:  # noqa: BLE001
+            failed.append(f"{entry.name} ({type(error).__name__})")
+
+    # VERIFIED BY LOOKING, NOT BY THE CALLS RETURNING. send2trash raises on a
+    # locked file but a partial move is still possible, so the folder is read
+    # again and the answer is whatever is actually left.
+    left = [e.name for e in target.iterdir() if e.is_file()]
+    return {
+        "folder": str(target),
+        "moved": len(moved),
+        "movedNames": moved[:40],
+        "failed": failed[:10],
+        "remaining": len(left),
+        "keptFolders": 0 if include_folders else len(folders),
+        "recoverable": True,
+        "verified": len(left) == 0 if not failed else False,
+        "detail": (
+            f"Moved {len(moved)} file(s) from {target.name} to the recycle bin"
+            + (f", kept {len(folders)} subfolder(s)" if folders and not include_folders else "")
+            + (f"; {len(failed)} could not be moved" if failed else "")
+            + ". They can be restored from the recycle bin."
+        ),
+    }
+
+
 def screen_map(payload: dict) -> dict:
     """Number everything actionable on screen so the model can pick, not guess.
 
@@ -3508,6 +3597,7 @@ HANDLERS: dict[str, Callable[[dict], dict]] = {
     "message.draft": message_draft,
     "message.findcontact": message_find_contact,
     "message.resolve": message_resolve_target,
+    "folder.empty": folder_empty,
     "screen.map": screen_map,
     "screen.do": screen_do,
     "message.to": message_to,

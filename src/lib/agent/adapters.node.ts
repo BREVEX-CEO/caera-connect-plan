@@ -401,6 +401,19 @@ export class OcadeAdapters {
         return this.browserKey(a);
       case "browser_media":
         return this.browserMedia(a);
+      case "folder_empty":
+        return this.simple(
+          "folder.empty",
+          {
+            folder: text(a.folder, "folder"),
+            inside: typeof a.inside === "string" ? a.inside : undefined,
+            includeFolders: a.includeFolders === "yes",
+          },
+          "That folder was not emptied.",
+          60_000,
+        );
+      case "browser_skip_ad":
+        return this.browserSkipAd();
       case "browser_open":
         return this.browserOpen(a, approvedByPerson);
       case "browser_navigate":
@@ -2581,9 +2594,38 @@ export class OcadeAdapters {
     };
   }
 
+  /**
+   * Skip an advert, and say plainly when there was nothing to skip.
+   *
+   * "No skip button" is the ordinary case -- most of the time there is no ad --
+   * so it is reported as a fact rather than an error. Treating it as a failure
+   * would make a model retry, and retrying a button that does not exist is how
+   * a run spends thirty seconds achieving nothing.
+   */
+  private async browserSkipAd(): Promise<ToolOutcome> {
+    const reply = await this.browserPerform({ kind: "skip_ad" });
+    if (!reply.ok) return outcomeFor(reply, "The page could not be checked for an advert.");
+    const output = (reply.data as { output?: { found?: boolean; label?: string } })?.output;
+    return {
+      ...ok(
+        reply.data,
+        output?.found
+          ? `Skipped the advert${output.label ? ` (“${output.label}”)` : ""}.`
+          : "There was no skip button on the page, so nothing needed skipping.",
+      ),
+      verified: Boolean(output?.found),
+    };
+  }
+
   private async browserMedia(args: Record<string, unknown>): Promise<ToolOutcome> {
     const action = text(args.action, "action").toLowerCase();
-    const reply = await this.browserPerform({ kind: "media", action });
+    const seconds =
+      typeof args.seconds === "number" ? args.seconds : Number(args.seconds ?? Number.NaN);
+    const reply = await this.browserPerform({
+      kind: "media",
+      action,
+      ...(Number.isFinite(seconds) ? { seconds } : {}),
+    });
     if (!reply.ok) return outcomeFor(reply, "The media on that page could not be controlled.");
     const output = (
       reply.data as {

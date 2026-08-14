@@ -235,6 +235,8 @@ const SPOKEN: Record<string, string> = {
   message_find_contact: "Opening a conversation",
   message_to: "Finding who you meant, then writing",
   file_list: "Looking through the folder",
+  folder_empty: "Clearing the folder",
+  browser_skip_ad: "Skipping the advert",
   screen_map: "Numbering what is on screen",
   screen_do: "Acting on the screen",
   document_read: "Reading the document",
