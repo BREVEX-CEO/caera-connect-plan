@@ -998,7 +998,7 @@ export function useMission(brain: MissionBrain) {
        * A writing brief the router could not serve alone. Held here so the
        * fast path does not tidy up and return before the words are written.
        */
-      const pendingCompose = direct?.compose ?? null;
+      let pendingCompose = direct?.compose ?? null;
 
       if (direct && direct.calls.length > 0) {
         push({ id: `d${Date.now()}`, kind: "acting", label: direct.say, detail: "" });
@@ -1068,6 +1068,46 @@ export function useMission(brain: MissionBrain) {
           }
         }
         // Fall through when work remains; the open or focus already ran.
+        /*
+         * A LEFTOVER THE ROUTER CAN ANSWER MUST NOT GO TO THE MODEL.
+         *
+         * "open notepad and in notepad type a English porm" splits into
+         * `app_open notepad` plus the leftover "in notepad type a English
+         * porm". The leftover went straight to the model -- which had
+         * `app_open` in its tools, OPENED NOTEPAD A SECOND TIME, and never
+         * wrote anything. The user watched a duplicated action and an empty
+         * document.
+         *
+         * The router answers that leftover deterministically, in a fraction of
+         * a millisecond, as a compose. It was simply never asked. So it is
+         * asked now, ONCE -- `reroute` is not carried forward, so a leftover
+         * that itself produces a leftover still ends at the model and there is
+         * no way to loop.
+         */
+        if (remainingWork && !recovering && !controller.signal.aborted) {
+          const again = routeDirect(remainingWork);
+          if (again && (again.calls.length > 0 || again.compose)) {
+            for (const call of again.calls) {
+              if (controller.signal.aborted) break;
+              await waitWhilePaused();
+              const outcome = await runOneCall(call, missionId, askPermission);
+              push({
+                id: `rr${Date.now()}${entries.length}`,
+                kind: outcome.ok ? "done" : "problem",
+                label: describeTool(call.name),
+                detail: outcome.detail,
+                verified: outcome.verified,
+              });
+            }
+            if (again.compose) {
+              // Hand the writing brief to the compose path below rather than
+              // to the model as an open instruction.
+              pendingCompose = again.compose;
+            }
+            remainingWork = null;
+          }
+        }
+
         if ((!remainingWork && !pendingCompose) || controller.signal.aborted) return;
       }
 

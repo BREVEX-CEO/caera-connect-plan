@@ -437,6 +437,98 @@ export function messageClause(rest: string | null, who: string | null): MessageC
   return COMPOSE_VERB.test(cleaned) ? { brief: cleaned } : { literal: cleaned };
 }
 
+/**
+ * Words that mean "produce some prose", spelled correctly.
+ *
+ * Deliberately small. This is the difference between `type hello` (put those
+ * characters in the box) and `type a poem` (think of one first), and getting it
+ * wrong in either direction is bad: a literal treated as a brief comes back as
+ * a paragraph ABOUT the words, and a brief typed literally puts the
+ * instruction into the document.
+ */
+const CONTENT_WORDS = [
+  "about",
+  "regarding",
+  "essay",
+  "paragraph",
+  "note",
+  "poem",
+  "story",
+  "summary",
+  "letter",
+  "article",
+  "list",
+  "recipe",
+  "song",
+  "joke",
+];
+
+/** One insertion, deletion or substitution apart? */
+function nearlyEqual(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > 1) return false;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  let i = 0;
+  let j = 0;
+  let slack = 1;
+  while (i < short.length && j < long.length) {
+    if (short[i] === long[j]) {
+      i += 1;
+      j += 1;
+      continue;
+    }
+    if (slack === 0) return false;
+    slack -= 1;
+    if (short.length === long.length) i += 1;
+    j += 1;
+  }
+  return true;
+}
+
+/**
+ * Is this a brief to write from, rather than characters to type?
+ *
+ * THE TYPO THAT COST A WHOLE RUN. "open notepad and in notepad type a English
+ * porm" — `porm` for `poem`. The exact-match gate rejected it, so the leftover
+ * went to the model rather than the compose path; the model saw `app_open` in
+ * its tools and OPENED NOTEPAD A SECOND TIME, and nothing was ever written.
+ * The user watched a duplicated action and an empty document.
+ *
+ * People typo the very word that decides this. So each word is compared to the
+ * content words allowing ONE character of difference, which recovers `porm`,
+ * `eassy` and `stroy` without matching anything that is not trying to be one.
+ *
+ * A leading "a" or "an" also counts, and that is the part which catches a
+ * content word this list has never heard of: "type a X" asks for an X to be
+ * produced, and nobody types an indefinite article as literal content.
+ */
+export function looksLikeWriting(brief: string): boolean {
+  const words = brief
+    .toLowerCase()
+    .split(/[^a-z0-9']+/)
+    .filter(Boolean);
+  if (words.length === 0) return false;
+  if (words[0] === "a" || words[0] === "an") return true;
+  if (/\bon the topic of\b/i.test(brief)) return true;
+  /*
+   * A LENGTH ONLY COUNTS WITH A NUMBER IN FRONT OF IT.
+   *
+   * `word`, `line` and `sentence` were in the list above and had to come out:
+   * "world" is ONE EDIT from "word", so `type hello world` was classified as a
+   * brief and the literal never got typed. They are only ever a writing
+   * instruction when quantified -- "100 words", "three lines" -- and in that
+   * form they cannot collide with ordinary prose.
+   */
+  if (
+    /\b(?:\d+|a few|several|two|three|four|five|ten)\s+(?:words?|lines?|sentences?|paragraphs?)\b/i.test(
+      brief,
+    )
+  ) {
+    return true;
+  }
+  return words.some((word) => CONTENT_WORDS.some((known) => nearlyEqual(word, known)));
+}
+
 /** Strip the polite scaffolding people put round an instruction. */
 function core(request: string): string {
   return request
@@ -1312,12 +1404,7 @@ export function routeDirect(request: string): DirectRoute | null {
     const brief = requireText(write.groups.brief);
     const app = requireText(write.groups.app ?? null);
     const literal = quoted ? requireText(quoted[1]) : null;
-    const describesContent =
-      !literal &&
-      brief !== null &&
-      /\b(about|on the topic of|regarding|essay|paragraph|note|poem|story|summary|letter|words?|lines?|sentences?)\b/i.test(
-        brief,
-      );
+    const describesContent = !literal && brief !== null && looksLikeWriting(brief);
 
     if (literal) {
       return {
