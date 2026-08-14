@@ -157,6 +157,33 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
 
     this.worker = new Worker(new URL("./webllm.worker.ts", import.meta.url), { type: "module" });
     this.engine = await webllm.CreateWebWorkerMLCEngine(this.worker, tier.webllmId!, {
+      /*
+       * WEIGHTS GO TO INDEXEDDB, NOT THE CACHE API.
+       *
+       * web-llm defaults to the Cache API, which works and is what this adapter
+       * used to get: driving the real page produced `webllm/model`,
+       * `webllm/wasm` and `webllm/config` cache buckets while
+       * `indexedDB.databases()` stayed empty.
+       *
+       * IndexedDB is the better home for this payload on the surfaces that
+       * matter here. The Cache API is scoped to what a Service Worker is meant
+       * to manage, and a registration change or a cache-cleanup sweep can take
+       * roughly a gigabyte of model weights with it -- on mobile, where these
+       * browser tiers actually get used, that is a silent re-download over
+       * somebody's data plan. IndexedDB is ordinary application storage: it is
+       * covered by persistent-storage grants, it survives Service Worker
+       * churn, and it is the store a Capacitor shell keeps across app updates.
+       *
+       * The weights are unchanged either way; this only decides which drawer
+       * they live in.
+       *
+       * The option is `cacheBackend: "indexeddb"`. It is not `useIndexedDBCache`
+       * -- that was the name in older web-llm and it is gone in 0.2.84, where an
+       * unknown key would have been accepted silently by the spread and changed
+       * nothing at all. `tsc` caught it; without types it would have shipped as
+       * a setting that reads correctly and does nothing.
+       */
+      appConfig: { ...webllm.prebuiltAppConfig, cacheBackend: "indexeddb" },
       initProgressCallback: (report) => {
         this.onProgress?.({
           fraction: typeof report.progress === "number" ? report.progress : null,

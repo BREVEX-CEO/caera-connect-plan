@@ -9,6 +9,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { hardenDesktopShell } from "@/lib/security/shell-hardening";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -200,6 +201,14 @@ function RootComponent() {
   useEffect(() => {
     void registerOfflineShellFromBrowser();
   }, []);
+
+  /*
+   * Desktop shell polish: no context menu, no devtools shortcuts, no stray
+   * reload. A no-op on the web, where breaking right-click would cost people
+   * copy, open-in-new-tab and screen-reader actions to inconvenience somebody
+   * who can read the served source anyway.
+   */
+  useEffect(() => hardenDesktopShell(), []);
 
   /**
    * Async failures never reach a React boundary — an unhandled rejection in a

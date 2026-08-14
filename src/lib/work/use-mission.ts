@@ -30,6 +30,25 @@ import {
 import type { BrainMessage } from "@/lib/brain/adapter";
 import type { ControlState } from "./control-solar";
 import { routeDirect } from "./fast-router";
+
+/**
+ * A reply id that is unique even when two code paths answer the same turn.
+ *
+ * Both the fast-path reply and the mission-completion summary used to build
+ * their id as `${id}-r` from the SAME originating turn. When a mission produced
+ * both -- which is the ordinary case for anything multi-step -- React received
+ * two children with the same key and warned that it may duplicate or omit them.
+ * Omitting one means an answer OCADE actually produced never reaches the screen.
+ *
+ * The suffix names which reply it is, so the ids stay readable in a receipt, and
+ * a counter makes them unique even if one path runs twice for one turn.
+ */
+let replyCounter = 0;
+function replyId(turnId: string, kind: "reply" | "summary"): string {
+  replyCounter += 1;
+  return `${turnId}-${kind}-${replyCounter}`;
+}
+
 import {
   checkContent,
   contentOf,
@@ -1053,7 +1072,7 @@ export function useMission(brain: MissionBrain) {
           setTurns((current) => [
             ...current,
             {
-              id: `${id}-r`,
+              id: replyId(id, "reply"),
               role: "ocade",
               text: escalating
                 ? `${lines.join(" ")} Taking a look at the screen.`
@@ -1649,7 +1668,7 @@ export function useMission(brain: MissionBrain) {
         setTurns((current) => [
           ...current,
           {
-            id: `${id}-r`,
+            id: replyId(id, "summary"),
             role: "ocade",
             text: ending,
             entries: [...entries],
