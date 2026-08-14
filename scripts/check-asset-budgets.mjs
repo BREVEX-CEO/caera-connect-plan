@@ -176,9 +176,36 @@ if (ocadeRouteCandidates.length !== 1) {
   );
 }
 
+/*
+ * NO SOURCE MAPS IN A PRODUCTION BUNDLE.
+ *
+ * A `.map` file turns the shipped bundle back into the ORIGINAL tree: every
+ * file name, every comment, every internal helper, laid out as written.
+ * Shipping one alongside minified code hands over the source with the archive
+ * already unpacked, and the licence in this repository forbids exactly the
+ * reading it would enable.
+ *
+ * Checked here rather than set in `vite.config.ts` because the build ALREADY
+ * gets this right -- it emits no maps and minifies to single-letter identifiers
+ * on its own. An attempt to restate that as explicit `minify`/`sourcemap`
+ * options made things strictly worse: this is rolldown-vite, `minify: "esbuild"`
+ * turns off its native minifier, and the bundle grew from 3,751 KiB to 6,685
+ * KiB while changing nothing about maps. The configuration was reverted and the
+ * guarantee written down here as a test instead, which is the part that was
+ * genuinely missing -- nothing failed the build if a future change started
+ * emitting them.
+ */
+const sourceMaps = allAssets.filter((asset) => asset.name.endsWith(".map"));
+if (sourceMaps.length > 0) {
+  failures.push(
+    `Source maps in the production bundle: ${sourceMaps.map((a) => a.name).join(", ")}`,
+  );
+}
+
 console.log(
   [
     `Performance budget: ${assets.length}/${budgets.assetFiles} assets`,
+    `source maps ${sourceMaps.length} (must be 0)`,
     `${formatBytes(totalBytes)}/${formatBytes(budgets.totalBytes)} total`,
     `${formatBytes(javascriptBytes)}/${formatBytes(budgets.javascriptBytes)} JavaScript`,
     `${formatBytes(cssBytes)}/${formatBytes(budgets.cssBytes)} CSS`,
