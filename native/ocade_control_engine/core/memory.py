@@ -4,7 +4,7 @@ THE DIFFERENCE BETWEEN A TOOL AND A PRESENCE IS THIS FILE.
 ----------------------------------------------------------
 A tool starts from nothing every time you open it. A presence remembers that
 you are building OCADE, that you asked about WhatsApp yesterday, that your name
-is Haans and that you like being told things plainly. None of that is
+is Alex and that you like being told things plainly. None of that is
 intelligence — it is a JSON file that survives the process, read at the start of
 a session and written at the end.
 

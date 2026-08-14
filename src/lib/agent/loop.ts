@@ -131,7 +131,7 @@ const SYSTEM_PROMPT = [
  * or five sentences a model needs — was called by nothing at all.
  *
  * So OCADE remembered in the way a filing cabinet remembers. Told "my name is
- * Haans" it wrote that down and then addressed the next sentence to nobody,
+ * Alex" it wrote that down and then addressed the next sentence to nobody,
  * because the name never travelled to the prompt. Every session started cold
  * while the memory file sat there, full and unread.
  *

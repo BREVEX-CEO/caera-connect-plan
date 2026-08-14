@@ -75,12 +75,12 @@ LIVE_MISREAD = (
 )
 check(
     "long unrelated document",
-    verdict("Hello H, I am OCADE, your new little friend", LIVE_MISREAD),
+    verdict("Hello, this is a test message", LIVE_MISREAD),
     False,
 )
 check(
     "long unrelated document, second phrasing",
-    verdict("will you be my new friend I was created by Haans", LIVE_MISREAD),
+    verdict("will you be my new friend I was created for testing", LIVE_MISREAD),
     False,
 )
 

@@ -981,7 +981,7 @@ def memory_context(payload: dict) -> dict:
 
     The result was an assistant that could be TOLD to remember and could be
     ASKED what it remembered, and never once used any of it unprompted. The user
-    says "my name is Haans", OCADE writes it down, and the next sentence it
+    says "my name is Alex", OCADE writes it down, and the next sentence it
     speaks is still addressed to nobody. Memory that is only ever read back on
     request is a notebook, not a memory.
 

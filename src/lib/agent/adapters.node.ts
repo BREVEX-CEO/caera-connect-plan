@@ -1317,14 +1317,34 @@ export class OcadeAdapters {
    * runtime when the user has asked for spoken replies. A tool the model could
    * reach for on its own initiative is a product that talks unprompted.
    */
+  /**
+   * Narration, spoken through the engine that "stop" can actually silence.
+   *
+   * TWO SYNTHESISERS ANSWERED TO ONE COMMAND NAME, AND NARRATION USED THE WRONG
+   * ONE. `voice.speak` reached the Python HOST (winsdk speech, played back
+   * through `winsound`) here, and the ENGINE (SAPI5, the Zira voice) through
+   * the agent's own `speak` tool. Same name, two processes, two voice-selection
+   * algorithms.
+   *
+   * The consequence was not cosmetic. `voice.silence` purges the SAPI queue in
+   * the engine; it has no reach into a WAV that `winsound` is already playing.
+   * So saying "stop" during a long hands-free answer stopped the task and left
+   * the voice talking over the silence -- the single most alarming way for an
+   * assistant to respond to being told to stop.
+   *
+   * Narration now goes to the engine, which is the half that can be interrupted
+   * and the half that enforces the female-voice preference by refusing rather
+   * than silently substituting.
+   */
   async speak(sentence: string, language = "en"): Promise<ToolOutcome> {
-    const reply = await this.pythonHost().request<{ engine: string; voice: { name?: string } }>(
+    const reply = await this.viaEngine<{ detail?: string; voice?: string }>(
       "voice.speak",
       { text: sentence, language },
-      { timeoutMs: 30_000 },
+      30_000,
     );
+    if (!reply) return fail("unsupported", "Speech needs the control engine.");
     if (!reply.ok) return outcomeFor(reply, "OCADE could not speak on this computer.");
-    return ok(reply.data, `Spoken with ${reply.data?.voice?.name ?? "the system voice"}.`);
+    return ok(reply.data, reply.data?.detail ?? `Spoken with ${reply.data?.voice ?? "the OCADE voice"}.`);
   }
 
   /** What this device can say and hear, without claiming anything untested. */

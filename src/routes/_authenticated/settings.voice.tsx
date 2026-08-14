@@ -448,7 +448,7 @@ function VoiceSettingsPage() {
               <Input
                 value={prefs.preferredName}
                 onChange={(e) => update({ preferredName: e.target.value })}
-                placeholder="e.g. Haans"
+                placeholder="e.g. Alex"
                 className="h-9 text-sm"
               />
             </label>

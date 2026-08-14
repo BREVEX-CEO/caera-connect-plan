@@ -1,0 +1,82 @@
+OCADE — PROPRIETARY SOFTWARE LICENCE
+
+Copyright (c) 2026 HAANS ANTONI, trading as CAERA CADANE.
+All rights reserved.
+
+OCADE and the OCADE name, logo and interface are the exclusive property of
+HAANS ANTONI / CAERA CADANE.
+
+1. GRANT
+
+   Subject to payment of any applicable fee and to the terms below, you are
+   granted a personal, non-exclusive, non-transferable, revocable licence to
+   install and use one copy of OCADE on hardware you own or control, for your
+   own purposes.
+
+2. RESTRICTIONS
+
+   You may not:
+
+   (a) copy, distribute, sublicense, rent, lease, lend or sell the software, in
+       whole or in part;
+   (b) modify, adapt, translate or create derivative works from it;
+   (c) reverse engineer, decompile or disassemble it, except to the extent that
+       applicable law expressly permits despite this restriction;
+   (d) remove, obscure or alter any copyright, trade mark or other proprietary
+       notice;
+   (e) use it to provide a service to third parties, whether or not for a fee.
+
+3. THIRD-PARTY COMPONENTS
+
+   OCADE incorporates third-party components distributed under their own
+   licences. Those components remain governed by their respective terms, which
+   take precedence over this licence in respect of those components. A complete
+   list is published in release/THIRD_PARTY_NOTICES.md and is reproduced in the
+   installed application.
+
+4. LOCAL AI MODEL
+
+   OCADE downloads and runs an AI language model on your own device. That model
+   is supplied by its own publisher under its own licence, is not part of this
+   software, and is not licensed to you by CAERA CADANE. Model outputs are
+   generated automatically and are not warranted to be accurate.
+
+5. DATA
+
+   OCADE is designed to run locally. Conversations, memory and files processed
+   by the software remain on your device unless you explicitly direct OCADE to
+   send them elsewhere. CAERA CADANE does not collect them.
+
+6. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+
+   OCADE CAN CONTROL THIS COMPUTER. It opens applications, types text, moves
+   the pointer, reads the screen and can send messages on your behalf. You are
+   responsible for supervising what it does and for the consequences of actions
+   you instruct it to take.
+
+7. LIMITATION OF LIABILITY
+
+   TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL THE AUTHORS OR
+   COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+   IN CONNECTION WITH THE SOFTWARE OR ITS USE.
+
+   Nothing in this licence excludes or limits liability that cannot lawfully be
+   excluded or limited, including liability for death or personal injury caused
+   by negligence, or for fraud.
+
+8. TERMINATION
+
+   This licence terminates automatically if you breach it. On termination you
+   must stop using the software and remove all copies.
+
+9. GOVERNING LAW
+
+   This licence is governed by the laws of India, and the courts of Chennai,
+   Tamil Nadu shall have exclusive jurisdiction.
+
+Contact: CAERA CADANE

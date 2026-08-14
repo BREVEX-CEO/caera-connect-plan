@@ -24,11 +24,11 @@ describe("parseVoicePrefs", () => {
 
   it("merges stored values over defaults", () => {
     const p = parseVoicePrefs(
-      JSON.stringify({ gender: "female", wakeEnabled: true, preferredName: "Haans" }),
+      JSON.stringify({ gender: "female", wakeEnabled: true, preferredName: "Alex" }),
     );
     expect(p.gender).toBe("female");
     expect(p.wakeEnabled).toBe(true);
-    expect(p.preferredName).toBe("Haans");
+    expect(p.preferredName).toBe("Alex");
     // Untouched keys keep their defaults.
     expect(p.captionsEnabled).toBe(DEFAULT_VOICE_PREFS.captionsEnabled);
   });

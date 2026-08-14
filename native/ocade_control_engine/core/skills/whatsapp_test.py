@@ -1,7 +1,7 @@
 """The WhatsApp acceptance test, run against the real application.
 
     open whatsapp -> find the conversation named exactly "H" -> type
-    "Hello H I am Ocade your new Little friend , I was created by Haans ,
+    "Hello H I am Ocade your new Little friend , I was created for testing ,
      will you be my new friend"
 
 WHY "H" IS THE HARD CASE, AND WHY THE TEST IS WRITTEN AROUND IT
@@ -39,8 +39,8 @@ if str(ENGINE) not in sys.path:
 
 CONTACT = "H"
 MESSAGE_TEMPLATE = (
-    "Hello {recipient} I am Ocade your new Little friend , "
-    "I was created by Haans , will you be my new friend"
+    "Hello {recipient}, this is a test message from "
+    "I was created for testing , will you be my new friend"
 )
 
 

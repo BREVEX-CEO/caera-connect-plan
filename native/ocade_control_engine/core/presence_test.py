@@ -62,9 +62,9 @@ def run() -> int:
             failures.append(label)
 
     print("\n[1] identity, honorific, and the assistant's own name")
-    memory.set_identity(userName="Haans", gender="male", city="Bengaluru")
+    memory.set_identity(userName="Alex", gender="male", city="Bengaluru")
     who = memory.identity()
-    check("the user is remembered", who["userName"] == "Haans")
+    check("the user is remembered", who["userName"] == "Alex")
     check("the default name is OCADE", memory.assistant_name() == "OCADE")
     renamed, reset = _rename_round_trip(memory)
     check("it can be renamed", renamed)
@@ -159,7 +159,7 @@ def test_the_assistant_can_be_renamed_and_reset() -> None:
     assert "JARVIS" in memory.needs_setup()["questions"]["userName"]
     # The greeting keeps working through the rename — it addresses the USER,
     # and renaming the assistant must not disturb that.
-    memory.set_identity(userName="Haans", gender="male")
+    memory.set_identity(userName="Alex", gender="male")
     assert "Sir" in presence.greeting()
 
     # An empty string is a reset, not a blank name.
@@ -185,7 +185,7 @@ def test_gender_drives_the_honorific() -> None:
     assert memory.honorific() == ""
     assert "gender" in memory.needs_setup()["missing"]
 
-    memory.set_identity(userName="Haans", gender="male")
+    memory.set_identity(userName="Alex", gender="male")
     assert memory.honorific() == "Sir"
     assert memory.address() == "Sir"
     assert "Sir" in presence.greeting()
@@ -198,7 +198,7 @@ def test_gender_drives_the_honorific() -> None:
     # THE HONORIFIC BEATS THE NAME. Somebody who asked for "Sir" wants "Sir",
     # not their first name — ignoring it disregards the one preference they
     # were explicitly asked for.
-    assert "Haans" not in presence.greeting()
+    assert "Alex" not in presence.greeting()
 
 
 def test_gender_synonyms_are_understood_and_the_rest_are_not_guessed() -> None:
@@ -211,9 +211,9 @@ def test_gender_synonyms_are_understood_and_the_rest_are_not_guessed() -> None:
         assert memory.honorific() == "Mam", said
     # Anything the two words do not cover gets NO honorific rather than a
     # coin flip, and falls back to the name.
-    memory.set_identity(userName="Haans", gender="prefer not to say")
+    memory.set_identity(userName="Alex", gender="prefer not to say")
     assert memory.honorific() == ""
-    assert memory.address() == "Haans"
+    assert memory.address() == "Alex"
 
 
 def test_an_old_memory_file_is_migrated() -> None:
@@ -227,7 +227,7 @@ def test_an_old_memory_file_is_migrated() -> None:
             {
                 "version": 1,
                 "identity": {
-                    "userName": "Haans",
+                    "userName": "Alex",
                     "assistantName": "MARK L",
                     "city": "Bengaluru",
                     "language": "",
@@ -243,4 +243,4 @@ def test_an_old_memory_file_is_migrated() -> None:
     # throwing away the user's own choice on upgrade would be the bug.
     assert who["assistantName"] == "MARK L"
     assert memory.assistant_name() == "MARK L"
-    assert who["userName"] == "Haans", "migration must not lose what was there"
+    assert who["userName"] == "Alex", "migration must not lose what was there"

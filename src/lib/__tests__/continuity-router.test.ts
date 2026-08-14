@@ -62,13 +62,13 @@ describe("continuity is routed without a model", () => {
   });
 
   it("separates the user's name from the assistant's", () => {
-    expect(routeDirect("my name is Haans")?.calls[0]).toEqual({
+    expect(routeDirect("my name is Alex")?.calls[0]).toEqual({
       name: "memory_identity",
-      arguments: { userName: "Haans" },
+      arguments: { userName: "Alex" },
     });
-    expect(routeDirect("call me Haans")?.calls[0]).toEqual({
+    expect(routeDirect("call me Alex")?.calls[0]).toEqual({
       name: "memory_identity",
-      arguments: { userName: "Haans" },
+      arguments: { userName: "Alex" },
     });
     // The other direction renames the ASSISTANT, and putting the wrong one in
     // `userName` would have OCADE greeting the user as "JARVIS" every morning.
@@ -185,7 +185,7 @@ describe("the rest of the machine is routed without a model", () => {
     const requests = [
       "remember that I like tea",
       "forget about tea",
-      "my name is Haans",
+      "my name is Alex",
       "your name is JARVIS",
       "catch me up",
       "watch quantum computing",

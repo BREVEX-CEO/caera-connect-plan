@@ -79,6 +79,22 @@ def greeting(now: datetime | None = None) -> str:
     return f"{opener}, {said}." if said else f"{opener}."
 
 
+#: How OCADE introduces itself. Fixed, and deliberately not configurable: the
+#: name is the product, and a renameable assistant is a different product with
+#: a support burden nobody asked for. See ASSISTANT_NAME in core/memory.py.
+INTRODUCTION = "Hi, I am OCade, your control agent and work agent."
+
+
+def opening(now: datetime | None = None) -> str:
+    """The first thing said in a session: who OCADE is, then the greeting.
+
+    Said ONCE, at the start. Repeating an introduction every turn is how a
+    product stops sounding like an assistant and starts sounding like a
+    hold message.
+    """
+    return f"{INTRODUCTION} {greeting(now)}"
+
+
 # -------------------------------------------------------------- briefing --
 
 

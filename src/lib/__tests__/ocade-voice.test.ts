@@ -50,15 +50,15 @@ describe("greetings", () => {
   });
 
   it("defaults to first name with no title", () => {
-    expect(buildGreeting({ preferredName: "Haans" }, 9)).toBe("Good morning, Haans.");
+    expect(buildGreeting({ preferredName: "Alex" }, 9)).toBe("Good morning, Alex.");
   });
 
   it("takes only the first name from a full name", () => {
-    expect(buildGreeting({ fullName: "Haans Antoni" }, 13)).toBe("Good afternoon, Haans.");
+    expect(buildGreeting({ fullName: "Alex Taylor" }, 13)).toBe("Good afternoon, Alex.");
   });
 
   it("never invents a title when none was supplied", () => {
-    const g = buildGreeting({ preferredName: "Haans", style: "first_name" }, 9);
+    const g = buildGreeting({ preferredName: "Alex", style: "first_name" }, 9);
     expect(g).not.toMatch(/\b(sir|ma'?am|mr|mrs|ms|miss)\b/i);
   });
 
@@ -67,8 +67,8 @@ describe("greetings", () => {
       "Good evening, Mr Antoni.",
     );
     // style requested but no title given -> falls back, does not fabricate
-    expect(buildGreeting({ preferredName: "Haans", style: "custom_title" }, 20)).toBe(
-      "Good evening, Haans.",
+    expect(buildGreeting({ preferredName: "Alex", style: "custom_title" }, 20)).toBe(
+      "Good evening, Alex.",
     );
   });
 
@@ -81,7 +81,7 @@ describe("greetings", () => {
   });
 
   it("can be turned off entirely", () => {
-    expect(buildGreeting({ preferredName: "Haans", enabled: false })).toBe("");
+    expect(buildGreeting({ preferredName: "Alex", enabled: false })).toBe("");
   });
 });
 

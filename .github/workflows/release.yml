@@ -39,4 +39,6 @@ jobs:
         releaseBody: 'See the assets to download this version and install.'
         releaseDraft: true
         prerelease: false
-        projectPath: ./native/companion
+        # The Tauri config lives one level deeper. Pointed at the parent, every
+        # tagged release failed: there is no tauri.conf.json at ./native/companion.
+        projectPath: ./native/companion/tauri

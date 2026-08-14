@@ -96,7 +96,7 @@ describe("protected data boundaries", () => {
 
   it("allows filling ordinary fields but demands confirmation", () => {
     const d = decideBrowserAction(
-      { kind: "form.fill", url: `${SITE}/x`, fields: [{ name: "fullName", value: "Haans" }] },
+      { kind: "form.fill", url: `${SITE}/x`, fields: [{ name: "fullName", value: "Alex" }] },
       policy,
     );
     expect(d).toMatchObject({ allow: true, requiresConfirmation: true });

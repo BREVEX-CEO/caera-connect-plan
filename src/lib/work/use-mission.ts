@@ -573,7 +573,7 @@ export function useMission(brain: MissionBrain) {
    * every time the user tells OCADE to remember something.
    *
    * Refreshed after any tool that writes to memory — see `refreshMemory` — so
-   * "my name is Haans" reaches the very next turn's prompt rather than only the
+   * "my name is Alex" reaches the very next turn's prompt rather than only the
    * next mission.
    */
   const memoryRef = useRef<string | null>(null);
@@ -1549,7 +1549,7 @@ export function useMission(brain: MissionBrain) {
              * Read from the ref rather than captured in state so a `remember`
              * earlier in this same conversation is present on this turn — the
              * `tool_end` handler refreshes it the moment a memory tool writes.
-             * Without that, "my name is Haans" followed immediately by "what
+             * Without that, "my name is Alex" followed immediately by "what
              * should you call me" answered from an empty context.
              */
             memoryContext: memoryRef.current,

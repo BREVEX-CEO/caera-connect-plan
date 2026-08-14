@@ -68,9 +68,6 @@ python-pptx
 # --- audio, speech and hearing ---------------------------------------------
 sounddevice
 soundfile
-miniaudio
-pydub                    # file_processor: audio trim / convert
-edge-tts                 # legacy: core/tts.py only. NOT the product voice — it
                          # needs the internet, and OCADE speaks offline. The
                          # shipped voice is Windows SAPI5 (Zira) through
                          # core/voice_pipeline.py, which needs no package at all

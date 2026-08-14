@@ -174,12 +174,27 @@ def _smart_type(text: str, clear_first: bool = True) -> str:
 
 
 def _click(x=None, y=None, button: str = "left", clicks: int = 1) -> str:
+    """Click a NAMED point. A click with no coordinates is refused.
+
+    THERE USED TO BE A FALLBACK HERE THAT CLICKED WHEREVER THE POINTER HAPPENED
+    TO BE SITTING. Nothing reached it -- the bridge's `mouse` handler refuses
+    unless x and y are supplied AND fall inside the target window, and no
+    background thread in the engine can produce a click at all. It was checked
+    and it was genuinely unreachable.
+
+    It is gone anyway. A click at "wherever the mouse is" cannot be verified,
+    cannot be explained in a receipt, and cannot be reproduced -- and the cost
+    of keeping a loaded gun in the drawer against the chance that a future
+    caller forgets an argument is not worth the zero lines it saved.
+    """
     _require_pyautogui()
-    if x is not None and y is not None:
-        pyautogui.click(x, y, button=button, clicks=clicks)
-        return f"{'Double-c' if clicks == 2 else 'C'}licked ({x}, {y}) [{button}]"
-    pyautogui.click(button=button, clicks=clicks)
-    return f"Clicked at current position [{button}]"
+    if x is None or y is None:
+        raise ValueError(
+            "A click needs a point. OCADE does not click wherever the pointer happens "
+            "to be, because that cannot be verified or explained afterwards."
+        )
+    pyautogui.click(x, y, button=button, clicks=clicks)
+    return f"{'Double-c' if clicks == 2 else 'C'}licked ({x}, {y}) [{button}]"
 
 
 def _hotkey(*keys) -> str:

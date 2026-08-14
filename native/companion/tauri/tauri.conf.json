@@ -10,6 +10,17 @@
     "withGlobalTauri": true,
     "windows": [
       {
+        "label": "main",
+        "title": "OCADE",
+        "url": "http://localhost:3000/ocade/work",
+        "width": 1280,
+        "height": 820,
+        "resizable": true,
+        "decorations": true,
+        "center": true,
+        "visible": true
+      },
+      {
         "label": "overlay",
         "title": "OCADE",
         "width": 420,
@@ -24,7 +35,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost",
+      "csp": "default-src 'self' http://localhost:3000; script-src 'self' http://localhost:3000; style-src 'self' 'unsafe-inline' http://localhost:3000; img-src 'self' data: http://localhost:3000; connect-src 'self' ipc: http://ipc.localhost http://localhost:3000 http://127.0.0.1:11434",
       "freezePrototype": true,
       "assetProtocol": {
         "enable": false,
