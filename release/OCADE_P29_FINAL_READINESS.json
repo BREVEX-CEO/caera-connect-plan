@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "phase": "P29 - Final production-readiness closure",
-  "calculatedAt": "2026-08-14T12:29:20.812Z",
+  "calculatedAt": "2026-08-14T14:10:23.501Z",
   "branch": "safeguard-pre-refactor",
-  "currentHead": "77b28fb40900cb3eb22bca93e1a6040d429cf7cc",
-  "sourceRevision": "9ca8bba738c1fb8a6d8a1fcc61e4d6af1b155d9c",
+  "currentHead": "d50d3f4b3e38fcc0481aaa6ad9b76d6d853a21bd",
+  "sourceRevision": "d50d3f4b3e38fcc0481aaa6ad9b76d6d853a21bd",
   "targetVersion": "0.1.0",
   "evidenceBindings": {
-    "sourceRevision": "9ca8bba738c1fb8a6d8a1fcc61e4d6af1b155d9c",
+    "sourceRevision": "d50d3f4b3e38fcc0481aaa6ad9b76d6d853a21bd",
     "targetVersion": "0.1.0",
     "dependencyLockSha256": "05885237196f81a20eef25e2d06266f595e30f5859282379db99c830db62c991",
     "environment": "windows-x64-node22+",
