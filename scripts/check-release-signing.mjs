@@ -83,8 +83,50 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
+/*
+ * The engine digest is part of the same question.
+ *
+ * An unsigned binary and an unpinned installer digest fail the same way: the
+ * product ships and the customer's first run does not do what it promised. The
+ * digest case is quieter and therefore worse -- the install path refuses
+ * silently and correctly, so nothing crashes and nobody finds out until a user
+ * reports that the assistant never became ready.
+ */
+const { existsSync, readFileSync } = await import("node:fs");
+const { join, dirname } = await import("node:path");
+const { fileURLToPath } = await import("node:url");
+
+const manifestPath = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "release",
+  "OCADE_RUNTIME_DIGESTS.json",
+);
+
+let pinned = [];
+if (existsSync(manifestPath)) {
+  try {
+    pinned = Object.entries(JSON.parse(readFileSync(manifestPath, "utf8")))
+      .filter(([, value]) => typeof value === "string" && value.length === 64)
+      .map(([key]) => key);
+  } catch {
+    pinned = [];
+  }
+}
+
+if (pinned.length === 0) {
+  console.error("Release blocked: no engine digest is pinned.");
+  console.error("");
+  console.error("  First run cannot verify what it downloaded, so it will refuse to");
+  console.error("  install anything and the product will never become ready.");
+  console.error("");
+  console.error("  Fix: node scripts/pin-runtime-digest.mjs --all");
+  process.exit(1);
+}
+
 const notStamped = OPTIONAL.filter(({ name }) => !process.env[name]).map((i) => i.name);
 console.log("Release signing configured.");
+console.log(`Engine digests pinned for: ${pinned.join(", ")}`);
 if (notStamped.length > 0) {
   // Reported, not failed. These degrade to "cannot verify", which the Rust side
   // reports honestly as Unknown rather than upgrading to Verified.
