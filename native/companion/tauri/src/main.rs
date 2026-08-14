@@ -45,6 +45,7 @@ use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
 mod browser_host;
 mod integrity;
+mod licence;
 mod platform;
 
 /// Everything the companion needs at runtime, guarded for cross-thread access.
@@ -1218,6 +1219,17 @@ fn integrity_report() -> integrity::IntegrityReport {
     integrity::verify()
 }
 
+/// Report whether this installation carries a valid licence.
+///
+/// Read-only and offline: a signature check against a compiled-in public key,
+/// with no network involved at any point. Like `integrity_report`, it reports
+/// rather than refuses -- what to do about a `mismatched` licence is a business
+/// decision, not one to bury in a verifier.
+#[tauri::command]
+fn licence_status(document: String, signature: String) -> licence::LicenceStatus {
+    licence::verify_licence(document.as_bytes(), &signature)
+}
+
 fn main() {
     tauri::Builder::default()
         // The global-shortcut plugin is installed in `setup` instead, so it can
@@ -1233,6 +1245,21 @@ fn main() {
                 .browser
                 .configure(browser_host::locate_sidecar());
             let data_dir = app.path().app_data_dir()?;
+
+            /*
+             * One line in the usage record per launch.
+             *
+             * Deliberately NOT fatal. A machine where this file cannot be
+             * written -- a locked-down profile, a full disk, a roaming directory
+             * that is not there yet -- is a machine where OCADE should still
+             * start. Refusing to launch over a bookkeeping file would turn a
+             * counter into an outage, and the counter is the less important of
+             * the two by a wide margin.
+             */
+            if let Err(error) = licence::note_launch(&licence::usage_path(&data_dir)) {
+                eprintln!("[companion] usage record unavailable: {error}");
+            }
+
             let journal_path = data_dir.join("operation-journal-v1.jsonl");
             app.state::<Companion>()
                 .operations
@@ -1360,6 +1387,7 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             integrity_report,
+            licence_status,
             open_session,
             close_session,
             status,

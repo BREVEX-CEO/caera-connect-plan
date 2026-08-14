@@ -241,6 +241,7 @@ version = "0.1.0"
 dependencies = [
  "caera-companion-safety",
  "getrandom 0.2.17",
+ "minisign-verify",
  "serde",
  "serde_json",
  "sha2",

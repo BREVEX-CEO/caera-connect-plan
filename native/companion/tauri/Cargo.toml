@@ -18,6 +18,9 @@ serde_json = "1"
 # Already in the lock file via tauri-plugin-updater; naming it directly costs no
 # new download and lets the integrity module depend on it explicitly.
 sha2 = "0.10"
+# Ed25519 verification for offline licences. Already in the lock via
+# tauri-plugin-updater, so naming it directly costs no new download.
+minisign-verify = "0.2"
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-global-shortcut = "2"
 tauri-plugin-clipboard-manager = "2"
