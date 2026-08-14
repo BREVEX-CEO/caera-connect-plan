@@ -66,6 +66,9 @@ REMOTE_COMMANDS = frozenset(
         "engine.info",
         "system.status",
         "window.list",
+        # What is actually in front, as structure. Read-only, and the natural
+        # companion to window.list on a phone screen.
+        "window.read",
         "screen.observe",
         "memory.snapshot",
         "memory.recall",

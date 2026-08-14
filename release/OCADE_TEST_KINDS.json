@@ -100,6 +100,11 @@
       "couldBeStronger": "Partly — P09 executes the safety core, though this specific journal path is in the Tauri host, which is still not built."
     },
     {
+      "path": "src/lib/__tests__/nothing-is-orphaned.test.ts",
+      "why": "Parses ocade_bridge.py HANDLERS, core/remote.py REMOTE_COMMANDS, tool-registry.ts and adapters.node.ts as text to prove no engine command, and no tool offered to the model, is unreachable. The defect it guards is the ABSENCE of a caller, which by definition executes nothing and so cannot be caught by running code. A hand audit found four orphaned subsystems and a scripted sweep found eleven more engine commands with no caller; this makes that check mechanical.",
+      "couldBeStronger": "Only by launching the engine and invoking every command for real, which would take minutes per run and still would not prove a TypeScript caller exists. Reachability is a static property and is correctly checked statically."
+    },
+    {
       "path": "src/lib/__tests__/ocade-integration-audit.test.ts",
       "why": "Reads the integration ledger and asserts the recorded classifications. The gate that enforces it is executed separately.",
       "couldBeStronger": "No; the enforcing gate runs as a subprocess in integration-gate-enforces.test.ts."

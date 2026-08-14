@@ -407,7 +407,34 @@ export const missionMicFn = createServerFn({ method: "POST" })
           detail: "That session has ended.",
         };
       }
-      return mission.adapters.setMic({ enabled: data.enabled, deviceId: data.deviceId });
+      const result = await mission.adapters.setMic({
+        enabled: data.enabled,
+        deviceId: data.deviceId,
+      });
+
+      /*
+       * BARGE-IN FOLLOWS THE MICROPHONE, AND UNTIL NOW IT FOLLOWED NOTHING.
+       *
+       * `setBargeIn` was the only thing in the codebase that starts the
+       * listener, and it had ZERO callers. So `_voice_state["listener"]` in the
+       * engine stayed None forever, `BargeInListener` never ran, `STOP.trip()`
+       * was never fired by a spoken word, and "say stop" -- along with the
+       * whisper-tiny model and the stop-word list behind it -- was dead code
+       * that looked alive.
+       *
+       * The microphone is the right hook because the two are the same
+       * intention: listening is what barge-in IS. Turning the mic on starts the
+       * listener; turning it off releases the audio stream rather than leaving
+       * a thread holding a device nobody is using.
+       *
+       * Deliberately not awaited into the response. Whether OCADE can hear the
+       * word "stop" must not decide whether the microphone reports as on, and
+       * a listener that fails to start is a degraded feature, not a failed
+       * toggle.
+       */
+      void mission.adapters.setBargeIn(result.micEnabled).catch(() => {});
+
+      return result;
     },
   );
 

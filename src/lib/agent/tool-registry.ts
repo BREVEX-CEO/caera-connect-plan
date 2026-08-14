@@ -327,6 +327,106 @@ const OS_APP: ToolDefinition[] = [
     risk: "medium",
   },
   {
+    name: "document_read",
+    domain: "files",
+    /*
+     * NOT A DUPLICATE OF `file_read`, WHICH READS BYTES.
+     *
+     * This goes through `actions/knowledge.py:read_file`, which PARSES: PDF,
+     * Word, Excel and CSV come back as text a model can answer questions
+     * about. Reading a .docx as bytes returns a zip archive, which is useless
+     * and looks like a failure of comprehension rather than of tooling.
+     */
+    description:
+      "Read and understand a document — PDF, Word, Excel, CSV or text — from an approved folder, and return its contents as readable text. Use this to answer questions about a file's contents. For plain byte reads use file_read.",
+    parameters: object(
+      {
+        folder: { type: "string", description: "Approved folder, e.g. 'documents' or 'downloads'." },
+        name: { type: "string", description: "The file name." },
+      },
+      ["folder", "name"],
+    ),
+    mutating: false,
+    risk: "read",
+  },
+  {
+    name: "setup_status",
+    domain: "conversation",
+    description:
+      "Check whether OCADE still needs to ask the two first-run questions: what to call the user, and whether to address them as Sir or Mam. Ask them once, at the very start.",
+    parameters: object({}, []),
+    mutating: false,
+    risk: "read",
+  },
+  {
+    name: "file_list",
+    domain: "files",
+    description:
+      "List the files in one approved folder, optionally filtered by a pattern such as '*.pdf'. Use before file_read when the exact name is not known.",
+    parameters: object(
+      {
+        folder: { type: "string", description: "Approved folder, e.g. 'documents'." },
+        pattern: { type: "string", description: "Optional glob, e.g. '*.pdf'. Defaults to everything." },
+      },
+      ["folder"],
+    ),
+    mutating: false,
+    risk: "read",
+  },
+  {
+    name: "clipboard_watch",
+    domain: "os_app",
+    /*
+     * The poll behind the floating panel. Cheap by construction -- it hashes
+     * the clipboard and compares -- and the first call after the engine starts
+     * always answers "no", so the panel cannot fly open at launch showing
+     * something copied an hour ago.
+     */
+    description:
+      "Check whether the user has copied something new since the last check. Returns the new text when there is one. Use this to offer Translate, Summarise, Explain or Fix on freshly copied text.",
+    parameters: object({}, []),
+    mutating: false,
+    risk: "read",
+  },
+  {
+    name: "screen_watch",
+    domain: "os_app",
+    description:
+      "Start, stop or inspect the continuous screen buffer. Start it when a task begins so the frame answering 'what is on my screen' was captured while the user was still speaking. It stops itself once nothing reads from it.",
+    parameters: object(
+      {
+        action: {
+          type: "string",
+          description: "What to do with the buffer.",
+          enum: ["start", "stop", "status"],
+        },
+      },
+      ["action"],
+    ),
+    mutating: false,
+    risk: "read",
+  },
+  {
+    name: "message_pending",
+    domain: "os_app",
+    description:
+      "List messages that are drafted and waiting for the user's approval. Nothing has been sent.",
+    parameters: object({}, []),
+    mutating: false,
+    risk: "read",
+  },
+  {
+    name: "message_discard",
+    domain: "os_app",
+    description: "Throw away a drafted message that was never sent.",
+    parameters: object(
+      { draftId: { type: "string", description: "The draft's id, from message_pending." } },
+      ["draftId"],
+    ),
+    mutating: true,
+    risk: "low",
+  },
+  {
     name: "message_find_contact",
     domain: "os_app",
     /*

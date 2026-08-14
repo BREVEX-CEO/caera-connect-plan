@@ -266,6 +266,20 @@ export class OcadeAdapters {
         return this.whatsapp("type", { message: text(a.message, "message") });
       case "whatsapp_send":
         return this.whatsapp("send", { message: text(a.message, "message") });
+      case "document_read":
+        return this.simple("file.read", { folder: text(a.folder, "folder"), name: text(a.name, "name") }, "That document could not be read.");
+      case "setup_status":
+        return this.simple("setup.status", {}, "Setup status is unavailable.");
+      case "file_list":
+        return this.simple("file.list", { folder: text(a.folder, "folder"), pattern: typeof a.pattern === "string" ? a.pattern : undefined }, "That folder could not be listed.");
+      case "clipboard_watch":
+        return this.simple("clipboard.watch", {}, "The clipboard could not be checked.");
+      case "screen_watch":
+        return this.simple("screen.watch", { action: text(a.action, "action") }, "The screen watcher did not respond.");
+      case "message_pending":
+        return this.simple("message.pending", {}, "Drafts could not be listed.");
+      case "message_discard":
+        return this.simple("message.discard", { draftId: text(a.draftId, "draftId") }, "That draft was not discarded.");
       case "message_to":
         return this.messageTo(a);
       case "message_find_contact":
