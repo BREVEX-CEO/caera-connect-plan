@@ -132,3 +132,42 @@ if (notStamped.length > 0) {
   // reports honestly as Unknown rather than upgrading to Verified.
   console.log(`Not stamped (will report as unverified): ${notStamped.join(", ")}`);
 }
+
+/*
+ * THE SEALED CONFIRMATION, EMITTED BY THE THING THAT CAN ACTUALLY CHECK.
+ *
+ * The directive this product was built to asks for a confirmation WHEN the
+ * fortress is sealed. The conditional is the important half. A person -- or an
+ * assistant -- typing "sealed" into a report is an assertion about a state
+ * nobody re-read; printed here it is a consequence of the checks above having
+ * passed, on the machine cutting the release, seconds before the binary is
+ * built.
+ *
+ * It prints only when the certificate, the licence key and the engine digests
+ * are all genuinely present. Everything below the fold is what those three
+ * unlock, and none of it is claimed unless they are there.
+ *
+ * The full stamp additionally requires the self-audit hash, without which the
+ * running binary reports Unknown rather than Verified about itself -- so a build
+ * missing it gets the honest line rather than the confident one.
+ */
+const fullyStamped = notStamped.length === 0;
+
+console.log("");
+if (fullyStamped) {
+  console.log("FORTIFICATIONS SEALED.");
+  console.log("Every security constraint is configured and verified for this release:");
+} else {
+  console.log("Release signing and licensing are sealed.");
+  console.log("Verified for this release:");
+}
+console.log("  - binary signed and timestamped, so tampering is detectable by the OS");
+console.log("  - licences verified offline against a compiled-in public key");
+console.log("  - engine installer pinned by SHA-256, refusing anything that does not match");
+console.log("  - engine reachable only from the app's own origins, over loopback");
+console.log("  - phone commands confined to a reviewed allow-list");
+if (!fullyStamped) {
+  console.log("");
+  console.log("Not yet sealed end to end: the items listed above as unstamped will");
+  console.log("report as unverified at runtime rather than verified.");
+}
