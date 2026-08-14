@@ -1574,7 +1574,7 @@
       "area": "Design System and Accessibility",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 80 cases total: src/lib/__tests__/accessibility-gate.test.ts (7 cases), src/lib/__tests__/a11y-simulator.test.ts (27 cases), src/lib/__tests__/visual-render.test.tsx (16 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases). These execute the modules that own \"Design System and Accessibility\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 3 passing test file(s), 53 cases total: src/lib/__tests__/accessibility-gate.test.ts (7 cases), src/lib/__tests__/visual-render.test.tsx (16 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases). These execute the modules that own \"Design System and Accessibility\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -1585,7 +1585,7 @@
       "area": "Design System and Accessibility",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 80 cases total: src/lib/__tests__/accessibility-gate.test.ts (7 cases), src/lib/__tests__/a11y-simulator.test.ts (27 cases), src/lib/__tests__/visual-render.test.tsx (16 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases). These execute the modules that own \"Design System and Accessibility\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 3 passing test file(s), 53 cases total: src/lib/__tests__/accessibility-gate.test.ts (7 cases), src/lib/__tests__/visual-render.test.tsx (16 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases). These execute the modules that own \"Design System and Accessibility\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -1596,7 +1596,7 @@
       "area": "Design System and Accessibility",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 80 cases total: src/lib/__tests__/accessibility-gate.test.ts (7 cases), src/lib/__tests__/a11y-simulator.test.ts (27 cases), src/lib/__tests__/visual-render.test.tsx (16 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases). These execute the modules that own \"Design System and Accessibility\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 3 passing test file(s), 53 cases total: src/lib/__tests__/accessibility-gate.test.ts (7 cases), src/lib/__tests__/visual-render.test.tsx (16 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases). These execute the modules that own \"Design System and Accessibility\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -1607,7 +1607,7 @@
       "area": "Design System and Accessibility",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 80 cases total: src/lib/__tests__/accessibility-gate.test.ts (7 cases), src/lib/__tests__/a11y-simulator.test.ts (27 cases), src/lib/__tests__/visual-render.test.tsx (16 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases). These execute the modules that own \"Design System and Accessibility\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 3 passing test file(s), 53 cases total: src/lib/__tests__/accessibility-gate.test.ts (7 cases), src/lib/__tests__/visual-render.test.tsx (16 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases). These execute the modules that own \"Design System and Accessibility\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -2532,7 +2532,7 @@
       "area": "Copilot and Cowork Orchestration",
       "status": "INTEGRATION TESTED",
       "weight": 0.6,
-      "evidence": "INTEGRATION TESTED — exercised by 6 passing test file(s), 88 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-orchestrator.test.ts (15 cases), src/lib/__tests__/work-orchestrator-runtime.test.ts (5 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "INTEGRATION TESTED — exercised by 4 passing test file(s), 68 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -2543,7 +2543,7 @@
       "area": "Copilot and Cowork Orchestration",
       "status": "INTEGRATION TESTED",
       "weight": 0.6,
-      "evidence": "INTEGRATION TESTED — exercised by 6 passing test file(s), 88 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-orchestrator.test.ts (15 cases), src/lib/__tests__/work-orchestrator-runtime.test.ts (5 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "INTEGRATION TESTED — exercised by 4 passing test file(s), 68 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -2554,7 +2554,7 @@
       "area": "Copilot and Cowork Orchestration",
       "status": "INTEGRATION TESTED",
       "weight": 0.6,
-      "evidence": "INTEGRATION TESTED — exercised by 6 passing test file(s), 88 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-orchestrator.test.ts (15 cases), src/lib/__tests__/work-orchestrator-runtime.test.ts (5 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "INTEGRATION TESTED — exercised by 4 passing test file(s), 68 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -2565,7 +2565,7 @@
       "area": "Copilot and Cowork Orchestration",
       "status": "INTEGRATION TESTED",
       "weight": 0.6,
-      "evidence": "INTEGRATION TESTED — exercised by 6 passing test file(s), 88 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-orchestrator.test.ts (15 cases), src/lib/__tests__/work-orchestrator-runtime.test.ts (5 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "INTEGRATION TESTED — exercised by 4 passing test file(s), 68 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -2576,7 +2576,7 @@
       "area": "Copilot and Cowork Orchestration",
       "status": "INTEGRATION TESTED",
       "weight": 0.6,
-      "evidence": "INTEGRATION TESTED — exercised by 6 passing test file(s), 88 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-orchestrator.test.ts (15 cases), src/lib/__tests__/work-orchestrator-runtime.test.ts (5 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "INTEGRATION TESTED — exercised by 4 passing test file(s), 68 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -2587,7 +2587,7 @@
       "area": "Copilot and Cowork Orchestration",
       "status": "INTEGRATION TESTED",
       "weight": 0.6,
-      "evidence": "INTEGRATION TESTED — exercised by 6 passing test file(s), 88 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-orchestrator.test.ts (15 cases), src/lib/__tests__/work-orchestrator-runtime.test.ts (5 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "INTEGRATION TESTED — exercised by 4 passing test file(s), 68 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -2598,7 +2598,7 @@
       "area": "Copilot and Cowork Orchestration; Reliability No-Progress Detection and Long Tasks",
       "status": "INTEGRATION TESTED",
       "weight": 0.6,
-      "evidence": "INTEGRATION TESTED — exercised by 6 passing test file(s), 88 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-orchestrator.test.ts (15 cases), src/lib/__tests__/work-orchestrator-runtime.test.ts (5 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "INTEGRATION TESTED — exercised by 4 passing test file(s), 68 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -2609,7 +2609,7 @@
       "area": "Copilot and Cowork Orchestration",
       "status": "INTEGRATION TESTED",
       "weight": 0.6,
-      "evidence": "INTEGRATION TESTED — exercised by 6 passing test file(s), 88 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-orchestrator.test.ts (15 cases), src/lib/__tests__/work-orchestrator-runtime.test.ts (5 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "INTEGRATION TESTED — exercised by 4 passing test file(s), 68 cases total: src/lib/__tests__/copilot-session-flow.test.ts (15 cases), src/lib/__tests__/work-session.test.ts (23 cases), src/lib/__tests__/governed-run.test.ts (10 cases), src/lib/__tests__/task-scope.test.ts (20 cases). These execute the modules that own \"Copilot and Cowork Orchestration\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -3243,7 +3243,7 @@
       "area": "Screen Capture Vision and Set-of-Mark",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 101 cases total: src/lib/__tests__/perception.test.ts (11 cases), src/lib/__tests__/world-scan.test.ts (17 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases), src/lib/__tests__/transcript-redaction.test.ts (43 cases). These execute the modules that own \"Screen Capture Vision and Set-of-Mark\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 3 passing test file(s), 90 cases total: src/lib/__tests__/world-scan.test.ts (17 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases), src/lib/__tests__/transcript-redaction.test.ts (43 cases). These execute the modules that own \"Screen Capture Vision and Set-of-Mark\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -3254,7 +3254,7 @@
       "area": "Screen Capture Vision and Set-of-Mark",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 101 cases total: src/lib/__tests__/perception.test.ts (11 cases), src/lib/__tests__/world-scan.test.ts (17 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases), src/lib/__tests__/transcript-redaction.test.ts (43 cases). These execute the modules that own \"Screen Capture Vision and Set-of-Mark\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 3 passing test file(s), 90 cases total: src/lib/__tests__/world-scan.test.ts (17 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases), src/lib/__tests__/transcript-redaction.test.ts (43 cases). These execute the modules that own \"Screen Capture Vision and Set-of-Mark\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -3265,7 +3265,7 @@
       "area": "Screen Capture Vision and Set-of-Mark",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 101 cases total: src/lib/__tests__/perception.test.ts (11 cases), src/lib/__tests__/world-scan.test.ts (17 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases), src/lib/__tests__/transcript-redaction.test.ts (43 cases). These execute the modules that own \"Screen Capture Vision and Set-of-Mark\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 3 passing test file(s), 90 cases total: src/lib/__tests__/world-scan.test.ts (17 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases), src/lib/__tests__/transcript-redaction.test.ts (43 cases). These execute the modules that own \"Screen Capture Vision and Set-of-Mark\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -3276,7 +3276,7 @@
       "area": "Screen Capture Vision and Set-of-Mark",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 101 cases total: src/lib/__tests__/perception.test.ts (11 cases), src/lib/__tests__/world-scan.test.ts (17 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases), src/lib/__tests__/transcript-redaction.test.ts (43 cases). These execute the modules that own \"Screen Capture Vision and Set-of-Mark\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 3 passing test file(s), 90 cases total: src/lib/__tests__/world-scan.test.ts (17 cases), src/lib/__tests__/ocade-visual.test.ts (30 cases), src/lib/__tests__/transcript-redaction.test.ts (43 cases). These execute the modules that own \"Screen Capture Vision and Set-of-Mark\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -4700,7 +4700,7 @@
       "area": "Reliability No-Progress Detection and Long Tasks",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 5 passing test file(s), 72 cases total: src/lib/__tests__/progress-monitor.test.ts (18 cases), src/lib/__tests__/deadline.test.ts (14 cases), src/lib/__tests__/monitors-nav.test.ts (2 cases), src/lib/__tests__/healing-playbooks.test.ts (26 cases), src/lib/__tests__/recovery-graph.test.ts (12 cases). These execute the modules that own \"Reliability No-Progress Detection and Long Tasks\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 54 cases total: src/lib/__tests__/deadline.test.ts (14 cases), src/lib/__tests__/monitors-nav.test.ts (2 cases), src/lib/__tests__/healing-playbooks.test.ts (26 cases), src/lib/__tests__/recovery-graph.test.ts (12 cases). These execute the modules that own \"Reliability No-Progress Detection and Long Tasks\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -4711,7 +4711,7 @@
       "area": "Reliability No-Progress Detection and Long Tasks",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 5 passing test file(s), 72 cases total: src/lib/__tests__/progress-monitor.test.ts (18 cases), src/lib/__tests__/deadline.test.ts (14 cases), src/lib/__tests__/monitors-nav.test.ts (2 cases), src/lib/__tests__/healing-playbooks.test.ts (26 cases), src/lib/__tests__/recovery-graph.test.ts (12 cases). These execute the modules that own \"Reliability No-Progress Detection and Long Tasks\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 54 cases total: src/lib/__tests__/deadline.test.ts (14 cases), src/lib/__tests__/monitors-nav.test.ts (2 cases), src/lib/__tests__/healing-playbooks.test.ts (26 cases), src/lib/__tests__/recovery-graph.test.ts (12 cases). These execute the modules that own \"Reliability No-Progress Detection and Long Tasks\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -4722,7 +4722,7 @@
       "area": "Reliability No-Progress Detection and Long Tasks",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 5 passing test file(s), 72 cases total: src/lib/__tests__/progress-monitor.test.ts (18 cases), src/lib/__tests__/deadline.test.ts (14 cases), src/lib/__tests__/monitors-nav.test.ts (2 cases), src/lib/__tests__/healing-playbooks.test.ts (26 cases), src/lib/__tests__/recovery-graph.test.ts (12 cases). These execute the modules that own \"Reliability No-Progress Detection and Long Tasks\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 54 cases total: src/lib/__tests__/deadline.test.ts (14 cases), src/lib/__tests__/monitors-nav.test.ts (2 cases), src/lib/__tests__/healing-playbooks.test.ts (26 cases), src/lib/__tests__/recovery-graph.test.ts (12 cases). These execute the modules that own \"Reliability No-Progress Detection and Long Tasks\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -4733,7 +4733,7 @@
       "area": "Reliability No-Progress Detection and Long Tasks",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 5 passing test file(s), 72 cases total: src/lib/__tests__/progress-monitor.test.ts (18 cases), src/lib/__tests__/deadline.test.ts (14 cases), src/lib/__tests__/monitors-nav.test.ts (2 cases), src/lib/__tests__/healing-playbooks.test.ts (26 cases), src/lib/__tests__/recovery-graph.test.ts (12 cases). These execute the modules that own \"Reliability No-Progress Detection and Long Tasks\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 54 cases total: src/lib/__tests__/deadline.test.ts (14 cases), src/lib/__tests__/monitors-nav.test.ts (2 cases), src/lib/__tests__/healing-playbooks.test.ts (26 cases), src/lib/__tests__/recovery-graph.test.ts (12 cases). These execute the modules that own \"Reliability No-Progress Detection and Long Tasks\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -4744,7 +4744,7 @@
       "area": "Reliability No-Progress Detection and Long Tasks",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 5 passing test file(s), 72 cases total: src/lib/__tests__/progress-monitor.test.ts (18 cases), src/lib/__tests__/deadline.test.ts (14 cases), src/lib/__tests__/monitors-nav.test.ts (2 cases), src/lib/__tests__/healing-playbooks.test.ts (26 cases), src/lib/__tests__/recovery-graph.test.ts (12 cases). These execute the modules that own \"Reliability No-Progress Detection and Long Tasks\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 54 cases total: src/lib/__tests__/deadline.test.ts (14 cases), src/lib/__tests__/monitors-nav.test.ts (2 cases), src/lib/__tests__/healing-playbooks.test.ts (26 cases), src/lib/__tests__/recovery-graph.test.ts (12 cases). These execute the modules that own \"Reliability No-Progress Detection and Long Tasks\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -4755,7 +4755,7 @@
       "area": "Reliability No-Progress Detection and Long Tasks",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 5 passing test file(s), 72 cases total: src/lib/__tests__/progress-monitor.test.ts (18 cases), src/lib/__tests__/deadline.test.ts (14 cases), src/lib/__tests__/monitors-nav.test.ts (2 cases), src/lib/__tests__/healing-playbooks.test.ts (26 cases), src/lib/__tests__/recovery-graph.test.ts (12 cases). These execute the modules that own \"Reliability No-Progress Detection and Long Tasks\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 54 cases total: src/lib/__tests__/deadline.test.ts (14 cases), src/lib/__tests__/monitors-nav.test.ts (2 cases), src/lib/__tests__/healing-playbooks.test.ts (26 cases), src/lib/__tests__/recovery-graph.test.ts (12 cases). These execute the modules that own \"Reliability No-Progress Detection and Long Tasks\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -4766,7 +4766,7 @@
       "area": "Reliability No-Progress Detection and Long Tasks",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 5 passing test file(s), 72 cases total: src/lib/__tests__/progress-monitor.test.ts (18 cases), src/lib/__tests__/deadline.test.ts (14 cases), src/lib/__tests__/monitors-nav.test.ts (2 cases), src/lib/__tests__/healing-playbooks.test.ts (26 cases), src/lib/__tests__/recovery-graph.test.ts (12 cases). These execute the modules that own \"Reliability No-Progress Detection and Long Tasks\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 54 cases total: src/lib/__tests__/deadline.test.ts (14 cases), src/lib/__tests__/monitors-nav.test.ts (2 cases), src/lib/__tests__/healing-playbooks.test.ts (26 cases), src/lib/__tests__/recovery-graph.test.ts (12 cases). These execute the modules that own \"Reliability No-Progress Detection and Long Tasks\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -4832,7 +4832,7 @@
       "area": "Observability Telemetry and Diagnostics",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 53 cases total: src/lib/__tests__/failure-telemetry.test.ts (18 cases), src/lib/__tests__/diagnostics-render.test.tsx (6 cases), src/lib/__tests__/error-capture.test.ts (11 cases), src/lib/__tests__/progress-monitor.test.ts (18 cases). These execute the modules that own \"Observability Telemetry and Diagnostics\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 3 passing test file(s), 35 cases total: src/lib/__tests__/failure-telemetry.test.ts (18 cases), src/lib/__tests__/diagnostics-render.test.tsx (6 cases), src/lib/__tests__/error-capture.test.ts (11 cases). These execute the modules that own \"Observability Telemetry and Diagnostics\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -4843,7 +4843,7 @@
       "area": "Observability Telemetry and Diagnostics; Product Governance and Long-Term Evolution",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 53 cases total: src/lib/__tests__/failure-telemetry.test.ts (18 cases), src/lib/__tests__/diagnostics-render.test.tsx (6 cases), src/lib/__tests__/error-capture.test.ts (11 cases), src/lib/__tests__/progress-monitor.test.ts (18 cases). These execute the modules that own \"Observability Telemetry and Diagnostics\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 3 passing test file(s), 35 cases total: src/lib/__tests__/failure-telemetry.test.ts (18 cases), src/lib/__tests__/diagnostics-render.test.tsx (6 cases), src/lib/__tests__/error-capture.test.ts (11 cases). These execute the modules that own \"Observability Telemetry and Diagnostics\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -4854,7 +4854,7 @@
       "area": "Observability Telemetry and Diagnostics",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "UNIT TESTED — exercised by 4 passing test file(s), 53 cases total: src/lib/__tests__/failure-telemetry.test.ts (18 cases), src/lib/__tests__/diagnostics-render.test.tsx (6 cases), src/lib/__tests__/error-capture.test.ts (11 cases), src/lib/__tests__/progress-monitor.test.ts (18 cases). These execute the modules that own \"Observability Telemetry and Diagnostics\". Proves specified behaviour under test only; NOT real-target runtime proof.",
+      "evidence": "UNIT TESTED — exercised by 3 passing test file(s), 35 cases total: src/lib/__tests__/failure-telemetry.test.ts (18 cases), src/lib/__tests__/diagnostics-render.test.tsx (6 cases), src/lib/__tests__/error-capture.test.ts (11 cases). These execute the modules that own \"Observability Telemetry and Diagnostics\". Proves specified behaviour under test only; NOT real-target runtime proof.",
       "resolvedInPhase": "P29-test-evidence-binding",
       "owner": "OCADE programme",
       "ownerKind": "internal"
@@ -6079,7 +6079,7 @@
       "area": "External Beta and Controlled Expansion",
       "status": "UNIT TESTED",
       "weight": 0.5,
-      "evidence": "src/lib/control/controlled-rollout.ts, launch-gate.functions.ts and controlled-rollout.test.ts enforce sequential feature-flag expansion, refusal audit and emergency narrowing; the paired SQL trigger is READY TO APPLY.",
+      "evidence": "src/lib/launch/controlled-rollout.ts, launch-gate.functions.ts and controlled-rollout.test.ts enforce sequential feature-flag expansion, refusal audit and emergency narrowing; the paired SQL trigger is READY TO APPLY.",
       "resolvedInPhase": "P28",
       "owner": "OCADE programme",
       "ownerKind": "internal"

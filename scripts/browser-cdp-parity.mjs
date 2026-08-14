@@ -117,8 +117,26 @@ async function runBrowser(browser, origin, tempRoot) {
       ...common,
       action: { kind: "type", target: { selector: "#password" }, value: "must-not-type" },
     });
-    if (protectedAttempt.ok || !/Protected fields/i.test(protectedAttempt.error)) {
-      throw new Error(`${browser} did not refuse a protected field.`);
+    /*
+     * Asserted on the STRUCTURED refusal, not on the sentence.
+     *
+     * This used to match /Protected fields/ against the error prose, which
+     * made the wording of a user-facing message load-bearing: improving the
+     * sentence broke the gate, and the gate could not tell a refusal apart
+     * from any other failure that happened to contain the phrase. The host now
+     * carries `code: "blocked"` and a `handover` reason, so the contract is
+     * checkable directly and the sentence is free to be good English.
+     */
+    if (
+      protectedAttempt.ok ||
+      protectedAttempt.code !== "blocked" ||
+      protectedAttempt.handover?.what !== "protected_field"
+    ) {
+      throw new Error(
+        `${browser} did not refuse a protected field with a hand-over ` +
+          `(ok=${protectedAttempt.ok}, code=${protectedAttempt.code}, ` +
+          `handover=${JSON.stringify(protectedAttempt.handover)}).`,
+      );
     }
     const clicked = await host.call({
       command: "perform",

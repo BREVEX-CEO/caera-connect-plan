@@ -18,7 +18,7 @@ import {
   type LaunchGateStatus,
   type RolloutLaunchGate,
   type RolloutStage,
-} from "@/lib/control/controlled-rollout";
+} from "@/lib/launch/controlled-rollout";
 
 /**
  * The caller-scoped Supabase client, typed against the real schema.

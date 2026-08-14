@@ -39,7 +39,7 @@ import {
   type ActionRoute,
   type OcadeActionRequest,
   type RiskLevel,
-} from "../control/control-plane";
+} from "./action-contract";
 
 export interface GovernedStep {
   action: CompanionAction;

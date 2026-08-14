@@ -302,6 +302,12 @@ export const controlWorkTaskFn = createServerFn({ method: "POST" })
           complete: engine.complete,
           turn: engine.turn,
           execute: (call, signal) => adapters.execute(call, signal),
+          /*
+           * Spoken barge-in reaches the loop here. The engine has already gone
+           * quiet and released the mouse by the time this is polled; what this
+           * decides is whether the remaining steps run at all.
+           */
+          stopRequested: () => adapters.stopRequested(),
           permit: async (call) => {
             if (data.autonomy !== "act") return false;
             const definition = registry.findTool(call.name);

@@ -273,26 +273,18 @@ export async function discoverLocalModels(
   }
 }
 
-/**
- * Choose the best installed local model for a desired capability. Prefers an
- * exact profile match; a general chat request may be served by any model
- * (code models are still capable chatters); "fast" prefers the smallest.
- * Returns null when nothing suitable is installed.
+/*
+ * SIZE-BASED MODEL SELECTION IS GONE, AND IT IS NOT COMING BACK.
+ *
+ * `pickLocalModel` chose by size with the rule "prefer larger (more capable)".
+ * On a machine holding several models that returned the biggest one installed —
+ * a 9.3 GB engine on a 15.6 GB laptop with no GPU — and signed-in Chat opened
+ * on it while every other surface ran the fixed 1.9 GB engine.
+ *
+ * OCADE has exactly ONE reasoning engine and one vision engine.
+ * `selectFixedModel` in `local/fixed-model.ts` is the only thing that may name
+ * them; reach it through `routeTask` so the vision branch stays in one place.
  */
-export function pickLocalModel(
-  models: LocalModelInfo[],
-  desired: OcadeLocalProfile,
-): LocalModelInfo | null {
-  if (models.length === 0) return null;
-  const exact = models.filter((m) => m.profile === desired);
-  const pool = exact.length > 0 ? exact : desired === "vision" ? [] : models;
-  if (pool.length === 0) return null;
-  if (desired === "fast") {
-    return [...pool].sort((a, b) => a.sizeBytes - b.sizeBytes)[0];
-  }
-  // Prefer larger (more capable) for general/code/vision.
-  return [...pool].sort((a, b) => b.sizeBytes - a.sizeBytes)[0];
-}
 
 /* -------------------- Hardware-aware model fit -------------------- */
 
@@ -374,198 +366,44 @@ export function modelFit(model: LocalModelInfo, totalRamBytes: number): ModelFit
   return { model, needsBytes, fits: true };
 }
 
-export interface HardwareAwarePick {
-  picked: LocalModelInfo | null;
-  /** Models rejected because this machine cannot hold them, with reasons. */
-  excluded: ModelFit[];
-  /** Set when nothing at all fits — the honest "use cloud or free RAM" case. */
-  reason?: string;
-}
-
-/**
- * Choose a local model that this machine can actually run.
+/*
+ * THE FALLBACK CHAIN IS DELETED.
  *
- * `pickLocalModel` alone prefers the LARGEST model for general/code, which on a
- * 16 GB machine holding an 18.6 GB model returns something that cannot load.
- * This filters to what fits first, then applies the same preference within that
- * set, so "most capable" never means "most capable in theory".
+ * `buildLocalFirstPlan` built preferred/secondary/lightweight steps and the
+ * caller started at step ONE. With several models installed that step was the
+ * largest one, so signed-in Chat ran a 9.3 GB engine while Control + Work ran
+ * the fixed 1.9 GB engine. `pickLocalModelForHardware` only re-ranked the same
+ * size-based choice inside what fitted in RAM.
+ *
+ * One engine needs no chain. If the fixed engine cannot serve a request, the
+ * honest outcome is a stated refusal — not a quiet downgrade to a model the
+ * single-model authority never chose.
  */
-export function pickLocalModelForHardware(
-  models: LocalModelInfo[],
-  desired: OcadeLocalProfile,
-  totalRamBytes: number,
-): HardwareAwarePick {
-  const fits = models.map((m) => modelFit(m, totalRamBytes));
-  const runnable = fits.filter((f) => f.fits).map((f) => f.model);
-  const excluded = fits.filter((f) => !f.fits);
-
-  if (runnable.length === 0) {
-    return {
-      picked: null,
-      excluded,
-      reason:
-        models.length === 0
-          ? "No on-device models are installed yet."
-          : `No installed model fits this machine's ${gb(totalRamBytes)} of RAM.`,
-    };
-  }
-  return { picked: pickLocalModel(runnable, desired), excluded };
-}
-
-export type FallbackStepKind =
-  | "local_preferred"
-  | "local_secondary"
-  | "local_lightweight"
-  | "local_reduced"
-  | "ask_cloud"
-  | "fail";
-
-export interface FallbackStep {
-  kind: FallbackStepKind;
-  label: OcadeCapabilityLabel | null;
-  /** Raw model id for local steps — internal routing, not shown to users. */
-  modelId: string | null;
-  detail: string;
-}
-
-export interface FallbackPlanInput {
-  desired: OcadeLocalProfile;
-  models: LocalModelInfo[];
-  /** Whether crossing to cloud is permitted at all (privacy/allowance). */
-  cloudAllowed: boolean;
-  online: boolean;
-  /**
-   * Total physical RAM, when known. Models that cannot be resident are dropped
-   * from the chain rather than offered and then failing to load. Omit only when
-   * hardware is genuinely undetectable; omitting it disables the check.
-   */
-  totalRamBytes?: number;
-  /**
-   * Whether this machine has real graphics acceleration.
-   *
-   * `false` drops tiers that need it. Omit when genuinely unknown — claiming
-   * "no GPU" without evidence would shrink the chain on a guess.
-   */
-  hasDiscreteGpu?: boolean;
-}
 
 /**
- * Build the capability-aware fallback chain (decision #17):
- * preferred local → secondary local → lightweight local → reduced local →
- * ask for OCADE Cloud → clear failure.
- * Pure and deterministic.
+ * How long the runtime keeps the model resident after a reply.
+ *
+ * THIS IS THE ENTIRE TIME-TO-FIRST-TOKEN STORY, MEASURED ON THIS MACHINE.
+ *
+ *     cold, model evicted    TTFT 5750 ms
+ *     warm                   TTFT  222 ms
+ *
+ * Twenty-six times. Nothing else in the request comes close: streaming was
+ * already on, the prompt is already short, and `keep_alive` makes a warm model
+ * no faster at all (217 ms against 222 ms is noise). What it does is stop the
+ * model being EVICTED, and eviction is what the 5.75 seconds is.
+ *
+ * Ollama's own default unloads after five minutes idle — which is precisely
+ * the gap between "OCADE answered me" and "I thought of the next thing to ask",
+ * so in ordinary conversational use the default guarantees the slow path. Thirty
+ * minutes covers a working session.
+ *
+ * THE COST IS HONEST AND IS RAM. The model stays in memory for half an hour
+ * after the last question instead of five minutes. On a machine that cannot
+ * spare it the runtime evicts under pressure anyway, so this raises the ceiling
+ * rather than pinning the floor.
  */
-export function buildLocalFirstPlan(input: FallbackPlanInput): FallbackStep[] {
-  const steps: FallbackStep[] = [];
-  const { desired } = input;
-
-  /*
-   * Filter to what this machine can hold BEFORE building the chain. Offering a
-   * model that cannot load is worse than offering nothing: every step below
-   * would inherit the same impossible candidate, and the user would watch the
-   * chain fail all the way down to `fail` for a reason none of the steps state.
-   */
-  const excludedByHardware =
-    input.totalRamBytes === undefined
-      ? []
-      : input.models.map((m) => modelFit(m, input.totalRamBytes!)).filter((f) => !f.fits);
-  const excludedIds = new Set(excludedByHardware.map((f) => f.model.id));
-
-  /*
-   * Fitting in memory is not the same as being usable.
-   *
-   * `routeTask` already refuses a quarantined tier and a GPU-tier model on a
-   * machine without acceleration; this chain did not, so the fallback path
-   * could hand back exactly the model the primary path had just rejected — and
-   * on the reference machine that model needed three minutes for a one-word
-   * answer. The same two lists decide here, imported rather than copied.
-   */
-  /*
-   * THE QUARANTINE AND GPU LISTS ARE GONE WITH THE SELECTION THEY SERVED.
-   *
-   * They existed to stop a fallback chain reaching for a 14B model on a machine
-   * that would take three minutes to answer with it. OCADE now has exactly one
-   * engine, so there is no chain to protect and no larger model to fall back
-   * to — and a hard-coded list of "models that need a GPU" was a maintenance
-   * burden that had already drifted out of step with the router once.
-   */
-  const models = input.models.filter((m) => !excludedIds.has(m.id));
-
-  const preferred = pickLocalModel(models, desired);
-  if (preferred) {
-    steps.push({
-      kind: "local_preferred",
-      label: preferred.label,
-      modelId: preferred.id,
-      detail: `Preferred on-device engine (${labelName(preferred.label)}).`,
-    });
-  }
-
-  const secondary = models
-    .filter((m) => m.id !== preferred?.id)
-    .sort((a, b) => b.sizeBytes - a.sizeBytes)[0];
-  if (secondary) {
-    steps.push({
-      kind: "local_secondary",
-      label: secondary.label,
-      modelId: secondary.id,
-      detail: "Secondary on-device engine.",
-    });
-  }
-
-  const lightweight = [...models].sort((a, b) => a.sizeBytes - b.sizeBytes)[0];
-  if (lightweight && lightweight.id !== preferred?.id && lightweight.id !== secondary?.id) {
-    steps.push({
-      kind: "local_lightweight",
-      label: capabilityLabelFor({ locality: "local", profile: "fast" }),
-      modelId: lightweight.id,
-      detail: "Lightweight on-device engine for low resources.",
-    });
-  }
-
-  if (models.length > 0) {
-    steps.push({
-      kind: "local_reduced",
-      label: "OCADE Local",
-      modelId: null,
-      detail: "Reduced offline response from local capability only.",
-    });
-  }
-
-  if (input.online && input.cloudAllowed) {
-    steps.push({
-      kind: "ask_cloud",
-      label: "OCADE Cloud",
-      modelId: null,
-      detail: "Ask permission to use OCADE Cloud for this request.",
-    });
-  }
-
-  if (steps.length === 0) {
-    /*
-     * Distinguish "nothing installed" from "everything installed is too big for
-     * this machine". They are different problems with different fixes, and
-     * telling a user with three installed models that none is installed is a
-     * lie the hardware check has already disproved.
-     */
-    const tooBig = excludedByHardware.length > 0;
-    steps.push({
-      kind: "fail",
-      label: null,
-      modelId: null,
-      detail: tooBig
-        ? `${excludedByHardware.length} installed model${excludedByHardware.length === 1 ? "" : "s"} cannot run on this machine. ${excludedByHardware[0].reason}`
-        : input.online
-          ? "No local engine is installed and OCADE Cloud isn't permitted for this content."
-          : "You're offline and no local engine is installed yet.",
-    });
-  }
-  return steps;
-}
-
-function labelName(label: OcadeCapabilityLabel): string {
-  return label;
-}
+export const MODEL_KEEP_ALIVE = "30m";
 
 /* -------------------- Client-side local streaming -------------------- */
 
@@ -864,6 +702,9 @@ export async function preloadLocalModel(
         model: modelId,
         messages: [],
         ...(numCtx ? { options: { num_ctx: numCtx } } : {}),
+        // A warm-up that lets the model be evicted five minutes later has not
+        // warmed anything up.
+        keep_alive: MODEL_KEEP_ALIVE,
       }),
     });
     return res.ok;
@@ -952,6 +793,8 @@ export async function streamLocalChat(
         ...(includeThink ? { think: handlers.think === true } : {}),
         ...(handlers.tools && handlers.tools.length > 0 ? { tools: handlers.tools } : {}),
         ...(context.numCtx === null ? {} : { options: { num_ctx: context.numCtx } }),
+        // Keeps the next question on the 222 ms path instead of the 5750 ms one.
+        keep_alive: MODEL_KEEP_ALIVE,
       }),
       signal: handlers.signal,
     });

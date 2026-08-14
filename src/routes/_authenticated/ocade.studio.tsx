@@ -7,7 +7,6 @@ import { ScenePanel } from "@/components/ocade/ScenePanel";
 import { PatchPanel } from "@/components/ocade/PatchPanel";
 import { GovernedRunPanel } from "@/components/ocade/GovernedRunPanel";
 import { DiagnosticsPanel } from "@/components/ocade/DiagnosticsPanel";
-import { ControlSimulatorPanel } from "@/components/ocade/ControlSimulatorPanel";
 import { ConversationControls } from "@/components/ocade/ConversationControls";
 import { CreativeControlPanel } from "@/components/ocade/CreativeControlPanel";
 import { EngineeringControlPanel } from "@/components/ocade/EngineeringControlPanel";
@@ -57,7 +56,6 @@ function StudioPage() {
         <AnswerQualityPanel />
         <PatchPanel />
         <DiagnosticsPanel />
-        <ControlSimulatorPanel />
         <CreativeControlPanel />
         <EngineeringControlPanel />
         <ResourceGovernorPanel />

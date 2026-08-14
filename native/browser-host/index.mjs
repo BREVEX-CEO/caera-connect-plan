@@ -122,12 +122,245 @@ function safeId(value, name) {
   return value;
 }
 
+/**
+ * Where the browser keeps the profile the USER actually signs in with.
+ *
+ * This is the whole point of the attachment work. An OCADE-managed profile is a
+ * brand-new browser: no cookies, no sessions, no history. WhatsApp Web shows a
+ * QR code, YouTube shows no subscriptions, and webmail shows a login form —
+ * every task that depends on being signed in fails at the first step, and it
+ * fails in a way that looks like OCADE being broken rather than logged out.
+ */
+function realProfileDir(browserKind) {
+  const local = process.env.LOCALAPPDATA;
+  const home = homedir();
+  if (platform() === "win32" && local) {
+    return browserKind === "edge"
+      ? join(local, "Microsoft", "Edge", "User Data")
+      : join(local, "Google", "Chrome", "User Data");
+  }
+  if (platform() === "darwin") {
+    return browserKind === "edge"
+      ? join(home, "Library/Application Support/Microsoft Edge")
+      : join(home, "Library/Application Support/Google/Chrome");
+  }
+  return browserKind === "edge"
+    ? join(home, ".config/microsoft-edge")
+    : join(home, ".config/google-chrome");
+}
+
+const DEFAULT_CDP_PORT = 9222;
+const DEFAULT_CDP_ENDPOINT = `http://127.0.0.1:${DEFAULT_CDP_PORT}`;
+
+/**
+ * Is a debuggable browser already listening?
+ *
+ * Deliberately a plain HTTP probe with a short timeout rather than an attempted
+ * `connectOverCDP`: a failed connect can hang for its full timeout, and this
+ * runs on the fast path of every attach. `/json/version` is the cheapest
+ * endpoint that proves a real DevTools host rather than something else on 9222.
+ */
+async function probeCdp(endpoint, timeoutMs = 1_500) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const base = new URL(endpoint);
+    base.protocol = base.protocol.replace(/^ws/, "http");
+    const response = await fetch(new URL("/json/version", base), { signal: controller.signal });
+    if (!response.ok) return null;
+    const info = await response.json();
+    return info?.webSocketDebuggerUrl ? info : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/*
+ * Playwright's wording when the user data directory is already held by a
+ * running browser. Matched on the stable half of the sentence — the second
+ * half varies by version and by whether it says "Chromium" or "Chrome".
+ */
+const PROFILE_LOCKED =
+  /already in use|Opening in existing browser session|ProcessSingleton|SingletonLock/i;
+
+/**
+ * Attach to the browser the user is actually signed into.
+ *
+ * TWO ROUTES, TRIED IN THIS ORDER, AND THE ORDER IS THE DESIGN.
+ *
+ *   1. CDP to a browser that is ALREADY RUNNING. This is preferred whenever it
+ *      is available because it takes over nothing: the user's windows stay
+ *      open, their tabs stay put, and OCADE works alongside them.
+ *
+ *   2. `launchPersistentContext` against the real user-data directory. This
+ *      gives the same cookies and sessions, but it has to OWN the browser
+ *      process — which is why it can only work when Chrome is closed.
+ *
+ * WHY THE FALLBACK ORDER CANNOT BE REVERSED. Route 2 fails when the browser is
+ * running, and the browser running is the ordinary state of a user's machine.
+ * Trying it first would mean the common case is always an error recovered from,
+ * and every attach would pay a failed browser launch before succeeding.
+ */
+async function attachToRealBrowser(request, browserKind) {
+  const endpoint = requireLocalEndpoint(request.connectEndpoint || DEFAULT_CDP_ENDPOINT);
+  const attempts = [];
+
+  const viaCdp = await probeCdp(endpoint);
+  if (viaCdp) {
+    const browser = await chromium.connectOverCDP(endpoint);
+    const context = browser.contexts()[0];
+    if (context) {
+      return {
+        browser,
+        context,
+        attached: true,
+        userDataDir: null,
+        how: "cdp",
+        detail: `Attached to the running ${viaCdp.Browser || browserKind} over DevTools.`,
+      };
+    }
+    await browser.close();
+    attempts.push("the running browser exposed no usable context");
+  } else {
+    attempts.push(`nothing is listening for DevTools on ${endpoint}`);
+  }
+
+  const executablePath = await detectBrowser(browserKind);
+  if (!executablePath) throw new Error(`${browserKind} is not installed in a supported location.`);
+
+  const profileDir = request.userDataDir
+    ? resolve(request.userDataDir)
+    : realProfileDir(browserKind);
+  try {
+    const context = await chromium.launchPersistentContext(profileDir, {
+      executablePath,
+      headless: false,
+      acceptDownloads: true,
+      viewport: null,
+      // See the note in the managed branch of `launchSession`: Playwright turns
+      // the renderer sandbox OFF by default here, and this is the user's own
+      // signed-in profile, so it is the last place to accept that.
+      chromiumSandbox: true,
+      args: [
+        // Opened WITH the debugging port so the next attach can take route 1
+        // and leave this window where it is, rather than repeating this launch.
+        `--remote-debugging-port=${new URL(endpoint).port || 9222}`,
+        "--remote-debugging-address=127.0.0.1",
+        "--no-first-run",
+        "--no-default-browser-check",
+        ...(typeof request.profileDirectory === "string" && request.profileDirectory
+          ? [`--profile-directory=${request.profileDirectory}`]
+          : []),
+      ],
+    });
+    return {
+      context,
+      browser: null,
+      attached: false,
+      userDataDir: profileDir,
+      how: "persistent",
+      detail: `Opened ${browserKind} with the signed-in profile at ${profileDir}.`,
+    };
+  } catch (error) {
+    const message = String(error?.message || error);
+    if (!PROFILE_LOCKED.test(message)) throw error;
+
+    /*
+     * LOCK RECOVERY. The profile is held by the browser the user has open. Try
+     * DevTools once more first — they may have started it with the port, or
+     * started it since the probe above — and only then give up.
+     *
+     * Giving up says exactly what to do. "Profile is locked" is a true sentence
+     * that leaves the user stuck; the two things that actually resolve it are
+     * closing the browser or restarting it with the debugging port, so those
+     * are what the message contains.
+     */
+    const retry = await probeCdp(endpoint, 2_500);
+    if (retry) {
+      const browser = await chromium.connectOverCDP(endpoint);
+      const context = browser.contexts()[0];
+      if (context) {
+        return {
+          browser,
+          context,
+          attached: true,
+          userDataDir: null,
+          how: "cdp-after-lock",
+          detail: "The profile was in use, so OCADE attached to the running browser instead.",
+        };
+      }
+      await browser.close();
+    }
+
+    /*
+     * A QUESTION THE USER CAN ANSWER, NOT A PARAGRAPH THEY HAVE TO PARSE.
+     *
+     * The previous message was accurate and useless: it explained the lock,
+     * then printed a command line and left a person to open a terminal and run
+     * it. The only two things that resolve this are closing the browser or
+     * restarting it with the port, and OCADE can do the second itself.
+     *
+     * So it goes back as a HANDOVER with a `relaunch` offer attached rather
+     * than a bare Error. `handover` already travels to the caller as `blocked`,
+     * which is terminal — the model stops retrying — and the structured fields
+     * let the UI put a real button on it instead of rendering the prose.
+     */
+    const port = new URL(endpoint).port || String(DEFAULT_CDP_PORT);
+    const handover = new HandoverRequired(
+      "browser_profile_locked",
+      `${browserKind === "edge" ? "Edge" : "Chrome"} is open without debugging. ` +
+        `Close and reopen it with your tabs restored?`,
+    );
+    handover.handover.offer = {
+      action: "relaunch_with_debugging",
+      browser: browserKind,
+      executablePath,
+      port: Number(port),
+      // Spelled out so a UI can describe the consequence before the user
+      // agrees: this closes their windows and brings them back.
+      consequence:
+        `OCADE will close ${browserKind}, reopen it with remote debugging on ` +
+        `127.0.0.1:${port}, and restore the tabs that were open.`,
+      manualCommand: `"${executablePath}" --remote-debugging-port=${port}`,
+    };
+    handover.handover.tried = attempts;
+    throw handover;
+  }
+}
+
 async function launchSession(request) {
   const sessionId = safeId(request.sessionId, "sessionId");
   const browserKind =
     request.browser === "edge" ? "edge" : request.browser === "chrome" ? "chrome" : null;
   if (!browserKind) throw new Error("Browser must be chrome or edge.");
   if (sessions.has(sessionId)) return sessionStatus(sessions.get(sessionId));
+
+  /*
+   * "Use my real browser" — the signed-in path.
+   *
+   * THE APPROVAL GATE STAYS. Reaching the user's own profile means reaching
+   * every session in it: their mail, their bank, their messages. That is the
+   * capability being asked for and it is theirs to grant, but it is granted
+   * per session and never inferred. `explicitProfileApproval` is the same flag
+   * the managed-profile path below already requires for a directory outside
+   * OCADE's own storage, so this adds a capability, not an exception.
+   */
+  if (request.profile === "real" || request.useSignedInProfile === true) {
+    if (request.explicitProfileApproval !== true) {
+      throw new Error(
+        "Using your signed-in browser profile requires explicit approval, because it " +
+          "gives OCADE the sessions you are logged into.",
+      );
+    }
+    const attached = await attachToRealBrowser(request, browserKind);
+    const session = { sessionId, browserKind, ...attached };
+    sessions.set(sessionId, session);
+    if (session.browser) session.browser.on("disconnected", () => sessions.delete(sessionId));
+    else session.context.on("close", () => sessions.delete(sessionId));
+    return sessionStatus(session);
+  }
 
   if (request.connectEndpoint) {
     if (request.explicitAttachApproval !== true) {
@@ -163,7 +396,38 @@ async function launchSession(request) {
     headless: request.headless === true,
     acceptDownloads: true,
     viewport: request.headless === true ? { width: 1280, height: 800 } : null,
-    args: ["--remote-debugging-address=127.0.0.1", "--no-first-run", "--no-default-browser-check"],
+    /*
+     * PLAYWRIGHT TURNS THE SANDBOX OFF HERE, AND IT HAD TO BE TURNED BACK ON.
+     *
+     * `chromiumSandbox` defaults to FALSE for `launchPersistentContext`, so
+     * `--no-sandbox` was on the real command line of every browser OCADE
+     * opened. Verified by launching Playwright with no `args` override at all
+     * and reading the flag back off the running process — it is Playwright's
+     * default, not something in this file.
+     *
+     * Two things came from it. Chrome showed the yellow "unsupported
+     * command-line flag" bar, which reads as OCADE being broken; and the
+     * renderer sandbox was genuinely disabled in a browser pointed at
+     * arbitrary web pages under automation. The second is the one that matters.
+     */
+    chromiumSandbox: true,
+    /*
+     * NO DEBUGGING PORT ON THE THROWAWAY BROWSER, AND THAT IS THE FIX.
+     *
+     * This branch used to pass `--remote-debugging-address=127.0.0.1` with no
+     * port, which is inert — Chrome opens no listener without one, and
+     * Playwright supplies `--remote-debugging-pipe` instead. So the flag did
+     * nothing, and it has been removed rather than completed.
+     *
+     * COMPLETING IT WOULD HAVE BEEN WORSE THAN LEAVING IT BROKEN. Putting 9222
+     * here means the next `attachToRealBrowser` probe finds THIS browser — an
+     * empty OCADE profile — takes route 1, and reports `signed-in-cdp`. The
+     * receipt would then say "signed in" about a browser with no cookies,
+     * which is the same lie the whole profile fix exists to stop, wearing a
+     * different hat. 9222 belongs to the user's real browser alone; the
+     * signed-in branch above opens it there, where re-attachment is the point.
+     */
+    args: ["--no-first-run", "--no-default-browser-check"],
   });
   const session = {
     sessionId,
@@ -185,7 +449,20 @@ function sessionStatus(session) {
     connected: true,
     attached: session.attached,
     pages: session.context.pages().map((page, index) => ({ index, url: page.url() })),
-    profile: session.userDataDir ? "ocade-managed" : "approved-cdp-attach",
+    /*
+     * Which profile is in play, reported rather than assumed. "signed-in" and
+     * "ocade-managed" behave completely differently — one has the user's
+     * cookies and one does not — and a caller that cannot tell them apart will
+     * report "you are not logged in" as a site problem.
+     */
+    profile: session.how
+      ? session.how.startsWith("cdp")
+        ? "signed-in-cdp"
+        : "signed-in-profile"
+      : session.userDataDir
+        ? "ocade-managed"
+        : "approved-cdp-attach",
+    ...(session.how ? { attachedVia: session.how, detail: session.detail } : {}),
   };
 }
 
@@ -205,6 +482,24 @@ function locatorFor(page, target) {
   if (typeof target.text === "string")
     return page.getByText(target.text, { exact: target.exact === true }).first();
   throw new Error("The browser target needs a selector, role/name, or visible text.");
+}
+
+/**
+ * A refusal that means "a person has to take this one", not "this failed".
+ *
+ * WHY A DISTINCT ERROR TYPE. The host previously threw a plain Error for a
+ * password field, which reached the loop as `retryable_failure` — the one
+ * category that gets RETRIED. So the model tried the credential field again,
+ * failed again, and burned its attempts on the one action that must never
+ * succeed. Carrying `handover` through the reply lets the adapter map it to
+ * `blocked`, which is terminal, and lets the UI say what the user has to do.
+ */
+class HandoverRequired extends Error {
+  constructor(what, detail) {
+    super(detail);
+    this.name = "HandoverRequired";
+    this.handover = { what, detail };
+  }
 }
 
 async function protectedLocator(locator) {
@@ -263,6 +558,195 @@ async function detectHumanCheck(page) {
     /* a page that cannot be inspected is not evidence of a challenge */
   }
   return { present: false };
+}
+
+/* ------------------------------------------------------- site helpers -- */
+
+/**
+ * Is an advert playing, and can it be skipped yet?
+ *
+ * READ THE PLAYER, NOT THE PAGE. YouTube marks an advert by putting `ad-showing`
+ * on `#movie_player`; the skip control only exists inside that player while the
+ * advert runs. Both facts are checked against the player element because the
+ * page-wide alternative is actively wrong — see `skipYoutubeAd`.
+ */
+async function youtubeAdState(page) {
+  return page.evaluate(() => {
+    const player = document.querySelector("#movie_player");
+    if (!player) return { onVideoPage: false, adShowing: false, skippable: false };
+    const skip = player.querySelector(
+      ".ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button, button[class*='skip']",
+    );
+    return {
+      onVideoPage: true,
+      adShowing: player.classList.contains("ad-showing"),
+      overlay: Boolean(
+        player.querySelector(".ytp-ad-player-overlay, .ytp-ad-player-overlay-layout"),
+      ),
+      skippable: Boolean(skip && !skip.disabled && skip.offsetParent !== null),
+    };
+  });
+}
+
+/**
+ * Press YouTube's Skip control, and only YouTube's Skip control.
+ *
+ * THE OBVIOUS IMPLEMENTATION IS A BUG. `getByRole("button", { name: /skip/i })`
+ * across the page matches "Skip navigation" — YouTube's accessibility link for
+ * keyboard users — on EVERY page, advert or not. Measured on a live watch page
+ * with no advert playing: one page-wide match, zero matches scoped to
+ * `#movie_player`. A helper written the obvious way would therefore report
+ * "skipped the ad" while having moved the user's focus to the page content.
+ *
+ * So every lookup here is scoped inside the player, and the whole thing is
+ * gated on `ad-showing` first: no advert means nothing to press, which is a
+ * success ("there is no ad") rather than a failure.
+ */
+async function skipYoutubeAd(page, timeoutMs = 8_000) {
+  const state = await youtubeAdState(page);
+  if (!state.onVideoPage) {
+    return {
+      ...state,
+      skipped: false,
+      verified: true,
+      detail: "This is not a YouTube video page.",
+    };
+  }
+  if (!state.adShowing) {
+    return { ...state, skipped: false, verified: true, detail: "No advert is playing." };
+  }
+
+  const player = page.locator("#movie_player");
+  const candidates = [
+    player.locator(".ytp-ad-skip-button-modern"),
+    player.locator(".ytp-ad-skip-button"),
+    player.locator(".ytp-skip-ad-button"),
+    // Accessibility-first, but still scoped to the player so "Skip navigation"
+    // can never be the thing that gets pressed.
+    player.getByRole("button", { name: /skip/i }),
+  ];
+
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    for (const candidate of candidates) {
+      try {
+        if ((await candidate.count()) === 0) continue;
+        const first = candidate.first();
+        if (!(await first.isVisible())) continue;
+        await first.click({ timeout: 2_000 });
+        await page.waitForTimeout(600);
+        const after = await youtubeAdState(page);
+        return {
+          ...after,
+          skipped: !after.adShowing,
+          // Verified by re-reading the player, not by the click resolving.
+          verified: !after.adShowing,
+          detail: after.adShowing
+            ? "Pressed Skip but the advert is still playing."
+            : "Skipped the advert.",
+        };
+      } catch {
+        /* try the next candidate */
+      }
+    }
+    // Most YouTube adverts are unskippable for their first seconds. Waiting is
+    // the correct behaviour; returning "cannot skip" would be true only for now.
+    await page.waitForTimeout(700);
+  }
+  const after = await youtubeAdState(page);
+  return {
+    ...after,
+    skipped: false,
+    verified: false,
+    detail: after.adShowing
+      ? "An advert is playing but no Skip control appeared in time — it may be unskippable."
+      : "The advert ended on its own.",
+  };
+}
+
+/**
+ * WhatsApp Web landmarks.
+ *
+ * HONESTY NOTE: unlike the YouTube helpers above, these selectors could NOT be
+ * verified against the live site — that needs a signed-in session, and signing
+ * in is the user's to do. They are written defensively for that reason: several
+ * candidates per landmark, `role`/`aria` first because WhatsApp's CSS class
+ * names are generated and change between releases, and every function reports
+ * what it actually found instead of assuming the first candidate hit.
+ */
+const WHATSAPP_SEARCH = [
+  '[data-testid="chat-list-search"]',
+  'div[contenteditable="true"][data-tab="3"]',
+  'div[role="textbox"][title*="Search" i]',
+  'div[contenteditable="true"][aria-label*="Search" i]',
+];
+const WHATSAPP_PANEL = [
+  '[data-testid="conversation-panel-messages"]',
+  "#main div.copyable-area",
+  "#main",
+];
+
+async function whatsappFocusSearch(page) {
+  for (const selector of WHATSAPP_SEARCH) {
+    const box = page.locator(selector).first();
+    try {
+      if ((await box.count()) === 0) continue;
+      await box.click({ timeout: 3_000 });
+      const focused = await page.evaluate(
+        (s) => document.activeElement === document.querySelector(s),
+        selector,
+      );
+      return {
+        found: true,
+        selector,
+        verified: focused,
+        detail: focused
+          ? "The WhatsApp search box has focus."
+          : "Clicked the search box but focus did not land there.",
+      };
+    } catch {
+      /* next candidate */
+    }
+  }
+  return {
+    found: false,
+    verified: false,
+    detail:
+      "No WhatsApp search box was found. Check WhatsApp Web is open and signed in — " +
+      "a signed-out session shows a QR code and has no search box.",
+  };
+}
+
+async function whatsappActiveChat(page) {
+  for (const selector of WHATSAPP_PANEL) {
+    const panel = page.locator(selector).first();
+    try {
+      if ((await panel.count()) === 0) continue;
+      const header = await page
+        .locator("#main header")
+        .first()
+        .innerText()
+        .catch(() => "");
+      return {
+        found: true,
+        selector,
+        // The conversation title, so a caller can confirm it is talking to the
+        // person it meant to before anything is sent.
+        chat: header.split("\n")[0]?.slice(0, 120) || null,
+        verified: true,
+        detail: header
+          ? `The open conversation is with ${header.split("\n")[0]}.`
+          : "A conversation is open.",
+      };
+    } catch {
+      /* next candidate */
+    }
+  }
+  return {
+    found: false,
+    verified: false,
+    detail: "No open WhatsApp conversation was found. Open the chat first.",
+  };
 }
 
 async function observe(page, expectation = {}) {
@@ -398,14 +882,62 @@ async function executeAction(request, signal) {
         timeout: action.timeoutMs || 30_000,
       });
       break;
-    case "click":
-      await locatorFor(page, action.target).click({ timeout: action.timeoutMs || 15_000 });
+    case "site.youtube.ad":
+      output = await youtubeAdState(page);
       break;
+    case "site.youtube.skip":
+      output = await skipYoutubeAd(page, action.timeoutMs || 8_000);
+      break;
+    case "site.whatsapp.search":
+      output = await whatsappFocusSearch(page);
+      break;
+    case "site.whatsapp.chat":
+      output = await whatsappActiveChat(page);
+      break;
+    case "click": {
+      /*
+       * CLICKING WAS THE UNGUARDED HALF.
+       *
+       * `type` refused protected fields from the start, but `click` did not
+       * check anything — so nothing stopped OCADE ticking a reCAPTCHA "I am
+       * not a robot" box, or pressing Submit on a login form it had been
+       * forbidden from filling. Both are the same mistake as typing the
+       * password: a human decision taken by a machine.
+       */
+      const challenge = await detectHumanCheck(page);
+      if (challenge.present) {
+        throw new HandoverRequired(
+          "captcha",
+          "This page is asking for human verification. OCADE does not answer those. " +
+            "Take over in the browser window, then tell OCADE to carry on.",
+        );
+      }
+      const locator = locatorFor(page, action.target);
+      if (await protectedLocator(locator)) {
+        throw new HandoverRequired(
+          "protected_field",
+          "That control belongs to a password, one-time code or payment field, " +
+            "so it stays with you. Do it in the browser window yourself.",
+        );
+      }
+      await locator.click({ timeout: action.timeoutMs || 15_000 });
+      break;
+    }
     case "type": {
       const value = boundedText(action.value, "value", 50_000);
       const locator = locatorFor(page, action.target);
-      if ((await protectedLocator(locator)) || PROTECTED_VALUE.test(value)) {
-        throw new Error("Protected fields and credential-like values remain human-controlled.");
+      if (await protectedLocator(locator)) {
+        throw new HandoverRequired(
+          "protected_field",
+          "That field is a password, one-time code or payment detail. OCADE never " +
+            "types those — enter it yourself in the browser window.",
+        );
+      }
+      if (PROTECTED_VALUE.test(value)) {
+        throw new HandoverRequired(
+          "credential_value",
+          "That text looks like a credential or card number, so OCADE will not type it.",
+        );
       }
       await locator.fill(value, { timeout: action.timeoutMs || 15_000 });
       break;
@@ -657,8 +1189,16 @@ async function main() {
       const data = await handle(request);
       process.stdout.write(`${JSON.stringify({ id, ok: true, data })}\n`);
     } catch (error) {
+      // A hand-over is reported as `blocked` so the loop stops asking. Every
+      // other failure keeps its existing shape.
+      const handover = error instanceof Error ? error.handover : undefined;
       process.stdout.write(
-        `${JSON.stringify({ id, ok: false, error: error instanceof Error ? error.message : "Browser host failed." })}\n`,
+        `${JSON.stringify({
+          id,
+          ok: false,
+          ...(handover ? { code: "blocked", handover } : {}),
+          error: error instanceof Error ? error.message : "Browser host failed.",
+        })}\n`,
       );
     }
   };

@@ -23,6 +23,22 @@ export default defineConfig({
 
   vite: {
     /*
+     * THE DEV PORT COMES FROM THE ENVIRONMENT, NOT FROM A FLAG.
+     *
+     * It used to be pinned with `--port 5173 --strictPort` in
+     * `.claude/launch.json`, which meant a second session could not start the
+     * server at all — the port was already held and `strictPort` turns that
+     * into a hard failure rather than a shuffle to 5174.
+     *
+     * Nothing here needs 5173 specifically. The local-demo gate in
+     * `control-access.node.ts` authorises on the Host being a LOOPBACK ADDRESS
+     * and never looks at the port, and there are no OAuth callbacks or webhooks
+     * pointing at a fixed one. So the harness assigns a free port through
+     * `PORT` and this reads it; with nothing set, Vite picks its own default.
+     */
+    server: process.env.PORT ? { port: Number(process.env.PORT) } : undefined,
+
+    /*
      * CLIENT ONLY, and that scoping matters.
      *
      * These groups used to sit under a top-level `build.rollupOptions`, which

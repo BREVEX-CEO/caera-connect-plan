@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { streamLocalChat, preloadLocalModel } from "../ocade-local";
+import { streamLocalChat, preloadLocalModel, MODEL_KEEP_ALIVE } from "../ocade-local";
 import { OCADE_MODEL_ID } from "../local/fixed-model";
 
 describe("local Chat transport", () => {
@@ -157,7 +157,7 @@ describe("preloading warms the engine without sending anything", () => {
     });
     const ok = await preloadLocalModel("http://127.0.0.1:11434", OCADE_MODEL_ID, fetchImpl);
     expect(ok).toBe(true);
-    expect(body).toEqual({ model: OCADE_MODEL_ID, messages: [] });
+    expect(body).toEqual({ model: OCADE_MODEL_ID, messages: [], keep_alive: MODEL_KEEP_ALIVE });
   });
 
   it("targets the chat endpoint on the given bridge", async () => {
@@ -206,6 +206,9 @@ describe("preloading warms the engine without sending anything", () => {
       model: OCADE_MODEL_ID,
       messages: [],
       options: { num_ctx: 16384 },
+      // Warming a model that is then evicted five minutes later has warmed
+      // nothing. See MODEL_KEEP_ALIVE: cold TTFT 5750 ms, warm 222 ms.
+      keep_alive: MODEL_KEEP_ALIVE,
     });
   });
 
@@ -217,6 +220,6 @@ describe("preloading warms the engine without sending anything", () => {
       return new Response("{}", { status: 200 });
     });
     await preloadLocalModel("http://127.0.0.1:11434", OCADE_MODEL_ID, fetchImpl, null);
-    expect(body).toEqual({ model: OCADE_MODEL_ID, messages: [] });
+    expect(body).toEqual({ model: OCADE_MODEL_ID, messages: [], keep_alive: MODEL_KEEP_ALIVE });
   });
 });

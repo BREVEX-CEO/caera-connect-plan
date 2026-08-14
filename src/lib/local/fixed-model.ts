@@ -18,7 +18,11 @@
  *
  * So the rule is now: THERE IS ONE MODEL, AND NOTHING CHOOSES.
  *
- *   every platform → Qwen3 4B, Q4_K_M, ~2.5 GB
+ *   every platform → Qwen2.5 3B, Q4_K_M, ~1.9 GB   (`qwen2.5:3b`)
+ *
+ * Images are the one exception, and it is capability, not preference: the fixed
+ * engine is text-only, so a request carrying an image may use an installed
+ * vision model (`qwen2.5vl:7b`). See "WHAT IS NOT TOUCHED" below.
  *
  * ONE MODEL RATHER THAN ONE PER FORM FACTOR, and that changed for a reason.
  * A desktop 8B and a mobile 1.7B meant Control + Work behaved differently on a
@@ -29,16 +33,19 @@
  * form factor decides only HOW the model is hosted — an HTTP runtime on a
  * desktop, an in-process build on a phone — never WHICH model answers.
  *
- * WHY 4B RATHER THAN THE 7B IT REPLACED. Measured on this machine: the 7B took
+ * WHY 3B RATHER THAN THE 7B IT REPLACED. Measured on this machine: the 7B took
  * 138-183 s for a two-step Control + Work task and over two minutes just to
- * load. 4B is 2.5 GB rather than 4.7 GB, which is the difference between a
- * model a phone can host and one it cannot — and the whole point of a single
- * model is that the phone and the laptop run the same thing.
+ * load. 1.9 GB rather than 4.7 GB is the difference between a model a phone can
+ * host and one it cannot — and the whole point of a single model is that the
+ * phone and the laptop run the same thing.
  *
- * WHY A THINKING MODEL, WITH THINKING SPENT DELIBERATELY. Qwen3 can reason
- * before it answers, and that is worth paying for in Chat and worth refusing in
- * Control + Work. See `thinkingFor` below: it is the second half of this
- * decision and lives here so the two cannot drift apart.
+ * WHY A NON-THINKING MODEL. This is the reverse of the earlier decision, and it
+ * is measured, not stylistic: qwen3:4b cannot be stopped from reasoning, which
+ * turned Control + Work tool calls into a two-minute wait or no tool call at
+ * all. Qwen2.5 has no forced thinking block and supports Ollama tool calling.
+ * The full numbers are under "WHY THIS IS QWEN2.5 AND NOT QWEN3" below.
+ * `thinkingFor` still governs where deliberation is allowed and lives here so
+ * the two halves of the decision cannot drift apart.
  *
  * WHAT IS DELIBERATELY KEPT
  * -------------------------

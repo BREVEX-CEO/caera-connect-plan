@@ -2,17 +2,19 @@ import { describe, it, expect } from "vitest";
 import {
   parseParamsB,
   classifyLocalModel,
-  pickLocalModel,
-  pickLocalModelForHardware,
   modelFit,
-  buildLocalFirstPlan,
   discoverLocalModels,
   MODEL_RAM_OVERHEAD,
   TOTAL_RAM_HEADROOM,
   type LocalModelInfo,
   type RawLocalModel,
 } from "../ocade-local";
+import * as ocadeLocal from "../ocade-local";
 import { leaksRawModelIdentity } from "../ocade-capability-labels";
+import { routeTask, PerfLedger } from "../local/router-policy";
+import { OCADE_MODEL_ID } from "../local/fixed-model";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 describe("parseParamsB", () => {
   it.each([
@@ -125,86 +127,59 @@ describe("classifyLocalModel", () => {
   });
 });
 
-const CODE_MODELS: LocalModelInfo[] = [
+/*
+ * A machine like the reference laptop: the fixed engine installed alongside
+ * several larger leftovers. This is the exact shape that used to break routing.
+ */
+const CLUTTERED_MACHINE: LocalModelInfo[] = [
+  classifyLocalModel({ name: "qwen2.5:3b", size: 1.93e9, details: { parameter_size: "3.1B" } }),
+  classifyLocalModel({ name: "qwen3:14b", size: 9.28e9, details: { parameter_size: "14.8B" } }),
+  classifyLocalModel({ name: "qwen3:8b", size: 5.23e9, details: { parameter_size: "8.2B" } }),
   classifyLocalModel({
-    name: "qwen3-coder:30b",
-    size: 17.3e9,
-    details: { parameter_size: "30.5B" },
-  }),
-  classifyLocalModel({
-    name: "qwen2.5-coder:7b",
-    size: 4.4e9,
-    details: { parameter_size: "7.6B" },
-  }),
-  classifyLocalModel({
-    name: "deepseek-coder:6.7b",
-    size: 3.6e9,
-    details: { parameter_size: "7B" },
+    name: "qwen2.5vl:7b",
+    size: 5.97e9,
+    details: { parameter_size: "8.3B", families: ["qwen25vl"] },
   }),
 ];
 
-describe("pickLocalModel", () => {
-  it("prefers the largest model for a code request", () => {
-    expect(pickLocalModel(CODE_MODELS, "code")?.id).toBe("qwen3-coder:30b");
-  });
-  it("serves a general request from available code models (they can chat)", () => {
-    expect(pickLocalModel(CODE_MODELS, "general")?.id).toBe("qwen3-coder:30b");
-  });
-  it("returns null for a vision request when no vision model is installed", () => {
-    expect(pickLocalModel(CODE_MODELS, "vision")).toBeNull();
-  });
-  it("prefers the smallest model for a fast request", () => {
-    expect(pickLocalModel(CODE_MODELS, "fast")?.id).toBe("deepseek-coder:6.7b");
-  });
-});
-
-describe("buildLocalFirstPlan", () => {
-  it("orders local → cloud with an explicit ask-before-cloud step", () => {
-    const plan = buildLocalFirstPlan({
-      desired: "general",
-      models: CODE_MODELS,
-      cloudAllowed: true,
-      online: true,
-    });
-    const kinds = plan.map((s) => s.kind);
-    expect(kinds[0]).toBe("local_preferred");
-    expect(kinds).toContain("local_reduced");
-    expect(kinds).toContain("ask_cloud");
-    expect(kinds.indexOf("local_reduced")).toBeLessThan(kinds.indexOf("ask_cloud"));
-    expect(kinds).not.toContain("fail");
+describe("one engine: size never decides what runs", () => {
+  /*
+   * THE REGRESSION THIS FILE EXISTS TO PREVENT.
+   *
+   * Signed-in Chat built a fallback chain and started at its first step, which
+   * was the LARGEST installed model. On this machine shape that meant a 9.3 GB
+   * engine served chat while Control + Work served the fixed 1.9 GB one.
+   */
+  it("routes a text request to the fixed engine, not the biggest installed model", () => {
+    const route = routeTask("general", CLUTTERED_MACHINE, new PerfLedger(), {});
+    expect(route.ok).toBe(true);
+    if (!route.ok) return;
+    expect(route.model.id).toBe(OCADE_MODEL_ID);
+    expect(route.model.id).not.toBe("qwen3:14b");
   });
 
-  it("offers only cloud (with approval) when no local model is installed", () => {
-    const plan = buildLocalFirstPlan({
-      desired: "general",
-      models: [],
-      cloudAllowed: true,
-      online: true,
-    });
-    expect(plan.map((s) => s.kind)).toEqual(["ask_cloud"]);
+  it("routes an image request to the vision engine, the one allowed exception", () => {
+    const route = routeTask("vision", CLUTTERED_MACHINE, new PerfLedger(), {});
+    expect(route.ok).toBe(true);
+    if (!route.ok) return;
+    expect(route.model.vision).toBe(true);
   });
 
-  it("fails honestly when offline with no local model and no cloud", () => {
-    const plan = buildLocalFirstPlan({
-      desired: "general",
-      models: [],
-      cloudAllowed: false,
-      online: false,
-    });
-    expect(plan).toHaveLength(1);
-    expect(plan[0].kind).toBe("fail");
-  });
-
-  it("never emits a raw model name in a step label", () => {
-    const plan = buildLocalFirstPlan({
-      desired: "code",
-      models: CODE_MODELS,
-      cloudAllowed: true,
-      online: true,
-    });
-    for (const step of plan) {
-      if (step.label) expect(leaksRawModelIdentity(step.label)).toBe(false);
+  it("keeps no size-ranking selector on the module", () => {
+    const surface = ocadeLocal as Record<string, unknown>;
+    for (const gone of ["pickLocalModel", "pickLocalModelForHardware", "buildLocalFirstPlan"]) {
+      expect(surface[gone]).toBeUndefined();
     }
+  });
+
+  it("leaves no fallback chain in the signed-in chat route", () => {
+    const source = readFileSync(
+      resolve(__dirname, "../../routes/_authenticated/ocade.tsx"),
+      "utf8",
+    );
+    expect(source).not.toContain("buildLocalFirstPlan");
+    // The route must reach the single-model authority, not re-rank models itself.
+    expect(source).toContain("routeTask(");
   });
 });
 
@@ -389,74 +364,6 @@ describe("modelFit", () => {
   });
 });
 
-describe("pickLocalModelForHardware", () => {
-  it("never returns a model this machine cannot hold — the real regression", () => {
-    const plain = pickLocalModel(INSTALLED, "code");
-    expect(plain?.id).toBe("qwen3-coder:30b"); // the old, hardware-blind answer
-
-    const aware = pickLocalModelForHardware(INSTALLED, "code", REAL_MACHINE_RAM);
-    expect(aware.picked?.id).toBe("qwen2.5-coder:7b"); // largest that actually fits
-    expect(aware.excluded.map((e) => e.model.id)).toEqual(["qwen3-coder:30b"]);
-  });
-
-  it("still prefers the smallest for `fast`", () => {
-    const aware = pickLocalModelForHardware(INSTALLED, "fast", REAL_MACHINE_RAM);
-    expect(aware.picked?.id).toBe("deepseek-coder:6.7b");
-  });
-
-  it("refuses honestly when nothing installed fits", () => {
-    const tiny = 2_000_000_000; // 2 GB machine
-    const aware = pickLocalModelForHardware(INSTALLED, "code", tiny);
-    expect(aware.picked).toBeNull();
-    expect(aware.excluded).toHaveLength(3);
-    expect(aware.reason).toMatch(/No installed model fits/);
-  });
-
-  it("distinguishes nothing-installed from nothing-fits", () => {
-    const empty = pickLocalModelForHardware([], "code", REAL_MACHINE_RAM);
-    expect(empty.reason).toMatch(/No on-device models are installed/);
-  });
-});
-
-describe("buildLocalFirstPlan is hardware-aware", () => {
-  it("drops unrunnable models from every step of the chain", () => {
-    const chain = buildLocalFirstPlan({
-      desired: "code",
-      models: INSTALLED,
-      cloudAllowed: false,
-      online: true,
-      totalRamBytes: REAL_MACHINE_RAM,
-    });
-    const ids = chain.map((s) => s.modelId).filter(Boolean);
-    expect(ids).not.toContain("qwen3-coder:30b");
-    expect(chain[0].modelId).toBe("qwen2.5-coder:7b");
-  });
-
-  it("keeps the old behaviour when RAM is unknown", () => {
-    const chain = buildLocalFirstPlan({
-      desired: "code",
-      models: INSTALLED,
-      cloudAllowed: false,
-      online: true,
-    });
-    expect(chain[0].modelId).toBe("qwen3-coder:30b");
-  });
-
-  it("says models are too big rather than claiming none are installed", () => {
-    const chain = buildLocalFirstPlan({
-      desired: "code",
-      models: INSTALLED,
-      cloudAllowed: false,
-      online: false,
-      totalRamBytes: 2_000_000_000,
-    });
-    expect(chain).toHaveLength(1);
-    expect(chain[0].kind).toBe("fail");
-    expect(chain[0].detail).toMatch(/cannot run on this machine/);
-    expect(chain[0].detail).not.toMatch(/no local engine is installed/i);
-  });
-});
-
 /*
  * The fallback chain must refuse what the primary route refused.
  *
@@ -466,57 +373,3 @@ describe("buildLocalFirstPlan is hardware-aware", () => {
  * reference machine that model needed roughly three minutes to produce a
  * one-word answer.
  */
-describe("buildLocalFirstPlan no longer excludes models by GPU or quarantine", () => {
-  /*
-   * WHAT THESE TESTS USED TO ASSERT, AND WHY THE OPPOSITE IS NOW CORRECT.
-   *
-   * They pinned two hard-coded lists — "tiers that need a discrete GPU" and
-   * "quarantined tiers" — that the fallback chain used to drop candidates. Both
-   * existed to stop the chain reaching for a 14B model on a machine that would
-   * take three minutes to answer with it.
-   *
-   * OCADE now ships exactly one engine. There is no chain of alternatives to
-   * protect, nothing larger to fall back to, and the lists had already drifted
-   * out of step with the router once — which is how two files came to disagree
-   * about the same machine. Keeping a filter alive with no selection behind it
-   * is dead policy that still costs a reader time.
-   *
-   * What remains asserted is the part that is still true and still matters:
-   * memory is a real constraint, and a plan that can serve nothing says so.
-   */
-  const model = (id: string, bytes: number, params: string) =>
-    classifyLocalModel({ name: id, size: bytes, details: { parameter_size: params } });
-  const FOUR_B = model("qwen3:4b", 2.5e9, "4.0B");
-  const FOURTEEN_B = model("qwen3:14b", 9.28e9, "14.8B");
-  const RAM = 16.8e9;
-  const modelIds = (steps: ReturnType<typeof buildLocalFirstPlan>) =>
-    steps.filter((s) => s.modelId).map((s) => s.modelId);
-
-  it("offers a model that fits, whatever the graphics situation is", () => {
-    for (const hasDiscreteGpu of [true, false, undefined]) {
-      const steps = buildLocalFirstPlan({
-        desired: "general",
-        models: [FOUR_B],
-        cloudAllowed: false,
-        online: false,
-        totalRamBytes: RAM,
-        ...(hasDiscreteGpu === undefined ? {} : { hasDiscreteGpu }),
-      });
-      expect(modelIds(steps), String(hasDiscreteGpu)).toContain("qwen3:4b");
-    }
-  });
-
-  it("still refuses a model that cannot fit in memory", () => {
-    // The one exclusion that was never a preference: weights that do not fit
-    // do not run, and saying so beforehand beats failing at load.
-    const steps = buildLocalFirstPlan({
-      desired: "general",
-      models: [FOURTEEN_B],
-      cloudAllowed: false,
-      online: false,
-      totalRamBytes: 4e9,
-    });
-    expect(steps.at(-1)?.kind).toBe("fail");
-    expect(modelIds(steps)).toHaveLength(0);
-  });
-});

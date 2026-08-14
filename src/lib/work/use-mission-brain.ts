@@ -36,14 +36,30 @@ export function useMissionBrain(): {
   const engine = useLocalChatEngine({ surface: "control" });
 
   const brain = useCallback<MissionBrain>(
-    async (messages, onToken, signal) => {
+    async (messages, onToken, signal, tools) => {
       let text = "";
+      /*
+       * Structured actions when the engine can carry them.
+       *
+       * Collected here rather than parsed out of `text` afterwards: the
+       * runtime constrains the shape, so a call either arrives well-formed or
+       * does not arrive at all. The prose path is still there for adapters
+       * with no function-call channel, and the mission falls back to it when
+       * this list comes back empty.
+       */
+      const calls: { name: string; arguments: Record<string, unknown> }[] = [];
       const result = await engine.send({
         messages,
         onToken: (chunk) => {
           text += chunk;
           onToken(chunk);
         },
+        ...(tools?.length
+          ? {
+              tools,
+              onToolCall: (call) => calls.push({ name: call.name, arguments: call.arguments }),
+            }
+          : {}),
       });
       if (signal?.aborted) {
         return { ok: false, text, reason: "The task was stopped." };
@@ -59,7 +75,7 @@ export function useMissionBrain(): {
               : "OCADE's engine did not answer on this device."),
         };
       }
-      return { ok: true, text };
+      return { ok: true, text, calls };
     },
     [engine],
   );

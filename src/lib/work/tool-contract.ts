@@ -49,6 +49,18 @@ const REPEATABLE = new Set([
   "workspace_list",
   "control_find",
   "app_list_installed",
+  "ui_tree",
+  "screen_find",
+  "app_discover",
+  "bluetooth_status",
+  "audio_devices",
+  /*
+   * Repeating a media key is a PLAN, not a loop: "skip two tracks" is two
+   * identical `next` calls, and refusing the second would make a reasonable
+   * instruction impossible. `system_brightness` is deliberately absent — the
+   * same brightness set twice really is a loop.
+   */
+  "media_control",
 ]);
 
 function signature(call: ToolCall): string {
@@ -78,7 +90,7 @@ function signature(call: ToolCall): string {
  * ask OCADE to write down.
  */
 const PLACEHOLDER =
-  /\$\([^)]*\)|\$\{[^}]*\}|\{\{[^}]*\}\}|<[a-z_][a-z0-9_ ]{2,30}>|%[sdif]\b|\bYOUR_[A-Z_]{2,}\b|\bTODO:/i;
+  /\$\([^)]*\)|\$\{[^}]*\}|\{\{[^}]*\}\}|<[a-z_][a-z0-9_ ]{2,30}>|%[sdif]\b|\bYOUR_[A-Z_]{2,}\b|\bTODO:|\[(result|value|insert|output|the result)[^\]]{0,40}\]/i;
 
 export function validateArguments(
   definition: ToolDefinition,

@@ -23,7 +23,7 @@
  */
 import { writeFileSync } from "node:fs";
 import { platform, arch } from "node:os";
-import { perceptionRuntimeReadiness } from "../src/lib/control/perception.ts";
+import { perceptionRuntimeReadiness } from "../src/lib/native/perception-readiness.ts";
 import { detectVoiceCapabilities } from "../src/lib/ocade-voice.ts";
 
 type Status = "observed" | "skipped" | "failed";

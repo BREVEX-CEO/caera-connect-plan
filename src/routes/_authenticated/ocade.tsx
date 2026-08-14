@@ -107,7 +107,6 @@ import type { ChatMessageView, ChatConversationView } from "@/components/ocade/c
 import { reason } from "@/lib/reasoning/engine";
 import { browserReasonDeps } from "@/lib/reasoning/browser-deps";
 import {
-  buildLocalFirstPlan,
   planContextWindow,
   SLOW_READ_WARNING_SECONDS,
   DEFAULT_LOCAL_BRIDGE_URL,
@@ -1883,28 +1882,31 @@ function ChatSurface(props: {
   }
 
   async function sendViaLocal(text: string, atts: Attachment[], hasImage: boolean) {
-    const plan = buildLocalFirstPlan({
-      desired: hasImage ? "vision" : "general",
-      models: localEngine.models,
-      cloudAllowed: online,
-      online,
-      /*
-       * The machine's real total RAM when it could be measured, and undefined
-       * otherwise — undefined disables the fit check rather than filtering on
-       * a guess. It used to be the browser's `deviceMemory`, which is capped
-       * at 8 GiB: on this 16 GB machine that excluded the installed 5.97 GB
-       * vision model from its own fallback chain.
-       */
-      totalRamBytes: devicePolicy.policy.totalRamBytes,
-      // The chain must refuse the same models the primary route refused, or
-      // falling back hands back exactly what was just rejected.
-      hasDiscreteGpu: devicePolicy.policy.hasDiscreteGpu,
-    });
-    const localSteps = plan.filter((s) => s.modelId);
-    if (localSteps.length === 0) {
-      toast.error("No on-device engine can serve this request.");
+    /*
+     * ONE ENGINE, chosen by the same authority every other surface uses.
+     *
+     * This screen used to build a fallback chain and start at its first step.
+     * On a machine holding several models that step resolved to the LARGEST
+     * installed model — a 9.3 GB one on a 15.6 GB laptop with no GPU — while
+     * Control + Work ran the fixed 1.9 GB engine. The chain was left behind
+     * when OCADE moved to a single engine; the comment inside it even said
+     * there was "no chain to protect". Now there is no chain.
+     *
+     * `routeTask` delegates to `selectFixedModel`, so the vision branch (the
+     * fixed engine cannot read images) and the refusal wording live in one
+     * place instead of being restated here.
+     */
+    const route = routeTask(
+      hasImage ? "vision" : "general",
+      localEngine.models,
+      localPerfLedger,
+      devicePolicy.policy,
+    );
+    if (!route.ok) {
+      toast.error(route.receipt.refusal ?? "No on-device engine can serve this request.");
       return;
     }
+    const localSteps = [{ modelId: route.model.id, label: route.model.label }];
     const requestContext = buildRequestContext(atts, true, text);
     if (!requestContext.ok) {
       toast.error(requestContext.reason);
@@ -2066,13 +2068,13 @@ function ChatSurface(props: {
          * refusal and receipts are decided in one place for every surface
          * instead of per screen.
          *
-         * `modelId` is passed because chat has ALREADY chosen: this call sits
-         * inside an existing fallback chain that picked `step.modelId`. Letting
-         * the service re-route here would silently override that decision.
+         * `modelId` is passed because chat has ALREADY chosen: `routeTask` ran
+         * `selectFixedModel` above. Letting the service re-route here would
+         * silently override the single-engine decision.
          *
-         * `allowCloud` stays false. This is the on-device branch; the cloud
-         * branch is a separate step in the same chain, so a prompt can never
-         * leave the machine as a side effect of the local path failing.
+         * `allowCloud` stays false. This is the on-device branch; cloud is a
+         * separate, explicitly approved path, so a prompt can never leave the
+         * machine as a side effect of the local engine failing.
          */
         const reasoned = await reason(
           browserReasonDeps(DEFAULT_LOCAL_BRIDGE_URL, undefined, devicePolicy.policy.totalRamBytes),
@@ -2258,11 +2260,11 @@ function ChatSurface(props: {
           return;
         }
 
-        // This engine failed — record and try the next one in the chain.
+        // The engine failed. There is no second one to try — record why.
         failures.push(`${label}: ${result.reason ?? "no response"}`);
       }
 
-      // Every on-device engine failed. Never cross to cloud silently.
+      // The on-device engine failed. Never cross to cloud silently.
       setStreaming(false);
       setStreamText("");
       setMessages((current) => current.filter((message) => message.id !== optimistic.id));

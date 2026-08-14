@@ -1,312 +1,329 @@
-#web_search.py
-import sys
-from pathlib import Path
+"""Answers from the live web, and an honest answer when there is no web.
 
-NL = chr(10)
+WHY THIS IS NOT "OPEN A BROWSER AND SEARCH"
+-------------------------------------------
+Asked "what is the news today", OCADE used to open Chrome, run a search and
+leave the user reading a results page. That is a browser being driven, not a
+question being answered. This fetches the snippets, hands them to the model,
+and the model answers in the conversation — no window, no tab, no reading.
 
+THE OFFLINE CASE IS THE POINT, NOT AN EDGE
+-------------------------------------------
+A local-first assistant is used on trains and in basements. The failure that
+matters is not "the search failed" — it is a model confidently answering a
+question about today from weights frozen months ago. So reachability is checked
+FIRST, and when there is no network the reply is a structured refusal carrying
+the exact sentence the model must append. The user learns their answer is from
+memory rather than from today, which is the difference between stale and wrong.
 
-def _get_base_dir() -> Path:
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).parent
-    return Path(__file__).resolve().parent.parent
+REACHABILITY IS A SOCKET, NOT A REQUEST
+----------------------------------------
+A TCP connect to a DNS resolver settles in milliseconds on a live link and
+fails immediately on a dead one. An HTTP GET to a website would also test DNS,
+TLS, that site's uptime and any captive portal in between — four things that
+can fail while the network is fine, each turning a working search into a
+false "you are offline".
 
+THREE ENGINES, TRIED IN ORDER, AND THE FALLBACK IS SILENT
+----------------------------------------------------------
+There used to be exactly one: the `ddgs` library. That made every search as
+reliable as one provider on one day, and DuckDuckGo rate-limits — so a burst of
+questions (which is what a briefing plus three watched topics IS) returned
+"the search could not be completed" for the rest of the minute, and OCADE
+reported it as though the internet had gone away.
 
-BASE_DIR        = _get_base_dir()
-API_CONFIG_PATH = BASE_DIR / "config" / "api_keys.json"
+So there is a chain:
 
+  1. **Brave**, when `BRAVE_SEARCH_API_KEY` is in the environment. A real API
+     with a contract, and the only rung that is ever rate-limited honestly.
+  2. **Bing's HTML endpoint**, which needs no key. Parsed with BeautifulSoup.
+  3. **`ddgs`**, the library, as the last resort.
 
-def _grounded_search(query: str) -> str:
-    """Search locally, then answer only from what the search returned.
+FALLING BACK IS NOT AN ERROR AND IS NOT REPORTED AS ONE. A rung that returns
+nothing, throws, or is not installed moves to the next one WITHOUT a warning in
+the receipt, because "Brave is not configured" is not information the person
+asking about the weather needs. What the receipt DOES carry is `engine` — which
+rung actually answered — so a support question about a bad result can still be
+traced. That is the difference between a silent fallback and a hidden one.
+"""
 
-    WHY THIS REPLACED GEMINI GROUNDED SEARCH
-    ----------------------------------------
-    The old path sent the query to Gemini with `google_search` enabled and
-    used whatever came back. That put an API key, a network round trip to a
-    third party, and the user's question itself outside the machine — in a
-    product whose whole claim is that it runs locally.
+from __future__ import annotations
 
-    This does the retrieval with DuckDuckGo, which needs no key, and hands the
-    results to the local model with one instruction: answer from these, and
-    say so when they do not cover it. The sources are appended verbatim rather
-    than summarised away, so a citation is the URL that was actually read and
-    not the model's memory of one.
+import os
+import socket
+from typing import Any, Callable
 
-    An unreachable network raises, exactly as before, and every caller already
-    falls back to the raw result list.
-    """
-    from core.local_llm import local_model  # noqa: PLC0415
+#: Well-known resolvers, tried in order. Two operators so one provider being
+#: unreachable is not read as the whole internet being down.
+_PROBES = (("1.1.1.1", 53), ("8.8.8.8", 53), ("9.9.9.9", 53))
 
-    results = _ddg_search(query, max_results=6)
-    if not results:
-        raise RuntimeError("No search results for " + repr(query) + ".")
+#: Short on purpose. This runs before every live question, and a slow probe
+#: would tax every search to protect against a case that resolves instantly.
+_PROBE_TIMEOUT = 1.5
 
-    blocks = []
-    for i, r in enumerate(results, 1):
-        blocks.append(
-            "[" + str(i) + "] " + str(r.get("title", ""))
-            + NL + str(r.get("href", ""))
-            + NL + str(r.get("body", ""))
-        )
-    sources = (NL + NL).join(blocks)
+#: What the model must tell the user when it answers without the network.
+OFFLINE_NOTE = "Connect to a network for current data."
 
-    prompt = (
-        "Question: " + query + NL + NL
-        + "Search results:" + NL + sources + NL + NL
-        + "Answer the question using only these results. Cite them as [1], [2] "
-        "and so on. If the results do not answer it, say exactly what is "
-        "missing rather than filling the gap from memory."
-    )
-    answer = local_model(timeout=90).generate_content(prompt).text.strip()
-    if not answer:
-        raise RuntimeError("The local model returned nothing for this search.")
+_MAX_RESULTS = 3
+_MAX_SNIPPET = 600
 
-    return answer + NL + NL + _format_ddg(query, results)
+#: Per-engine budget. Three rungs at ten seconds each is a thirty-second search,
+#: which is long enough that a user assumes OCADE has hung. Six keeps the whole
+#: chain inside the time a person will wait for an answer.
+_HTTP_TIMEOUT = 6.0
 
-
-def _ddg_search(query: str, max_results: int = 6) -> list[dict]:
-    try:
-        from ddgs import DDGS
-    except ImportError:
-        from duckduckgo_search import DDGS
-
-    results = []
-    with DDGS() as ddgs:
-        for r in ddgs.text(query, max_results=max_results):
-            results.append({
-                "title":   r.get("title",  ""),
-                "snippet": r.get("body",   ""),
-                "url":     r.get("href",   ""),
-            })
-    return results
-
-
-def _ddg_news(query: str, max_results: int = 8) -> list[dict]:
-    """DDG news search — returns actual articles, not website homepages."""
-    try:
-        from ddgs import DDGS
-    except ImportError:
-        from duckduckgo_search import DDGS
-
-    results = []
-    try:
-        with DDGS() as ddgs:
-            for r in ddgs.news(query, max_results=max_results):
-                results.append({
-                    "title":   r.get("title",  ""),
-                    "snippet": r.get("body",   ""),
-                    "url":     r.get("url",    ""),
-                    "source":  r.get("source", ""),
-                })
-    except Exception as e:
-        print(f"[WebSearch] ⚠️ DDG news() failed ({e}) — falling back to text search")
-        results = _ddg_search(query, max_results=max_results)
-    return results
+#: A browser's user agent. Bing serves a JavaScript shell to anything that
+#: identifies as a script, so the parse below finds no results at all without
+#: it — which read as "the web returned nothing" rather than "we were refused".
+_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+)
 
 
-def _format_ddg(query: str, results: list[dict]) -> str:
-    if not results:
-        return f"No results found for: {query}"
-
-    lines = [f"Search results for: {query}\n"]
-    for i, r in enumerate(results, 1):
-        if r.get("title"):   lines.append(f"{i}. {r['title']}")
-        if r.get("snippet"): lines.append(f"   {r['snippet']}")
-        if r.get("url"):     lines.append(f"   Source: {r['url']}")
-        lines.append("")
-    return "\n".join(lines).strip()
-
-
-def _format_news(query: str, results: list[dict]) -> str:
-    if not results:
-        return f"No news found for: {query}"
-
-    lines = [f"Latest news: {query}\n"]
-    for i, r in enumerate(results, 1):
-        title = r.get("title", "")
-        if not title:
+def is_online(timeout: float = _PROBE_TIMEOUT) -> bool:
+    """Is there a working route off this machine right now?"""
+    for host, port in _PROBES:
+        try:
+            with socket.create_connection((host, port), timeout=timeout):
+                return True
+        except OSError:
             continue
-        src = f"  [{r['source']}]" if r.get("source") else ""
-        lines.append(f"{i}. {title}{src}")
-        if r.get("snippet"):
-            lines.append(f"   {r['snippet'][:140]}")
-        if r.get("url"):
-            lines.append(f"   {r['url']}")
-        lines.append("")
-    return "\n".join(lines).strip()
+    return False
 
 
-# ── Briefing helper ────────────────────────────────────────────────────────────
+def _clean(text: str, limit: int = _MAX_SNIPPET) -> str:
+    collapsed = " ".join((text or "").split())
+    return collapsed[:limit]
 
-def _live_headlines(n: int = 5) -> tuple[list[str], str]:
-    """Current headlines from DuckDuckGo news. No key, no third-party model.
 
-    The old version asked Gemini for "5 headlines" and parsed its prose, which
-    meant a morning briefing could be confidently wrong about the day's news
-    with nothing to check it against. These are real articles with real
-    titles, and the URLs come back with them.
-    """
-    results = _ddg_news("world news", max_results=max(n, 8))
-    headlines = [
-        title
-        for title in (str(r.get("title", "")).strip() for r in results)
-        if len(title) > 10
+def _row(title: str, snippet: str, url: str) -> dict[str, str]:
+    return {
+        "title": _clean(title, 200),
+        "snippet": _clean(snippet),
+        "url": _clean(url, 400),
+    }
+
+
+# ----------------------------------------------------------------- engines --
+#
+# Each engine takes (query, max_results, timelimit) and returns rows, or raises.
+# RAISING IS THE NORMAL WAY TO DECLINE — a missing key, a missing package, a
+# rate limit and a parse failure are all "this rung cannot answer", and the
+# caller treats them identically by moving on.
+
+
+def _via_brave(query: str, max_results: int, timelimit: str | None) -> list[dict[str, str]]:
+    """Brave's Search API. Used only when a key is present in the environment."""
+    key = (os.environ.get("BRAVE_SEARCH_API_KEY") or "").strip()
+    if not key:
+        raise LookupError("no Brave key configured")
+
+    import requests  # noqa: PLC0415
+
+    # Brave's freshness vocabulary is pd/pw/pm/py; the caller's is DuckDuckGo's
+    # d/w/m/y. Translated here rather than at the call site so every engine
+    # takes the same argument and the caller does not have to know whose
+    # spelling it is using.
+    freshness = {"d": "pd", "w": "pw", "m": "pm", "y": "py"}.get(timelimit or "", "")
+    response = requests.get(
+        "https://api.search.brave.com/res/v1/web/search",
+        params={
+            "q": query,
+            "count": max(1, min(int(max_results), 20)),
+            **({"freshness": freshness} if freshness else {}),
+        },
+        headers={"Accept": "application/json", "X-Subscription-Token": key},
+        timeout=_HTTP_TIMEOUT,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    results = ((payload or {}).get("web") or {}).get("results") or []
+    rows = [
+        _row(item.get("title") or "", item.get("description") or "", item.get("url") or "")
+        for item in results
+        if isinstance(item, dict)
     ]
-    return headlines[:n], _format_news("world news", results[:n])
+    if not rows:
+        raise LookupError("Brave returned no rows")
+    return rows
 
 
-# ── Modes ──────────────────────────────────────────────────────────────────────
+def _via_bing_html(query: str, max_results: int, timelimit: str | None) -> list[dict[str, str]]:
+    """Bing's ordinary results page, parsed. No key, no account, no SDK."""
+    import requests  # noqa: PLC0415
+    from bs4 import BeautifulSoup  # noqa: PLC0415
 
-def _search(query: str) -> str:
-    """Default search — Gemini grounded, DDG fallback."""
-    try:
-        return _grounded_search(query)
-    except Exception as e:
-        print(f"[WebSearch] ⚠️ Gemini failed ({e}) — trying DDG...")
-        results = _ddg_search(query)
-        return _format_ddg(query, results)
-
-
-def _news(query: str) -> str:
-    """
-    Runs Gemini grounded search AND DDG news in parallel.
-    Returns whichever delivers a valid result first; cancels the other.
-    """
-    import threading
-
-    grounded_query = f"latest news today: {query}" if query else "top world news today"
-    ddg_query    = query if query else "world news today"
-
-    result_box  = [None]   # first valid result lands here
-    lock        = threading.Lock()
-    done_evt    = threading.Event()
-    failures    = [0]
-
-    def _store(r: str) -> None:
-        if r and len(r) > 60:
-            with lock:
-                if result_box[0] is None:
-                    result_box[0] = r
-            done_evt.set()
-        else:
-            with lock:
-                failures[0] += 1
-                if failures[0] >= 2:   # both failed — unblock caller
-                    done_evt.set()
-
-    def _try_grounded():
-        try:
-            _store(_grounded_search(grounded_query))
-        except Exception as e:
-            print(f"[WebSearch] ⚠️ Gemini news failed ({e})")
-            _store("")
-
-    def _try_ddg():
-        try:
-            results = _ddg_news(ddg_query, max_results=8)
-            _store(_format_news(ddg_query, results))
-        except Exception as e:
-            print(f"[WebSearch] ⚠️ DDG news failed ({e})")
-            _store("")
-
-    threading.Thread(target=_try_grounded, daemon=True).start()
-    threading.Thread(target=_try_ddg,    daemon=True).start()
-
-    done_evt.wait(timeout=10.0)
-    return result_box[0] or f"No news found for: {query}"
-
-
-def _research(query: str) -> str:
-    """
-    Deep dive — asks Gemini for a comprehensive answer with context.
-    Falls back to a wider DDG fetch.
-    """
-    research_query = (
-        f"Comprehensive, detailed explanation of: {query}. "
-        "Include background context, key facts, current state, and important nuances."
+    # Bing's freshness filter is a query-string interval: 1=day, 2=week,
+    # 3=month. There is no year, so "y" simply goes unfiltered rather than
+    # being approximated by a month — a filter that quietly means something
+    # else is worse than no filter.
+    interval = {"d": "1", "w": "2", "m": "3"}.get(timelimit or "", "")
+    response = requests.get(
+        "https://www.bing.com/search",
+        params={
+            "q": query,
+            "count": max(1, min(int(max_results) * 2, 30)),
+            "setlang": "en",
+            **({"filters": f"ex1:ez{interval}"} if interval else {}),
+        },
+        headers={"User-Agent": _UA, "Accept-Language": "en-GB,en;q=0.9"},
+        timeout=_HTTP_TIMEOUT,
     )
-    try:
-        return _grounded_search(research_query)
-    except Exception as e:
-        print(f"[WebSearch] ⚠️ Research Gemini failed ({e}) — DDG fallback...")
-        results = _ddg_search(query, max_results=10)
-        return _format_ddg(query, results)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    rows: list[dict[str, str]] = []
+    for item in soup.select("li.b_algo"):
+        anchor = item.select_one("h2 a[href]")
+        if anchor is None:
+            continue
+        href = anchor.get("href") or ""
+        # Bing wraps some results in a redirector. A row whose URL is not a
+        # real destination is worse than a missing row: it is a citation that
+        # goes nowhere, and the model will present it as a source.
+        if not href.startswith("http"):
+            continue
+        caption = item.select_one("div.b_caption p") or item.select_one("p")
+        rows.append(_row(anchor.get_text(" ", strip=True), caption.get_text(" ", strip=True) if caption else "", href))
+        if len(rows) >= max_results:
+            break
+
+    if not rows:
+        raise LookupError("Bing returned no parseable rows")
+    return rows
 
 
-def _price(query: str) -> str:
-    """Product price lookup — searches for current market prices."""
-    price_query = f"current price of {query} — how much does it cost today"
-    try:
-        return _grounded_search(price_query)
-    except Exception as e:
-        print(f"[WebSearch] ⚠️ Price Gemini failed ({e}) — DDG fallback...")
-        results = _ddg_search(f"{query} price buy", max_results=6)
-        return _format_ddg(query, results)
+def _via_ddgs(query: str, max_results: int, timelimit: str | None) -> list[dict[str, str]]:
+    """DuckDuckGo through the `ddgs` library. The quiet last resort."""
+    from ddgs import DDGS  # noqa: PLC0415
+
+    rows: list[dict[str, str]] = []
+    with DDGS() as engine:
+        for item in engine.text(
+            query,
+            region="wt-wt",
+            max_results=max(1, min(int(max_results), 10)),
+            **({"timelimit": timelimit} if timelimit else {}),
+        ):
+            if not isinstance(item, dict):
+                continue
+            rows.append(_row(item.get("title") or "", item.get("body") or "", item.get("href") or ""))
+            if len(rows) >= max_results:
+                break
+    if not rows:
+        raise LookupError("DuckDuckGo returned no rows")
+    return rows
 
 
-def _compare(items: list[str], aspect: str) -> str:
-    query = (
-        f"Compare {', '.join(items)} in terms of {aspect}. "
-        "Give specific facts and data."
-    )
-    try:
-        return _grounded_search(query)
-    except Exception as e:
-        print(f"[WebSearch] ⚠️ Gemini compare failed: {e} — falling back to DDG")
+#: The chain, in order. Named so the receipt can say which one answered.
+_ENGINES: tuple[tuple[str, Callable[[str, int, str | None], list[dict[str, str]]]], ...] = (
+    ("brave", _via_brave),
+    ("bing", _via_bing_html),
+    ("duckduckgo", _via_ddgs),
+)
 
-    all_results: dict[str, list] = {}
-    for item in items:
+
+def search(
+    query: str,
+    *,
+    max_results: int = _MAX_RESULTS,
+    region: str = "wt-wt",  # noqa: ARG001 - see the note below
+    timelimit: str | None = None,
+) -> dict[str, Any]:
+    """Fetch the top snippets for a question, or say why there are none.
+
+    Returns a structured result in every case. A caller must be able to tell
+    "no network" from "no results" from "the search failed", because the right
+    thing to say to the user is different for each and only the first of them
+    means the model should fall back to its own knowledge.
+
+    `region` IS ACCEPTED AND NO LONGER USED, and the parameter stays rather than
+    being deleted. It was a DuckDuckGo concept — the other two engines have no
+    equivalent — and existing callers pass it positionally-by-keyword. Removing
+    it would break them at the call site for no gain; honouring it would mean
+    claiming a regional bias the Brave and Bing rungs do not apply.
+    """
+    query = " ".join((query or "").split())
+    if not query:
+        return {
+            "status": "invalid",
+            "query": "",
+            "results": [],
+            "verified": False,
+            "detail": "There was nothing to search for.",
+        }
+
+    if not is_online():
+        return {
+            "status": "offline",
+            "query": query,
+            "results": [],
+            "online": False,
+            # The exact wording the model appends, so every offline answer
+            # carries the same caveat rather than an improvised one.
+            "note": OFFLINE_NOTE,
+            "data": (
+                "Operating offline. Real-time data unavailable. Use local knowledge, "
+                f"but append this note: '{OFFLINE_NOTE}'"
+            ),
+            "verified": False,
+            "detail": f"No network, so “{query}” was answered from local knowledge.",
+        }
+
+    wanted = max(1, min(int(max_results), 10))
+    rows: list[dict[str, str]] = []
+    engine_used = ""
+    tried: list[str] = []
+    last_error = ""
+
+    for name, engine in _ENGINES:
+        tried.append(name)
         try:
-            all_results[item] = _ddg_search(f"{item} {aspect}", max_results=3)
-        except Exception:
-            all_results[item] = []
+            found = engine(query, wanted, timelimit)
+        except Exception as error:  # noqa: BLE001
+            # Silent by design. The next rung is the answer to this one failing,
+            # and a user asking about the weather does not need to hear that an
+            # API key is unset.
+            last_error = f"{name}: {type(error).__name__}"
+            continue
+        if found:
+            rows = found[:wanted]
+            engine_used = name
+            break
 
-    lines = [f"Comparison — {aspect.upper()}", "─" * 40]
-    for item in items:
-        lines.append(f"\n▸ {item}")
-        for r in all_results.get(item, [])[:2]:
-            if r.get("snippet"):
-                lines.append(f"  • {r['snippet']}")
-            if r.get("url"):
-                lines.append(f"    {r['url']}")
-    return "\n".join(lines)
+    if not rows:
+        # EVERY RUNG DECLINED. That is materially different from "the web has
+        # nothing about this", and only the first of the two means retrying
+        # later could help — so they are separate statuses.
+        return {
+            "status": "failed",
+            "query": query,
+            "results": [],
+            "online": True,
+            "enginesTried": tried,
+            "verified": False,
+            "detail": (
+                "No search engine could be reached, though the network is up"
+                + (f" (last: {last_error})." if last_error else ".")
+            ),
+        }
 
-
-# ── Public entry point ─────────────────────────────────────────────────────────
-
-def web_search(
-    parameters:     dict,
-    response=None,
-    player=None,
-    session_memory=None,
-) -> str:
-    params = parameters or {}
-    query  = params.get("query", "").strip()
-    mode   = params.get("mode",  "search").lower().strip()
-    items  = params.get("items", [])
-    aspect = params.get("aspect", "general").strip() or "general"
-
-    if not query and not items:
-        return "Please provide a search query."
-
-    if items and mode not in ("compare",):
-        mode = "compare"
-
-    if player:
-        player.write_log(f"[Search:{mode}] {query or ', '.join(items)}")
-
-    print(f"[WebSearch] 🔍 mode={mode!r}  query={query!r}")
-
-    try:
-        if mode == "compare" and items:
-            return _compare(items, aspect)
-        if mode == "news":
-            return _news(query)
-        if mode == "research":
-            return _research(query)
-        if mode == "price":
-            return _price(query)
-        return _search(query)
-
-    except Exception as e:
-        print(f"[WebSearch] ❌ All backends failed: {e}")
-        return f"Search failed: {e}"
+    # Pre-formatted for the model, so every caller presents sources the same
+    # way and a snippet cannot arrive as an unlabelled wall of text.
+    formatted = "\n\n".join(
+        f"[{index + 1}] {row['title']}\n{row['snippet']}\nSource: {row['url']}"
+        for index, row in enumerate(rows)
+    )
+    return {
+        "status": "online",
+        "query": query,
+        "results": rows,
+        "online": True,
+        "count": len(rows),
+        "engine": engine_used,
+        "enginesTried": tried,
+        "data": formatted,
+        "verified": True,
+        "detail": f"Read {len(rows)} live result(s) for “{query}”.",
+    }

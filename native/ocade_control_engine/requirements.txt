@@ -45,8 +45,18 @@ send2trash
 # --- web and research -------------------------------------------------------
 beautifulsoup4
 ddgs                     # the maintained name; duckduckgo-search is its old one
-playwright
 youtube-transcript-api
+
+# NO PLAYWRIGHT, AND IT MUST NOT COME BACK.
+#
+# `playwright` was listed here for actions/browser_control.py — a second
+# browser stack that bypassed every guard in the Node managed-browser host.
+# That module is deleted. The package is removed with it rather than left
+# behind, because a stray `pip install -r` is all it would have taken to make
+# the unguarded path importable again.
+#
+# Browser automation lives in native/browser-host/index.mjs and uses the Node
+# playwright-core dependency. The Python engine does not drive a browser.
 
 # --- documents and data -----------------------------------------------------
 pandas                   # file_processor: csv/xlsx read, stats, filter, sort
@@ -60,11 +70,28 @@ sounddevice
 soundfile
 miniaudio
 pydub                    # file_processor: audio trim / convert
-edge-tts                 # default TTS engine
-faster-whisper           # local, offline speech-to-text
+edge-tts                 # legacy: core/tts.py only. NOT the product voice — it
+                         # needs the internet, and OCADE speaks offline. The
+                         # shipped voice is Windows SAPI5 (Zira) through
+                         # core/voice_pipeline.py, which needs no package at all
+                         # beyond pywin32 below.
+faster-whisper           # local, offline speech-to-text (CTranslate2, no torch)
+webrtcvad-wheels         # voice activity detection. The '-wheels' fork is the
+                         # one with prebuilt Windows binaries; plain 'webrtcvad'
+                         # needs a C compiler that a user machine will not have.
 
 # --- telemetry --------------------------------------------------------------
 pynvml                   # GPU utilisation, when an NVIDIA card is present
+
+# --- the phone dashboard ----------------------------------------------------
+# core/remote.py serves a mobile page over the local network and shows a
+# pairing QR on the desktop. `qrcode` is pure Python with no build step and no
+# runtime of its own — it turns a string into a matrix, and core/remote.py
+# renders that matrix as inline SVG itself. The HTTP server is stdlib
+# (`http.server`), NOT FastAPI: one page and one JSON endpoint do not need a
+# framework, and the deleted PyQt app's fastapi/uvicorn pair is exactly the
+# dependency weight this avoids bringing back.
+qrcode
 
 # --- windows only -----------------------------------------------------------
 comtypes; sys_platform == "win32"

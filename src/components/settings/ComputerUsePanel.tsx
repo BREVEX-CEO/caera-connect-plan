@@ -17,7 +17,7 @@ import {
   type CompanionStatus,
   type CompanionApplication,
 } from "@/lib/native/companion-bridge";
-import { perceptionRuntimeReadiness } from "@/lib/control/perception";
+import { perceptionRuntimeReadiness } from "@/lib/native/perception-readiness";
 
 export function ComputerUsePanel() {
   const [settings, setSettings] = useState(loadComputerUseSettings);

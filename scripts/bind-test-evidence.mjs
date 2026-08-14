@@ -85,8 +85,6 @@ const AREA_TO_TESTS = [
     "Copilot and Cowork Orchestration",
     [
       "copilot-session-flow",
-      "work-orchestrator",
-      "work-orchestrator-runtime",
       "work-session",
       "governed-run",
       "task-scope",
@@ -140,7 +138,7 @@ const AREA_TO_TESTS = [
   ],
   [
     "Reliability No-Progress Detection and Long Tasks",
-    ["progress-monitor", "deadline", "monitors-nav", "healing-playbooks", "recovery-graph"],
+    ["deadline", "monitors-nav", "healing-playbooks", "recovery-graph"],
   ],
   [
     "Creative and Media Workflows",
@@ -186,7 +184,7 @@ const AREA_TO_TESTS = [
   ],
   [
     "Design System and Accessibility",
-    ["accessibility-gate", "a11y-simulator", "visual-render", "ocade-visual"],
+    ["accessibility-gate", "visual-render", "ocade-visual"],
   ],
   [
     "Research and Source Acquisition",
@@ -201,7 +199,7 @@ const AREA_TO_TESTS = [
   ],
   [
     "Screen Capture Vision and Set-of-Mark",
-    ["perception", "world-scan", "ocade-visual", "transcript-redaction"],
+    ["world-scan", "ocade-visual", "transcript-redaction"],
   ],
   [
     "Unknown Application Learning and App Maps",
@@ -240,7 +238,7 @@ const AREA_TO_TESTS = [
   ],
   [
     "Observability Telemetry and Diagnostics",
-    ["failure-telemetry", "diagnostics-render", "error-capture", "progress-monitor"],
+    ["failure-telemetry", "diagnostics-render", "error-capture"],
   ],
   [
     "GUI Integration and No-Dead-Control Enforcement",

@@ -42,6 +42,15 @@ export interface MissionStart {
   activeWindow: { title?: string; application?: string } | null;
   voice: { engine: string; voiceName: string; cloudRequired: boolean } | null;
   microphone: { count: number; detail: string } | null;
+  /**
+   * What OCADE remembers about this person, read once when the mission opens.
+   *
+   * FETCHED HERE RATHER THAN LEFT TO THE MODEL, because a model cannot decide
+   * to look up context it does not know exists — by the time it could ask, it
+   * has already answered the first message as a stranger. Null on a fresh
+   * install, which is a real answer and not a failure.
+   */
+  memory: { context: string; assistantName: string; address: string; language: string } | null;
 }
 
 /**
@@ -94,6 +103,7 @@ export const startMissionFn = createServerFn({ method: "POST" }).handler(
         activeWindow: null,
         voice: null,
         microphone: null,
+        memory: null,
       };
     }
 
@@ -108,15 +118,20 @@ export const startMissionFn = createServerFn({ method: "POST" }).handler(
         activeWindow: null,
         voice: null,
         microphone: null,
+        memory: null,
       };
     }
 
     const adapters = new OcadeAdapters(config.config);
     const id = host.newMissionId();
     try {
-      const [preflight, capability] = await Promise.all([
+      const [preflight, capability, memory] = await Promise.all([
         adapters.preflight(),
         adapters.voiceCapability(),
+        // In parallel with the preflight, not after it: it is a JSON file read
+        // and adding a round trip to mission start for it would be paying
+        // latency at the one moment the user is watching a spinner.
+        adapters.memoryContext(),
       ]);
       if (!preflight.reachable) {
         adapters.dispose();
@@ -129,6 +144,7 @@ export const startMissionFn = createServerFn({ method: "POST" }).handler(
           activeWindow: null,
           voice: null,
           microphone: null,
+          memory: null,
         };
       }
 
@@ -173,6 +189,7 @@ export const startMissionFn = createServerFn({ method: "POST" }).handler(
             }
           : null,
         microphone: mic ? { count: mic.count ?? 0, detail: mic.reason ?? "" } : null,
+        memory,
       };
     } catch (error) {
       adapters.dispose();
@@ -185,6 +202,7 @@ export const startMissionFn = createServerFn({ method: "POST" }).handler(
         activeWindow: null,
         voice: null,
         microphone: null,
+        memory: null,
       };
     }
   },
@@ -247,7 +265,17 @@ export const runControlActionFn = createServerFn({ method: "POST" })
     }
 
     mission.actions += 1;
-    const outcome = await mission.adapters.execute({ name: data.tool, arguments: data.args });
+    /*
+     * `confirmed` reaching the adapter is what lets `browser_open` use the
+     * user's signed-in profile. It has already been checked against the tool's
+     * risk band four lines up, so what arrives here is a confirmation the
+     * server itself accepted rather than a claim from the client.
+     */
+    const outcome = await mission.adapters.execute(
+      { name: data.tool, arguments: data.args },
+      undefined,
+      data.confirmed === true,
+    );
     return {
       ok: outcome.kind === "success",
       kind: outcome.kind,
@@ -308,6 +336,81 @@ export const stopAllLocalMissionsFn = createServerFn({ method: "POST" })
   });
 
 /** Say one sentence aloud with this computer's own free voice. */
+/**
+ * The microphones this machine can record from.
+ *
+ * A separate call from `missionMicFn` because the list is wanted BEFORE anyone
+ * decides to turn the microphone on — a settings panel showing "Bluetooth
+ * headset" should not have to open the audio stream to find out it exists.
+ */
+export const missionAudioInputsFn = createServerFn({ method: "POST" })
+  .validator(z.object({ missionId: z.string().min(1).max(64) }))
+  .handler(
+    async ({
+      data,
+    }): Promise<{
+      ok: boolean;
+      devices: { id: number; name: string; isDefault: boolean; isSelected: boolean }[];
+      selected: number | null;
+      micEnabled: boolean;
+      detail: string;
+    }> => {
+      const host = await import("@/lib/agent/mission-host.node");
+      const mission = host.findMission(data.missionId);
+      if (!mission) {
+        return {
+          ok: false,
+          devices: [],
+          selected: null,
+          micEnabled: false,
+          detail: "That session has ended.",
+        };
+      }
+      const result = await mission.adapters.audioInputs();
+      return { ok: true, ...result, detail: `${result.devices.length} microphone(s).` };
+    },
+  );
+
+/**
+ * Turn the microphone on or off, or change which one is used.
+ *
+ * The returned `micEnabled` is what the engine REPORTS after the change, not
+ * what was requested, so a UI toggle can never show "off" over a microphone
+ * that is still open.
+ */
+export const missionMicFn = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      missionId: z.string().min(1).max(64),
+      enabled: z.boolean().optional(),
+      deviceId: z.number().int().min(0).max(512).nullable().optional(),
+    }),
+  )
+  .handler(
+    async ({
+      data,
+    }): Promise<{
+      ok: boolean;
+      micEnabled: boolean;
+      deviceId: number | null;
+      listening: boolean;
+      detail: string;
+    }> => {
+      const host = await import("@/lib/agent/mission-host.node");
+      const mission = host.findMission(data.missionId);
+      if (!mission) {
+        return {
+          ok: false,
+          micEnabled: false,
+          deviceId: null,
+          listening: false,
+          detail: "That session has ended.",
+        };
+      }
+      return mission.adapters.setMic({ enabled: data.enabled, deviceId: data.deviceId });
+    },
+  );
+
 export const missionSpeakFn = createServerFn({ method: "POST" })
   .validator(
     z.object({
@@ -323,3 +426,39 @@ export const missionSpeakFn = createServerFn({ method: "POST" })
     const outcome = await mission.adapters.speak(data.text, data.language ?? "en");
     return { ok: outcome.kind === "success", detail: outcome.detail };
   });
+
+/**
+ * Re-read what OCADE remembers, mid-mission.
+ *
+ * WHY THIS IS NOT A TOOL. The memory context is how the mission builds its own
+ * system prompt; it is not an action the model chooses to take. Registering it
+ * as a tool would advertise it in the catalogue, where a model would eventually
+ * call it, spend a step, and learn nothing it was not already being told.
+ *
+ * It is called after a memory WRITE succeeds, so that "remember that I prefer
+ * short answers" is in front of the model on the very next turn rather than
+ * only in the next session — which is the difference between an assistant that
+ * remembers and one that keeps a diary.
+ *
+ * Reaches nothing but the memory file, and only inside a mission that already
+ * passed `authoriseControl` when it opened.
+ */
+export const refreshMemoryFn = createServerFn({ method: "POST" })
+  .validator(z.object({ missionId: z.string().min(1).max(64) }))
+  .handler(
+    async ({
+      data,
+    }): Promise<{ ok: boolean; context: string; assistantName: string; address: string }> => {
+      const host = await import("@/lib/agent/mission-host.node");
+      const mission = host.findMission(data.missionId);
+      if (!mission) return { ok: false, context: "", assistantName: "OCADE", address: "" };
+      const memory = await mission.adapters.memoryContext();
+      if (!memory) return { ok: false, context: "", assistantName: "OCADE", address: "" };
+      return {
+        ok: true,
+        context: memory.context,
+        assistantName: memory.assistantName,
+        address: memory.address,
+      };
+    },
+  );

@@ -54,6 +54,10 @@ function recordingContext() {
       clearRect: record("clearRect"),
       beginPath: record("beginPath"),
       arc: record("arc"),
+      // Surface detail: bands are ellipses, and everything painted inside a
+      // body is clipped to its disc so no band can spill past the silhouette.
+      ellipse: record("ellipse"),
+      clip: record("clip"),
       fill: record("fill"),
       stroke: record("stroke"),
       moveTo: record("moveTo"),

@@ -19,6 +19,27 @@ import {
 } from "../adapter";
 
 /**
+ * How long the engine may produce NOTHING before OCADE stops waiting.
+ *
+ * Generous on purpose. Measured on the reference machine, a cold qwen2.5:3b
+ * took 8.2 s to answer its first Control + Work turn while the weights came off
+ * disk, and a larger model or a busier machine is slower still. This is a
+ * deadline for "the engine is not coming back", not a performance target — and
+ * it is the difference between a bounded failure and a spinner that never ends.
+ */
+const FIRST_TOKEN_TIMEOUT_MS = 60_000;
+
+/**
+ * How long a stream that has STARTED may go quiet mid-reply.
+ *
+ * Much tighter, because nothing legitimate pauses here: once tokens are
+ * flowing they arrive continuously, so silence means the connection died
+ * without closing. Re-armed on every token, so a long essay that keeps
+ * streaming is never interrupted however long it runs in total.
+ */
+const BETWEEN_TOKEN_TIMEOUT_MS = 20_000;
+
+/**
  * The desktop engine, reached through OCADE's local bridge.
  *
  * This wraps the path that already works and is already proven at runtime —
@@ -192,7 +213,50 @@ export class DesktopBridgeAdapter implements BrainAdapter {
     const startedAt = Date.now();
     let firstTokenMs: number | null = null;
 
-    const result = await streamLocalChat(
+    /*
+     * A STALLED MODEL MUST NOT BE AN ENDLESS SPINNER.
+     *
+     * This call used to carry only `handlers.signal` — the user's Stop button —
+     * and no deadline of its own. Ollama accepting the socket and then never
+     * answering is therefore indistinguishable from Ollama thinking hard: the
+     * fetch waits forever, the panel sits on "Thinking", and the only exit is
+     * for the user to work out that nothing is coming and press Stop. That is
+     * the reported hang, and it is a missing timeout rather than a heavy model.
+     *
+     * TWO DEADLINES, BECAUSE THEY MEAN DIFFERENT THINGS.
+     *
+     *   FIRST TOKEN — the model has produced nothing at all. Loading weights
+     *   from a cold disk genuinely takes tens of seconds on this class of
+     *   machine, so this is generous. Past it, the engine is not coming back.
+     *
+     *   BETWEEN TOKENS — the stream opened and then went quiet mid-sentence.
+     *   Nothing legitimate does that, so it is much tighter.
+     *
+     * A TOTAL CAP IS DELIBERATELY NOT USED. A 400-word essay that is streaming
+     * steadily is working, not hanging, and killing it at an arbitrary total
+     * would abort exactly the long generations users ask for. What matters is
+     * whether progress is being made, not how long the whole thing takes.
+     */
+    const stall = new AbortController();
+    let stalledAt: "first token" | "mid-stream" | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const arm = (ms: number, what: "first token" | "mid-stream") => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        stalledAt = what;
+        stall.abort();
+      }, ms);
+    };
+    arm(FIRST_TOKEN_TIMEOUT_MS, "first token");
+
+    // The user's Stop and the stall deadline both have to be able to end this.
+    const signal = handlers.signal
+      ? AbortSignal.any([handlers.signal, stall.signal])
+      : stall.signal;
+
+    let result: Awaited<ReturnType<typeof streamLocalChat>>;
+    try {
+      result = await streamLocalChat(
       this.bridgeUrl,
       route.model.id,
       messages.map((m) => ({
@@ -201,18 +265,53 @@ export class DesktopBridgeAdapter implements BrainAdapter {
         ...(m.images?.length ? { images: m.images } : {}),
       })),
       {
-        signal: handlers.signal,
+        signal,
         think: handlers.think,
+        // The function-call channel. Absent for Chat, present for Control +
+        // Work, where a parseable action matters more than anything else.
+        ...(handlers.tools?.length ? { tools: handlers.tools as never } : {}),
+        ...(handlers.onToolCall ? { onToolCall: handlers.onToolCall } : {}),
         // The measured total, so the context window is sized to this machine
         // rather than to the smallest ceiling. Omitted when the device could
         // not be measured, which deliberately keeps the smallest ceiling.
         ...(this.policy().totalRamBytes ? { totalRamBytes: this.policy().totalRamBytes } : {}),
         onToken: (chunk) => {
           if (firstTokenMs === null) firstTokenMs = Date.now() - startedAt;
+          // Progress resets the clock. This is what makes a long-but-healthy
+          // generation different from a stall: an essay that keeps streaming
+          // re-arms the deadline on every chunk and is never cut off.
+          arm(BETWEEN_TOKEN_TIMEOUT_MS, "mid-stream");
           handlers.onToken(chunk);
         },
       },
-    );
+      );
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+
+    /*
+     * A STALL IS AN ERROR, NOT A CANCELLATION.
+     *
+     * Both arrive here as an aborted stream, and telling them apart matters:
+     * "Stopped." is what the user sees when THEY pressed Stop, and showing it
+     * for a dead engine would blame them for OCADE giving up. The UI surfaces
+     * `failure: "error"` in red and `cancelled` quietly, so this distinction is
+     * the difference between a visible fault and a silent one.
+     */
+    if (stalledAt !== null) {
+      const waited = Math.round((Date.now() - startedAt) / 1000);
+      return {
+        ok: false,
+        failure: "error",
+        reason:
+          stalledAt === "first token"
+            ? `The engine accepted the request but sent nothing back in ${waited}s. ` +
+              `Check Ollama is running and ${route.model.id} is installed — ` +
+              "OCADE stopped waiting rather than leave you watching a spinner."
+            : `The engine went quiet part-way through its reply, after ${waited}s. ` +
+              "Nothing further arrived, so OCADE stopped waiting. Try again.",
+      };
+    }
 
     // A cancellation is the user's decision, not the model failing, so it is
     // never recorded against the model's success rate.

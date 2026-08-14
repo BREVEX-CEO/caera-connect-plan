@@ -134,7 +134,6 @@ Mark L/
 │   ├── computer_settings.py  # Volume, brightness, WiFi, power
 │   ├── computer_control.py   # Keyboard shortcuts, mouse, window management
 │   ├── open_app.py           # Application launcher
-│   ├── browser_control.py    # Web browser control
 │   ├── file_controller.py    # File system operations
 │   ├── file_processor.py     # Document reading and summarization
 │   ├── send_message.py       # Messaging integration

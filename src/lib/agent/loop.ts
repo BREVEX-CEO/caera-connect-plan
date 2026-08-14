@@ -76,6 +76,14 @@ export interface AgentDeps extends ClassifyDeps {
   permit: (call: ToolCall, risk: string) => Promise<boolean>;
   /** Progress for the UI: spoken lines, task cards, receipts. */
   onEvent?: (event: AgentEvent) => void;
+  /**
+   * Whether the user has interrupted — by voice, or by pressing stop.
+   *
+   * Optional so a surface without audio (the browser demo, tests) is unchanged.
+   * Absent means "nothing can interrupt", which is the honest default for a
+   * caller that has no microphone attached.
+   */
+  stopRequested?: () => Promise<{ stopped: boolean; reason?: string; heard?: string }>;
 }
 
 export type AgentEvent =
@@ -113,6 +121,46 @@ const SYSTEM_PROMPT = [
 ].join("\n");
 
 /**
+ * Put what OCADE remembers about this person in front of the model.
+ *
+ * THE MISSING HALF OF THE MEMORY FEATURE, AND IT WAS MISSING ENTIRELY.
+ * --------------------------------------------------------------------
+ * The engine could store the user's name, their honorific, their city, their
+ * preferences and their open projects. It could be asked to recall any of it.
+ * And `context_for_prompt()` — the function that turns all of it into the four
+ * or five sentences a model needs — was called by nothing at all.
+ *
+ * So OCADE remembered in the way a filing cabinet remembers. Told "my name is
+ * Haans" it wrote that down and then addressed the next sentence to nobody,
+ * because the name never travelled to the prompt. Every session started cold
+ * while the memory file sat there, full and unread.
+ *
+ * The context goes AFTER the instructions and is labelled as facts rather than
+ * as orders. A 3B model handed "Address them as Sir" at the top of its prompt
+ * reliably starts every reply with "Sir," including the ones that are a single
+ * word; below the instructions and marked as background, it uses it the way a
+ * person would.
+ *
+ * It is also kept SHORT by the engine (twelve lines by default). A small model
+ * given two thousand words of history answers the history instead of the
+ * question, which is a failure that looks like the model being stupid rather
+ * than like the prompt being wrong.
+ */
+export function systemPromptWith(memoryContext?: string | null): string {
+  const context = (memoryContext ?? "").trim();
+  if (!context) return SYSTEM_PROMPT;
+  return [
+    SYSTEM_PROMPT,
+    "",
+    "What you already know about this person, from previous sessions:",
+    context,
+    "",
+    "Use it naturally when it is relevant. Do not recite it back, and do not",
+    "mention that you are reading it from a memory.",
+  ].join("\n");
+}
+
+/**
  * A revision handle the UI can hold onto.
  *
  * Separate from `AbortSignal` on purpose: aborting kills the task, whereas a
@@ -141,16 +189,62 @@ export async function runAgentTask(
     signal?: AbortSignal;
     revision?: Revision;
     onToken?: (chunk: string) => void;
+    /**
+     * What OCADE remembers about this person, as plain sentences from
+     * `memory.context`. Absent on a fresh install and on any caller that has
+     * not fetched it — in which case the prompt is exactly what it was before,
+     * which is the correct degradation rather than an error.
+     */
+    memoryContext?: string | null;
+    /**
+     * Skip classification and use these domains.
+     *
+     * FOR WHEN THE CALLER ALREADY KNOWS, WHICH IS NOT THE ORDINARY CASE.
+     * ------------------------------------------------------------------
+     * Classification exists because a request arrives as free text and nobody
+     * can tell in advance which tools it needs. That reasoning does not apply
+     * to a request this application composed itself. The screen-recovery brief
+     * in `use-mission` is the live example: it is written precisely to make
+     * OCADE look at the screen, so the domain is not a guess, and running it
+     * through a 3B classifier can only introduce an error.
+     *
+     * It introduced a bad one. `classify` degrades to `conversation` when the
+     * model is unreachable or answers with prose, and `conversation` carries
+     * NO TOOLS -- so a misfire turned "look at the screen and carry on" into
+     * OCADE talking about looking at the screen. That is the exact failure the
+     * recovery path exists to end.
+     *
+     * Left undefined by every caller passing a human's words, which is all of
+     * them but one.
+     */
+    domains?: Domain[];
   },
 ): Promise<AgentResult> {
   const emit = (event: AgentEvent) => deps.onEvent?.(event);
-  const classification = await classify(input.request, deps, input.signal);
+
+  /*
+   * THE FAST PATH LIVES AT THE SURFACE, NOT HERE.
+   *
+   * This loop briefly had its own deterministic router. That made two of them —
+   * `work/fast-router.ts` was already wired to Control + Work — and the two
+   * disagreed: on "open Notepad and write an essay" this one correctly declined
+   * while the wired one swallowed the whole sentence into an app name. Shipping
+   * two answers to one question is how the worse one reaches users.
+   *
+   * `routeDirect` in `work/fast-router.ts` is now the only router, and it is
+   * called by the surface BEFORE this loop runs, which is also where it belongs:
+   * the point of the fast path is not entering the loop at all.
+   */
+  const classification: Classification =
+    input.domains && input.domains.length > 0
+      ? { domains: input.domains, basis: "caller" }
+      : await classify(input.request, deps, input.signal);
   const domains: Domain[] = classification.domains;
   const tools = schemasFor(domains);
   emit({ kind: "classified", classification, tools: tools.map((t) => t.function.name) });
 
   const messages: AgentMessage[] = [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: systemPromptWith(input.memoryContext) },
     ...(input.history ?? []),
     { role: "user", content: input.request },
   ];
@@ -162,6 +256,26 @@ export async function runAgentTask(
 
   for (let step = 0; step < MAX_STEPS_PER_TASK; step += 1) {
     if (input.signal?.aborted) {
+      stop = "cancelled";
+      break;
+    }
+
+    /*
+     * SPOKEN BARGE-IN, CHECKED WHERE A REVISION IS CHECKED.
+     *
+     * The engine has already gone quiet and let go of the mouse by the time
+     * this runs — that happens on its own thread within milliseconds of the
+     * word, because a stop that waits for a network hop is not a stop. What
+     * this poll decides is whether the TASK continues, and the step boundary is
+     * the right place to decide it for the same reason a revision is taken
+     * here: it is the only point where the world is in a state both branches
+     * agree about.
+     */
+    const interrupted = await deps.stopRequested?.();
+    if (interrupted?.stopped) {
+      text = interrupted.heard
+        ? `Stopped — I heard “${interrupted.heard}”.`
+        : "Stopped at your request.";
       stop = "cancelled";
       break;
     }

@@ -5,7 +5,7 @@
  * are resolved only at request time, added to one outbound request, and never
  * copied into snapshots, errors, receipts, or persisted preferences.
  */
-import type { OcadeBrain } from "../control/control-plane";
+import type { OcadeBrain } from "../skills/action-contract";
 
 export type ModelProviderId =
   | "ollama"

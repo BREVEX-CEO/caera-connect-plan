@@ -66,6 +66,19 @@ export function ControlWorkPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /*
+   * The microphone list is read when voice mode is entered, not on mount.
+   *
+   * Enumerating input devices is what makes the OS treat an app as interested
+   * in audio, and a user who never leaves prompt mode has not asked OCADE to
+   * take any interest in their microphone at all.
+   */
+  useEffect(() => {
+    if (mission.mode === "voice") void mission.refreshAudio();
+    // `refreshAudio` is stable; re-running on mode change is the intent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mission.mode]);
+
   useEffect(() => {
     const history = historyRef.current;
     // Feature-detected: `Element.scrollTo` is absent in jsdom, and a
@@ -273,6 +286,9 @@ export function ControlWorkPanel({
               {mission.approval.risk === "high" ? (
                 <p className="mt-1 text-[11.5px] text-muted-foreground">
                   This one changes something that is not trivial to undo.
+                  {mission.approval.spoken
+                    ? " OCADE read it out, and it waits here either way."
+                    : ""}
                 </p>
               ) : null}
               <div className="mt-2.5 flex gap-2">
@@ -343,6 +359,90 @@ export function ControlWorkPanel({
                     <Mic className="h-3.5 w-3.5" />
                   )}
                 </Button>
+              ) : null}
+
+              {/*
+                MODE, AS A VISIBLE STATE RATHER THAN A HIDDEN PREFERENCE.
+
+                It changes which approvals are asked for, so the user has to be
+                able to see which one they are in without opening a settings
+                page — an unnoticed switch to hands-free is a switch to fewer
+                questions, and that is not a thing to discover by surprise.
+              */}
+              <div
+                role="radiogroup"
+                aria-label="Interaction mode"
+                className="ml-1 inline-flex items-center rounded-full border border-[oklch(0.3_0.02_80)]/70 p-0.5"
+              >
+                {(["prompt", "voice"] as const).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    role="radio"
+                    aria-checked={mission.mode === option}
+                    onClick={() => mission.setMode(option)}
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-[10.5px] transition-colors",
+                      mission.mode === option
+                        ? "bg-[oklch(0.72_0.13_82)]/20 text-foreground"
+                        : "text-muted-foreground/70 hover:text-foreground",
+                    )}
+                  >
+                    {option === "prompt" ? "Prompt" : "Voice"}
+                  </button>
+                ))}
+              </div>
+
+              {/*
+                The hands-free microphone, shown only in voice mode.
+
+                Distinct from the dictation button above, which types into this
+                box and stops. This one is the continuous listener: it is what
+                hears "stop" while OCADE is working, and turning it off releases
+                the audio stream rather than muting it.
+              */}
+              {mission.mode === "voice" ? (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={mission.mic.enabled ? "secondary" : "ghost"}
+                    aria-label={
+                      mission.mic.enabled ? "Turn the microphone off" : "Turn the microphone on"
+                    }
+                    aria-pressed={mission.mic.enabled}
+                    title={mission.mic.detail}
+                    className="h-7 gap-1.5 rounded-full px-2.5 text-[10.5px]"
+                    onClick={() => void mission.setMicEnabled(!mission.mic.enabled)}
+                  >
+                    {mission.mic.enabled ? (
+                      <Mic className="h-3.5 w-3.5" />
+                    ) : (
+                      <MicOff className="h-3.5 w-3.5" />
+                    )}
+                    {mission.mic.enabled ? "Listening" : "Mic off"}
+                  </Button>
+
+                  {mission.mic.devices.length > 1 ? (
+                    <select
+                      aria-label="Microphone"
+                      value={mission.mic.deviceId ?? ""}
+                      onChange={(event) =>
+                        void mission.selectMicDevice(
+                          event.target.value === "" ? null : Number(event.target.value),
+                        )
+                      }
+                      className="h-7 max-w-[190px] rounded-full border border-[oklch(0.3_0.02_80)]/70 bg-transparent px-2.5 text-[10.5px] text-muted-foreground/90 outline-none"
+                    >
+                      <option value="">System default</option>
+                      {mission.mic.devices.map((device) => (
+                        <option key={device.id} value={device.id}>
+                          {device.name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+                </>
               ) : null}
 
               <span className="ml-1 inline-flex items-center gap-1.5 rounded-full border border-[oklch(0.3_0.02_80)]/70 px-2.5 py-1 text-[10.5px] text-muted-foreground/80">

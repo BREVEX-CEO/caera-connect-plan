@@ -1,3 +1,30 @@
+"""File operations on the user's own folders, as prose.
+
+WHICH OF THESE THE BRIDGE ACTUALLY CALLS, AND WHY IT IS NOT ALL OF THEM
+------------------------------------------------------------------------
+`ocade_bridge.files()` routes to the READ side of this module — `list_files`,
+`find_files`, `get_largest_files`, `get_disk_usage`, `get_file_info`,
+`create_folder` — plus `organize_desktop`.
+
+It deliberately does NOT call `create_file`, `write_file`, `copy_file`,
+`move_file`, `rename_file` or `delete_file`, and that is not an oversight
+waiting to be tidied up. The bridge implements those six itself because it can
+verify them and this module cannot:
+
+  * copy is confirmed by hashing BOTH files and comparing;
+  * move is confirmed by hashing before, then checking the source is gone and
+    the destination hashes the same;
+  * trash is confirmed by the file being absent afterwards, and it returns an
+    id that restores it;
+  * writing refuses executable suffixes, and refuses to overwrite anything.
+
+Every function here returns a SENTENCE — "Copied report.pdf" — which is a claim,
+not a reading. Wiring them into the bridge would replace four verified receipts
+with four confident strings, which is the one thing OCADE's file handling is
+built not to do. If you are here to connect them: connect the read side, and
+leave the mutations where the verification lives.
+"""
+
 import os
 import shutil
 import platform

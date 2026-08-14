@@ -4,8 +4,8 @@ import {
   selectUniversalRoute,
   type RouteSelectionInput,
   type UniversalRouteCandidate,
-} from "../control/route-selector";
-import type { ActionRoute, RiskLevel } from "../control/control-plane";
+} from "../skills/route-selector";
+import type { ActionRoute, RiskLevel } from "../skills/action-contract";
 
 function candidate(
   route: ActionRoute,

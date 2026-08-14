@@ -7,7 +7,7 @@ import {
   validateControlledGateAttestation,
   validatePrivacySafeMissionReceipt,
   type RolloutLaunchGate,
-} from "../control/controlled-rollout";
+} from "../launch/controlled-rollout";
 
 const completeGate = (key: string, over: Partial<RolloutLaunchGate> = {}): RolloutLaunchGate => ({
   key,

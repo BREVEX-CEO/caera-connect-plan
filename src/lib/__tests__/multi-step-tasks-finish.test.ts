@@ -48,13 +48,39 @@ describe("the fast router claims only what it can finish", () => {
     expect(routeDirect(TWO_STEP)).toBeNull();
   });
 
+  it.each(["read my screen after that open notepad", "list my windows, then close the browser"])(
+    "defers %s entirely",
+    (request) => {
+      // Neither half of these is an action this pass can finish on its own.
+      expect(routeDirect(request)).toBeNull();
+    },
+  );
+
   it.each([
-    "open notepad and then type hello",
-    "open chrome; go to example.com",
-    "read my screen after that open notepad",
-    "list my windows, then close the browser",
-  ])("defers %s", (request) => {
-    expect(routeDirect(request)).toBeNull();
+    ["open notepad and then type hello", "notepad", "type hello"],
+    ["open chrome; go to example.com", "chrome", "go to example.com"],
+  ])("runs the open in %s and hands back the rest", (request, app, rest) => {
+    /*
+     * THE GUARANTEE CHANGED SHAPE, NOT STRENGTH.
+     *
+     * These used to return null, so the whole sentence went to the model. The
+     * rule being protected was "never answer the first clause and end the
+     * mission" — and the fix for that was deferring everything, because a route
+     * had no way to say "I did this part, you do the rest".
+     *
+     * It has one now. `remainder` carries the unserved half back to the caller,
+     * which runs the open immediately and sends the rest to the model. Nothing
+     * is dropped, and the open no longer waits on a model turn to say the word
+     * "notepad" back.
+     *
+     * What must never happen is a route with no remainder swallowing the second
+     * clause — that was the live bug: `app_open({name: "Notepad and write a
+     * 200-word essay about fast cars"})`, reported as success.
+     */
+    const route = routeDirect(request);
+    expect(route).not.toBeNull();
+    expect(route?.calls[0]?.arguments).toEqual({ name: app });
+    expect(route?.remainder).toBe(rest);
   });
 
   it("still answers a single instruction without a model", () => {
@@ -129,6 +155,10 @@ describe("a placeholder is refused rather than written to disk", () => {
     "key: YOUR_API_KEY",
     "TODO: fill this in",
     "Memory: <the value here>",
+    // FOUND LIVE on the run after the guard shipped: square brackets, which
+    // the first version of the pattern did not cover.
+    "Memory usage before: [result of system_status]",
+    "Usage: [value]",
   ])("refuses %s", (content) => {
     const verdict = validateArguments(workspaceWrite, { name: "note.txt", content });
     expect(verdict.ok).toBe(false);
@@ -145,6 +175,9 @@ describe("a placeholder is refused rather than written to disk", () => {
       "const config = { retries: 3 };",
       "A note about $5 and 100% of the plan",
       "if (x) { return 1; }",
+      // Citations and markdown links are ordinary text, not slots.
+      "As reported in [1] and [2], memory sits at 70.6%",
+      "See [the docs](https://example.com) for more",
     ]) {
       const verdict = validateArguments(workspaceWrite, { name: "note.txt", content });
       expect(verdict.ok, content).toBe(true);

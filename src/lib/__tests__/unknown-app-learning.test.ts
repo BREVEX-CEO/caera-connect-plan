@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { OcadeAppIdentity } from "../control/control-plane";
-import type { UniversalRouteCandidate } from "../control/route-selector";
+import type { OcadeAppIdentity } from "../skills/action-contract";
+import type { UniversalRouteCandidate } from "../skills/route-selector";
 import {
   ApplicationTwinCache,
   UNKNOWN_APP_LEARNING_REALITY,

@@ -65,6 +65,16 @@ export interface SendOptions {
   /** Conversation so far, oldest first. The new turn is already appended. */
   messages: BrainMessage[];
   onToken: (chunk: string) => void;
+  /**
+   * Actions the model may call, in the runtime's function-call schema.
+   *
+   * Control + Work passes these; Chat does not. When an adapter carries them
+   * the runtime constrains the reply into a real call rather than leaving the
+   * caller to find JSON in prose — which is what failed when a 3B model wrote
+   * an unterminated object and the whole run ended on it.
+   */
+  tools?: readonly unknown[];
+  onToolCall?: (call: { id?: string; name: string; arguments: Record<string, unknown> }) => void;
 }
 
 export interface SendResult {
@@ -244,7 +254,7 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
   }, [apply, decide, contextVision]);
 
   const send = useCallback(
-    async ({ messages, onToken }: SendOptions): Promise<SendResult> => {
+    async ({ messages, onToken, tools, onToolCall }: SendOptions): Promise<SendResult> => {
       apply({ status: "checking", reason: null, remedies: [] });
       const { outcome, decision } = await decide(contextVision);
       if (!liveRef.current) return { ok: false, cancelled: true };
@@ -299,6 +309,8 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
       let sawToken = false;
       const result = await outcome.adapter.stream(withDeliberation, {
         signal: controller.signal,
+        ...(tools?.length ? { tools } : {}),
+        ...(onToolCall ? { onToolCall } : {}),
         // Chat deliberates unless the user turned it off; Control never does.
         // One authority decides, and it is asked here rather than remembered.
         think: deliberate,

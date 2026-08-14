@@ -145,7 +145,28 @@ export class OcadeAdapters {
     timeoutMs?: number,
   ): Promise<HostReply<T> | null> {
     const reply = await this.engineHost().request<T>(command, payload, { timeoutMs });
-    if (!reply.ok && (reply.code === "unsupported" || reply.code === "retryable_failure")) {
+    /*
+     * `null` MEANS THE ENGINE IS NOT THERE. IT DOES NOT MEAN THE ENGINE FAILED.
+     *
+     * This used to collapse `retryable_failure` as well, and that one line
+     * produced the most misleading receipt in the product. The live report:
+     * WhatsApp opened, the chat for "H" opened, and then typing reported
+     * "WhatsApp control needs the control engine" — with the engine plainly
+     * running, since it had just done two things.
+     *
+     * What actually happened is that the handler RAN and raised. The bridge
+     * wraps any uncaught exception as `retryable_failure` carrying the real
+     * sentence, this function threw that sentence away and returned null, and
+     * every caller's `if (!reply)` branch then announced the engine was
+     * missing. A true diagnosis was replaced with a false one, for all
+     * twenty-three tools that go through here.
+     *
+     * `unsupported` is still collapsed, because it is the code the transport
+     * returns when the engine CANNOT BE STARTED AT ALL — see
+     * `native-host-client.node.ts`, where a failed spawn becomes exactly that.
+     * There the "needs the control engine" message is the truth.
+     */
+    if (!reply.ok && reply.code === "unsupported") {
       return null;
     }
     return reply;
@@ -173,11 +194,26 @@ export class OcadeAdapters {
 
   /* --------------------------------------------------------- routing -- */
 
-  async execute(call: ToolCall, signal?: AbortSignal): Promise<ToolOutcome> {
+  /**
+   * Run one tool.
+   *
+   * `approvedByPerson` is the caller saying "a human was asked about THIS call
+   * and said yes". It is threaded rather than inferred because exactly one tool
+   * needs it — `browser_open`, which reaches the user's signed-in sessions —
+   * and inferring it from the risk band would mean the guarantee lived in a
+   * different file from the code that relies on it. Absent or false is the safe
+   * reading everywhere: the browser falls back to a throwaway profile rather
+   * than refusing, so an unattended caller still works, just not signed in.
+   */
+  async execute(
+    call: ToolCall,
+    signal?: AbortSignal,
+    approvedByPerson = false,
+  ): Promise<ToolOutcome> {
     if (signal?.aborted) return fail("cancelled", "The task was stopped before this step ran.");
     const started = Date.now();
     try {
-      const outcome = await this.dispatch(call, signal);
+      const outcome = await this.dispatch(call, signal, approvedByPerson);
       return { ...outcome, elapsedMs: Date.now() - started };
     } catch (error) {
       return {
@@ -187,7 +223,11 @@ export class OcadeAdapters {
     }
   }
 
-  private async dispatch(call: ToolCall, signal?: AbortSignal): Promise<ToolOutcome> {
+  private async dispatch(
+    call: ToolCall,
+    signal?: AbortSignal,
+    approvedByPerson = false,
+  ): Promise<ToolOutcome> {
     const a = call.arguments ?? {};
     switch (call.name) {
       case "screen_observe":
@@ -196,6 +236,10 @@ export class OcadeAdapters {
         return this.windowList();
       case "window_focus":
         return this.windowFocus(a);
+      case "folder_item_open":
+        return this.folderItemOpen(a);
+      case "folder_open":
+        return this.folderOpen(a);
       case "app_list_installed":
         return this.installedApps();
       case "app_open":
@@ -208,6 +252,56 @@ export class OcadeAdapters {
         return this.windowArrange(a);
       case "system_status":
         return this.systemStatus();
+      case "office_read":
+        return this.officeRead(a);
+      case "office_write":
+        return this.officeWrite(a);
+      case "message_draft":
+        return this.messageDraft(a);
+      case "whatsapp_open":
+        return this.whatsapp("open", {});
+      case "whatsapp_find_contact":
+        return this.whatsapp("find", { contact: text(a.contact, "contact") });
+      case "whatsapp_type":
+        return this.whatsapp("type", { message: text(a.message, "message") });
+      case "whatsapp_send":
+        return this.whatsapp("send", { message: text(a.message, "message") });
+      case "message_find_contact":
+        return this.messageFindContact(a);
+      case "message_send":
+        return this.messageSend(a);
+      case "speak":
+        return this.voiceSpeak(a);
+      case "listen":
+        return this.voiceListen(a);
+      case "screen_find":
+        return this.screenFind(a);
+      case "screen_click":
+        return this.screenClick(a);
+      case "parallel_search":
+        return this.parallelSearch(a);
+      case "screen_type":
+        return this.screenType(a);
+      case "screen_act":
+        return this.screenAct(a);
+      case "screen_read":
+        return this.screenRead(a);
+      case "app_discover":
+        return this.appDiscover(a);
+      case "ui_tree":
+        return this.uiTree(a);
+      case "ui_act":
+        return this.uiAct(a);
+      case "system_volume":
+        return this.systemVolume(a);
+      case "system_brightness":
+        return this.systemBrightness(a);
+      case "media_control":
+        return this.mediaControl(a);
+      case "bluetooth_status":
+        return this.bluetoothStatus();
+      case "audio_devices":
+        return this.audioDevices();
       case "control_find":
         return this.controlFind(a);
       case "control_activate":
@@ -249,7 +343,7 @@ export class OcadeAdapters {
       case "browser_media":
         return this.browserMedia(a);
       case "browser_open":
-        return this.browserOpen(a);
+        return this.browserOpen(a, approvedByPerson);
       case "browser_navigate":
         return this.browserNavigate(a, signal);
       case "browser_read":
@@ -260,11 +354,389 @@ export class OcadeAdapters {
         return this.browserTabs();
       case "web_search":
         return this.webSearch(a);
+      case "youtube_play":
+        return this.youtubePlay(a);
       case "youtube_search":
         return this.youtubeSearch(a);
+
+      /* -------------------------------------------------- continuity -- */
+      case "memory_remember":
+      case "memory_recall":
+      case "memory_forget":
+      case "memory_project":
+      case "memory_identity":
+      case "memory_preference":
+      case "memory_snapshot":
+      case "session_summarise":
+      case "morning_briefing":
+      case "proactive_check":
+      case "topic_watch":
+      case "topic_check":
+      case "language_note":
+        return this.continuity(call.name, a);
+
+      /* ------------------------------------------------- the machine -- */
+      case "system_wifi":
+        return this.simple("system.wifi", { action: a.action ?? "status" }, "The WiFi state could not be read.");
+      case "system_power":
+        return this.systemPower(a);
+      case "autostart":
+        return this.autostart(a);
+      case "clipboard_read":
+        return this.simple("clipboard", {}, "The clipboard could not be read.");
+      case "clipboard_write":
+        return this.simple("clipboard", { text: text(a.text, "text") }, "Nothing was copied.");
+      case "clipboard_act":
+        return this.simple(
+          "clipboard.act",
+          {
+            action: text(a.action, "action"),
+            ...(typeof a.language === "string" && a.language.trim() ? { language: a.language } : {}),
+          },
+          "The copied text could not be worked on.",
+          120_000,
+        );
+      case "engine_status":
+        return this.engineStatus();
+      case "folder_create":
+        return this.fileCommand(
+          { action: "newfolder", folder: text(a.folder, "folder"), name: text(a.name, "name") },
+          "That folder could not be created.",
+        );
+      case "file_info":
+        return this.fileCommand(
+          { action: "info", folder: text(a.folder, "folder"), path: text(a.path, "path") },
+          "That file could not be read.",
+        );
+      case "disk_usage":
+        return this.fileCommand(
+          { action: "disk", folder: typeof a.folder === "string" ? a.folder : "home" },
+          "The disk usage could not be read.",
+        );
+      case "largest_files":
+        return this.fileCommand(
+          {
+            action: "largest",
+            folder: typeof a.folder === "string" ? a.folder : "downloads",
+            count: typeof a.count === "number" ? a.count : 10,
+          },
+          "The largest files could not be listed.",
+          60_000,
+        );
+      case "desktop_organise":
+        return this.fileCommand({ action: "organise" }, "The desktop could not be tidied.", 120_000);
+      case "see":
+        return this.see(a);
+      case "camera_list":
+        return this.simple("vision.cameras", {}, "The cameras could not be listed.", 30_000);
+      case "reminder_set":
+        return this.simple(
+          "reminder.set",
+          { message: text(a.message, "message"), when: text(a.when, "when") },
+          "The reminder could not be scheduled.",
+          30_000,
+        );
+      case "reminder_list":
+        return this.simple("reminder.list", {}, "The reminders could not be listed.", 40_000);
+      case "reminder_cancel":
+        return this.simple(
+          "reminder.cancel",
+          { task: text(a.task, "task") },
+          "The reminder could not be cancelled.",
+          30_000,
+        );
+      case "game_list":
+        return this.simple(
+          "game.list",
+          typeof a.launcher === "string" && a.launcher !== "all" ? { launcher: a.launcher } : {},
+          "The installed games could not be read.",
+          30_000,
+        );
+      case "game_update":
+        return this.simple(
+          "game.update",
+          {
+            ...(typeof a.game === "string" && a.game.trim() ? { game: a.game } : {}),
+            ...(typeof a.launcher === "string" && a.launcher !== "all" ? { launcher: a.launcher } : {}),
+          },
+          "The launcher could not be asked to update.",
+          60_000,
+        );
+      case "phone_dashboard":
+        return this.phoneDashboard(a);
+
+      /* ------------------------------------------------------- other -- */
+      case "search_mode":
+        return this.simple(
+          "search.mode",
+          { query: text(a.query, "query"), mode: text(a.mode, "mode") },
+          "The search could not be run.",
+          40_000,
+        );
+      case "flight_search":
+        return this.simple(
+          "flights",
+          {
+            from: text(a.from, "from"),
+            to: text(a.to, "to"),
+            ...(typeof a.when === "string" && a.when.trim() ? { when: a.when } : {}),
+          },
+          "No flight information could be read.",
+          45_000,
+        );
+      case "weather":
+        return this.simple(
+          "weather",
+          typeof a.city === "string" && a.city.trim() ? { city: a.city } : {},
+          "The weather could not be read.",
+          40_000,
+        );
+      case "code_review":
+        return this.codeReview(a);
+
       default:
         return fail("unsupported", `${call.name} is not connected on this device yet.`);
     }
+  }
+
+  /**
+   * What OCADE remembers about this person, for the system prompt.
+   *
+   * PUBLIC, AND SEPARATE FROM THE `memory_*` TOOLS ON PURPOSE. Those are things
+   * the MODEL chooses to do. This is something the mission does before the
+   * model gets a turn at all, because a model cannot decide to look up context
+   * it does not know exists — by the time it could ask, it has already answered
+   * the first message as a stranger.
+   *
+   * Returns null rather than throwing on any failure. A cold memory file, an
+   * engine that is not installed and a malformed store all mean the same thing
+   * to the caller — carry on without context — and none of them is a reason to
+   * refuse to start a mission.
+   */
+  async memoryContext(): Promise<{
+    context: string;
+    assistantName: string;
+    address: string;
+    language: string;
+  } | null> {
+    try {
+      const reply = await this.viaEngine<{
+        context?: string;
+        assistantName?: string;
+        address?: string;
+        language?: string;
+      }>("memory.context", {}, 10_000);
+      if (!reply?.ok || !reply.data) return null;
+      return {
+        context: reply.data.context ?? "",
+        assistantName: reply.data.assistantName ?? "OCADE",
+        address: reply.data.address ?? "",
+        language: reply.data.language ?? "",
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /* ------------------------------------------------ engine passthrough -- */
+
+  /**
+   * The shape shared by every tool that is one engine command and a receipt.
+   *
+   * WRITTEN ONCE BECAUSE IT WAS ABOUT TO BE WRITTEN TWENTY-FOUR TIMES. Each of
+   * these was five near-identical lines — call, null-check, error-map, carry
+   * `detail` through — and twenty-four copies of a five-line pattern is twenty-
+   * four chances to forget the null check, which is the one that turns "the
+   * engine is not installed" into `Cannot read properties of null`.
+   *
+   * `detail` is carried from the engine rather than composed here, on purpose:
+   * the engine is the only layer that knows what it actually observed, and a
+   * sentence written at this level would be a guess dressed as a receipt.
+   */
+  private async simple(
+    command: string,
+    payload: Record<string, unknown>,
+    whenItFails: string,
+    timeoutMs?: number,
+  ): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail?: string; verified?: boolean }>(
+      command,
+      payload,
+      timeoutMs,
+    );
+    if (!reply) return fail("unsupported", `${whenItFails} The control engine is not available.`);
+    if (!reply.ok) return outcomeFor(reply, whenItFails);
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Done."),
+      // `verified` rides through untouched. The engine sets it from an
+      // independent read-back, and re-deriving it here would replace a
+      // measurement with an assumption.
+      ...(typeof reply.data?.verified === "boolean" ? { verified: reply.data.verified } : {}),
+    };
+  }
+
+  /**
+   * The continuity tools, which are one command each with a name translation.
+   *
+   * The tool names are what the model sees and the command names are what the
+   * bridge answers to; keeping the map in one object rather than one case each
+   * means a new continuity tool is one line here and one entry in the registry.
+   */
+  private async continuity(
+    tool: string,
+    a: Record<string, unknown>,
+  ): Promise<ToolOutcome> {
+    const COMMANDS: Record<string, string> = {
+      memory_remember: "memory.remember",
+      memory_recall: "memory.recall",
+      memory_forget: "memory.forget",
+      memory_project: "memory.project",
+      memory_identity: "memory.identity",
+      memory_preference: "memory.preference",
+      memory_snapshot: "memory.snapshot",
+      session_summarise: "session.summarise",
+      morning_briefing: "presence.briefing",
+      proactive_check: "presence.proactive",
+      topic_watch: "monitor.watch",
+      topic_check: "monitor.check",
+      language_note: "language",
+    };
+
+    const payload: Record<string, unknown> = {};
+    switch (tool) {
+      case "memory_remember":
+        payload.fact = text(a.fact, "fact");
+        if (typeof a.tag === "string" && a.tag.trim()) payload.tag = a.tag;
+        break;
+      case "memory_recall":
+        if (typeof a.query === "string") payload.query = a.query;
+        break;
+      case "memory_forget":
+        payload.query = text(a.query, "query");
+        break;
+      case "memory_project":
+        payload.name = text(a.name, "name");
+        if (typeof a.note === "string" && a.note.trim()) payload.note = a.note;
+        break;
+      case "memory_identity":
+        for (const field of ["userName", "gender", "city", "language"] as const) {
+          if (typeof a[field] === "string" && (a[field] as string).trim()) payload[field] = a[field];
+        }
+        /*
+         * `assistantName` IS THE ONE FIELD WHERE "" IS A REAL VALUE, and the
+         * loop above would have dropped it with the rest of the blanks. An
+         * empty string means "put the name back to the default", so it is
+         * forwarded whenever the key is present at all.
+         */
+        if (typeof a.assistantName === "string") payload.assistantName = a.assistantName;
+        break;
+      case "memory_preference":
+        // Both or neither: a key with no value is a READ of everything, which
+        // is what the engine does when the payload is empty. Sending a lone
+        // key would silently record the preference as blank.
+        if (typeof a.key === "string" && a.key.trim() && a.value !== undefined) {
+          payload.key = a.key;
+          payload.value = String(a.value);
+        }
+        break;
+      case "session_summarise":
+        payload.summary = text(a.summary, "summary");
+        if (Array.isArray(a.topics)) payload.topics = a.topics.map(String).slice(0, 8);
+        break;
+      case "morning_briefing":
+        payload.news = a.news !== "no";
+        break;
+      case "proactive_check":
+        if (Array.isArray(a.recentTopics)) {
+          payload.recentTopics = a.recentTopics.map(String).slice(0, 6);
+        }
+        break;
+      case "topic_watch":
+        if (typeof a.topic === "string" && a.topic.trim()) payload.topic = a.topic;
+        if (a.stop === "yes") payload.stop = true;
+        break;
+      case "language_note":
+        payload.detected = text(a.detected, "detected");
+        break;
+      default:
+        break;
+    }
+
+    return this.simple(
+      COMMANDS[tool],
+      payload,
+      "OCADE's memory could not be reached.",
+      // The two that go to the network get a real budget; the rest are a JSON
+      // file read and answer in single-digit milliseconds.
+      tool === "morning_briefing" || tool === "topic_check" ? 60_000 : 20_000,
+    );
+  }
+
+  /**
+   * Sleep, lock, shut down or restart.
+   *
+   * THE CONFIRMATION IS TRANSLATED, NOT INFERRED. The model sends the string
+   * `"yes"` because a 3B model handles a string enum far more reliably than a
+   * boolean; the engine wants a real `true`. Mapping it here — and mapping
+   * ONLY the exact string — means an absent, misspelled or hallucinated value
+   * is a refusal rather than a shutdown.
+   */
+  private async systemPower(a: Record<string, unknown>): Promise<ToolOutcome> {
+    const action = text(a.action, "action").toLowerCase();
+    return this.simple(
+      "system.power",
+      { action, confirmed: a.confirmed === "yes" },
+      "The power action was refused.",
+      20_000,
+    );
+  }
+
+  private async autostart(a: Record<string, unknown>): Promise<ToolOutcome> {
+    // Omitted means "just tell me". Only the two exact strings change anything,
+    // so an unrecognised value reads the state rather than guessing at a write.
+    const payload =
+      a.enable === "yes" ? { enable: true } : a.enable === "no" ? { enable: false } : {};
+    return this.simple("system.autostart", payload, "The start-up setting could not be read.");
+  }
+
+  /**
+   * Look at the screen or the webcam, and carry the picture back with the words.
+   *
+   * The long timeout is the vision model generating a paragraph rather than a
+   * coordinate — measured at fifteen to forty seconds on this hardware. The
+   * default 45s budget cut it off often enough to look broken.
+   */
+  private async see(a: Record<string, unknown>): Promise<ToolOutcome> {
+    const source = a.source === "webcam" ? "webcam" : "screen";
+    return this.simple(
+      "vision.look",
+      {
+        source,
+        ...(typeof a.question === "string" && a.question.trim() ? { question: a.question } : {}),
+        ...(source === "screen" && typeof a.windowTitle === "string" && a.windowTitle.trim()
+          ? { windowTitle: a.windowTitle }
+          : {}),
+      },
+      "Nothing could be seen.",
+      90_000,
+    );
+  }
+
+  private async phoneDashboard(a: Record<string, unknown>): Promise<ToolOutcome> {
+    const action = typeof a.action === "string" ? a.action.toLowerCase() : "status";
+    const command =
+      action === "start" ? "remote.start" : action === "stop" ? "remote.stop" : "remote.status";
+    return this.simple(command, {}, "The phone dashboard could not be reached.", 20_000);
+  }
+
+  private async codeReview(a: Record<string, unknown>): Promise<ToolOutcome> {
+    const payload: Record<string, unknown> =
+      typeof a.folder === "string" && a.folder.trim()
+        ? { folder: a.folder, name: text(a.name, "name") }
+        : { code: text(a.code, "code") };
+    if (typeof a.language === "string" && a.language.trim()) payload.language = a.language;
+    if (!payload.folder && typeof a.name === "string" && a.name.trim()) payload.name = a.name;
+    return this.simple("code.review", payload, "The code could not be analysed.", 30_000);
   }
 
   /* ------------------------------------------------------ perception -- */
@@ -720,11 +1192,52 @@ export class OcadeAdapters {
   }
 
   private async fileSearch(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const folder = text(args.folder, "folder");
+    const match = typeof args.match === "string" ? args.match.trim() : "";
+    const extension = typeof args.extension === "string" ? args.extension.trim() : "";
+    if (!match && !extension) {
+      // Neither narrows anything, and an unqualified walk of a home directory
+      // is minutes of disk reads that answers nothing.
+      return fail("unsupported", "A file search needs part of a name, a file extension, or both.");
+    }
+    /*
+     * TWO ENGINE ACTIONS BEHIND ONE TOOL, chosen by whether an extension was
+     * given. `search` matches names inside one approved folder; `find` also
+     * filters by extension. Exposing them as two tools would have put two
+     * near-identical descriptions in front of the model, which is exactly how a
+     * planner ends up alternating between them and finishing neither.
+     */
     return this.fileCommand(
-      { action: "search", folder: text(args.folder, "folder"), match: text(args.match, "match") },
+      extension
+        ? { action: "find", folder, ...(match ? { match } : {}), extension }
+        : { action: "search", folder, match },
       "That folder could not be searched.",
-      30_000,
+      60_000,
     );
+  }
+
+  /**
+   * Why something failed: the model, the network, or neither.
+   *
+   * Both reads in one call because the user's question is never "is Ollama up"
+   * — it is "why did that not work", and answering half of it sends them
+   * looking in the wrong place.
+   */
+  private async engineStatus(): Promise<ToolOutcome> {
+    const [model, net] = await Promise.all([
+      this.viaEngine<{ detail?: string; verified?: boolean }>("llm.status", {}, 20_000),
+      this.viaEngine<{ detail?: string; online?: boolean }>("net.status", {}, 10_000),
+    ]);
+    if (!model && !net) return fail("unsupported", "The control engine is not available.");
+    const modelDetail = model?.ok ? (model.data?.detail ?? "") : (model?.error ?? "unknown");
+    const netDetail = net?.ok ? (net.data?.detail ?? "") : (net?.error ?? "unknown");
+    return {
+      ...ok(
+        { model: model?.data ?? null, network: net?.data ?? null },
+        `${modelDetail} ${netDetail}`.trim(),
+      ),
+      verified: model?.ok === true && net?.ok === true,
+    };
   }
 
   private async fileRead(args: Record<string, unknown>): Promise<ToolOutcome> {
@@ -867,6 +1380,636 @@ export class OcadeAdapters {
     return active.ok ? (active.data?.hwnd ?? null) : null;
   }
 
+  /* ------------------------------------------------ office and messages -- */
+
+  private async officeRead(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string }>("office.read", {
+      folder: text(args.folder, "folder"),
+      path: text(args.path, "path"),
+      previewRows: typeof args.previewRows === "number" ? args.previewRows : undefined,
+    });
+    if (!reply) return fail("unsupported", "Reading office files needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "That file could not be read.");
+    return ok(reply.data, reply.data?.detail ?? "Read the file.");
+  }
+
+  /**
+   * Write a spreadsheet or document, carrying the engine's RECEIPT through.
+   *
+   * `verified` comes from the engine reopening the file and counting what is in
+   * it — never from `to_excel` returning without raising. A truncated file and
+   * a correct one both complete the call; only the reopen tells them apart.
+   */
+  private async officeWrite(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string; verified: boolean; bytes: number }>(
+      "office.write",
+      {
+        folder: text(args.folder, "folder"),
+        path: text(args.path, "path"),
+        rows: Array.isArray(args.rows) ? args.rows : undefined,
+        paragraphs: Array.isArray(args.paragraphs) ? args.paragraphs : undefined,
+        title: typeof args.title === "string" ? args.title : undefined,
+        sheet: typeof args.sheet === "string" ? args.sheet : undefined,
+      },
+      60_000,
+    );
+    if (!reply) return fail("unsupported", "Writing office files needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "That file could not be written.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Wrote the file."),
+      verified: reply.data?.verified,
+      observation: reply.data,
+    };
+  }
+
+  private async messageDraft(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string; draftId: string }>("message.draft", {
+      recipient: text(args.recipient, "recipient"),
+      message: text(args.message, "message"),
+      app: typeof args.app === "string" ? args.app : undefined,
+    });
+    if (!reply) return fail("unsupported", "Drafting a message needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "That message could not be drafted.");
+    return ok(reply.data, reply.data?.detail ?? "Drafted the message.");
+  }
+
+  /**
+   * Send an approved draft.
+   *
+   * `approved: true` is passed only because reaching this method AT ALL means
+   * the loop's permission gate already asked a person and got a yes — a
+   * high-risk tool cannot execute otherwise. The engine still re-checks the
+   * draft's fingerprint, so the approval is bound to the exact recipient and
+   * wording rather than to the draft id alone.
+   */
+  /**
+   * One door to the WhatsApp skill.
+   *
+   * The engine owns the sequence — search box, chat row, composer, transcript
+   * read-back — because every one of those needed a WhatsApp-specific fact to
+   * get right. The adapter only names the step.
+   */
+  private async whatsapp(
+    action: string,
+    extra: Record<string, unknown>,
+  ): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string; verified: boolean; contact?: string }>(
+      "whatsapp",
+      { action, ...extra },
+      45_000,
+    );
+    if (!reply) return fail("unsupported", "WhatsApp control needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "That WhatsApp step did not complete.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Done."),
+      verified: reply.data?.verified ?? undefined,
+      observation: reply.data,
+    };
+  }
+
+  private async messageFindContact(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string; contact: string; verified: boolean }>(
+      "message.findcontact",
+      {
+        contact: text(args.contact, "contact"),
+        windowTitle: typeof args.windowTitle === "string" ? args.windowTitle : undefined,
+      },
+      30_000,
+    );
+    if (!reply) return fail("unsupported", "Opening a conversation needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "That conversation was not opened.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Opened the conversation."),
+      verified: reply.data?.verified ?? undefined,
+      observation: reply.data,
+    };
+  }
+
+  private async messageSend(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string; verified: boolean | null }>(
+      "message.send",
+      {
+        draftId: text(args.draftId, "draftId"),
+        approved: true,
+        // The values the approval prompt displayed, sent back for the engine to
+        // re-hash against the stored draft. Shown and sent must be the same.
+        recipient: text(args.recipient, "recipient"),
+        message: text(args.message, "message"),
+        windowTitle: typeof args.windowTitle === "string" ? args.windowTitle : undefined,
+        fingerprint: typeof args.fingerprint === "string" ? args.fingerprint : undefined,
+      },
+      30_000,
+    );
+    if (!reply) return fail("unsupported", "Sending a message needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "That message was not sent.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Sent the message."),
+      verified: reply.data?.verified ?? undefined,
+      observation: reply.data,
+    };
+  }
+
+  /* ------------------------------------------------------------- voice -- */
+
+  private async voiceSpeak(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string; voice: string }>("voice.speak", {
+      text: text(args.text, "text"),
+      wait: args.wait === true,
+    });
+    if (!reply) return fail("unsupported", "Speech needs the control engine, which is not here.");
+    if (!reply.ok) return outcomeFor(reply, "OCADE could not speak.");
+    return ok(reply.data, reply.data?.detail ?? "Spoke.");
+  }
+
+  private async voiceListen(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ text: string; detail: string; stopped: boolean }>(
+      "voice.listen",
+      {
+        silenceMs: typeof args.silenceMs === "number" ? args.silenceMs : undefined,
+        maxMs: typeof args.maxMs === "number" ? args.maxMs : undefined,
+      },
+      // Listening waits for a person to finish a sentence, which is far longer
+      // than any other call the engine serves.
+      60_000,
+    );
+    if (!reply)
+      return fail("unsupported", "Listening needs the control engine, which is not here.");
+    if (!reply.ok) return outcomeFor(reply, "OCADE could not listen.");
+    return ok(reply.data, reply.data?.detail ?? "Heard nothing.");
+  }
+
+  /**
+   * Turn always-on interrupt listening on or off.
+   *
+   * Not a model tool: whether OCADE is listening for "stop" is the user's
+   * setting, not something a task should be able to switch off about itself.
+   */
+  async setBargeIn(enabled: boolean): Promise<boolean> {
+    const reply = await this.viaEngine<{ listening: boolean }>("voice.bargein", { enabled });
+    return reply?.ok === true && reply.data?.listening === enabled;
+  }
+
+  /**
+   * Has a stop been tripped? This is what the loop polls between steps.
+   *
+   * Cheap and read-only, so it stays allowed after a stop — asking "did we
+   * stop?" must not itself be blocked by having stopped.
+   */
+  async stopRequested(): Promise<{ stopped: boolean; reason?: string; heard?: string }> {
+    const reply = await this.viaEngine<{
+      stopped: boolean;
+      reason: string | null;
+      lastHeard: string;
+    }>("voice.status", {}, 5_000);
+    if (!reply?.ok || !reply.data?.stopped) return { stopped: false };
+    return {
+      stopped: true,
+      reason: reply.data.reason ?? "stop requested",
+      heard: reply.data.lastHeard || undefined,
+    };
+  }
+
+  /** Every microphone this machine can record from. */
+  async audioInputs(): Promise<{
+    devices: { id: number; name: string; isDefault: boolean; isSelected: boolean }[];
+    selected: number | null;
+    micEnabled: boolean;
+  }> {
+    const reply = await this.viaEngine<{
+      devices: { id: number; name: string; isDefault: boolean; isSelected: boolean }[];
+      selected: number | null;
+      micEnabled: boolean;
+    }>("voice.devices", {}, 10_000);
+    if (!reply?.ok) return { devices: [], selected: null, micEnabled: false };
+    return {
+      devices: reply.data?.devices ?? [],
+      selected: reply.data?.selected ?? null,
+      micEnabled: reply.data?.micEnabled ?? false,
+    };
+  }
+
+  /**
+   * Turn the microphone on or off, and choose which one.
+   *
+   * Returns the state the ENGINE reports afterwards, not the state that was
+   * asked for. "Mic off" that left the stream open is the failure that matters
+   * here, and echoing the request back would hide exactly that.
+   */
+  async setMic(input: { enabled?: boolean; deviceId?: number | null }): Promise<{
+    micEnabled: boolean;
+    deviceId: number | null;
+    listening: boolean;
+    ok: boolean;
+    detail: string;
+  }> {
+    const payload: Record<string, unknown> = {};
+    if (typeof input.enabled === "boolean") payload.enabled = input.enabled;
+    if (input.deviceId !== undefined) payload.deviceId = input.deviceId;
+    const reply = await this.viaEngine<{
+      micEnabled: boolean;
+      deviceId: number | null;
+      listening: boolean;
+      verified: boolean;
+      detail: string;
+    }>("voice.mic", payload, 15_000);
+    if (!reply?.ok) {
+      return {
+        micEnabled: false,
+        deviceId: null,
+        listening: false,
+        ok: false,
+        detail: reply?.error ?? "The microphone could not be reached.",
+      };
+    }
+    return {
+      micEnabled: reply.data?.micEnabled ?? false,
+      deviceId: reply.data?.deviceId ?? null,
+      listening: reply.data?.listening ?? false,
+      ok: reply.data?.verified !== false,
+      detail: reply.data?.detail ?? "",
+    };
+  }
+
+  /** Silence speech, release held input and trip the shared stop. */
+  async stopEverything(): Promise<boolean> {
+    const reply = await this.viaEngine("voice.silence", {}, 8_000);
+    return reply?.ok === true;
+  }
+
+  /** Clear a tripped stop. Always explicit — never a side effect of new work. */
+  async clearStop(): Promise<boolean> {
+    const reply = await this.viaEngine("voice.resume", {}, 5_000);
+    return reply?.ok === true;
+  }
+
+  /* ------------------------------------------------ universal UI (UIA) -- */
+
+  /**
+   * The whole actionable UI of a window, as refs.
+   *
+   * Engine-only on purpose: `ui.tree` lives in the control engine, and there is
+   * no `ocade_host` equivalent to fall back to. Reporting that plainly beats
+   * degrading to a screenshot, which would hand the model pixels to guess at
+   * after it explicitly asked for structure.
+   */
+  private async uiTree(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ count: number; detail: string; title: string }>(
+      "ui.tree",
+      {
+        windowTitle: typeof args.windowTitle === "string" ? args.windowTitle : undefined,
+        query: typeof args.query === "string" ? args.query : undefined,
+        limit: typeof args.limit === "number" ? args.limit : undefined,
+      },
+    );
+    if (!reply) {
+      return fail(
+        "unsupported",
+        "Reading the accessibility tree needs the control engine, which is not available here.",
+      );
+    }
+    if (!reply.ok) return outcomeFor(reply, "That window's controls could not be read.");
+    return ok(reply.data, reply.data?.detail ?? `Read ${reply.data?.count ?? 0} controls.`);
+  }
+
+  /**
+   * Operate one control by ref, and carry the host's own verdict through.
+   *
+   * `verified` comes from the engine's re-read after the action, never from the
+   * call returning. A control that accepted the pattern and did nothing must
+   * reach the loop as unverified, because the loop's rule is that
+   * `verified === false` is not "done".
+   */
+  private async uiAct(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{
+      detail: string;
+      verified: boolean;
+      how: string;
+      pointerFallbackUsed: boolean;
+    }>("ui.act", {
+      ref: text(args.ref, "ref"),
+      action: text(args.action, "action"),
+      text: typeof args.text === "string" ? args.text : undefined,
+      fingerprint: typeof args.fingerprint === "string" ? args.fingerprint : undefined,
+      windowTitle: typeof args.windowTitle === "string" ? args.windowTitle : undefined,
+    });
+    if (!reply) {
+      return fail(
+        "unsupported",
+        "Operating a control by reference needs the control engine, which is not available here.",
+      );
+    }
+    if (!reply.ok) return outcomeFor(reply, "That control could not be operated.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Operated the control."),
+      verified: reply.data?.verified,
+      observation: reply.data,
+    };
+  }
+
+  /**
+   * Find something on screen, down the perception ladder.
+   *
+   * The engine reports which rung answered; that is carried through untouched
+   * because `needsPointer: false` (UIA) and `needsPointer: true` (OCR or
+   * vision) are genuinely different promises about what happens next, and
+   * flattening them would hide a pixel click behind a structural-sounding
+   * result.
+   */
+  /**
+   * `allowVision` ARRIVES AS "yes", NOT AS `true`.
+   *
+   * The tool schema declares it as a string enum of "yes"/"no" — which is the
+   * right shape for a small model, since a JSON boolean is the argument these
+   * get wrong most often. The adapter tested `args.allowVision === true`, so
+   * the model's "yes" compared false and the vision rung was UNREACHABLE from
+   * the loop: the only way to reach it was a hand-written call. A capability
+   * that cannot be invoked is not a gated capability, it is a dead one.
+   */
+  private static wantsVision(value: unknown): boolean {
+    if (value === true) return true;
+    return typeof value === "string" && value.trim().toLowerCase() === "yes";
+  }
+
+  private async screenFind(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const forced = OcadeAdapters.wantsVision(args.allowVision);
+    const reply = await this.viaEngine<{ detail: string; source: string; count: number }>(
+      "screen.find",
+      {
+        query: text(args.query, "query"),
+        windowTitle: typeof args.windowTitle === "string" ? args.windowTitle : undefined,
+        allowOcr: args.allowOcr !== false,
+        // Only sent when the caller forced it. Omitted otherwise, so the engine
+        // decides from its own measured capability rather than being told
+        // "false" by a client that has no idea what hardware it is on.
+        ...(forced ? { allowVision: true } : {}),
+      },
+      // Re-measured 2026-08-13 on this machine: 10-213 s per call, median 138 s,
+      // and 0 of 4 answers inside the image. The engine caps a forced call at
+      // 45 s; this allows for that plus the round trip.
+      forced ? 90_000 : 45_000,
+    );
+    if (!reply) return fail("unsupported", "Screen perception needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "OCADE could not look for that.");
+    return ok(reply.data, reply.data?.detail ?? "Looked at the screen.");
+  }
+
+  /**
+   * The pointer rung, reached only through a target something else found.
+   *
+   * `verified` is passed through rather than defaulted to true: a click on an
+   * estimated coordinate that produced no observable change is exactly the
+   * case that must not read as success.
+   */
+  private async screenClick(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const target = args.target;
+    if (!target || typeof target !== "object" || Array.isArray(target)) {
+      return fail(
+        "unsupported",
+        "A pointer click needs the target object that screen_find returned, not coordinates.",
+      );
+    }
+    const reply = await this.viaEngine<{ detail: string; verified: boolean | null }>(
+      "screen.click",
+      {
+        target,
+        windowTitle: typeof args.windowTitle === "string" ? args.windowTitle : undefined,
+      },
+      30_000,
+    );
+    if (!reply) return fail("unsupported", "Pointer control needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "That click was not made.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Clicked."),
+      verified: reply.data?.verified ?? undefined,
+      observation: reply.data,
+    };
+  }
+
+  /**
+   * Every search engine at once, first good answer wins.
+   *
+   * The timeout is deliberately tighter than the serial path's: a race that
+   * has not produced a usable answer in a few seconds is not going to, and
+   * saying "I could not find out" quickly is better than saying it slowly.
+   */
+  private async parallelSearch(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{
+      detail: string;
+      status: string;
+      results: unknown[];
+      engine?: string;
+      winnerMs?: number;
+    }>(
+      "web.search.fast",
+      {
+        query: text(args.query, "query"),
+        maxResults: typeof args.maxResults === "number" ? args.maxResults : 5,
+      },
+      12_000,
+    );
+    if (!reply) return fail("unsupported", "Live search needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "That search did not run.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Searched."),
+      // Offline is a real, useful answer -- but it is NOT a verified live one,
+      // and a model reading this must be able to tell the difference.
+      verified: reply.data?.status === "ok",
+      observation: reply.data,
+    };
+  }
+
+  /**
+   * The closed Vision-Action loop: find the field, type, then LOOK.
+   *
+   * `verified` comes from the engine reading the screen back, never from the
+   * call returning. That distinction is the whole feature -- a write that
+   * throws no exception into a box that stayed empty is the failure this
+   * exists to make visible, and it is what `submit` is gated on.
+   */
+  private async screenType(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const forced = OcadeAdapters.wantsVision(args.allowVision);
+    const reply = await this.viaEngine<{
+      detail: string;
+      verified: boolean;
+      submitted: boolean;
+      readback: string;
+      match: number;
+    }>(
+      "screen.type",
+      {
+        field: text(args.field, "field"),
+        text: text(args.text, "text"),
+        submit: args.submit === true || args.submit === "yes",
+        windowTitle: typeof args.windowTitle === "string" ? args.windowTitle : undefined,
+        ...(forced ? { allowVision: true } : {}),
+      },
+      // A screenshot, an OCR pass, the typing, and a second screenshot. The
+      // forced-vision path adds the model's own 45 s cap on the find.
+      forced ? 120_000 : 60_000,
+    );
+    if (!reply) return fail("unsupported", "Screen typing needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "That text was not typed.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Typed and checked."),
+      verified: reply.data?.verified ?? undefined,
+      observation: reply.data,
+    };
+  }
+
+  private async screenAct(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const forced = OcadeAdapters.wantsVision(args.allowVision);
+    const reply = await this.viaEngine<{ detail: string; verified: boolean }>(
+      "screen.act",
+      {
+        what: text(args.what, "what"),
+        windowTitle: typeof args.windowTitle === "string" ? args.windowTitle : undefined,
+        ...(forced ? { allowVision: true } : {}),
+      },
+      forced ? 120_000 : 60_000,
+    );
+    if (!reply) return fail("unsupported", "Screen control needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "That was not done.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Done."),
+      verified: reply.data?.verified ?? undefined,
+      observation: reply.data,
+    };
+  }
+
+  private async screenRead(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string; text: string }>(
+      "screen.read",
+      {
+        windowTitle: typeof args.windowTitle === "string" ? args.windowTitle : undefined,
+        bounds:
+          args.bounds && typeof args.bounds === "object" && !Array.isArray(args.bounds)
+            ? args.bounds
+            : undefined,
+      },
+      45_000,
+    );
+    if (!reply) return fail("unsupported", "Screen reading needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "The screen could not be read.");
+    return ok(reply.data, reply.data?.detail ?? "Read the screen.");
+  }
+
+  private async folderItemOpen(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string; verified: boolean }>(
+      "folder.item",
+      {
+        item: text(args.item, "item"),
+        windowTitle: typeof args.windowTitle === "string" ? args.windowTitle : undefined,
+      },
+      25_000,
+    );
+    if (!reply) return fail("unsupported", "Opening a folder needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "That item was not opened.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Opened it."),
+      verified: reply.data?.verified ?? undefined,
+      observation: reply.data,
+    };
+  }
+
+  private async folderOpen(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string; verified: boolean }>(
+      "folder.open",
+      { folder: text(args.folder, "folder") },
+      20_000,
+    );
+    if (!reply) return fail("unsupported", "Opening a folder needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "That folder was not opened.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Opened the folder."),
+      verified: reply.data?.verified ?? undefined,
+    };
+  }
+
+  private async appDiscover(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string }>(
+      "app.discover",
+      { name: typeof args.name === "string" ? args.name : undefined },
+      45_000,
+    );
+    if (!reply) return fail("unsupported", "Application discovery needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "The installed applications could not be read.");
+    return ok(reply.data, reply.data?.detail ?? "Listed the applications.");
+  }
+
+  private async systemBrightness(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string; verified: boolean }>("system.brightness", {
+      action: typeof args.action === "string" ? args.action : "get",
+      percent: typeof args.percent === "number" ? args.percent : undefined,
+    });
+    if (!reply) return fail("unsupported", "Brightness control needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "The brightness could not be changed.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Read the brightness."),
+      verified: reply.data?.verified,
+      observation: reply.data,
+    };
+  }
+
+  /**
+   * A global media key.
+   *
+   * `verified` is carried through EXACTLY as the engine reported it, including
+   * `null`. Windows gives a media key to whichever app owns the media session
+   * and that app reports nothing back, so "nothing was playing and nothing
+   * started" is genuinely neither success nor failure — and flattening it to
+   * `true` here would be the adapter inventing a result the OS never gave.
+   */
+  private async mediaControl(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string; verified: boolean | null }>(
+      "system.media",
+      { action: text(args.action, "action") },
+    );
+    if (!reply) return fail("unsupported", "Media keys need the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "That media key could not be sent.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Sent the media key."),
+      verified: reply.data?.verified ?? undefined,
+      observation: reply.data,
+    };
+  }
+
+  private async bluetoothStatus(): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string }>("system.bluetooth", {}, 20_000);
+    if (!reply) return fail("unsupported", "Bluetooth status needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "Bluetooth status could not be read.");
+    return ok(reply.data, reply.data?.detail ?? "Read Bluetooth status.");
+  }
+
+  private async audioDevices(): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string }>("system.audiodevices", {}, 20_000);
+    if (!reply) return fail("unsupported", "Audio device listing needs the control engine.");
+    if (!reply.ok) return outcomeFor(reply, "The audio devices could not be listed.");
+    return ok(reply.data, reply.data?.detail ?? "Listed the audio devices.");
+  }
+
+  private async systemVolume(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const reply = await this.viaEngine<{ detail: string; verified: boolean; level: number }>(
+      "system.volume",
+      {
+        action: text(args.action, "action"),
+        level: typeof args.level === "number" ? args.level : undefined,
+        by: typeof args.by === "number" ? args.by : undefined,
+      },
+    );
+    if (!reply) {
+      return fail(
+        "unsupported",
+        "Volume control needs the control engine, which is not available here.",
+      );
+    }
+    if (!reply.ok) return outcomeFor(reply, "The volume could not be changed.");
+    return {
+      ...ok(reply.data, reply.data?.detail ?? "Volume changed."),
+      verified: reply.data?.verified,
+      observation: reply.data,
+    };
+  }
+
   private async controlFind(args: Record<string, unknown>): Promise<ToolOutcome> {
     const hwnd = await this.resolveWindow(args);
     if (hwnd === null) return fail("state_changed", "That window is not open.");
@@ -926,7 +2069,35 @@ export class OcadeAdapters {
 
   /* --------------------------------------------------------- browser -- */
 
-  private async browserOpen(args: Record<string, unknown>): Promise<ToolOutcome> {
+  /**
+   * Open the browser the user is actually signed into.
+   *
+   * WHAT WAS WRONG, AND IT WAS ONE MISSING FIELD.
+   *
+   * This used to send `{command:"launch", sessionId, browser, headless:false}`
+   * and nothing else. The host reads that as "no profile preference", falls
+   * past its signed-in branch and past its CDP branch, and lands in the
+   * managed-profile branch — which builds a directory from the session id, and
+   * the session id contains `Date.now()`. So every launch got a BRAND NEW EMPTY
+   * profile: no cookies, no history, no logins, opening on `about:blank`.
+   *
+   * That was the whole `about:blank` bug, and it was also why WhatsApp Web
+   * showed a QR code and webmail showed a login form. `attachToRealBrowser` in
+   * the host had been written to prevent exactly this and was simply never
+   * reached, because nothing ever asked it for the real profile.
+   *
+   * THE APPROVAL IS CARRIED, NOT ASSUMED. `profile:"real"` is only sent
+   * alongside a `explicitProfileApproval` that came from a person answering the
+   * high-risk card for this call. Without one, the request goes out without
+   * either field and the host does what it always did — a throwaway profile —
+   * so an unattended caller still gets a working browser, just not a signed-in
+   * one. Silently upgrading to the signed-in profile because "the model asked"
+   * is the one thing this must never do.
+   */
+  private async browserOpen(
+    args: Record<string, unknown>,
+    approvedByPerson = false,
+  ): Promise<ToolOutcome> {
     const kind = args.browser === "edge" ? "edge" : "chrome";
 
     /*
@@ -958,12 +2129,36 @@ export class OcadeAdapters {
 
     const sessionId = `ocade${Date.now().toString(36)}`;
     const launched = await this.browserHost().raw(
-      { command: "launch", sessionId, browser: kind, headless: false },
+      {
+        command: "launch",
+        sessionId,
+        browser: kind,
+        headless: false,
+        ...(approvedByPerson ? { profile: "real", explicitProfileApproval: true } : {}),
+      },
       { timeoutMs: 90_000 },
     );
-    if (!launched.ok) return outcomeFor(launched, "The managed browser could not be started.");
+    if (!launched.ok) return outcomeFor(launched, `${kind} could not be started.`);
     this.browserSession = sessionId;
-    return { ...ok(launched.data, `Opened a managed ${kind} window.`), verified: true };
+
+    /*
+     * SAY WHICH BROWSER THEY GOT. "Opened a browser window" is the sentence
+     * that made this bug invisible for so long: it is equally true of the
+     * signed-in profile and of the empty one, so a run that had quietly lost
+     * every login still read as a success. The host reports which profile is in
+     * play precisely so the receipt can distinguish them, and now it does.
+     */
+    const profile = (launched.data as { profile?: string } | null)?.profile;
+    const signedIn = profile === "signed-in-cdp" || profile === "signed-in-profile";
+    return {
+      ...ok(
+        launched.data,
+        signedIn
+          ? `Opened your ${kind}, signed in.`
+          : `Opened a separate ${kind} window. It is not signed in to your accounts.`,
+      ),
+      verified: true,
+    };
   }
 
   /**
@@ -1015,6 +2210,92 @@ export class OcadeAdapters {
       ),
       verified,
       observation: { query, url: landed, title: observation?.title },
+    };
+  }
+
+  /**
+   * Search YouTube and actually PLAY the first result, advert included.
+   *
+   * "PLAY X" AND "SEARCH FOR X" WERE THE SAME ACTION, AND THAT IS THE BUG.
+   * Asked to "play a love song and play it", OCADE opened a results page and
+   * stopped — reported live three times. A results page is not a song. The
+   * user's sentence has four steps in it and only the first was implemented.
+   *
+   * The whole sequence is deterministic once you know YouTube's DOM, so none
+   * of it is asked of the model:
+   *
+   *   1. results page for the query
+   *   2. the first VIDEO result — `a#video-title`, which is the anchor
+   *      YouTube gives every result and which excludes the Shorts carousel
+   *      and playlist rows that sit above it
+   *   3. the advert, skipped through the existing player-scoped helper that
+   *      waits for the Skip control to become pressable
+   *   4. a check that a video is genuinely playing, read from the element
+   *
+   * Every step is verified by re-reading the page, so "played it" means the
+   * media element reports itself as playing — not that four clicks resolved.
+   */
+  private async youtubePlay(args: Record<string, unknown>): Promise<ToolOutcome> {
+    const query = typeof args.query === "string" ? args.query.trim() : "";
+    if (!/[\p{L}\p{N}]/u.test(query)) {
+      return fail("unsupported", "Playing something on YouTube needs something to look for.");
+    }
+    if (!this.browserSession) {
+      const opened = await this.browserOpen({});
+      if (opened.kind !== "success") return opened;
+    }
+    const origins = { approvedOrigins: ["https://www.youtube.com", "https://youtube.com"] };
+
+    const searched = await this.browserPerform(
+      {
+        kind: "navigate",
+        url: `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`,
+      },
+      origins,
+    );
+    if (!searched.ok) return outcomeFor(searched, "That YouTube search could not be run.");
+
+    // `a#video-title` is the result anchor. Waiting for it rather than sleeping
+    // means a slow connection is tolerated and a fast one is not penalised.
+    const waited = await this.browserPerform(
+      { kind: "wait", target: { selector: "a#video-title" }, timeoutMs: 15_000 },
+      origins,
+    );
+    if (!waited.ok) {
+      return outcomeFor(waited, `No video results appeared for “${query}”.`);
+    }
+
+    const clicked = await this.browserPerform(
+      { kind: "click", target: { selector: "a#video-title" } },
+      origins,
+    );
+    if (!clicked.ok) return outcomeFor(clicked, "The first result could not be opened.");
+
+    // Adverts are the reason "play it" so often did not play anything. The
+    // helper is player-scoped and waits, because most adverts are unskippable
+    // for their first seconds.
+    const skipped = await this.browserPerform({ kind: "site.youtube.skip", timeoutMs: 12_000 }, origins);
+    const ad = (skipped.data as { output?: { skipped?: boolean; detail?: string } } | null)?.output;
+
+    // Some videos need the play command; most autoplay. Sent either way, then
+    // read back — this is what turns "clicked a link" into "it is playing".
+    await this.browserPerform({ kind: "media", action: "play" }, origins);
+    const state = await this.browserPerform({ kind: "media", action: "play" }, origins);
+    const media = (state.data as { output?: { paused?: boolean; found?: number } } | null)?.output;
+    const observation = (state.data as { observation?: { url?: string; title?: string } } | null)
+      ?.observation;
+
+    const playing = media?.found ? media.paused === false : false;
+    return {
+      ...ok(
+        { query, title: observation?.title, url: observation?.url, advert: ad?.detail },
+        playing
+          ? `Playing “${observation?.title ?? query}” on YouTube.` +
+              (ad?.skipped ? " Skipped the advert." : "")
+          : `Opened “${observation?.title ?? query}” but could not confirm it is playing.`,
+      ),
+      verified: playing,
+      observation: { query, title: observation?.title, url: observation?.url, playing },
     };
   }
 

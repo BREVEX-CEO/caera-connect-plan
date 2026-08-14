@@ -6,7 +6,7 @@ import { GlassPanel } from "@/components/shell/GlassPanel";
 import { getCompanion, subscribeCompanionAdapter } from "@/lib/native/companion-bridge";
 import { getBrowserBridge } from "@/lib/native/browser-bridge";
 import { activeDevices } from "@/lib/mobile/device-store";
-import { getEmailConnectorStatus } from "@/lib/control/email-web-work";
+import { getEmailConnectorStatus } from "@/lib/messaging/email-connector";
 import { cn } from "@/lib/utils";
 
 type ConnectorState = {

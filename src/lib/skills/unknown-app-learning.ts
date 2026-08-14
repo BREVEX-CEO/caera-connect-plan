@@ -7,12 +7,12 @@
  * requests task-scoped permission, verifies independently, compiles a private
  * fingerprint-bound recipe, and invalidates both twin and recipe on change.
  */
-import type { ActionRoute, OcadeAppIdentity, RiskLevel } from "../control/control-plane";
+import type { ActionRoute, OcadeAppIdentity, RiskLevel } from "./action-contract";
 import {
   selectUniversalRoute,
   type UniversalRouteCandidate,
   type UniversalRouteDecision,
-} from "../control/route-selector";
+} from "./route-selector";
 
 export const UNKNOWN_APP_SUPPORT_LABELS = [
   "LIVE_TESTED",

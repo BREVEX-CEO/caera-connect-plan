@@ -50,6 +50,16 @@
       "couldBeStronger": "Partly. P09 now executes 25 Rust tests via cargo test, so this file is supplementary rather than sole evidence for the safety core."
     },
     {
+      "path": "src/lib/__tests__/engine-errors-are-not-absence.test.ts",
+      "why": "Reads adapters.node.ts to assert viaEngine no longer collapses a retryable_failure reply into null. The defect is the ABSENCE of a distinction between an engine that failed and an engine that is missing, and reproducing it at runtime needs a live Python bridge whose handler raises a specific uncaught exception. The source assertion catches the only realistic regression, which is somebody re-adding the collapsed condition.",
+      "couldBeStronger": "Yes. A runtime test could drive a fake NativeHostClient that returns retryable_failure and assert the engine reason reaches the ToolOutcome detail. That needs OcadeAdapters to accept an injected host, which it does not today."
+    },
+    {
+      "path": "src/lib/__tests__/engine-stall-is-visible.test.ts",
+      "why": "Asserts on source because the defect is an ABSENCE. A model call with no deadline cannot be observed by a test that waits for one — the honest experiment runs forever. So the two guarantees are pinned in text: that first-token and between-token deadlines exist, that the deadline re-arms on every token so a long reply is never cut off, that the stall signal is combined with the user's Stop rather than replacing it, and that a stall reports as an error rather than a cancellation. The matching runtime proof was taken separately against a server that accepts and never answers.",
+      "couldBeStronger": "Yes. Injecting a fake bridge URL into DesktopBridgeAdapter and asserting the returned failure shape would execute the timeout instead of reading it. That needs the adapter's bridge URL to be constructor-injectable, which it is not today."
+    },
+    {
       "path": "src/lib/__tests__/evidence-collector.test.ts",
       "why": "Asserts on the shape of retained evidence JSON produced by scripts/collect-evidence.mjs, which shells out to build tooling.",
       "couldBeStronger": "Yes, by invoking the collector against a temporary directory."
@@ -148,11 +158,6 @@
       "path": "src/lib/__tests__/stage2-baseline.test.ts",
       "why": "Asserts the recorded Stage 2 baseline evidence file matches the declared gate set.",
       "couldBeStronger": "No; the gates themselves execute."
-    },
-    {
-      "path": "src/lib/__tests__/stage2-phase21-source.test.ts",
-      "why": "Phase-21 source conformance check against the declared Stage 2 specification.",
-      "couldBeStronger": "Partly; the behaviour it describes is covered by the modules' own execution tests."
     },
     {
       "path": "src/lib/__tests__/stage2-phase22-source.test.ts",

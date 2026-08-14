@@ -65,7 +65,113 @@ describe("the advertised tool surface", () => {
     // Deleting tools is a legitimate fix for a dead one, and also the easiest
     // way to make this file green while removing capability. The floor makes
     // that a deliberate act with a number attached rather than a side effect.
-    expect(allToolNames().length).toBeGreaterThanOrEqual(36);
+    //
+    // Raised from 36 when the continuity layer, the rest of the system
+    // controls, the vision tools and the code reviewer were connected. All of
+    // those existed in the engine already and were reachable by nothing.
+    expect(allToolNames().length).toBeGreaterThanOrEqual(80);
+  });
+
+  it("gives every tool a name in the registry exactly once", () => {
+    const names = allToolNames();
+    const duplicates = names.filter((name, index) => names.indexOf(name) !== index);
+    // `toolsFor` de-duplicates when domains overlap, so a name registered twice
+    // is invisible until the two copies disagree about risk — at which point
+    // which one wins depends on domain ordering.
+    expect(duplicates, "a tool is registered under two domains").toEqual([]);
+  });
+});
+
+/*
+ * THE OTHER HALF OF THE CONTRACT, AND THE HALF THAT WAS ACTUALLY BROKEN.
+ *
+ * The test above proves a registered tool reaches `dispatch`. It says nothing
+ * about whether the ENGINE answers to the command that dispatch then sends —
+ * and that is the join where the continuity layer was severed: eleven finished,
+ * tested bridge handlers with no tool pointing at them, and no test that could
+ * notice, because each side was internally consistent.
+ */
+describe("the continuity layer reaches the engine", () => {
+  const BRIDGE = fileURLToPath(
+    new URL("../../../native/ocade_control_engine/ocade_bridge.py", import.meta.url),
+  );
+
+  /** Every key in the bridge's HANDLERS table. */
+  function bridgeCommands(): Set<string> {
+    const source = readFileSync(BRIDGE, "utf8");
+    const start = source.indexOf("HANDLERS: dict[str, Callable");
+    expect(start, "HANDLERS should exist in ocade_bridge.py").toBeGreaterThan(-1);
+    const end = source.indexOf("\n}", start);
+    const names = new Set<string>();
+    for (const match of source.slice(start, end).matchAll(/^\s+"([a-z0-9_.]+)":/gm)) {
+      names.add(match[1]);
+    }
+    return names;
+  }
+
+  /** Every engine command string the adapters send. */
+  function adapterCommands(): Set<string> {
+    const source = readFileSync(ADAPTERS, "utf8");
+    const names = new Set<string>();
+    // `viaEngine("x", …)` and the `simple("x", …)` passthrough, plus the
+    // continuity name map, all quote the command as a dotted literal.
+    for (const match of source.matchAll(/(?:viaEngine(?:<[^>]*>)?|this\.simple)\(\s*"([a-z]+\.[a-z.]+)"/g)) {
+      names.add(match[1]);
+    }
+    for (const match of source.matchAll(/^\s+[a-z_]+:\s+"([a-z]+\.[a-z.]+)",$/gm)) {
+      names.add(match[1]);
+    }
+    return names;
+  }
+
+  it("sends no engine command the bridge does not answer to", () => {
+    const known = bridgeCommands();
+    const unknown = [...adapterCommands()].filter((command) => !known.has(command));
+    expect(
+      unknown,
+      "The adapters send these to the engine and it has no handler for them. " +
+        "Every one would come back as 'Unknown command' after a full process round trip.",
+    ).toEqual([]);
+  });
+
+  const CONTINUITY = [
+    "memory_remember",
+    "memory_recall",
+    "memory_forget",
+    "memory_project",
+    "memory_identity",
+    "memory_snapshot",
+    "session_summarise",
+    "morning_briefing",
+    "proactive_check",
+    "topic_watch",
+    "topic_check",
+    "language_note",
+  ] as const;
+
+  it.each(CONTINUITY)("%s is registered, dispatched, and in the conversation domain", (name) => {
+    const tool = findTool(name);
+    expect(tool, `${name} is missing from the registry`).not.toBeNull();
+    expect(tool?.domain).toBe("conversation");
+    expect(dispatchedToolNames().has(name), `${name} has no dispatch arm`).toBe(true);
+  });
+
+  it("keeps the conversation domain non-empty", () => {
+    // It was empty, and an empty domain loads no schemas — so a request
+    // classified as `conversation` reached a model with nothing to call and
+    // answered "I'll remember that" without remembering anything.
+    expect(toolsFor(["conversation"]).length).toBeGreaterThanOrEqual(12);
+  });
+
+  it("prices the irreversible and the outward-facing above the rest", () => {
+    // Opening a port on the user's network and shutting their computer down are
+    // the two things here a person has to agree to. Everything else in the new
+    // surface affects only this machine and can be looked at afterwards.
+    expect(findTool("phone_dashboard")?.risk).toBe("high");
+    expect(findTool("system_power")?.risk).toBe("high");
+    for (const name of CONTINUITY) {
+      expect(findTool(name)?.risk, `${name} should not need a permission prompt`).not.toBe("high");
+    }
   });
 });
 

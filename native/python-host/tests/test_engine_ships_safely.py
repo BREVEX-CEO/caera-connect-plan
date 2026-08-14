@@ -117,12 +117,15 @@ class TestThereIsOneBrainAndItIsLocal:
     back by accident: an import would fail before it could send anything.
     """
 
-    # main.py / ui.py / dashboard/ are the standalone PyQt6 app. OCADE never
-    # starts them (ocade_bridge.py says so in its own docstring), they are not
-    # installed by requirements.txt, and they are scheduled for deletion once
-    # the bridge reaches parity with main.py's tool table. Until then they are
-    # excluded here rather than silently passing.
-    NOT_SHIPPED = {"main.py", "ui.py", "server.py", "config_manager.py"}
+    # THE EXCLUSION LIST IS EMPTY BECAUSE THE FILES ARE GONE.
+    #
+    # main.py, ui.py, dashboard/ and config_manager.py were the standalone PyQt6
+    # app that OCADE never started. They were excluded here "until the bridge
+    # reaches parity with main.py's tool table" — that happened, and all 24
+    # unreachable modules were deleted rather than left excluded. Every Python
+    # file that remains in the engine is now reachable from ocade_bridge.py, so
+    # the scan below covers the whole engine with nothing carved out of it.
+    NOT_SHIPPED: set[str] = set()
 
     def _shipped_sources(self) -> list[Path]:
         return [p for p in _python_sources() if p.name not in self.NOT_SHIPPED]
@@ -156,20 +159,19 @@ class TestThereIsOneBrainAndItIsLocal:
         client = (ENGINE / "core" / "llm_client.py").read_text(encoding="utf-8")
         assert 'OCADE_MODEL = "qwen2.5:3b"' in client
 
-    def test_the_local_client_refuses_images_rather_than_guessing(self) -> None:
-        # qwen3:4b is text-only. A caller that asks what is in a picture and
-        # gets a confident paragraph written without looking at it has been
-        # handed something worse than an error.
-        sys.path.insert(0, str(ENGINE))
-        try:
-            from core.local_llm import VisionUnavailable, _as_prompt
-        finally:
-            sys.path.pop(0)
+    def test_the_gemini_shim_is_gone_entirely(self) -> None:
+        """Stronger than the test it replaces.
 
-        assert _as_prompt("plain text") == "plain text"
-        assert _as_prompt(["one", "two"]) == "one\n\ntwo"
-        with pytest.raises(VisionUnavailable):
-            _as_prompt(["describe this", object()])
+        `core/local_llm.py` was a Gemini-shaped shim that refused images rather
+        than sending them anywhere, and a test asserted that refusal. The module
+        was unreachable from the bridge and has been deleted, so the guarantee
+        is now structural: there is no shim to refuse anything, because there is
+        no shim.
+        """
+        assert not (ENGINE / "core" / "local_llm.py").exists()
+        assert not (ENGINE / "main.py").exists()
+        assert not (ENGINE / "ui.py").exists()
+        assert not (ENGINE / "dashboard").exists()
 
     def test_the_screen_is_never_streamed_to_a_remote_model(self) -> None:
         source = (ENGINE / "actions" / "screen_processor.py").read_text(encoding="utf-8")

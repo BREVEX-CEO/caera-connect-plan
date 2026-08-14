@@ -150,64 +150,9 @@
   ],
   "ownership": [
     {
-      "area": "src/lib/brain",
-      "owner": "OCADE engine",
-      "requirementPrefix": "HWE"
-    },
-    {
-      "area": "src/lib/local",
-      "owner": "OCADE engine",
-      "requirementPrefix": "HWE"
-    },
-    {
-      "area": "src/lib/retrieval",
-      "owner": "OCADE chat",
-      "requirementPrefix": "AZ"
-    },
-    {
-      "area": "src/lib/chat",
-      "owner": "OCADE chat",
-      "requirementPrefix": "AZ"
-    },
-    {
       "area": "src/lib/agent",
       "owner": "OCADE control plane",
       "requirementPrefix": "AZ"
-    },
-    {
-      "area": "src/lib/control",
-      "owner": "OCADE control plane",
-      "requirementPrefix": "AZ"
-    },
-    {
-      "area": "src/lib/skills",
-      "owner": "OCADE control plane",
-      "requirementPrefix": "AZ"
-    },
-    {
-      "area": "src/lib/mobile",
-      "owner": "OCADE devices",
-      "requirementPrefix": "HWE"
-    },
-    {
-      "area": "src/lib/native",
-      "owner": "OCADE devices",
-      "requirementPrefix": "HWE"
-    },
-    {
-      "area": "src/lib/storage",
-      "owner": "OCADE privacy",
-      "requirementPrefix": "CXR"
-    },
-    {
-      "area": "src/lib/providers",
-      "owner": "OCADE engine",
-      "requirementPrefix": "HWE"
-    },
-    {
-      "area": "src/lib/packaging",
-      "owner": "OCADE release",
-      "requirementPrefix": "CXR"
     },
     {
       "area": "src/lib/artifacts",
@@ -215,13 +160,18 @@
       "requirementPrefix": "CXR"
     },
     {
-      "area": "src/lib/research",
+      "area": "src/lib/attachments",
       "owner": "OCADE chat",
       "requirementPrefix": "AZ"
     },
     {
-      "area": "src/lib/work",
-      "owner": "OCADE control plane",
+      "area": "src/lib/brain",
+      "owner": "OCADE engine",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/chat",
+      "owner": "OCADE chat",
       "requirementPrefix": "AZ"
     },
     {
@@ -230,64 +180,9 @@
       "requirementPrefix": "AZ"
     },
     {
-      "area": "src/lib/voice",
-      "owner": "OCADE chat",
-      "requirementPrefix": "AZ"
-    },
-    {
-      "area": "src/lib/media",
-      "owner": "OCADE chat",
-      "requirementPrefix": "AZ"
-    },
-    {
-      "area": "src/lib/vision3d",
-      "owner": "OCADE control plane",
-      "requirementPrefix": "AZ"
-    },
-    {
-      "area": "src/lib/files",
-      "owner": "OCADE chat",
-      "requirementPrefix": "AZ"
-    },
-    {
-      "area": "src/lib/payments",
-      "owner": "OCADE release",
-      "requirementPrefix": "CXR"
-    },
-    {
-      "area": "src/lib/telemetry",
-      "owner": "OCADE release",
-      "requirementPrefix": "CXR"
-    },
-    {
-      "area": "src/lib/hardware",
-      "owner": "OCADE engine",
-      "requirementPrefix": "HWE"
-    },
-    {
-      "area": "src/lib/hwe",
-      "owner": "OCADE engine",
-      "requirementPrefix": "HWE"
-    },
-    {
-      "area": "src/lib/healing",
-      "owner": "OCADE control plane",
-      "requirementPrefix": "AZ"
-    },
-    {
-      "area": "src/lib/engineering",
-      "owner": "OCADE control plane",
-      "requirementPrefix": "AZ"
-    },
-    {
       "area": "src/lib/creative",
       "owner": "OCADE chat",
       "requirementPrefix": "AZ"
-    },
-    {
-      "area": "src/lib/reasoning",
-      "owner": "OCADE engine",
-      "requirementPrefix": "HWE"
     },
     {
       "area": "src/lib/demo",
@@ -295,12 +190,7 @@
       "requirementPrefix": "AZ"
     },
     {
-      "area": "src/lib/landing",
-      "owner": "OCADE chat",
-      "requirementPrefix": "AZ"
-    },
-    {
-      "area": "src/lib/attachments",
+      "area": "src/lib/edge",
       "owner": "OCADE chat",
       "requirementPrefix": "AZ"
     },
@@ -310,8 +200,53 @@
       "requirementPrefix": "HWE"
     },
     {
-      "area": "src/lib/offline",
+      "area": "src/lib/engineering",
+      "owner": "OCADE control plane",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/files",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/hardware",
       "owner": "OCADE engine",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/healing",
+      "owner": "OCADE control plane",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/landing",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/launch",
+      "owner": "OCADE control plane",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/local",
+      "owner": "OCADE engine",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/media",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/messaging",
+      "owner": "OCADE control plane",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/mobile",
+      "owner": "OCADE devices",
       "requirementPrefix": "HWE"
     },
     {
@@ -320,13 +255,78 @@
       "requirementPrefix": "AZ"
     },
     {
+      "area": "src/lib/native",
+      "owner": "OCADE devices",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/offline",
+      "owner": "OCADE engine",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/packaging",
+      "owner": "OCADE release",
+      "requirementPrefix": "CXR"
+    },
+    {
+      "area": "src/lib/payments",
+      "owner": "OCADE release",
+      "requirementPrefix": "CXR"
+    },
+    {
       "area": "src/lib/provenance",
       "owner": "OCADE chat",
       "requirementPrefix": "AZ"
     },
     {
-      "area": "src/lib/edge",
+      "area": "src/lib/providers",
+      "owner": "OCADE engine",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/reasoning",
+      "owner": "OCADE engine",
+      "requirementPrefix": "HWE"
+    },
+    {
+      "area": "src/lib/research",
       "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/retrieval",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/skills",
+      "owner": "OCADE control plane",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/storage",
+      "owner": "OCADE privacy",
+      "requirementPrefix": "CXR"
+    },
+    {
+      "area": "src/lib/telemetry",
+      "owner": "OCADE release",
+      "requirementPrefix": "CXR"
+    },
+    {
+      "area": "src/lib/vision3d",
+      "owner": "OCADE control plane",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/voice",
+      "owner": "OCADE chat",
+      "requirementPrefix": "AZ"
+    },
+    {
+      "area": "src/lib/work",
+      "owner": "OCADE control plane",
       "requirementPrefix": "AZ"
     }
   ],

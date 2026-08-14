@@ -223,6 +223,163 @@ export interface SystemAt {
   uranus: Body;
 }
 
+/**
+ * A repeatable pseudo-random stream from a body's name.
+ *
+ * TEXTURE HAS TO BE THE SAME EVERY FRAME OR IT IS NOT TEXTURE, IT IS NOISE.
+ * Jupiter's bands are a fact about Jupiter; regenerating them sixty times a
+ * second makes the planet boil. `Math.random()` in a paint function is the
+ * single easiest way to turn a surface into static, so the stream is seeded
+ * from the id and replayed identically on every frame.
+ */
+function seeded(id: string): () => number {
+  let state = 0x811c9dc5;
+  for (let i = 0; i < id.length; i += 1) {
+    state ^= id.charCodeAt(i);
+    state = Math.imul(state, 0x01000193) >>> 0;
+  }
+  return () => {
+    state ^= state << 13;
+    state >>>= 0;
+    state ^= state >> 17;
+    state ^= state << 5;
+    state >>>= 0;
+    return state / 0xffffffff;
+  };
+}
+
+/** Move a `#rrggbb` toward white (positive) or black (negative). */
+function shade(colour: string, amount: number): string {
+  const raw = colour.replace("#", "");
+  const full =
+    raw.length === 3
+      ? raw
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : raw;
+  const n = Number.parseInt(full, 16);
+  if (!Number.isFinite(n)) return colour;
+  const towards = amount >= 0 ? 255 : 0;
+  const t = Math.abs(amount);
+  const ch = (shift: number) => {
+    const v = (n >> shift) & 0xff;
+    return Math.round(v + (towards - v) * t);
+  };
+  return `rgb(${ch(16)}, ${ch(8)}, ${ch(0)})`;
+}
+
+/** Planets whose surface reads as horizontal bands rather than as patches. */
+const BANDED = new Set(["jupiter", "saturn", "uranus", "neptune"]);
+
+/**
+ * Paint a body's surface inside its disc: bands for the gas giants, mottling
+ * for the rest, then a specular highlight and a rim light.
+ *
+ * WHY THIS IS WHAT MAKES A CIRCLE LOOK LIKE A SPHERE
+ * ---------------------------------------------------
+ * The scene already had a radial gradient lit from the Sun, which is the first
+ * and most important cue. It is not enough on its own, because a smooth
+ * gradient reads as a soft disc — a snooker ball with no markings looks flat in
+ * a photograph too. Three things are missing and each is cheap:
+ *
+ *   TEXTURE tells the eye the surface has an orientation. Bands curve with the
+ *   body, so they say "this is round" far more strongly than shading does.
+ *
+ *   A SPECULAR HIGHLIGHT is the only part that says "shiny". It is small, off
+ *   centre, and sits toward the light — a big soft one just looks like fog.
+ *
+ *   A RIM LIGHT separates the body from the black behind it. Without it every
+ *   planet's dark limb dissolves into the background and the silhouette is lost.
+ *
+ * All of it is clipped to the disc and drawn with `source-atop`, so nothing can
+ * spill outside the planet however wide a band is drawn.
+ */
+function paintSurface(
+  context: CanvasRenderingContext2D,
+  planet: { id: string; colour: string },
+  x: number,
+  y: number,
+  radius: number,
+  towards: number,
+  dim: number,
+): void {
+  context.save();
+  context.beginPath();
+  context.arc(x, y, radius, 0, Math.PI * 2);
+  context.clip();
+
+  const random = seeded(planet.id);
+
+  if (BANDED.has(planet.id)) {
+    // Latitude bands. Each is an ellipse squashed against the body's axis, so
+    // they curve the way real cloud belts do instead of lying flat.
+    const count = 5 + Math.floor(random() * 3);
+    for (let i = 0; i < count; i += 1) {
+      const at = -1 + ((i + random() * 0.5) / count) * 2;
+      const height = radius * (0.08 + random() * 0.16);
+      const tone = shade(planet.colour, (random() - 0.45) * 0.5);
+      context.beginPath();
+      context.globalAlpha = (0.16 + random() * 0.2) * dim;
+      context.fillStyle = tone;
+      context.ellipse(
+        x,
+        y + at * radius * 0.9,
+        radius * Math.sqrt(Math.max(0.05, 1 - at * at)),
+        height,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      context.fill();
+    }
+  } else {
+    // Maria, craters and continents: a handful of soft patches. Few and large
+    // reads as terrain; many and small reads as dirt on the screen.
+    const count = 3 + Math.floor(random() * 3);
+    for (let i = 0; i < count; i += 1) {
+      const angle = random() * Math.PI * 2;
+      const distance = random() * radius * 0.72;
+      const size = radius * (0.22 + random() * 0.34);
+      const px = x + Math.cos(angle) * distance;
+      const py = y + Math.sin(angle) * distance;
+      const patch = context.createRadialGradient(px, py, 0, px, py, size);
+      patch.addColorStop(0, shade(planet.colour, (random() - 0.5) * 0.55));
+      patch.addColorStop(1, "rgba(0, 0, 0, 0)");
+      context.beginPath();
+      context.globalAlpha = (0.3 + random() * 0.3) * dim;
+      context.fillStyle = patch;
+      context.arc(px, py, size, 0, Math.PI * 2);
+      context.fill();
+    }
+  }
+
+  // The specular. Small, tight, and toward the Sun — this is the "shine".
+  const hotX = x + Math.cos(towards) * radius * 0.46;
+  const hotY = y + Math.sin(towards) * radius * 0.46;
+  const gloss = context.createRadialGradient(hotX, hotY, 0, hotX, hotY, radius * 0.55);
+  gloss.addColorStop(0, `rgba(255, 255, 255, ${0.5 * dim})`);
+  gloss.addColorStop(0.4, `rgba(255, 255, 255, ${0.12 * dim})`);
+  gloss.addColorStop(1, "rgba(255, 255, 255, 0)");
+  context.globalAlpha = 1;
+  context.globalCompositeOperation = "source-atop";
+  context.beginPath();
+  context.fillStyle = gloss;
+  context.arc(hotX, hotY, radius * 0.55, 0, Math.PI * 2);
+  context.fill();
+
+  context.restore();
+
+  // The rim, drawn OUTSIDE the clip so it sits on the silhouette itself.
+  context.save();
+  context.beginPath();
+  context.strokeStyle = `rgba(255, 255, 255, ${0.3 * dim})`;
+  context.lineWidth = Math.max(0.6, radius * 0.09);
+  context.arc(x, y, radius * 0.97, towards - 1.15, towards + 1.15);
+  context.stroke();
+  context.restore();
+}
+
 function hex(value: number): string {
   return `#${value.toString(16).padStart(6, "0")}`;
 }
@@ -413,13 +570,64 @@ export function paintControlSystem(
     centreY,
     sunRadius,
   );
-  body.addColorStop(0, "#fff6d8");
-  body.addColorStop(0.5, "#ffca5e");
-  body.addColorStop(1, "#f08a1c");
+  body.addColorStop(0, "#fffdf2");
+  body.addColorStop(0.35, "#fff0bb");
+  body.addColorStop(0.72, "#ffca5e");
+  body.addColorStop(1, "#e8760f");
   context.beginPath();
   context.fillStyle = body;
   context.arc(centreX, centreY, sunRadius, 0, Math.PI * 2);
   context.fill();
+
+  /*
+   * THE PHOTOSPHERE, AND A HOT WHITE CORE.
+   *
+   * A single gradient renders the Sun as an orange ball — correct, and flat.
+   * Real stars are blown out at the centre and granular at the edge, so two
+   * cheap passes are added: a small additive white core that reads as "too
+   * bright to look at", and mottling near the limb so the surface has grain
+   * rather than being a smooth ramp. Both are clipped to the disc, and both
+   * are behind `rich` because at minimal quality the Sun is a few pixels wide.
+   */
+  if (rich) {
+    context.save();
+    context.beginPath();
+    context.arc(centreX, centreY, sunRadius, 0, Math.PI * 2);
+    context.clip();
+    context.globalCompositeOperation = "lighter";
+
+    const grain = seeded("sol");
+    for (let i = 0; i < 7; i += 1) {
+      const angle = grain() * Math.PI * 2;
+      const distance = sunRadius * (0.35 + grain() * 0.6);
+      const size = sunRadius * (0.18 + grain() * 0.3);
+      const gx = centreX + Math.cos(angle) * distance;
+      const gy = centreY + Math.sin(angle) * distance;
+      const cell = context.createRadialGradient(gx, gy, 0, gx, gy, size);
+      cell.addColorStop(0, `rgba(255, 214, 130, ${0.16 * dim})`);
+      cell.addColorStop(1, "rgba(255, 214, 130, 0)");
+      context.beginPath();
+      context.fillStyle = cell;
+      context.arc(gx, gy, size, 0, Math.PI * 2);
+      context.fill();
+    }
+
+    const core = context.createRadialGradient(
+      centreX - sunRadius * 0.18,
+      centreY - sunRadius * 0.18,
+      0,
+      centreX - sunRadius * 0.18,
+      centreY - sunRadius * 0.18,
+      sunRadius * 0.7,
+    );
+    core.addColorStop(0, `rgba(255, 255, 255, ${(0.7 + motion.sunPulse * 0.25) * dim})`);
+    core.addColorStop(1, "rgba(255, 255, 255, 0)");
+    context.beginPath();
+    context.fillStyle = core;
+    context.arc(centreX, centreY, sunRadius, 0, Math.PI * 2);
+    context.fill();
+    context.restore();
+  }
 
   /* ------------------------------------------------------------- planets -- */
   for (const planet of planets) {
@@ -450,13 +658,28 @@ export function paintControlSystem(
       y,
       radius,
     );
-    sphere.addColorStop(0, planet.colour);
-    sphere.addColorStop(0.62, planet.colour);
-    sphere.addColorStop(1, "rgba(0, 0, 0, 0.72)");
+    // Brighter where the light lands and darker at the terminator than a flat
+    // two-stop ramp: the extra stop is what turns a soft disc into a body with
+    // a lit side and a shadowed one.
+    sphere.addColorStop(0, shade(planet.colour, 0.34));
+    sphere.addColorStop(0.45, planet.colour);
+    sphere.addColorStop(0.8, shade(planet.colour, -0.35));
+    sphere.addColorStop(1, "rgba(0, 0, 0, 0.82)");
     context.beginPath();
     context.fillStyle = sphere;
     context.arc(x, y, radius, 0, Math.PI * 2);
     context.fill();
+
+    /*
+     * Texture, shine and rim — the three cues that separate a sphere from a
+     * circle. Behind `rich` and a size floor: on a four-pixel Mercury the
+     * bands are smaller than a pixel, so they cost fill rate and return
+     * nothing, and the quality tiers exist precisely so the scene can get out
+     * of the way of the work.
+     */
+    if (rich && radius >= 5) {
+      paintSurface(context, planet, x, y, radius, towards, dim);
+    }
 
     // Saturn without its ring is not Saturn.
     if (planet.id === "saturn") {
