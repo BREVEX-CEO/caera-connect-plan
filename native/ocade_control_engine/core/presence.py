@@ -84,14 +84,78 @@ def greeting(now: datetime | None = None) -> str:
 #: a support burden nobody asked for. See ASSISTANT_NAME in core/memory.py.
 INTRODUCTION = "Hi, I am OCade, your control agent and work agent."
 
+#: The two introductions, VERBATIM.
+#:
+#: These are quoted exactly as the owner wrote them -- spacing, the space before
+#: the comma and question mark, the capitalisation of HAANS. They read as
+#: deliberate rather than as typos, and an introduction is a brand decision
+#: rather than a sentence to be tidied. Anything that "improves" them here is
+#: changing the product without being asked.
+FORMAL_INTRODUCTION = "hello i am ocade created by the CEO HAANS"
+FRIENDLY_INTRODUCTION = "hello i am ocade , can i be your new little friend ?"
 
-def opening(now: datetime | None = None) -> str:
+#: What a person says when they want the formal one. Everything else that asks
+#: for an introduction gets the friendly one, because that is the softer failure
+#: -- a warm greeting where a stiff one was wanted is a smaller error than the
+#: reverse.
+_FORMAL_CUES = (
+    "formal",
+    "formally",
+    "professional",
+    "professionally",
+    "official",
+    "officially",
+    "business",
+    "serious",
+    "properly",
+)
+
+_FRIENDLY_CUES = (
+    "friendly",
+    "casual",
+    "casually",
+    "warm",
+    "fun",
+    "playful",
+    "cute",
+    "informal",
+    "nicely",
+)
+
+
+def introduction(tone: str = "") -> dict[str, str]:
+    """Which introduction, and why -- so a surprising choice can be explained.
+
+    `tone` is the user's own words, not a parsed enum. The caller passes the
+    sentence and the decision is made here, in one place, rather than by every
+    surface guessing at it separately.
+    """
+    said = " ".join((tone or "").split()).lower()
+
+    if any(cue in said for cue in _FORMAL_CUES):
+        return {"tone": "formal", "text": FORMAL_INTRODUCTION, "why": "asked for formally"}
+    if any(cue in said for cue in _FRIENDLY_CUES):
+        return {"tone": "friendly", "text": FRIENDLY_INTRODUCTION, "why": "asked for warmly"}
+    return {
+        "tone": "friendly",
+        "text": FRIENDLY_INTRODUCTION,
+        "why": "no tone was named, so the warmer one",
+    }
+
+
+def opening(now: datetime | None = None, tone: str = "") -> str:
     """The first thing said in a session: who OCADE is, then the greeting.
 
     Said ONCE, at the start. Repeating an introduction every turn is how a
-    product stops sounding like an assistant and starts sounding like a
-    hold message.
+    product stops sounding like an assistant and starts sounding like a hold
+    message.
+
+    With no `tone` this keeps the original line, because the session opener and
+    "introduce yourself" are different moments: one is OCADE starting up, the
+    other is somebody asking it to say who it is.
     """
+    if tone:
+        return f"{introduction(tone)['text']} {greeting(now)}"
     return f"{INTRODUCTION} {greeting(now)}"
 
 

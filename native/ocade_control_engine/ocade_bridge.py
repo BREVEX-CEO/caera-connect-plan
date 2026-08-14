@@ -3202,6 +3202,7 @@ def message_to(payload: dict) -> dict:
     """
     from core.messaging import (  # noqa: PLC0415
         MessageRefused,
+        commit_typed,
         find_contact,
         resolve_target,
     )
@@ -3243,19 +3244,56 @@ def message_to(payload: dict) -> dict:
     typed = _type_into_conversation(hwnd, body)
     steps.append({"step": "type", "characters": len(body), "verified": typed.get("verified")})
 
+    # THE SEND, AND ONLY WHEN THE SENTENCE ASKED FOR ONE.
+    #
+    # "type hi to Meta AI" and "send hi to Meta AI" are different instructions
+    # and OCADE now honours the difference rather than always stopping short.
+    # A message reaching another person cannot be recalled, so the trigger is
+    # the user's own verb -- never a default, and never a guess.
+    #
+    # It is refused outright when the text could not be confirmed in the
+    # composer. Enter is a keystroke: it goes wherever the keyboard is pointing,
+    # and pressing it on an unverified write means committing something nobody
+    # has read.
+    wants_send = payload.get("send") is True
+    sent_ok = False
+    if wants_send:
+        if not typed.get("verified"):
+            steps.append({"step": "send", "skipped": "the text was not confirmed in the composer"})
+        else:
+            try:
+                committed = commit_typed(hwnd, body)
+                sent_ok = bool(committed.get("sent"))
+                steps.append(
+                    {
+                        "step": "send",
+                        "verified": sent_ok,
+                        "inConversation": committed.get("conversationMatch"),
+                    }
+                )
+            except MessageRefused as error:
+                steps.append({"step": "send", "refused": str(error)})
+
     return {
         "contact": split["contact"],
         "message": body,
         "typed": True,
-        "sent": False,
+        "sent": sent_ok,
         "steps": steps,
-        "verified": bool(typed.get("verified")),
+        "verified": bool(typed.get("verified")) and (sent_ok if wants_send else True),
         "detail": (
-            f"Opened {split['contact']} and typed {len(body)} characters. Nothing was sent."
-            if typed.get("verified")
+            (
+                f"Sent to {split['contact']}: “{body[:60]}”."
+                if sent_ok
+                else f"Typed into {split['contact']} but the message did not appear in the "
+                "conversation, so it is reported as unverified rather than sent."
+            )
+            if wants_send
             else (
-                f"Opened {split['contact']}, but the text could not be confirmed in the "
-                f"message box. Reported as unverified rather than done."
+                f"Opened {split['contact']} and typed {len(body)} characters. Nothing was sent."
+                if typed.get("verified")
+                else f"Opened {split['contact']}, but the text could not be confirmed in the "
+                "message box. Reported as unverified rather than done."
             )
         ),
     }
@@ -3290,7 +3328,34 @@ def _type_into_conversation(hwnd: int, body: str) -> dict:
                 return value
         return ""
 
-    landed = _normalise(body)[:60] in _normalise(current())
+    def holds() -> bool:
+        return _normalise(body)[:60] in _normalise(current())
+
+    def settle(seconds: float = 1.2) -> bool:
+        """Poll until the control reflects the write, or the time runs out.
+
+        MEASURED LIVE, AND IT COST A SEND. The read-back ran immediately after
+        `set_text` and returned empty, so a write that had plainly worked -- the
+        composer was holding the exact text a moment later -- was reported as
+        failed, and the send that depended on it was correctly skipped. The
+        result was a product that typed the message and then refused to send it,
+        for no reason the user could see.
+
+        A Chromium composer is a contenteditable behind a framework: the value
+        arrives, React re-renders, and only then does the accessibility layer
+        report it. That is fast but not instant, and it is not a fixed duration
+        either -- so this polls rather than sleeping a guessed amount, and gives
+        up quickly enough that a genuinely failed write still falls through to
+        the keystroke path below.
+        """
+        deadline = time.monotonic() + seconds
+        while time.monotonic() < deadline:
+            if holds():
+                return True
+            time.sleep(0.1)
+        return holds()
+
+    landed = settle()
     if not landed:
         # A Chromium composer accepts a value write and renders nothing, so the
         # keystroke path is the fallback -- the same ladder the WhatsApp skill
@@ -3300,12 +3365,31 @@ def _type_into_conversation(hwnd: int, body: str) -> dict:
             element.set_focus()
             time.sleep(0.2)
             element.type_keys(body, with_spaces=True, with_newlines=False, pause=0.005)
-            time.sleep(0.4)
-            landed = _normalise(body)[:60] in _normalise(current())
+            landed = settle()
         except Exception:  # noqa: BLE001, S110
             pass
 
     return {"verified": landed, "readback": current()[:200]}
+
+
+def presence_introduce(payload: dict) -> dict:
+    """Say who OCADE is, in the tone the sentence asked for.
+
+    The user's own words are passed straight through; `core.presence` makes the
+    decision in one place so no surface has to guess separately. Both lines are
+    fixed strings and are returned verbatim -- an introduction is a brand
+    decision, not a sentence to be improved.
+    """
+    from core import presence  # noqa: PLC0415
+
+    chosen = presence.introduction(str(payload.get("tone") or ""))
+    return {
+        "text": chosen["text"],
+        "tone": chosen["tone"],
+        "why": chosen["why"],
+        "verified": True,
+        "detail": chosen["text"],
+    }
 
 
 def folder_empty(payload: dict) -> dict:
@@ -3597,6 +3681,7 @@ HANDLERS: dict[str, Callable[[dict], dict]] = {
     "message.draft": message_draft,
     "message.findcontact": message_find_contact,
     "message.resolve": message_resolve_target,
+    "presence.introduce": presence_introduce,
     "folder.empty": folder_empty,
     "screen.map": screen_map,
     "screen.do": screen_do,

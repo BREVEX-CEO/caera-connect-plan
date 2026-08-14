@@ -514,6 +514,116 @@ def resolve_target(hwnd: int, phrase: str) -> dict[str, Any]:
     )
 
 
+def commit_typed(hwnd: int, body: str) -> dict[str, Any]:
+    """Press Enter on a message already sitting in the composer, then look.
+
+    THE ORDER IS THE SAFETY PROPERTY, AND IT IS NOT NEGOTIABLE.
+    -----------------------------------------------------------
+    Text is confirmed in the composer BEFORE Enter, and confirmed in the
+    TRANSCRIPT after. Enter is a keystroke: it goes wherever the keyboard is
+    pointing, and if the text never landed then the keystroke lands in whatever
+    control did have focus. Pressing first and checking after would mean the one
+    irreversible action in this product runs on an assumption.
+
+    WHY THE TRANSCRIPT AND NOT THE COMPOSER EMPTYING.
+    A composer empties when a message sends -- and also when the app clears it
+    on a FAILED send, when the conversation is switched, when a draft is
+    discarded, and when Escape is pressed. Every one of those would report a
+    successful send. The transcript is where a person would look to decide
+    whether the message went, so it is where OCADE looks.
+
+    UNIVERSAL BY CONSTRUCTION. Enter commits the composer in WhatsApp, Telegram,
+    Slack, Discord and Teams alike; none of them needs a send button clicked,
+    and none of this asks which application it is talking to. The composer is
+    found by shape (`_find_message_box`) and the transcript by content
+    (`_find_in_conversation`).
+    """
+    from core.uia import act  # noqa: PLC0415
+
+    body = (body or "").strip()
+    if not body:
+        raise MessageRefused("There is nothing to send.")
+
+    _tree, box = _find_message_box(hwnd)
+
+    # 1. Is the text actually there? Read the control, do not assume.
+    holding = ""
+    try:
+        from core.uia import _resolve  # noqa: PLC0415
+
+        element = _resolve(hwnd, box["ref"], None, 200)["_element"]
+        for reader in (
+            lambda: element.get_value(),
+            lambda: element.iface_text.DocumentRange.GetText(-1),
+        ):
+            try:
+                value = reader()
+            except Exception:  # noqa: BLE001, S112
+                continue
+            if isinstance(value, str):
+                holding = value
+                break
+    except Exception:  # noqa: BLE001, S110
+        pass
+
+    if _normalise(body)[:_MATCH_PREFIX] not in _normalise(holding):
+        raise MessageRefused(
+            "The message is not in the composer, so Enter was NOT pressed. "
+            "A keystroke goes wherever the keyboard is pointing, and that is "
+            "not somewhere to guess."
+        )
+
+    # 2. Commit -- THROUGH THE CONTROL, NOT THE GLOBAL KEYBOARD.
+    #
+    # MEASURED LIVE, AND THE MESSAGE DID NOT SEND. The text was written with a
+    # ValuePattern set, which puts characters in the control WITHOUT giving it
+    # keyboard focus. A global `pyautogui.press("enter")` then goes to whatever
+    # does have focus -- which was not the composer -- so the keystroke landed
+    # somewhere harmless and the receipt would have claimed a send.
+    #
+    # Focusing first and typing into the resolved element means Enter reaches
+    # that control or nowhere. The same lesson as typing itself: the window
+    # being in front is not the same as the box having the keyboard.
+    from core.uia import _resolve  # noqa: PLC0415
+
+    committed_by = "control_enter"
+    try:
+        element = _resolve(hwnd, box["ref"], None, 200)["_element"]
+        element.set_focus()
+        time.sleep(0.15)
+        element.type_keys("{ENTER}")
+    except Exception:  # noqa: BLE001
+        # A control that cannot be resolved or focused is not a reason to give
+        # up: the window is in front and the text is confirmed in it, so the
+        # global keystroke is a worse but real fallback.
+        import pyautogui  # noqa: PLC0415
+
+        pyautogui.press("enter")
+        committed_by = "global_enter"
+
+    # 3. Did it arrive? Retried, because a transcript renders asynchronously:
+    #    the message goes to the server, comes back, and only then appears.
+    landed = _find_in_conversation(hwnd, body)
+
+    return {
+        "sent": bool(landed["found"]),
+        "committedBy": committed_by,
+        "message": body,
+        "conversationMatch": landed.get("matchedText"),
+        "searchedElements": landed.get("searched"),
+        "verified": bool(landed["found"]),
+        "detail": (
+            f"Sent. The message is in the conversation: “{(landed.get('matchedText') or '')[:80]}”."
+            if landed["found"]
+            else (
+                "Enter was pressed but the message has not appeared in the conversation. "
+                "Reported as unverified rather than sent — check the window before "
+                "sending it again."
+            )
+        ),
+    }
+
+
 def _open_row(hwnd: int, row: dict[str, Any], expect: str = "") -> dict[str, Any]:
     """Open a conversation row. A GENERIC CLICK IS NOT ENOUGH, MEASURED TWICE.
 

@@ -401,6 +401,12 @@ export class OcadeAdapters {
         return this.browserKey(a);
       case "browser_media":
         return this.browserMedia(a);
+      case "introduce":
+        return this.simple(
+          "presence.introduce",
+          { tone: typeof a.tone === "string" ? a.tone : "" },
+          "OCADE could not introduce itself.",
+        );
       case "folder_empty":
         return this.simple(
           "folder.empty",
@@ -1589,6 +1595,8 @@ export class OcadeAdapters {
       "message.to",
       {
         phrase: text(args.phrase, "phrase"),
+        // Explicit only. An absent flag means TYPE, never send.
+        send: args.send === "yes" || args.send === true,
         windowTitle: typeof args.windowTitle === "string" ? args.windowTitle : undefined,
       },
       60_000,

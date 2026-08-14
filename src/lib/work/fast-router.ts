@@ -529,6 +529,24 @@ export function looksLikeWriting(brief: string): boolean {
   return words.some((word) => CONTENT_WORDS.some((known) => nearlyEqual(word, known)));
 }
 
+/**
+ * Did the user actually ask for this to be SENT?
+ *
+ * "type hi to Meta AI" and "send hi to Meta AI" are different instructions, and
+ * the difference is the whole safety boundary here: a message reaching another
+ * person cannot be recalled. So the trigger is their own verb, never a default
+ * and never an inference from context.
+ *
+ * `type`, `write` and `draft` are deliberately absent. Somebody who used one of
+ * those asked for the words to be put in the box, and putting them there is the
+ * entire request.
+ */
+const SEND_VERB = /\b(?:send|sent|deliver|shoot|fire off|dispatch)\b/i;
+
+export function asksToSend(request: string): boolean {
+  return SEND_VERB.test(request);
+}
+
 /** Strip the polite scaffolding people put round an instruction. */
 function core(request: string): string {
   return request
@@ -1087,12 +1105,19 @@ export function routeDirect(request: string): DirectRoute | null {
      * One call, because the router has no way to fill in a second one.
      */
     if (who && !clause.literal && !clause.brief && looksLikeNameAndMessage(who)) {
+      const sending = asksToSend(text);
       return {
         calls: [
           { name: "whatsapp_open", arguments: {} },
-          { name: "message_to", arguments: { phrase: who } },
+          {
+            name: "message_to",
+            // Their verb decides. `message_to` types and stops without it.
+            arguments: { phrase: who, ...(sending ? { send: "yes" } : {}) },
+          },
         ],
-        say: `Opening WhatsApp and working out who you meant by “${who}”.`,
+        say: sending
+          ? `Opening WhatsApp, working out who you meant by “${who}”, and sending it.`
+          : `Opening WhatsApp and working out who you meant by “${who}”.`,
         rule: "message.to.screen",
       };
     }
@@ -1110,7 +1135,13 @@ export function routeDirect(request: string): DirectRoute | null {
            * and the person can see it before anything goes out.
            */
           ...(clause.literal
-            ? [{ name: "whatsapp_type", arguments: { message: clause.literal } }]
+            ? [
+                { name: "whatsapp_type", arguments: { message: clause.literal } },
+                // Same rule as everywhere else: only their own verb sends it.
+                ...(asksToSend(text)
+                  ? [{ name: "whatsapp_send", arguments: { message: clause.literal } }]
+                  : []),
+              ]
             : []),
         ],
         say: clause.literal
@@ -1436,6 +1467,28 @@ export function routeDirect(request: string): DirectRoute | null {
    * searched Bing for it — the machine answering a question about itself by
    * asking the internet.
    */
+  /* ---------------------------------------------------------- introduce --
+   *
+   * "Introduce yourself" has exactly two answers and neither of them needs a
+   * language model to compose. Sending it to one would risk a paraphrase, and
+   * the whole point of a fixed introduction is that it comes out the same way
+   * every time.
+   *
+   * The user's WHOLE sentence goes through as `tone`, because the tone lives
+   * in words this rule should not try to enumerate -- `core/presence.py`
+   * decides, in one place, and can be corrected in one place.
+   */
+  if (
+    /\b(?:introduce|introduction)\b/i.test(lower) ||
+    /^(?:who are you|what are you|tell me about yourself|say hi|say hello)\b/i.test(lower)
+  ) {
+    return {
+      calls: [{ name: "introduce", arguments: { tone: text } }],
+      say: "Introducing myself.",
+      rule: "identity.introduce",
+    };
+  }
+
   /* ------------------------------------------------------- clear a folder --
    *
    * "delete all the present files inside mummy folder" went to the model,

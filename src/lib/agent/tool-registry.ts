@@ -318,12 +318,20 @@ const OS_APP: ToolDefinition[] = [
           type: "string",
           description: "The recipient and message together, exactly as the user said it.",
         },
+        send: {
+          type: "string",
+          description:
+            "'yes' actually sends it. Only set this when the user said send — a sent message cannot be recalled. Without it the message is typed and left for them to read.",
+          enum: ["yes", "no"],
+        },
         windowTitle: { type: "string", description: "Optional. Defaults to the focused window." },
       },
       ["phrase"],
     ),
     mutating: true,
-    risk: "medium",
+    // High when it can send: this is the one action here that reaches another
+    // person and cannot be undone.
+    risk: "high",
   },
   {
     name: "document_read",
@@ -1634,6 +1642,24 @@ const WEB: ToolDefinition[] = [
     ),
     mutating: true,
     risk: "low",
+  },
+  {
+    name: "introduce",
+    domain: "conversation",
+    description:
+      "Say who OCADE is. There are two fixed introductions — a formal one and a friendly one — and the user's own wording picks between them. Pass their sentence as the tone. Use this whenever they ask OCADE to introduce itself.",
+    parameters: object(
+      {
+        tone: {
+          type: "string",
+          description:
+            "What the user actually said, e.g. 'introduce yourself formally'. Their words decide which introduction is used.",
+        },
+      },
+      [],
+    ),
+    mutating: false,
+    risk: "read",
   },
   {
     name: "folder_empty",
