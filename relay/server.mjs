@@ -139,7 +139,55 @@ function readBody(req, limit) {
   });
 }
 
+/**
+ * Per-ADDRESS request budget, alongside the per-ROOM one above.
+ *
+ * They defend different things and neither replaces the other. `withinRate`
+ * caps traffic to a room that is already known, which stops a paired peer
+ * flooding its partner. This caps a single caller across ALL rooms, which is
+ * what stands between an attacker and guessing room ids: without it, being
+ * unable to join a room is only a matter of trying often enough.
+ *
+ * The relay already caps a room at two members, so a third party cannot join a
+ * pairing. It said nothing about how FAST somebody could try: room ids are the
+ * only thing standing between an attacker and a conversation, and an unbounded
+ * request rate turns guessing them from impossible into merely slow.
+ *
+ * A fixed window rather than a token bucket, deliberately. This process holds
+ * no database and restarts freely; the simplest structure that cannot leak
+ * memory is a map that is emptied wholesale once a window closes.
+ *
+ * `/health` is counted too. An endpoint that is cheap to serve is still cheap
+ * to flood, and excluding it leaves an unmetered door in a metered wall.
+ */
+const ADDRESS_WINDOW_MS = 10_000;
+const ADDRESS_MAX_REQUESTS = 120;
+let addressWindowStartedAt = Date.now();
+const addressCounts = new Map();
+
+function withinAddressRate(address) {
+  const now = Date.now();
+  if (now - addressWindowStartedAt > ADDRESS_WINDOW_MS) {
+    addressCounts.clear();
+    addressWindowStartedAt = now;
+  }
+  const used = (addressCounts.get(address) ?? 0) + 1;
+  addressCounts.set(address, used);
+  return used <= ADDRESS_MAX_REQUESTS;
+}
+
 const server = createServer(async (req, res) => {
+  /*
+   * The peer address, NOT a forwarded header. `x-forwarded-for` is written by
+   * the client and can say anything, so metering on it means metering on a
+   * value the attacker chooses.
+   */
+  const caller = req.socket?.remoteAddress ?? "unknown";
+  if (!withinAddressRate(caller)) {
+    res.setHeader("retry-after", String(Math.ceil(ADDRESS_WINDOW_MS / 1000)));
+    return send(res, 429, { error: "too_many_requests" });
+  }
+
   const url = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
   const parts = url.pathname.split("/").filter(Boolean);
 

@@ -220,6 +220,20 @@ export const ENGINE_RESOURCE_DEFAULTS: Record<string, string> = {
  * `OLLAMA_HOST` is NOT part of this: the bind address is a safety control, not
  * a preference, and it is forced unconditionally at the call site.
  */
+/**
+ * The only origins the local engine will answer.
+ *
+ * `tauri://localhost` is the packaged desktop shell. The two loopback origins
+ * are the app in a browser during development and when the desktop window
+ * loads the local server. Nothing else belongs here -- adding a public origin
+ * would let that site run inference on the user's hardware.
+ */
+export const ENGINE_ALLOWED_ORIGINS = [
+  "tauri://localhost",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+] as const;
+
 export function engineResourceEnv(
   ambient: Record<string, string | undefined> = {},
 ): Record<string, string> {
@@ -329,6 +343,28 @@ export async function startRuntime(
       // the whole point of the control: an inherited OLLAMA_HOST=0.0.0.0 must
       // not be able to publish the engine.
       OLLAMA_HOST: decision.normalised,
+
+      /*
+       * ORIGIN LOCK. Forced, like the bind address, and for the same reason.
+       *
+       * Binding to loopback stops a MACHINE on the network reaching the engine.
+       * It does nothing about a BROWSER on this machine: any page the user has
+       * open can `fetch("http://localhost:11434/api/chat")`, and without an
+       * origin allow-list Ollama answers it. That is a website on the far side
+       * of the internet using the user's own hardware, reading nothing but
+       * costing everything, and it is invisible to them.
+       *
+       * The allow-list names only the surfaces OCADE itself is served from --
+       * the Tauri shell and the local dev origin. Anything else is refused by
+       * the engine before a request body is even read.
+       *
+       * Not merged with `engineResourceEnv`: that function deliberately yields
+       * to a value the user has already chosen, which is right for a memory
+       * ceiling and wrong for a security control. A user who has set
+       * OLLAMA_ORIGINS=* on their own machine has almost certainly done it to
+       * make something work, not to decide that any website may use their GPU.
+       */
+      OLLAMA_ORIGINS: ENGINE_ALLOWED_ORIGINS.join(","),
     });
   } catch (error) {
     return fail("start_failed", `Could not launch the local engine: ${String(error)}`);

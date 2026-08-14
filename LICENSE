@@ -1,82 +1,186 @@
-OCADE — PROPRIETARY SOFTWARE LICENCE
+OCADE — PROPRIETARY COMMERCIAL SOFTWARE LICENCE
 
-Copyright (c) 2026 HAANS ANTONI, trading as CAERA CADANE.
-All rights reserved.
+Copyright (c) 2026 CAERA CADANE. All rights reserved.
 
-OCADE and the OCADE name, logo and interface are the exclusive property of
-HAANS ANTONI / CAERA CADANE.
+Company:            CAERA CADANE
+Established:        28 August 2026
+CEO and Founder:    Haans Antoni
+Product:            OCADE — Universal PC Control and Autonomous Work Agent
 
-1. GRANT
+THIS IS NOT OPEN-SOURCE SOFTWARE. It is licensed, not sold. No rights are
+granted except those written below.
 
-   Subject to payment of any applicable fee and to the terms below, you are
-   granted a personal, non-exclusive, non-transferable, revocable licence to
-   install and use one copy of OCADE on hardware you own or control, for your
-   own purposes.
+--------------------------------------------------------------------------------
+1. DEFINITIONS
+--------------------------------------------------------------------------------
 
-2. RESTRICTIONS
+"Software"  means the OCADE application, its installers, its desktop and mobile
+            clients, its control engine, its source code and object code, its
+            configuration, and its documentation.
 
-   You may not:
+"Models"    means any artificial-intelligence model weights, adapters,
+            quantisations or prompt assets distributed with, downloaded by, or
+            configured for use by the Software.
 
-   (a) copy, distribute, sublicense, rent, lease, lend or sell the software, in
-       whole or in part;
-   (b) modify, adapt, translate or create derivative works from it;
-   (c) reverse engineer, decompile or disassemble it, except to the extent that
-       applicable law expressly permits despite this restriction;
-   (d) remove, obscure or alter any copyright, trade mark or other proprietary
-       notice;
-   (e) use it to provide a service to third parties, whether or not for a fee.
+"You"       means the individual or entity exercising the rights in this licence.
 
-3. THIRD-PARTY COMPONENTS
+--------------------------------------------------------------------------------
+2. GRANT OF LICENCE
+--------------------------------------------------------------------------------
 
-   OCADE incorporates third-party components distributed under their own
-   licences. Those components remain governed by their respective terms, which
-   take precedence over this licence in respect of those components. A complete
-   list is published in release/THIRD_PARTY_NOTICES.md and is reproduced in the
-   installed application.
+Subject to payment of any applicable fee and to continuous compliance with this
+licence, CAERA CADANE grants You a personal, non-exclusive, non-transferable,
+non-sublicensable, revocable licence to install and use one copy of the Software
+on hardware You own or control, for Your own internal purposes.
 
-4. LOCAL AI MODEL
+This licence is bound to the device on which the Software is activated. Moving
+it to different hardware may require re-activation.
 
-   OCADE downloads and runs an AI language model on your own device. That model
-   is supplied by its own publisher under its own licence, is not part of this
-   software, and is not licensed to you by CAERA CADANE. Model outputs are
-   generated automatically and are not warranted to be accurate.
+--------------------------------------------------------------------------------
+3. PROHIBITED CONDUCT
+--------------------------------------------------------------------------------
 
-5. DATA
+You may NOT, and may not permit any third party to:
 
-   OCADE is designed to run locally. Conversations, memory and files processed
-   by the software remain on your device unless you explicitly direct OCADE to
-   send them elsewhere. CAERA CADANE does not collect them.
+  (a) REVERSE ENGINEER, decompile, disassemble, deobfuscate, decrypt, or
+      otherwise attempt to derive the source code, algorithms, architecture,
+      file formats, protocols or ideas embodied in the Software or the Models,
+      by any means and for any purpose;
 
-6. NO WARRANTY
+  (b) TAMPER with the Software, including modifying, patching, hooking,
+      instrumenting or hot-loading its code or memory; disabling, bypassing or
+      interfering with any licence check, integrity check, hardware binding,
+      checksum, signature verification or security control; or removing,
+      obscuring or altering any copyright, trade mark or proprietary notice;
 
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+  (c) SUB-LICENSE, sell, resell, rent, lease, lend, distribute, publish, host,
+      transfer, assign, or otherwise make the Software or the Models available
+      to any third party, whether or not for a fee, and whether or not modified;
 
-   OCADE CAN CONTROL THIS COMPUTER. It opens applications, types text, moves
-   the pointer, reads the screen and can send messages on your behalf. You are
-   responsible for supervising what it does and for the consequences of actions
-   you instruct it to take.
+  (d) COPY the Software or the Models except for one backup copy retained solely
+      for archival purposes;
 
-7. LIMITATION OF LIABILITY
+  (e) create DERIVATIVE WORKS of the Software or the Models, or incorporate any
+      part of them into another product or service;
 
-   TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL THE AUTHORS OR
-   COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-   IN CONNECTION WITH THE SOFTWARE OR ITS USE.
+  (f) use the Software or the Models to develop, train, fine-tune, distil,
+      evaluate against, or otherwise assist in creating a competing product;
 
-   Nothing in this licence excludes or limits liability that cannot lawfully be
-   excluded or limited, including liability for death or personal injury caused
-   by negligence, or for fraud.
+  (g) operate the Software as a SERVICE BUREAU, managed service, hosted offering
+      or on behalf of any third party;
 
-8. TERMINATION
+  (h) circumvent or attempt to circumvent any usage limit, trial period, seat
+      count or entitlement;
 
-   This licence terminates automatically if you breach it. On termination you
-   must stop using the software and remove all copies.
+  (i) use the Software for any unlawful purpose, or to gain unauthorised access
+      to any system, account, network or data.
 
-9. GOVERNING LAW
+Section 3(a) applies to the maximum extent permitted by law. Where mandatory
+local law grants You a non-excludable right to decompile for interoperability,
+that right is unaffected, and You must first request the necessary information
+from CAERA CADANE in writing.
 
-   This licence is governed by the laws of India, and the courts of Chennai,
-   Tamil Nadu shall have exclusive jurisdiction.
+--------------------------------------------------------------------------------
+4. AI MODELS
+--------------------------------------------------------------------------------
 
-Contact: CAERA CADANE
+The Software downloads and runs Models on Your device. Models are supplied by
+their own publishers under their own terms, are not owned by CAERA CADANE, and
+are not licensed to You by CAERA CADANE except as necessary to run the Software.
+Your use of a Model is also governed by that Model's own licence.
+
+Model output is generated automatically, is not reviewed by CAERA CADANE, and is
+not warranted to be accurate, complete, lawful or fit for any purpose. You are
+responsible for verifying output before relying on it.
+
+--------------------------------------------------------------------------------
+5. OWNERSHIP
+--------------------------------------------------------------------------------
+
+The Software is protected by copyright and other intellectual-property laws and
+by international treaty. CAERA CADANE and its licensors retain all right, title
+and interest in and to the Software, including all intellectual-property rights.
+Nothing in this licence transfers ownership of anything.
+
+--------------------------------------------------------------------------------
+6. THIRD-PARTY COMPONENTS
+--------------------------------------------------------------------------------
+
+The Software incorporates third-party components distributed under their own
+licences. Those components remain governed by their respective terms, which
+prevail over this licence in respect of those components. A complete list is
+published in release/THIRD_PARTY_NOTICES.md and is reproduced in the installed
+application.
+
+--------------------------------------------------------------------------------
+7. WHAT THE SOFTWARE DOES ON YOUR COMPUTER
+--------------------------------------------------------------------------------
+
+OCADE CONTROLS THIS COMPUTER. It opens applications, moves the pointer, types
+text, reads the screen, reads and moves files, and can send messages on Your
+behalf. You are responsible for supervising it and for the consequences of any
+action You instruct it to take.
+
+The Software is designed to run locally. Conversations, memory and files it
+processes remain on Your device unless You explicitly direct otherwise.
+
+--------------------------------------------------------------------------------
+8. NO WARRANTY
+--------------------------------------------------------------------------------
+
+THE SOFTWARE AND THE MODELS ARE PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT
+WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
+IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE
+AND NON-INFRINGEMENT. CAERA CADANE DOES NOT WARRANT THAT THE SOFTWARE WILL BE
+UNINTERRUPTED, ERROR-FREE OR SECURE.
+
+--------------------------------------------------------------------------------
+9. LIMITATION OF LIABILITY
+--------------------------------------------------------------------------------
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, CAERA CADANE SHALL NOT BE LIABLE FOR ANY
+INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY OR PUNITIVE DAMAGES, NOR
+FOR ANY LOSS OF PROFITS, REVENUE, DATA, GOODWILL OR BUSINESS INTERRUPTION,
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY.
+
+CAERA CADANE'S TOTAL AGGREGATE LIABILITY UNDER THIS LICENCE SHALL NOT EXCEED THE
+AMOUNT YOU ACTUALLY PAID FOR THE SOFTWARE IN THE TWELVE MONTHS PRECEDING THE
+EVENT GIVING RISE TO THE CLAIM.
+
+Nothing in this licence excludes or limits liability that cannot lawfully be
+excluded or limited, including liability for death or personal injury caused by
+negligence, or for fraud or fraudulent misrepresentation.
+
+--------------------------------------------------------------------------------
+10. TERM AND TERMINATION
+--------------------------------------------------------------------------------
+
+This licence takes effect on first installation and continues until terminated.
+It terminates automatically and without notice if You breach any term. On
+termination You must immediately cease all use of the Software and permanently
+remove all copies, including the Models it downloaded.
+
+Sections 3, 5, 8, 9 and 11 survive termination.
+
+--------------------------------------------------------------------------------
+11. GOVERNING LAW
+--------------------------------------------------------------------------------
+
+This licence is governed by the laws of India, without regard to conflict-of-law
+rules. The courts of Chennai, Tamil Nadu shall have exclusive jurisdiction over
+any dispute arising out of or in connection with it.
+
+--------------------------------------------------------------------------------
+12. ENTIRE AGREEMENT
+--------------------------------------------------------------------------------
+
+This licence is the entire agreement between You and CAERA CADANE concerning the
+Software and supersedes all prior understandings. If any provision is held
+unenforceable, it shall be modified to the minimum extent necessary to make it
+enforceable, and the remaining provisions shall continue in full force.
+
+--------------------------------------------------------------------------------
+
+CAERA CADANE
+Established 28 August 2026
+CEO and Founder: Haans Antoni

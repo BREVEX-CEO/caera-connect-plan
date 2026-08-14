@@ -9,6 +9,32 @@
  * healthy session: it is always enabled and always reachable.
  */
 
+/*
+ * NO CONTEXT MENU, AND NO RELOAD SHORTCUTS, IN THE SHIPPED SHELL.
+ *
+ * A right click in a webview offers Inspect Element, View Source and Reload.
+ * None of those belong in a product surface: the first two hand a reader the
+ * running code, and the third can drop the overlay into a state the host is not
+ * expecting mid-run.
+ *
+ * This is a POLISH control rather than a security boundary, and it is worth
+ * being clear about which. Anyone determined can still attach a debugger to a
+ * local process; what stops that is the CSP, the IPC allow-list and code
+ * signing. What this stops is the accidental and the casual, which is most of
+ * it.
+ */
+if (typeof window !== "undefined") {
+  window.addEventListener("contextmenu", (event) => event.preventDefault());
+  window.addEventListener("keydown", (event) => {
+    const key = (event.key || "").toLowerCase();
+    const devtools =
+      key === "f12" ||
+      ((event.ctrlKey || event.metaKey) && event.shiftKey && ["i", "j", "c"].includes(key));
+    const reload = (event.ctrlKey || event.metaKey) && ["r", "u"].includes(key);
+    if (devtools || reload) event.preventDefault();
+  });
+}
+
 const el = (id) => document.getElementById(id);
 
 const tauri = () => (typeof window !== "undefined" ? window.__TAURI__ : null);

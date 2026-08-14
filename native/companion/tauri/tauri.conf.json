@@ -46,15 +46,22 @@
       "id": "caera-tray",
       "iconPath": "icons/tray.png",
       "iconAsTemplate": true,
-      "tooltip": "OCADE — CAERA Companion",
+      "tooltip": "OCADE \u2014 CAERA Companion",
       "menuOnLeftClick": false
     }
   },
   "bundle": {
     "active": true,
     "targets": "all",
-    "externalBin": ["binaries/ocade-browser-host"],
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "externalBin": [
+      "binaries/ocade-browser-host"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
     "copyright": "CAERA CADANE",
     "category": "Productivity",
     "shortDescription": "OCADE desktop companion",
