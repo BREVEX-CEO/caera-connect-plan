@@ -1121,7 +1121,22 @@ async function executeAction(request, signal) {
      */
     case "skip_ad": {
       output = await page.evaluate(() => {
-        const wanted = /^\s*(skip|skip ad|skip ads|skip advertisement|skip intro)\b/i;
+        /*
+         * "SKIP NAVIGATION" IS NOT AN ADVERT, AND IT IS ON EVERY YOUTUBE PAGE.
+         *
+         * Measured on a live run: this clicked "Skip navigation" -- the
+         * accessibility link every well-built site puts first in the tab order
+         * -- and reported that it had skipped an advert. It had jumped the
+         * user's focus past the header instead, and claimed success for it.
+         *
+         * Matching on the word "skip" alone cannot work, because the word
+         * belongs to accessibility long before it belongs to advertising. What
+         * separates them is the OBJECT: an ad button skips an *ad*, or says
+         * nothing else at all ("Skip", "Skip >"). A navigation link always
+         * names where it is going -- navigation, content, main, to the player.
+         */
+        const wanted =
+          /^\s*skip(?:\s+(?:this\s+)?(?:ad|ads|advert|advertisement|intro))?\s*[>»]?\s*$/i;
         const clickable = [
           ...document.querySelectorAll("button, a, [role=button], div[class*=skip]"),
         ];

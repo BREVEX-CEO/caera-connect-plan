@@ -31,7 +31,7 @@ describe("skipping an advert", () => {
    * constantly while "Skip" cannot without the page becoming unusable.
    */
   function findSkip(): HTMLElement | null {
-    const wanted = /^\s*(skip|skip ad|skip ads|skip advertisement|skip intro)\b/i;
+    const wanted = /^\s*skip(?:\s+(?:this\s+)?(?:ad|ads|advert|advertisement|intro))?\s*[>»]?\s*$/i;
     const clickable = [...document.querySelectorAll("button, a, [role=button], div[class*=skip]")];
     return (
       (clickable.find((element) => {
@@ -74,12 +74,38 @@ describe("skipping an advert", () => {
     expect(findSkip()).not.toBeNull();
   });
 
-  it("does not click Subscribe, or anything else that is not a skip", () => {
-    put("<button>Subscribe</button><button>Skip to content</button>");
-    // "Skip to content" is an accessibility link on nearly every site. It
-    // matches the word and must still be rejected... except it legitimately
-    // starts with "skip", so the guard is the ad context, not the word.
-    // What must NOT match is a button with no skip wording at all.
+  it("does not click an accessibility skip link", () => {
+    /*
+     * THE ONE THAT GOT THROUGH, FROM A LIVE YOUTUBE RUN.
+     *
+     * "Skip navigation" is the accessibility link every well-built site puts
+     * first in the tab order. The old pattern matched on the word "skip" and
+     * clicked it, moving the user's focus past the header while reporting that
+     * an advert had been skipped.
+     *
+     * The word belongs to accessibility long before it belongs to advertising.
+     * What separates them is the OBJECT: an ad button skips an *ad*, or says
+     * nothing else at all. A navigation link always names where it is going.
+     */
+    for (const label of [
+      "Skip navigation",
+      "Skip to content",
+      "Skip to main content",
+      "Skip to the player",
+    ]) {
+      put(`<button>${label}</button>`);
+      expect(findSkip(), `"${label}" must not be treated as an advert`).toBeNull();
+    }
+  });
+
+  it("still accepts the shapes a real ad button takes", () => {
+    for (const label of ["Skip", "Skip Ad", "Skip Ads", "Skip intro", "Skip >"]) {
+      put(`<button>${label}</button>`);
+      expect(findSkip(), `"${label}" should be clicked`).not.toBeNull();
+    }
+  });
+
+  it("does not click Subscribe, or anything with no skip wording", () => {
     put("<button>Subscribe</button><button>Next video</button>");
     expect(findSkip()).toBeNull();
   });

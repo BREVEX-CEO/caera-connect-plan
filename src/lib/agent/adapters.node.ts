@@ -2629,20 +2629,55 @@ export class OcadeAdapters {
     if (!reply.ok) return outcomeFor(reply, "The media on that page could not be controlled.");
     const output = (
       reply.data as {
-        output?: { found?: number; applied?: boolean; paused?: boolean; muted?: boolean };
+        output?: {
+          found?: number;
+          applied?: boolean;
+          paused?: boolean;
+          muted?: boolean;
+          currentTime?: number;
+          duration?: number | null;
+        };
       }
     )?.output;
     if (!output?.applied) {
       return fail("state_changed", "There is no video or audio on that page.");
     }
+    /*
+     * SEEK USED TO REPORT "UNMUTED THE MEDIA".
+     *
+     * The message was a chain of ternaries ending in an `else` that meant
+     * "unmute", so every action that was not play, pause or mute inherited it.
+     * Measured live: `seek` to ten seconds answered "Unmuted the media on that
+     * page" -- a sentence about the wrong thing entirely, for an action that
+     * had actually worked.
+     *
+     * The same `else` decided `verified`, so a successful seek was checked
+     * against `muted === false`: right answer by luck when the video happened
+     * to be unmuted, wrong the rest of the time.
+     */
+    const moved = action === "seek" || action === "forward" || action === "back";
+    const at = typeof output.currentTime === "number" ? output.currentTime : null;
+
+    const said = moved
+      ? at !== null
+        ? `Moved to ${at.toFixed(1)} seconds.`
+        : "Moved through the media on that page."
+      : action === "play"
+        ? "Playing the media on that page."
+        : action === "pause"
+          ? "Paused the media on that page."
+          : action === "mute"
+            ? "Muted the media on that page."
+            : "Unmuted the media on that page.";
+
     return {
-      ...ok(
-        output,
-        `${action === "play" ? "Playing" : action === "pause" ? "Paused" : action === "mute" ? "Muted" : "Unmuted"} the media on that page.`,
-      ),
-      // Read back from the element itself, not assumed from the call.
-      verified:
-        action === "play"
+      ...ok(output, said),
+      // Read back from the element itself, not assumed from the call. A seek
+      // is verified by the position the element REPORTS, which is the only
+      // thing that distinguishes a seek that took from one the player refused.
+      verified: moved
+        ? at !== null
+        : action === "play"
           ? output.paused === false
           : action === "pause"
             ? output.paused === true
