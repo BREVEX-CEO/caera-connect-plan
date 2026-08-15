@@ -7,11 +7,14 @@
       "id": "web-cloudflare-runtime",
       "area": "web",
       "status": "externally_blocked",
+      "achievedEvidence": [
+        "Cloudflare free-plan Worker deployed to ocade.in and www.ocade.in",
+        "Prelaunch origin returns 503 with noindex and no-store controls",
+        "Live /api/health returns HTTP 200 for OCADE 0.1.0"
+      ],
       "requiredEvidence": [
-        "Wrangler available in an authorized release environment",
-        "Cloudflare deployment authority and production domain configured",
         "Supabase and provider values entered through platform secret storage",
-        "Deployed /api/health and critical-route smoke tests"
+        "Post-gate authentication and critical-route smoke tests"
       ]
     },
     {

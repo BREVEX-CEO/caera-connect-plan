@@ -119,9 +119,11 @@ deletion, breach contacts, vendor notification paths and production monitoring.
 
 ## 12. Contacts and changes
 
-`support@ocade.in` and `CAERACADANE28@gmail.com` are intended addresses but are
-not verified in this repository. Do not call either an active legal channel
-until delivery, access control, retention and response ownership are tested.
+Inbound delivery to `support@ocade.in`, `privacy@ocade.in`,
+`security@ocade.in` and `legal@ocade.in` was verified on 15 August 2026 through
+Cloudflare Email Routing to `CAERACADANE28@gmail.com`. Branded outbound sending
+from those aliases is not yet verified; responses may originate from the Gmail
+address until a separate authenticated outbound mail service is configured.
 
 Material changes require a dated notice and, where required, renewed consent.
 

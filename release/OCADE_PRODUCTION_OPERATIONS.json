@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "releaseVersion": "0.1.0",
-  "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+  "classification": "PRELAUNCH WEB DEPLOYED; RELEASE EXTERNALLY BLOCKED",
   "liveClaims": {
-    "webDeployed": false,
+    "webDeployed": true,
     "relayDeployed": false,
     "monitoringConnected": false,
     "alertsDelivering": false,
@@ -11,10 +11,24 @@
     "restoreDrillPassed": false,
     "onCallAssigned": false
   },
+  "webDeploymentEvidence": {
+    "observedAt": "2026-08-15T13:48:39Z",
+    "domain": "ocade.in",
+    "provider": "Cloudflare Workers",
+    "worker": "ocade-web",
+    "versionId": "8e093362-d00a-4ad0-a8a4-3b7a9997da26",
+    "launchState": "prelaunch",
+    "apexStatus": 503,
+    "wwwStatus": 503,
+    "healthStatus": 200,
+    "robotsDisallowAll": true,
+    "plannedLaunchDate": "2026-08-28",
+    "launchReadyControlSet": true
+  },
   "services": [
     {
       "id": "ocade-web",
-      "deploymentOwner": "OWNER_REQUIRED",
+      "deploymentOwner": "Haans Antoni",
       "healthPath": "/api/health",
       "healthMethod": "GET",
       "expectedStatus": 200,
@@ -168,7 +182,6 @@
     "named incident and service owners",
     "monitoring and alert-delivery provider",
     "production health endpoints and alert receivers",
-    "Cloudflare deployment credentials stored outside the repository",
     "Supabase project authority and an approved migration window",
     "backup retention, offsite-copy and restore-target policy",
     "executed restore drill and incident exercise evidence"

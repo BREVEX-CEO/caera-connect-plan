@@ -21,18 +21,25 @@ const pkg = JSON.parse(read("package.json"));
 check(policy.schemaVersion === 1, "operations schema");
 check(policy.releaseVersion === pkg.version, "release version alignment");
 check(
-  policy.classification === "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+  policy.classification === "PRELAUNCH WEB DEPLOYED; RELEASE EXTERNALLY BLOCKED",
   "runtime-honest classification",
 );
 check(
-  Object.values(policy.liveClaims).every((claim) => claim === false),
-  "live claims must remain false until evidence is attached",
+  policy.liveClaims.webDeployed === true &&
+    Object.entries(policy.liveClaims)
+      .filter(([name]) => name !== "webDeployed")
+      .every(([, claim]) => claim === false) &&
+    policy.webDeploymentEvidence?.domain === "ocade.in" &&
+    policy.webDeploymentEvidence?.healthStatus === 200 &&
+    policy.webDeploymentEvidence?.launchState === "prelaunch",
+  "live claims must match the attached prelaunch web evidence",
 );
 check(
   policy.services.length >= 2 &&
     policy.services.every(
       (service) =>
-        service.deploymentOwner === "OWNER_REQUIRED" &&
+        typeof service.deploymentOwner === "string" &&
+        service.deploymentOwner.length > 0 &&
         service.healthMethod === "GET" &&
         service.healthPath.startsWith("/") &&
         service.expectedStatus === 200 &&
@@ -82,7 +89,7 @@ check(
     policy.releaseControls.databaseApplyAuthorized === false,
   "release approval and verification controls",
 );
-check(policy.externalInputsRequired.length >= 7, "external prerequisite ledger");
+check(policy.externalInputsRequired.length >= 6, "external prerequisite ledger");
 check(
   runbook.includes("## Declare and contain") &&
     runbook.includes("## Triage") &&
@@ -108,7 +115,7 @@ if (failures.length > 0) {
 }
 
 console.log(`OCADE production operations gate: ${checks}/${checks} checks passed`);
-console.log("STATUS: SOURCE-COMPLETE BUT RUNTIME-BLOCKED");
+console.log("STATUS: PRELAUNCH WEB DEPLOYED; RELEASE EXTERNALLY BLOCKED");
 console.log(
-  "No migration, deployment, rollback, backup, restore, alert, signing or publication ran.",
+  "The gated web Worker is deployed; no migration, rollback, backup, restore, alert, signing or store publication ran.",
 );

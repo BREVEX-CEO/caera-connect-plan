@@ -97,17 +97,25 @@ designs, social accounts and contracts if the company is to own them.
 domain ownership evidence only; it is not evidence of company incorporation or
 product launch. `ocade.ai` remains a possible later global-primary domain.
 
-Preferred order:
+Completed on 15 August 2026:
+
+- The domain was added to the free Cloudflare plan and the authoritative
+  nameservers were changed at GoDaddy.
+- The launch-gated Worker was deployed to `ocade.in` and `www.ocade.in`; the
+  live health endpoint passed while application and sitemap routes stayed
+  closed and non-indexable.
+- Inbound Cloudflare Email Routing was verified for `support@ocade.in`,
+  `privacy@ocade.in`, `security@ocade.in` and `legal@ocade.in`, all forwarding
+  to `CAERACADANE28@gmail.com`.
+
+Remaining order:
 
 1. Confirm trademark risk.
-2. Add `ocade.in` to the owner’s Cloudflare account and copy every existing DNS
-   record before changing the GoDaddy nameservers.
-3. Point Cloudflare DNS to the verified deployment, enable the available domain
-   security controls, redirects, rate limits and certificate monitoring.
-4. Activate and test `support@ocade.in` plus privacy/security contacts.
-5. Configure production canonical URLs, sitemap and Search Console only after
+2. Review Cloudflare security controls, redirects, rate limits and certificate
+   monitoring before public launch.
+3. Configure production canonical URLs, sitemap and Search Console only after
    the domain is controlled.
-6. Consider `ocade.ai` later only after a fresh availability and total-cost
+4. Consider `ocade.ai` later only after a fresh availability and total-cost
    check; no agent should accept registrar terms or spend without approval.
 
 Cloudflare Pages static requests can be low-cost; Functions share Workers usage.

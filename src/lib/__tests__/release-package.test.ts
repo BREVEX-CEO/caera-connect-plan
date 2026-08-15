@@ -168,6 +168,7 @@ describe("OCADE release source package", () => {
     }
     expect(checklist).toContain("STOP RELEASE");
     expect(checklist).toContain("/api/health");
-    expect(checklist).toContain("No deployment was performed by Codex");
+    expect(checklist).toContain("Cloudflare prelaunch Worker was deployed");
+    expect(checklist).toContain("remains closed behind the production launch gate");
   });
 });

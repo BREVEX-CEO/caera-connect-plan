@@ -1,9 +1,10 @@
 # OCADE release checklist
 
-Status: source package prepared; production release externally blocked.
+Status: prelaunch web gate deployed; production release externally blocked.
 
-No deployment was performed by Codex. No package was signed, notarized,
-published, uploaded to a store, or installed on a device.
+The Cloudflare prelaunch Worker was deployed to `ocade.in` on 15 August 2026.
+No package was signed, notarized, published to a store, or installed on a
+device. The web application remains closed behind the production launch gate.
 
 ## Source gate
 

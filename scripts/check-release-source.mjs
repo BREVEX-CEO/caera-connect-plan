@@ -238,11 +238,17 @@ check(
 );
 check(
   operations.releaseVersion === version &&
-    operations.classification === "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+    operations.classification === "PRELAUNCH WEB DEPLOYED; RELEASE EXTERNALLY BLOCKED",
   "production operations ledger overstates readiness or differs from the release version",
 );
 check(
-  Object.values(operations.liveClaims ?? {}).every((claim) => claim === false),
+  operations.liveClaims?.webDeployed === true &&
+    Object.entries(operations.liveClaims ?? {})
+      .filter(([name]) => name !== "webDeployed")
+      .every(([, claim]) => claim === false) &&
+    operations.webDeploymentEvidence?.domain === "ocade.in" &&
+    operations.webDeploymentEvidence?.healthStatus === 200 &&
+    operations.webDeploymentEvidence?.launchState === "prelaunch",
   "production operations ledger contains an unverified live claim",
 );
 check(
@@ -282,4 +288,6 @@ console.log(`OCADE release source gate: ${checks}/${checks} checks passed`);
 console.log(
   `STATUS: SOURCE READY; PRODUCTION RELEASE EXTERNALLY BLOCKED (${blockers.blockers.length} areas)`,
 );
-console.log("No deployment, signing, publication, migration, or device install was performed.");
+console.log(
+  "The gated web Worker is deployed; no signing, store publication, migration, or device install was performed.",
+);
