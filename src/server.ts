@@ -3,6 +3,8 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { releaseHealthResponse } from "./lib/release-health";
+import { evaluateLaunchGate } from "./lib/launch/launch-window";
+import { prelaunchResponse } from "./lib/launch/prelaunch-response";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
