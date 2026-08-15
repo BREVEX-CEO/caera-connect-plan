@@ -2411,6 +2411,7 @@ export type Database = {
           model_id: string | null
           pinned: boolean
           privacy_mode: string
+          project_id: string | null
           provider_id: string | null
           title: string
           updated_at: string
@@ -2423,6 +2424,7 @@ export type Database = {
           model_id?: string | null
           pinned?: boolean
           privacy_mode?: string
+          project_id?: string | null
           provider_id?: string | null
           title?: string
           updated_at?: string
@@ -2435,12 +2437,68 @@ export type Database = {
           model_id?: string | null
           pinned?: boolean
           privacy_mode?: string
+          project_id?: string | null
           provider_id?: string | null
           title?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ocade_conversations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_memory: {
+        Row: {
+          content: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          pinned: boolean
+          project_id: string | null
+          scope: string
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          pinned?: boolean
+          project_id?: string | null
+          scope?: string
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          pinned?: boolean
+          project_id?: string | null
+          scope?: string
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_memory_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ocade_messages: {
         Row: {
@@ -2488,6 +2546,147 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ocade_outputs: {
+        Row: {
+          content: string | null
+          content_sha256: string | null
+          conversation_id: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          kind: string
+          lineage_id: string
+          mime: string | null
+          parent_output_id: string | null
+          project_id: string | null
+          size_bytes: number
+          title: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          content?: string | null
+          content_sha256?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          kind: string
+          lineage_id?: string
+          mime?: string | null
+          parent_output_id?: string | null
+          project_id?: string | null
+          size_bytes?: number
+          title: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          content?: string | null
+          content_sha256?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          lineage_id?: string
+          mime?: string | null
+          parent_output_id?: string | null
+          project_id?: string | null
+          size_bytes?: number
+          title?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_outputs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocade_outputs_parent_output_id_fkey"
+            columns: ["parent_output_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_outputs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocade_outputs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_project_items: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          project_id: string
+          ref_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          project_id: string
+          ref_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          project_id?: string
+          ref_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_project_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_projects: {
+        Row: {
+          archived: boolean
+          created_at: string
+          id: string
+          instructions: string | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived?: boolean
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived?: boolean
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       ocade_provider_events: {
         Row: {
@@ -2897,6 +3096,7 @@ export type Database = {
           high_contrast: boolean
           main_purpose: Database["public"]["Enums"]["main_purpose_kind"] | null
           modules: Json
+          ocade_memory_enabled: boolean
           privacy_chats: Database["public"]["Enums"]["privacy_mode"]
           privacy_company: Database["public"]["Enums"]["privacy_mode"]
           privacy_copilot: Database["public"]["Enums"]["privacy_mode"]
@@ -2921,6 +3121,7 @@ export type Database = {
           high_contrast?: boolean
           main_purpose?: Database["public"]["Enums"]["main_purpose_kind"] | null
           modules?: Json
+          ocade_memory_enabled?: boolean
           privacy_chats?: Database["public"]["Enums"]["privacy_mode"]
           privacy_company?: Database["public"]["Enums"]["privacy_mode"]
           privacy_copilot?: Database["public"]["Enums"]["privacy_mode"]
@@ -2945,6 +3146,7 @@ export type Database = {
           high_contrast?: boolean
           main_purpose?: Database["public"]["Enums"]["main_purpose_kind"] | null
           modules?: Json
+          ocade_memory_enabled?: boolean
           privacy_chats?: Database["public"]["Enums"]["privacy_mode"]
           privacy_company?: Database["public"]["Enums"]["privacy_mode"]
           privacy_copilot?: Database["public"]["Enums"]["privacy_mode"]
