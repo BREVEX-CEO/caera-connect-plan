@@ -22,7 +22,7 @@
  *     deploy cannot leave two generations of assets fighting.
  */
 
-const VERSION = "ocade-shell-v3";
+const VERSION = "ocade-shell-v4";
 const OFFLINE_URL = "/offline.html";
 
 /**
@@ -39,6 +39,8 @@ const PRECACHE = [
   "/manifest.webmanifest",
   "/icons/ocade-128.png",
   "/icons/ocade-192.png",
+  "/brand/ocade-mark.png",
+  "/brand/ocade-wordmark.png",
 ];
 
 self.addEventListener("install", (event) => {

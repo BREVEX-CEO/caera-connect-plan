@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowDown, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ParticleLogoIntro } from "./ParticleLogoIntro";
 
 /*
  * LAZY, AND THAT IS A BUDGET DECISION RATHER THAN A HABIT.
@@ -222,6 +223,8 @@ export function LandingUniverse() {
         />
       </div>
 
+      <ParticleLogoIntro phase={phase} reducedMotion={reducedMotion} tier={tier} />
+
       {/*
         THE IDENTITY. One element that travels: centred and large during the
         opening, then shrinking into the top-left corner as the reader scrolls.
@@ -234,6 +237,7 @@ export function LandingUniverse() {
           "pointer-events-none fixed z-30 will-change-transform",
           "transition-all duration-[1100ms] ease-[cubic-bezier(0.22,0.61,0.36,1)]",
           "motion-reduce:transition-none",
+          phase === "wordmark" ? "scale-95 opacity-0" : "scale-100 opacity-100",
           centred
             ? "left-1/2 top-[42svh] -translate-x-1/2 -translate-y-1/2 text-center"
             : "left-4 top-3 translate-x-0 translate-y-0 text-left sm:left-6 sm:top-4",

@@ -187,10 +187,11 @@ describe("the progressive web assets actually ship", () => {
 
   it("serves navigations network-first, so nobody is stuck on an old build", () => {
     const sw = readFileSync("public/sw.js", "utf8");
-    // fetch() first, cache only in the catch. The reverse would pin users to
-    // whatever version they first loaded.
+    // fetch() first, with the cache used only after a network failure. The
+    // success handler may safely retain an eligible HTML response for the next
+    // offline visit; the important invariant is that it never wins online.
     expect(sw).toMatch(/request\.mode === "navigate"/);
-    expect(sw).toMatch(/fetch\(request\)\.catch\(/);
+    expect(sw).toMatch(/fetch\(request\)[\s\S]*?\.catch\(/);
   });
 
   it("deletes previous cache versions when a new worker activates", () => {

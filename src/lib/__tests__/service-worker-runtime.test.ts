@@ -60,10 +60,21 @@ class FakeResponse {
   body: string;
   status: number;
   type: string;
+  headers: { get(name: string): string | null };
   constructor(body: string, init: { status?: number; type?: string } = {}) {
     this.body = body;
     this.status = init.status ?? 200;
     this.type = init.type ?? "basic";
+    // Navigation caching reads the two headers a real Response always exposes.
+    // The old fake omitted `headers` entirely, so the worker fell into its
+    // offline catch path even though the mocked network request had succeeded.
+    this.headers = {
+      get: (name: string) => {
+        if (name.toLowerCase() === "content-type") return "text/html; charset=utf-8";
+        if (name.toLowerCase() === "cache-control") return "";
+        return null;
+      },
+    };
   }
   get ok() {
     return this.status >= 200 && this.status < 300;

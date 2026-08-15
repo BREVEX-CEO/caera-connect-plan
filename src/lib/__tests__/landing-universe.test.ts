@@ -285,6 +285,7 @@ describe("rendering scales to the device, and reduced motion always wins", () =>
 describe("the landing page keeps its promises to a keyboard and a screen reader", () => {
   const LANDING = readFileSync("src/components/landing/LandingUniverse.tsx", "utf8");
   const CANVAS = readFileSync("src/components/landing/UniverseCanvas.tsx", "utf8");
+  const PARTICLES = readFileSync("src/components/landing/ParticleLogoIntro.tsx", "utf8");
 
   it("hides the canvas from assistive technology and offers real buttons instead", () => {
     // A canvas that announces nothing adds noise, not access. The legend is
@@ -347,6 +348,15 @@ describe("the landing page keeps its promises to a keyboard and a screen reader"
   it("offers a replay rather than repeating itself", () => {
     expect(LANDING).toMatch(/Replay the opening/);
     expect(LANDING).toMatch(/forgetIntro\(\)/);
+  });
+
+  it("forms the same-origin OCADE mark from particles without replacing the real heading", () => {
+    expect(LANDING).toMatch(/<ParticleLogoIntro/);
+    expect(PARTICLES).toMatch(/\/brand\/ocade-mark\.png/);
+    expect(PARTICLES).toMatch(/requestAnimationFrame/);
+    expect(PARTICLES).toMatch(/aria-hidden="true"/);
+    expect(PARTICLES).toMatch(/reducedMotion/);
+    expect(LANDING).toMatch(/<span className="sr-only">OCADE by CAERA CADANE/);
   });
 
   it("says so when motion has been reduced, instead of looking broken", () => {

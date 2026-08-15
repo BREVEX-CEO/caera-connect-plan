@@ -134,6 +134,11 @@ describe("cross-origin requests are never runtime-cached", () => {
 });
 
 describe("the worker's stated invariants are still in the file", () => {
+  it("pre-caches both OCADE brand assets used by the offline intro", () => {
+    expect(SOURCE).toContain('"/brand/ocade-mark.png"');
+    expect(SOURCE).toContain('"/brand/ocade-wordmark.png"');
+  });
+
   it("only handles GET", () => {
     expect(SOURCE).toMatch(/request\.method\s*!==\s*["']GET["']/);
   });
