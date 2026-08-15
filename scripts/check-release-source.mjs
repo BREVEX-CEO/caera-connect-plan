@@ -153,6 +153,14 @@ check(health.includes(`OCADE_RELEASE_VERSION = "${version}"`), "health version d
 
 check(wrangler.name === "ocade-web", "Cloudflare worker name is not stable");
 check(wrangler.keep_vars === true, "Cloudflare deploy could erase dashboard-managed values");
+check(
+  JSON.stringify(wrangler.routes) ===
+    JSON.stringify([
+      { pattern: "ocade.in/*", zone_name: "ocade.in" },
+      { pattern: "www.ocade.in/*", zone_name: "ocade.in" },
+    ]),
+  "Cloudflare production routes are missing or unexpected",
+);
 check(wrangler.observability?.enabled === true, "Cloudflare observability is not enabled");
 check(
   wrangler.assets?.run_worker_first === true,

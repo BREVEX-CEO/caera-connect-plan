@@ -54,6 +54,7 @@ describe("OCADE release source package", () => {
       compatibility_date: string;
       compatibility_flags: string[];
       keep_vars: boolean;
+      routes: Array<{ pattern: string; zone_name: string }>;
       observability: { enabled: boolean };
       assets: { run_worker_first: boolean };
       vars?: unknown;
@@ -63,6 +64,10 @@ describe("OCADE release source package", () => {
     expect(config.compatibility_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(config.compatibility_flags).toContain("nodejs_compat");
     expect(config.keep_vars).toBe(true);
+    expect(config.routes).toEqual([
+      { pattern: "ocade.in/*", zone_name: "ocade.in" },
+      { pattern: "www.ocade.in/*", zone_name: "ocade.in" },
+    ]);
     expect(config.observability.enabled).toBe(true);
     expect(config.assets.run_worker_first).toBe(true);
     expect(config.vars).toBeUndefined();

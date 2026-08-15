@@ -3,6 +3,10 @@
   "compatibility_date": "2026-07-25",
   "compatibility_flags": ["nodejs_compat"],
   "keep_vars": true,
+  "routes": [
+    { "pattern": "ocade.in/*", "zone_name": "ocade.in" },
+    { "pattern": "www.ocade.in/*", "zone_name": "ocade.in" }
+  ],
   "assets": {
     "run_worker_first": true
   },
