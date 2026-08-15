@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { BrandMark } from "@/components/shell/BrandMark";
 
 export function PublicPage({
   eyebrow,
@@ -27,13 +28,13 @@ export function PublicPage({
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      <header className="border-b border-border/60">
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/72 backdrop-blur-xl">
         <nav
           aria-label="Public information"
           className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4 px-5 py-5"
         >
-          <Link to="/" className="font-semibold tracking-[0.16em]">
-            CAERA CADANE
+          <Link to="/" aria-label="OCADE home">
+            <BrandMark />
           </Link>
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <Link to="/company" className="hover:text-foreground">
@@ -54,7 +55,11 @@ export function PublicPage({
           </div>
         </nav>
       </header>
-      <main id="main-content" className="mx-auto max-w-3xl px-5 py-14" tabIndex={-1}>
+      <main
+        id="main-content"
+        className="mx-auto my-8 max-w-3xl rounded-[28px] border border-white/10 bg-background/62 px-5 py-14 shadow-[0_28px_90px_rgba(0,0,0,0.32)] backdrop-blur-xl sm:px-10"
+        tabIndex={-1}
+      >
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">{eyebrow}</p>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">{title}</h1>
         <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground">{summary}</p>
@@ -79,7 +84,7 @@ export function PublicPage({
 
 export function PublicSection({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section>
+    <section className="rounded-2xl border border-white/7 bg-white/[0.018] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
       <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
       <div className="mt-3 space-y-3 text-muted-foreground">{children}</div>
     </section>

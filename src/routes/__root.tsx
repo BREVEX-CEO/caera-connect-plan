@@ -21,6 +21,7 @@ import { invalidateModeCache } from "@/lib/storage/resolver";
 import { clearDevices } from "@/lib/mobile/device-store";
 import { clearApprovals } from "@/lib/mobile/approval-store";
 import { registerOfflineShellFromBrowser } from "@/lib/local/web-supervisor";
+import { primeOfflineRuntimeFromBrowser } from "@/lib/offline/prime-runtime";
 import { closeActiveCompanionSession } from "@/lib/native/tauri-companion";
 // Side-effect import: registers Foundation Alpha features on module load.
 import "@/lib/features";
@@ -108,6 +109,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "CAERA CADANE" },
+      { property: "og:image", content: "/brand/ocade-wordmark.png" },
       { name: "robots", content: "index,follow,max-image-preview:large" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -129,6 +131,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       */
       ...(appCss ? [{ rel: "stylesheet", href: appCss }] : []),
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
       // Makes OCADE installable as its own window (HWE-35). Without it the
       // offline shell registered below has an application to open but no
       // application to BE — a tab that gets closed rather than an app that
@@ -207,7 +210,9 @@ function RootComponent() {
    * works offline.
    */
   useEffect(() => {
-    void registerOfflineShellFromBrowser();
+    void registerOfflineShellFromBrowser().then((registration) => {
+      if (registration.ok) void primeOfflineRuntimeFromBrowser();
+    });
   }, []);
 
   /*

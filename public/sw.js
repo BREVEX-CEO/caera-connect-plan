@@ -22,7 +22,7 @@
  *     deploy cannot leave two generations of assets fighting.
  */
 
-const VERSION = "ocade-shell-v1";
+const VERSION = "ocade-shell-v3";
 const OFFLINE_URL = "/offline.html";
 
 /**
@@ -33,7 +33,13 @@ const OFFLINE_URL = "/offline.html";
  * require this file to be generated. They are picked up by the runtime cache
  * below once they have been fetched successfully at least once.
  */
-const PRECACHE = [OFFLINE_URL, "/favicon.ico", "/manifest.webmanifest"];
+const PRECACHE = [
+  OFFLINE_URL,
+  "/favicon.ico",
+  "/manifest.webmanifest",
+  "/icons/ocade-128.png",
+  "/icons/ocade-192.png",
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -119,13 +125,34 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(async () => {
-        // Offline. Prefer this exact page if it was cached, then the generic
-        // offline shell. Never a different page's markup, which would show the
-        // user somewhere they are not.
-        const cached = await caches.match(request);
-        return cached ?? (await caches.match(OFFLINE_URL)) ?? Response.error();
-      }),
+      fetch(request)
+        .then((response) => {
+          const cacheControl = response.headers.get("cache-control") ?? "";
+          const contentType = response.headers.get("content-type") ?? "";
+
+          // Keep the last successful document for this exact route. This is
+          // still network-first, so a connection always receives the current
+          // deployment. Private/no-store responses are never copied, and a
+          // cached shell cannot contain an API response or a signed-out user's
+          // data because those paths were excluded above.
+          if (
+            response.ok &&
+            response.type === "basic" &&
+            contentType.includes("text/html") &&
+            !/\b(?:private|no-store)\b/i.test(cacheControl)
+          ) {
+            const copy = response.clone();
+            event.waitUntil(caches.open(VERSION).then((cache) => cache.put(request, copy)));
+          }
+          return response;
+        })
+        .catch(async () => {
+          // Offline. Prefer this exact page if it was cached, then the generic
+          // offline shell. Never a different page's markup, which would show
+          // the user somewhere they are not.
+          const cached = await caches.match(request);
+          return cached ?? (await caches.match(OFFLINE_URL)) ?? Response.error();
+        }),
     );
     return;
   }

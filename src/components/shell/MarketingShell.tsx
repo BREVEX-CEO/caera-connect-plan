@@ -19,7 +19,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 shadow-[0_14px_45px_rgba(0,0,0,0.2)] backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <Link to="/" aria-label="CAERA CADANE home">
             <BrandMark />

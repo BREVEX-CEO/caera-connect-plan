@@ -30,7 +30,11 @@ interface TauriConfig {
     windows: { certificateThumbprint: string | null };
     macOS: { signingIdentity: string | null };
   };
-  plugins: { updater: { active: boolean; pubkey: string } };
+  plugins: {
+    updater: { active: boolean; pubkey: string };
+    "clipboard-manager"?: unknown;
+    "global-shortcut"?: unknown;
+  };
 }
 
 const config = JSON.parse(
@@ -43,7 +47,16 @@ describe("desktop companion source contract", () => {
     expect(config.app.withGlobalTauri).toBe(true);
     expect(config.app.security.csp).toContain("default-src 'self'");
     expect(config.app.security.csp).not.toContain("https:");
-    expect(config.app.security.freezePrototype).toBe(true);
+    // Tauri's prototype freezing runs before the page dependencies. Zod v3
+    // installs its error helper with an own `toString`, so freezing causes the
+    // installed WebView to throw before OCADE renders. Native safety lives in
+    // signed IPC validation and the CSP, not in breaking dependency startup.
+    expect(config.app.security.freezePrototype).toBe(false);
+    // v2 of the clipboard plugin accepts no configuration object. Permissions
+    // belong in capabilities/default.json; an object here makes the packaged
+    // application panic before its first window is created.
+    expect(config.plugins["clipboard-manager"]).toBeUndefined();
+    expect(config.plugins["global-shortcut"]).toBeUndefined();
   });
 
   it("uses HMAC-SHA-256 and binds signed bodies to deserialized command arguments", () => {

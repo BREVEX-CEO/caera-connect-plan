@@ -777,6 +777,33 @@
 }
 
 /*
+ * A restrained chrome halo for the supplied OCADE mark. It uses pseudo
+ * surfaces rather than another bitmap, stays crisp at every UI scale, and is
+ * disabled with the rest of the motion system below when requested.
+ */
+.ocade-brand-mark {
+  border: 1px solid oklch(0.86 0.02 90 / 22%);
+  box-shadow:
+    -7px 0 18px oklch(0.62 0.19 255 / 18%),
+    7px 0 18px oklch(0.62 0.22 28 / 16%),
+    inset 0 1px 0 oklch(1 0 0 / 18%);
+  transition:
+    transform 220ms ease,
+    box-shadow 220ms ease;
+}
+
+@media (hover: hover) {
+  a:hover .ocade-brand-mark,
+  button:hover .ocade-brand-mark {
+    transform: translateY(-1px) scale(1.025);
+    box-shadow:
+      -9px 0 24px oklch(0.62 0.19 255 / 24%),
+      9px 0 24px oklch(0.62 0.22 28 / 22%),
+      inset 0 1px 0 oklch(1 0 0 / 22%);
+  }
+}
+
+/*
  * The system preference is honoured LAST and unconditionally, so it overrides
  * everything above regardless of specificity or source order. A user who asked
  * their operating system for less motion has asked every application, and this

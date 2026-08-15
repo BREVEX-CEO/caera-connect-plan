@@ -46,7 +46,8 @@ psutil_missing = importlib.util.find_spec("psutil") is None
 @pytest.mark.skipif(psutil_missing, reason="psutil is not installed")
 class TestTelemetryIsMeasured:
     @pytest.fixture(scope="class")
-    def snapshot(self, system):
+    @staticmethod
+    def snapshot(system):
         return system.telemetry(cpu_sample_seconds=0.1)
 
     def test_cpu_is_a_real_percentage(self, snapshot):

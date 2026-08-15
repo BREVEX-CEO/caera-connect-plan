@@ -146,6 +146,13 @@ describe("the worker's stated invariants are still in the file", () => {
     expect(nav.indexOf("fetch(request)")).toBeLessThan(nav.indexOf("caches.match(request)"));
   });
 
+  it("keeps the last public document so a previously opened route cold-starts offline", () => {
+    const nav = SOURCE.slice(SOURCE.indexOf('mode === "navigate"'));
+    expect(nav).toMatch(/contentType\.includes\(["']text\/html["']\)/);
+    expect(nav).toMatch(/private\|no-store/);
+    expect(nav).toMatch(/cache\.put\(request,\s*copy\)/);
+  });
+
   it("deletes previous cache versions on activate", () => {
     expect(SOURCE).toMatch(/keys\.filter\(\(k\)\s*=>\s*k\s*!==\s*VERSION\)/);
   });

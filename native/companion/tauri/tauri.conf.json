@@ -36,7 +36,7 @@
     ],
     "security": {
       "csp": "default-src 'self' http://localhost:3000; script-src 'self' http://localhost:3000; style-src 'self' 'unsafe-inline' http://localhost:3000; img-src 'self' data: http://localhost:3000; connect-src 'self' ipc: http://ipc.localhost http://localhost:3000 http://127.0.0.1:11434",
-      "freezePrototype": true,
+      "freezePrototype": false,
       "assetProtocol": {
         "enable": false,
         "scope": []
@@ -89,12 +89,6 @@
       "endpoints": [
         "https://updates.caeracadane.com/companion/{{target}}/{{arch}}/{{current_version}}"
       ]
-    },
-    "global-shortcut": {
-      "all": false
-    },
-    "clipboard-manager": {
-      "all": false
     }
   }
 }

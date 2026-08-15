@@ -183,7 +183,6 @@ export function LandingUniverse() {
   }, [runIntro, play]);
 
   const introRunning = phase !== "ambient";
-  const showEstablished = phase !== "wordmark";
   // The identity is large and centred only while the opening runs and the
   // reader is still on the first screen.
   const centred = introRunning || !scrolled;
@@ -242,27 +241,22 @@ export function LandingUniverse() {
       >
         <h1
           className={cn(
-            "font-semibold tracking-[0.24em] text-foreground",
+            "relative",
             "transition-all duration-[1100ms] ease-[cubic-bezier(0.22,0.61,0.36,1)]",
             "motion-reduce:transition-none",
-            centred ? "text-[26px] sm:text-[44px]" : "text-[13px] sm:text-[14px]",
+            centred ? "w-[82vw] max-w-[900px]" : "w-[210px] sm:w-[250px]",
           )}
         >
-          CAERA CADANE
+          <span className="sr-only">OCADE by CAERA CADANE — Command the Next Era.</span>
+          <img
+            src="/brand/ocade-wordmark.png"
+            alt=""
+            width={1480}
+            height={383}
+            className="h-auto w-full drop-shadow-[0_16px_45px_rgba(0,0,0,0.75)]"
+            fetchPriority="high"
+          />
         </h1>
-        <p
-          className={cn(
-            "font-medium uppercase text-muted-foreground",
-            "transition-all duration-700",
-            "motion-reduce:transition-none",
-            showEstablished ? "opacity-100" : "opacity-0",
-            centred
-              ? "mt-3 text-[10px] tracking-[0.46em] sm:text-[11px]"
-              : "mt-0.5 text-[8.5px] tracking-[0.3em]",
-          )}
-        >
-          Planned launch 28 August 2026
-        </p>
       </div>
 
       {/* ------------------------------------------------------- the hero -- */}
