@@ -7,15 +7,30 @@
 
 ## Launch mechanism
 
-Deploy and verify the production site before launch behind honest “planned
-launch” copy. Do not schedule DNS registration or the first production deploy
-for 08:28; DNS, builds, caches and app-store review are not exact-time systems.
+Deploy and verify the production site early, behind the edge launch gate. Do not
+schedule DNS registration or the first production deploy for the launch minute;
+DNS, builds, caches and app-store review are not exact-time systems.
 
-At 08:28 IST, a named launch operator performs a narrow launch-status change only
-after the gate below is green. Automation may prepare the change, but a backend
-must verify the release state; a browser-clock countdown alone is not authority.
-Cloudflare cron/deployment propagation is best effort and cannot guarantee an
-exact instant worldwide.
+The gate lives in the Cloudflare Worker (`src/server.ts`), before the
+application is imported and before static application assets can be served
+(`assets.run_worker_first = true`). It opens only when BOTH hold:
+
+1. Server/edge time is at or after `LAUNCH_AT_ISO` in
+   `src/lib/launch/launch-window.ts`.
+2. The Cloudflare Worker secret/var `OCADE_LAUNCH_READY` is exactly `true`,
+   set by a named operator after the real checks below pass.
+
+While locked, public requests get a minimal 503 pre-launch page saying only
+“Planned launch 28 August 2026”, with `Cache-Control: no-store`,
+`Retry-After` and `X-Robots-Tag: noindex, nofollow, noarchive`; `/robots.txt`
+returns disallow-all and the sitemap is not served. `/api/health` stays
+available for deployment verification and never reports the launch time.
+Local development and approved internal preview hosts stay fully testable.
+
+Once readiness is set, no further deploy, DNS change, cron job or client-side
+countdown is required: the server clock opens the gate at the target instant.
+An unready release stays locked rather than launching broken; the clock never
+turns a failed deployment into a launch.
 
 ## T-7 days
 
