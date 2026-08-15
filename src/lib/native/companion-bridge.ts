@@ -172,6 +172,25 @@ export interface NativeCompanionAdapter {
   cancel(runId: string): Promise<void>;
   /** Immediately halt all in-flight actions. */
   emergencyStop(): Promise<void>;
+  /** Real packaged MediaPipe process state; unavailable in an ordinary browser. */
+  gestureStatus(): Promise<GestureControlStatus>;
+  /** Start visible preview, optionally arming OS cursor control. */
+  startGestureControl(options: GestureControlOptions): Promise<GestureControlStatus>;
+  /** Stop gesture input and release any held mouse button. */
+  stopGestureControl(): Promise<GestureControlStatus>;
+}
+
+export interface GestureControlOptions {
+  cameraIndex: number;
+  enableControl: boolean;
+}
+
+export interface GestureControlStatus {
+  available: boolean;
+  running: boolean;
+  controlEnabled: boolean;
+  cameraIndex: number | null;
+  reason?: string;
 }
 
 export const COMPANION_UNAVAILABLE_REASON =
@@ -195,6 +214,21 @@ export class UnavailableCompanion implements NativeCompanionAdapter {
   async emergencyStop(): Promise<void> {
     // A local no-op is safe, but reporting it as a delivered stop is not. The
     // caller must know that no host acknowledged the emergency request.
+    throw new NativeCompanionRequiredError(this.reason);
+  }
+  async gestureStatus(): Promise<GestureControlStatus> {
+    return {
+      available: false,
+      running: false,
+      controlEnabled: false,
+      cameraIndex: null,
+      reason: this.reason,
+    };
+  }
+  async startGestureControl(): Promise<GestureControlStatus> {
+    throw new NativeCompanionRequiredError(this.reason);
+  }
+  async stopGestureControl(): Promise<GestureControlStatus> {
     throw new NativeCompanionRequiredError(this.reason);
   }
 }

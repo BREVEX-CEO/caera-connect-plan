@@ -89,6 +89,7 @@ its own permissions:
 | `tauri/entitlements.plist`        | macOS hardened-runtime entitlements. No network, no camera/mic, no JIT.                                                                             |
 | `tauri/icons/`                    | Generated application and tray icons (original artwork).                                                                                            |
 | `ui/`                             | The overlay window (`frontendDist`). Dependency-free HTML/JS; shows real host state and an always-reachable stop.                                   |
+| `../python-host/ocade_host/gesture/` | Local MediaPipe hand landmarks, One Euro smoothing and bounded mouse gestures. The packaged sidecar has no network listener.                    |
 
 ### Global hotkeys
 
@@ -97,13 +98,21 @@ its own permissions:
 | `Ctrl/Cmd + Shift + F12`   | Emergency stop — works with no focus, which is the point of a panic key |
 | `Ctrl/Cmd + Shift + Space` | Show/hide the overlay                                                   |
 
-## Build (must be done on the target OS, outside this repo's CI)
+## Build
 
 ```bash
-# Prerequisites: Rust stable, platform build tools, Tauri CLI
-cd native/companion/tauri
-cargo tauri build
+# Windows: creates both local sidecars, then an unsigned NSIS test installer.
+npm run desktop:bundle:windows
 ```
+
+The build script creates an isolated Python environment when needed, installs
+the pinned gesture dependencies, downloads the SHA-pinned hand model, packages
+Python and the model into the sidecar, runs its self-test, and only then lets
+Tauri build. End users do not install Python or Docker for gesture control.
+
+The installed companion is deliberately local and does not load
+`localhost:3000` or the public website. It is a safe native-control companion,
+not a bundled copy of the full OCADE chat site.
 
 > **macOS bundling needs one extra step.** `tauri.macos.conf.json` currently
 > emits the signed `.app` but omits `dmg`, because a `.icns` cannot be produced

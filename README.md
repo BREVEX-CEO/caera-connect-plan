@@ -14,9 +14,9 @@ proof that the corresponding production service or store release is available.
 | Area               | Implemented source                                                                                        | Readiness boundary                                                                                                                          |
 | ------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Web                | React/TanStack Start application, public demo, authenticated workspace and Cloudflare-oriented deployment | A build can pass while a hosted environment is misconfigured. Production URL, monitoring and launch approval remain separate gates.         |
-| Offline web        | Service worker, offline page and browser-local storage/model paths                                        | The shell must first be visited and cached. Sign-in, sync, live web, payment and cloud model features still require a network.              |
+| Offline web        | Service worker, cached root shell and browser-local storage/model paths                                   | A real Chrome online-then-offline reload is proven. First visit, uncached routes, cleared storage, sign-in, sync, live web, payments and cloud features still need a network. |
 | Cloud/private sync | Supabase auth, RLS-backed data paths, private storage and optional AI gateways                            | Users must be told which mode is active. “Local-first” does not mean all data always remains on-device.                                     |
-| Desktop            | Tauri/Rust companion and native Windows/Python components                                                 | Windows/macOS signing, installer startup proof, notarization and production update flows are release gates, not implied by source presence. |
+| Desktop            | Local Tauri/Rust companion, packaged browser host and packaged MediaPipe hand-control sidecar             | The companion is not the full chat website. Production signing, clean-device tests, macOS notarization and update signing remain release gates. |
 | Mobile             | Capacitor Android and iOS projects, mobile pairing and restricted control paths                           | Store signing, privacy declarations, billing compliance and device testing are still required.                                              |
 | Entitlements       | Demo state, subscription/allowance logic, two desktop plus two mobile device limits                       | The repository does not yet prove a live payment checkout or store-billing integration.                                                     |
 
@@ -32,6 +32,12 @@ Safety controls in source include confirmation and refusal paths, emergency-stop
 handling, account-scoped storage, signed native/bridge requests, attachment
 limits, privacy-mode routing and honest “unverified” outcomes. These controls
 must still be tested on the actual production target before a release claim.
+
+The Windows companion now boots only from bundled local files; it no longer
+depends on a developer server. Its optional camera preview and cursor control
+use a separately packaged MediaPipe process. Cursor control requires a visible
+two-step opt-in and can be stopped from the app, tray, or `Ctrl+Shift+F12`.
+Camera frames are processed locally and are not sent to the web application.
 
 ## Privacy model
 
@@ -64,6 +70,8 @@ npm run typecheck
 npm run test
 npm run build
 npm run deploy:check
+# Windows release host only; produces an unsigned test installer.
+npm run desktop:bundle:windows
 ```
 
 Client authentication needs `VITE_SUPABASE_URL` and

@@ -54,6 +54,15 @@ def test_short_pinch_clicks_once_on_release() -> None:
     assert "button_down" not in kinds(released)
 
 
+def test_middle_pinch_opens_with_a_double_click() -> None:
+    processor = HandGestureProcessor(filter_=PointOneEuroFilter())
+    points = hand()
+    points[4] = Landmark(points[12].x, points[12].y)
+    assert "double_click" not in kinds(processor.process(points, 1.0))
+    released = processor.process(hand(), 1.1)
+    assert kinds(released).count("double_click") == 1
+
+
 def test_long_pinch_drags_and_hand_loss_releases() -> None:
     processor = HandGestureProcessor(drag_hold_seconds=0.3)
     processor.process(hand(pinch=True), 2.0)

@@ -10,32 +10,21 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "label": "main",
-        "title": "OCADE",
-        "url": "http://localhost:3000/ocade/work",
-        "width": 1280,
-        "height": 820,
+        "label": "overlay",
+        "title": "OCADE Companion",
+        "width": 480,
+        "height": 720,
         "resizable": true,
         "decorations": true,
-        "center": true,
-        "visible": true
-      },
-      {
-        "label": "overlay",
-        "title": "OCADE",
-        "width": 420,
-        "height": 560,
-        "resizable": true,
-        "decorations": false,
-        "transparent": true,
-        "alwaysOnTop": true,
-        "skipTaskbar": true,
-        "visible": false,
-        "center": false
+        "transparent": false,
+        "alwaysOnTop": false,
+        "skipTaskbar": false,
+        "visible": true,
+        "center": true
       }
     ],
     "security": {
-      "csp": "default-src 'self' http://localhost:3000; script-src 'self' http://localhost:3000; style-src 'self' 'unsafe-inline' http://localhost:3000; img-src 'self' data: http://localhost:3000; connect-src 'self' ipc: http://ipc.localhost http://localhost:3000 http://127.0.0.1:11434",
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost",
       "freezePrototype": false,
       "assetProtocol": {
         "enable": false,
@@ -54,7 +43,8 @@
     "active": true,
     "targets": "all",
     "externalBin": [
-      "binaries/ocade-browser-host"
+      "binaries/ocade-browser-host",
+      "binaries/ocade-gesture-host"
     ],
     "icon": [
       "icons/32x32.png",

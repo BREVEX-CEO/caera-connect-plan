@@ -87,6 +87,8 @@ class HandGestureProcessor:
         self.filter = filter_ or PointOneEuroFilter()
         self._pinching = False
         self._pinch_started: float | None = None
+        self._middle_pinching = False
+        self._middle_pinch_started: float | None = None
         self._dragging = False
         self._last_click = -math.inf
         self._scroll_y: float | None = None
@@ -113,6 +115,12 @@ class HandGestureProcessor:
         scale = _hand_scale(landmarks)
         pinch_ratio = _distance(landmarks[THUMB_TIP], landmarks[INDEX_TIP]) / scale
         pinch = pinch_ratio < (self.pinch_off if self._pinching else self.pinch_on)
+        middle_ratio = _distance(landmarks[THUMB_TIP], landmarks[MIDDLE_TIP]) / scale
+        middle_pinch = (
+            not pinch
+            and middle_ratio
+            < (self.pinch_off if self._middle_pinching else self.pinch_on)
+        )
 
         if pinch and not self._pinching:
             self._pinching = True
@@ -138,8 +146,31 @@ class HandGestureProcessor:
             self._pinch_started = None
             self._dragging = False
 
+        # Thumb-to-middle is deliberately separate from the ordinary index
+        # pinch. It gives File Explorer and other desktop applications a real
+        # double-click without trying to infer timing from two single clicks.
+        if middle_pinch and not self._middle_pinching:
+            self._middle_pinching = True
+            self._middle_pinch_started = timestamp
+        elif not middle_pinch and self._middle_pinching:
+            started = (
+                self._middle_pinch_started
+                if self._middle_pinch_started is not None
+                else timestamp
+            )
+            held = timestamp - started
+            if (
+                held >= self.pinch_min_seconds
+                and timestamp - self._last_click >= self.click_cooldown_seconds
+            ):
+                events.append(GestureEvent("double_click"))
+                self._last_click = timestamp
+            self._middle_pinching = False
+            self._middle_pinch_started = None
+
         scroll_pose = (
             not pinch
+            and not middle_pinch
             and _extended(landmarks, INDEX_TIP, INDEX_PIP)
             and _extended(landmarks, MIDDLE_TIP, MIDDLE_PIP)
             and not _extended(landmarks, RING_TIP, RING_PIP)
@@ -164,6 +195,8 @@ class HandGestureProcessor:
         events = [GestureEvent("button_up")] if self._dragging else []
         self._pinching = False
         self._pinch_started = None
+        self._middle_pinching = False
+        self._middle_pinch_started = None
         self._dragging = False
         self._scroll_y = None
         self._last_timestamp = None

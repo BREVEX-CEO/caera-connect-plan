@@ -153,6 +153,23 @@
         align-items: center;
         gap: 8px;
       }
+      select {
+        font: inherit;
+        color: var(--fg);
+        background: #23232a;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 5px 8px;
+      }
+      .gesture-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      .gesture-actions button {
+        width: 100%;
+      }
       .hidden {
         display: none !important;
       }
@@ -200,6 +217,29 @@
       <section>
         <h2>Capabilities</h2>
         <p id="caps">Checking what this build can do…</p>
+      </section>
+
+      <section aria-labelledby="gesture-heading">
+        <h2 id="gesture-heading">Local hand control</h2>
+        <p id="gestureStatus">Checking the packaged camera engine…</p>
+        <div class="row" style="margin-top: 8px">
+          <label for="gestureCamera">Camera</label>
+          <select id="gestureCamera">
+            <option value="0">1</option>
+            <option value="1">2</option>
+            <option value="2">3</option>
+            <option value="3">4</option>
+          </select>
+        </div>
+        <div class="gesture-actions">
+          <button id="gesturePreview">Test preview</button>
+          <button id="gestureArm">Activate cursor</button>
+          <button id="gestureConfirm" class="hidden">Yes, allow control</button>
+          <button id="gestureStop">Stop hand control</button>
+        </div>
+        <p id="gestureHelp" style="margin-top: 8px">
+          Index finger moves. Thumb + index clicks and drags. Thumb + middle opens a file or folder. Two fingers scroll. Camera frames stay on this computer.
+        </p>
       </section>
 
       <section>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Offline — OCADE</title>
+    <title>OCADE Local Mode</title>
     <meta name="theme-color" content="#0a0a09" />
     <style>
       :root {
@@ -57,7 +57,7 @@
   </head>
   <body>
     <main>
-      <h1>OCADE is offline</h1>
+      <h1>OCADE local mode</h1>
       <!--
         Says what is and is not available, rather than "no internet connection".
         A local-first product that stores conversations in the browser vault and
@@ -66,13 +66,16 @@
         to know which those are before they start typing.
       -->
       <p>
-        This device has no connection, so pages that have not been opened before cannot load.
+        Cloud is unavailable right now; OCADE is keeping your device-only work available.
       </p>
       <p>
-        Conversations kept in Browser Only or PC Vault storage stay on this device and are not
-        affected. OCADE Cloud is unavailable until the connection returns.
+        Conversations kept in Browser Only or PC Vault storage remain here. Open the installed
+        OCADE app from your home screen or Start menu for the complete cached workspace.
       </p>
       <button type="button" onclick="location.reload()">Try again</button>
+      <script>
+        addEventListener("online", () => location.reload(), { once: true });
+      </script>
     </main>
   </body>
 </html>

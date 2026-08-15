@@ -10,6 +10,9 @@ function companion(name: string): NativeCompanionAdapter & { name: string } {
     execute: vi.fn(),
     cancel: vi.fn(),
     emergencyStop: vi.fn(),
+    gestureStatus: vi.fn(),
+    startGestureControl: vi.fn(),
+    stopGestureControl: vi.fn(),
   };
 }
 

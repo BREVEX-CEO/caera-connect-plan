@@ -45,6 +45,7 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
 
 mod browser_host;
+mod gesture_host;
 mod integrity;
 mod licence;
 mod platform;
@@ -66,6 +67,9 @@ struct Companion {
     observations: Mutex<HashMap<String, ObservationExpectation>>,
     /// The only parent of the extensionless Playwright/CDP sidecar.
     browser: browser_host::BrowserHostSupervisor,
+    /// Packaged MediaPipe process. It owns the camera and OS pointer only while
+    /// explicitly started from a signed desktop session.
+    gesture: gesture_host::GestureHostSupervisor,
 }
 
 impl Companion {
@@ -80,6 +84,7 @@ impl Companion {
             allowlist_path: Mutex::new(None),
             observations: Mutex::new(HashMap::new()),
             browser: browser_host::BrowserHostSupervisor::default(),
+            gesture: gesture_host::GestureHostSupervisor::default(),
         }
     }
 
@@ -490,6 +495,7 @@ fn close_session(
         },
     )?;
     state.browser.close_session(&session_id);
+    state.gesture.stop();
     state
         .ipc
         .lock()
@@ -504,6 +510,9 @@ fn status(state: State<'_, Companion>) -> StatusReply {
     let mut capabilities = backend.capabilities;
     if state.browser.available() {
         capabilities.push("browser_cdp".into());
+    }
+    if state.gesture.available() {
+        capabilities.push("gesture_control".into());
     }
     StatusReply {
         // This can be true only inside a real built companion whose backend
@@ -566,6 +575,71 @@ async fn browser_host_request(
         result.is_ok(),
     );
     result
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct GestureStartArgs {
+    camera_index: u8,
+    enable_control: bool,
+}
+
+#[tauri::command]
+fn gesture_status(state: State<'_, Companion>) -> gesture_host::GestureStatus {
+    state.gesture.status()
+}
+
+#[tauri::command]
+async fn gesture_start(
+    app: tauri::AppHandle,
+    state: State<'_, Companion>,
+    request: SignedRequest,
+    camera_index: u8,
+    enable_control: bool,
+) -> Result<gesture_host::GestureStatus, String> {
+    let args = GestureStartArgs {
+        camera_index,
+        enable_control,
+    };
+    verify_signed(&state, &request, "gesture_start", &args)?;
+    if camera_index > 8 {
+        return Err("Camera index must be between 0 and 8.".into());
+    }
+    if state.emergency.is_halted() {
+        return Err("Emergency stop is active. Clear it before starting gesture control.".into());
+    }
+    let worker_app = app.clone();
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        worker_app
+            .state::<Companion>()
+            .gesture
+            .start(camera_index, enable_control)
+    })
+    .await
+    .map_err(|_| "Gesture-control worker stopped unexpectedly.".to_string())?;
+    state.record(
+        "gesture",
+        if enable_control {
+            "Gesture cursor control started."
+        } else {
+            "Gesture preview started."
+        },
+        result.is_ok(),
+    );
+    result
+}
+
+#[tauri::command]
+fn gesture_stop(
+    state: State<'_, Companion>,
+    request: SignedRequest,
+) -> Result<gesture_host::GestureStatus, String> {
+    #[derive(Serialize)]
+    struct EmptyArgs {}
+    verify_signed(&state, &request, "gesture_stop", &EmptyArgs {})?;
+    state.gesture.stop();
+    state.record("gesture", "Gesture control stopped.", true);
+    Ok(state.gesture.status())
 }
 
 #[tauri::command]
@@ -1169,6 +1243,7 @@ fn cancel(
 fn emergency_stop(app: tauri::AppHandle, state: State<'_, Companion>) -> Result<bool, String> {
     state.emergency.halt();
     state.browser.emergency_stop();
+    state.gesture.stop();
     state.record("-", "EMERGENCY STOP — all companion actions halted.", true);
     let _ = app.emit("ocade://emergency-stop", true);
     Ok(true)
@@ -1245,6 +1320,9 @@ fn main() {
             app.state::<Companion>()
                 .browser
                 .configure(browser_host::locate_sidecar());
+            app.state::<Companion>()
+                .gesture
+                .configure(gesture_host::locate_sidecar());
             let data_dir = app.path().app_data_dir()?;
 
             /*
@@ -1327,11 +1405,18 @@ fn main() {
                         if let Some(state) = app.try_state::<Companion>() {
                             state.emergency.halt();
                             state.browser.emergency_stop();
+                            state.gesture.stop();
                             state.record("-", "EMERGENCY STOP from tray.", true);
                         }
                         let _ = app.emit("ocade://emergency-stop", true);
                     }
-                    "quit" => app.exit(0),
+                    "quit" => {
+                        if let Some(state) = app.try_state::<Companion>() {
+                            state.gesture.stop();
+                            state.browser.kill();
+                        }
+                        app.exit(0)
+                    }
                     _ => {}
                 })
                 .build(app)?;
@@ -1359,6 +1444,7 @@ fn main() {
                                 if let Some(state) = handle.try_state::<Companion>() {
                                     state.emergency.halt();
                                     state.browser.emergency_stop();
+                                    state.gesture.stop();
                                     state.record("-", "EMERGENCY STOP from global hotkey.", true);
                                 }
                                 let _ = handle.emit("ocade://emergency-stop", true);
@@ -1396,6 +1482,9 @@ fn main() {
             get_allowlist,
             set_allowlist,
             browser_host_request,
+            gesture_status,
+            gesture_start,
+            gesture_stop,
             execute,
             observe,
             cancel,

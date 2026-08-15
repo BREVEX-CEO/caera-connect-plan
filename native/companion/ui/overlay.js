@@ -130,12 +130,46 @@ async function refresh() {
     const caps = Array.isArray(status?.capabilities) ? status.capabilities : [];
     el("caps").textContent = caps.length ? caps.join(" · ") : "This build reports no capabilities.";
 
-    await refreshAudit();
+    await Promise.all([refreshAudit(), refreshGesture()]);
   } catch (e) {
     // Honest failure — never claim readiness we cannot verify.
     setHeader("bad", "Companion not responding");
     el("caps").textContent = e && e.message ? e.message : "The companion did not respond.";
   }
+}
+
+async function refreshGesture() {
+  try {
+    const status = await invoke("gesture_status");
+    const available = Boolean(status?.available);
+    const running = Boolean(status?.running);
+    const armed = Boolean(status?.controlEnabled);
+    el("gesturePreview").disabled = !available || running;
+    el("gestureArm").disabled = !available || running;
+    el("gestureStop").disabled = !running;
+    el("gestureCamera").disabled = running;
+    el("gestureStatus").textContent = !available
+      ? status?.reason || "This installation does not contain hand control."
+      : running
+        ? armed
+          ? "Hand control is active. Ctrl + Shift + F12 stops it immediately."
+          : "Camera preview is running; cursor control is off."
+        : "Ready. Preview the camera before activating cursor control.";
+  } catch (error) {
+    el("gestureStatus").textContent =
+      error?.message || "The hand-control status could not be read.";
+  }
+}
+
+async function startGesture(enableControl) {
+  const args = {
+    cameraIndex: Number(el("gestureCamera").value || 0),
+    enableControl,
+  };
+  const request = await signed("gesture_start", args);
+  await invoke("gesture_start", { request, ...args });
+  show(el("gestureConfirm"), false);
+  await Promise.all([refreshGesture(), refreshAudit()]);
 }
 
 async function refreshAudit() {
@@ -205,11 +239,43 @@ async function bindHostEvents() {
     show(el("runningBox"), false);
     show(el("haltedBox"), true);
     setHeader("bad", "Emergency stop active");
-    void refreshAudit();
+    void Promise.all([refreshAudit(), refreshGesture()]);
   });
 }
 
 el("refresh").addEventListener("click", () => void refresh());
+
+el("gesturePreview").addEventListener("click", async () => {
+  try {
+    await startGesture(false);
+  } catch (error) {
+    el("gestureStatus").textContent = error?.message || "Camera preview could not start.";
+  }
+});
+
+el("gestureArm").addEventListener("click", () => {
+  show(el("gestureConfirm"), true);
+  el("gestureStatus").textContent =
+    "Allow OCADE to move, click, drag and open items until you stop it?";
+});
+
+el("gestureConfirm").addEventListener("click", async () => {
+  try {
+    await startGesture(true);
+  } catch (error) {
+    el("gestureStatus").textContent = error?.message || "Hand control could not start.";
+  }
+});
+
+el("gestureStop").addEventListener("click", async () => {
+  try {
+    const request = await signed("gesture_stop", {});
+    await invoke("gesture_stop", { request });
+  } finally {
+    show(el("gestureConfirm"), false);
+    await Promise.all([refreshGesture(), refreshAudit()]);
+  }
+});
 
 el("hide").addEventListener("click", () => {
   const win = tauri()?.window?.getCurrentWindow?.();
@@ -226,7 +292,7 @@ el("stop").addEventListener("click", async () => {
     show(el("haltedBox"), true);
     show(el("runningBox"), false);
     setHeader("bad", "Emergency stop active");
-    void refreshAudit();
+    void Promise.all([refreshAudit(), refreshGesture()]);
   }
 });
 

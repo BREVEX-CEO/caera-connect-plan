@@ -20,6 +20,7 @@ function run(args, cwd = root) {
 }
 
 run([join(root, "scripts", "build-browser-sidecar.mjs")]);
+run([join(root, "scripts", "build-gesture-sidecar.mjs")]);
 run([tauriCli, "build", "--ci", "--no-sign", "--bundles", "nsis"], tauriDir);
 
 const installer = join(

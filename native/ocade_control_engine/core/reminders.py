@@ -387,14 +387,25 @@ def schedule(message: str, when: str) -> dict[str, Any]:
 
 def pending() -> dict[str, Any]:
     """Every reminder OCADE has scheduled."""
-    if _WINDOWS:
-        rows = _windows_pending()
-    elif _MACOS:
-        rows = _macos_pending()
-    elif _LINUX:
-        rows = _linux_pending()
-    else:
-        rows = []
+    try:
+        if _WINDOWS:
+            rows = _windows_pending()
+        elif _MACOS:
+            rows = _macos_pending()
+        elif _LINUX:
+            rows = _linux_pending()
+        else:
+            rows = []
+    except (OSError, subprocess.TimeoutExpired) as error:
+        # Listing is read-only status. A stalled scheduler must not crash the
+        # whole bridge, but an empty list must not be misreported as verified.
+        return {
+            "reminders": [],
+            "count": 0,
+            "verified": False,
+            "detail": f"The {_SYSTEM} reminder service did not respond in time.",
+            "reason": type(error).__name__,
+        }
     return {
         "reminders": rows,
         "count": len(rows),

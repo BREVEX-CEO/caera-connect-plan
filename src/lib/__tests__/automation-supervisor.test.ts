@@ -38,6 +38,9 @@ function companion(available = true): NativeCompanionAdapter {
     })),
     cancel: vi.fn(async () => undefined),
     emergencyStop: vi.fn(async () => undefined),
+    gestureStatus: vi.fn(async () => ({ available: false, running: false, controlEnabled: false, cameraIndex: null, reason: "Not installed in this unit test." })),
+    startGestureControl: vi.fn(),
+    stopGestureControl: vi.fn(),
   };
 }
 

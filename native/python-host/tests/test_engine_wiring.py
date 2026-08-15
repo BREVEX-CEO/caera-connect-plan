@@ -32,6 +32,7 @@ if str(ENGINE) not in sys.path:
     sys.path.insert(0, str(ENGINE))
 
 import ocade_bridge  # noqa: E402
+from core import reminders  # noqa: E402
 
 
 def _call(command: str, payload: dict | None = None) -> dict:
@@ -179,6 +180,18 @@ def test_every_read_only_command_answers_without_arguments(command: str) -> None
     """
     reply = _call(command)
     assert reply["ok"], f"{command}: {reply.get('error')}"
+
+
+def test_reminder_list_reports_an_unresponsive_scheduler_without_crashing(monkeypatch) -> None:
+    def stalled():
+        raise TimeoutError("scheduler did not answer")
+
+    monkeypatch.setattr(reminders, "_WINDOWS", True)
+    monkeypatch.setattr(reminders, "_windows_pending", stalled)
+    reply = _call("reminder.list")
+    assert reply["ok"] is True
+    assert reply["data"]["verified"] is False
+    assert reply["data"]["reminders"] == []
     assert "detail" in reply["data"], f"{command} returned no detail"
 
 

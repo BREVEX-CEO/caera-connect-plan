@@ -261,7 +261,7 @@ describe("navigation is network-first, and falls back rather than failing", () =
     expect(served.body).toBe("from network");
   });
 
-  it("serves the offline page when the network fails", async () => {
+  it("serves the cached application shell when an unvisited route loses the network", async () => {
     /*
      * The whole point of the worker. Without this a laptop on a plane gets the
      * browser's own error page, and the product's central claim is false at the
@@ -275,7 +275,7 @@ describe("navigation is network-first, and falls back rather than failing", () =
     await h.fire("fetch", event);
     const served = await (event as unknown as { _responses: Array<Promise<FakeResponse>> })
       ._responses[0];
-    expect(served.body).toMatch(/offline\.html/);
+    expect(served.body).toBe("precached:/");
   });
 
   it("prefers the exact page over the generic offline shell", async () => {

@@ -139,6 +139,16 @@ describe("the worker's stated invariants are still in the file", () => {
     expect(SOURCE).toContain('"/brand/ocade-wordmark.png"');
   });
 
+  it("pre-caches the application root for cold-start navigation", () => {
+    const precache = SOURCE.slice(SOURCE.indexOf("const PRECACHE"), SOURCE.indexOf("];", SOURCE.indexOf("const PRECACHE")));
+    expect(precache).toMatch(/["']\/["']/);
+  });
+
+  it("enables navigation preload to remove an avoidable online round trip", () => {
+    expect(SOURCE).toContain("navigationPreload");
+    expect(SOURCE).toContain("event.preloadResponse");
+  });
+
   it("only handles GET", () => {
     expect(SOURCE).toMatch(/request\.method\s*!==\s*["']GET["']/);
   });

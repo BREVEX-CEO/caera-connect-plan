@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import sys
 import time
 from pathlib import Path
 
@@ -22,6 +24,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--height", type=int, default=480)
     parser.add_argument("--fps", type=int, default=30)
     parser.add_argument("--probe-camera", action="store_true")
+    parser.add_argument("--self-test", action="store_true")
     parser.add_argument(
         "--enable-control",
         action="store_true",
@@ -94,6 +97,21 @@ def run(args: argparse.Namespace) -> None:
 def main() -> None:
     args = _parser().parse_args()
     config = CameraConfig(args.camera_index, args.width, args.height, args.fps)
+    if args.self_test:
+        import cv2
+        import mediapipe
+
+        model = args.model.resolve()
+        digest = hashlib.sha256(model.read_bytes()).hexdigest() if model.is_file() else None
+        print(json.dumps({
+            "protocolVersion": 1,
+            "python": sys.version.split()[0],
+            "mediapipe": mediapipe.__version__,
+            "opencv": cv2.__version__,
+            "modelBundled": model.is_file(),
+            "modelSha256": digest,
+        }))
+        return
     if args.probe_camera:
         print(json.dumps(probe_camera(config)))
         return

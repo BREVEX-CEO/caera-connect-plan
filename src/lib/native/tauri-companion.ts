@@ -23,6 +23,8 @@ import {
   type CompanionApplication,
   type CompanionPermissionStatus,
   type CompanionStatus,
+  type GestureControlOptions,
+  type GestureControlStatus,
   type ExecuteOptions,
   type ExecuteResult,
   type NativeCompanionAdapter,
@@ -172,6 +174,33 @@ function parsePermissions(value: unknown): CompanionPermissionStatus[] {
       guidance: redactForAudit(String(item.guidance)).slice(0, 500),
     }))
     .slice(0, 20);
+}
+
+function parseGestureStatus(value: unknown): GestureControlStatus {
+  if (!value || typeof value !== "object") {
+    throw new Error("The gesture host returned an invalid status.");
+  }
+  const status = value as Record<string, unknown>;
+  if (
+    typeof status.available !== "boolean" ||
+    typeof status.running !== "boolean" ||
+    typeof status.controlEnabled !== "boolean" ||
+    !(
+      status.cameraIndex === null ||
+      (Number.isInteger(status.cameraIndex) &&
+        Number(status.cameraIndex) >= 0 &&
+        Number(status.cameraIndex) <= 8)
+    )
+  ) {
+    throw new Error("The gesture host returned an invalid status.");
+  }
+  return {
+    available: status.available,
+    running: status.running,
+    controlEnabled: status.controlEnabled,
+    cameraIndex: status.cameraIndex === null ? null : Number(status.cameraIndex),
+    reason: typeof status.reason === "string" ? redactForAudit(status.reason).slice(0, 500) : undefined,
+  };
 }
 
 /**
@@ -393,6 +422,30 @@ export class TauriCompanion implements NativeCompanionAdapter, NativeObservation
     const request = this.session.sign("reset_emergency_stop", {});
     await this.call("reset_emergency_stop", { request });
     this.halted = false;
+  }
+
+  async gestureStatus(): Promise<GestureControlStatus> {
+    this.ensureOpen();
+    return parseGestureStatus(await this.call("gesture_status"));
+  }
+
+  async startGestureControl(options: GestureControlOptions): Promise<GestureControlStatus> {
+    this.ensureOpen();
+    if (!Number.isInteger(options.cameraIndex) || options.cameraIndex < 0 || options.cameraIndex > 8) {
+      throw new Error("Camera index must be between 0 and 8.");
+    }
+    const args = {
+      cameraIndex: options.cameraIndex,
+      enableControl: Boolean(options.enableControl),
+    };
+    const request = this.session.sign("gesture_start", args);
+    return parseGestureStatus(await this.call("gesture_start", { request, ...args }));
+  }
+
+  async stopGestureControl(): Promise<GestureControlStatus> {
+    this.ensureOpen();
+    const request = this.session.sign("gesture_stop", {});
+    return parseGestureStatus(await this.call("gesture_stop", { request }));
   }
 
   /**

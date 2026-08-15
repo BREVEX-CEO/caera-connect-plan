@@ -51,6 +51,8 @@ class GesturePcController:
                 self._mouse.position = self.mapper.map(event.x, event.y)
             elif event.kind == "click":
                 self._mouse.click(self._left, 1)
+            elif event.kind == "double_click":
+                self._mouse.click(self._left, 2)
             elif event.kind == "button_down" and not self._down:
                 self._mouse.press(self._left)
                 self._down = True

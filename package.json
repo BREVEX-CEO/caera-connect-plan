@@ -73,6 +73,7 @@
     "browser-safety:check": "node scripts/check-browser-safety.mjs",
     "browser:host-check": "node --check native/browser-host/index.mjs && node native/browser-host/index.mjs --self-test",
     "browser:sidecar-build": "node scripts/build-browser-sidecar.mjs",
+    "gesture:sidecar-build": "node scripts/build-gesture-sidecar.mjs",
     "browser:cdp-parity": "node scripts/browser-cdp-parity.mjs",
     "desktop:bundle:windows": "node scripts/build-windows-installer.mjs",
     "agent:live-check": "vite-node scripts/agent-loop-evidence.mts"

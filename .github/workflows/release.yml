@@ -24,8 +24,18 @@ jobs:
       with:
         targets: x86_64-pc-windows-msvc
 
+    - name: Setup Python for packaged hand control
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
     - name: Build Web App
       run: npm run build
+
+    - name: Build native sidecars
+      run: |
+        npm run browser:sidecar-build
+        npm run gesture:sidecar-build
 
     - name: Build Tauri App
       uses: tauri-apps/tauri-action@v0

@@ -6,6 +6,7 @@ import { LocalEngineControl } from "@/components/ocade/LocalEngineControl";
 import { LocalModelLifecyclePanel } from "@/components/ocade/LocalModelLifecyclePanel";
 import { useDevicePolicy, describeDeviceSource } from "@/lib/use-device-policy";
 import { PairedComputerPanel } from "@/components/settings/PairedComputerPanel";
+import { GestureControlPanel } from "@/components/settings/GestureControlPanel";
 
 /**
  * OCADE Local Engine settings.
@@ -167,6 +168,8 @@ export function LocalEngineSettingsPanel() {
         </GlassPanel>
 
         <PairedComputerPanel />
+
+        <GestureControlPanel />
 
         <GlassPanel className="p-5">
           <h2 className="text-sm font-semibold text-foreground">Keeping this computer usable</h2>

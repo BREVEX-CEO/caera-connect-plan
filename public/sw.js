@@ -22,7 +22,7 @@
  *     deploy cannot leave two generations of assets fighting.
  */
 
-const VERSION = "ocade-shell-v4";
+const VERSION = "ocade-shell-v5";
 const OFFLINE_URL = "/offline.html";
 
 /**
@@ -34,6 +34,7 @@ const OFFLINE_URL = "/offline.html";
  * below once they have been fetched successfully at least once.
  */
 const PRECACHE = [
+  "/",
   OFFLINE_URL,
   "/favicon.ico",
   "/manifest.webmanifest",
@@ -58,10 +59,14 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
+    Promise.all([
+      caches
+        .keys()
+        .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k)))),
+      // Navigation preload removes the service-worker startup round trip on a
+      // normal online visit. Unsupported engines simply skip this branch.
+      self.registration?.navigationPreload?.enable?.().catch(() => undefined),
+    ]).then(() => self.clients.claim()),
   );
 });
 
@@ -127,7 +132,8 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
+      Promise.resolve(event.preloadResponse)
+        .then((preloaded) => preloaded ?? fetch(request))
         .then((response) => {
           const cacheControl = response.headers.get("cache-control") ?? "";
           const contentType = response.headers.get("content-type") ?? "";
@@ -153,7 +159,8 @@ self.addEventListener("fetch", (event) => {
           // offline shell. Never a different page's markup, which would show
           // the user somewhere they are not.
           const cached = await caches.match(request);
-          return cached ?? (await caches.match(OFFLINE_URL)) ?? Response.error();
+          const appShell = await caches.match("/");
+          return cached ?? appShell ?? (await caches.match(OFFLINE_URL)) ?? Response.error();
         }),
     );
     return;

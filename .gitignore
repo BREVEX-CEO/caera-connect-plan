@@ -36,6 +36,8 @@ dist-ssr
 # target-specific executable and Tauri bundles it through externalBin.
 .browser-sidecar/
 native/companion/tauri/binaries/ocade-browser-host-*
+.gesture-sidecar/
+native/companion/tauri/binaries/ocade-gesture-host-*
 native/companion/tauri/target/
 native/companion/tauri/gen/
 # The safety crate builds to its own target directory, which this list did not

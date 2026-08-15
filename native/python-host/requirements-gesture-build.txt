@@ -1,0 +1,3 @@
+# Build-only dependency. The shipped executable contains its own Python runtime;
+# an OCADE customer does not install Python or these packages.
+PyInstaller==6.22.1
