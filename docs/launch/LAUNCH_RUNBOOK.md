@@ -7,15 +7,30 @@
 
 ## Launch mechanism
 
-Deploy and verify the production site before launch behind honest “planned
-launch” copy. Do not schedule DNS registration or the first production deploy
-for 08:28; DNS, builds, caches and app-store review are not exact-time systems.
+Deploy and verify the production site early, behind the edge launch gate. Do not
+schedule DNS registration or the first production deploy for the launch minute;
+DNS, builds, caches and app-store review are not exact-time systems.
 
-At 08:28 IST, a named launch operator performs a narrow launch-status change only
-after the gate below is green. Automation may prepare the change, but a backend
-must verify the release state; a browser-clock countdown alone is not authority.
-Cloudflare cron/deployment propagation is best effort and cannot guarantee an
-exact instant worldwide.
+The gate lives in the Cloudflare Worker (`src/server.ts`), before the
+application is imported and before static application assets can be served
+(`assets.run_worker_first = true`). It opens only when BOTH hold:
+
+1. Server/edge time is at or after `LAUNCH_AT_ISO` in
+   `src/lib/launch/launch-window.ts`.
+2. The Cloudflare Worker secret/var `OCADE_LAUNCH_READY` is exactly `true`,
+   set by a named operator after the real checks below pass.
+
+While locked, public requests get a minimal 503 pre-launch page saying only
+“Planned launch 28 August 2026”, with `Cache-Control: no-store`,
+`Retry-After` and `X-Robots-Tag: noindex, nofollow, noarchive`; `/robots.txt`
+returns disallow-all and the sitemap is not served. `/api/health` stays
+available for deployment verification and never reports the launch time.
+Local development and approved internal preview hosts stay fully testable.
+
+Once readiness is set, no further deploy, DNS change, cron job or client-side
+countdown is required: the server clock opens the gate at the target instant.
+An unready release stays locked rather than launching broken; the clock never
+turns a failed deployment into a launch.
 
 ## T-7 days
 
@@ -45,13 +60,19 @@ exact instant worldwide.
 - Payment receipt/refund and entitlement reconciliation verified if live.
 - Final visible copy still says “planned”; no indexed page says “launched.”
 
-## 08:28 IST gate
+## Readiness gate
 
-Proceed only if all required checks are independently green. Change visible copy
-to “launched on 28 August 2026,” release the verified download/payment links and
-submit prepared directory posts. Record exact operator, time, commit/deployment
-ID and screenshots. If a required gate is red, keep “planned/delayed” copy and
-announce a factual delay; do not backdate the launch later.
+Set `OCADE_LAUNCH_READY=true` on the production Worker only if all required
+checks are independently green. Setting it before the launch instant is safe:
+the edge gate still refuses to open until the server clock reaches the target.
+After it opens, release the verified download/payment links and submit prepared
+directory posts. Record exact operator, time, commit/deployment ID and
+screenshots. If a required gate is red, leave (or unset) the readiness flag —
+the product stays locked behind “planned” copy — and announce a factual delay;
+do not backdate the launch later.
+
+Emergency re-lock: set `OCADE_LAUNCH_READY=false` on the Worker. The gate closes
+on the next request without a code deploy.
 
 ## After launch
 

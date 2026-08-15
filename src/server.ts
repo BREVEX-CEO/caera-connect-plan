@@ -3,6 +3,8 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { releaseHealthResponse } from "./lib/release-health";
+import { evaluateLaunchGate } from "./lib/launch/launch-window";
+import { prelaunchResponse } from "./lib/launch/prelaunch-response";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -47,8 +49,24 @@ function isH3SwallowedErrorBody(body: string): boolean {
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    // Health stays available for deployment verification in every state. It
+    // reports only service name, version and liveness — never the launch time.
     const health = releaseHealthResponse(request);
     if (health) return health;
+
+    // The launch gate runs before the application is even imported, so no
+    // route, API or static application asset can be served while locked. The
+    // clock used here is the server/edge clock; the browser clock is never
+    // consulted, and time alone is not enough — readiness must also be set.
+    const url = new URL(request.url);
+    const gate = evaluateLaunchGate({
+      now: Date.now(),
+      hostname: url.hostname,
+      env: env as Record<string, unknown> | null,
+    });
+    if (!gate.open) return prelaunchResponse(url.pathname, gate);
+
+
 
     try {
       const handler = await getServerEntry();
