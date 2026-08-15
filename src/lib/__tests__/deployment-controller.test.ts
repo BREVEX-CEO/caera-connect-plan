@@ -29,6 +29,7 @@ function materialiseFixture(options: { generatedName?: string; generatedMain?: s
       name: "ocade-web",
       keep_vars: true,
       observability: { enabled: true },
+      assets: { run_worker_first: true },
     }),
   );
   mkdirSync(join(root, ".output", "server"), { recursive: true });
@@ -37,7 +38,7 @@ function materialiseFixture(options: { generatedName?: string; generatedMain?: s
     JSON.stringify({
       name: options.generatedName ?? "ocade-web",
       main: options.generatedMain ?? "index.mjs",
-      assets: { binding: "ASSETS" },
+      assets: { binding: "ASSETS", run_worker_first: true },
     }),
   );
   writeFileSync(join(root, ".output", "server", "index.mjs"), "export default {};\n");

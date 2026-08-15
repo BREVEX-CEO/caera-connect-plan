@@ -85,6 +85,11 @@ export function createDeploymentPlan({
       if (source.observability?.enabled !== true) {
         blockers.push("Cloudflare observability must be enabled");
       }
+      if (source.assets?.run_worker_first !== true) {
+        blockers.push(
+          "Cloudflare assets must run the Worker first so the launch gate cannot be bypassed",
+        );
+      }
       if (source.vars !== undefined)
         blockers.push("source config must not contain deploy-time values");
     } catch {
@@ -153,6 +158,9 @@ function validateBuiltOutput(plan, cwd) {
       failures.push("generated worker name differs from source");
     if (generated.main !== "index.mjs") failures.push("generated worker entry is unexpected");
     if (generated.assets?.binding !== "ASSETS") failures.push("generated asset binding is missing");
+    if (generated.assets?.run_worker_first !== true) {
+      failures.push("generated assets do not enforce Worker-first launch gating");
+    }
   } catch {
     failures.push("generated Wrangler configuration is unreadable");
   }

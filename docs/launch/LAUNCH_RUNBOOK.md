@@ -7,15 +7,20 @@
 
 ## Launch mechanism
 
-Deploy and verify the production site before launch behind honest “planned
-launch” copy. Do not schedule DNS registration or the first production deploy
-for 08:28; DNS, builds, caches and app-store review are not exact-time systems.
+Deploy and verify the production site before launch. The server entry checks a
+fixed launch instant (`2026-08-28T02:58:00.000Z`) on every public request and
+fails closed until `OCADE_LAUNCH_READY` is exactly `true`. Before then it returns
+a no-store, no-index planned-launch page, blocks application APIs and serves a
+`Disallow: /` robots policy. `/api/health` remains available for independent
+deployment verification. Cloudflare static assets use `run_worker_first`, so a
+direct asset URL cannot bypass the server gate.
 
-At 08:28 IST, a named launch operator performs a narrow launch-status change only
-after the gate below is green. Automation may prepare the change, but a backend
-must verify the release state; a browser-clock countdown alone is not authority.
-Cloudflare cron/deployment propagation is best effort and cannot guarantee an
-exact instant worldwide.
+Do not schedule DNS registration or the first production deploy for 08:28; DNS,
+builds, caches and app-store review are not exact-time systems. Set the readiness
+flag only after the gate below is green. The clock then opens the already-running
+release on the first request at or after 08:28 IST without a DNS or deployment
+change. If readiness remains false, the service remains closed after the planned
+time rather than launching a failed release.
 
 ## T-7 days
 
@@ -43,15 +48,20 @@ exact instant worldwide.
 - No active severity-one/two issue; monitoring and logs healthy.
 - Domain resolves from multiple networks; production page and downloads open.
 - Payment receipt/refund and entitlement reconciliation verified if live.
-- Final visible copy still says “planned”; no indexed page says “launched.”
+- Final visible copy still says “planned”; the prelaunch response is no-index and
+  no indexed page says “launched.”
+- Set Cloudflare Worker variable `OCADE_LAUNCH_READY=true` only when every
+  required check is green. Keep it `false` otherwise.
 
 ## 08:28 IST gate
 
-Proceed only if all required checks are independently green. Change visible copy
-to “launched on 28 August 2026,” release the verified download/payment links and
-submit prepared directory posts. Record exact operator, time, commit/deployment
-ID and screenshots. If a required gate is red, keep “planned/delayed” copy and
-announce a factual delay; do not backdate the launch later.
+If all required checks were independently green and the readiness flag is true,
+the server gate opens automatically at 08:28 IST. Verify the public response,
+then change visible copy to “launched on 28 August 2026,” release only verified
+download/payment links and submit prepared directory posts. Record exact
+operator, time, commit/deployment ID and screenshots. If a required gate is red,
+keep readiness false, retain “planned/delayed” copy and announce a factual delay;
+do not backdate the launch later.
 
 ## After launch
 

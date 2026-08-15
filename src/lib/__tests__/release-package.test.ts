@@ -55,6 +55,7 @@ describe("OCADE release source package", () => {
       compatibility_flags: string[];
       keep_vars: boolean;
       observability: { enabled: boolean };
+      assets: { run_worker_first: boolean };
       vars?: unknown;
     }>("wrangler.json");
 
@@ -63,6 +64,7 @@ describe("OCADE release source package", () => {
     expect(config.compatibility_flags).toContain("nodejs_compat");
     expect(config.keep_vars).toBe(true);
     expect(config.observability.enabled).toBe(true);
+    expect(config.assets.run_worker_first).toBe(true);
     expect(config.vars).toBeUndefined();
   });
 
@@ -94,7 +96,11 @@ describe("OCADE release source package", () => {
   it("routes liveness before loading the application SSR entry", () => {
     const server = read("src/server.ts");
     expect(server).toContain("releaseHealthResponse(request)");
+    expect(server).toContain("productionLaunchGateResponse(");
     expect(server.indexOf("releaseHealthResponse(request)")).toBeLessThan(
+      server.indexOf("productionLaunchGateResponse("),
+    );
+    expect(server.indexOf("productionLaunchGateResponse(")).toBeLessThan(
       server.indexOf("const handler = await getServerEntry()"),
     );
   });

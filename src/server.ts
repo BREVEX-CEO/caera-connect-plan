@@ -2,6 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { productionLaunchGateResponse } from "./lib/production-launch-gate";
 import { releaseHealthResponse } from "./lib/release-health";
 
 type ServerEntry = {
@@ -49,6 +50,12 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     const health = releaseHealthResponse(request);
     if (health) return health;
+
+    const launchGate = productionLaunchGateResponse(
+      request,
+      env != null && typeof env === "object" ? (env as Record<string, unknown>) : undefined,
+    );
+    if (launchGate) return launchGate;
 
     try {
       const handler = await getServerEntry();

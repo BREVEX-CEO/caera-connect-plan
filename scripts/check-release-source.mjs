@@ -154,6 +154,10 @@ check(health.includes(`OCADE_RELEASE_VERSION = "${version}"`), "health version d
 check(wrangler.name === "ocade-web", "Cloudflare worker name is not stable");
 check(wrangler.keep_vars === true, "Cloudflare deploy could erase dashboard-managed values");
 check(wrangler.observability?.enabled === true, "Cloudflare observability is not enabled");
+check(
+  wrangler.assets?.run_worker_first === true,
+  "Cloudflare assets can bypass the production launch gate",
+);
 check(wrangler.vars === undefined, "Cloudflare values must not be committed in source config");
 check(
   Array.isArray(wrangler.compatibility_flags) &&
@@ -241,6 +245,10 @@ if (existsSync(generatedPath)) {
   check(generated.name === wrangler.name, "generated worker name differs from source config");
   check(generated.main === "index.mjs", "generated worker entry is unexpected");
   check(generated.assets?.binding === "ASSETS", "generated static-asset binding is missing");
+  check(
+    generated.assets?.run_worker_first === true,
+    "generated assets can bypass the production launch gate",
+  );
   check(statSync(resolve(root, ".output/server/index.mjs")).size > 0, "worker entry is empty");
 }
 

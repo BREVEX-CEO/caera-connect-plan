@@ -93,23 +93,22 @@ designs, social accounts and contracts if the company is to own them.
 
 ## 5. Domain and Cloudflare
 
-Current authoritative RDAP checks show `ocade.com` registered and `ocade.ai` not
-found at the `.ai` RDAP service on 15 August 2026. This is not a reservation.
-Recheck availability and exact price immediately before paying. Cloudflare
-supports `.ai` registration at cost, but the purchase requires a verified account,
-billing profile, registrant details and acceptance of the registration agreement.
+`ocade.in` was purchased and activated by the owner on 15 August 2026. This is
+domain ownership evidence only; it is not evidence of company incorporation or
+product launch. `ocade.ai` remains a possible later global-primary domain.
 
 Preferred order:
 
 1. Confirm trademark risk.
-2. In the owner’s Cloudflare account, check `ocade.ai` availability and two-year
-   total/renewal price.
-3. Owner reviews registrant details, agreement and payment, then explicitly
-   authorizes purchase.
-4. Enable registrar lock, DNSSEC, MFA and recovery codes.
-5. Activate and test `support@ocade.ai` plus privacy/security contacts.
-6. Configure production domain, canonical URLs, sitemap and Search Console only
-   after the domain is controlled.
+2. Add `ocade.in` to the owner’s Cloudflare account and copy every existing DNS
+   record before changing the GoDaddy nameservers.
+3. Point Cloudflare DNS to the verified deployment, enable the available domain
+   security controls, redirects, rate limits and certificate monitoring.
+4. Activate and test `support@ocade.in` plus privacy/security contacts.
+5. Configure production canonical URLs, sitemap and Search Console only after
+   the domain is controlled.
+6. Consider `ocade.ai` later only after a fresh availability and total-cost
+   check; no agent should accept registrar terms or spend without approval.
 
 Cloudflare Pages static requests can be low-cost; Functions share Workers usage.
 The free Workers plan has stricter CPU and bundle limits than paid. Run the real

@@ -119,7 +119,7 @@ deletion, breach contacts, vendor notification paths and production monitoring.
 
 ## 12. Contacts and changes
 
-`support@ocade.ai` and `CAERACADANE28@gmail.com` are intended addresses but are
+`support@ocade.in` and `CAERACADANE28@gmail.com` are intended addresses but are
 not verified in this repository. Do not call either an active legal channel
 until delivery, access control, retention and response ownership are tested.
 
