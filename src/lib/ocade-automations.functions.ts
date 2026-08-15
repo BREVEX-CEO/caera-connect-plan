@@ -396,7 +396,7 @@ export const decideAutomationRun = createServerFn({ method: "POST" })
     const { data: persisted, error } = await context.supabase.rpc("ocade_decide_automation_run", {
       p_run_id: data.runId,
       p_decision: data.decision,
-      p_device_id: data.deviceId ?? null,
+      p_device_id: data.deviceId ?? undefined,
     });
     if (error) throw new Response(error.message, { status: 500 });
     if (persisted === "approval_expired") {
