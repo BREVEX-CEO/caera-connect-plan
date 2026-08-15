@@ -14,7 +14,7 @@ export const Route = createFileRoute("/terms")({
 function TermsPage() {
   return (
     <PublicPage
-      eyebrow="Last updated 15 August 2026"
+      eyebrow="Last updated 16 August 2026"
       title="Terms of service"
       summary="These draft terms describe the intended service rules. They are not effective until legal review, publication and acceptance through the launched service."
     >
@@ -44,11 +44,27 @@ function TermsPage() {
       </PublicSection>
       <PublicSection title="Demo, subscriptions and limits">
         <p>
-          Demo mode uses sample data and is not a production account. Current source models 28
-          successful cloud requests in each eight-hour window while local processing remains
-          unlimited where available. It does not implement “28 hours of use followed by an 8-hour
-          lockout.” Prices, taxes, renewal, refunds, cancellation and provider-specific payment
-          terms must be shown at checkout and approved before payments are accepted.
+          Demo mode uses sample data and is not a production account. Paid plans are 8 days for
+          ₹288 or 4.28 in the selected supported international currency, 30 days for ₹488 or 28,
+          and 1 year for ₹5,888 or 128. The 8-day, 30-day and annual plans include 28, 56 and 128
+          successful OCADE Cloud requests respectively in each eight-hour window. Supported local
+          processing remains unlimited. Taxes and currency conversion, where required, must be
+          shown before payment.
+        </p>
+        <p>
+          These are fixed-duration purchases and do not renew automatically unless a future
+          checkout clearly offers renewal and the user separately opts in. Final refund,
+          cancellation and statutory consumer-right wording requires legal review before payments
+          are accepted.
+        </p>
+      </PublicSection>
+      <PublicSection title="Payment methods, invoices and support">
+        <p>
+          Planned web payment methods are Razorpay-hosted UPI Intent or QR and cards, plus PayPal
+          for eligible international transactions. Availability depends on approved provider
+          accounts and location. OCADE stores provider references, status, invoice totals and
+          receipt links—not full card details, UPI PINs or PayPal credentials. Signed-in customers
+          can view their payment and invoice history and keep the full history of support cases.
         </p>
       </PublicSection>
       <PublicSection title="App-store purchases">

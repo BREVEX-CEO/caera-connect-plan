@@ -10,6 +10,7 @@ import {
   Loader2,
   Mic,
   MicOff,
+  MonitorCog,
   Paperclip,
   Keyboard,
   Pencil,
@@ -745,6 +746,7 @@ function OcadeContextualSidebar(props: {
         }}
         footer={
           <div className="space-y-0.5">
+            <SidebarLink icon={MonitorCog} label="OCADE Control + Work" to="/ocade/work" />
             <SidebarLink icon={FileCode2} label="Code" to="/ocade/code" />
             <SidebarLink icon={FolderOpen} label="Projects" to="/ocade/projects" />
             <SidebarLink icon={FileOutput} label="Files" to="/ocade/artifacts" />
@@ -779,7 +781,12 @@ function SidebarLink({
 }: {
   icon: typeof FolderOpen;
   label: string;
-  to: "/ocade/code" | "/ocade/projects" | "/ocade/artifacts" | "/ocade/automations";
+  to:
+    | "/ocade/work"
+    | "/ocade/code"
+    | "/ocade/projects"
+    | "/ocade/artifacts"
+    | "/ocade/automations";
 }) {
   return (
     <Link

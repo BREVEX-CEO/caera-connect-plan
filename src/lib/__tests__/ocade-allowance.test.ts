@@ -115,10 +115,15 @@ describe("entitlements", () => {
     expect(expiryOf(e).toISOString()).toBe("2026-07-09T00:00:00.000Z");
   });
 
-  it.each(["trial_2d", "std_8d", "month_1m", "year_1y"] as const)(
-    "%s grants the same allowance and device limits",
-    (id) => {
-      expect(PLANS[id].cloudAllowancePerWindow).toBe(CLOUD_ALLOWANCE);
+  it.each([
+    ["trial_2d", CLOUD_ALLOWANCE],
+    ["std_8d", 28],
+    ["month_1m", 56],
+    ["year_1y", 128],
+  ] as const)(
+    "%s grants its plan allowance and the common device limits",
+    (id, allowance) => {
+      expect(PLANS[id].cloudAllowancePerWindow).toBe(allowance);
       expect(PLANS[id].desktopDevices).toBe(2);
       expect(PLANS[id].mobileDevices).toBe(2);
     },

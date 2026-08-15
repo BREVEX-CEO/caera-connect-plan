@@ -21,6 +21,8 @@ import {
   OCADE_IDENTITY,
 } from "@/lib/ocade-identity";
 import { wrapUntrustedContent } from "@/lib/ocade-injection-guard";
+import { ocadeCorePolicy } from "@/lib/agent/ocade-core-policy";
+import { planById, type PlanId } from "@/lib/payments/pricing";
 import {
   allowanceState,
   canUseCloud,
@@ -292,11 +294,9 @@ export const Route = createFileRoute("/api/ocade/chat")({
             "OCADE Cloud usage could not be verified. Apply or repair the usage migration before using cloud chat.",
           );
         }
-        const allowance = allowanceState(Number(usageRow?.used_count ?? 0));
-
         const { data: subRow, error: subscriptionError } = await supabase
           .from("ocade_subscriptions")
-          .select("expires_at, status")
+          .select("plan_id, expires_at, status")
           .eq("user_id", user.id)
           .order("expires_at", { ascending: false })
           .limit(1)
@@ -307,7 +307,9 @@ export const Route = createFileRoute("/api/ocade/chat")({
             "OCADE Cloud entitlement could not be verified. Apply or repair the subscription migration before using cloud chat.",
           );
         }
-        const sub = subRow as { expires_at?: string; status?: string } | null;
+        const sub = subRow as { plan_id?: string; expires_at?: string; status?: string } | null;
+        const planAllowance = planById((sub?.plan_id ?? "std_8d") as PlanId)?.cloudAllowance;
+        const allowance = allowanceState(Number(usageRow?.used_count ?? 0), new Date(), planAllowance);
         const entitlementActive = cloudEntitlementActive(
           sub
             ? {
@@ -432,6 +434,7 @@ export const Route = createFileRoute("/api/ocade/chat")({
           : "";
 
         const systemPrompt =
+          `${ocadeCorePolicy("chat")}\n\n` +
           `You are ${OCADE_IDENTITY.displayName}, developed and created by ${OCADE_IDENTITY.vendor} — a private, local-first AI coworker. ` +
           `When asked who or what you are, say: "${ocadeCreatorStatement()}" ` +
           `For this request you are running as ${engineLabel}.${identityDirective} ` +

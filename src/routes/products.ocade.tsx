@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPage, PublicSection } from "@/components/public/PublicPage";
 import { OCADE_STRUCTURED_DATA, PUBLIC_IDENTITY } from "@/lib/public-identity";
 
@@ -51,8 +51,11 @@ function OcadePage() {
       <PublicSection title="Subscriptions and devices">
         <p>
           The entitlement source currently models up to two mobile and two desktop devices per
-          subscription. Payment checkout is not yet a verified production service, so this page does
-          not advertise a price or accept payment.
+          subscription. The founder-approved pre-launch prices are listed on the{` `}
+          <Link to="/pricing" className="text-foreground underline">
+            pricing page
+          </Link>
+          . Payment checkout is not yet a verified production service and does not accept money.
         </p>
       </PublicSection>
     </PublicPage>

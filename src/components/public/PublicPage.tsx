@@ -43,6 +43,9 @@ export function PublicPage({
             <Link to="/products/ocade" className="hover:text-foreground">
               OCADE
             </Link>
+            <Link to="/pricing" className="hover:text-foreground">
+              Pricing
+            </Link>
             <Link to="/founder/haans-antoni" className="hover:text-foreground">
               Founder
             </Link>

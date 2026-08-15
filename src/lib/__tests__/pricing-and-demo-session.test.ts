@@ -31,7 +31,7 @@ describe("the pricing rule is enforced, not remembered", () => {
     const failures: string[] = [];
     for (const plan of PLANS) {
       for (const price of plan.prices) {
-        const check = checkPrice(price.amount);
+        const check = checkPrice(price.amountMinor, price.currency);
         if (!check.valid) failures.push(`${plan.id}/${price.currency}: ${check.reason}`);
       }
     }
@@ -45,35 +45,22 @@ describe("the pricing rule is enforced, not remembered", () => {
     }
   });
 
-  it("accepts the four documented forms", () => {
-    expect(checkPrice(28).valid).toBe(true); // ends in 28
-    expect(checkPrice(9928).valid).toBe(true); // four digits, digit total 28
-    expect(checkPrice(350).valid).toBe(true); // three digits, digit total 8
-    expect(checkPrice(8).valid).toBe(true); // fallback: ends in 8, total 8
+  it("accepts prices whose rendered value ends in 8 or 28", () => {
+    expect(checkPrice(428, "USD").valid).toBe(true); // $4.28
+    expect(checkPrice(2_800, "USD").valid).toBe(true); // $28
+    expect(checkPrice(12_800, "USD").valid).toBe(true); // $128
+    expect(checkPrice(28_800, "INR").valid).toBe(true); // ₹288
   });
 
-  it("rejects a four-digit price whose digits do not total 28", () => {
-    // 2828 is the obvious "looks right" price and it is wrong: 2+8+2+8 = 20.
-    const check = checkPrice(2828);
+  it("rejects a price whose rendered value does not end in 8 or 28", () => {
+    const check = checkPrice(2_500, "USD");
     expect(check.valid).toBe(false);
-    expect(check.reason).toContain("digit total of 20");
-  });
-
-  it("rejects a three-digit price whose digits do not total 8", () => {
-    // 128 ends in 28 and still fails, which is why rule 1 is a preference: no
-    // three-digit number ending in 28 can total 8.
-    expect(checkPrice(128).valid).toBe(false);
-    expect(checkPrice(228).valid).toBe(false);
-  });
-
-  it("rejects a short price that ends in neither 8 nor 28", () => {
-    expect(checkPrice(25).valid).toBe(false);
-    expect(checkPrice(10).valid).toBe(false);
+    expect(check.reason).toContain("must end in 8 or 28");
   });
 
   it("treats free as valid, because a signature on zero means nothing", () => {
     expect(checkPrice(0).valid).toBe(true);
-    expect(describePrice({ currency: "USD", amount: 0 })).toBe("Free");
+    expect(describePrice({ currency: "USD", amountMinor: 0 })).toBe("Free");
   });
 
   it("REFUSES TO RENDER an invalid price rather than falling back", () => {
@@ -81,22 +68,22 @@ describe("the pricing rule is enforced, not remembered", () => {
      * The assertion this module exists for. A silent fallback would put the
      * exact price the rule forbids in front of a paying customer, quietly.
      */
-    expect(() => describePrice({ currency: "USD", amount: 2828 })).toThrow(
+    expect(() => describePrice({ currency: "USD", amountMinor: 2_500 })).toThrow(
       /Refusing to display an invalid price/,
     );
   });
 
   it("formats a valid price with the right symbol", () => {
-    expect(describePrice({ currency: "USD", amount: 28 })).toBe("$28");
-    expect(describePrice({ currency: "INR", amount: 3889 })).toBe("₹3,889");
+    expect(describePrice({ currency: "USD", amountMinor: 428 })).toBe("$4.28");
+    expect(describePrice({ currency: "INR", amountMinor: 588_800 })).toBe("₹5,888");
   });
 
   it("orders the paid plans by price within each currency", () => {
     // A longer plan costing less than a shorter one is a pricing bug that no
     // amount of digit-sum validation would catch.
     for (const currency of CURRENCIES) {
-      const paid = PLANS.filter((p) => p.id !== "demo");
-      const amounts = paid.map((p) => priceFor(p, currency).amount);
+      const paid = PLANS.filter((p) => p.publiclyAvailable);
+      const amounts = paid.map((p) => priceFor(p, currency).amountMinor);
       expect(
         [...amounts].sort((a, b) => a - b),
         `${currency} plans are out of order`,
@@ -105,8 +92,8 @@ describe("the pricing rule is enforced, not remembered", () => {
   });
 
   it("gives a longer plan a better rate than the monthly one", () => {
-    const month = priceFor(planById("month_1m")!, "USD").amount;
-    const year = priceFor(planById("year_1y")!, "USD").amount;
+    const month = priceFor(planById("month_1m")!, "USD").amountMinor;
+    const year = priceFor(planById("year_1y")!, "USD").amountMinor;
     expect(year).toBeLessThan(month * 12);
   });
 
@@ -115,9 +102,9 @@ describe("the pricing rule is enforced, not remembered", () => {
     expect(CLOUD_WINDOW_MS).toBe(8 * 60 * 60 * 1000);
     // The demo has no cloud allowance at all: it runs on the device or not.
     expect(planById("demo")!.cloudAllowance).toBe(0);
-    for (const plan of PLANS.filter((p) => p.id !== "demo")) {
-      expect(plan.cloudAllowance).toBe(CLOUD_ALLOWANCE);
-    }
+    expect(planById("std_8d")!.cloudAllowance).toBe(28);
+    expect(planById("month_1m")!.cloudAllowance).toBe(56);
+    expect(planById("year_1y")!.cloudAllowance).toBe(128);
   });
 
   it("keeps payment product ids out of source", () => {
@@ -132,13 +119,12 @@ describe("the pricing rule is enforced, not remembered", () => {
   });
 
   it("reports missing product ids instead of throwing", () => {
-    expect(missingProductIds({})).toHaveLength(4);
+    expect(missingProductIds({})).toHaveLength(3);
     expect(
       missingProductIds({
-        OCADE_PRODUCT_ID_TRIAL_2D: "a",
-        OCADE_PRODUCT_ID_STD_8D: "b",
-        OCADE_PRODUCT_ID_MONTH_1M: "c",
-        OCADE_PRODUCT_ID_YEAR_1Y: "d",
+        OCADE_PRODUCT_ID_STD_8D: "a",
+        OCADE_PRODUCT_ID_MONTH_1M: "b",
+        OCADE_PRODUCT_ID_YEAR_1Y: "c",
       }),
     ).toEqual([]);
   });

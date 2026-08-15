@@ -1,7 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Hand, Mic, MicOff, Paperclip, Pause, Play, Send, Square } from "lucide-react";
+import {
+  Command,
+  Hand,
+  Mic,
+  MicOff,
+  Pause,
+  Play,
+  Send,
+  Smartphone,
+  Sparkles,
+  Square,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { GestureControlPanel } from "@/components/settings/GestureControlPanel";
+import { ControlCommandDeck } from "./ControlCommandDeck";
 import { ControlSolarScene } from "./ControlSolarScene";
+import type { ControlLauncher } from "@/lib/work/control-capabilities";
+import { useVoicePrefs } from "@/lib/use-voice-prefs";
 import { useDictation } from "@/lib/voice/use-dictation";
 import { cn } from "@/lib/utils";
 import { useMission, type MissionBrain, type TimelineEntry } from "@/lib/work/use-mission";
@@ -51,7 +67,11 @@ export function ControlWorkPanel({
 }) {
   const mission = useMission(brain);
   const [prompt, setPrompt] = useState("");
+  const [deckOpen, setDeckOpen] = useState(false);
+  const [gestureOpen, setGestureOpen] = useState(false);
   const historyRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  const voicePrefs = useVoicePrefs();
 
   const dictation = useDictation({
     lang: "en-US",
@@ -140,12 +160,18 @@ export function ControlWorkPanel({
 
   const connected = mission.start?.ok === true;
 
+  const selectLauncher = useCallback((launcher: ControlLauncher) => {
+    setPrompt(launcher.prompt);
+    setDeckOpen(false);
+    requestAnimationFrame(() => composerRef.current?.focus());
+  }, []);
+
   return (
-    <div className={cn("flex h-full min-h-0 w-full", className)}>
+    <div className={cn("flex h-full min-h-0 w-full flex-col lg:flex-row", className)}>
       {/* ------------------------------------------------------- the system -- */}
       <section
         aria-label="What OCADE is doing on this computer"
-        className="relative min-w-0 flex-1 overflow-hidden bg-[oklch(0.13_0.008_75)]"
+        className="relative min-h-[230px] min-w-0 flex-[0_0_38%] overflow-hidden bg-black lg:min-h-0 lg:flex-1"
       >
         <ControlSolarScene state={sceneState} className="absolute inset-0 h-full w-full" />
 
@@ -169,8 +195,32 @@ export function ControlWorkPanel({
           Take over — the three things somebody watching their own computer
           being operated actually wants within reach.
         */}
-        {mission.busy ? (
-          <div className="absolute right-6 top-4 flex items-center gap-1.5">
+        <div className="absolute right-3 top-3 flex max-w-[62%] flex-wrap justify-end gap-1.5 sm:right-6 sm:top-4">
+          <SceneButton
+            onClick={() => setDeckOpen((current) => !current)}
+            icon={<Command className="h-3.5 w-3.5" />}
+            label={deckOpen ? "Close deck" : "56 controls"}
+          />
+          <SceneButton
+            onClick={() => setGestureOpen(true)}
+            icon={<Hand className="h-3.5 w-3.5" />}
+            label="Hand control"
+          />
+          <SceneButton
+            onClick={() =>
+              selectLauncher({
+                id: "mobile-status",
+                label: "Mobile status",
+                description: "Show paired mobile control state.",
+                prompt: "Show the current mobile companion connection and trust status.",
+                risk: "read",
+              })
+            }
+            icon={<Smartphone className="h-3.5 w-3.5" />}
+            label="Mobile"
+          />
+          {mission.busy ? (
+            <>
             <SceneButton
               onClick={() => mission.setPaused(!mission.paused)}
               icon={
@@ -194,8 +244,9 @@ export function ControlWorkPanel({
               icon={<Hand className="h-3.5 w-3.5" />}
               label="Take over"
             />
-          </div>
-        ) : null}
+            </>
+          ) : null}
+        </div>
       </section>
 
       {/* -------------------------------------------------- OCADE PC Control -- */}
@@ -206,13 +257,22 @@ export function ControlWorkPanel({
         panel expanded to its content, squeezing the system into a 154px strip.
         A rule that fails by doing nothing is worse than one that fails loudly.
       */}
-      <aside className="flex w-[38%] min-w-[320px] max-w-[420px] shrink-0 flex-col border-l border-[oklch(0.28_0.02_80)]/60 bg-[oklch(0.115_0.006_75)]">
-        <header className="border-b border-[oklch(0.28_0.02_80)]/50 px-5 py-4">
-          <h2 className="text-[14.5px] font-medium text-foreground">OCADE PC Control</h2>
+      <aside className="flex min-h-0 w-full min-w-0 flex-1 flex-col border-t border-border/60 bg-background/96 lg:w-[38%] lg:min-w-[340px] lg:max-w-[460px] lg:shrink-0 lg:border-l lg:border-t-0">
+        <header className="border-b border-border/60 px-5 py-3.5">
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--accent-ocade)] shadow-[0_0_14px_var(--accent-ocade)]" aria-hidden />
+            <h2 className="text-[14.5px] font-medium text-foreground">OCADE Command Center</h2>
+          </div>
           {headerNote ? (
             <p className="mt-0.5 text-[11px] text-muted-foreground/70">{headerNote}</p>
           ) : null}
         </header>
+
+        {deckOpen ? (
+          <div className="ocade-scroll max-h-[58%] overflow-y-auto border-b border-border/60 p-3">
+            <ControlCommandDeck onSelect={selectLauncher} />
+          </div>
+        ) : null}
 
         <div ref={historyRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {mission.turns.length === 0 && !mission.live.length ? (
@@ -318,6 +378,7 @@ export function ControlWorkPanel({
         <div className="border-t border-[oklch(0.28_0.02_80)]/50 p-3">
           <div className="rounded-2xl border border-[oklch(0.3_0.02_80)]/60 bg-[oklch(0.155_0.008_75)] px-3 py-2.5">
             <textarea
+              ref={composerRef}
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               onKeyDown={(event) => {
@@ -335,13 +396,14 @@ export function ControlWorkPanel({
               <Button
                 type="button"
                 size="icon"
-                variant="ghost"
-                aria-label="Attach"
-                disabled
-                title="Attachments are coming to Control + Work"
-                className="h-7 w-7 rounded-full text-muted-foreground/60"
+                variant={deckOpen ? "secondary" : "ghost"}
+                aria-label={deckOpen ? "Close command deck" : "Open command deck"}
+                aria-pressed={deckOpen}
+                title="Open 56 reviewed control launchers"
+                className="h-7 w-7 rounded-full text-muted-foreground/80"
+                onClick={() => setDeckOpen((current) => !current)}
               >
-                <Paperclip className="h-3.5 w-3.5" />
+                <Command className="h-3.5 w-3.5" />
               </Button>
               {dictation.supported ? (
                 <Button
@@ -442,6 +504,18 @@ export function ControlWorkPanel({
                       ))}
                     </select>
                   ) : null}
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={voicePrefs.prefs.gender === "female" ? "secondary" : "ghost"}
+                    aria-pressed={voicePrefs.prefs.gender === "female"}
+                    title="Prefer a locally installed female voice"
+                    className="h-7 gap-1.5 rounded-full px-2.5 text-[10.5px]"
+                    onClick={() => voicePrefs.update({ gender: "female" })}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" aria-hidden /> Female voice
+                  </Button>
                 </>
               ) : null}
 
@@ -493,6 +567,13 @@ export function ControlWorkPanel({
           ) : null}
         </div>
       </aside>
+
+      <Dialog open={gestureOpen} onOpenChange={setGestureOpen}>
+        <DialogContent className="max-h-[88svh] max-w-2xl overflow-y-auto border-border/70 bg-background/96 p-3 sm:p-4">
+          <DialogTitle className="sr-only">Hand gesture control</DialogTitle>
+          <GestureControlPanel />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

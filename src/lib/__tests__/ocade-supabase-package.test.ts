@@ -7,6 +7,7 @@ const migrations = [
   "20260722110000_ocade_automations",
   "20260724211500_ocade_automation_worker",
   "20260730190000_ocade_controlled_rollout_gates",
+  "20260815213627_ocade_billing_support_ledger",
 ] as const;
 
 function read(path: string): string {
@@ -36,18 +37,19 @@ describe("OCADE Supabase application package", () => {
       expect(existsSync(`supabase/rollback/${migration}_rollback.sql`)).toBe(true);
       expect(existsSync(`supabase/verification/${migration}_verify.sql`)).toBe(true);
     }
-    expect(applyOrder).toMatch(/five are the only UNAPPLIED migrations/i);
-    expect(applyOrder).toMatch(/\(5\s*→\s*4\s*→\s*3\s*→\s*2\s*→\s*1\)/);
+    expect(applyOrder).toMatch(/historical rebuild guide; do not apply blindly/i);
+    expect(applyOrder).toMatch(/40 paired migrations/i);
+    expect(applyOrder).toMatch(/remote migration-history ledger still needs/i);
   });
 
   it("makes each unapplied migration atomic and labels the package honestly", () => {
-    for (const migration of [projects, usage, automations, worker, controlledRollout]) {
+    const billingSupport = read(`supabase/migrations/${migrations[5]}.sql`);
+    for (const migration of [projects, usage, automations, worker, controlledRollout, billingSupport]) {
       expect(migration).toMatch(/\bBEGIN;\s/);
       expect(migration).toMatch(/\sCOMMIT;\s*$/);
-      expect(migration).toMatch(/READY TO APPLY/);
     }
-    expect(applyOrder).toMatch(/READY TO APPLY THROUGH LOVABLE/);
-    expect(applyOrder).toMatch(/Nothing here has been applied/);
+    expect(applyOrder).toMatch(/do not apply blindly to production/i);
+    expect(applyOrder).toMatch(/live migration-history reconciliation/i);
   });
 
   it("declares deterministic table privileges instead of relying on database defaults", () => {

@@ -28,6 +28,7 @@ import { useLocalChatEngine } from "@/lib/chat/use-local-chat-engine";
 import { useDictation } from "@/lib/voice/use-dictation";
 import { LANGUAGE_CANDIDATES, languageInstruction } from "@/lib/voice/speech-capabilities";
 import { OCADE_IDENTITY } from "@/lib/ocade-identity";
+import { ocadeCorePolicy } from "@/lib/agent/ocade-core-policy";
 import type {
   ChatConversationView,
   ChatMessageView,
@@ -71,6 +72,7 @@ export const Route = createFileRoute("/demo/ocade")({
 const SYSTEM_PROMPT: BrainMessage = {
   role: "system",
   content:
+    `${ocadeCorePolicy("chat")}\n\n` +
     `You are ${OCADE_IDENTITY.displayName}, a private AI assistant running entirely on the user's own device. ` +
     `Never name the underlying model, provider or vendor; refer to yourself only as OCADE. ` +
     `Be concise, accurate, and honest about what you do not know. ` +

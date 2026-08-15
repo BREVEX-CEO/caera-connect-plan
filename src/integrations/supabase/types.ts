@@ -3004,6 +3004,104 @@ export type Database = {
         }
         Relationships: []
       }
+      ocade_invoices: {
+        Row: {
+          amount_minor: number
+          created_at: string
+          currency: string
+          id: string
+          invoice_number: string
+          issued_at: string
+          payment_event_id: string | null
+          plan_id: string
+          receipt_url: string | null
+          status: string
+          tax_minor: number
+          user_id: string
+        }
+        Insert: {
+          amount_minor: number
+          created_at?: string
+          currency: string
+          id?: string
+          invoice_number: string
+          issued_at: string
+          payment_event_id?: string | null
+          plan_id: string
+          receipt_url?: string | null
+          status: string
+          tax_minor?: number
+          user_id: string
+        }
+        Update: {
+          amount_minor?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_number?: string
+          issued_at?: string
+          payment_event_id?: string | null
+          plan_id?: string
+          receipt_url?: string | null
+          status?: string
+          tax_minor?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_invoices_payment_event_id_fkey"
+            columns: ["payment_event_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_payment_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_payment_events: {
+        Row: {
+          amount_minor: number
+          created_at: string
+          currency: string
+          id: string
+          kind: string
+          occurred_at: string
+          plan_id: string
+          provider: string
+          provider_event_id: string
+          provider_payment_ref: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_minor: number
+          created_at?: string
+          currency: string
+          id?: string
+          kind: string
+          occurred_at: string
+          plan_id: string
+          provider: string
+          provider_event_id: string
+          provider_payment_ref?: string | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          amount_minor?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          kind?: string
+          occurred_at?: string
+          plan_id?: string
+          provider?: string
+          provider_event_id?: string
+          provider_payment_ref?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_subscriptions: {
         Row: {
           created_at: string
@@ -3032,6 +3130,80 @@ export type Database = {
           plan_id?: string
           started_at?: string
           status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ocade_support_messages: {
+        Row: {
+          author_id: string
+          author_role: string
+          body: string
+          created_at: string
+          id: string
+          ticket_id: string
+        }
+        Insert: {
+          author_id: string
+          author_role: string
+          body: string
+          created_at?: string
+          id?: string
+          ticket_id: string
+        }
+        Update: {
+          author_id?: string
+          author_role?: string
+          body?: string
+          created_at?: string
+          id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_support_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_support_tickets: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          created_at: string
+          id: string
+          last_message_at: string
+          priority: string
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          priority?: string
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          priority?: string
+          status?: string
+          subject?: string
           updated_at?: string
           user_id?: string
         }
@@ -3617,6 +3789,11 @@ export type Database = {
         Args: { p_limit: number; p_user_id: string; p_window_start: string }
         Returns: number
       }
+      ocade_create_support_ticket: {
+        Args: { p_body: string; p_category: string; p_subject: string }
+        Returns: string
+      }
+      ocade_is_support_admin: { Args: never; Returns: boolean }
       ocade_decide_automation_run: {
         Args: { p_decision: string; p_device_id?: string; p_run_id: string }
         Returns: string

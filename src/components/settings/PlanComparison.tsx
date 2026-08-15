@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Check, Infinity as InfinityIcon, Cloud, Monitor, AlertTriangle } from "lucide-react";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Button } from "@/components/ui/button";
@@ -36,13 +36,23 @@ import {
 export function PlanComparison({
   currentPlan,
   onChoose,
+  deploymentDetails = true,
 }: {
   /** The plan the account is on, if any. */
   currentPlan?: PlanId | null;
   /** Begin checkout. Omitted when checkout is not configured. */
   onChoose?: (plan: PlanId) => void;
+  /** Keep deployment variable names out of the public pricing page. */
+  deploymentDetails?: boolean;
 }) {
-  const [currency, setCurrency] = useState<CurrencyCode>(() => currencyForRegion(detectRegion()));
+  // The first render must be identical on the server and in the browser. Locale
+  // detection can differ between the Cloudflare runtime and the customer's
+  // browser, so begin with the documented USD fallback and localise after mount.
+  const [currency, setCurrency] = useState<CurrencyCode>("USD");
+
+  useEffect(() => {
+    setCurrency(currencyForRegion(detectRegion()));
+  }, []);
 
   /*
    * Read from `import.meta.env` so a deployment that HAS configured checkout
@@ -56,7 +66,7 @@ export function PlanComparison({
   );
   const checkoutConfigured = missing.length === 0 && typeof onChoose === "function";
 
-  const paid = PLANS.filter((plan) => plan.id !== "demo");
+  const paid = PLANS.filter((plan) => plan.publiclyAvailable);
   const windowHours = Math.round(CLOUD_WINDOW_MS / 3_600_000);
 
   return (
@@ -85,7 +95,7 @@ export function PlanComparison({
         </label>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-3">
         {paid.map((plan) => {
           const price = priceFor(plan, currency);
           const isCurrent = currentPlan === plan.id;
@@ -116,12 +126,11 @@ export function PlanComparison({
 
               <ul className="flex flex-col gap-1.5 text-[12px] text-muted-foreground">
                 <Feature icon={InfinityIcon}>Unlimited on-device processing</Feature>
-                <Feature icon={Cloud}>
-                  {plan.cloudAllowance} cloud requests every {windowHours} hours
-                </Feature>
-                <Feature icon={Monitor}>
-                  {plan.desktopDevices} computers · {plan.mobileDevices} phones
-                </Feature>
+                {plan.benefits.map((benefit) => (
+                  <Feature key={benefit} icon={benefit.includes("cloud") ? Cloud : Monitor}>
+                    {benefit}
+                  </Feature>
+                ))}
               </ul>
 
               {checkoutConfigured ? (
@@ -133,12 +142,16 @@ export function PlanComparison({
                 >
                   {isCurrent ? "Your plan" : `Choose ${plan.name}`}
                 </Button>
-              ) : (
+              ) : deploymentDetails ? (
                 <p
                   className="mt-auto rounded-md border border-border/60 bg-secondary/30 px-2.5 py-2 text-[11.5px] text-muted-foreground"
                   title={`Missing: ${missing.join(", ")}`}
                 >
                   Checkout is not configured on this deployment.
+                </p>
+              ) : (
+                <p className="mt-auto rounded-md border border-border/60 bg-secondary/30 px-2.5 py-2 text-[11.5px] text-muted-foreground">
+                  Checkout opens after payment-provider verification.
                 </p>
               )}
             </GlassPanel>
@@ -146,7 +159,7 @@ export function PlanComparison({
         })}
       </div>
 
-      {!checkoutConfigured && missing.length > 0 ? (
+      {deploymentDetails && !checkoutConfigured && missing.length > 0 ? (
         <p className="flex items-start gap-2 rounded-lg border border-[color:var(--state-warning)]/30 bg-[color:var(--state-warning)]/5 px-3 py-2 text-[12px] text-muted-foreground">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
           <span>
@@ -164,8 +177,9 @@ export function PlanComparison({
       ) : null}
 
       <p className="text-[12px] text-muted-foreground">
-        The {CLOUD_ALLOWANCE}-request allowance applies only to OCADE Cloud. Work that runs on your
-        device never counts against it, and never stops when a plan ends.
+        Cloud allowance depends on the selected plan and applies only to OCADE Cloud. Work that runs
+        on your device never counts against it, and never stops when a plan ends. Taxes and any
+        provider-supported currency conversion are shown before payment.
       </p>
     </section>
   );

@@ -2,19 +2,9 @@
  * Every price OCADE displays, and the rule they all satisfy.
  *
  * CAERA CADANE prices carry a deliberate numeric signature. The rule, in the
- * order it is applied:
- *
- *   1. A price SHOULD end in 28 — the house number.
- *   2. A FOUR-digit price MUST have a digit total of 28.
- *   3. A THREE-digit price MUST have a digit total of 8.
- *   4. Where that structure cannot be satisfied, fall back to ending in 8 with
- *      a digit total of 8.
- *
- * Rules 2 and 3 are the binding ones and they constrain by LENGTH, which is why
- * rule 1 is "should" rather than "must": no three-digit number ending in 28 has
- * a digit total of 8 (`X28` sums to at least 11), so demanding both would make
- * three-digit pricing impossible. Shorter prices, which no digit-total rule
- * covers, take rule 1 or the rule 4 fallback.
+ * order it is applied: every displayed paid price ends in 8 or 28. Prices are
+ * stored as integer minor units so $4.28 is exact and never becomes a floating
+ * point billing value.
  *
  * WHY THIS IS CODE AND NOT A SPREADSHEET. A price that fails the rule must
  * never reach a screen, and the only reliable way to guarantee that is to make
@@ -22,9 +12,7 @@
  * asserts every configured amount passes. A convention enforced by memory is a
  * convention that ships broken on a Friday.
  *
- * Amounts are whole units of the currency. No `.99`: the pricing rule is a
- * signature, not a psychological trick, and the product's own charter rules out
- * manipulative patterns.
+ * No `.99`: the pricing rule is a signature, not a psychological trick.
  */
 
 /**
@@ -40,8 +28,8 @@ export type CurrencyCode = "USD" | "EUR" | "GBP" | "INR";
 
 export interface PlanPrice {
   currency: CurrencyCode;
-  /** Whole units. 28 means $28, not $0.28. */
-  amount: number;
+  /** Integer minor units: 428 means $4.28 and 28_800 means ₹288. */
+  amountMinor: number;
 }
 
 export interface Plan {
@@ -51,6 +39,10 @@ export interface Plan {
   durationMs: number;
   /** One line describing what the plan is for. */
   summary: string;
+  /** Hidden legacy entitlements remain readable but are not sold. */
+  publiclyAvailable: boolean;
+  /** Benefits rendered from the same source as entitlement enforcement. */
+  benefits: string[];
   /** Cloud requests per eight-hour window. Local processing is never metered. */
   cloudAllowance: number;
   /** Approved devices of each kind. Same for every paid plan today. */
@@ -78,14 +70,16 @@ export const PLANS: Plan[] = [
     name: "Demo",
     durationMs: 28 * 60 * 1000,
     summary: "8 minutes of the real product, in your browser, with no account.",
+    publiclyAvailable: false,
+    benefits: ["No account", "On-device demo", "No payment details"],
     cloudAllowance: 0,
     desktopDevices: 0,
     mobileDevices: 0,
     prices: [
-      { currency: "USD", amount: 0 },
-      { currency: "EUR", amount: 0 },
-      { currency: "GBP", amount: 0 },
-      { currency: "INR", amount: 0 },
+      { currency: "USD", amountMinor: 0 },
+      { currency: "EUR", amountMinor: 0 },
+      { currency: "GBP", amountMinor: 0 },
+      { currency: "INR", amountMinor: 0 },
     ],
     productIdEnv: null,
   },
@@ -94,14 +88,16 @@ export const PLANS: Plan[] = [
     name: "2 days",
     durationMs: 2 * DAY,
     summary: "Try OCADE properly on your own documents before committing.",
+    publiclyAvailable: false,
+    benefits: ["Legacy entitlement", "Unlimited local work", "2 computers + 2 phones"],
     cloudAllowance: CLOUD_ALLOWANCE,
     desktopDevices: 2,
     mobileDevices: 2,
     prices: [
-      { currency: "USD", amount: 8 },
-      { currency: "EUR", amount: 8 },
-      { currency: "GBP", amount: 8 },
-      { currency: "INR", amount: 107 },
+      { currency: "USD", amountMinor: 228 },
+      { currency: "EUR", amountMinor: 228 },
+      { currency: "GBP", amountMinor: 228 },
+      { currency: "INR", amountMinor: 12_800 },
     ],
     productIdEnv: "OCADE_PRODUCT_ID_TRIAL_2D",
   },
@@ -109,15 +105,17 @@ export const PLANS: Plan[] = [
     id: "std_8d",
     name: "8 days",
     durationMs: 8 * DAY,
-    summary: "A working week and a weekend of unlimited local processing.",
+    summary: "A focused eight-day pass with unlimited local processing.",
+    publiclyAvailable: true,
+    benefits: ["28 cloud requests every 8 hours", "2 computers + 2 phones", "Standard support"],
     cloudAllowance: CLOUD_ALLOWANCE,
     desktopDevices: 2,
     mobileDevices: 2,
     prices: [
-      { currency: "USD", amount: 18 },
-      { currency: "EUR", amount: 18 },
-      { currency: "GBP", amount: 18 },
-      { currency: "INR", amount: 224 },
+      { currency: "USD", amountMinor: 428 },
+      { currency: "EUR", amountMinor: 428 },
+      { currency: "GBP", amountMinor: 428 },
+      { currency: "INR", amountMinor: 28_800 },
     ],
     productIdEnv: "OCADE_PRODUCT_ID_STD_8D",
   },
@@ -125,15 +123,17 @@ export const PLANS: Plan[] = [
     id: "month_1m",
     name: "1 month",
     durationMs: 30 * DAY,
-    summary: "The usual choice. Unlimited on-device work, cloud when you allow it.",
-    cloudAllowance: CLOUD_ALLOWANCE,
+    summary: "The flexible monthly choice with a larger cloud allowance.",
+    publiclyAvailable: true,
+    benefits: ["56 cloud requests every 8 hours", "2 computers + 2 phones", "Priority support"],
+    cloudAllowance: 56,
     desktopDevices: 2,
     mobileDevices: 2,
     prices: [
-      { currency: "USD", amount: 28 },
-      { currency: "EUR", amount: 28 },
-      { currency: "GBP", amount: 28 },
-      { currency: "INR", amount: 350 },
+      { currency: "USD", amountMinor: 2_800 },
+      { currency: "EUR", amountMinor: 2_800 },
+      { currency: "GBP", amountMinor: 2_800 },
+      { currency: "INR", amountMinor: 48_800 },
     ],
     productIdEnv: "OCADE_PRODUCT_ID_MONTH_1M",
   },
@@ -141,15 +141,17 @@ export const PLANS: Plan[] = [
     id: "year_1y",
     name: "1 year",
     durationMs: 365 * DAY,
-    summary: "Twelve months, at a lower rate than paying monthly.",
-    cloudAllowance: CLOUD_ALLOWANCE,
+    summary: "A full year with OCADE's largest included cloud allowance.",
+    publiclyAvailable: true,
+    benefits: ["128 cloud requests every 8 hours", "2 computers + 2 phones", "Priority support"],
+    cloudAllowance: 128,
     desktopDevices: 2,
     mobileDevices: 2,
     prices: [
-      { currency: "USD", amount: 206 },
-      { currency: "EUR", amount: 206 },
-      { currency: "GBP", amount: 206 },
-      { currency: "INR", amount: 3889 },
+      { currency: "USD", amountMinor: 12_800 },
+      { currency: "EUR", amountMinor: 12_800 },
+      { currency: "GBP", amountMinor: 12_800 },
+      { currency: "INR", amountMinor: 588_800 },
     ],
     productIdEnv: "OCADE_PRODUCT_ID_YEAR_1Y",
   },
@@ -161,69 +163,32 @@ export interface PriceCheck {
   reason: string;
 }
 
-function digitSum(value: number): number {
-  return String(value)
-    .split("")
-    .reduce((sum, d) => sum + Number(d), 0);
-}
-
 /**
  * Does this amount satisfy the pricing rule?
  *
  * Free is valid by definition — the demo costs nothing and a numeric signature
  * on zero would be meaningless.
  */
-export function checkPrice(amount: number): PriceCheck {
-  if (!Number.isInteger(amount) || amount < 0) {
-    return { valid: false, reason: "A price must be a whole, non-negative number of units." };
+export function checkPrice(amountMinor: number, currency: CurrencyCode = "USD"): PriceCheck {
+  if (!Number.isSafeInteger(amountMinor) || amountMinor < 0) {
+    return { valid: false, reason: "A price must use whole, non-negative minor units." };
   }
-  if (amount === 0) return { valid: true, reason: "Free." };
+  if (amountMinor === 0) return { valid: true, reason: "Free." };
 
-  const text = String(amount);
-  const sum = digitSum(amount);
-  const endsIn28 = text.endsWith("28");
-  const endsIn8 = text.endsWith("8");
-
-  if (text.length === 4) {
-    return sum === 28
-      ? {
-          valid: true,
-          reason: `Four digits with a digit total of 28${endsIn28 ? ", ending in 28" : ""}.`,
-        }
-      : {
-          valid: false,
-          reason: `Four-digit price ${amount} has a digit total of ${sum}; it must be 28.`,
-        };
-  }
-
-  if (text.length === 3) {
-    return sum === 8
-      ? { valid: true, reason: "Three digits with a digit total of 8." }
-      : {
-          valid: false,
-          reason: `Three-digit price ${amount} has a digit total of ${sum}; it must be 8.`,
-        };
-  }
-
-  // One and two digits: no digit-total clause applies, so the preference or the
-  // fallback governs.
-  if (endsIn28) return { valid: true, reason: "Ends in 28." };
-  if (endsIn8 && sum === 8)
-    return { valid: true, reason: "Fallback: ends in 8 with a digit total of 8." };
-  if (endsIn8) return { valid: true, reason: "Ends in 8." };
+  const amount = amountMinor / 100;
+  const text = new Intl.NumberFormat("en-US", {
+    useGrouping: false,
+    minimumFractionDigits: amountMinor % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+  if (text.endsWith("28")) return { valid: true, reason: "Displayed price ends in 28." };
+  if (text.endsWith("8")) return { valid: true, reason: "Displayed price ends in 8." };
 
   return {
     valid: false,
-    reason: `${amount} neither ends in 28 nor in 8, and is too short for a digit-total clause.`,
+    reason: `Displayed ${currency} price ${text} must end in 8 or 28.`,
   };
 }
-
-const SYMBOLS: Record<CurrencyCode, string> = {
-  USD: "$",
-  EUR: "€",
-  GBP: "£",
-  INR: "₹",
-};
 
 /**
  * Format a price for display, refusing to render one that breaks the rule.
@@ -233,12 +198,18 @@ const SYMBOLS: Record<CurrencyCode, string> = {
  * it would do it quietly.
  */
 export function describePrice(price: PlanPrice): string {
-  const check = checkPrice(price.amount);
+  const check = checkPrice(price.amountMinor, price.currency);
   if (!check.valid) {
     throw new Error(`Refusing to display an invalid price: ${check.reason}`);
   }
-  if (price.amount === 0) return "Free";
-  return `${SYMBOLS[price.currency]}${price.amount.toLocaleString("en")}`;
+  if (price.amountMinor === 0) return "Free";
+  const amount = price.amountMinor / 100;
+  return new Intl.NumberFormat(price.currency === "INR" ? "en-IN" : "en-US", {
+    style: "currency",
+    currency: price.currency,
+    minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
 }
 
 /** The plan, by id. */
@@ -310,7 +281,7 @@ export function priceFor(plan: Plan, currency: CurrencyCode): PlanPrice {
  * configured yet" instead of failing to render.
  */
 export function missingProductIds(env: Record<string, string | undefined>): string[] {
-  return PLANS.filter((p) => p.productIdEnv !== null)
+  return PLANS.filter((p) => p.publiclyAvailable && p.productIdEnv !== null)
     .map((p) => p.productIdEnv!)
     .filter((key) => !env[key]?.trim());
 }
