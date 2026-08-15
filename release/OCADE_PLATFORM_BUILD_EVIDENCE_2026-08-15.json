@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-15T14:00:15Z",
+  "repository": "BREVEX-CEO/caera-connect-plan",
+  "releaseVersion": "0.1.0",
+  "evidence": {
+    "ios": {
+      "commit": "dd192fe07179086974957231a647a0a171ce0916",
+      "runId": 31888317817,
+      "jobId": 95020730257,
+      "result": "simulator build passed without code signing"
+    },
+    "windows": {
+      "commit": "61a0a57918d54a690c398f8a58453e1663d7e9ae",
+      "runId": 31887673966,
+      "jobId": 95019246632,
+      "result": "companion build, Rust tests, unsigned installer build and artifact upload passed"
+    },
+    "android": {
+      "commit": "dd192fe07179086974957231a647a0a171ce0916",
+      "runId": 31888317817,
+      "jobId": 95020730277,
+      "result": "debug APK assembly, unit tests, emulator boot and instrumented-test execution completed",
+      "artifact": {
+        "id": 9247935524,
+        "name": "ocade-android-debug",
+        "sizeBytes": 3766961,
+        "sha256": "2d07c38af84b911953a8b964439981ef73abd8165601eac40d7e7847a1f3a7d3"
+      },
+      "testCorrection": {
+        "fixedCommit": "0dce191607d4d115b9f63c789f89d03372367937",
+        "issue": "Capacitor template test expected com.getcapacitor.app instead of com.caeracadane.ocade",
+        "sourceGuard": "src/lib/__tests__/platform-workflows.test.ts"
+      },
+      "rerun": {
+        "runId": 31888696544,
+        "result": "not started",
+        "externalBlocker": "GitHub reported an account payment or spending-limit problem"
+      }
+    }
+  },
+  "boundaries": [
+    "No artifact in this record is signed or store-published.",
+    "The iOS build is simulator-only and is not an installable App Store archive.",
+    "The Android rerun for the corrected test requires the GitHub billing or spending-limit issue to be resolved.",
+    "Clean-device installation, platform signing, notarization and store review remain external release gates."
+  ]
+}
