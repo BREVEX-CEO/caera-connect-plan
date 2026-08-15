@@ -28,6 +28,7 @@ Apply **in this exact order** — later migrations reference earlier tables.
 | 5   | `20260730190000_ocade_controlled_rollout_gates.sql` | internal-alpha and controlled-beta evidence gates plus fail-closed feature-flag expansion triggers                                                                                           | existing `launch_gate_items`, `launch_gate_history`, `feature_flags`                  |
 | 6   | `20260815193752_harden_security_definer_execute.sql` | removes browser-role access to the service-only allowance RPC and direct trigger RPCs; preserves required RLS access                                                                          | migration 2; optional FICIA/message helpers are hardened only when present             |
 | 7   | `20260815213627_ocade_billing_support_ledger.sql` | payment-event and invoice evidence; customer/admin support tickets and messages; atomic ticket creation                                                                                         | `auth.users`, `user_roles`, `app_role`                                                 |
+| 8   | `20260815215000_ocade_billing_support_privilege_hardening.sql` | reasserts least-privilege ACLs after managed hosted-DDL hooks finish                                                                                                          | migration 7                                                                           |
 
 Migration 3 must come after 1 only for consistency of review; it has no hard FK
 to projects. Migrations 1 and 2 are independent of each other. Migration 4 must
@@ -38,7 +39,7 @@ Lovable launch-gate migration `20260721141946_382eee61-77fa-42d8-9b79-9c9c9b3195
 
 **Scope note.** The older statement that these were the only unapplied
 migrations is no longer reliable and must not be used as production authority.
-The repository now contains 40 paired migrations, rollbacks and verifications.
+The repository now contains 41 paired migrations, rollbacks and verifications.
 Use the live migration-history reconciliation plus the clean database twin,
 not this historical paragraph, to decide what remains unapplied.
 
@@ -51,6 +52,7 @@ not this historical paragraph, to decide what remains unapplied.
 | `…_ocade_controlled_rollout_gates` | ✅       | ✅           |
 | `…_harden_security_definer_execute` | ✅       | ✅           |
 | `…_ocade_billing_support_ledger` | ✅       | ✅           |
+| `…_ocade_billing_support_privilege_hardening` | ✅       | ✅           |
 
 ### Prerequisite check (run first)
 
