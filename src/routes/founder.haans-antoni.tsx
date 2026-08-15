@@ -31,6 +31,15 @@ function FounderPage() {
           that has not occurred.
         </p>
       </PublicSection>
+      <PublicSection title="Creation and brand record">
+        <p>
+          Haans Antoni records that he independently started the CAERA CADANE venture, created the
+          CAERA CADANE and OCADE brand concepts, and directs OCADE’s product vision. CAERA CADANE is
+          pronounced “KAY-rah kuh-DAYN”; OCADE is pronounced “OH-kayd.” Any later assignment of
+          founder-created intellectual property to an incorporated company must be completed in a
+          signed written agreement and reflected in the company’s records.
+        </p>
+      </PublicSection>
       <PublicSection title="Official references">
         <p>
           Read the{` `}

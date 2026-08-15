@@ -32,6 +32,14 @@ function OcadePage() {
           themselves prove that every installer, store build or production service is ready.
         </p>
       </PublicSection>
+      <PublicSection title="Name and meaning">
+        <p>
+          OCADE is pronounced “OH-kayd.” Its creator, Haans Antoni, defines OCADE as
+          “Orbital-scale command and autonomous decision engine.” This is the official intended
+          brand meaning, not a claim that every autonomous capability is already available in the
+          production product.
+        </p>
+      </PublicSection>
       <PublicSection title="Offline and cloud behavior">
         <p>
           OCADE is local-first, not cloud-free. Local capabilities depend on device support and

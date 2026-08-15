@@ -69,6 +69,19 @@ function TermsPage() {
           OCADE accesses at your direction.
         </p>
       </PublicSection>
+      <PublicSection title="CAERA CADANE and OCADE intellectual property">
+        <p>
+          CAERA CADANE, OCADE, the tagline “Command the Next Era,” their logos, official
+          pronunciations, and the original brand definitions published on the official company and
+          product pages are proprietary brand materials claimed by Haans Antoni before formal
+          company assignment. After a valid written assignment, the identified incorporated entity
+          may become the owner. No term here claims ownership of third-party open-source software,
+          model weights, ordinary dictionary words, or rights that applicable law does not permit.
+          Users receive only the limited licence stated in the final commercial terms; no ownership
+          is transferred to a user, shareholder, contractor or service provider merely through use
+          of OCADE.
+        </p>
+      </PublicSection>
       <PublicSection title="AI and computer-control safety">
         <p>
           AI output may be inaccurate or incomplete and must be checked before reliance. Computer

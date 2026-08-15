@@ -1,0 +1,62 @@
+name: Cloudflare production deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_approval:
+        description: Type I_APPROVE_OCADE_PRODUCTION_DEPLOY
+        required: true
+        type: string
+      rollback_version_id:
+        description: Last verified Cloudflare version ID (used if recovery is needed)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ocade-cloudflare-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build, deploy and verify ocade.in
+    if: ${{ inputs.deploy_approval == 'I_APPROVE_OCADE_PRODUCTION_DEPLOY' }}
+    runs-on: ubuntu-latest
+    environment: cloudflare-production
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      OCADE_DEPLOY_HEALTH_URL: https://ocade.in/api/health
+      OCADE_DEPLOY_APPROVAL: ${{ inputs.deploy_approval }}
+      OCADE_ROLLBACK_VERSION_ID: ${{ inputs.rollback_version_id }}
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Install Cloudflare Wrangler
+        run: npm install --global wrangler@4
+
+      - name: Verify source and operations gates
+        run: |
+          npm run typecheck
+          npm test
+          npm run release:source-check
+          npm run operations:check
+          npm run performance:budget
+
+      - name: Deploy and independently verify the production health endpoint
+        run: npm run deploy:web

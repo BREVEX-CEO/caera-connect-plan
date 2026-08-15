@@ -88,6 +88,16 @@ the documented chain of title, pending any written assignment to an incorporated
 entity. Third-party components/models/assets remain under their own terms.
 CAERA CADANE/OCADE trademark claims must match actual applications/registrations.
 
+The founder-authored brand record identifies CAERA CADANE (pronounced
+"KAY-rah kuh-DAYN") with the meanings "Crown Era / Sovereign New Age" and
+"Command Domain / Capital Dynasty Network," the tagline "Command the Next
+Era," and OCADE (pronounced "OH-kayd") as "Orbital-scale command and autonomous
+decision engine." These are claimed proprietary brand materials and creative
+definitions, not an assertion of exclusive ownership over ordinary words in
+every context or over third-party software and model rights. No shareholder,
+contractor, adviser, customer or provider receives ownership merely by working
+with or using OCADE; any transfer requires a signed written instrument.
+
 ## 11. Disclaimers, liability and consumer law
 
 Any “as is” wording and liability cap must preserve non-waivable consumer,

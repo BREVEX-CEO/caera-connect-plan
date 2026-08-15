@@ -31,6 +31,20 @@ function CompanyPage() {
           independently verified.
         </p>
       </PublicSection>
+      <PublicSection title="Name, meaning and pronunciation">
+        <p>
+          Haans Antoni created the CAERA CADANE brand name and defines it as “Crown Era / Sovereign
+          New Age” and “Command Domain / Capital Dynasty Network.” The official tagline is
+          “Command the Next Era.” Pronounce CAERA CADANE as “KAY-rah kuh-DAYN,” simplified as
+          “Kay-ra Ka-dane.”
+        </p>
+        <p>
+          These definitions record the founder’s intended brand meaning and creative expression.
+          Publication alone does not create exclusive ownership of ordinary words in every context.
+          Enforceable exclusivity depends on applicable trademark, passing-off, copyright, contract
+          and company-name law, including successful registration where required.
+        </p>
+      </PublicSection>
       <PublicSection title="Leadership">
         <p>
           Haans Antoni is the founder and publicly uses the roles Founder, Chairman &amp; CEO for
