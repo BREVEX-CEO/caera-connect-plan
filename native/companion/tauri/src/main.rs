@@ -1,8 +1,9 @@
 //! CAERA Native Companion — Tauri application entry point.
 //!
-//! STATUS: source complete; NOT built or signed in this environment (the MSVC
-//! linker is unavailable here, so only `cargo check` runs). No capability is
-//! advertised to the app as working until a signed binary is runtime-proven.
+//! STATUS: the unsigned Windows companion has been built and startup-tested in
+//! this environment. Production signing and clean-device release validation
+//! remain separate gates. No capability is advertised to the app as working
+//! until its runtime prerequisites are discovered on the host.
 //!
 //! Trust model
 //! -----------
