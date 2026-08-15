@@ -2403,6 +2403,30 @@ export type Database = {
           },
         ]
       }
+      ocade_cloud_usage: {
+        Row: {
+          id: string
+          updated_at: string
+          used_count: number
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          id?: string
+          updated_at?: string
+          used_count?: number
+          user_id: string
+          window_start: string
+        }
+        Update: {
+          id?: string
+          updated_at?: string
+          used_count?: number
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       ocade_conversations: {
         Row: {
           archived: boolean
@@ -2760,6 +2784,39 @@ export type Database = {
           updated_at?: string
           user_id?: string
           vision_required?: boolean
+        }
+        Relationships: []
+      }
+      ocade_subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          plan_id: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          plan_id: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          plan_id?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -3296,6 +3353,10 @@ export type Database = {
       msg_thread_writable: {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
+      }
+      ocade_consume_cloud_use: {
+        Args: { p_limit: number; p_user_id: string; p_window_start: string }
+        Returns: number
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
