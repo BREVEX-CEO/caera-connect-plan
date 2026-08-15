@@ -7,12 +7,10 @@ name: Platform harnesses
 #
 # WHY THIS IS A SEPARATE WORKFLOW, NOT PART OF ci.yml
 #
-# These jobs have never been executed. They were written against the real
-# project layout (capacitor.config.json webDir=mobile/www, android/gradlew,
-# ios/App/App.xcodeproj, native/companion) but a first run may still need
-# adjustment. Wiring unvalidated jobs into the push-triggered CI would turn the
-# main pipeline red on config rather than on code, and a pipeline people learn
-# to ignore is worse than no pipeline.
+# These jobs exercise the real project layout (capacitor.config.json
+# webDir=mobile/www, android/gradlew, ios/App/App.xcodeproj,
+# native/companion). Keep them manual/weekly until each platform has produced
+# repeatable green evidence and the release signing accounts exist.
 #
 # So: manual dispatch, plus a weekly run once someone has confirmed a green
 # first execution. Promote whichever jobs pass into ci.yml at that point.
@@ -71,6 +69,11 @@ jobs:
       # the web production build is not a prerequisite for syncing it.
       - name: Sync Capacitor web assets into the Android project
         run: npx cap sync android
+
+      # Preserve the wrapper's executable bit in Git and repair it defensively
+      # for archives or checkouts that strip POSIX mode metadata.
+      - name: Make Gradle wrapper executable
+        run: chmod +x android/gradlew
 
       - name: Assemble debug APK
         working-directory: android
