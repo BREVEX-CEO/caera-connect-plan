@@ -2406,63 +2406,96 @@ export type Database = {
       ocade_automation_runs: {
         Row: {
           approval_decision: string | null
+          approval_expires_at: string | null
           approved_at: string | null
           approved_by_device: string | null
           attempt: number
           automation_id: string
           blocked_reason: string | null
+          cancel_requested_at: string | null
           cancelled_at: string | null
+          claim_token: string | null
+          claimed_at: string | null
           created_at: string
+          deadline_at: string | null
           dry_run: boolean
           error: string | null
+          execution_steps: Json
           finished_at: string | null
+          heartbeat_at: string | null
           highest_risk: string | null
           id: string
+          lease_expires_at: string | null
           next_attempt_at: string | null
+          next_step_index: number
+          pause_requested_at: string | null
           plan: Json
           started_at: string | null
           status: string
           user_id: string
+          worker_id: string | null
         }
         Insert: {
           approval_decision?: string | null
+          approval_expires_at?: string | null
           approved_at?: string | null
           approved_by_device?: string | null
           attempt?: number
           automation_id: string
           blocked_reason?: string | null
+          cancel_requested_at?: string | null
           cancelled_at?: string | null
+          claim_token?: string | null
+          claimed_at?: string | null
           created_at?: string
+          deadline_at?: string | null
           dry_run?: boolean
           error?: string | null
+          execution_steps?: Json
           finished_at?: string | null
+          heartbeat_at?: string | null
           highest_risk?: string | null
           id?: string
+          lease_expires_at?: string | null
           next_attempt_at?: string | null
+          next_step_index?: number
+          pause_requested_at?: string | null
           plan?: Json
           started_at?: string | null
           status?: string
           user_id: string
+          worker_id?: string | null
         }
         Update: {
           approval_decision?: string | null
+          approval_expires_at?: string | null
           approved_at?: string | null
           approved_by_device?: string | null
           attempt?: number
           automation_id?: string
           blocked_reason?: string | null
+          cancel_requested_at?: string | null
           cancelled_at?: string | null
+          claim_token?: string | null
+          claimed_at?: string | null
           created_at?: string
+          deadline_at?: string | null
           dry_run?: boolean
           error?: string | null
+          execution_steps?: Json
           finished_at?: string | null
+          heartbeat_at?: string | null
           highest_risk?: string | null
           id?: string
+          lease_expires_at?: string | null
           next_attempt_at?: string | null
+          next_step_index?: number
+          pause_requested_at?: string | null
           plan?: Json
           started_at?: string | null
           status?: string
           user_id?: string
+          worker_id?: string | null
         }
         Relationships: [
           {
@@ -2470,6 +2503,68 @@ export type Database = {
             columns: ["automation_id"]
             isOneToOne: false
             referencedRelation: "ocade_automations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_automation_step_receipts: {
+        Row: {
+          action_kind: string
+          attempt: number
+          created_at: string
+          detail: string
+          execution_ok: boolean
+          finished_at: string
+          id: string
+          operation_id: string
+          phase: string
+          run_id: string
+          started_at: string
+          status: string
+          step_index: number
+          user_id: string
+          verified: boolean
+        }
+        Insert: {
+          action_kind: string
+          attempt: number
+          created_at?: string
+          detail: string
+          execution_ok: boolean
+          finished_at: string
+          id?: string
+          operation_id: string
+          phase: string
+          run_id: string
+          started_at: string
+          status: string
+          step_index: number
+          user_id: string
+          verified: boolean
+        }
+        Update: {
+          action_kind?: string
+          attempt?: number
+          created_at?: string
+          detail?: string
+          execution_ok?: boolean
+          finished_at?: string
+          id?: string
+          operation_id?: string
+          phase?: string
+          run_id?: string
+          started_at?: string
+          status?: string
+          step_index?: number
+          user_id?: string
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_automation_step_receipts_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_automation_runs"
             referencedColumns: ["id"]
           },
         ]
@@ -3476,9 +3571,121 @@ export type Database = {
         Args: { _thread_id: string; _user_id: string }
         Returns: boolean
       }
+      ocade_append_automation_receipt: {
+        Args: {
+          p_action_kind: string
+          p_claim_token: string
+          p_detail: string
+          p_execution_ok: boolean
+          p_finished_at: string
+          p_operation_id: string
+          p_phase: string
+          p_run_id: string
+          p_started_at: string
+          p_status: string
+          p_step_index: number
+          p_verified: boolean
+        }
+        Returns: boolean
+      }
+      ocade_cancel_all_automation_runs: { Args: never; Returns: Json }
+      ocade_claim_automation_run: {
+        Args: { p_run_id: string; p_worker_id: string }
+        Returns: {
+          approval_expires_at: string
+          attempt: number
+          claim_token: string
+          confirmed: boolean
+          deadline_at: string
+          execution_steps: Json
+          id: string
+          max_attempts: number
+          next_step_index: number
+        }[]
+      }
+      ocade_complete_automation_run: {
+        Args: {
+          p_claim_token: string
+          p_error: string
+          p_finished_at: string
+          p_run_id: string
+          p_status: string
+        }
+        Returns: boolean
+      }
       ocade_consume_cloud_use: {
         Args: { p_limit: number; p_user_id: string; p_window_start: string }
         Returns: number
+      }
+      ocade_decide_automation_run: {
+        Args: { p_decision: string; p_device_id?: string; p_run_id: string }
+        Returns: string
+      }
+      ocade_enqueue_automation_run: {
+        Args: {
+          p_automation_id: string
+          p_blocked_reason?: string
+          p_deadline_at?: string
+          p_dry_run: boolean
+          p_execution_steps: Json
+          p_highest_risk: string
+          p_next_run_at?: string
+          p_plan: Json
+          p_status: string
+        }
+        Returns: {
+          id: string
+          reused: boolean
+          status: string
+        }[]
+      }
+      ocade_expire_automation_approval: {
+        Args: {
+          p_claim_token: string
+          p_reason: string
+          p_requested_at: string
+          p_run_id: string
+        }
+        Returns: boolean
+      }
+      ocade_heartbeat_automation_run: {
+        Args: { p_claim_token: string; p_run_id: string }
+        Returns: boolean
+      }
+      ocade_recover_stale_automation_runs: {
+        Args: { p_stale_before: string }
+        Returns: Json
+      }
+      ocade_request_automation_cancel: {
+        Args: { p_run_id: string }
+        Returns: string
+      }
+      ocade_request_automation_pause: {
+        Args: { p_run_id: string }
+        Returns: string
+      }
+      ocade_requeue_automation_run: {
+        Args: {
+          p_attempt: number
+          p_claim_token: string
+          p_error: string
+          p_next_attempt_at: string
+          p_run_id: string
+        }
+        Returns: boolean
+      }
+      ocade_resume_automation_run: {
+        Args: { p_run_id: string }
+        Returns: string
+      }
+      ocade_suspend_automation_run: {
+        Args: {
+          p_claim_token: string
+          p_paused_at: string
+          p_reason: string
+          p_run_id: string
+        }
+        Returns: boolean
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
