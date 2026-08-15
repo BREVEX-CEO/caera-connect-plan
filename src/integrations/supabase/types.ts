@@ -2403,6 +2403,128 @@ export type Database = {
           },
         ]
       }
+      ocade_automation_runs: {
+        Row: {
+          approval_decision: string | null
+          approved_at: string | null
+          approved_by_device: string | null
+          attempt: number
+          automation_id: string
+          blocked_reason: string | null
+          cancelled_at: string | null
+          created_at: string
+          dry_run: boolean
+          error: string | null
+          finished_at: string | null
+          highest_risk: string | null
+          id: string
+          next_attempt_at: string | null
+          plan: Json
+          started_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          approval_decision?: string | null
+          approved_at?: string | null
+          approved_by_device?: string | null
+          attempt?: number
+          automation_id: string
+          blocked_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          dry_run?: boolean
+          error?: string | null
+          finished_at?: string | null
+          highest_risk?: string | null
+          id?: string
+          next_attempt_at?: string | null
+          plan?: Json
+          started_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          approval_decision?: string | null
+          approved_at?: string | null
+          approved_by_device?: string | null
+          attempt?: number
+          automation_id?: string
+          blocked_reason?: string | null
+          cancelled_at?: string | null
+          created_at?: string
+          dry_run?: boolean
+          error?: string | null
+          finished_at?: string | null
+          highest_risk?: string | null
+          id?: string
+          next_attempt_at?: string | null
+          plan?: Json
+          started_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_automation_runs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_automations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_automations: {
+        Row: {
+          actions: Json
+          created_at: string
+          dry_run: boolean
+          enabled: boolean
+          id: string
+          last_run_at: string | null
+          max_attempts: number
+          name: string
+          next_run_at: string | null
+          paused: boolean
+          requires_approval: boolean
+          trigger: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actions?: Json
+          created_at?: string
+          dry_run?: boolean
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          max_attempts?: number
+          name: string
+          next_run_at?: string | null
+          paused?: boolean
+          requires_approval?: boolean
+          trigger?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actions?: Json
+          created_at?: string
+          dry_run?: boolean
+          enabled?: boolean
+          id?: string
+          last_run_at?: string | null
+          max_attempts?: number
+          name?: string
+          next_run_at?: string | null
+          paused?: boolean
+          requires_approval?: boolean
+          trigger?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_cloud_usage: {
         Row: {
           id: string
