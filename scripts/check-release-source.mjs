@@ -76,6 +76,7 @@ function committedMinisignSecretKey() {
 
 for (const path of [
   "wrangler.json",
+  "nitro.config.ts",
   "release/OCADE_RELEASE_BLOCKERS.json",
   "release/OCADE_RELEASE_CHECKLIST.md",
   "release/OCADE_PRODUCTION_OPERATIONS.json",
@@ -91,6 +92,7 @@ for (const path of [
   "ios/App/App/Info.plist",
   "ios/App/App.xcodeproj/project.pbxproj",
   "mobile/www/index.html",
+  "src/lib/brain/adapters/webllm.server.ts",
 ]) {
   check(existsSync(resolve(root, path)), `required source is missing: ${path}`);
 }
@@ -126,6 +128,8 @@ const android = read("android/app/build.gradle");
 const androidManifest = read("android/app/src/main/AndroidManifest.xml");
 const iosProject = read("ios/App/App.xcodeproj/project.pbxproj");
 const health = read("src/lib/release-health.ts");
+const nitro = read("nitro.config.ts");
+const webllmServer = read("src/lib/brain/adapters/webllm.server.ts");
 const capability = json("native/companion/tauri/capabilities/default.json");
 
 const version = pkg.version;
@@ -171,6 +175,14 @@ check(
   Array.isArray(wrangler.compatibility_flags) &&
     wrangler.compatibility_flags.includes("nodejs_compat"),
   "Cloudflare node compatibility is missing",
+);
+check(
+  nitro.includes('"@mlc-ai/web-llm"') && nitro.includes("webllm.server.ts"),
+  "Cloudflare server does not alias the browser-only WebLLM runtime",
+);
+check(
+  webllmServer.includes("available only inside a user's browser"),
+  "server WebLLM shim does not fail closed",
 );
 
 check(tauri.plugins?.updater?.active === false, "unsigned desktop updater is active");

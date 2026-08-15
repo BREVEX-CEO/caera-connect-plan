@@ -73,6 +73,18 @@ describe("OCADE release source package", () => {
     expect(config.vars).toBeUndefined();
   });
 
+  it("keeps the browser-only WebLLM runtime out of the Cloudflare server bundle", () => {
+    const nitro = read("nitro.config.ts");
+    const serverShim = read("src/lib/brain/adapters/webllm.server.ts");
+
+    expect(nitro).toContain('"@mlc-ai/web-llm"');
+    expect(nitro).toContain("webllm.server.ts");
+    expect(serverShim).toContain("available only inside a user's browser");
+    expect(read("src/lib/brain/adapters/browser-webgpu.ts")).toContain(
+      'import("@mlc-ai/web-llm")',
+    );
+  });
+
   it("provides a dependency-free liveness endpoint with safe method and cache boundaries", async () => {
     const get = releaseHealthResponse(new Request("https://ocade.invalid/api/health"));
     expect(get?.status).toBe(200);
