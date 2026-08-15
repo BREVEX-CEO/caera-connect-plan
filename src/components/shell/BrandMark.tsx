@@ -3,9 +3,8 @@ import { cn } from "@/lib/utils";
 /**
  * CAERA CADANE brand mark, with 28.8 hidden in the geometry.
  *
- * ESTABLISHED 28.8 is the house number — it is the demo length, the cloud
- * allowance, and the rule every price obeys. So the mark carries it rather than
- * stating it.
+ * The 28.8 geometry is a design motif tied to the product's planned launch date
+ * and allowance language. It is not evidence of incorporation or launch.
  *
  * HOW IT IS BUILT. The glyph reads as a "CC" monogram at a glance. Look again
  * and the outer arc is the bowl and base of a **2**, the two stacked rings are
@@ -32,7 +31,7 @@ export function BrandMark({
   return (
     <div className={cn("inline-flex items-center gap-2.5", className)}>
       <svg viewBox="0 0 32 32" className="h-7 w-7 shrink-0" role="img">
-        <title>CAERA CADANE — established 28.8</title>
+        <title>CAERA CADANE brand mark</title>
         <defs>
           {/*
             Struck gold into champagne, in the direction light would fall on a

@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-ro
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Mail, Phone, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { AuthShell } from "@/components/shell/AuthShell";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
   beforeLoad: async ({ search }) => {
     if (typeof window === "undefined") return;
+    if (!getSupabaseBrowserConfiguration().configured) return;
     const { data } = await supabase.auth.getSession();
     if (data.session) {
       const target = safeNext(search.next) ?? "/home";
@@ -65,6 +66,7 @@ function AuthPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [notice, setNotice] = useState<string | null>(search.message ?? null);
+  const authConfigured = getSupabaseBrowserConfiguration().configured;
 
   useEffect(() => {
     setError(null);
@@ -157,12 +159,30 @@ function AuthPage() {
       subtitle="One account for OCADE."
       footer={
         <>
-          By continuing you agree to our terms and privacy notice. Your workspace defaults to
-          Private Sync — you can switch it to Device Only anytime.
+          By continuing you agree to our{` `}
+          <Link to="/terms" className="underline underline-offset-2">
+            terms
+          </Link>
+          {` `}
+          and{` `}
+          <Link to="/privacy" className="underline underline-offset-2">
+            privacy notice
+          </Link>
+          . Your workspace defaults to Private Sync — you can switch it to Device Only anytime.
         </>
       }
     >
       <div className="flex flex-col gap-5">
+        {!authConfigured ? (
+          <div
+            role="status"
+            className="rounded-md border border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 px-3 py-2 text-xs text-[color:var(--state-warning)]"
+          >
+            Sign-in is temporarily unavailable because this deployment is missing its private
+            service configuration. The public information pages remain available, and no data was
+            sent to another service.
+          </div>
+        ) : null}
         {notice ? (
           <div className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
             {notice}
@@ -206,7 +226,7 @@ function AuthPage() {
 
         {method === "google" ? (
           <button
-            disabled={busy}
+            disabled={busy || !authConfigured}
             onClick={() => signInOAuth("google")}
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-border/70 bg-background/60 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:opacity-60"
           >
@@ -217,7 +237,7 @@ function AuthPage() {
 
         {method === "apple" ? (
           <button
-            disabled={busy}
+            disabled={busy || !authConfigured}
             onClick={() => signInOAuth("apple")}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-colors hover:opacity-90 disabled:opacity-60"
           >
@@ -246,7 +266,7 @@ function AuthPage() {
             </div>
             <button
               type="submit"
-              disabled={busy}
+              disabled={busy || !authConfigured}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -274,7 +294,7 @@ function AuthPage() {
             </div>
             <button
               type="submit"
-              disabled={busy}
+              disabled={busy || !authConfigured}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
             >
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

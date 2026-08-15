@@ -20,7 +20,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supabase/client";
 import {
   ThemeContext,
   type AppearanceContextValue,
@@ -163,6 +163,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // Load from Supabase when a session is available.
   useEffect(() => {
+    if (!getSupabaseBrowserConfiguration().configured) {
+      // Local appearance preferences remain available on public/offline pages.
+      // Authenticated preference sync stays disabled until the intended
+      // Supabase project is explicitly configured.
+      return;
+    }
     let cancelled = false;
     async function load(userId: string) {
       const { data } = await supabase

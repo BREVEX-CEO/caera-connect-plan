@@ -13,7 +13,7 @@ import { hardenDesktopShell } from "@/lib/security/shell-hardening";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supabase/client";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
 import { DepthScene } from "@/components/motion/DepthScene";
@@ -96,7 +96,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "CAERA CADANE is a privacy-first cross-platform AI work platform. OCADE is a local-first AI assistant that reads your documents on your own device.",
       },
-      { name: "author", content: "CAERA CADANE" },
+      { name: "author", content: "Haans Antoni" },
       // Matches --background in the default (black) theme, so the browser
       // chrome and the app do not meet at a visible seam on mobile.
       { name: "theme-color", content: "#0a0a09" },
@@ -107,6 +107,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "Private AI assistant, commerce and studio for solo builders, small businesses and enterprise.",
       },
       { property: "og:type", content: "website" },
+      { property: "og:site_name", content: "CAERA CADANE" },
+      { name: "robots", content: "index,follow,max-image-preview:large" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
@@ -159,6 +161,12 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
+    if (!getSupabaseBrowserConfiguration().configured) {
+      // Keep public and legal pages available during a deployment binding
+      // incident. Authentication remains unavailable and therefore fails
+      // closed; no alternate project or insecure fallback is selected.
+      return;
+    }
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
 

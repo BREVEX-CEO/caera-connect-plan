@@ -1,105 +1,102 @@
 # OCADE
 
-**Your control agent and work agent.** OCADE runs on your computer, understands
-what is on your screen, and does things for you — opening applications, writing
-messages, finding files, answering questions — using an AI model that runs
-entirely on your own machine.
+OCADE is the active product being developed under the **CAERA CADANE** brand by
+**Haans Antoni, Founder, Chairman & CEO**. It is a local-first AI workspace with
+web, desktop and mobile source paths plus optional private synchronization and
+cloud-assisted features.
 
-No API keys. No subscription to a cloud model. Once it is set up, it works with
-the internet switched off.
+Public launch is planned for **28 August 2026**. OCADE is still pre-launch: a
+file, test, installer or deployment script in this repository is not by itself
+proof that the corresponding production service or store release is available.
 
----
+## What is in this repository
 
-## What it does
+| Area               | Implemented source                                                                                        | Readiness boundary                                                                                                                          |
+| ------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web                | React/TanStack Start application, public demo, authenticated workspace and Cloudflare-oriented deployment | A build can pass while a hosted environment is misconfigured. Production URL, monitoring and launch approval remain separate gates.         |
+| Offline web        | Service worker, offline page and browser-local storage/model paths                                        | The shell must first be visited and cached. Sign-in, sync, live web, payment and cloud model features still require a network.              |
+| Cloud/private sync | Supabase auth, RLS-backed data paths, private storage and optional AI gateways                            | Users must be told which mode is active. “Local-first” does not mean all data always remains on-device.                                     |
+| Desktop            | Tauri/Rust companion and native Windows/Python components                                                 | Windows/macOS signing, installer startup proof, notarization and production update flows are release gates, not implied by source presence. |
+| Mobile             | Capacitor Android and iOS projects, mobile pairing and restricted control paths                           | Store signing, privacy declarations, billing compliance and device testing are still required.                                              |
+| Entitlements       | Demo state, subscription/allowance logic, two desktop plus two mobile device limits                       | The repository does not yet prove a live payment checkout or store-billing integration.                                                     |
 
-| | |
-|---|---|
-| **Controls any software** | Reads the actual controls on your screen and acts on them. Not scripted for particular apps. |
-| **Messages people** | WhatsApp, Telegram, Slack, Discord and others — the same code for all of them. |
-| **Answers from your files** | Reads PDFs, Word documents, spreadsheets and answers questions about them. |
-| **Listens and speaks** | Talk to it. Say "stop" and it stops. |
-| **Remembers** | Your name, your projects, what you were doing yesterday. Stored on your machine. |
-| **Searches the live web** | When you ask about something current, it checks and tells you. |
-| **Works from your phone** | Scan a QR code on the same wifi and drive your computer from your pocket. |
-| **Runs offline** | The AI model lives on your machine. Unplug the network and it still works. |
+## Product behavior
 
----
+OCADE can route work to supported on-device/browser engines, a native companion,
+or an explicitly permitted cloud path. Features include document handling,
+conversation and project storage, browser/native control components, voice and
+vision modules, automations and cross-device controls. Availability depends on
+the platform, installed model, hardware, privacy mode and configured services.
 
-## Installing
+Safety controls in source include confirmation and refusal paths, emergency-stop
+handling, account-scoped storage, signed native/bridge requests, attachment
+limits, privacy-mode routing and honest “unverified” outcomes. These controls
+must still be tested on the actual production target before a release claim.
 
-1. Run the installer.
-2. Open OCADE.
-3. Wait for "Setting up your assistant" to finish the first time.
+## Privacy model
 
-That's it. OCADE downloads what it needs in the background, checks it arrived
-intact, and confirms the assistant actually answers before saying it is ready.
-If the download is interrupted it picks up where it left off.
+OCADE supports multiple storage and execution boundaries:
 
-**Requirements:** Windows 10 or later, about 4 GB of free disk space, and an
-internet connection for the first setup only.
+- **Device/browser-local:** supported data remains on the user’s device.
+- **Private Sync:** selected account and workspace records are stored in the
+  configured Supabase project under row-level security.
+- **Cloud-assisted:** a disclosed provider may receive the minimum necessary
+  prompt or request only when the user’s mode and entitlement permit it.
 
----
+There is no advertising or third-party analytics tracker in the audited source.
+Essential local storage is used for authentication, preferences, security and
+offline operation. Future non-essential analytics must remain disabled until
+the required consent choice and documentation exist.
 
-## Using it
+See the pre-launch, lawyer-review drafts:
 
-Type or say what you want in plain words:
+- [Privacy notice](docs/legal/PRIVACY_NOTICE.md)
+- [Terms of service](docs/legal/TERMS_OF_SERVICE.md)
+- [DPDP progress](DPDP_PROGRESS.md)
+- [Data-rights process](docs/legal/DATA_RIGHTS_PROCESS.md)
+- [Breach runbook](BREACH_RUNBOOK.md)
 
-- *"open notepad and write a poem about rain"*
-- *"message Meta AI hi"*
-- *"what's on my screen?"*
-- *"what did I work on yesterday?"*
-- *"search for the weather in Chennai"*
+## Development
 
-You do not need to name tools, learn commands, or phrase things a particular
-way. If OCADE cannot work out what you meant, it asks rather than guessing.
+```bash
+npm ci
+npm run typecheck
+npm run test
+npm run build
+npm run deploy:check
+```
 
-**To stop it:** say "stop", or press the stop button. It stops immediately and
-lets go of the keyboard and mouse.
+Client authentication needs `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_PUBLISHABLE_KEY`; server routes need their corresponding
+server-side bindings. Missing bindings leave public pages available but make
+authentication fail closed. Never commit service keys, access tokens or local
+`.env` files.
 
----
+## Release and public identity
 
-## What OCADE will not do
+The private repository is connected to Lovable. Do not rewrite published Git
+history. Work must remain on a reviewed branch until the owner explicitly
+approves a push or merge to `main`.
 
-These are refusals built into the product, not settings:
+Official pre-launch identity:
 
-- It will not type passwords, one-time codes or payment details.
-- It will not send a message without showing it to you first.
-- It will not claim something worked when it could not confirm it. If it could
-  not check, it says "unverified" rather than "done".
-- From your phone, it will not delete files, shut down the computer or send
-  messages — the phone can look and do reversible things only.
+- Brand/venture: **CAERA CADANE**
+- Active product: **OCADE**
+- Founder: **Haans Antoni**
+- Public roles: **Founder, Chairman & CEO**
+- Location: **Bengaluru, Karnataka, India**
+- Planned public launch date: **28 August 2026**
+- FICIA, MADEE and CANIA: reserved names for possible future products; not AI
+  models and not currently advertised as available
 
----
-
-## Your privacy
-
-OCADE runs the AI model on your own computer. Your conversations, your memory
-and the files it reads stay on your machine.
-
-It reaches the internet only when you ask for something that needs it — a web
-search, live weather, news — and it tells you when it is doing so. Turn the
-network off and everything else keeps working.
-
----
-
-## If something goes wrong
-
-- **"Setting up your assistant" never finishes** — check you have free disk
-  space and a working connection, then reopen OCADE. It resumes automatically.
-- **OCADE cannot see an application** — some programs draw their own windows and
-  publish nothing about themselves. OCADE falls back to reading the screen
-  directly; this is slower but usually works.
-- **It says "unverified"** — the action ran but OCADE could not confirm the
-  result. Look at the screen and check before assuming it worked. This is
-  deliberate honesty, not a failure.
-
----
+The website must not publish a CIN, GSTIN, registered office, trademark status,
+launch completion or incorporated founding date until independently verified.
+Search engines and third-party directories decide their own indexing and cannot
+be guaranteed to display any specific result.
 
 ## Licence
 
-Proprietary. Copyright © 2026 HAANS ANTONI, trading as CAERA CADANE. All rights
-reserved. See [LICENSE](LICENSE).
-
-Third-party components are listed in
-[release/THIRD_PARTY_NOTICES.md](release/THIRD_PARTY_NOTICES.md) and remain
-under their own licences.
+The repository is proprietary. Copyright © 2026 Haans Antoni, operating under
+the CAERA CADANE brand. See [LICENSE](LICENSE). Third-party packages, models and
+assets remain under their own terms; notices are recorded in
+[release/THIRD_PARTY_NOTICES.md](release/THIRD_PARTY_NOTICES.md).

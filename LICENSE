@@ -1,186 +1,74 @@
-OCADE — PROPRIETARY COMMERCIAL SOFTWARE LICENCE
+OCADE PROPRIETARY SOURCE CODE NOTICE
 
-Copyright (c) 2026 CAREA CADANE. All rights reserved.
+Copyright (c) 2026 Haans Antoni. All rights reserved.
 
-Company:            CAREA CADANE
-Established:        28 August 2026
-CEO and Founder:    Haans Antoni
-Product:            OCADE — Universal PC Control and Autonomous Work Agent
+Brand: CAERA CADANE
+Product: OCADE
+Owner before any written assignment: Haans Antoni
 
-THIS IS NOT OPEN-SOURCE SOFTWARE. It is licensed, not sold. No rights are
-granted except those written below.
+IMPORTANT: LAWYER REVIEW IS REQUIRED BEFORE COMMERCIAL DISTRIBUTION. This file
+governs access to the private source repository. It is not the consumer terms
+of service, an end-user licence agreement, a privacy notice, proof of company
+incorporation, proof of trademark registration, or proof that OCADE launched.
 
---------------------------------------------------------------------------------
-1. DEFINITIONS
---------------------------------------------------------------------------------
+1. RESERVATION OF RIGHTS
 
-"Software"  means the OCADE application, its installers, its desktop and mobile
-            clients, its control engine, its source code and object code, its
-            configuration, and its documentation.
+Except for rights expressly granted in a separate written agreement signed by
+the copyright owner, no licence is granted to use, copy, modify, distribute,
+publish, sublicense, sell, host, reverse engineer, create derivative works from,
+or commercially exploit the proprietary portions of this repository.
 
-"Models"    means any artificial-intelligence model weights, adapters,
-            quantisations or prompt assets distributed with, downloaded by, or
-            configured for use by the Software.
+Access to the private repository does not transfer ownership. Contractors,
+employees, collaborators and investors must have a written confidentiality and
+intellectual-property agreement appropriate to their role before receiving
+access or contributing work.
 
-"You"       means the individual or entity exercising the rights in this licence.
+2. THIRD-PARTY MATERIAL
 
---------------------------------------------------------------------------------
-2. GRANT OF LICENCE
---------------------------------------------------------------------------------
+This repository includes or depends on third-party software, models, weights,
+assets and services. Those materials remain governed by their respective
+licences and terms. Nothing in this notice restricts rights granted by an
+applicable open-source or third-party licence. Available notices are recorded in
+release/THIRD_PARTY_NOTICES.md and must be regenerated and reviewed for every
+distribution.
 
-Subject to payment of any applicable fee and to continuous compliance with this
-licence, CAREA CADANE grants You a personal, non-exclusive, non-transferable,
-non-sublicensable, revocable licence to install and use one copy of the Software
-on hardware You own or control, for Your own internal purposes.
+3. CONTRIBUTIONS AND OWNERSHIP CHAIN
 
-This licence is bound to the device on which the Software is activated. Moving
-it to different hardware may require re-activation.
+No contribution is accepted as owned by Haans Antoni merely because it appears
+in this repository. The contributor's employment, contractor, assignment or
+contribution agreement controls. The owner must retain signed records sufficient
+to establish the chain of title.
 
---------------------------------------------------------------------------------
-3. PROHIBITED CONDUCT
---------------------------------------------------------------------------------
+CAERA CADANE is currently described as a brand/venture. If an incorporated
+entity is later intended to own OCADE, the relevant copyright, trademark,
+domain, contracts and other assets must be assigned to that entity by a valid
+written instrument. Do not replace the owner in this notice before that transfer
+is completed and recorded.
 
-You may NOT, and may not permit any third party to:
+4. CONFIDENTIALITY AND SECURITY
 
-  (a) REVERSE ENGINEER, decompile, disassemble, deobfuscate, decrypt, or
-      otherwise attempt to derive the source code, algorithms, architecture,
-      file formats, protocols or ideas embodied in the Software or the Models,
-      by any means and for any purpose;
+Non-public source, architecture, credentials, vulnerability information,
+customer information and business records must be protected as confidential.
+No real password, private key, service-role key, access token, payment secret or
+personal identification document may be committed to this repository.
 
-  (b) TAMPER with the Software, including modifying, patching, hooking,
-      instrumenting or hot-loading its code or memory; disabling, bypassing or
-      interfering with any licence check, integrity check, hardware binding,
-      checksum, signature verification or security control; or removing,
-      obscuring or altering any copyright, trade mark or proprietary notice;
+5. NO WARRANTY FOR REPOSITORY ACCESS
 
-  (c) SUB-LICENSE, sell, resell, rent, lease, lend, distribute, publish, host,
-      transfer, assign, or otherwise make the Software or the Models available
-      to any third party, whether or not for a fee, and whether or not modified;
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE PROPRIETARY MATERIAL IS PROVIDED FOR
+AUTHORIZED DEVELOPMENT "AS IS," WITHOUT WARRANTIES. THIS CLAUSE DOES NOT REMOVE
+NON-WAIVABLE CONSUMER, EMPLOYMENT, CONFIDENTIALITY, DATA-PROTECTION OR OTHER
+STATUTORY RIGHTS.
 
-  (d) COPY the Software or the Models except for one backup copy retained solely
-      for archival purposes;
+6. GOVERNING DOCUMENTS
 
-  (e) create DERIVATIVE WORKS of the Software or the Models, or incorporate any
-      part of them into another product or service;
+Commercial users are governed by the final, accepted terms of service and any
+applicable store or enterprise agreement. Data processing is governed by the
+final privacy notice and applicable law. In a conflict, mandatory law and an
+applicable third-party licence take precedence over this source notice.
 
-  (f) use the Software or the Models to develop, train, fine-tune, distil,
-      evaluate against, or otherwise assist in creating a competing product;
+7. CONTACT STATUS
 
-  (g) operate the Software as a SERVICE BUREAU, managed service, hosted offering
-      or on behalf of any third party;
-
-  (h) circumvent or attempt to circumvent any usage limit, trial period, seat
-      count or entitlement;
-
-  (i) use the Software for any unlawful purpose, or to gain unauthorised access
-      to any system, account, network or data.
-
-Section 3(a) applies to the maximum extent permitted by law. Where mandatory
-local law grants You a non-excludable right to decompile for interoperability,
-that right is unaffected, and You must first request the necessary information
-from CAREA CADANE in writing.
-
---------------------------------------------------------------------------------
-4. AI MODELS
---------------------------------------------------------------------------------
-
-The Software downloads and runs Models on Your device. Models are supplied by
-their own publishers under their own terms, are not owned by CAREA CADANE, and
-are not licensed to You by CAREA CADANE except as necessary to run the Software.
-Your use of a Model is also governed by that Model's own licence.
-
-Model output is generated automatically, is not reviewed by CAREA CADANE, and is
-not warranted to be accurate, complete, lawful or fit for any purpose. You are
-responsible for verifying output before relying on it.
-
---------------------------------------------------------------------------------
-5. OWNERSHIP
---------------------------------------------------------------------------------
-
-The Software is protected by copyright and other intellectual-property laws and
-by international treaty. CAREA CADANE and its licensors retain all right, title
-and interest in and to the Software, including all intellectual-property rights.
-Nothing in this licence transfers ownership of anything.
-
---------------------------------------------------------------------------------
-6. THIRD-PARTY COMPONENTS
---------------------------------------------------------------------------------
-
-The Software incorporates third-party components distributed under their own
-licences. Those components remain governed by their respective terms, which
-prevail over this licence in respect of those components. A complete list is
-published in release/THIRD_PARTY_NOTICES.md and is reproduced in the installed
-application.
-
---------------------------------------------------------------------------------
-7. WHAT THE SOFTWARE DOES ON YOUR COMPUTER
---------------------------------------------------------------------------------
-
-OCADE CONTROLS THIS COMPUTER. It opens applications, moves the pointer, types
-text, reads the screen, reads and moves files, and can send messages on Your
-behalf. You are responsible for supervising it and for the consequences of any
-action You instruct it to take.
-
-The Software is designed to run locally. Conversations, memory and files it
-processes remain on Your device unless You explicitly direct otherwise.
-
---------------------------------------------------------------------------------
-8. NO WARRANTY
---------------------------------------------------------------------------------
-
-THE SOFTWARE AND THE MODELS ARE PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT
-WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
-IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE
-AND NON-INFRINGEMENT. CAREA CADANE DOES NOT WARRANT THAT THE SOFTWARE WILL BE
-UNINTERRUPTED, ERROR-FREE OR SECURE.
-
---------------------------------------------------------------------------------
-9. LIMITATION OF LIABILITY
---------------------------------------------------------------------------------
-
-TO THE MAXIMUM EXTENT PERMITTED BY LAW, CAREA CADANE SHALL NOT BE LIABLE FOR ANY
-INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY OR PUNITIVE DAMAGES, NOR
-FOR ANY LOSS OF PROFITS, REVENUE, DATA, GOODWILL OR BUSINESS INTERRUPTION,
-HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY.
-
-CAREA CADANE'S TOTAL AGGREGATE LIABILITY UNDER THIS LICENCE SHALL NOT EXCEED THE
-AMOUNT YOU ACTUALLY PAID FOR THE SOFTWARE IN THE TWELVE MONTHS PRECEDING THE
-EVENT GIVING RISE TO THE CLAIM.
-
-Nothing in this licence excludes or limits liability that cannot lawfully be
-excluded or limited, including liability for death or personal injury caused by
-negligence, or for fraud or fraudulent misrepresentation.
-
---------------------------------------------------------------------------------
-10. TERM AND TERMINATION
---------------------------------------------------------------------------------
-
-This licence takes effect on first installation and continues until terminated.
-It terminates automatically and without notice if You breach any term. On
-termination You must immediately cease all use of the Software and permanently
-remove all copies, including the Models it downloaded.
-
-Sections 3, 5, 8, 9 and 11 survive termination.
-
---------------------------------------------------------------------------------
-11. GOVERNING LAW
---------------------------------------------------------------------------------
-
-This licence is governed by the laws of India, without regard to conflict-of-law
-rules. The courts of Chennai, Tamil Nadu shall have exclusive jurisdiction over
-any dispute arising out of or in connection with it.
-
---------------------------------------------------------------------------------
-12. ENTIRE AGREEMENT
---------------------------------------------------------------------------------
-
-This licence is the entire agreement between You and CAREA CADANE concerning the
-Software and supersedes all prior understandings. If any provision is held
-unenforceable, it shall be modified to the minimum extent necessary to make it
-enforceable, and the remaining provisions shall continue in full force.
-
---------------------------------------------------------------------------------
-
-CAREA CADANE
-Established 28 August 2026
-CEO and Founder: Haans Antoni
+The intended public addresses support@ocade.ai and CAERACADANE28@gmail.com must
+not be treated as active legal-notice channels until the owner verifies control,
+delivery, retention and response ownership. The final commercial licence must
+publish a working legal contact and the verified provider address.

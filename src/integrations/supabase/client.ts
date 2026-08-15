@@ -29,19 +29,47 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
-function createSupabaseClient() {
-  // Use import.meta.env for client-side (Vite build-time replacement)
-  // Fall back to process.env for SSR (server-side rendering)
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const SUPABASE_PUBLISHABLE_KEY =
+export interface SupabaseBrowserConfiguration {
+  configured: boolean;
+  url?: string;
+  publishableKey?: string;
+  missing: Array<"SUPABASE_URL" | "SUPABASE_PUBLISHABLE_KEY">;
+}
+
+export function resolveSupabaseBrowserConfiguration(input: {
+  url?: string;
+  publishableKey?: string;
+}): SupabaseBrowserConfiguration {
+  const missing: SupabaseBrowserConfiguration["missing"] = [];
+  if (!input.url) missing.push("SUPABASE_URL");
+  if (!input.publishableKey) missing.push("SUPABASE_PUBLISHABLE_KEY");
+  return {
+    configured: missing.length === 0,
+    url: input.url || undefined,
+    publishableKey: input.publishableKey || undefined,
+    missing,
+  };
+}
+
+/**
+ * Resolve configuration without creating a client. Public pages use this to
+ * stay available when an environment binding is missing, while authenticated
+ * features still fail closed instead of silently using another project.
+ */
+export function getSupabaseBrowserConfiguration(): SupabaseBrowserConfiguration {
+  const url = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const publishableKey =
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+  return resolveSupabaseBrowserConfiguration({ url, publishableKey });
+}
+
+function createSupabaseClient() {
+  const config = getSupabaseBrowserConfiguration();
+  const SUPABASE_URL = config.url;
+  const SUPABASE_PUBLISHABLE_KEY = config.publishableKey;
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-    const missing = [
-      ...(!SUPABASE_URL ? ["SUPABASE_URL"] : []),
-      ...(!SUPABASE_PUBLISHABLE_KEY ? ["SUPABASE_PUBLISHABLE_KEY"] : []),
-    ];
-    const message = `Missing Supabase environment variable(s): ${missing.join(", ")}. Connect Supabase in Lovable Cloud.`;
+    const message = `Missing Supabase environment variable(s): ${config.missing.join(", ")}. Connect Supabase in Lovable Cloud.`;
     console.error(`[Supabase] ${message}`);
     throw new Error(message);
   }

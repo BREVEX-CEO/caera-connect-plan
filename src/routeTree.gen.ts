@@ -12,7 +12,13 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CompanyRouteImport } from './routes/company'
+import { Route as DataRightsRouteImport } from './routes/data-rights'
 import { Route as DemoRouteImport } from './routes/demo'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAccessDeniedRouteImport } from './routes/_authenticated/access-denied'
 import { Route as AuthenticatedCaniaRouteImport } from './routes/_authenticated/cania'
 import { Route as AuthenticatedFiciaRouteImport } from './routes/_authenticated/ficia'
@@ -27,6 +33,8 @@ import { Route as DemoIndexRouteImport } from './routes/demo.index'
 import { Route as DemoControlRouteImport } from './routes/demo.control'
 import { Route as DemoOcadeRouteImport } from './routes/demo.ocade'
 import { Route as DemoSettingsRouteImport } from './routes/demo.settings'
+import { Route as FounderHaansAntoniRouteImport } from './routes/founder.haans-antoni'
+import { Route as ProductsOcadeRouteImport } from './routes/products.ocade'
 import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_authenticated/admin.launch-gate'
 import { Route as AuthenticatedOcadeArtifactsRouteImport } from './routes/_authenticated/ocade.artifacts'
 import { Route as AuthenticatedOcadeAutomationsRouteImport } from './routes/_authenticated/ocade.automations'
@@ -65,9 +73,39 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompanyRoute = CompanyRouteImport.update({
+  id: '/company',
+  path: '/company',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DataRightsRoute = DataRightsRouteImport.update({
+  id: '/data-rights',
+  path: '/data-rights',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemoRoute = DemoRouteImport.update({
   id: '/demo',
   path: '/demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
+  id: '/robots.txt',
+  path: '/robots.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAccessDeniedRoute =
@@ -140,6 +178,16 @@ const DemoSettingsRoute = DemoSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => DemoRoute,
+} as any)
+const FounderHaansAntoniRoute = FounderHaansAntoniRouteImport.update({
+  id: '/founder/haans-antoni',
+  path: '/founder/haans-antoni',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductsOcadeRoute = ProductsOcadeRouteImport.update({
+  id: '/products/ocade',
+  path: '/products/ocade',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminLaunchGateRoute =
   AuthenticatedAdminLaunchGateRouteImport.update({
@@ -279,7 +327,13 @@ const ApiOcadeBridgeSplatRoute = ApiOcadeBridgeSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/company': typeof CompanyRoute
+  '/data-rights': typeof DataRightsRoute
   '/demo': typeof DemoRouteWithChildren
+  '/privacy': typeof PrivacyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/access-denied': typeof AuthenticatedAccessDeniedRoute
   '/cania': typeof AuthenticatedCaniaRoute
   '/ficia': typeof AuthenticatedFiciaRoute
@@ -293,6 +347,8 @@ export interface FileRoutesByFullPath {
   '/demo/control': typeof DemoControlRoute
   '/demo/ocade': typeof DemoOcadeRoute
   '/demo/settings': typeof DemoSettingsRoute
+  '/founder/haans-antoni': typeof FounderHaansAntoniRoute
+  '/products/ocade': typeof ProductsOcadeRoute
   '/demo/': typeof DemoIndexRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
@@ -321,6 +377,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/company': typeof CompanyRoute
+  '/data-rights': typeof DataRightsRoute
+  '/privacy': typeof PrivacyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/access-denied': typeof AuthenticatedAccessDeniedRoute
   '/cania': typeof AuthenticatedCaniaRoute
   '/ficia': typeof AuthenticatedFiciaRoute
@@ -333,6 +395,8 @@ export interface FileRoutesByTo {
   '/demo/control': typeof DemoControlRoute
   '/demo/ocade': typeof DemoOcadeRoute
   '/demo/settings': typeof DemoSettingsRoute
+  '/founder/haans-antoni': typeof FounderHaansAntoniRoute
+  '/products/ocade': typeof ProductsOcadeRoute
   '/demo': typeof DemoIndexRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
@@ -363,7 +427,13 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/company': typeof CompanyRoute
+  '/data-rights': typeof DataRightsRoute
   '/demo': typeof DemoRouteWithChildren
+  '/privacy': typeof PrivacyRoute
+  '/robots.txt': typeof RobotsDottxtRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/_authenticated/access-denied': typeof AuthenticatedAccessDeniedRoute
   '/_authenticated/cania': typeof AuthenticatedCaniaRoute
   '/_authenticated/ficia': typeof AuthenticatedFiciaRoute
@@ -377,6 +447,8 @@ export interface FileRoutesById {
   '/demo/control': typeof DemoControlRoute
   '/demo/ocade': typeof DemoOcadeRoute
   '/demo/settings': typeof DemoSettingsRoute
+  '/founder/haans-antoni': typeof FounderHaansAntoniRoute
+  '/products/ocade': typeof ProductsOcadeRoute
   '/demo/': typeof DemoIndexRoute
   '/_authenticated/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/_authenticated/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
@@ -407,7 +479,13 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/company'
+    | '/data-rights'
     | '/demo'
+    | '/privacy'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/terms'
     | '/access-denied'
     | '/cania'
     | '/ficia'
@@ -421,6 +499,8 @@ export interface FileRouteTypes {
     | '/demo/control'
     | '/demo/ocade'
     | '/demo/settings'
+    | '/founder/haans-antoni'
+    | '/products/ocade'
     | '/demo/'
     | '/admin/launch-gate'
     | '/ocade/artifacts'
@@ -449,6 +529,12 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/company'
+    | '/data-rights'
+    | '/privacy'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/terms'
     | '/access-denied'
     | '/cania'
     | '/ficia'
@@ -461,6 +547,8 @@ export interface FileRouteTypes {
     | '/demo/control'
     | '/demo/ocade'
     | '/demo/settings'
+    | '/founder/haans-antoni'
+    | '/products/ocade'
     | '/demo'
     | '/admin/launch-gate'
     | '/ocade/artifacts'
@@ -490,7 +578,13 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/company'
+    | '/data-rights'
     | '/demo'
+    | '/privacy'
+    | '/robots.txt'
+    | '/sitemap.xml'
+    | '/terms'
     | '/_authenticated/access-denied'
     | '/_authenticated/cania'
     | '/_authenticated/ficia'
@@ -504,6 +598,8 @@ export interface FileRouteTypes {
     | '/demo/control'
     | '/demo/ocade'
     | '/demo/settings'
+    | '/founder/haans-antoni'
+    | '/products/ocade'
     | '/demo/'
     | '/_authenticated/admin/launch-gate'
     | '/_authenticated/ocade/artifacts'
@@ -534,7 +630,15 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  CompanyRoute: typeof CompanyRoute
+  DataRightsRoute: typeof DataRightsRoute
   DemoRoute: typeof DemoRouteWithChildren
+  PrivacyRoute: typeof PrivacyRoute
+  RobotsDottxtRoute: typeof RobotsDottxtRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermsRoute: typeof TermsRoute
+  FounderHaansAntoniRoute: typeof FounderHaansAntoniRoute
+  ProductsOcadeRoute: typeof ProductsOcadeRoute
   ApiOcadeChatRoute: typeof ApiOcadeChatRoute
   ApiOcadeBridgeSplatRoute: typeof ApiOcadeBridgeSplatRoute
 }
@@ -562,11 +666,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/company': {
+      id: '/company'
+      path: '/company'
+      fullPath: '/company'
+      preLoaderRoute: typeof CompanyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/data-rights': {
+      id: '/data-rights'
+      path: '/data-rights'
+      fullPath: '/data-rights'
+      preLoaderRoute: typeof DataRightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demo': {
       id: '/demo'
       path: '/demo'
       fullPath: '/demo'
       preLoaderRoute: typeof DemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/robots.txt': {
+      id: '/robots.txt'
+      path: '/robots.txt'
+      fullPath: '/robots.txt'
+      preLoaderRoute: typeof RobotsDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/access-denied': {
@@ -666,6 +812,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/demo/settings'
       preLoaderRoute: typeof DemoSettingsRouteImport
       parentRoute: typeof DemoRoute
+    }
+    '/founder/haans-antoni': {
+      id: '/founder/haans-antoni'
+      path: '/founder/haans-antoni'
+      fullPath: '/founder/haans-antoni'
+      preLoaderRoute: typeof FounderHaansAntoniRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/products/ocade': {
+      id: '/products/ocade'
+      path: '/products/ocade'
+      fullPath: '/products/ocade'
+      preLoaderRoute: typeof ProductsOcadeRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/launch-gate': {
       id: '/_authenticated/admin/launch-gate'
@@ -950,7 +1110,15 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  CompanyRoute: CompanyRoute,
+  DataRightsRoute: DataRightsRoute,
   DemoRoute: DemoRouteWithChildren,
+  PrivacyRoute: PrivacyRoute,
+  RobotsDottxtRoute: RobotsDottxtRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermsRoute: TermsRoute,
+  FounderHaansAntoniRoute: FounderHaansAntoniRoute,
+  ProductsOcadeRoute: ProductsOcadeRoute,
   ApiOcadeChatRoute: ApiOcadeChatRoute,
   ApiOcadeBridgeSplatRoute: ApiOcadeBridgeSplatRoute,
 }

@@ -261,7 +261,7 @@ export function LandingUniverse() {
               : "mt-0.5 text-[8.5px] tracking-[0.3em]",
           )}
         >
-          Established 28.8
+          Planned launch 28 August 2026
         </p>
       </div>
 

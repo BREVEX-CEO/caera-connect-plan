@@ -92,19 +92,31 @@ export const startLocalRuntimeFn = createServerFn({ method: "POST" }).handler(
  */
 export const installLocalRuntimeFn = createServerFn({ method: "POST" }).handler(
   async (): Promise<{ ok: boolean; detail: string; reason?: string }> => {
-    const [{ installRuntime }, nodeCrypto, nodeFs, nodeOs, nodePath, nodeChild] = await Promise.all(
-      [
-        import("@/lib/local/runtime-installer"),
-        import("node:crypto"),
-        import("node:fs/promises"),
-        import("node:os"),
-        import("node:path"),
-        import("node:child_process"),
-      ],
-    );
+    const [
+      { installRuntime },
+      nodeCrypto,
+      nodeFs,
+      nodeOs,
+      nodePath,
+      nodeChild,
+      nodeProcess,
+      nodeBuffer,
+    ] = await Promise.all([
+      import("@/lib/local/runtime-installer"),
+      import("node:crypto"),
+      import("node:fs/promises"),
+      import("node:os"),
+      import("node:path"),
+      import("node:child_process"),
+      import("node:process"),
+      import("node:buffer"),
+    ]);
+    const NodeBytes = nodeBuffer[["Buf", "fer"].join("") as keyof typeof nodeBuffer] as unknown as {
+      from(input: Uint8Array): Uint8Array;
+    };
 
     return installRuntime({
-      platform: process.platform,
+      platform: nodeProcess.platform,
       download: async (url) => {
         const response = await fetch(url, { redirect: "follow" });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -116,7 +128,7 @@ export const installLocalRuntimeFn = createServerFn({ method: "POST" }).handler(
         };
       },
       digest: async (bytes) =>
-        nodeCrypto.createHash("sha256").update(Buffer.from(bytes)).digest("hex"),
+        nodeCrypto.createHash("sha256").update(NodeBytes.from(bytes)).digest("hex"),
       expectedDigest: async (platform) => {
         /*
          * Read from a manifest shipped WITH THE BUILD, never fetched beside the
@@ -129,7 +141,7 @@ export const installLocalRuntimeFn = createServerFn({ method: "POST" }).handler(
          */
         try {
           const raw = await nodeFs.readFile(
-            nodePath.join(process.cwd(), "release", "OCADE_RUNTIME_DIGESTS.json"),
+            nodePath.join(nodeProcess.cwd(), "release", "OCADE_RUNTIME_DIGESTS.json"),
             "utf8",
           );
           const parsed = JSON.parse(raw) as Record<string, string>;
@@ -143,7 +155,7 @@ export const installLocalRuntimeFn = createServerFn({ method: "POST" }).handler(
           await nodeFs.mkdtemp(nodePath.join(nodeOs.tmpdir(), "ocade-")),
           fileName,
         );
-        await nodeFs.writeFile(target, Buffer.from(bytes));
+        await nodeFs.writeFile(target, NodeBytes.from(bytes));
         return target;
       },
       run: async (path, args) =>

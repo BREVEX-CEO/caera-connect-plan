@@ -72,7 +72,8 @@ export const PLANETS: Planet[] = [
   {
     id: "chat",
     name: "Chat",
-    benefit: "Ask anything. It answers on your computer, not on somebody's server.",
+    benefit:
+      "Ask anything. OCADE uses your selected local or disclosed cloud path, subject to device support.",
     orbit: 1.9,
     speed: 0.132,
     phase: 0,
@@ -100,7 +101,8 @@ export const PLANETS: Planet[] = [
   {
     id: "vision",
     name: "Vision",
-    benefit: "Drop in a screenshot. The image never leaves the machine it was taken on.",
+    benefit:
+      "Drop in a screenshot. Supported local processing stays on-device; any approved cloud path is disclosed.",
     orbit: 3.1,
     speed: -0.086,
     phase: 1.9,
@@ -156,7 +158,8 @@ export const PLANETS: Planet[] = [
   {
     id: "offline",
     name: "Offline intelligence",
-    benefit: "Download the engine once. After that it works on a plane, in a basement, anywhere.",
+    benefit:
+      "Download a supported local engine for offline work; sign-in, sync, live web and cloud features still need a network.",
     orbit: 5.6,
     speed: -0.045,
     phase: 5.2,
@@ -745,7 +748,7 @@ export const INTRO_SEEN_KEY = "caera:landing:intro:v1";
 export type IntroPhase =
   /** "CAERA CADANE" resolving out of the dark. */
   | "wordmark"
-  /** "ESTABLISHED 28.8" beneath it. */
+  /** The planned launch date beneath it. */
   | "established"
   /** The system ignites and the camera pulls back. */
   | "ignition"

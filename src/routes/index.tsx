@@ -54,12 +54,23 @@ function LandingPage() {
       <footer className="relative z-10 border-t border-border/40 py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-4 text-[11.5px] text-muted-foreground/70 sm:flex-row">
           <p>© {new Date().getFullYear()} CAERA CADANE</p>
-          <Link
-            to="/auth"
-            className="transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            Sign in
-          </Link>
+          <div className="flex flex-wrap gap-4">
+            <Link to="/company" className="transition-colors hover:text-foreground">
+              Company
+            </Link>
+            <Link to="/privacy" className="transition-colors hover:text-foreground">
+              Privacy
+            </Link>
+            <Link to="/terms" className="transition-colors hover:text-foreground">
+              Terms
+            </Link>
+            <Link
+              to="/auth"
+              className="transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Sign in
+            </Link>
+          </div>
         </div>
       </footer>
     </div>
