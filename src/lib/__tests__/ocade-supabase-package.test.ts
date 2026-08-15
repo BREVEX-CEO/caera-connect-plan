@@ -8,6 +8,7 @@ const migrations = [
   "20260724211500_ocade_automation_worker",
   "20260730190000_ocade_controlled_rollout_gates",
   "20260815213627_ocade_billing_support_ledger",
+  "20260815215000_ocade_billing_support_privilege_hardening",
 ] as const;
 
 function read(path: string): string {
@@ -38,13 +39,22 @@ describe("OCADE Supabase application package", () => {
       expect(existsSync(`supabase/verification/${migration}_verify.sql`)).toBe(true);
     }
     expect(applyOrder).toMatch(/historical rebuild guide; do not apply blindly/i);
-    expect(applyOrder).toMatch(/40 paired migrations/i);
+    expect(applyOrder).toMatch(/41 paired migrations/i);
     expect(applyOrder).toMatch(/remote migration-history ledger still needs/i);
   });
 
   it("makes each unapplied migration atomic and labels the package honestly", () => {
     const billingSupport = read(`supabase/migrations/${migrations[5]}.sql`);
-    for (const migration of [projects, usage, automations, worker, controlledRollout, billingSupport]) {
+    const billingHardening = read(`supabase/migrations/${migrations[6]}.sql`);
+    for (const migration of [
+      projects,
+      usage,
+      automations,
+      worker,
+      controlledRollout,
+      billingSupport,
+      billingHardening,
+    ]) {
       expect(migration).toMatch(/\bBEGIN;\s/);
       expect(migration).toMatch(/\sCOMMIT;\s*$/);
     }
