@@ -15,9 +15,9 @@ import { readFileSync, existsSync } from "node:fs";
  * the workflow depends on is real, so that class of mistake fails here in
  * milliseconds instead of on a runner.
  *
- * HONEST STATUS: this workflow has never been executed. It is PREPARED
- * automation, not evidence. The tests below prove its references resolve — they
- * do not prove the builds succeed.
+ * HONEST STATUS: this workflow is still PREPARED, NOT YET VERIFIED until every
+ * selected platform job completes green. The tests below prove its references
+ * resolve; they do not prove the builds succeed.
  */
 
 const workflow = readFileSync(".github/workflows/platforms.yml", "utf8");
