@@ -41,6 +41,7 @@ import {
   type ToolOutcome,
 } from "./outcomes";
 import { findTool, schemasFor, type WireTool } from "./tool-registry";
+import { ocadeCorePolicy } from "./ocade-core-policy";
 
 export interface ToolCall {
   id?: string;
@@ -109,15 +110,9 @@ export interface AgentResult {
 }
 
 const SYSTEM_PROMPT = [
-  "You are OCADE. You can act on this computer through the tools you have been given.",
+  ocadeCorePolicy("control"),
   "",
-  "Work in small steps. Take one action, look at what changed, then decide the next step.",
-  "Before you press or change anything, observe first so you are acting on what is there now.",
-  "After you act, check the result. If a tool reports that nothing changed, do not claim success —",
-  "say what happened and try a different approach.",
-  "If a tool is refused or blocked, do not call it again with the same arguments.",
   "When the task is done, say briefly what you did and what you verified.",
-  "Never ask for or type passwords, one-time codes or payment details; those stay with the user.",
 ].join("\n");
 
 /**

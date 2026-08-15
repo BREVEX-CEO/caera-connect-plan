@@ -111,7 +111,9 @@ function DemoControlWork() {
         <div className="flex min-w-0 items-center gap-2">
           <div className="min-w-0 flex-1">
             <p className="truncate text-[14px] font-medium text-foreground">OCADE Control + Work</p>
-            <p className="truncate text-[11px] text-muted-foreground">Solar System Control</p>
+            <p className="truncate text-[11px] text-muted-foreground">
+              8-domain command constellation · 28 live objects
+            </p>
           </div>
           <DemoSessionBadge session={session} className="shrink-0" />
           <Link

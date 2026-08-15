@@ -18,8 +18,10 @@ import {
   Globe,
   Brain,
   MessageSquare,
+  Smartphone,
   Image as ImageIcon,
   Activity,
+  LifeBuoy,
   Wand2,
 } from "lucide-react";
 
@@ -222,6 +224,14 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         description: "The computers and phones approved for this account.",
         keywords: ["device", "computer", "phone", "pair", "revoke", "mobile"],
       },
+      {
+        slug: "mobile",
+        label: "Mobile control",
+        icon: Smartphone,
+        status: "active",
+        description: "Pair a phone and supervise scoped PC tasks.",
+        keywords: ["mobile", "phone", "remote", "pair", "approval", "emergency stop"],
+      },
     ],
   },
   {
@@ -271,6 +281,14 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         status: "active",
         description: "Your sign-in and account details.",
         keywords: ["account", "email", "password", "sign in", "profile", "security"],
+      },
+      {
+        slug: "support",
+        label: "Customer support",
+        icon: LifeBuoy,
+        status: "active",
+        description: "Cases, replies and support history.",
+        keywords: ["support", "help", "ticket", "case", "billing", "history"],
       },
     ],
   },

@@ -19,8 +19,8 @@ import {
   type Entitlement,
 } from "@/lib/ocade-allowance";
 import { getCloudUsage, getEntitlement } from "@/lib/ocade-usage.functions";
-import { BillingPanel } from "@/components/settings/BillingPanel";
 import { PlanComparison } from "@/components/settings/PlanComparison";
+import { BillingHistory } from "@/components/settings/BillingHistory";
 
 export const Route = createFileRoute("/_authenticated/settings/usage")({
   head: () => ({
@@ -66,7 +66,10 @@ function UsagePage() {
     };
   }, []);
 
-  const state = useMemo(() => allowanceState(used ?? 0), [used]);
+  const state = useMemo(
+    () => allowanceState(used ?? 0, new Date(), entitlement ? PLANS[entitlement.planId].cloudAllowancePerWindow : CLOUD_ALLOWANCE),
+    [entitlement, used],
+  );
   const ent = useMemo(() => entitlementState(entitlement), [entitlement]);
   const graceOk = lastVerified ? offlineEntitlementValid(lastVerified) : true;
   const pct = Math.round((state.used / state.limit) * 100);
@@ -80,8 +83,9 @@ function UsagePage() {
       />
 
       <div className="flex flex-col gap-5">
-        {/* Subscription, entitlement and the payment provider twin. */}
-        <BillingPanel />
+        {/* Customer-visible plans and verified billing evidence only. */}
+        <PlanComparison currentPlan={entitlement?.planId ?? null} />
+        <BillingHistory />
 
         {/* Cloud allowance */}
         <GlassPanel className="p-4">
@@ -201,8 +205,9 @@ function UsagePage() {
             ))}
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            Every plan includes the same features and device limits — they differ only in length.
-            Pricing and checkout are not part of this build.
+            Every paid plan keeps the same 2-computer and 2-phone limit. Longer plans include a
+            larger OCADE Cloud allowance. Live checkout remains disabled until provider accounts,
+            legal review and production webhooks are verified.
           </p>
         </GlassPanel>
 

@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CompanyRouteImport } from './routes/company'
 import { Route as DataRightsRouteImport } from './routes/data-rights'
 import { Route as DemoRouteImport } from './routes/demo'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
@@ -36,6 +37,7 @@ import { Route as DemoSettingsRouteImport } from './routes/demo.settings'
 import { Route as FounderHaansAntoniRouteImport } from './routes/founder.haans-antoni'
 import { Route as ProductsOcadeRouteImport } from './routes/products.ocade'
 import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_authenticated/admin.launch-gate'
+import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin.support'
 import { Route as AuthenticatedOcadeArtifactsRouteImport } from './routes/_authenticated/ocade.artifacts'
 import { Route as AuthenticatedOcadeAutomationsRouteImport } from './routes/_authenticated/ocade.automations'
 import { Route as AuthenticatedOcadeCodeRouteImport } from './routes/_authenticated/ocade.code'
@@ -53,6 +55,7 @@ import { Route as AuthenticatedSettingsDevicesRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsMobileRouteImport } from './routes/_authenticated/settings.mobile'
 import { Route as AuthenticatedSettingsPrivacyRouteImport } from './routes/_authenticated/settings.privacy'
 import { Route as AuthenticatedSettingsSkillsRouteImport } from './routes/_authenticated/settings.skills'
+import { Route as AuthenticatedSettingsSupportRouteImport } from './routes/_authenticated/settings.support'
 import { Route as AuthenticatedSettingsUsageRouteImport } from './routes/_authenticated/settings.usage'
 import { Route as AuthenticatedSettingsVaultRouteImport } from './routes/_authenticated/settings.vault'
 import { Route as AuthenticatedSettingsVoiceRouteImport } from './routes/_authenticated/settings.voice'
@@ -86,6 +89,11 @@ const DataRightsRoute = DataRightsRouteImport.update({
 const DemoRoute = DemoRouteImport.update({
   id: '/demo',
   path: '/demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -195,6 +203,12 @@ const AuthenticatedAdminLaunchGateRoute =
     path: '/admin/launch-gate',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminSupportRoute =
+  AuthenticatedAdminSupportRouteImport.update({
+    id: '/admin/support',
+    path: '/admin/support',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOcadeArtifactsRoute =
   AuthenticatedOcadeArtifactsRouteImport.update({
     id: '/artifacts',
@@ -295,6 +309,12 @@ const AuthenticatedSettingsSkillsRoute =
     path: '/skills',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsSupportRoute =
+  AuthenticatedSettingsSupportRouteImport.update({
+    id: '/support',
+    path: '/support',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsUsageRoute =
   AuthenticatedSettingsUsageRouteImport.update({
     id: '/usage',
@@ -330,6 +350,7 @@ export interface FileRoutesByFullPath {
   '/company': typeof CompanyRoute
   '/data-rights': typeof DataRightsRoute
   '/demo': typeof DemoRouteWithChildren
+  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -351,6 +372,7 @@ export interface FileRoutesByFullPath {
   '/products/ocade': typeof ProductsOcadeRoute
   '/demo/': typeof DemoIndexRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
+  '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/ocade/code': typeof AuthenticatedOcadeCodeRoute
@@ -367,6 +389,7 @@ export interface FileRoutesByFullPath {
   '/settings/mobile': typeof AuthenticatedSettingsMobileRoute
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
   '/settings/skills': typeof AuthenticatedSettingsSkillsRoute
+  '/settings/support': typeof AuthenticatedSettingsSupportRoute
   '/settings/usage': typeof AuthenticatedSettingsUsageRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/settings/voice': typeof AuthenticatedSettingsVoiceRoute
@@ -379,6 +402,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/company': typeof CompanyRoute
   '/data-rights': typeof DataRightsRoute
+  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -399,6 +423,7 @@ export interface FileRoutesByTo {
   '/products/ocade': typeof ProductsOcadeRoute
   '/demo': typeof DemoIndexRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
+  '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/ocade/code': typeof AuthenticatedOcadeCodeRoute
@@ -415,6 +440,7 @@ export interface FileRoutesByTo {
   '/settings/mobile': typeof AuthenticatedSettingsMobileRoute
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
   '/settings/skills': typeof AuthenticatedSettingsSkillsRoute
+  '/settings/support': typeof AuthenticatedSettingsSupportRoute
   '/settings/usage': typeof AuthenticatedSettingsUsageRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/settings/voice': typeof AuthenticatedSettingsVoiceRoute
@@ -430,6 +456,7 @@ export interface FileRoutesById {
   '/company': typeof CompanyRoute
   '/data-rights': typeof DataRightsRoute
   '/demo': typeof DemoRouteWithChildren
+  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
@@ -451,6 +478,7 @@ export interface FileRoutesById {
   '/products/ocade': typeof ProductsOcadeRoute
   '/demo/': typeof DemoIndexRoute
   '/_authenticated/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
+  '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/_authenticated/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/_authenticated/ocade/code': typeof AuthenticatedOcadeCodeRoute
@@ -467,6 +495,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/mobile': typeof AuthenticatedSettingsMobileRoute
   '/_authenticated/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
   '/_authenticated/settings/skills': typeof AuthenticatedSettingsSkillsRoute
+  '/_authenticated/settings/support': typeof AuthenticatedSettingsSupportRoute
   '/_authenticated/settings/usage': typeof AuthenticatedSettingsUsageRoute
   '/_authenticated/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/_authenticated/settings/voice': typeof AuthenticatedSettingsVoiceRoute
@@ -482,6 +511,7 @@ export interface FileRouteTypes {
     | '/company'
     | '/data-rights'
     | '/demo'
+    | '/pricing'
     | '/privacy'
     | '/robots.txt'
     | '/sitemap.xml'
@@ -503,6 +533,7 @@ export interface FileRouteTypes {
     | '/products/ocade'
     | '/demo/'
     | '/admin/launch-gate'
+    | '/admin/support'
     | '/ocade/artifacts'
     | '/ocade/automations'
     | '/ocade/code'
@@ -519,6 +550,7 @@ export interface FileRouteTypes {
     | '/settings/mobile'
     | '/settings/privacy'
     | '/settings/skills'
+    | '/settings/support'
     | '/settings/usage'
     | '/settings/vault'
     | '/settings/voice'
@@ -531,6 +563,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/company'
     | '/data-rights'
+    | '/pricing'
     | '/privacy'
     | '/robots.txt'
     | '/sitemap.xml'
@@ -551,6 +584,7 @@ export interface FileRouteTypes {
     | '/products/ocade'
     | '/demo'
     | '/admin/launch-gate'
+    | '/admin/support'
     | '/ocade/artifacts'
     | '/ocade/automations'
     | '/ocade/code'
@@ -567,6 +601,7 @@ export interface FileRouteTypes {
     | '/settings/mobile'
     | '/settings/privacy'
     | '/settings/skills'
+    | '/settings/support'
     | '/settings/usage'
     | '/settings/vault'
     | '/settings/voice'
@@ -581,6 +616,7 @@ export interface FileRouteTypes {
     | '/company'
     | '/data-rights'
     | '/demo'
+    | '/pricing'
     | '/privacy'
     | '/robots.txt'
     | '/sitemap.xml'
@@ -602,6 +638,7 @@ export interface FileRouteTypes {
     | '/products/ocade'
     | '/demo/'
     | '/_authenticated/admin/launch-gate'
+    | '/_authenticated/admin/support'
     | '/_authenticated/ocade/artifacts'
     | '/_authenticated/ocade/automations'
     | '/_authenticated/ocade/code'
@@ -618,6 +655,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/mobile'
     | '/_authenticated/settings/privacy'
     | '/_authenticated/settings/skills'
+    | '/_authenticated/settings/support'
     | '/_authenticated/settings/usage'
     | '/_authenticated/settings/vault'
     | '/_authenticated/settings/voice'
@@ -633,6 +671,7 @@ export interface RootRouteChildren {
   CompanyRoute: typeof CompanyRoute
   DataRightsRoute: typeof DataRightsRoute
   DemoRoute: typeof DemoRouteWithChildren
+  PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
@@ -685,6 +724,13 @@ declare module '@tanstack/react-router' {
       path: '/demo'
       fullPath: '/demo'
       preLoaderRoute: typeof DemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -834,6 +880,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminLaunchGateRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/support': {
+      id: '/_authenticated/admin/support'
+      path: '/admin/support'
+      fullPath: '/admin/support'
+      preLoaderRoute: typeof AuthenticatedAdminSupportRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ocade/artifacts': {
       id: '/_authenticated/ocade/artifacts'
       path: '/artifacts'
@@ -953,6 +1006,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsSkillsRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/support': {
+      id: '/_authenticated/settings/support'
+      path: '/support'
+      fullPath: '/settings/support'
+      preLoaderRoute: typeof AuthenticatedSettingsSupportRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/usage': {
       id: '/_authenticated/settings/usage'
       path: '/usage'
@@ -1025,6 +1085,7 @@ interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsMobileRoute: typeof AuthenticatedSettingsMobileRoute
   AuthenticatedSettingsPrivacyRoute: typeof AuthenticatedSettingsPrivacyRoute
   AuthenticatedSettingsSkillsRoute: typeof AuthenticatedSettingsSkillsRoute
+  AuthenticatedSettingsSupportRoute: typeof AuthenticatedSettingsSupportRoute
   AuthenticatedSettingsUsageRoute: typeof AuthenticatedSettingsUsageRoute
   AuthenticatedSettingsVaultRoute: typeof AuthenticatedSettingsVaultRoute
   AuthenticatedSettingsVoiceRoute: typeof AuthenticatedSettingsVoiceRoute
@@ -1040,6 +1101,7 @@ const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsMobileRoute: AuthenticatedSettingsMobileRoute,
   AuthenticatedSettingsPrivacyRoute: AuthenticatedSettingsPrivacyRoute,
   AuthenticatedSettingsSkillsRoute: AuthenticatedSettingsSkillsRoute,
+  AuthenticatedSettingsSupportRoute: AuthenticatedSettingsSupportRoute,
   AuthenticatedSettingsUsageRoute: AuthenticatedSettingsUsageRoute,
   AuthenticatedSettingsVaultRoute: AuthenticatedSettingsVaultRoute,
   AuthenticatedSettingsVoiceRoute: AuthenticatedSettingsVoiceRoute,
@@ -1061,6 +1123,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
   AuthenticatedAdminLaunchGateRoute: typeof AuthenticatedAdminLaunchGateRoute
+  AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1073,6 +1136,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
   AuthenticatedAdminLaunchGateRoute: AuthenticatedAdminLaunchGateRoute,
+  AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -1113,6 +1177,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompanyRoute: CompanyRoute,
   DataRightsRoute: DataRightsRoute,
   DemoRoute: DemoRouteWithChildren,
+  PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,

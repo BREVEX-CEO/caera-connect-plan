@@ -2,7 +2,7 @@
 
 **Status:** Indian and target-market lawyer review required
 
-**Last updated:** 15 August 2026
+**Last updated:** 16 August 2026
 **Effective date:** not yet effective; activate only when published and accepted
 
 ## 1. Provider and eligibility
@@ -28,10 +28,11 @@ business-seat, transfer and abuse rules.
 
 ## 4. Demo, cloud allowance and local access
 
-Demo mode uses sample data and does not create a production entitlement. Current
-source models **28 successful cloud requests per aligned eight-hour window**;
-failed/cancelled/system-retried requests do not consume allowance, and supported
-local processing remains unlimited. This is not “28 hours on, 8 hours locked.”
+Demo mode uses sample data and does not create a production entitlement. The
+8-day, 30-day and annual plans model **28, 56 and 128 successful cloud requests**
+respectively per aligned eight-hour window. Failed, cancelled and system-retried
+requests do not consume allowance, and supported local processing remains
+unlimited. This is not “28 hours on, 8 hours locked.”
 
 After subscription expiry, cloud/premium features may stop, but supported local
 inference, local data access and local export remain available. Final copy must
@@ -39,12 +40,23 @@ match the checkout and production enforcement exactly.
 
 ## 5. Pricing, renewal, cancellation and refunds
 
-No production payment integration is verified, so this draft states no price.
-Before accepting money, show currency, taxes, term, auto-renewal, allowance,
-device limits, cancellation steps, refund policy, trial conversion, provider
-terms and statutory consumer rights at checkout. Obtain express authorization
-for recurring payment. India UPI should use supported Intent/QR flows rather
-than the deprecated UPI Collect flow.
+Founder-approved pre-launch prices are: **8 days — ₹288 / 4.28 in a selected
+supported international currency; 30 days — ₹488 / 28; 1 year — ₹5,888 / 128**.
+The final total may include tax and provider-supported currency conversion,
+which must be shown before confirmation. These are fixed-duration purchases;
+there is no automatic renewal unless checkout clearly offers it and obtains a
+separate opt-in. Before accepting money, show currency, taxes, term, allowance,
+device limits, cancellation steps, refund policy, provider terms and statutory
+consumer rights. India UPI should use supported Intent/QR flows rather than the
+deprecated UPI Collect flow.
+
+Planned methods are Razorpay-hosted UPI Intent/QR and cards, plus PayPal for
+eligible international payments. OCADE stores only sanitized provider
+references, payment status, invoice totals and receipt links. It must never
+store full card data, UPI PINs, PayPal passwords or one-time codes. Users can
+view their payment and invoice history and retain a copy of their support-case
+thread. Live charging remains disabled until provider accounts, webhooks,
+refund operations, tax documents and legal text are independently verified.
 
 Mobile digital purchases may require Apple In-App Purchase or Google Play
 Billing. Any alternative billing program must be joined and implemented under

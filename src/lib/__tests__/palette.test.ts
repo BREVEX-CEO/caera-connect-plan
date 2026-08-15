@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 
 /**
- * The black / silver / gold palette, checked as colour rather than as text.
+ * The black / silver / blue / red palette, checked as colour rather than as text.
  *
  * This does NOT search the stylesheet for the word "gold". It parses every
  * oklch token, converts it to sRGB the way a browser does, and computes real
@@ -13,8 +13,8 @@ import { describe, it, expect } from "vitest";
  * the same declarations.
  *
  * It also enforces that the palette stayed a palette. Any hue outside the
- * gold band is a failure unless it is one of the two safety colours, which is
- * what stops the old cyan/teal/violet accents from creeping back one component
+ * blue or red bands is a failure unless it is the success safety colour, which
+ * stops the old cyan/teal/violet/gold accents from creeping back one component
  * at a time.
  */
 
@@ -110,8 +110,8 @@ const READABLE_PAIRS: Array<[string, string, string]> = [
   ["body text", "--foreground", "--background"],
   ["secondary text", "--muted-foreground", "--background"],
   ["secondary text on a card", "--muted-foreground", "--card"],
-  ["gold on the page", "--primary", "--background"],
-  ["label on a gold button", "--primary-foreground", "--primary"],
+  ["blue on the page", "--primary", "--background"],
+  ["label on a blue button", "--primary-foreground", "--primary"],
   ["warning", "--state-warning", "--background"],
   ["success", "--state-success", "--background"],
   ["destructive", "--destructive", "--background"],
@@ -138,24 +138,20 @@ describe("every readable pair clears WCAG AA", () => {
   }
 });
 
-describe("the palette stayed black, silver and gold", () => {
+describe("the palette stayed black, silver, blue and red", () => {
   /*
-   * Gold sits around hue 88 in oklch. The band is generous enough for bronze
-   * and champagne and closed well before anything green or orange.
+   * The deliberately broad blue band contains deep/electric brand blues; the
+   * red band contains destructive, warning and CANIA signal red.
    */
-  const GOLD_BAND = [60, 110] as const;
+  const BLUE_BAND = [220, 280] as const;
+  const RED_BAND = [0, 45] as const;
   /** Below this, hue is meaningless — the colour is black, silver or white. */
   const NEUTRAL_CHROMA = 0.025;
   /**
-   * The two hues that survive, and why they are allowed by name rather than by
-   * range: "deleted" and "saved" have to differ by hue, not by shade, or the
-   * only people who can tell them apart are the ones with unimpaired colour
-   * vision on a well-calibrated screen.
+   * Success stays green because success and danger must differ by more than
+   * shade for accessible state recognition.
    */
-  const SAFETY = new Map([
-    ["--destructive", 27],
-    ["--state-success", 148],
-  ]);
+  const SAFETY = new Map([["--state-success", 148]]);
 
   for (const [themeName, selector] of THEMES) {
     it(`${themeName} contains no colour outside the palette`, () => {
@@ -167,23 +163,23 @@ describe("the palette stayed black, silver and gold", () => {
           expect(Math.abs(colour.h - safety), `${name} moved off its safety hue`).toBeLessThan(20);
           continue;
         }
-        if (colour.h < GOLD_BAND[0] || colour.h > GOLD_BAND[1]) {
+        const inBlue = colour.h >= BLUE_BAND[0] && colour.h <= BLUE_BAND[1];
+        const inRed = colour.h >= RED_BAND[0] && colour.h <= RED_BAND[1];
+        if (!inBlue && !inRed) {
           strays.push(`${name}: hue ${colour.h}, chroma ${colour.c}`);
         }
       }
-      expect(strays, `colours outside the gold band: ${strays.join("; ")}`).toEqual([]);
+      expect(strays, `colours outside the blue/red bands: ${strays.join("; ")}`).toEqual([]);
     });
   }
 
-  it("keeps gold as the only accent, so it still means something", () => {
+  it("keeps only OCADE blue and CANIA red as saturated module accents", () => {
     const dark = tokensIn(":root {");
-    // Module accents were four competing hues. Three of them are now silver,
-    // and OCADE keeps the gold — if a second saturated hue reappears here, the
-    // accent has stopped being a signal.
+    // FICIA and MADEE remain neutral future-product placeholders.
     const saturated = ["--accent-ocade", "--accent-ficia", "--accent-madee", "--accent-cania"]
       .map((name) => dark.get(name)!)
       .filter((colour) => colour.c >= 0.1);
-    expect(saturated).toHaveLength(1);
+    expect(saturated).toHaveLength(2);
   });
 });
 

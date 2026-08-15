@@ -5,6 +5,7 @@ import { renderErrorPage } from "./lib/error-page";
 import { releaseHealthResponse } from "./lib/release-health";
 import { evaluateLaunchGate } from "./lib/launch/launch-window";
 import { prelaunchResponse } from "./lib/launch/prelaunch-response";
+import { withPublicSecurityHeaders } from "./lib/security/public-response";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -52,7 +53,7 @@ export default {
     // Health stays available for deployment verification in every state. It
     // reports only service name, version and liveness — never the launch time.
     const health = releaseHealthResponse(request);
-    if (health) return health;
+    if (health) return withPublicSecurityHeaders(health);
 
     // The launch gate runs before the application is even imported, so no
     // route, API or static application asset can be served while locked. The
@@ -64,18 +65,20 @@ export default {
       hostname: url.hostname,
       env: env as Record<string, unknown> | null,
     });
-    if (!gate.open) return prelaunchResponse(url.pathname, gate);
+    if (!gate.open) return withPublicSecurityHeaders(prelaunchResponse(url.pathname, gate));
 
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      return withPublicSecurityHeaders(await normalizeCatastrophicSsrResponse(response));
     } catch (error) {
       console.error(error);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      return withPublicSecurityHeaders(
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
     }
   },
 };

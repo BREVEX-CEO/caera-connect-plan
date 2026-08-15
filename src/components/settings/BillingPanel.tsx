@@ -43,7 +43,7 @@ import { PLANS as PRICING_PLANS } from "@/lib/payments/pricing";
  * that now; this panel owns the entitlement state machine.
  */
 const PLANS: Array<{ code: PlanCode; label: string }> = PRICING_PLANS.filter(
-  (plan) => plan.id !== "demo",
+  (plan) => plan.publiclyAvailable,
 ).map((plan) => ({ code: plan.id as PlanCode, label: plan.name }));
 
 export function BillingPanel() {
