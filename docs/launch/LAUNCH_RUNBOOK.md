@@ -60,13 +60,19 @@ turns a failed deployment into a launch.
 - Payment receipt/refund and entitlement reconciliation verified if live.
 - Final visible copy still says “planned”; no indexed page says “launched.”
 
-## 08:28 IST gate
+## Readiness gate
 
-Proceed only if all required checks are independently green. Change visible copy
-to “launched on 28 August 2026,” release the verified download/payment links and
-submit prepared directory posts. Record exact operator, time, commit/deployment
-ID and screenshots. If a required gate is red, keep “planned/delayed” copy and
-announce a factual delay; do not backdate the launch later.
+Set `OCADE_LAUNCH_READY=true` on the production Worker only if all required
+checks are independently green. Setting it before the launch instant is safe:
+the edge gate still refuses to open until the server clock reaches the target.
+After it opens, release the verified download/payment links and submit prepared
+directory posts. Record exact operator, time, commit/deployment ID and
+screenshots. If a required gate is red, leave (or unset) the readiness flag —
+the product stays locked behind “planned” copy — and announce a factual delay;
+do not backdate the launch later.
+
+Emergency re-lock: set `OCADE_LAUNCH_READY=false` on the Worker. The gate closes
+on the next request without a code deploy.
 
 ## After launch
 
