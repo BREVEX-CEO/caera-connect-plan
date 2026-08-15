@@ -69,6 +69,15 @@ describe("every path the workflow references exists", () => {
     expect(workflow).toMatch(/npx cap sync ios/);
     expect(existsSync(capacitor.webDir)).toBe(true);
   });
+
+  it("the Android device test verifies OCADE's real application id", () => {
+    const instrumentedTest = readFileSync(
+      "android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java",
+      "utf8",
+    );
+    expect(instrumentedTest).toContain(`"${capacitor.appId}"`);
+    expect(instrumentedTest).not.toContain('"com.getcapacitor.app"');
+  });
 });
 
 describe("the workflow does not pretend to have run", () => {
