@@ -325,9 +325,9 @@ export const startAutomationRun = createServerFn({ method: "POST" })
       // mismatch — `runStepsFromJson` parses it back on the way out.
       p_execution_steps: (plan.blocked || dryRun ? [] : plan.steps) as unknown as Json,
       p_highest_risk: plan.highestRisk,
-      p_blocked_reason: plan.blockedReason ?? null,
-      p_deadline_at: data.deadlineAt ?? null,
-      p_next_run_at: next ? next.toISOString() : null,
+      p_blocked_reason: plan.blockedReason ?? undefined,
+      p_deadline_at: data.deadlineAt ?? undefined,
+      p_next_run_at: next ? next.toISOString() : undefined,
     });
     if (error) throw new Response(error.message, { status: 500 });
     const run = (Array.isArray(persisted) ? persisted[0] : persisted) as {
