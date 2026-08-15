@@ -171,20 +171,19 @@ jobs:
         working-directory: native/companion/safety
         run: cargo test --all-targets
 
-      # The companion crate lives in native/companion/tauri (package
-      # "caera-companion"); native/companion itself is a plain directory holding
-      # safety/, tauri/ and ui/ with no manifest of its own.
-      #
-      # Unsigned: producing a signed installer needs a certificate, which is a
-      # deliberate human step and belongs in release.yml.
-      - name: Build the companion (unsigned)
-        working-directory: native/companion/tauri
-        run: cargo build --release
+      # This builds the required browser sidecar before Tauri reads its bundle
+      # configuration, then produces the unsigned NSIS installer. A bare
+      # `cargo build` fails on a clean runner because the sidecar does not exist.
+      # Signing remains a separate release-identity step.
+      - name: Build the companion installer (unsigned)
+        run: npm run desktop:bundle:windows
 
       - name: Upload companion binary
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ocade-companion-windows-unsigned
-          path: native/companion/tauri/target/release/*.exe
+          path: |
+            native/companion/tauri/target/release/caera-companion.exe
+            native/companion/tauri/target/release/bundle/nsis/*.exe
           if-no-files-found: warn

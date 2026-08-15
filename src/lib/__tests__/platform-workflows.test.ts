@@ -44,9 +44,17 @@ describe("every path the workflow references exists", () => {
 
   it("the companion crate — at tauri/, NOT the parent directory", () => {
     // The exact mistake this suite exists to catch.
-    expect(workflow).toMatch(/working-directory:\s*native\/companion\/tauri/);
     expect(existsSync("native/companion/tauri/Cargo.toml")).toBe(true);
     expect(existsSync("native/companion/Cargo.toml")).toBe(false);
+    expect(readFileSync("scripts/build-windows-installer.mjs", "utf8")).toMatch(
+      /native["'],\s*["']companion["'],\s*["']tauri/,
+    );
+  });
+
+  it("builds the browser sidecar before packaging the Windows installer", () => {
+    expect(workflow).toMatch(/npm run desktop:bundle:windows/);
+    expect(existsSync("scripts/build-windows-installer.mjs")).toBe(true);
+    expect(existsSync("scripts/build-browser-sidecar.mjs")).toBe(true);
   });
 
   it("every cargo working-directory names a real crate", () => {
