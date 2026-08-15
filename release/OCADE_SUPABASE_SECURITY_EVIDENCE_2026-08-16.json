@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-16T01:10:00+05:30",
+  "project": "Lovable project 3fe938df-e664-403c-b25c-dabeeb0f8858",
+  "method": "read-only catalogue queries followed by one least-privilege ACL migration and catalogue verification; no user rows were read or modified",
+  "rls": {
+    "publicTables": 68,
+    "rlsEnabled": 68,
+    "rlsDisabled": 0,
+    "totalPolicies": 139,
+    "rlsTablesWithoutPolicy": 0
+  },
+  "securityDefiner": {
+    "publicFunctions": 39,
+    "anonExecutableBefore": 6,
+    "anonExecutableAfter": 0,
+    "authenticatedExecutableAfter": 20,
+    "hardeningMigration": "20260815193752_harden_security_definer_execute.sql",
+    "fixed": [
+      "ordinary authenticated users can no longer execute ocade_consume_cloud_use directly",
+      "anonymous users can no longer call ficia_can_manage_worker directly",
+      "browser roles can no longer invoke five trigger functions as RPCs",
+      "service_role retains the atomic OCADE allowance RPC",
+      "authenticated RLS retains the FICIA manager predicate where that schema exists"
+    ]
+  },
+  "remainingReview": {
+    "broadAuthenticatedReadPolicies": 6,
+    "broadPolicyTables": [
+      "compliance_events",
+      "country_pack_versions",
+      "country_packs",
+      "historical_test_cases",
+      "pack_reviews",
+      "rule_sources"
+    ],
+    "note": "These may be intentional shared reference data, but their data classification must be confirmed before launch.",
+    "storage": {
+      "bucket": "messenger",
+      "public": false,
+      "fileSizeLimit": null,
+      "allowedMimeTypes": null,
+      "note": "The private bucket still needs a tested MIME and size policy based on the actual supported uploads."
+    }
+  },
+  "tests": {
+    "databaseTwin": "19 passed",
+    "sqlDiscipline": "17 passed",
+    "ocadeSupabasePackage": "9 passed"
+  }
+}

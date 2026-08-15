@@ -1,6 +1,13 @@
 # OCADE — Supabase apply order and Lovable test checklist
 
-**Status: READY TO APPLY THROUGH LOVABLE. Nothing here has been applied.**
+**Status: historical rebuild guide; do not apply blindly to production.**
+
+On 16 August 2026, a live read-only catalogue inspection found 68 public
+tables, all 68 with RLS, 139 policies and no RLS table without a policy. The
+least-privilege ACL statements in
+`20260815193752_harden_security_definer_execute.sql` were then applied and
+verified. The remote migration-history ledger still needs a separate
+reconciliation before any bulk migration command is used.
 
 Every OCADE surface backed by these tables currently renders an honest
 "needs the database migration" state. None of them fabricate data, and applying
@@ -19,6 +26,7 @@ Apply **in this exact order** — later migrations reference earlier tables.
 | 3   | `20260722110000_ocade_automations.sql`             | `ocade_automations`, `ocade_automation_runs`                                                                                                                                                   | `set_updated_at()`                                                                    |
 | 4   | `20260724211500_ocade_automation_worker.sql`       | worker leases, cancellation/pause/deadline/approval state, append-only step receipts, 13 atomic lifecycle RPCs                                                                                 | migration 3                                                                           |
 | 5   | `20260730190000_ocade_controlled_rollout_gates.sql` | internal-alpha and controlled-beta evidence gates plus fail-closed feature-flag expansion triggers                                                                                           | existing `launch_gate_items`, `launch_gate_history`, `feature_flags`                  |
+| 6   | `20260815193752_harden_security_definer_execute.sql` | removes browser-role access to the service-only allowance RPC and direct trigger RPCs; preserves required RLS access                                                                          | migration 2; optional FICIA/message helpers are hardened only when present             |
 
 Migration 3 must come after 1 only for consistency of review; it has no hard FK
 to projects. Migrations 1 and 2 are independent of each other. Migration 4 must
@@ -27,12 +35,11 @@ with SELECT/INSERT plus RPC-only lifecycle mutations.
 Migration 5 is independent of migrations 1–4 but must run after the existing
 Lovable launch-gate migration `20260721141946_382eee61-77fa-42d8-9b79-9c9c9b3195a3.sql`.
 
-**Scope note.** These five are the only UNAPPLIED migrations. The 27
-UUID-named files alongside them were generated and already applied by Lovable
-before this work began; they are untouched here and deliberately have no
-rollback or verification script — writing a rollback for an already-applied
-migration would invite someone to run it. Each of the five above has a matching
-`rollback/` and `verification/` script:
+**Scope note.** The older statement that these were the only unapplied
+migrations is no longer reliable and must not be used as production authority.
+The repository now contains 39 paired migrations, rollbacks and verifications.
+Use the live migration-history reconciliation plus the clean database twin,
+not this historical paragraph, to decide what remains unapplied.
 
 | Migration                         | Rollback | Verification |
 | --------------------------------- | -------- | ------------ |
@@ -41,6 +48,7 @@ migration would invite someone to run it. Each of the five above has a matching
 | `…_ocade_automations`             | ✅       | ✅           |
 | `…_ocade_automation_worker`       | ✅       | ✅           |
 | `…_ocade_controlled_rollout_gates` | ✅       | ✅           |
+| `…_harden_security_definer_execute` | ✅       | ✅           |
 
 ### Prerequisite check (run first)
 
