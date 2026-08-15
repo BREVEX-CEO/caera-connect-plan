@@ -96,11 +96,12 @@ describe("OCADE release source package", () => {
   it("routes liveness before loading the application SSR entry", () => {
     const server = read("src/server.ts");
     expect(server).toContain("releaseHealthResponse(request)");
-    expect(server).toContain("productionLaunchGateResponse(");
+    expect(server).toContain("evaluateLaunchGate({");
+    expect(server).toContain("prelaunchResponse(url.pathname, gate)");
     expect(server.indexOf("releaseHealthResponse(request)")).toBeLessThan(
-      server.indexOf("productionLaunchGateResponse("),
+      server.indexOf("evaluateLaunchGate({"),
     );
-    expect(server.indexOf("productionLaunchGateResponse(")).toBeLessThan(
+    expect(server.indexOf("evaluateLaunchGate({")).toBeLessThan(
       server.indexOf("const handler = await getServerEntry()"),
     );
   });

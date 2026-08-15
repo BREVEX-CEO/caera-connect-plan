@@ -25,6 +25,12 @@ published, uploaded to a store, or installed on a device.
   authentication, OCADE Chat, Projects, Usage, and error pages. A zero
   deployment exit without the independent versioned health response is not
   success.
+- Launch gate: the production Worker must deploy with `OCADE_LAUNCH_READY`
+  absent or `false`. Confirm the public origin returns the 503 pre-launch page,
+  `/robots.txt` disallows everything, no application bundle is reachable, and
+  `/api/health` still answers 200. Set `OCADE_LAUNCH_READY=true` only after the
+  runbook readiness gate passes; the edge clock then opens the product at the
+  target instant with no further deploy.
 - Supabase: follow `supabase/APPLY_ORDER.md`, run every verification file, test
   cross-tenant denial, and regenerate database types.
 - Desktop: build on each target OS, sign/notarize, test clean install, updater

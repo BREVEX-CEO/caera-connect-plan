@@ -1,4 +1,4 @@
-# OCADE Launch Runbook — 28 August 2026
+# OCADE Launch Runbook - 28 August 2026
 
 **Target:** 08:28 IST (02:58 UTC)
 
@@ -7,20 +7,29 @@
 
 ## Launch mechanism
 
-Deploy and verify the production site before launch. The server entry checks a
-fixed launch instant (`2026-08-28T02:58:00.000Z`) on every public request and
-fails closed until `OCADE_LAUNCH_READY` is exactly `true`. Before then it returns
-a no-store, no-index planned-launch page, blocks application APIs and serves a
-`Disallow: /` robots policy. `/api/health` remains available for independent
-deployment verification. Cloudflare static assets use `run_worker_first`, so a
-direct asset URL cannot bypass the server gate.
+Deploy and verify the production site early, behind the edge launch gate. Do not
+schedule DNS registration or the first production deploy for the launch minute;
+DNS, builds, caches and app-store review are not exact-time systems.
 
-Do not schedule DNS registration or the first production deploy for 08:28; DNS,
-builds, caches and app-store review are not exact-time systems. Set the readiness
-flag only after the gate below is green. The clock then opens the already-running
-release on the first request at or after 08:28 IST without a DNS or deployment
-change. If readiness remains false, the service remains closed after the planned
-time rather than launching a failed release.
+The gate lives in the Cloudflare Worker (`src/server.ts`), before the application
+is imported and before static application assets can be served
+(`assets.run_worker_first = true`). It opens only when both conditions hold:
+
+1. Server/edge time is at or after `LAUNCH_AT_ISO` in
+   `src/lib/launch/launch-window.ts`.
+2. The Cloudflare Worker variable `OCADE_LAUNCH_READY` is exactly `true`, set by
+   a named operator after the real checks below pass.
+
+While locked, public requests get a minimal 503 prelaunch page saying only
+"Planned launch 28 August 2026", with `Cache-Control: no-store`, `Retry-After`
+and `X-Robots-Tag: noindex, nofollow, noarchive`; `/robots.txt` returns
+disallow-all and the sitemap is not served. `/api/health` stays available for
+deployment verification and never reports the launch time. Local development
+and approved internal preview hosts stay fully testable.
+
+Once readiness is set, no further deploy, DNS change, cron job or client-side
+countdown is required: the server clock opens the gate at the target instant. An
+unready release stays locked rather than launching broken.
 
 ## T-7 days
 
@@ -39,7 +48,7 @@ time rather than launching a failed release.
   cloud consent, export/delete, payment sandbox/live-smoke as applicable.
 - Verify privacy/terms/refund/support/account deletion from an incognito browser.
 - Verify robots, sitemap, HTTPS, canonical URL, structured data and social image.
-- Confirm app-store states; say “coming later” for every unavailable platform.
+- Confirm app-store states; say "coming later" for every unavailable platform.
 - Rehearse rollback and keep the prior known-good production version.
 
 ## T-30 minutes
@@ -48,20 +57,24 @@ time rather than launching a failed release.
 - No active severity-one/two issue; monitoring and logs healthy.
 - Domain resolves from multiple networks; production page and downloads open.
 - Payment receipt/refund and entitlement reconciliation verified if live.
-- Final visible copy still says “planned”; the prelaunch response is no-index and
-  no indexed page says “launched.”
+- Final visible copy still says "planned"; the prelaunch response is no-index and
+  no indexed page says "launched."
 - Set Cloudflare Worker variable `OCADE_LAUNCH_READY=true` only when every
   required check is green. Keep it `false` otherwise.
 
-## 08:28 IST gate
+## Readiness gate
 
-If all required checks were independently green and the readiness flag is true,
-the server gate opens automatically at 08:28 IST. Verify the public response,
-then change visible copy to “launched on 28 August 2026,” release only verified
-download/payment links and submit prepared directory posts. Record exact
-operator, time, commit/deployment ID and screenshots. If a required gate is red,
-keep readiness false, retain “planned/delayed” copy and announce a factual delay;
-do not backdate the launch later.
+Set `OCADE_LAUNCH_READY=true` on the production Worker only if all required
+checks are independently green. Setting it before the launch instant is safe:
+the edge gate still refuses to open until the server clock reaches the target.
+After it opens, release only verified download/payment links and submit prepared
+directory posts. Record exact operator, time, commit/deployment ID and
+screenshots. If a required gate is red, leave the readiness flag false, keep the
+product locked behind planned copy, announce a factual delay, and do not
+backdate the launch later.
+
+Emergency re-lock: set `OCADE_LAUNCH_READY=false` on the Worker. The gate closes
+on the next request without a code deploy.
 
 ## After launch
 
