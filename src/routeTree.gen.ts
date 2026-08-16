@@ -34,6 +34,7 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthVerifyRouteImport } from './routes/auth.verify'
+import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
 import { Route as DemoIndexRouteImport } from './routes/demo.index'
 import { Route as DemoControlRouteImport } from './routes/demo.control'
 import { Route as DemoOcadeRouteImport } from './routes/demo.ocade'
@@ -196,6 +197,11 @@ const AuthVerifyRoute = AuthVerifyRouteImport.update({
   id: '/verify',
   path: '/verify',
   getParentRoute: () => AuthRoute,
+} as any)
+const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
+  id: '/checkout/success',
+  path: '/checkout/success',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DemoIndexRoute = DemoIndexRouteImport.update({
   id: '/',
@@ -422,6 +428,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/demo/control': typeof DemoControlRoute
   '/demo/ocade': typeof DemoOcadeRoute
   '/demo/settings': typeof DemoSettingsRoute
@@ -481,6 +488,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/demo/control': typeof DemoControlRoute
   '/demo/ocade': typeof DemoOcadeRoute
   '/demo/settings': typeof DemoSettingsRoute
@@ -544,6 +552,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/demo/control': typeof DemoControlRoute
   '/demo/ocade': typeof DemoOcadeRoute
   '/demo/settings': typeof DemoSettingsRoute
@@ -607,6 +616,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/auth/callback'
     | '/auth/verify'
+    | '/checkout/success'
     | '/demo/control'
     | '/demo/ocade'
     | '/demo/settings'
@@ -666,6 +676,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/auth/callback'
     | '/auth/verify'
+    | '/checkout/success'
     | '/demo/control'
     | '/demo/ocade'
     | '/demo/settings'
@@ -728,6 +739,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/auth/callback'
     | '/auth/verify'
+    | '/checkout/success'
     | '/demo/control'
     | '/demo/ocade'
     | '/demo/settings'
@@ -781,6 +793,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  CheckoutSuccessRoute: typeof CheckoutSuccessRoute
   FounderHaansAntoniRoute: typeof FounderHaansAntoniRoute
   ProductsOcadeRoute: typeof ProductsOcadeRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
@@ -966,6 +979,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/verify'
       preLoaderRoute: typeof AuthVerifyRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/checkout/success': {
+      id: '/checkout/success'
+      path: '/checkout/success'
+      fullPath: '/checkout/success'
+      preLoaderRoute: typeof CheckoutSuccessRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/demo/': {
       id: '/demo/'
@@ -1353,6 +1373,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  CheckoutSuccessRoute: CheckoutSuccessRoute,
   FounderHaansAntoniRoute: FounderHaansAntoniRoute,
   ProductsOcadeRoute: ProductsOcadeRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
