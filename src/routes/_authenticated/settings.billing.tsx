@@ -14,6 +14,7 @@ import {
   sellablePlanByPriceId,
 } from "@/lib/payments/paddle-plans";
 import { PAYMENT_METHODS } from "@/lib/payments/methods";
+import { currencyForRegion, detectRegion, type CurrencyCode } from "@/lib/payments/pricing";
 import {
   getMySubscription,
   createBillingPortalSession,
@@ -80,6 +81,17 @@ function BillingPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  /*
+   * Prices are shown in the currency the buyer will actually be charged in.
+   * That is not cosmetic: UPI only appears at checkout for a buyer in India
+   * paying in rupees, so a dollar figure here followed by a rupee charge would
+   * both surprise the customer and hide the method they were looking for.
+   * Detected on the client, because the region is a browser fact.
+   */
+  const [currency, setCurrency] = useState<CurrencyCode>("USD");
+  useEffect(() => {
+    setCurrency(currencyForRegion(detectRegion()));
+  }, []);
 
   const load = useCallback(async () => {
     setError(null);
@@ -258,7 +270,7 @@ function BillingPage() {
 
         <div className="grid gap-3 sm:grid-cols-3">
           {SELLABLE_PLANS.map((plan) => {
-            const described = describeSellablePlan(plan, "USD");
+            const described = describeSellablePlan(plan, currency);
             const isCurrent = subscription?.priceId === plan.priceId;
             return (
               <article
@@ -303,6 +315,17 @@ function BillingPage() {
             </li>
           ))}
         </ul>
+        {currency !== "INR" ? (
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            UPI is offered to buyers in India paying in rupees, so it will not appear on this
+            checkout while your prices are shown in {currency}.
+          </p>
+        ) : (
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            Your prices are in rupees, so UPI intent, QR and UPI AutoPay for renewals are offered at
+            checkout alongside cards.
+          </p>
+        )}
       </GlassPanel>
     </div>
   );

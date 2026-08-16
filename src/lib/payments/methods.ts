@@ -22,11 +22,12 @@ export interface PaymentMethodReadiness {
 export const PAYMENT_METHODS: PaymentMethodReadiness[] = [
   {
     id: "upi",
-    label: "UPI intent or QR",
+    label: "UPI intent, QR and AutoPay",
     provider: "Merchant of record checkout",
-    markets: "India",
+    markets: "India, charged in rupees",
     status: "ready",
-    disclosure: "Your UPI app approves the payment. OCADE never asks for a UPI PIN.",
+    disclosure:
+      "Your UPI app approves the payment, and renewals use UPI AutoPay mandates you can revoke there. OCADE never asks for a UPI PIN.",
   },
   {
     id: "card",
