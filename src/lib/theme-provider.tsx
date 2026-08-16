@@ -223,15 +223,27 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         slowFrames++;
         fastFrames = 0;
         if (slowFrames > 90) {
-          setAutoLowPerf(true);
+          setPerfFallback((s) =>
+            s.active ? s : { ...s, active: true, trigger: "frames", reason: null },
+          );
         }
       } else if (dt < 20) {
         fastFrames++;
         slowFrames = 0;
         if (fastFrames > 300) {
-          setAutoLowPerf(false);
+          /*
+           * Only a MEASURED fallback recovers. A device that reported four
+           * cores still has four cores after a smooth stretch, so lifting a
+           * static fallback here would just make it flap.
+           */
+          setPerfFallback((s) =>
+            s.active && s.trigger === "frames"
+              ? { ...s, active: false, trigger: null, reason: null }
+              : s,
+          );
         }
       }
+
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
