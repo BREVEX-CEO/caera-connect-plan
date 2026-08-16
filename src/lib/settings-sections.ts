@@ -22,6 +22,7 @@ import {
   Image as ImageIcon,
   Activity,
   LifeBuoy,
+  CreditCard,
   Wand2,
 } from "lucide-react";
 
