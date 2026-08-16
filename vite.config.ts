@@ -1,6 +1,8 @@
 // @lovable.dev/vite-tanstack-config already includes the core plugins.
 // Extra build settings below split large browser bundles into smaller files.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/tanstack/vite";
+
 
 /**
  * True when `id` is a file inside one of the named packages.
@@ -22,6 +24,8 @@ export default defineConfig({
   },
 
   vite: {
+    plugins: [mcpPlugin()],
+
     /*
      * THE DEV PORT COMES FROM THE ENVIRONMENT, NOT FROM A FLAG.
      *
