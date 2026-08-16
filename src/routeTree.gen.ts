@@ -56,6 +56,7 @@ import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsSectionRouteImport } from './routes/_authenticated/settings.$section'
 import { Route as AuthenticatedSettingsActivityRouteImport } from './routes/_authenticated/settings.activity'
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings.appearance'
+import { Route as AuthenticatedSettingsBillingRouteImport } from './routes/_authenticated/settings.billing'
 import { Route as AuthenticatedSettingsBrowserRouteImport } from './routes/_authenticated/settings.browser'
 import { Route as AuthenticatedSettingsDevicesRouteImport } from './routes/_authenticated/settings.devices'
 import { Route as AuthenticatedSettingsMobileRouteImport } from './routes/_authenticated/settings.mobile'
@@ -319,6 +320,12 @@ const AuthenticatedSettingsAppearanceRoute =
     path: '/appearance',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsBillingRoute =
+  AuthenticatedSettingsBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsBrowserRoute =
   AuthenticatedSettingsBrowserRouteImport.update({
     id: '/browser',
@@ -436,6 +443,7 @@ export interface FileRoutesByFullPath {
   '/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/settings/browser': typeof AuthenticatedSettingsBrowserRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/settings/mobile': typeof AuthenticatedSettingsMobileRoute
@@ -494,6 +502,7 @@ export interface FileRoutesByTo {
   '/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/settings/browser': typeof AuthenticatedSettingsBrowserRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/settings/mobile': typeof AuthenticatedSettingsMobileRoute
@@ -556,6 +565,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/_authenticated/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/_authenticated/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/_authenticated/settings/browser': typeof AuthenticatedSettingsBrowserRoute
   '/_authenticated/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/_authenticated/settings/mobile': typeof AuthenticatedSettingsMobileRoute
@@ -618,6 +628,7 @@ export interface FileRouteTypes {
     | '/settings/$section'
     | '/settings/activity'
     | '/settings/appearance'
+    | '/settings/billing'
     | '/settings/browser'
     | '/settings/devices'
     | '/settings/mobile'
@@ -676,6 +687,7 @@ export interface FileRouteTypes {
     | '/settings/$section'
     | '/settings/activity'
     | '/settings/appearance'
+    | '/settings/billing'
     | '/settings/browser'
     | '/settings/devices'
     | '/settings/mobile'
@@ -737,6 +749,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/$section'
     | '/_authenticated/settings/activity'
     | '/_authenticated/settings/appearance'
+    | '/_authenticated/settings/billing'
     | '/_authenticated/settings/browser'
     | '/_authenticated/settings/devices'
     | '/_authenticated/settings/mobile'
@@ -1108,6 +1121,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsAppearanceRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/billing': {
+      id: '/_authenticated/settings/billing'
+      path: '/billing'
+      fullPath: '/settings/billing'
+      preLoaderRoute: typeof AuthenticatedSettingsBillingRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/browser': {
       id: '/_authenticated/settings/browser'
       path: '/browser'
@@ -1224,6 +1244,7 @@ interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsSectionRoute: typeof AuthenticatedSettingsSectionRoute
   AuthenticatedSettingsActivityRoute: typeof AuthenticatedSettingsActivityRoute
   AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute
+  AuthenticatedSettingsBillingRoute: typeof AuthenticatedSettingsBillingRoute
   AuthenticatedSettingsBrowserRoute: typeof AuthenticatedSettingsBrowserRoute
   AuthenticatedSettingsDevicesRoute: typeof AuthenticatedSettingsDevicesRoute
   AuthenticatedSettingsMobileRoute: typeof AuthenticatedSettingsMobileRoute
@@ -1240,6 +1261,7 @@ const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsSectionRoute: AuthenticatedSettingsSectionRoute,
   AuthenticatedSettingsActivityRoute: AuthenticatedSettingsActivityRoute,
   AuthenticatedSettingsAppearanceRoute: AuthenticatedSettingsAppearanceRoute,
+  AuthenticatedSettingsBillingRoute: AuthenticatedSettingsBillingRoute,
   AuthenticatedSettingsBrowserRoute: AuthenticatedSettingsBrowserRoute,
   AuthenticatedSettingsDevicesRoute: AuthenticatedSettingsDevicesRoute,
   AuthenticatedSettingsMobileRoute: AuthenticatedSettingsMobileRoute,
