@@ -67,6 +67,7 @@ import { Route as AuthenticatedSettingsVaultRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsVoiceRouteImport } from './routes/_authenticated/settings.voice'
 import { Route as ApiOcadeChatRouteImport } from './routes/api/ocade.chat'
 import { Route as ApiOcadeBridgeSplatRouteImport } from './routes/api/ocade.bridge.$'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -382,6 +383,12 @@ const ApiOcadeBridgeSplatRoute = ApiOcadeBridgeSplatRouteImport.update({
   path: '/api/ocade/bridge/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -441,6 +448,7 @@ export interface FileRoutesByFullPath {
   '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/api/ocade/bridge/$': typeof ApiOcadeBridgeSplatRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -498,6 +506,7 @@ export interface FileRoutesByTo {
   '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/api/ocade/bridge/$': typeof ApiOcadeBridgeSplatRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -559,6 +568,7 @@ export interface FileRoutesById {
   '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/api/ocade/bridge/$': typeof ApiOcadeBridgeSplatRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -620,6 +630,7 @@ export interface FileRouteTypes {
     | '/api/ocade/chat'
     | '/settings/'
     | '/api/ocade/bridge/$'
+    | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -677,6 +688,7 @@ export interface FileRouteTypes {
     | '/api/ocade/chat'
     | '/settings'
     | '/api/ocade/bridge/$'
+    | '/api/public/payments/webhook'
   id:
     | '__root__'
     | '/'
@@ -737,6 +749,7 @@ export interface FileRouteTypes {
     | '/api/ocade/chat'
     | '/_authenticated/settings/'
     | '/api/ocade/bridge/$'
+    | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -761,6 +774,7 @@ export interface RootRouteChildren {
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiOcadeChatRoute: typeof ApiOcadeChatRoute
   ApiOcadeBridgeSplatRoute: typeof ApiOcadeBridgeSplatRoute
+  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1171,6 +1185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOcadeBridgeSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1316,6 +1337,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiOcadeChatRoute: ApiOcadeChatRoute,
   ApiOcadeBridgeSplatRoute: ApiOcadeBridgeSplatRoute,
+  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
