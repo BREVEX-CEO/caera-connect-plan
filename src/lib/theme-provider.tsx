@@ -27,8 +27,11 @@ import {
   type AppearancePersistence,
   type AppearancePrefs,
   type CursorKind,
+  type PerfFallbackState,
   type ThemeMode,
 } from "./use-appearance";
+import { FALLBACK_CHANGES, assessDevice, readDeviceSignals } from "./perf-fallback";
+
 
 
 export type { AppearancePrefs, CursorKind, ThemeMode };
