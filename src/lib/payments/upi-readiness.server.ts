@@ -50,7 +50,7 @@ function inrDetail(price: ProviderPrice | undefined): { hasInrPrice: boolean; de
 async function fetchPrice(env: PaddleEnv, externalId: string): Promise<ProviderPrice | undefined> {
   const response = await gatewayFetch(
     env,
-    `/prices?external_id=${encodeURIComponent(externalId)}&include=`,
+    `/prices?external_id=${encodeURIComponent(externalId)}`,
   );
   if (response.status === 401 || response.status === 403) {
     const error = new Error("provider_rejected_credentials");
