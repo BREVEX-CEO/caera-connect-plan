@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { Mail, Phone, Loader2 } from "lucide-react";
+import { Mail, Phone, KeyRound, Loader2 } from "lucide-react";
 import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { AuthShell } from "@/components/shell/AuthShell";
@@ -77,6 +77,7 @@ function AuthPage() {
   const [errorHint, setErrorHint] = useState<string | null>(inboundFriendly?.hint ?? null);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [notice, setNotice] = useState<string | null>(search.message ?? null);
   const authConfigured = getSupabaseBrowserConfiguration().configured;
 
@@ -140,6 +141,88 @@ function AuthPage() {
       to: "/auth/verify",
       search: { channel: "phone", identifier: parsed.data, next: nextPath },
     });
+  }
+
+  async function submitPassword(intent: "signin" | "signup") {
+    setBusy(true);
+    setError(null);
+    setErrorHint(null);
+    setNotice(null);
+    const parsedEmail = z.string().trim().email("Enter a valid email address.").safeParse(email);
+    if (!parsedEmail.success) {
+      setError(parsedEmail.error.issues[0].message);
+      setBusy(false);
+      return;
+    }
+    if (password.length < 8) {
+      setError("Your password needs at least 8 characters.");
+      setBusy(false);
+      return;
+    }
+    if (intent === "signup") {
+      const { data, error: err } = await supabase.auth.signUp({
+        email: parsedEmail.data,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback${
+            nextPath !== "/home" ? `?next=${encodeURIComponent(nextPath)}` : ""
+          }`,
+        },
+      });
+      if (err) {
+        setError(err.message);
+        setBusy(false);
+        return;
+      }
+      if (!data.session) {
+        setNotice(
+          "Account created. Check your inbox and open the confirmation link to finish signing in.",
+        );
+        setBusy(false);
+        return;
+      }
+      navigate({ to: nextPath, replace: true });
+      return;
+    }
+    const { error: err } = await supabase.auth.signInWithPassword({
+      email: parsedEmail.data,
+      password,
+    });
+    if (err) {
+      setError(
+        err.message.toLowerCase().includes("invalid login")
+          ? "That email and password combination did not match an account."
+          : err.message,
+      );
+      setErrorHint("You can also sign in with a one-time code, or reset your password below.");
+      setBusy(false);
+      return;
+    }
+    navigate({ to: nextPath, replace: true });
+  }
+
+  async function sendPasswordReset() {
+    setBusy(true);
+    setError(null);
+    setErrorHint(null);
+    setNotice(null);
+    const parsedEmail = z.string().trim().email("Enter a valid email address.").safeParse(email);
+    if (!parsedEmail.success) {
+      setError("Enter your email address first, then choose Forgot password.");
+      setBusy(false);
+      return;
+    }
+    const { error: err } = await supabase.auth.resetPasswordForEmail(parsedEmail.data, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setBusy(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setNotice(
+      "If that address has an account, a password reset link is on its way. The link expires shortly.",
+    );
   }
 
   async function sendEmailOtp(e: React.FormEvent) {
@@ -311,16 +394,62 @@ function AuthPage() {
                 className="flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
             </div>
+            <label htmlFor="password" className="text-xs font-medium text-muted-foreground">
+              Password <span className="font-normal">(optional — leave empty for a one-time code)</span>
+            </label>
+            <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/50 px-3 focus-within:ring-2 focus-within:ring-ring">
+              <KeyRound className="h-4 w-4 text-muted-foreground" aria-hidden />
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="At least 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+            {password.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => submitPassword("signin")}
+                  disabled={busy || !authConfigured}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
+                >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => submitPassword("signup")}
+                  disabled={busy || !authConfigured}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-border/70 bg-background/60 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-60"
+                >
+                  Create account
+                </button>
+              </div>
+            ) : (
+              <button
+                type="submit"
+                disabled={busy || !authConfigured}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Send one-time code
+              </button>
+            )}
             <button
-              type="submit"
+              type="button"
+              onClick={sendPasswordReset}
               disabled={busy || !authConfigured}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
+              className="self-start text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-60"
             >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Send one-time code
+              Forgot password?
             </button>
           </form>
         ) : null}
+
 
         {error ? (
           <div
