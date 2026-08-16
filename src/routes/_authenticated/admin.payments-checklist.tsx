@@ -11,6 +11,8 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { AlertTriangle, ExternalLink, FlaskConical, Loader2, PlayCircle } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
+import { PayoutSetupGuide } from "@/components/settings/PayoutSetupGuide";
+
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
