@@ -270,7 +270,7 @@ function BillingPage() {
 
         <div className="grid gap-3 sm:grid-cols-3">
           {SELLABLE_PLANS.map((plan) => {
-            const described = describeSellablePlan(plan, "USD");
+            const described = describeSellablePlan(plan, currency);
             const isCurrent = subscription?.priceId === plan.priceId;
             return (
               <article
