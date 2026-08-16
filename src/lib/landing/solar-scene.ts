@@ -148,10 +148,16 @@ export function createSolarScene(
    * One `Points` draw for the whole sky. A mesh per star at this count is
    * thousands of draw calls and is the classic way to make a scene like this
    * unusable before a single planet is added.
+   *
+   * COLOUR TEMPERATURE AND TWINKLE come from two extra per-star attributes
+   * uploaded once, animated entirely on the GPU. Nothing here touches the CPU
+   * per frame, which is why the sky can be this alive without costing anything.
    */
-  const starCount = tier === "full" ? 2600 : tier === "reduced" ? 1100 : 700;
+  const starCount = tier === "full" ? 3400 : tier === "reduced" ? 1300 : 700;
   const starPositions = new Float32Array(starCount * 3);
   const starSizes = new Float32Array(starCount);
+  const starPhases = new Float32Array(starCount);
+  const starTints = new Float32Array(starCount * 3);
   for (let i = 0; i < starCount; i += 1) {
     // Distributed on a shell well outside the system so no star can sit
     // between the camera and a planet.
@@ -161,33 +167,46 @@ export function createSolarScene(
     starPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
     starPositions[i * 3 + 1] = r * Math.cos(phi);
     starPositions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
-    starSizes[i] = Math.random() * 1.6 + 0.35;
+    // A few bright ones among many faint: a uniform distribution of sizes
+    // reads as noise, a skewed one reads as a sky.
+    starSizes[i] = 0.5 + Math.pow(Math.random(), 3.2) * 3.1;
+    starPhases[i] = Math.random();
+    // Blue-white through to amber, weighted toward neutral.
+    const t = Math.random();
+    starTints[i * 3] = 0.72 + t * 0.28;
+    starTints[i * 3 + 1] = 0.78 + (1 - Math.abs(t - 0.5) * 2) * 0.2;
+    starTints[i * 3 + 2] = 1.0 - t * 0.35;
   }
   const starGeometry = track(new THREE.BufferGeometry());
   starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
   starGeometry.setAttribute("size", new THREE.BufferAttribute(starSizes, 1));
+  starGeometry.setAttribute("phase", new THREE.BufferAttribute(starPhases, 1));
+  starGeometry.setAttribute("tint", new THREE.BufferAttribute(starTints, 3));
   const starMaterial = track(
-    new THREE.PointsMaterial({
-      color: 0xffffff,
-      size: 1.25,
-      sizeAttenuation: false,
+    new THREE.ShaderMaterial({
+      vertexShader: STAR_VERTEX,
+      fragmentShader: STAR_FRAGMENT,
+      uniforms: {
+        uTime: { value: 0 },
+        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 2) },
+      },
       transparent: true,
-      opacity: 0.75,
       depthWrite: false,
+      blending: THREE.AdditiveBlending,
     }),
   );
   scene.add(new THREE.Points(starGeometry, starMaterial));
 
   /* ------------------------------------------------------------------ sun -- */
-  const sunGeometry = track(new THREE.SphereGeometry(SUN_RADIUS, 64, 48));
+  const sunGeometry = track(new THREE.SphereGeometry(SUN_RADIUS, 96, 64));
   const sunMaterial = track(
     new THREE.ShaderMaterial({
       vertexShader: PLANET_VERTEX,
       fragmentShader: SUN_FRAGMENT,
       uniforms: {
         uTime: { value: 0 },
-        uCore: { value: new THREE.Color(0xfff1c4) },
-        uEdge: { value: new THREE.Color(0xff7a18) },
+        uCore: { value: new THREE.Color(0xfff4d2) },
+        uEdge: { value: new THREE.Color(0xff6a12) },
       },
     }),
   );
@@ -210,6 +229,34 @@ export function createSolarScene(
     }),
   );
   scene.add(new THREE.Mesh(sunGlowGeometry, sunGlowMaterial));
+
+  /*
+   * THE CORONA. One more back-faced shell, far larger and filamentary, so the
+   * star has an outer atmosphere that moves independently of its surface. Off
+   * on the low tier: it is the single most expensive transparent surface in the
+   * scene because of how much of the frame it covers.
+   */
+  const coronaGeometry = track(new THREE.SphereGeometry(SUN_RADIUS * 4.6, 32, 24));
+  const coronaMaterial = track(
+    new THREE.ShaderMaterial({
+      vertexShader: GLOW_VERTEX,
+      fragmentShader: CORONA_FRAGMENT,
+      uniforms: {
+        uTime: { value: 0 },
+        uColor: { value: new THREE.Color(0xffb257) },
+        uStrength: { value: 0.42 },
+      },
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide,
+      depthWrite: false,
+      depthTest: false,
+    }),
+  );
+  const corona = new THREE.Mesh(coronaGeometry, coronaMaterial);
+  corona.renderOrder = -1;
+  corona.visible = tier !== "reduced";
+  scene.add(corona);
 
   /*
    * THE HIDDEN SIGNATURE.
