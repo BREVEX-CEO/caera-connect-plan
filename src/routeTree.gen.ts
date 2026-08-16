@@ -44,6 +44,7 @@ import { Route as ProductsOcadeRouteImport } from './routes/products.ocade'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_authenticated/admin.launch-gate'
+import { Route as AuthenticatedAdminPaymentsChecklistRouteImport } from './routes/_authenticated/admin.payments-checklist'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin.support'
 import { Route as AuthenticatedOcadeArtifactsRouteImport } from './routes/_authenticated/ocade.artifacts'
 import { Route as AuthenticatedOcadeAutomationsRouteImport } from './routes/_authenticated/ocade.automations'
@@ -250,6 +251,12 @@ const AuthenticatedAdminLaunchGateRoute =
     path: '/admin/launch-gate',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminPaymentsChecklistRoute =
+  AuthenticatedAdminPaymentsChecklistRouteImport.update({
+    id: '/admin/payments-checklist',
+    path: '/admin/payments-checklist',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminSupportRoute =
   AuthenticatedAdminSupportRouteImport.update({
     id: '/admin/support',
@@ -438,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
+  '/admin/payments-checklist': typeof AuthenticatedAdminPaymentsChecklistRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
@@ -498,6 +506,7 @@ export interface FileRoutesByTo {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
+  '/admin/payments-checklist': typeof AuthenticatedAdminPaymentsChecklistRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
@@ -562,6 +571,7 @@ export interface FileRoutesById {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
+  '/_authenticated/admin/payments-checklist': typeof AuthenticatedAdminPaymentsChecklistRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/_authenticated/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
@@ -626,6 +636,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/launch-gate'
+    | '/admin/payments-checklist'
     | '/admin/support'
     | '/ocade/artifacts'
     | '/ocade/automations'
@@ -686,6 +697,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/launch-gate'
+    | '/admin/payments-checklist'
     | '/admin/support'
     | '/ocade/artifacts'
     | '/ocade/automations'
@@ -749,6 +761,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/admin/launch-gate'
+    | '/_authenticated/admin/payments-checklist'
     | '/_authenticated/admin/support'
     | '/_authenticated/ocade/artifacts'
     | '/_authenticated/ocade/automations'
@@ -1050,6 +1063,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminLaunchGateRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/payments-checklist': {
+      id: '/_authenticated/admin/payments-checklist'
+      path: '/admin/payments-checklist'
+      fullPath: '/admin/payments-checklist'
+      preLoaderRoute: typeof AuthenticatedAdminPaymentsChecklistRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/support': {
       id: '/_authenticated/admin/support'
       path: '/admin/support'
@@ -1309,6 +1329,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
   AuthenticatedAdminLaunchGateRoute: typeof AuthenticatedAdminLaunchGateRoute
+  AuthenticatedAdminPaymentsChecklistRoute: typeof AuthenticatedAdminPaymentsChecklistRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
 }
 
@@ -1322,6 +1343,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
   AuthenticatedAdminLaunchGateRoute: AuthenticatedAdminLaunchGateRoute,
+  AuthenticatedAdminPaymentsChecklistRoute:
+    AuthenticatedAdminPaymentsChecklistRoute,
   AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
 }
 
