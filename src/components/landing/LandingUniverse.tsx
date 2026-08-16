@@ -4,6 +4,8 @@ import { ArrowDown, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ParticleLogoIntro } from "./ParticleLogoIntro";
 import { OcadeCompanion } from "@/components/ocade/OcadeCompanion";
+import { useAppearance } from "@/lib/use-appearance";
+
 
 /*
  * LAZY, AND THAT IS A BUDGET DECISION RATHER THAN A HABIT.
@@ -64,7 +66,14 @@ import {
  * animation.
  */
 export function LandingUniverse() {
-  const [reducedMotion, setReducedMotion] = useState(false);
+  /*
+   * The preference comes from the appearance context, which already merges the
+   * OS media query with the switch in Settings > Appearance. Reading the media
+   * query here instead — as this did — meant the in-app switch had no effect on
+   * the one screen with the most motion in the product.
+   */
+  const appearance = useAppearance();
+  const reducedMotion = appearance.reducedMotion || appearance.osReducedMotion;
   const [phase, setPhase] = useState<IntroPhase>("ambient");
   const [hovered, setHovered] = useState<Planet | null>(null);
   const [tier, setTier] = useState<RenderTier>("full");
@@ -80,13 +89,7 @@ export function LandingUniverse() {
   const pinned = useMemo(() => PLANETS.find((p) => p.id === pinnedId) ?? null, [pinnedId]);
   const active = pinned ?? hovered;
 
-  useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const sync = () => setReducedMotion(query.matches);
-    sync();
-    query.addEventListener?.("change", sync);
-    return () => query.removeEventListener?.("change", sync);
-  }, []);
+
 
   useEffect(() => {
     const navigatorish = navigator as Navigator & { deviceMemory?: number };

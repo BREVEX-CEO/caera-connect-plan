@@ -5,6 +5,8 @@ import {
   type QualityTier,
   type SceneHandles,
 } from "@/lib/landing/solar-scene";
+import { useAppearance } from "@/lib/use-appearance";
+
 
 /**
  * The hero scene, mounted.
@@ -48,6 +50,19 @@ export function SolarSystem({ className }: { className?: string }) {
   );
   const [failed, setFailed] = useState(false);
 
+  /*
+   * BOTH SOURCES OF THE PREFERENCE, not just the media query.
+   *
+   * This used to read `prefers-reduced-motion` directly, which quietly ignored
+   * the switch in Settings > Appearance — the one people on a shared or locked
+   * machine can actually reach. `useAppearance` carries the app preference and
+   * the OS one, and either is enough to hold the scene still.
+   */
+  const { reducedMotion, osReducedMotion } = useAppearance();
+  const holdStill = reducedMotion || osReducedMotion;
+
+
+
   useEffect(() => {
     const wrap = wrapRef.current;
     if (!wrap) return;
@@ -76,8 +91,8 @@ export function SolarSystem({ className }: { className?: string }) {
       "display:block;width:100%;height:100%;touch-action:none;user-select:none;";
     wrap.insertBefore(canvas, wrap.firstChild);
 
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const tier = pickTier(reducedMotion);
+    const tier = pickTier(holdStill);
+
 
     let scene: SceneHandles;
     try {
@@ -110,19 +125,33 @@ export function SolarSystem({ className }: { className?: string }) {
 
     const loop = (now: number) => {
       if (!running) return;
-      const dt = (now - last) / 1000;
+      /*
+       * HELD STILL MEANS dt = 0. The loop keeps running so a deliberate drag or
+       * zoom still repaints — someone who asked for less motion asked for
+       * nothing to move ON ITS OWN, not to be handed a frozen picture they
+       * cannot turn — but the clock never advances, so orbits, rotation and the
+       * idle camera return produce no movement at all.
+       */
+      const elapsed = (now - last) / 1000;
+      const dt = holdStill ? 0 : elapsed;
       last = now;
 
       // Five seconds after the last deliberate act, the camera finds its way
-      // back — including from mid-zoom.
-      if (now - lastInteraction > IDLE_RETURN_MS) scene.goHome();
+      // back — including from mid-zoom. Not while held still: that is motion
+      // the person did not ask for.
+      if (!holdStill && now - lastInteraction > IDLE_RETURN_MS) scene.goHome();
 
       scene.frame(dt);
 
       // Labels are React state, so they are updated at ~12Hz rather than every
       // frame: re-rendering 28 elements at 60Hz costs more than the entire 3D
       // scene does, and the labels do not move fast enough to need it.
-      labelTick += dt;
+      //
+      // Ticked on REAL elapsed time, not the scene clock: with the scene held
+      // still the clock never advances, and a label pass that waited on it
+      // would never run — leaving the still frame unlabelled.
+      labelTick += elapsed;
+
       if (labelTick > 0.08) {
         labelTick = 0;
         const next = scene.moonLabels();
@@ -215,7 +244,10 @@ export function SolarSystem({ className }: { className?: string }) {
       canvas.remove();
       sceneRef.current = null;
     };
-  }, []);
+    // Rebuilt when the motion preference changes: the quality tier is chosen at
+    // construction, so a scene built for movement cannot simply be told to stop.
+  }, [holdStill]);
+
 
   return (
     <div ref={wrapRef} className={className} data-scene={failed ? "unavailable" : "live"}>
