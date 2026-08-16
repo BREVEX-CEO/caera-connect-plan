@@ -716,6 +716,8 @@ export function createSolarScene(
       viewHeight = h;
       applyRenderScale();
       target.setSize(Math.max(1, w), Math.max(1, h));
+      bloomA.setSize(bloomWidth(), bloomHeight());
+      bloomB.setSize(bloomWidth(), bloomHeight());
       rippleMaterial.uniforms.uAspect.value = w / Math.max(1, h);
     },
 
