@@ -29,6 +29,7 @@ import { useAppearance } from "@/lib/use-appearance";
 import { useSession } from "@/lib/session";
 import { useHistoryReach } from "./use-history-reach";
 import { supabase } from "@/integrations/supabase/client";
+import { recordAction } from "@/lib/actions";
 import { closeActiveCompanionSession } from "@/lib/native/tauri-companion";
 import {
   MODULES,
@@ -177,6 +178,9 @@ function WorkspaceShellInner({
 
   async function signOut() {
     setAccountError(null);
+    // Record the audit entry BEFORE the session is revoked — recordAction
+    // resolves the acting user from the live session, which signOut destroys.
+    void recordAction({ actionId: "auth.sign_out" });
     try {
       await closeActiveCompanionSession();
     } catch (error) {
