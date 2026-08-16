@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { User, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { recordAction } from "@/lib/actions";
 import { useSettingsAccess } from "./use-settings-access";
 
 /**
@@ -23,6 +24,7 @@ import { useSettingsAccess } from "./use-settings-access";
  */
 export function AccountPanel() {
   const { canEdit: signedIn, reason } = useSettingsAccess();
+  const navigate = useNavigate();
   const [email, setEmail] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -38,6 +40,9 @@ export function AccountPanel() {
 
   const signOut = async () => {
     setBusy(true);
+    // Audit first — recordAction resolves the user from the live session,
+    // which signOut destroys.
+    void recordAction({ actionId: "auth.sign_out" });
     const { error } = await supabase.auth.signOut();
     setBusy(false);
     if (error) {
@@ -45,6 +50,7 @@ export function AccountPanel() {
       return;
     }
     toast.success("Signed out.");
+    await navigate({ to: "/auth", replace: true });
   };
 
   return (
