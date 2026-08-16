@@ -429,10 +429,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [flush]);
 
   const value = useMemo<AppearanceContextValue>(
-    () => ({ ...prefs, osReducedMotion, autoLowPerf, update, persistence, retryPersist }),
-    [prefs, osReducedMotion, autoLowPerf, update, persistence, retryPersist],
-
+    () => ({
+      ...prefs,
+      osReducedMotion,
+      autoLowPerf,
+      perfFallback,
+      keepFullQuality,
+      resumeAutoFallback,
+      update,
+      persistence,
+      retryPersist,
+    }),
+    [
+      prefs,
+      osReducedMotion,
+      autoLowPerf,
+      perfFallback,
+      keepFullQuality,
+      resumeAutoFallback,
+      update,
+      persistence,
+      retryPersist,
+    ],
   );
+
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
