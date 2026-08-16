@@ -81,6 +81,17 @@ function BillingPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  /*
+   * Prices are shown in the currency the buyer will actually be charged in.
+   * That is not cosmetic: UPI only appears at checkout for a buyer in India
+   * paying in rupees, so a dollar figure here followed by a rupee charge would
+   * both surprise the customer and hide the method they were looking for.
+   * Detected on the client, because the region is a browser fact.
+   */
+  const [currency, setCurrency] = useState<CurrencyCode>("USD");
+  useEffect(() => {
+    setCurrency(currencyForRegion(detectRegion()));
+  }, []);
 
   const load = useCallback(async () => {
     setError(null);
