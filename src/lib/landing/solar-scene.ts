@@ -236,7 +236,7 @@ export function createSolarScene(
    * on the low tier: it is the single most expensive transparent surface in the
    * scene because of how much of the frame it covers.
    */
-  const coronaGeometry = track(new THREE.SphereGeometry(SUN_RADIUS * 4.6, 32, 24));
+  const coronaGeometry = track(new THREE.SphereGeometry(SUN_RADIUS * 3.4, 32, 24));
   const coronaMaterial = track(
     new THREE.ShaderMaterial({
       vertexShader: GLOW_VERTEX,
@@ -244,17 +244,19 @@ export function createSolarScene(
       uniforms: {
         uTime: { value: 0 },
         uColor: { value: new THREE.Color(0xffb257) },
-        uStrength: { value: 0.42 },
+        uStrength: { value: 0.5 },
       },
       transparent: true,
       blending: THREE.AdditiveBlending,
       side: THREE.BackSide,
       depthWrite: false,
-      depthTest: false,
+      // DEPTH-TESTED. Without it the corona is drawn over every planet in front
+      // of the sun, which puts an orange wash across bodies that are nearer the
+      // camera than the star is.
+      depthTest: true,
     }),
   );
   const corona = new THREE.Mesh(coronaGeometry, coronaMaterial);
-  corona.renderOrder = -1;
   corona.visible = tier !== "reduced";
   scene.add(corona);
 
