@@ -40,11 +40,41 @@ export interface AppearancePrefs {
   depthStrength: number; // 0..200
 }
 
+/**
+ * Where a preference change ended up, and whether it survived.
+ *
+ * `scope` is the strongest store the change reached: `cloud` means it will
+ * follow the account to a new session on another device, `local` means it
+ * survives a refresh on this browser only, and `none` means nothing could be
+ * written — the change is live in memory and will be lost on reload. The UI
+ * says which of the three happened instead of implying every switch is saved.
+ */
+export type AppearancePersistenceStatus = "idle" | "saving" | "saved" | "error";
+export type AppearancePersistenceScope = "cloud" | "local" | "none";
+
+export interface AppearancePersistence {
+  status: AppearancePersistenceStatus;
+  scope: AppearancePersistenceScope;
+  /** Plain-language reason shown to the user when status is `error`. */
+  message: string | null;
+  /** True once a signed-in account's stored row has been read back. */
+  loadedFromCloud: boolean;
+  /** Set when the stored preferences could not be READ (as opposed to written). */
+  loadError: string | null;
+  lastSavedAt: number | null;
+  /** True while a failed write is still queued for retry. */
+  hasPendingChanges: boolean;
+}
+
 export interface AppearanceContextValue extends AppearancePrefs {
   osReducedMotion: boolean;
   autoLowPerf: boolean;
   update: (patch: Partial<AppearancePrefs>) => Promise<void>;
+  persistence: AppearancePersistence;
+  /** Re-attempt the last failed write / read. */
+  retryPersist: () => Promise<void>;
 }
+
 
 export const ThemeContext = createContext<AppearanceContextValue | null>(null);
 
