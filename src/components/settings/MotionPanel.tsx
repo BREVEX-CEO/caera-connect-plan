@@ -5,6 +5,8 @@ import { Switch } from "@/components/ui/switch";
 import { SettingsField, ReadOnlyBanner } from "./SettingsGate";
 import { useSettingsAccess } from "./use-settings-access";
 import { useAppearance } from "@/lib/use-appearance";
+import { useDepth } from "@/components/motion/depth-context";
+import { cn } from "@/lib/utils";
 import { chooseRenderTier, starCountFor, type RenderTier } from "@/lib/landing/universe";
 
 /**
@@ -20,9 +22,30 @@ import { chooseRenderTier, starCountFor, type RenderTier } from "@/lib/landing/u
  * here, including a user who has switched motion on in this panel, and the
  * panel says so instead of letting the toggle appear to work.
  */
+/**
+ * The strength dial, as three named stops rather than a free slider.
+ *
+ * A continuous 0-200 control asks people to tune a number they cannot preview
+ * precisely, and every value in between is one somebody has to support. Three
+ * stops are a choice; a slider is a chore.
+ */
+const DEPTH_STEPS = [
+  { value: 50, label: "Subtle" },
+  { value: 100, label: "Balanced" },
+  { value: 160, label: "Deep" },
+] as const;
+
+/** Which stop a stored value belongs to, so an out-of-band number still shows one selected. */
+function nearestStep(value: number): number {
+  return DEPTH_STEPS.reduce((best, step) =>
+    Math.abs(step.value - value) < Math.abs(best.value - value) ? step : best,
+  ).value;
+}
+
 export function MotionPanel() {
   const { canEdit } = useSettingsAccess();
-  const { reducedMotion, osReducedMotion, update } = useAppearance();
+  const { reducedMotion, osReducedMotion, depth3d, depthStrength, update } = useAppearance();
+  const depth = useDepth();
   const [tier, setTier] = useState<RenderTier>("full");
   const [signals, setSignals] = useState<{ cores?: number; memoryGb?: number; width: number }>({
     width: 0,
@@ -79,6 +102,72 @@ export function MotionPanel() {
           system accessibility settings to enable motion here.
         </p>
       ) : null}
+
+      <SettingsField
+        label="3D depth"
+        description="Surfaces sit at real distances in one perspective scene, so panels layer, cast matching shadows and drift against each other as the pointer moves."
+      >
+        <Switch
+          checked={depth3d}
+          disabled={!canEdit}
+          onCheckedChange={(next) => void update({ depth3d: next })}
+          aria-label="3D depth"
+        />
+      </SettingsField>
+
+      {/*
+        THE DIAL IS HIDDEN WHEN DEPTH IS OFF rather than disabled. A strength
+        control for an effect that is switched off has no meaning, and leaving a
+        greyed slider behind invites people to drag it and conclude the setting
+        is broken.
+      */}
+      {depth3d ? (
+        <SettingsField
+          label="Depth strength"
+          description="How pronounced the third dimension is. Subtle keeps the layering and almost removes the movement."
+        >
+          <div className="flex items-center gap-1" role="group" aria-label="Depth strength">
+            {DEPTH_STEPS.map((step) => {
+              const selected = nearestStep(depthStrength) === step.value;
+              return (
+                <button
+                  key={step.value}
+                  type="button"
+                  disabled={!canEdit}
+                  aria-pressed={selected}
+                  onClick={() => void update({ depthStrength: step.value })}
+                  className={cn(
+                    "h-7 rounded-md border px-2.5 text-[11.5px] transition-colors disabled:opacity-50",
+                    selected
+                      ? "border-primary/50 bg-primary/15 text-foreground"
+                      : "border-border/60 text-muted-foreground hover:bg-secondary/50 hover:text-foreground",
+                  )}
+                >
+                  {step.label}
+                </button>
+              );
+            })}
+          </div>
+        </SettingsField>
+      ) : null}
+
+      {/*
+        What the scene is ACTUALLY doing, which is not always what was asked
+        for: a still 3D scene contains no motion, so reduced motion keeps the
+        depth and drops only the pointer tilt. Saying that here is the
+        difference between a considered behaviour and an apparently ignored
+        setting.
+      */}
+      <p className="rounded-md border border-border/60 bg-secondary/25 px-2.5 py-2 text-[11.5px] text-muted-foreground">
+        Right now:{" "}
+        {depth.mode === "full"
+          ? "depth and pointer tilt are both active."
+          : depth.mode === "static"
+            ? "depth is active and pointer tilt is off."
+            : depth3d
+              ? "flat — this browser or device cannot composite 3D transforms."
+              : "flat, because you turned 3D depth off."}
+      </p>
 
       <div className="mt-1 rounded-lg border border-border/60 bg-secondary/25 p-3">
         <p className="text-[12.5px] font-medium text-foreground">
