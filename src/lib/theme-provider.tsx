@@ -40,7 +40,16 @@ const DEFAULT: AppearancePrefs = {
   cursorCustom: null,
   cursorSize: 24,
   cursorTrail: false,
+  depth3d: true,
+  depthStrength: 100,
 };
+
+/** Keep a stored or typed strength inside the range the geometry is tuned for. */
+export function clampDepthStrength(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return 100;
+  return Math.max(0, Math.min(200, Math.round(n)));
+}
 
 const LS_KEY = "caera:appearance:v1";
 
