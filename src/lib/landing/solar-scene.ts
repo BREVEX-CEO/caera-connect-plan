@@ -754,11 +754,24 @@ export function createSolarScene(
           renderScale = Math.min(maxRenderScale, renderScale + 0.03);
           applyRenderScale();
         }
+        /*
+         * THE GLOW IS THE FIRST THING DROPPED, and it is dropped before the
+         * resolution has bottomed out. Bloom is the only part of the frame that
+         * is purely decorative — the planets are the product. A machine that
+         * cannot hold the budget gets a slightly plainer sun rather than a
+         * soft, low-resolution one, and the threshold sits well above the
+         * resolution ladder's so the two never fight.
+         */
+        if (frameCost > 21) bloomEnabled = false;
+        else if (frameCost < 11 && tier === "full") bloomEnabled = true;
       }
       // The still tier holds the clock: the system is composed, not moving.
       if (tier !== "still") elapsed += step;
 
       sunMaterial.uniforms.uTime.value = elapsed;
+      coronaMaterial.uniforms.uTime.value = elapsed;
+      starMaterial.uniforms.uTime.value = elapsed;
+      rippleMaterial.uniforms.uTime.value = elapsed;
 
       /* Orbits and spin — never paused, whatever the camera is doing. */
       for (const body of bodies) {
