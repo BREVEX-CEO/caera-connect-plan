@@ -39,7 +39,7 @@ function supports3d(): boolean {
 }
 
 export function DepthScene({ children }: { children: ReactNode }) {
-  const { reducedMotion, osReducedMotion } = useAppearance();
+  const { reducedMotion, osReducedMotion, depth3d } = useAppearance();
   const hostRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<number | null>(null);
   const pendingRef = useRef<{ x: number; y: number } | null>(null);
@@ -68,9 +68,10 @@ export function DepthScene({ children }: { children: ReactNode }) {
         }),
         hasDom: true,
         supports3d: supports3d(),
+        userDepth3d: depth3d,
       }),
     );
-  }, [reducedMotion, osReducedMotion]);
+  }, [reducedMotion, osReducedMotion, depth3d]);
 
   const interactive = mode === "full";
 
