@@ -98,9 +98,21 @@ function GeneralPage() {
   const [signingOut, setSigningOut] = useState(false);
   const tzList = guessTz();
 
+  /**
+   * The form must not pretend to be empty while the profile is still in
+   * flight. `loading` says so out loud, and any edit made meanwhile survives
+   * because `dirty` is merged over the loaded row rather than replaced by it.
+   * `loadError` offers a retry instead of a silently blank page.
+   */
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
     void (async () => {
       const { data, error } = await supabase
         .from("profiles")
@@ -109,7 +121,8 @@ function GeneralPage() {
         .maybeSingle();
       if (cancelled) return;
       if (error) {
-        setError(error.message);
+        setLoadError(error.message);
+        setLoading(false);
         return;
       }
       setRow(
@@ -122,11 +135,13 @@ function GeneralPage() {
           timezone: "UTC",
         },
       );
+      setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, reloadKey]);
+
 
   function update<K extends keyof ProfileRow>(key: K, value: ProfileRow[K]) {
     setDirty((d) => ({ ...d, [key]: value }));
@@ -200,10 +215,36 @@ function GeneralPage() {
       />
 
       {error ? (
-        <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        <div
+          role="alert"
+          className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+        >
           {error}
         </div>
       ) : null}
+
+      {loadError ? (
+        <div
+          role="alert"
+          className="mb-4 flex items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+        >
+          <span>Could not load your profile: {loadError}</span>
+          <button
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="underline underline-offset-2"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+
+      {loading && !loadError ? (
+        <GlassPanel className="mb-4 flex items-center gap-2 p-4 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading your profile…
+        </GlassPanel>
+      ) : null}
+
+
 
       {/* Identity */}
       <GlassPanel className="p-5">

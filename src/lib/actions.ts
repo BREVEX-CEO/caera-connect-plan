@@ -357,6 +357,30 @@ const actions: Action[] = [
     title: "Enable OpenAI Direct",
     log: "operational",
   },
+  {
+    id: "devices.rename",
+    featureId: "settings.devices",
+    title: "Rename device",
+    log: "operational",
+    description: "Label change only. Does not alter what the device may do.",
+  },
+  {
+    id: "security.password_change",
+    featureId: "settings.security",
+    title: "Change password",
+    log: "compliance",
+    category: "role_change",
+    description: "Adds or replaces the password credential for this account.",
+  },
+  {
+    id: "security.sign_out_all",
+    featureId: "settings.security",
+    title: "Sign out of all devices",
+    log: "compliance",
+    category: "role_change",
+    description: "Revokes every active session for this account, including the current one.",
+    confirmation: "confirm",
+  },
 ];
 
 for (const a of actions) registerAction(a);

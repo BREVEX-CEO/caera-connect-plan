@@ -109,6 +109,13 @@ const features: Feature[] = [
     platforms: ["web"],
   },
   {
+    id: "settings.security",
+    module: "core",
+    title: "Security",
+    status: "active",
+    platforms: ["web"],
+  },
+  {
     id: "settings.vault",
     module: "core",
     title: "Browser Vault",
