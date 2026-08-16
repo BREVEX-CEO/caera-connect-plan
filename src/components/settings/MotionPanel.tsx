@@ -3,6 +3,7 @@ import { Sparkles } from "lucide-react";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Switch } from "@/components/ui/switch";
 import { SettingsField, ReadOnlyBanner } from "./SettingsGate";
+import { AppearanceSaveState } from "./AppearanceSaveState";
 import { useSettingsAccess } from "./use-settings-access";
 import { useAppearance } from "@/lib/use-appearance";
 import { useDepth } from "@/components/motion/depth-context";
@@ -82,6 +83,13 @@ export function MotionPanel() {
       </header>
 
       <ReadOnlyBanner />
+
+      {/*
+        Persistence is stated up front, not implied. Everything below applies
+        the moment it is switched; whether it SURVIVES a refresh is a separate
+        fact and belongs on screen.
+      */}
+      <AppearanceSaveState />
 
       <SettingsField
         label="Reduce motion"
