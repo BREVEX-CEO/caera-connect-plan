@@ -39,7 +39,15 @@
         color: #a3a3a0;
         margin: 0 0 0.75rem;
       }
-      button {
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.65rem;
+        margin-top: 1rem;
+      }
+      button,
+      a {
         margin-top: 0.5rem;
         padding: 0.5rem 1rem;
         font: inherit;
@@ -49,8 +57,10 @@
         border: 1px solid #33332f;
         border-radius: 0.5rem;
         cursor: pointer;
+        text-decoration: none;
       }
-      button:hover {
+      button:hover,
+      a:hover {
         background: #171715;
       }
     </style>
@@ -65,14 +75,15 @@
         only the parts that never needed the network, and the user is entitled
         to know which those are before they start typing.
       -->
+      <p>Cloud is unavailable right now; OCADE is keeping your device-only work available.</p>
       <p>
-        Cloud is unavailable right now; OCADE is keeping your device-only work available.
+        Conversations kept in Browser Only or PC Vault storage remain here. A local answer also
+        needs an engine that was prepared on this device while connected.
       </p>
-      <p>
-        Conversations kept in Browser Only or PC Vault storage remain here. Open the installed
-        OCADE app from your home screen or Start menu for the complete cached workspace.
-      </p>
-      <button type="button" onclick="location.reload()">Try again</button>
+      <div class="actions">
+        <a href="/demo/ocade">Open device-only demo</a>
+        <button type="button" onclick="location.reload()">Reconnect</button>
+      </div>
       <script>
         addEventListener("online", () => location.reload(), { once: true });
       </script>

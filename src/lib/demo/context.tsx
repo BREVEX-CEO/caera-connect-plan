@@ -33,7 +33,7 @@ function writeFlag(active: boolean): void {
  *
  * The conversation is deliberately NOT here either. It lives in the demo
  * route's own state, because a demo conversation that survived a provider
- * re-render — or a trip to settings and back — would outlive the 8-minute
+ * re-render — or a trip to settings and back — would outlive the 28-minute
  * session it belongs to. Temporary has to mean temporary.
  */
 export function DemoProvider({ children }: { children: ReactNode }) {
@@ -58,9 +58,9 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   }, [navigate]);
 
   const reset = useCallback(() => {
-    // Clearing the deadline is what makes the next visit start a fresh 8
-    // minutes; the reload drops the in-memory conversation with it.
-    endSession();
+    // Reloading drops the route-owned temporary conversation while preserving
+    // the same absolute deadline. Clearing it here would make a harmless
+    // "reset conversation" action consume the entire once-per-28-hours demo.
     if (typeof window !== "undefined") window.location.assign("/demo/ocade");
   }, []);
 

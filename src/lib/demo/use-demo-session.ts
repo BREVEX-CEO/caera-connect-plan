@@ -3,6 +3,7 @@ import {
   DEMO_WARNING_MS,
   endSession,
   readDeadline,
+  readNextEligibleAt,
   sessionState,
   startSession,
   type DemoSessionState,
@@ -13,7 +14,7 @@ import {
  *
  * TICK RATE. Once a second while the warning is showing, once every fifteen
  * otherwise. The badge displays whole minutes above ten minutes remaining, so
- * a per-second re-render for most of the eight minutes would
+ * a per-second re-render for most of the 28 minutes would
  * repaint the tree for a string that did not change.
  *
  * EXPIRY FIRES ONCE. `onExpire` stops generation, clears the temporary
@@ -27,19 +28,23 @@ export function useDemoSession(options: {
   autoStart: boolean;
   onWarn?: (session: DemoSessionState) => void;
   onExpire?: () => void;
-}): { session: DemoSessionState; end: () => void } {
-  const { autoStart, onWarn, onExpire } = options;
+  onBlocked?: (nextEligibleAt: number | null) => void;
+}): { session: DemoSessionState; blockedUntil: number | null; end: () => void } {
+  const { autoStart, onWarn, onExpire, onBlocked } = options;
   const [session, setSession] = useState<DemoSessionState>(() =>
     sessionState(typeof window === "undefined" ? null : readDeadline(), Date.now()),
   );
+  const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
   const warnedRef = useRef(false);
   const expiredRef = useRef(false);
   // Held in refs so changing a handler does not restart the interval, which
   // would reset the tick phase on every parent render.
   const warnRef = useRef(onWarn);
   const expireRef = useRef(onExpire);
+  const blockedRef = useRef(onBlocked);
   warnRef.current = onWarn;
   expireRef.current = onExpire;
+  blockedRef.current = onBlocked;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -47,8 +52,12 @@ export function useDemoSession(options: {
     const deadline = autoStart ? startSession(Date.now()) : readDeadline();
     if (deadline === null) {
       setSession(sessionState(null, Date.now()));
+      const nextEligibleAt = readNextEligibleAt();
+      setBlockedUntil(nextEligibleAt);
+      if (autoStart) blockedRef.current?.(nextEligibleAt);
       return;
     }
+    setBlockedUntil(null);
 
     let timer: ReturnType<typeof setTimeout>;
 
@@ -84,5 +93,5 @@ export function useDemoSession(options: {
     setSession(sessionState(null, Date.now()));
   }, []);
 
-  return { session, end };
+  return { session, blockedUntil, end };
 }

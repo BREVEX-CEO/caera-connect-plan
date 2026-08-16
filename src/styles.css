@@ -850,6 +850,28 @@
   }
 }
 
+.ocade-companion {
+  animation: ocade-companion-hover 6.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  transform-origin: 50% 70%;
+  will-change: transform;
+}
+
+@keyframes ocade-companion-hover {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-0.5deg);
+  }
+  50% {
+    transform: translate3d(0, -7px, 0) rotate(0.6deg);
+  }
+}
+
+.reduce-motion .ocade-companion,
+.low-perf .ocade-companion {
+  animation: none;
+  will-change: auto;
+}
+
 .reduce-motion .ocade-relational-surface::before,
 .low-perf .ocade-relational-surface::before {
   animation: none;

@@ -21,9 +21,9 @@ import { useChatPrefs } from "@/lib/use-chat-prefs";
 import { ChatEmptyState } from "@/components/ocade/chat/ChatEmptyState";
 import { EngineBadge } from "@/components/ocade/chat/EngineBadge";
 import { DemoSessionBadge } from "@/components/ocade/demo/DemoSessionBadge";
-import { DemoSidebarNav } from "@/components/ocade/demo/DemoSidebarNav";
+import { DemoControlNav, DemoSidebarNav } from "@/components/ocade/demo/DemoSidebarNav";
 import { useDemoSession } from "@/lib/demo/use-demo-session";
-import { warningMessage } from "@/lib/demo/session";
+import { formatResetRemaining, warningMessage } from "@/lib/demo/session";
 import { useLocalChatEngine } from "@/lib/chat/use-local-chat-engine";
 import { useDictation } from "@/lib/voice/use-dictation";
 import { LANGUAGE_CANDIDATES, languageInstruction } from "@/lib/voice/speech-capabilities";
@@ -59,7 +59,7 @@ export const Route = createFileRoute("/demo/ocade")({
  *
  * WHAT IS STILL DIFFERENT, and still said out loud:
  *
- *   - The session lasts 8 minutes and the clock is visible.
+ *   - The session lasts 28 minutes and the clock is visible.
  *   - Nothing is saved. The conversation lives in this component's state and
  *     goes when the session ends.
  *   - The first answer may be slow: weights download once, and that needs a
@@ -240,11 +240,18 @@ function DemoOcade() {
     treeRef.current = emptyTree();
     setCosts([]);
     setLedgerVersion((v) => v + 1);
-    toast.info("Your 8-minute demo has ended. Nothing was saved.", {
-      description: "Create an account to keep your conversations and use OCADE without a timer.",
+    toast.info("Your 28-minute demo has ended. Nothing was saved.", {
+      description: "Sign in with Google, phone OTP or email OTP to continue and keep your work.",
       duration: 8000,
     });
-    void navigate({ to: "/", replace: true });
+    void navigate({
+      to: "/auth",
+      search: {
+        next: "/home",
+        message: "Your 28-minute demo ended. Sign in to continue.",
+      },
+      replace: true,
+    });
   }, [engine, navigate]);
 
   const { session } = useDemoSession({
@@ -253,6 +260,16 @@ function DemoOcade() {
       toast.warning(warningMessage(state.remainingMs), { duration: 10_000 });
     },
     onExpire: handleExpire,
+    onBlocked: (nextEligibleAt) => {
+      void navigate({
+        to: "/auth",
+        search: {
+          next: "/home",
+          message: `This browser's demo resets in ${formatResetRemaining(nextEligibleAt, Date.now())}. Sign in to continue now.`,
+        },
+        replace: true,
+      });
+    },
   });
 
   // Probe once on mount so the badge carries a real capability label before the
@@ -575,6 +592,7 @@ function DemoOcade() {
             setDraft("");
           }}
           emptyLabel="This conversation is temporary."
+          primaryAction={<DemoControlNav active="chat" />}
           footer={<DemoSidebarNav active="chat" />}
         />
       }
@@ -665,7 +683,7 @@ function DemoOcade() {
             /*
               The demo has no account, so the three upload actions answer with a
               sign-in prompt instead of appearing as dead greyed items. Typing
-              and sending stay completely open for the full 8 minutes.
+              and sending stay completely open for the full 28 minutes.
             */
             signedIn={false}
             /*

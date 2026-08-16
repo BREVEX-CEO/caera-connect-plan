@@ -233,7 +233,7 @@ describe("the + menu does not cover the message being written", () => {
   });
 
   it("keeps text chat open when uploads are gated", () => {
-    // The 8-minute demo has to remain a usable chat, not a locked shell.
+    // The 28-minute demo has to remain a usable chat, not a locked shell.
     const DEMO = readFileSync("src/routes/demo.ocade.tsx", "utf8");
     expect(DEMO).toMatch(/signedIn=\{false\}/);
     expect(DEMO, "the composer itself was disabled").not.toMatch(/<ChatComposer[^>]*\sdisabled\b/);

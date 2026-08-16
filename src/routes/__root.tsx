@@ -5,6 +5,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -23,6 +24,7 @@ import { clearApprovals } from "@/lib/mobile/approval-store";
 import { registerOfflineShellFromBrowser } from "@/lib/local/web-supervisor";
 import { primeOfflineRuntimeFromBrowser } from "@/lib/offline/prime-runtime";
 import { closeActiveCompanionSession } from "@/lib/native/tauri-companion";
+import { LegalConsentGate } from "@/components/legal/LegalConsentGate";
 // Side-effect import: registers Foundation Alpha features on module load.
 import "@/lib/features";
 
@@ -162,6 +164,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   useEffect(() => {
     if (!getSupabaseBrowserConfiguration().configured) {
@@ -261,7 +264,7 @@ function RootComponent() {
           dispatched, and dropped.
 
           The failure mode is the worst kind: silent. A blocked send looked like
-          a dead button. "Your 8-minute demo has ended" never arrived. A vault
+          a dead button. "Your 28-minute demo has ended" never arrived. A vault
           that would not unlock gave no reason. Every call site looked correct,
           because it was — the sink was missing.
 
@@ -339,7 +342,9 @@ function RootComponent() {
             )}
           >
             {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <Outlet />
+            <LegalConsentGate pathname={pathname}>
+              <Outlet />
+            </LegalConsentGate>
           </ErrorBoundary>
         </DepthScene>
       </ThemeProvider>

@@ -9,7 +9,7 @@ export const Route = createFileRoute("/demo")({
       {
         name: "description",
         content:
-          "Explore CAERA CADANE with sample data — no sign-in required. Nothing you do here writes to real accounts.",
+          "Try OCADE for 28 minutes without an account. Demo conversations stay temporary and the on-device engine can be prepared for later offline use.",
       },
       { name: "robots", content: "noindex" },
     ],

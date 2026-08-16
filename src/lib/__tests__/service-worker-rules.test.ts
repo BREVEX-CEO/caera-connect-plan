@@ -137,10 +137,19 @@ describe("the worker's stated invariants are still in the file", () => {
   it("pre-caches both OCADE brand assets used by the offline intro", () => {
     expect(SOURCE).toContain('"/brand/ocade-mark.png"');
     expect(SOURCE).toContain('"/brand/ocade-wordmark.png"');
+    expect(SOURCE).toContain('"/brand/ocade-companion-v1.png"');
+  });
+
+  it("pre-caches both device-only demo rooms for an offline revisit", () => {
+    expect(SOURCE).toContain('"/demo/ocade"');
+    expect(SOURCE).toContain('"/demo/control"');
   });
 
   it("pre-caches the application root for cold-start navigation", () => {
-    const precache = SOURCE.slice(SOURCE.indexOf("const PRECACHE"), SOURCE.indexOf("];", SOURCE.indexOf("const PRECACHE")));
+    const precache = SOURCE.slice(
+      SOURCE.indexOf("const PRECACHE"),
+      SOURCE.indexOf("];", SOURCE.indexOf("const PRECACHE")),
+    );
     expect(precache).toMatch(/["']\/["']/);
   });
 

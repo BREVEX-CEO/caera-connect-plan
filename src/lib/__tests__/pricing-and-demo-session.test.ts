@@ -13,11 +13,14 @@ import {
 } from "../payments/pricing";
 import {
   DEMO_SESSION_MS,
+  DEMO_RESET_MS,
   DEMO_WARNING_MS,
   sessionState,
   startSession,
   endSession,
   readDeadline,
+  readNextEligibleAt,
+  formatResetRemaining,
   formatRemaining,
   warningMessage,
 } from "../demo/session";
@@ -142,10 +145,10 @@ describe("the pricing rule is enforced, not remembered", () => {
 
 /* ------------------------------------------------------------- demo session */
 
-describe("the 8-minute demo session", () => {
+describe("the 28-minute demo session", () => {
   const T0 = 1_700_000_000_000;
 
-  /** In-memory storage so nothing touches the real sessionStorage. */
+  /** In-memory storage so nothing touches the real localStorage. */
   function fakeStore() {
     const map = new Map<string, string>();
     return {
@@ -156,9 +159,10 @@ describe("the 8-minute demo session", () => {
     };
   }
 
-  it("runs for exactly 8 minutes and warns with 3 to go", () => {
+  it("runs for exactly 28 minutes, resets after 28 hours, and warns with 3 to go", () => {
     // The number the copy promises, pinned against the number the timer uses.
-    expect(DEMO_SESSION_MS).toBe(8 * 60 * 1000);
+    expect(DEMO_SESSION_MS).toBe(28 * 60 * 1000);
+    expect(DEMO_RESET_MS).toBe(28 * 60 * 60 * 1000);
     expect(DEMO_WARNING_MS).toBe(3 * 60 * 1000);
   });
 
@@ -195,24 +199,26 @@ describe("the 8-minute demo session", () => {
      * machine sleeps, and would hand back time the visitor never spent.
      */
     const store = fakeStore();
-    const deadline = startSession(T0, store);
+    const deadline = startSession(T0, store)!;
     const afterSleep = T0 + 3 * 60 * 60 * 1000;
     expect(sessionState(deadline, afterSleep).phase).toBe("expired");
   });
 
   it("does not restart a session that is already running", () => {
-    // A second tab, or a reload, must not grant a fresh 8 minutes.
+    // A second tab, or a reload, must not grant a fresh 28 minutes.
     const store = fakeStore();
     const first = startSession(T0, store);
     const second = startSession(T0 + 5 * 60_000, store);
     expect(second).toBe(first);
   });
 
-  it("starts a new session once the previous one has expired", () => {
+  it("does not start a second demo until the 28-hour reset has elapsed", () => {
     const store = fakeStore();
-    const first = startSession(T0, store);
-    const later = startSession(first + 1000, store);
-    expect(later).toBeGreaterThan(first);
+    const first = startSession(T0, store)!;
+    expect(startSession(first + 1000, store)).toBeNull();
+    expect(readNextEligibleAt(store)).toBe(T0 + DEMO_RESET_MS);
+    const later = startSession(T0 + DEMO_RESET_MS, store);
+    expect(later).toBe(T0 + DEMO_RESET_MS + DEMO_SESSION_MS);
   });
 
   it("clears the deadline when the session ends", () => {
@@ -223,8 +229,8 @@ describe("the 8-minute demo session", () => {
     expect(readDeadline(store)).toBeNull();
   });
 
-  it("still starts when storage is unavailable", () => {
-    // Private browsing with storage denied must not refuse the demo outright.
+  it("fails closed when durable storage is unavailable", () => {
+    // Without durable state, refreshes could create unlimited demo sessions.
     const denied = {
       getItem: () => {
         throw new Error("denied");
@@ -234,14 +240,14 @@ describe("the 8-minute demo session", () => {
       },
     };
     const deadline = startSession(T0, denied);
-    expect(deadline).toBe(T0 + DEMO_SESSION_MS);
-    expect(sessionState(deadline, T0).phase).toBe("active");
+    expect(deadline).toBeNull();
+    expect(sessionState(deadline, T0).phase).toBe("idle");
   });
 
   it("shows whole minutes early and seconds only near the end", () => {
     // Above ten minutes the seconds are noise; below it they are the point.
-    // An eight-minute session lives entirely in the second branch, which is
-    // why the clock on the demo badge always ticks.
+    // A 28-minute session uses both branches: calm whole minutes first, then a
+    // precise second-by-second clock near the end.
     expect(formatRemaining(28 * 60_000)).toBe("28 min left");
     expect(formatRemaining(11 * 60_000)).toBe("11 min left");
     expect(formatRemaining(8 * 60_000)).toBe("8:00 left");
@@ -260,5 +266,11 @@ describe("the 8-minute demo session", () => {
 
   it("says minute, singular, with one minute left", () => {
     expect(warningMessage(45_000)).toMatch(/about 1 minute\b/);
+  });
+
+  it("describes the remaining reset window for the forced sign-in handoff", () => {
+    expect(formatResetRemaining(T0 + DEMO_RESET_MS, T0)).toBe("28 hours");
+    expect(formatResetRemaining(T0 + 65 * 60_000, T0)).toBe("1 hour 5 minutes");
+    expect(formatResetRemaining(T0, T0)).toBe("now");
   });
 });

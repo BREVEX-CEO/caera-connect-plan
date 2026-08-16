@@ -1,10 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CreditCard, ShieldCheck, Smartphone } from "lucide-react";
+import { z } from "zod";
 import { PublicPage, PublicSection, DraftNotice } from "@/components/public/PublicPage";
 import { PlanComparison } from "@/components/settings/PlanComparison";
 import { PAYMENT_METHODS } from "@/lib/payments/methods";
+import { billingHandoffMessage } from "@/lib/payments/browser-handoff";
+
+const searchSchema = z.object({
+  source: z.enum(["web", "desktop", "mobile"]).optional(),
+  plan: z.enum(["std_8d", "month_1m", "year_1y"]).optional(),
+});
 
 export const Route = createFileRoute("/pricing")({
+  validateSearch: searchSchema,
   head: () => ({
     meta: [
       { title: "OCADE pricing — India and international plans" },
@@ -19,6 +27,9 @@ export const Route = createFileRoute("/pricing")({
 });
 
 function PricingPage() {
+  const search = Route.useSearch();
+  const handoff = billingHandoffMessage(search.source);
+
   return (
     <PublicPage
       eyebrow="Pre-launch pricing"
@@ -29,6 +40,15 @@ function PricingPage() {
         Prices are founder-approved, but taxes, refund wording, recurring-payment behavior and the
         final checkout must receive legal and provider review before OCADE accepts money.
       </DraftNotice>
+
+      {handoff ? (
+        <div
+          role="status"
+          className="rounded-xl border border-primary/30 bg-primary/8 p-4 text-sm leading-relaxed text-foreground/85"
+        >
+          <strong className="text-foreground">Secure browser handoff.</strong> {handoff}
+        </div>
+      ) : null}
 
       <PlanComparison deploymentDetails={false} />
 

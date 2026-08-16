@@ -38,6 +38,8 @@ export interface ChatSidebarProps {
   renderRowMenu?: (conversation: ChatConversationView) => React.ReactNode;
   /** Extra navigation (projects, files, models, settings) under the list. */
   footer?: React.ReactNode;
+  /** A high-value mode switch rendered between search and conversation history. */
+  primaryAction?: React.ReactNode;
   emptyLabel?: string;
 }
 
@@ -48,6 +50,7 @@ export function ChatSidebar({
   onNewChat,
   renderRowMenu,
   footer,
+  primaryAction,
   emptyLabel = "No conversations yet.",
 }: ChatSidebarProps) {
   const [query, setQuery] = useState("");
@@ -102,6 +105,8 @@ export function ChatSidebar({
           ) : null}
         </div>
       </div>
+
+      {primaryAction ? <div className="px-3 pb-3">{primaryAction}</div> : null}
 
       <nav aria-label="Conversations" className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
         {buckets.length === 0 ? (

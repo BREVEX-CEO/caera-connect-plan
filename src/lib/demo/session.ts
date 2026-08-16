@@ -1,5 +1,5 @@
 /**
- * The 8-minute demo session.
+ * The 28-minute demo session and its device-local 28-hour reset window.
  *
  * A demo that never ends is a free tier nobody asked for; a demo that ends
  * without warning loses the user's work and their goodwill in the same second.
@@ -16,7 +16,7 @@
  *
  * Pure and injectable: `now` is a parameter everywhere, so expiry, the warning
  * threshold and the boundary between them are all reachable from a test without
- * waiting 8 minutes.
+ * waiting 28 minutes.
  */
 
 /**
@@ -27,7 +27,10 @@
  * and something else in the timer. Changing this number changes the demo; there
  * is no second duration anywhere that could disagree with it.
  */
-export const DEMO_SESSION_MS = 8 * 60 * 1000;
+export const DEMO_SESSION_MS = 28 * 60 * 1000;
+
+/** One demo per durable browser profile during this reset window. */
+export const DEMO_RESET_MS = 28 * 60 * 60 * 1000;
 
 /**
  * How long before the end the user is warned.
@@ -37,7 +40,8 @@ export const DEMO_SESSION_MS = 8 * 60 * 1000;
  */
 export const DEMO_WARNING_MS = 3 * 60 * 1000;
 
-const STORAGE_KEY = "caera:demo:session:v1";
+const STORAGE_KEY = "caera:demo:session:v2";
+const NEXT_ELIGIBLE_KEY = "caera:demo:next-eligible:v1";
 
 export type DemoPhase =
   /** No session has been started in this browser. */
@@ -61,10 +65,24 @@ export interface DemoSessionState {
 
 /** Read the stored deadline. Never throws — storage can be unavailable. */
 export function readDeadline(storage?: Pick<Storage, "getItem">): number | null {
-  const store = storage ?? safeSession();
+  const store = storage ?? safeLocal();
   if (!store) return null;
   try {
     const raw = store.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const value = Number(raw);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Read when this durable browser profile may start another demo. */
+export function readNextEligibleAt(storage?: Pick<Storage, "getItem">): number | null {
+  const store = storage ?? safeLocal();
+  if (!store) return null;
+  try {
+    const raw = store.getItem(NEXT_ELIGIBLE_KEY);
     if (!raw) return null;
     const value = Number(raw);
     return Number.isFinite(value) && value > 0 ? value : null;
@@ -77,32 +95,52 @@ export function readDeadline(storage?: Pick<Storage, "getItem">): number | null 
  * Begin a session, or return the one already running.
  *
  * Deliberately NOT restarting an existing session: a visitor who opens the demo
- * in a second tab, or reloads, must not be handed a fresh 8 minutes. The
+ * in a second tab, or reloads, must not be handed a fresh 28 minutes. The
  * deadline is set once and every surface reads the same one.
  */
-export function startSession(now: number, storage?: Pick<Storage, "getItem" | "setItem">): number {
-  const store = storage ?? safeSession();
+export function startSession(
+  now: number,
+  storage?: Pick<Storage, "getItem" | "setItem">,
+): number | null {
+  const store = storage ?? safeLocal();
+  if (!store) return null;
   const existing = readDeadline(store as Pick<Storage, "getItem"> | undefined);
   if (existing !== null && existing > now) return existing;
+
+  const nextEligibleAt = readNextEligibleAt(store);
+  if (nextEligibleAt !== null && nextEligibleAt > now) return null;
+
   const deadline = now + DEMO_SESSION_MS;
   try {
-    store?.setItem(STORAGE_KEY, String(deadline));
+    store.setItem(STORAGE_KEY, String(deadline));
+    store.setItem(NEXT_ELIGIBLE_KEY, String(now + DEMO_RESET_MS));
   } catch {
-    // Private browsing with storage denied. The session still runs for this
-    // page's lifetime from the returned deadline; it simply will not survive a
-    // reload, which is better than refusing to start the demo at all.
+    // A once-per-reset-window rule cannot be enforced without durable state.
+    // Fail closed rather than silently handing private/incognito reloads an
+    // unlimited demo.
+    return null;
   }
   return deadline;
 }
 
 /** Clear the session. Used at expiry and when the visitor leaves deliberately. */
 export function endSession(storage?: Pick<Storage, "removeItem">): void {
-  const store = storage ?? safeSession();
+  const store = storage ?? safeLocal();
   try {
     store?.removeItem(STORAGE_KEY);
   } catch {
     /* nothing to clean up if storage is unavailable */
   }
+}
+
+/** Human-readable reset time for the sign-in handoff. */
+export function formatResetRemaining(nextEligibleAt: number | null, now: number): string {
+  if (nextEligibleAt === null || nextEligibleAt <= now) return "now";
+  const totalMinutes = Math.ceil((nextEligibleAt - now) / 60_000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours <= 0) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  return `${hours} hour${hours === 1 ? "" : "s"}${minutes ? ` ${minutes} minutes` : ""}`;
 }
 
 /**
@@ -125,10 +163,9 @@ export function sessionState(deadline: number | null, now: number): DemoSessionS
 /**
  * The clock as a person reads it.
  *
- * `m:ss` under ten minutes and whole minutes above it. Across an eight-minute
- * session that means the clock always shows seconds, which is right: at this
- * length every minute is a large fraction of what is left, and rounding it away
- * would hide the thing the badge exists to report.
+ * `m:ss` under ten minutes and whole minutes above it. The longer opening
+ * portion stays calm by showing whole minutes; the final ten minutes expose
+ * seconds so the end of the session is unambiguous.
  */
 export function formatRemaining(remainingMs: number): string {
   const totalSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
@@ -144,10 +181,10 @@ export function warningMessage(remainingMs: number): string {
   return `Your demo ends in about ${minutes} minute${minutes === 1 ? "" : "s"}. Anything here is temporary — create an account to keep your conversations.`;
 }
 
-function safeSession(): Storage | null {
+function safeLocal(): Storage | null {
   if (typeof window === "undefined") return null;
   try {
-    return window.sessionStorage;
+    return window.localStorage;
   } catch {
     return null;
   }
