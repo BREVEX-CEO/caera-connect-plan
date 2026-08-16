@@ -100,9 +100,9 @@ function GeneralPage() {
 
   /**
    * The form must not pretend to be empty while the profile is still in
-   * flight — typing into a field that is about to be overwritten loses the
-   * edit. `loading` gates the form; `loadError` offers a retry instead of a
-   * silently blank page.
+   * flight. `loading` says so out loud, and any edit made meanwhile survives
+   * because `dirty` is merged over the loaded row rather than replaced by it.
+   * `loadError` offers a retry instead of a silently blank page.
    */
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
