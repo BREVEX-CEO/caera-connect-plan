@@ -258,6 +258,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         if (patch.cursorCustom !== undefined) row.appearance_cursor_custom = patch.cursorCustom;
         if (patch.cursorSize !== undefined) row.appearance_cursor_size = patch.cursorSize;
         if (patch.cursorTrail !== undefined) row.appearance_cursor_trail = patch.cursorTrail;
+        if (patch.depth3d !== undefined) row.appearance_depth_3d = patch.depth3d;
+        if (patch.depthStrength !== undefined)
+          row.appearance_depth_strength = clampDepthStrength(patch.depthStrength);
         if (Object.keys(row).length > 0) {
           void supabase
             .from("user_settings")
