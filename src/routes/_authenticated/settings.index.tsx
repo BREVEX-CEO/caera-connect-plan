@@ -98,9 +98,21 @@ function GeneralPage() {
   const [signingOut, setSigningOut] = useState(false);
   const tzList = guessTz();
 
+  /**
+   * The form must not pretend to be empty while the profile is still in
+   * flight — typing into a field that is about to be overwritten loses the
+   * edit. `loading` gates the form; `loadError` offers a retry instead of a
+   * silently blank page.
+   */
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
     void (async () => {
       const { data, error } = await supabase
         .from("profiles")
@@ -109,7 +121,8 @@ function GeneralPage() {
         .maybeSingle();
       if (cancelled) return;
       if (error) {
-        setError(error.message);
+        setLoadError(error.message);
+        setLoading(false);
         return;
       }
       setRow(
@@ -122,11 +135,13 @@ function GeneralPage() {
           timezone: "UTC",
         },
       );
+      setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, reloadKey]);
+
 
   function update<K extends keyof ProfileRow>(key: K, value: ProfileRow[K]) {
     setDirty((d) => ({ ...d, [key]: value }));

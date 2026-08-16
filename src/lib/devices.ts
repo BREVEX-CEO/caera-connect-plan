@@ -89,3 +89,11 @@ export async function revokeDevice(id: string): Promise<{ error?: string }> {
     .eq("id", id);
   return error ? { error: error.message } : {};
 }
+
+/** Rename a device. Label only — it changes nothing about what the device may do. */
+export async function renameDevice(id: string, name: string): Promise<{ error?: string }> {
+  const trimmed = name.trim().slice(0, 120);
+  if (!trimmed) return { error: "Enter a name." };
+  const { error } = await supabase.from("devices").update({ name: trimmed }).eq("id", id);
+  return error ? { error: error.message } : {};
+}

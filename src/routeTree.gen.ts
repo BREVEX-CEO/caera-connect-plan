@@ -66,8 +66,10 @@ import { Route as AuthenticatedSettingsBrowserRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsDevicesRouteImport } from './routes/_authenticated/settings.devices'
 import { Route as AuthenticatedSettingsMobileRouteImport } from './routes/_authenticated/settings.mobile'
 import { Route as AuthenticatedSettingsPrivacyRouteImport } from './routes/_authenticated/settings.privacy'
+import { Route as AuthenticatedSettingsSecurityRouteImport } from './routes/_authenticated/settings.security'
 import { Route as AuthenticatedSettingsSkillsRouteImport } from './routes/_authenticated/settings.skills'
 import { Route as AuthenticatedSettingsSupportRouteImport } from './routes/_authenticated/settings.support'
+import { Route as AuthenticatedSettingsTasksRouteImport } from './routes/_authenticated/settings.tasks'
 import { Route as AuthenticatedSettingsUsageRouteImport } from './routes/_authenticated/settings.usage'
 import { Route as AuthenticatedSettingsVaultRouteImport } from './routes/_authenticated/settings.vault'
 import { Route as AuthenticatedSettingsVoiceRouteImport } from './routes/_authenticated/settings.voice'
@@ -381,6 +383,12 @@ const AuthenticatedSettingsPrivacyRoute =
     path: '/privacy',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsSecurityRoute =
+  AuthenticatedSettingsSecurityRouteImport.update({
+    id: '/security',
+    path: '/security',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsSkillsRoute =
   AuthenticatedSettingsSkillsRouteImport.update({
     id: '/skills',
@@ -391,6 +399,12 @@ const AuthenticatedSettingsSupportRoute =
   AuthenticatedSettingsSupportRouteImport.update({
     id: '/support',
     path: '/support',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
+const AuthenticatedSettingsTasksRoute =
+  AuthenticatedSettingsTasksRouteImport.update({
+    id: '/tasks',
+    path: '/tasks',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
 const AuthenticatedSettingsUsageRoute =
@@ -484,8 +498,10 @@ export interface FileRoutesByFullPath {
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/settings/mobile': typeof AuthenticatedSettingsMobileRoute
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
+  '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/settings/skills': typeof AuthenticatedSettingsSkillsRoute
   '/settings/support': typeof AuthenticatedSettingsSupportRoute
+  '/settings/tasks': typeof AuthenticatedSettingsTasksRoute
   '/settings/usage': typeof AuthenticatedSettingsUsageRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/settings/voice': typeof AuthenticatedSettingsVoiceRoute
@@ -548,8 +564,10 @@ export interface FileRoutesByTo {
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/settings/mobile': typeof AuthenticatedSettingsMobileRoute
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
+  '/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/settings/skills': typeof AuthenticatedSettingsSkillsRoute
   '/settings/support': typeof AuthenticatedSettingsSupportRoute
+  '/settings/tasks': typeof AuthenticatedSettingsTasksRoute
   '/settings/usage': typeof AuthenticatedSettingsUsageRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/settings/voice': typeof AuthenticatedSettingsVoiceRoute
@@ -616,8 +634,10 @@ export interface FileRoutesById {
   '/_authenticated/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/_authenticated/settings/mobile': typeof AuthenticatedSettingsMobileRoute
   '/_authenticated/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
+  '/_authenticated/settings/security': typeof AuthenticatedSettingsSecurityRoute
   '/_authenticated/settings/skills': typeof AuthenticatedSettingsSkillsRoute
   '/_authenticated/settings/support': typeof AuthenticatedSettingsSupportRoute
+  '/_authenticated/settings/tasks': typeof AuthenticatedSettingsTasksRoute
   '/_authenticated/settings/usage': typeof AuthenticatedSettingsUsageRoute
   '/_authenticated/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/_authenticated/settings/voice': typeof AuthenticatedSettingsVoiceRoute
@@ -684,8 +704,10 @@ export interface FileRouteTypes {
     | '/settings/devices'
     | '/settings/mobile'
     | '/settings/privacy'
+    | '/settings/security'
     | '/settings/skills'
     | '/settings/support'
+    | '/settings/tasks'
     | '/settings/usage'
     | '/settings/vault'
     | '/settings/voice'
@@ -748,8 +770,10 @@ export interface FileRouteTypes {
     | '/settings/devices'
     | '/settings/mobile'
     | '/settings/privacy'
+    | '/settings/security'
     | '/settings/skills'
     | '/settings/support'
+    | '/settings/tasks'
     | '/settings/usage'
     | '/settings/vault'
     | '/settings/voice'
@@ -815,8 +839,10 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/devices'
     | '/_authenticated/settings/mobile'
     | '/_authenticated/settings/privacy'
+    | '/_authenticated/settings/security'
     | '/_authenticated/settings/skills'
     | '/_authenticated/settings/support'
+    | '/_authenticated/settings/tasks'
     | '/_authenticated/settings/usage'
     | '/_authenticated/settings/vault'
     | '/_authenticated/settings/voice'
@@ -1255,6 +1281,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsPrivacyRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/security': {
+      id: '/_authenticated/settings/security'
+      path: '/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof AuthenticatedSettingsSecurityRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/skills': {
       id: '/_authenticated/settings/skills'
       path: '/skills'
@@ -1267,6 +1300,13 @@ declare module '@tanstack/react-router' {
       path: '/support'
       fullPath: '/settings/support'
       preLoaderRoute: typeof AuthenticatedSettingsSupportRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
+    '/_authenticated/settings/tasks': {
+      id: '/_authenticated/settings/tasks'
+      path: '/tasks'
+      fullPath: '/settings/tasks'
+      preLoaderRoute: typeof AuthenticatedSettingsTasksRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
     '/_authenticated/settings/usage': {
@@ -1348,8 +1388,10 @@ interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsDevicesRoute: typeof AuthenticatedSettingsDevicesRoute
   AuthenticatedSettingsMobileRoute: typeof AuthenticatedSettingsMobileRoute
   AuthenticatedSettingsPrivacyRoute: typeof AuthenticatedSettingsPrivacyRoute
+  AuthenticatedSettingsSecurityRoute: typeof AuthenticatedSettingsSecurityRoute
   AuthenticatedSettingsSkillsRoute: typeof AuthenticatedSettingsSkillsRoute
   AuthenticatedSettingsSupportRoute: typeof AuthenticatedSettingsSupportRoute
+  AuthenticatedSettingsTasksRoute: typeof AuthenticatedSettingsTasksRoute
   AuthenticatedSettingsUsageRoute: typeof AuthenticatedSettingsUsageRoute
   AuthenticatedSettingsVaultRoute: typeof AuthenticatedSettingsVaultRoute
   AuthenticatedSettingsVoiceRoute: typeof AuthenticatedSettingsVoiceRoute
@@ -1365,8 +1407,10 @@ const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsDevicesRoute: AuthenticatedSettingsDevicesRoute,
   AuthenticatedSettingsMobileRoute: AuthenticatedSettingsMobileRoute,
   AuthenticatedSettingsPrivacyRoute: AuthenticatedSettingsPrivacyRoute,
+  AuthenticatedSettingsSecurityRoute: AuthenticatedSettingsSecurityRoute,
   AuthenticatedSettingsSkillsRoute: AuthenticatedSettingsSkillsRoute,
   AuthenticatedSettingsSupportRoute: AuthenticatedSettingsSupportRoute,
+  AuthenticatedSettingsTasksRoute: AuthenticatedSettingsTasksRoute,
   AuthenticatedSettingsUsageRoute: AuthenticatedSettingsUsageRoute,
   AuthenticatedSettingsVaultRoute: AuthenticatedSettingsVaultRoute,
   AuthenticatedSettingsVoiceRoute: AuthenticatedSettingsVoiceRoute,

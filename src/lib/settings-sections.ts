@@ -24,6 +24,7 @@ import {
   LifeBuoy,
   CreditCard,
   Wand2,
+  ListChecks,
 } from "lucide-react";
 
 /**
@@ -281,6 +282,14 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         keywords: ["data", "export", "delete", "vault", "download"],
       },
       {
+        slug: "tasks",
+        label: "Tasks",
+        icon: ListChecks,
+        status: "active",
+        description: "Automations on this account and the runs they produced.",
+        keywords: ["task", "automation", "run", "schedule", "queue", "cancel", "pause"],
+      },
+      {
         slug: "activity",
         label: "Activity",
         icon: Activity,
@@ -301,6 +310,14 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         status: "active",
         description: "Your sign-in and account details.",
         keywords: ["account", "email", "password", "sign in", "profile", "security"],
+      },
+      {
+        slug: "security",
+        label: "Security",
+        icon: Lock,
+        status: "active",
+        description: "Password, sign-in methods, active sessions and security events.",
+        keywords: ["security", "password", "session", "sign out", "reset", "2fa", "login"],
       },
       {
         slug: "support",
