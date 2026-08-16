@@ -30,19 +30,50 @@ import "@/lib/features";
 
 function NotFoundComponent() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-16">
+      {/* Restrained ambient depth — one soft light source, no page-wide gradient. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/3 h-[420px] w-[620px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[120px]"
+      />
+      <div className="relative w-full max-w-lg rounded-xl border border-border/70 bg-background/70 p-8 text-center shadow-[0_28px_90px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
+          CAERA CADANE
         </p>
-        <div className="mt-6">
+        <h1 className="mt-4 text-6xl font-semibold tracking-tight text-foreground">404</h1>
+        <h2 className="mt-3 text-lg font-semibold text-foreground">
+          This page isn&apos;t part of the workspace
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          The link may be out of date, or the page may have moved. Nothing has been lost — your
+          account and work are exactly where you left them.
+        </p>
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
-            Go home
+            Go back home
+          </Link>
+          <Link
+            to="/ocade"
+            className="inline-flex items-center justify-center rounded-md border border-border bg-transparent px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+          >
+            Open OCADE
+          </Link>
+        </div>
+        <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
+          <Link to="/faq" className="hover:text-foreground">
+            FAQ
+          </Link>
+          <Link to="/settings/support" className="hover:text-foreground">
+            Support
+          </Link>
+          <Link to="/privacy" className="hover:text-foreground">
+            Privacy
+          </Link>
+          <Link to="/terms" className="hover:text-foreground">
+            Terms
           </Link>
         </div>
       </div>
