@@ -14,6 +14,7 @@ import {
   sellablePlanByPriceId,
 } from "@/lib/payments/paddle-plans";
 import { PAYMENT_METHODS } from "@/lib/payments/methods";
+import { currencyForRegion, detectRegion, type CurrencyCode } from "@/lib/payments/pricing";
 import {
   getMySubscription,
   createBillingPortalSession,
