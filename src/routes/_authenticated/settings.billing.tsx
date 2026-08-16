@@ -315,6 +315,17 @@ function BillingPage() {
             </li>
           ))}
         </ul>
+        {currency !== "INR" ? (
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            UPI is offered to buyers in India paying in rupees, so it will not appear on this
+            checkout while your prices are shown in {currency}.
+          </p>
+        ) : (
+          <p className="mt-3 text-[11px] text-muted-foreground">
+            Your prices are in rupees, so UPI intent, QR and UPI AutoPay for renewals are offered at
+            checkout alongside cards.
+          </p>
+        )}
       </GlassPanel>
     </div>
   );
