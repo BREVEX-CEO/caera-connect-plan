@@ -1,12 +1,17 @@
 import * as THREE from "three";
 import { PLANETS, SUN_RADIUS, URANUS_MOONS, radiusFor, type PlanetSpec } from "./solar-data";
 import {
+  BLUR_FRAGMENT,
+  BRIGHT_FRAGMENT,
+  CORONA_FRAGMENT,
   FULLSCREEN_VERTEX,
   GLOW_FRAGMENT,
   GLOW_VERTEX,
   PLANET_FRAGMENT,
   PLANET_VERTEX,
   RIPPLE_FRAGMENT,
+  STAR_FRAGMENT,
+  STAR_VERTEX,
   SUN_FRAGMENT,
 } from "./solar-shaders";
 
