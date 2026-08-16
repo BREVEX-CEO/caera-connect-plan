@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { Mail, Phone, Loader2 } from "lucide-react";
+import { Mail, Phone, KeyRound, Loader2 } from "lucide-react";
 import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { AuthShell } from "@/components/shell/AuthShell";
