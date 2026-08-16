@@ -115,9 +115,9 @@ export const MODULE_CONTEXT: Record<ModuleId, NavItem[]> = {
      * ambiguity that makes "did I just tell it to move my files?" a reasonable
      * question to have.
      */
-    { to: "/ocade/work", label: "Control + Work", icon: MonitorCog },
     { to: "/ocade/projects", label: "Projects", icon: FolderOpen },
     { to: "/ocade/artifacts", label: "Artifacts", icon: Package },
+    { to: "/ocade/work", label: "Control + Work", icon: MonitorCog },
     { to: "/ocade/code", label: "Code", icon: FileCode2 },
     { to: "/ocade/automations", label: "Automations", icon: Workflow },
     { to: "/ocade/monitors", label: "Monitors", icon: Radar },
@@ -147,7 +147,7 @@ export const MODULE_CONTEXT: Record<ModuleId, NavItem[]> = {
  * Demo-mode navigation (no real account).
  *
  * One entry, because the demo is one thing: OCADE, running on the visitor's own
- * device for 8 minutes. There was a "Home" entry pointing at a tile grid of
+ * device for 28 minutes. There was a "Home" entry pointing at a tile grid of
  * Files and Tasks; those were separate top-level products in a product that has
  * exactly one, and `/demo` now goes straight to the chat.
  */

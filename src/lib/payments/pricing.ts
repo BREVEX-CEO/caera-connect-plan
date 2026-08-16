@@ -69,7 +69,7 @@ export const PLANS: Plan[] = [
     id: "demo",
     name: "Demo",
     durationMs: 28 * 60 * 1000,
-    summary: "8 minutes of the real product, in your browser, with no account.",
+    summary: "28 minutes of the real product, in your browser, with no account.",
     publiclyAvailable: false,
     benefits: ["No account", "On-device demo", "No payment details"],
     cloudAllowance: 0,

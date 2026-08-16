@@ -6,6 +6,7 @@ const PUBLIC_PATHS = [
   "/founder/haans-antoni",
   "/products/ocade",
   "/pricing",
+  "/download",
   "/privacy",
   "/terms",
 ];

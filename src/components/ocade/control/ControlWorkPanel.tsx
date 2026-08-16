@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Command,
+  Globe2,
   Hand,
   Mic,
   MicOff,
@@ -22,6 +23,7 @@ import { useDictation } from "@/lib/voice/use-dictation";
 import { cn } from "@/lib/utils";
 import { useMission, type MissionBrain, type TimelineEntry } from "@/lib/work/use-mission";
 import { directControl } from "@/lib/work/fast-router";
+import { OcadeCompanion } from "@/components/ocade/OcadeCompanion";
 
 /**
  * OCADE Control + Work: the room where OCADE is asked to DO things to this
@@ -175,6 +177,16 @@ export function ControlWorkPanel({
       >
         <ControlSolarScene state={sceneState} className="absolute inset-0 h-full w-full" />
 
+        <OcadeCompanion
+          compact
+          label={
+            connected
+              ? "OCADE is connected to this device"
+              : "OCADE is waiting for the native bridge"
+          }
+          className="absolute bottom-4 left-4 z-20"
+        />
+
         {/*
           The machine in one line. Not a dashboard: the two or three facts that
           show OCADE is attached to THIS computer rather than describing one in
@@ -209,6 +221,20 @@ export function ControlWorkPanel({
           <SceneButton
             onClick={() =>
               selectLauncher({
+                id: "browser-control",
+                label: "Browser control",
+                description: "Work in an approved browser session.",
+                prompt:
+                  "Open browser control and show which browser session is approved before taking any action.",
+                risk: "read",
+              })
+            }
+            icon={<Globe2 className="h-3.5 w-3.5" />}
+            label="Browser"
+          />
+          <SceneButton
+            onClick={() =>
+              selectLauncher({
                 id: "mobile-status",
                 label: "Mobile status",
                 description: "Show paired mobile control state.",
@@ -221,29 +247,29 @@ export function ControlWorkPanel({
           />
           {mission.busy ? (
             <>
-            <SceneButton
-              onClick={() => mission.setPaused(!mission.paused)}
-              icon={
-                mission.paused ? (
-                  <Play className="h-3.5 w-3.5" />
-                ) : (
-                  <Pause className="h-3.5 w-3.5" />
-                )
-              }
-              label={mission.paused ? "Resume" : "Pause"}
-            />
-            <SceneButton
-              onClick={mission.stop}
-              icon={<Square className="h-3.5 w-3.5" />}
-              label="Stop"
-            />
-            <SceneButton
-              onClick={() => {
-                mission.stop();
-              }}
-              icon={<Hand className="h-3.5 w-3.5" />}
-              label="Take over"
-            />
+              <SceneButton
+                onClick={() => mission.setPaused(!mission.paused)}
+                icon={
+                  mission.paused ? (
+                    <Play className="h-3.5 w-3.5" />
+                  ) : (
+                    <Pause className="h-3.5 w-3.5" />
+                  )
+                }
+                label={mission.paused ? "Resume" : "Pause"}
+              />
+              <SceneButton
+                onClick={mission.stop}
+                icon={<Square className="h-3.5 w-3.5" />}
+                label="Stop"
+              />
+              <SceneButton
+                onClick={() => {
+                  mission.stop();
+                }}
+                icon={<Hand className="h-3.5 w-3.5" />}
+                label="Take over"
+              />
             </>
           ) : null}
         </div>
@@ -260,7 +286,10 @@ export function ControlWorkPanel({
       <aside className="flex min-h-0 w-full min-w-0 flex-1 flex-col border-t border-border/60 bg-background/96 lg:w-[38%] lg:min-w-[340px] lg:max-w-[460px] lg:shrink-0 lg:border-l lg:border-t-0">
         <header className="border-b border-border/60 px-5 py-3.5">
           <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--accent-ocade)] shadow-[0_0_14px_var(--accent-ocade)]" aria-hidden />
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-[color:var(--accent-ocade)] shadow-[0_0_14px_var(--accent-ocade)]"
+              aria-hidden
+            />
             <h2 className="text-[14.5px] font-medium text-foreground">OCADE Command Center</h2>
           </div>
           {headerNote ? (

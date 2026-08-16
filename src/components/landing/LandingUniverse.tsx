@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowDown, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ParticleLogoIntro } from "./ParticleLogoIntro";
+import { OcadeCompanion } from "@/components/ocade/OcadeCompanion";
 
 /*
  * LAZY, AND THAT IS A BUDGET DECISION RATHER THAN A HABIT.
@@ -322,6 +323,12 @@ export function LandingUniverse() {
             >
               Try the demo
             </Link>
+            <Link
+              to="/download"
+              className="inline-flex h-11 items-center justify-center rounded-full px-4 text-[13px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Desktop app
+            </Link>
           </div>
 
           <p className="pointer-events-none rounded-full border border-border/40 bg-background/30 px-4 py-1.5 text-[12px] text-muted-foreground/90 backdrop-blur-sm">
@@ -338,6 +345,13 @@ export function LandingUniverse() {
             </p>
           )}
         </div>
+
+        {!introRunning ? (
+          <OcadeCompanion
+            label="I can answer locally, then—with permission—work through the signed desktop companion."
+            className="pointer-events-none absolute bottom-6 right-4 hidden xl:flex"
+          />
+        ) : null}
       </section>
 
       {/* ------------------------------------------------------ try it -- */}
@@ -346,7 +360,7 @@ export function LandingUniverse() {
           Try it first
         </p>
         <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-[44px]">
-          Eight minutes.
+          Twenty-eight minutes.
           <br />
           No account.
         </h2>

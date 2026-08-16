@@ -22,7 +22,7 @@
  *     deploy cannot leave two generations of assets fighting.
  */
 
-const VERSION = "ocade-shell-v5";
+const VERSION = "ocade-shell-v6";
 const OFFLINE_URL = "/offline.html";
 
 /**
@@ -42,16 +42,19 @@ const PRECACHE = [
   "/icons/ocade-192.png",
   "/brand/ocade-mark.png",
   "/brand/ocade-wordmark.png",
+  "/brand/ocade-companion-v1.png",
+  "/demo/ocade",
+  "/demo/control",
 ];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(VERSION)
-      .then((cache) => cache.addAll(PRECACHE))
-      // A precache miss must not leave the worker permanently uninstalled.
-      // The offline page is the only entry that really matters and it is
-      // retried on the next navigation failure.
+      // Cache entries independently. One optional image or route being
+      // unavailable during a rolling deployment must not discard the offline
+      // page, manifest and every other successful response in the batch.
+      .then((cache) => Promise.allSettled(PRECACHE.map((url) => cache.addAll([url]))))
       .catch(() => undefined)
       .then(() => self.skipWaiting()),
   );
@@ -62,7 +65,9 @@ self.addEventListener("activate", (event) => {
     Promise.all([
       caches
         .keys()
-        .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k)))),
+        .then((keys) =>
+          Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))),
+        ),
       // Navigation preload removes the service-worker startup round trip on a
       // normal online visit. Unsupported engines simply skip this branch.
       self.registration?.navigationPreload?.enable?.().catch(() => undefined),

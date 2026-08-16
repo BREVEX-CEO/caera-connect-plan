@@ -4,10 +4,10 @@ import { toast } from "sonner";
 import { ChatShell } from "@/components/ocade/chat/ChatShell";
 import { ChatSidebar } from "@/components/ocade/chat/ChatSidebar";
 import { DemoSessionBadge } from "@/components/ocade/demo/DemoSessionBadge";
-import { DemoSidebarNav } from "@/components/ocade/demo/DemoSidebarNav";
+import { DemoControlNav, DemoSidebarNav } from "@/components/ocade/demo/DemoSidebarNav";
 import { ControlWorkPanel } from "@/components/ocade/control/ControlWorkPanel";
 import { useDemoSession } from "@/lib/demo/use-demo-session";
-import { warningMessage } from "@/lib/demo/session";
+import { formatResetRemaining, warningMessage } from "@/lib/demo/session";
 import { useMissionBrain } from "@/lib/work/use-mission-brain";
 import { stopAllLocalMissionsFn } from "@/lib/control-work.functions";
 
@@ -69,17 +69,31 @@ function DemoControlWork() {
     } catch {
       /* the server sweeps idle missions anyway */
     }
-    toast.info("Your 8-minute demo has ended. Nothing was saved.", {
-      description: "OCADE has stopped and let go of your keyboard and mouse.",
+    toast.info("Your 28-minute demo has ended. Nothing was saved.", {
+      description: "OCADE stopped local control. Sign in to continue.",
       duration: 9000,
     });
-    void navigate({ to: "/", replace: true });
+    void navigate({
+      to: "/auth",
+      search: { next: "/home", message: "Your 28-minute demo ended. Sign in to continue." },
+      replace: true,
+    });
   }, [navigate]);
 
   const { session } = useDemoSession({
     autoStart: true,
     onWarn: (state) => toast.warning(warningMessage(state.remainingMs), { duration: 10_000 }),
     onExpire: () => void finish(),
+    onBlocked: (nextEligibleAt) => {
+      void navigate({
+        to: "/auth",
+        search: {
+          next: "/home",
+          message: `This browser's demo resets in ${formatResetRemaining(nextEligibleAt, Date.now())}. Sign in to continue now.`,
+        },
+        replace: true,
+      });
+    },
   });
 
   // Leaving the screen by any other route ends the mission too. The panel
@@ -104,6 +118,7 @@ function DemoControlWork() {
           // afresh from, so "New chat" belongs to the Chat room next door.
           onNewChat={() => void navigate({ to: "/demo/ocade" })}
           emptyLabel="This session is temporary."
+          primaryAction={<DemoControlNav active="control" />}
           footer={<DemoSidebarNav active="control" />}
         />
       }

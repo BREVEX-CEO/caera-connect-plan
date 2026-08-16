@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CompanyRouteImport } from './routes/company'
 import { Route as DataRightsRouteImport } from './routes/data-rights'
 import { Route as DemoRouteImport } from './routes/demo'
+import { Route as DownloadRouteImport } from './routes/download'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
@@ -89,6 +90,11 @@ const DataRightsRoute = DataRightsRouteImport.update({
 const DemoRoute = DemoRouteImport.update({
   id: '/demo',
   path: '/demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadRoute = DownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PricingRoute = PricingRouteImport.update({
@@ -350,6 +356,7 @@ export interface FileRoutesByFullPath {
   '/company': typeof CompanyRoute
   '/data-rights': typeof DataRightsRoute
   '/demo': typeof DemoRouteWithChildren
+  '/download': typeof DownloadRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -402,6 +409,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/company': typeof CompanyRoute
   '/data-rights': typeof DataRightsRoute
+  '/download': typeof DownloadRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -456,6 +464,7 @@ export interface FileRoutesById {
   '/company': typeof CompanyRoute
   '/data-rights': typeof DataRightsRoute
   '/demo': typeof DemoRouteWithChildren
+  '/download': typeof DownloadRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -511,6 +520,7 @@ export interface FileRouteTypes {
     | '/company'
     | '/data-rights'
     | '/demo'
+    | '/download'
     | '/pricing'
     | '/privacy'
     | '/robots.txt'
@@ -563,6 +573,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/company'
     | '/data-rights'
+    | '/download'
     | '/pricing'
     | '/privacy'
     | '/robots.txt'
@@ -616,6 +627,7 @@ export interface FileRouteTypes {
     | '/company'
     | '/data-rights'
     | '/demo'
+    | '/download'
     | '/pricing'
     | '/privacy'
     | '/robots.txt'
@@ -671,6 +683,7 @@ export interface RootRouteChildren {
   CompanyRoute: typeof CompanyRoute
   DataRightsRoute: typeof DataRightsRoute
   DemoRoute: typeof DemoRouteWithChildren
+  DownloadRoute: typeof DownloadRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
@@ -724,6 +737,13 @@ declare module '@tanstack/react-router' {
       path: '/demo'
       fullPath: '/demo'
       preLoaderRoute: typeof DemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download': {
+      id: '/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof DownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pricing': {
@@ -1177,6 +1197,7 @@ const rootRouteChildren: RootRouteChildren = {
   CompanyRoute: CompanyRoute,
   DataRightsRoute: DataRightsRoute,
   DemoRoute: DemoRouteWithChildren,
+  DownloadRoute: DownloadRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
