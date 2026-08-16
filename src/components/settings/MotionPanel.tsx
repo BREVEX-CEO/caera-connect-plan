@@ -4,6 +4,7 @@ import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Switch } from "@/components/ui/switch";
 import { SettingsField, ReadOnlyBanner } from "./SettingsGate";
 import { AppearanceSaveState } from "./AppearanceSaveState";
+import { PerformanceFallbackNotice } from "./PerformanceFallbackNotice";
 import { useSettingsAccess } from "./use-settings-access";
 import { useAppearance } from "@/lib/use-appearance";
 import { useDepth } from "@/components/motion/depth-context";
@@ -90,6 +91,12 @@ export function MotionPanel() {
         fact and belongs on screen.
       */}
       <AppearanceSaveState />
+
+      {/*
+        The automatic fallback is explained where the motion settings are, so a
+        stepped-down scene never looks like a setting that failed to apply.
+      */}
+      <PerformanceFallbackNotice />
 
       <SettingsField
         label="Reduce motion"
