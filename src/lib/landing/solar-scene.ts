@@ -857,10 +857,32 @@ export function createSolarScene(
         }
       }
 
+      /* The scene, once, into a target the post chain reads. */
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);
-      renderer.setRenderTarget(null);
-      renderer.render(rippleScene, rippleCamera);
+
+      if (bloomEnabled) {
+        // Threshold at quarter resolution, then blur across and down. Two
+        // targets ping-pong: a shader cannot read the target it is writing.
+        brightMaterial.uniforms.uScene.value = target.texture;
+        runPass(brightMaterial, bloomA);
+
+        blurMaterial.uniforms.uScene.value = bloomA.texture;
+        blurMaterial.uniforms.uDirection.value.set(1.4 / bloomWidth(), 0);
+        runPass(blurMaterial, bloomB);
+
+        blurMaterial.uniforms.uScene.value = bloomB.texture;
+        blurMaterial.uniforms.uDirection.value.set(0, 1.4 / bloomHeight());
+        runPass(blurMaterial, bloomA);
+
+        rippleMaterial.uniforms.uBloom.value = bloomA.texture;
+        rippleMaterial.uniforms.uBloomStrength.value = tier === "full" ? 0.9 : 0.55;
+      } else {
+        rippleMaterial.uniforms.uBloomStrength.value = 0;
+      }
+
+      rippleMaterial.uniforms.uScene.value = target.texture;
+      runPass(rippleMaterial, null);
     },
 
     dispose() {
