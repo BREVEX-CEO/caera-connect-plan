@@ -353,7 +353,12 @@ export const CORONA_FRAGMENT = /* glsl */ `
     float streamer = fbm(dir * 5.0 + vec3(uTime * 0.05, uTime * 0.02, 0.0));
     streamer = pow(clamp(streamer * 0.5 + 0.62, 0.0, 1.0), 2.4);
 
-    float falloff = pow(edge, 2.2) * 0.75 + pow(edge, 6.0) * 0.6;
+    /* CONFINED TO THE LIMB, HARD.
+       A gentle falloff on a shell this large fills the middle of the frame with
+       a dim brown disc — measured: the whole hero went muddy and the planets
+       behind it lost contrast. Only fragments where the shell is nearly edge-on
+       may contribute at all. */
+    float falloff = pow(edge, 6.0) * 0.85 + pow(edge, 16.0) * 0.9;
     float alpha = falloff * streamer * uStrength;
 
     gl_FragColor = vec4(uColor * (0.7 + streamer * 0.6), alpha);
