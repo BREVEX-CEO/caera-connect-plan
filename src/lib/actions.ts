@@ -75,6 +75,15 @@ const actions: Action[] = [
   { id: "auth.sign_in", featureId: "auth.sign_in", title: "Sign in", log: "operational" },
   { id: "auth.sign_out", featureId: "auth.sign_out", title: "Sign out", log: "operational" },
   {
+    id: "account.delete",
+    featureId: "auth.sign_out",
+    title: "Delete account and all account data",
+    log: "compliance",
+    category: "deletion",
+    confirmation: "strong",
+    confirmPhrase: "DELETE MY ACCOUNT",
+  },
+  {
     id: "onboarding.complete",
     featureId: "onboarding.wizard",
     title: "Complete onboarding",
