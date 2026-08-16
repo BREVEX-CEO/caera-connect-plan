@@ -258,7 +258,16 @@ export const PLANET_FRAGMENT = /* glsl */ `
   }
 `;
 
-/** The sun: a turbulent emissive surface, no lighting term at all. */
+/**
+ * The sun: a turbulent emissive surface, no lighting term at all.
+ *
+ * DOMAIN-WARPED CONVECTION. A single fbm reads as static fuzz; warping the
+ * sample point by a slower fbm makes the cells stretch, merge and drift the way
+ * real granulation does, for one extra noise evaluation rather than a second
+ * full octave stack. Supergranulation (large, slow) is layered under
+ * granulation (small, fast) so the surface has structure at both the distances
+ * this camera visits.
+ */
 export const SUN_FRAGMENT = /* glsl */ `
   uniform float uTime;
   uniform vec3 uCore;
@@ -271,16 +280,78 @@ export const SUN_FRAGMENT = /* glsl */ `
 
   void main() {
     vec3 dir = normalize(vPosition);
-    float granulation = fbm(dir * 4.0 + vec3(uTime * 0.06));
-    float flare = fbm(dir * 9.0 - vec3(uTime * 0.11));
-    float heat = clamp(granulation * 0.7 + flare * 0.5 + 0.45, 0.0, 1.0);
+
+    // Warp field: slow, large, and the reason the cells look like they flow.
+    vec3 warp = vec3(
+      fbm(dir * 1.7 + vec3(uTime * 0.035, 0.0, 0.0)),
+      fbm(dir * 1.7 + vec3(0.0, uTime * 0.031, 4.2)),
+      fbm(dir * 1.7 + vec3(9.1, 0.0, uTime * 0.028))
+    );
+
+    float supergranule = fbm(dir * 2.4 + warp * 0.9 + vec3(uTime * 0.02));
+    float granulation  = fbm(dir * 6.5 + warp * 1.6 + vec3(uTime * 0.07));
+    float filament     = fbm(dir * 16.0 - vec3(uTime * 0.13));
+
+    float heat = clamp(
+      supergranule * 0.45 + granulation * 0.55 + filament * 0.22 + 0.46,
+      0.0, 1.0);
+
+    // Faculae: the bright lanes between convection cells.
+    float lanes = pow(clamp(granulation * 0.5 + 0.5, 0.0, 1.0), 5.0);
+
+    // Sunspots: rare, dark, umbra inside penumbra. Driven off the slow field so
+    // they drift with the surface rather than swimming across it.
+    float spot = smoothstep(0.46, 0.62, supergranule + fbm(dir * 3.1) * 0.35);
+    float umbra = smoothstep(0.55, 0.70, supergranule);
 
     // Limb darkening, as a real star has.
     float facing = max(dot(normalize(vNormal), normalize(cameraPosition - vWorld)), 0.0);
-    float limb = mix(0.72, 1.0, pow(facing, 0.55));
+    float limb = mix(0.55, 1.0, pow(facing, 0.5));
 
-    vec3 color = mix(uEdge, uCore, heat) * limb;
+    vec3 color = mix(uEdge, uCore, heat);
+    color += uCore * lanes * 0.35;
+    color = mix(color, uEdge * 0.42, spot * 0.55);
+    color = mix(color, vec3(0.22, 0.09, 0.03), umbra * 0.45);
+    color *= limb;
+
+    // A hot rim: the chromosphere just above the visible surface.
+    color += uEdge * pow(1.0 - facing, 3.0) * 0.9;
+
     gl_FragColor = vec4(color, 1.0);
+  }
+`;
+
+/**
+ * The corona: streamers, drawn on a large back-faced shell.
+ *
+ * Separate from the ordinary glow shell because a star's outer atmosphere is
+ * not a smooth halo — it is filamentary, and the filaments are what make the
+ * sun read as a body with weather rather than a lamp. Additively blended and
+ * radially faded, so it never occludes anything behind it.
+ */
+export const CORONA_FRAGMENT = /* glsl */ `
+  uniform float uTime;
+  uniform vec3 uColor;
+  uniform float uStrength;
+  varying vec3 vNormal;
+  varying vec3 vWorld;
+  varying vec3 vPosition;
+
+  ${NOISE_CHUNK}
+
+  void main() {
+    vec3 dir = normalize(vPosition);
+    vec3 viewDir = normalize(cameraPosition - vWorld);
+    float edge = 1.0 - abs(dot(normalize(vNormal), viewDir));
+
+    // Streamers: high-frequency in angle, slow in time.
+    float streamer = fbm(dir * 5.0 + vec3(uTime * 0.05, uTime * 0.02, 0.0));
+    streamer = pow(clamp(streamer * 0.5 + 0.62, 0.0, 1.0), 2.4);
+
+    float falloff = pow(edge, 2.2) * 0.75 + pow(edge, 6.0) * 0.6;
+    float alpha = falloff * streamer * uStrength;
+
+    gl_FragColor = vec4(uColor * (0.7 + streamer * 0.6), alpha);
   }
 `;
 
@@ -294,65 +365,193 @@ export const SUN_FRAGMENT = /* glsl */ `
 export const GLOW_VERTEX = /* glsl */ `
   varying vec3 vNormal;
   varying vec3 vWorld;
+  varying vec3 vPosition;
   void main() {
     vNormal = normalize(normalMatrix * normal);
+    vPosition = position;
     vWorld = (modelMatrix * vec4(position, 1.0)).xyz;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
 
+/**
+ * TWO FALLOFFS, NOT ONE. A single `pow` gives either a tight ring or a vague
+ * cloud; summing a tight term and a wide one gives a bright limb sitting inside
+ * a soft halo, which is what atmospheric scattering actually looks like — and
+ * it is two instructions, not a second draw.
+ */
 export const GLOW_FRAGMENT = /* glsl */ `
   uniform vec3 uColor;
   uniform float uStrength;
   varying vec3 vNormal;
   varying vec3 vWorld;
+  varying vec3 vPosition;
 
   void main() {
     vec3 viewDir = normalize(cameraPosition - vWorld);
     // Strongest where the shell is edge-on to the viewer.
-    float intensity = pow(1.0 - abs(dot(normalize(vNormal), viewDir)), 2.6);
-    gl_FragColor = vec4(uColor, intensity * uStrength);
+    float edge = 1.0 - abs(dot(normalize(vNormal), viewDir));
+    float tight = pow(edge, 3.4);
+    float wide  = pow(edge, 1.4) * 0.35;
+
+    // Sunward bias: the halo is brighter on the lit limb, as it must be.
+    vec3 lightDir = normalize(-vWorld);
+    float lit = 0.35 + 0.65 * clamp(dot(normalize(vNormal), lightDir) * 0.5 + 0.5, 0.0, 1.0);
+
+    gl_FragColor = vec4(uColor, (tight + wide) * uStrength * lit);
   }
 `;
 
 /**
- * The ripple that plays on a zoom-in.
+ * The starfield, as a shader rather than PointsMaterial.
+ *
+ * TWINKLE AND COLOUR TEMPERATURE FOR FREE. Every star already carries a size
+ * attribute; adding a phase and a tint costs two more floats per star in a
+ * buffer that is uploaded once, and turns a flat white dust into a sky. The
+ * disc is drawn from `gl_PointCoord` with a soft core, so stars do not read as
+ * square pixels at high device ratios.
+ */
+export const STAR_VERTEX = /* glsl */ `
+  attribute float size;
+  attribute float phase;
+  attribute vec3 tint;
+  uniform float uTime;
+  uniform float uPixelRatio;
+  varying float vAlpha;
+  varying vec3 vTint;
+
+  void main() {
+    vTint = tint;
+    float twinkle = 0.72 + 0.28 * sin(uTime * 1.6 + phase * 6.283);
+    vAlpha = twinkle;
+    gl_PointSize = size * uPixelRatio * (0.85 + twinkle * 0.35);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+export const STAR_FRAGMENT = /* glsl */ `
+  varying float vAlpha;
+  varying vec3 vTint;
+
+  void main() {
+    vec2 d = gl_PointCoord - vec2(0.5);
+    float r = length(d) * 2.0;
+    if (r > 1.0) discard;
+    float core = pow(1.0 - r, 2.2);
+    gl_FragColor = vec4(vTint, core * vAlpha);
+  }
+`;
+
+/**
+ * Bright pass for the bloom chain, run at quarter resolution.
+ *
+ * A THRESHOLD, NOT A BLUR OF EVERYTHING. Blooming the whole frame greys the
+ * blacks and the starfield loses its bite; keeping only what is already above
+ * the threshold means the glow comes from the sun, the lit limbs and the ring
+ * highlights, which is where a camera would actually bloom.
+ */
+export const BRIGHT_FRAGMENT = /* glsl */ `
+  uniform sampler2D uScene;
+  uniform float uThreshold;
+  varying vec2 vUv;
+
+  void main() {
+    vec3 c = texture2D(uScene, vUv).rgb;
+    float luma = dot(c, vec3(0.2126, 0.7152, 0.0722));
+    float keep = max(luma - uThreshold, 0.0) / max(luma, 1e-4);
+    gl_FragColor = vec4(c * keep, 1.0);
+  }
+`;
+
+/**
+ * Separable Gaussian, nine taps, one axis per pass.
+ *
+ * Separable because a 9x9 two-dimensional kernel is 81 samples per fragment and
+ * this is 9 plus 9 for the same result. At quarter resolution the whole chain
+ * is under a sixteenth of the frame's fragments.
+ */
+export const BLUR_FRAGMENT = /* glsl */ `
+  uniform sampler2D uScene;
+  uniform vec2 uDirection;
+  varying vec2 vUv;
+
+  void main() {
+    float w[5];
+    w[0] = 0.2270270270;
+    w[1] = 0.1945945946;
+    w[2] = 0.1216216216;
+    w[3] = 0.0540540541;
+    w[4] = 0.0162162162;
+
+    vec3 sum = texture2D(uScene, vUv).rgb * w[0];
+    for (int i = 1; i < 5; i++) {
+      vec2 off = uDirection * float(i);
+      sum += texture2D(uScene, vUv + off).rgb * w[i];
+      sum += texture2D(uScene, vUv - off).rgb * w[i];
+    }
+    gl_FragColor = vec4(sum, 1.0);
+  }
+`;
+
+/**
+ * The final pass: ripple distortion, bloom, vignette and grain in ONE shader.
  *
  * A REAL DISTORTION, not an overlay of rings. The scene is rendered to a target
  * and resampled here with the UVs pushed along an expanding annulus, so the
  * image itself bends — which is what "warp" has to mean to be worth doing.
- * `uProgress` runs 0→1 once per zoom and the effect is a no-op outside that,
- * so the extra pass costs one fullscreen blit when nothing is happening.
+ * `uProgress` runs 0→1 once per zoom and the effect is a no-op outside that.
+ *
+ * Everything else is folded in here rather than added as further fullscreen
+ * passes: each additional pass is another full read and write of the frame, and
+ * on the integrated GPU this targets that bandwidth, not the arithmetic, is
+ * what costs milliseconds.
  */
 export const RIPPLE_FRAGMENT = /* glsl */ `
   uniform sampler2D uScene;
+  uniform sampler2D uBloom;
+  uniform float uBloomStrength;
   uniform vec2 uCenter;
   uniform float uProgress;
   uniform float uAspect;
+  uniform float uTime;
   varying vec2 vUv;
 
   void main() {
-    if (uProgress <= 0.0 || uProgress >= 1.0) {
-      gl_FragColor = texture2D(uScene, vUv);
-      return;
+    vec2 uv = vUv;
+    float band = 0.0;
+    float decay = 0.0;
+
+    if (uProgress > 0.0 && uProgress < 1.0) {
+      vec2 d = vUv - uCenter;
+      d.x *= uAspect;
+      float dist = length(d);
+
+      // The wavefront travels outward; amplitude decays as it goes.
+      float front = uProgress * 0.9;
+      band = smoothstep(0.16, 0.0, abs(dist - front));
+      decay = 1.0 - uProgress;
+
+      vec2 offset = normalize(d + 1e-6) * (band * decay * 0.035);
+      offset.x /= uAspect;
+      uv = vUv - offset;
     }
 
-    vec2 d = vUv - uCenter;
-    d.x *= uAspect;
-    float dist = length(d);
+    vec3 color = texture2D(uScene, uv).rgb;
+    color += texture2D(uBloom, uv).rgb * uBloomStrength;
 
-    // The wavefront travels outward; amplitude decays as it goes.
-    float front = uProgress * 0.9;
-    float band = smoothstep(0.16, 0.0, abs(dist - front));
-    float decay = 1.0 - uProgress;
-    float amount = band * decay * 0.035;
-
-    vec2 offset = normalize(d + 1e-6) * amount;
-    offset.x /= uAspect;
-
-    vec3 color = texture2D(uScene, vUv - offset).rgb;
     // A faint brightening on the crest, so the wave is visible on dark sky.
     color += vec3(0.35, 0.55, 0.8) * band * decay * 0.10;
+
+    // Vignette: pulls the eye to the centre of the frame where the system is.
+    vec2 v = (vUv - 0.5) * vec2(uAspect, 1.0);
+    color *= 1.0 - clamp(dot(v, v) * 0.42, 0.0, 0.45);
+
+    /* GRAIN, AND IT IS NOT DECORATION. Eight-bit output over a large, very dark
+       gradient bands visibly; a sub-LSB dither breaks the bands into noise the
+       eye integrates away. One hash, no texture. */
+    float grain = fract(sin(dot(vUv * vec2(1912.0, 977.0) + uTime, vec2(12.9898, 78.233))) * 43758.5453);
+    color += (grain - 0.5) * 0.006;
+
     gl_FragColor = vec4(color, 1.0);
   }
 `;
@@ -364,3 +563,4 @@ export const FULLSCREEN_VERTEX = /* glsl */ `
     gl_Position = vec4(position.xy, 0.0, 1.0);
   }
 `;
+
