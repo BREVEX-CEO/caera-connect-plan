@@ -311,16 +311,62 @@ function AuthPage() {
                 className="flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
             </div>
+            <label htmlFor="password" className="text-xs font-medium text-muted-foreground">
+              Password <span className="font-normal">(optional — leave empty for a one-time code)</span>
+            </label>
+            <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/50 px-3 focus-within:ring-2 focus-within:ring-ring">
+              <KeyRound className="h-4 w-4 text-muted-foreground" aria-hidden />
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="At least 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+            {password.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => submitPassword("signin")}
+                  disabled={busy || !authConfigured}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
+                >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => submitPassword("signup")}
+                  disabled={busy || !authConfigured}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-border/70 bg-background/60 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-60"
+                >
+                  Create account
+                </button>
+              </div>
+            ) : (
+              <button
+                type="submit"
+                disabled={busy || !authConfigured}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Send one-time code
+              </button>
+            )}
             <button
-              type="submit"
+              type="button"
+              onClick={sendPasswordReset}
               disabled={busy || !authConfigured}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
+              className="self-start text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-60"
             >
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Send one-time code
+              Forgot password?
             </button>
           </form>
         ) : null}
+
 
         {error ? (
           <div
