@@ -1,12 +1,17 @@
 import * as THREE from "three";
 import { PLANETS, SUN_RADIUS, URANUS_MOONS, radiusFor, type PlanetSpec } from "./solar-data";
 import {
+  BLUR_FRAGMENT,
+  BRIGHT_FRAGMENT,
+  CORONA_FRAGMENT,
   FULLSCREEN_VERTEX,
   GLOW_FRAGMENT,
   GLOW_VERTEX,
   PLANET_FRAGMENT,
   PLANET_VERTEX,
   RIPPLE_FRAGMENT,
+  STAR_FRAGMENT,
+  STAR_VERTEX,
   SUN_FRAGMENT,
 } from "./solar-shaders";
 
@@ -143,10 +148,16 @@ export function createSolarScene(
    * One `Points` draw for the whole sky. A mesh per star at this count is
    * thousands of draw calls and is the classic way to make a scene like this
    * unusable before a single planet is added.
+   *
+   * COLOUR TEMPERATURE AND TWINKLE come from two extra per-star attributes
+   * uploaded once, animated entirely on the GPU. Nothing here touches the CPU
+   * per frame, which is why the sky can be this alive without costing anything.
    */
-  const starCount = tier === "full" ? 2600 : tier === "reduced" ? 1100 : 700;
+  const starCount = tier === "full" ? 3400 : tier === "reduced" ? 1300 : 700;
   const starPositions = new Float32Array(starCount * 3);
   const starSizes = new Float32Array(starCount);
+  const starPhases = new Float32Array(starCount);
+  const starTints = new Float32Array(starCount * 3);
   for (let i = 0; i < starCount; i += 1) {
     // Distributed on a shell well outside the system so no star can sit
     // between the camera and a planet.
@@ -156,33 +167,46 @@ export function createSolarScene(
     starPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
     starPositions[i * 3 + 1] = r * Math.cos(phi);
     starPositions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
-    starSizes[i] = Math.random() * 1.6 + 0.35;
+    // A few bright ones among many faint: a uniform distribution of sizes
+    // reads as noise, a skewed one reads as a sky.
+    starSizes[i] = 0.5 + Math.pow(Math.random(), 3.2) * 3.1;
+    starPhases[i] = Math.random();
+    // Blue-white through to amber, weighted toward neutral.
+    const t = Math.random();
+    starTints[i * 3] = 0.72 + t * 0.28;
+    starTints[i * 3 + 1] = 0.78 + (1 - Math.abs(t - 0.5) * 2) * 0.2;
+    starTints[i * 3 + 2] = 1.0 - t * 0.35;
   }
   const starGeometry = track(new THREE.BufferGeometry());
   starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
   starGeometry.setAttribute("size", new THREE.BufferAttribute(starSizes, 1));
+  starGeometry.setAttribute("phase", new THREE.BufferAttribute(starPhases, 1));
+  starGeometry.setAttribute("tint", new THREE.BufferAttribute(starTints, 3));
   const starMaterial = track(
-    new THREE.PointsMaterial({
-      color: 0xffffff,
-      size: 1.25,
-      sizeAttenuation: false,
+    new THREE.ShaderMaterial({
+      vertexShader: STAR_VERTEX,
+      fragmentShader: STAR_FRAGMENT,
+      uniforms: {
+        uTime: { value: 0 },
+        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 2) },
+      },
       transparent: true,
-      opacity: 0.75,
       depthWrite: false,
+      blending: THREE.AdditiveBlending,
     }),
   );
   scene.add(new THREE.Points(starGeometry, starMaterial));
 
   /* ------------------------------------------------------------------ sun -- */
-  const sunGeometry = track(new THREE.SphereGeometry(SUN_RADIUS, 64, 48));
+  const sunGeometry = track(new THREE.SphereGeometry(SUN_RADIUS, 96, 64));
   const sunMaterial = track(
     new THREE.ShaderMaterial({
       vertexShader: PLANET_VERTEX,
       fragmentShader: SUN_FRAGMENT,
       uniforms: {
         uTime: { value: 0 },
-        uCore: { value: new THREE.Color(0xfff1c4) },
-        uEdge: { value: new THREE.Color(0xff7a18) },
+        uCore: { value: new THREE.Color(0xfff4d2) },
+        uEdge: { value: new THREE.Color(0xff6a12) },
       },
     }),
   );
@@ -205,6 +229,36 @@ export function createSolarScene(
     }),
   );
   scene.add(new THREE.Mesh(sunGlowGeometry, sunGlowMaterial));
+
+  /*
+   * THE CORONA. One more back-faced shell, far larger and filamentary, so the
+   * star has an outer atmosphere that moves independently of its surface. Off
+   * on the low tier: it is the single most expensive transparent surface in the
+   * scene because of how much of the frame it covers.
+   */
+  const coronaGeometry = track(new THREE.SphereGeometry(SUN_RADIUS * 3.4, 32, 24));
+  const coronaMaterial = track(
+    new THREE.ShaderMaterial({
+      vertexShader: GLOW_VERTEX,
+      fragmentShader: CORONA_FRAGMENT,
+      uniforms: {
+        uTime: { value: 0 },
+        uColor: { value: new THREE.Color(0xffb257) },
+        uStrength: { value: 0.5 },
+      },
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide,
+      depthWrite: false,
+      // DEPTH-TESTED. Without it the corona is drawn over every planet in front
+      // of the sun, which puts an orange wash across bodies that are nearer the
+      // camera than the star is.
+      depthTest: true,
+    }),
+  );
+  const corona = new THREE.Mesh(coronaGeometry, coronaMaterial);
+  corona.visible = tier !== "reduced";
+  scene.add(corona);
 
   /*
    * THE HIDDEN SIGNATURE.
@@ -406,31 +460,105 @@ export function createSolarScene(
   );
   scene.add(new THREE.LineSegments(moonLineGeometry, moonLineMaterial));
 
-  /* ---------------------------------------------------------- ripple pass -- */
+  /* ------------------------------------------------- bloom + composite pass -- */
+  /*
+   * THE GLOW IS A POST PASS, NOT MORE GEOMETRY.
+   *
+   * Bigger additive shells were the obvious way to make the sun bloom, and they
+   * are the wrong one: each shell covers a large part of the frame and costs
+   * full-resolution transparent fill, which is exactly the budget this scene
+   * has least of. A threshold-and-blur chain at QUARTER resolution touches a
+   * sixteenth of the fragments, blooms everything bright in the frame rather
+   * than one hand-placed object, and is composited in the pass the ripple
+   * already required — so the added cost is measured in fractions of a
+   * millisecond, not milliseconds.
+   */
+  const bloomDivisor = 4;
+  const bloomWidth = () => Math.max(1, Math.floor(viewWidth / bloomDivisor));
+  const bloomHeight = () => Math.max(1, Math.floor(viewHeight / bloomDivisor));
+
   const target = track(
     new THREE.WebGLRenderTarget(Math.max(1, width), Math.max(1, height), {
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
     }),
   );
+  const bloomA = track(
+    new THREE.WebGLRenderTarget(bloomWidth(), bloomHeight(), {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      depthBuffer: false,
+      stencilBuffer: false,
+    }),
+  );
+  const bloomB = track(
+    new THREE.WebGLRenderTarget(bloomWidth(), bloomHeight(), {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      depthBuffer: false,
+      stencilBuffer: false,
+    }),
+  );
+
   const rippleScene = new THREE.Scene();
   const rippleCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const rippleGeometry = track(new THREE.PlaneGeometry(2, 2));
+
+  const brightMaterial = track(
+    new THREE.ShaderMaterial({
+      vertexShader: FULLSCREEN_VERTEX,
+      fragmentShader: BRIGHT_FRAGMENT,
+      uniforms: { uScene: { value: target.texture }, uThreshold: { value: 0.42 } },
+      depthTest: false,
+      depthWrite: false,
+    }),
+  );
+  const blurMaterial = track(
+    new THREE.ShaderMaterial({
+      vertexShader: FULLSCREEN_VERTEX,
+      fragmentShader: BLUR_FRAGMENT,
+      uniforms: {
+        uScene: { value: bloomA.texture },
+        uDirection: { value: new THREE.Vector2(0, 0) },
+      },
+      depthTest: false,
+      depthWrite: false,
+    }),
+  );
   const rippleMaterial = track(
     new THREE.ShaderMaterial({
       vertexShader: FULLSCREEN_VERTEX,
       fragmentShader: RIPPLE_FRAGMENT,
       uniforms: {
         uScene: { value: target.texture },
+        uBloom: { value: bloomA.texture },
+        uBloomStrength: { value: tier === "full" ? 0.9 : 0.55 },
         uCenter: { value: new THREE.Vector2(0.5, 0.5) },
         uProgress: { value: 0 },
         uAspect: { value: width / Math.max(1, height) },
+        uTime: { value: 0 },
       },
       depthTest: false,
       depthWrite: false,
     }),
   );
-  const rippleGeometry = track(new THREE.PlaneGeometry(2, 2));
-  rippleScene.add(new THREE.Mesh(rippleGeometry, rippleMaterial));
+
+  // ONE quad, re-materialised per pass. Three quads would be three geometries
+  // and three scene graphs for a draw that is identical every time.
+  const passQuad = new THREE.Mesh(rippleGeometry, rippleMaterial);
+  rippleScene.add(passQuad);
+
+  /** Off when the frame budget is tight; see the note in `frame`. */
+  let bloomEnabled = tier === "full";
+
+  const runPass = (
+    material: THREE.ShaderMaterial,
+    destination: THREE.WebGLRenderTarget | null,
+  ) => {
+    passQuad.material = material;
+    renderer.setRenderTarget(destination);
+    renderer.render(rippleScene, rippleCamera);
+  };
 
   /* --------------------------------------------------------------- camera -- */
   let yaw = 0.62;
@@ -590,6 +718,8 @@ export function createSolarScene(
       viewHeight = h;
       applyRenderScale();
       target.setSize(Math.max(1, w), Math.max(1, h));
+      bloomA.setSize(bloomWidth(), bloomHeight());
+      bloomB.setSize(bloomWidth(), bloomHeight());
       rippleMaterial.uniforms.uAspect.value = w / Math.max(1, h);
     },
 
@@ -626,11 +756,24 @@ export function createSolarScene(
           renderScale = Math.min(maxRenderScale, renderScale + 0.03);
           applyRenderScale();
         }
+        /*
+         * THE GLOW IS THE FIRST THING DROPPED, and it is dropped before the
+         * resolution has bottomed out. Bloom is the only part of the frame that
+         * is purely decorative — the planets are the product. A machine that
+         * cannot hold the budget gets a slightly plainer sun rather than a
+         * soft, low-resolution one, and the threshold sits well above the
+         * resolution ladder's so the two never fight.
+         */
+        if (frameCost > 21) bloomEnabled = false;
+        else if (frameCost < 11 && tier === "full") bloomEnabled = true;
       }
       // The still tier holds the clock: the system is composed, not moving.
       if (tier !== "still") elapsed += step;
 
       sunMaterial.uniforms.uTime.value = elapsed;
+      coronaMaterial.uniforms.uTime.value = elapsed;
+      starMaterial.uniforms.uTime.value = elapsed;
+      rippleMaterial.uniforms.uTime.value = elapsed;
 
       /* Orbits and spin — never paused, whatever the camera is doing. */
       for (const body of bodies) {
@@ -716,10 +859,32 @@ export function createSolarScene(
         }
       }
 
+      /* The scene, once, into a target the post chain reads. */
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);
-      renderer.setRenderTarget(null);
-      renderer.render(rippleScene, rippleCamera);
+
+      if (bloomEnabled) {
+        // Threshold at quarter resolution, then blur across and down. Two
+        // targets ping-pong: a shader cannot read the target it is writing.
+        brightMaterial.uniforms.uScene.value = target.texture;
+        runPass(brightMaterial, bloomA);
+
+        blurMaterial.uniforms.uScene.value = bloomA.texture;
+        blurMaterial.uniforms.uDirection.value.set(1.4 / bloomWidth(), 0);
+        runPass(blurMaterial, bloomB);
+
+        blurMaterial.uniforms.uScene.value = bloomB.texture;
+        blurMaterial.uniforms.uDirection.value.set(0, 1.4 / bloomHeight());
+        runPass(blurMaterial, bloomA);
+
+        rippleMaterial.uniforms.uBloom.value = bloomA.texture;
+        rippleMaterial.uniforms.uBloomStrength.value = tier === "full" ? 0.9 : 0.55;
+      } else {
+        rippleMaterial.uniforms.uBloomStrength.value = 0;
+      }
+
+      rippleMaterial.uniforms.uScene.value = target.texture;
+      runPass(rippleMaterial, null);
     },
 
     dispose() {
