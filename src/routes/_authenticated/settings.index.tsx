@@ -215,10 +215,36 @@ function GeneralPage() {
       />
 
       {error ? (
-        <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        <div
+          role="alert"
+          className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+        >
           {error}
         </div>
       ) : null}
+
+      {loadError ? (
+        <div
+          role="alert"
+          className="mb-4 flex items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+        >
+          <span>Could not load your profile: {loadError}</span>
+          <button
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="underline underline-offset-2"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+
+      {loading && !loadError ? (
+        <GlassPanel className="mb-4 flex items-center gap-2 p-4 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading your profile…
+        </GlassPanel>
+      ) : null}
+
+
 
       {/* Identity */}
       <GlassPanel className="p-5">
