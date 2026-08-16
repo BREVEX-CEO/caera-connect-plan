@@ -2694,6 +2694,59 @@ export type Database = {
           },
         ]
       }
+      ocade_invoices: {
+        Row: {
+          amount_minor: number
+          created_at: string
+          currency: string
+          id: string
+          invoice_number: string
+          issued_at: string
+          payment_event_id: string | null
+          plan_id: string
+          receipt_url: string | null
+          status: string
+          tax_minor: number
+          user_id: string
+        }
+        Insert: {
+          amount_minor: number
+          created_at?: string
+          currency: string
+          id?: string
+          invoice_number: string
+          issued_at: string
+          payment_event_id?: string | null
+          plan_id: string
+          receipt_url?: string | null
+          status: string
+          tax_minor?: number
+          user_id: string
+        }
+        Update: {
+          amount_minor?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_number?: string
+          issued_at?: string
+          payment_event_id?: string | null
+          plan_id?: string
+          receipt_url?: string | null
+          status?: string
+          tax_minor?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_invoices_payment_event_id_fkey"
+            columns: ["payment_event_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_payment_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ocade_memory: {
         Row: {
           content: string
@@ -2864,6 +2917,51 @@ export type Database = {
           },
         ]
       }
+      ocade_payment_events: {
+        Row: {
+          amount_minor: number
+          created_at: string
+          currency: string
+          id: string
+          kind: string
+          occurred_at: string
+          plan_id: string
+          provider: string
+          provider_event_id: string
+          provider_payment_ref: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount_minor: number
+          created_at?: string
+          currency: string
+          id?: string
+          kind: string
+          occurred_at: string
+          plan_id: string
+          provider: string
+          provider_event_id: string
+          provider_payment_ref?: string | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          amount_minor?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          kind?: string
+          occurred_at?: string
+          plan_id?: string
+          provider?: string
+          provider_event_id?: string
+          provider_payment_ref?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_project_items: {
         Row: {
           created_at: string
@@ -3001,104 +3099,6 @@ export type Database = {
           updated_at?: string
           user_id?: string
           vision_required?: boolean
-        }
-        Relationships: []
-      }
-      ocade_invoices: {
-        Row: {
-          amount_minor: number
-          created_at: string
-          currency: string
-          id: string
-          invoice_number: string
-          issued_at: string
-          payment_event_id: string | null
-          plan_id: string
-          receipt_url: string | null
-          status: string
-          tax_minor: number
-          user_id: string
-        }
-        Insert: {
-          amount_minor: number
-          created_at?: string
-          currency: string
-          id?: string
-          invoice_number: string
-          issued_at: string
-          payment_event_id?: string | null
-          plan_id: string
-          receipt_url?: string | null
-          status: string
-          tax_minor?: number
-          user_id: string
-        }
-        Update: {
-          amount_minor?: number
-          created_at?: string
-          currency?: string
-          id?: string
-          invoice_number?: string
-          issued_at?: string
-          payment_event_id?: string | null
-          plan_id?: string
-          receipt_url?: string | null
-          status?: string
-          tax_minor?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ocade_invoices_payment_event_id_fkey"
-            columns: ["payment_event_id"]
-            isOneToOne: false
-            referencedRelation: "ocade_payment_events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ocade_payment_events: {
-        Row: {
-          amount_minor: number
-          created_at: string
-          currency: string
-          id: string
-          kind: string
-          occurred_at: string
-          plan_id: string
-          provider: string
-          provider_event_id: string
-          provider_payment_ref: string | null
-          status: string
-          user_id: string
-        }
-        Insert: {
-          amount_minor: number
-          created_at?: string
-          currency: string
-          id?: string
-          kind: string
-          occurred_at: string
-          plan_id: string
-          provider: string
-          provider_event_id: string
-          provider_payment_ref?: string | null
-          status: string
-          user_id: string
-        }
-        Update: {
-          amount_minor?: number
-          created_at?: string
-          currency?: string
-          id?: string
-          kind?: string
-          occurred_at?: string
-          plan_id?: string
-          provider?: string
-          provider_event_id?: string
-          provider_payment_ref?: string | null
-          status?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -3793,7 +3793,6 @@ export type Database = {
         Args: { p_body: string; p_category: string; p_subject: string }
         Returns: string
       }
-      ocade_is_support_admin: { Args: never; Returns: boolean }
       ocade_decide_automation_run: {
         Args: { p_decision: string; p_device_id?: string; p_run_id: string }
         Returns: string
@@ -3829,6 +3828,7 @@ export type Database = {
         Args: { p_claim_token: string; p_run_id: string }
         Returns: boolean
       }
+      ocade_is_support_admin: { Args: never; Returns: boolean }
       ocade_recover_stale_automation_runs: {
         Args: { p_stale_before: string }
         Returns: Json
