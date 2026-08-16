@@ -8,6 +8,10 @@ import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-erro
 
 const searchSchema = z.object({
   next: z.string().optional(),
+  // PKCE authorisation code + state, kept in the schema so the router does not
+  // discard them before the session exchange runs.
+  code: z.string().optional(),
+  state: z.string().optional(),
   error: z.string().optional(),
   error_description: z.string().optional(),
 });
@@ -21,8 +25,14 @@ export const Route = createFileRoute("/auth/callback")({
   component: CallbackPage,
 });
 
+function safeNext(value: string | undefined): string | null {
+  if (!value) return null;
+  if (value.startsWith("/") && !value.startsWith("//")) return value;
+  return null;
+}
+
 function CallbackPage() {
-  const { next, error: providerError, error_description } = Route.useSearch();
+  const { next, code, error: providerError, error_description } = Route.useSearch();
   const navigate = useNavigate();
   const inbound = readOAuthErrorFromUrl(
     { error: providerError, error_description },
@@ -36,46 +46,108 @@ function CallbackPage() {
 
   useEffect(() => {
     if (error) return;
-    const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/home";
+    const target = safeNext(next) ?? "/home";
 
     let cancelled = false;
+    let done = false;
 
-    const check = async () => {
-      const { data, error: err } = await supabase.auth.getSession();
-      if (cancelled) return;
-      if (err) {
-        const friendly = describeOAuthError("google", err.message);
-        setError(friendly.message);
-        setHint(friendly.hint ?? null);
-        return;
-      }
-      if (data.session) {
-        navigate({ to: target, replace: true });
-        return;
-      }
-      // Wait for onAuthStateChange to fire from the OAuth handler.
+    const fail = (cause: unknown) => {
+      if (cancelled || done) return;
+      const friendly = describeOAuthError("google", cause);
+      setError(friendly.message);
+      setHint(friendly.hint ?? null);
     };
 
-    check();
+    /**
+     * Where the user should land. Onboarding is gated downstream anyway, but
+     * resolving it here avoids bouncing through a page the gate will reject.
+     * A failed read is not fatal — the gate re-asserts on the next navigation.
+     */
+    const resolveDestination = async (userId: string) => {
+      try {
+        const { data, error: profileError } = await supabase
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("id", userId)
+          .maybeSingle();
+        if (!profileError && !data?.onboarding_completed) return "/onboarding";
+      } catch {
+        /* fall through to the requested destination */
+      }
+      return target;
+    };
+
+    const finish = async () => {
+      if (cancelled || done) return;
+      // getUser() revalidates the token with the auth server, so a stale or
+      // partially written session cannot send someone into the app.
+      const { data, error: userError } = await supabase.auth.getUser();
+      if (cancelled || done) return;
+      if (userError || !data.user) return;
+      done = true;
+      const destination = await resolveDestination(data.user.id);
+      if (cancelled) return;
+      navigate({ to: destination, replace: true });
+    };
+
+    const restore = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (cancelled) return;
+        if (data.session) {
+          await finish();
+          return;
+        }
+        // No session yet: complete the PKCE exchange ourselves when the
+        // provider returned an authorisation code and the client's automatic
+        // detection did not consume it (for example after a full page reload).
+        const url = typeof window !== "undefined" ? window.location.href : "";
+        const authCode = code ?? new URLSearchParams(window.location.search).get("code");
+        if (authCode) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(url);
+          if (cancelled) return;
+          if (exchangeError && !/code verifier|already/i.test(exchangeError.message)) {
+            fail(exchangeError.message);
+            return;
+          }
+          await finish();
+        }
+        // Otherwise wait for onAuthStateChange from the implicit-flow handler.
+      } catch (e) {
+        fail(e);
+      }
+    };
+
+    void restore();
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (cancelled) return;
-      if (session) navigate({ to: target, replace: true });
+      if (cancelled || done || !session) return;
+      void finish();
     });
 
+    // Late safety net: poll in case the storage write landed without an event.
+    const poll = window.setInterval(() => {
+      if (cancelled || done) return;
+      void supabase.auth.getSession().then(({ data }) => {
+        if (data.session) void finish();
+      });
+    }, 1200);
+
     const timeout = window.setTimeout(() => {
-      if (!cancelled) {
+      if (!cancelled && !done) {
         setError("Sign-in is taking longer than expected.");
         setHint("Your connection may have dropped. Please return to sign-in and try again.");
       }
-    }, 12000);
+    }, 15000);
 
     return () => {
       cancelled = true;
       sub.subscription.unsubscribe();
+      window.clearInterval(poll);
       window.clearTimeout(timeout);
     };
-  }, [error, navigate, next]);
+  }, [code, error, navigate, next]);
+
 
   return (
     <AuthShell
