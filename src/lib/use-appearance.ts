@@ -22,6 +22,22 @@ export interface AppearancePrefs {
   cursorCustom: string | null; // data URL for uploaded PNG/SVG
   cursorSize: number; // 16..64
   cursorTrail: boolean;
+  /**
+   * Whether surfaces sit at real depths in the perspective scene.
+   *
+   * SEPARATE FROM `reducedMotion` ON PURPOSE. Reduced motion keeps the depth
+   * and drops the pointer tilt — a still 3D scene contains no motion. This is
+   * the other axis: somebody who finds layered surfaces distracting, or who is
+   * screen-sharing at a low bitrate where the shadows band, can flatten the
+   * interface without also disabling every transition in the product.
+   */
+  depth3d: boolean;
+  /**
+   * How pronounced the third dimension is, as a percentage of the designed
+   * scale. 100 is the tuned default; 0 is indistinguishable from `depth3d`
+   * off, and 200 is the most the geometry stays readable at.
+   */
+  depthStrength: number; // 0..200
 }
 
 export interface AppearanceContextValue extends AppearancePrefs {
