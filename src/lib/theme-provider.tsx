@@ -40,7 +40,16 @@ const DEFAULT: AppearancePrefs = {
   cursorCustom: null,
   cursorSize: 24,
   cursorTrail: false,
+  depth3d: true,
+  depthStrength: 100,
 };
+
+/** Keep a stored or typed strength inside the range the geometry is tuned for. */
+export function clampDepthStrength(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return 100;
+  return Math.max(0, Math.min(200, Math.round(n)));
+}
 
 const LS_KEY = "caera:appearance:v1";
 
@@ -80,6 +89,14 @@ function applyToDocument(prefs: AppearancePrefs, osReducedMotion: boolean, autoL
   const motionOff = prefs.reducedMotion || osReducedMotion;
   root.classList.toggle("reduce-motion", motionOff);
   root.classList.toggle("low-perf", prefs.lowPerformance || autoLowPerf);
+
+  /*
+   * Depth strength is published as a plain multiplier the stylesheet reads.
+   * Written here rather than by `DepthScene` so the value is already correct on
+   * the first painted frame — a scene that starts at full strength and drops to
+   * the chosen one a frame later is a visible lurch on every page load.
+   */
+  root.style.setProperty("--depth-strength", (clampDepthStrength(prefs.depthStrength) / 100).toFixed(2));
 
   // Cursor
   root.classList.toggle("cursor-accessibility", prefs.cursor === "accessibility");
@@ -174,7 +191,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const { data } = await supabase
         .from("user_settings")
         .select(
-          "theme, reduced_motion, high_contrast, appearance_cursor, appearance_cursor_custom, appearance_cursor_size, appearance_cursor_trail, appearance_low_performance",
+          "theme, reduced_motion, high_contrast, appearance_cursor, appearance_cursor_custom, appearance_cursor_size, appearance_cursor_trail, appearance_low_performance, appearance_depth_3d, appearance_depth_strength",
         )
         .eq("user_id", userId)
         .maybeSingle();
@@ -194,6 +211,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             ? (rec.appearance_cursor_size as number)
             : 24,
         cursorTrail: !!rec.appearance_cursor_trail,
+        /*
+         * Absent means ON. A row written before these columns existed must not
+         * read as "this person switched depth off" — that would silently
+         * flatten the interface for every existing account on first sync.
+         */
+        depth3d: rec.appearance_depth_3d === undefined ? true : !!rec.appearance_depth_3d,
+        depthStrength: clampDepthStrength(rec.appearance_depth_strength ?? 100),
       };
       setPrefs(next);
       writeLocal(next);
@@ -234,6 +258,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         if (patch.cursorCustom !== undefined) row.appearance_cursor_custom = patch.cursorCustom;
         if (patch.cursorSize !== undefined) row.appearance_cursor_size = patch.cursorSize;
         if (patch.cursorTrail !== undefined) row.appearance_cursor_trail = patch.cursorTrail;
+        if (patch.depth3d !== undefined) row.appearance_depth_3d = patch.depth3d;
+        if (patch.depthStrength !== undefined)
+          row.appearance_depth_strength = clampDepthStrength(patch.depthStrength);
         if (Object.keys(row).length > 0) {
           void supabase
             .from("user_settings")

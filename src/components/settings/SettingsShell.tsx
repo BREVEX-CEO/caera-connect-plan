@@ -96,7 +96,15 @@ export function SettingsShell({ children }: { children: ReactNode }) {
       {/* Nav column: always visible on md+, on mobile only when on the list view */}
       <aside
         className={cn(
-          "flex w-full flex-col border-b border-border/60 bg-sidebar/40 md:sticky md:top-12 md:h-[calc(100vh-3rem)] md:w-[260px] md:shrink-0 md:border-b-0 md:border-r",
+          /*
+            The navigation column is CHROME, so it sits on the floating plane —
+            the same depth the workspace sidebar uses, which is what keeps
+            settings feeling like part of the application rather than a page
+            that happens to have a list down one side. Depth composes with
+            sticky positioning: `position: sticky` is resolved before the
+            transform, so the column still pins under the utility bar.
+          */
+          "ocade-depth depth-floating flex w-full flex-col border-b border-border/60 bg-sidebar/40 md:sticky md:top-12 md:h-[calc(100vh-3rem)] md:w-[260px] md:shrink-0 md:border-b-0 md:border-r",
           isDetail ? "hidden md:flex" : "flex",
         )}
       >
@@ -150,6 +158,12 @@ export function SettingsShell({ children }: { children: ReactNode }) {
                         <Link
                           to={slugToPath(item.slug)}
                           className={cn(
+                            // A row lifts a few pixels toward the viewer on
+                            // hover and on focus. Nested inside the column's
+                            // surface it inherits the tilt rather than doubling
+                            // it, so the lift reads as the row rising out of
+                            // the list instead of shearing against it.
+                            "ocade-depth ocade-depth-lift depth-base",
                             "group flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors",
                             isActive
                               ? "bg-sidebar-accent text-sidebar-accent-foreground"
@@ -218,7 +232,13 @@ export function SettingsShell({ children }: { children: ReactNode }) {
       {/* Content panel */}
       <section
         aria-label="Settings content"
-        className={cn("min-w-0 flex-1", onList ? "hidden md:block" : "block")}
+        className={cn(
+          // Content sits BEHIND the navigation column, at the ordinary content
+          // plane. Equal depths would leave the two columns reading as one flat
+          // sheet, which is the state this pass exists to fix.
+          "ocade-depth depth-raised min-w-0 flex-1",
+          onList ? "hidden md:block" : "block",
+        )}
       >
         <div className="mx-auto w-full max-w-3xl px-5 py-6 sm:px-8">
           <div className="mb-3 md:hidden">

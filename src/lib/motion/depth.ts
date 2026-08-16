@@ -194,9 +194,19 @@ export function depthMode(input: {
   hasDom: boolean;
   /** False when the browser cannot do 3D transforms; then nothing is drawn. */
   supports3d?: boolean;
+  /**
+   * The person's own choice, from Settings > Appearance. Omitted means on, so
+   * every existing caller and every account predating the setting keeps depth.
+   *
+   * THIS IS THE ONLY INPUT THAT CAN REACH "flat" BY CHOICE — the others are
+   * capability findings. Someone who asks for a flat interface gets a flat
+   * interface even on a fast machine, which is the point of asking.
+   */
+  userDepth3d?: boolean;
 }): DepthMode {
   if (!input.hasDom) return "flat";
   if (input.supports3d === false) return "flat";
+  if (input.userDepth3d === false) return "flat";
   // The tier is measured from cores, memory and viewport. "static" there means
   // this machine should not be running a continuous animation.
   if (input.tier === "static") return "static";

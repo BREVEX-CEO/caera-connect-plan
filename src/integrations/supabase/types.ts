@@ -3584,6 +3584,8 @@ export type Database = {
           appearance_cursor_custom: string | null
           appearance_cursor_size: number
           appearance_cursor_trail: boolean
+          appearance_depth_3d: boolean
+          appearance_depth_strength: number
           appearance_low_performance: boolean
           created_at: string
           family_planning_enabled: boolean
@@ -3609,6 +3611,8 @@ export type Database = {
           appearance_cursor_custom?: string | null
           appearance_cursor_size?: number
           appearance_cursor_trail?: boolean
+          appearance_depth_3d?: boolean
+          appearance_depth_strength?: number
           appearance_low_performance?: boolean
           created_at?: string
           family_planning_enabled?: boolean
@@ -3634,6 +3638,8 @@ export type Database = {
           appearance_cursor_custom?: string | null
           appearance_cursor_size?: number
           appearance_cursor_trail?: boolean
+          appearance_depth_3d?: boolean
+          appearance_depth_strength?: number
           appearance_low_performance?: boolean
           created_at?: string
           family_planning_enabled?: boolean

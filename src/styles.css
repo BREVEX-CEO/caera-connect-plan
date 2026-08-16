@@ -612,13 +612,24 @@
   --depth-z: calc(var(--depth-level, 0px) + var(--depth-boost, 0px));
   --depth-parallax: 0.06;
   --tilt-max: 3.5deg;
+  /*
+   * ONE GAIN TERM FOR THE WHOLE SURFACE. `--depth-active` is the scene's
+   * on/off (capability + mode) and `--depth-strength` is the person's dial from
+   * Settings > Appearance, published by the theme provider as a plain
+   * multiplier around 1. Multiplying them once here, rather than threading two
+   * factors through all five terms, keeps the transform readable and — more
+   * importantly — keeps Z, parallax and tilt scaling TOGETHER. Scaling only the
+   * translation would move surfaces without moving their tilt, which reads as
+   * the scene coming apart rather than as less depth.
+   */
+  --depth-gain: calc(var(--depth-active, 0) * var(--depth-strength, 1));
   transform: translate3d(
-      calc(var(--pointer-x, 0) * var(--depth-z) * var(--depth-parallax) * var(--depth-active, 0)),
-      calc(var(--pointer-y, 0) * var(--depth-z) * var(--depth-parallax) * var(--depth-active, 0)),
-      calc(var(--depth-z) * var(--depth-active, 0))
+      calc(var(--pointer-x, 0) * var(--depth-z) * var(--depth-parallax) * var(--depth-gain)),
+      calc(var(--pointer-y, 0) * var(--depth-z) * var(--depth-parallax) * var(--depth-gain)),
+      calc(var(--depth-z) * var(--depth-gain))
     )
-    rotateX(calc(var(--pointer-y, 0) * var(--tilt-max) * var(--depth-active, 0)))
-    rotateY(calc(var(--pointer-x, 0) * var(--tilt-max) * -1 * var(--depth-active, 0)));
+    rotateX(calc(var(--pointer-y, 0) * var(--tilt-max) * var(--depth-gain)))
+    rotateY(calc(var(--pointer-x, 0) * var(--tilt-max) * -1 * var(--depth-gain)));
   transform-style: preserve-3d;
   /*
    * Eased so a surface settles rather than snapping when the pointer jumps or
@@ -713,7 +724,8 @@
 .ocade-depth-centered {
   --depth-z: calc(var(--depth-level, 96px) + var(--depth-boost, 0px));
   perspective: var(--scene-perspective, 1400px);
-  transform: translate(-50%, -50%) translateZ(calc(var(--depth-z) * var(--depth-active, 0)));
+  transform: translate(-50%, -50%)
+    translateZ(calc(var(--depth-z) * var(--depth-active, 0) * var(--depth-strength, 1)));
   transform-style: preserve-3d;
 }
 
