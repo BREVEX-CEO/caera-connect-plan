@@ -11,6 +11,23 @@ export interface OpenCheckoutOptions {
 }
 
 /**
+ * Payment methods the checkout may offer, UPI included.
+ *
+ * The list is explicit rather than left to the default so UPI is requested on
+ * every checkout. The provider still decides what is actually shown: UPI only
+ * appears for a buyer in India paying in rupees, which is why the catalogue
+ * carries an INR price override for India. Listing a method here can never
+ * conjure it for a buyer who cannot use it — it only stops one being dropped.
+ */
+export const ALLOWED_PAYMENT_METHODS = [
+  "upi",
+  "card",
+  "paypal",
+  "google_pay",
+  "apple_pay",
+] as const;
+
+/**
  * Opens the provider's hosted checkout.
  *
  * Card details, UPI approval and PayPal sign-in all happen on the provider's
@@ -47,6 +64,7 @@ export function usePaddleCheckout() {
           displayMode: "overlay",
           variant: "one-page",
           allowLogout: false,
+          allowedPaymentMethods: [...ALLOWED_PAYMENT_METHODS],
           successUrl:
             options.successUrl ?? `${window.location.origin}/checkout/success`,
         },
