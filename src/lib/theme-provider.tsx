@@ -135,7 +135,17 @@ function applyToDocument(prefs: AppearancePrefs, osReducedMotion: boolean, autoL
    * the first painted frame — a scene that starts at full strength and drops to
    * the chosen one a frame later is a visible lurch on every page load.
    */
-  root.style.setProperty("--depth-strength", (clampDepthStrength(prefs.depthStrength) / 100).toFixed(2));
+  /*
+   * The fallback flattens the scene as well as dropping blur: pointer-driven
+   * depth is the single most expensive thing on screen, so leaving it running
+   * while claiming to have stepped down would be the fallback in name only.
+   */
+  const lowPerf = prefs.lowPerformance || autoLowPerf;
+  root.style.setProperty(
+    "--depth-strength",
+    lowPerf ? "0" : (clampDepthStrength(prefs.depthStrength) / 100).toFixed(2),
+  );
+
 
   // Cursor
   root.classList.toggle("cursor-accessibility", prefs.cursor === "accessibility");
