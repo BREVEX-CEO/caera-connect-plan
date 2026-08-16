@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { recordAction } from "@/lib/actions";
 import { useSettingsAccess } from "./use-settings-access";
+import { DeleteAccountCard } from "./DeleteAccountCard";
 
 /**
  * Account.
@@ -54,6 +55,7 @@ export function AccountPanel() {
   };
 
   return (
+    <div className="flex flex-col gap-4">
     <GlassPanel className="flex flex-col gap-4 p-5">
       <header className="flex items-center gap-2">
         <User className="h-4 w-4 text-muted-foreground" aria-hidden />
@@ -99,5 +101,7 @@ export function AccountPanel() {
         </>
       )}
     </GlassPanel>
+    {signedIn ? <DeleteAccountCard /> : null}
+    </div>
   );
 }

@@ -58,11 +58,17 @@ function LandingPage() {
             <Link to="/company" className="transition-colors hover:text-foreground">
               Company
             </Link>
+            <Link to="/faq" className="transition-colors hover:text-foreground">
+              FAQ
+            </Link>
             <Link to="/privacy" className="transition-colors hover:text-foreground">
               Privacy
             </Link>
             <Link to="/terms" className="transition-colors hover:text-foreground">
               Terms
+            </Link>
+            <Link to="/settings/support" className="transition-colors hover:text-foreground">
+              Support
             </Link>
             <Link
               to="/auth"
