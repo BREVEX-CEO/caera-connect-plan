@@ -724,7 +724,8 @@
 .ocade-depth-centered {
   --depth-z: calc(var(--depth-level, 96px) + var(--depth-boost, 0px));
   perspective: var(--scene-perspective, 1400px);
-  transform: translate(-50%, -50%) translateZ(calc(var(--depth-z) * var(--depth-active, 0)));
+  transform: translate(-50%, -50%)
+    translateZ(calc(var(--depth-z) * var(--depth-active, 0) * var(--depth-strength, 1)));
   transform-style: preserve-3d;
 }
 
