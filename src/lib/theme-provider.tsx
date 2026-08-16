@@ -146,7 +146,39 @@ function applyToDocument(prefs: AppearancePrefs, osReducedMotion: boolean, autoL
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<AppearancePrefs>(() => readLocal());
   const [osReducedMotion, setOsReducedMotion] = useState(false);
-  const [autoLowPerf, setAutoLowPerf] = useState(false);
+  /**
+   * The automatic fallback: whether it is active, what tripped it, and whether
+   * the person has told us to keep full quality anyway. The override is held
+   * per browser (not per account) because it is a statement about THIS machine.
+   */
+  const [perfFallback, setPerfFallback] = useState<PerfFallbackState>(() => ({
+    active: false,
+    trigger: null,
+    reason: null,
+    overridden: readFallbackOverride(),
+    changes: FALLBACK_CHANGES,
+  }));
+  const autoLowPerf = perfFallback.active && !perfFallback.overridden;
+
+  const keepFullQuality = useCallback(() => {
+    writeFallbackOverride(true);
+    setPerfFallback((s) => ({ ...s, overridden: true }));
+  }, []);
+
+  const resumeAutoFallback = useCallback(() => {
+    writeFallbackOverride(false);
+    setPerfFallback((s) => ({ ...s, overridden: false }));
+  }, []);
+
+  // Static device check — runs before the first animated frame is scheduled.
+  useEffect(() => {
+    const assessment = assessDevice(readDeviceSignals());
+    if (!assessment.lowEnd) return;
+    setPerfFallback((s) =>
+      s.active ? s : { ...s, active: true, trigger: "device", reason: assessment.reason },
+    );
+  }, []);
+
   const userIdRef = useRef<string | null>(null);
   const [persistence, setPersistence] = useState<AppearancePersistence>({
     status: "idle",
