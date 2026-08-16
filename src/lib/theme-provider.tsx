@@ -191,7 +191,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const { data } = await supabase
         .from("user_settings")
         .select(
-          "theme, reduced_motion, high_contrast, appearance_cursor, appearance_cursor_custom, appearance_cursor_size, appearance_cursor_trail, appearance_low_performance",
+          "theme, reduced_motion, high_contrast, appearance_cursor, appearance_cursor_custom, appearance_cursor_size, appearance_cursor_trail, appearance_low_performance, appearance_depth_3d, appearance_depth_strength",
         )
         .eq("user_id", userId)
         .maybeSingle();
@@ -211,6 +211,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             ? (rec.appearance_cursor_size as number)
             : 24,
         cursorTrail: !!rec.appearance_cursor_trail,
+        /*
+         * Absent means ON. A row written before these columns existed must not
+         * read as "this person switched depth off" — that would silently
+         * flatten the interface for every existing account on first sync.
+         */
+        depth3d: rec.appearance_depth_3d === undefined ? true : !!rec.appearance_depth_3d,
+        depthStrength: clampDepthStrength(rec.appearance_depth_strength ?? 100),
       };
       setPrefs(next);
       writeLocal(next);
