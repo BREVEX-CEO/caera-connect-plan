@@ -6,10 +6,14 @@ import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supaba
 import { lovable } from "@/integrations/lovable";
 import { AuthShell } from "@/components/shell/AuthShell";
 import { cn } from "@/lib/utils";
+import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
 
 const searchSchema = z.object({
   next: z.string().optional(),
   message: z.string().optional(),
+  error: z.string().optional(),
+  error_description: z.string().optional(),
+  provider: z.string().optional(),
 });
 
 export const Route = createFileRoute("/auth")({
@@ -62,7 +66,15 @@ function AuthPage() {
   const nextPath = safeNext(search.next) ?? "/home";
   const [method, setMethod] = useState<Method>("google");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const inboundOAuthError = readOAuthErrorFromUrl(
+    { error: search.error, error_description: search.error_description },
+    typeof window !== "undefined" ? window.location.hash : "",
+  );
+  const inboundFriendly = inboundOAuthError
+    ? describeOAuthError(search.provider ?? "google", inboundOAuthError.code, inboundOAuthError.description)
+    : null;
+  const [error, setError] = useState<string | null>(inboundFriendly?.message ?? null);
+  const [errorHint, setErrorHint] = useState<string | null>(inboundFriendly?.hint ?? null);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [notice, setNotice] = useState<string | null>(search.message ?? null);
@@ -70,11 +82,13 @@ function AuthPage() {
 
   useEffect(() => {
     setError(null);
+    setErrorHint(null);
   }, [method]);
 
   async function signInOAuth(provider: "google" | "apple") {
     setBusy(true);
     setError(null);
+    setErrorHint(null);
     try {
       const result = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: `${window.location.origin}/auth/callback${
@@ -82,17 +96,22 @@ function AuthPage() {
         }`,
       });
       if (result.error) {
-        setError(result.error.message ?? `Could not sign in with ${provider}.`);
+        const friendly = describeOAuthError(provider, result.error.message);
+        setError(friendly.message);
+        setErrorHint(friendly.hint ?? null);
         setBusy(false);
         return;
       }
       if (result.redirected) return;
       navigate({ to: nextPath, replace: true });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Sign-in failed.");
+      const friendly = describeOAuthError(provider, e);
+      setError(friendly.message);
+      setErrorHint(friendly.hint ?? null);
       setBusy(false);
     }
   }
+
 
   async function sendPhoneOtp(e: React.FormEvent) {
     e.preventDefault();
@@ -304,8 +323,13 @@ function AuthPage() {
         ) : null}
 
         {error ? (
-          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {error}
+          <div
+            role="alert"
+            aria-live="polite"
+            className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+          >
+            <p className="font-medium">{error}</p>
+            {errorHint ? <p className="mt-1 text-destructive/85">{errorHint}</p> : null}
           </div>
         ) : null}
 

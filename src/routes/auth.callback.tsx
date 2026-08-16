@@ -4,6 +4,7 @@ import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthShell } from "@/components/shell/AuthShell";
+import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
 
 const searchSchema = z.object({
   next: z.string().optional(),
@@ -23,9 +24,15 @@ export const Route = createFileRoute("/auth/callback")({
 function CallbackPage() {
   const { next, error: providerError, error_description } = Route.useSearch();
   const navigate = useNavigate();
-  const [error, setError] = useState<string | null>(
-    providerError ? (error_description ?? providerError) : null,
+  const inbound = readOAuthErrorFromUrl(
+    { error: providerError, error_description },
+    typeof window !== "undefined" ? window.location.hash : "",
   );
+  const inboundFriendly = inbound
+    ? describeOAuthError("google", inbound.code, inbound.description)
+    : null;
+  const [error, setError] = useState<string | null>(inboundFriendly?.message ?? null);
+  const [hint, setHint] = useState<string | null>(inboundFriendly?.hint ?? null);
 
   useEffect(() => {
     if (error) return;
@@ -37,7 +44,9 @@ function CallbackPage() {
       const { data, error: err } = await supabase.auth.getSession();
       if (cancelled) return;
       if (err) {
-        setError(err.message);
+        const friendly = describeOAuthError("google", err.message);
+        setError(friendly.message);
+        setHint(friendly.hint ?? null);
         return;
       }
       if (data.session) {
@@ -55,7 +64,10 @@ function CallbackPage() {
     });
 
     const timeout = window.setTimeout(() => {
-      if (!cancelled) setError("Sign-in is taking longer than expected. Please try again.");
+      if (!cancelled) {
+        setError("Sign-in is taking longer than expected.");
+        setHint("Your connection may have dropped. Please return to sign-in and try again.");
+      }
     }, 12000);
 
     return () => {
@@ -72,8 +84,13 @@ function CallbackPage() {
     >
       {error ? (
         <div className="flex flex-col gap-3">
-          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {error}
+          <div
+            role="alert"
+            aria-live="polite"
+            className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+          >
+            <p className="font-medium">{error}</p>
+            {hint ? <p className="mt-1 text-destructive/85">{hint}</p> : null}
           </div>
           <button
             onClick={() => navigate({ to: "/auth" })}
