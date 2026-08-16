@@ -37,6 +37,7 @@ import { Route as DemoOcadeRouteImport } from './routes/demo.ocade'
 import { Route as DemoSettingsRouteImport } from './routes/demo.settings'
 import { Route as FounderHaansAntoniRouteImport } from './routes/founder.haans-antoni'
 import { Route as ProductsOcadeRouteImport } from './routes/products.ocade'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_authenticated/admin.launch-gate'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin.support'
 import { Route as AuthenticatedOcadeArtifactsRouteImport } from './routes/_authenticated/ocade.artifacts'
@@ -201,6 +202,11 @@ const FounderHaansAntoniRoute = FounderHaansAntoniRouteImport.update({
 const ProductsOcadeRoute = ProductsOcadeRouteImport.update({
   id: '/products/ocade',
   path: '/products/ocade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedAdminLaunchGateRoute =
@@ -378,6 +384,7 @@ export interface FileRoutesByFullPath {
   '/founder/haans-antoni': typeof FounderHaansAntoniRoute
   '/products/ocade': typeof ProductsOcadeRoute
   '/demo/': typeof DemoIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
@@ -430,6 +437,7 @@ export interface FileRoutesByTo {
   '/founder/haans-antoni': typeof FounderHaansAntoniRoute
   '/products/ocade': typeof ProductsOcadeRoute
   '/demo': typeof DemoIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
@@ -486,6 +494,7 @@ export interface FileRoutesById {
   '/founder/haans-antoni': typeof FounderHaansAntoniRoute
   '/products/ocade': typeof ProductsOcadeRoute
   '/demo/': typeof DemoIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/_authenticated/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
@@ -542,6 +551,7 @@ export interface FileRouteTypes {
     | '/founder/haans-antoni'
     | '/products/ocade'
     | '/demo/'
+    | '/.lovable/oauth/consent'
     | '/admin/launch-gate'
     | '/admin/support'
     | '/ocade/artifacts'
@@ -594,6 +604,7 @@ export interface FileRouteTypes {
     | '/founder/haans-antoni'
     | '/products/ocade'
     | '/demo'
+    | '/.lovable/oauth/consent'
     | '/admin/launch-gate'
     | '/admin/support'
     | '/ocade/artifacts'
@@ -649,6 +660,7 @@ export interface FileRouteTypes {
     | '/founder/haans-antoni'
     | '/products/ocade'
     | '/demo/'
+    | '/.lovable/oauth/consent'
     | '/_authenticated/admin/launch-gate'
     | '/_authenticated/admin/support'
     | '/_authenticated/ocade/artifacts'
@@ -691,6 +703,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   FounderHaansAntoniRoute: typeof FounderHaansAntoniRoute
   ProductsOcadeRoute: typeof ProductsOcadeRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   ApiOcadeChatRoute: typeof ApiOcadeChatRoute
   ApiOcadeBridgeSplatRoute: typeof ApiOcadeBridgeSplatRoute
 }
@@ -891,6 +904,13 @@ declare module '@tanstack/react-router' {
       path: '/products/ocade'
       fullPath: '/products/ocade'
       preLoaderRoute: typeof ProductsOcadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/launch-gate': {
@@ -1205,6 +1225,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   FounderHaansAntoniRoute: FounderHaansAntoniRoute,
   ProductsOcadeRoute: ProductsOcadeRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   ApiOcadeChatRoute: ApiOcadeChatRoute,
   ApiOcadeBridgeSplatRoute: ApiOcadeBridgeSplatRoute,
 }
