@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { CreditCard, ExternalLink, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
+import { CreditCard, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,10 @@ import {
   describeSellablePlan,
   sellablePlanByPriceId,
 } from "@/lib/payments/paddle-plans";
-import { PAYMENT_METHODS } from "@/lib/payments/methods";
+import { PaymentMethodsPanel } from "@/components/settings/PaymentMethodsPanel";
+import { UpiSetupBanner } from "@/components/settings/UpiSetupBanner";
+import type { UpiReadiness } from "@/lib/payments/upi-readiness";
+import { getUpiReadiness } from "@/utils/payments-readiness.functions";
 import { currencyForRegion, detectRegion, type CurrencyCode } from "@/lib/payments/pricing";
 import {
   getMySubscription,
@@ -92,6 +95,33 @@ function BillingPage() {
   useEffect(() => {
     setCurrency(currencyForRegion(detectRegion()));
   }, []);
+
+  /*
+   * Whether UPI can appear is three separate questions — buyer region, account
+   * approval and catalogue currency — and the answer decides both the banner
+   * and the methods panel. It is resolved server-side against the provider so
+   * the page states a checked fact rather than a hopeful assumption.
+   */
+  const [upi, setUpi] = useState<UpiReadiness | null>(null);
+  const [upiLoading, setUpiLoading] = useState(true);
+  const [upiError, setUpiError] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    setUpiLoading(true);
+    getUpiReadiness({ data: { environment, currency } })
+      .then((result) => {
+        if (!cancelled) setUpi(result);
+      })
+      .catch((e: unknown) => {
+        if (!cancelled) setUpiError(e instanceof Error ? e.message : "check failed");
+      })
+      .finally(() => {
+        if (!cancelled) setUpiLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [environment, currency]);
 
   const load = useCallback(async () => {
     setError(null);
@@ -176,6 +206,8 @@ function BillingPage() {
       />
 
       <PaymentTestModeBanner />
+
+      <UpiSetupBanner readiness={upi} />
 
       {!isCheckoutConfigured() ? (
         <GlassPanel className="p-4 text-sm text-muted-foreground">
@@ -296,37 +328,8 @@ function BillingPage() {
         </div>
       </GlassPanel>
 
-      <GlassPanel className="p-4">
-        <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold">
-          <ShieldCheck className="h-4 w-4" aria-hidden />
-          Payment methods
-        </h2>
-        <p className="mb-3 text-xs text-muted-foreground">
-          Which methods appear depends on your country and the provider&apos;s checkout. Approval
-          always happens on the provider&apos;s surface — OCADE never sees a card number, a UPI PIN
-          or a PayPal password.
-        </p>
-        <ul className="grid gap-2 sm:grid-cols-3">
-          {PAYMENT_METHODS.map((method) => (
-            <li key={method.id} className="rounded-lg border border-border/60 p-3">
-              <p className="text-xs font-medium text-foreground">{method.label}</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">{method.markets}</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">{method.disclosure}</p>
-            </li>
-          ))}
-        </ul>
-        {currency !== "INR" ? (
-          <p className="mt-3 text-[11px] text-muted-foreground">
-            UPI is offered to buyers in India paying in rupees, so it will not appear on this
-            checkout while your prices are shown in {currency}.
-          </p>
-        ) : (
-          <p className="mt-3 text-[11px] text-muted-foreground">
-            Your prices are in rupees, so UPI intent, QR and UPI AutoPay for renewals are offered at
-            checkout alongside cards.
-          </p>
-        )}
-      </GlassPanel>
+      <PaymentMethodsPanel readiness={upi} loading={upiLoading} error={upiError} />
+
     </div>
   );
 }
