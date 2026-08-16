@@ -90,6 +90,14 @@ function applyToDocument(prefs: AppearancePrefs, osReducedMotion: boolean, autoL
   root.classList.toggle("reduce-motion", motionOff);
   root.classList.toggle("low-perf", prefs.lowPerformance || autoLowPerf);
 
+  /*
+   * Depth strength is published as a plain multiplier the stylesheet reads.
+   * Written here rather than by `DepthScene` so the value is already correct on
+   * the first painted frame — a scene that starts at full strength and drops to
+   * the chosen one a frame later is a visible lurch on every page load.
+   */
+  root.style.setProperty("--depth-strength", (clampDepthStrength(prefs.depthStrength) / 100).toFixed(2));
+
   // Cursor
   root.classList.toggle("cursor-accessibility", prefs.cursor === "accessibility");
   root.style.setProperty("--cursor-size", `${prefs.cursorSize}px`);
