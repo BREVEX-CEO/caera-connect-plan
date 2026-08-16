@@ -299,20 +299,25 @@ export const SUN_FRAGMENT = /* glsl */ `
     // Faculae: the bright lanes between convection cells.
     float lanes = pow(clamp(granulation * 0.5 + 0.5, 0.0, 1.0), 5.0);
 
-    // Sunspots: rare, dark, umbra inside penumbra. Driven off the slow field so
-    // they drift with the surface rather than swimming across it.
-    float spot = smoothstep(0.46, 0.62, supergranule + fbm(dir * 3.1) * 0.35);
-    float umbra = smoothstep(0.55, 0.70, supergranule);
+    // Sunspots: RARE, and that is the whole design note. A threshold low enough
+    // to be interesting puts a dark blot in the middle of the star at the
+    // framing the page opens on, which reads as a rendering fault rather than
+    // solar weather. These sit far out on the tail of the slow field.
+    float spot = smoothstep(0.62, 0.80, supergranule + fbm(dir * 3.1) * 0.22);
+    float umbra = smoothstep(0.74, 0.88, supergranule);
 
     // Limb darkening, as a real star has.
     float facing = max(dot(normalize(vNormal), normalize(cameraPosition - vWorld)), 0.0);
-    float limb = mix(0.55, 1.0, pow(facing, 0.5));
+    float limb = mix(0.68, 1.0, pow(facing, 0.5));
 
     vec3 color = mix(uEdge, uCore, heat);
-    color += uCore * lanes * 0.35;
-    color = mix(color, uEdge * 0.42, spot * 0.55);
-    color = mix(color, vec3(0.22, 0.09, 0.03), umbra * 0.45);
+    color += uCore * lanes * 0.45;
+    color = mix(color, uEdge * 0.66, spot * 0.5);
+    color = mix(color, uEdge * 0.34, umbra * 0.5);
     color *= limb;
+    // Overdriven on purpose: the bright pass downstream keys off luminance, and
+    // a star that only just reaches white does not bloom.
+    color *= 1.35;
 
     // A hot rim: the chromosphere just above the visible surface.
     color += uEdge * pow(1.0 - facing, 3.0) * 0.9;
