@@ -45,6 +45,9 @@ function nearestStep(value: number): number {
 export function MotionPanel() {
   const { canEdit } = useSettingsAccess();
   const { reducedMotion, osReducedMotion, depth3d, depthStrength, update } = useAppearance();
+  /** Either source of the preference; the depth scene treats them identically. */
+  const motionOff = reducedMotion || osReducedMotion;
+
   const depth = useDepth();
   const [tier, setTier] = useState<RenderTier>("full");
   const [signals, setSignals] = useState<{ cores?: number; memoryGb?: number; width: number }>({
@@ -82,10 +85,10 @@ export function MotionPanel() {
 
       <SettingsField
         label="Reduce motion"
-        description="Turns off depth transitions, the landing animation and panel movement. Text and layout are unchanged."
+        description="Holds the interface still: no 3D depth, no landing animation, no panel movement. Text, colour, contrast, buttons and layout are unchanged, and everything keeps working."
       >
         <Switch
-          checked={reducedMotion || osReducedMotion}
+          checked={motionOff}
           disabled={!canEdit || osReducedMotion}
           onCheckedChange={(next) => void update({ reducedMotion: next })}
           aria-label="Reduce motion"
@@ -107,13 +110,27 @@ export function MotionPanel() {
         label="3D depth"
         description="Surfaces sit at real distances in one perspective scene, so panels layer, cast matching shadows and drift against each other as the pointer moves."
       >
+        {/*
+          SHOWN AS OFF WHILE MOTION IS REDUCED, because it IS off — the scene is
+          flat in that state whatever this preference says. A switch left
+          standing at "on" over a flat interface is the product lying about its
+          own settings. The stored choice is untouched and returns the moment
+          reduced motion is switched back off.
+        */}
         <Switch
-          checked={depth3d}
-          disabled={!canEdit}
+          checked={depth3d && !motionOff}
+          disabled={!canEdit || motionOff}
           onCheckedChange={(next) => void update({ depth3d: next })}
           aria-label="3D depth"
         />
       </SettingsField>
+
+      {motionOff ? (
+        <p className="rounded-md border border-border/60 bg-secondary/30 px-2.5 py-2 text-[11.5px] text-muted-foreground">
+          3D depth and animation are switched off automatically while reduced motion is on. Your
+          depth preference is remembered and comes back when you turn motion on again.
+        </p>
+      ) : null}
 
       {/*
         THE DIAL IS HIDDEN WHEN DEPTH IS OFF rather than disabled. A strength
@@ -121,7 +138,8 @@ export function MotionPanel() {
         greyed slider behind invites people to drag it and conclude the setting
         is broken.
       */}
-      {depth3d ? (
+      {depth3d && !motionOff ? (
+
         <SettingsField
           label="Depth strength"
           description="How pronounced the third dimension is. Subtle keeps the layering and almost removes the movement."

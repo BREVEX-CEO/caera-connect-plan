@@ -178,12 +178,21 @@ export function transformFor(level: DepthLevel, tilt: Tilt = FLAT): string {
  *                 nothing moves in response to the pointer.
  *  - `flat`     — no transforms at all. The two-dimensional layout, unchanged.
  *
- * `static` is the important one, and it is why this is not a boolean. Reduced
- * motion is a request to stop things MOVING, not a request for a worse-looking
- * product — flattening the entire interface for it would punish the people who
- * asked. A still 3D scene has no motion in it, so `prefers-reduced-motion`
- * keeps the depth and loses the tilt. Only a device that cannot carry the
- * compositing, or a browser that cannot do 3D transforms at all, goes flat.
+ * REDUCED MOTION GOES ALL THE WAY TO `flat`. A still 3D scene technically has
+ * no animation in it, but it is still a perspective projection: text sits on
+ * tilted planes, shadows imply movement that is not coming, and for the people
+ * who set this preference because motion and simulated depth make them unwell
+ * that is the wrong answer. So `prefers-reduced-motion`, or the in-app switch,
+ * removes the third dimension entirely and the interface returns to the plain
+ * two-dimensional layout.
+ *
+ * NOTHING IS LOST BUT THE EFFECT. `flat` changes transforms only — every
+ * panel keeps its border, its background, its contrast, its focus ring, its
+ * size and its position in the reading order. A reduced-motion interface must
+ * be the same product, held still.
+ *
+ * `static` remains for the capability case: a machine that should not run a
+ * continuous animation but has no objection to depth.
  */
 export type DepthMode = "full" | "static" | "flat";
 
@@ -197,20 +206,18 @@ export function depthMode(input: {
   /**
    * The person's own choice, from Settings > Appearance. Omitted means on, so
    * every existing caller and every account predating the setting keeps depth.
-   *
-   * THIS IS THE ONLY INPUT THAT CAN REACH "flat" BY CHOICE — the others are
-   * capability findings. Someone who asks for a flat interface gets a flat
-   * interface even on a fast machine, which is the point of asking.
    */
   userDepth3d?: boolean;
 }): DepthMode {
   if (!input.hasDom) return "flat";
   if (input.supports3d === false) return "flat";
   if (input.userDepth3d === false) return "flat";
+  // Either source of the preference is the person asking; neither outranks the
+  // other, and both mean the same thing here.
+  if (input.reducedMotion || input.osReducedMotion) return "flat";
   // The tier is measured from cores, memory and viewport. "static" there means
   // this machine should not be running a continuous animation.
   if (input.tier === "static") return "static";
-  if (input.reducedMotion || input.osReducedMotion) return "static";
   return input.tier === "reduced" ? "static" : "full";
 }
 

@@ -906,17 +906,24 @@
  * their operating system for less motion has asked every application, and this
  * one does not get to reinterpret that as a suggestion.
  *
- * NOTE WHAT IS AND IS NOT SWITCHED OFF. The tilt and the transition go; the
- * DEPTH STAYS. Reduced motion is a request to stop things moving, not a request
- * for a flatter product, and a still 3D scene contains no motion. `--pointer-x`
- * and `--pointer-y` are forced to zero here so the transform collapses to a
- * pure `translateZ` even if a stale pointer value is still on the element.
+ * WHAT IS SWITCHED OFF. Movement AND the third dimension: the pointer tilt, the
+ * transitions, the parallax and the perspective scene itself. `DepthScene`
+ * publishes `data-depth-scene="flat"` in this state, so the depth rules above
+ * — which only match `full` and `static` — stop applying and every surface
+ * returns to its plain two-dimensional position.
+ *
+ * WHAT IS NOT TOUCHED. Colour, contrast, borders, shadows, focus rings, hit
+ * areas and layout. Reduced motion must cost legibility nothing: every control
+ * keeps the same size, the same label and the same keyboard behaviour it had
+ * with motion on. The `--pointer-*` variables are pinned to zero so a stale
+ * pointer value left on the element cannot re-offset anything.
  */
 @media (prefers-reduced-motion: reduce) {
   [data-depth-scene] {
     --pointer-x: 0 !important;
     --pointer-y: 0 !important;
   }
+
 
   .ocade-depth {
     transition: none !important;
@@ -942,4 +949,35 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/*
+ * The same result for the in-app switch, which people who cannot change an OS
+ * setting — a shared machine, a locked profile, a borrowed laptop — rely on.
+ * `.reduce-motion` is written to <html> by ThemeProvider whenever either the
+ * system preference or the app preference is on, so this block and the media
+ * query above always agree.
+ *
+ * Again: motion and depth go, readability does not. No opacity is reduced, no
+ * control is hidden and nothing is disabled here.
+ */
+.reduce-motion [data-depth-scene] {
+  --pointer-x: 0 !important;
+  --pointer-y: 0 !important;
+}
+
+.reduce-motion .ocade-depth {
+  transition: none !important;
+  will-change: auto !important;
+}
+
+.reduce-motion .ocade-reveal,
+.reduce-motion .ocade-reveal-hidden {
+  transition: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+.reduce-motion {
+  scroll-behavior: auto !important;
 }

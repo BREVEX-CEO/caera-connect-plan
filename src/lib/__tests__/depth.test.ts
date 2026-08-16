@@ -186,17 +186,19 @@ describe("how much depth a device and a person get", () => {
     expect(depthMode({ ...base, tier: "full" })).toBe("full");
   });
 
-  it("KEEPS THE DEPTH under reduced motion, and drops only the movement", () => {
+  it("removes the third dimension entirely under reduced motion, from either source", () => {
     /*
-     * The point of the three-state design. Reduced motion is a request to stop
-     * things MOVING, not a request for a flatter product — a still 3D scene
-     * contains no motion, so flattening it would punish exactly the people who
-     * asked for calm. This is the assertion that stops a future "simplify" from
-     * collapsing the mode to a boolean.
+     * A still perspective scene is still a perspective scene: text on tilted
+     * planes and shadows implying depth are exactly what someone who set this
+     * preference is asking the product to stop doing. Both the OS preference
+     * and the in-app switch reach the same state, so neither can be worked
+     * around by the other.
      */
-    expect(depthMode({ ...base, osReducedMotion: true, tier: "full" })).toBe("static");
-    expect(depthMode({ ...base, reducedMotion: true, tier: "full" })).toBe("static");
+    expect(depthMode({ ...base, osReducedMotion: true, tier: "full" })).toBe("flat");
+    expect(depthMode({ ...base, reducedMotion: true, tier: "full" })).toBe("flat");
+    expect(depthMode({ ...base, reducedMotion: true, tier: "reduced" })).toBe("flat");
   });
+
 
   it("goes still on a device measured as unable to animate", () => {
     expect(depthMode({ ...base, tier: "static" })).toBe("static");
