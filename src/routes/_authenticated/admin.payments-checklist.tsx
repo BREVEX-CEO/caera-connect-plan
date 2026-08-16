@@ -120,6 +120,10 @@ function PaymentsChecklistPage() {
         }
       />
 
+      <PayoutSetupGuide />
+
+
+
       <GlassPanel className="flex items-start gap-2 p-3 text-xs text-muted-foreground">
         <FlaskConical className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
         <span>
