@@ -458,31 +458,105 @@ export function createSolarScene(
   );
   scene.add(new THREE.LineSegments(moonLineGeometry, moonLineMaterial));
 
-  /* ---------------------------------------------------------- ripple pass -- */
+  /* ------------------------------------------------- bloom + composite pass -- */
+  /*
+   * THE GLOW IS A POST PASS, NOT MORE GEOMETRY.
+   *
+   * Bigger additive shells were the obvious way to make the sun bloom, and they
+   * are the wrong one: each shell covers a large part of the frame and costs
+   * full-resolution transparent fill, which is exactly the budget this scene
+   * has least of. A threshold-and-blur chain at QUARTER resolution touches a
+   * sixteenth of the fragments, blooms everything bright in the frame rather
+   * than one hand-placed object, and is composited in the pass the ripple
+   * already required — so the added cost is measured in fractions of a
+   * millisecond, not milliseconds.
+   */
+  const bloomDivisor = 4;
+  const bloomWidth = () => Math.max(1, Math.floor(viewWidth / bloomDivisor));
+  const bloomHeight = () => Math.max(1, Math.floor(viewHeight / bloomDivisor));
+
   const target = track(
     new THREE.WebGLRenderTarget(Math.max(1, width), Math.max(1, height), {
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
     }),
   );
+  const bloomA = track(
+    new THREE.WebGLRenderTarget(bloomWidth(), bloomHeight(), {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      depthBuffer: false,
+      stencilBuffer: false,
+    }),
+  );
+  const bloomB = track(
+    new THREE.WebGLRenderTarget(bloomWidth(), bloomHeight(), {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      depthBuffer: false,
+      stencilBuffer: false,
+    }),
+  );
+
   const rippleScene = new THREE.Scene();
   const rippleCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const rippleGeometry = track(new THREE.PlaneGeometry(2, 2));
+
+  const brightMaterial = track(
+    new THREE.ShaderMaterial({
+      vertexShader: FULLSCREEN_VERTEX,
+      fragmentShader: BRIGHT_FRAGMENT,
+      uniforms: { uScene: { value: target.texture }, uThreshold: { value: 0.42 } },
+      depthTest: false,
+      depthWrite: false,
+    }),
+  );
+  const blurMaterial = track(
+    new THREE.ShaderMaterial({
+      vertexShader: FULLSCREEN_VERTEX,
+      fragmentShader: BLUR_FRAGMENT,
+      uniforms: {
+        uScene: { value: bloomA.texture },
+        uDirection: { value: new THREE.Vector2(0, 0) },
+      },
+      depthTest: false,
+      depthWrite: false,
+    }),
+  );
   const rippleMaterial = track(
     new THREE.ShaderMaterial({
       vertexShader: FULLSCREEN_VERTEX,
       fragmentShader: RIPPLE_FRAGMENT,
       uniforms: {
         uScene: { value: target.texture },
+        uBloom: { value: bloomA.texture },
+        uBloomStrength: { value: tier === "full" ? 0.9 : 0.55 },
         uCenter: { value: new THREE.Vector2(0.5, 0.5) },
         uProgress: { value: 0 },
         uAspect: { value: width / Math.max(1, height) },
+        uTime: { value: 0 },
       },
       depthTest: false,
       depthWrite: false,
     }),
   );
-  const rippleGeometry = track(new THREE.PlaneGeometry(2, 2));
-  rippleScene.add(new THREE.Mesh(rippleGeometry, rippleMaterial));
+
+  // ONE quad, re-materialised per pass. Three quads would be three geometries
+  // and three scene graphs for a draw that is identical every time.
+  const passQuad = new THREE.Mesh(rippleGeometry, rippleMaterial);
+  rippleScene.add(passQuad);
+
+  /** Off when the frame budget is tight; see the note in `frame`. */
+  let bloomEnabled = tier === "full";
+
+  const runPass = (
+    material: THREE.ShaderMaterial,
+    destination: THREE.WebGLRenderTarget | null,
+  ) => {
+    passQuad.material = material;
+    renderer.setRenderTarget(destination);
+    renderer.render(rippleScene, rippleCamera);
+  };
 
   /* --------------------------------------------------------------- camera -- */
   let yaw = 0.62;
