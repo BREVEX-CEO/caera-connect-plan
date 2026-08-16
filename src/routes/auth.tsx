@@ -75,6 +75,7 @@ function AuthPage() {
   async function signInOAuth(provider: "google" | "apple") {
     setBusy(true);
     setError(null);
+    setErrorHint(null);
     try {
       const result = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: `${window.location.origin}/auth/callback${
@@ -82,17 +83,22 @@ function AuthPage() {
         }`,
       });
       if (result.error) {
-        setError(result.error.message ?? `Could not sign in with ${provider}.`);
+        const friendly = describeOAuthError(provider, result.error.message);
+        setError(friendly.message);
+        setErrorHint(friendly.hint ?? null);
         setBusy(false);
         return;
       }
       if (result.redirected) return;
       navigate({ to: nextPath, replace: true });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Sign-in failed.");
+      const friendly = describeOAuthError(provider, e);
+      setError(friendly.message);
+      setErrorHint(friendly.hint ?? null);
       setBusy(false);
     }
   }
+
 
   async function sendPhoneOtp(e: React.FormEvent) {
     e.preventDefault();
