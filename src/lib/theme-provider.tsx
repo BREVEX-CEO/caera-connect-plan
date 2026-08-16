@@ -57,6 +57,32 @@ export function clampDepthStrength(value: unknown): number {
 }
 
 const LS_KEY = "caera:appearance:v1";
+/**
+ * "Keep full quality on this device anyway" lives per browser, not per
+ * account: it is a judgement about this machine, and syncing it would force a
+ * fast desktop's choice onto a struggling phone.
+ */
+const LS_PERF_OVERRIDE = "caera:appearance:perf-override:v1";
+
+function readFallbackOverride(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(LS_PERF_OVERRIDE) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeFallbackOverride(value: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (value) window.localStorage.setItem(LS_PERF_OVERRIDE, "1");
+    else window.localStorage.removeItem(LS_PERF_OVERRIDE);
+  } catch {
+    /* storage blocked — the choice still applies for this session */
+  }
+}
+
 
 function readLocal(): AppearancePrefs {
   if (typeof window === "undefined") return DEFAULT;
