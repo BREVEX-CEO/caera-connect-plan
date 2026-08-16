@@ -77,6 +77,7 @@ function AuthPage() {
   const [errorHint, setErrorHint] = useState<string | null>(inboundFriendly?.hint ?? null);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [notice, setNotice] = useState<string | null>(search.message ?? null);
   const authConfigured = getSupabaseBrowserConfiguration().configured;
 
