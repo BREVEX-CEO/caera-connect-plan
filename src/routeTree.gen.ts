@@ -47,6 +47,7 @@ import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[
 import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_authenticated/admin.launch-gate'
 import { Route as AuthenticatedAdminPaymentsChecklistRouteImport } from './routes/_authenticated/admin.payments-checklist'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin.support'
+import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedOcadeArtifactsRouteImport } from './routes/_authenticated/ocade.artifacts'
 import { Route as AuthenticatedOcadeAutomationsRouteImport } from './routes/_authenticated/ocade.automations'
 import { Route as AuthenticatedOcadeCodeRouteImport } from './routes/_authenticated/ocade.code'
@@ -269,6 +270,11 @@ const AuthenticatedAdminSupportRoute =
     path: '/admin/support',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
+  id: '/admin/users',
+  path: '/admin/users',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOcadeArtifactsRoute =
   AuthenticatedOcadeArtifactsRouteImport.update({
     id: '/artifacts',
@@ -454,6 +460,7 @@ export interface FileRoutesByFullPath {
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/admin/payments-checklist': typeof AuthenticatedAdminPaymentsChecklistRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/ocade/code': typeof AuthenticatedOcadeCodeRoute
@@ -516,6 +523,7 @@ export interface FileRoutesByTo {
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/admin/payments-checklist': typeof AuthenticatedAdminPaymentsChecklistRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
+  '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/ocade/code': typeof AuthenticatedOcadeCodeRoute
@@ -582,6 +590,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/_authenticated/admin/payments-checklist': typeof AuthenticatedAdminPaymentsChecklistRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
+  '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/_authenticated/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/_authenticated/ocade/code': typeof AuthenticatedOcadeCodeRoute
@@ -648,6 +657,7 @@ export interface FileRouteTypes {
     | '/admin/launch-gate'
     | '/admin/payments-checklist'
     | '/admin/support'
+    | '/admin/users'
     | '/ocade/artifacts'
     | '/ocade/automations'
     | '/ocade/code'
@@ -710,6 +720,7 @@ export interface FileRouteTypes {
     | '/admin/launch-gate'
     | '/admin/payments-checklist'
     | '/admin/support'
+    | '/admin/users'
     | '/ocade/artifacts'
     | '/ocade/automations'
     | '/ocade/code'
@@ -775,6 +786,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/launch-gate'
     | '/_authenticated/admin/payments-checklist'
     | '/_authenticated/admin/support'
+    | '/_authenticated/admin/users'
     | '/_authenticated/ocade/artifacts'
     | '/_authenticated/ocade/automations'
     | '/_authenticated/ocade/code'
@@ -1097,6 +1109,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminSupportRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/users': {
+      id: '/_authenticated/admin/users'
+      path: '/admin/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ocade/artifacts': {
       id: '/_authenticated/ocade/artifacts'
       path: '/artifacts'
@@ -1351,6 +1370,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminLaunchGateRoute: typeof AuthenticatedAdminLaunchGateRoute
   AuthenticatedAdminPaymentsChecklistRoute: typeof AuthenticatedAdminPaymentsChecklistRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
+  AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1366,6 +1386,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminPaymentsChecklistRoute:
     AuthenticatedAdminPaymentsChecklistRoute,
   AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
+  AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
