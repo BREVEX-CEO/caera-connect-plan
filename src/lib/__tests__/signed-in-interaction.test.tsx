@@ -77,6 +77,7 @@ const SIGNED_IN_ROUTES = [
   "_authenticated/madee.tsx",
   "_authenticated/access-denied.tsx",
   "_authenticated/admin.launch-gate.tsx",
+  "_authenticated/admin.payments-checklist.tsx",
 ];
 
 const modules = import.meta.glob("../../routes/_authenticated/**/*.tsx", { eager: true }) as Record<
