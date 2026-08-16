@@ -16,11 +16,14 @@ import { Route as CompanyRouteImport } from './routes/company'
 import { Route as DataRightsRouteImport } from './routes/data-rights'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as DownloadRouteImport } from './routes/download'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as AuthenticatedAccessDeniedRouteImport } from './routes/_authenticated/access-denied'
 import { Route as AuthenticatedCaniaRouteImport } from './routes/_authenticated/cania'
 import { Route as AuthenticatedFiciaRouteImport } from './routes/_authenticated/ficia'
@@ -38,6 +41,7 @@ import { Route as DemoSettingsRouteImport } from './routes/demo.settings'
 import { Route as FounderHaansAntoniRouteImport } from './routes/founder.haans-antoni'
 import { Route as ProductsOcadeRouteImport } from './routes/products.ocade'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_authenticated/admin.launch-gate'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin.support'
 import { Route as AuthenticatedOcadeArtifactsRouteImport } from './routes/_authenticated/ocade.artifacts'
@@ -98,6 +102,11 @@ const DownloadRoute = DownloadRouteImport.update({
   path: '/download',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PricingRoute = PricingRouteImport.update({
   id: '/pricing',
   path: '/pricing',
@@ -123,6 +132,18 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotmcpChar93ListToolsRoute =
+  Char91DotmcpChar93ListToolsRouteImport.update({
+    id: '/.mcp/list-tools',
+    path: '/.mcp/list-tools',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAccessDeniedRoute =
   AuthenticatedAccessDeniedRouteImport.update({
     id: '/access-denied',
@@ -209,6 +230,12 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Char91DotmcpChar93InvokeToolToolRoute =
+  Char91DotmcpChar93InvokeToolToolRouteImport.update({
+    id: '/.mcp/invoke-tool/$tool',
+    path: '/.mcp/invoke-tool/$tool',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminLaunchGateRoute =
   AuthenticatedAdminLaunchGateRouteImport.update({
     id: '/admin/launch-gate',
@@ -363,11 +390,14 @@ export interface FileRoutesByFullPath {
   '/data-rights': typeof DataRightsRoute
   '/demo': typeof DemoRouteWithChildren
   '/download': typeof DownloadRoute
+  '/mcp': typeof McpRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/access-denied': typeof AuthenticatedAccessDeniedRoute
   '/cania': typeof AuthenticatedCaniaRoute
   '/ficia': typeof AuthenticatedFiciaRoute
@@ -385,6 +415,7 @@ export interface FileRoutesByFullPath {
   '/products/ocade': typeof ProductsOcadeRoute
   '/demo/': typeof DemoIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
@@ -417,11 +448,14 @@ export interface FileRoutesByTo {
   '/company': typeof CompanyRoute
   '/data-rights': typeof DataRightsRoute
   '/download': typeof DownloadRoute
+  '/mcp': typeof McpRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/access-denied': typeof AuthenticatedAccessDeniedRoute
   '/cania': typeof AuthenticatedCaniaRoute
   '/ficia': typeof AuthenticatedFiciaRoute
@@ -438,6 +472,7 @@ export interface FileRoutesByTo {
   '/products/ocade': typeof ProductsOcadeRoute
   '/demo': typeof DemoIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
@@ -473,11 +508,14 @@ export interface FileRoutesById {
   '/data-rights': typeof DataRightsRoute
   '/demo': typeof DemoRouteWithChildren
   '/download': typeof DownloadRoute
+  '/mcp': typeof McpRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
+  '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/access-denied': typeof AuthenticatedAccessDeniedRoute
   '/_authenticated/cania': typeof AuthenticatedCaniaRoute
   '/_authenticated/ficia': typeof AuthenticatedFiciaRoute
@@ -495,6 +533,7 @@ export interface FileRoutesById {
   '/products/ocade': typeof ProductsOcadeRoute
   '/demo/': typeof DemoIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/_authenticated/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
@@ -530,11 +569,14 @@ export interface FileRouteTypes {
     | '/data-rights'
     | '/demo'
     | '/download'
+    | '/mcp'
     | '/pricing'
     | '/privacy'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/access-denied'
     | '/cania'
     | '/ficia'
@@ -552,6 +594,7 @@ export interface FileRouteTypes {
     | '/products/ocade'
     | '/demo/'
     | '/.lovable/oauth/consent'
+    | '/.mcp/invoke-tool/$tool'
     | '/admin/launch-gate'
     | '/admin/support'
     | '/ocade/artifacts'
@@ -584,11 +627,14 @@ export interface FileRouteTypes {
     | '/company'
     | '/data-rights'
     | '/download'
+    | '/mcp'
     | '/pricing'
     | '/privacy'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/access-denied'
     | '/cania'
     | '/ficia'
@@ -605,6 +651,7 @@ export interface FileRouteTypes {
     | '/products/ocade'
     | '/demo'
     | '/.lovable/oauth/consent'
+    | '/.mcp/invoke-tool/$tool'
     | '/admin/launch-gate'
     | '/admin/support'
     | '/ocade/artifacts'
@@ -639,11 +686,14 @@ export interface FileRouteTypes {
     | '/data-rights'
     | '/demo'
     | '/download'
+    | '/mcp'
     | '/pricing'
     | '/privacy'
     | '/robots.txt'
     | '/sitemap.xml'
     | '/terms'
+    | '/.mcp/list-tools'
+    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/access-denied'
     | '/_authenticated/cania'
     | '/_authenticated/ficia'
@@ -661,6 +711,7 @@ export interface FileRouteTypes {
     | '/products/ocade'
     | '/demo/'
     | '/.lovable/oauth/consent'
+    | '/.mcp/invoke-tool/$tool'
     | '/_authenticated/admin/launch-gate'
     | '/_authenticated/admin/support'
     | '/_authenticated/ocade/artifacts'
@@ -696,14 +747,18 @@ export interface RootRouteChildren {
   DataRightsRoute: typeof DataRightsRoute
   DemoRoute: typeof DemoRouteWithChildren
   DownloadRoute: typeof DownloadRoute
+  McpRoute: typeof McpRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
+  Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   FounderHaansAntoniRoute: typeof FounderHaansAntoniRoute
   ProductsOcadeRoute: typeof ProductsOcadeRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
+  Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiOcadeChatRoute: typeof ApiOcadeChatRoute
   ApiOcadeBridgeSplatRoute: typeof ApiOcadeBridgeSplatRoute
 }
@@ -759,6 +814,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pricing': {
       id: '/pricing'
       path: '/pricing'
@@ -792,6 +854,20 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/list-tools': {
+      id: '/.mcp/list-tools'
+      path: '/.mcp/list-tools'
+      fullPath: '/.mcp/list-tools'
+      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/access-denied': {
@@ -911,6 +987,13 @@ declare module '@tanstack/react-router' {
       path: '/.lovable/oauth/consent'
       fullPath: '/.lovable/oauth/consent'
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/invoke-tool/$tool': {
+      id: '/.mcp/invoke-tool/$tool'
+      path: '/.mcp/invoke-tool/$tool'
+      fullPath: '/.mcp/invoke-tool/$tool'
+      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/launch-gate': {
@@ -1218,14 +1301,19 @@ const rootRouteChildren: RootRouteChildren = {
   DataRightsRoute: DataRightsRoute,
   DemoRoute: DemoRouteWithChildren,
   DownloadRoute: DownloadRoute,
+  McpRoute: McpRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
+  Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   FounderHaansAntoniRoute: FounderHaansAntoniRoute,
   ProductsOcadeRoute: ProductsOcadeRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
+  Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiOcadeChatRoute: ApiOcadeChatRoute,
   ApiOcadeBridgeSplatRoute: ApiOcadeBridgeSplatRoute,
 }

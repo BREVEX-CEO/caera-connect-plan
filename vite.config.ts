@@ -24,6 +24,8 @@ export default defineConfig({
   },
 
   vite: {
+    plugins: [mcpPlugin()],
+
     /*
      * THE DEV PORT COMES FROM THE ENVIRONMENT, NOT FROM A FLAG.
      *
