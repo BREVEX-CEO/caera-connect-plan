@@ -158,6 +158,12 @@ export function SettingsShell({ children }: { children: ReactNode }) {
                         <Link
                           to={slugToPath(item.slug)}
                           className={cn(
+                            // A row lifts a few pixels toward the viewer on
+                            // hover and on focus. Nested inside the column's
+                            // surface it inherits the tilt rather than doubling
+                            // it, so the lift reads as the row rising out of
+                            // the list instead of shearing against it.
+                            "ocade-depth ocade-depth-lift depth-base",
                             "group flex h-8 items-center gap-2 rounded-md px-2 text-[13px] transition-colors",
                             isActive
                               ? "bg-sidebar-accent text-sidebar-accent-foreground"
