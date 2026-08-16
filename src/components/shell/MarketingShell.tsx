@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { SiteFooterLinks } from "@/components/shell/SiteFooter";
 import { BrandMark } from "./BrandMark";
 import { MotionScope } from "@/components/motion/MotionScope";
 
@@ -61,6 +62,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground sm:flex-row">
           <BrandMark />
           <p>© {new Date().getFullYear()} CAERA CADANE. Original work.</p>
+          <SiteFooterLinks className="text-xs" />
         </div>
       </footer>
     </div>

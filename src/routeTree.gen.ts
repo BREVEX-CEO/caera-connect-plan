@@ -16,6 +16,7 @@ import { Route as CompanyRouteImport } from './routes/company'
 import { Route as DataRightsRouteImport } from './routes/data-rights'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as DownloadRouteImport } from './routes/download'
+import { Route as FaqRouteImport } from './routes/faq'
 import { Route as McpRouteImport } from './routes/mcp'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
@@ -106,6 +107,11 @@ const DemoRoute = DemoRouteImport.update({
 const DownloadRoute = DownloadRouteImport.update({
   id: '/download',
   path: '/download',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
 const McpRoute = McpRouteImport.update({
@@ -429,6 +435,7 @@ export interface FileRoutesByFullPath {
   '/data-rights': typeof DataRightsRoute
   '/demo': typeof DemoRouteWithChildren
   '/download': typeof DownloadRoute
+  '/faq': typeof FaqRoute
   '/mcp': typeof McpRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -493,6 +500,7 @@ export interface FileRoutesByTo {
   '/company': typeof CompanyRoute
   '/data-rights': typeof DataRightsRoute
   '/download': typeof DownloadRoute
+  '/faq': typeof FaqRoute
   '/mcp': typeof McpRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -559,6 +567,7 @@ export interface FileRoutesById {
   '/data-rights': typeof DataRightsRoute
   '/demo': typeof DemoRouteWithChildren
   '/download': typeof DownloadRoute
+  '/faq': typeof FaqRoute
   '/mcp': typeof McpRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
@@ -626,6 +635,7 @@ export interface FileRouteTypes {
     | '/data-rights'
     | '/demo'
     | '/download'
+    | '/faq'
     | '/mcp'
     | '/pricing'
     | '/privacy'
@@ -690,6 +700,7 @@ export interface FileRouteTypes {
     | '/company'
     | '/data-rights'
     | '/download'
+    | '/faq'
     | '/mcp'
     | '/pricing'
     | '/privacy'
@@ -755,6 +766,7 @@ export interface FileRouteTypes {
     | '/data-rights'
     | '/demo'
     | '/download'
+    | '/faq'
     | '/mcp'
     | '/pricing'
     | '/privacy'
@@ -822,6 +834,7 @@ export interface RootRouteChildren {
   DataRightsRoute: typeof DataRightsRoute
   DemoRoute: typeof DemoRouteWithChildren
   DownloadRoute: typeof DownloadRoute
+  FaqRoute: typeof FaqRoute
   McpRoute: typeof McpRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
@@ -890,6 +903,13 @@ declare module '@tanstack/react-router' {
       path: '/download'
       fullPath: '/download'
       preLoaderRoute: typeof DownloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/mcp': {
@@ -1428,6 +1448,7 @@ const rootRouteChildren: RootRouteChildren = {
   DataRightsRoute: DataRightsRoute,
   DemoRoute: DemoRouteWithChildren,
   DownloadRoute: DownloadRoute,
+  FaqRoute: FaqRoute,
   McpRoute: McpRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,

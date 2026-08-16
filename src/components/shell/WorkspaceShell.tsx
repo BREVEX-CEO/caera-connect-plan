@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { WelcomeTour } from "@/components/onboarding/WelcomeTour";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { MotionScope } from "@/components/motion/MotionScope";
 import {
@@ -504,6 +505,8 @@ function WorkspaceShellInner({
                 if the observer never runs — see MotionScope. */}
             <MotionScope>{children}</MotionScope>
           </div>
+          {/* Three-step welcome, once per account. Renders nothing afterwards. */}
+          <WelcomeTour />
         </main>
 
         {/* Adaptive Copilot panel */}
