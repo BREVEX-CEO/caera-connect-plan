@@ -107,8 +107,8 @@ export const createBillingPortalSession = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     if (!row) throw new Error("There is no purchase on this account to manage yet.");
 
-    const { getPaddleClient, type PaddleEnv } = await import("@/lib/paddle.server");
-    const paddle = getPaddleClient(row.environment as typeof PaddleEnv extends never ? never : any);
+    const { getPaddleClient } = await import("@/lib/paddle.server");
+    const paddle = getPaddleClient(row.environment === "live" ? "live" : "sandbox");
     const session = await paddle.customerPortalSessions.create(row.paddle_customer_id, [
       row.paddle_subscription_id,
     ]);
