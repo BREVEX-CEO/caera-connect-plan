@@ -143,6 +143,88 @@ function AuthPage() {
     });
   }
 
+  async function submitPassword(intent: "signin" | "signup") {
+    setBusy(true);
+    setError(null);
+    setErrorHint(null);
+    setNotice(null);
+    const parsedEmail = z.string().trim().email("Enter a valid email address.").safeParse(email);
+    if (!parsedEmail.success) {
+      setError(parsedEmail.error.issues[0].message);
+      setBusy(false);
+      return;
+    }
+    if (password.length < 8) {
+      setError("Your password needs at least 8 characters.");
+      setBusy(false);
+      return;
+    }
+    if (intent === "signup") {
+      const { data, error: err } = await supabase.auth.signUp({
+        email: parsedEmail.data,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback${
+            nextPath !== "/home" ? `?next=${encodeURIComponent(nextPath)}` : ""
+          }`,
+        },
+      });
+      if (err) {
+        setError(err.message);
+        setBusy(false);
+        return;
+      }
+      if (!data.session) {
+        setNotice(
+          "Account created. Check your inbox and open the confirmation link to finish signing in.",
+        );
+        setBusy(false);
+        return;
+      }
+      navigate({ to: nextPath, replace: true });
+      return;
+    }
+    const { error: err } = await supabase.auth.signInWithPassword({
+      email: parsedEmail.data,
+      password,
+    });
+    if (err) {
+      setError(
+        err.message.toLowerCase().includes("invalid login")
+          ? "That email and password combination did not match an account."
+          : err.message,
+      );
+      setErrorHint("You can also sign in with a one-time code, or reset your password below.");
+      setBusy(false);
+      return;
+    }
+    navigate({ to: nextPath, replace: true });
+  }
+
+  async function sendPasswordReset() {
+    setBusy(true);
+    setError(null);
+    setErrorHint(null);
+    setNotice(null);
+    const parsedEmail = z.string().trim().email("Enter a valid email address.").safeParse(email);
+    if (!parsedEmail.success) {
+      setError("Enter your email address first, then choose Forgot password.");
+      setBusy(false);
+      return;
+    }
+    const { error: err } = await supabase.auth.resetPasswordForEmail(parsedEmail.data, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setBusy(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setNotice(
+      "If that address has an account, a password reset link is on its way. The link expires shortly.",
+    );
+  }
+
   async function sendEmailOtp(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
