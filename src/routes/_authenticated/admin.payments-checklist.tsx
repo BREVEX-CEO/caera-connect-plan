@@ -11,6 +11,8 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { AlertTriangle, ExternalLink, FlaskConical, Loader2, PlayCircle } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
+import { PayoutSetupGuide } from "@/components/settings/PayoutSetupGuide";
+
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
@@ -119,6 +121,10 @@ function PaymentsChecklistPage() {
           </Button>
         }
       />
+
+      <PayoutSetupGuide />
+
+
 
       <GlassPanel className="flex items-start gap-2 p-3 text-xs text-muted-foreground">
         <FlaskConical className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
