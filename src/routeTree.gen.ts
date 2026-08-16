@@ -34,6 +34,7 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthVerifyRouteImport } from './routes/auth.verify'
+import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
 import { Route as DemoIndexRouteImport } from './routes/demo.index'
 import { Route as DemoControlRouteImport } from './routes/demo.control'
 import { Route as DemoOcadeRouteImport } from './routes/demo.ocade'
@@ -56,6 +57,7 @@ import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsSectionRouteImport } from './routes/_authenticated/settings.$section'
 import { Route as AuthenticatedSettingsActivityRouteImport } from './routes/_authenticated/settings.activity'
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings.appearance'
+import { Route as AuthenticatedSettingsBillingRouteImport } from './routes/_authenticated/settings.billing'
 import { Route as AuthenticatedSettingsBrowserRouteImport } from './routes/_authenticated/settings.browser'
 import { Route as AuthenticatedSettingsDevicesRouteImport } from './routes/_authenticated/settings.devices'
 import { Route as AuthenticatedSettingsMobileRouteImport } from './routes/_authenticated/settings.mobile'
@@ -67,6 +69,7 @@ import { Route as AuthenticatedSettingsVaultRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsVoiceRouteImport } from './routes/_authenticated/settings.voice'
 import { Route as ApiOcadeChatRouteImport } from './routes/api/ocade.chat'
 import { Route as ApiOcadeBridgeSplatRouteImport } from './routes/api/ocade.bridge.$'
+import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -195,6 +198,11 @@ const AuthVerifyRoute = AuthVerifyRouteImport.update({
   path: '/verify',
   getParentRoute: () => AuthRoute,
 } as any)
+const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
+  id: '/checkout/success',
+  path: '/checkout/success',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemoIndexRoute = DemoIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -318,6 +326,12 @@ const AuthenticatedSettingsAppearanceRoute =
     path: '/appearance',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsBillingRoute =
+  AuthenticatedSettingsBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsBrowserRoute =
   AuthenticatedSettingsBrowserRouteImport.update({
     id: '/browser',
@@ -382,6 +396,12 @@ const ApiOcadeBridgeSplatRoute = ApiOcadeBridgeSplatRouteImport.update({
   path: '/api/ocade/bridge/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicPaymentsWebhookRoute =
+  ApiPublicPaymentsWebhookRouteImport.update({
+    id: '/api/public/payments/webhook',
+    path: '/api/public/payments/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -408,6 +428,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/demo/control': typeof DemoControlRoute
   '/demo/ocade': typeof DemoOcadeRoute
   '/demo/settings': typeof DemoSettingsRoute
@@ -429,6 +450,7 @@ export interface FileRoutesByFullPath {
   '/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/settings/browser': typeof AuthenticatedSettingsBrowserRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/settings/mobile': typeof AuthenticatedSettingsMobileRoute
@@ -441,6 +463,7 @@ export interface FileRoutesByFullPath {
   '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/api/ocade/bridge/$': typeof ApiOcadeBridgeSplatRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -465,6 +488,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/demo/control': typeof DemoControlRoute
   '/demo/ocade': typeof DemoOcadeRoute
   '/demo/settings': typeof DemoSettingsRoute
@@ -486,6 +510,7 @@ export interface FileRoutesByTo {
   '/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/settings/browser': typeof AuthenticatedSettingsBrowserRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/settings/mobile': typeof AuthenticatedSettingsMobileRoute
@@ -498,6 +523,7 @@ export interface FileRoutesByTo {
   '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/api/ocade/bridge/$': typeof ApiOcadeBridgeSplatRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -526,6 +552,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/demo/control': typeof DemoControlRoute
   '/demo/ocade': typeof DemoOcadeRoute
   '/demo/settings': typeof DemoSettingsRoute
@@ -547,6 +574,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/_authenticated/settings/activity': typeof AuthenticatedSettingsActivityRoute
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
+  '/_authenticated/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/_authenticated/settings/browser': typeof AuthenticatedSettingsBrowserRoute
   '/_authenticated/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/_authenticated/settings/mobile': typeof AuthenticatedSettingsMobileRoute
@@ -559,6 +587,7 @@ export interface FileRoutesById {
   '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/api/ocade/bridge/$': typeof ApiOcadeBridgeSplatRoute
+  '/api/public/payments/webhook': typeof ApiPublicPaymentsWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -587,6 +616,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/auth/callback'
     | '/auth/verify'
+    | '/checkout/success'
     | '/demo/control'
     | '/demo/ocade'
     | '/demo/settings'
@@ -608,6 +638,7 @@ export interface FileRouteTypes {
     | '/settings/$section'
     | '/settings/activity'
     | '/settings/appearance'
+    | '/settings/billing'
     | '/settings/browser'
     | '/settings/devices'
     | '/settings/mobile'
@@ -620,6 +651,7 @@ export interface FileRouteTypes {
     | '/api/ocade/chat'
     | '/settings/'
     | '/api/ocade/bridge/$'
+    | '/api/public/payments/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -644,6 +676,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/auth/callback'
     | '/auth/verify'
+    | '/checkout/success'
     | '/demo/control'
     | '/demo/ocade'
     | '/demo/settings'
@@ -665,6 +698,7 @@ export interface FileRouteTypes {
     | '/settings/$section'
     | '/settings/activity'
     | '/settings/appearance'
+    | '/settings/billing'
     | '/settings/browser'
     | '/settings/devices'
     | '/settings/mobile'
@@ -677,6 +711,7 @@ export interface FileRouteTypes {
     | '/api/ocade/chat'
     | '/settings'
     | '/api/ocade/bridge/$'
+    | '/api/public/payments/webhook'
   id:
     | '__root__'
     | '/'
@@ -704,6 +739,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/auth/callback'
     | '/auth/verify'
+    | '/checkout/success'
     | '/demo/control'
     | '/demo/ocade'
     | '/demo/settings'
@@ -725,6 +761,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/$section'
     | '/_authenticated/settings/activity'
     | '/_authenticated/settings/appearance'
+    | '/_authenticated/settings/billing'
     | '/_authenticated/settings/browser'
     | '/_authenticated/settings/devices'
     | '/_authenticated/settings/mobile'
@@ -737,6 +774,7 @@ export interface FileRouteTypes {
     | '/api/ocade/chat'
     | '/_authenticated/settings/'
     | '/api/ocade/bridge/$'
+    | '/api/public/payments/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -755,12 +793,14 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  CheckoutSuccessRoute: typeof CheckoutSuccessRoute
   FounderHaansAntoniRoute: typeof FounderHaansAntoniRoute
   ProductsOcadeRoute: typeof ProductsOcadeRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiOcadeChatRoute: typeof ApiOcadeChatRoute
   ApiOcadeBridgeSplatRoute: typeof ApiOcadeBridgeSplatRoute
+  ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -940,6 +980,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthVerifyRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/checkout/success': {
+      id: '/checkout/success'
+      path: '/checkout/success'
+      fullPath: '/checkout/success'
+      preLoaderRoute: typeof CheckoutSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demo/': {
       id: '/demo/'
       path: '/'
@@ -1094,6 +1141,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsAppearanceRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/billing': {
+      id: '/_authenticated/settings/billing'
+      path: '/billing'
+      fullPath: '/settings/billing'
+      preLoaderRoute: typeof AuthenticatedSettingsBillingRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/browser': {
       id: '/_authenticated/settings/browser'
       path: '/browser'
@@ -1171,6 +1225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiOcadeBridgeSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/payments/webhook': {
+      id: '/api/public/payments/webhook'
+      path: '/api/public/payments/webhook'
+      fullPath: '/api/public/payments/webhook'
+      preLoaderRoute: typeof ApiPublicPaymentsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1203,6 +1264,7 @@ interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsSectionRoute: typeof AuthenticatedSettingsSectionRoute
   AuthenticatedSettingsActivityRoute: typeof AuthenticatedSettingsActivityRoute
   AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute
+  AuthenticatedSettingsBillingRoute: typeof AuthenticatedSettingsBillingRoute
   AuthenticatedSettingsBrowserRoute: typeof AuthenticatedSettingsBrowserRoute
   AuthenticatedSettingsDevicesRoute: typeof AuthenticatedSettingsDevicesRoute
   AuthenticatedSettingsMobileRoute: typeof AuthenticatedSettingsMobileRoute
@@ -1219,6 +1281,7 @@ const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsSectionRoute: AuthenticatedSettingsSectionRoute,
   AuthenticatedSettingsActivityRoute: AuthenticatedSettingsActivityRoute,
   AuthenticatedSettingsAppearanceRoute: AuthenticatedSettingsAppearanceRoute,
+  AuthenticatedSettingsBillingRoute: AuthenticatedSettingsBillingRoute,
   AuthenticatedSettingsBrowserRoute: AuthenticatedSettingsBrowserRoute,
   AuthenticatedSettingsDevicesRoute: AuthenticatedSettingsDevicesRoute,
   AuthenticatedSettingsMobileRoute: AuthenticatedSettingsMobileRoute,
@@ -1310,12 +1373,14 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  CheckoutSuccessRoute: CheckoutSuccessRoute,
   FounderHaansAntoniRoute: FounderHaansAntoniRoute,
   ProductsOcadeRoute: ProductsOcadeRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiOcadeChatRoute: ApiOcadeChatRoute,
   ApiOcadeBridgeSplatRoute: ApiOcadeBridgeSplatRoute,
+  ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -65,7 +65,20 @@ export default {
       hostname: url.hostname,
       env: env as Record<string, unknown> | null,
     });
-    if (!gate.open) return withPublicSecurityHeaders(prelaunchResponse(url.pathname, gate));
+    /*
+     * ONE EXCEPTION: the payment webhook.
+     *
+     * The payment provider has no idea the product is pre-launch. If its
+     * signed notifications get a locked page, it retries for three days and
+     * then drops the event — a customer who paid, permanently without access,
+     * with no record anywhere. This path is not a hole in the gate: it renders
+     * no UI, requires a valid provider signature, and can only write
+     * subscription rows.
+     */
+    const isPaymentWebhook = url.pathname === "/api/public/payments/webhook";
+    if (!gate.open && !isPaymentWebhook) {
+      return withPublicSecurityHeaders(prelaunchResponse(url.pathname, gate));
+    }
 
     try {
       const handler = await getServerEntry();
