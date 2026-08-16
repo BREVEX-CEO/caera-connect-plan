@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { Palette, Check, Upload, RefreshCcw } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
+import { PerformanceFallbackNotice } from "@/components/settings/PerformanceFallbackNotice";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { type ThemeMode, type CursorKind } from "@/lib/theme-provider";
 import { useAppearance } from "@/lib/use-appearance";
@@ -170,6 +171,7 @@ function AppearancePage() {
               disabled={appearance.autoLowPerf}
               onChange={(v) => appearance.update({ lowPerformance: v })}
             />
+            <PerformanceFallbackNotice />
           </div>
         </GlassPanel>
 

@@ -27,8 +27,11 @@ import {
   type AppearancePersistence,
   type AppearancePrefs,
   type CursorKind,
+  type PerfFallbackState,
   type ThemeMode,
 } from "./use-appearance";
+import { FALLBACK_CHANGES, assessDevice, readDeviceSignals } from "./perf-fallback";
+
 
 
 export type { AppearancePrefs, CursorKind, ThemeMode };
@@ -54,6 +57,32 @@ export function clampDepthStrength(value: unknown): number {
 }
 
 const LS_KEY = "caera:appearance:v1";
+/**
+ * "Keep full quality on this device anyway" lives per browser, not per
+ * account: it is a judgement about this machine, and syncing it would force a
+ * fast desktop's choice onto a struggling phone.
+ */
+const LS_PERF_OVERRIDE = "caera:appearance:perf-override:v1";
+
+function readFallbackOverride(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(LS_PERF_OVERRIDE) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeFallbackOverride(value: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (value) window.localStorage.setItem(LS_PERF_OVERRIDE, "1");
+    else window.localStorage.removeItem(LS_PERF_OVERRIDE);
+  } catch {
+    /* storage blocked — the choice still applies for this session */
+  }
+}
+
 
 function readLocal(): AppearancePrefs {
   if (typeof window === "undefined") return DEFAULT;
@@ -106,7 +135,17 @@ function applyToDocument(prefs: AppearancePrefs, osReducedMotion: boolean, autoL
    * the first painted frame — a scene that starts at full strength and drops to
    * the chosen one a frame later is a visible lurch on every page load.
    */
-  root.style.setProperty("--depth-strength", (clampDepthStrength(prefs.depthStrength) / 100).toFixed(2));
+  /*
+   * The fallback flattens the scene as well as dropping blur: pointer-driven
+   * depth is the single most expensive thing on screen, so leaving it running
+   * while claiming to have stepped down would be the fallback in name only.
+   */
+  const lowPerf = prefs.lowPerformance || autoLowPerf;
+  root.style.setProperty(
+    "--depth-strength",
+    lowPerf ? "0" : (clampDepthStrength(prefs.depthStrength) / 100).toFixed(2),
+  );
+
 
   // Cursor
   root.classList.toggle("cursor-accessibility", prefs.cursor === "accessibility");
@@ -146,7 +185,39 @@ function applyToDocument(prefs: AppearancePrefs, osReducedMotion: boolean, autoL
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [prefs, setPrefs] = useState<AppearancePrefs>(() => readLocal());
   const [osReducedMotion, setOsReducedMotion] = useState(false);
-  const [autoLowPerf, setAutoLowPerf] = useState(false);
+  /**
+   * The automatic fallback: whether it is active, what tripped it, and whether
+   * the person has told us to keep full quality anyway. The override is held
+   * per browser (not per account) because it is a statement about THIS machine.
+   */
+  const [perfFallback, setPerfFallback] = useState<PerfFallbackState>(() => ({
+    active: false,
+    trigger: null,
+    reason: null,
+    overridden: readFallbackOverride(),
+    changes: FALLBACK_CHANGES,
+  }));
+  const autoLowPerf = perfFallback.active && !perfFallback.overridden;
+
+  const keepFullQuality = useCallback(() => {
+    writeFallbackOverride(true);
+    setPerfFallback((s) => ({ ...s, overridden: true }));
+  }, []);
+
+  const resumeAutoFallback = useCallback(() => {
+    writeFallbackOverride(false);
+    setPerfFallback((s) => ({ ...s, overridden: false }));
+  }, []);
+
+  // Static device check — runs before the first animated frame is scheduled.
+  useEffect(() => {
+    const assessment = assessDevice(readDeviceSignals());
+    if (!assessment.lowEnd) return;
+    setPerfFallback((s) =>
+      s.active ? s : { ...s, active: true, trigger: "device", reason: assessment.reason },
+    );
+  }, []);
+
   const userIdRef = useRef<string | null>(null);
   const [persistence, setPersistence] = useState<AppearancePersistence>({
     status: "idle",
@@ -191,15 +262,27 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         slowFrames++;
         fastFrames = 0;
         if (slowFrames > 90) {
-          setAutoLowPerf(true);
+          setPerfFallback((s) =>
+            s.active ? s : { ...s, active: true, trigger: "frames", reason: null },
+          );
         }
       } else if (dt < 20) {
         fastFrames++;
         slowFrames = 0;
         if (fastFrames > 300) {
-          setAutoLowPerf(false);
+          /*
+           * Only a MEASURED fallback recovers. A device that reported four
+           * cores still has four cores after a smooth stretch, so lifting a
+           * static fallback here would just make it flap.
+           */
+          setPerfFallback((s) =>
+            s.active && s.trigger === "frames"
+              ? { ...s, active: false, trigger: null, reason: null }
+              : s,
+          );
         }
       }
+
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -429,10 +512,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [flush]);
 
   const value = useMemo<AppearanceContextValue>(
-    () => ({ ...prefs, osReducedMotion, autoLowPerf, update, persistence, retryPersist }),
-    [prefs, osReducedMotion, autoLowPerf, update, persistence, retryPersist],
-
+    () => ({
+      ...prefs,
+      osReducedMotion,
+      autoLowPerf,
+      perfFallback,
+      keepFullQuality,
+      resumeAutoFallback,
+      update,
+      persistence,
+      retryPersist,
+    }),
+    [
+      prefs,
+      osReducedMotion,
+      autoLowPerf,
+      perfFallback,
+      keepFullQuality,
+      resumeAutoFallback,
+      update,
+      persistence,
+      retryPersist,
+    ],
   );
+
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

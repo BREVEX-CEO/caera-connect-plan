@@ -66,14 +66,37 @@ export interface AppearancePersistence {
   hasPendingChanges: boolean;
 }
 
+/**
+ * The automatic performance fallback, as the UI needs to describe it.
+ *
+ * `active` is what the detector decided; `overridden` is the person saying
+ * "keep full quality on this device anyway". Both are exposed so the panel can
+ * say the fallback WOULD apply while honouring the override.
+ */
+export interface PerfFallbackState {
+  active: boolean;
+  trigger: "device" | "frames" | null;
+  /** The specific signal, when the trigger was a static device check. */
+  reason: string | null;
+  overridden: boolean;
+  /** The exact list of what gets turned down. */
+  changes: string[];
+}
+
 export interface AppearanceContextValue extends AppearancePrefs {
   osReducedMotion: boolean;
   autoLowPerf: boolean;
+  perfFallback: PerfFallbackState;
+  /** Ignore the automatic fallback on this browser. */
+  keepFullQuality: () => void;
+  /** Hand control back to the detector. */
+  resumeAutoFallback: () => void;
   update: (patch: Partial<AppearancePrefs>) => Promise<void>;
   persistence: AppearancePersistence;
   /** Re-attempt the last failed write / read. */
   retryPersist: () => Promise<void>;
 }
+
 
 
 export const ThemeContext = createContext<AppearanceContextValue | null>(null);
