@@ -1,135 +1,102 @@
 # OCADE
 
-OCADE is the active product being developed under the **CAERA CADANE** brand by
-**Haans Antoni, Founder, Chairman & CEO**. It is a local-first AI workspace with
-web, desktop and mobile source paths plus optional private synchronization and
-cloud-assisted features.
+OCADE is the active product being developed under the **CAERA CADANE** brand. It is a **local-only AI workspace** with web, desktop and mobile source paths, computer-control components, browser-local inference, and optional account/private-sync services.
 
-Public launch is planned for **28 August 2026**. OCADE is still pre-launch: a
-file, test, installer or deployment script in this repository is not by itself
-proof that the corresponding production service or store release is available.
+## Non-negotiable AI boundary
+
+**OCADE does not route AI prompts to Gemini, GPT/OpenAI, Lovable AI, or any other public cloud model.** The active Chat path has no cloud-model fallback and no server-side AI-provider key. If no local engine is ready, OCADE says so and offers local setup/retry actions instead of silently transferring the request elsewhere.
+
+This is an AI-inference boundary, not a claim that every feature is network-free. Authentication, optional Supabase Private Sync, live web research, remote-device communication, software/model downloads and other explicitly networked tools can still require a connection. Those paths are not allowed to become an AI-model fallback.
+
+## Local model system
+
+### Desktop
+
+The fixed desktop engine is **Qwen2.5 3B**, Q4_K_M GGUF, served through the local runtime. Interrupted model pulls automatically retry up to five attempts with exponential backoff. The same pull is reissued so the runtime can reuse completed blobs and resume missing data rather than deliberately discarding progress.
+
+### Browser
+
+Browser inference stays on-device:
+
+- **WebGPU default:** Qwen2.5 0.5B Instruct.
+- **WebGPU promoted tier:** Qwen2.5 1.5B Instruct, offered only after this device has completed a real generation within the configured latency ceiling.
+- **WASM compatibility fallback:** Qwen2.5 0.5B for browsers/devices that cannot use WebGPU.
+- WebGPU model data is stored through **IndexedDB**.
+- Browser engines run in workers rather than on the UI thread.
+
+### Multiple tabs
+
+Same-origin browser tabs coordinate through the **Web Locks API** and **BroadcastChannel**. One tab owns the browser model engine; follower tabs relay requests and token streams to that leader instead of loading another full model copy. If the browser cannot provide the required coordination primitives, OCADE refuses browser inference rather than weakening the single-engine invariant.
+
+A real three-tab evidence runner is committed in `scripts/local-only-browser-evidence.mjs`. It sends one real message from each of three tabs and only writes PASS evidence if exactly one leader/model instance is observed. The same runner then disables the browser context's network, reloads, and sends another message to test the second-visit offline path. **Do not describe those runtime checks as passed unless the workflow has actually executed them successfully.**
+
+## Offline behavior
+
+The service worker aggressively retains the application shell and same-origin runtime/model assets after successful delivery. First-load cache fills use bounded retry; when connectivity returns after a partial/flaky first visit, the application asks the service worker to retry the incomplete shell cache.
+
+There is one unavoidable website limitation and the UI states it explicitly: **the very first website visit needs enough working connectivity to receive the page and local model files.** No website can execute before its initial bytes have reached the browser. After the application shell and local model are successfully stored, subsequent visits are designed to work with the network disabled for local AI/chat behavior.
+
+## Storage and privacy
+
+Authenticated OCADE Chat now keeps chat message bodies in account-scoped browser-local storage and performs generation through the local Brain adapters. The old `/api/ocade/chat` cloud-generation route is retired and returns a fail-closed `410` response for stale clients.
+
+Other product data has separate storage/network boundaries:
+
+- **Browser/device local:** local chat bodies, browser model data, preferences and supported local artifacts.
+- **PC/native paths:** local companion/runtime/device-control state where supported.
+- **Private Sync:** selected non-AI account/workspace records may use the configured Supabase project under row-level security.
+- **Live network tools:** web research or remote-device actions use the network only when the user invokes functionality that inherently requires it.
+
+Local-only AI must not be weakened merely because a non-AI network service is configured.
 
 ## What is in this repository
 
-| Area               | Implemented source                                                                                        | Readiness boundary                                                                                                                          |
-| ------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Web                | React/TanStack Start application, public demo, authenticated workspace and Cloudflare-oriented deployment | A build can pass while a hosted environment is misconfigured. Production URL, monitoring and launch approval remain separate gates.         |
-| Offline web        | Service worker, cached root shell and browser-local storage/model paths                                   | A real Chrome online-then-offline reload is proven. First visit, uncached routes, cleared storage, sign-in, sync, live web, payments and cloud features still need a network. |
-| Cloud/private sync | Supabase auth, RLS-backed data paths, private storage and optional AI gateways                            | Users must be told which mode is active. “Local-first” does not mean all data always remains on-device.                                     |
-| Desktop            | Local Tauri/Rust companion, packaged browser host and packaged MediaPipe hand-control sidecar             | Desktop source is retained for development, but public desktop downloads/releases are intentionally disabled for the current launch. Signing, clean-device tests, macOS notarization and update signing remain future release gates. |
-| Mobile             | Capacitor Android and iOS projects, mobile pairing and restricted control paths                           | Store signing, privacy declarations, billing compliance and device testing are still required before a store-release claim.                 |
-| Billing            | Historical subscription/allowance records and provider/webhook source remain intact                       | **Free launch mode is active.** Checkout, pricing, upgrades and paid entitlement gates are disabled. A provider token alone cannot re-enable checkout. |
+| Area | Implemented source | Boundary |
+| --- | --- | --- |
+| Web | React/TanStack application, authenticated workspace, service worker | First delivery needs a network; later local behavior depends on a complete cache/model store. |
+| Local AI | Desktop local runtime plus WebGPU/WASM browser engines | No public cloud-model fallback. Missing local engine is an explicit refusal. |
+| Multi-tab browser AI | Web Locks leader + BroadcastChannel relay | One model owner; followers relay. Runtime proof must come from the real browser evidence run. |
+| Private Sync | Supabase auth/RLS-backed account and selected workspace paths | Networked storage/auth, **not** an AI provider. |
+| Desktop | Tauri/Rust/native companion and local control components | Public desktop releases remain separately gated by signing/device/release proof. |
+| Mobile | Capacitor Android/iOS source, pairing/restricted control paths | Store/device/native-model proof remains separate. |
+| Billing | Historical records/provider webhook source | Free-launch mode remains active; checkout/paywall behavior is separate from AI routing. |
 
-## Current launch mode
+## Control + Work
 
-OCADE is currently configured as a **free launch** for every signed-in account.
-There is nothing to buy and no implemented feature is gated by a paid plan.
-Pricing, checkout, upgrade and billing surfaces are hidden, and the shared
-Paddle bootstrap refuses to initialize while free-launch mode is active. This
-is intentionally enforced below the UI so an old URL, admin surface or stale
-button cannot start a payment merely because provider configuration still
-exists.
+Chat and action execution remain separate. Control + Work can use local/native/browser/device-control components with explicit approval, STOP/pause/takeover boundaries and verification paths. A sentence typed into ordinary Chat is not permission to operate the computer.
 
-Billing tables, signed webhook handling and historical provider code are not
-deleted. They are financial/audit history and future integration source, not a
-claim that live checkout is available now.
+## Capability truthfulness
 
-## Product behavior
+A source file does not prove a production capability is alive. OCADE capability surfaces distinguish configured source from measured runtime availability. A saved monitor does not prove a runner is polling; a native shell does not prove a Code command host is connected; a browser-model test script does not prove three-tab/offline behavior until it actually executes.
 
-OCADE can route work to supported on-device/browser engines, a native companion,
-or an explicitly permitted cloud path. Features include document handling,
-conversation and project storage, browser/native control components, voice and
-vision modules, automations and cross-device controls. Availability depends on
-the platform, installed model, hardware, privacy mode and configured services.
+## Verification
 
-Capability labels are evidence-driven. A native shell does not by itself prove
-a Code terminal or automation worker is alive, a saved monitor does not prove
-anything is polling, and source code for an installer does not prove a signed
-download exists. Those capabilities stay `NOT_CONFIGURED` or `UNAVAILABLE`
-until their own runtime evidence exists.
+Local-only hardening includes:
 
-Safety controls in source include confirmation and refusal paths, emergency-stop
-handling, account-scoped storage, signed native/bridge requests, attachment
-limits, privacy-mode routing and honest “unverified” outcomes. These controls
-must still be tested on the actual production target before a release claim.
+- `scripts/check-local-only-ai.mjs` — rejects public cloud-AI keys/endpoints/model IDs from production source and requires the local-only controls.
+- `src/lib/engine/__tests__/resolve-local-only.test.ts` — verifies local selection and fail-closed behavior.
+- `src/lib/local/__tests__/model-lifecycle-retry.test.ts` — verifies automatic bounded model-download retry behavior.
+- `scripts/local-only-browser-evidence.mjs` — real three-tab/single-model plus network-disabled second-visit evidence runner.
+- `.github/workflows/ocade-local-only.yml` — source/unit/type/build gate followed by the real-browser evidence job.
 
-The Windows companion source boots from bundled local files; it no longer
-depends on a developer server. Its optional camera preview and cursor control
-use a separately packaged MediaPipe process. Cursor control requires a visible
-two-step opt-in and can be stopped from the app, tray, or `Ctrl+Shift+F12`.
-Camera frames are processed locally and are not sent to the web application.
-This source statement is **not** a public installer-availability claim.
-
-## Privacy model
-
-OCADE supports multiple storage and execution boundaries:
-
-- **Device/browser-local:** supported data remains on the user’s device.
-- **Private Sync:** selected account and workspace records are stored in the
-  configured Supabase project under row-level security.
-- **Cloud-assisted:** a disclosed provider may receive the minimum necessary
-  prompt or request only when the user’s mode and entitlement permit it.
-
-There is no advertising or third-party analytics tracker in the audited source.
-Essential local storage is used for authentication, preferences, security and
-offline operation. Future non-essential analytics must remain disabled until
-the required consent choice and documentation exist.
-
-See the pre-launch, lawyer-review drafts:
-
-- [Privacy notice](docs/legal/PRIVACY_NOTICE.md)
-- [Terms of service](docs/legal/TERMS_OF_SERVICE.md)
-- [DPDP progress](DPDP_PROGRESS.md)
-- [Data-rights process](docs/legal/DATA_RIGHTS_PROCESS.md)
-- [Breach runbook](BREACH_RUNBOOK.md)
+At the time this branch was prepared, GitHub Actions was prevented from starting jobs by the repository account's Actions billing/spending state. Therefore the committed runtime evidence runner is **not** a substitute for an observed PASS.
 
 ## Development
 
 ```bash
 npm ci
+node scripts/check-local-only-ai.mjs
 npm run typecheck
 npm run test
 npm run build
-npm run deploy:check
-# Internal Windows development only; no public desktop release is published.
-npm run desktop:bundle:windows
 ```
 
-`typecheck` and `build` regenerate the TanStack route tree first so a newly
-added file route cannot silently disappear from typed routing because a tracked
-generated file is stale.
+Authentication/private-sync development still needs the relevant Supabase deployment values. **There are no Gemini/OpenAI/Lovable chat API keys in the OCADE AI configuration.** Never commit service keys, access tokens or local `.env` files.
 
-Client authentication needs `VITE_SUPABASE_URL` and
-`VITE_SUPABASE_PUBLISHABLE_KEY`; server routes need their corresponding
-server-side bindings. Missing bindings leave public pages available but make
-authentication fail closed. Never commit service keys, access tokens or local
-`.env` files.
+## Release status
 
-## Release and public identity
-
-The private repository is connected to Lovable. Do not rewrite published Git
-history. Work must remain on a reviewed branch until the owner explicitly
-approves a push or merge to `main`.
-
-Official pre-launch identity:
-
-- Brand/venture: **CAERA CADANE**
-- Active product: **OCADE**
-- Founder: **Haans Antoni**
-- Public roles: **Founder, Chairman & CEO**
-- Location: **Bengaluru, Karnataka, India**
-- Planned public launch date: **28 August 2026**
-- FICIA, MADEE and CANIA: reserved names for possible future products; not AI
-  models and not currently advertised as available
-
-The website must not publish a CIN, GSTIN, registered office, trademark status,
-launch completion or incorporated founding date until independently verified.
-Search engines and third-party directories decide their own indexing and cannot
-be guaranteed to display any specific result.
+OCADE remains pre-launch. Source, tests, installers and deployment workflows must not be described as production-proven until their required target evidence has actually executed successfully.
 
 ## Licence
 
-The repository is proprietary. Copyright © 2026 Haans Antoni, operating under
-the CAERA CADANE brand. See [LICENSE](LICENSE). Third-party packages, models and
-assets remain under their own terms; notices are recorded in
-[release/THIRD_PARTY_NOTICES.md](release/THIRD_PARTY_NOTICES.md).
+The repository is proprietary. Third-party packages, local model weights and assets remain under their own licences; notices belong in `release/THIRD_PARTY_NOTICES.md`.
