@@ -145,6 +145,7 @@ import { CopilotMount } from "@/components/ocade/CopilotPanel";
 import { VisualResponse } from "@/components/ocade/VisualResponse";
 import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
 import { saveDraft, recoverDraft, clearDraft } from "@/lib/offline-queue";
+import { useStreamCoalescer } from "@/lib/chat/stream-coalescer";
 import {
   branchConversation,
   forkConversationBeforeMessage,
@@ -1035,7 +1036,17 @@ function ChatSurface(props: {
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [streaming, setStreaming] = useState(false);
-  const [streamText, setStreamText] = useState("");
+  const [streamText, setStreamTextState] = useState("");
+  /*
+   * Streaming used to call setState for every chunk. Both stream paths hand
+   * over the WHOLE text so far, so coalescing to one paint per frame cannot
+   * lose or reorder a token — see `stream-coalescer` for why, and note that
+   * every terminal path below (done, error, cancel) uses `setStreamText`,
+   * which flushes synchronously.
+   */
+  const streamPaint = useStreamCoalescer<string>(setStreamTextState);
+  const pushStreamText = streamPaint.push;
+  const setStreamText = streamPaint.setNow;
   const [improving, setImproving] = useState(false);
   const [listening, setListening] = useState(false);
   // Event handlers can run before React commits the next render. This ref is
@@ -1651,7 +1662,7 @@ function ChatSurface(props: {
          * long before memory does.
          */
         assertStreamWithinLimit(acc.length);
-        setStreamText(acc);
+        pushStreamText(acc);
       }
 
       let rows: Message[];
@@ -2094,7 +2105,7 @@ function ChatSurface(props: {
             onToken: (c) => {
               if (firstTokenMs === null) firstTokenMs = Date.now() - routeStarted;
               acc += c;
-              setStreamText(acc);
+              pushStreamText(acc);
             },
           },
         );
@@ -3059,6 +3070,7 @@ function ChatSurface(props: {
                 because only one of the two ever got fixed.
               */}
               <MessageList
+                conversationKey={conversation.id}
                 messages={[
                   ...messages.map(toMessageView),
                   ...(streaming && streamText

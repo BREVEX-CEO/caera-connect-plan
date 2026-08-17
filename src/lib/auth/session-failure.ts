@@ -47,13 +47,34 @@ const TRANSPORT_MESSAGES = [
 ];
 
 /**
- * HTTP statuses that mean "ask again later", not "you are not who you say".
- * 408 request timeout, 429 rate limit and every 5xx are the auth server (or a
- * proxy in front of it) failing to answer, which is an unreachability of the
- * same kind as a dropped socket.
+ * There is no such thing as a transport STATUS.
+ *
+ * An HTTP status only exists because a server answered. 408, 429 and every 5xx
+ * are answers too — a proxy in front of the auth server can return 502 while
+ * happily returning 401 a second later, and a rate limiter returning 429 has
+ * definitely seen the request. The previous version of this file treated all
+ * of those as unreachability, which meant a hostile or misbehaving edge could
+ * turn a revoked session into an authenticated one by answering 500.
+ *
+ * So: any explicit status fails closed. Retryable server conditions are still
+ * distinguishable, but only when the LIBRARY says the request never completed
+ * (see `isRetryableTransport`), never from the status number alone.
  */
-function statusIsTransport(status: number): boolean {
-  return status === 0 || status === 408 || status === 429 || status >= 500;
+function statusIsRejection(status: number): boolean {
+  return status > 0;
+}
+
+/**
+ * Signals from supabase-js / fetch that a request did not complete.
+ *
+ * `AuthRetryableFetchError` is the one supabase-js raises when its own fetch
+ * threw, and it carries `status: 0`. A `TypeError` from fetch has no status at
+ * all. Those are the only two shapes that can honestly be called transport.
+ */
+function isRetryableTransport(err: MaybeAuthError): boolean {
+  const name = String(err.name ?? "").toLowerCase();
+  if (name.includes("retryable")) return true;
+  return false;
 }
 
 export function classifyAuthFailure(error: unknown): AuthFailureKind {
@@ -62,28 +83,34 @@ export function classifyAuthFailure(error: unknown): AuthFailureKind {
   const err = error as MaybeAuthError;
 
   /*
-   * An explicit status is the strongest signal available and outranks the
-   * message, because a rejection body can contain words like "timeout" while
-   * still being a 401. 401/403/400 are answers.
+   * supabase-js's own retryable marker is checked FIRST, because it carries
+   * status 0 and is the library telling us the request never completed.
    */
-  if (typeof err.status === "number" && err.status > 0) {
-    return statusIsTransport(err.status) ? "transport" : "rejected";
-  }
+  if (isRetryableTransport(err)) return "transport";
 
+  /*
+   * An explicit status outranks everything else and always fails closed. A
+   * rejection body can contain the word "timeout"; a 503 from a proxy proves
+   * only that something on the path is alive and talking.
+   */
+  if (typeof err.status === "number" && statusIsRejection(err.status)) return "rejected";
+
+  // AuthApiError / AuthSessionMissingError are answers even without a status.
   const name = String(err.name ?? "").toLowerCase();
-  // supabase-js labels its own retryable transport failures.
-  if (name.includes("retryable")) return "transport";
-  // AuthApiError / AuthSessionMissingError / AuthWeakPasswordError are answers.
   if (name.includes("authapierror") || name.includes("sessionmissing")) return "rejected";
+  if (name.includes("weakpassword") || name.includes("invalidcredentials")) return "rejected";
 
+  /*
+   * With no status and no library marker, the message is all that is left. A
+   * raw `TypeError: Failed to fetch` is the browser's way of saying the
+   * request never reached anyone, and an AbortError is our own timeout.
+   */
   const message = String(err.message ?? "").toLowerCase();
   if (TRANSPORT_MESSAGES.some((needle) => message.includes(needle))) return "transport";
 
-  // A raw TypeError from fetch has no status and a browser-specific message;
-  // the list above covers the known ones, and the cause is checked once more
-  // in case the failure was wrapped.
   if (err.cause && err.cause !== error) return classifyAuthFailure(err.cause);
 
+  // Unknown shape. Fail closed.
   return "rejected";
 }
 

@@ -20,9 +20,6 @@ describe("unreachable auth server", () => {
     { name: "Error", message: "connect ECONNREFUSED 127.0.0.1:443" },
     { name: "AbortError", message: "The operation was aborted" },
     { name: "Error", message: "Request timed out" },
-    { name: "AuthApiError", message: "Service unavailable", status: 503 },
-    { name: "AuthApiError", message: "Gateway timeout", status: 504 },
-    { name: "AuthApiError", message: "Too many requests", status: 429 },
     { name: "Error", message: "wrapped", cause: { name: "TypeError", message: "Failed to fetch" } },
   ];
 
@@ -45,6 +42,22 @@ describe("the auth server answered no", () => {
     // A rejection body that happens to contain a transport-sounding word must
     // still fail closed, because the status is an answer.
     { name: "AuthApiError", message: "session timeout: token revoked", status: 401 },
+    /*
+     * SERVER-SIDE FAILURES ARE ANSWERS TOO.
+     *
+     * These used to be classified as transport on the theory that a 5xx means
+     * "ask again later". It also means something on the path is alive and
+     * replying — including a proxy, an edge worker or an attacker able to
+     * force one status while the real answer is 401. Fallback exists for a
+     * request that reached nobody, so a status number never grants it.
+     */
+    { name: "AuthApiError", message: "Service unavailable", status: 503 },
+    { name: "AuthApiError", message: "Gateway timeout", status: 504 },
+    { name: "AuthApiError", message: "Internal server error", status: 500 },
+    { name: "AuthApiError", message: "Too many requests", status: 429 },
+    { name: "AuthApiError", message: "Request timeout", status: 408 },
+    // A transport-sounding message cannot rescue an answered request either.
+    { name: "Error", message: "Failed to fetch", status: 502 },
   ];
 
   for (const error of rejections) {
@@ -53,6 +66,14 @@ describe("the auth server answered no", () => {
       expect(mayUseCachedSession(error)).toBe(false);
     });
   }
+
+  it("keeps the library's own retryable marker as the ONLY server-side transport signal", () => {
+    // supabase-js raises this when its fetch threw; it carries status 0.
+    expect(classifyAuthFailure({ name: "AuthRetryableFetchError", status: 0 })).toBe("transport");
+    // The same class WITH a real status is a completed request, so it fails
+    // closed on the status rather than on the class name.
+    expect(classifyAuthFailure({ name: "AuthApiError", status: 500 })).toBe("rejected");
+  });
 
   it("fails closed on anything it cannot classify", () => {
     expect(classifyAuthFailure({})).toBe("rejected");

@@ -47,6 +47,7 @@ export function MessageList({
   density = "comfortable",
   emptyState,
   renderFooter,
+  conversationKey,
 }: {
   messages: ChatMessageView[];
   actions: MessageActions;
@@ -56,6 +57,14 @@ export function MessageList({
   emptyState?: React.ReactNode;
   /** Rendered under each message. Used for the answer receipt. */
   renderFooter?: (message: ChatMessageView) => React.ReactNode;
+  /**
+   * Identity of the conversation being shown. The window resets when this
+   * changes. Passing the real conversation id matters: the first message's id
+   * was a stand-in, and it changes whenever older history is PREPENDED — which
+   * would collapse the window back to the newest 60 exactly when the reader
+   * had just asked for more.
+   */
+  conversationKey?: string;
 }) {
   const endRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -87,13 +96,15 @@ export function MessageList({
   };
 
   /*
-   * The window is reset whenever the conversation identity changes, which is
-   * detected by the first message's id: switching to another chat should not
-   * inherit "show earlier" from the one before it.
+   * The window resets when the conversation changes — switching chats should
+   * not inherit "show earlier" from the one before it — but NOT when the same
+   * conversation grows or gains older history. `conversationKey` is the real
+   * identity; the first message's id is only a fallback for callers that have
+   * no id to give (the demo builds its transcript in memory).
    */
-  const firstId = messages[0]?.id;
+  const identity = conversationKey ?? messages[0]?.id;
   const [limit, setLimit] = useState(WINDOW_SIZE);
-  useEffect(() => setLimit(WINDOW_SIZE), [firstId]);
+  useEffect(() => setLimit(WINDOW_SIZE), [identity]);
 
   const hidden = Math.max(0, messages.length - limit);
   const visible = hidden > 0 ? messages.slice(hidden) : messages;
