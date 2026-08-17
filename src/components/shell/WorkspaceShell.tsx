@@ -572,8 +572,10 @@ function WorkspaceShellInner({
           </div>
         ) : null}
       </div>
-          <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-</div>
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+    </div>
+
   );
 }
 
