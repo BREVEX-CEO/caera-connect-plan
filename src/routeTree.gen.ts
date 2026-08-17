@@ -57,6 +57,7 @@ import { Route as AuthenticatedOcadeModelsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedOcadeMonitorsRouteImport } from './routes/_authenticated/ocade.monitors'
 import { Route as AuthenticatedOcadeProjectsRouteImport } from './routes/_authenticated/ocade.projects'
 import { Route as AuthenticatedOcadeStudioRouteImport } from './routes/_authenticated/ocade.studio'
+import { Route as AuthenticatedOcadeTasksRouteImport } from './routes/_authenticated/ocade.tasks'
 import { Route as AuthenticatedOcadeWorkRouteImport } from './routes/_authenticated/ocade.work'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
 import { Route as AuthenticatedSettingsSectionRouteImport } from './routes/_authenticated/settings.$section'
@@ -331,6 +332,11 @@ const AuthenticatedOcadeStudioRoute =
     path: '/studio',
     getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
+const AuthenticatedOcadeTasksRoute = AuthenticatedOcadeTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AuthenticatedOcadeRoute,
+} as any)
 const AuthenticatedOcadeWorkRoute = AuthenticatedOcadeWorkRouteImport.update({
   id: '/work',
   path: '/work',
@@ -497,6 +503,7 @@ export interface FileRoutesByFullPath {
   '/ocade/monitors': typeof AuthenticatedOcadeMonitorsRoute
   '/ocade/projects': typeof AuthenticatedOcadeProjectsRoute
   '/ocade/studio': typeof AuthenticatedOcadeStudioRoute
+  '/ocade/tasks': typeof AuthenticatedOcadeTasksRoute
   '/ocade/work': typeof AuthenticatedOcadeWorkRoute
   '/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
@@ -564,6 +571,7 @@ export interface FileRoutesByTo {
   '/ocade/monitors': typeof AuthenticatedOcadeMonitorsRoute
   '/ocade/projects': typeof AuthenticatedOcadeProjectsRoute
   '/ocade/studio': typeof AuthenticatedOcadeStudioRoute
+  '/ocade/tasks': typeof AuthenticatedOcadeTasksRoute
   '/ocade/work': typeof AuthenticatedOcadeWorkRoute
   '/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
@@ -635,6 +643,7 @@ export interface FileRoutesById {
   '/_authenticated/ocade/monitors': typeof AuthenticatedOcadeMonitorsRoute
   '/_authenticated/ocade/projects': typeof AuthenticatedOcadeProjectsRoute
   '/_authenticated/ocade/studio': typeof AuthenticatedOcadeStudioRoute
+  '/_authenticated/ocade/tasks': typeof AuthenticatedOcadeTasksRoute
   '/_authenticated/ocade/work': typeof AuthenticatedOcadeWorkRoute
   '/_authenticated/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/_authenticated/settings/activity': typeof AuthenticatedSettingsActivityRoute
@@ -706,6 +715,7 @@ export interface FileRouteTypes {
     | '/ocade/monitors'
     | '/ocade/projects'
     | '/ocade/studio'
+    | '/ocade/tasks'
     | '/ocade/work'
     | '/settings/$section'
     | '/settings/activity'
@@ -773,6 +783,7 @@ export interface FileRouteTypes {
     | '/ocade/monitors'
     | '/ocade/projects'
     | '/ocade/studio'
+    | '/ocade/tasks'
     | '/ocade/work'
     | '/settings/$section'
     | '/settings/activity'
@@ -843,6 +854,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ocade/monitors'
     | '/_authenticated/ocade/projects'
     | '/_authenticated/ocade/studio'
+    | '/_authenticated/ocade/tasks'
     | '/_authenticated/ocade/work'
     | '/_authenticated/settings/$section'
     | '/_authenticated/settings/activity'
@@ -1231,6 +1243,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOcadeStudioRouteImport
       parentRoute: typeof AuthenticatedOcadeRoute
     }
+    '/_authenticated/ocade/tasks': {
+      id: '/_authenticated/ocade/tasks'
+      path: '/tasks'
+      fullPath: '/ocade/tasks'
+      preLoaderRoute: typeof AuthenticatedOcadeTasksRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
     '/_authenticated/ocade/work': {
       id: '/_authenticated/ocade/work'
       path: '/work'
@@ -1383,6 +1402,7 @@ interface AuthenticatedOcadeRouteChildren {
   AuthenticatedOcadeMonitorsRoute: typeof AuthenticatedOcadeMonitorsRoute
   AuthenticatedOcadeProjectsRoute: typeof AuthenticatedOcadeProjectsRoute
   AuthenticatedOcadeStudioRoute: typeof AuthenticatedOcadeStudioRoute
+  AuthenticatedOcadeTasksRoute: typeof AuthenticatedOcadeTasksRoute
   AuthenticatedOcadeWorkRoute: typeof AuthenticatedOcadeWorkRoute
 }
 
@@ -1395,6 +1415,7 @@ const AuthenticatedOcadeRouteChildren: AuthenticatedOcadeRouteChildren = {
   AuthenticatedOcadeMonitorsRoute: AuthenticatedOcadeMonitorsRoute,
   AuthenticatedOcadeProjectsRoute: AuthenticatedOcadeProjectsRoute,
   AuthenticatedOcadeStudioRoute: AuthenticatedOcadeStudioRoute,
+  AuthenticatedOcadeTasksRoute: AuthenticatedOcadeTasksRoute,
   AuthenticatedOcadeWorkRoute: AuthenticatedOcadeWorkRoute,
 }
 
