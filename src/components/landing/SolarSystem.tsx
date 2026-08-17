@@ -7,7 +7,6 @@ import {
 } from "@/lib/landing/solar-scene";
 import { useAppearance } from "@/lib/use-appearance";
 
-
 /**
  * The hero scene, mounted.
  *
@@ -32,6 +31,7 @@ import { useAppearance } from "@/lib/use-appearance";
  */
 
 const IDLE_RETURN_MS = 5000;
+const CLICK_TRAVEL_PX = 7;
 
 function pickTier(reducedMotion: boolean): QualityTier {
   if (reducedMotion) return "still";
@@ -61,8 +61,6 @@ export function SolarSystem({ className }: { className?: string }) {
   const { reducedMotion, osReducedMotion } = useAppearance();
   const holdStill = reducedMotion || osReducedMotion;
 
-
-
   useEffect(() => {
     const wrap = wrapRef.current;
     if (!wrap) return;
@@ -71,43 +69,23 @@ export function SolarSystem({ className }: { className?: string }) {
      * THE CANVAS IS CREATED HERE, NOT IN JSX — and this is the whole reason the
      * scene renders at all.
      *
-     * It used to be a `<canvas ref>` in the markup, so React owned one element
-     * for the component's lifetime and every mount handed the SAME canvas to
-     * `createSolarScene`. In development React runs an effect, tears it down and
-     * runs it again to surface exactly this class of bug; the second run then
-     * asked for a WebGL context on a canvas whose context had just been
-     * disposed, which throws. The `catch` set `failed`, the canvas went
-     * `display: none`, and the hero rendered no 3D whatsoever — on a scene that
-     * was otherwise complete and correct. It failed silently because the caught
-     * error was discarded.
-     *
-     * A canvas element can hand out exactly one context, ever. So each mount
-     * gets its own element and drops it on cleanup, which makes context reuse
-     * structurally impossible rather than something to remember.
+     * A canvas element can hand out exactly one WebGL context for this use. A
+     * fresh canvas per effect mount also makes React's development effect replay
+     * safe instead of trying to resurrect a deliberately disposed context.
      */
     const canvas = document.createElement("canvas");
     canvas.setAttribute("aria-hidden", "true");
     canvas.style.cssText =
-      "display:block;width:100%;height:100%;touch-action:none;user-select:none;";
+      "display:block;width:100%;height:100%;touch-action:none;user-select:none;cursor:grab;";
     wrap.insertBefore(canvas, wrap.firstChild);
 
     const tier = pickTier(holdStill);
-
 
     let scene: SceneHandles;
     try {
       const rect = wrap.getBoundingClientRect();
       scene = createSolarScene(canvas, rect.width || 1, rect.height || 1, tier);
     } catch (error) {
-      /*
-       * No WebGL — an old machine, a locked-down profile, a software renderer
-       * that refused. Reported as a state rather than a crash: the page keeps
-       * its text and buttons, which is the part that matters.
-       *
-       * LOGGED, NOT SWALLOWED. A bare `catch {}` here is what hid the defect
-       * above for as long as it existed: the hero silently showed nothing and
-       * there was no way to find out why without instrumenting the file.
-       */
       console.error("[OCADE] The hero scene could not start.", error);
       canvas.remove();
       setFailed(true);
@@ -121,37 +99,22 @@ export function SolarSystem({ className }: { className?: string }) {
     let lastInteraction = performance.now();
     let running = true;
     let dragging = false;
+    let dragTravel = 0;
     let labelTick = 0;
 
     const loop = (now: number) => {
       if (!running) return;
-      /*
-       * HELD STILL MEANS dt = 0. The loop keeps running so a deliberate drag or
-       * zoom still repaints — someone who asked for less motion asked for
-       * nothing to move ON ITS OWN, not to be handed a frozen picture they
-       * cannot turn — but the clock never advances, so orbits, rotation and the
-       * idle camera return produce no movement at all.
-       */
       const elapsed = (now - last) / 1000;
       const dt = holdStill ? 0 : elapsed;
       last = now;
 
-      // Five seconds after the last deliberate act, the camera finds its way
-      // back — including from mid-zoom. Not while held still: that is motion
-      // the person did not ask for.
       if (!holdStill && now - lastInteraction > IDLE_RETURN_MS) scene.goHome();
 
       scene.frame(dt);
 
       // Labels are React state, so they are updated at ~12Hz rather than every
-      // frame: re-rendering 28 elements at 60Hz costs more than the entire 3D
-      // scene does, and the labels do not move fast enough to need it.
-      //
-      // Ticked on REAL elapsed time, not the scene clock: with the scene held
-      // still the clock never advances, and a label pass that waited on it
-      // would never run — leaving the still frame unlabelled.
+      // frame. Real elapsed time is used even when the 3D clock is held still.
       labelTick += elapsed;
-
       if (labelTick > 0.08) {
         labelTick = 0;
         const next = scene.moonLabels();
@@ -179,40 +142,49 @@ export function SolarSystem({ className }: { className?: string }) {
       scene.setPointer(x, y);
       if (!dragging) return;
       touched();
+      dragTravel += Math.hypot(event.movementX, event.movementY);
       scene.orbitBy(event.movementX, event.movementY);
     };
 
     const onPointerDown = (event: PointerEvent) => {
+      const { x, y } = toNdc(event);
+      scene.setPointer(x, y);
       dragging = true;
+      dragTravel = 0;
       canvas.setPointerCapture(event.pointerId);
-      // A drag that starts here must not select the headline behind it.
+      canvas.style.cursor = "grabbing";
       document.body.style.userSelect = "none";
       touched();
     };
 
-    const endDrag = (event?: PointerEvent) => {
+    const finishDrag = (event?: PointerEvent, activate = false) => {
+      if (!dragging) return;
+      const shouldActivate = activate && dragTravel < CLICK_TRAVEL_PX;
       dragging = false;
-      if (event) canvas.releasePointerCapture(event.pointerId);
+      if (event && canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+      }
+      canvas.style.cursor = "grab";
       document.body.style.userSelect = "";
       touched();
+
+      if (shouldActivate && event) {
+        const { x, y } = toNdc(event);
+        scene.setPointer(x, y);
+        // Reuse the scene's real proximity/focus path. A planet under the
+        // pointer becomes the camera target and the post-process refraction
+        // ripple fires; an empty-space click simply eases the system closer.
+        scene.zoom(-260);
+      }
     };
+
+    const onPointerUp = (event: PointerEvent) => finishDrag(event, true);
+    const onPointerCancel = (event: PointerEvent) => finishDrag(event, false);
+    const onPointerLeave = () => finishDrag(undefined, false);
 
     const onWheel = (event: WheelEvent) => {
       const { x, y } = toNdc(event);
       scene.setPointer(x, y);
-      /*
-       * ASK FIRST, THEN DECIDE WHETHER TO KEEP THE GESTURE.
-       *
-       * This used to `preventDefault()` unconditionally before calling `zoom`,
-       * and the canvas covers the whole first screen — so "Scroll down to sign
-       * in or get started" was impossible to obey. Measured: eight wheel events
-       * over the hero, eight prevented, `scrollY` still 0.
-       *
-       * The scene returns DECLINED once it is pulled all the way out and has
-       * nothing left to do with the gesture. Then the wheel belongs to the
-       * page and the reader continues to the next section, which is the whole
-       * point of the cue above the fold.
-       */
       touched();
       const used = scene.zoom(event.deltaY);
       if (used !== DECLINED) event.preventDefault();
@@ -220,8 +192,9 @@ export function SolarSystem({ className }: { className?: string }) {
 
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerdown", onPointerDown);
-    canvas.addEventListener("pointerup", (e) => endDrag(e));
-    canvas.addEventListener("pointerleave", () => endDrag());
+    canvas.addEventListener("pointerup", onPointerUp);
+    canvas.addEventListener("pointercancel", onPointerCancel);
+    canvas.addEventListener("pointerleave", onPointerLeave);
     canvas.addEventListener("wheel", onWheel, { passive: false });
 
     const observer = new ResizeObserver(() => {
@@ -236,33 +209,19 @@ export function SolarSystem({ className }: { className?: string }) {
       observer.disconnect();
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointercancel", onPointerCancel);
+      canvas.removeEventListener("pointerleave", onPointerLeave);
       canvas.removeEventListener("wheel", onWheel);
       document.body.style.userSelect = "";
       scene.dispose();
-      // The element goes with the context it owned. Leaving it would keep a
-      // dead canvas in the tree and, on remount, a second one beside it.
       canvas.remove();
       sceneRef.current = null;
     };
-    // Rebuilt when the motion preference changes: the quality tier is chosen at
-    // construction, so a scene built for movement cannot simply be told to stop.
   }, [holdStill]);
-
 
   return (
     <div ref={wrapRef} className={className} data-scene={failed ? "unavailable" : "live"}>
-      {/*
-        The canvas is inserted here by the effect rather than rendered by React
-        — see the note above. It carries `aria-hidden`, like the scene it
-        replaced: everything it shows is available as real text elsewhere on the
-        page, and announcing a canvas that says nothing adds noise, not access.
-      */}
-
-      {/*
-        Moon names, as DOM rather than in the scene. Text drawn into WebGL at
-        this size is either blurry or costs a texture atlas; the browser already
-        has a subpixel text renderer and it is free.
-      */}
       {labels.map((label) => (
         <span
           key={label.name}
