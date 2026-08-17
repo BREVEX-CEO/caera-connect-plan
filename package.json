@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "vite dev",
     "routes:generate": "node scripts/generate-routes.mjs",
-    "ocade:77-check": "node scripts/check-ocade-77-readiness.mjs",
+    "ocade:77-check": "node scripts/check-ocade-77-readiness.mjs && node scripts/check-phase5-production-wiring.mjs",
+    "ocade:phase5-check": "node scripts/check-phase5-production-wiring.mjs",
     "build": "npm run routes:generate && vite build",
     "build:dev": "npm run routes:generate && vite build --mode development",
     "performance:budget": "node scripts/check-asset-budgets.mjs",
