@@ -937,7 +937,7 @@ function HomeSurface(props: {
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-6 py-10">
+      <div className="mx-auto flex w-full max-w-[820px] flex-1 flex-col justify-center px-6 py-10">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
           <div
             className="flex h-10 w-10 items-center justify-center rounded-md border border-border/70 text-[color:var(--accent-ocade)]"
