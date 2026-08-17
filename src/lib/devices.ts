@@ -20,6 +20,13 @@ export interface DeviceRow {
   created_at: string;
 }
 
+type AtomicDeviceRpcClient = {
+  rpc: (
+    functionName: "revoke_device_for_current_user",
+    args: { _device_id: string },
+  ) => PromiseLike<{ data: boolean | null; error: { message: string } | null }>;
+};
+
 async function createBrowserGrant(input: {
   userId: string;
   installId: string;
@@ -169,29 +176,16 @@ export async function listDevicesForCurrentUser(): Promise<DeviceRow[]> {
 }
 
 export async function revokeDevice(id: string): Promise<{ error?: string }> {
-  const revokedAt = new Date().toISOString();
-  const { data, error } = await supabase
-    .from("devices")
-    .update({ revoked_at: revokedAt })
-    .eq("id", id)
-    .select("id")
-    .maybeSingle();
+  /**
+   * This RPC is introduced by `20260817153000_atomic_device_revocation.sql`.
+   * Keep the compatibility cast local until generated Supabase types are
+   * refreshed from a database that has applied that migration. Hand-editing the
+   * generated type file would falsely claim deployed schema parity.
+   */
+  const rpcClient = supabase as unknown as AtomicDeviceRpcClient;
+  const { data, error } = await rpcClient.rpc("revoke_device_for_current_user", { _device_id: id });
   if (error) return { error: error.message };
-  if (!data) return { error: "Device revocation did not update an account-owned device." };
-
-  // Keep browser-grant state aligned with the authoritative device row. A
-  // failure here does not un-revoke the device; registration also checks the
-  // device's revoked_at before refreshing any grant.
-  const { error: grantError } = await supabase
-    .from("browser_grants")
-    .update({ revoked_at: revokedAt })
-    .eq("device_id", id)
-    .is("revoked_at", null);
-  if (grantError) {
-    return {
-      error: `The device is revoked, but its browser-grant mirror could not be updated: ${grantError.message}`,
-    };
-  }
+  if (data !== true) return { error: "Device revocation did not update an account-owned device." };
   return {};
 }
 
