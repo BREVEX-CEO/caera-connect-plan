@@ -2,62 +2,51 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 
-/**
- * Cmd/Ctrl+K navigation.
- *
- * EVERY DESTINATION IS A ROUTE THAT EXISTS. The obvious way to write this list
- * is to type out the product's ambitions — Inbox, Search, Lab, Permissions —
- * and let the palette 404 on the ones not built yet. A palette is the fastest
- * surface in the product; making it the fastest way to reach a broken page is
- * worse than leaving an entry out. Entries are added here when their route file
- * is added, not before.
- *
- * ACCESSIBILITY. It is a modal dialog containing a combobox over a listbox:
- * focus moves to the input on open, arrows move the active option, Enter
- * navigates, Escape closes and returns focus to whatever opened it. The active
- * option is announced through `aria-activedescendant` rather than by moving
- * focus, so the typed query is never interrupted.
- */
-
 export interface CommandEntry {
   to: string;
   label: string;
-  group: string;
-  /** Extra words the query should match, e.g. an old name for the page. */
+  group: "Primary" | "Tools" | "System";
   keywords?: string;
 }
 
+/** Every destination below has a route file. */
 export const COMMAND_ENTRIES: CommandEntry[] = [
-  { to: "/ocade", label: "Chat", group: "OCADE", keywords: "conversation ask ocade" },
-  { to: "/ocade/projects", label: "Projects", group: "OCADE", keywords: "folders workspaces" },
-  {
-    to: "/ocade/work",
-    label: "Control + Work",
-    group: "OCADE",
-    keywords: "pc control computer automation agent",
-  },
-  { to: "/ocade/code", label: "Code", group: "OCADE", keywords: "terminal shell repository" },
+  { to: "/ocade", label: "Chat", group: "Primary", keywords: "conversation ask" },
+  { to: "/ocade/projects", label: "Projects", group: "Primary", keywords: "folders workspace" },
+  { to: "/ocade/work", label: "Control + Work", group: "Primary", keywords: "pc computer control agent" },
+  { to: "/ocade/code", label: "Code", group: "Primary", keywords: "terminal shell repository" },
   { to: "/ocade/automations", label: "Automations", group: "Tools", keywords: "schedule recurring" },
-  { to: "/ocade/artifacts", label: "Files & artifacts", group: "Tools", keywords: "files outputs downloads" },
+  { to: "/ocade/artifacts", label: "Files & artifacts", group: "Tools", keywords: "outputs exports files" },
   { to: "/ocade/tasks", label: "Tasks", group: "Tools", keywords: "runs queue pause stop" },
-  { to: "/ocade/monitors", label: "Monitors", group: "Tools", keywords: "watch alerts" },
-  { to: "/ocade/studio", label: "Studio", group: "Tools", keywords: "images creative madee" },
-  { to: "/ocade/models", label: "Local intelligence", group: "System", keywords: "models engines providers" },
-  { to: "/ocade/health", label: "Health", group: "System", keywords: "status capabilities diagnostics" },
-  { to: "/settings/devices", label: "Devices", group: "System", keywords: "approved devices revoke" },
-  { to: "/settings/browser", label: "Browser control", group: "System", keywords: "connectors bridge" },
-  { to: "/settings/activity", label: "Activity", group: "System", keywords: "logs audit history" },
-  { to: "/settings/privacy", label: "Privacy", group: "System", keywords: "storage mode permissions" },
-  { to: "/settings/security", label: "Security", group: "System", keywords: "sessions password" },
-  { to: "/settings", label: "Settings", group: "System", keywords: "preferences" },
+  { to: "/ocade/inbox", label: "Inbox", group: "Tools", keywords: "approvals outcomes notifications" },
+  { to: "/ocade/search", label: "Search", group: "Tools", keywords: "messages projects outputs universal" },
+  { to: "/ocade/monitors", label: "Monitors", group: "Tools", keywords: "watch alerts sources" },
+  { to: "/ocade/studio", label: "Studio", group: "Tools", keywords: "creative documents reports apps" },
+  { to: "/ocade/models", label: "Models", group: "System", keywords: "local intelligence engines providers" },
+  { to: "/ocade/devices", label: "Devices", group: "System", keywords: "approved revoke machine phone" },
+  { to: "/ocade/connectors", label: "Connectors", group: "System", keywords: "browser cloud sync integrations" },
+  { to: "/ocade/permissions", label: "Permissions", group: "System", keywords: "approval privacy access" },
+  { to: "/ocade/activity", label: "Activity", group: "System", keywords: "logs audit history" },
+  { to: "/ocade/health", label: "Health", group: "System", keywords: "status capability diagnostics" },
+  { to: "/ocade/lab", label: "Lab", group: "System", keywords: "engineering diagnostics research sandbox" },
+  { to: "/settings", label: "Settings", group: "System", keywords: "preferences account" },
 ];
 
 export function filterCommands(entries: CommandEntry[], query: string): CommandEntry[] {
   const q = query.trim().toLowerCase();
   if (!q) return entries;
-  return entries.filter((e) =>
-    `${e.label} ${e.group} ${e.keywords ?? ""} ${e.to}`.toLowerCase().includes(q),
+  return entries.filter((entry) =>
+    `${entry.label} ${entry.group} ${entry.keywords ?? ""} ${entry.to}`.toLowerCase().includes(q),
   );
+}
+
+function tabbables(root: HTMLElement | null): HTMLElement[] {
+  if (!root) return [];
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+    ),
+  ).filter((node) => !node.hasAttribute("hidden") && node.getAttribute("aria-hidden") !== "true");
 }
 
 export function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -65,27 +54,23 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const listRef = useRef<HTMLUListElement | null>(null);
-
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const results = useMemo(() => filterCommands(COMMAND_ENTRIES, query), [query]);
 
   useEffect(() => {
     if (!open) return;
+    returnFocusRef.current = document.activeElement as HTMLElement | null;
     setQuery("");
     setActive(0);
     const id = requestAnimationFrame(() => inputRef.current?.focus());
-    return () => cancelAnimationFrame(id);
+    return () => {
+      cancelAnimationFrame(id);
+      requestAnimationFrame(() => returnFocusRef.current?.focus());
+    };
   }, [open]);
 
-  useEffect(() => {
-    setActive(0);
-  }, [query]);
-
-  useEffect(() => {
-    if (!open) return;
-    const node = listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`);
-    node?.scrollIntoView({ block: "nearest" });
-  }, [active, open]);
+  useEffect(() => setActive(0), [query]);
 
   if (!open) return null;
 
@@ -98,35 +83,46 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   return (
     <div
       className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 p-4 pt-[12vh]"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="Command palette"
         className="w-full max-w-lg overflow-hidden rounded-xl border border-border/60 bg-popover shadow-2xl"
-        onKeyDown={(e) => {
-          if (e.key === "Escape") {
-            e.preventDefault();
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
             onClose();
-          } else if (e.key === "ArrowDown") {
-            e.preventDefault();
-            setActive((i) => (results.length ? (i + 1) % results.length : 0));
-          } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setActive((i) => (results.length ? (i - 1 + results.length) % results.length : 0));
-          } else if (e.key === "Enter") {
-            e.preventDefault();
+          } else if (event.key === "ArrowDown") {
+            event.preventDefault();
+            setActive((index) => (results.length ? (index + 1) % results.length : 0));
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            setActive((index) => (results.length ? (index - 1 + results.length) % results.length : 0));
+          } else if (event.key === "Enter") {
+            event.preventDefault();
             go(results[active]);
+          } else if (event.key === "Tab") {
+            const nodes = tabbables(dialogRef.current);
+            if (!nodes.length) return;
+            const first = nodes[0];
+            const last = nodes[nodes.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault();
+              last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault();
+              first.focus();
+            }
           }
         }}
       >
         <input
           ref={inputRef}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(event) => setQuery(event.target.value)}
           role="combobox"
           aria-expanded="true"
           aria-controls="command-palette-list"
@@ -136,43 +132,36 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           aria-label="Search pages"
           className="w-full border-b border-border/60 bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
         />
-        <ul
-          id="command-palette-list"
-          ref={listRef}
-          role="listbox"
-          aria-label="Pages"
-          className="max-h-[50vh] overflow-y-auto py-1"
-        >
+        <ul id="command-palette-list" role="listbox" aria-label="Pages" className="max-h-[50vh] overflow-y-auto py-1">
           {results.length === 0 ? (
-            <li className="px-4 py-6 text-center text-sm text-muted-foreground">
-              Nothing here matches “{query}”.
-            </li>
+            <li className="px-4 py-6 text-center text-sm text-muted-foreground">Nothing here matches “{query}”.</li>
           ) : (
-            results.map((entry, i) => (
+            results.map((entry, index) => (
               <li
                 key={entry.to}
-                id={`command-option-${i}`}
-                data-index={i}
+                id={`command-option-${index}`}
                 role="option"
-                aria-selected={i === active}
-                onMouseEnter={() => setActive(i)}
-                onMouseDown={(e) => {
-                  e.preventDefault();
+                aria-selected={index === active}
+                onMouseEnter={() => setActive(index)}
+                onMouseDown={(event) => {
+                  event.preventDefault();
                   go(entry);
                 }}
                 className={cn(
                   "flex cursor-pointer items-center justify-between gap-3 px-4 py-2 text-sm",
-                  i === active ? "bg-accent text-foreground" : "text-muted-foreground",
+                  index === active ? "bg-accent text-foreground" : "text-muted-foreground",
                 )}
               >
                 <span>{entry.label}</span>
-                <span className="text-[11px] uppercase tracking-wide opacity-60">
-                  {entry.group}
-                </span>
+                <span className="text-[11px] uppercase tracking-wide opacity-60">{entry.group}</span>
               </li>
             ))
           )}
         </ul>
+        <div className="flex items-center justify-between border-t border-border/60 px-4 py-2 text-[10px] text-muted-foreground">
+          <span>↑ ↓ navigate · Enter open · Esc close</span>
+          <span>Ctrl/⌘ K</span>
+        </div>
       </div>
     </div>
   );
