@@ -48,10 +48,7 @@ interface NavigatorWithLocks extends Navigator {
 
 let scheduled = false;
 let activeWarmup: Promise<void> | null = null;
-let currentState: LandingWarmupState = {
-  phase: "idle",
-  updatedAt: 0,
-};
+let currentState: LandingWarmupState = { phase: "idle", updatedAt: 0 };
 const subscribers = new Set<(state: LandingWarmupState) => void>();
 
 function getConnection(): NetworkInformationLike | undefined {
@@ -128,27 +125,26 @@ async function requestPersistentStorage() {
   }
 }
 
-async function warmWebGpu(): Promise<{ ready: boolean; progress: number }> {
+async function warmWebGpu(): Promise<{
+  available: boolean;
+  ready: boolean;
+  progress: number;
+}> {
   const { BrowserWebGpuAdapter } = await import("./adapters/browser-webgpu");
   let progress = 0;
   const adapter = new BrowserWebGpuAdapter({
     onProgress: (event) => {
       if (typeof event.fraction === "number") progress = Math.max(progress, event.fraction);
-      persistState({
-        phase: "warming",
-        engine: "webgpu",
-        progress,
-        updatedAt: Date.now(),
-      });
+      persistState({ phase: "warming", engine: "webgpu", progress, updatedAt: Date.now() });
     },
   });
 
   try {
     const availability = await adapter.probe();
-    if (!availability.available) return { ready: false, progress: 0 };
+    if (!availability.available) return { available: false, ready: false, progress: 0 };
     await adapter.preload();
     // WebLLM reports 1.0 after its cached model/runtime preparation completes.
-    return { ready: progress >= 0.995, progress };
+    return { available: true, ready: progress >= 0.995, progress };
   } finally {
     // The landing page is a cache warmer, not an inference session. Releasing
     // the worker unloads GPU/RAM while IndexedDB keeps the downloaded model.
@@ -184,12 +180,7 @@ async function warmWasmWeights(): Promise<{ ready: boolean; progress: number }> 
     sha256: catalogue.sha256For(tier),
     onProgress: (event) => {
       if (typeof event.fraction === "number") progress = Math.max(progress, event.fraction);
-      persistState({
-        phase: "warming",
-        engine: "wasm",
-        progress,
-        updatedAt: Date.now(),
-      });
+      persistState({ phase: "warming", engine: "wasm", progress, updatedAt: Date.now() });
     },
   });
   return { ready: result.ok, progress: result.ok ? 1 : progress };
@@ -236,8 +227,22 @@ async function performWarmup() {
         return;
       }
 
-      // No usable WebGPU or an incomplete WebGPU warm-up: cache the managed
-      // WASM fallback without loading it into an inference runtime.
+      if (gpu.available) {
+        // A usable WebGPU engine began warming but did not finish. Keep the
+        // partial WebLLM cache and resume it later; do NOT immediately download
+        // a second 491 MB WASM model on the same visit.
+        persistState({
+          phase: "partial",
+          engine: "webgpu",
+          progress: gpu.progress,
+          reason: "webgpu-warmup-incomplete-will-resume",
+          updatedAt: Date.now(),
+        });
+        return;
+      }
+
+      // WebGPU is genuinely unavailable. Cache the managed CPU fallback without
+      // loading it into an inference runtime, keeping RAM use bounded.
       const wasm = await warmWasmWeights();
       if (wasm.ready) {
         await requestPersistentStorage();
@@ -245,9 +250,9 @@ async function performWarmup() {
       } else {
         persistState({
           phase: "partial",
-          engine: gpu.progress > 0 ? "webgpu" : "wasm",
-          progress: Math.max(gpu.progress, wasm.progress),
-          reason: "warmup-incomplete-will-resume",
+          engine: "wasm",
+          progress: wasm.progress,
+          reason: "wasm-warmup-incomplete-will-resume",
           updatedAt: Date.now(),
         });
       }
