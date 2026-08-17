@@ -7,6 +7,7 @@ import { registerDeviceForCurrentSession } from "@/lib/devices";
 import { reportLovableError } from "@/lib/lovable-error-reporting";
 import { FirstRunEngineSetup } from "@/components/ocade/FirstRunEngineSetup";
 import { SettingsAccessProvider } from "@/components/settings/SettingsGate";
+import { OcadeMobileBottomNav } from "@/components/shell/OcadeMobileBottomNav";
 
 /**
  * Integration-managed protected layout. Runs client-only because the Supabase
@@ -138,7 +139,10 @@ function AuthedLayout() {
           Renders nothing once a model exists — and nothing at all without an
           account, since there is no account to install it for. */}
       {signedIn ? <FirstRunEngineSetup /> : null}
-      <Outlet />
+      <div className={signedIn ? "pb-16 md:pb-0" : undefined}>
+        <Outlet />
+      </div>
+      {signedIn ? <OcadeMobileBottomNav /> : null}
     </SettingsAccessProvider>
   );
 }
