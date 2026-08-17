@@ -1,0 +1,86 @@
+name: OCADE Local-Only Proof
+
+on:
+  push:
+    branches:
+      - main
+      - agent/local-only-hardening
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+timeout-minutes: 60
+
+jobs:
+  source-and-unit:
+    name: Local-only source + unit proof
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Reject all public cloud-AI routing markers
+        run: node scripts/check-local-only-ai.mjs
+      - name: Run local routing and download-retry regressions
+        run: >-
+          npx vitest run
+          src/lib/engine/__tests__/resolve-local-only.test.ts
+          src/lib/local/__tests__/model-lifecycle-retry.test.ts
+      - name: Generate routes and typecheck
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build
+
+  real-browser-evidence:
+    name: 3 tabs = 1 model + offline second visit
+    needs: source-and-unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: browser-actions/setup-chrome@v1
+      - run: npm ci
+      - run: npm run build
+      - name: Start production preview
+        run: |
+          PORT=4173 HOST=127.0.0.1 npm run preview > /tmp/ocade-preview.log 2>&1 &
+          echo $! > /tmp/ocade-preview.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/demo/ocade >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/ocade-preview.log
+          exit 1
+      - name: Run real local browser proof
+        env:
+          OCADE_E2E_BASE_URL: http://127.0.0.1:4173
+          OCADE_E2E_EVIDENCE_FILE: release/OCADE_LOCAL_ONLY_BROWSER_EVIDENCE.json
+        run: node scripts/local-only-browser-evidence.mjs
+      - name: Show real evidence
+        if: ${{ always() }}
+        run: |
+          if [ -f release/OCADE_LOCAL_ONLY_BROWSER_EVIDENCE.json ]; then
+            cat release/OCADE_LOCAL_ONLY_BROWSER_EVIDENCE.json
+          else
+            echo "No PASS evidence file was created. The browser proof did not complete successfully."
+          fi
+      - name: Upload browser evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocade-local-only-browser-evidence
+          path: release/OCADE_LOCAL_ONLY_BROWSER_EVIDENCE.json
+          if-no-files-found: ignore
