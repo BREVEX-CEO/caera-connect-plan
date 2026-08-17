@@ -127,19 +127,21 @@ export function retryTask(task: UnifiedTask, at = nowIso()): UnifiedTask {
   };
 }
 
+/** Adapter for the existing durable automation runtime. */
 export function taskFromAutomationRun(run: AutomationRunLike, title: string): UnifiedTask {
   const statusMap: Record<string, UnifiedTaskStatus> = {
-    queued: "PLANNING",
-    running: "EXECUTING",
+    pending: "PLANNING",
     awaiting_approval: "WAITING_PERMISSION",
+    running: "EXECUTING",
     paused: "WAITING_USER",
     succeeded: "COMPLETED",
-    completed: "COMPLETED",
     failed: "FAILED",
+    blocked: "FAILED",
     cancelled: "CANCELLED",
   };
   const status = statusMap[run.status] ?? "FAILED";
   const firstStep = run.plan?.steps?.[0]?.summary;
+  const blockedError = run.status === "blocked" ? run.blocked_reason ?? "The automation plan was blocked." : undefined;
   return {
     id: `automation:${run.id}`,
     source: "automation",
@@ -152,7 +154,7 @@ export function taskFromAutomationRun(run: AutomationRunLike, title: string): Un
     updatedAt: run.finished_at ?? run.created_at,
     startedAt: status === "EXECUTING" || TERMINAL.has(status) ? run.created_at : undefined,
     finishedAt: run.finished_at ?? (TERMINAL.has(status) ? run.created_at : undefined),
-    lastError: run.error ?? undefined,
+    lastError: run.error ?? blockedError,
   };
 }
 
