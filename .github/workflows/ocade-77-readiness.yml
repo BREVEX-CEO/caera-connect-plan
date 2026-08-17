@@ -28,6 +28,8 @@ jobs:
           node-version: 22
       - name: Verify exactly 77 materially-resolved items and evidence paths
         run: node scripts/check-ocade-77-readiness.mjs
+      - name: Verify historical Phase-5 modules are production reachable
+        run: node scripts/check-phase5-production-wiring.mjs
 
   focused-regressions:
     name: P0 focused regressions
