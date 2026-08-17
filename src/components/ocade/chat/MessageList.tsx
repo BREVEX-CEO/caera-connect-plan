@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./MessageBubble";
@@ -106,6 +106,40 @@ export function MessageList({
   const [limit, setLimit] = useState(WINDOW_SIZE);
   useEffect(() => setLimit(WINDOW_SIZE), [identity]);
 
+  /**
+   * ACCESSIBILITY: announce a completed assistant turn once, never each token.
+   *
+   * Putting `aria-live` around the transcript makes a streaming answer read out
+   * again on every DOM mutation. Instead this tiny region changes only when a
+   * new assistant message moves out of its streaming state. Historical answers
+   * are silently adopted when a conversation opens, so switching chats does not
+   * suddenly read old content. Screen-reader users can then navigate the normal
+   * transcript to read the completed answer at their own pace.
+   */
+  const latestAssistant = useMemo(
+    () => [...messages].reverse().find((message) => message.role === "assistant") ?? null,
+    [messages],
+  );
+  const announcementConversationRef = useRef<string | undefined>(undefined);
+  const announcedMessageRef = useRef<string | null>(null);
+  const [completionAnnouncement, setCompletionAnnouncement] = useState("");
+
+  useEffect(() => {
+    if (announcementConversationRef.current !== identity) {
+      announcementConversationRef.current = identity;
+      announcedMessageRef.current =
+        latestAssistant && !latestAssistant.streaming ? latestAssistant.id : null;
+      setCompletionAnnouncement("");
+      return;
+    }
+
+    if (!latestAssistant || latestAssistant.streaming) return;
+    if (announcedMessageRef.current === latestAssistant.id) return;
+
+    announcedMessageRef.current = latestAssistant.id;
+    setCompletionAnnouncement("OCADE response complete.");
+  }, [identity, latestAssistant?.id, latestAssistant?.streaming]);
+
   const hidden = Math.max(0, messages.length - limit);
   const visible = hidden > 0 ? messages.slice(hidden) : messages;
 
@@ -115,6 +149,10 @@ export function MessageList({
 
   return (
     <div ref={scrollerRef} className="relative">
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {completionAnnouncement}
+      </div>
+
       {hidden > 0 ? (
         <div className="mx-auto w-full max-w-3xl px-4 pt-6 sm:px-6">
           <button
