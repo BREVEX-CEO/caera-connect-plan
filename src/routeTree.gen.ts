@@ -52,6 +52,7 @@ import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authentic
 import { Route as AuthenticatedOcadeArtifactsRouteImport } from './routes/_authenticated/ocade.artifacts'
 import { Route as AuthenticatedOcadeAutomationsRouteImport } from './routes/_authenticated/ocade.automations'
 import { Route as AuthenticatedOcadeCodeRouteImport } from './routes/_authenticated/ocade.code'
+import { Route as AuthenticatedOcadeHealthRouteImport } from './routes/_authenticated/ocade.health'
 import { Route as AuthenticatedOcadeModelsRouteImport } from './routes/_authenticated/ocade.models'
 import { Route as AuthenticatedOcadeMonitorsRouteImport } from './routes/_authenticated/ocade.monitors'
 import { Route as AuthenticatedOcadeProjectsRouteImport } from './routes/_authenticated/ocade.projects'
@@ -300,6 +301,12 @@ const AuthenticatedOcadeCodeRoute = AuthenticatedOcadeCodeRouteImport.update({
   path: '/code',
   getParentRoute: () => AuthenticatedOcadeRoute,
 } as any)
+const AuthenticatedOcadeHealthRoute =
+  AuthenticatedOcadeHealthRouteImport.update({
+    id: '/health',
+    path: '/health',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
 const AuthenticatedOcadeModelsRoute =
   AuthenticatedOcadeModelsRouteImport.update({
     id: '/models',
@@ -485,6 +492,7 @@ export interface FileRoutesByFullPath {
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/ocade/code': typeof AuthenticatedOcadeCodeRoute
+  '/ocade/health': typeof AuthenticatedOcadeHealthRoute
   '/ocade/models': typeof AuthenticatedOcadeModelsRoute
   '/ocade/monitors': typeof AuthenticatedOcadeMonitorsRoute
   '/ocade/projects': typeof AuthenticatedOcadeProjectsRoute
@@ -551,6 +559,7 @@ export interface FileRoutesByTo {
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/ocade/code': typeof AuthenticatedOcadeCodeRoute
+  '/ocade/health': typeof AuthenticatedOcadeHealthRoute
   '/ocade/models': typeof AuthenticatedOcadeModelsRoute
   '/ocade/monitors': typeof AuthenticatedOcadeMonitorsRoute
   '/ocade/projects': typeof AuthenticatedOcadeProjectsRoute
@@ -621,6 +630,7 @@ export interface FileRoutesById {
   '/_authenticated/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/_authenticated/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/_authenticated/ocade/code': typeof AuthenticatedOcadeCodeRoute
+  '/_authenticated/ocade/health': typeof AuthenticatedOcadeHealthRoute
   '/_authenticated/ocade/models': typeof AuthenticatedOcadeModelsRoute
   '/_authenticated/ocade/monitors': typeof AuthenticatedOcadeMonitorsRoute
   '/_authenticated/ocade/projects': typeof AuthenticatedOcadeProjectsRoute
@@ -691,6 +701,7 @@ export interface FileRouteTypes {
     | '/ocade/artifacts'
     | '/ocade/automations'
     | '/ocade/code'
+    | '/ocade/health'
     | '/ocade/models'
     | '/ocade/monitors'
     | '/ocade/projects'
@@ -757,6 +768,7 @@ export interface FileRouteTypes {
     | '/ocade/artifacts'
     | '/ocade/automations'
     | '/ocade/code'
+    | '/ocade/health'
     | '/ocade/models'
     | '/ocade/monitors'
     | '/ocade/projects'
@@ -826,6 +838,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ocade/artifacts'
     | '/_authenticated/ocade/automations'
     | '/_authenticated/ocade/code'
+    | '/_authenticated/ocade/health'
     | '/_authenticated/ocade/models'
     | '/_authenticated/ocade/monitors'
     | '/_authenticated/ocade/projects'
@@ -1183,6 +1196,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOcadeCodeRouteImport
       parentRoute: typeof AuthenticatedOcadeRoute
     }
+    '/_authenticated/ocade/health': {
+      id: '/_authenticated/ocade/health'
+      path: '/health'
+      fullPath: '/ocade/health'
+      preLoaderRoute: typeof AuthenticatedOcadeHealthRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
     '/_authenticated/ocade/models': {
       id: '/_authenticated/ocade/models'
       path: '/models'
@@ -1358,6 +1378,7 @@ interface AuthenticatedOcadeRouteChildren {
   AuthenticatedOcadeArtifactsRoute: typeof AuthenticatedOcadeArtifactsRoute
   AuthenticatedOcadeAutomationsRoute: typeof AuthenticatedOcadeAutomationsRoute
   AuthenticatedOcadeCodeRoute: typeof AuthenticatedOcadeCodeRoute
+  AuthenticatedOcadeHealthRoute: typeof AuthenticatedOcadeHealthRoute
   AuthenticatedOcadeModelsRoute: typeof AuthenticatedOcadeModelsRoute
   AuthenticatedOcadeMonitorsRoute: typeof AuthenticatedOcadeMonitorsRoute
   AuthenticatedOcadeProjectsRoute: typeof AuthenticatedOcadeProjectsRoute
@@ -1369,6 +1390,7 @@ const AuthenticatedOcadeRouteChildren: AuthenticatedOcadeRouteChildren = {
   AuthenticatedOcadeArtifactsRoute: AuthenticatedOcadeArtifactsRoute,
   AuthenticatedOcadeAutomationsRoute: AuthenticatedOcadeAutomationsRoute,
   AuthenticatedOcadeCodeRoute: AuthenticatedOcadeCodeRoute,
+  AuthenticatedOcadeHealthRoute: AuthenticatedOcadeHealthRoute,
   AuthenticatedOcadeModelsRoute: AuthenticatedOcadeModelsRoute,
   AuthenticatedOcadeMonitorsRoute: AuthenticatedOcadeMonitorsRoute,
   AuthenticatedOcadeProjectsRoute: AuthenticatedOcadeProjectsRoute,
