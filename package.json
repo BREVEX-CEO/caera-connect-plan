@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "routes:generate": "npm exec --yes --package=@tanstack/router-cli@1.170.16 -- tsr generate",
+    "routes:generate": "node scripts/generate-routes.mjs",
     "ocade:77-check": "node scripts/check-ocade-77-readiness.mjs",
     "build": "npm run routes:generate && vite build",
     "build:dev": "npm run routes:generate && vite build --mode development",
