@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 concurrency:
   group: ocade-77-${{ github.ref }}
@@ -52,3 +53,59 @@ jobs:
           src/lib/__tests__/automation-worker-controller.test.ts
       - name: Generate routes and typecheck
         run: npm run typecheck
+
+  report:
+    name: Publish observable readiness result
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    needs:
+      - contract
+      - focused-regressions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post current-head proof result to the pull request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- ocade-77-readiness-result -->';
+            const contract = '${{ needs.contract.result }}';
+            const regressions = '${{ needs.focused-regressions.result }}';
+            const passed = contract === 'success' && regressions === 'success';
+            const body = [
+              marker,
+              '## OCADE 77 executed proof',
+              '',
+              `Head: \`${context.sha}\``,
+              `77/Phase-5 source contract: **${contract}**`,
+              `Focused regressions + generated-route typecheck: **${regressions}**`,
+              '',
+              passed
+                ? '**EXECUTED PROOF OBSERVED: PASS** — this commit passed the OCADE 77 source contract, historical Phase-5 production-wiring gate, focused P0 regressions and TypeScript route check.'
+                : '**EXECUTED PROOF OBSERVED: NOT PASSING** — do not merge or call this head proven until the failing/cancelled gate is resolved.',
+              '',
+              'This result does not claim production Supabase parity, physical-device success, public desktop signing/notarization or deployment success.',
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const prior = comments.find((comment) =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker),
+            );
+            if (prior) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: prior.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
