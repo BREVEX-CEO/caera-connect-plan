@@ -23,6 +23,7 @@ import {
 import { wrapUntrustedContent } from "@/lib/ocade-injection-guard";
 import { ocadeCorePolicy } from "@/lib/agent/ocade-core-policy";
 import { planById, type PlanId } from "@/lib/payments/pricing";
+import { paidEntitlementRequired } from "@/lib/launch-mode";
 import {
   allowanceState,
   canUseCloud,
@@ -309,15 +310,27 @@ export const Route = createFileRoute("/api/ocade/chat")({
         }
         const sub = subRow as { plan_id?: string; expires_at?: string; status?: string } | null;
         const planAllowance = planById((sub?.plan_id ?? "std_8d") as PlanId)?.cloudAllowance;
-        const allowance = allowanceState(Number(usageRow?.used_count ?? 0), new Date(), planAllowance);
-        const entitlementActive = cloudEntitlementActive(
-          sub
-            ? {
-                status: sub.status,
-                expiresAt: sub.expires_at,
-              }
-            : null,
+        const allowance = allowanceState(
+          Number(usageRow?.used_count ?? 0),
+          new Date(),
+          planAllowance,
         );
+        /*
+         * FREE LAUNCH. Paid entitlement does not gate cloud chat right now.
+         * The ALLOWANCE check below still runs — it is a rate limit protecting
+         * a metered upstream, not a paywall — and provider availability is
+         * still resolved honestly above, so a missing key still refuses.
+         */
+        const entitlementActive =
+          !paidEntitlementRequired() ||
+          cloudEntitlementActive(
+            sub
+              ? {
+                  status: sub.status,
+                  expiresAt: sub.expires_at,
+                }
+              : null,
+          );
         const cloudDecision = canUseCloud({ entitlementActive, state: allowance });
         if (!cloudDecision.allowed) {
           return new Response(

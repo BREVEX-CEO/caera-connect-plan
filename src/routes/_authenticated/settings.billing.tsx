@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { redirect } from "@tanstack/react-router";
+import { FREE_LAUNCH_MODE } from "@/lib/launch-mode";
 import { createFileRoute } from "@tanstack/react-router";
 import { CreditCard, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
@@ -26,6 +28,11 @@ import {
 } from "@/utils/payments.functions";
 
 export const Route = createFileRoute("/_authenticated/settings/billing")({
+  /* Billing is disabled during free launch; usage remains visible. The page itself is kept, unreachable, so
+     re-enabling billing is a flag change rather than a rebuild. */
+  beforeLoad: () => {
+    if (FREE_LAUNCH_MODE) throw redirect({ to: "/settings/usage" });
+  },
   head: () => ({
     meta: [
       { title: "Billing and subscription — CAERA CADANE" },
@@ -70,7 +77,11 @@ function describeStatus(sub: SubscriptionRecord): { label: string; tone: string;
             : "This subscription has ended.",
       };
     default:
-      return { label: sub.status, tone: "text-muted-foreground", detail: `Period ends ${endsText}.` };
+      return {
+        label: sub.status,
+        tone: "text-muted-foreground",
+        detail: `Period ends ${endsText}.`,
+      };
   }
 }
 
@@ -199,7 +210,10 @@ function BillingPage() {
         description="Your current plan, what happens next, and how to change or cancel it."
         actions={
           <Button size="sm" variant="outline" onClick={() => void load()} disabled={loading}>
-            <RefreshCw className={loading ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} aria-hidden />
+            <RefreshCw
+              className={loading ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"}
+              aria-hidden
+            />
             Refresh
           </Button>
         }
@@ -216,7 +230,9 @@ function BillingPage() {
       ) : null}
 
       {error ? (
-        <GlassPanel className="border-destructive/40 p-3 text-xs text-destructive">{error}</GlassPanel>
+        <GlassPanel className="border-destructive/40 p-3 text-xs text-destructive">
+          {error}
+        </GlassPanel>
       ) : null}
       {checkoutError ? (
         <GlassPanel className="border-destructive/40 p-3 text-xs text-destructive">
@@ -270,7 +286,12 @@ function BillingPage() {
             </p>
 
             <div className="mt-3 flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => void openPortal()} disabled={busy !== null}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void openPortal()}
+                disabled={busy !== null}
+              >
                 {busy === "portal" ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
                 ) : (
@@ -279,7 +300,12 @@ function BillingPage() {
                 Manage payment and invoices
               </Button>
               {canCancel ? (
-                <Button size="sm" variant="outline" onClick={() => void cancel()} disabled={busy !== null}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void cancel()}
+                  disabled={busy !== null}
+                >
                   {busy === "cancel" ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
                   ) : null}
@@ -320,7 +346,11 @@ function BillingPage() {
                   disabled={isCurrent || checkoutLoading || !isCheckoutConfigured() || !user}
                   onClick={() => buy(plan.priceId)}
                 >
-                  {isCurrent ? "Current plan" : checkoutLoading ? "Opening…" : "Continue to payment"}
+                  {isCurrent
+                    ? "Current plan"
+                    : checkoutLoading
+                      ? "Opening…"
+                      : "Continue to payment"}
                 </Button>
               </article>
             );
@@ -329,7 +359,6 @@ function BillingPage() {
       </GlassPanel>
 
       <PaymentMethodsPanel readiness={upi} loading={upiLoading} error={upiError} />
-
     </div>
   );
 }

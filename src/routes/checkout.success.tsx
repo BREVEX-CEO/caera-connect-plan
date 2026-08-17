@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { redirect } from "@tanstack/react-router";
+import { FREE_LAUNCH_MODE } from "@/lib/launch-mode";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { GlassPanel } from "@/components/shell/GlassPanel";
@@ -7,6 +9,11 @@ import { getPaddleEnvironment } from "@/lib/paddle";
 import { getMySubscription, type SubscriptionRecord } from "@/utils/payments.functions";
 
 export const Route = createFileRoute("/checkout/success")({
+  /* Nothing is for sale during free launch, so there is no purchase to confirm. The page itself is kept, unreachable, so
+     re-enabling billing is a flag change rather than a rebuild. */
+  beforeLoad: () => {
+    if (FREE_LAUNCH_MODE) throw redirect({ to: "/home" });
+  },
   head: () => ({
     meta: [
       { title: "Purchase confirmed — CAERA CADANE" },

@@ -1,3 +1,5 @@
+import { redirect } from "@tanstack/react-router";
+import { FREE_LAUNCH_MODE } from "@/lib/launch-mode";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
@@ -12,6 +14,11 @@ import {
 } from "@/lib/packaging/public-download";
 
 export const Route = createFileRoute("/download")({
+  /* Desktop installer promotion is withdrawn until packages are runtime-proven. The page itself is kept, unreachable, so
+     re-enabling billing is a flag change rather than a rebuild. */
+  beforeLoad: () => {
+    if (FREE_LAUNCH_MODE) throw redirect({ to: "/" });
+  },
   head: () => ({
     meta: [
       { title: "Download OCADE — desktop and mobile availability" },

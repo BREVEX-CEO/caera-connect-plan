@@ -6,7 +6,6 @@ import { ParticleLogoIntro } from "./ParticleLogoIntro";
 import { OcadeCompanion } from "@/components/ocade/OcadeCompanion";
 import { useAppearance } from "@/lib/use-appearance";
 
-
 /*
  * LAZY, AND THAT IS A BUDGET DECISION RATHER THAN A HABIT.
  *
@@ -88,8 +87,6 @@ export function LandingUniverse() {
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const pinned = useMemo(() => PLANETS.find((p) => p.id === pinnedId) ?? null, [pinnedId]);
   const active = pinned ?? hovered;
-
-
 
   useEffect(() => {
     const navigatorish = navigator as Navigator & { deviceMemory?: number };
@@ -325,12 +322,6 @@ export function LandingUniverse() {
               className="inline-flex h-11 items-center justify-center rounded-full border border-border/70 bg-background/40 px-7 text-[13.5px] font-medium text-foreground backdrop-blur transition-colors hover:bg-background/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               Try the demo
-            </Link>
-            <Link
-              to="/download"
-              className="inline-flex h-11 items-center justify-center rounded-full px-4 text-[13px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Desktop app
             </Link>
           </div>
 

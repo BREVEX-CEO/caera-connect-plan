@@ -22,7 +22,6 @@ import {
   Image as ImageIcon,
   Activity,
   LifeBuoy,
-  CreditCard,
   Wand2,
   ListChecks,
 } from "lucide-react";
@@ -238,7 +237,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
   },
   {
     id: "subscription",
-    label: "Subscription",
+    label: "Usage",
     items: [
       {
         slug: "usage",
@@ -247,25 +246,6 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         status: "active",
         description: "What you have used, and what your plan allows.",
         keywords: ["usage", "plan", "allowance", "limit"],
-      },
-      {
-        slug: "billing",
-        label: "Billing",
-        icon: CreditCard,
-        status: "active",
-        description: "Your subscription, payment method and cancellation.",
-        keywords: [
-          "billing",
-          "subscription",
-          "payment",
-          "invoice",
-          "cancel",
-          "upgrade",
-          "card",
-          "upi",
-          "paypal",
-          "checkout",
-        ],
       },
     ],
   },

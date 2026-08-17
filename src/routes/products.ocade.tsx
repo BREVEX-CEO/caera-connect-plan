@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { PublicPage, PublicSection } from "@/components/public/PublicPage";
 import { OCADE_STRUCTURED_DATA, PUBLIC_IDENTITY } from "@/lib/public-identity";
 
@@ -34,10 +34,9 @@ function OcadePage() {
       </PublicSection>
       <PublicSection title="Name and meaning">
         <p>
-          OCADE is pronounced “OH-kayd.” Its creator, Haans Antoni, defines OCADE as
-          “Orbital-scale command and autonomous decision engine.” This is the official intended
-          brand meaning, not a claim that every autonomous capability is already available in the
-          production product.
+          OCADE is pronounced “OH-kayd.” Its creator, Haans Antoni, defines OCADE as “Orbital-scale
+          command and autonomous decision engine.” This is the official intended brand meaning, not
+          a claim that every autonomous capability is already available in the production product.
         </p>
       </PublicSection>
       <PublicSection title="Offline and cloud behavior">
@@ -51,11 +50,8 @@ function OcadePage() {
       <PublicSection title="Subscriptions and devices">
         <p>
           The entitlement source currently models up to two mobile and two desktop devices per
-          subscription. The founder-approved pre-launch prices are listed on the{` `}
-          <Link to="/pricing" className="text-foreground underline">
-            pricing page
-          </Link>
-          . Payment checkout is not yet a verified production service and does not accept money.
+          account. OCADE is free for every signed-in account during launch: there is no plan to buy,
+          no checkout, and no paid gate on any implemented feature.
         </p>
       </PublicSection>
     </PublicPage>

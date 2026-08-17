@@ -44,12 +44,6 @@ export function PublicPage({
             <Link to="/products/ocade" className="hover:text-foreground">
               OCADE
             </Link>
-            <Link to="/pricing" className="hover:text-foreground">
-              Pricing
-            </Link>
-            <Link to="/download" className="hover:text-foreground">
-              Download
-            </Link>
             <Link to="/founder/haans-antoni" className="hover:text-foreground">
               Founder
             </Link>
@@ -79,9 +73,6 @@ export function PublicPage({
           <div className="flex flex-wrap gap-4">
             <Link to="/data-rights" className="hover:text-foreground">
               Data rights
-            </Link>
-            <Link to="/download" className="hover:text-foreground">
-              Desktop app
             </Link>
             <Link to="/auth" className="hover:text-foreground">
               Sign in
