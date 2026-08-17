@@ -13,12 +13,11 @@ on:
 permissions:
   contents: read
 
-timeout-minutes: 60
-
 jobs:
   source-and-unit:
     name: Local-only source + unit proof
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
