@@ -11,19 +11,13 @@ import { getCapabilityEnvironment } from "./environment.functions";
 import { allCapabilityReports, type CapabilitySignals } from "./registry";
 import type { CapabilityReport } from "./types";
 
-/**
- * Collect the real signals and hand them to the pure registry.
- *
- * The rule that governs every line here: a signal is only reported when it has
- * actually been observed. Where a probe cannot run in this environment the
- * field is left `undefined` and the registry resolves downwards — no field is
- * ever defaulted to `true` to make a screen look healthier than the machine is.
- */
+const MONITOR_STORAGE_KEY = "ocade.monitors.v1";
+
+/** Collect observed runtime signals. Unknown never defaults upward to ready. */
 export function useCapabilitySignals(): CapabilitySignals {
   const online = useOnline();
   const { user } = useSession();
   const localEngine = useLocalEngine();
-
   const fetchEnv = useServerFn(getCapabilityEnvironment);
   const env = useQuery({
     queryKey: ["capability-environment", user?.id],
@@ -32,12 +26,6 @@ export function useCapabilitySignals(): CapabilitySignals {
     queryFn: () => fetchEnv(),
   });
 
-  /*
-   * The native host. `detectTauri()` is the only truthful client-side answer:
-   * in a browser tab there is no host, and no amount of UI can create one.
-   * Automations and monitors run on that same desktop worker, so they inherit
-   * this signal rather than inventing one of their own.
-   */
   const nativeHost = typeof window === "undefined" ? false : detectTauri();
 
   const [browserBridge, setBrowserBridge] = useState<boolean | undefined>(undefined);
@@ -45,8 +33,8 @@ export function useCapabilitySignals(): CapabilitySignals {
     let cancelled = false;
     void getBrowserBridge()
       .status()
-      .then((s) => {
-        if (!cancelled) setBrowserBridge(s.available);
+      .then((status) => {
+        if (!cancelled) setBrowserBridge(status.available);
       })
       .catch(() => {
         if (!cancelled) setBrowserBridge(false);
@@ -65,12 +53,6 @@ export function useCapabilitySignals(): CapabilitySignals {
     });
   }, []);
 
-  /*
-   * The chat storage mode is the user's own recorded privacy choice, read from
-   * the same resolver every write path uses. Reading it from anywhere else
-   * would risk the health page saying "synchronised" while the adapter that
-   * actually stores the message keeps it on the device.
-   */
   const modeQuery = useQuery({
     queryKey: ["capability-storage-mode", user?.id],
     enabled: !!user?.id,
@@ -78,6 +60,17 @@ export function useCapabilitySignals(): CapabilitySignals {
     queryFn: () => getModeFor(user!.id, "chats"),
   });
   const storageMode: NonNullable<CapabilitySignals["sync"]>["mode"] = modeQuery.data ?? "unknown";
+
+  const [configuredMonitors, setConfiguredMonitors] = useState(0);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(MONITOR_STORAGE_KEY) ?? "[]");
+      setConfiguredMonitors(Array.isArray(parsed) ? parsed.length : 0);
+    } catch {
+      setConfiguredMonitors(0);
+    }
+  }, []);
 
   return {
     online,
@@ -91,20 +84,38 @@ export function useCapabilitySignals(): CapabilitySignals {
     companion: nativeHost ? { connected: true } : { connected: false },
     browserBridge: browserBridge === undefined ? undefined : { connected: browserBridge },
     speech,
-    /*
-     * Image understanding follows the engine actually available, not a wish:
-     * the local discovery already classifies which installed engines accept
-     * images, and a cloud engine only counts once one is configured.
-     */
     vision: {
       engineSupportsImages:
-        localEngine.models.some((m) => m.vision) || Boolean(env.data?.cloudConfigured),
+        localEngine.models.some((model) => model.vision) || Boolean(env.data?.cloudConfigured),
     },
+    /*
+     * A Tauri host is evidence that a native process exists, but it is not by
+     * itself evidence that the automation worker is healthy. The existing
+     * automation runner uses that native host, so it may be available there;
+     * its individual run state is still authoritative on the Tasks page.
+     */
     automationRunner: { available: nativeHost },
-    monitors: { configuredCount: 0, runnerAvailable: nativeHost },
+    /*
+     * Monitor configuration currently lives in localStorage. There is no
+     * dedicated monitor-runner heartbeat/probe in the product yet, so the
+     * registry MUST NOT infer active polling from `detectTauri()`. Configured
+     * monitors are counted truthfully while runnerAvailable stays false until a
+     * real runner probe is implemented.
+     */
+    monitors: { configuredCount: configuredMonitors, runnerAvailable: false },
   };
 }
 
 export function useCapabilityReports(): CapabilityReport[] {
-  return allCapabilityReports(useCapabilitySignals());
+  return allCapabilityReports(useCapabilitySignals()).map((report) =>
+    report.id === "desktopInstaller"
+      ? {
+          ...report,
+          status: "UNAVAILABLE" as const,
+          detail:
+            "Desktop downloads are disabled for the current free launch. Native source may exist in the repository, but no installer is offered to users.",
+          evidence: "Desktop download surface is intentionally withdrawn for this launch.",
+        }
+      : report,
+  );
 }
