@@ -33,9 +33,18 @@ export function LivingIntelligenceBackdrop({
   className?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const { prefs, reducedMotion } = useAppearance();
-  const still = reducedMotion || prefs.lowPerformance;
-  const highContrast = prefs.highContrast;
+  const appearance = useAppearance();
+  /*
+   * Three independent reasons to hold still, and all of them must win: the OS
+   * setting, the in-app override, and the automatic fallback the detector
+   * turns on for slow devices.
+   */
+  const still =
+    appearance.reducedMotion ||
+    appearance.osReducedMotion ||
+    appearance.lowPerformance ||
+    appearance.perfFallback.active;
+  const highContrast = appearance.highContrast;
 
   useEffect(() => {
     const canvas = canvasRef.current;
