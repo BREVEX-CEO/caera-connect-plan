@@ -39,11 +39,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Auth, free-launch, chat accessibility, task runtime, automation queue
+      - name: Auth, free-launch, webhook security, chat accessibility, tasks, automation
         run: >-
           npx vitest run
           src/lib/__tests__/session-failure.test.ts
           src/lib/__tests__/free-launch-payments.test.ts
+          src/lib/__tests__/paddle-webhook-verification.test.ts
           src/lib/__tests__/message-list-a11y.test.tsx
           src/lib/tasks/__tests__/unified-task.test.ts
           src/lib/__tests__/automation-worker-controller.test.ts
