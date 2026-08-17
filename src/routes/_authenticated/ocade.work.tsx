@@ -54,7 +54,10 @@ function ControlWorkRoute() {
         contest entirely.
       */}
       <div className="relative z-10 h-full bg-background/88">
-        <ControlWorkPanel brain={brain} headerNote="Signed in · this computer" />
+        <ControlWorkPanel
+          brain={brain}
+          headerNote="Signed in · this computer · file attachment is not configured yet"
+        />
       </div>
     </div>
   );
