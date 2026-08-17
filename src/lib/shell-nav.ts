@@ -11,15 +11,11 @@ import {
   Workflow,
   Package,
   Radar,
-  Boxes,
   FileCode2,
   ListChecks,
-  Activity,
   Inbox,
   Search,
-  Cable,
-  ShieldCheck,
-  FlaskConical,
+  SlidersHorizontal,
   Palette,
   type LucideIcon,
 } from "lucide-react";
@@ -72,10 +68,10 @@ export function activeModule(pathname: string): ModuleId {
 }
 
 /**
- * OCADE navigation is ordered by importance rather than by implementation age:
- * primary work first, then tools, then advanced/system surfaces. The shell stays
- * a single contextual sidebar; we do not stack a second OCADE sidebar inside
- * Chat. Every entry below resolves to a real route.
+ * Keep OCADE's default sidebar short enough to remain a work surface rather
+ * than a sitemap. Primary destinations come first, then tools; every advanced
+ * control lives behind one System entry and remains directly addressable from
+ * Cmd/Ctrl+K. This is the compact advanced/system layer requested for launch.
  */
 export const MODULE_CONTEXT: Record<ModuleId, NavItem[]> = {
   ocade: [
@@ -92,14 +88,8 @@ export const MODULE_CONTEXT: Record<ModuleId, NavItem[]> = {
     { to: "/ocade/search", label: "Search", icon: Search },
     { to: "/ocade/monitors", label: "Monitors", icon: Radar },
     { to: "/ocade/studio", label: "Studio", icon: Palette },
-    // Advanced / system
-    { to: "/ocade/models", label: "Models", icon: Boxes },
-    { to: "/ocade/devices", label: "Devices", icon: Monitor },
-    { to: "/ocade/connectors", label: "Connectors", icon: Cable },
-    { to: "/ocade/permissions", label: "Permissions", icon: ShieldCheck },
-    { to: "/ocade/activity", label: "Activity", icon: Activity },
-    { to: "/ocade/health", label: "Health", icon: Activity },
-    { to: "/ocade/lab", label: "Lab", icon: FlaskConical },
+    // Compact advanced/system entry.
+    { to: "/ocade/system", label: "System", icon: SlidersHorizontal },
   ],
   ficia: [],
   madee: [],
