@@ -1,12 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Activity,
+  Bell,
   Boxes,
+  Brain,
   Cable,
   FlaskConical,
   HeartPulse,
+  LayoutTemplate,
   Monitor,
   Settings,
+  Share2,
   ShieldCheck,
 } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
@@ -23,6 +27,10 @@ const ENTRIES = [
   { to: "/ocade/permissions", label: "Permissions", detail: "Permission-bearing capabilities and their real state.", icon: ShieldCheck },
   { to: "/ocade/activity", label: "Activity", detail: "Recorded account and agent activity.", icon: Activity },
   { to: "/ocade/health", label: "Health", detail: "Truthful capability diagnostics.", icon: HeartPulse },
+  { to: "/ocade/shared", label: "Shared", detail: "Sharing boundary and external-access status.", icon: Share2 },
+  { to: "/ocade/templates", label: "Templates", detail: "Reusable prompt starters without fake automation claims.", icon: LayoutTemplate },
+  { to: "/ocade/knowledge", label: "Knowledge", detail: "Durable context and the current indexing boundary.", icon: Brain },
+  { to: "/ocade/notifications", label: "Notifications", detail: "In-app attention and background-delivery status.", icon: Bell },
   { to: "/ocade/lab", label: "Lab", detail: "Engineering diagnostics, research and governed execution.", icon: FlaskConical },
   { to: "/settings", label: "Settings", detail: "Account, privacy, appearance and product preferences.", icon: Settings },
 ] as const;
