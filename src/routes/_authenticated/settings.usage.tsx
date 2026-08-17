@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { FREE_LAUNCH_NOTICE } from "@/lib/launch-mode";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Gauge, Cloud, HardDrive, MonitorSmartphone, Clock, Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
@@ -67,7 +68,12 @@ function UsagePage() {
   }, []);
 
   const state = useMemo(
-    () => allowanceState(used ?? 0, new Date(), entitlement ? PLANS[entitlement.planId].cloudAllowancePerWindow : CLOUD_ALLOWANCE),
+    () =>
+      allowanceState(
+        used ?? 0,
+        new Date(),
+        entitlement ? PLANS[entitlement.planId].cloudAllowancePerWindow : CLOUD_ALLOWANCE,
+      ),
     [entitlement, used],
   );
   const ent = useMemo(() => entitlementState(entitlement), [entitlement]);
@@ -167,75 +173,19 @@ function UsagePage() {
           </p>
         </GlassPanel>
 
-        {/* Plan */}
+        {/* Plan — withdrawn during free launch.
+            A plan grid, an "expired" badge and a "paused until renewal" list
+            are all payment-gating surfaces. Nothing is for sale, so showing
+            them would describe a restriction that does not exist. */}
         <GlassPanel className="p-4">
           <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold">
             <Gauge className="h-4 w-4" aria-hidden /> Plan
           </h3>
-          {entitlement ? (
-            <p className="text-xs text-muted-foreground">
-              {PLANS[entitlement.planId].label} plan ·{" "}
-              {ent.active ? (
-                <>active until {ent.expiresAt.toLocaleDateString()}</>
-              ) : (
-                <span className="text-[color:var(--state-warning)]">expired</span>
-              )}
-            </p>
-          ) : (
-            <p className="text-xs text-muted-foreground">No active plan.</p>
-          )}
-
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {Object.values(PLANS).map((p) => (
-              <div
-                key={p.id}
-                className={cn(
-                  "rounded-lg border p-3 text-xs",
-                  entitlement?.planId === p.id
-                    ? "border-foreground/40 bg-sidebar-accent/40"
-                    : "border-border/60",
-                )}
-              >
-                <p className="text-sm font-medium text-foreground">{p.label}</p>
-                <p className="mt-1 text-muted-foreground">
-                  {p.cloudAllowancePerWindow} cloud uses / {WINDOW_HOURS}h · {p.desktopDevices}{" "}
-                  desktop + {p.mobileDevices} mobile devices
-                </p>
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 text-[11px] text-muted-foreground">
-            Every paid plan keeps the same 2-computer and 2-phone limit. Longer plans include a
-            larger OCADE Cloud allowance. Live checkout remains disabled until provider accounts,
-            legal review and production webhooks are verified.
+          <p className="text-xs text-muted-foreground">{FREE_LAUNCH_NOTICE}</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            The cloud allowance shown above is a rate limit on a metered upstream service, not a
+            paywall. OCADE Local stays unlimited either way.
           </p>
-        </GlassPanel>
-
-        {/* After expiry — explicit guarantees */}
-        <GlassPanel className="p-4">
-          <h3 className="mb-2 text-sm font-semibold">If your plan lapses</h3>
-          <ul className="flex flex-col gap-1 text-xs">
-            {[
-              ["Your local data stays accessible", ent.localDataAvailable],
-              ["On-device inference keeps working", ent.localInferenceAvailable],
-              ["Exports keep working", ent.localExportAvailable],
-              ["OCADE Cloud", ent.cloudAvailable],
-              ["Premium platform services", ent.premiumAvailable],
-            ].map(([label, ok]) => (
-              <li key={String(label)} className="flex items-center gap-2">
-                <span
-                  className={cn(
-                    "inline-block h-1.5 w-1.5 rounded-full",
-                    ok ? "bg-[color:var(--state-success)]" : "bg-muted-foreground/50",
-                  )}
-                />
-                <span className={ok ? "text-foreground" : "text-muted-foreground"}>
-                  {label}
-                  {ok ? "" : " — paused until renewal"}
-                </span>
-              </li>
-            ))}
-          </ul>
         </GlassPanel>
 
         {/* Devices + offline entitlement */}

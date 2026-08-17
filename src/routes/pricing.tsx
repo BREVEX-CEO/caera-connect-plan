@@ -1,3 +1,5 @@
+import { redirect } from "@tanstack/react-router";
+import { FREE_LAUNCH_MODE } from "@/lib/launch-mode";
 import { createFileRoute } from "@tanstack/react-router";
 import { CreditCard, ShieldCheck, Smartphone } from "lucide-react";
 import { z } from "zod";
@@ -12,6 +14,11 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/pricing")({
+  /* Pricing is hidden while OCADE is free for everyone. The page itself is kept, unreachable, so
+     re-enabling billing is a flag change rather than a rebuild. */
+  beforeLoad: () => {
+    if (FREE_LAUNCH_MODE) throw redirect({ to: "/" });
+  },
   validateSearch: searchSchema,
   head: () => ({
     meta: [

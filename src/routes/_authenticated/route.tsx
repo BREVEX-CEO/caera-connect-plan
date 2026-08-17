@@ -1,6 +1,8 @@
 import { createFileRoute, Outlet, redirect, useRouter, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { mayUseCachedSession, cachedSessionIsCurrent } from "@/lib/auth/session-failure";
+
 import { registerDeviceForCurrentSession } from "@/lib/devices";
 import { reportLovableError } from "@/lib/lovable-error-reporting";
 import { FirstRunEngineSetup } from "@/components/ocade/FirstRunEngineSetup";
@@ -40,11 +42,18 @@ export const Route = createFileRoute("/_authenticated")({
     let user = error ? null : data.user;
     let offline = false;
 
-    if (error && !user) {
+    /*
+     * The distinction that makes this safe lives in `classifyAuthFailure`:
+     * only a request that never got an answer may degrade to the cached
+     * session. A 401/403/400, a revoked refresh token, a banned user or a
+     * missing session are ANSWERS and fail closed to /auth.
+     */
+    if (error && !user && mayUseCachedSession(error)) {
       const { data: cached } = await supabase.auth.getSession();
       const session = cached.session;
+      // expires_at is a timestamp; expiry needs no network and gets no grace.
       const expiresAt = session?.expires_at ? session.expires_at * 1000 : 0;
-      if (session?.user && expiresAt > Date.now()) {
+      if (session?.user && cachedSessionIsCurrent(session) && expiresAt > Date.now()) {
         user = session.user;
         offline = true;
       }
