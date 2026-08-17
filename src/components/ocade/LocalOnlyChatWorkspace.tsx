@@ -6,11 +6,7 @@ import { AppShell } from "@/components/shell/AppShell";
 import { ChatComposer } from "@/components/ocade/chat/ChatComposer";
 import { ChatSidebar } from "@/components/ocade/chat/ChatSidebar";
 import { MessageList } from "@/components/ocade/chat/MessageList";
-import type {
-  ChatConversationView,
-  ChatMessageView,
-  EngineStatusView,
-} from "@/components/ocade/chat/chat-types";
+import type { ChatConversationView, ChatMessageView, EngineStatusView } from "@/components/ocade/chat/chat-types";
 import { useLocalChatEngine } from "@/lib/chat/use-local-chat-engine";
 import { useChatPrefs } from "@/lib/use-chat-prefs";
 import { useSession } from "@/lib/session";
@@ -79,11 +75,9 @@ function titleFrom(text: string) {
 
 /**
  * Authenticated OCADE Chat with no server AI path.
- *
- * Conversation bodies are persisted in this browser under an account-scoped
- * localStorage key. Generation goes only through useLocalChatEngine, whose
- * Brain adapters are on-device/paired-device only. There is deliberately no
- * fetch to /api/ocade/chat and no Supabase message write in this component.
+ * Conversation bodies are account-scoped local browser data and generation
+ * goes only through the on-device Brain. No prompt is written to Supabase or
+ * posted to a server chat endpoint from this workspace.
  */
 export function LocalOnlyChatWorkspace() {
   const { user } = useSession();
@@ -100,7 +94,6 @@ export function LocalOnlyChatWorkspace() {
   useEffect(() => {
     void engine.check();
     engine.warm();
-    // Engine callbacks are stable for the lifetime of this workspace.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -143,7 +136,7 @@ export function LocalOnlyChatWorkspace() {
     return {
       locality: ready ? "local" : "unknown",
       label: ready ? (engine.state.label ?? "OCADE Local") : "Local engine",
-      online: true,
+      online: typeof navigator === "undefined" ? true : navigator.onLine,
       preparing: engine.state.status === "checking" || engine.state.status === "preparing",
       detail:
         engine.state.reason ??
@@ -194,8 +187,7 @@ export function LocalOnlyChatWorkspace() {
   const submit = useCallback(async () => {
     const text = draft.trim();
     if (!text || streaming) return;
-    const conversationId = active?.id ?? createConversation(titleFrom(text));
-    const existing = active?.messages ?? [];
+
     const now = new Date().toISOString();
     const userMessage: ChatMessageView = {
       id: id("user"),
@@ -203,17 +195,42 @@ export function LocalOnlyChatWorkspace() {
       content: text,
       createdAt: now,
     };
-    updateConversation(conversationId, (conversation) => ({
-      ...conversation,
-      title: conversation.messages.length === 0 ? titleFrom(text) : conversation.title,
-      updatedAt: now,
-      messages: [...conversation.messages, userMessage],
-    }));
+
+    // New-chat creation and first-message append MUST be one state mutation.
+    // React state updates are async; creating an empty conversation and then
+    // trying to append against the previous store could silently lose turn 1.
+    let conversationId: string;
+    let existing: ChatMessageView[];
+    if (active) {
+      conversationId = active.id;
+      existing = active.messages;
+      updateConversation(conversationId, (conversation) => ({
+        ...conversation,
+        title: conversation.messages.length === 0 ? titleFrom(text) : conversation.title,
+        updatedAt: now,
+        messages: [...conversation.messages, userMessage],
+      }));
+    } else {
+      conversationId = id("chat");
+      existing = [];
+      const created: LocalConversation = {
+        id: conversationId,
+        title: titleFrom(text),
+        createdAt: now,
+        updatedAt: now,
+        messages: [userMessage],
+      };
+      setStore((current) => ({
+        ...current,
+        activeId: conversationId,
+        conversations: [created, ...current.conversations],
+      }));
+    }
+
     setDraft("");
     setStreaming(true);
     setStreamText("");
     let answer = "";
-
     const history: BrainMessage[] = [
       SYSTEM_PROMPT,
       ...existing
@@ -241,7 +258,13 @@ export function LocalOnlyChatWorkspace() {
           updatedAt: new Date().toISOString(),
           messages: [
             ...conversation.messages,
-            { id: id("assistant"), role: "assistant", content: stopped, createdAt: new Date().toISOString(), engineLabel: engine.state.label ?? "OCADE Local" },
+            {
+              id: id("assistant"),
+              role: "assistant",
+              content: stopped,
+              createdAt: new Date().toISOString(),
+              engineLabel: engine.state.label ?? "OCADE Local",
+            },
           ],
         }));
       }
@@ -268,7 +291,7 @@ export function LocalOnlyChatWorkspace() {
         },
       ],
     }));
-  }, [active, createConversation, draft, engine, streaming, updateConversation]);
+  }, [active, draft, engine, streaming, updateConversation]);
 
   return (
     <AppShell>
