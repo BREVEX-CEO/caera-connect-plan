@@ -15,8 +15,6 @@ const REQUEST_TIMEOUT_MS = 180_000;
 
 type RelayMessage =
   | { type: "leader"; tabId: string }
-  | { type: "ping"; from: string; nonce: string }
-  | { type: "pong"; to: string; nonce: string }
   | { type: "request"; from: string; requestId: string; messages: BrainMessage[] }
   | { type: "token"; to: string; requestId: string; token: string }
   | { type: "done"; to: string; requestId: string; result: BrainStreamResult }
@@ -24,8 +22,8 @@ type RelayMessage =
 
 export interface BrowserEngineDiagnostics {
   tabId: string;
-  role: "unknown" | "leader" | "follower" | "single-tab-fallback";
-  /** Number of underlying browser model engines owned by THIS tab. Followers stay at zero. */
+  role: "unknown" | "leader" | "follower" | "unsupported";
+  /** Actual underlying browser model instances proven loaded/used by this tab. */
   modelInstances: number;
   localRequests: number;
   relayedRequests: number;
@@ -43,32 +41,40 @@ const makeId = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-function setDiagnostics(next: Partial<BrowserEngineDiagnostics>, tabId: string) {
+function diagnostic(tabId: string): BrowserEngineDiagnostics {
+  return (
+    (typeof window !== "undefined" && window.__OCADE_BROWSER_ENGINE_DIAGNOSTICS__) ?? {
+      tabId,
+      role: "unknown",
+      modelInstances: 0,
+      localRequests: 0,
+      relayedRequests: 0,
+      activeEngine: null,
+    }
+  );
+}
+function setDiagnostics(tabId: string, patch: Partial<BrowserEngineDiagnostics>) {
   if (typeof window === "undefined") return;
-  const current = window.__OCADE_BROWSER_ENGINE_DIAGNOSTICS__ ?? {
-    tabId,
-    role: "unknown" as const,
-    modelInstances: 0,
-    localRequests: 0,
-    relayedRequests: 0,
-    activeEngine: null,
-  };
-  window.__OCADE_BROWSER_ENGINE_DIAGNOSTICS__ = { ...current, ...next, tabId };
+  window.__OCADE_BROWSER_ENGINE_DIAGNOSTICS__ = { ...diagnostic(tabId), ...patch, tabId };
 }
 
 type PendingFollower = {
   resolve: (result: BrainStreamResult) => void;
   onToken: (token: string) => void;
   timer: ReturnType<typeof setTimeout>;
+  signal?: AbortSignal;
+  abort?: () => void;
 };
 
+type SharedRole = BrowserEngineDiagnostics["role"];
+
 /**
- * One browser model engine per same-origin browser profile, even with many tabs.
+ * Exactly one browser-model owner per same-origin browser profile.
  *
- * Web Locks owns leadership. Followers NEVER instantiate WebLLM/WASM; they
- * relay messages over BroadcastChannel and receive the token stream back. The
- * leader serializes requests because a single model context must not be driven
- * concurrently by unrelated chats.
+ * The exclusive Web Lock is the authority. A follower never calls preload or
+ * stream on WebGPU/WASM. It sends the request over BroadcastChannel and receives
+ * tokens from the leader. If the platform cannot provide both primitives,
+ * browser inference is refused rather than loading one model per tab.
  */
 export class SharedBrowserAdapter implements BrainAdapter {
   readonly id = "browser_webgpu" as const;
@@ -78,17 +84,18 @@ export class SharedBrowserAdapter implements BrainAdapter {
   private readonly webgpu = new BrowserWebGpuAdapter();
   private readonly wasm = new BrowserWasmAdapter();
   private channel: BroadcastChannel | null = null;
-  private role: "unknown" | "leader" | "follower" | "single-tab-fallback" = "unknown";
-  private election: Promise<typeof this.role> | null = null;
+  private role: SharedRole = "unknown";
+  private election: Promise<SharedRole> | null = null;
   private releaseLock: (() => void) | null = null;
   private pending = new Map<string, PendingFollower>();
   private leaderAbort = new Map<string, AbortController>();
   private queue: Promise<void> = Promise.resolve();
   private active: BrainAdapter | null = null;
+  private activeKind: "webgpu" | "wasm" | null = null;
   private disposed = false;
 
   constructor() {
-    setDiagnostics({}, this.tabId);
+    setDiagnostics(this.tabId, {});
     if (typeof BroadcastChannel !== "undefined") {
       this.channel = new BroadcastChannel(CHANNEL_NAME);
       this.channel.addEventListener("message", (event: MessageEvent<RelayMessage>) => {
@@ -97,28 +104,34 @@ export class SharedBrowserAdapter implements BrainAdapter {
     }
   }
 
-  private async elect(): Promise<typeof this.role> {
+  private coordinationSupported(): boolean {
+    return (
+      typeof navigator !== "undefined" &&
+      "locks" in navigator &&
+      typeof navigator.locks?.request === "function" &&
+      typeof BroadcastChannel !== "undefined" &&
+      this.channel !== null
+    );
+  }
+
+  private async elect(): Promise<SharedRole> {
     if (this.role !== "unknown") return this.role;
     if (this.election) return this.election;
 
     this.election = (async () => {
-      if (
-        typeof navigator === "undefined" ||
-        !("locks" in navigator) ||
-        typeof BroadcastChannel === "undefined"
-      ) {
-        this.role = "single-tab-fallback";
-        setDiagnostics({ role: this.role }, this.tabId);
+      if (!this.coordinationSupported()) {
+        this.role = "unsupported";
+        setDiagnostics(this.tabId, { role: "unsupported", modelInstances: 0, activeEngine: null });
         return this.role;
       }
 
       let decide!: (leader: boolean) => void;
       const decided = new Promise<boolean>((resolve) => (decide = resolve));
-      let decidedOnce = false;
-      const decideOnce = (value: boolean) => {
-        if (decidedOnce) return;
-        decidedOnce = true;
-        decide(value);
+      let finished = false;
+      const decideOnce = (leader: boolean) => {
+        if (finished) return;
+        finished = true;
+        decide(leader);
       };
 
       void navigator.locks
@@ -128,7 +141,7 @@ export class SharedBrowserAdapter implements BrainAdapter {
             return;
           }
           this.role = "leader";
-          setDiagnostics({ role: "leader" }, this.tabId);
+          setDiagnostics(this.tabId, { role: "leader" });
           decideOnce(true);
           this.channel?.postMessage({ type: "leader", tabId: this.tabId } satisfies RelayMessage);
           await new Promise<void>((resolve) => {
@@ -137,20 +150,25 @@ export class SharedBrowserAdapter implements BrainAdapter {
         })
         .catch(() => decideOnce(false));
 
-      const leader = await decided;
-      if (!leader) {
+      if (!(await decided)) {
         this.role = "follower";
-        setDiagnostics({ role: "follower", modelInstances: 0, activeEngine: null }, this.tabId);
+        setDiagnostics(this.tabId, { role: "follower", modelInstances: 0, activeEngine: null });
       }
       return this.role;
     })();
-
     return this.election;
   }
 
   async probe(): Promise<AdapterAvailability> {
-    // Probe is intentionally read-only and does not load weights. It is safe in
-    // every tab; only stream/preload is leader-gated.
+    const role = await this.elect();
+    if (role === "unsupported") {
+      return unavailable(
+        "unsupported_device",
+        "This browser cannot safely share one local OCADE model across tabs because Web Locks or BroadcastChannel is unavailable. OCADE refuses to load duplicate model copies.",
+      );
+    }
+
+    // Capability probes do not load weights and are safe in followers.
     const gpu = await this.webgpu.probe();
     if (gpu.available) return { ...gpu, label: "OCADE Browser (shared)" };
     const wasm = await this.wasm.probe();
@@ -167,38 +185,51 @@ export class SharedBrowserAdapter implements BrainAdapter {
     const gpu = await this.webgpu.probe();
     if (gpu.available) {
       this.active = this.webgpu;
-      setDiagnostics({ modelInstances: 1, activeEngine: "webgpu" }, this.tabId);
+      this.activeKind = "webgpu";
+      setDiagnostics(this.tabId, { activeEngine: "webgpu" });
       return this.active;
     }
     const wasm = await this.wasm.probe();
     if (wasm.available) {
       this.active = this.wasm;
-      setDiagnostics({ modelInstances: 1, activeEngine: "wasm" }, this.tabId);
+      this.activeKind = "wasm";
+      setDiagnostics(this.tabId, { activeEngine: "wasm" });
       return this.active;
     }
     return null;
   }
 
-  /** Only the lock holder is allowed to warm/download the browser engine. */
+  /** Only the Web-Locks leader is permitted to warm/download browser weights. */
   async preload(): Promise<void> {
     const role = await this.elect();
-    if (role === "follower") return;
+    if (role !== "leader") return;
     const engine = await this.pickLeaderEngine();
     if (!engine) return;
-    const maybe = engine as BrainAdapter & { preload?: () => Promise<void> };
-    await maybe.preload?.().catch(() => {});
+    const preload = (engine as BrainAdapter & { preload?: () => Promise<void> }).preload;
+    if (!preload) return;
+    try {
+      await preload.call(engine);
+      // Successful preload means the runtime actually created/loaded its engine.
+      setDiagnostics(this.tabId, { modelInstances: 1, activeEngine: this.activeKind });
+    } catch {
+      // A failed warm-up does not create proof of an instance and send can retry.
+    }
   }
 
   async stream(messages: BrainMessage[], handlers: BrainStreamHandlers): Promise<BrainStreamResult> {
     const role = await this.elect();
+    if (role === "unsupported") {
+      return {
+        ok: false,
+        failure: "unavailable",
+        reason: "Browser-local OCADE requires Web Locks and BroadcastChannel so multiple tabs cannot duplicate the model.",
+      };
+    }
     if (role === "follower") return this.relay(messages, handlers);
     return this.runOnLeader(messages, handlers);
   }
 
-  private runOnLeader(
-    messages: BrainMessage[],
-    handlers: BrainStreamHandlers,
-  ): Promise<BrainStreamResult> {
+  private runOnLeader(messages: BrainMessage[], handlers: BrainStreamHandlers): Promise<BrainStreamResult> {
     return new Promise<BrainStreamResult>((resolve) => {
       this.queue = this.queue
         .catch(() => {})
@@ -209,60 +240,58 @@ export class SharedBrowserAdapter implements BrainAdapter {
           }
           const engine = await this.pickLeaderEngine();
           if (!engine) {
-            resolve({
-              ok: false,
-              failure: "unavailable",
-              reason: "No browser-local OCADE engine can run on this device.",
-            });
+            resolve({ ok: false, failure: "unavailable", reason: "No browser-local OCADE engine can run on this device." });
             return;
           }
-          setDiagnostics(
-            {
-              localRequests:
-                (window.__OCADE_BROWSER_ENGINE_DIAGNOSTICS__?.localRequests ?? 0) + 1,
-            },
-            this.tabId,
-          );
-          resolve(await engine.stream(messages, handlers));
+          setDiagnostics(this.tabId, { localRequests: diagnostic(this.tabId).localRequests + 1 });
+          const result = await engine.stream(messages, handlers);
+          if (result.ok) {
+            // A completed generation is direct evidence that exactly this leader
+            // has an instantiated model runtime. Followers never set this field.
+            setDiagnostics(this.tabId, { modelInstances: 1, activeEngine: this.activeKind });
+          }
+          resolve(result);
         });
     });
   }
 
+  private resetFollowerForReelection() {
+    if (this.role !== "follower") return;
+    this.role = "unknown";
+    this.election = null;
+    setDiagnostics(this.tabId, { role: "unknown", modelInstances: 0, activeEngine: null });
+  }
+
   private relay(messages: BrainMessage[], handlers: BrainStreamHandlers): Promise<BrainStreamResult> {
     if (!this.channel) {
-      return Promise.resolve({
-        ok: false,
-        failure: "unavailable",
-        reason: "This browser cannot relay to the tab that owns OCADE's local engine.",
-      });
+      return Promise.resolve({ ok: false, failure: "unavailable", reason: "This tab cannot reach the tab that owns OCADE's local engine." });
     }
     const requestId = makeId();
-    setDiagnostics(
-      {
-        relayedRequests:
-          (window.__OCADE_BROWSER_ENGINE_DIAGNOSTICS__?.relayedRequests ?? 0) + 1,
-      },
-      this.tabId,
-    );
+    setDiagnostics(this.tabId, { relayedRequests: diagnostic(this.tabId).relayedRequests + 1 });
+
     return new Promise<BrainStreamResult>((resolve) => {
       const timer = setTimeout(() => {
+        const pending = this.pending.get(requestId);
+        if (pending?.abort && pending.signal) pending.signal.removeEventListener("abort", pending.abort);
         this.pending.delete(requestId);
+        this.resetFollowerForReelection();
         resolve({
           ok: false,
           failure: "unavailable",
-          reason: "The tab running OCADE's local engine stopped responding. Try the message again so a new leader can be elected.",
+          reason: "The tab running OCADE's local engine stopped responding. Retry once; a new single leader will be elected.",
         });
       }, REQUEST_TIMEOUT_MS);
-      this.pending.set(requestId, { resolve, onToken: handlers.onToken, timer });
+
       const abort = () => {
         this.channel?.postMessage({ type: "abort", from: this.tabId, requestId } satisfies RelayMessage);
         const pending = this.pending.get(requestId);
-        if (pending) {
-          clearTimeout(pending.timer);
-          this.pending.delete(requestId);
-          pending.resolve({ ok: false, failure: "cancelled", reason: "Stopped." });
-        }
+        if (!pending) return;
+        clearTimeout(pending.timer);
+        this.pending.delete(requestId);
+        pending.resolve({ ok: false, failure: "cancelled", reason: "Stopped." });
       };
+      const pending: PendingFollower = { resolve, onToken: handlers.onToken, timer, signal: handlers.signal, abort };
+      this.pending.set(requestId, pending);
       handlers.signal?.addEventListener("abort", abort, { once: true });
       this.channel!.postMessage({ type: "request", from: this.tabId, requestId, messages } satisfies RelayMessage);
     });
@@ -278,12 +307,9 @@ export class SharedBrowserAdapter implements BrainAdapter {
       const pending = this.pending.get(message.requestId);
       if (!pending) return;
       clearTimeout(pending.timer);
+      if (pending.abort && pending.signal) pending.signal.removeEventListener("abort", pending.abort);
       this.pending.delete(message.requestId);
       pending.resolve(message.result);
-      return;
-    }
-    if (message.type === "ping" && this.role === "leader") {
-      this.channel?.postMessage({ type: "pong", to: message.from, nonce: message.nonce } satisfies RelayMessage);
       return;
     }
     if (message.type === "abort" && this.role === "leader") {
@@ -297,26 +323,17 @@ export class SharedBrowserAdapter implements BrainAdapter {
     const result = await this.runOnLeader(message.messages, {
       signal: controller.signal,
       onToken: (token) =>
-        this.channel?.postMessage({
-          type: "token",
-          to: message.from,
-          requestId: message.requestId,
-          token,
-        } satisfies RelayMessage),
+        this.channel?.postMessage({ type: "token", to: message.from, requestId: message.requestId, token } satisfies RelayMessage),
     });
     this.leaderAbort.delete(message.requestId);
-    this.channel?.postMessage({
-      type: "done",
-      to: message.from,
-      requestId: message.requestId,
-      result,
-    } satisfies RelayMessage);
+    this.channel?.postMessage({ type: "done", to: message.from, requestId: message.requestId, result } satisfies RelayMessage);
   }
 
   async dispose(): Promise<void> {
     this.disposed = true;
     for (const pending of this.pending.values()) {
       clearTimeout(pending.timer);
+      if (pending.abort && pending.signal) pending.signal.removeEventListener("abort", pending.abort);
       pending.resolve({ ok: false, failure: "cancelled", reason: "OCADE closed." });
     }
     this.pending.clear();
@@ -324,7 +341,8 @@ export class SharedBrowserAdapter implements BrainAdapter {
     this.leaderAbort.clear();
     await this.active?.dispose?.().catch(() => {});
     this.active = null;
-    setDiagnostics({ modelInstances: 0, activeEngine: null }, this.tabId);
+    this.activeKind = null;
+    setDiagnostics(this.tabId, { modelInstances: 0, activeEngine: null });
     this.channel?.close();
     this.channel = null;
     this.releaseLock?.();
