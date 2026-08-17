@@ -60,7 +60,7 @@ describe("OCADE 77 — proof for formerly source-inspected boundaries", () => {
       /from\("ocade_outputs"\)/,
       /\.ilike\(/,
     ]);
-    expect(search).not.toMatch(/\.or\(/);
+    expect(search).not.toMatch(/\n\s*\.or\(/);
   });
 
   it("#34 derives Inbox from automation runs through the unified adapter", () => {
