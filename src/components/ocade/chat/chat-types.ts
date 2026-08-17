@@ -29,13 +29,17 @@ export interface ChatConversationView {
   messageCount?: number;
 }
 
-/** Successful AI generation can only be local. Unknown means no engine is ready. */
-export type EngineLocality = "local" | "unknown";
+/**
+ * `cloud` remains in this shared presentation type only so historical fixtures
+ * and non-production story data compile. The OCADE runtime cannot produce that
+ * state: EngineBadge renders every non-local state as unavailable/warning and
+ * the engine router has no remote target.
+ */
+export type EngineLocality = "local" | "cloud" | "unknown";
 
 export interface EngineStatusView {
   locality: EngineLocality;
   label: string;
-  /** Network state is informational only; it never selects an AI provider. */
   online: boolean;
   detail?: string | null;
   preparing?: boolean;
