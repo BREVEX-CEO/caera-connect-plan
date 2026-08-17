@@ -27,11 +27,70 @@ const browser = await chromium.launch({
     "--disable-dev-shm-usage",
   ],
 });
-const context = await browser.newContext({ serviceWorkers: "allow" });
+const context = await browser.newContext({ serviceWorkers: "allow", acceptDownloads: false });
 context.setDefaultTimeout(240_000);
+const root = baseUrl.replace(/\/$/, "");
 
+/* ---------------------------------------------------------------- landing -- */
+/**
+ * Reproduce the requested short first visit before opening Chat:
+ *
+ *  - a fresh browser profile opens the real home page;
+ *  - OCADE must leave idle/scheduled state inside two seconds;
+ *  - normal Chrome download events must stay at zero because model bytes belong
+ *    in browser application storage, not the Downloads shelf;
+ *  - the page is then CLOSED, deliberately interrupting preparation, so the
+ *    later demo proves the persisted partial cache can be resumed/reused.
+ */
+const landing = await context.newPage();
+let downloadEvents = 0;
+let modelLikeRequests = 0;
+landing.on("download", () => {
+  downloadEvents += 1;
+});
+landing.on("request", (request) => {
+  const url = request.url();
+  if (/Qwen2\.5|web-llm|\.wasm(?:\?|$)|\.gguf(?:\?|$)|ndarray-cache|mlc-chat-config/i.test(url)) {
+    modelLikeRequests += 1;
+  }
+});
+
+const landingStartedAt = Date.now();
+await landing.goto(`${root}/`, { waitUntil: "domcontentloaded", timeout: 120_000 });
+await landing.waitForTimeout(1_900);
+const warmStateAtTwoSeconds = await landing.evaluate(() => {
+  const raw = localStorage.getItem("ocade:landing-model-warmup:v1");
+  return raw ? JSON.parse(raw) : null;
+});
+const landingElapsedMs = Date.now() - landingStartedAt;
+const validStartedPhases = new Set(["warming", "partial", "ready"]);
+if (!warmStateAtTwoSeconds || !validStartedPhases.has(warmStateAtTwoSeconds.phase)) {
+  throw new Error(
+    `Landing model preparation did not actually start inside the short visit. State: ${JSON.stringify(warmStateAtTwoSeconds)}`,
+  );
+}
+if (downloadEvents !== 0) {
+  throw new Error(`Landing model warm-up emitted ${downloadEvents} normal browser download event(s).`);
+}
+
+// Give the worker a little time to issue its model/runtime request. This is not
+// the two-second start assertion above; it only records that the started warmup
+// became real network/cache activity in this clean browser profile.
+if (modelLikeRequests === 0) {
+  await landing.waitForTimeout(4_000);
+}
+const warmStateBeforeClose = await landing.evaluate(() => {
+  const raw = localStorage.getItem("ocade:landing-model-warmup:v1");
+  return raw ? JSON.parse(raw) : null;
+});
+if (downloadEvents !== 0) {
+  throw new Error(`Model preparation used Chrome Downloads instead of app storage (${downloadEvents} events).`);
+}
+await landing.close();
+
+/* ------------------------------------------------------------- three tabs -- */
 const pages = await Promise.all([0, 1, 2].map(() => context.newPage()));
-const url = `${baseUrl.replace(/\/$/, "")}/demo/ocade`;
+const url = `${root}/demo/ocade`;
 
 async function open(page) {
   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 120_000 });
@@ -81,6 +140,7 @@ if (modelInstances !== 1) throw new Error(`Expected exactly one proven model ins
 if (localRequests < 3) throw new Error(`Leader processed only ${localRequests} requests; expected at least three.`);
 if (relayedRequests < 2) throw new Error(`Follower relay count was ${relayedRequests}; expected at least two.`);
 
+/* ----------------------------------------------------------- offline visit -- */
 // Close followers so the leader owns the only remaining page, then prove the
 // *next visit* with the network disabled. The SW must deliver the app shell and
 // the browser model/runtime must come from local persisted storage.
@@ -102,10 +162,19 @@ if (!offlineDiagnostics.controlledByServiceWorker) throw new Error("Offline relo
 if (offlineDiagnostics.engine?.modelInstances !== 1) throw new Error("Offline second visit did not run exactly one local model instance.");
 
 const evidence = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   observedAt: new Date().toISOString(),
   baseUrl,
   browserExecutable: executablePath,
+  landingWarmCache: {
+    shortVisitMs: landingElapsedMs,
+    stateAtTwoSeconds: warmStateAtTwoSeconds,
+    stateBeforeClose: warmStateBeforeClose,
+    normalBrowserDownloadEvents: downloadEvents,
+    modelOrRuntimeRequestsObserved: modelLikeRequests,
+    pageClosedAfterWarmupStarted: true,
+    result: "PASS",
+  },
   multiTab: {
     tabs: 3,
     leaders: leaders.length,
