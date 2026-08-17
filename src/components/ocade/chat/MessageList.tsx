@@ -138,7 +138,7 @@ export function MessageList({
 
     announcedMessageRef.current = latestAssistant.id;
     setCompletionAnnouncement("OCADE response complete.");
-  }, [identity, latestAssistant?.id, latestAssistant?.streaming]);
+  }, [identity, latestAssistant]);
 
   const hidden = Math.max(0, messages.length - limit);
   const visible = hidden > 0 ? messages.slice(hidden) : messages;
