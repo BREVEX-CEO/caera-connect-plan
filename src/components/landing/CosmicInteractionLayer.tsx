@@ -55,8 +55,8 @@ export function CosmicInteractionLayer() {
     const trail: Array<{ x: number; y: number; alpha: number }> = [];
     const ripples: Ripple[] = [];
 
-    // Deterministic enough within one mount without shipping a texture asset.
-    let seed = 0x28caera;
+    // Fixed deterministic seed: stable visual density without shipping assets.
+    let seed = 0x28cae8a;
     const random = () => {
       seed = (seed * 1664525 + 1013904223) >>> 0;
       return seed / 0xffffffff;
@@ -117,6 +117,7 @@ export function CosmicInteractionLayer() {
           y: height * (0.22 + Math.cos(t) * 0.035),
           r: Math.max(width, height) * 0.56,
           inner: "rgba(36, 151, 255, 0.075)",
+          mid: "rgba(18, 87, 173, 0.018)",
           outer: "rgba(0, 18, 42, 0)",
         },
         {
@@ -124,6 +125,7 @@ export function CosmicInteractionLayer() {
           y: height * (0.72 + Math.sin(t * 0.9) * 0.04),
           r: Math.max(width, height) * 0.48,
           inner: "rgba(30, 232, 224, 0.038)",
+          mid: "rgba(20, 107, 122, 0.014)",
           outer: "rgba(2, 15, 28, 0)",
         },
         {
@@ -131,6 +133,7 @@ export function CosmicInteractionLayer() {
           y: height * (0.52 + Math.cos(t * 0.55) * 0.03),
           r: Math.max(width, height) * 0.38,
           inner: "rgba(255, 157, 62, 0.034)",
+          mid: "rgba(126, 61, 22, 0.012)",
           outer: "rgba(27, 10, 0, 0)",
         },
       ];
@@ -138,7 +141,7 @@ export function CosmicInteractionLayer() {
       for (const field of fields) {
         const gradient = context.createRadialGradient(field.x, field.y, 0, field.x, field.y, field.r);
         gradient.addColorStop(0, field.inner);
-        gradient.addColorStop(0.42, field.inner.replace(/0\.0(\d+)\)/, "0.018)"));
+        gradient.addColorStop(0.42, field.mid);
         gradient.addColorStop(1, field.outer);
         context.fillStyle = gradient;
         context.fillRect(0, 0, width, height);
