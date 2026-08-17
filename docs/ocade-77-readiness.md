@@ -56,7 +56,7 @@ Run `npm run ocade:77-check` to verify there are exactly 77 IDs, all evidence pa
 | 40 | System hub contains advanced/runtime controls | `source-inspected` | `src/routes/_authenticated/ocade.system.tsx` |
 | 41 | Cmd/Ctrl+K command palette is keyboard and focus safe | `source+test` | `src/components/shell/CommandPalette.tsx`<br>`src/lib/__tests__` |
 | 42 | Mobile OCADE navigation is explicit and reachable | `source-inspected` | `src/components/shell/OcadeMobileBottomNav.tsx` |
-| 43 | Primary navigation is compressed around core work | `source-inspected` | `src/components/shell/shell-nav.ts` |
+| 43 | Primary navigation is compressed around core work | `source-inspected` | `src/lib/shell-nav.ts` |
 | 44 | Studio and Lab have separate user/engineering purposes | `source-inspected` | `src/routes/_authenticated/ocade.studio.tsx`<br>`src/routes/_authenticated/ocade.lab.tsx` |
 | 45 | Unwired Studio generators are marked NOT_CONFIGURED | `truthful-unavailable` | `src/routes/_authenticated/ocade.studio.tsx` |
 | 46 | Shared has a truthful no-public-sharing boundary | `truthful-unavailable` | `src/routes/_authenticated/ocade.shared.tsx` |
