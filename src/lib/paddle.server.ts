@@ -57,7 +57,7 @@ function parseSignatureHeader(header: string) {
     if (key === "h1" && HEX_SHA256.test(value)) signatures.push(value.toLowerCase());
   }
 
-  if (!Number.isSafeInteger(timestamp) || timestamp === null || signatures.length === 0) {
+  if (timestamp === null || !Number.isSafeInteger(timestamp) || signatures.length === 0) {
     throw new Error("Malformed Paddle-Signature header");
   }
 
