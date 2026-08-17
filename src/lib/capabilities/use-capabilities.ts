@@ -89,12 +89,14 @@ export function useCapabilitySignals(): CapabilitySignals {
         localEngine.models.some((model) => model.vision) || Boolean(env.data?.cloudConfigured),
     },
     /*
-     * A Tauri host is evidence that a native process exists, but it is not by
-     * itself evidence that the automation worker is healthy. The existing
-     * automation runner uses that native host, so it may be available there;
-     * its individual run state is still authoritative on the Tasks page.
+     * The repository contains a durable automation worker, but `detectTauri()`
+     * only proves that the shell exists. It does NOT prove that the queue host
+     * bootstrapped, owns a secure companion session, or is polling. Until a
+     * dedicated worker heartbeat is wired into this hook, availability stays
+     * false. The Automations surface may still start a worker and show its own
+     * observed run state; the global capability badge will never infer it.
      */
-    automationRunner: { available: nativeHost },
+    automationRunner: { available: false },
     /*
      * Monitor configuration currently lives in localStorage. There is no
      * dedicated monitor-runner heartbeat/probe in the product yet, so the
@@ -107,15 +109,41 @@ export function useCapabilitySignals(): CapabilitySignals {
 }
 
 export function useCapabilityReports(): CapabilityReport[] {
-  return allCapabilityReports(useCapabilitySignals()).map((report) =>
-    report.id === "desktopInstaller"
-      ? {
-          ...report,
-          status: "UNAVAILABLE" as const,
-          detail:
-            "Desktop downloads are disabled for the current free launch. Native source may exist in the repository, but no installer is offered to users.",
-          evidence: "Desktop download surface is intentionally withdrawn for this launch.",
-        }
-      : report,
-  );
+  const reports = allCapabilityReports(useCapabilitySignals());
+
+  return reports.map((report) => {
+    if (report.id === "desktopInstaller") {
+      return {
+        ...report,
+        status: "UNAVAILABLE" as const,
+        detail:
+          "Desktop downloads are disabled for the current free launch. Native source may exist in the repository, but no installer is offered to users.",
+        evidence: "Desktop download surface is intentionally withdrawn for this launch.",
+      };
+    }
+
+    if (report.id === "codeTerminal") {
+      return {
+        ...report,
+        status: "NOT_CONFIGURED" as const,
+        detail:
+          "A native shell alone is not proof that a Code terminal is alive. OCADE will not claim terminal readiness until a dedicated command-host heartbeat succeeds.",
+        evidence: "No dedicated Code command-host heartbeat is wired into the capability probe yet.",
+        action: { label: "Code workspace", to: "/ocade/code" },
+      };
+    }
+
+    if (report.id === "automationRunner") {
+      return {
+        ...report,
+        status: "NOT_CONFIGURED" as const,
+        detail:
+          "Automation source and queue logic are installed, but the global status has no live worker heartbeat. Saved schedules are not described as running until the worker itself proves it.",
+        evidence: "No dedicated automation-worker heartbeat is wired into the global capability probe yet.",
+        action: { label: "Automations", to: "/ocade/automations" },
+      };
+    }
+
+    return report;
+  });
 }
