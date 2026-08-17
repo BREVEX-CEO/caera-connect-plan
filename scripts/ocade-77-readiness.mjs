@@ -56,7 +56,7 @@ export const OCADE_77_READINESS = [
   {"id":40,"requirement":"System hub contains advanced/runtime controls","classification":"source-inspected","evidence":["src/routes/_authenticated/ocade.system.tsx"]},
   {"id":41,"requirement":"Cmd/Ctrl+K command palette is keyboard and focus safe","classification":"source+test","evidence":["src/components/shell/CommandPalette.tsx","src/lib/__tests__"]},
   {"id":42,"requirement":"Mobile OCADE navigation is explicit and reachable","classification":"source-inspected","evidence":["src/components/shell/OcadeMobileBottomNav.tsx"]},
-  {"id":43,"requirement":"Primary navigation is compressed around core work","classification":"source-inspected","evidence":["src/components/shell/shell-nav.ts"]},
+  {"id":43,"requirement":"Primary navigation is compressed around core work","classification":"source-inspected","evidence":["src/lib/shell-nav.ts"]},
   {"id":44,"requirement":"Studio and Lab have separate user/engineering purposes","classification":"source-inspected","evidence":["src/routes/_authenticated/ocade.studio.tsx","src/routes/_authenticated/ocade.lab.tsx"]},
   {"id":45,"requirement":"Unwired Studio generators are marked NOT_CONFIGURED","classification":"truthful-unavailable","evidence":["src/routes/_authenticated/ocade.studio.tsx"]},
   {"id":46,"requirement":"Shared has a truthful no-public-sharing boundary","classification":"truthful-unavailable","evidence":["src/routes/_authenticated/ocade.shared.tsx"]},
