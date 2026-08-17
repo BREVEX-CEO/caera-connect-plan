@@ -26,6 +26,7 @@ import { DemoBadge } from "./DemoBadge";
 import { ShellProvider } from "./shell-context";
 import { useShell } from "./use-shell";
 import { cn } from "@/lib/utils";
+import { CommandPalette } from "./CommandPalette";
 import { useAppearance } from "@/lib/use-appearance";
 import { useSession } from "@/lib/session";
 import { useHistoryReach } from "./use-history-reach";
@@ -91,6 +92,7 @@ function WorkspaceShellInner({
     typeof window === "undefined" ? false : window.matchMedia("(max-width: 767px)").matches,
   );
   const [accountOpen, setAccountOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [accountError, setAccountError] = useState<string | null>(null);
   const accountRef = useRef<HTMLDivElement>(null);
   const navigationRef = useRef<HTMLElement>(null);
@@ -115,6 +117,17 @@ function WorkspaceShellInner({
 
   useEffect(() => {
     function closeTransientUi(event: KeyboardEvent) {
+      /*
+       * Cmd/Ctrl+K opens the palette from anywhere, including from inside a
+       * text field — that is the shortcut people already have in their hands,
+       * and refusing it while composing would make it useless exactly when it
+       * is wanted. The palette owns Escape once it is open.
+       */
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPaletteOpen((v) => !v);
+        return;
+      }
       if (event.key !== "Escape") return;
       setDrawerOpen(false);
       setAccountOpen(false);
@@ -559,7 +572,8 @@ function WorkspaceShellInner({
           </div>
         ) : null}
       </div>
-    </div>
+          <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+</div>
   );
 }
 
