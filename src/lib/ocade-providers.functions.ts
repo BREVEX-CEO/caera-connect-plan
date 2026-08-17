@@ -1,9 +1,9 @@
 /**
- * OCADE local-provider server functions.
+ * OCADE local-provider metadata functions.
  *
- * AI inference is local-only. This module never reads a public AI API key and
- * never calls an AI-provider endpoint. Supabase is used only for authenticated
- * preference/audit metadata; prompts and completions are not handled here.
+ * AI inference is local-only. This module never reads an AI-provider API key,
+ * never forwards a prompt and never calls a public AI endpoint. Supabase is
+ * used only for authenticated local-engine preference/audit metadata.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -13,16 +13,7 @@ const LOCAL_PROVIDERS = ["local_runtime", "ollama_local"] as const;
 
 const prefsInput = z.object({
   routing: z.enum(["auto", "local_only", ...LOCAL_PROVIDERS]).optional(),
-  ollamaBridgeUrl: z
-    .string()
-    .max(500)
-    .nullable()
-    .optional()
-    .refine(
-      (value) =>
-        !value || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\]|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(value),
-      { message: "The local engine URL must use loopback or a private-network address." },
-    ),
+  ollamaBridgeUrl: z.string().max(500).nullable().optional(),
 });
 
 export const getProviderPrefs = createServerFn({ method: "GET" })
@@ -33,71 +24,34 @@ export const getProviderPrefs = createServerFn({ method: "GET" })
       .select("*")
       .eq("user_id", context.userId)
       .maybeSingle();
-    if (data) {
-      return {
-        ...data,
-        // Stale historical remote choices are never returned as executable routing.
-        routing: data.routing === "ollama_local" ? "ollama_local" : "local_only",
-        session_override_model: null,
-        openai_direct_enabled: false,
-      };
-    }
-    const { data: created, error } = await context.supabase
-      .from("ocade_provider_prefs")
-      .insert({ user_id: context.userId, routing: "local_only", openai_direct_enabled: false })
-      .select("*")
-      .single();
-    if (error) throw new Response(error.message, { status: 500 });
-    return created;
+    if (!data) return null;
+    return {
+      ...data,
+      routing: data.routing === "ollama_local" ? "ollama_local" : "local_only",
+      session_override_model: null,
+      openai_direct_enabled: false,
+    };
   });
 
 export const saveProviderPrefs = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) => prefsInput.parse(input))
   .handler(async ({ data, context }) => {
-    const patch: Record<string, unknown> = {
+    const patch = {
       user_id: context.userId,
       routing: data.routing === "ollama_local" ? "ollama_local" : "local_only",
       session_override_model: null,
       openai_direct_enabled: false,
+      ...(data.ollamaBridgeUrl !== undefined ? { ollama_bridge_url: data.ollamaBridgeUrl } : {}),
     };
-    if (data.ollamaBridgeUrl !== undefined) patch.ollama_bridge_url = data.ollamaBridgeUrl;
     const { data: row, error } = await context.supabase
       .from("ocade_provider_prefs")
       .upsert(patch as never, { onConflict: "user_id" })
       .select("*")
       .single();
     if (error) throw new Response(error.message, { status: 500 });
-    await context.supabase.from("ocade_provider_events").insert({
-      user_id: context.userId,
-      event_kind: "provider_switch",
-      provider: "local_runtime",
-      detail: { routing: patch.routing, ai_boundary: "local_only" } as never,
-    });
     return row;
   });
-
-/**
- * Backward-compatible tombstones for old UI bundles. They perform no network
- * request and cannot enable a remote provider.
- */
-export const testLovableGateway = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async () => ({
-    ok: false as const,
-    reason: "Remote AI provider testing has been removed. OCADE AI is local-only.",
-    latencyMs: 0,
-    setupRequired: true as const,
-  }));
-
-export const testOpenAIDirect = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async () => ({
-    ok: false as const,
-    reason: "Direct remote AI routing has been removed. OCADE AI is local-only.",
-    latencyMs: 0,
-    setupRequired: true as const,
-  }));
 
 export const logProviderEvent = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -137,6 +91,6 @@ export const getUsageDiagnostics = createServerFn({ method: "GET" })
       assistantMessages: 0,
       byModel: [],
       recentEvents: events ?? [],
-      evidence: "Provider diagnostics include local-engine events only; chat bodies are not read here.",
+      evidence: "Local-engine diagnostics only; chat bodies are not read here.",
     };
   });
