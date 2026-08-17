@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { OCADE_77_READINESS } from "./ocade-77-readiness.mjs";
 
 const EXPECTED_TOTAL = 77;
@@ -7,6 +7,28 @@ const EXPECTED_CLASSIFICATIONS = {
   "source-inspected": 18,
   "truthful-unavailable": 10,
 };
+
+/**
+ * The original 49 source+test items already had committed focused proof.
+ * These 28 IDs were previously classified only by implementation/boundary
+ * status. They now each have an explicit Vitest regression whose title includes
+ * the readiness ID, so every one of the 77 requirements owns a committed
+ * test/proof artifact without changing its semantic availability class.
+ */
+const ADDED_FOCUSED_PROOF = new Map([
+  ...[9, 16, 17, 19, 22, 31, 34, 35, 37, 38, 39, 40, 42, 43, 44, 47, 70, 76].map((id) => [
+    id,
+    "src/lib/__tests__/ocade-readiness-source-boundaries.test.ts",
+  ]),
+  ...[18, 20, 45, 46, 48].map((id) => [
+    id,
+    "src/lib/__tests__/ocade-readiness-unavailable-ui.test.ts",
+  ]),
+  ...[49, 61, 65, 69, 71].map((id) => [
+    id,
+    "src/lib/__tests__/ocade-readiness-unavailable-runtime.test.ts",
+  ]),
+]);
 
 const errors = [];
 const ids = new Set();
@@ -59,6 +81,37 @@ for (const [classification, expected] of Object.entries(EXPECTED_CLASSIFICATIONS
   }
 }
 
+const nonSourceTestIds = OCADE_77_READINESS
+  .filter((item) => item.classification !== "source+test")
+  .map((item) => item.id)
+  .sort((a, b) => a - b);
+const mappedProofIds = [...ADDED_FOCUSED_PROOF.keys()].sort((a, b) => a - b);
+
+if (JSON.stringify(nonSourceTestIds) !== JSON.stringify(mappedProofIds)) {
+  errors.push(
+    `focused proof map must cover exactly every non-source+test item; expected [${nonSourceTestIds}], found [${mappedProofIds}]`,
+  );
+}
+
+for (const [id, proofPath] of ADDED_FOCUSED_PROOF) {
+  if (!existsSync(proofPath)) {
+    errors.push(`item ${id} focused proof file is missing: ${proofPath}`);
+    continue;
+  }
+  const proofSource = readFileSync(proofPath, "utf8");
+  if (!proofSource.includes(`#${id}`)) {
+    errors.push(`item ${id} proof file does not contain an explicit #${id} regression: ${proofPath}`);
+  }
+}
+
+const committedProofArtifacts =
+  (classifications.get("source+test") ?? 0) + ADDED_FOCUSED_PROOF.size;
+if (committedProofArtifacts !== EXPECTED_TOTAL) {
+  errors.push(
+    `test/proof artifacts committed: expected ${EXPECTED_TOTAL}, found ${committedProofArtifacts}`,
+  );
+}
+
 if (errors.length > 0) {
   console.error("OCADE 77 readiness contract FAILED");
   for (const error of errors) console.error(`- ${error}`);
@@ -67,7 +120,8 @@ if (errors.length > 0) {
 
 console.log("OCADE 77 readiness contract OK");
 console.log(`- materially resolved: ${EXPECTED_TOTAL}/${EXPECTED_TOTAL}`);
-console.log(`- source + focused test/proof artifact: ${EXPECTED_CLASSIFICATIONS["source+test"]}`);
-console.log(`- source inspected: ${EXPECTED_CLASSIFICATIONS["source-inspected"]}`);
-console.log(`- explicit fail-closed/unavailable boundary: ${EXPECTED_CLASSIFICATIONS["truthful-unavailable"]}`);
-console.log("- fresh hosted CI / production / hardware proof is intentionally NOT inferred by this check");
+console.log(`- test/proof artifacts committed: ${committedProofArtifacts}/${EXPECTED_TOTAL}`);
+console.log(`- original source+test implementation class: ${EXPECTED_CLASSIFICATIONS["source+test"]}`);
+console.log(`- source-inspected implementation class with focused proof: ${EXPECTED_CLASSIFICATIONS["source-inspected"]}`);
+console.log(`- fail-closed/unavailable implementation class with focused proof: ${EXPECTED_CLASSIFICATIONS["truthful-unavailable"]}`);
+console.log("- fresh execution success is intentionally NOT inferred by committed proof artifacts");
