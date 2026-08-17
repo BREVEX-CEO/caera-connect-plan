@@ -122,7 +122,16 @@ function allRoutePaths(): string[] {
   return [...out].sort();
 }
 
-const ALL_PATHS = allRoutePaths();
+/*
+ * Routes that intentionally render nothing because they redirect in
+ * `beforeLoad`. Pricing, download and the checkout return page are kept in the
+ * tree while OCADE is free for everyone (re-enabling billing is a flag change,
+ * not a rebuild) but they must not be reachable, so empty markup is the
+ * CORRECT result for them rather than a blank-screen defect.
+ */
+const INTENTIONAL_REDIRECTS = new Set(["/pricing", "/download", "/checkout/success"]);
+
+const ALL_PATHS = allRoutePaths().filter((p) => !INTENTIONAL_REDIRECTS.has(p));
 
 describe("every shipped route assembles at its real URL", () => {
   it("derives the URL list from the router, not by hand", () => {
