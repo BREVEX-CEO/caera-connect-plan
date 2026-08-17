@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
 import { useSession } from "@/lib/session";
-import { useChatPrefs } from "@/lib/use-chat-prefs";
+import { getModeFor } from "@/lib/storage/resolver";
 import { detectTauri } from "@/lib/native/tauri-companion";
 import { getBrowserBridge } from "@/lib/native/browser-bridge";
 import { getCapabilityEnvironment } from "./environment.functions";
@@ -23,7 +23,6 @@ export function useCapabilitySignals(): CapabilitySignals {
   const online = useOnline();
   const { user } = useSession();
   const localEngine = useLocalEngine();
-  const { prefs: chatPrefs } = useChatPrefs();
 
   const fetchEnv = useServerFn(getCapabilityEnvironment);
   const env = useQuery({
@@ -66,14 +65,19 @@ export function useCapabilitySignals(): CapabilitySignals {
     });
   }, []);
 
-  const storageMode: NonNullable<CapabilitySignals["sync"]>["mode"] =
-    chatPrefs.storageMode === "private_sync"
-      ? "private_sync"
-      : chatPrefs.storageMode === "pc_vault"
-        ? "pc_vault"
-        : chatPrefs.storageMode === "browser_only"
-          ? "browser_only"
-          : "unknown";
+  /*
+   * The chat storage mode is the user's own recorded privacy choice, read from
+   * the same resolver every write path uses. Reading it from anywhere else
+   * would risk the health page saying "synchronised" while the adapter that
+   * actually stores the message keeps it on the device.
+   */
+  const modeQuery = useQuery({
+    queryKey: ["capability-storage-mode", user?.id],
+    enabled: !!user?.id,
+    staleTime: 60_000,
+    queryFn: () => getModeFor(user!.id, "chats"),
+  });
+  const storageMode: NonNullable<CapabilitySignals["sync"]>["mode"] = modeQuery.data ?? "unknown";
 
   return {
     online,
@@ -94,7 +98,7 @@ export function useCapabilitySignals(): CapabilitySignals {
      */
     vision: {
       engineSupportsImages:
-        localEngine.models.some((m) => m.supportsImages) || Boolean(env.data?.cloudConfigured),
+        localEngine.models.some((m) => m.vision) || Boolean(env.data?.cloudConfigured),
     },
     automationRunner: { available: nativeHost },
     monitors: { configuredCount: 0, runnerAvailable: nativeHost },
