@@ -1,0 +1,51 @@
+name: OCADE 77 Readiness
+
+on:
+  push:
+    branches:
+      - main
+      - agent/complete-77-ocade-hardening
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ocade-77-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: 77-item source contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify exactly 77 materially-resolved items and evidence paths
+        run: node scripts/check-ocade-77-readiness.mjs
+
+  focused-regressions:
+    name: P0 focused regressions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Auth, free-launch, chat accessibility, task runtime, automation queue
+        run: >-
+          npx vitest run
+          src/lib/__tests__/session-failure.test.ts
+          src/lib/__tests__/free-launch-payments.test.ts
+          src/lib/__tests__/message-list-a11y.test.tsx
+          src/lib/tasks/__tests__/unified-task.test.ts
+          src/lib/__tests__/automation-worker-controller.test.ts
+      - name: Generate routes and typecheck
+        run: npm run typecheck
