@@ -27,10 +27,11 @@ jobs:
       - run: npm ci
       - name: Reject all public cloud-AI routing markers
         run: node scripts/check-local-only-ai.mjs
-      - name: Run local routing and download-retry regressions
+      - name: Run local routing, warm-cache and download-retry regressions
         run: >-
           npx vitest run
           src/lib/engine/__tests__/resolve-local-only.test.ts
+          src/lib/brain/__tests__/landing-model-warmup-policy.test.ts
           src/lib/local/__tests__/model-lifecycle-retry.test.ts
       - name: Generate routes and typecheck
         run: npm run typecheck
@@ -38,7 +39,7 @@ jobs:
         run: npm run build
 
   real-browser-evidence:
-    name: 3 tabs = 1 model + offline second visit
+    name: landing warm cache + 3 tabs = 1 model + offline second visit
     needs: source-and-unit
     runs-on: ubuntu-latest
     timeout-minutes: 50
