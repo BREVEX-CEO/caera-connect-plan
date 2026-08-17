@@ -57,6 +57,7 @@ for (const file of files) {
 const required = [
   ["src/lib/engine/resolve.ts", /no cloud-model fallback|no cloud fallback|cloud.*removed/i],
   ["src/routes/api/ocade.chat.ts", /status:\s*410/],
+  ["src/lib/brain/adapters/shared-browser.ts", /ocade-browser-model-engine-v1/],
   ["src/lib/brain/adapters/shared-browser.ts", /navigator\.locks/],
   ["src/lib/brain/adapters/shared-browser.ts", /BroadcastChannel/],
   ["src/lib/brain/adapters/browser-webgpu.ts", /cacheBackend:\s*["']indexeddb["']/],
@@ -64,6 +65,19 @@ const required = [
   ["public/sw.js", /OCADE_RETRY_OFFLINE_CACHE/],
   ["src/routes/_authenticated/ocade.tsx", /LocalOnlyChatWorkspace/],
   ["src/routes/_authenticated/ocade.models.tsx", /There is no Gemini, GPT\/OpenAI, Lovable/],
+  // Landing-page instant-local contract: start inside a two-second visit, use
+  // the SAME Web Lock as Chat, cache through the browser-local adapter, release
+  // RAM/GPU after warming, and ask for persistent application storage.
+  ["src/lib/brain/landing-model-warmup.ts", /LANDING_MODEL_WARMUP_DELAY_MS\s*=\s*900/],
+  ["src/lib/brain/landing-model-warmup.ts", /ocade-browser-model-engine-v1/],
+  ["src/lib/brain/landing-model-warmup.ts", /BrowserWebGpuAdapter/],
+  ["src/lib/brain/landing-model-warmup.ts", /await adapter\.dispose\(\)/],
+  ["src/lib/brain/landing-model-warmup.ts", /storage\?\.persist\?\.\(\)/],
+  ["src/lib/brain/landing-model-warmup.ts", /saveData/],
+  ["src/routes/index.tsx", /LandingModelWarmup/],
+  ["src/routes/index.tsx", /CosmicInteractionLayer/],
+  ["src/components/landing/SolarSystem.tsx", /CLICK_TRAVEL_PX/],
+  ["src/components/landing/SolarSystem.tsx", /scene\.zoom\(-260\)/],
 ];
 for (const [path, pattern] of required) {
   const text = readFileSync(join(ROOT, path), "utf8");
@@ -83,3 +97,6 @@ console.log("- Web Locks + BroadcastChannel single-engine coordination is presen
 console.log("- WebGPU model storage remains IndexedDB");
 console.log("- desktop local-model pull retries automatically");
 console.log("- offline shell retry hook is present");
+console.log("- landing page starts a Save-Data-aware local model warm cache inside two seconds");
+console.log("- landing warm cache reuses the browser-engine lock and releases RAM/GPU after warming");
+console.log("- cinematic landing interactions remain pointer-transparent over the real WebGL scene");
