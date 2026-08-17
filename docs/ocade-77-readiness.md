@@ -1,16 +1,28 @@
 # OCADE 77 Readiness Contract
 
-> This is the reconstructed 77-item readiness contract derived from the prior audit themes. The original verbatim numbered checklist is not present in the accessible repository/history, so this file is the canonical auditable contract for the completion branch.
+> This is the reconstructed 77-item readiness contract derived from the prior audit themes. The recovered original Phase-5 production-wiring authority is tracked separately in `docs/ocade-phase5-production-wiring.md`; this file remains the auditable 77-row completion contract for the hardening branch.
 
 ## How to read the status
 
-- **source+test** — implementation plus focused test/proof code is present in the repository. This does **not** mean the current branch has a fresh hosted-CI pass.
-- **source-inspected** — the implementation/source boundary was manually inspected in GitHub.
-- **truthful-unavailable** — the original gap is materially resolved by making the capability explicitly unavailable/not configured and fail-closed. Functional availability is **not** claimed.
+The `Resolution` column keeps the implementation classification from the original reconstruction:
 
-Fresh hosted GitHub Actions, live production Supabase, physical-device behavior, store signing, code signing, notarization, and production deployment are separate proof layers. Source completion never substitutes for those proofs.
+- **source+test** — implementation plus focused test/proof code was already present when the 77-row contract was created.
+- **source-inspected** — implementation/source boundary was originally verified by repository inspection.
+- **truthful-unavailable** — the gap is materially resolved by making the capability explicitly unavailable/not configured and fail-closed. Functional availability is **not** claimed.
 
-Run `npm run ocade:77-check` to verify there are exactly 77 IDs, all evidence paths exist, and the classification counts stay 49/18/10.
+Those implementation classifications are no longer the proof-artifact count. The previously source-inspected and truthful-unavailable rows now have explicit focused Vitest regressions, so **all 77/77 rows own a committed test/proof artifact**.
+
+Fresh hosted GitHub Actions, live production Supabase, physical-device behavior, store signing, code signing, notarization, and production deployment are separate proof layers. Committed proof code never substitutes for observing those proofs execute successfully.
+
+Run `npm run ocade:77-check` to verify there are exactly 77 IDs, all evidence paths exist, the implementation classification remains 49/18/10, and the focused-proof overlay covers the remaining 28 rows for a total of **77/77 committed test/proof artifacts**.
+
+## Focused proof overlay added for the remaining 28
+
+- `src/lib/__tests__/ocade-readiness-source-boundaries.test.ts` — IDs **9, 16, 17, 19, 22, 31, 34, 35, 37, 38, 39, 40, 42, 43, 44, 47, 70, 76**.
+- `src/lib/__tests__/ocade-readiness-unavailable-ui.test.ts` — IDs **18, 20, 45, 46, 48**.
+- `src/lib/__tests__/ocade-readiness-unavailable-runtime.test.ts` — IDs **49, 61, 65, 69, 71**.
+
+The checker requires each mapped test file to exist and to contain an explicit regression named with that readiness `#ID`; a generic directory or unrelated test file is not enough for these 28 additions.
 
 | # | Readiness requirement | Resolution | Evidence |
 |---:|---|---|---|
@@ -95,11 +107,11 @@ Run `npm run ocade:77-check` to verify there are exactly 77 IDs, all evidence pa
 ## Count
 
 - Materially resolved contract items: **77/77** when `ocade:77-check` passes.
-- Source + focused test/proof artifacts: **49/77**.
-- Source-inspected implementation/boundary items: **18/77**.
-- Explicit fail-closed/unavailable material resolutions: **10/77**.
-- Fresh current-head hosted-CI proof: **must be read from GitHub Actions; never inferred by this document**.
+- **Committed test/proof artifacts: 77/77.**
+- Original implementation classification: **49 source+test / 18 source-inspected / 10 truthful-unavailable**.
+- Newly added focused proof overlay: **28/28** of the previously non-test-classified rows.
+- Fresh current-head executed test/CI proof: **must be observed from an actual run; never inferred from committed files**.
 
 ## Merge rule
 
-The branch may only be described as fully runtime-proven when the external proof layers required by a given capability have actually executed successfully. A merge can establish the 77/77 source/material-resolution baseline; it cannot manufacture production, hardware, signing, store, or deployment evidence.
+The branch may only be described as fully runtime-proven when the external proof layers required by a given capability have actually executed successfully. A merge can establish the 77/77 source/material-resolution and 77/77 committed-proof-artifact baseline; it cannot manufacture production, hardware, signing, store, database-migration, or deployment evidence.
