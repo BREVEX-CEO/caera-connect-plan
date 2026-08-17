@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite dev",
     "routes:generate": "npm exec --yes --package=@tanstack/router-cli@1.170.16 -- tsr generate",
+    "ocade:77-check": "node scripts/check-ocade-77-readiness.mjs",
     "build": "npm run routes:generate && vite build",
     "build:dev": "npm run routes:generate && vite build --mode development",
     "performance:budget": "node scripts/check-asset-budgets.mjs",
