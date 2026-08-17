@@ -5,7 +5,12 @@
  * change an account. Which environment the app is in is derived from the token
  * prefix rather than a separate flag, so the preview cannot claim to be live
  * and a published build cannot silently stay in test.
+ *
+ * FREE_LAUNCH_MODE is enforced here, below every checkout UI. That makes stale
+ * links, admin surfaces and accidental callers fail closed rather than merely
+ * hiding their buttons.
  */
+import { billingEnabled } from "@/lib/launch-mode";
 import { resolvePaddlePrice } from "@/utils/payments.functions";
 
 const clientToken = import.meta.env['VITE_PAYMENTS_CLIENT_TOKEN'] as string | undefined;
@@ -23,14 +28,21 @@ export function getPaddleEnvironment(): CheckoutEnvironment {
   return clientToken?.startsWith("test_") ? "sandbox" : "live";
 }
 
-/** True when checkout can be opened at all. False means "not configured yet". */
+/**
+ * True only when billing is intentionally enabled AND a provider token exists.
+ * During free launch a token left in deployment configuration must not make
+ * checkout reachable.
+ */
 export function isCheckoutConfigured(): boolean {
-  return Boolean(clientToken);
+  return billingEnabled() && Boolean(clientToken);
 }
 
 let paddleInitialized = false;
 
 export async function initializePaddle(): Promise<void> {
+  if (!billingEnabled()) {
+    throw new Error("Checkout is disabled while OCADE is in free launch mode.");
+  }
   if (paddleInitialized) return;
   if (!clientToken) {
     throw new Error("Checkout is not configured on this deployment.");
@@ -63,5 +75,8 @@ export async function initializePaddle(): Promise<void> {
  * would make a test purchase indistinguishable from a real one.
  */
 export async function getPaddlePriceId(priceId: string): Promise<string> {
+  if (!billingEnabled()) {
+    throw new Error("Price resolution is disabled while OCADE is in free launch mode.");
+  }
   return resolvePaddlePrice({ data: { priceId, environment: getPaddleEnvironment() } });
 }
