@@ -1,278 +1,119 @@
 /**
- * Client-safe OCADE model catalog and provider metadata.
+ * Client-safe OCADE model authority.
  *
- * IMPORTANT: this file exposes DISPLAY names, capabilities and provider
- * identifiers only. No secrets, no gateway URLs, no keys. Server-only code
- * lives in ai-gateway.server.ts and ocade-providers.functions.ts.
- *
- * Provider identity is technical truth: OCADE is the assistant, but the
- * underlying provider (Lovable AI Gateway, OpenAI direct, Ollama local,
- * future CAERA CADANE native) is always visible here and in diagnostics.
+ * OCADE is LOCAL-ONLY. There is no cloud model catalog and there is no cloud
+ * fallback. The product label deliberately hides runtime implementation names
+ * from ordinary UI while diagnostics may still expose the local engine facts.
  */
-import {
-  createDefaultProviderManifests,
-  type ModelProviderId,
-  type ProviderManifest,
-} from "./providers/model-fabric";
 
-export type OcadeProviderId = "lovable_gateway" | "openai_direct" | "ollama_local" | "caera_native";
-export type OcadeRoutingMode = "auto" | OcadeProviderId;
-export type PrivacyPref = "local_first" | "balanced" | "cloud_ok";
-export type CostPref = "cheapest" | "balanced" | "best_quality";
-export type SpeedPref = "fastest" | "balanced" | "best_quality";
+export type OcadeProviderId = "local_runtime";
+export type OcadeRoutingMode = "local_only" | "auto";
+export type PrivacyPref = "local_first";
+export type CostPref = "local";
+export type SpeedPref = "balanced" | "fastest";
 
 export interface OcadeProviderInfo {
   id: OcadeProviderId;
   displayName: string;
-  locality: "cloud" | "local";
+  locality: "local";
   requiresNative: boolean;
-  requiresSecret: boolean;
+  requiresSecret: false;
   description: string;
-  status: "active" | "setup_required" | "planned";
-  disabledReason?: string;
+  status: "active";
 }
 
 export const OCADE_PROVIDERS: OcadeProviderInfo[] = [
   {
-    id: "lovable_gateway",
-    displayName: "Lovable AI Gateway",
-    locality: "cloud",
-    requiresNative: false,
-    requiresSecret: false,
-    description:
-      "Managed cloud routing to Google, OpenAI and others. Metered usage on your workspace credits.",
-    status: "active",
-  },
-  {
-    id: "openai_direct",
-    displayName: "OpenAI (direct)",
-    locality: "cloud",
-    requiresNative: false,
-    requiresSecret: true,
-    description: "Direct calls with your own OpenAI API key. Metered by OpenAI — this is not free.",
-    status: "setup_required",
-    disabledReason: "Add an OPENAI_API_KEY server secret and enable OpenAI Direct.",
-  },
-  {
-    id: "ollama_local",
-    displayName: "Ollama (local)",
+    id: "local_runtime",
+    displayName: "OCADE Local",
     locality: "local",
-    requiresNative: true,
-    requiresSecret: false,
-    description:
-      "Runs on your own machine. No cloud transfer. Requires the Native Companion or a local bridge URL.",
-    status: "setup_required",
-    disabledReason: "Native Companion or local bridge URL required.",
-  },
-  {
-    id: "caera_native",
-    displayName: "CAERA CADANE native model",
-    locality: "cloud",
     requiresNative: false,
     requiresSecret: false,
-    description: "Future first-party CAERA CADANE model. Reserved for a later release.",
-    status: "planned",
-    disabledReason: "Not yet released. This slot is reserved.",
+    description:
+      "Runs on this device through the desktop local runtime or the browser-local WebGPU/WASM engine. Prompts are never routed to a cloud model.",
+    status: "active",
   },
 ];
 
-/** Full Stage 2 provider fabric; existing cloud-routing ids remain compatible. */
-export const OCADE_MODEL_FABRIC_PROVIDERS: ProviderManifest[] = createDefaultProviderManifests();
-
-export function getModelFabricProvider(id: ModelProviderId): ProviderManifest | null {
-  return OCADE_MODEL_FABRIC_PROVIDERS.find((provider) => provider.id === id) ?? null;
-}
-
 export interface OcadeCapabilities {
   text: boolean;
-  image: boolean; // vision (image input understanding)
-  files: boolean; // document input understanding
-  voice: boolean; // audio input/output the model itself supports
-  contextTokens: number; // approximate max context window
-  speedTier: "fast" | "balanced" | "slow";
-  costTier: "cheap" | "balanced" | "premium";
+  image: boolean;
+  files: boolean;
+  voice: boolean;
+  contextTokens: number;
+  speedTier: "fast" | "balanced";
+  costTier: "local";
 }
 
-export type OcadeModelId =
-  | "google/gemini-3.5-flash"
-  | "google/gemini-3.1-pro-preview"
-  | "google/gemini-3.1-flash-lite"
-  | "openai/gpt-5.4-mini"
-  | "openai/gpt-5.5";
+export type OcadeModelId = "ocade/local";
 
 export interface OcadeModelInfo {
   id: OcadeModelId;
   display: string;
   provider: OcadeProviderId;
   providerDisplay: string;
-  locality: "cloud" | "local";
+  locality: "local";
   vision: boolean;
   description: string;
   capabilities: OcadeCapabilities;
 }
 
+/**
+ * A capability label, not a promise that one particular set of weights is used
+ * in every environment. Desktop currently uses the fixed Qwen2.5 3B engine;
+ * browser-local uses the proven WebGPU/WASM tier selected by the browser engine.
+ */
 export const OCADE_MODELS: OcadeModelInfo[] = [
   {
-    id: "google/gemini-3.5-flash",
-    display: "Gemini 3.5 Flash",
-    provider: "lovable_gateway",
-    providerDisplay: "Google via Lovable AI",
-    locality: "cloud",
-    vision: true,
-    description: "Balanced default. Fast, accepts images.",
+    id: "ocade/local",
+    display: "OCADE Local",
+    provider: "local_runtime",
+    providerDisplay: "On-device engine",
+    locality: "local",
+    vision: false,
+    description: "Runs entirely on this device. No cloud-model fallback exists.",
     capabilities: {
       text: true,
-      image: true,
+      image: false,
       files: true,
       voice: false,
-      contextTokens: 1_000_000,
-      speedTier: "fast",
-      costTier: "balanced",
-    },
-  },
-  {
-    id: "google/gemini-3.1-pro-preview",
-    display: "Gemini 3.1 Pro (preview)",
-    provider: "lovable_gateway",
-    providerDisplay: "Google via Lovable AI",
-    locality: "cloud",
-    vision: true,
-    description: "Stronger reasoning for complex tasks.",
-    capabilities: {
-      text: true,
-      image: true,
-      files: true,
-      voice: false,
-      contextTokens: 1_000_000,
+      contextTokens: 32_768,
       speedTier: "balanced",
-      costTier: "premium",
-    },
-  },
-  {
-    id: "google/gemini-3.1-flash-lite",
-    display: "Gemini 3.1 Flash Lite",
-    provider: "lovable_gateway",
-    providerDisplay: "Google via Lovable AI",
-    locality: "cloud",
-    vision: true,
-    description: "Cheapest cloud option for high-volume tasks.",
-    capabilities: {
-      text: true,
-      image: true,
-      files: true,
-      voice: false,
-      contextTokens: 1_000_000,
-      speedTier: "fast",
-      costTier: "cheap",
-    },
-  },
-  {
-    id: "openai/gpt-5.4-mini",
-    display: "GPT-5.4 mini",
-    provider: "lovable_gateway",
-    providerDisplay: "OpenAI via Lovable AI",
-    locality: "cloud",
-    vision: true,
-    description: "OpenAI alternative for varied styles.",
-    capabilities: {
-      text: true,
-      image: true,
-      files: false,
-      voice: false,
-      contextTokens: 400_000,
-      speedTier: "balanced",
-      costTier: "balanced",
-    },
-  },
-  {
-    id: "openai/gpt-5.5",
-    display: "GPT-5.5",
-    provider: "lovable_gateway",
-    providerDisplay: "OpenAI via Lovable AI",
-    locality: "cloud",
-    vision: true,
-    description: "Highest-quality reasoning; premium cost.",
-    capabilities: {
-      text: true,
-      image: true,
-      files: false,
-      voice: false,
-      contextTokens: 400_000,
-      speedTier: "slow",
-      costTier: "premium",
+      costTier: "local",
     },
   },
 ];
 
-export const OCADE_DEFAULT_MODEL_ID: OcadeModelId = "google/gemini-3.5-flash";
+export const OCADE_DEFAULT_MODEL_ID: OcadeModelId = "ocade/local";
 
-export function getOcadeModel(id: string): OcadeModelInfo {
-  return OCADE_MODELS.find((m) => m.id === id) ?? OCADE_MODELS[0];
+export function getOcadeModel(_id: string): OcadeModelInfo {
+  return OCADE_MODELS[0];
 }
 
-export function getOcadeProvider(id: OcadeProviderId): OcadeProviderInfo {
-  return OCADE_PROVIDERS.find((p) => p.id === id) ?? OCADE_PROVIDERS[0];
+export function getOcadeProvider(_id: OcadeProviderId): OcadeProviderInfo {
+  return OCADE_PROVIDERS[0];
+}
+
+/** Compatibility surface for callers that used the old provider fabric. */
+export const OCADE_MODEL_FABRIC_PROVIDERS: readonly never[] = [];
+export function getModelFabricProvider(_id: string): null {
+  return null;
 }
 
 /**
- * Pick the best model given the user's preferences. Client-safe and pure so
- * it can be used both when composing a request and when previewing the
- * "Auto" selection in the model-control centre.
- *
- * Rules:
- *  1. Session override wins if set and present in the catalog.
- *  2. If vision required, drop non-vision models.
- *  3. If privacy = local_first, prefer Ollama-backed models (none in catalog yet → fall back with a flag).
- *  4. Sort by weighted (cost, speed, quality) score matching prefs.
+ * Auto selection is intentionally boring: OCADE always selects the local
+ * capability. Device-specific local routing happens later in the Brain router.
  */
-export function autoSelectModel(prefs: {
-  privacy: PrivacyPref;
-  cost: CostPref;
-  speed: SpeedPref;
-  visionRequired: boolean;
+export function autoSelectModel(_prefs?: {
+  privacy?: PrivacyPref;
+  cost?: CostPref;
+  speed?: SpeedPref;
+  visionRequired?: boolean;
   sessionOverride?: string | null;
-}): { model: OcadeModelInfo; reasons: string[]; localFallbackNeeded: boolean } {
-  const reasons: string[] = [];
-  if (prefs.sessionOverride) {
-    const forced = OCADE_MODELS.find((m) => m.id === prefs.sessionOverride);
-    if (forced)
-      return {
-        model: forced,
-        reasons: ["Per-session override active."],
-        localFallbackNeeded: false,
-      };
-  }
-
-  const localFallbackNeeded = prefs.privacy === "local_first";
-  if (localFallbackNeeded) {
-    reasons.push("Local-first requested — cloud fallback shown until a local model is available.");
-  }
-
-  let candidates = OCADE_MODELS.slice();
-  if (prefs.visionRequired) {
-    const withVision = candidates.filter((m) => m.vision);
-    if (withVision.length > 0) {
-      candidates = withVision;
-      reasons.push("Filtered to vision-capable models.");
-    } else {
-      reasons.push("No vision-capable model available; keeping full catalog.");
-    }
-  }
-
-  const costRank = { cheap: 0, balanced: 1, premium: 2 } as const;
-  const speedRank = { fast: 0, balanced: 1, slow: 2 } as const;
-  const qualityRank = { cheap: 0, balanced: 1, premium: 2 } as const;
-
-  const scored = candidates.map((m) => {
-    let score = 0;
-    if (prefs.cost === "cheapest") score += costRank[m.capabilities.costTier] * 2;
-    if (prefs.cost === "best_quality") score += (2 - qualityRank[m.capabilities.costTier]) * 2;
-    if (prefs.speed === "fastest") score += speedRank[m.capabilities.speedTier] * 2;
-    if (prefs.speed === "best_quality") score += (2 - speedRank[m.capabilities.speedTier]) * 2;
-    return { m, score };
-  });
-  scored.sort((a, b) => a.score - b.score);
-  const winner = scored[0].m;
-  reasons.push(`Selected ${winner.display} for ${prefs.cost}/${prefs.speed} preference.`);
-  return { model: winner, reasons, localFallbackNeeded };
+}): { model: OcadeModelInfo; reasons: string[]; localFallbackNeeded: false } {
+  return {
+    model: OCADE_MODELS[0],
+    reasons: ["OCADE is local-only; cloud model routing is disabled by architecture."],
+    localFallbackNeeded: false,
+  };
 }
