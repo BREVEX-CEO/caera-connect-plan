@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { ControlWorkPanel } from "@/components/ocade/control/ControlWorkPanel";
 import { useMissionBrain } from "@/lib/work/use-mission-brain";
+import { LivingIntelligenceBackdrop } from "@/components/visual/LivingIntelligenceBackdrop";
 
 /**
  * OCADE Control + Work.
@@ -38,8 +39,23 @@ function ControlWorkRoute() {
     warm();
   }, [warm]);
   return (
-    <div className="h-[calc(100svh-4rem)] w-full overflow-hidden rounded-xl border border-border/50">
-      <ControlWorkPanel brain={brain} headerNote="Signed in · this computer" />
+    <div className="relative h-[calc(100svh-4rem)] w-full overflow-hidden rounded-xl border border-border/50">
+      {/*
+        The cinematic backdrop belongs HERE and not in Chat: this room drives a
+        real machine, and it should feel like one. It is still only atmosphere —
+        `aria-hidden`, no pointer events, behind everything.
+      */}
+      <LivingIntelligenceBackdrop intensity="cinematic" />
+      {/*
+        The panel sits on a near-opaque plate above the scene. Stop, takeover,
+        permission and approval controls live inside it, and a control that
+        halts a running action must never be the thing competing with a moving
+        gradient for the eye — so the plate is opaque enough to remove the
+        contest entirely.
+      */}
+      <div className="relative z-10 h-full bg-background/88">
+        <ControlWorkPanel brain={brain} headerNote="Signed in · this computer" />
+      </div>
     </div>
   );
 }

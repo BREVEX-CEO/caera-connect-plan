@@ -146,6 +146,7 @@ import { VisualResponse } from "@/components/ocade/VisualResponse";
 import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
 import { saveDraft, recoverDraft, clearDraft } from "@/lib/offline-queue";
 import { useStreamCoalescer } from "@/lib/chat/stream-coalescer";
+import { LivingIntelligenceBackdrop } from "@/components/visual/LivingIntelligenceBackdrop";
 import {
   branchConversation,
   forkConversationBeforeMessage,
@@ -936,7 +937,7 @@ function HomeSurface(props: {
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-6 py-10">
+      <div className="mx-auto flex w-full max-w-[820px] flex-1 flex-col justify-center px-6 py-10">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
           <div
             className="flex h-10 w-10 items-center justify-center rounded-md border border-border/70 text-[color:var(--accent-ocade)]"
@@ -2975,7 +2976,14 @@ function ChatSurface(props: {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      {/*
+        Atmosphere, at the lowest opacity the composition survives at.
+        Reading is the job of this screen: the backdrop sits behind an opaque
+        message column and never competes with body text. Control + Work runs
+        the same component at "cinematic"; Chat does not.
+      */}
+      <LivingIntelligenceBackdrop intensity="subtle" />
       {/*
         Top bar: what this chat is, and where its answers come from.
         Technical detail is deliberately absent — the raw model name lives in
@@ -2983,7 +2991,7 @@ function ChatSurface(props: {
         and the locality, which is what a person needs to know before typing
         something private.
       */}
-      <div className="flex h-14 shrink-0 flex-wrap items-center gap-2 border-b border-border/60 px-4 sm:px-5">
+      <div className="flex h-12 shrink-0 flex-wrap items-center gap-2 border-b border-border/40 px-4 sm:px-5">
         <div className="min-w-0 flex-1">
           <div className="truncate text-[14px] font-medium text-foreground">
             {conversation.title}
@@ -3049,7 +3057,7 @@ function ChatSurface(props: {
 
       {/* Conversation column */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto ocade-scroll">
-        <div className="mx-auto w-full max-w-2xl px-5 py-6">
+        <div className="mx-auto w-full max-w-[820px] px-5 py-8">
           {loading ? (
             <div className="flex justify-center py-10 text-xs text-muted-foreground">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading…
@@ -3248,8 +3256,14 @@ function ChatSurface(props: {
       </div>
 
       {/* Composer pinned to bottom */}
-      <div className="border-t border-border/60 bg-background/60 px-5 py-3 backdrop-blur">
-        <div className="mx-auto w-full max-w-2xl">
+      {/*
+        The composer stays READABLE over the backdrop. `bg-background/92` is
+        near-opaque on purpose — a translucent input over a moving scene is the
+        exact place where "looks alive" starts costing people the ability to
+        proof-read what they are about to send.
+      */}
+      <div className="border-t border-border/40 bg-background/92 px-5 py-3">
+        <div className="mx-auto w-full max-w-[820px]">
           {/*
             What will be read, ABOVE the composer — the only place the
             disclosure is still actionable. A note under the reply explains

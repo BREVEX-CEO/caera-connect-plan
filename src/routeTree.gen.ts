@@ -52,10 +52,12 @@ import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authentic
 import { Route as AuthenticatedOcadeArtifactsRouteImport } from './routes/_authenticated/ocade.artifacts'
 import { Route as AuthenticatedOcadeAutomationsRouteImport } from './routes/_authenticated/ocade.automations'
 import { Route as AuthenticatedOcadeCodeRouteImport } from './routes/_authenticated/ocade.code'
+import { Route as AuthenticatedOcadeHealthRouteImport } from './routes/_authenticated/ocade.health'
 import { Route as AuthenticatedOcadeModelsRouteImport } from './routes/_authenticated/ocade.models'
 import { Route as AuthenticatedOcadeMonitorsRouteImport } from './routes/_authenticated/ocade.monitors'
 import { Route as AuthenticatedOcadeProjectsRouteImport } from './routes/_authenticated/ocade.projects'
 import { Route as AuthenticatedOcadeStudioRouteImport } from './routes/_authenticated/ocade.studio'
+import { Route as AuthenticatedOcadeTasksRouteImport } from './routes/_authenticated/ocade.tasks'
 import { Route as AuthenticatedOcadeWorkRouteImport } from './routes/_authenticated/ocade.work'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
 import { Route as AuthenticatedSettingsSectionRouteImport } from './routes/_authenticated/settings.$section'
@@ -300,6 +302,12 @@ const AuthenticatedOcadeCodeRoute = AuthenticatedOcadeCodeRouteImport.update({
   path: '/code',
   getParentRoute: () => AuthenticatedOcadeRoute,
 } as any)
+const AuthenticatedOcadeHealthRoute =
+  AuthenticatedOcadeHealthRouteImport.update({
+    id: '/health',
+    path: '/health',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
 const AuthenticatedOcadeModelsRoute =
   AuthenticatedOcadeModelsRouteImport.update({
     id: '/models',
@@ -324,6 +332,11 @@ const AuthenticatedOcadeStudioRoute =
     path: '/studio',
     getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
+const AuthenticatedOcadeTasksRoute = AuthenticatedOcadeTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AuthenticatedOcadeRoute,
+} as any)
 const AuthenticatedOcadeWorkRoute = AuthenticatedOcadeWorkRouteImport.update({
   id: '/work',
   path: '/work',
@@ -485,10 +498,12 @@ export interface FileRoutesByFullPath {
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/ocade/code': typeof AuthenticatedOcadeCodeRoute
+  '/ocade/health': typeof AuthenticatedOcadeHealthRoute
   '/ocade/models': typeof AuthenticatedOcadeModelsRoute
   '/ocade/monitors': typeof AuthenticatedOcadeMonitorsRoute
   '/ocade/projects': typeof AuthenticatedOcadeProjectsRoute
   '/ocade/studio': typeof AuthenticatedOcadeStudioRoute
+  '/ocade/tasks': typeof AuthenticatedOcadeTasksRoute
   '/ocade/work': typeof AuthenticatedOcadeWorkRoute
   '/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
@@ -551,10 +566,12 @@ export interface FileRoutesByTo {
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/ocade/code': typeof AuthenticatedOcadeCodeRoute
+  '/ocade/health': typeof AuthenticatedOcadeHealthRoute
   '/ocade/models': typeof AuthenticatedOcadeModelsRoute
   '/ocade/monitors': typeof AuthenticatedOcadeMonitorsRoute
   '/ocade/projects': typeof AuthenticatedOcadeProjectsRoute
   '/ocade/studio': typeof AuthenticatedOcadeStudioRoute
+  '/ocade/tasks': typeof AuthenticatedOcadeTasksRoute
   '/ocade/work': typeof AuthenticatedOcadeWorkRoute
   '/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
@@ -621,10 +638,12 @@ export interface FileRoutesById {
   '/_authenticated/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/_authenticated/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/_authenticated/ocade/code': typeof AuthenticatedOcadeCodeRoute
+  '/_authenticated/ocade/health': typeof AuthenticatedOcadeHealthRoute
   '/_authenticated/ocade/models': typeof AuthenticatedOcadeModelsRoute
   '/_authenticated/ocade/monitors': typeof AuthenticatedOcadeMonitorsRoute
   '/_authenticated/ocade/projects': typeof AuthenticatedOcadeProjectsRoute
   '/_authenticated/ocade/studio': typeof AuthenticatedOcadeStudioRoute
+  '/_authenticated/ocade/tasks': typeof AuthenticatedOcadeTasksRoute
   '/_authenticated/ocade/work': typeof AuthenticatedOcadeWorkRoute
   '/_authenticated/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/_authenticated/settings/activity': typeof AuthenticatedSettingsActivityRoute
@@ -691,10 +710,12 @@ export interface FileRouteTypes {
     | '/ocade/artifacts'
     | '/ocade/automations'
     | '/ocade/code'
+    | '/ocade/health'
     | '/ocade/models'
     | '/ocade/monitors'
     | '/ocade/projects'
     | '/ocade/studio'
+    | '/ocade/tasks'
     | '/ocade/work'
     | '/settings/$section'
     | '/settings/activity'
@@ -757,10 +778,12 @@ export interface FileRouteTypes {
     | '/ocade/artifacts'
     | '/ocade/automations'
     | '/ocade/code'
+    | '/ocade/health'
     | '/ocade/models'
     | '/ocade/monitors'
     | '/ocade/projects'
     | '/ocade/studio'
+    | '/ocade/tasks'
     | '/ocade/work'
     | '/settings/$section'
     | '/settings/activity'
@@ -826,10 +849,12 @@ export interface FileRouteTypes {
     | '/_authenticated/ocade/artifacts'
     | '/_authenticated/ocade/automations'
     | '/_authenticated/ocade/code'
+    | '/_authenticated/ocade/health'
     | '/_authenticated/ocade/models'
     | '/_authenticated/ocade/monitors'
     | '/_authenticated/ocade/projects'
     | '/_authenticated/ocade/studio'
+    | '/_authenticated/ocade/tasks'
     | '/_authenticated/ocade/work'
     | '/_authenticated/settings/$section'
     | '/_authenticated/settings/activity'
@@ -1183,6 +1208,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOcadeCodeRouteImport
       parentRoute: typeof AuthenticatedOcadeRoute
     }
+    '/_authenticated/ocade/health': {
+      id: '/_authenticated/ocade/health'
+      path: '/health'
+      fullPath: '/ocade/health'
+      preLoaderRoute: typeof AuthenticatedOcadeHealthRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
     '/_authenticated/ocade/models': {
       id: '/_authenticated/ocade/models'
       path: '/models'
@@ -1209,6 +1241,13 @@ declare module '@tanstack/react-router' {
       path: '/studio'
       fullPath: '/ocade/studio'
       preLoaderRoute: typeof AuthenticatedOcadeStudioRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/tasks': {
+      id: '/_authenticated/ocade/tasks'
+      path: '/tasks'
+      fullPath: '/ocade/tasks'
+      preLoaderRoute: typeof AuthenticatedOcadeTasksRouteImport
       parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/work': {
@@ -1358,10 +1397,12 @@ interface AuthenticatedOcadeRouteChildren {
   AuthenticatedOcadeArtifactsRoute: typeof AuthenticatedOcadeArtifactsRoute
   AuthenticatedOcadeAutomationsRoute: typeof AuthenticatedOcadeAutomationsRoute
   AuthenticatedOcadeCodeRoute: typeof AuthenticatedOcadeCodeRoute
+  AuthenticatedOcadeHealthRoute: typeof AuthenticatedOcadeHealthRoute
   AuthenticatedOcadeModelsRoute: typeof AuthenticatedOcadeModelsRoute
   AuthenticatedOcadeMonitorsRoute: typeof AuthenticatedOcadeMonitorsRoute
   AuthenticatedOcadeProjectsRoute: typeof AuthenticatedOcadeProjectsRoute
   AuthenticatedOcadeStudioRoute: typeof AuthenticatedOcadeStudioRoute
+  AuthenticatedOcadeTasksRoute: typeof AuthenticatedOcadeTasksRoute
   AuthenticatedOcadeWorkRoute: typeof AuthenticatedOcadeWorkRoute
 }
 
@@ -1369,10 +1410,12 @@ const AuthenticatedOcadeRouteChildren: AuthenticatedOcadeRouteChildren = {
   AuthenticatedOcadeArtifactsRoute: AuthenticatedOcadeArtifactsRoute,
   AuthenticatedOcadeAutomationsRoute: AuthenticatedOcadeAutomationsRoute,
   AuthenticatedOcadeCodeRoute: AuthenticatedOcadeCodeRoute,
+  AuthenticatedOcadeHealthRoute: AuthenticatedOcadeHealthRoute,
   AuthenticatedOcadeModelsRoute: AuthenticatedOcadeModelsRoute,
   AuthenticatedOcadeMonitorsRoute: AuthenticatedOcadeMonitorsRoute,
   AuthenticatedOcadeProjectsRoute: AuthenticatedOcadeProjectsRoute,
   AuthenticatedOcadeStudioRoute: AuthenticatedOcadeStudioRoute,
+  AuthenticatedOcadeTasksRoute: AuthenticatedOcadeTasksRoute,
   AuthenticatedOcadeWorkRoute: AuthenticatedOcadeWorkRoute,
 }
 
