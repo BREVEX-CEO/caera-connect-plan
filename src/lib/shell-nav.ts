@@ -20,6 +20,8 @@ import {
   Radar,
   Boxes,
   FileCode2,
+  ListChecks,
+  Activity,
   type LucideIcon,
 } from "lucide-react";
 
@@ -121,8 +123,16 @@ export const MODULE_CONTEXT: Record<ModuleId, NavItem[]> = {
     { to: "/ocade/code", label: "Code", icon: FileCode2 },
     { to: "/ocade/automations", label: "Automations", icon: Workflow },
     { to: "/ocade/monitors", label: "Monitors", icon: Radar },
+    /*
+     * Tasks is the same workspace as Settings › Tasks, deliberately: runs are
+     * work, and work belongs beside the work, not filed under preferences.
+     * Health sits last because it is the page you open when something else on
+     * this list disappointed you.
+     */
+    { to: "/ocade/tasks", label: "Tasks", icon: ListChecks },
     { to: "/ocade/models", label: "Local intelligence", icon: Boxes },
     { to: "/ocade/studio", label: "Studio", icon: Boxes },
+    { to: "/ocade/health", label: "Health", icon: Activity },
   ],
   /*
    * No contextual entries for the placeholder products. A sidebar listing
