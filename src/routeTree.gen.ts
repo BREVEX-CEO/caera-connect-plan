@@ -49,15 +49,27 @@ import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminPaymentsChecklistRouteImport } from './routes/_authenticated/admin.payments-checklist'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin.support'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
+import { Route as AuthenticatedOcadeActivityRouteImport } from './routes/_authenticated/ocade.activity'
 import { Route as AuthenticatedOcadeArtifactsRouteImport } from './routes/_authenticated/ocade.artifacts'
 import { Route as AuthenticatedOcadeAutomationsRouteImport } from './routes/_authenticated/ocade.automations'
 import { Route as AuthenticatedOcadeCodeRouteImport } from './routes/_authenticated/ocade.code'
+import { Route as AuthenticatedOcadeConnectorsRouteImport } from './routes/_authenticated/ocade.connectors'
+import { Route as AuthenticatedOcadeDevicesRouteImport } from './routes/_authenticated/ocade.devices'
 import { Route as AuthenticatedOcadeHealthRouteImport } from './routes/_authenticated/ocade.health'
+import { Route as AuthenticatedOcadeInboxRouteImport } from './routes/_authenticated/ocade.inbox'
+import { Route as AuthenticatedOcadeKnowledgeRouteImport } from './routes/_authenticated/ocade.knowledge'
+import { Route as AuthenticatedOcadeLabRouteImport } from './routes/_authenticated/ocade.lab'
 import { Route as AuthenticatedOcadeModelsRouteImport } from './routes/_authenticated/ocade.models'
 import { Route as AuthenticatedOcadeMonitorsRouteImport } from './routes/_authenticated/ocade.monitors'
+import { Route as AuthenticatedOcadeNotificationsRouteImport } from './routes/_authenticated/ocade.notifications'
+import { Route as AuthenticatedOcadePermissionsRouteImport } from './routes/_authenticated/ocade.permissions'
 import { Route as AuthenticatedOcadeProjectsRouteImport } from './routes/_authenticated/ocade.projects'
+import { Route as AuthenticatedOcadeSearchRouteImport } from './routes/_authenticated/ocade.search'
+import { Route as AuthenticatedOcadeSharedRouteImport } from './routes/_authenticated/ocade.shared'
 import { Route as AuthenticatedOcadeStudioRouteImport } from './routes/_authenticated/ocade.studio'
+import { Route as AuthenticatedOcadeSystemRouteImport } from './routes/_authenticated/ocade.system'
 import { Route as AuthenticatedOcadeTasksRouteImport } from './routes/_authenticated/ocade.tasks'
+import { Route as AuthenticatedOcadeTemplatesRouteImport } from './routes/_authenticated/ocade.templates'
 import { Route as AuthenticatedOcadeWorkRouteImport } from './routes/_authenticated/ocade.work'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings.index'
 import { Route as AuthenticatedSettingsSectionRouteImport } from './routes/_authenticated/settings.$section'
@@ -285,6 +297,12 @@ const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOcadeActivityRoute =
+  AuthenticatedOcadeActivityRouteImport.update({
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
 const AuthenticatedOcadeArtifactsRoute =
   AuthenticatedOcadeArtifactsRouteImport.update({
     id: '/artifacts',
@@ -302,12 +320,40 @@ const AuthenticatedOcadeCodeRoute = AuthenticatedOcadeCodeRouteImport.update({
   path: '/code',
   getParentRoute: () => AuthenticatedOcadeRoute,
 } as any)
+const AuthenticatedOcadeConnectorsRoute =
+  AuthenticatedOcadeConnectorsRouteImport.update({
+    id: '/connectors',
+    path: '/connectors',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
+const AuthenticatedOcadeDevicesRoute =
+  AuthenticatedOcadeDevicesRouteImport.update({
+    id: '/devices',
+    path: '/devices',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
 const AuthenticatedOcadeHealthRoute =
   AuthenticatedOcadeHealthRouteImport.update({
     id: '/health',
     path: '/health',
     getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
+const AuthenticatedOcadeInboxRoute = AuthenticatedOcadeInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => AuthenticatedOcadeRoute,
+} as any)
+const AuthenticatedOcadeKnowledgeRoute =
+  AuthenticatedOcadeKnowledgeRouteImport.update({
+    id: '/knowledge',
+    path: '/knowledge',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
+const AuthenticatedOcadeLabRoute = AuthenticatedOcadeLabRouteImport.update({
+  id: '/lab',
+  path: '/lab',
+  getParentRoute: () => AuthenticatedOcadeRoute,
+} as any)
 const AuthenticatedOcadeModelsRoute =
   AuthenticatedOcadeModelsRouteImport.update({
     id: '/models',
@@ -320,10 +366,34 @@ const AuthenticatedOcadeMonitorsRoute =
     path: '/monitors',
     getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
+const AuthenticatedOcadeNotificationsRoute =
+  AuthenticatedOcadeNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
+const AuthenticatedOcadePermissionsRoute =
+  AuthenticatedOcadePermissionsRouteImport.update({
+    id: '/permissions',
+    path: '/permissions',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
 const AuthenticatedOcadeProjectsRoute =
   AuthenticatedOcadeProjectsRouteImport.update({
     id: '/projects',
     path: '/projects',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
+const AuthenticatedOcadeSearchRoute =
+  AuthenticatedOcadeSearchRouteImport.update({
+    id: '/search',
+    path: '/search',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
+const AuthenticatedOcadeSharedRoute =
+  AuthenticatedOcadeSharedRouteImport.update({
+    id: '/shared',
+    path: '/shared',
     getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeStudioRoute =
@@ -332,11 +402,23 @@ const AuthenticatedOcadeStudioRoute =
     path: '/studio',
     getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
+const AuthenticatedOcadeSystemRoute =
+  AuthenticatedOcadeSystemRouteImport.update({
+    id: '/system',
+    path: '/system',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
 const AuthenticatedOcadeTasksRoute = AuthenticatedOcadeTasksRouteImport.update({
   id: '/tasks',
   path: '/tasks',
   getParentRoute: () => AuthenticatedOcadeRoute,
 } as any)
+const AuthenticatedOcadeTemplatesRoute =
+  AuthenticatedOcadeTemplatesRouteImport.update({
+    id: '/templates',
+    path: '/templates',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
 const AuthenticatedOcadeWorkRoute = AuthenticatedOcadeWorkRouteImport.update({
   id: '/work',
   path: '/work',
@@ -495,15 +577,27 @@ export interface FileRoutesByFullPath {
   '/admin/payments-checklist': typeof AuthenticatedAdminPaymentsChecklistRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/ocade/activity': typeof AuthenticatedOcadeActivityRoute
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/ocade/code': typeof AuthenticatedOcadeCodeRoute
+  '/ocade/connectors': typeof AuthenticatedOcadeConnectorsRoute
+  '/ocade/devices': typeof AuthenticatedOcadeDevicesRoute
   '/ocade/health': typeof AuthenticatedOcadeHealthRoute
+  '/ocade/inbox': typeof AuthenticatedOcadeInboxRoute
+  '/ocade/knowledge': typeof AuthenticatedOcadeKnowledgeRoute
+  '/ocade/lab': typeof AuthenticatedOcadeLabRoute
   '/ocade/models': typeof AuthenticatedOcadeModelsRoute
   '/ocade/monitors': typeof AuthenticatedOcadeMonitorsRoute
+  '/ocade/notifications': typeof AuthenticatedOcadeNotificationsRoute
+  '/ocade/permissions': typeof AuthenticatedOcadePermissionsRoute
   '/ocade/projects': typeof AuthenticatedOcadeProjectsRoute
+  '/ocade/search': typeof AuthenticatedOcadeSearchRoute
+  '/ocade/shared': typeof AuthenticatedOcadeSharedRoute
   '/ocade/studio': typeof AuthenticatedOcadeStudioRoute
+  '/ocade/system': typeof AuthenticatedOcadeSystemRoute
   '/ocade/tasks': typeof AuthenticatedOcadeTasksRoute
+  '/ocade/templates': typeof AuthenticatedOcadeTemplatesRoute
   '/ocade/work': typeof AuthenticatedOcadeWorkRoute
   '/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
@@ -563,15 +657,27 @@ export interface FileRoutesByTo {
   '/admin/payments-checklist': typeof AuthenticatedAdminPaymentsChecklistRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/ocade/activity': typeof AuthenticatedOcadeActivityRoute
   '/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/ocade/code': typeof AuthenticatedOcadeCodeRoute
+  '/ocade/connectors': typeof AuthenticatedOcadeConnectorsRoute
+  '/ocade/devices': typeof AuthenticatedOcadeDevicesRoute
   '/ocade/health': typeof AuthenticatedOcadeHealthRoute
+  '/ocade/inbox': typeof AuthenticatedOcadeInboxRoute
+  '/ocade/knowledge': typeof AuthenticatedOcadeKnowledgeRoute
+  '/ocade/lab': typeof AuthenticatedOcadeLabRoute
   '/ocade/models': typeof AuthenticatedOcadeModelsRoute
   '/ocade/monitors': typeof AuthenticatedOcadeMonitorsRoute
+  '/ocade/notifications': typeof AuthenticatedOcadeNotificationsRoute
+  '/ocade/permissions': typeof AuthenticatedOcadePermissionsRoute
   '/ocade/projects': typeof AuthenticatedOcadeProjectsRoute
+  '/ocade/search': typeof AuthenticatedOcadeSearchRoute
+  '/ocade/shared': typeof AuthenticatedOcadeSharedRoute
   '/ocade/studio': typeof AuthenticatedOcadeStudioRoute
+  '/ocade/system': typeof AuthenticatedOcadeSystemRoute
   '/ocade/tasks': typeof AuthenticatedOcadeTasksRoute
+  '/ocade/templates': typeof AuthenticatedOcadeTemplatesRoute
   '/ocade/work': typeof AuthenticatedOcadeWorkRoute
   '/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/settings/activity': typeof AuthenticatedSettingsActivityRoute
@@ -635,15 +741,27 @@ export interface FileRoutesById {
   '/_authenticated/admin/payments-checklist': typeof AuthenticatedAdminPaymentsChecklistRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
+  '/_authenticated/ocade/activity': typeof AuthenticatedOcadeActivityRoute
   '/_authenticated/ocade/artifacts': typeof AuthenticatedOcadeArtifactsRoute
   '/_authenticated/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/_authenticated/ocade/code': typeof AuthenticatedOcadeCodeRoute
+  '/_authenticated/ocade/connectors': typeof AuthenticatedOcadeConnectorsRoute
+  '/_authenticated/ocade/devices': typeof AuthenticatedOcadeDevicesRoute
   '/_authenticated/ocade/health': typeof AuthenticatedOcadeHealthRoute
+  '/_authenticated/ocade/inbox': typeof AuthenticatedOcadeInboxRoute
+  '/_authenticated/ocade/knowledge': typeof AuthenticatedOcadeKnowledgeRoute
+  '/_authenticated/ocade/lab': typeof AuthenticatedOcadeLabRoute
   '/_authenticated/ocade/models': typeof AuthenticatedOcadeModelsRoute
   '/_authenticated/ocade/monitors': typeof AuthenticatedOcadeMonitorsRoute
+  '/_authenticated/ocade/notifications': typeof AuthenticatedOcadeNotificationsRoute
+  '/_authenticated/ocade/permissions': typeof AuthenticatedOcadePermissionsRoute
   '/_authenticated/ocade/projects': typeof AuthenticatedOcadeProjectsRoute
+  '/_authenticated/ocade/search': typeof AuthenticatedOcadeSearchRoute
+  '/_authenticated/ocade/shared': typeof AuthenticatedOcadeSharedRoute
   '/_authenticated/ocade/studio': typeof AuthenticatedOcadeStudioRoute
+  '/_authenticated/ocade/system': typeof AuthenticatedOcadeSystemRoute
   '/_authenticated/ocade/tasks': typeof AuthenticatedOcadeTasksRoute
+  '/_authenticated/ocade/templates': typeof AuthenticatedOcadeTemplatesRoute
   '/_authenticated/ocade/work': typeof AuthenticatedOcadeWorkRoute
   '/_authenticated/settings/$section': typeof AuthenticatedSettingsSectionRoute
   '/_authenticated/settings/activity': typeof AuthenticatedSettingsActivityRoute
@@ -707,15 +825,27 @@ export interface FileRouteTypes {
     | '/admin/payments-checklist'
     | '/admin/support'
     | '/admin/users'
+    | '/ocade/activity'
     | '/ocade/artifacts'
     | '/ocade/automations'
     | '/ocade/code'
+    | '/ocade/connectors'
+    | '/ocade/devices'
     | '/ocade/health'
+    | '/ocade/inbox'
+    | '/ocade/knowledge'
+    | '/ocade/lab'
     | '/ocade/models'
     | '/ocade/monitors'
+    | '/ocade/notifications'
+    | '/ocade/permissions'
     | '/ocade/projects'
+    | '/ocade/search'
+    | '/ocade/shared'
     | '/ocade/studio'
+    | '/ocade/system'
     | '/ocade/tasks'
+    | '/ocade/templates'
     | '/ocade/work'
     | '/settings/$section'
     | '/settings/activity'
@@ -775,15 +905,27 @@ export interface FileRouteTypes {
     | '/admin/payments-checklist'
     | '/admin/support'
     | '/admin/users'
+    | '/ocade/activity'
     | '/ocade/artifacts'
     | '/ocade/automations'
     | '/ocade/code'
+    | '/ocade/connectors'
+    | '/ocade/devices'
     | '/ocade/health'
+    | '/ocade/inbox'
+    | '/ocade/knowledge'
+    | '/ocade/lab'
     | '/ocade/models'
     | '/ocade/monitors'
+    | '/ocade/notifications'
+    | '/ocade/permissions'
     | '/ocade/projects'
+    | '/ocade/search'
+    | '/ocade/shared'
     | '/ocade/studio'
+    | '/ocade/system'
     | '/ocade/tasks'
+    | '/ocade/templates'
     | '/ocade/work'
     | '/settings/$section'
     | '/settings/activity'
@@ -846,15 +988,27 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/payments-checklist'
     | '/_authenticated/admin/support'
     | '/_authenticated/admin/users'
+    | '/_authenticated/ocade/activity'
     | '/_authenticated/ocade/artifacts'
     | '/_authenticated/ocade/automations'
     | '/_authenticated/ocade/code'
+    | '/_authenticated/ocade/connectors'
+    | '/_authenticated/ocade/devices'
     | '/_authenticated/ocade/health'
+    | '/_authenticated/ocade/inbox'
+    | '/_authenticated/ocade/knowledge'
+    | '/_authenticated/ocade/lab'
     | '/_authenticated/ocade/models'
     | '/_authenticated/ocade/monitors'
+    | '/_authenticated/ocade/notifications'
+    | '/_authenticated/ocade/permissions'
     | '/_authenticated/ocade/projects'
+    | '/_authenticated/ocade/search'
+    | '/_authenticated/ocade/shared'
     | '/_authenticated/ocade/studio'
+    | '/_authenticated/ocade/system'
     | '/_authenticated/ocade/tasks'
+    | '/_authenticated/ocade/templates'
     | '/_authenticated/ocade/work'
     | '/_authenticated/settings/$section'
     | '/_authenticated/settings/activity'
@@ -1187,6 +1341,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ocade/activity': {
+      id: '/_authenticated/ocade/activity'
+      path: '/activity'
+      fullPath: '/ocade/activity'
+      preLoaderRoute: typeof AuthenticatedOcadeActivityRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
     '/_authenticated/ocade/artifacts': {
       id: '/_authenticated/ocade/artifacts'
       path: '/artifacts'
@@ -1208,11 +1369,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOcadeCodeRouteImport
       parentRoute: typeof AuthenticatedOcadeRoute
     }
+    '/_authenticated/ocade/connectors': {
+      id: '/_authenticated/ocade/connectors'
+      path: '/connectors'
+      fullPath: '/ocade/connectors'
+      preLoaderRoute: typeof AuthenticatedOcadeConnectorsRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/devices': {
+      id: '/_authenticated/ocade/devices'
+      path: '/devices'
+      fullPath: '/ocade/devices'
+      preLoaderRoute: typeof AuthenticatedOcadeDevicesRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
     '/_authenticated/ocade/health': {
       id: '/_authenticated/ocade/health'
       path: '/health'
       fullPath: '/ocade/health'
       preLoaderRoute: typeof AuthenticatedOcadeHealthRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/inbox': {
+      id: '/_authenticated/ocade/inbox'
+      path: '/inbox'
+      fullPath: '/ocade/inbox'
+      preLoaderRoute: typeof AuthenticatedOcadeInboxRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/knowledge': {
+      id: '/_authenticated/ocade/knowledge'
+      path: '/knowledge'
+      fullPath: '/ocade/knowledge'
+      preLoaderRoute: typeof AuthenticatedOcadeKnowledgeRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/lab': {
+      id: '/_authenticated/ocade/lab'
+      path: '/lab'
+      fullPath: '/ocade/lab'
+      preLoaderRoute: typeof AuthenticatedOcadeLabRouteImport
       parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/models': {
@@ -1229,11 +1425,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOcadeMonitorsRouteImport
       parentRoute: typeof AuthenticatedOcadeRoute
     }
+    '/_authenticated/ocade/notifications': {
+      id: '/_authenticated/ocade/notifications'
+      path: '/notifications'
+      fullPath: '/ocade/notifications'
+      preLoaderRoute: typeof AuthenticatedOcadeNotificationsRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/permissions': {
+      id: '/_authenticated/ocade/permissions'
+      path: '/permissions'
+      fullPath: '/ocade/permissions'
+      preLoaderRoute: typeof AuthenticatedOcadePermissionsRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
     '/_authenticated/ocade/projects': {
       id: '/_authenticated/ocade/projects'
       path: '/projects'
       fullPath: '/ocade/projects'
       preLoaderRoute: typeof AuthenticatedOcadeProjectsRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/search': {
+      id: '/_authenticated/ocade/search'
+      path: '/search'
+      fullPath: '/ocade/search'
+      preLoaderRoute: typeof AuthenticatedOcadeSearchRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/shared': {
+      id: '/_authenticated/ocade/shared'
+      path: '/shared'
+      fullPath: '/ocade/shared'
+      preLoaderRoute: typeof AuthenticatedOcadeSharedRouteImport
       parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/studio': {
@@ -1243,11 +1467,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOcadeStudioRouteImport
       parentRoute: typeof AuthenticatedOcadeRoute
     }
+    '/_authenticated/ocade/system': {
+      id: '/_authenticated/ocade/system'
+      path: '/system'
+      fullPath: '/ocade/system'
+      preLoaderRoute: typeof AuthenticatedOcadeSystemRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
     '/_authenticated/ocade/tasks': {
       id: '/_authenticated/ocade/tasks'
       path: '/tasks'
       fullPath: '/ocade/tasks'
       preLoaderRoute: typeof AuthenticatedOcadeTasksRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/templates': {
+      id: '/_authenticated/ocade/templates'
+      path: '/templates'
+      fullPath: '/ocade/templates'
+      preLoaderRoute: typeof AuthenticatedOcadeTemplatesRouteImport
       parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/work': {
@@ -1394,28 +1632,52 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedOcadeRouteChildren {
+  AuthenticatedOcadeActivityRoute: typeof AuthenticatedOcadeActivityRoute
   AuthenticatedOcadeArtifactsRoute: typeof AuthenticatedOcadeArtifactsRoute
   AuthenticatedOcadeAutomationsRoute: typeof AuthenticatedOcadeAutomationsRoute
   AuthenticatedOcadeCodeRoute: typeof AuthenticatedOcadeCodeRoute
+  AuthenticatedOcadeConnectorsRoute: typeof AuthenticatedOcadeConnectorsRoute
+  AuthenticatedOcadeDevicesRoute: typeof AuthenticatedOcadeDevicesRoute
   AuthenticatedOcadeHealthRoute: typeof AuthenticatedOcadeHealthRoute
+  AuthenticatedOcadeInboxRoute: typeof AuthenticatedOcadeInboxRoute
+  AuthenticatedOcadeKnowledgeRoute: typeof AuthenticatedOcadeKnowledgeRoute
+  AuthenticatedOcadeLabRoute: typeof AuthenticatedOcadeLabRoute
   AuthenticatedOcadeModelsRoute: typeof AuthenticatedOcadeModelsRoute
   AuthenticatedOcadeMonitorsRoute: typeof AuthenticatedOcadeMonitorsRoute
+  AuthenticatedOcadeNotificationsRoute: typeof AuthenticatedOcadeNotificationsRoute
+  AuthenticatedOcadePermissionsRoute: typeof AuthenticatedOcadePermissionsRoute
   AuthenticatedOcadeProjectsRoute: typeof AuthenticatedOcadeProjectsRoute
+  AuthenticatedOcadeSearchRoute: typeof AuthenticatedOcadeSearchRoute
+  AuthenticatedOcadeSharedRoute: typeof AuthenticatedOcadeSharedRoute
   AuthenticatedOcadeStudioRoute: typeof AuthenticatedOcadeStudioRoute
+  AuthenticatedOcadeSystemRoute: typeof AuthenticatedOcadeSystemRoute
   AuthenticatedOcadeTasksRoute: typeof AuthenticatedOcadeTasksRoute
+  AuthenticatedOcadeTemplatesRoute: typeof AuthenticatedOcadeTemplatesRoute
   AuthenticatedOcadeWorkRoute: typeof AuthenticatedOcadeWorkRoute
 }
 
 const AuthenticatedOcadeRouteChildren: AuthenticatedOcadeRouteChildren = {
+  AuthenticatedOcadeActivityRoute: AuthenticatedOcadeActivityRoute,
   AuthenticatedOcadeArtifactsRoute: AuthenticatedOcadeArtifactsRoute,
   AuthenticatedOcadeAutomationsRoute: AuthenticatedOcadeAutomationsRoute,
   AuthenticatedOcadeCodeRoute: AuthenticatedOcadeCodeRoute,
+  AuthenticatedOcadeConnectorsRoute: AuthenticatedOcadeConnectorsRoute,
+  AuthenticatedOcadeDevicesRoute: AuthenticatedOcadeDevicesRoute,
   AuthenticatedOcadeHealthRoute: AuthenticatedOcadeHealthRoute,
+  AuthenticatedOcadeInboxRoute: AuthenticatedOcadeInboxRoute,
+  AuthenticatedOcadeKnowledgeRoute: AuthenticatedOcadeKnowledgeRoute,
+  AuthenticatedOcadeLabRoute: AuthenticatedOcadeLabRoute,
   AuthenticatedOcadeModelsRoute: AuthenticatedOcadeModelsRoute,
   AuthenticatedOcadeMonitorsRoute: AuthenticatedOcadeMonitorsRoute,
+  AuthenticatedOcadeNotificationsRoute: AuthenticatedOcadeNotificationsRoute,
+  AuthenticatedOcadePermissionsRoute: AuthenticatedOcadePermissionsRoute,
   AuthenticatedOcadeProjectsRoute: AuthenticatedOcadeProjectsRoute,
+  AuthenticatedOcadeSearchRoute: AuthenticatedOcadeSearchRoute,
+  AuthenticatedOcadeSharedRoute: AuthenticatedOcadeSharedRoute,
   AuthenticatedOcadeStudioRoute: AuthenticatedOcadeStudioRoute,
+  AuthenticatedOcadeSystemRoute: AuthenticatedOcadeSystemRoute,
   AuthenticatedOcadeTasksRoute: AuthenticatedOcadeTasksRoute,
+  AuthenticatedOcadeTemplatesRoute: AuthenticatedOcadeTemplatesRoute,
   AuthenticatedOcadeWorkRoute: AuthenticatedOcadeWorkRoute,
 }
 
