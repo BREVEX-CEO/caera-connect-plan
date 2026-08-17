@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
 import { WorkspaceShell } from "./WorkspaceShell";
+import { LocalOnlyOfflineNotice } from "@/components/ocade/LocalOnlyOfflineNotice";
 
-/**
- * Compatibility wrapper. `WorkspaceShell` is now the single OCADE shell
- * (Plan §37); every authenticated page keeps importing `AppShell` and renders
- * the unified shell without any call-site change.
- */
+/** Unified authenticated OCADE shell with the local-only/offline boundary visible. */
 export function AppShell({ children }: { children: ReactNode }) {
-  return <WorkspaceShell variant="app">{children}</WorkspaceShell>;
+  return (
+    <WorkspaceShell variant="app">
+      <LocalOnlyOfflineNotice />
+      {children}
+    </WorkspaceShell>
+  );
 }
