@@ -1,12 +1,15 @@
 /**
- * Server-side payment provider access.
+ * Server-side Paddle webhook verification.
  *
- * OCADE never holds provider API keys in its own code: every call is routed
- * through the Lovable connector gateway, which attaches the real credential.
- * That is why this file reads only connection keys and never a raw secret,
- * and why nothing here may be imported from the browser.
+ * Free-launch mode does not start new checkouts, but signed historical/provider
+ * events may still arrive and must remain auditable. Verification intentionally
+ * uses Node core crypto rather than a provider SDK so the security boundary is
+ * small, deterministic and present in the lockfile-independent runtime.
+ *
+ * IMPORTANT: the exact raw request body is authenticated before JSON parsing.
+ * Re-serializing JSON before verification would change the signed payload.
  */
-import { Environment, Paddle, EventName } from "@paddle/paddle-node-sdk";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 const getEnv = (key: string): string => {
   const value = process.env[key];
@@ -14,47 +17,25 @@ const getEnv = (key: string): string => {
   return value;
 };
 
-export { EventName };
+export const EventName = {
+  SubscriptionCreated: "subscription.created",
+  SubscriptionUpdated: "subscription.updated",
+  SubscriptionCanceled: "subscription.canceled",
+} as const;
 
 /** `sandbox` is the test environment; `live` takes real money. */
 export type PaddleEnv = "sandbox" | "live";
 
-const GATEWAY_BASE_URL = "https://connector-gateway.lovable.dev/paddle";
+export type VerifiedPaddleEvent = {
+  eventType: string;
+  data: unknown;
+};
 
-export function getConnectionApiKey(env: PaddleEnv): string {
-  return env === "sandbox" ? getEnv("PADDLE_SANDBOX_API_KEY") : getEnv("PADDLE_LIVE_API_KEY");
-}
+const SIGNATURE_TOLERANCE_SECONDS = 5;
+const HEX_SHA256 = /^[a-f0-9]{64}$/i;
 
-export function getPaddleClient(env: PaddleEnv): Paddle {
-  const connectionApiKey = getConnectionApiKey(env);
-  const lovableApiKey = getEnv("LOVABLE_API_KEY");
-
-  return new Paddle(connectionApiKey, {
-    environment: GATEWAY_BASE_URL as unknown as Environment,
-    customHeaders: {
-      "X-Connection-Api-Key": connectionApiKey,
-      "Lovable-API-Key": lovableApiKey,
-    },
-  });
-}
-
-/** For REST calls the SDK does not cover, such as `external_id` lookups. */
-export async function gatewayFetch(
-  env: PaddleEnv,
-  path: string,
-  init?: RequestInit,
-): Promise<Response> {
-  const connectionApiKey = getConnectionApiKey(env);
-  const lovableApiKey = getEnv("LOVABLE_API_KEY");
-  return fetch(`${GATEWAY_BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      "X-Connection-Api-Key": connectionApiKey,
-      "Lovable-API-Key": lovableApiKey,
-      ...init?.headers,
-    },
-  });
+export function isPaddleEnv(value: string | null): value is PaddleEnv {
+  return value === "sandbox" || value === "live";
 }
 
 export function getWebhookSecret(env: PaddleEnv): string {
@@ -63,21 +44,92 @@ export function getWebhookSecret(env: PaddleEnv): string {
     : getEnv("PAYMENTS_LIVE_WEBHOOK_SECRET");
 }
 
+function parseSignatureHeader(header: string) {
+  let timestamp: number | null = null;
+  const signatures: string[] = [];
+
+  for (const rawPart of header.split(";")) {
+    const separator = rawPart.indexOf("=");
+    if (separator < 1) continue;
+    const key = rawPart.slice(0, separator).trim();
+    const value = rawPart.slice(separator + 1).trim();
+    if (key === "ts" && /^\d+$/.test(value)) timestamp = Number(value);
+    if (key === "h1" && HEX_SHA256.test(value)) signatures.push(value.toLowerCase());
+  }
+
+  if (timestamp === null || !Number.isSafeInteger(timestamp) || signatures.length === 0) {
+    throw new Error("Malformed Paddle-Signature header");
+  }
+
+  return { timestamp, signatures };
+}
+
+function constantTimeHexEqual(leftHex: string, rightHex: string) {
+  if (!HEX_SHA256.test(leftHex) || !HEX_SHA256.test(rightHex)) return false;
+  const left = Buffer.from(leftHex, "hex");
+  const right = Buffer.from(rightHex, "hex");
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
+function parseVerifiedEvent(body: string): VerifiedPaddleEvent {
+  let decoded: unknown;
+  try {
+    decoded = JSON.parse(body);
+  } catch {
+    throw new Error("Verified Paddle webhook body is not valid JSON");
+  }
+
+  if (!decoded || typeof decoded !== "object") {
+    throw new Error("Verified Paddle webhook body is not an event object");
+  }
+
+  const record = decoded as Record<string, unknown>;
+  const eventType =
+    typeof record.event_type === "string"
+      ? record.event_type
+      : typeof record.eventType === "string"
+        ? record.eventType
+        : null;
+
+  if (!eventType || !("data" in record)) {
+    throw new Error("Verified Paddle webhook is missing event_type or data");
+  }
+
+  return { eventType, data: record.data };
+}
+
 /**
  * Verify a webhook signature before believing a single field of the body.
  *
- * An unverified webhook is an unauthenticated request that grants paid
- * entitlements, so this is the security boundary for the whole billing system.
+ * Paddle signs `${timestamp}:${rawBody}` with HMAC-SHA256. Multiple `h1`
+ * signatures may be present during secret rotation, so any valid `h1` is
+ * accepted. The timestamp must also be within the replay window.
  */
-export async function verifyWebhook(req: Request, env: PaddleEnv) {
-  const signature = req.headers.get("paddle-signature");
+export async function verifyWebhook(
+  req: Request,
+  env: PaddleEnv,
+  nowSeconds = Math.floor(Date.now() / 1000),
+): Promise<VerifiedPaddleEvent> {
+  const signatureHeader = req.headers.get("paddle-signature");
   const body = await req.text();
-  const secret = getWebhookSecret(env);
 
-  if (!signature || !body) {
-    throw new Error("Missing signature or body");
+  if (!signatureHeader || !body) {
+    throw new Error("Missing Paddle signature or body");
   }
 
-  const paddle = getPaddleClient(env);
-  return await paddle.webhooks.unmarshal(body, secret, signature);
+  const { timestamp, signatures } = parseSignatureHeader(signatureHeader);
+  const ageSeconds = Math.abs(nowSeconds - timestamp);
+  if (ageSeconds > SIGNATURE_TOLERANCE_SECONDS) {
+    throw new Error("Paddle webhook timestamp is outside the replay window");
+  }
+
+  const secret = getWebhookSecret(env);
+  const signedPayload = `${timestamp}:${body}`;
+  const expected = createHmac("sha256", secret).update(signedPayload, "utf8").digest("hex");
+
+  if (!signatures.some((signature) => constantTimeHexEqual(signature, expected))) {
+    throw new Error("Invalid Paddle webhook signature");
+  }
+
+  return parseVerifiedEvent(body);
 }

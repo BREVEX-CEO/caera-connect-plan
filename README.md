@@ -16,9 +16,23 @@ proof that the corresponding production service or store release is available.
 | Web                | React/TanStack Start application, public demo, authenticated workspace and Cloudflare-oriented deployment | A build can pass while a hosted environment is misconfigured. Production URL, monitoring and launch approval remain separate gates.         |
 | Offline web        | Service worker, cached root shell and browser-local storage/model paths                                   | A real Chrome online-then-offline reload is proven. First visit, uncached routes, cleared storage, sign-in, sync, live web, payments and cloud features still need a network. |
 | Cloud/private sync | Supabase auth, RLS-backed data paths, private storage and optional AI gateways                            | Users must be told which mode is active. “Local-first” does not mean all data always remains on-device.                                     |
-| Desktop            | Local Tauri/Rust companion, packaged browser host and packaged MediaPipe hand-control sidecar             | The companion is not the full chat website. Production signing, clean-device tests, macOS notarization and update signing remain release gates. |
-| Mobile             | Capacitor Android and iOS projects, mobile pairing and restricted control paths                           | Store signing, privacy declarations, billing compliance and device testing are still required.                                              |
-| Entitlements       | Demo state, subscription/allowance logic, two desktop plus two mobile device limits                       | The repository does not yet prove a live payment checkout or store-billing integration.                                                     |
+| Desktop            | Local Tauri/Rust companion, packaged browser host and packaged MediaPipe hand-control sidecar             | Desktop source is retained for development, but public desktop downloads/releases are intentionally disabled for the current launch. Signing, clean-device tests, macOS notarization and update signing remain future release gates. |
+| Mobile             | Capacitor Android and iOS projects, mobile pairing and restricted control paths                           | Store signing, privacy declarations, billing compliance and device testing are still required before a store-release claim.                 |
+| Billing            | Historical subscription/allowance records and provider/webhook source remain intact                       | **Free launch mode is active.** Checkout, pricing, upgrades and paid entitlement gates are disabled. A provider token alone cannot re-enable checkout. |
+
+## Current launch mode
+
+OCADE is currently configured as a **free launch** for every signed-in account.
+There is nothing to buy and no implemented feature is gated by a paid plan.
+Pricing, checkout, upgrade and billing surfaces are hidden, and the shared
+Paddle bootstrap refuses to initialize while free-launch mode is active. This
+is intentionally enforced below the UI so an old URL, admin surface or stale
+button cannot start a payment merely because provider configuration still
+exists.
+
+Billing tables, signed webhook handling and historical provider code are not
+deleted. They are financial/audit history and future integration source, not a
+claim that live checkout is available now.
 
 ## Product behavior
 
@@ -28,16 +42,23 @@ conversation and project storage, browser/native control components, voice and
 vision modules, automations and cross-device controls. Availability depends on
 the platform, installed model, hardware, privacy mode and configured services.
 
+Capability labels are evidence-driven. A native shell does not by itself prove
+a Code terminal or automation worker is alive, a saved monitor does not prove
+anything is polling, and source code for an installer does not prove a signed
+download exists. Those capabilities stay `NOT_CONFIGURED` or `UNAVAILABLE`
+until their own runtime evidence exists.
+
 Safety controls in source include confirmation and refusal paths, emergency-stop
 handling, account-scoped storage, signed native/bridge requests, attachment
 limits, privacy-mode routing and honest “unverified” outcomes. These controls
 must still be tested on the actual production target before a release claim.
 
-The Windows companion now boots only from bundled local files; it no longer
+The Windows companion source boots from bundled local files; it no longer
 depends on a developer server. Its optional camera preview and cursor control
 use a separately packaged MediaPipe process. Cursor control requires a visible
 two-step opt-in and can be stopped from the app, tray, or `Ctrl+Shift+F12`.
 Camera frames are processed locally and are not sent to the web application.
+This source statement is **not** a public installer-availability claim.
 
 ## Privacy model
 
@@ -70,9 +91,13 @@ npm run typecheck
 npm run test
 npm run build
 npm run deploy:check
-# Windows release host only; produces an unsigned test installer.
+# Internal Windows development only; no public desktop release is published.
 npm run desktop:bundle:windows
 ```
+
+`typecheck` and `build` regenerate the TanStack route tree first so a newly
+added file route cannot silently disappear from typed routing because a tracked
+generated file is stale.
 
 Client authentication needs `VITE_SUPABASE_URL` and
 `VITE_SUPABASE_PUBLISHABLE_KEY`; server routes need their corresponding

@@ -16,6 +16,12 @@ dist-ssr
 .nitro
 *.local
 
+# Runtime configuration belongs in deployment/local environment stores. Keep a
+# documentation-only example in git; never commit environment-specific values.
+.env
+.env.*
+!.env.example
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
@@ -30,7 +36,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-.env
 
 # Generated managed-browser sidecars. CI/release builds recreate the
 # target-specific executable and Tauri bundles it through externalBin.
@@ -85,5 +90,4 @@ native/python-host/models/
 native/python-host/**/__pycache__/
 
 # Licence signing key material — never commit
-*.key
 ocade-licence.*

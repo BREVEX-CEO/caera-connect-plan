@@ -1,0 +1,114 @@
+name: OCADE 77 Readiness
+
+on:
+  push:
+    branches:
+      - main
+      - agent/complete-77-ocade-hardening
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ocade-77-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: 77-item source contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify exactly 77 materially-resolved items and committed proof artifacts
+        run: node scripts/check-ocade-77-readiness.mjs
+      - name: Verify historical Phase-5 modules are production reachable
+        run: node scripts/check-phase5-production-wiring.mjs
+
+  focused-regressions:
+    name: 77 focused regressions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Core P0 and readiness-boundary regressions
+        run: >-
+          npx vitest run
+          src/lib/__tests__/session-failure.test.ts
+          src/lib/__tests__/free-launch-payments.test.ts
+          src/lib/__tests__/paddle-webhook-verification.test.ts
+          src/lib/__tests__/message-list-a11y.test.tsx
+          src/lib/tasks/__tests__/unified-task.test.ts
+          src/lib/__tests__/automation-worker-controller.test.ts
+          src/lib/__tests__/ocade-readiness-source-boundaries.test.ts
+          src/lib/__tests__/ocade-readiness-unavailable-ui.test.ts
+          src/lib/__tests__/ocade-readiness-unavailable-runtime.test.ts
+      - name: Generate routes and typecheck
+        run: npm run typecheck
+
+  report:
+    name: Publish observable readiness result
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    needs:
+      - contract
+      - focused-regressions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post current-head proof result to the pull request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const marker = '<!-- ocade-77-readiness-result -->';
+            const contract = '${{ needs.contract.result }}';
+            const regressions = '${{ needs.focused-regressions.result }}';
+            const passed = contract === 'success' && regressions === 'success';
+            const body = [
+              marker,
+              '## OCADE 77 executed proof',
+              '',
+              `Head: \`${context.sha}\``,
+              `77/Phase-5 source contract: **${contract}**`,
+              `77 focused regressions + generated-route typecheck: **${regressions}**`,
+              '',
+              passed
+                ? '**EXECUTED PROOF OBSERVED: PASS** — this commit passed the OCADE 77 source contract, historical Phase-5 production-wiring gate, focused readiness regressions and TypeScript route check.'
+                : '**EXECUTED PROOF OBSERVED: NOT PASSING** — do not merge or call this head proven until the failing/cancelled gate is resolved.',
+              '',
+              'This result does not claim production Supabase parity, physical-device success, public desktop signing/notarization or deployment success.',
+            ].join('\n');
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100,
+            });
+            const prior = comments.find((comment) =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker),
+            );
+            if (prior) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: prior.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }

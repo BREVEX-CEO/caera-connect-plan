@@ -1,12 +1,9 @@
 /**
  * Device + browser-grant registration.
  *
- * Plan §6 rule: one physical PC = one desktop device slot. Multiple browsers on
- * the same PC share that slot via separate rows in `browser_grants`. Until the
- * Native Companion (P35) ships, we cannot detect the physical PC, so each
- * desktop browser install registers as its own `devices` row. When the
- * companion arrives it will promote sibling browsers onto one shared
- * `physical_pc_id` and free the extra slots.
+ * One physical PC may eventually aggregate multiple browser grants through the
+ * native companion. In the web-only path, browser identity is the immutable
+ * local install id stored in `browser_grants` — never the mutable display name.
  */
 
 import { supabase } from "@/integrations/supabase/client";
@@ -23,77 +20,186 @@ export interface DeviceRow {
   created_at: string;
 }
 
+type AtomicDeviceRpcClient = {
+  rpc: (
+    functionName: "revoke_device_for_current_user",
+    args: { _device_id: string },
+  ) => PromiseLike<{ data: boolean | null; error: { message: string } | null }>;
+};
+
+async function createBrowserGrant(input: {
+  userId: string;
+  installId: string;
+  deviceId: string;
+  userAgent: string;
+  revokedAt?: string | null;
+}) {
+  const { error } = await supabase.from("browser_grants").insert({
+    user_id: input.userId,
+    browser_install_id: input.installId,
+    device_id: input.deviceId,
+    user_agent: input.userAgent,
+    origin: typeof window === "undefined" ? null : window.location.origin,
+    last_seen_at: new Date().toISOString(),
+    revoked_at: input.revokedAt ?? null,
+  });
+  if (error) throw new Error(`Could not register this browser grant: ${error.message}`);
+}
+
 export async function registerDeviceForCurrentSession(): Promise<void> {
   if (typeof window === "undefined") return;
-  const { data } = await supabase.auth.getUser();
+
+  const { data, error: authError } = await supabase.auth.getUser();
+  if (authError) throw authError;
   const user = data.user;
   if (!user) return;
 
   const installId = getBrowserInstallId();
   const kind = guessDeviceKind();
   const ua = navigator.userAgent || "";
-  const name = browserLabel();
+  const generatedName = `${browserLabel()} · ${installId.slice(0, 8)}`;
+  const now = new Date().toISOString();
 
-  // Find existing device row for this browser install (matched by name+ua for now).
-  const { data: existing } = await supabase
-    .from("devices")
-    .select("id, revoked_at")
+  /**
+   * Stable identity comes from browser_install_id. Multiple rows are tolerated
+   * defensively in case an older deployment created duplicates; any revoked
+   * grant wins so a stale active duplicate cannot resurrect a browser.
+   */
+  const { data: grants, error: grantReadError } = await supabase
+    .from("browser_grants")
+    .select("id, device_id, revoked_at, created_at")
     .eq("user_id", user.id)
-    .eq("name", `${name} · ${installId.slice(0, 8)}`)
-    .maybeSingle();
+    .eq("browser_install_id", installId)
+    .order("created_at", { ascending: false });
+  if (grantReadError) throw grantReadError;
 
-  if (existing?.id) {
-    /**
-     * A REVOKED DEVICE MUST NEVER UN-REVOKE ITSELF BY RECONNECTING.
-     *
-     * Revocation is the user's decision about a device they no longer trust —
-     * typically one that is lost or stolen. Clearing `revoked_at` here because
-     * the device showed up again would hand access straight back to whoever is
-     * holding it, and would make the device-management screen a lie: the user
-     * revokes it, the thief reloads the page, and it silently returns.
-     *
-     * Re-enabling a revoked device is an explicit user action, not a side
-     * effect of registration. Nothing is written here, so the revoked row keeps
-     * the exact revocation timestamp the user created.
-     */
-    if (existing.revoked_at) return;
+  if ((grants ?? []).some((grant) => Boolean(grant.revoked_at))) return;
+  const currentGrant = grants?.[0] ?? null;
 
-    await supabase
+  if (currentGrant) {
+    const { data: device, error: deviceReadError } = await supabase
       .from("devices")
-      .update({ last_active_at: new Date().toISOString() })
-      .eq("id", existing.id);
+      .select("id, revoked_at")
+      .eq("id", currentGrant.device_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (deviceReadError) throw deviceReadError;
+    if (!device) throw new Error("This browser grant points to a device record that no longer exists.");
+
+    // Device revocation is authoritative even if an old grant row was not
+    // stamped during a previous partial write.
+    if (device.revoked_at) return;
+
+    const [{ error: deviceUpdateError }, { error: grantUpdateError }] = await Promise.all([
+      supabase.from("devices").update({ last_active_at: now }).eq("id", device.id).eq("user_id", user.id),
+      supabase
+        .from("browser_grants")
+        .update({ last_seen_at: now, user_agent: ua, origin: window.location.origin })
+        .eq("id", currentGrant.id)
+        .eq("user_id", user.id),
+    ]);
+    if (deviceUpdateError) throw deviceUpdateError;
+    if (grantUpdateError) throw grantUpdateError;
     return;
   }
 
-  await supabase.from("devices").insert({
-    user_id: user.id,
-    kind,
-    name: `${name} · ${installId.slice(0, 8)}`,
-    user_agent: ua,
-    last_active_at: new Date().toISOString(),
-  });
+  /**
+   * Legacy migration path: older builds identified the browser from the
+   * generated name. Link that row to the stable install id once, then future
+   * renames cannot break identity. A revoked legacy row creates a revoked grant
+   * before returning so the install remains explicitly denied.
+   */
+  const { data: legacyDevice, error: legacyError } = await supabase
+    .from("devices")
+    .select("id, revoked_at")
+    .eq("user_id", user.id)
+    .eq("name", generatedName)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (legacyError) throw legacyError;
+
+  if (legacyDevice) {
+    await createBrowserGrant({
+      userId: user.id,
+      installId,
+      deviceId: legacyDevice.id,
+      userAgent: ua,
+      revokedAt: legacyDevice.revoked_at,
+    });
+    if (legacyDevice.revoked_at) return;
+
+    const { error } = await supabase
+      .from("devices")
+      .update({ last_active_at: now })
+      .eq("id", legacyDevice.id)
+      .eq("user_id", user.id);
+    if (error) throw error;
+    return;
+  }
+
+  const { data: insertedDevice, error: insertError } = await supabase
+    .from("devices")
+    .insert({
+      user_id: user.id,
+      kind,
+      name: generatedName,
+      user_agent: ua,
+      last_active_at: now,
+    })
+    .select("id")
+    .single();
+  if (insertError) throw insertError;
+
+  try {
+    await createBrowserGrant({
+      userId: user.id,
+      installId,
+      deviceId: insertedDevice.id,
+      userAgent: ua,
+    });
+  } catch (error) {
+    // Best-effort rollback: a device without its stable browser identity must
+    // not consume a slot and later appear as a successfully registered device.
+    await supabase.from("devices").delete().eq("id", insertedDevice.id).eq("user_id", user.id);
+    throw error;
+  }
 }
 
 export async function listDevicesForCurrentUser(): Promise<DeviceRow[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("devices")
     .select("id, kind, name, user_agent, physical_pc_id, last_active_at, revoked_at, created_at")
     .order("created_at", { ascending: false });
-  return (data ?? []) as DeviceRow[];
+  if (error) throw error;
+  return data ?? [];
 }
 
 export async function revokeDevice(id: string): Promise<{ error?: string }> {
-  const { error } = await supabase
-    .from("devices")
-    .update({ revoked_at: new Date().toISOString() })
-    .eq("id", id);
-  return error ? { error: error.message } : {};
+  /**
+   * This RPC is introduced by `20260817153000_atomic_device_revocation.sql`.
+   * Keep the compatibility cast local until generated Supabase types are
+   * refreshed from a database that has applied that migration. Hand-editing the
+   * generated type file would falsely claim deployed schema parity.
+   */
+  const rpcClient = supabase as unknown as AtomicDeviceRpcClient;
+  const { data, error } = await rpcClient.rpc("revoke_device_for_current_user", { _device_id: id });
+  if (error) return { error: error.message };
+  if (data !== true) return { error: "Device revocation did not update an account-owned device." };
+  return {};
 }
 
-/** Rename a device. Label only — it changes nothing about what the device may do. */
+/** Rename a device. Label only — stable browser identity lives in browser_grants. */
 export async function renameDevice(id: string, name: string): Promise<{ error?: string }> {
   const trimmed = name.trim().slice(0, 120);
   if (!trimmed) return { error: "Enter a name." };
-  const { error } = await supabase.from("devices").update({ name: trimmed }).eq("id", id);
-  return error ? { error: error.message } : {};
+  const { data, error } = await supabase
+    .from("devices")
+    .update({ name: trimmed })
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: error.message };
+  if (!data) return { error: "Device rename did not update an account-owned device." };
+  return {};
 }

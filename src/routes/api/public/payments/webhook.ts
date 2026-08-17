@@ -7,11 +7,12 @@
  *
  * It always answers 200 once a verified event has been handled, because a
  * provider that receives an error retries for days and eventually drops the
- * event, and a dropped event is a customer who paid and did not get access.
+ * event, and a dropped event is a customer whose historical provider state
+ * diverges from OCADE's audit record.
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
-import { verifyWebhook, EventName, type PaddleEnv } from "@/lib/paddle.server";
+import { verifyWebhook, EventName, isPaddleEnv, type PaddleEnv } from "@/lib/paddle.server";
 import type { Database } from "@/integrations/supabase/types";
 
 let cached: ReturnType<typeof createClient<Database>> | null = null;
@@ -28,39 +29,42 @@ function getSupabase() {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
-  const { id, customerId, items, status, currentBillingPeriod, customData } = data;
+  const { id, customerId, customer_id, items, status, currentBillingPeriod, current_billing_period, customData, custom_data } = data;
 
-  const userId = customData?.userId;
+  const userId = customData?.userId ?? custom_data?.userId ?? custom_data?.user_id;
   if (!userId) {
     console.error("Subscription webhook without a userId in customData; skipping.");
     return;
   }
 
   const item = items?.[0];
-  const priceId = item?.price?.importMeta?.externalId;
-  const productId = item?.product?.importMeta?.externalId;
+  const price = item?.price;
+  const product = item?.product ?? price?.product;
+  const priceId = price?.importMeta?.externalId ?? price?.import_meta?.external_id;
+  const productId = product?.importMeta?.externalId ?? product?.import_meta?.external_id;
   if (!priceId || !productId) {
     // Raw provider ids differ between test and live, so storing them would
-    // silently break plan gating after publish. Storing nothing is safer.
+    // silently break plan attribution after publish. Storing nothing is safer.
     console.warn("Skipping subscription: missing importMeta.externalId", {
-      rawPriceId: item?.price?.id,
-      rawProductId: item?.product?.id,
+      rawPriceId: price?.id,
+      rawProductId: product?.id,
     });
     return;
   }
 
+  const period = currentBillingPeriod ?? current_billing_period;
   await getSupabase()
     .from("subscriptions")
     .upsert(
       {
         user_id: userId,
         paddle_subscription_id: id,
-        paddle_customer_id: customerId,
+        paddle_customer_id: customerId ?? customer_id,
         product_id: productId,
         price_id: priceId,
         status,
-        current_period_start: currentBillingPeriod?.startsAt ?? null,
-        current_period_end: currentBillingPeriod?.endsAt ?? null,
+        current_period_start: period?.startsAt ?? period?.starts_at ?? null,
+        current_period_end: period?.endsAt ?? period?.ends_at ?? null,
         environment: env,
         updated_at: new Date().toISOString(),
       },
@@ -69,15 +73,17 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
 }
 
 async function handleSubscriptionUpdated(data: any, env: PaddleEnv) {
-  const { id, status, currentBillingPeriod, scheduledChange } = data;
+  const { id, status, currentBillingPeriod, current_billing_period, scheduledChange, scheduled_change } = data;
+  const period = currentBillingPeriod ?? current_billing_period;
+  const change = scheduledChange ?? scheduled_change;
 
   await getSupabase()
     .from("subscriptions")
     .update({
       status,
-      current_period_start: currentBillingPeriod?.startsAt ?? null,
-      current_period_end: currentBillingPeriod?.endsAt ?? null,
-      cancel_at_period_end: scheduledChange?.action === "cancel",
+      current_period_start: period?.startsAt ?? period?.starts_at ?? null,
+      current_period_end: period?.endsAt ?? period?.ends_at ?? null,
+      cancel_at_period_end: change?.action === "cancel",
       updated_at: new Date().toISOString(),
     })
     .eq("paddle_subscription_id", id)
@@ -115,9 +121,13 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
     handlers: {
       POST: async ({ request }) => {
         const url = new URL(request.url);
-        const env = (url.searchParams.get("env") ?? "sandbox") as PaddleEnv;
+        const requestedEnv = url.searchParams.get("env") ?? "sandbox";
+        if (!isPaddleEnv(requestedEnv)) {
+          return new Response("Invalid payment environment", { status: 400 });
+        }
+
         try {
-          await handleWebhook(request, env);
+          await handleWebhook(request, requestedEnv);
           return Response.json({ received: true });
         } catch (e) {
           console.error("Payment webhook error:", e);

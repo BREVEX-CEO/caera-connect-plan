@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { initializePaddle, getPaddlePriceId, isCheckoutConfigured } from "@/lib/paddle";
+import { billingEnabled } from "@/lib/launch-mode";
 
 export interface OpenCheckoutOptions {
   /** Human-readable price id from the sellable-plan catalogue. */
@@ -34,6 +35,9 @@ export const ALLOWED_PAYMENT_METHODS = [
  * surface — OCADE never sees them. The account id travels as custom data so
  * the signed webhook can attribute the purchase; a checkout without it would
  * take money that nothing could later connect to a person.
+ *
+ * Free-launch mode is checked before any provider bootstrap. This is a second
+ * user-facing guard on top of the lower-level checks in `lib/paddle.ts`.
  */
 export function usePaddleCheckout() {
   const [loading, setLoading] = useState(false);
@@ -42,6 +46,10 @@ export function usePaddleCheckout() {
   const openCheckout = useCallback(async (options: OpenCheckoutOptions) => {
     setError(null);
 
+    if (!billingEnabled()) {
+      setError("OCADE is free during launch. Checkout is disabled and no payment was started.");
+      return;
+    }
     if (!isCheckoutConfigured()) {
       setError("Checkout is not configured on this deployment yet.");
       return;
@@ -65,8 +73,7 @@ export function usePaddleCheckout() {
           variant: "one-page",
           allowLogout: false,
           allowedPaymentMethods: [...ALLOWED_PAYMENT_METHODS],
-          successUrl:
-            options.successUrl ?? `${window.location.origin}/checkout/success`,
+          successUrl: options.successUrl ?? `${window.location.origin}/checkout/success`,
         },
       });
     } catch (e) {
