@@ -26,22 +26,23 @@
           "openWorldHint": false
         },
         "inputSchema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
             "limit": {
-              "default": 20,
-              "description": "How many conversations to return.",
               "type": "integer",
               "minimum": 1,
-              "maximum": 50
+              "maximum": 50,
+              "default": 20,
+              "description": "How many conversations to return."
             },
             "includeArchived": {
+              "type": "boolean",
               "default": false,
-              "description": "Include archived conversations.",
-              "type": "boolean"
+              "description": "Include archived conversations."
             }
-          }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
       },
@@ -55,26 +56,26 @@
           "openWorldHint": false
         },
         "inputSchema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
             "conversationId": {
               "type": "string",
               "format": "uuid",
-              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
               "description": "The conversation id."
             },
             "limit": {
-              "default": 50,
-              "description": "How many messages to return.",
               "type": "integer",
               "minimum": 1,
-              "maximum": 200
+              "maximum": 200,
+              "default": 50,
+              "description": "How many messages to return."
             }
           },
           "required": [
             "conversationId"
-          ]
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
       },
@@ -88,22 +89,23 @@
           "openWorldHint": false
         },
         "inputSchema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
             "limit": {
-              "default": 20,
-              "description": "How many projects to return.",
               "type": "integer",
               "minimum": 1,
-              "maximum": 50
+              "maximum": 50,
+              "default": 20,
+              "description": "How many projects to return."
             },
             "includeArchived": {
+              "type": "boolean",
               "default": false,
-              "description": "Include archived projects.",
-              "type": "boolean"
+              "description": "Include archived projects."
             }
-          }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
       },
@@ -117,7 +119,6 @@
           "openWorldHint": false
         },
         "inputSchema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
           "type": "object",
           "properties": {
             "name": {
@@ -127,14 +128,16 @@
               "description": "Project name."
             },
             "instructions": {
-              "description": "Standing instructions OCADE should follow inside this project.",
               "type": "string",
-              "maxLength": 4000
+              "maxLength": 4000,
+              "description": "Standing instructions OCADE should follow inside this project."
             }
           },
           "required": [
             "name"
-          ]
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
         },
         "outputSchema": null
       }
