@@ -1,8 +1,12 @@
 // @vitest-environment jsdom
-import { beforeAll, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
 import { MessageList } from "@/components/ocade/chat/MessageList";
 import type { ChatMessageView } from "@/components/ocade/chat/chat-types";
+
+// Without global auto-cleanup, one test's DOM would still be mounted while the
+// next queries the screen, so a stale announcement would read as a new one.
+afterEach(cleanup);
 
 beforeAll(() => {
   Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
