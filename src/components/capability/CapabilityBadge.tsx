@@ -101,7 +101,7 @@ export function CapabilityCard({ report }: { report: CapabilityReport }) {
       {report.action?.to ? (
         <Link
           to={report.action.to}
-          className="mt-3 inline-flex text-xs font-medium text-cyan-300 underline-offset-4 hover:underline"
+          className="mt-3 inline-flex text-xs font-medium text-[color:var(--accent-ocade)] underline-offset-4 hover:underline"
         >
           {report.action.label}
         </Link>
