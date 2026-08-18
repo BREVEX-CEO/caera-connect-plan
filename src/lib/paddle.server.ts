@@ -133,3 +133,73 @@ export async function verifyWebhook(
 
   return parseVerifiedEvent(body);
 }
+
+/**
+ * Direct REST access to the provider API.
+ *
+ * The provider SDK is not a dependency of this app: the two calls we make are
+ * plain authenticated JSON requests, and an SDK would add a large surface for
+ * no behavioural gain. Credentials come from the environment, so an
+ * unconfigured environment throws "... is not configured" and callers report
+ * "payments are not connected" rather than inventing a status.
+ */
+const API_BASE: Record<PaddleEnv, string> = {
+  sandbox: "https://sandbox-api.paddle.com",
+  live: "https://api.paddle.com",
+};
+
+function getApiKey(env: PaddleEnv): string {
+  return env === "sandbox" ? getEnv("PAYMENTS_SANDBOX_API_KEY") : getEnv("PAYMENTS_LIVE_API_KEY");
+}
+
+export async function gatewayFetch(
+  env: PaddleEnv,
+  path: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const apiKey = getApiKey(env);
+  return fetch(`${API_BASE[env]}${path.startsWith("/") ? path : `/${path}`}`, {
+    ...init,
+    headers: {
+      ...(init.headers ?? {}),
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+async function gatewayJson<T>(env: PaddleEnv, path: string, init?: RequestInit): Promise<T> {
+  const response = await gatewayFetch(env, path, init);
+  if (!response.ok) {
+    throw new Error(`The payment provider returned ${response.status} for ${path}.`);
+  }
+  const body = (await response.json()) as { data?: T };
+  return body.data as T;
+}
+
+interface PortalSession {
+  urls?: {
+    general?: { overview?: string };
+    subscriptions?: Array<{ cancelSubscription?: string }>;
+  };
+}
+
+/** The narrow slice of the provider API this app actually calls. */
+export function getPaddleClient(env: PaddleEnv) {
+  return {
+    customerPortalSessions: {
+      create: (customerId: string, subscriptionIds: string[]) =>
+        gatewayJson<PortalSession>(env, `/customers/${customerId}/portal-sessions`, {
+          method: "POST",
+          body: JSON.stringify({ subscription_ids: subscriptionIds }),
+        }),
+    },
+    subscriptions: {
+      cancel: (subscriptionId: string, options: { effectiveFrom: string }) =>
+        gatewayJson<unknown>(env, `/subscriptions/${subscriptionId}/cancel`, {
+          method: "POST",
+          body: JSON.stringify({ effective_from: options.effectiveFrom }),
+        }),
+    },
+  };
+}

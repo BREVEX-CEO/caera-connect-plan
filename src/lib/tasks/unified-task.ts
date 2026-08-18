@@ -105,6 +105,7 @@ export function createUnifiedTask(
 ): UnifiedTask {
   const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `task-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   return {
+    ...input,
     id,
     source: input.source,
     title: input.title.trim() || "Untitled task",
@@ -112,7 +113,6 @@ export function createUnifiedTask(
     retryCount: 0,
     createdAt: at,
     updatedAt: at,
-    ...input,
     progress: safeProgress(input.progress),
   };
 }
