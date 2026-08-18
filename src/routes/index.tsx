@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { CosmicInteractionLayer } from "@/components/landing/CosmicInteractionLayer";
+import { HiddenSignature } from "@/components/landing/HiddenSignature";
 import { LandingModelWarmup } from "@/components/landing/LandingModelWarmup";
 import { LandingUniverse } from "@/components/landing/LandingUniverse";
 
@@ -26,49 +27,33 @@ export const Route = createFileRoute("/")({
 function LandingPage() {
   return (
     <div className="min-h-screen overflow-x-clip bg-[#02050a]">
-      <a href="#main-content" className="skip-link">
-        Skip to content
-      </a>
+      <a href="#main-content" className="skip-link">Skip to content</a>
       <LandingModelWarmup />
       <CosmicInteractionLayer />
+      <HiddenSignature />
       <main id="main-content" tabIndex={-1} className="relative focus:outline-none">
         <LandingUniverse />
         <section className="relative z-10 border-y border-white/[0.07] bg-black/45 px-4 py-24 backdrop-blur-xl sm:py-32">
           <div className="mx-auto max-w-5xl">
-            <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-cyan-300/75">
-              OCADE Instant Local
-            </p>
+            <p className="text-[11px] font-medium uppercase tracking-[0.32em] text-cyan-300/75">OCADE Instant Local</p>
             <div className="mt-5 grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
               <div>
                 <h2 className="max-w-3xl text-balance text-4xl font-semibold tracking-[-0.04em] text-white sm:text-6xl">
                   Open once. Come back to an AI that is already closer to ready.
                 </h2>
                 <p className="mt-6 max-w-2xl text-pretty text-[15px] leading-7 text-white/58 sm:text-base">
-                  On supported browsers, OCADE begins preparing the smallest safe local engine shortly
-                  after the page opens. Completed model data is kept in browser application storage,
-                  interrupted preparation resumes later, and the temporary inference worker is released
-                  after warming so a marketing visit does not leave a model sitting in memory.
+                  On supported browsers, OCADE begins preparing the smallest safe local engine shortly after the page opens. Completed model data is kept in browser application storage, interrupted preparation resumes later, and the temporary inference worker is released after warming so a marketing visit does not leave a model sitting in memory.
                 </p>
               </div>
               <div className="grid gap-3 text-sm text-white/72">
-                <InstantLocalFact title="No cloud model fallback">
-                  If a local engine is unavailable, OCADE says so instead of forwarding the prompt.
-                </InstantLocalFact>
-                <InstantLocalFact title="One browser engine across tabs">
-                  Web Locks coordinate same-origin tabs so multiple pages do not intentionally load separate full model engines.
-                </InstantLocalFact>
-                <InstantLocalFact title="Commercial deployment path">
-                  The same local-first architecture can support managed enterprise installs, self-hosted model distribution and paid support without selling user prompts.
-                </InstantLocalFact>
+                <InstantLocalFact title="No cloud model fallback">If a local engine is unavailable, OCADE says so instead of forwarding the prompt.</InstantLocalFact>
+                <InstantLocalFact title="One browser engine across tabs">Web Locks coordinate same-origin tabs so multiple pages do not intentionally load separate full model engines.</InstantLocalFact>
+                <InstantLocalFact title="Commercial deployment path">The same local-first architecture can support managed enterprise installs, self-hosted model distribution and paid support without selling user prompts.</InstantLocalFact>
               </div>
             </div>
             <div className="mt-10 flex flex-wrap gap-3">
-              <Link to="/demo/ocade" className="inline-flex h-11 items-center justify-center rounded-full bg-white px-6 text-[13px] font-medium text-black transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 motion-reduce:hover:translate-y-0">
-                Try OCADE locally
-              </Link>
-              <Link to="/company" className="inline-flex h-11 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] px-6 text-[13px] font-medium text-white/85 backdrop-blur transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
-                Enterprise & company
-              </Link>
+              <Link to="/demo/ocade" className="inline-flex h-11 items-center justify-center rounded-full bg-white px-6 text-[13px] font-medium text-black transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 motion-reduce:hover:translate-y-0">Try OCADE locally</Link>
+              <Link to="/company" className="inline-flex h-11 items-center justify-center rounded-full border border-white/15 bg-white/[0.04] px-6 text-[13px] font-medium text-white/85 backdrop-blur transition-colors hover:bg-white/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">Enterprise & company</Link>
             </div>
             <p className="mt-7 max-w-3xl text-[11px] leading-5 text-white/38">
               First delivery still requires a working connection. A browser may terminate page or service-worker work after every tab is closed, so OCADE stores partial progress and resumes it on the next visit rather than claiming an impossible guaranteed background download. Save-Data is always respected.
