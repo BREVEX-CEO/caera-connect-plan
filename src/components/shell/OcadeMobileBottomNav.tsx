@@ -27,7 +27,7 @@ export function OcadeMobileBottomNav() {
     >
       <ul className="mx-auto grid max-w-lg grid-cols-5 gap-1">
         {ITEMS.map((item) => {
-          const active = item.exact ? pathname === item.to : pathname === item.to || pathname.startsWith(`${item.to}/`);
+          const active = "exact" in item && item.exact ? pathname === item.to : pathname === item.to || pathname.startsWith(`${item.to}/`);
           const Icon = item.icon;
           return (
             <li key={item.to}>
