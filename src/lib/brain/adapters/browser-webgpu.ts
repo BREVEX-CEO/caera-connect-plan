@@ -9,36 +9,15 @@ import {
 import { chooseBrowserTier, formatSize, type BrowserModelTier } from "../browser-catalogue";
 import { loadBenchmark, recordBenchmark } from "../tier-benchmark-store";
 
-/**
- * OCADE in the browser, on the graphics card, via WebLLM.
- *
- * FOUR THINGS THIS ADAPTER REFUSES TO DO
- *
- * 1. **Load anything during `probe()`.** Probing happens on every routing
- *    decision. If it downloaded weights, opening the chat screen would pull
- *    hundreds of megabytes before the user typed a character.
- * 2. **Run on the UI thread.** Everything goes through a worker; see
- *    `webllm.worker.ts` for why that is not optional.
- * 3. **Import WebLLM unless it is actually used.** The library is large. A
- *    static import would put it in the main bundle for every user, including
- *    the majority who route to a desktop engine and never touch it.
- * 4. **Promote on optimism.** Every device starts on the SMALLEST model. The
- *    adapter's reported limit can only rule a tier OUT; moving up requires a
- *    recorded benchmark from a real generation on this device. Browsers report
- *    a flat 2 GB `maxBufferSize` almost everywhere, so treating it as capacity
- *    promoted nearly everyone — including an integrated Intel Iris Xe — which
- *    is the optimism that makes a laptop unusable.
- */
-
 type WebLlmModule = typeof import("@mlc-ai/web-llm");
 type WebLlmEngine = Awaited<ReturnType<WebLlmModule["CreateWebWorkerMLCEngine"]>>;
 
 export interface WebGpuProgress {
-  /** 0–1 while weights are being fetched, or null before a total is known. */
   fraction: number | null;
   text: string;
 }
 
+/** Browser-local WebGPU engine. Model shards are persisted by WebLLM in IndexedDB. */
 export class BrowserWebGpuAdapter implements BrainAdapter {
   readonly id = "browser_webgpu" as const;
   readonly displayName = "OCADE Browser";
@@ -47,42 +26,30 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
   private worker: Worker | null = null;
   private loadedModelId: string | null = null;
   private cachedTier: BrowserModelTier | null = null;
+  private starting: Promise<WebLlmEngine> | null = null;
+  private startingModelId: string | null = null;
   private readonly onProgress?: (p: WebGpuProgress) => void;
 
   constructor(options?: { onProgress?: (p: WebGpuProgress) => void }) {
     this.onProgress = options?.onProgress;
   }
 
-  /**
-   * The largest single allocation this adapter permits.
-   *
-   * NOT a VRAM measurement, and not treated as one: it is passed to the
-   * catalogue as a ceiling that can only exclude tiers.
-   */
+  /** maxBufferSize is a ceiling only; it is NOT treated as measured VRAM. */
   private static async gpuMemoryBudget(): Promise<
     { ok: true; bytes: number | null } | { ok: false; reason: string }
   > {
     const gpu = (navigator as Navigator & { gpu?: GPU }).gpu;
-    if (!gpu) {
-      return {
-        ok: false,
-        reason: "This browser cannot use the graphics card for OCADE (no WebGPU).",
-      };
-    }
+    if (!gpu) return { ok: false, reason: "This browser cannot use the graphics card for OCADE (no WebGPU)." };
     let adapter: GPUAdapter | null;
     try {
       adapter = await gpu.requestAdapter({ powerPreference: "high-performance" });
     } catch (error) {
       return {
         ok: false,
-        reason: `The graphics card could not be prepared: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        reason: `The graphics card could not be prepared: ${error instanceof Error ? error.message : String(error)}`,
       };
     }
-    if (!adapter) {
-      return { ok: false, reason: "The graphics card did not offer OCADE an adapter." };
-    }
+    if (!adapter) return { ok: false, reason: "The graphics card did not offer OCADE an adapter." };
     const maxBuffer = adapter.limits?.maxBufferSize;
     return { ok: true, bytes: typeof maxBuffer === "number" ? Number(maxBuffer) : null };
   }
@@ -91,128 +58,96 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
     if (typeof window === "undefined") {
       return unavailable("unsupported_device", "There is no browser here to run OCADE in.");
     }
-
     const budget = await BrowserWebGpuAdapter.gpuMemoryBudget();
-    if (!budget.ok) {
-      // Falls through to the WebAssembly adapter, which is why this is a plain
-      // unavailability rather than a refusal with remedies.
-      return unavailable("unsupported_device", budget.reason);
-    }
+    if (!budget.ok) return unavailable("unsupported_device", budget.reason);
 
-    /*
-     * `budget.bytes` is a CEILING, not a capacity: browsers report a flat 2 GB
-     * `maxBufferSize` on almost every device. It can exclude a tier; only a
-     * recorded benchmark can promote to one.
-     */
     const { tier } = chooseBrowserTier("webgpu", budget.bytes, loadBenchmark("webgpu"));
     if (budget.bytes !== null && tier.requiredMemoryBytes > budget.bytes) {
       return unavailable(
         "insufficient_memory",
-        `OCADE's smallest browser engine needs about ${formatSize(
-          tier.requiredMemoryBytes,
-        )} of graphics memory and this device offers ${formatSize(budget.bytes)}.`,
+        `OCADE's smallest browser engine needs about ${formatSize(tier.requiredMemoryBytes)} of graphics memory and this device offers ${formatSize(budget.bytes)}.`,
       );
     }
-
     this.cachedTier = tier;
     return {
       available: true,
       label: tier.label,
       locality: "on_device",
       modelId: tier.webllmId ?? null,
-      capabilities: {
-        text: true,
-        // No browser-tier vision model is offered yet, and claiming otherwise
-        // would send images to a text-only model.
-        vision: false,
-        imageGeneration: false,
-        tools: false,
-      },
+      capabilities: { text: true, vision: false, imageGeneration: false, tools: false },
     };
   }
 
-  /** Everything the user should be told before any bytes are fetched. */
   plan(): { tier: BrowserModelTier; downloadLabel: string } | null {
     if (!this.cachedTier) return null;
-    return {
-      tier: this.cachedTier,
-      downloadLabel: formatSize(this.cachedTier.downloadBytes),
-    };
-  }
-
-  private async ensureEngine(tier: BrowserModelTier): Promise<WebLlmEngine> {
-    if (this.engine && this.loadedModelId === tier.webllmId) return this.engine;
-
-    // Swapping tiers must not leave the previous model resident.
-    if (this.engine) await this.dispose();
-
-    const webllm: WebLlmModule = await import("@mlc-ai/web-llm");
-
-    const known = webllm.prebuiltAppConfig.model_list.some((m) => m.model_id === tier.webllmId);
-    if (!known) {
-      throw new Error(
-        `OCADE's browser engine "${tier.label}" is not available in this build of the runtime.`,
-      );
-    }
-
-    this.worker = new Worker(new URL("./webllm.worker.ts", import.meta.url), { type: "module" });
-    this.engine = await webllm.CreateWebWorkerMLCEngine(this.worker, tier.webllmId!, {
-      /*
-       * WEIGHTS GO TO INDEXEDDB, NOT THE CACHE API.
-       *
-       * web-llm defaults to the Cache API, which works and is what this adapter
-       * used to get: driving the real page produced `webllm/model`,
-       * `webllm/wasm` and `webllm/config` cache buckets while
-       * `indexedDB.databases()` stayed empty.
-       *
-       * IndexedDB is the better home for this payload on the surfaces that
-       * matter here. The Cache API is scoped to what a Service Worker is meant
-       * to manage, and a registration change or a cache-cleanup sweep can take
-       * roughly a gigabyte of model weights with it -- on mobile, where these
-       * browser tiers actually get used, that is a silent re-download over
-       * somebody's data plan. IndexedDB is ordinary application storage: it is
-       * covered by persistent-storage grants, it survives Service Worker
-       * churn, and it is the store a Capacitor shell keeps across app updates.
-       *
-       * The weights are unchanged either way; this only decides which drawer
-       * they live in.
-       *
-       * The option is `cacheBackend: "indexeddb"`. It is not `useIndexedDBCache`
-       * -- that was the name in older web-llm and it is gone in 0.2.84, where an
-       * unknown key would have been accepted silently by the spread and changed
-       * nothing at all. `tsc` caught it; without types it would have shipped as
-       * a setting that reads correctly and does nothing.
-       */
-      appConfig: { ...webllm.prebuiltAppConfig, cacheBackend: "indexeddb" },
-      initProgressCallback: (report) => {
-        this.onProgress?.({
-          fraction: typeof report.progress === "number" ? report.progress : null,
-          text: report.text,
-        });
-      },
-    });
-    this.loadedModelId = tier.webllmId ?? null;
-    return this.engine;
+    return { tier: this.cachedTier, downloadLabel: formatSize(this.cachedTier.downloadBytes) };
   }
 
   /**
-   * Download and compile the model before anybody asks a question.
+   * Single-flight engine initialization.
    *
-   * WITHOUT THIS, THE WEB CLIENT DOWNLOADS 340 MB ON THE FIRST MESSAGE.
-   * `warm()` in `use-brain` only ever preloaded the desktop bridge, so on the
-   * web -- where this adapter is the ONLY engine -- nothing happened until the
-   * user pressed send, and then they waited on a progress bar they had not
-   * asked for, mid-sentence.
-   *
-   * Idempotent and fire-and-forget by contract: `ensure` returns the existing
-   * engine when there is one, and every failure is swallowed. A warm-up that
-   * surfaces an error is reporting a problem with a message the user has not
-   * sent yet.
-   *
-   * The bytes land in the browser's Cache Storage, which is where WebLLM keeps
-   * model shards, so a second visit compiles from disk and asks the network for
-   * nothing.
+   * `preload()` and the first `stream()` can race during page startup. Earlier
+   * code observed `engine === null` in both calls and created two workers/model
+   * loads. All callers for the same tier now await one construction promise.
    */
+  private async ensureEngine(tier: BrowserModelTier): Promise<WebLlmEngine> {
+    const modelId = tier.webllmId;
+    if (!modelId) throw new Error("This WebGPU tier has no runtime model id.");
+    if (this.engine && this.loadedModelId === modelId) return this.engine;
+    if (this.starting && this.startingModelId === modelId) return this.starting;
+
+    // If another tier is currently starting, let it settle before swapping.
+    if (this.starting) {
+      try {
+        await this.starting;
+      } catch {
+        // Its caller receives the original error; this caller can retry cleanly.
+      }
+      if (this.engine && this.loadedModelId === modelId) return this.engine;
+    }
+    if (this.engine) await this.dispose();
+
+    const startPromise = (async () => {
+      const webllm: WebLlmModule = await import("@mlc-ai/web-llm");
+      const known = webllm.prebuiltAppConfig.model_list.some((m) => m.model_id === modelId);
+      if (!known) {
+        throw new Error(`OCADE's browser engine "${tier.label}" is not available in this runtime build.`);
+      }
+
+      const worker = new Worker(new URL("./webllm.worker.ts", import.meta.url), { type: "module" });
+      try {
+        const engine = await webllm.CreateWebWorkerMLCEngine(worker, modelId, {
+          // Model shards are app storage, not download-manager files.
+          appConfig: { ...webllm.prebuiltAppConfig, cacheBackend: "indexeddb" },
+          initProgressCallback: (report) => {
+            this.onProgress?.({
+              fraction: typeof report.progress === "number" ? report.progress : null,
+              text: report.text,
+            });
+          },
+        });
+        this.worker = worker;
+        this.engine = engine;
+        this.loadedModelId = modelId;
+        return engine;
+      } catch (error) {
+        worker.terminate();
+        throw error;
+      }
+    })();
+
+    this.starting = startPromise;
+    this.startingModelId = modelId;
+    try {
+      return await startPromise;
+    } finally {
+      if (this.starting === startPromise) {
+        this.starting = null;
+        this.startingModelId = null;
+      }
+    }
+  }
+
   async preload(): Promise<void> {
     try {
       const availability = await this.probe();
@@ -221,14 +156,11 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
       if (!chosen) return;
       await this.ensureEngine(chosen.tier);
     } catch {
-      /* A browser that cannot warm up can still be told so when it is used. */
+      // A failed speculative warmup is surfaced only if the user actually uses it.
     }
   }
 
-  async stream(
-    messages: BrainMessage[],
-    handlers: BrainStreamHandlers,
-  ): Promise<BrainStreamResult> {
+  async stream(messages: BrainMessage[], handlers: BrainStreamHandlers): Promise<BrainStreamResult> {
     if (messages.some((m) => (m.images?.length ?? 0) > 0)) {
       return {
         ok: false,
@@ -238,13 +170,9 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
     }
 
     const availability = await this.probe();
-    if (!availability.available) {
-      return { ok: false, failure: "unavailable", reason: availability.reason };
-    }
+    if (!availability.available) return { ok: false, failure: "unavailable", reason: availability.reason };
     const tier = this.cachedTier;
-    if (!tier) {
-      return { ok: false, failure: "unavailable", reason: "No browser engine was selected." };
-    }
+    if (!tier) return { ok: false, failure: "unavailable", reason: "No browser engine was selected." };
 
     let engine: WebLlmEngine;
     try {
@@ -253,24 +181,13 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
       return {
         ok: false,
         failure: "error",
-        reason: `OCADE's browser engine could not start: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        reason: `OCADE's browser engine could not start: ${error instanceof Error ? error.message : String(error)}`,
       };
     }
 
     const startedAt = Date.now();
     let firstTokenMs: number | null = null;
-
-    /*
-     * Cancellation goes through the engine's own interrupt, not merely by
-     * ignoring the rest of the stream. Abandoning the iterator would leave the
-     * GPU generating tokens nobody reads — the fan keeps spinning and the
-     * battery keeps draining after the user pressed stop.
-     */
-    const onAbort = () => {
-      void engine.interruptGenerate();
-    };
+    const onAbort = () => void engine.interruptGenerate();
     handlers.signal?.addEventListener("abort", onAbort, { once: true });
 
     try {
@@ -278,7 +195,6 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
         stream: true,
         messages: messages.map((m) => ({ role: m.role, content: m.content })),
       });
-
       for await (const chunk of completion) {
         if (handlers.signal?.aborted) break;
         const piece = chunk.choices[0]?.delta?.content;
@@ -287,22 +203,15 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
           handlers.onToken(piece);
         }
       }
-
-      if (handlers.signal?.aborted) {
-        return { ok: false, failure: "cancelled", reason: "Stopped." };
-      }
+      if (handlers.signal?.aborted) return { ok: false, failure: "cancelled", reason: "Stopped." };
       if (firstTokenMs !== null) recordBenchmark("webgpu", tier.rank, firstTokenMs);
       return { ok: true, modelId: tier.webllmId ?? null, firstTokenMs };
     } catch (error) {
-      if (handlers.signal?.aborted) {
-        return { ok: false, failure: "cancelled", reason: "Stopped." };
-      }
+      if (handlers.signal?.aborted) return { ok: false, failure: "cancelled", reason: "Stopped." };
       return {
         ok: false,
         failure: "error",
-        reason: `OCADE's browser engine stopped: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        reason: `OCADE's browser engine stopped: ${error instanceof Error ? error.message : String(error)}`,
       };
     } finally {
       handlers.signal?.removeEventListener("abort", onAbort);
@@ -310,14 +219,24 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
   }
 
   async dispose(): Promise<void> {
+    const starting = this.starting;
+    if (starting) {
+      try {
+        await starting;
+      } catch {
+        // Failed startup already terminated its temporary worker.
+      }
+    }
     try {
       await this.engine?.unload();
     } catch {
-      // Unloading a already-dead engine must not throw on the way out.
+      // Unloading an already-dead engine must not throw during cleanup.
     }
     this.worker?.terminate();
     this.engine = null;
     this.worker = null;
     this.loadedModelId = null;
+    this.starting = null;
+    this.startingModelId = null;
   }
 }
