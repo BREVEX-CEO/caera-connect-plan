@@ -82,7 +82,7 @@ assert(
   "Redaction covers both what is transcribed and what is spoken aloud",
 );
 
-const route = read("src/routes/_authenticated/ocade.tsx");
+const route = read("src/routes/_authenticated/ocade.index.tsx");
 assert(
   /redactSpokenSecrets\(/.test(route),
   "Dictation is redacted before a transcript reaches the composer",
