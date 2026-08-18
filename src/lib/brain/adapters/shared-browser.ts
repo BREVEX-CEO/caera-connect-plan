@@ -11,10 +11,12 @@ import { BrowserWasmAdapter } from "./browser-wasm";
 
 const LOCK_NAME = "ocade-browser-model-engine-v1";
 const CHANNEL_NAME = "ocade-browser-model-relay-v1";
-const REQUEST_TIMEOUT_MS = 180_000;
+const HEARTBEAT_MS = 5_000;
+const REQUEST_IDLE_TIMEOUT_MS = 45_000;
 
 type RelayMessage =
   | { type: "leader"; tabId: string }
+  | { type: "heartbeat"; tabId: string }
   | { type: "request"; from: string; requestId: string; messages: BrainMessage[] }
   | { type: "token"; to: string; requestId: string; token: string }
   | { type: "done"; to: string; requestId: string; result: BrainStreamResult }
@@ -60,7 +62,8 @@ function setDiagnostics(tabId: string, patch: Partial<BrowserEngineDiagnostics>)
 type PendingFollower = {
   resolve: (result: BrainStreamResult) => void;
   onToken: (token: string) => void;
-  timer: ReturnType<typeof setTimeout>;
+  timer: ReturnType<typeof setTimeout> | null;
+  touch: () => void;
   signal?: AbortSignal;
   abort?: () => void;
 };
@@ -82,6 +85,7 @@ export class SharedBrowserAdapter implements BrainAdapter {
   private role: SharedRole = "unknown";
   private election: Promise<SharedRole> | null = null;
   private releaseLock: (() => void) | null = null;
+  private heartbeat: ReturnType<typeof setInterval> | null = null;
   private pending = new Map<string, PendingFollower>();
   private leaderAbort = new Map<string, AbortController>();
   private queue: Promise<void> = Promise.resolve();
@@ -107,6 +111,19 @@ export class SharedBrowserAdapter implements BrainAdapter {
       typeof BroadcastChannel !== "undefined" &&
       this.channel !== null
     );
+  }
+
+  private startHeartbeat() {
+    if (this.heartbeat || this.role !== "leader") return;
+    const beat = () =>
+      this.channel?.postMessage({ type: "heartbeat", tabId: this.tabId } satisfies RelayMessage);
+    beat();
+    this.heartbeat = setInterval(beat, HEARTBEAT_MS);
+  }
+
+  private stopHeartbeat() {
+    if (this.heartbeat) clearInterval(this.heartbeat);
+    this.heartbeat = null;
   }
 
   private async elect(): Promise<SharedRole> {
@@ -139,9 +156,11 @@ export class SharedBrowserAdapter implements BrainAdapter {
           setDiagnostics(this.tabId, { role: "leader" });
           decideOnce(true);
           this.channel?.postMessage({ type: "leader", tabId: this.tabId } satisfies RelayMessage);
+          this.startHeartbeat();
           await new Promise<void>((resolve) => {
             this.releaseLock = resolve;
           });
+          this.stopHeartbeat();
         })
         .catch(() => decideOnce(false));
 
@@ -154,7 +173,23 @@ export class SharedBrowserAdapter implements BrainAdapter {
     return this.election;
   }
 
+  /** A former follower must not keep broadcasting to a leader that has closed. */
+  private async refreshFollowerLeadership(): Promise<void> {
+    if (this.role !== "follower" || !this.coordinationSupported()) return;
+    const manager = navigator.locks as LockManager & { query?: () => Promise<LockManagerSnapshot> };
+    if (typeof manager.query !== "function") return;
+    try {
+      const snapshot = await manager.query();
+      const ownerExists = snapshot.held?.some((lock) => lock.name === LOCK_NAME) ?? false;
+      if (!ownerExists) this.resetFollowerForReelection();
+    } catch {
+      // The heartbeat idle timeout remains the recovery path when querying lock
+      // state itself is unavailable or temporarily fails.
+    }
+  }
+
   async probe(): Promise<AdapterAvailability> {
+    await this.refreshFollowerLeadership();
     const role = await this.elect();
     if (role === "unsupported") {
       return unavailable(
@@ -193,6 +228,7 @@ export class SharedBrowserAdapter implements BrainAdapter {
   }
 
   async preload(): Promise<void> {
+    await this.refreshFollowerLeadership();
     const role = await this.elect();
     if (role !== "leader") return;
     const engine = await this.pickLeaderEngine();
@@ -208,6 +244,7 @@ export class SharedBrowserAdapter implements BrainAdapter {
   }
 
   async stream(messages: BrainMessage[], handlers: BrainStreamHandlers): Promise<BrainStreamResult> {
+    await this.refreshFollowerLeadership();
     const role = await this.elect();
     if (role === "unsupported") {
       return {
@@ -257,9 +294,13 @@ export class SharedBrowserAdapter implements BrainAdapter {
     setDiagnostics(this.tabId, { relayedRequests: diagnostic(this.tabId).relayedRequests + 1 });
 
     return new Promise<BrainStreamResult>((resolve) => {
-      const timer = setTimeout(() => {
-        const pending = this.pending.get(requestId);
-        if (pending?.abort && pending.signal) pending.signal.removeEventListener("abort", pending.abort);
+      let timedOut = false;
+      const pending = {} as PendingFollower;
+      const expire = () => {
+        if (timedOut) return;
+        timedOut = true;
+        if (pending.timer) clearTimeout(pending.timer);
+        if (pending.abort && pending.signal) pending.signal.removeEventListener("abort", pending.abort);
         this.pending.delete(requestId);
         this.resetFollowerForReelection();
         resolve({
@@ -267,33 +308,54 @@ export class SharedBrowserAdapter implements BrainAdapter {
           failure: "unavailable",
           reason: "The tab running OCADE's local engine stopped responding. Retry once; a new single leader will be elected.",
         });
-      }, REQUEST_TIMEOUT_MS);
-
+      };
+      const touch = () => {
+        if (timedOut) return;
+        if (pending.timer) clearTimeout(pending.timer);
+        pending.timer = setTimeout(expire, REQUEST_IDLE_TIMEOUT_MS);
+      };
       const abort = () => {
         this.channel?.postMessage({ type: "abort", from: this.tabId, requestId } satisfies RelayMessage);
-        const pending = this.pending.get(requestId);
-        if (!pending) return;
-        clearTimeout(pending.timer);
+        const current = this.pending.get(requestId);
+        if (!current) return;
+        if (current.timer) clearTimeout(current.timer);
         this.pending.delete(requestId);
-        pending.resolve({ ok: false, failure: "cancelled", reason: "Stopped." });
+        timedOut = true;
+        current.resolve({ ok: false, failure: "cancelled", reason: "Stopped." });
       };
-      const pending: PendingFollower = { resolve, onToken: handlers.onToken, timer, signal: handlers.signal, abort };
+      Object.assign(pending, {
+        resolve,
+        onToken: handlers.onToken,
+        timer: null,
+        touch,
+        signal: handlers.signal,
+        abort,
+      } satisfies PendingFollower);
       this.pending.set(requestId, pending);
       handlers.signal?.addEventListener("abort", abort, { once: true });
+      touch();
       this.channel!.postMessage({ type: "request", from: this.tabId, requestId, messages } satisfies RelayMessage);
     });
   }
 
   private async onMessage(message: RelayMessage): Promise<void> {
     if (!message || this.disposed) return;
+    if (message.type === "heartbeat") {
+      if (message.tabId !== this.tabId) {
+        for (const pending of this.pending.values()) pending.touch();
+      }
+      return;
+    }
     if (message.type === "token" && message.to === this.tabId) {
-      this.pending.get(message.requestId)?.onToken(message.token);
+      const pending = this.pending.get(message.requestId);
+      pending?.touch();
+      pending?.onToken(message.token);
       return;
     }
     if (message.type === "done" && message.to === this.tabId) {
       const pending = this.pending.get(message.requestId);
       if (!pending) return;
-      clearTimeout(pending.timer);
+      if (pending.timer) clearTimeout(pending.timer);
       if (pending.abort && pending.signal) pending.signal.removeEventListener("abort", pending.abort);
       this.pending.delete(message.requestId);
       pending.resolve(message.result);
@@ -318,8 +380,9 @@ export class SharedBrowserAdapter implements BrainAdapter {
 
   async dispose(): Promise<void> {
     this.disposed = true;
+    this.stopHeartbeat();
     for (const pending of this.pending.values()) {
-      clearTimeout(pending.timer);
+      if (pending.timer) clearTimeout(pending.timer);
       if (pending.abort && pending.signal) pending.signal.removeEventListener("abort", pending.abort);
       pending.resolve({ ok: false, failure: "cancelled", reason: "OCADE closed." });
     }
