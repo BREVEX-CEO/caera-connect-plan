@@ -1,38 +1,7 @@
-/**
- * OCADE offline shell (HWE-35).
- *
- * WHY A LOCAL-FIRST PRODUCT NEEDS ONE. OCADE tells people their conversations
- * can stay on their device and that the engine can run on their own hardware.
- * Before this file, the application itself would not open without a network
- * round trip — so a laptop on a plane, holding a local model and a local vault,
- * showed a browser error page. The claim and the behaviour disagreed.
- *
- * DELIBERATELY CONSERVATIVE. A service worker in front of a server-rendered app
- * is an easy way to serve a user yesterday's build forever, so:
- *
- *   - NAVIGATION IS NETWORK-FIRST. The network answer always wins when it
- *     arrives; the cache is consulted only when the network fails. Nobody gets
- *     a stale page because they happen to have visited before.
- *   - /api/ IS NEVER CACHED, NEVER SERVED FROM CACHE. Those responses carry
- *     conversation content and authorisation outcomes. A cached 200 for a
- *     request that should now be 401 is a security bug, and a cached chat reply
- *     is somebody's data surviving a sign-out.
- *   - ONLY GET. A cached POST is a request the user thinks happened.
- *   - THE CACHE IS VERSIONED, and old versions are deleted on activate, so a
- *     deploy cannot leave two generations of assets fighting.
- */
-
-const VERSION = "ocade-shell-v6";
+/* OCADE offline-first service worker. AI inference remains local-only. */
+const VERSION = "ocade-offline-v8";
 const OFFLINE_URL = "/offline.html";
-
-/**
- * The smallest set that makes the app open offline.
- *
- * Deliberately not the JavaScript bundles: those are content-hashed and change
- * every build, so listing them here would either go stale immediately or
- * require this file to be generated. They are picked up by the runtime cache
- * below once they have been fetched successfully at least once.
- */
+const MAX_RETRIES = 5;
 const PRECACHE = [
   "/",
   OFFLINE_URL,
@@ -47,14 +16,83 @@ const PRECACHE = [
   "/demo/control",
 ];
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function fetchWithRetry(request, attempts = MAX_RETRIES) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch(request);
+      if (response.ok || response.type === "opaque") return response;
+      lastError = new Error(`HTTP ${response.status}`);
+      if (response.status >= 400 && response.status < 500) throw lastError;
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt < attempts) await sleep(250 * 2 ** (attempt - 1));
+  }
+  throw lastError ?? new Error("Network request failed");
+}
+
+function isNeverCached(url) {
+  return (
+    url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/_serverFn/") ||
+    url.pathname === "/auth" ||
+    url.pathname.startsWith("/auth/")
+  );
+}
+
+function isModelFile(url) {
+  return (
+    url.pathname.startsWith("/models/") ||
+    /\.(gguf|bin|safetensors|onnx|params)(?:$|\?)/i.test(url.pathname)
+  );
+}
+
+function isRuntimeCacheable(url) {
+  if (url.origin !== self.location.origin) return false;
+  if (isNeverCached(url)) return false;
+  if (isModelFile(url)) return true;
+  if (/\.json$/i.test(url.pathname)) return /^\/(assets|_build)\//.test(url.pathname);
+  return /\.(js|mjs|css|woff2?|png|svg|ico|webmanifest|wasm)$/i.test(url.pathname);
+}
+
+async function cacheSuccessful(cache, request, response) {
+  if (!response) return;
+  const url = new URL(request.url ?? request, self.location.origin);
+  if (url.origin !== self.location.origin) return;
+  const cacheControl = response.headers.get("cache-control") ?? "";
+  if (!response.ok || response.type !== "basic" || /\b(?:private|no-store)\b/i.test(cacheControl)) return;
+  await cache.put(request, response.clone());
+}
+
+async function cacheOneWithRetry(cache, url) {
+  try {
+    const request = new Request(url, { cache: "reload" });
+    const response = await fetchWithRetry(request);
+    await cacheSuccessful(cache, request, response);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function fillPrecache() {
+  const cache = await caches.open(VERSION);
+  const results = await Promise.all(PRECACHE.map((url) => cacheOneWithRetry(cache, url)));
+  return results.every(Boolean);
+}
+
+async function broadcast(type, data = {}) {
+  const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  for (const client of clients) client.postMessage({ type, ...data });
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches
-      .open(VERSION)
-      // Cache entries independently. One optional image or route being
-      // unavailable during a rolling deployment must not discard the offline
-      // page, manifest and every other successful response in the batch.
-      .then((cache) => Promise.allSettled(PRECACHE.map((url) => cache.addAll([url]))))
+    fillPrecache()
+      .then((complete) => broadcast("OCADE_SHELL_CACHE_STATUS", { complete }))
       .catch(() => undefined)
       .then(() => self.skipWaiting()),
   );
@@ -63,110 +101,62 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     Promise.all([
-      caches
-        .keys()
-        .then((keys) =>
-          Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))),
-        ),
-      // Navigation preload removes the service-worker startup round trip on a
-      // normal online visit. Unsupported engines simply skip this branch.
+      caches.keys().then((keys) =>
+        Promise.all(keys.filter((key) => key !== VERSION).map((key) => caches.delete(key))),
+      ),
       self.registration?.navigationPreload?.enable?.().catch(() => undefined),
     ]).then(() => self.clients.claim()),
   );
 });
 
-/** Requests that must always go to the network, and never be stored. */
-function isNeverCached(url) {
-  return (
-    url.pathname.startsWith("/api/") ||
-    url.pathname.startsWith("/_serverFn/") ||
-    url.pathname.startsWith("/auth/")
-  );
-}
-
-/**
- * Model weights, which must NOT go through this cache.
- *
- * Weights live in OPFS, put there by `lib/brain/model-store.ts`, because they
- * are hundreds of megabytes and OPFS can stream them chunk by chunk and resume
- * a partial download. Letting them also land in Cache Storage would store the
- * same gigabyte twice against one quota — and the copy here would be the one
- * the user cannot see, cannot resume and cannot delete from the Offline
- * Storage screen, because that screen reports OPFS.
- *
- * Cross-origin weights are already excluded by the origin check below. This
- * covers weights served from our own origin, where that check does not help.
- */
-function isModelWeight(url) {
-  return /\.(gguf|bin|safetensors|onnx|params)$/.test(url.pathname);
-}
-
-/**
- * Static assets worth keeping once they have been fetched successfully.
- *
- * `.wasm` is included on purpose and it is the entry that makes offline
- * INFERENCE possible rather than just an offline shell: it is the engine
- * runtime that executes the weights. Caching the app without it produces a
- * product that opens on a plane and cannot answer — which is the failure
- * `lib/offline/readiness.ts` reports as `runtime_not_cached`.
- */
-function isRuntimeCacheable(url) {
-  if (url.origin !== self.location.origin) return false;
-  if (isModelWeight(url)) return false;
-
-  /*
-   * A tokenizer is JSON and the engine cannot run without it, but ".json" as a
-   * blanket rule would also cache any route that happens to serve JSON — which
-   * on this app means somebody's data, cached under a URL that survives a sign
-   * out. Restricted to the build's own asset directory, where filenames are
-   * content-hashed and nothing user-specific is ever served.
-   */
-  if (/\.json$/.test(url.pathname)) {
-    return /^\/(assets|_build)\//.test(url.pathname);
+/* A flaky first visit can explicitly ask the worker to finish the shell cache. */
+self.addEventListener("message", (event) => {
+  const data = event.data ?? {};
+  if (data.type === "OCADE_RETRY_OFFLINE_CACHE") {
+    event.waitUntil(
+      fillPrecache().then((complete) => broadcast("OCADE_SHELL_CACHE_STATUS", { complete })),
+    );
+    return;
   }
-
-  return /\.(js|mjs|css|woff2?|png|svg|ico|webmanifest|wasm)$/.test(url.pathname);
-}
+  if (data.type === "OCADE_CACHE_MODEL_URL" && typeof data.url === "string") {
+    event.waitUntil(
+      (async () => {
+        const url = new URL(data.url, self.location.origin);
+        if (url.origin !== self.location.origin || !isModelFile(url)) return;
+        const cache = await caches.open(VERSION);
+        const complete = await cacheOneWithRetry(cache, url.href);
+        await broadcast("OCADE_MODEL_CACHE_STATUS", { url: url.href, complete });
+      })(),
+    );
+  }
+});
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
-
   const url = new URL(request.url);
-  if (isNeverCached(url)) return; // straight to the network, unrecorded
+  if (isNeverCached(url)) return;
 
   if (request.mode === "navigate") {
     event.respondWith(
-      Promise.resolve(event.preloadResponse)
-        .then((preloaded) => preloaded ?? fetch(request))
-        .then((response) => {
-          const cacheControl = response.headers.get("cache-control") ?? "";
-          const contentType = response.headers.get("content-type") ?? "";
-
-          // Keep the last successful document for this exact route. This is
-          // still network-first, so a connection always receives the current
-          // deployment. Private/no-store responses are never copied, and a
-          // cached shell cannot contain an API response or a signed-out user's
-          // data because those paths were excluded above.
-          if (
-            response.ok &&
-            response.type === "basic" &&
-            contentType.includes("text/html") &&
-            !/\b(?:private|no-store)\b/i.test(cacheControl)
-          ) {
-            const copy = response.clone();
-            event.waitUntil(caches.open(VERSION).then((cache) => cache.put(request, copy)));
-          }
+      (async () => {
+        try {
+          const preloaded = await event.preloadResponse;
+          const response = preloaded ?? (await fetchWithRetry(request));
+          const cache = await caches.open(VERSION);
+          // Cache completion is part of the fetch event lifetime; otherwise the
+          // worker can be terminated immediately after returning the response.
+          event.waitUntil(cacheSuccessful(cache, request, response));
           return response;
-        })
-        .catch(async () => {
-          // Offline. Prefer this exact page if it was cached, then the generic
-          // offline shell. Never a different page's markup, which would show
-          // the user somewhere they are not.
-          const cached = await caches.match(request);
-          const appShell = await caches.match("/");
-          return cached ?? appShell ?? (await caches.match(OFFLINE_URL)) ?? Response.error();
-        }),
+        } catch {
+          return (
+            (await caches.match(request)) ??
+            (await caches.match("/")) ??
+            (await caches.match(OFFLINE_URL)) ??
+            Response.error()
+          );
+        }
+      })(),
     );
     return;
   }
@@ -174,21 +164,17 @@ self.addEventListener("fetch", (event) => {
   if (!isRuntimeCacheable(url)) return;
 
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((response) => {
-          // Only successful, same-origin, basic responses are worth storing.
-          // An opaque or error response cached here would be served forever.
-          if (response.ok && response.type === "basic") {
-            const copy = response.clone();
-            caches.open(VERSION).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached ?? Response.error());
-      // Content-hashed assets never change under one URL, so the cached copy
-      // is served immediately and the network refreshes it behind.
-      return cached ?? network;
-    }),
+    (async () => {
+      const cached = await caches.match(request);
+      if (cached) return cached;
+      try {
+        const response = await fetchWithRetry(request);
+        const cache = await caches.open(VERSION);
+        event.waitUntil(cacheSuccessful(cache, request, response));
+        return response;
+      } catch {
+        return Response.error();
+      }
+    })(),
   );
 });
