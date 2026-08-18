@@ -11,12 +11,15 @@ import {
 } from "../local/model-lifecycle";
 
 /** Build a fetch that streams NDJSON lines like the runtime's pull endpoint. */
-function ndjsonFetch(lines: unknown[], status = 200) {
+function ndjsonFetch(lines: unknown[], status = 200, trailingNewline = true) {
   return vi.fn(async () => {
     const body = new ReadableStream<Uint8Array>({
       start(c) {
         const enc = new TextEncoder();
-        for (const l of lines) c.enqueue(enc.encode(JSON.stringify(l) + "\n"));
+        lines.forEach((l, index) => {
+          const tail = trailingNewline || index < lines.length - 1 ? "\n" : "";
+          c.enqueue(enc.encode(JSON.stringify(l) + tail));
+        });
         c.close();
       },
     });
@@ -73,7 +76,6 @@ describe("pullModel", () => {
     });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.failure).toBe("insufficient_disk");
-    // The point of a pre-flight check: the network was never touched.
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -86,6 +88,38 @@ describe("pullModel", () => {
       expect(res.failure).toBe("runtime_error");
       expect(res.reason).toMatch(/not found/);
     }
+  });
+
+  it("surfaces a final error object even without a trailing newline", async () => {
+    const res = await pullModel("http://127.0.0.1:11434", "nope:1b", {
+      fetchImpl: ndjsonFetch([{ status: "pulling" }, { error: "late failure" }], 200, false),
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.failure).toBe("runtime_error");
+      expect(res.reason).toMatch(/late failure/);
+    }
+  });
+
+  it("automatically retries transient failures and reports the final attempt", async () => {
+    let calls = 0;
+    const fetchImpl = vi.fn(async () => {
+      calls += 1;
+      if (calls < 3) throw new Error("ECONNRESET");
+      return ndjsonFetch([{ status: "success" }])("", {});
+    }) as unknown as (input: string, init?: RequestInit) => Promise<Response>;
+    const retries: number[] = [];
+    const res = await pullModel("http://127.0.0.1:11434", "tiny:1b", {
+      fetchImpl,
+      maxAttempts: 3,
+      retryBaseDelayMs: 0,
+      sleep: async () => {},
+      onRetry: (notice) => retries.push(notice.attempt),
+    });
+    expect(res.ok).toBe(true);
+    expect(calls).toBe(3);
+    expect(retries).toEqual([2, 3]);
+    if (res.ok) expect(res.attempts).toBe(3);
   });
 
   it("reports cancellation as resumable, not as failure", async () => {
@@ -106,7 +140,10 @@ describe("pullModel", () => {
     const dead = (async () => {
       throw new Error("ECONNREFUSED");
     }) as unknown as (input: string, init?: RequestInit) => Promise<Response>;
-    const res = await pullModel("http://127.0.0.1:11434", "tiny:1b", { fetchImpl: dead });
+    const res = await pullModel("http://127.0.0.1:11434", "tiny:1b", {
+      fetchImpl: dead,
+      maxAttempts: 1,
+    });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.failure).toBe("unreachable");
   });
@@ -192,8 +229,6 @@ describe("activateModel — downloaded is not ready", () => {
   });
 
   it("refuses a model that answers but ignores cancellation", async () => {
-    // A model that cannot be stopped will hang the user with no way out, so it
-    // is refused even though it demonstrably works.
     const res = await activateModel("tiny:1b", {
       ...ok,
       runCancellable: async () => ({ cancelled: false }),
@@ -259,7 +294,6 @@ describe("planRollback", () => {
   });
 
   it("refuses to roll back to something no longer installed", () => {
-    // Rolling back to an absent model would leave the user with no engine.
     const p = planRollback({
       failedModelId: "new:2b",
       previousModelId: "old:1b",
