@@ -90,7 +90,8 @@ const CHECKS = [
     capability: "Rust toolchain",
     satisfied: () => commandPresent("cargo"),
     detail: () => (commandPresent("cargo") ? "cargo present" : "cargo not on PATH"),
-    action: "Install Rust via rustup.",
+    action:
+      "Install the Rust toolchain with rustup from https://rustup.rs, then reopen your terminal so cargo is on PATH.",
     unlocks: "Type-checking and linting the safety core.",
   },
   {

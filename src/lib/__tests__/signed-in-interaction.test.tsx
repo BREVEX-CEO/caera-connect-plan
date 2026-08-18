@@ -62,7 +62,7 @@ const NO_COMPONENT: Record<string, string> = {
 
 /** Routes that require an account, and therefore had no interaction coverage. */
 const SIGNED_IN_ROUTES = [
-  "_authenticated/ocade.tsx",
+  "_authenticated/ocade.index.tsx",
   "_authenticated/ocade.work.tsx",
   "_authenticated/ocade.artifacts.tsx",
   "_authenticated/ocade.automations.tsx",

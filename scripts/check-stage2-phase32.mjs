@@ -6,7 +6,7 @@ const ledger = json("release/OCADE_STAGE_2_PHASE_32.json");
 const runtime = read("src/lib/skills/resource-governor-runtime.ts");
 const tests = read("src/lib/__tests__/resource-governor-runtime.test.ts");
 const panel = read("src/components/ocade/ResourceGovernorPanel.tsx");
-const studio = read("src/routes/_authenticated/ocade.studio.tsx");
+const studio = read("src/routes/_authenticated/ocade.lab.tsx");
 const failures = [];
 let checks = 0;
 

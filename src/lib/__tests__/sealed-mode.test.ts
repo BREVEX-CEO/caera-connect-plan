@@ -254,7 +254,7 @@ describe("the signed-in chat gets the same guarantees as the demo", () => {
    * it teaches people to expect a protection the product does not give them
    * where they actually work.
    */
-  const CHAT = readFileSync("src/routes/_authenticated/ocade.tsx", "utf8");
+  const CHAT = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
 
   function code(text: string): string {
     return text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");

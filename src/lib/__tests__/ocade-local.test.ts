@@ -174,7 +174,7 @@ describe("one engine: size never decides what runs", () => {
 
   it("leaves no fallback chain in the signed-in chat route", () => {
     const source = readFileSync(
-      resolve(__dirname, "../../routes/_authenticated/ocade.tsx"),
+      resolve(__dirname, "../../routes/_authenticated/ocade.index.tsx"),
       "utf8",
     );
     expect(source).not.toContain("buildLocalFirstPlan");

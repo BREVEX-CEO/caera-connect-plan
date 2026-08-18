@@ -28,7 +28,7 @@ import { resolveEngine, type EngineContext } from "../engine/resolve";
  * the duplicate must not come back.
  */
 
-const CHAT_SOURCE = readFileSync("src/routes/_authenticated/ocade.tsx", "utf8");
+const CHAT_SOURCE = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
 
 /**
  * Comments stripped.

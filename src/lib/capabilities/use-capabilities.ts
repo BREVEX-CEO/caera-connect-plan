@@ -98,8 +98,8 @@ export function useCapabilitySignals(): CapabilitySignals {
      */
     automationRunner: { available: false },
     /*
-     * Monitor configuration currently lives in localStorage. There is no
-     * dedicated monitor-runner heartbeat/probe in the product yet, so the
+     * Monitor configuration currently lives in localStorage. There is
+     * no dedicated monitor-runner heartbeat in the product yet, so the
      * registry MUST NOT infer active polling from `detectTauri()`. Configured
      * monitors are counted truthfully while runnerAvailable stays false until a
      * real runner probe is implemented.

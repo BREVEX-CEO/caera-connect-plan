@@ -206,7 +206,7 @@ describe("the signed-in chat scans on exposure, not on transmission", () => {
    *
    * So the trigger is exposure, not transmission.
    */
-  const CHAT = readFileSync("src/routes/_authenticated/ocade.tsx", "utf8");
+  const CHAT = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
 
   function code(text: string): string {
     return text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");

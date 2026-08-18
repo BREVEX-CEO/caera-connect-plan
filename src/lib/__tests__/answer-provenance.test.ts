@@ -549,7 +549,7 @@ describe("both chat surfaces carry a receipt, on the same terms", () => {
    * the fact that the code is sitting in the on-device branch.
    */
   const DEMO = readFileSync("src/routes/demo.ocade.tsx", "utf8");
-  const CHAT = readFileSync("src/routes/_authenticated/ocade.tsx", "utf8");
+  const CHAT = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
 
   function code(text: string): string {
     return text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");

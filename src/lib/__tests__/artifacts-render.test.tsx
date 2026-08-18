@@ -23,7 +23,9 @@ beforeEach(() => {
 
 describe("Artifacts is its own destination, not an alias of Projects", () => {
   it("has a distinct route in OCADE's navigation", () => {
-    const artifacts = MODULE_CONTEXT.ocade.find((i) => i.label === "Artifacts");
+    // The sidebar labels this destination "Files"; what matters is that it is its
+    // own route rather than a second link to Projects.
+    const artifacts = MODULE_CONTEXT.ocade.find((i) => i.to === "/ocade/artifacts");
     const projects = MODULE_CONTEXT.ocade.find((i) => i.label === "Projects");
     expect(artifacts).toBeDefined();
     expect(projects).toBeDefined();

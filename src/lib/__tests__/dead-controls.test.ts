@@ -43,7 +43,7 @@ describe("no dead controls remain", () => {
 });
 
 describe("the composer never offers a Stop it cannot honour", () => {
-  const ocade = readFileSync("src/routes/_authenticated/ocade.tsx", "utf8");
+  const ocade = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
 
   it("makes onStop optional so a surface can decline to offer it", () => {
     // It was REQUIRED, which forced `onStop={() => {}}` on the home composer —
@@ -79,7 +79,7 @@ describe("blocked controls explain themselves to assistive technology", () => {
      * quietly lands somewhere else is the dead control this file exists to
      * catch, whatever the destination.
      */
-    const ocade = readFileSync("src/routes/_authenticated/ocade.tsx", "utf8");
+    const ocade = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
     const work = readFileSync("src/routes/_authenticated/ocade.work.tsx", "utf8");
     expect(ocade).not.toMatch(/run-controls-setup-required/);
     expect(work).not.toMatch(/redirect\(/);

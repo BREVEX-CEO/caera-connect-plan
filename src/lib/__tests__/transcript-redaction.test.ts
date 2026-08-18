@@ -283,7 +283,7 @@ describe("wired into every production speech surface (reachability guard)", () =
     (await import("node:fs")).readFileSync(new URL(rel, import.meta.url), "utf8");
 
   it("the chat route redacts BOTH the microphone transcript and read-aloud", async () => {
-    const src = await read("../../routes/_authenticated/ocade.tsx");
+    const src = await read("../../routes/_authenticated/ocade.index.tsx");
     expect(src).toContain("voice/transcript-redaction");
     // Microphone: the draft that feeds the composer, the model and storage.
     expect(src).toContain("redactSpokenSecrets(final)");
@@ -301,7 +301,7 @@ describe("wired into every production speech surface (reachability guard)", () =
 
   it("no speech surface constructs an utterance from unredacted text", async () => {
     for (const rel of [
-      "../../routes/_authenticated/ocade.tsx",
+      "../../routes/_authenticated/ocade.index.tsx",
       "../../routes/_authenticated/settings.voice.tsx",
     ]) {
       const src = await read(rel);

@@ -129,7 +129,14 @@ function allRoutePaths(): string[] {
  * not a rebuild) but they must not be reachable, so empty markup is the
  * CORRECT result for them rather than a blank-screen defect.
  */
-const INTENTIONAL_REDIRECTS = new Set(["/pricing", "/download", "/checkout/success"]);
+const INTENTIONAL_REDIRECTS = new Set([
+  "/pricing",
+  "/download",
+  "/checkout/success",
+  // The OAuth consent screen redirects to /auth when there is no session, which
+  // is exactly the state of this harness.
+  "/.lovable/oauth/consent",
+]);
 
 const ALL_PATHS = allRoutePaths().filter((p) => !INTENTIONAL_REDIRECTS.has(p));
 
