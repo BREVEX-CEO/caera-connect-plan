@@ -1,0 +1,53 @@
+name: TEST SPRITE
+
+on:
+  push:
+    branches:
+      - main
+      - agent/repo-wide-hardening-20260818
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repository-adversarial-suite:
+    name: Full source, test, build, security and offline gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run TEST SPRITE without stopping at first gate
+        run: node scripts/test-sprite.mjs
+      - name: Upload machine-readable report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-sprite-report
+          path: TEST_SPRITE_REPORT.json
+          if-no-files-found: ignore
+
+  browser-offline-and-motion:
+    name: Browser animation + offline evidence
+    needs: repository-adversarial-suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: browser-actions/setup-chrome@v1
+      - run: npm ci
+      - run: npm run build
+      - name: Existing offline browser proof
+        run: npm run browser:offline-e2e
