@@ -593,6 +593,16 @@ export const Route = createFileRoute("/api/ocade/chat")({
               }
             },
           });
+          /*
+           * A refresh mid-answer must not lose the answer.
+           *
+           * Without this, closing the tab cancels the stream, `onFinish` never
+           * runs, and the assistant turn is never written — the user comes back
+           * to a conversation that ends on their own question. `consumeStream`
+           * keeps draining the model server-side after the client is gone, so
+           * the row is persisted and the reload shows the completed reply.
+           */
+          void result.consumeStream();
           return result.toTextStreamResponse();
         } catch (e) {
           const msg = e instanceof Error ? e.message : String(e);
