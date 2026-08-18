@@ -1,6 +1,9 @@
 /**
- * OCADE server functions — conversations, messages, prompt improvement.
- * All routes use requireSupabaseAuth so RLS applies as the caller.
+ * OCADE server functions — conversation/message persistence only.
+ *
+ * AI inference is local-only. These authenticated functions may persist data
+ * when the user selected Private Sync, but they never call an AI provider or
+ * read an AI-provider API key.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
@@ -64,11 +67,14 @@ export const updateConversation = createServerFn({ method: "POST" })
     if (data.pinned !== undefined) patch.pinned = data.pinned;
     if (data.archived !== undefined) patch.archived = data.archived;
     if (data.modelId !== undefined) patch.model_id = data.modelId;
-    const { error } = await context.supabase
+    const { data: changed, error } = await context.supabase
       .from("ocade_conversations")
       .update(patch as never)
-      .eq("id", data.id);
+      .eq("id", data.id)
+      .select("id")
+      .maybeSingle();
     if (error) throw new Response(error.message, { status: 500 });
+    if (!changed) throw new Response("Conversation not found", { status: 404 });
     return { ok: true as const };
   });
 
@@ -76,8 +82,14 @@ export const deleteConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("ocade_conversations").delete().eq("id", data.id);
+    const { data: deleted, error } = await context.supabase
+      .from("ocade_conversations")
+      .delete()
+      .eq("id", data.id)
+      .select("id")
+      .maybeSingle();
     if (error) throw new Response(error.message, { status: 500 });
+    if (!deleted) throw new Response("Conversation not found", { status: 404 });
     return { ok: true as const };
   });
 
@@ -100,19 +112,18 @@ export const deleteMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((i) => z.object({ id: uuid }).parse(i))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("ocade_messages").delete().eq("id", data.id);
+    const { data: deleted, error } = await context.supabase
+      .from("ocade_messages")
+      .delete()
+      .eq("id", data.id)
+      .select("id")
+      .maybeSingle();
     if (error) throw new Response(error.message, { status: 500 });
+    if (!deleted) throw new Response("Message not found", { status: 404 });
     return { ok: true as const };
   });
 
-/**
- * Persist a single OCADE message (P4c). Used when the assistant response is
- * produced by OCADE Local on-device — the browser streams the completion and
- * then records the user + assistant turns here. Ownership is enforced by RLS
- * (own-row on ocade_messages/ocade_conversations). Prompts to a local engine
- * never touch the server; only the resulting message text is persisted, exactly
- * as the cloud path already persists it.
- */
+/** Persist one on-device-generated OCADE message when Private Sync is enabled. */
 export const appendOcadeMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((i) =>
@@ -138,11 +149,12 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
-    const { data: conv } = await context.supabase
+    const { data: conv, error: convError } = await context.supabase
       .from("ocade_conversations")
       .select("id, title")
       .eq("id", data.conversationId)
       .maybeSingle();
+    if (convError) throw new Response(convError.message, { status: 500 });
     if (!conv) throw new Response("Conversation not found", { status: 404 });
 
     const { data: row, error } = await context.supabase
@@ -160,25 +172,29 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Response(error.message, { status: 500 });
 
-    // Auto-title from the first user message, matching the cloud path.
+    let titleUpdateFailed = false;
     if (
       data.role === "user" &&
       (conv.title ?? "").toLowerCase() === "new chat" &&
       data.content.trim()
     ) {
-      await context.supabase
+      const { error: titleError } = await context.supabase
         .from("ocade_conversations")
         .update({ title: data.content.trim().slice(0, 60) } as never)
         .eq("id", data.conversationId);
+      // The message already committed. Throwing here would make the client
+      // retry the whole send and duplicate the message, so report the secondary
+      // title failure without pretending the message itself failed.
+      titleUpdateFailed = !!titleError;
     }
-    return row;
+    return { ...row, title_update_failed: titleUpdateFailed };
   });
 
 export const exportConversation = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((i) => z.object({ conversationId: uuid }).parse(i))
   .handler(async ({ data, context }) => {
-    const [{ data: conv }, { data: msgs }] = await Promise.all([
+    const [convResult, msgResult] = await Promise.all([
       context.supabase
         .from("ocade_conversations")
         .select("id, title, model_id, created_at, updated_at")
@@ -190,36 +206,33 @@ export const exportConversation = createServerFn({ method: "GET" })
         .eq("conversation_id", data.conversationId)
         .order("created_at", { ascending: true }),
     ]);
-    if (!conv) throw new Response("Conversation not found", { status: 404 });
+    if (convResult.error) throw new Response(convResult.error.message, { status: 500 });
+    if (msgResult.error) throw new Response(msgResult.error.message, { status: 500 });
+    if (!convResult.data) throw new Response("Conversation not found", { status: 404 });
     return {
-      conversation: conv,
-      messages: msgs ?? [],
+      conversation: convResult.data,
+      messages: msgResult.data ?? [],
       exported_at: new Date().toISOString(),
       exported_by: "OCADE by CAERA CADANE",
     };
   });
 
-/* -------------------- Improve Prompt -------------------- */
+/* -------------------- Prompt cleanup -------------------- */
 
+/**
+ * Compatibility replacement for the old server-side cloud prompt improver.
+ * It performs only deterministic whitespace cleanup on the server. Any future
+ * semantic rewrite must run through the user's on-device Brain, never a server
+ * AI provider.
+ */
 export const improvePrompt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((i) => z.object({ text: z.string().min(1).max(4000) }).parse(i))
-  .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Response("AI gateway not configured", { status: 500 });
-    const { createLovableGateway, OCADE_DEFAULT_MODEL } = await import("./ai-gateway.server");
-    const { generateText } = await import("ai");
-    const gateway = createLovableGateway(key);
-    const result = await generateText({
-      model: gateway(OCADE_DEFAULT_MODEL),
-      messages: [
-        {
-          role: "system",
-          content:
-            "You rewrite user prompts to be clearer, more specific and complete WITHOUT changing the user's meaning, intent, task, or constraints. Keep the same language. Preserve all facts the user gave. Do not add new tasks or invent details. Return ONLY the improved prompt text, no preamble, no quotes.",
-        },
-        { role: "user", content: data.text },
-      ],
-    });
-    return { improved: result.text.trim() };
-  });
+  .handler(async ({ data }) => ({
+    improved: data.text
+      .replace(/\r\n?/g, "\n")
+      .replace(/[ \t]+$/gm, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim(),
+    localOnly: true as const,
+  }));
