@@ -86,7 +86,7 @@ describe("the router tree is the one the application ships", () => {
     // If this collapsed to a handful, the suite would still pass while testing
     // almost nothing.
     expect(ids.length).toBeGreaterThanOrEqual(40);
-    expect(ids).toContain("/_authenticated/ocade");
+    expect(ids).toContain("/_authenticated/ocade/");
     expect(ids).toContain("/_authenticated/settings");
   });
 });

@@ -186,7 +186,7 @@ import {
   saveChatCitations,
 } from "@/lib/chat-citation-store";
 
-export const Route = createFileRoute("/_authenticated/ocade")({
+export const Route = createFileRoute("/_authenticated/ocade/")({
   head: () => ({
     meta: [{ title: "OCADE — CAERA CADANE" }, { name: "robots", content: "noindex" }],
   }),

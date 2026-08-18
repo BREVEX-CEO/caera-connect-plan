@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "generatedBy": "scripts/generate-licence-notices.mjs",
   "product": "caera-cadane-ocade@0.1.0",
-  "productionPackages": 293,
-  "licenceTypes": 15,
+  "productionPackages": 380,
+  "licenceTypes": 14,
   "needingReview": [
     {
       "package": "jszip@3.10.1",
@@ -23,14 +23,13 @@
     "0BSD": 1,
     "Apache-2.0": 14,
     "BSD": 1,
-    "BSD-2-Clause": 4,
-    "BSD-3-Clause": 3,
+    "BSD-2-Clause": 6,
+    "BSD-3-Clause": 5,
     "BlueOak-1.0.0": 1,
     "CC-BY-4.0": 1,
-    "ISC": 8,
-    "MIT": 254,
+    "ISC": 14,
+    "MIT": 332,
     "MPL-2.0": 1,
-    "Python-2.0": 1,
     "Unlicense": 1
   },
   "fullNoticesPath": "release/THIRD_PARTY_NOTICES.md"
