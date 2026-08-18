@@ -56,6 +56,12 @@ const NOT_A_PANEL: Record<string, string> = {
     "A pure presentational table rendered inside BillingPanel, which is audited here and mounts it.",
   OfflineSection:
     "A two-line composition of OfflineStoragePanel and EngineImportPanel, both audited here individually.",
+  PaymentTestModeBanner:
+    "A conditional warning strip, not a panel: with the free launch mode active no checkout is configured, so it correctly renders nothing at all.",
+  UpiSetupBanner:
+    "A conditional payout-readiness strip, not a panel: it renders nothing until a payout readiness summary exists, which needs live billing configuration.",
+  PerformanceFallbackNotice:
+    "A conditional notice, not a panel: it renders nothing unless the performance fallback is active, which no headless test environment triggers.",
 };
 
 const modules = import.meta.glob("../../components/settings/*.tsx", { eager: true }) as Record<
