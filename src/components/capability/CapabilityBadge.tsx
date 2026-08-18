@@ -10,23 +10,48 @@ import type { CapabilityReport, CapabilityStatus } from "@/lib/capabilities/type
  * from "not configured" without relying on hue.
  */
 const STATUS_STYLE: Record<CapabilityStatus, { text: string; className: string }> = {
-  READY: { text: "Ready", className: "border-emerald-400/30 bg-emerald-400/10 text-emerald-200" },
-  WORKING: { text: "Working", className: "border-cyan-400/30 bg-cyan-400/10 text-cyan-200" },
-  WAITING: { text: "Waiting", className: "border-cyan-400/20 bg-cyan-400/5 text-cyan-100/80" },
+  READY: {
+    text: "Ready",
+    className:
+      "border-[color:var(--state-success)]/30 bg-[color:var(--state-success)]/10 text-[color:var(--state-success)]",
+  },
+  WORKING: {
+    text: "Working",
+    className:
+      "border-[color:var(--accent-ocade)]/30 bg-[color:var(--accent-ocade)]/10 text-[color:var(--accent-ocade)]",
+  },
+  WAITING: {
+    text: "Waiting",
+    className:
+      "border-[color:var(--accent-ocade)]/20 bg-[color:var(--accent-ocade)]/5 text-[color:var(--accent-ocade)]/80",
+  },
   NEEDS_APPROVAL: {
     text: "Needs approval",
-    className: "border-amber-400/30 bg-amber-400/10 text-amber-200",
+    className:
+      "border-[color:var(--state-warning)]/30 bg-[color:var(--state-warning)]/10 text-[color:var(--state-warning)]",
   },
-  OFFLINE: { text: "Offline", className: "border-slate-400/30 bg-slate-400/10 text-slate-200" },
-  DEGRADED: { text: "Limited", className: "border-amber-400/25 bg-amber-400/5 text-amber-100" },
-  FAILED: { text: "Failed", className: "border-rose-400/30 bg-rose-400/10 text-rose-200" },
+  OFFLINE: {
+    text: "Offline",
+    className:
+      "border-[color:var(--state-pending)]/30 bg-[color:var(--state-pending)]/10 text-[color:var(--state-pending)]",
+  },
+  DEGRADED: {
+    text: "Limited",
+    className:
+      "border-[color:var(--state-warning)]/25 bg-[color:var(--state-warning)]/5 text-[color:var(--state-warning)]/90",
+  },
+  FAILED: {
+    text: "Failed",
+    className: "border-destructive/30 bg-destructive/10 text-destructive",
+  },
   UNAVAILABLE: {
     text: "Not available here",
     className: "border-white/10 bg-white/5 text-muted-foreground",
   },
   NOT_CONFIGURED: {
     text: "Setup required",
-    className: "border-amber-400/20 bg-amber-400/5 text-amber-100/90",
+    className:
+      "border-[color:var(--state-warning)]/20 bg-[color:var(--state-warning)]/5 text-[color:var(--state-warning)]/90",
   },
   COMING_SOON: {
     text: "Coming soon",
