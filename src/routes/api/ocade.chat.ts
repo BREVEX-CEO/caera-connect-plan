@@ -537,7 +537,7 @@ export const Route = createFileRoute("/api/ocade/chat")({
         try {
           const result = streamText({
             model: gateway(engine.model),
-            system: systemPrompt,
+            instructions: systemPrompt,
             messages: modelMessages,
             onFinish: async ({ text }) => {
               /*
