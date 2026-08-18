@@ -1,27 +1,23 @@
 /**
- * The only writer of subscription state.
+ * Signed payment-provider webhook.
  *
- * This endpoint is deliberately unauthenticated — the payment provider has no
- * OCADE session — so the signature check in `verifyWebhook` is the whole
- * security boundary. Nothing in the body is trusted before it passes.
- *
- * It always answers 200 once a verified event has been handled, because a
- * provider that receives an error retries for days and eventually drops the
- * event, and a dropped event is a customer whose historical provider state
- * diverges from OCADE's audit record.
+ * Free launch does not create new checkouts, but historical provider events may
+ * still arrive. A verified event is acknowledged with 200 ONLY after its
+ * database effect succeeds. Processing failures return 500 so the provider can
+ * retry instead of silently losing subscription state.
  */
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
-import { verifyWebhook, EventName, isPaddleEnv, type PaddleEnv } from "@/lib/paddle.server";
+import { verifyWebhook, EventName, isPaddleEnv, type PaddleEnv, type VerifiedPaddleEvent } from "@/lib/paddle.server";
 import type { Database } from "@/integrations/supabase/types";
 
 let cached: ReturnType<typeof createClient<Database>> | null = null;
 function getSupabase() {
   if (!cached) {
-    cached = createClient<Database>(
-      process.env['SUPABASE_URL']!,
-      process.env['SUPABASE_SERVICE_ROLE_KEY']!,
-    );
+    const url = process.env["SUPABASE_URL"];
+    const serviceRole = process.env["SUPABASE_SERVICE_ROLE_KEY"];
+    if (!url || !serviceRole) throw new Error("Supabase webhook storage is not configured");
+    cached = createClient<Database>(url, serviceRole);
   }
   return cached;
 }
@@ -29,12 +25,21 @@ function getSupabase() {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
-  const { id, customerId, customer_id, items, status, currentBillingPeriod, current_billing_period, customData, custom_data } = data;
+  const {
+    id,
+    customerId,
+    customer_id,
+    items,
+    status,
+    currentBillingPeriod,
+    current_billing_period,
+    customData,
+    custom_data,
+  } = data ?? {};
 
   const userId = customData?.userId ?? custom_data?.userId ?? custom_data?.user_id;
-  if (!userId) {
-    console.error("Subscription webhook without a userId in customData; skipping.");
-    return;
+  if (!id || !userId) {
+    throw new Error("Verified subscription.created event is missing subscription id or userId");
   }
 
   const item = items?.[0];
@@ -43,17 +48,11 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
   const priceId = price?.importMeta?.externalId ?? price?.import_meta?.external_id;
   const productId = product?.importMeta?.externalId ?? product?.import_meta?.external_id;
   if (!priceId || !productId) {
-    // Raw provider ids differ between test and live, so storing them would
-    // silently break plan attribution after publish. Storing nothing is safer.
-    console.warn("Skipping subscription: missing importMeta.externalId", {
-      rawPriceId: price?.id,
-      rawProductId: product?.id,
-    });
-    return;
+    throw new Error("Verified subscription.created event is missing stable product/price external ids");
   }
 
   const period = currentBillingPeriod ?? current_billing_period;
-  await getSupabase()
+  const { error } = await getSupabase()
     .from("subscriptions")
     .upsert(
       {
@@ -70,14 +69,17 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
       },
       { onConflict: "paddle_subscription_id" },
     );
+  if (error) throw new Error(`Could not persist subscription.created: ${error.message}`);
 }
 
 async function handleSubscriptionUpdated(data: any, env: PaddleEnv) {
-  const { id, status, currentBillingPeriod, current_billing_period, scheduledChange, scheduled_change } = data;
+  const { id, status, currentBillingPeriod, current_billing_period, scheduledChange, scheduled_change } =
+    data ?? {};
+  if (!id) throw new Error("Verified subscription.updated event is missing subscription id");
   const period = currentBillingPeriod ?? current_billing_period;
   const change = scheduledChange ?? scheduled_change;
 
-  await getSupabase()
+  const { data: changed, error } = await getSupabase()
     .from("subscriptions")
     .update({
       status,
@@ -87,20 +89,31 @@ async function handleSubscriptionUpdated(data: any, env: PaddleEnv) {
       updated_at: new Date().toISOString(),
     })
     .eq("paddle_subscription_id", id)
-    .eq("environment", env);
+    .eq("environment", env)
+    .select("id")
+    .maybeSingle();
+  if (error) throw new Error(`Could not persist subscription.updated: ${error.message}`);
+  if (!changed) {
+    throw new Error("subscription.updated arrived before the subscription row exists; retry required");
+  }
 }
 
 async function handleSubscriptionCanceled(data: any, env: PaddleEnv) {
-  await getSupabase()
+  if (!data?.id) throw new Error("Verified subscription.canceled event is missing subscription id");
+  const { data: changed, error } = await getSupabase()
     .from("subscriptions")
     .update({ status: "canceled", updated_at: new Date().toISOString() })
     .eq("paddle_subscription_id", data.id)
-    .eq("environment", env);
+    .eq("environment", env)
+    .select("id")
+    .maybeSingle();
+  if (error) throw new Error(`Could not persist subscription.canceled: ${error.message}`);
+  if (!changed) {
+    throw new Error("subscription.canceled arrived before the subscription row exists; retry required");
+  }
 }
 
-async function handleWebhook(req: Request, env: PaddleEnv) {
-  const event = await verifyWebhook(req, env);
-
+async function handleVerifiedEvent(event: VerifiedPaddleEvent, env: PaddleEnv) {
   switch (event.eventType) {
     case EventName.SubscriptionCreated:
       await handleSubscriptionCreated(event.data, env);
@@ -112,6 +125,8 @@ async function handleWebhook(req: Request, env: PaddleEnv) {
       await handleSubscriptionCanceled(event.data, env);
       break;
     default:
+      // Unknown signed events are intentionally acknowledged: they have no
+      // declared state transition in this application and retrying cannot help.
       console.log("Unhandled payment event:", event.eventType);
   }
 }
@@ -126,12 +141,20 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           return new Response("Invalid payment environment", { status: 400 });
         }
 
+        let event: VerifiedPaddleEvent;
         try {
-          await handleWebhook(request, requestedEnv);
+          event = await verifyWebhook(request, requestedEnv);
+        } catch (error) {
+          console.warn("Rejected payment webhook:", error);
+          return new Response("Invalid webhook", { status: 400 });
+        }
+
+        try {
+          await handleVerifiedEvent(event, requestedEnv);
           return Response.json({ received: true });
-        } catch (e) {
-          console.error("Payment webhook error:", e);
-          return new Response("Webhook error", { status: 400 });
+        } catch (error) {
+          console.error("Verified payment webhook could not be persisted:", error);
+          return new Response("Webhook processing failed; retry", { status: 500 });
         }
       },
     },
