@@ -39,7 +39,7 @@ describe("Chat uses project and attachment context without duplicating the curre
 });
 
 describe("Chat outputs and project navigation are real surfaces", () => {
-  const chat = read("src/routes/_authenticated/ocade.tsx");
+  const chat = read("src/routes/_authenticated/ocade.index.tsx");
   const activity = read("src/routes/_authenticated/settings.activity.tsx");
   const projects = read("src/routes/_authenticated/ocade.projects.tsx");
   const memory = read("src/components/settings/MemoryPanel.tsx");

@@ -219,7 +219,7 @@ describe("identifiers are stable enough to exclude by", () => {
 });
 
 describe("removing a source actually changes the request", () => {
-  const CHAT = readFileSync("src/routes/_authenticated/ocade.tsx", "utf8");
+  const CHAT = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
 
   it("filters exclusions where the context is built, not only where it is shown", () => {
     /*

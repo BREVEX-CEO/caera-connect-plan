@@ -242,7 +242,7 @@ describe("the integrity panel is wired honestly", () => {
    * check (verify against real plaintext, re-verify when refs change) are
    * exactly as load-bearing there as they were on the demo.
    */
-  const CHAT = readFileSync("src/routes/_authenticated/ocade.tsx", "utf8");
+  const CHAT = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
 
   function code(text: string): string {
     return text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");

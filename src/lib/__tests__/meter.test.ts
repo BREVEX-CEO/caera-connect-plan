@@ -183,7 +183,7 @@ describe("the signed-in chat meters its own conversation", () => {
    * their own bill — which is the honest form of the claim the product rests
    * on, as opposed to the word "unlimited".
    */
-  const CHAT = readFileSync("src/routes/_authenticated/ocade.tsx", "utf8");
+  const CHAT = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
 
   function code(text: string): string {
     return text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
