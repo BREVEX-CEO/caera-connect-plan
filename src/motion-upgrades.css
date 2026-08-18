@@ -1,0 +1,119 @@
+/* OCADE global motion upgrade.
+ * Loaded by MotionScope and the public landing signature. Uses compositor-safe
+ * translate/scale/opacity and never overrides a component's existing transform.
+ */
+
+:root {
+  --ocade-motion-fast: 150ms;
+  --ocade-motion-base: 260ms;
+  --ocade-motion-slow: 520ms;
+  --ocade-motion-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.ocade-route-enter {
+  animation: ocade-route-enter var(--ocade-motion-slow) var(--ocade-motion-ease) both;
+}
+
+@keyframes ocade-route-enter {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    filter: blur(0);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :where(button:not(:disabled), a[href], [role="button"]):not(.ocade-no-lift) {
+    transition-property: translate, scale, box-shadow, border-color, background-color, opacity;
+    transition-duration: var(--ocade-motion-base);
+    transition-timing-function: var(--ocade-motion-ease);
+  }
+
+  :where(button:not(:disabled), a[href], [role="button"]):not(.ocade-no-lift):hover {
+    translate: 0 -1px;
+  }
+
+  :where(button:not(:disabled), a[href], [role="button"]):not(.ocade-no-lift):active {
+    translate: 0 0;
+    scale: 0.985;
+    transition-duration: var(--ocade-motion-fast);
+  }
+}
+
+/* Performance fallback is REDUCED, not DEAD. Accessibility reduced-motion is
+ * the only policy allowed to remove autonomous motion completely. */
+.low-perf {
+  --depth-strength: 0.35 !important;
+}
+
+.low-perf .ocade-companion {
+  animation: ocade-companion-hover 10s cubic-bezier(0.45, 0, 0.55, 1) infinite !important;
+  will-change: transform;
+}
+
+.low-perf .ocade-relational-surface::before {
+  animation: ocade-relational-drift 48s linear infinite !important;
+  opacity: 0.55;
+}
+
+.ocade-hidden-signature {
+  position: fixed;
+  z-index: 2;
+  right: clamp(14px, 3vw, 48px);
+  bottom: clamp(18px, 4vh, 54px);
+  display: grid;
+  gap: 0.08em;
+  pointer-events: none;
+  user-select: none;
+  color: white;
+  opacity: 0.05;
+  mix-blend-mode: screen;
+  filter: blur(0.15px);
+  text-align: right;
+  letter-spacing: 0.28em;
+  line-height: 0.9;
+  text-shadow: 0 0 18px rgb(70 190 255 / 16%);
+  animation: ocade-signature-drift 18s ease-in-out infinite alternate;
+}
+
+.ocade-hidden-signature strong {
+  font-size: clamp(10px, 0.8vw, 13px);
+  font-weight: 600;
+}
+
+.ocade-hidden-signature span {
+  font-size: clamp(8px, 0.6vw, 10px);
+  font-weight: 500;
+}
+
+@keyframes ocade-signature-drift {
+  from { translate: 0 0; }
+  to { translate: -6px -4px; }
+}
+
+.reduce-motion .ocade-route-enter,
+.reduce-motion .ocade-hidden-signature,
+@media (prefers-reduced-motion: reduce) {
+}
+
+.reduce-motion .ocade-route-enter,
+.reduce-motion .ocade-hidden-signature {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ocade-route-enter,
+  .ocade-hidden-signature {
+    animation: none !important;
+  }
+
+  :where(button, a[href], [role="button"]) {
+    translate: none !important;
+    scale: none !important;
+  }
+}
