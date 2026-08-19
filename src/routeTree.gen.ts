@@ -31,6 +31,7 @@ import { Route as AuthenticatedCaniaRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedFiciaRouteImport } from './routes/_authenticated/ficia'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedMadeeRouteImport } from './routes/_authenticated/madee'
+import { Route as AuthenticatedOcadeRouteImport } from './routes/_authenticated/ocade'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
@@ -203,6 +204,11 @@ const AuthenticatedMadeeRoute = AuthenticatedMadeeRouteImport.update({
   path: '/madee',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOcadeRoute = AuthenticatedOcadeRouteImport.update({
+  id: '/ocade',
+  path: '/ocade',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -293,136 +299,136 @@ const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedOcadeIndexRoute = AuthenticatedOcadeIndexRouteImport.update({
-  id: '/ocade/',
-  path: '/ocade/',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedOcadeRoute,
 } as any)
 const AuthenticatedOcadeActivityRoute =
   AuthenticatedOcadeActivityRouteImport.update({
-    id: '/ocade/activity',
-    path: '/ocade/activity',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/activity',
+    path: '/activity',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeArtifactsRoute =
   AuthenticatedOcadeArtifactsRouteImport.update({
-    id: '/ocade/artifacts',
-    path: '/ocade/artifacts',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/artifacts',
+    path: '/artifacts',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeAutomationsRoute =
   AuthenticatedOcadeAutomationsRouteImport.update({
-    id: '/ocade/automations',
-    path: '/ocade/automations',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/automations',
+    path: '/automations',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeCodeRoute = AuthenticatedOcadeCodeRouteImport.update({
-  id: '/ocade/code',
-  path: '/ocade/code',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/code',
+  path: '/code',
+  getParentRoute: () => AuthenticatedOcadeRoute,
 } as any)
 const AuthenticatedOcadeConnectorsRoute =
   AuthenticatedOcadeConnectorsRouteImport.update({
-    id: '/ocade/connectors',
-    path: '/ocade/connectors',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/connectors',
+    path: '/connectors',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeDevicesRoute =
   AuthenticatedOcadeDevicesRouteImport.update({
-    id: '/ocade/devices',
-    path: '/ocade/devices',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/devices',
+    path: '/devices',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeHealthRoute =
   AuthenticatedOcadeHealthRouteImport.update({
-    id: '/ocade/health',
-    path: '/ocade/health',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/health',
+    path: '/health',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeInboxRoute = AuthenticatedOcadeInboxRouteImport.update({
-  id: '/ocade/inbox',
-  path: '/ocade/inbox',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => AuthenticatedOcadeRoute,
 } as any)
 const AuthenticatedOcadeKnowledgeRoute =
   AuthenticatedOcadeKnowledgeRouteImport.update({
-    id: '/ocade/knowledge',
-    path: '/ocade/knowledge',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/knowledge',
+    path: '/knowledge',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeLabRoute = AuthenticatedOcadeLabRouteImport.update({
-  id: '/ocade/lab',
-  path: '/ocade/lab',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/lab',
+  path: '/lab',
+  getParentRoute: () => AuthenticatedOcadeRoute,
 } as any)
 const AuthenticatedOcadeModelsRoute =
   AuthenticatedOcadeModelsRouteImport.update({
-    id: '/ocade/models',
-    path: '/ocade/models',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/models',
+    path: '/models',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeMonitorsRoute =
   AuthenticatedOcadeMonitorsRouteImport.update({
-    id: '/ocade/monitors',
-    path: '/ocade/monitors',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/monitors',
+    path: '/monitors',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeNotificationsRoute =
   AuthenticatedOcadeNotificationsRouteImport.update({
-    id: '/ocade/notifications',
-    path: '/ocade/notifications',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadePermissionsRoute =
   AuthenticatedOcadePermissionsRouteImport.update({
-    id: '/ocade/permissions',
-    path: '/ocade/permissions',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/permissions',
+    path: '/permissions',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeProjectsRoute =
   AuthenticatedOcadeProjectsRouteImport.update({
-    id: '/ocade/projects',
-    path: '/ocade/projects',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/projects',
+    path: '/projects',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeSearchRoute =
   AuthenticatedOcadeSearchRouteImport.update({
-    id: '/ocade/search',
-    path: '/ocade/search',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/search',
+    path: '/search',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeSharedRoute =
   AuthenticatedOcadeSharedRouteImport.update({
-    id: '/ocade/shared',
-    path: '/ocade/shared',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/shared',
+    path: '/shared',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeStudioRoute =
   AuthenticatedOcadeStudioRouteImport.update({
-    id: '/ocade/studio',
-    path: '/ocade/studio',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/studio',
+    path: '/studio',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeSystemRoute =
   AuthenticatedOcadeSystemRouteImport.update({
-    id: '/ocade/system',
-    path: '/ocade/system',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/system',
+    path: '/system',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeTasksRoute = AuthenticatedOcadeTasksRouteImport.update({
-  id: '/ocade/tasks',
-  path: '/ocade/tasks',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AuthenticatedOcadeRoute,
 } as any)
 const AuthenticatedOcadeTemplatesRoute =
   AuthenticatedOcadeTemplatesRouteImport.update({
-    id: '/ocade/templates',
-    path: '/ocade/templates',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/templates',
+    path: '/templates',
+    getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeWorkRoute = AuthenticatedOcadeWorkRouteImport.update({
-  id: '/ocade/work',
-  path: '/ocade/work',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/work',
+  path: '/work',
+  getParentRoute: () => AuthenticatedOcadeRoute,
 } as any)
 const AuthenticatedSettingsIndexRoute =
   AuthenticatedSettingsIndexRouteImport.update({
@@ -559,6 +565,7 @@ export interface FileRoutesByFullPath {
   '/ficia': typeof AuthenticatedFiciaRoute
   '/home': typeof AuthenticatedHomeRoute
   '/madee': typeof AuthenticatedMadeeRoute
+  '/ocade': typeof AuthenticatedOcadeRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
@@ -723,6 +730,7 @@ export interface FileRoutesById {
   '/_authenticated/ficia': typeof AuthenticatedFiciaRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/madee': typeof AuthenticatedMadeeRoute
+  '/_authenticated/ocade': typeof AuthenticatedOcadeRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
@@ -807,6 +815,7 @@ export interface FileRouteTypes {
     | '/ficia'
     | '/home'
     | '/madee'
+    | '/ocade'
     | '/onboarding'
     | '/settings'
     | '/auth/callback'
@@ -970,6 +979,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ficia'
     | '/_authenticated/home'
     | '/_authenticated/madee'
+    | '/_authenticated/ocade'
     | '/_authenticated/onboarding'
     | '/_authenticated/settings'
     | '/auth/callback'
@@ -1215,6 +1225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMadeeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ocade': {
+      id: '/_authenticated/ocade'
+      path: '/ocade'
+      fullPath: '/ocade'
+      preLoaderRoute: typeof AuthenticatedOcadeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/onboarding': {
       id: '/_authenticated/onboarding'
       path: '/onboarding'
@@ -1336,164 +1353,164 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/ocade/': {
       id: '/_authenticated/ocade/'
-      path: '/ocade'
+      path: '/'
       fullPath: '/ocade/'
       preLoaderRoute: typeof AuthenticatedOcadeIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/activity': {
       id: '/_authenticated/ocade/activity'
-      path: '/ocade/activity'
+      path: '/activity'
       fullPath: '/ocade/activity'
       preLoaderRoute: typeof AuthenticatedOcadeActivityRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/artifacts': {
       id: '/_authenticated/ocade/artifacts'
-      path: '/ocade/artifacts'
+      path: '/artifacts'
       fullPath: '/ocade/artifacts'
       preLoaderRoute: typeof AuthenticatedOcadeArtifactsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/automations': {
       id: '/_authenticated/ocade/automations'
-      path: '/ocade/automations'
+      path: '/automations'
       fullPath: '/ocade/automations'
       preLoaderRoute: typeof AuthenticatedOcadeAutomationsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/code': {
       id: '/_authenticated/ocade/code'
-      path: '/ocade/code'
+      path: '/code'
       fullPath: '/ocade/code'
       preLoaderRoute: typeof AuthenticatedOcadeCodeRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/connectors': {
       id: '/_authenticated/ocade/connectors'
-      path: '/ocade/connectors'
+      path: '/connectors'
       fullPath: '/ocade/connectors'
       preLoaderRoute: typeof AuthenticatedOcadeConnectorsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/devices': {
       id: '/_authenticated/ocade/devices'
-      path: '/ocade/devices'
+      path: '/devices'
       fullPath: '/ocade/devices'
       preLoaderRoute: typeof AuthenticatedOcadeDevicesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/health': {
       id: '/_authenticated/ocade/health'
-      path: '/ocade/health'
+      path: '/health'
       fullPath: '/ocade/health'
       preLoaderRoute: typeof AuthenticatedOcadeHealthRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/inbox': {
       id: '/_authenticated/ocade/inbox'
-      path: '/ocade/inbox'
+      path: '/inbox'
       fullPath: '/ocade/inbox'
       preLoaderRoute: typeof AuthenticatedOcadeInboxRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/knowledge': {
       id: '/_authenticated/ocade/knowledge'
-      path: '/ocade/knowledge'
+      path: '/knowledge'
       fullPath: '/ocade/knowledge'
       preLoaderRoute: typeof AuthenticatedOcadeKnowledgeRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/lab': {
       id: '/_authenticated/ocade/lab'
-      path: '/ocade/lab'
+      path: '/lab'
       fullPath: '/ocade/lab'
       preLoaderRoute: typeof AuthenticatedOcadeLabRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/models': {
       id: '/_authenticated/ocade/models'
-      path: '/ocade/models'
+      path: '/models'
       fullPath: '/ocade/models'
       preLoaderRoute: typeof AuthenticatedOcadeModelsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/monitors': {
       id: '/_authenticated/ocade/monitors'
-      path: '/ocade/monitors'
+      path: '/monitors'
       fullPath: '/ocade/monitors'
       preLoaderRoute: typeof AuthenticatedOcadeMonitorsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/notifications': {
       id: '/_authenticated/ocade/notifications'
-      path: '/ocade/notifications'
+      path: '/notifications'
       fullPath: '/ocade/notifications'
       preLoaderRoute: typeof AuthenticatedOcadeNotificationsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/permissions': {
       id: '/_authenticated/ocade/permissions'
-      path: '/ocade/permissions'
+      path: '/permissions'
       fullPath: '/ocade/permissions'
       preLoaderRoute: typeof AuthenticatedOcadePermissionsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/projects': {
       id: '/_authenticated/ocade/projects'
-      path: '/ocade/projects'
+      path: '/projects'
       fullPath: '/ocade/projects'
       preLoaderRoute: typeof AuthenticatedOcadeProjectsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/search': {
       id: '/_authenticated/ocade/search'
-      path: '/ocade/search'
+      path: '/search'
       fullPath: '/ocade/search'
       preLoaderRoute: typeof AuthenticatedOcadeSearchRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/shared': {
       id: '/_authenticated/ocade/shared'
-      path: '/ocade/shared'
+      path: '/shared'
       fullPath: '/ocade/shared'
       preLoaderRoute: typeof AuthenticatedOcadeSharedRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/studio': {
       id: '/_authenticated/ocade/studio'
-      path: '/ocade/studio'
+      path: '/studio'
       fullPath: '/ocade/studio'
       preLoaderRoute: typeof AuthenticatedOcadeStudioRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/system': {
       id: '/_authenticated/ocade/system'
-      path: '/ocade/system'
+      path: '/system'
       fullPath: '/ocade/system'
       preLoaderRoute: typeof AuthenticatedOcadeSystemRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/tasks': {
       id: '/_authenticated/ocade/tasks'
-      path: '/ocade/tasks'
+      path: '/tasks'
       fullPath: '/ocade/tasks'
       preLoaderRoute: typeof AuthenticatedOcadeTasksRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/templates': {
       id: '/_authenticated/ocade/templates'
-      path: '/ocade/templates'
+      path: '/templates'
       fullPath: '/ocade/templates'
       preLoaderRoute: typeof AuthenticatedOcadeTemplatesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/work': {
       id: '/_authenticated/ocade/work'
-      path: '/ocade/work'
+      path: '/work'
       fullPath: '/ocade/work'
       preLoaderRoute: typeof AuthenticatedOcadeWorkRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/settings/': {
       id: '/_authenticated/settings/'
@@ -1631,6 +1648,61 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedOcadeRouteChildren {
+  AuthenticatedOcadeActivityRoute: typeof AuthenticatedOcadeActivityRoute
+  AuthenticatedOcadeArtifactsRoute: typeof AuthenticatedOcadeArtifactsRoute
+  AuthenticatedOcadeAutomationsRoute: typeof AuthenticatedOcadeAutomationsRoute
+  AuthenticatedOcadeCodeRoute: typeof AuthenticatedOcadeCodeRoute
+  AuthenticatedOcadeConnectorsRoute: typeof AuthenticatedOcadeConnectorsRoute
+  AuthenticatedOcadeDevicesRoute: typeof AuthenticatedOcadeDevicesRoute
+  AuthenticatedOcadeHealthRoute: typeof AuthenticatedOcadeHealthRoute
+  AuthenticatedOcadeInboxRoute: typeof AuthenticatedOcadeInboxRoute
+  AuthenticatedOcadeKnowledgeRoute: typeof AuthenticatedOcadeKnowledgeRoute
+  AuthenticatedOcadeLabRoute: typeof AuthenticatedOcadeLabRoute
+  AuthenticatedOcadeModelsRoute: typeof AuthenticatedOcadeModelsRoute
+  AuthenticatedOcadeMonitorsRoute: typeof AuthenticatedOcadeMonitorsRoute
+  AuthenticatedOcadeNotificationsRoute: typeof AuthenticatedOcadeNotificationsRoute
+  AuthenticatedOcadePermissionsRoute: typeof AuthenticatedOcadePermissionsRoute
+  AuthenticatedOcadeProjectsRoute: typeof AuthenticatedOcadeProjectsRoute
+  AuthenticatedOcadeSearchRoute: typeof AuthenticatedOcadeSearchRoute
+  AuthenticatedOcadeSharedRoute: typeof AuthenticatedOcadeSharedRoute
+  AuthenticatedOcadeStudioRoute: typeof AuthenticatedOcadeStudioRoute
+  AuthenticatedOcadeSystemRoute: typeof AuthenticatedOcadeSystemRoute
+  AuthenticatedOcadeTasksRoute: typeof AuthenticatedOcadeTasksRoute
+  AuthenticatedOcadeTemplatesRoute: typeof AuthenticatedOcadeTemplatesRoute
+  AuthenticatedOcadeWorkRoute: typeof AuthenticatedOcadeWorkRoute
+  AuthenticatedOcadeIndexRoute: typeof AuthenticatedOcadeIndexRoute
+}
+
+const AuthenticatedOcadeRouteChildren: AuthenticatedOcadeRouteChildren = {
+  AuthenticatedOcadeActivityRoute: AuthenticatedOcadeActivityRoute,
+  AuthenticatedOcadeArtifactsRoute: AuthenticatedOcadeArtifactsRoute,
+  AuthenticatedOcadeAutomationsRoute: AuthenticatedOcadeAutomationsRoute,
+  AuthenticatedOcadeCodeRoute: AuthenticatedOcadeCodeRoute,
+  AuthenticatedOcadeConnectorsRoute: AuthenticatedOcadeConnectorsRoute,
+  AuthenticatedOcadeDevicesRoute: AuthenticatedOcadeDevicesRoute,
+  AuthenticatedOcadeHealthRoute: AuthenticatedOcadeHealthRoute,
+  AuthenticatedOcadeInboxRoute: AuthenticatedOcadeInboxRoute,
+  AuthenticatedOcadeKnowledgeRoute: AuthenticatedOcadeKnowledgeRoute,
+  AuthenticatedOcadeLabRoute: AuthenticatedOcadeLabRoute,
+  AuthenticatedOcadeModelsRoute: AuthenticatedOcadeModelsRoute,
+  AuthenticatedOcadeMonitorsRoute: AuthenticatedOcadeMonitorsRoute,
+  AuthenticatedOcadeNotificationsRoute: AuthenticatedOcadeNotificationsRoute,
+  AuthenticatedOcadePermissionsRoute: AuthenticatedOcadePermissionsRoute,
+  AuthenticatedOcadeProjectsRoute: AuthenticatedOcadeProjectsRoute,
+  AuthenticatedOcadeSearchRoute: AuthenticatedOcadeSearchRoute,
+  AuthenticatedOcadeSharedRoute: AuthenticatedOcadeSharedRoute,
+  AuthenticatedOcadeStudioRoute: AuthenticatedOcadeStudioRoute,
+  AuthenticatedOcadeSystemRoute: AuthenticatedOcadeSystemRoute,
+  AuthenticatedOcadeTasksRoute: AuthenticatedOcadeTasksRoute,
+  AuthenticatedOcadeTemplatesRoute: AuthenticatedOcadeTemplatesRoute,
+  AuthenticatedOcadeWorkRoute: AuthenticatedOcadeWorkRoute,
+  AuthenticatedOcadeIndexRoute: AuthenticatedOcadeIndexRoute,
+}
+
+const AuthenticatedOcadeRouteWithChildren =
+  AuthenticatedOcadeRoute._addFileChildren(AuthenticatedOcadeRouteChildren)
+
 interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsSectionRoute: typeof AuthenticatedSettingsSectionRoute
   AuthenticatedSettingsActivityRoute: typeof AuthenticatedSettingsActivityRoute
@@ -1680,35 +1752,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFiciaRoute: typeof AuthenticatedFiciaRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedMadeeRoute: typeof AuthenticatedMadeeRoute
+  AuthenticatedOcadeRoute: typeof AuthenticatedOcadeRouteWithChildren
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
   AuthenticatedAdminLaunchGateRoute: typeof AuthenticatedAdminLaunchGateRoute
   AuthenticatedAdminPaymentsChecklistRoute: typeof AuthenticatedAdminPaymentsChecklistRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
-  AuthenticatedOcadeActivityRoute: typeof AuthenticatedOcadeActivityRoute
-  AuthenticatedOcadeArtifactsRoute: typeof AuthenticatedOcadeArtifactsRoute
-  AuthenticatedOcadeAutomationsRoute: typeof AuthenticatedOcadeAutomationsRoute
-  AuthenticatedOcadeCodeRoute: typeof AuthenticatedOcadeCodeRoute
-  AuthenticatedOcadeConnectorsRoute: typeof AuthenticatedOcadeConnectorsRoute
-  AuthenticatedOcadeDevicesRoute: typeof AuthenticatedOcadeDevicesRoute
-  AuthenticatedOcadeHealthRoute: typeof AuthenticatedOcadeHealthRoute
-  AuthenticatedOcadeInboxRoute: typeof AuthenticatedOcadeInboxRoute
-  AuthenticatedOcadeKnowledgeRoute: typeof AuthenticatedOcadeKnowledgeRoute
-  AuthenticatedOcadeLabRoute: typeof AuthenticatedOcadeLabRoute
-  AuthenticatedOcadeModelsRoute: typeof AuthenticatedOcadeModelsRoute
-  AuthenticatedOcadeMonitorsRoute: typeof AuthenticatedOcadeMonitorsRoute
-  AuthenticatedOcadeNotificationsRoute: typeof AuthenticatedOcadeNotificationsRoute
-  AuthenticatedOcadePermissionsRoute: typeof AuthenticatedOcadePermissionsRoute
-  AuthenticatedOcadeProjectsRoute: typeof AuthenticatedOcadeProjectsRoute
-  AuthenticatedOcadeSearchRoute: typeof AuthenticatedOcadeSearchRoute
-  AuthenticatedOcadeSharedRoute: typeof AuthenticatedOcadeSharedRoute
-  AuthenticatedOcadeStudioRoute: typeof AuthenticatedOcadeStudioRoute
-  AuthenticatedOcadeSystemRoute: typeof AuthenticatedOcadeSystemRoute
-  AuthenticatedOcadeTasksRoute: typeof AuthenticatedOcadeTasksRoute
-  AuthenticatedOcadeTemplatesRoute: typeof AuthenticatedOcadeTemplatesRoute
-  AuthenticatedOcadeWorkRoute: typeof AuthenticatedOcadeWorkRoute
-  AuthenticatedOcadeIndexRoute: typeof AuthenticatedOcadeIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1717,6 +1767,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFiciaRoute: AuthenticatedFiciaRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedMadeeRoute: AuthenticatedMadeeRoute,
+  AuthenticatedOcadeRoute: AuthenticatedOcadeRouteWithChildren,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
   AuthenticatedAdminLaunchGateRoute: AuthenticatedAdminLaunchGateRoute,
@@ -1724,29 +1775,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedAdminPaymentsChecklistRoute,
   AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
-  AuthenticatedOcadeActivityRoute: AuthenticatedOcadeActivityRoute,
-  AuthenticatedOcadeArtifactsRoute: AuthenticatedOcadeArtifactsRoute,
-  AuthenticatedOcadeAutomationsRoute: AuthenticatedOcadeAutomationsRoute,
-  AuthenticatedOcadeCodeRoute: AuthenticatedOcadeCodeRoute,
-  AuthenticatedOcadeConnectorsRoute: AuthenticatedOcadeConnectorsRoute,
-  AuthenticatedOcadeDevicesRoute: AuthenticatedOcadeDevicesRoute,
-  AuthenticatedOcadeHealthRoute: AuthenticatedOcadeHealthRoute,
-  AuthenticatedOcadeInboxRoute: AuthenticatedOcadeInboxRoute,
-  AuthenticatedOcadeKnowledgeRoute: AuthenticatedOcadeKnowledgeRoute,
-  AuthenticatedOcadeLabRoute: AuthenticatedOcadeLabRoute,
-  AuthenticatedOcadeModelsRoute: AuthenticatedOcadeModelsRoute,
-  AuthenticatedOcadeMonitorsRoute: AuthenticatedOcadeMonitorsRoute,
-  AuthenticatedOcadeNotificationsRoute: AuthenticatedOcadeNotificationsRoute,
-  AuthenticatedOcadePermissionsRoute: AuthenticatedOcadePermissionsRoute,
-  AuthenticatedOcadeProjectsRoute: AuthenticatedOcadeProjectsRoute,
-  AuthenticatedOcadeSearchRoute: AuthenticatedOcadeSearchRoute,
-  AuthenticatedOcadeSharedRoute: AuthenticatedOcadeSharedRoute,
-  AuthenticatedOcadeStudioRoute: AuthenticatedOcadeStudioRoute,
-  AuthenticatedOcadeSystemRoute: AuthenticatedOcadeSystemRoute,
-  AuthenticatedOcadeTasksRoute: AuthenticatedOcadeTasksRoute,
-  AuthenticatedOcadeTemplatesRoute: AuthenticatedOcadeTemplatesRoute,
-  AuthenticatedOcadeWorkRoute: AuthenticatedOcadeWorkRoute,
-  AuthenticatedOcadeIndexRoute: AuthenticatedOcadeIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

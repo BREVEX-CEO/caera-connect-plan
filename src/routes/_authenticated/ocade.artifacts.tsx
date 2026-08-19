@@ -11,7 +11,6 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { EmptyState } from "@/components/shell/EmptyState";
@@ -141,7 +140,7 @@ function ArtifactsPage() {
   }
 
   return (
-    <AppShell>
+    <>
       <PageHeader
         eyebrow="OCADE"
         title="Artifacts"
@@ -326,7 +325,7 @@ function ArtifactsPage() {
           </ul>
         )}
       </div>
-    </AppShell>
+    </>
   );
 }
 

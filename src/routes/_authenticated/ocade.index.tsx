@@ -43,7 +43,6 @@ import {
   Unlock as UnlockIcon,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { AppShell } from "@/components/shell/AppShell";
 import { PrivacyBadge } from "@/components/shell/PrivacyBadge";
 import { Button } from "@/components/ui/button";
 import {
@@ -277,20 +276,20 @@ function OcadePage() {
 
   if (loading) {
     return (
-      <AppShell>
+      <>
         <div className="flex h-[70vh] items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      </AppShell>
+      </>
     );
   }
   if (!user) {
     return (
-      <AppShell>
+      <>
         <div className="mx-auto mt-10 max-w-md rounded-lg border border-border/60 bg-card p-6 text-center">
           <p className="text-sm text-muted-foreground">Sign-in required to use OCADE.</p>
         </div>
-      </AppShell>
+      </>
     );
   }
   return <OcadeWorkspace userId={user.id} userLabel={user.email?.split("@")[0] ?? "there"} />;
@@ -510,7 +509,7 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   }, [conversations, search, showArchived]);
 
   return (
-    <AppShell>
+    <>
       {/* Offer the Desktop Copilot in the shell's adaptive right-hand panel. */}
       <CopilotMount />
       {/* Break out of centered workspace column and take the full height under the top bar. */}
@@ -604,7 +603,7 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
         onConfirm={handleDelete}
       />
       <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
-    </AppShell>
+    </>
   );
 }
 
