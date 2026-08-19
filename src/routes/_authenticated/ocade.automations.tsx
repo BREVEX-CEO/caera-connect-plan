@@ -16,7 +16,6 @@ import {
   WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { EmptyState } from "@/components/shell/EmptyState";
@@ -507,7 +506,7 @@ function AutomationsPage() {
   }
 
   return (
-    <AppShell>
+    <>
       <PageHeader
         eyebrow="OCADE"
         title="Automations"
@@ -1106,6 +1105,6 @@ function AutomationsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AppShell>
+    </>
   );
 }

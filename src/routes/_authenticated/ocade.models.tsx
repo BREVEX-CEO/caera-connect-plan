@@ -12,7 +12,6 @@ import {
   Info,
   ChevronLeft,
 } from "lucide-react";
-import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { recordAction } from "@/lib/actions";
@@ -216,14 +215,14 @@ function OcadeModelsPage() {
 
   if (!prefs) {
     return (
-      <AppShell>
+      <>
         <PageHeader title="OCADE Model Control" description="Loading provider preferences…" />
-      </AppShell>
+      </>
     );
   }
 
   return (
-    <AppShell>
+    <>
       <PageHeader
         title="OCADE Model Control"
         description="Technical provider settings. Public chat always identifies as OCADE by CAERA CADANE."
@@ -720,7 +719,7 @@ function OcadeModelsPage() {
           </div>
         )}
       </div>
-    </AppShell>
+    </>
   );
 }
 

@@ -16,7 +16,6 @@ import {
   FolderPlus,
 } from "lucide-react";
 import { toast } from "sonner";
-import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { EmptyState } from "@/components/shell/EmptyState";
@@ -479,7 +478,7 @@ function ProjectsPage() {
   }
 
   return (
-    <AppShell>
+    <>
       <PageHeader
         eyebrow="OCADE"
         title="Projects"
@@ -1004,6 +1003,6 @@ function ProjectsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </AppShell>
+    </>
   );
 }
