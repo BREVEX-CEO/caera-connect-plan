@@ -33,6 +33,34 @@ def _load():
 bridge = _load()
 
 
+@pytest.fixture
+def documents_folder(tmp_path, monkeypatch):
+    """A real Documents folder, at a throwaway path.
+
+    These tests used to run against the machine's ACTUAL Documents folder,
+    which had two consequences. The round-trip test wrote real files into the
+    developer's own documents; and on any machine without that folder —
+    every Linux and macOS checkout, and CI — `_file_base` refused with
+    `state_changed` ("this computer has no documents folder") before the
+    traversal check was ever reached. The escape assertions therefore passed
+    for the wrong reason on Windows and failed for the wrong reason
+    everywhere else, while the boundary they exist to prove went unexercised.
+
+    Pointing the resolver at a temporary directory makes the refusal the one
+    under test, on every platform, and leaves the user's files alone.
+    """
+    import sys as _sys
+
+    if str(ENGINE) not in _sys.path:
+        _sys.path.insert(0, str(ENGINE))
+    from actions import file_controller as fc
+
+    documents = tmp_path / "Documents"
+    documents.mkdir()
+    monkeypatch.setattr(fc, "_get_documents", lambda: documents)
+    return documents
+
+
 class TestArgumentsAreNeverGuessed:
     """An absent argument is refused, never treated as an empty one.
 
@@ -193,7 +221,7 @@ class TestTheWorkspaceIsOneFolder:
         )
         assert moved["verified"] is True
 
-    def test_reading_a_file_that_is_not_there_says_so(self) -> None:
+    def test_reading_a_file_that_is_not_there_says_so(self, documents_folder) -> None:
         with pytest.raises(bridge.Refusal) as caught:
             bridge.workspace({"action": "read", "name": "definitely-absent.txt"})
         assert caught.value.code == "state_changed"
@@ -224,14 +252,14 @@ class TestTheUsersFoldersAreAClosedSet:
         with pytest.raises(bridge.Refusal):
             bridge.files({"action": "read", "folder": folder, "path": "x.txt"})
 
-    def test_a_relative_escape_is_refused_rather_than_clamped(self) -> None:
+    def test_a_relative_escape_is_refused_rather_than_clamped(self, documents_folder) -> None:
         with pytest.raises(bridge.Refusal) as caught:
             bridge.files(
                 {"action": "read", "folder": "documents", "path": "../../.ssh/id_rsa"}
             )
         assert caught.value.code == "blocked"
 
-    def test_an_absolute_path_is_refused(self) -> None:
+    def test_an_absolute_path_is_refused(self, documents_folder) -> None:
         with pytest.raises(bridge.Refusal) as caught:
             bridge.files(
                 {"action": "read", "folder": "documents", "path": "C:/Windows/win.ini"}
@@ -256,7 +284,7 @@ class TestFileWorkIsVerifiedAgainstTheFilesystem:
             )
         assert caught.value.code == "state_changed"
 
-    def test_copy_move_and_trash_round_trip_and_are_each_verified(self, tmp_path) -> None:
+    def test_copy_move_and_trash_round_trip_and_are_each_verified(self, documents_folder) -> None:
         base = bridge._file_base("documents")
         source = base / "ocade-pytest-probe.txt"
         source.write_text("verified by readback", encoding="utf-8")

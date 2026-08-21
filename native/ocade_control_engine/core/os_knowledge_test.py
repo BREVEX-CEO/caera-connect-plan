@@ -60,6 +60,39 @@ class TestFileAccessIsBounded:
             with pytest.raises(ValueError, match="outside"):
                 _resolve_under_root("documents", escape)
 
+    def test_a_sibling_folder_with_the_same_prefix_is_refused(self) -> None:
+        """REGRESSION. The boundary was a string prefix, not a path check.
+
+        With Documents approved, `../Documents-backup/secret.txt` resolves to
+        a completely different directory — and passed, because that path does
+        start with the same characters as the approved one. Anything named
+        `Documents<something>` beside it was readable.
+        """
+        from actions.knowledge import _resolve_under_root
+
+        for escape in (
+            "../Documents-backup/secret.txt",
+            "../Documents_private/keys.txt",
+            "../Documents.old/notes.txt",
+        ):
+            with pytest.raises(ValueError, match="outside"):
+                _resolve_under_root("documents", escape)
+
+    def test_an_absolute_path_is_not_a_name_inside_a_folder(self) -> None:
+        from actions.knowledge import _resolve_under_root
+
+        for absolute in ("/etc/passwd", "C:/Windows/win.ini", "//server/share/x"):
+            with pytest.raises(ValueError, match="outside"):
+                _resolve_under_root("documents", absolute)
+
+    def test_an_ordinary_name_inside_the_folder_still_resolves(self) -> None:
+        """The other half: a boundary that refuses everything is not a boundary."""
+        from actions.knowledge import _resolve_under_root
+
+        resolved = _resolve_under_root("documents", "sub/report.txt")
+        assert resolved.name == "report.txt"
+        assert "Documents" in str(resolved)
+
     def test_only_approved_folders_are_readable(self) -> None:
         from actions.knowledge import _resolve_under_root
 

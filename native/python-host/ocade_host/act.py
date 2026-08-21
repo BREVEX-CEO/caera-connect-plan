@@ -27,8 +27,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-import win32con
-import win32gui
+from ._win32 import win32con, win32gui
 
 from .protocol import Refusal, bounded_text, clamp_text, is_protected_text
 

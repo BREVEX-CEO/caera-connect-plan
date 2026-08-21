@@ -27,10 +27,7 @@ import time
 from typing import Any
 
 import psutil
-import win32api
-import win32con
-import win32gui
-import win32process
+from ._win32 import win32api, win32con, win32gui, win32process
 
 from .protocol import MAX_ELEMENTS, MAX_WINDOWS, Refusal, clamp_text, is_protected_text
 

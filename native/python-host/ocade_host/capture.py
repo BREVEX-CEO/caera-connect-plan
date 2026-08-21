@@ -30,7 +30,7 @@ import time
 from typing import Any
 
 import numpy as np
-import win32gui
+from ._win32 import win32gui
 
 from .protocol import MAX_TEXT, Refusal, clamp_text, is_protected_text
 

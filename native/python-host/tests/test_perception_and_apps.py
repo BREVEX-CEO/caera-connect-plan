@@ -35,6 +35,37 @@ def perception():
     return _load(PERCEPTION, "ocade_perception")
 
 
+@pytest.fixture
+def fake_screen(monkeypatch):
+    """A screen of known size, so the off-screen check is what is tested.
+
+    `click_target` re-reads the live screen through `mss` before acting, which
+    is right: a coordinate found before something moved is the entire hazard of
+    the pointer rung. But it means that on a machine with no display — CI, a
+    container, any headless checkout — the call refuses with "the screen bounds
+    could not be read" and the off-screen branch is never reached. The refusal
+    looked correct and proved nothing.
+
+    Supplying the bounds makes the assertion the one in the test's name.
+    """
+    import sys
+    import types
+
+    class _Screenshot:
+        monitors = [{"left": 0, "top": 0, "width": 1920, "height": 1080}]
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+    module = types.ModuleType("mss")
+    module.mss = _Screenshot
+    monkeypatch.setitem(sys.modules, "mss", module)
+    return module.mss.monitors[0]
+
+
 @pytest.fixture(scope="module")
 def apps():
     return _load(APPS, "ocade_apps")
@@ -194,7 +225,7 @@ class TestThePointerRungIsALastResort:
                 {"source": source, "bounds": {"x": 5, "y": 5, "width": 4, "height": 4}}
             )
 
-    def test_a_stale_off_screen_coordinate_is_refused(self, perception):
+    def test_a_stale_off_screen_coordinate_is_refused(self, perception, fake_screen):
         """The hazard of this rung is a coordinate found before something moved."""
         with pytest.raises(perception.PerceptionUnavailable) as raised:
             perception.click_target(

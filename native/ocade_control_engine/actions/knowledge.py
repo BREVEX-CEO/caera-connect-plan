@@ -133,11 +133,31 @@ def _resolve_under_root(folder: str, name: str) -> Path:
         "music": "Music",
         "videos": "Videos",
     }[key]
-    target = (base / name).resolve()
+    # Backslashes are separators to the client that sent this, whatever this
+    # machine thinks. Left alone, `..\..\secrets.txt` is a traversal on
+    # Windows and an ordinary FILENAME on Linux and macOS, so the same request
+    # was refused on one platform and quietly accepted on another.
+    requested = str(name).replace("\\", "/")
+
+    # An absolute path is not a name inside a folder, and neither is a drive.
+    if requested.startswith("/") or (len(requested) > 1 and requested[1] == ":"):
+        raise ValueError("That path is outside the folder it was asked for.")
+
+    root = base.resolve()
+    target = (root / requested).resolve()
+
     # THE CHECK THAT MAKES THE FOLDER A BOUNDARY. Without it `../../.ssh/id_rsa`
     # is a valid "name" and the closed set of roots means nothing.
-    if not str(target).startswith(str(base.resolve())):
-        raise ValueError("That path is outside the folder it was asked for.")
+    #
+    # Compared by PATH SEGMENTS rather than by string prefix. A prefix test
+    # passes anything that merely starts with the same characters, so with
+    # Documents approved, `../Documents-backup/secret.txt` resolved to
+    # /root/Documents-backup/secret.txt — a different directory entirely — and
+    # was allowed, because that string does start with /root/Documents.
+    try:
+        target.relative_to(root)
+    except ValueError:
+        raise ValueError("That path is outside the folder it was asked for.") from None
     return target
 
 
