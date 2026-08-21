@@ -197,6 +197,51 @@ describe("the approved folder is a real boundary", () => {
     expect(r.reason).toMatch(/outside the folder you approved/i);
   });
 
+  /**
+   * REGRESSION. The boundary check used to case-fold both paths before
+   * comparing them. On a case-sensitive filesystem `/data` and `/DATA` are two
+   * genuinely different directories, so folding let a target outside the
+   * approved root pass as though it were inside it.
+   */
+  it("REFUSES a sibling folder that differs from the root only by case", async () => {
+    const upper = `${root}-CASE`;
+    const lower = `${root}-case`;
+    await mkdir(upper);
+    await mkdir(lower);
+    try {
+      await writeFile(join(upper, "secret.txt"), "top secret", "utf8");
+      // Approve the lowercase folder, then aim at the uppercase one.
+      const r = await readTextFile(realFs, lower, join(upper, "secret.txt"));
+      expect(r.ok).toBe(false);
+      if (r.ok) throw new Error("unreachable");
+      expect(r.reason).toMatch(/outside the folder you approved/i);
+    } finally {
+      await rm(upper, { recursive: true, force: true });
+      await rm(lower, { recursive: true, force: true });
+    }
+  });
+
+  /**
+   * REGRESSION. Paths were lowercased BEFORE being handed to `realpath`, so on
+   * any case-sensitive filesystem every operation under a folder with a capital
+   * letter in it — `~/Documents`, `~/Desktop` — failed with a misleading
+   * "that location doesn't exist".
+   */
+  it("works under a folder whose name contains capital letters", async () => {
+    const mixed = join(root, "My Documents");
+    await mkdir(mixed);
+    const target = join(mixed, "Report.txt");
+
+    const written = await writeTextFile(realFs, root, target, "real content");
+    expect(written.ok).toBe(true);
+    expect(await fsp.readFile(target, "utf8")).toBe("real content");
+
+    const read = await readTextFile(realFs, root, target);
+    expect(read.ok).toBe(true);
+    if (!read.ok) throw new Error("unreachable");
+    expect(read.data).toBe("real content");
+  });
+
   it("allows a path genuinely inside the root", async () => {
     await mkdir(join(root, "deep"));
     await writeFile(join(root, "deep", "ok.txt"), "fine", "utf8");

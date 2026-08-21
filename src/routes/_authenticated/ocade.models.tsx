@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
+import { SetupRequiredState } from "@/components/shell/SetupRequiredState";
+import { classifyUnavailable } from "@/lib/unavailable-reason";
 import { recordAction } from "@/lib/actions";
 import {
   OCADE_MODELS,
@@ -88,6 +90,12 @@ function OcadeModelsPage() {
   const loadDiag = useServerFn(getUsageDiagnostics);
 
   const [prefs, setPrefs] = useState<Prefs | null>(null);
+  /**
+   * DEFECT UI-02. The load below had no catch: a rejected `loadPrefs()` left
+   * `prefs` null forever, so the whole route sat on "Loading provider
+   * preferences…" with no error, no retry and an unhandled rejection.
+   */
+  const [prefsError, setPrefsError] = useState<unknown>(null);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState<OcadeProviderId | null>(null);
   const [results, setResults] = useState<Partial<Record<OcadeProviderId, TestResult>>>({});
@@ -106,13 +114,20 @@ function OcadeModelsPage() {
     }
   }, [loadDiag]);
 
-  useEffect(() => {
-    void (async () => {
+  const refreshPrefs = useCallback(async () => {
+    setPrefsError(null);
+    try {
       const p = (await loadPrefs()) as Prefs;
       setPrefs(p);
       await refreshDiag();
-    })();
+    } catch (e) {
+      setPrefsError(e ?? new Error("Provider preferences could not be loaded."));
+    }
   }, [loadPrefs, refreshDiag]);
+
+  useEffect(() => {
+    void refreshPrefs();
+  }, [refreshPrefs]);
 
   const autoPreview = useMemo(() => {
     if (!prefs) return null;
@@ -214,6 +229,34 @@ function OcadeModelsPage() {
   }, []);
 
   if (!prefs) {
+    if (prefsError) {
+      const state = classifyUnavailable(prefsError, {
+        migrationTitle: "Model Control needs the database migration",
+        migrationNote:
+          "Provider preferences are stored in the database. The migration, RLS policies, rollback and verification SQL are prepared and ready to apply.",
+        loadTitle: "Provider preferences couldn't be loaded",
+      });
+      return (
+        <>
+          <PageHeader title="OCADE Model Control" />
+          <SetupRequiredState
+            title={state.title}
+            description={state.description}
+            detail={state.detail}
+            status={state.migrationMissing ? "setup_required" : "failed"}
+            action={
+              <button
+                type="button"
+                onClick={() => void refreshPrefs()}
+                className="rounded-md border border-border/60 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent/30"
+              >
+                Try again
+              </button>
+            }
+          />
+        </>
+      );
+    }
     return (
       <>
         <PageHeader title="OCADE Model Control" description="Loading provider preferences…" />

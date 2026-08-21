@@ -5,6 +5,7 @@ import { Gauge, Cloud, HardDrive, MonitorSmartphone, Clock, Loader2 } from "luci
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { SetupRequiredState } from "@/components/shell/SetupRequiredState";
+import { classifyUnavailable } from "@/lib/unavailable-reason";
 import { cn } from "@/lib/utils";
 import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
@@ -209,12 +210,24 @@ function UsagePage() {
           ) : null}
         </GlassPanel>
 
-        {unavailable ? (
-          <SetupRequiredState
-            title="Live usage needs the database migration"
-            description={`${unavailable} The migration, RLS, rollback and verification SQL are prepared and ready to apply.`}
-          />
-        ) : null}
+        {unavailable
+          ? (() => {
+              const state = classifyUnavailable(unavailable, {
+                migrationTitle: "Live usage needs the database migration",
+                migrationNote:
+                  "The migration, RLS, rollback and verification SQL are prepared and ready to apply.",
+                loadTitle: "Live usage couldn't be loaded",
+              });
+              return (
+                <SetupRequiredState
+                  title={state.title}
+                  description={state.description}
+                  detail={state.detail}
+                  status={state.migrationMissing ? "setup_required" : "failed"}
+                />
+              );
+            })()
+          : null}
       </div>
     </>
   );

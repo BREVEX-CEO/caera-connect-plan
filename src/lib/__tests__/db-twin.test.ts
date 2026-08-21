@@ -44,13 +44,13 @@ describe("every migration applies in the declared order", () => {
    * two parity tests at the bottom of this file then force the paired
    * verification and rollback scripts to arrive with it.
    *
-   * Last raised for `20260806120000_ocade_attachment_deletion.sql` (storage
-   * tombstones, so a cascade delete cannot orphan an uploaded file). Loosening
+   * Last raised for `20260817153000_atomic_device_revocation.sql`, together
+   * with the three migrations added alongside it. Loosening
    * this to a range would defeat the point: an exact count is what catches a
    * migration going missing.
    */
-  it("finds all 41 migrations", () => {
-    expect(DatabaseTwin.migrationFiles()).toHaveLength(41);
+  it("finds all 45 migrations", () => {
+    expect(DatabaseTwin.migrationFiles()).toHaveLength(45);
   });
 
   /**
@@ -84,7 +84,7 @@ describe("every migration applies in the declared order", () => {
       failed.map((f) => `${f.file}: ${f.error}`),
       "a migration failed against real PostgreSQL",
     ).toEqual([]);
-    expect(applied).toHaveLength(41);
+    expect(applied).toHaveLength(45);
   });
 
   it("rebuilds the whole schema from zero, including the tables defined after the old break", async () => {

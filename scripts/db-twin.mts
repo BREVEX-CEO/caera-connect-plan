@@ -79,6 +79,11 @@ end $$;
 create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
   email text unique,
+  -- Real Supabase auth.users carries a phone column (GoTrue phone auth). A
+  -- migration back-fills public.profiles.phone from it, so omitting it here
+  -- made the twin reject a migration that is correct against the hosted
+  -- database.
+  phone text unique,
   raw_user_meta_data jsonb not null default '{}'::jsonb,
   raw_app_meta_data jsonb not null default '{}'::jsonb,
   encrypted_password text,
