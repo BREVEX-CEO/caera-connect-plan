@@ -78,6 +78,8 @@
     "browser:sidecar-build": "node scripts/build-browser-sidecar.mjs",
     "gesture:sidecar-build": "node scripts/build-gesture-sidecar.mjs",
     "browser:cdp-parity": "node scripts/browser-cdp-parity.mjs",
+    "extension:e2e": "node extension/tests/cowork-e2e.mjs",
+    "extension:check": "node scripts/check-extension.mjs",
     "desktop:bundle:windows": "node scripts/build-windows-installer.mjs",
     "agent:live-check": "vite-node scripts/agent-loop-evidence.mts"
   },
