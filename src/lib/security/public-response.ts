@@ -15,7 +15,31 @@ const APP_CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https: wss: blob:",
+  /*
+   * Loopback is allowed, and it has to be.
+   *
+   * OCADE's whole point is that inference can run on the user's own machine,
+   * and a local runtime — Ollama, and the companion bridge — listens on plain
+   * HTTP at 127.0.0.1. `connect-src 'self' https:` forbade exactly that, so
+   * every local-model probe the product makes was refused by the app's own
+   * policy: "Refused to connect to 'http://localhost:11434/api/version'".
+   * The local engine could never be detected in a deployed build, however
+   * correctly it was running.
+   *
+   * Loopback ONLY. This grants nothing on the network — no other http origin
+   * is permitted, and the wildcard is on the port rather than the host, so it
+   * cannot be widened to a LAN address. `upgrade-insecure-requests` below does
+   * not rewrite these: localhost and 127.0.0.1 are potentially-trustworthy
+   * origins and are exempt from the upgrade by specification.
+   *
+   * No `http://[::1]:*`: a bracketed IPv6 literal is not a valid CSP
+   * host-source, and Chrome discards the whole source with a console warning.
+   * The product addresses its local runtime as localhost or 127.0.0.1, both of
+   * which are covered.
+   */
+  "connect-src 'self' https: wss: blob: " +
+    "http://localhost:* http://127.0.0.1:* " +
+    "ws://localhost:* ws://127.0.0.1:*",
   "worker-src 'self' blob:",
   "media-src 'self' blob: data:",
   "manifest-src 'self'",
@@ -45,4 +69,9 @@ export function withPublicSecurityHeaders(response: Response): Response {
     statusText: response.statusText,
     headers,
   });
+}
+
+/** The exact headers this module applies, for tests and probes to assert on. */
+export function securityHeadersForTest(): Readonly<Record<string, string>> {
+  return DEFAULT_SECURITY_HEADERS;
 }
