@@ -3449,6 +3449,42 @@ export type Database = {
           },
         ]
       }
+      storage_tombstones: {
+        Row: {
+          attempts: number
+          bucket: string
+          id: string
+          last_error: string | null
+          owner_id: string | null
+          purged_at: string | null
+          requested_at: string
+          source: string
+          storage_path: string
+        }
+        Insert: {
+          attempts?: number
+          bucket: string
+          id?: string
+          last_error?: string | null
+          owner_id?: string | null
+          purged_at?: string | null
+          requested_at?: string
+          source?: string
+          storage_path: string
+        }
+        Update: {
+          attempts?: number
+          bucket?: string
+          id?: string
+          last_error?: string | null
+          owner_id?: string | null
+          purged_at?: string | null
+          requested_at?: string
+          source?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
       tenants: {
         Row: {
           accounting_method: string | null

@@ -25,38 +25,84 @@ const PROTECTED_VALUE = /\b\d{4,}\b|password|passcode|otp|cvv|private key|seed p
 const sessions = new Map();
 const activeRuns = new Map();
 
+/**
+ * Where a real Chrome or Edge is actually found, per platform.
+ *
+ * DEFECT BR-01. This list used to be three paths on Linux —
+ * /usr/bin/google-chrome, -stable, and /usr/bin/chromium — and a machine with
+ * Chromium genuinely installed anywhere else was told "chrome is not installed
+ * in a supported location". That is the wrong answer for the most ordinary
+ * Linux install there is: Ubuntu ships Chromium as a snap at /snap/bin/chromium,
+ * and Debian and its derivatives name the binary chromium-browser. Windows had
+ * the same hole from the other direction: Chrome installs PER USER under
+ * LOCALAPPDATA whenever the installer is run without administrator rights, and
+ * only the two machine-wide Program Files paths were consulted.
+ *
+ * `OCADE_BROWSER_PATH` comes first so a user whose browser lives somewhere this
+ * list will never guess — a portable build, a Nix store path, a Flatpak wrapper
+ * — can simply say where it is instead of being told it does not exist.
+ */
 function browserPaths(kind) {
+  const override = process.env.OCADE_BROWSER_PATH;
+  const explicit = override ? [override] : [];
+
   if (platform() === "win32") {
+    const local = process.env.LOCALAPPDATA || join(homedir(), "AppData/Local");
+    const programFiles = process.env.PROGRAMFILES || "C:\\Program Files";
+    const programFilesX86 = process.env["PROGRAMFILES(X86)"] || "C:\\Program Files (x86)";
     return kind === "edge"
       ? [
-          join(
-            process.env["PROGRAMFILES(X86)"] || "C:\\Program Files (x86)",
-            "Microsoft/Edge/Application/msedge.exe",
-          ),
-          join(
-            process.env.PROGRAMFILES || "C:\\Program Files",
-            "Microsoft/Edge/Application/msedge.exe",
-          ),
+          ...explicit,
+          join(programFilesX86, "Microsoft/Edge/Application/msedge.exe"),
+          join(programFiles, "Microsoft/Edge/Application/msedge.exe"),
+          join(local, "Microsoft/Edge/Application/msedge.exe"),
         ]
       : [
-          join(
-            process.env.PROGRAMFILES || "C:\\Program Files",
-            "Google/Chrome/Application/chrome.exe",
-          ),
-          join(
-            process.env["PROGRAMFILES(X86)"] || "C:\\Program Files (x86)",
-            "Google/Chrome/Application/chrome.exe",
-          ),
+          ...explicit,
+          join(programFiles, "Google/Chrome/Application/chrome.exe"),
+          join(programFilesX86, "Google/Chrome/Application/chrome.exe"),
+          // A non-administrator install lands here, and is very common.
+          join(local, "Google/Chrome/Application/chrome.exe"),
+          join(local, "Chromium/Application/chrome.exe"),
         ];
   }
+
   if (platform() === "darwin") {
     return kind === "edge"
-      ? ["/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"]
-      : ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"];
+      ? [
+          ...explicit,
+          "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+          join(homedir(), "Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"),
+        ]
+      : [
+          ...explicit,
+          "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+          join(homedir(), "Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+          "/Applications/Chromium.app/Contents/MacOS/Chromium",
+        ];
   }
+
   return kind === "edge"
-    ? ["/usr/bin/microsoft-edge", "/usr/bin/microsoft-edge-stable"]
-    : ["/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium"];
+    ? [
+        ...explicit,
+        "/usr/bin/microsoft-edge",
+        "/usr/bin/microsoft-edge-stable",
+        "/opt/microsoft/msedge/msedge",
+        "/snap/bin/microsoft-edge",
+      ]
+    : [
+        ...explicit,
+        "/usr/bin/google-chrome",
+        "/usr/bin/google-chrome-stable",
+        "/opt/google/chrome/chrome",
+        "/usr/bin/chromium",
+        // Debian, Ubuntu and derivatives name it this.
+        "/usr/bin/chromium-browser",
+        // Ubuntu's default Chromium is a snap.
+        "/snap/bin/chromium",
+        "/usr/local/bin/chromium",
+        "/usr/local/bin/google-chrome",
+      ];
 }
 
 async function detectBrowser(kind) {

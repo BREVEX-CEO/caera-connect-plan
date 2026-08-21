@@ -43,6 +43,18 @@ function tablesInMigrations() {
     for (const m of sql.matchAll(/DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?public\.([a-z0-9_]+)/gi)) {
       created.delete(m[1]);
     }
+    /*
+     * A table RENAMED later is not expected under its old name either — and
+     * this was a live false positive: `audit_log` became `compliance_audit_log`
+     * in 20260721133830, the types correctly describe the new name, and this
+     * gate reported the old one as missing on every run. Following the rename
+     * keeps the set to names that actually exist in the applied schema.
+     */
+    for (const m of sql.matchAll(
+      /ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?public\.([a-z0-9_]+)\s+RENAME\s+TO\s+([a-z0-9_]+)/gi,
+    )) {
+      if (created.delete(m[1])) created.add(m[2]);
+    }
   }
   return created;
 }
