@@ -15,5 +15,13 @@
   "action": {
     "default_title": "OCADE Cowork",
     "default_popup": "src/popup.html"
+  },
+  "externally_connectable": {
+    "matches": [
+      "https://ocade.caeracadane.com/*",
+      "https://*.lovable.app/*",
+      "http://localhost/*",
+      "http://127.0.0.1/*"
+    ]
   }
 }

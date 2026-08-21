@@ -41,6 +41,8 @@ async function buildFixture(originHost) {
   await cp(join(SOURCE, "src"), join(dir, "src"), { recursive: true });
   const manifest = JSON.parse(await readFile(join(SOURCE, "manifest.json"), "utf8"));
   manifest.host_permissions = [`http://${originHost}/*`];
+  // The website channel is origin-gated by Chrome itself, from this list.
+  manifest.externally_connectable = { matches: [`http://${originHost}/*`] };
   await writeFile(join(dir, "manifest.json"), JSON.stringify(manifest, null, 2), "utf8");
   return dir;
 }
@@ -400,6 +402,87 @@ try {
     r.ok === false && r.blocked === true,
     r.reason,
   );
+
+  /* ------------------------------------------- the website talks to it ---- */
+  /*
+   * This is the wiring that makes OCADE a website with a browser executor
+   * rather than two unrelated things. The page calls
+   * `chrome.runtime.sendMessage(extensionId, …)`, which Chrome delivers only
+   * because the origin is in `externally_connectable.matches` — so the origin
+   * check under test is the BROWSER's, not ours.
+   */
+  const site = await ctx.newPage();
+  await site.goto(`${ORIGIN}/`);
+
+  const fromPage = (message) =>
+    site.evaluate(
+      ([id, msg]) =>
+        new Promise((resolve) => {
+          try {
+            chrome.runtime.sendMessage(id, msg, (response) =>
+              resolve(
+                chrome.runtime.lastError
+                  ? { lastError: chrome.runtime.lastError.message }
+                  : response,
+              ),
+            );
+          } catch (e) {
+            resolve({ threw: String(e) });
+          }
+        }),
+      [EXTENSION_ID, message],
+    );
+
+  let w = await fromPage({ command: "handshake" });
+  check(
+    "the website can reach the extension at all",
+    w?.ok === true && w.protocolVersion === 1,
+    `version=${w?.extension} protocol=${w?.protocolVersion}`,
+  );
+
+  w = await fromPage({ command: "control.status" });
+  check(
+    "the website can read the control state",
+    w?.ok === true && Boolean(w.status),
+    `control=${w?.status?.control}`,
+  );
+
+  /* THE ONE THAT MATTERS: a page cannot grant OCADE new reach. */
+  w = await fromPage({ command: "scope.approve", origin: OTHER_ORIGIN });
+  check(
+    "a website CANNOT approve a site for itself",
+    w?.ok === false && /cannot change what OCADE is allowed/i.test(w.reason ?? ""),
+    w?.reason,
+  );
+
+  const scopeAfter = (await run("scope.list")).status.approvedOrigins;
+  check(
+    "the approved scope is unchanged after the attempt",
+    !scopeAfter.includes(OTHER_ORIGIN),
+    scopeAfter.join(", "),
+  );
+
+  w = await fromPage({ command: "scope.revoke", origin: ORIGIN });
+  check("a website CANNOT revoke scope either", w?.ok === false, w?.reason);
+  check(
+    "the approved origin survived the revoke attempt",
+    (await run("scope.list")).status.approvedOrigins.includes(ORIGIN),
+  );
+
+  /* A real step, driven from the page. */
+  const pageTab = await (
+    await liveWorker()
+  ).evaluate(async (origin) => {
+    const tabs = await chrome.tabs.query({});
+    return tabs.find((t) => (t.url || "").startsWith(origin))?.id ?? null;
+  }, ORIGIN);
+  w = await fromPage({ command: "observe", argument: { tabId: pageTab } });
+  check(
+    "the website can drive a real observation",
+    w?.ok === true && typeof w.observation?.title === "string",
+    `title="${w?.observation?.title}" controls=${w?.observation?.controls?.length}`,
+  );
+  await site.close();
 } finally {
   await ctx.close();
   server.close();

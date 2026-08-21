@@ -530,6 +530,52 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
   return true;
 });
 
+/**
+ * THE WEBSITE'S CHANNEL.
+ *
+ * OCADE runs as an ordinary web page, so it cannot touch the browser itself.
+ * `onMessageExternal` is how the page asks this extension to act — and Chrome
+ * only delivers a message here if the sender's origin is listed in the
+ * manifest's `externally_connectable.matches`, so the origin check is the
+ * browser's, not a string comparison of ours that could be got wrong.
+ *
+ * A page reaching this listener gets exactly the same executor as anything
+ * else: the same scope gate, the same control latch, the same refusals. What it
+ * specifically does NOT get is the ability to change either. `scope.approve`
+ * and `scope.revoke` are handled in the internal listener and require an
+ * extension page; arriving here they fall through to `handle`, which does not
+ * implement them and answers "unknown command". So the site can ask OCADE to
+ * work, and cannot grant OCADE permission to work somewhere new.
+ */
+chrome.runtime.onMessageExternal.addListener((message, sender, respond) => {
+  (async () => {
+    try {
+      if (message?.command === "scope.approve" || message?.command === "scope.revoke") {
+        respond(
+          refuse(
+            "A website cannot change what OCADE is allowed to act on. Approve the site in the OCADE Cowork popup.",
+          ),
+        );
+        return;
+      }
+      if (message?.command === "handshake") {
+        respond({
+          ok: true,
+          extension: chrome.runtime.getManifest().version,
+          protocolVersion: 1,
+          origin: sender.origin ?? null,
+          status: status(),
+        });
+        return;
+      }
+      respond(await handle(message));
+    } catch (error) {
+      respond(refuse(error instanceof Error ? error.message : "The browser action failed."));
+    }
+  })();
+  return true;
+});
+
 /** Exposed for the test harness, which drives the worker directly. */
 globalThis.__ocadeHandle = handle;
 globalThis.__ocadeApprove = approveOrigin;

@@ -82,6 +82,24 @@ if (!background.includes("fromExtensionPage")) {
   fail("Scope changes must be restricted to the extension's own pages.");
 }
 
+/*
+ * The website channel. Chrome delivers an external message only when the
+ * sender's origin is in this list, so an empty or wildcard list is the whole
+ * question. And the site must not be able to grant OCADE new reach.
+ */
+const external = manifest.externally_connectable?.matches;
+if (!Array.isArray(external) || external.length === 0) {
+  fail("The extension must name the origins allowed to talk to it.");
+} else if (external.some((pattern) => /^\*:\/\/\*\/|<all_urls>|^\*:\/\/\*\/\*$/.test(pattern))) {
+  fail(`externally_connectable must not match every origin: ${external.join(", ")}`);
+}
+if (!background.includes("onMessageExternal")) {
+  fail("The extension must expose a channel for the OCADE website.");
+}
+if (!/onMessageExternal[\s\S]{0,900}scope\.approve/.test(background)) {
+  fail("The website channel must explicitly refuse scope changes.");
+}
+
 /**
  * Blank out comments before scanning, keeping newlines so any future line
  * numbers stay right. Without this the check flagged the example URLs used to
@@ -122,6 +140,8 @@ console.log(
     `  optional host access: ${(manifest.optional_host_permissions ?? []).join(", ")}`,
     "  control latch persisted: yes",
     "  scope changeable only from the extension's own pages: yes",
+    `  website channel origins: ${(manifest.externally_connectable?.matches ?? []).join(", ")}`,
+    "  website cannot change scope: yes",
     "  no remote code, no eval: yes",
   ].join("\n"),
 );
