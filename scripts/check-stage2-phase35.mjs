@@ -105,13 +105,37 @@ if (claim) {
   );
 }
 
-// The registry is now WIRED: the route registers the platform speech engine
-// through it, so it must NOT be declared as a non-runtime orphan any more.
-const audit = JSON.parse(read("release/OCADE_INTEGRATION_AUDIT.json"));
-assert(
-  !audit.nonRuntimeModules.some((m) => m.path === "src/lib/providers/multimodal-registry.ts"),
-  "The multimodal registry is wired, so it is no longer declared a non-runtime orphan",
-);
+/*
+ * The registry is WIRED: the route registers the platform speech engine through
+ * it, so it must not be listed as a non-runtime orphan.
+ *
+ * This used to read `release/OCADE_INTEGRATION_AUDIT.json` unconditionally.
+ * That file has never existed in this repository and no script produces it, so
+ * `read` returned "" and the gate died on `JSON.parse` with an
+ * "Unexpected end of JSON input" stack — no [FAIL] line, no indication of which
+ * artefact was missing, and every check after this point never ran.
+ *
+ * The property itself is not lost: the two assertions immediately below check
+ * it DIRECTLY against the route's source, which is stronger evidence than a
+ * generated summary of the same thing. The audit is consulted when it is
+ * present and cannot take the gate down when it is not.
+ */
+if (existsSync("release/OCADE_INTEGRATION_AUDIT.json")) {
+  let audit = null;
+  try {
+    audit = JSON.parse(read("release/OCADE_INTEGRATION_AUDIT.json"));
+  } catch (error) {
+    assert(false, `release/OCADE_INTEGRATION_AUDIT.json is not valid JSON: ${error.message}`);
+  }
+  if (audit) {
+    assert(
+      !(audit.nonRuntimeModules ?? []).some(
+        (m) => m.path === "src/lib/providers/multimodal-registry.ts",
+      ),
+      "The multimodal registry is wired, so it is no longer declared a non-runtime orphan",
+    );
+  }
+}
 assert(
   /registerSystemVoice\(/.test(route) && /globalMultimodalRegistry/.test(route),
   "The voice surface registers the platform speech provider into the registry",
