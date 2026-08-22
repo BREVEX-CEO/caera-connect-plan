@@ -83,6 +83,7 @@ import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
 import { useDevicePolicy } from "@/lib/use-device-policy";
 import { useChatPrefs, readChatPrefs } from "@/lib/use-chat-prefs";
+import { assembleSystemPrompt } from "@/lib/prompt/assemble";
 import { MessageList } from "@/components/ocade/chat/MessageList";
 import { ChatSidebar } from "@/components/ocade/chat/ChatSidebar";
 import { EngineBadge } from "@/components/ocade/chat/EngineBadge";
@@ -1976,16 +1977,34 @@ function ChatSurface(props: {
     try {
       for (const step of localSteps) {
         const label = step.label ?? "OCADE Local";
-        const sys =
-          `You are OCADE, developed and created by CAERA CADANE, running as ${label} on the user's own device. ` +
-          `Refer to your engine only as "${label}"; never print raw model or provider names. ` +
-          `Never claim to be another product. Be helpful, concise, and honest about your limits.` +
-          (projectDetails
-            ? ` This conversation belongs to the user project "${projectDetails.name}".` +
-              (projectDetails.instructions?.trim()
-                ? ` Apply these user-authored project instructions: ${projectDetails.instructions.slice(0, 20_000)}`
-                : "")
-            : "");
+        /*
+         * ONE CONSTITUTION, ASSEMBLED IN ONE PLACE.
+         *
+         * This used to be a hand-written template literal: an identity line,
+         * a "never print model names" line, and the project instructions
+         * concatenated straight onto the end. It carried no safety policy at
+         * all — `ocadeCorePolicy` existed in the repository and this surface,
+         * the one real customers use, never imported it. It also pasted
+         * user-authored project text into the same flat string as OCADE's own
+         * rules, which is exactly the shape that lets "ignore your
+         * instructions" in a project document read as a system instruction.
+         *
+         * `assembleSystemPrompt` fixes both by construction: the canonical
+         * prompt is always first and always whole, and the project text lands
+         * in a labelled lower-priority block after it.
+         */
+        const sys = assembleSystemPrompt({
+          now: new Date(),
+          surface: "chat",
+          mode: chatPrefs.thinking ? "thinking" : "fast",
+          engineLabel: label,
+          local: true,
+          online: typeof navigator === "undefined" ? undefined : navigator.onLine,
+          privacyMode: chatsMode,
+          project: projectDetails
+            ? { name: projectDetails.name, instructions: projectDetails.instructions }
+            : undefined,
+        });
         const localMessages: LocalChatMessage[] = [{ role: "system", content: sys }];
         for (const m of priorMessages) {
           if (m.role === "system") continue;
@@ -2114,7 +2133,12 @@ function ChatSurface(props: {
          * machine as a side effect of the local engine failing.
          */
         const reasoned = await reason(
-          browserReasonDeps(DEFAULT_LOCAL_BRIDGE_URL, undefined, devicePolicy.policy.totalRamBytes),
+          browserReasonDeps(
+            DEFAULT_LOCAL_BRIDGE_URL,
+            undefined,
+            devicePolicy.policy.totalRamBytes,
+            chatPrefs.thinking,
+          ),
           {
             messages: localMessages,
             task: hasImage ? "vision" : "general",

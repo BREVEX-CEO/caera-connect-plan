@@ -37,6 +37,15 @@ export function browserReasonDeps(
    * memory on somebody's laptop.
    */
   totalRamBytes?: number,
+  /**
+   * The user's Fast/Thinking choice, when the surface has one.
+   *
+   * Left out means "this surface does not offer the choice" and the policy
+   * default applies. It is deliberately not defaulted to `true` here: that is
+   * `thinkingFor`'s decision to make, and duplicating it would be a second
+   * authority disagreeing with the first the moment either changed.
+   */
+  thinking?: boolean,
 ): ReasonDeps {
   return {
     listLocalModels: async () => {
@@ -48,15 +57,21 @@ export function browserReasonDeps(
         onToken: handlers.onToken,
         signal: handlers.signal,
         /*
-         * Signed-in Chat reasons before answering.
+         * Signed-in Chat reasons before answering, and the USER decides how
+         * hard.
          *
-         * This is the third path to the engine — the demo chat and Control +
-         * Work go through `use-local-chat-engine` — and it was the one still
-         * sending no `think` flag at all, so the signed-in product silently
-         * had thinking off while the policy said on. `thinkingFor` is the
-         * single authority; this call now asks it like the others do.
+         * Two bugs lived on this line. First it sent no `think` flag at all,
+         * so the signed-in product silently had thinking off while the policy
+         * said on. Then it asked `thinkingFor("chat")` with no preference —
+         * which returns `preference ?? true`, i.e. always on — so the Fast /
+         * Thinking switch in Settings saved a value that nothing read. The
+         * switch was real, the persistence was real, and the effect was nil.
+         *
+         * Passing the preference through is what makes the control a control.
+         * `thinkingFor` remains the single authority over what the absence of
+         * a preference means.
          */
-        think: thinkingFor("chat"),
+        think: thinkingFor("chat", thinking),
         ...(totalRamBytes ? { totalRamBytes } : {}),
       }),
     ...(streamCloud ? { streamCloud } : {}),

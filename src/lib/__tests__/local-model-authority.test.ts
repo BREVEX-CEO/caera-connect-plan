@@ -143,8 +143,14 @@ describe("thinking is spent where it is worth spending", () => {
     // model with no reasoning mode the flag alone would leave it decorative.
     expect(chatHook).toMatch(/deliberationClause\(deliberate\)/);
 
+    // The third path used to call `thinkingFor("chat")` with NO argument,
+    // which returns `preference ?? true` — always on. So the switch saved a
+    // value nothing read. Pinning the preference is what keeps that fixed;
+    // pinning the old argument-less call would pin the bug.
     const reasoning = readFileSync("src/lib/reasoning/browser-deps.ts", "utf8");
-    expect(reasoning).toMatch(/think:\s*thinkingFor\("chat"\)/);
+    expect(reasoning).toMatch(/think:\s*thinkingFor\("chat",\s*thinking\)/);
+    const chatScreen = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
+    expect(chatScreen).toMatch(/browserReasonDeps\([\s\S]{0,200}chatPrefs\.thinking/);
 
     const mission = readFileSync("src/lib/work/use-mission-brain.ts", "utf8");
     expect(mission).toMatch(/surface:\s*"control"/);

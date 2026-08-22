@@ -106,7 +106,12 @@ describe("Chat outputs and project navigation are real surfaces", () => {
     const route = read("src/routes/api/ocade.chat.ts");
     expect(chat).toContain("localMemoryContext(conversation.project_id ?? null)");
     expect(chat).toContain("getProject({ data: { id: conversation.project_id } })");
-    expect(chat).toContain("projectDetails.instructions.slice(0, 20_000)");
+    // The 20,000-character bound on project instructions moved out of this
+    // screen and into the single prompt assembler, where every surface gets
+    // it instead of only this one. Asserted where it now lives, and asserted
+    // as behaviour rather than as a substring, so it cannot quietly lapse.
+    expect(chat).toContain("assembleSystemPrompt({");
+    expect(chat).toMatch(/instructions:\s*projectDetails\.instructions/);
     expect(memory).toContain('setBackend("local")');
     expect(memory).toContain("addLocalMemory({");
     expect(memory).toContain('value="project"');
