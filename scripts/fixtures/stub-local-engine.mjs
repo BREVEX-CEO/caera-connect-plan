@@ -58,18 +58,22 @@ function answerFor(messages) {
 
 export function startStubLocalEngine({ port = 0, tokenDelayMs = TOKEN_DELAY_MS } = {}) {
   return new Promise((resolve) => {
-    const instance = makeServer(tokenDelayMs);
+    // Every /api/chat body this engine was sent, so a test can assert what the
+    // product actually TRANSMITTED rather than what it meant to.
+    const chatRequests = [];
+    const instance = makeServer(tokenDelayMs, chatRequests);
     instance.listen(port, "127.0.0.1", () => {
       const actual = instance.address().port;
       resolve({
         url: `http://127.0.0.1:${actual}`,
+        chatRequests,
         close: () => new Promise((r) => instance.close(r)),
       });
     });
   });
 }
 
-function makeServer(TOKEN_DELAY_MS) {
+function makeServer(TOKEN_DELAY_MS, chatRequests = []) {
   return createServer(async (req, res) => {
     const url = new URL(req.url, "http://127.0.0.1");
 
@@ -97,6 +101,7 @@ function makeServer(TOKEN_DELAY_MS) {
       } catch {
         parsed = {};
       }
+      chatRequests.push(parsed);
 
       // Ollama rejects `think` for models with no reasoning mode; the product
       // has a retry for exactly that, and this keeps it exercised.
