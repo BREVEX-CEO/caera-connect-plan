@@ -15,16 +15,27 @@
  * constructed — scripts/fixtures/make-tiny-gguf.py writes a correct GGUF v3
  * holding a one-layer llama with a byte-fallback vocabulary.
  *
- * WHAT THIS PROVES AND WHAT IT DOES NOT. The tensors are random. The tokens
- * that come out are therefore meaningless, and NOTHING here says anything about
- * answer quality — that needs trained weights and this file does not pretend
- * otherwise. What is real and measured rather than simulated: that the runtime
- * accepts our GGUF, that cold load, warm load and first-token latency have
- * actual numbers, and that tokens are genuinely produced instead of an empty
+ * TWO MODELS, TWO DIFFERENT QUESTIONS.
+ *
+ * The first has RANDOM weights, so its output is meaningless and it is used for
+ * exactly the things that do not depend on output: cold load, warm load,
+ * first-token latency, and that tokens are produced at all rather than an empty
  * stream reported as success.
+ *
+ * The second is TRAINED — scripts/fixtures/train-tiny-llama.py overfits three
+ * capital-city facts and exports them, and the result is committed so nothing
+ * here needs torch. Memorisation is the point: it gives an assertion with one
+ * right answer, so the runtime can be checked for CORRECTNESS and not merely
+ * for liveness. If llama.cpp's graph, the tensor layout, or the RoPE mode were
+ * wrong, the model would still load and still emit tokens — and the completion
+ * would not be "paris".
+ *
+ * WHAT NEITHER SHOWS: a production model's answer quality. A 2-layer, 64-wide
+ * network that has memorised three lines is not a language model, and this file
+ * never calls it one.
  */
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -146,10 +157,50 @@ try {
   await context.dispose();
   await model.dispose();
 
+  // ---- 6. Correctness, against a model that was trained -------------------
+  // Token ids are built by hand rather than through `model.tokenize`. The
+  // vocabulary is three specials followed by all 256 bytes, so byte b is id
+  // 3 + b, and going direct keeps SentencePiece's whitespace handling out of
+  // an assertion that is about the RUNTIME, not about the tokenizer.
+  const BYTE_OFFSET = 3;
+  const encode = (text) => [...Buffer.from(text, "utf8")].map((b) => b + BYTE_OFFSET);
+  const decode = (ids) => Buffer.from(ids.map((t) => t - BYTE_OFFSET)).toString("utf8");
+
+  const trainedPath = "scripts/fixtures/tiny-llama-trained.gguf";
+  check("the trained fixture is committed to the repo", existsSync(trainedPath), trainedPath);
+
+  const trained = await llama.loadModel({ modelPath: trainedPath });
+  const trainedContext = await trained.createContext({ contextSize: trained.trainContextSize });
+  const trainedSequence = trainedContext.getSequence();
+
+  for (const [prompt, expected] of [
+    ["capital of france is ", "paris\n"],
+    ["capital of japan is ", "tokyo\n"],
+    ["capital of egypt is ", "cairo\n"],
+  ]) {
+    await trainedSequence.clearHistory();
+    const produced = [];
+    for await (const token of trainedSequence.evaluate(encode(prompt), { temperature: 0 })) {
+      produced.push(token);
+      if (produced.length >= expected.length) break;
+    }
+    const got = decode(produced);
+    check(
+      `the trained model completes ${JSON.stringify(prompt)} correctly`,
+      got === expected,
+      `got ${JSON.stringify(got)}, expected ${JSON.stringify(expected)}`,
+    );
+  }
+
+  await trainedContext.dispose();
+  await trained.dispose();
+
   console.log(
-    "\n  NOTE: the weights are random, so token CONTENT is meaningless here." +
-      "\n  Answer quality is not tested by this harness and cannot be, without" +
-      "\n  trained weights. Timings and runtime behaviour above are real.",
+    "\n  NOTE: the first model's weights are random, so its token CONTENT is" +
+      "\n  meaningless — it is here for timings and liveness only. The trained" +
+      "\n  model has memorised three facts, which is enough to check the runtime" +
+      "\n  returns the RIGHT tokens. Neither says anything about a production" +
+      "\n  model's answer quality, and this harness does not claim otherwise.",
   );
 } finally {
   rmSync(workdir, { recursive: true, force: true });
