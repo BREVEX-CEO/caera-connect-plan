@@ -162,23 +162,33 @@ for (const section of SECTIONS) {
   const blocked = (await page.locator("[role=dialog], [role=alertdialog]").count()) > 0;
 
   /*
-   * WAIT FOR THE SECTION TO SETTLE BEFORE COUNTING IT.
+   * WAIT FOR THE SECTION TO ACTUALLY RENDER BEFORE COUNTING IT.
    *
-   * A fixed pause is a guess, and on a slow run it censused a panel that was
-   * still filling in: one run reported 630 controls and a section with none,
-   * the next reported 661 and no such section. An audit that reports a
-   * different number each time is one nobody can act on, so this samples until
-   * the count stops moving and only then records it.
+   * Two failures led here. A fixed pause censused a panel that was still
+   * filling in — one run reported 630 controls and a section with none, the
+   * next 661 and no such section. Then a short settle window still lost a
+   * section on a COLD dev server, where the first visit to a route pays for a
+   * Vite transform that can take seconds.
+   *
+   * So it waits for a non-zero count first, with a ceiling generous enough for
+   * a cold compile, and only then waits for that count to stop moving. An
+   * audit that reports a different number each run is one nobody can act on.
    */
   let controls = await page.evaluate(CENSUS);
-  for (let settle = 0; settle < 8; settle += 1) {
+  const deadline = Date.now() + 20_000;
+  while (controls.length === 0 && Date.now() < deadline) {
+    await page.waitForTimeout(500);
+    controls = await page.evaluate(CENSUS);
+  }
+  for (let settle = 0; settle < 10; settle += 1) {
     await page.waitForTimeout(400);
     const again = await page.evaluate(CENSUS);
-    if (again.length === controls.length && again.length > 0) {
-      controls = again;
-      break;
-    }
+    const stable = again.length === controls.length && again.length > 0;
     controls = again;
+    if (stable) break;
+  }
+  if (controls.length === 0) {
+    console.log(`  ${section}: rendered NO controls within 20s — recorded, not ignored`);
   }
   totalControls += controls.length;
 
