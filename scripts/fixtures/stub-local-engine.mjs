@@ -28,12 +28,43 @@ const MODELS = [
     size: 1_300_000_000,
     details: { parameter_size: "1.2B", quantization_level: "Q4_K_M", family: "llama" },
   },
+  /*
+   * A model the runtime itself declares as able to see. `families` carries
+   * "clip", which is how Ollama reports a vision projector, so the product
+   * classifies this one by what the RUNTIME says rather than by guessing from
+   * the name. Without a vision model installed, the only vision behaviour that
+   * could ever be exercised is the refusal — which leaves the path that
+   * actually carries a user's image untested.
+   */
+  {
+    name: "llava:7b",
+    model: "llava:7b",
+    size: 4_700_000_000,
+    details: {
+      parameter_size: "7B",
+      quantization_level: "Q4_K_M",
+      family: "llama",
+      families: ["llama", "clip"],
+    },
+  },
 ];
 
 /** Deterministic answers with ground truth known before the model speaks. */
 function answerFor(messages) {
-  const user = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
+  const last = [...messages].reverse().find((m) => m.role === "user");
+  const user = last?.content ?? "";
   const text = String(user);
+
+  /*
+   * Answer FROM the image, not from the prompt. The reply names the number of
+   * images and their total size, both of which are only knowable if the image
+   * bytes actually arrived — a stub that answered "I see a red square" would
+   * pass just as happily when the image was dropped on the way.
+   */
+  if (last?.images?.length) {
+    const bytes = last.images.reduce((sum, i) => sum + String(i).length, 0);
+    return `Received ${last.images.length} image(s), ${bytes} base64 characters.`;
+  }
 
   // Multi-turn: the earlier turn must be present in the assembled context.
   if (/what did i just say|repeat that|what was my name/i.test(text)) {

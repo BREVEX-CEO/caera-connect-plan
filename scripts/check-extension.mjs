@@ -71,9 +71,21 @@ const background = readFileSync(join(ROOT, "src/background.js"), "utf8");
 if (!background.includes("chrome.storage.session")) {
   fail("The control latch must be persisted to chrome.storage.session, not held in memory.");
 }
-if (
-  !/case "control\.resume":[\s\S]{0,400}PAUSED \|\| state\.control === HANDED_OVER/.test(background)
-) {
+/*
+ * Two shapes are accepted because both are correct and the file has used each:
+ * the positive form that only enters the clear when PAUSED or HANDED_OVER, and
+ * the guard-clause form that returns early for anything else. What is NOT
+ * accepted is a resume that names neither state, which is how a stop becomes
+ * clearable. The behaviour itself is proven in extension/tests/cowork-e2e.mjs
+ * ("STOP is a latch that resume cannot clear"); this is defence in depth
+ * against the source drifting away from it.
+ */
+const resumeCase = /case "control\.resume":[\s\S]{0,700}/.exec(background)?.[0] ?? "";
+const positiveForm = /state\.control === PAUSED \|\| state\.control === HANDED_OVER/.test(
+  resumeCase,
+);
+const guardForm = /state\.control !== PAUSED && state\.control !== HANDED_OVER/.test(resumeCase);
+if (!positiveForm && !guardForm) {
   fail("Resume must clear only PAUSED and HANDED_OVER — never a STOP.");
 }
 

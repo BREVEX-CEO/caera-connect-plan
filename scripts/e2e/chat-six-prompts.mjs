@@ -1,5 +1,5 @@
 /**
- * SIX PROMPTS THROUGH THE SHIPPED CHAT PIPELINE, WITH TIMINGS.
+ * SEVEN PROMPTS THROUGH THE SHIPPED CHAT PIPELINE, WITH TIMINGS.
  *
  * `discoverLocalModels`, `planContextWindow` and `streamLocalChat` are the
  * functions the product calls. Each prompt has ground truth that exists BEFORE
@@ -148,6 +148,61 @@ await ask(
     : `verified offline: no public host reachable (${probeDetail})`,
 );
 
+/* 7. IMAGE UPLOAD → VISION, on the wire and not merely intended */
+/*
+ * The only vision behaviour previously executed anywhere was the REFUSAL: the
+ * two browser engines correctly decline an image and say where one can be
+ * read. That leaves the path that actually carries a user's picture — the one
+ * that runs when a vision model IS installed — never exercised.
+ *
+ * So: a real PNG, routed by the product's own model selection, and then the
+ * engine's recorded request body is inspected. The assertion is that the image
+ * bytes ARRIVED, because "the code passes images along" is a claim about
+ * source, and what the engine received is a fact about behaviour.
+ */
+const visionModel = discovery.models.find((m) => m.vision);
+if (!visionModel) {
+  console.error("no vision-capable model was discovered; the image path was not measured");
+  process.exit(1);
+}
+
+// A 1x1 red PNG. Small on purpose: the test is about arrival, not content.
+const RED_PNG =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+
+const before = engine.chatRequests.length;
+const startedAt = performance.now();
+let visionFirstMs = null;
+let visionText = "";
+const visionOutcome = await streamLocalChat(
+  engine.url,
+  visionModel.id,
+  [{ role: "user", content: "What is in this image?", images: [RED_PNG] }],
+  {
+    onToken: (t) => {
+      if (visionFirstMs === null) visionFirstMs = Math.round(performance.now() - startedAt);
+      visionText += t;
+    },
+  },
+);
+const visionTotalMs = Math.round(performance.now() - startedAt);
+
+const sent = engine.chatRequests.slice(before).at(-1);
+const sentImages = sent?.messages?.at(-1)?.images ?? [];
+const arrived = sentImages.length === 1 && sentImages[0] === RED_PNG;
+
+rows.push({
+  label: "7 image — a real PNG uploaded to a vision model",
+  answer: visionText.trim(),
+  correct: visionOutcome.ok && arrived && /1 image/.test(visionText),
+  engine: visionModel.id,
+  firstTokenMs: visionFirstMs,
+  totalMs: visionTotalMs,
+  note: arrived
+    ? `the engine received the image bytes intact (${RED_PNG.length} base64 chars)`
+    : `IMAGE DID NOT ARRIVE: engine received ${sentImages.length} image(s)`,
+});
+
 await engine.close();
 web.close();
 
@@ -166,7 +221,10 @@ for (const r of rows) {
   );
   if (r.note) console.log(pad("", 62) + `note: ${r.note}`);
 }
-console.log(`\nengine: ${MODEL} (fixture — no weights are reachable in this sandbox)`);
+// Every engine actually used, not just the first. Row 7 runs on the vision
+// model, and a footer naming only the text model would misreport it.
+const enginesUsed = [...new Set(rows.map((r) => r.engine))].join(", ");
+console.log(`\nengines: ${enginesUsed} (fixture — no weights are reachable in this sandbox)`);
 console.log("timings are PIPELINE latency, not inference latency");
 
 const wrong = rows.filter((r) => !r.correct);

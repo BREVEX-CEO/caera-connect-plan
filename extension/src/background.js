@@ -218,16 +218,93 @@ async function runMutating(tab, command, argument) {
  * A field the person must fill themselves. The run does not fail and does not
  * guess: it latches to HANDED_OVER, says what is needed and where, and waits.
  */
-function handOver(field, tab) {
+async function handOver(field, tab) {
+  /*
+   * THE CHECKPOINT IS TAKEN HERE, BEFORE THE PERSON TOUCHES ANYTHING.
+   *
+   * A hand-over exists because someone is about to sign in, and signing in is
+   * the single most disruptive thing that can happen to a page: the DOM the
+   * plan was built against is gone by the time control comes back. Resuming
+   * without re-reading the page means acting on element references that
+   * described a login form. Recording what the page looked like at the moment
+   * OCADE stepped back is what makes the comparison on resume possible.
+   */
+  const checkpoint = await observeTab(tab.id).catch(() => null);
   state.control = HANDED_OVER;
   state.handover = {
     what: field,
     tabId: tab.id,
     url: tab.url,
+    checkpoint: checkpoint
+      ? { url: checkpoint.url, title: checkpoint.title, signature: checkpoint.signature }
+      : null,
     message: `OCADE will not type a ${field}. Please enter it yourself in this tab, then press Resume in the OCADE Cowork popup.`,
   };
   void saveControl();
   return refuse(state.handover.message, { blocked: true, handover: state.handover });
+}
+
+/**
+ * Coming back after a hand-over: RE-OBSERVE, then say whether what OCADE
+ * believed is still true.
+ *
+ * The page has almost certainly changed — that is what signing in does — so a
+ * change is not an error here. It is the signal that every element reference
+ * from before the hand-over is stale and the next step has to be re-planned
+ * against the observation returned with this reply, rather than resumed from
+ * memory. When the tab cannot be read at all, the honest answer is to ask for
+ * a refresh rather than to guess.
+ */
+async function resumeFromCheckpoint(handover) {
+  if (!handover?.tabId) return { resumed: true, stale: false, detail: "Resumed." };
+
+  let tab = null;
+  try {
+    tab = await chrome.tabs.get(handover.tabId);
+  } catch {
+    return {
+      resumed: true,
+      stale: true,
+      needsRefresh: true,
+      detail:
+        "The tab OCADE handed over is no longer open. Open the page again so OCADE can read it before continuing.",
+    };
+  }
+
+  // Scope is re-checked on the CURRENT url: a sign-in can land somewhere else
+  // entirely, and approval given for one origin is not approval for another.
+  if (!isAuthorized(tab.url ?? "", state.approvedOrigins)) {
+    return {
+      resumed: true,
+      stale: true,
+      needsRefresh: true,
+      detail: `That tab is now on ${tab.url ? new URL(tab.url).origin : "an unknown page"}, which is outside the sites you approved for OCADE. Approve it in the popup, or return the tab to the approved site.`,
+    };
+  }
+
+  const now = await observeTab(handover.tabId).catch(() => null);
+  if (!now) {
+    return {
+      resumed: true,
+      stale: true,
+      needsRefresh: true,
+      detail:
+        "The page could not be read after the hand-over. Refresh the tab so OCADE can observe it before continuing.",
+    };
+  }
+
+  const before = handover.checkpoint;
+  const stale = !before || now.signature !== before.signature;
+  return {
+    resumed: true,
+    stale,
+    needsRefresh: false,
+    observation: now,
+    checkpoint: before,
+    detail: stale
+      ? `The page changed while you were signing in${before ? `: ${before.signature} -> ${now.signature}` : ""}. OCADE re-read it; anything planned against the old page is stale and must be decided again from this observation.`
+      : "The page is unchanged since the hand-over; OCADE re-read it and is continuing from the same verified state.",
+  };
 }
 
 async function handle(request) {
@@ -248,15 +325,24 @@ async function handle(request) {
       if (state.control === RUNNING) state.control = PAUSED;
       await saveControl();
       return { ok: true, status: status() };
-    case "control.resume":
+    case "control.resume": {
       // STOPPED is deliberately absent: resume must not clear a stop.
-      if (state.control === PAUSED || state.control === HANDED_OVER) {
-        state.control = RUNNING;
-        state.handover = null;
-        state.reason = null;
+      if (state.control !== PAUSED && state.control !== HANDED_OVER) {
+        await saveControl();
+        return { ok: true, status: status() };
       }
+      const wasHandedOver = state.control === HANDED_OVER;
+      const handover = state.handover;
+      state.control = RUNNING;
+      state.handover = null;
+      state.reason = null;
       await saveControl();
-      return { ok: true, status: status() };
+      if (!wasHandedOver) return { ok: true, status: status() };
+      // Re-observation happens AFTER the latch clears, because observing is
+      // itself gated by the latch.
+      const resumption = await resumeFromCheckpoint(handover);
+      return { ok: true, status: status(), resumption };
+    }
     case "control.stop":
       state.control = STOPPED;
       state.reason = argument.reason ?? "Stopped by the user.";
@@ -426,7 +512,7 @@ async function handle(request) {
               (c) => argument.target?.selector && `#${c.id}` === argument.target.selector,
             );
       if (field && isProtectedField(field)) {
-        return handOver(describeSecret(field), tab);
+        return await handOver(describeSecret(field), tab);
       }
       return runMutating(tab, "type", argument);
     }

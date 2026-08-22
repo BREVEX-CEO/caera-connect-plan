@@ -290,7 +290,88 @@ try {
     r.ok === false && r.handover?.what === "one-time code",
     r.reason,
   );
-  await run("control.resume");
+  check(
+    "the hand-over records a checkpoint of the page it stepped back from",
+    typeof r.handover?.checkpoint?.signature === "string" &&
+      r.handover.checkpoint.signature.length > 0,
+    r.handover?.checkpoint?.signature,
+  );
+
+  /*
+   * LOGIN HAND-OFF, AND WHAT HAPPENS WHEN CONTROL COMES BACK.
+   *
+   * Signing in is the most disruptive thing that can happen to a page: the DOM
+   * the plan was built against is gone by the time OCADE is allowed to act
+   * again. Resuming without re-reading means acting on element references that
+   * described a login form. So resume RE-OBSERVES and reports whether what
+   * OCADE believed is still true — a change is not an error here, it is the
+   * signal that the old plan is stale and the next step has to be decided from
+   * the observation returned with the reply.
+   */
+  const stableResume = await run("control.resume");
+  check(
+    "resuming after a hand-over re-observes the page instead of trusting memory",
+    stableResume.resumption?.observation?.signature !== undefined,
+    stableResume.resumption?.detail,
+  );
+  check(
+    "an untouched page is reported as still matching its checkpoint",
+    stableResume.resumption?.stale === false,
+    stableResume.resumption?.detail,
+  );
+
+  // Now do what a real sign-in does: change the page while OCADE is stood down.
+  r = await run("type", { tabId, target: otpRef, text: "123456" });
+  check("handed over again, so there is a fresh checkpoint", r.handover?.what === "one-time code");
+  // The person's own tab, driven directly — this is the sign-in happening
+  // outside OCADE's control, which is exactly the situation being tested.
+  const loginPage = ctx.pages().find((pg) => pg.url().startsWith(`${ORIGIN}/login`));
+  if (!loginPage) throw new Error("the login tab was not found in the browser context");
+  await loginPage.evaluate(() => {
+    document.title = "Signed in";
+    const banner = document.createElement("button");
+    banner.id = "after-login";
+    banner.textContent = "Continue";
+    document.body.append(banner);
+  });
+  const staleResume = await run("control.resume");
+  check(
+    "a page that changed during the hand-over is reported STALE, not resumed blindly",
+    staleResume.resumption?.stale === true,
+    staleResume.resumption?.detail,
+  );
+  check(
+    "the resume carries the NEW observation, so the next step is planned from it",
+    staleResume.resumption?.observation?.controls?.some((c) => c.id === "after-login") === true,
+    `${staleResume.resumption?.observation?.controls?.length} controls after sign-in`,
+  );
+  check(
+    "and it says so in a sentence a person can act on",
+    /stale|changed while you were signing in/i.test(staleResume.resumption?.detail ?? ""),
+    staleResume.resumption?.detail,
+  );
+
+  // A sign-in that lands somewhere else entirely. Approval given for one origin
+  // is not approval for wherever a login redirects to, so resume must ask
+  // rather than carry on.
+  r = await run("observe", { tabId });
+  const otpAgain = r.observation.controls.findIndex((c) => c.id === "otp");
+  r = await run("type", { tabId, target: otpAgain, text: "123456" });
+  check("handed over once more", r.handover?.what === "one-time code", r.reason);
+  await loginPage.goto(`${OTHER_ORIGIN}/`);
+  const strayed = await run("control.resume");
+  check(
+    "a hand-over that ends on an unapproved site asks for approval, and does not resume into it",
+    strayed.resumption?.stale === true && strayed.resumption?.needsRefresh === true,
+    strayed.resumption?.detail,
+  );
+  check(
+    "and names the origin it will not act on",
+    (strayed.resumption?.detail ?? "").includes(new URL(OTHER_ORIGIN).origin),
+    strayed.resumption?.detail,
+  );
+  // Put the tab back where the rest of the run expects it.
+  await run("navigate", { tabId, url: `${ORIGIN}/` });
 
   /* ------------------------------------------------ page text is untrusted -- */
   await run("navigate", { tabId, url: `${ORIGIN}/inject` });
