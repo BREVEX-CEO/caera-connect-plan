@@ -20,7 +20,7 @@ that, and those four items are listed as prominently as the rest.
 | Production build                                   | succeeds                                                                 |
 | Asset budget                                       | largest JS 538.9/585.9 KiB; on-device engines 7,768/20,508 KiB, all lazy |
 | Stage-2 + release gate scripts                     | 42 run, 40 pass, 2 environment-blocked (below)                           |
-| Cowork extension E2E, real Chromium                | **45/45 scenarios**                                                      |
+| Cowork extension E2E, real Chromium                | **52/52 scenarios**                                                      |
 | Chat prompts, shipped pipeline                     | **7/7**                                                                  |
 | Real llama.cpp inference                           | **15/15 checks**                                                         |
 | One model across three tabs + failover             | **8/8**                                                                  |
@@ -38,6 +38,56 @@ which is blocked. `browser:cdp-parity` passes, but only when run as a non-root
 user — Chrome will not start its sandbox as root, and the managed host sets
 `chromiumSandbox: true` deliberately, so root is the thing to avoid rather than
 the sandbox. CI itself gets no runner at all (§6).
+
+---
+
+## 1b. Browser-first Cowork, and the adapter that was missing
+
+The intended path for anything touching a web page is
+
+    website → local model → agent loop → extension adapter → extension bridge →
+    MV3 extension → the user's own browser
+
+**The adapter did not exist.** `extension-bridge.ts` was imported by exactly two
+things — a UI gate that reports whether Cowork can act, and its own test — and by
+nothing that runs a task. Every `browser_*` tool the model can emit went the
+other way: `use-mission` → a server function → the Node adapters → a native host
+driving Playwright over CDP. So the extension was a fully working, tested
+executor that nothing executed through, and browser Cowork silently required the
+desktop companion that browser-first exists to remove.
+
+Nothing failed, which is why no test caught it. A feature was simply served by
+the wrong thing.
+
+`src/lib/native/extension-adapter.ts` is that link, and both dispatch sites in
+`use-mission` now try it first, falling through for everything else so PC
+control keeps its own path.
+
+Proven in real Chromium (52/52 scenarios, up from 45): a `browser_read` tool
+call comes back with the extension's own observation of a real tab, a navigate is
+verified by the extension rather than by the adapter, an unapproved address is
+still refused so the adapter cannot widen scope, `browser_key` refuses honestly
+because the content script exposes no key dispatch, and a non-browser tool
+returns `null` for the PC path. The OCADE tab drives a SECOND tab, which is the
+product's real shape.
+
+## 1c. Every route, in a real browser, at two widths
+
+`npm run audit:routes:prod` builds the product and visits all 67 navigable
+routes plus a deliberately invalid one, at desktop and phone width, signed out
+and signed in: **613/613 and 613/613**.
+
+It checks what a person would notice — that something usable rendered, that no
+raw developer error reached the screen, that the page does not scroll sideways,
+that no request outside loopback failed, and that every touch target meets the
+WCAG 2.5.8 floor of 24x24.
+
+The route list is read from TanStack's generated route tree rather than written
+by hand. The hand-written version was wrong in both directions: it invented
+`/support`, `/security`, `/callback` and `/verify` — child segments of `/settings`
+and `/auth`, not addresses, so four "routes" were really the 404 page passing a
+check that something rendered — and it missed `/demo/control`, `/demo/ocade`,
+`/demo/settings`, `/auth/callback` and `/auth/verify`.
 
 ---
 
@@ -80,6 +130,32 @@ that fails without the fix.
    engine. Implemented with `navigator.locks` + `BroadcastChannel`, with owner
    failover.
 8. **A signed-out dead end on `/ocade`.** No sign-in route was offered.
+
+### Medium — found in this pass
+
+9b. **Browser Cowork was executed by the wrong thing.** See §1b: the extension
+adapter did not exist, so browser work needed a desktop sidecar.
+
+9c. **A time bomb that went off mid-session.** `dispatchMobileIntent` was the
+only time-dependent function in `src/lib/mobile` without an injectable
+clock, so it always asked the real one while the tests pin devices to a
+fixed date. Device trust expires after 30 days; the suites were pinned to
+2026-07-23 and today is 2026-08-22. Thirteen tests began failing partway
+through a session in which nothing about them had changed — confirmed
+pre-existing by stashing the working tree. Fixed by adding the missing seam,
+not by moving the date, which would only reset the fuse.
+
+9d. **Touch targets below the accessibility floor**, on both marketing and
+signed-in surfaces: footer links at 14-20px, "All settings" and "Back to
+Settings", Refresh buttons, Lab/Studio cross-links, checkbox rows in four
+settings panels, and the voice and appearance sliders. Two icon buttons on
+/ocade/work were styled 36px and 28px but had no `shrink-0`, so flexbox
+squashed them to 20px at phone width — a real defect that only exists on a
+narrow screen.
+
+9e. **Three hand-rolled copies of the footer link set** — the shell, the root
+404 and the landing page — so 9d had to be found three times and would have
+had to be fixed three times.
 
 ### Medium
 
