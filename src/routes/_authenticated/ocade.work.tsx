@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { ControlWorkPanel } from "@/components/ocade/control/ControlWorkPanel";
 import { useMissionBrain } from "@/lib/work/use-mission-brain";
 import { LivingIntelligenceBackdrop } from "@/components/visual/LivingIntelligenceBackdrop";
+import { CoworkExtensionGate } from "@/components/ocade/cowork/CoworkExtensionGate";
 
 /**
  * OCADE Control + Work.
@@ -53,7 +54,16 @@ function ControlWorkRoute() {
         gradient for the eye — so the plate is opaque enough to remove the
         contest entirely.
       */}
-      <div className="relative z-10 h-full bg-background/88">
+      <div className="relative z-10 flex h-full flex-col bg-background/88">
+        {/*
+          Whether OCADE can act in THIS browser, said plainly and before
+          anything else in the room. Without the extension this page cannot
+          open a tab, read a page or click anything outside itself — and a room
+          called Control that cannot say so is the room lying about itself.
+        */}
+        <div className="shrink-0 px-4 pt-4">
+          <CoworkExtensionGate />
+        </div>
         <ControlWorkPanel
           brain={brain}
           headerNote="Signed in · this computer · file attachment is not configured yet"
