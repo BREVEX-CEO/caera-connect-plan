@@ -73,9 +73,19 @@ failures += (await step("SETTINGS, SIGNED OUT", process.execPath, [
 ]))
   ? 1
   : 0;
+failures += (await step("EVERY ROUTE, SIGNED OUT", process.execPath, ["scripts/e2e/route-qa.mjs"]))
+  ? 1
+  : 0;
+
 failures += (await step("SIGN IN AND ONBOARD", process.execPath, [
   "scripts/e2e/sign-in-and-onboard.mjs",
 ]))
+  ? 1
+  : 0;
+
+failures += (await step("EVERY ROUTE, SIGNED IN", process.execPath, ["scripts/e2e/route-qa.mjs"], {
+  OCADE_STORAGE_STATE: "/tmp/ocade-onboarded-state.json",
+}))
   ? 1
   : 0;
 
