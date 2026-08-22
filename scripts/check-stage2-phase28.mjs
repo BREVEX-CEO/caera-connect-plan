@@ -120,10 +120,7 @@ if (existsSync(extensionRoot)) {
     background.includes("fromExtensionPage"),
     "extension scope must be changeable only from the extension's own pages",
   );
-  check(
-    background.includes("isProtectedField"),
-    "extension must refuse protected fields",
-  );
+  check(background.includes("isProtectedField"), "extension must refuse protected fields");
 }
 
 if (failures.length) {

@@ -11,6 +11,7 @@
  * costs what a 60fps budget allows; and — the part that matters most — that
  * REDUCE MOTION genuinely holds it still rather than merely dimming it.
  */
+import { existsSync } from "node:fs";
 import { chromium } from "playwright-core";
 
 const BASE = process.env.OCADE_BASE_URL ?? "http://127.0.0.1:8080";
@@ -21,6 +22,44 @@ const check = (name, ok, detail = "") => {
   results.push({ name, ok, detail });
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail ? ` — ${detail}` : ""}`);
 };
+
+/*
+ * Say what is wrong, at the point it is wrong.
+ *
+ * This stage measures a running app; it does not stand one up. Run on its own
+ * with nothing on 8080 it used to spend a minute inside `page.goto` and then
+ * die on a Playwright TimeoutError whose text is about waiting 500ms for a
+ * selector — an error that sends you looking at the backdrop code when the
+ * actual problem is that no server is listening. `npm run audit:settings`
+ * stands the whole stack up and runs this as one of its stages.
+ */
+const ABORT =
+  "This stage needs a RUNNING APP and a SIGNED-IN SESSION, and starts neither.\n" +
+  "Run `npm run audit:settings`: it stands the stack up, signs in, and runs this\n" +
+  "as one of its stages. To run it alone, point OCADE_BASE_URL at a running app\n" +
+  "and OCADE_STORAGE_STATE at a signed-in storage state.";
+
+try {
+  const probe = await fetch(BASE, { signal: AbortSignal.timeout(3000) });
+  if (!probe.ok) throw new Error(`HTTP ${probe.status}`);
+} catch (error) {
+  console.error(`No app is answering at ${BASE} (${error.message}).\n${ABORT}`);
+  process.exit(1);
+}
+
+/*
+ * The signed-in state is a precondition, not an optimisation.
+ *
+ * Without it the run is a signed-out session: the backdrop reports `lowPerf`
+ * and paints nothing, and the Reduce motion switch is rendered DISABLED. The
+ * three failures and the eventual `locator.click: Timeout` that follow all
+ * point at the backdrop, and none of them is about the backdrop. Refusing up
+ * front costs one line and saves that whole investigation.
+ */
+if (!STATE || !existsSync(STATE)) {
+  console.error(`No signed-in storage state (OCADE_STORAGE_STATE=${STATE ?? "unset"}).\n${ABORT}`);
+  process.exit(1);
+}
 
 const browser = await chromium.launch({
   executablePath: process.env.OCADE_BROWSER_PATH ?? "/opt/pw-browsers/chromium",

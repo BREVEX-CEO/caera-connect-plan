@@ -76,7 +76,9 @@ describe("the local engine is discovered and described", () => {
 
 describe("a message goes through the real streaming path", () => {
   it("answers a factual question", async () => {
-    const { outcome, text } = await ask([{ role: "user", content: "What is the capital of France?" }]);
+    const { outcome, text } = await ask([
+      { role: "user", content: "What is the capital of France?" },
+    ]);
     expect(outcome.ok).toBe(true);
     expect(text).toMatch(/paris/i);
   });
@@ -126,7 +128,9 @@ describe("stop and regenerate", () => {
   }, 20_000);
 
   it("regenerates cleanly after a stop", async () => {
-    const { outcome, text } = await ask([{ role: "user", content: "What is the capital of France?" }]);
+    const { outcome, text } = await ask([
+      { role: "user", content: "What is the capital of France?" },
+    ]);
     expect(outcome.ok).toBe(true);
     expect(text).toMatch(/paris/i);
   });

@@ -86,6 +86,32 @@ page.on("console", (m) => {
 });
 page.on("pageerror", (e) => consoleErrors.push(`PAGEERROR: ${e.message.slice(0, 180)}`));
 
+/*
+ * WHAT FAILED, NOT JUST HOW MANY.
+ *
+ * `Failed to load resource: net::ERR_CONNECTION_REFUSED` reaches the console
+ * with no URL attached, so a run reporting "8 console errors" was unreadable:
+ * eight probes of a local engine that is not installed look exactly like eight
+ * broken application requests. The count was being eyeballed and waved past,
+ * which is the same as not checking it.
+ *
+ * `requestfailed` carries the URL. Failures to loopback are EXPECTED here —
+ * that is the product looking for a local model runtime and correctly finding
+ * none. Failures to anything else are not, and are asserted on below.
+ */
+const failedRequests = [];
+page.on("requestfailed", (r) => {
+  failedRequests.push({ url: r.url(), reason: r.failure()?.errorText ?? "unknown" });
+});
+const isLoopback = (url) => {
+  try {
+    const { hostname } = new URL(url);
+    return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+  } catch {
+    return false;
+  }
+};
+
 /** Answer whatever modal is up, the way a person does. */
 async function clearModals() {
   for (let round = 0; round < 6; round += 1) {
@@ -309,9 +335,28 @@ if (dependentDisables.length) {
 if (springBack.length)
   console.log("SPRANG BACK (save refused, control rolled back):\n  " + springBack.join("\n  "));
 
+const loopbackFailures = failedRequests.filter((r) => isLoopback(r.url));
+const otherFailures = failedRequests.filter((r) => !isLoopback(r.url));
+if (loopbackFailures.length) {
+  const probes = [...new Set(loopbackFailures.map((r) => new URL(r.url).port || "80"))];
+  console.log(
+    `  ${loopbackFailures.length} loopback request(s) refused on port(s) ${probes.join(", ")} —` +
+      " the local-engine probe finding no runtime installed, which is correct here.",
+  );
+}
+check(
+  "no request to anything other than loopback failed",
+  otherFailures.length === 0,
+  otherFailures.map((r) => `${r.reason} ${r.url}`).join("; "),
+);
+
 writeFileSync(
   SIGNED_IN ? "/tmp/settings-audit-signed-in.json" : "/tmp/settings-audit-signed-out.json",
-  JSON.stringify({ sections, results, springBack, deadLinks, consoleErrors }, null, 2),
+  JSON.stringify(
+    { sections, results, springBack, deadLinks, consoleErrors, failedRequests },
+    null,
+    2,
+  ),
 );
 
 const failed = results.filter((r) => !r.ok);

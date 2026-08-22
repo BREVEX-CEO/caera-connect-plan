@@ -393,8 +393,9 @@ jobs:
   # ---------------------------------------------------------------------------
   # Extensionless managed-browser host.
   #
-  # Real Chrome and Edge parity evidence is collected on Windows hardware.
-  # CI keeps the host syntax, protocol unit tests, and dependency graph honest.
+  # This job keeps the host syntax, protocol unit tests, and dependency graph
+  # honest. End-to-end Chrome and Edge parity runs in `browser-audits`, against
+  # a real browser.
   # ---------------------------------------------------------------------------
   managed-browser:
     name: Managed browser host
@@ -452,6 +453,21 @@ jobs:
           done
           echo "No Chrome or Chromium on this runner; the browser audits cannot run." >&2
           exit 1
+
+      # Real Chrome and Edge parity, end to end through the managed browser
+      # host: launch, verified DOM action, protected-field refusal, upload,
+      # download, tab handling, immediate cancel and emergency stop.
+      #
+      # This used to be described as Windows-only evidence. It is not — the
+      # harness runs here unchanged. The reason it appeared not to was that the
+      # audit sandbox runs as root, and Chrome refuses to start its sandbox as
+      # root; the host sets `chromiumSandbox: true` deliberately and must keep
+      # doing so, which makes root the thing to avoid rather than the sandbox.
+      # A CI runner is not root, so the parity check simply runs.
+      - name: Chrome and Edge parity through the managed host
+        env:
+          OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
+        run: npm run browser:cdp-parity
 
       - name: Extension manifest and safety gate
         run: npm run extension:check
@@ -527,8 +543,14 @@ jobs:
       # the protocol surface — still holds. Those used to be unrunnable here at
       # all: one module imported win32con at module scope and took the whole
       # collection down with it.
+      # pandas, python-docx and openpyxl are here because without them ten
+      # spreadsheet and document tests SKIP, and a skip in a green run is
+      # invisible. They are not Windows-only and there is no reason for them
+      # not to run: with the three installed they pass, so they run.
       - name: Install cross-platform dependencies
-        run: python -m pip install --quiet pytest numpy psutil Send2Trash pyperclip
+        run: >-
+          python -m pip install --quiet
+          pytest numpy psutil Send2Trash pyperclip pandas python-docx openpyxl
 
       - name: Python host suite
         working-directory: native/python-host
