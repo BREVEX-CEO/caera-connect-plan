@@ -295,6 +295,17 @@ async function resumeFromCheckpoint(handover) {
 
   const before = handover.checkpoint;
   const stale = !before || now.signature !== before.signature;
+  /*
+   * Say what actually happened. "while you were signing in" is true when OCADE
+   * stepped back from a password or a one-time code; it is simply false when
+   * the person pressed TAKE OVER, and a message that tells someone they were
+   * doing something they were not is the kind of small untruth that makes the
+   * rest of the reporting harder to believe.
+   */
+  const whileYou =
+    handover.what === "password" || handover.what === "one-time code"
+      ? "you were signing in"
+      : "you had control";
   return {
     resumed: true,
     stale,
@@ -302,7 +313,7 @@ async function resumeFromCheckpoint(handover) {
     observation: now,
     checkpoint: before,
     detail: stale
-      ? `The page changed while you were signing in${before ? `: ${before.signature} -> ${now.signature}` : ""}. OCADE re-read it; anything planned against the old page is stale and must be decided again from this observation.`
+      ? `The page changed while ${whileYou}${before ? `: ${before.signature} -> ${now.signature}` : ""}. OCADE re-read it; anything planned against the old page is stale and must be decided again from this observation.`
       : "The page is unchanged since the hand-over; OCADE re-read it and is continuing from the same verified state.",
   };
 }
@@ -348,14 +359,36 @@ async function handle(request) {
       state.reason = argument.reason ?? "Stopped by the user.";
       await saveControl();
       return { ok: true, status: status() };
-    case "control.takeover":
+    case "control.takeover": {
+      /*
+       * TAKING OVER IS A HAND-OVER, AND MUST CHECKPOINT LIKE ONE.
+       *
+       * This used to record only a message — no tab and no observation — so
+       * `resumeFromCheckpoint` had nothing to compare against and returned a
+       * bare "Resumed." OCADE then carried on against whatever it last
+       * believed.
+       *
+       * That is the wrong way round. A person who pressed TAKE OVER is
+       * precisely someone who has been changing the page by hand, so the odds
+       * that the old plan is stale are HIGHER here than after a login, not
+       * lower. Recording the tab and what it looked like is what makes the
+       * re-observation on resume possible at all.
+       */
+      const tab = await tabFor(argument.tabId).catch(() => null);
+      const checkpoint = tab ? await observeTab(tab.id).catch(() => null) : null;
       state.control = HANDED_OVER;
       state.handover = {
         what: argument.what ?? "this step",
+        tabId: tab?.id ?? null,
+        url: tab?.url ?? null,
+        checkpoint: checkpoint
+          ? { url: checkpoint.url, title: checkpoint.title, signature: checkpoint.signature }
+          : null,
         message: "You have control of the tab.",
       };
       await saveControl();
       return { ok: true, status: status() };
+    }
     case "scope.list":
       return { ok: true, status: status() };
     default:

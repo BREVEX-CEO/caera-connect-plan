@@ -347,8 +347,8 @@ try {
     `${staleResume.resumption?.observation?.controls?.length} controls after sign-in`,
   );
   check(
-    "and it says so in a sentence a person can act on",
-    /stale|changed while you were signing in/i.test(staleResume.resumption?.detail ?? ""),
+    "and it says so in a sentence a person can act on — naming the sign-in",
+    /changed while you were signing in/i.test(staleResume.resumption?.detail ?? ""),
     staleResume.resumption?.detail,
   );
 
@@ -484,6 +484,66 @@ try {
     r.ok === false && r.blocked === true,
     r.reason,
   );
+
+  /* -------------------------------------------------- TAKE OVER ---------- */
+  /*
+   * The third control, and the one that had no test at all.
+   *
+   * PAUSE and STOP were covered; TAKE OVER was implemented and never exercised.
+   * It also recorded only a message — no tab, no observation — so resuming
+   * afterwards had nothing to compare against and carried on against whatever
+   * OCADE last believed. Someone who pressed TAKE OVER has been editing the
+   * page by hand, which makes a stale plan MORE likely here than after a login,
+   * not less.
+   */
+  // A fresh tab: the one `tabId` names was closed by the tab scenarios above,
+  // and the extension rightly answers "No tab with id" for it.
+  const takeoverTab = await run("tabs.open", { url: `${ORIGIN}/` });
+  const takeoverId = takeoverTab.tabId;
+  check("a tab is open to take over", typeof takeoverId === "number", String(takeoverId));
+
+  r = await run("control.takeover", { what: "the checkout step", tabId: takeoverId });
+  check("TAKE OVER hands control to the person", r.ok === true, r.status?.control);
+  check(
+    "and records which tab, and what it looked like",
+    typeof r.status?.handover?.tabId === "number" &&
+      typeof r.status?.handover?.checkpoint?.signature === "string",
+    r.status?.handover?.checkpoint?.signature,
+  );
+
+  r = await run("click", { tabId: takeoverId, target: { text: "Go to second" } });
+  check(
+    "OCADE will not act while the person has control",
+    r.ok === false && r.blocked === true,
+    r.reason,
+  );
+
+  // The person does something by hand, which is the entire point of taking over.
+  const handEdited = ctx.pages().find((pg) => pg.url() === `${ORIGIN}/`);
+  if (!handEdited) throw new Error("the taken-over tab was not found");
+  await handEdited.evaluate(() => {
+    document.title = "Edited by hand";
+  });
+  const afterTakeover = await run("control.resume");
+  check(
+    "resuming after TAKE OVER re-observes instead of trusting memory",
+    afterTakeover.resumption?.observation?.signature !== undefined,
+    afterTakeover.resumption?.detail,
+  );
+  check(
+    "and reports the page as STALE because the person changed it",
+    afterTakeover.resumption?.stale === true,
+    afterTakeover.resumption?.detail,
+  );
+  check(
+    "and does NOT claim the person was signing in when they were not",
+    /you had control/i.test(afterTakeover.resumption?.detail ?? "") &&
+      !/signing in/i.test(afterTakeover.resumption?.detail ?? ""),
+    afterTakeover.resumption?.detail,
+  );
+
+  r = await run("control.status");
+  check("work resumes after the person hands it back", r.status.control === "running");
 
   /* ------------------------------------------- the website talks to it ---- */
   /*
