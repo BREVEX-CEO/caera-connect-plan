@@ -1,9 +1,19 @@
 # OCADE
 
 OCADE is the active product being developed under the **CAERA CADANE** brand by
-**Haans Antoni, Founder, Chairman & CEO**. It is a local-first AI workspace with
-web, desktop and mobile source paths plus optional private synchronization and
-cloud-assisted features.
+**Haans Antoni, Founder, Chairman & CEO**. It is a browser-first, local-first AI
+workspace with web, desktop and mobile source paths plus optional private
+synchronization.
+
+**Chat generation runs on the user's own device.** OCADE contains no code that
+can send a prompt, draft, conversation, attachment or reasoning request to
+OpenAI, Google Gemini, Anthropic, the Lovable AI Gateway or any other public AI
+service — the gateway, the server chat route and the provider SDK were removed,
+and `src/lib/__tests__/no-cloud-inference.test.ts` fails the build if any of
+them returns. The internet is still used, for downloading OCADE's own engine,
+for Supabase authentication and synchronisation, and for looking up current
+information; fetching a fact is not the same as handing over the user's
+thinking, and OCADE only does the first.
 
 Public launch is planned for **28 August 2026**. OCADE is still pre-launch: a
 file, test, installer or deployment script in this repository is not by itself
@@ -14,8 +24,8 @@ proof that the corresponding production service or store release is available.
 | Area               | Implemented source                                                                                        | Readiness boundary                                                                                                                                                                                                                   |
 | ------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Web                | React/TanStack Start application, public demo, authenticated workspace and Cloudflare-oriented deployment | A build can pass while a hosted environment is misconfigured. Production URL, monitoring and launch approval remain separate gates.                                                                                                  |
-| Offline web        | Service worker, cached root shell and browser-local storage/model paths                                   | A real Chrome online-then-offline reload is proven. First visit, uncached routes, cleared storage, sign-in, sync, live web, payments and cloud features still need a network.                                                        |
-| Cloud/private sync | Supabase auth, RLS-backed data paths, private storage and optional AI gateways                            | Users must be told which mode is active. “Local-first” does not mean all data always remains on-device.                                                                                                                              |
+| Offline web        | Service worker, cached root shell and browser-local storage/model paths                                   | A real Chrome online-then-offline reload is proven from a clean profile. A first visit still needs a network: a browser cannot load a site it has never seen, and OCADE's engine has to arrive once before it can answer offline. |
+| Private sync       | Supabase auth, RLS-backed data paths and private storage. Not an AI provider.                             | Users must be told which mode is active. “Local-first” means generation is always on-device; it does not mean synchronised data never leaves it. Browser Only data never leaves.                                                  |
 | Desktop            | Local Tauri/Rust companion, packaged browser host and packaged MediaPipe hand-control sidecar             | Desktop source is retained for development, but public desktop downloads/releases are intentionally disabled for the current launch. Signing, clean-device tests, macOS notarization and update signing remain future release gates. |
 | Mobile             | Capacitor Android and iOS projects, mobile pairing and restricted control paths                           | Store signing, privacy declarations, billing compliance and device testing are still required before a store-release claim.                                                                                                          |
 | Billing            | Historical subscription/allowance records and provider/webhook source remain intact                       | **Free launch mode is active.** Checkout, pricing, upgrades and paid entitlement gates are disabled. A provider token alone cannot re-enable checkout.                                                                               |
@@ -36,8 +46,13 @@ claim that live checkout is available now.
 
 ## Product behavior
 
-OCADE can route work to supported on-device/browser engines, a native companion,
-or an explicitly permitted cloud path. Features include document handling,
+OCADE runs its engine in the browser: WebGPU where the browser exposes a usable
+adapter, and a WebAssembly runtime where it does not. A local Ollama runtime or
+a paired desktop is used when one happens to be present, but the web product
+does not require Ollama, Python or a native companion. Preparation starts by
+itself on first visit — there is no Install or Setup button — and the weights
+are stored in the browser, verified against a checksum, and resumed rather than
+re-fetched after an interruption. Features include document handling,
 conversation and project storage, browser/native control components, voice and
 vision modules, automations and cross-device controls. Availability depends on
 the platform, installed model, hardware, privacy mode and configured services.
@@ -67,8 +82,11 @@ OCADE supports multiple storage and execution boundaries:
 - **Device/browser-local:** supported data remains on the user’s device.
 - **Private Sync:** selected account and workspace records are stored in the
   configured Supabase project under row-level security.
-- **Cloud-assisted:** a disclosed provider may receive the minimum necessary
-  prompt or request only when the user’s mode and entitlement permit it.
+- **Private Sync is local-first:** a message is written to this device before
+  any network call and synchronised in the background, so Chat keeps working
+  with the connection down and nothing is lost when it drops.
+- **No cloud inference in any mode.** There is no disclosed provider and no
+  entitlement that enables one, because there is no remote engine to enable.
 
 There is no advertising or third-party analytics tracker in the audited source.
 Essential local storage is used for authentication, preferences, security and

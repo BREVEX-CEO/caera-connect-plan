@@ -14,10 +14,22 @@ function expectAll(path: string, patterns: RegExp[]) {
 
 describe("OCADE 77 — proof for formerly source-inspected boundaries", () => {
   it("#9 documents local-first without claiming all data stays on-device", () => {
+    /*
+     * Asserted as the PROPERTY rather than as one sentence. The README used to
+     * say "'Local-first' does not mean all data always remains on-device" next
+     * to a "Cloud/private sync" row that also mentioned optional AI gateways.
+     * The gateways are gone, so that row would now be describing something the
+     * product does not have — but the caveat it carried is still true and must
+     * still be present, because synchronised data does leave the device.
+     */
     const readme = source("README.md");
     expect(readme).toMatch(/local-first/i);
-    expect(readme).toMatch(/does not mean all data always remains on-device/i);
-    expect(readme).toMatch(/cloud\/private sync/i);
+    // The honest caveat survives, in whatever words it is currently written.
+    expect(readme).toMatch(/does not mean .{0,60}(never leaves|remains on-device)/i);
+    expect(readme).toMatch(/private sync/i);
+    // And the claim that replaced the gateway row has to be the true one.
+    expect(readme).toMatch(/generation .{0,40}on-device|runs on the user's own device/i);
+    expect(readme).toMatch(/Browser Only data never leaves/i);
   });
 
   it("#16 withdraws pricing and billing during free launch", () => {
