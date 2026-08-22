@@ -24,6 +24,40 @@ interface State {
   error: Error | null;
 }
 
+/**
+ * Shapes that mean the message was written for whoever wrote the code.
+ *
+ * React hands the boundary the raw Error, and this component used to render
+ * `error.message` straight onto the page. "Cannot read properties of undefined
+ * (reading 'name')" tells a person nothing they can act on, and tells them the
+ * product is broken in a way that feels unsafe. A stack frame or a minified
+ * React code is worse still.
+ *
+ * The test is deliberately on the SHAPE rather than on an allow-list of good
+ * messages: the product's own sentences ("That folder is no longer on this
+ * computer.") are worth keeping, and there is no way to enumerate them.
+ */
+const DEVELOPER_SHAPED = [
+  /\bundefined\b|\bnull\b/i,
+  /is not a function|is not defined|is not an object|is not iterable/i,
+  /cannot read propert(y|ies)/i,
+  /unexpected token|JSON at position/i,
+  /React error #\d+/i,
+  /\.[jt]sx?:\d+:\d+/,
+  /\bat\s+\S+\s*\(/,
+  /^\w*(Type|Reference|Syntax|Range|Eval)Error\b/,
+];
+
+const GENERIC = "Something here stopped working. Trying again usually clears it.";
+
+/** What may be shown to a person, as opposed to what is worth logging. */
+export function readableMessage(raw: string | undefined): string {
+  const message = (raw ?? "").trim();
+  if (!message) return GENERIC;
+  if (DEVELOPER_SHAPED.some((shape) => shape.test(message))) return GENERIC;
+  return message;
+}
+
 export class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null };
 
@@ -45,7 +79,7 @@ export class ErrorBoundary extends Component<Props, State> {
     const { error } = this.state;
     if (!error) return this.props.children;
 
-    const message = error.message || "Something in this panel stopped working.";
+    const message = readableMessage(error.message);
     if (this.props.fallback) return this.props.fallback(this.retry, message);
 
     return (
