@@ -160,7 +160,26 @@ for (const section of SECTIONS) {
   await clearModals();
 
   const blocked = (await page.locator("[role=dialog], [role=alertdialog]").count()) > 0;
-  const controls = await page.evaluate(CENSUS);
+
+  /*
+   * WAIT FOR THE SECTION TO SETTLE BEFORE COUNTING IT.
+   *
+   * A fixed pause is a guess, and on a slow run it censused a panel that was
+   * still filling in: one run reported 630 controls and a section with none,
+   * the next reported 661 and no such section. An audit that reports a
+   * different number each time is one nobody can act on, so this samples until
+   * the count stops moving and only then records it.
+   */
+  let controls = await page.evaluate(CENSUS);
+  for (let settle = 0; settle < 8; settle += 1) {
+    await page.waitForTimeout(400);
+    const again = await page.evaluate(CENSUS);
+    if (again.length === controls.length && again.length > 0) {
+      controls = again;
+      break;
+    }
+    controls = again;
+  }
   totalControls += controls.length;
 
   for (const link of controls.filter((c) => c.kind === "link")) {
