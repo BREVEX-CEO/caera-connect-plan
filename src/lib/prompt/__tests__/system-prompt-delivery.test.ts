@@ -7,11 +7,15 @@
  * so OCADE's stated behaviour and OCADE's actual behaviour had no mechanical
  * relationship at all.
  *
- * This test drives the REAL chain the product uses — `browserReasonDeps` ->
- * `reason` -> `streamLocalChat` -> the HTTP request — and reads the bytes that
- * would go on the wire. It asserts on the request body, not on a helper's
- * return value, because the only claim worth making is about what the engine
- * actually receives.
+ * This test drives a REAL adapter to a REAL wire — `brainReasonDeps` ->
+ * `reason` -> the desktop-bridge adapter -> `streamLocalChat` -> the HTTP
+ * request — and reads the bytes that would go out. It asserts on the request
+ * body, not on a helper's return value, because the only claim worth making is
+ * about what the engine actually receives.
+ *
+ * The browser WebGPU and WASM adapters have no wire to inspect: they call into
+ * a worker, so their equivalent proof captures the messages at the adapter
+ * boundary and lives in reasoning/__tests__/brain-deps.test.ts.
  *
  * It deliberately does NOT capture or assert anything about the model's
  * reasoning. Proving delivery is a question about OCADE's own outbound message.
@@ -20,7 +24,9 @@ import { describe, it, expect, vi } from "vitest";
 import { assembleSystemPrompt } from "../assemble";
 import { OCADE_SYSTEM_PROMPT } from "../canonical";
 import { CAPABILITY_GATED_SECTIONS } from "../sections";
-import { browserReasonDeps } from "@/lib/reasoning/browser-deps";
+import { brainReasonDeps } from "@/lib/reasoning/brain-deps";
+import { DesktopBridgeAdapter } from "@/lib/brain/adapters/desktop-bridge";
+import type { RouteChosen } from "@/lib/brain/router";
 import { reason } from "@/lib/reasoning/engine";
 
 const ALL_CAPABILITIES = [...CAPABILITY_GATED_SECTIONS.values()].map((name) => ({
@@ -47,15 +53,15 @@ function ndjsonResponse(text: string): Response {
  * `/api/tags` answers with one installed model so routing has something real
  * to choose; `/api/chat` answers with a token.
  */
-function recordingFetch() {
+function recordingFetch(installed = "qwen2.5:3b") {
   const bodies: Array<Record<string, unknown>> = [];
   const impl = vi.fn(async (url: unknown, init?: RequestInit) => {
     const href = String(url);
     if (href.endsWith("/api/tags")) {
-      return new Response(
-        JSON.stringify({ models: [{ name: "qwen2.5:3b", size: 1_900_000_000 }] }),
-        { status: 200, headers: { "content-type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ models: [{ name: installed, size: 1_900_000_000 }] }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
     }
     if (href.endsWith("/api/chat")) {
       bodies.push(JSON.parse(String(init?.body ?? "{}")));
@@ -66,21 +72,35 @@ function recordingFetch() {
   return { impl, bodies };
 }
 
+/** A route whose adapter really speaks Ollama's HTTP protocol. */
+function bridgeRoute(modelId = "qwen2.5:3b"): RouteChosen {
+  return {
+    ok: true,
+    adapter: new DesktopBridgeAdapter({ policy: () => ({}) }),
+    availability: {
+      available: true,
+      label: "OCADE Local",
+      locality: "on_device",
+      capabilities: { text: true, vision: false, imageGeneration: false, tools: false },
+      modelId,
+    },
+    attempts: [],
+    mode: "desktop_app",
+  };
+}
+
 async function sendOneMessage(system: string, opts?: { thinking?: boolean }) {
   const { impl, bodies } = recordingFetch();
   vi.stubGlobal("fetch", impl);
   try {
-    const result = await reason(
-      browserReasonDeps("http://localhost:11434", undefined, opts?.thinking),
-      {
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: "Hello." },
-        ],
-        task: "general",
-        modelId: "qwen2.5:3b",
-      },
-    );
+    const result = await reason(brainReasonDeps(bridgeRoute(), { think: opts?.thinking }), {
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: "Hello." },
+      ],
+      task: "general",
+      modelId: "qwen2.5:3b",
+    });
     return { result, bodies };
   } finally {
     vi.unstubAllGlobals();
@@ -156,30 +176,31 @@ describe("the canonical system prompt reaches the real local model request", () 
     expect(thinkingSent).not.toBe(fastSent);
   });
 
-  it("still sends the `think` field on a model that supports it", async () => {
-    const { impl, bodies } = recordingFetch();
-    vi.stubGlobal("fetch", impl);
-    try {
-      await reason(browserReasonDeps("http://localhost:11434", undefined, true), {
-        messages: [
-          { role: "system", content: assembleSystemPrompt({ surface: "chat" }) },
-          { role: "user", content: "Hello." },
-        ],
-        task: "general",
-        // qwen3 has a native reasoning mode; qwen2.5 rejects the field.
-        modelId: "qwen3:4b",
-      });
-    } finally {
-      vi.unstubAllGlobals();
-    }
-    expect(bodies[0].think).toBe(true);
+  it("withholds the `think` field from a model that rejects it", async () => {
+    /*
+     * OCADE ships qwen2.5, which answers `{"think":true}` with
+     * `400 "qwen2.5:3b" does not support thinking` rather than ignoring it —
+     * so sending the field would take Chat down entirely, not degrade it.
+     *
+     * That is precisely why Fast/Thinking cannot rest on this field: it is
+     * absent on the shipped model and absent on the browser WebGPU and WASM
+     * runtimes too, which have no such concept. The deliberation clause in the
+     * system message is the lever that works everywhere, and the test above
+     * proves it changes the bytes. This one proves the fragile lever is not
+     * being reached for.
+     */
+    const system = assembleSystemPrompt({ surface: "chat", mode: "thinking" });
+    const { bodies } = await sendOneMessage(system, { thinking: true });
+    expect(bodies[0].think).toBeUndefined();
+    const sent = (bodies[0].messages as Array<{ content: string }>)[0].content;
+    expect(sent).toContain("Work the question through carefully");
   });
 
   it("never sends the prompt anywhere but the local engine", async () => {
     const { impl } = recordingFetch();
     vi.stubGlobal("fetch", impl);
     try {
-      await reason(browserReasonDeps("http://localhost:11434"), {
+      await reason(brainReasonDeps(bridgeRoute()), {
         messages: [
           { role: "system", content: assembleSystemPrompt({ surface: "chat" }) },
           { role: "user", content: "Hello." },

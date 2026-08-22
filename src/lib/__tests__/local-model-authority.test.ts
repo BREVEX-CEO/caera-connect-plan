@@ -147,10 +147,14 @@ describe("thinking is spent where it is worth spending", () => {
     // which returns `preference ?? true` — always on. So the switch saved a
     // value nothing read. Pinning the preference is what keeps that fixed;
     // pinning the old argument-less call would pin the bug.
-    const reasoning = readFileSync("src/lib/reasoning/browser-deps.ts", "utf8");
-    expect(reasoning).toMatch(/think:\s*thinkingFor\("chat",\s*thinking\)/);
+    //
+    // It also used to live in `reasoning/browser-deps.ts`, which streamed
+    // straight to Ollama and has been retired: the same job is done by the
+    // `desktop_bridge` adapter inside the Brain registry, so Chat now reaches
+    // every engine — WebGPU, WASM, bridge, paired — through one chain.
     const chatScreen = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
-    expect(chatScreen).toMatch(/browserReasonDeps\([\s\S]{0,200}chatPrefs\.thinking/);
+    expect(chatScreen).toMatch(/thinkingFor\("chat",\s*chatPrefs\.thinking\)/);
+    expect(chatScreen).toContain("brainReasonDeps(brainRoute");
 
     const mission = readFileSync("src/lib/work/use-mission-brain.ts", "utf8");
     expect(mission).toMatch(/surface:\s*"control"/);

@@ -106,7 +106,8 @@ import { recordTurn } from "@/lib/edge/session";
 import type { BrainMessage } from "@/lib/brain/adapter";
 import type { ChatMessageView, ChatConversationView } from "@/components/ocade/chat/chat-types";
 import { reason } from "@/lib/reasoning/engine";
-import { browserReasonDeps } from "@/lib/reasoning/browser-deps";
+import { brainReasonDeps, sessionPerfLedger } from "@/lib/reasoning/brain-deps";
+import { thinkingFor } from "@/lib/local/fixed-model";
 import {
   planContextWindow,
   SLOW_READ_WARNING_SECONDS,
@@ -1628,30 +1629,35 @@ function ChatSurface(props: {
 
   async function sendViaLocal(text: string, atts: Attachment[], hasImage: boolean) {
     /*
-     * ONE ENGINE, chosen by the same authority every other surface uses.
+     * THE BROWSER IS THE ENGINE, AND THIS IS WHERE THAT BECAME TRUE.
      *
-     * This screen used to build a fallback chain and start at its first step.
-     * On a machine holding several models that step resolved to the LARGEST
-     * installed model — a 9.3 GB one on a 15.6 GB laptop with no GPU — while
-     * Control + Work ran the fixed 1.9 GB engine. The chain was left behind
-     * when OCADE moved to a single engine; the comment inside it even said
-     * there was "no chain to protect". Now there is no chain.
+     * This screen used to select an Ollama model with `routeTask` and stream
+     * from `http://localhost:11434`. Ollama is a program the user installs on
+     * their computer, so a person on a clean laptop with only Chrome got a
+     * refusal — while `useBrain`, imported a few lines above, was quietly
+     * preloading a 340 MB WebGPU model that nothing would ever generate with,
+     * because the hook returns `{ mode, route, warm, remedyLabel }` and has no
+     * `generate` at all.
      *
-     * `routeTask` delegates to `selectFixedModel`, so the vision branch (the
-     * fixed engine cannot read images) and the refusal wording live in one
-     * place instead of being restated here.
+     * `brain.route()` asks the adapter chain instead: browser WebGPU first,
+     * browser WASM when there is no usable GPU adapter, then a desktop bridge
+     * or a paired machine for the people who have one. Ollama becomes a bonus
+     * for whoever installed it rather than the only way in.
+     *
+     * The route is awaited HERE rather than inside the stream because probing
+     * WebGPU is a real hardware check that can take seconds, and the screen
+     * needs to be able to say "preparing" while it happens instead of looking
+     * frozen inside what appears to be a synchronous send.
      */
-    const route = routeTask(
-      hasImage ? "vision" : "general",
-      localEngine.models,
-      localPerfLedger,
-      devicePolicy.policy,
-    );
-    if (!route.ok) {
-      toast.error(route.receipt.refusal ?? "No on-device engine can serve this request.");
+    const brainRoute = await brain.route({ visionRequired: hasImage });
+    if (!brainRoute.ok) {
+      const actions = brainRoute.remedies.map(brain.remedyLabel).join(" · ");
+      toast.error(brainRoute.reason, actions ? { description: actions } : undefined);
       return;
     }
-    const localSteps = [{ modelId: route.model.id, label: route.model.label }];
+    const localSteps = [
+      { modelId: brainRoute.availability.modelId ?? brainRoute.adapter.id, label: "OCADE Local" },
+    ];
     const requestContext = buildRequestContext(atts, true, text);
     if (!requestContext.ok) {
       toast.error(requestContext.reason);
@@ -1840,11 +1846,11 @@ function ChatSurface(props: {
          * machine as a side effect of the local engine failing.
          */
         const reasoned = await reason(
-          browserReasonDeps(
-            DEFAULT_LOCAL_BRIDGE_URL,
-            devicePolicy.policy.totalRamBytes,
-            chatPrefs.thinking,
-          ),
+          brainReasonDeps(brainRoute, {
+            ...(images.length > 0 ? { images } : {}),
+            think: thinkingFor("chat", chatPrefs.thinking),
+            ledger: sessionPerfLedger,
+          }),
           {
             messages: localMessages,
             task: hasImage ? "vision" : "general",
@@ -2466,8 +2472,16 @@ function ChatSurface(props: {
     if (!draft.trim()) return;
     setImproving(true);
     try {
+      const route = await brain.route();
+      if (!route.ok) {
+        toast.error(route.reason);
+        return;
+      }
       const outcome = await improvePromptLocally(
-        browserReasonDeps(DEFAULT_LOCAL_BRIDGE_URL, devicePolicy.policy.totalRamBytes, false),
+        // Fast, deliberately: rewriting is a short bounded transformation, and
+        // deliberating over it costs seconds on a machine with no graphics
+        // acceleration while changing nothing about the result.
+        brainReasonDeps(route, { think: false, ledger: sessionPerfLedger }),
         draft,
       );
       if (outcome.ok && outcome.improved) {
