@@ -13,6 +13,7 @@
  */
 import { spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
+import { rename, rm } from "node:fs/promises";
 import { startStubSupabase } from "../fixtures/stub-supabase.mjs";
 
 const PORT = Number(process.env.OCADE_PREVIEW_PORT ?? 8099);
@@ -78,6 +79,17 @@ function run(label, command, args, extraEnv = {}) {
  * route audit needs. Deployment still targets Cloudflare; only the harness
  * changes.
  */
+/*
+ * ...AND INTO ITS OWN DIRECTORY, so it cannot clobber the shipping build.
+ *
+ * The first version wrote to `.output`, the same place `npm run build` writes.
+ * That left the repository holding a node-server bundle where the Cloudflare
+ * one belongs, and `release:source-check` — which looks for
+ * .output/server/wrangler.json — failed straight afterwards with "production
+ * output is missing". A test harness that breaks the gate that runs after it
+ * is a harness that will be blamed for a defect it invented.
+ */
+const OUT_DIR = ".output-routeqa";
 const built = await run("BUILD THE PRODUCT", "npm", ["run", "build"], {
   NITRO_PRESET: "node-server",
 });
@@ -86,7 +98,23 @@ if (built !== 0) {
   process.exit(1);
 }
 
-const server = spawnTracked(process.execPath, [".output/server/index.mjs"], {
+/*
+ * Move it aside rather than serve it from `.output`.
+ *
+ * The build writes to `.output` and does not honour an output-directory
+ * override here, so leaving it there would leave the repository holding a
+ * node-server bundle where the Cloudflare one belongs — and
+ * `release:source-check`, which looks for .output/server/wrangler.json, failed
+ * straight afterwards with "production output is missing". A harness that
+ * breaks the gate that runs after it gets blamed for a defect it invented.
+ *
+ * Afterwards there is simply no `.output`, which is the normal state of a fresh
+ * checkout; the final gate builds it.
+ */
+await rm(OUT_DIR, { recursive: true, force: true });
+await rename(".output", OUT_DIR);
+
+const server = spawnTracked(process.execPath, [`${OUT_DIR}/server/index.mjs`], {
   ...env,
   PORT: String(PORT),
   HOST: "127.0.0.1",

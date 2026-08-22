@@ -92,3 +92,4 @@ native/python-host/**/__pycache__/
 # Licence signing key material — never commit
 ocade-licence.*
 windows-proof-evidence.json
+.output-routeqa
