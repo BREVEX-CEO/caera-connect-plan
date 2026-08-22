@@ -82,6 +82,7 @@
     "extension:check": "node scripts/check-extension.mjs",
     "audit:settings": "node scripts/e2e/run-settings-audit.mjs",
     "audit:model-owner": "node scripts/e2e/model-owner-tabs.mjs",
+    "audit:offline": "node scripts/e2e/offline-transitions.mjs",
     "desktop:bundle:windows": "node scripts/build-windows-installer.mjs",
     "agent:live-check": "vite-node scripts/agent-loop-evidence.mts"
   },
