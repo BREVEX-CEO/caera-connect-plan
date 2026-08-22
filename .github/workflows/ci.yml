@@ -504,8 +504,8 @@ jobs:
           OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
         run: npm run audit:settings
 
-  local-inference:
-    name: Real local inference
+  local-runtimes:
+    name: Real local runtimes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -525,6 +525,20 @@ jobs:
       # runtime behaviour and latency only — never answer quality.
       - name: Real GGUF loads and generates tokens
         run: npm run audit:real-inference
+
+      # The video pack's caption path can only run against an ffmpeg built with
+      # libfreetype, and the bundled `ffmpeg-static` is not one. Without this
+      # the caption test takes its refusal branch on every machine forever —
+      # correct behaviour, but a branch that never executes is not tested.
+      # The runner's own ffmpeg has drawtext, so both branches get exercised:
+      # the refusal in the `build` job's unit run, the real burn-in here.
+      - name: Install an ffmpeg with the text filter
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - name: Captions are really burned into the frames
+        env:
+          OCADE_TEST_FFMPEG: /usr/bin/ffmpeg
+        run: npx vitest run src/lib/__tests__/video-pack.test.ts
 
   python-engine:
     name: Python control engine

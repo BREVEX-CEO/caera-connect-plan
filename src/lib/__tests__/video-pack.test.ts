@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execFile } from "node:child_process";
 import { mkdtemp, rm, stat, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -34,9 +34,22 @@ import {
  * repository they are present; the fallback exists for a checkout that
  * installed with --omit=dev.
  */
-const ffmpegPath: string | null = await import("ffmpeg-static")
-  .then((m) => (m.default as unknown as string) ?? null)
-  .catch(() => null);
+/*
+ * OCADE_TEST_FFMPEG EXISTS SO THE CAPTION PATH CAN ACTUALLY BE RUN.
+ *
+ * `ffmpeg-static` is built without libfreetype, so `drawtext` is missing from
+ * it and the caption test below can only ever take its refusal branch here.
+ * The refusal is the right behaviour and is asserted, but a branch that never
+ * executes anywhere is not a tested branch. Pointing this at a distribution
+ * ffmpeg (`apt-get install ffmpeg` supplies one with the filter compiled in)
+ * runs the OTHER branch and proves the caption is really burned into the
+ * frames. Both branches are exercised that way, one build each.
+ */
+const ffmpegPath: string | null =
+  process.env.OCADE_TEST_FFMPEG ??
+  (await import("ffmpeg-static")
+    .then((m) => (m.default as unknown as string) ?? null)
+    .catch(() => null));
 
 /*
  * ffprobe ships SEPARATELY from ffmpeg-static, which does not include it. The
@@ -202,11 +215,77 @@ describe.runIf(toolsReady)("a real video is imported, edited, exported and repla
     const available = await captionsAvailable(runReal, dir);
     const result = await captionVideo(runReal, dir, SOURCE, out, "Recorded at 12:30 — it's fine");
 
+    /*
+     * An override is a REQUEST TO RUN THIS BRANCH. If someone points
+     * OCADE_TEST_FFMPEG at a build without drawtext, the test would quietly
+     * slide into the refusal branch and report a pass for the branch they were
+     * trying to exercise. That silence is the bug this whole file exists to
+     * prevent, so say it instead.
+     */
+    if (process.env.OCADE_TEST_FFMPEG) {
+      expect(
+        available,
+        `OCADE_TEST_FFMPEG=${process.env.OCADE_TEST_FFMPEG} has no drawtext filter, ` +
+          "so the caption branch it was set to exercise cannot run.",
+      ).toBe(true);
+    }
+
     if (available) {
       expect(result.ok, "reason" in result ? result.reason : "").toBe(true);
       if (!result.ok) throw new Error("unreachable");
       expect(result.data.width).toBe(320);
       expect(result.data.height).toBe(240);
+
+      /*
+       * "It wrote a file the right size" is not "it drew the caption".
+       *
+       * Comparing the captioned copy against the SOURCE would not settle it:
+       * the copy is re-encoded, and a lossy re-encode moves pixels all by
+       * itself, so that difference would show up whether or not any text was
+       * drawn. The control has to hold the encode constant and vary only the
+       * thing under test — so caption the same source TWICE with DIFFERENT
+       * text. Identical pipeline, identical settings, one variable. If the two
+       * first frames come back byte-identical, drawtext did nothing.
+       */
+      const firstFrame = async (file: string, target: string) => {
+        const decoded = await runReal({
+          bin: "ffmpeg",
+          args: [
+            "-v",
+            "error",
+            "-y",
+            "-i",
+            file,
+            "-vframes",
+            "1",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            target,
+          ],
+          cwd: dir,
+        });
+        expect(decoded.ok, `decoding ${file} failed: ${decoded.stderr}`).toBe(true);
+        return readFileSync(join(dir, target));
+      };
+      const other = "captioned-other.mp4";
+      const second = await captionVideo(runReal, dir, SOURCE, other, "A completely different line");
+      expect(second.ok, "reason" in second ? second.reason : "").toBe(true);
+
+      const burned = await firstFrame(out, "frame-burned.raw");
+      const burnedOther = await firstFrame(other, "frame-burned-other.raw");
+      expect(burned.length).toBeGreaterThan(0);
+      expect(burnedOther.length).toBe(burned.length);
+      expect(
+        burned.equals(burnedOther),
+        "two different captions produced pixel-identical frames, so no text was drawn",
+      ).toBe(false);
+
+      // And the caption really is an overlay on the original, not a new image:
+      // the frame still decodes at the source's dimensions, asserted above.
+      const plain = await firstFrame(SOURCE, "frame-plain.raw");
+      expect(burned.length).toBe(plain.length);
     } else {
       expect(result.ok).toBe(false);
       if (result.ok) throw new Error("unreachable");
