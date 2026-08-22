@@ -83,18 +83,14 @@ failures += (await step("SIGN IN AND ONBOARD", process.execPath, [
   ? 1
   : 0;
 
-failures += (await step("EVERY ROUTE, SIGNED IN", process.execPath, ["scripts/e2e/route-qa.mjs"], {
-  OCADE_STORAGE_STATE: "/tmp/ocade-onboarded-state.json",
-}))
-  ? 1
-  : 0;
-
 /*
- * THE VISUAL STAGE RUNS HERE, BEFORE THE SETTINGS AUDIT, and the order is load
- * bearing. The settings audit flips reduce-motion as part of its own work, and
- * that preference syncs to the account — so a visual check running afterwards
- * inherits a scene that was deliberately held still and reports it as a
- * backdrop that fails to animate. Measuring the interface before anything has
+ * THE VISUAL STAGE RUNS BEFORE ANYTHING THAT TOUCHES A CONTROL, and the order is
+ * load bearing. The settings audit flips reduce-motion as part of its own work,
+ * and so does the signed-in route audit, which presses every button on every
+ * page — including the motion ones. Both leave the preference somewhere, and
+ * the preference syncs to the account — so a visual check running afterwards
+ * inherits a scene someone else configured and reports it as a backdrop that
+ * fails to animate, or as one that ignores reduce motion. Measuring the interface before anything has
  * been changed is the only way that assertion means anything.
  */
 failures += (await step(
@@ -103,6 +99,12 @@ failures += (await step(
   ["scripts/e2e/visual-performance.mjs"],
   { OCADE_STORAGE_STATE: "/tmp/ocade-onboarded-state.json" },
 ))
+  ? 1
+  : 0;
+
+failures += (await step("EVERY ROUTE, SIGNED IN", process.execPath, ["scripts/e2e/route-qa.mjs"], {
+  OCADE_STORAGE_STATE: "/tmp/ocade-onboarded-state.json",
+}))
   ? 1
   : 0;
 failures += (await step(
