@@ -23,6 +23,11 @@ export default tseslint.config(
     ignores: [
       "dist",
       ".output",
+      // The route audit builds the product with the node preset so it can serve
+      // it here, and moves it aside so it cannot clobber the shipping build.
+      // Without this, eslint crawls 481 generated files and `npm run lint` goes
+      // from minutes to more than forty of them.
+      ".output-routeqa",
       ".vinxi",
       ".browser-sidecar/**",
       "native/**/binaries/**",
