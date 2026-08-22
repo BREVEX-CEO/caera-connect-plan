@@ -1,6 +1,11 @@
 /**
- * Start everything the settings audit needs, run it signed out AND signed in,
- * then shut it all down. One command, no manual setup.
+ * Stand the stack up ONCE, run every audit that needs it, then shut it down.
+ *
+ * The settings audit and the offline audit both need a dev server, the Supabase
+ * fixture and a real signed-in session. Starting that twice wastes a minute and
+ * gives the second run a different session; worse, running either one against a
+ * leftover server from the other is how an audit ends up failing for reasons
+ * that have nothing to do with what it tests.
  */
 import { spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
@@ -77,6 +82,14 @@ failures += (await step(
   "SETTINGS, SIGNED IN",
   process.execPath,
   ["scripts/e2e/settings-audit.mjs"],
+  { OCADE_STORAGE_STATE: "/tmp/ocade-onboarded-state.json" },
+))
+  ? 1
+  : 0;
+failures += (await step(
+  "ONLINE \u2192 OFFLINE \u2192 ONLINE",
+  process.execPath,
+  ["scripts/e2e/offline-transitions.mjs"],
   { OCADE_STORAGE_STATE: "/tmp/ocade-onboarded-state.json" },
 ))
   ? 1

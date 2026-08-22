@@ -471,7 +471,12 @@ jobs:
           OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
         run: npm run audit:engines
 
-      - name: Every settings control, signed out and signed in
+      - name: Six chat prompts through the shipped pipeline
+        run: npm run audit:chat
+
+      # Stands the stack up once: settings signed out, sign-in and onboarding,
+      # settings signed in, then online to offline and back.
+      - name: Settings and offline audits against a running app
         env:
           OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
         run: npm run audit:settings

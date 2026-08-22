@@ -25,7 +25,19 @@ async function appIsUp() {
   }
 }
 
-const ready = existsSync(CHROMIUM) && existsSync(STATE) && (await appIsUp());
+/*
+ * Explicitly opted into, not opportunistic.
+ *
+ * This needs a dev server AND the Supabase fixture AND a fresh session. Gating
+ * only on "is something listening on 8080" meant it latched onto a leftover
+ * dev server from another audit, ran without the fixture behind it, and failed
+ * for reasons that had nothing to do with the offline behaviour under test. A
+ * browser suite that needs a stack should run where the stack is stood up for
+ * it — `npm run audit:offline`, and the browser-audits job in CI — rather than
+ * inside the unit suite.
+ */
+const ready =
+  process.env.OCADE_E2E === "1" && existsSync(CHROMIUM) && existsSync(STATE) && (await appIsUp());
 
 describe.runIf(ready)("the app handles losing and regaining the network", () => {
   it("observes every transition and keeps working offline", async () => {
@@ -44,8 +56,13 @@ describe.runIf(ready)("the app handles losing and regaining the network", () => 
 });
 
 describe.runIf(!ready)("offline transitions are skipped honestly", () => {
-  it("says why rather than passing without running", () => {
-    // A skipped browser test must not read as a passing one.
+  it("records that it did not run, rather than reading as a pass", () => {
+    // A skipped browser test must never be mistaken for a passing one.
     expect(ready).toBe(false);
+    expect(
+      process.env.OCADE_E2E === "1"
+        ? "the stack was not ready"
+        : "not opted in; run npm run audit:offline",
+    ).toBeTruthy();
   });
 });

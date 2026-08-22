@@ -84,6 +84,7 @@
     "audit:model-owner": "node scripts/e2e/model-owner-tabs.mjs",
     "audit:offline": "node scripts/e2e/offline-transitions.mjs",
     "audit:engines": "node scripts/e2e/engine-availability.mjs",
+    "audit:chat": "vite-node scripts/e2e/chat-six-prompts.mjs",
     "desktop:bundle:windows": "node scripts/build-windows-installer.mjs",
     "agent:live-check": "vite-node scripts/agent-loop-evidence.mts"
   },
