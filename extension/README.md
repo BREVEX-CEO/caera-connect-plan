@@ -57,3 +57,16 @@ host access to the loopback test server rather than requesting it, because
 `chrome.permissions.request` opens a native Chrome dialog that headless
 Chromium cannot accept. Everything OCADE decides is the real code; the one
 thing not covered there is Chrome's own permission prompt.
+
+## Proving it on Windows with real Chrome
+
+The extension E2E in `tests/cowork-e2e.mjs` runs against whatever browser
+`OCADE_BROWSER_PATH` points at. To run it — and the rest of the Windows proof —
+against real Chrome Stable on a Windows PC:
+
+```
+npm run windows:prove
+```
+
+See `docs/WINDOWS-PROOF.md` for what it covers and why it has not run in the
+audit environment.

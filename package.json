@@ -88,6 +88,7 @@
     "audit:visual": "node scripts/e2e/visual-performance.mjs",
     "audit:flow-wave": "node scripts/e2e/flow-wave-render.mjs",
     "audit:real-inference": "node scripts/e2e/real-inference.mjs",
+    "windows:prove": "node scripts/prove-on-windows.mjs",
     "desktop:bundle:windows": "node scripts/build-windows-installer.mjs",
     "agent:live-check": "vite-node scripts/agent-loop-evidence.mts"
   },
