@@ -95,6 +95,9 @@ const DEVELOPER_LEAKS = [
   /Objects are not valid as a React child/i,
 ];
 
+/** The same leaks as DEVELOPER_LEAKS, as strings, for post-click checking. */
+const DEV_LEAK_SOURCE = DEVELOPER_LEAKS.map((r) => r.source);
+
 const browser = await chromium.launch({
   executablePath: process.env.OCADE_BROWSER_PATH ?? "/opt/pw-browsers/chromium",
   args: ["--no-sandbox"],
@@ -106,6 +109,7 @@ const VIEWPORTS = [
 ];
 
 const summary = [];
+let totalPressed = 0;
 
 try {
   for (const viewport of VIEWPORTS) {
@@ -350,6 +354,99 @@ try {
         );
       }
 
+      /*
+       * PRESS EVERYTHING, LIKE A PERSON POKING AT THE PAGE.
+       *
+       * Visiting a route proves it renders. It does not prove the controls on
+       * it do anything but throw — and a button whose handler dies leaves the
+       * page looking perfectly fine while doing nothing at all.
+       *
+       * So every enabled, visible control on the page gets pressed, on the
+       * desktop pass. What is being asserted is NOT that each one does the
+       * right thing — the audit has no way to know what right is — but that
+       * pressing it does not throw, does not spill a developer error onto the
+       * screen, and does not leave the page blank.
+       *
+       * Links that leave the page are skipped: following them turns this into
+       * an unbounded crawl, and the route list already visits every one of them
+       * directly. Anything that opens a new tab or downloads is skipped for the
+       * same reason.
+       */
+      if (viewport.name === "desktop") {
+        const pressed = await page.evaluate(() => {
+          const clickable = [...document.querySelectorAll("button, [role=button]")].filter(
+            (node) => {
+              const el = /** @type {HTMLElement} */ (node);
+              if (el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true")
+                return false;
+              if (el.offsetWidth === 0 && el.offsetHeight === 0) return false;
+              const style = getComputedStyle(el);
+              if (style.visibility === "hidden" || style.display === "none") return false;
+              // Anything that would navigate, download or open a window takes
+              // the run somewhere else and is covered by visiting the route.
+              const label = `${el.getAttribute("aria-label") ?? ""} ${el.textContent ?? ""}`;
+              if (/sign out|log out|delete|download|export|revoke/i.test(label)) return false;
+              return true;
+            },
+          );
+          let clicked = 0;
+          const failures = [];
+          for (const el of clickable) {
+            try {
+              /** @type {HTMLElement} */ (el).click();
+              clicked += 1;
+            } catch (error) {
+              failures.push(
+                `${(el.getAttribute("aria-label") || el.textContent || "?").trim().slice(0, 30)}: ${String(error).slice(0, 60)}`,
+              );
+            }
+          }
+          return { clicked, failures };
+        });
+
+        totalPressed += pressed.clicked;
+        check(
+          `${where} survives every button being pressed`,
+          pressed.failures.length === 0,
+          pressed.failures.slice(0, 3).join(" | "),
+        );
+
+        /*
+         * Let whatever the clicks started finish before moving on.
+         *
+         * Some of those buttons navigate, and a navigation still in flight when
+         * the loop calls goto for the next route makes Playwright abort with
+         * "interrupted by another navigation" — reported against the NEXT
+         * route, which had done nothing wrong. Thirty-odd routes failed that
+         * way before this wait existed.
+         */
+        await page.waitForLoadState("domcontentloaded").catch(() => undefined);
+        await page.waitForTimeout(600);
+
+        /*
+         * And the page is still a page afterwards, with no stack trace on it.
+         *
+         * Read twice, for the same reason the first measurement does: some of
+         * those buttons navigate — /settings has a "Close settings" that goes
+         * home — and a single read can land in the blank moment between two
+         * documents. It reported /settings as emptied by its own buttons when
+         * the page it moved to was perfectly healthy.
+         */
+        const readBody = () =>
+          page.evaluate(() => document.body?.innerText ?? "").catch(() => "navigated away");
+        let after = await readBody();
+        if (after.trim().length === 0) {
+          await page.waitForTimeout(1500);
+          after = await readBody();
+        }
+        const brokeAfterClicks = DEV_LEAK_SOURCE.find((p) => new RegExp(p, "i").test(after));
+        check(
+          `${where} shows no developer error after being pressed — ${pressed.clicked} control(s)`,
+          !brokeAfterClicks && (after.trim().length > 0 || after === "navigated away"),
+          brokeAfterClicks ? after.slice(0, 140) : `${after.trim().length} chars left`,
+        );
+      }
+
       const offLoopback = failedRequests.filter((r) => {
         try {
           const { hostname } = new URL(r.url);
@@ -393,9 +490,23 @@ check(
 );
 
 const failed = results.filter((r) => !r.ok);
+/*
+ * Say how many controls were actually pressed.
+ *
+ * "Survives every button being pressed" passes just as happily when the answer
+ * is zero buttons, and a check that cannot fail is not a check. Printing the
+ * count is what makes a silently empty pass visible.
+ */
+check(
+  "the click pass actually pressed things",
+  totalPressed > 100,
+  `${totalPressed} controls pressed across ${ROUTES.length} routes`,
+);
+
 console.log(
   `\n${LABEL}: ${ROUTES.length} routes × ${VIEWPORTS.length} viewports, ` +
-    `${results.length - failed.length}/${results.length} checks passed`,
+    `${results.length - failed.length}/${results.length} checks passed, ` +
+    `${totalPressed} controls pressed`,
 );
 if (failed.length) {
   const byRoute = new Map();
