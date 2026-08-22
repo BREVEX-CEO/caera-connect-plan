@@ -429,7 +429,7 @@ export function ControlWorkPanel({
                 aria-label={deckOpen ? "Close command deck" : "Open command deck"}
                 aria-pressed={deckOpen}
                 title="Open 56 reviewed control launchers"
-                className="h-7 w-7 rounded-full text-muted-foreground/80"
+                className="h-7 w-7 shrink-0 rounded-full text-muted-foreground/80"
                 onClick={() => setDeckOpen((current) => !current)}
               >
                 <Command className="h-3.5 w-3.5" />
@@ -441,7 +441,7 @@ export function ControlWorkPanel({
                   variant="ghost"
                   aria-label={dictation.state === "listening" ? "Stop dictating" : "Dictate"}
                   aria-pressed={dictation.state === "listening"}
-                  className="h-7 w-7 rounded-full text-muted-foreground/80"
+                  className="h-7 w-7 shrink-0 rounded-full text-muted-foreground/80"
                   onClick={() => dictation.toggle()}
                 >
                   {dictation.state === "listening" ? (

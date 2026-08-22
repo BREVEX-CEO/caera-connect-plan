@@ -103,7 +103,7 @@ export function SkillTrustPanel() {
 
       <div className="mt-2 flex flex-wrap gap-3 text-xs">
         {CAPS.map((c) => (
-          <label key={c} className="flex items-center gap-1.5">
+          <label key={c} className="flex min-h-[24px] items-center gap-1.5 py-1">
             <input
               type="checkbox"
               checked={granted.includes(c)}

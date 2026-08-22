@@ -54,7 +54,9 @@ export function DictateButton({
       aria-pressed={active}
       title={title}
       className={cn(
-        "relative inline-flex h-9 w-9 items-center justify-center rounded-xl transition",
+        // shrink-0 because flexbox will happily squash a 36px icon button to 20px
+        // on a narrow screen, and it did: measured 20x28 at 390px wide.
+        "relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         !supported && "cursor-not-allowed text-muted-foreground/40",
         supported && !active && "text-muted-foreground hover:bg-accent hover:text-foreground",

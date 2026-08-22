@@ -167,17 +167,42 @@ try {
         continue;
       }
 
-      const body = await page.evaluate(() => ({
-        text: document.body?.innerText ?? "",
-        // Horizontal overflow is measured against the DOCUMENT, not an element:
-        // a single wide child is exactly the defect, and it only shows up here.
-        scrollWidth: document.documentElement.scrollWidth,
-        clientWidth: document.documentElement.clientWidth,
-        headings: document.querySelectorAll("h1,h2,h3").length,
-        controls: document.querySelectorAll(
-          "button, a[href], input, select, textarea, [role=button]",
-        ).length,
-      }));
+      /*
+       * READ TWICE IF THE FIRST READ IS EMPTY.
+       *
+       * A single sample can land in the middle of a navigation, where the
+       * document is briefly empty — /auth/verify and /auth/callback were
+       * reported as "0 chars, 0 headings, 0 controls" while rendering 964
+       * characters and 16 controls every time they were looked at directly.
+       *
+       * A page that is genuinely blank is still blank on the second read, so
+       * this removes the artefact without softening the check.
+       */
+      const measure = () =>
+        page.evaluate(() => ({
+          text: document.body?.innerText ?? "",
+          // Horizontal overflow is measured against the DOCUMENT, not an
+          // element: a single wide child is exactly the defect, and it only
+          // shows up here.
+          scrollWidth: document.documentElement.scrollWidth,
+          clientWidth: document.documentElement.clientWidth,
+          headings: document.querySelectorAll("h1,h2,h3").length,
+          controls: document.querySelectorAll(
+            "button, a[href], input, select, textarea, [role=button]",
+          ).length,
+        }));
+
+      let body = await measure().catch(() => null);
+      if (!body || (body.text.trim().length === 0 && body.controls === 0)) {
+        await page.waitForTimeout(1500);
+        body = (await measure().catch(() => null)) ?? {
+          text: "",
+          scrollWidth: 0,
+          clientWidth: 1,
+          headings: 0,
+          controls: 0,
+        };
+      }
 
       check(
         `${where} renders something a person can use`,
@@ -302,10 +327,17 @@ try {
               if (parentText > ownText + 2) continue;
             }
             if (rect.width < MIN || rect.height < MIN) {
+              // Enough to FIND the control again: an unlabelled icon button
+              // reported only as `button 20x28 ""` is a defect nobody can act
+              // on without re-deriving where it was.
+              const name =
+                el.getAttribute("aria-label") ??
+                el.getAttribute("title") ??
+                (el.textContent ?? "").trim().slice(0, 24);
               out.push(
                 `${el.tagName.toLowerCase()}${el.id ? "#" + el.id : ""}${label ? "(label)" : ""} ` +
                   `${Math.round(rect.width)}x${Math.round(rect.height)} ` +
-                  `"${(el.textContent ?? "").trim().slice(0, 24)}"`,
+                  `"${name}" [${String(el.className).slice(0, 60)}]`,
               );
             }
           }

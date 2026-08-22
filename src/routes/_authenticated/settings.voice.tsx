@@ -380,7 +380,7 @@ function VoiceSettingsPage() {
         {/* Wake phrase + captions */}
         <GlassPanel className="p-4">
           <h3 className="mb-1 text-sm font-semibold">Hands-free</h3>
-          <label className="mt-2 flex items-start gap-2 text-sm">
+          <label className="mt-2 flex min-h-[24px] items-start gap-2 py-1 text-sm">
             <input
               type="checkbox"
               checked={prefs.wakeEnabled}
@@ -398,7 +398,7 @@ function VoiceSettingsPage() {
               </span>
             </span>
           </label>
-          <label className="mt-3 flex items-start gap-2 text-sm">
+          <label className="mt-3 flex min-h-[24px] items-start gap-2 py-1 text-sm">
             <input
               type="checkbox"
               checked={prefs.captionsEnabled}
@@ -412,7 +412,7 @@ function VoiceSettingsPage() {
               </span>
             </span>
           </label>
-          <label className="mt-3 flex items-start gap-2 text-sm">
+          <label className="mt-3 flex min-h-[24px] items-start gap-2 py-1 text-sm">
             <input
               type="checkbox"
               checked={prefs.autoSpeak}
@@ -486,7 +486,7 @@ function VoiceSettingsPage() {
               </button>
             ))}
           </div>
-          <label className="mt-3 flex items-center gap-2 text-sm">
+          <label className="mt-3 flex min-h-[24px] items-center gap-2 py-1 text-sm">
             <input
               type="checkbox"
               checked={prefs.greetingEnabled}

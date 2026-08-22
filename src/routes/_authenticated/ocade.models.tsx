@@ -588,7 +588,7 @@ function OcadeModelsPage() {
 
                   {p.id === "openai_direct" && (
                     <div className="mt-3 rounded-md border border-white/10 bg-white/[0.02] p-3 text-xs">
-                      <label className="flex items-center gap-2 text-fg">
+                      <label className="flex min-h-[24px] items-center gap-2 py-1 text-fg">
                         <input
                           type="checkbox"
                           checked={prefs.openai_direct_enabled}

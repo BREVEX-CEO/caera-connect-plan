@@ -252,7 +252,7 @@ function AppearancePage() {
                 step={2}
                 value={appearance.cursorSize}
                 onChange={(e) => appearance.update({ cursorSize: Number(e.target.value) })}
-                className="mt-2 w-full accent-primary"
+                className="mt-2 h-6 w-full accent-primary"
               />
             </div>
 

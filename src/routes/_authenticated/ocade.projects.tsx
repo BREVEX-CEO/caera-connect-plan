@@ -485,7 +485,7 @@ function ProjectsPage() {
         title="Projects"
         description="Group conversations, instructions and generated outputs. Project instructions are applied to every chat in the project."
         actions={
-          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          <label className="flex min-h-[24px] items-center gap-2 py-1 text-xs text-muted-foreground">
             <input
               type="checkbox"
               checked={showArchived}
