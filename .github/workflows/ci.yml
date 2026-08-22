@@ -2,9 +2,14 @@ name: CI
 
 on:
   push:
-    branches: ["feat/ocade-implementation", "main"]
+    # `claude/**` is here so agent branches are verified by the same pipeline
+    # that guards main, on the machine that runs it, rather than only on the
+    # machine they were written on. A branch whose CI never runs is a branch
+    # whose CI is unknown.
+    branches: ["feat/ocade-implementation", "main", "claude/**"]
   pull_request:
     branches: ["main"]
+  workflow_dispatch:
 
 # Cancel superseded runs on the same branch rather than queueing them.
 concurrency:
