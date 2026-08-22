@@ -108,10 +108,14 @@ describe("an engine that cannot see says so, and refuses the image", () => {
     async (_label, make) => {
       const availability = await make().probe();
       if (availability.available) {
-        expect(availability.capabilities?.vision).toBe(false);
+        expect(availability.capabilities.vision).toBe(false);
       } else {
-        // Unavailable engines must still not claim a capability.
-        expect(availability.capabilities?.vision ?? false).toBe(false);
+        /*
+         * An unavailable engine carries no capabilities at all — the type has
+         * no such field — which is the stronger form of the same promise: an
+         * engine that cannot run cannot advertise anything either.
+         */
+        expect(availability).not.toHaveProperty("capabilities");
       }
     },
     30_000,
