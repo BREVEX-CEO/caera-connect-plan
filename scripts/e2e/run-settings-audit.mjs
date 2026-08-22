@@ -1,0 +1,89 @@
+/**
+ * Start everything the settings audit needs, run it signed out AND signed in,
+ * then shut it all down. One command, no manual setup.
+ */
+import { spawn } from "node:child_process";
+import { setTimeout as sleep } from "node:timers/promises";
+import { startStubSupabase } from "../fixtures/stub-supabase.mjs";
+
+const children = [];
+function run(command, args, env = {}) {
+  const child = spawn(command, args, {
+    stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, ...env },
+  });
+  children.push(child);
+  return child;
+}
+const stopAll = () =>
+  children.forEach((c) => {
+    try {
+      c.kill("SIGTERM");
+    } catch {
+      /* already gone */
+    }
+  });
+process.on("exit", stopAll);
+process.on("SIGINT", () => {
+  stopAll();
+  process.exit(130);
+});
+
+const supabase = await startStubSupabase({ port: 54321 });
+console.log(`stub supabase: ${supabase.url}`);
+
+const env = {
+  VITE_SUPABASE_URL: supabase.url,
+  VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_ocade_local_audit_key",
+  SUPABASE_URL: supabase.url,
+  SUPABASE_PUBLISHABLE_KEY: "sb_publishable_ocade_local_audit_key",
+};
+const dev = run("npx", ["vite", "dev", "--host", "127.0.0.1", "--port", "8080"], env);
+let ready = false;
+dev.stdout.on("data", (d) => {
+  if (/Local:\s+http/.test(String(d))) ready = true;
+});
+dev.stderr.on("data", (d) => process.stderr.write(String(d)));
+for (let i = 0; i < 60 && !ready; i += 1) await sleep(1000);
+if (!ready) {
+  console.error("dev server never became ready");
+  process.exit(1);
+}
+await sleep(2500);
+console.log("dev server ready\n");
+
+function step(label, command, args, env2 = {}) {
+  return new Promise((resolve) => {
+    console.log(`\n===== ${label} =====`);
+    const child = run(command, args, env2);
+    child.stdout.on("data", (d) => process.stdout.write(String(d)));
+    child.stderr.on("data", (d) => process.stderr.write(String(d)));
+    child.on("exit", (code) => resolve(code ?? 1));
+  });
+}
+
+let failures = 0;
+failures += (await step("SETTINGS, SIGNED OUT", process.execPath, [
+  "scripts/e2e/settings-audit.mjs",
+]))
+  ? 1
+  : 0;
+failures += (await step("SIGN IN AND ONBOARD", process.execPath, [
+  "scripts/e2e/sign-in-and-onboard.mjs",
+]))
+  ? 1
+  : 0;
+failures += (await step(
+  "SETTINGS, SIGNED IN",
+  process.execPath,
+  ["scripts/e2e/settings-audit.mjs"],
+  { OCADE_STORAGE_STATE: "/tmp/ocade-onboarded-state.json" },
+))
+  ? 1
+  : 0;
+
+stopAll();
+console.log(
+  `\n${failures === 0 ? "ALL SETTINGS AUDIT STAGES PASSED" : `${failures} STAGE(S) FAILED`}`,
+);
+process.exit(failures === 0 ? 0 : 1);

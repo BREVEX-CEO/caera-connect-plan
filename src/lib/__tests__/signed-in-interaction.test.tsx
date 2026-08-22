@@ -340,7 +340,17 @@ describe("every enabled control on a signed-in route can be pressed", () => {
          */
         if (next instanceof HTMLAnchorElement) {
           const href = next.getAttribute("href") ?? "";
-          const goesSomewhere = href.startsWith("/") || /^(https?:|mailto:|tel:)/i.test(href);
+          /*
+           * A fragment is a real destination. "Skip to content" points at
+           * `#main-content`, which is the accessibility affordance that lets a
+           * keyboard user past the navigation — an earlier version of this rule
+           * counted it as a link that goes nowhere and failed six routes for
+           * having one.
+           */
+          const goesSomewhere =
+            href.startsWith("/") ||
+            /^(https?:|mailto:|tel:)/i.test(href) ||
+            (href.startsWith("#") && href.length > 1);
           if (!goesSomewhere) {
             failures.push(
               `${label || "(unlabelled link)"}: href goes nowhere (${JSON.stringify(href)})`,

@@ -80,6 +80,7 @@
     "browser:cdp-parity": "node scripts/browser-cdp-parity.mjs",
     "extension:e2e": "node extension/tests/cowork-e2e.mjs",
     "extension:check": "node scripts/check-extension.mjs",
+    "audit:settings": "node scripts/e2e/run-settings-audit.mjs",
     "desktop:bundle:windows": "node scripts/build-windows-installer.mjs",
     "agent:live-check": "vite-node scripts/agent-loop-evidence.mts"
   },

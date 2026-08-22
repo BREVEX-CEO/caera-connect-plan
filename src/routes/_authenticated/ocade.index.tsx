@@ -284,10 +284,34 @@ function OcadePage() {
     );
   }
   if (!user) {
+    /*
+     * A DEAD END IS NOT A STATE, IT IS A DEFECT.
+     *
+     * This used to be the sentence alone, with no control of any kind: the
+     * reader was told they had to sign in and given nothing to press. The
+     * `_authenticated` guard normally redirects before anyone arrives here, so
+     * it went unnoticed — but a guard that has not resolved yet, a session that
+     * expires while the page is open, or a direct mount all land on it, and
+     * every one of those leaves the person stuck on the product's main screen.
+     */
     return (
       <>
         <div className="mx-auto mt-10 max-w-md rounded-lg border border-border/60 bg-card p-6 text-center">
-          <p className="text-sm text-muted-foreground">Sign-in required to use OCADE.</p>
+          <p className="text-sm text-muted-foreground">You need to be signed in to use OCADE.</p>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <Link
+              to="/auth"
+              className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+            >
+              Sign in
+            </Link>
+            <Link
+              to="/"
+              className="rounded-md border border-border/60 px-3 py-1.5 text-sm text-foreground transition hover:bg-accent/30"
+            >
+              Back to home
+            </Link>
+          </div>
         </div>
       </>
     );
@@ -782,12 +806,7 @@ function SidebarLink({
 }: {
   icon: typeof FolderOpen;
   label: string;
-  to:
-    | "/ocade/work"
-    | "/ocade/code"
-    | "/ocade/projects"
-    | "/ocade/artifacts"
-    | "/ocade/automations";
+  to: "/ocade/work" | "/ocade/code" | "/ocade/projects" | "/ocade/artifacts" | "/ocade/automations";
 }) {
   return (
     <Link
