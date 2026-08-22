@@ -17,6 +17,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supabase/client";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
+import { SiteFooterLinks } from "@/components/shell/SiteFooter";
 import { DepthScene } from "@/components/motion/DepthScene";
 import { invalidateModeCache } from "@/lib/storage/resolver";
 import { clearDevices } from "@/lib/mobile/device-store";
@@ -62,20 +63,7 @@ function NotFoundComponent() {
             Open OCADE
           </Link>
         </div>
-        <div className="mt-6 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
-          <Link to="/faq" className="hover:text-foreground">
-            FAQ
-          </Link>
-          <Link to="/settings/support" className="hover:text-foreground">
-            Support
-          </Link>
-          <Link to="/privacy" className="hover:text-foreground">
-            Privacy
-          </Link>
-          <Link to="/terms" className="hover:text-foreground">
-            Terms
-          </Link>
-        </div>
+        <SiteFooterLinks className="mt-6 justify-center text-xs text-muted-foreground" />
       </div>
     </main>
   );

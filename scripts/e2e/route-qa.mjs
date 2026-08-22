@@ -22,6 +22,7 @@
  * an explanation is the correct behaviour, and the check is that SOMETHING
  * coherent rendered, not that the page was reached.
  */
+import { readFileSync } from "node:fs";
 import { chromium } from "playwright-core";
 
 const BASE = process.env.OCADE_BASE_URL ?? "http://127.0.0.1:8080";
@@ -33,73 +34,46 @@ const LABEL = STATE ? "SIGNED IN" : "SIGNED OUT";
  * documents are deliberately absent — they are not pages, and "it did not
  * render a heading" is a meaningless thing to say about a JSON endpoint.
  */
+/*
+ * THE ROUTE LIST COMES FROM THE APP, NOT FROM MEMORY.
+ *
+ * It was hand-written first, and it was wrong in both directions: it invented
+ * /support, /security, /callback and /verify — which are child segments of
+ * /settings and /auth, not addresses — so four "routes" were really the 404
+ * page passing a check that something rendered. And it MISSED real ones:
+ * /demo/control, /demo/ocade, /demo/settings, /auth/callback, /auth/verify.
+ *
+ * Reading TanStack's generated route tree means the audit covers what the
+ * application actually serves, and keeps covering it when routes are added.
+ */
+const generated = readFileSync("src/routeTree.gen.ts", "utf8");
+const byFullPath = /interface FileRoutesByFullPath \{([\s\S]*?)\n\}/.exec(generated);
+if (!byFullPath) {
+  console.error("could not read the route tree; run `npm run routes:generate` first");
+  process.exit(1);
+}
 const ROUTES = [
-  "/",
-  "/auth",
-  "/callback",
-  "/reset-password",
-  "/verify",
-  "/pricing",
-  "/company",
-  "/faq",
-  "/support",
-  "/demo",
-  "/download",
-  "/privacy",
-  "/terms",
-  "/security",
-  "/data-rights",
-  "/products/ocade",
-  "/founder/haans-antoni",
-  "/checkout/success",
-  "/home",
-  "/onboarding",
-  "/access-denied",
-  "/ocade",
-  "/ocade/work",
-  "/ocade/tasks",
-  "/ocade/projects",
-  "/ocade/code",
-  "/ocade/automations",
-  "/ocade/activity",
-  "/ocade/artifacts",
-  "/ocade/connectors",
-  "/ocade/devices",
-  "/ocade/health",
-  "/ocade/inbox",
-  "/ocade/knowledge",
-  "/ocade/lab",
-  "/ocade/models",
-  "/ocade/monitors",
-  "/ocade/notifications",
-  "/ocade/permissions",
-  "/ocade/search",
-  "/ocade/shared",
-  "/ocade/studio",
-  "/ocade/system",
-  "/ocade/templates",
-  "/cania",
-  "/ficia",
-  "/madee",
-  "/settings",
-  "/settings/appearance",
-  "/settings/activity",
-  "/settings/billing",
-  "/settings/browser",
-  "/settings/devices",
-  "/settings/mobile",
-  "/settings/privacy",
-  "/settings/security",
-  "/settings/skills",
-  "/settings/support",
-  "/settings/tasks",
-  "/settings/usage",
-  "/settings/vault",
-  "/settings/voice",
-  "/admin/launch-gate",
-  "/admin/payments-checklist",
-  "/admin/support",
-  "/admin/users",
+  ...new Set(
+    [...byFullPath[1].matchAll(/^\s*'([^']+)':/gm)]
+      .map((m) => m[1])
+      // Not pages: API endpoints, the MCP transport, well-known documents and
+      // generated text files. "It rendered no heading" says nothing about JSON.
+      .filter(
+        (path) =>
+          !path.startsWith("/api/") &&
+          !path.startsWith("/.mcp") &&
+          !path.startsWith("/.well-known") &&
+          !path.startsWith("/.lovable") &&
+          path !== "/mcp" &&
+          path !== "/robots.txt" &&
+          path !== "/sitemap.xml" &&
+          // A bare $param cannot be visited without inventing a value, and the
+          // concrete siblings above already cover the layout it renders.
+          !path.includes("$") &&
+          // TanStack lists both "/x" and "/x/" for an index route.
+          !(path.endsWith("/") && path.length > 1),
+      ),
+  ),
   // Deliberately not a route: a 404 must be a designed page, not a crash.
   "/this-route-does-not-exist",
 ];
@@ -223,6 +197,126 @@ try {
         body.scrollWidth <= body.clientWidth + 1,
         `${body.scrollWidth} > ${body.clientWidth}`,
       );
+
+      /*
+       * TOUCH TARGETS, MEASURED RATHER THAN ASSUMED.
+       *
+       * A control that is 18 pixels tall is usable with a mouse and a coin toss
+       * with a thumb. WCAG 2.5.8 puts the floor at 24x24 CSS pixels, and that
+       * is the number used here — not the 44x44 many design systems prefer,
+       * because the point is to catch controls that are genuinely hard to hit
+       * rather than to relitigate a house style.
+       *
+       * Inline links inside a paragraph are exempt: WCAG exempts them too, they
+       * are sized by the text around them, and flagging every one would bury
+       * the real finding under prose.
+       */
+      if (viewport.name === "phone") {
+        const tiny = await page.evaluate(() => {
+          const MIN = 24;
+          const out = [];
+          const nodes = document.querySelectorAll(
+            "button, [role=button], input:not([type=hidden]), select, textarea, a[href]",
+          );
+          for (const node of nodes) {
+            const el = /** @type {HTMLElement} */ (node);
+            if (el.hasAttribute("disabled") || el.getAttribute("aria-hidden") === "true") continue;
+            /*
+             * MEASURE WHAT A THUMB CAN ACTUALLY HIT.
+             *
+             * A 16x16 checkbox wrapped in a label is not a 16x16 target: the
+             * label activates it, so the label is the target. The first version
+             * of this check measured the input itself and reported the consent
+             * dialog's two checkboxes as too small on every authenticated route
+             * — twenty-odd identical "defects" that were one correct design.
+             * WCAG 2.5.8 is about the activation area for the same reason.
+             */
+            const label =
+              el.closest("label") ??
+              (el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`) : null);
+            /*
+             * LAYOUT SIZE, NOT TRANSFORMED SIZE.
+             *
+             * getBoundingClientRect() reports the box AFTER CSS transforms, and
+             * the landing page animates its panels with scale — so a button
+             * styled `h-11` (44px) measured 17px tall simply because it was
+             * scrolled away and scaled down. That is not a small target; it is
+             * a target being looked at through a transform.
+             *
+             * offsetWidth/offsetHeight are layout values and ignore transforms,
+             * which is the question actually being asked: how big is this
+             * control when the person reaches it.
+             */
+            const own = {
+              width: el.offsetWidth || el.getBoundingClientRect().width,
+              height: el.offsetHeight || el.getBoundingClientRect().height,
+              left: 0,
+              top: 0,
+              right: el.offsetWidth || 0,
+              bottom: el.offsetHeight || 0,
+            };
+            /*
+             * The activation area is the control PLUS its label, so take the
+             * union rather than picking one. Preferring the label alone was
+             * wrong the other way: a caption sitting above a full-width field
+             * is a 308x16 strip, and reporting that as the target flagged
+             * perfectly reachable password fields.
+             */
+            let rect = own;
+            if (label) {
+              // The activation area is the control PLUS its label. Preferring
+              // the label alone was wrong the other way: a caption above a
+              // full-width field is a 308x16 strip, and calling that the target
+              // flagged perfectly reachable password fields.
+              rect = {
+                width: Math.max(own.width, label.offsetWidth || 0),
+                height: Math.max(own.height, label.offsetHeight || 0),
+              };
+            }
+            if (rect.width === 0 || rect.height === 0) continue; // not rendered
+            const style = getComputedStyle(el);
+            if (style.visibility === "hidden" || style.display === "none") continue;
+            if (Number(style.opacity) === 0) continue;
+            /*
+             * A 1x1 input is the standard way to hide a file picker behind a
+             * real button: the button is the target, the input is plumbing.
+             * Reporting it as a 1x1 tap target says nothing true about what a
+             * person touches.
+             */
+            if (el.offsetWidth <= 4 && el.offsetHeight <= 4) continue;
+            if (el.className && /(^|\s)sr-only(\s|$)/.test(String(el.className))) continue;
+            // An anchor sitting inside a block of text is an inline link.
+            /*
+             * An anchor that sits INSIDE a sentence is exempt, and WCAG 2.5.8
+             * exempts it for the same reason: it is sized by the text around
+             * it, and padding it would break the line box it lives in.
+             *
+             * The test is simply "is there other text in this sentence" — an
+             * earlier version demanded twenty characters more than the link
+             * itself, and "Changed your mind? Back to sign in." missed that by
+             * one character and was reported as a defect.
+             */
+            if (el.tagName === "A" && style.display.startsWith("inline")) {
+              const parentText = el.parentElement?.textContent?.trim().length ?? 0;
+              const ownText = el.textContent?.trim().length ?? 0;
+              if (parentText > ownText + 2) continue;
+            }
+            if (rect.width < MIN || rect.height < MIN) {
+              out.push(
+                `${el.tagName.toLowerCase()}${el.id ? "#" + el.id : ""}${label ? "(label)" : ""} ` +
+                  `${Math.round(rect.width)}x${Math.round(rect.height)} ` +
+                  `"${(el.textContent ?? "").trim().slice(0, 24)}"`,
+              );
+            }
+          }
+          return out;
+        });
+        check(
+          `${where} has no touch target below 24x24`,
+          tiny.length === 0,
+          tiny.slice(0, 4).join(" | "),
+        );
+      }
 
       const offLoopback = failedRequests.filter((r) => {
         try {

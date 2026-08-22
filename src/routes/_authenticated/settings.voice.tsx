@@ -253,7 +253,7 @@ function VoiceSettingsPage() {
                 step={0.1}
                 value={prefs.rate}
                 onChange={(e) => update({ rate: Number(e.target.value) })}
-                className="w-full accent-[color:var(--foreground)]"
+                className="h-6 w-full accent-[color:var(--foreground)]"
               />
             </label>
             <label className="text-xs">
@@ -267,7 +267,7 @@ function VoiceSettingsPage() {
                 step={0.1}
                 value={prefs.pitch}
                 onChange={(e) => update({ pitch: Number(e.target.value) })}
-                className="w-full accent-[color:var(--foreground)]"
+                className="h-6 w-full accent-[color:var(--foreground)]"
               />
             </label>
           </div>

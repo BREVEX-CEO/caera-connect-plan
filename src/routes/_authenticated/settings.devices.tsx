@@ -15,7 +15,12 @@ import {
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { StatusBadge } from "@/components/shell/StatusBadge";
-import { listDevicesForCurrentUser, revokeDevice, renameDevice, type DeviceRow } from "@/lib/devices";
+import {
+  listDevicesForCurrentUser,
+  revokeDevice,
+  renameDevice,
+  type DeviceRow,
+} from "@/lib/devices";
 import { canRegisterDevice, entitlementState } from "@/lib/ocade-allowance";
 import { getEntitlement } from "@/lib/ocade-usage.functions";
 import { executeAction, recordAction, ActionConfirmationError } from "@/lib/actions";
@@ -129,7 +134,10 @@ function DevicesPage() {
         title="Approved devices"
         description="One physical PC counts as one desktop device. Extra browsers on the same PC will share that slot once the Native Companion ships."
         actions={
-          <Link to="/settings" className="text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/settings"
+            className="inline-flex min-h-[24px] items-center px-1 py-1 text-sm text-muted-foreground hover:text-foreground"
+          >
             ← Back to Settings
           </Link>
         }
@@ -364,7 +372,10 @@ function ErrorRow({ message, onRetry }: { message: string; onRetry: () => void }
       <span className="flex items-center gap-2">
         <AlertCircle className="h-3.5 w-3.5" aria-hidden /> {message}
       </span>
-      <button onClick={onRetry} className="inline-flex items-center gap-1 underline underline-offset-2">
+      <button
+        onClick={onRetry}
+        className="inline-flex items-center gap-1 underline underline-offset-2"
+      >
         <RefreshCw className="h-3 w-3" /> Retry
       </button>
     </div>

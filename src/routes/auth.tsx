@@ -71,7 +71,11 @@ function AuthPage() {
     typeof window !== "undefined" ? window.location.hash : "",
   );
   const inboundFriendly = inboundOAuthError
-    ? describeOAuthError(search.provider ?? "google", inboundOAuthError.code, inboundOAuthError.description)
+    ? describeOAuthError(
+        search.provider ?? "google",
+        inboundOAuthError.code,
+        inboundOAuthError.description,
+      )
     : null;
   const [error, setError] = useState<string | null>(inboundFriendly?.message ?? null);
   const [errorHint, setErrorHint] = useState<string | null>(inboundFriendly?.hint ?? null);
@@ -112,7 +116,6 @@ function AuthPage() {
       setBusy(false);
     }
   }
-
 
   async function sendPhoneOtp(e: React.FormEvent) {
     e.preventDefault();
@@ -315,7 +318,11 @@ function AuthPage() {
                 setNotice(null);
               }}
               className={cn(
-                "rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+                // min-h keeps the hit area at the WCAG 2.5.8 floor of 24px
+                // without enlarging the type: these were 21px tall, which is
+                // fine with a mouse and a guess with a thumb.
+                "inline-flex min-h-[24px] items-center justify-center rounded-md px-2 py-1.5",
+                "text-xs font-medium transition-colors",
                 method === m.id
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -395,7 +402,8 @@ function AuthPage() {
               />
             </div>
             <label htmlFor="password" className="text-xs font-medium text-muted-foreground">
-              Password <span className="font-normal">(optional — leave empty for a one-time code)</span>
+              Password{" "}
+              <span className="font-normal">(optional — leave empty for a one-time code)</span>
             </label>
             <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/50 px-3 focus-within:ring-2 focus-within:ring-ring">
               <KeyRound className="h-4 w-4 text-muted-foreground" aria-hidden />
@@ -449,7 +457,6 @@ function AuthPage() {
             </button>
           </form>
         ) : null}
-
 
         {error ? (
           <div

@@ -156,7 +156,7 @@ describe("offline queue", () => {
 
 describe("dispatch", () => {
   it("blocks when biometric confirmation is missing", async () => {
-    const r = await dispatchMobileIntent({ kind: "emergency.stop" }, phone());
+    const r = await dispatchMobileIntent({ kind: "emergency.stop" }, phone(), { now: NOW });
     expect(r.ok).toBe(false);
     expect(r.detail).toBe(MOBILE_BIOMETRIC_UNAVAILABLE);
   });
@@ -174,7 +174,7 @@ describe("dispatch", () => {
       send: async () => ({ ok: true, detail: "stop acknowledged" }),
     });
 
-    const r = await dispatchMobileIntent({ kind: "emergency.stop" }, phone());
+    const r = await dispatchMobileIntent({ kind: "emergency.stop" }, phone(), { now: NOW });
     expect(r).toEqual({ ok: true, detail: "stop acknowledged" });
     expect(confirmed).toEqual([{ kind: "emergency.stop" }]);
   });
@@ -183,14 +183,17 @@ describe("dispatch", () => {
     const r = await dispatchMobileIntent(
       { kind: "task.handoff", conversationId: "c", text: "later" },
       phone(),
-      { online: false, queue: [] },
+      { online: false, queue: [], now: NOW },
     );
     expect(r.ok).toBe(true);
     expect(r.queue).toHaveLength(1);
   });
 
   it("reports the transport as unavailable rather than faking delivery", async () => {
-    const r = await dispatchMobileIntent({ kind: "monitor.status" }, phone(), { online: true });
+    const r = await dispatchMobileIntent({ kind: "monitor.status" }, phone(), {
+      online: true,
+      now: NOW,
+    });
     expect(r.ok).toBe(false);
     expect(r.detail).toBe(MOBILE_TRANSPORT_UNAVAILABLE);
   });
@@ -206,6 +209,38 @@ describe("dispatch", () => {
  * lands in a queue and an audit trail. It must be refused at the decision
  * layer, before anything is queued, sent or written.
  */
+describe("the clock is injectable, so these tests cannot rot", () => {
+  /*
+   * This suite pins its devices to a fixed date. Device trust expires 30 days
+   * after `lastSeenAt`, and `dispatchMobileIntent` was the one time-dependent
+   * function here with no clock parameter — so it always asked the real one.
+   *
+   * The suite therefore passed for thirty days and then began refusing
+   * everything, without a line of it changing. These two tests fix the shape of
+   * that bug rather than the date: if the clock stops being honoured, they fail
+   * immediately instead of thirty days later.
+   */
+  it("refuses a device that is stale AT THE GIVEN TIME, not at the real one", async () => {
+    const wellPast = new Date(NOW.getTime() + TRUST_STALE_MS + 60_000);
+    const r = await dispatchMobileIntent({ kind: "monitor.status" }, phone(), {
+      online: true,
+      now: wellPast,
+    });
+    expect(r.ok).toBe(false);
+    expect(r.detail).toMatch(/verified recently/i);
+  });
+
+  it("allows the same device at a time when it is still fresh", async () => {
+    const r = await dispatchMobileIntent({ kind: "monitor.status" }, phone(), {
+      online: true,
+      now: NOW,
+    });
+    // The transport is unavailable in this suite, so reaching a TRANSPORT
+    // failure is the proof that the trust gate let it through.
+    expect(r.detail).toBe(MOBILE_TRANSPORT_UNAVAILABLE);
+  });
+});
+
 describe("protected content never crosses a handoff", () => {
   it.each([
     "my password is hunter2",
@@ -213,7 +248,7 @@ describe("protected content never crosses a handoff", () => {
     "card number 4111 1111 1111 1111",
     "recovery code alpha bravo",
   ])("refuses a clipboard hand-off containing %s", (text) => {
-    const d = decideMobileIntent({ kind: "clipboard.handoff", text }, phone());
+    const d = decideMobileIntent({ kind: "clipboard.handoff", text }, phone(), NOW);
     expect(d.allow).toBe(false);
     if (d.allow) throw new Error("unreachable");
     expect(d.reason).toMatch(/won't send it|enter it directly/i);
@@ -232,7 +267,7 @@ describe("protected content never crosses a handoff", () => {
     const r = await dispatchMobileIntent(
       { kind: "clipboard.handoff", text: "my password is hunter2" },
       phone(),
-      { online: false, durable: q },
+      { online: false, durable: q, now: NOW },
     );
     expect(r.ok).toBe(false);
     expect(q.size).toBe(0);
@@ -242,6 +277,7 @@ describe("protected content never crosses a handoff", () => {
     const d = decideMobileIntent(
       { kind: "clipboard.handoff", text: "the meeting notes from Tuesday" },
       phone(),
+      NOW,
     );
     expect(d.allow).toBe(true);
     if (!d.allow) throw new Error("unreachable");
@@ -273,7 +309,7 @@ describe("the durable offline queue", () => {
     await dispatchMobileIntent(
       { kind: "task.handoff", conversationId: "c", text: "later" },
       phone(),
-      { online: false, durable: q },
+      { online: false, durable: q, now: NOW },
     );
     // A fresh instance reads the same storage — this is the "after reload" case.
     expect(createMobileIntentQueue().size).toBe(1);
@@ -284,6 +320,7 @@ describe("the durable offline queue", () => {
     const r = await dispatchMobileIntent({ kind: "emergency.stop" }, phone(), {
       online: false,
       durable: q,
+      now: NOW,
     });
     expect(r.ok).toBe(false);
     expect(q.size).toBe(0);
@@ -294,7 +331,7 @@ describe("the durable offline queue", () => {
     await dispatchMobileIntent(
       { kind: "approval.decide", requestId: "r1", decision: "approved" },
       phone(),
-      { online: false, durable: q },
+      { online: false, durable: q, now: NOW },
     );
     expect(q.size).toBe(0);
   });
@@ -312,7 +349,7 @@ describe("the durable offline queue", () => {
     q.enqueue({ kind: "task.handoff", conversationId: "c", text: "one" });
     q.enqueue({ kind: "clipboard.handoff", text: "two" });
 
-    const r = await flushMobileQueue(q, phone());
+    const r = await flushMobileQueue(q, phone(), NOW);
     expect(r.sent).toBe(2);
     expect(q.size).toBe(0);
     expect(sent).toHaveLength(2);
@@ -349,7 +386,7 @@ describe("the durable offline queue", () => {
     const r = await dispatchMobileIntent(
       { kind: "task.handoff", conversationId: "c", text: "x" },
       phone(),
-      { online: false, queue: [] },
+      { online: false, queue: [], now: NOW },
     );
     expect(r.queue).toHaveLength(1);
   });

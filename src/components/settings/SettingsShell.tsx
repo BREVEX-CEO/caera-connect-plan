@@ -244,7 +244,7 @@ export function SettingsShell({ children }: { children: ReactNode }) {
           <div className="mb-3 md:hidden">
             <Link
               to="/settings"
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              className="inline-flex min-h-[24px] items-center gap-1 px-1 py-1 text-xs text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="h-3 w-3" aria-hidden /> All settings
             </Link>

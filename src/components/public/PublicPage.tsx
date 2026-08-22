@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { BrandMark } from "@/components/shell/BrandMark";
-import { SiteFooterLinks } from "@/components/shell/SiteFooter";
+import { SiteFooterLinks, TAP_LINK } from "@/components/shell/SiteFooter";
 
 export function PublicPage({
   eyebrow,
@@ -38,19 +38,19 @@ export function PublicPage({
             <BrandMark />
           </Link>
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <Link to="/company" className="hover:text-foreground">
+            <Link to="/company" className={TAP_LINK}>
               Company
             </Link>
-            <Link to="/products/ocade" className="hover:text-foreground">
+            <Link to="/products/ocade" className={TAP_LINK}>
               OCADE
             </Link>
-            <Link to="/founder/haans-antoni" className="hover:text-foreground">
+            <Link to="/founder/haans-antoni" className={TAP_LINK}>
               Founder
             </Link>
-            <Link to="/privacy" className="hover:text-foreground">
+            <Link to="/privacy" className={TAP_LINK}>
               Privacy
             </Link>
-            <Link to="/terms" className="hover:text-foreground">
+            <Link to="/terms" className={TAP_LINK}>
               Terms
             </Link>
           </div>
@@ -71,10 +71,10 @@ export function PublicPage({
           <p>© {new Date().getFullYear()} Haans Antoni. CAERA CADANE brand.</p>
           <SiteFooterLinks />
           <div className="flex flex-wrap gap-4">
-            <Link to="/data-rights" className="hover:text-foreground">
+            <Link to="/data-rights" className={TAP_LINK}>
               Data rights
             </Link>
-            <Link to="/auth" className="hover:text-foreground">
+            <Link to="/auth" className={TAP_LINK}>
               Sign in
             </Link>
           </div>

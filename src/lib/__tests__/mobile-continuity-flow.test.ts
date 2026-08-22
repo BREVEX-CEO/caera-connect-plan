@@ -93,7 +93,7 @@ describe("the full journey", () => {
     const r = await dispatchMobileIntent(
       { kind: "task.handoff", conversationId: "c1", text: "finish the summary" },
       device,
-      { online: false, durable: queue },
+      { online: false, durable: queue, now: NOW },
     );
     expect(r.ok).toBe(true);
     expect(queue.size).toBe(1);
@@ -104,13 +104,13 @@ describe("the full journey", () => {
 
     // 4. Reconnect and replay.
     t.goOnline();
-    const flushed = await flushMobileQueue(queue, device);
+    const flushed = await flushMobileQueue(queue, device, NOW);
     expect(flushed.sent).toBe(1);
     expect(t.delivered).toHaveLength(1);
     expect(queue.size).toBe(0);
 
     // 5. Replaying again delivers nothing — no duplicate work.
-    const again = await flushMobileQueue(queue, device);
+    const again = await flushMobileQueue(queue, device, NOW);
     expect(again.sent).toBe(0);
     expect(t.delivered).toHaveLength(1);
   });
@@ -120,6 +120,7 @@ describe("the full journey", () => {
     const r = await dispatchMobileIntent({ kind: "emergency.stop" }, phone(), {
       online: false,
       durable: queue,
+      now: NOW,
     });
     expect(r.ok).toBe(false);
     expect(queue.size).toBe(0);
@@ -137,13 +138,13 @@ describe("revocation cuts off work queued beforehand", () => {
     await dispatchMobileIntent(
       { kind: "task.handoff", conversationId: "c1", text: "later" },
       phone(),
-      { online: false, durable: queue },
+      { online: false, durable: queue, now: NOW },
     );
     expect(queue.size).toBe(1);
 
     // The phone is lost and revoked while still offline.
     t.goOnline();
-    const flushed = await flushMobileQueue(queue, phone({ revoked: true }));
+    const flushed = await flushMobileQueue(queue, phone({ revoked: true }), NOW);
 
     expect(flushed.sent).toBe(0);
     expect(t.delivered).toHaveLength(0);
@@ -197,7 +198,7 @@ describe("continuity survives interruption", () => {
     queue.enqueue({ kind: "task.handoff", conversationId: "c", text: "second" });
     queue.enqueue({ kind: "clipboard.handoff", text: "third" });
 
-    await flushMobileQueue(queue, phone());
+    await flushMobileQueue(queue, phone(), NOW);
     const texts = t.delivered.map((i) => ("text" in i ? i.text : ""));
     expect(texts).toEqual(["first", "second", "third"]);
   });
@@ -206,7 +207,7 @@ describe("continuity survives interruption", () => {
     const queue = createMobileIntentQueue();
     queue.enqueue({ kind: "task.handoff", conversationId: "c", text: "doomed" });
     // Revoked device => every send refused. maxAttempts is 3 for this queue.
-    for (let i = 0; i < 3; i++) await flushMobileQueue(queue, phone({ revoked: true }));
+    for (let i = 0; i < 3; i++) await flushMobileQueue(queue, phone({ revoked: true }), NOW);
     expect(queue.size).toBe(0);
   });
 });

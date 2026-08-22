@@ -207,7 +207,10 @@ function SecurityPage() {
         title="Security"
         description="Sign-in methods, password, active sessions and the security events recorded on this account."
         actions={
-          <Link to="/settings" className="text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/settings"
+            className="inline-flex min-h-[24px] items-center px-1 py-1 text-sm text-muted-foreground hover:text-foreground"
+          >
             ← Back to Settings
           </Link>
         }

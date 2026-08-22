@@ -62,8 +62,7 @@ export function TasksWorkspace({ backTo, backLabel }: { backTo: string; backLabe
   };
 
   const toggle = useMutation({
-    mutationFn: (v: { id: string; enabled?: boolean; paused?: boolean }) =>
-      patch({ data: v }),
+    mutationFn: (v: { id: string; enabled?: boolean; paused?: boolean }) => patch({ data: v }),
     onError: (e) => setError(e instanceof Error ? e.message : String(e)),
     onSuccess: () => {
       setError(null);
@@ -94,7 +93,10 @@ export function TasksWorkspace({ backTo, backLabel }: { backTo: string; backLabe
         title="Automations & runs"
         description="Every scheduled task on this account, and every run it has produced. Pause, resume or stop a run from here."
         actions={
-          <Link to={backTo} className="text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to={backTo}
+            className="inline-flex min-h-[24px] items-center px-1 py-1 text-sm text-muted-foreground hover:text-foreground"
+          >
             ← {backLabel}
           </Link>
         }
