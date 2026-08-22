@@ -11,14 +11,14 @@ proof that the corresponding production service or store release is available.
 
 ## What is in this repository
 
-| Area               | Implemented source                                                                                        | Readiness boundary                                                                                                                          |
-| ------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Web                | React/TanStack Start application, public demo, authenticated workspace and Cloudflare-oriented deployment | A build can pass while a hosted environment is misconfigured. Production URL, monitoring and launch approval remain separate gates.         |
-| Offline web        | Service worker, cached root shell and browser-local storage/model paths                                   | A real Chrome online-then-offline reload is proven. First visit, uncached routes, cleared storage, sign-in, sync, live web, payments and cloud features still need a network. |
-| Cloud/private sync | Supabase auth, RLS-backed data paths, private storage and optional AI gateways                            | Users must be told which mode is active. “Local-first” does not mean all data always remains on-device.                                     |
+| Area               | Implemented source                                                                                        | Readiness boundary                                                                                                                                                                                                                   |
+| ------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Web                | React/TanStack Start application, public demo, authenticated workspace and Cloudflare-oriented deployment | A build can pass while a hosted environment is misconfigured. Production URL, monitoring and launch approval remain separate gates.                                                                                                  |
+| Offline web        | Service worker, cached root shell and browser-local storage/model paths                                   | A real Chrome online-then-offline reload is proven. First visit, uncached routes, cleared storage, sign-in, sync, live web, payments and cloud features still need a network.                                                        |
+| Cloud/private sync | Supabase auth, RLS-backed data paths, private storage and optional AI gateways                            | Users must be told which mode is active. “Local-first” does not mean all data always remains on-device.                                                                                                                              |
 | Desktop            | Local Tauri/Rust companion, packaged browser host and packaged MediaPipe hand-control sidecar             | Desktop source is retained for development, but public desktop downloads/releases are intentionally disabled for the current launch. Signing, clean-device tests, macOS notarization and update signing remain future release gates. |
-| Mobile             | Capacitor Android and iOS projects, mobile pairing and restricted control paths                           | Store signing, privacy declarations, billing compliance and device testing are still required before a store-release claim.                 |
-| Billing            | Historical subscription/allowance records and provider/webhook source remain intact                       | **Free launch mode is active.** Checkout, pricing, upgrades and paid entitlement gates are disabled. A provider token alone cannot re-enable checkout. |
+| Mobile             | Capacitor Android and iOS projects, mobile pairing and restricted control paths                           | Store signing, privacy declarations, billing compliance and device testing are still required before a store-release claim.                                                                                                          |
+| Billing            | Historical subscription/allowance records and provider/webhook source remain intact                       | **Free launch mode is active.** Checkout, pricing, upgrades and paid entitlement gates are disabled. A provider token alone cannot re-enable checkout.                                                                               |
 
 ## Current launch mode
 
@@ -133,3 +133,10 @@ The repository is proprietary. Copyright © 2026 Haans Antoni, operating under
 the CAERA CADANE brand. See [LICENSE](LICENSE). Third-party packages, models and
 assets remain under their own terms; notices are recorded in
 [release/THIRD_PARTY_NOTICES.md](release/THIRD_PARTY_NOTICES.md).
+
+## Audit status
+
+`docs/OCADE-AUDIT-REPORT.md` records what has been executed and what has not,
+including four items that are **not proven** and say so: Windows PC control,
+real Chrome Stable Cowork, production CI, and production-model answer quality.
+`docs/WINDOWS-PROOF.md` covers how to close the first two.
