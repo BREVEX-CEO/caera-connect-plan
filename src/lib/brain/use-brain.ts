@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useRef } from "react";
 import { DesktopBridgeAdapter } from "./adapters/desktop-bridge";
 import { BrowserWebGpuAdapter } from "./adapters/browser-webgpu";
+import { shareAcrossTabs } from "./adapters/shared-browser-engine";
 import { BrowserWasmAdapter } from "./adapters/browser-wasm";
 import { PairedDesktopAdapter } from "./adapters/paired-desktop";
 import { pairedCredentials, hasPairing } from "./paired-credentials";
@@ -73,7 +74,11 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
      * nothing on a device that cannot run them, and neither library is loaded
      * until one is actually routed to.
      */
-    map.set("browser_webgpu", new BrowserWebGpuAdapter());
+    /*
+     * Shared across tabs. Without this every open tab loaded its own copy of
+     * the weights onto the graphics card; three tabs meant three copies.
+     */
+    map.set("browser_webgpu", shareAcrossTabs(new BrowserWebGpuAdapter()));
     map.set("browser_wasm", new BrowserWasmAdapter());
     map.set("paired_desktop", new PairedDesktopAdapter({ credentials: pairedCredentials }));
     return map;
