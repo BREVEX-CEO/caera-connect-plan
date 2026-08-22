@@ -32,6 +32,49 @@ export interface BackdropTuning {
   breathe: number;
   /** Device-pixel-ratio ceiling. */
   maxDpr: number;
+  /**
+   * Stacked flow bands drawn beneath the spiral. Zero means none are drawn at
+   * all — not drawn-and-hidden — so a still scene costs nothing for them.
+   */
+  waveLayers: number;
+  /** Peak band displacement as a fraction of canvas height. */
+  waveAmplitude: number;
+  /** Radians per second the bands travel. */
+  waveSpeed: number;
+}
+
+/**
+ * Points sampled along each band.
+ *
+ * Fixed rather than derived from width: a band is a smooth curve, and sampling
+ * it per pixel spends the frame budget on a shape nobody can tell apart from
+ * this one. Five bands at 48 points is 240 line segments a frame, which is
+ * the same order as the particle arcs already cost.
+ */
+export const WAVE_POINTS = 48;
+
+/**
+ * One band's height at a horizontal position, in normalised space.
+ *
+ * Pure, so the shape can be tested without a canvas. Two sine terms of
+ * different periods keep the crest from marching in lockstep, which is what
+ * makes a single sine read as a screensaver rather than as flow. `depth` moves
+ * the band in parallax — the near bands travel further under the pointer than
+ * the far ones, and that difference is the whole illusion of depth.
+ */
+export function waveY(
+  x01: number,
+  depth: number,
+  elapsed: number,
+  tuning: Pick<BackdropTuning, "waveAmplitude" | "waveSpeed">,
+  pointerY = 0,
+): number {
+  const travel = elapsed * tuning.waveSpeed;
+  const primary = Math.sin(x01 * TAU * 1.15 + travel + depth * 1.7);
+  const secondary = Math.sin(x01 * TAU * 2.3 - travel * 0.62 + depth * 0.9) * 0.45;
+  // Nearer bands (depth -> 1) react more to the pointer than distant ones.
+  const lean = pointerY * (0.25 + depth * 0.75) * 0.6;
+  return (primary + secondary) * tuning.waveAmplitude * (0.55 + depth * 0.45) + lean;
 }
 
 /**
@@ -46,14 +89,56 @@ export function tuningFor(
 ): BackdropTuning {
   if (opts.highContrast) {
     // High contrast wins outright: nothing decorative sits behind the text.
-    return { particles: 0, opacity: 0, spin: 0, breathe: 0, maxDpr: 1 };
+    return {
+      particles: 0,
+      opacity: 0,
+      spin: 0,
+      breathe: 0,
+      maxDpr: 1,
+      waveLayers: 0,
+      waveAmplitude: 0,
+      waveSpeed: 0,
+    };
   }
   const base: BackdropTuning =
     intensity === "cinematic"
-      ? { particles: 90, opacity: 0.85, spin: 0.014, breathe: 0.03, maxDpr: 2 }
-      : { particles: 34, opacity: 0.38, spin: 0.008, breathe: 0.015, maxDpr: 1.5 };
+      ? {
+          particles: 90,
+          opacity: 0.85,
+          spin: 0.014,
+          breathe: 0.03,
+          maxDpr: 2,
+          waveLayers: 5,
+          waveAmplitude: 0.055,
+          waveSpeed: 0.42,
+        }
+      : {
+          particles: 34,
+          opacity: 0.38,
+          spin: 0.008,
+          breathe: 0.015,
+          maxDpr: 1.5,
+          waveLayers: 3,
+          waveAmplitude: 0.035,
+          waveSpeed: 0.28,
+        };
   if (opts.still) {
-    return { ...base, particles: 0, spin: 0, breathe: 0, opacity: base.opacity * 0.8, maxDpr: 1 };
+    /*
+     * A still scene draws NO bands, rather than drawing them and freezing
+     * them. Zero layers means the wave loop never runs, so holding still costs
+     * nothing instead of costing the same and looking calmer.
+     */
+    return {
+      ...base,
+      particles: 0,
+      spin: 0,
+      breathe: 0,
+      opacity: base.opacity * 0.8,
+      maxDpr: 1,
+      waveLayers: 0,
+      waveAmplitude: 0,
+      waveSpeed: 0,
+    };
   }
   return base;
 }
@@ -188,6 +273,8 @@ export interface SceneHandle {
   frame: (elapsedSeconds: number) => void;
   /** Re-measure and repaint the static layer. */
   resize: (cssWidth: number, cssHeight: number) => void;
+  /** Pointer position in -1..1; ignored when no bands are drawn. */
+  setPointer: (nx: number, ny: number) => void;
   dispose: () => void;
 }
 
@@ -221,6 +308,17 @@ export function createScene(canvas: HTMLCanvasElement, opts: SceneOptions): Scen
   let width = 0;
   let height = 0;
   let layer: HTMLCanvasElement | null = null;
+  /*
+   * Where the pointer is, in -1..1, and where the scene has EASED to.
+   * Following the cursor directly makes the bands twitch with every stray
+   * movement; easing towards it is what makes the surface feel like it has
+   * mass rather than like it is tracking a mouse.
+   */
+  let pointerX = 0;
+  let pointerY = 0;
+  let easedX = 0;
+  let easedY = 0;
+  let lastElapsed = 0;
 
   const rand = rng(991);
   const particles: Particle[] = Array.from({ length: tuning.particles }, () => ({
@@ -267,6 +365,42 @@ export function createScene(canvas: HTMLCanvasElement, opts: SceneOptions): Scen
       ctx.restore();
     }
 
+    /* ------------------------------------------------- the flow bands ---- */
+    if (tuning.waveLayers > 0) {
+      // Ease towards the pointer at a rate independent of frame timing.
+      const dt = Math.min(0.05, Math.max(0, elapsed - lastElapsed));
+      const k = 1 - Math.exp(-dt * 4);
+      easedX += (pointerX - easedX) * k;
+      easedY += (pointerY - easedY) * k;
+
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < tuning.waveLayers; i += 1) {
+        // 0 is the furthest band, 1 the nearest.
+        const depth = tuning.waveLayers === 1 ? 1 : i / (tuning.waveLayers - 1);
+        const baseline = canvas.height * (0.6 + depth * 0.16);
+        // Parallax: near bands slide further under the pointer than far ones.
+        const shift = easedX * canvas.width * 0.035 * (0.3 + depth * 0.7);
+
+        ctx.beginPath();
+        for (let n = 0; n <= WAVE_POINTS; n += 1) {
+          const x01 = n / WAVE_POINTS;
+          const y = waveY(x01, depth, elapsed, tuning, easedY);
+          const px = x01 * canvas.width + shift;
+          const py = baseline + y * canvas.height;
+          if (n === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        // Nearer bands are brighter and thicker; distance reads as haze.
+        ctx.globalAlpha = tuning.opacity * (0.1 + depth * 0.22);
+        ctx.strokeStyle = depth > 0.6 ? "rgba(34, 211, 238, 0.95)" : "rgba(129, 140, 248, 0.95)";
+        ctx.lineWidth = (0.7 + depth * 1.4) * dpr;
+        ctx.lineJoin = "round";
+        ctx.stroke();
+      }
+      ctx.globalCompositeOperation = "source-over";
+    }
+    lastElapsed = elapsed;
+
     if (particles.length === 0) {
       ctx.globalAlpha = 1;
       return;
@@ -288,8 +422,7 @@ export function createScene(canvas: HTMLCanvasElement, opts: SceneOptions): Scen
       // Fade in at the rim and out at the throat so nothing pops.
       const fade = Math.sin(Math.min(1, Math.max(0, t)) * Math.PI);
       ctx.globalAlpha = tuning.opacity * fade * 0.75;
-      ctx.strokeStyle =
-        p.hue > 0.7 ? "rgba(167, 139, 250, 0.9)" : "rgba(34, 211, 238, 0.9)";
+      ctx.strokeStyle = p.hue > 0.7 ? "rgba(167, 139, 250, 0.9)" : "rgba(34, 211, 238, 0.9)";
       ctx.lineWidth = p.size * dpr;
       ctx.lineCap = "round";
       ctx.beginPath();
@@ -304,6 +437,11 @@ export function createScene(canvas: HTMLCanvasElement, opts: SceneOptions): Scen
   return {
     frame,
     resize,
+    /** Pointer position in -1..1. Ignored entirely when no bands are drawn. */
+    setPointer: (nx: number, ny: number) => {
+      pointerX = Math.max(-1, Math.min(1, nx));
+      pointerY = Math.max(-1, Math.min(1, ny));
+    },
     dispose: () => {
       layer = null;
     },

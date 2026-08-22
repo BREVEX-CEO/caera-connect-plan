@@ -471,6 +471,11 @@ jobs:
           OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
         run: npm run audit:engines
 
+      - name: Flow bands render, move and follow the pointer
+        env:
+          OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
+        run: npm run audit:flow-wave
+
       - name: Six chat prompts through the shipped pipeline
         run: npm run audit:chat
 
