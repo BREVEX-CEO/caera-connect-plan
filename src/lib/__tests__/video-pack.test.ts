@@ -3,7 +3,7 @@ import { execFile } from "node:child_process";
 import { mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
 import {
   VIDEO_PACK,
   captionsAvailable,
@@ -28,14 +28,16 @@ import {
  * is the encoder the product would drive, not a description of one.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const ffmpegPath: string | null = (() => {
-  try {
-    return require("ffmpeg-static") as string;
-  } catch {
-    return null;
-  }
-})();
+/*
+ * Resolved with dynamic import so a missing binary is a reported skip rather
+ * than a module that fails to load. Both are devDependencies, so in this
+ * repository they are present; the fallback exists for a checkout that
+ * installed with --omit=dev.
+ */
+const ffmpegPath: string | null = await import("ffmpeg-static")
+  .then((m) => (m.default as unknown as string) ?? null)
+  .catch(() => null);
+
 /*
  * ffprobe ships SEPARATELY from ffmpeg-static, which does not include it. The
  * first version of this file assumed it sat beside the encoder, fell back to a
@@ -44,14 +46,9 @@ const ffmpegPath: string | null = (() => {
  * A vacuous pass is worse than a failure, so the binary is resolved properly
  * and its absence is asserted below rather than silently skipped.
  */
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const ffprobePath: string | null = (() => {
-  try {
-    return (require("ffprobe-static") as { path: string }).path;
-  } catch {
-    return null;
-  }
-})();
+const ffprobePath: string | null = await import("ffprobe-static")
+  .then((m) => (m.default as unknown as { path: string })?.path ?? null)
+  .catch(() => null);
 
 const runReal: VideoRunner = (cmd) =>
   new Promise((resolve) => {
