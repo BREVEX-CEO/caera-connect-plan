@@ -11,6 +11,7 @@
  */
 import { createServer } from "node:http";
 import { chromium } from "playwright-core";
+import { build } from "esbuild";
 import { mkdtemp, rm, cp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -513,6 +514,121 @@ try {
         }),
       [EXTENSION_ID, message],
     );
+
+  /* ------------------------------- the ADAPTER, end to end, in the page ---- */
+  /*
+   * THE ARCHITECTURE REQUIREMENT, EXECUTED.
+   *
+   * OCADE is browser-first, and the intended executor for anything touching a
+   * web page is this extension:
+   *
+   *   website → local model → agent loop → extension ADAPTER → extension
+   *   bridge → MV3 extension → the user's own browser
+   *
+   * The adapter is the link that did not exist. Everything either side of it
+   * was built and tested, and `browser_*` tool calls went to a Node host over
+   * CDP instead — so browser Cowork required a desktop companion that
+   * browser-first exists to remove.
+   *
+   * The check below is not "the adapter compiles". It bundles the REAL adapter
+   * and the REAL bridge, runs them in the page, and hands them a tool call in
+   * exactly the shape the agent loop emits. What comes back has to be the
+   * extension's own observation of a real tab.
+   */
+  const adapterBundle = await build({
+    entryPoints: ["src/lib/native/extension-adapter.ts"],
+    bundle: true,
+    format: "iife",
+    globalName: "OcadeAdapter",
+    write: false,
+    target: "es2022",
+    alias: { "@": "./src" },
+  });
+  await site.addScriptTag({ content: adapterBundle.outputFiles[0].text });
+  await site.evaluate((id) => {
+    globalThis.__ocadeRunTool = (call) =>
+      globalThis.OcadeAdapter.runBrowserToolViaExtension(call, { extensionId: id });
+  }, EXTENSION_ID);
+
+  /*
+   * The OCADE tab drives a DIFFERENT tab, which is the product's real shape:
+   * the website is open in one tab and works on another. It also has to be that
+   * way for this test to mean anything — the first version injected the adapter
+   * into the tab it then navigated, and Playwright lost the execution context
+   * mid-run with "Execution context was destroyed". That was not a flake; the
+   * page really did navigate itself out from under its own driver.
+   *
+   * Opening the target LAST makes it the active tab, which is the one the
+   * extension acts on when no tab is named.
+   */
+  const target = await ctx.newPage();
+  await target.goto(`${ORIGIN}/`);
+
+  const readOutcome = await site.evaluate(() =>
+    globalThis.__ocadeRunTool({ name: "browser_read", arguments: {} }),
+  );
+  check(
+    "a browser_read tool call reaches the extension through the adapter",
+    readOutcome?.kind === "success",
+    `${readOutcome?.kind} — ${String(readOutcome?.detail).slice(0, 80)}`,
+  );
+  check(
+    "and comes back with the extension's own observation of a real tab",
+    typeof readOutcome?.observation?.url === "string" &&
+      typeof readOutcome?.observation?.signature === "string",
+    readOutcome?.observation?.url,
+  );
+
+  const navOutcome = await site.evaluate(
+    (origin) =>
+      globalThis.__ocadeRunTool({
+        name: "browser_navigate",
+        arguments: { url: `${origin}/second` },
+      }),
+    ORIGIN,
+  );
+  check(
+    "a mutating tool call is verified by the extension, not by the adapter",
+    navOutcome?.kind === "success" && navOutcome?.verified === true,
+    `${navOutcome?.kind} verified=${navOutcome?.verified}`,
+  );
+
+  const offScope = await site.evaluate(
+    (other) =>
+      globalThis.__ocadeRunTool({ name: "browser_navigate", arguments: { url: `${other}/` } }),
+    OTHER_ORIGIN,
+  );
+  check(
+    "the adapter cannot widen scope — an unapproved address is still refused",
+    offScope?.kind === "blocked" || offScope?.kind === "unsupported",
+    `${offScope?.kind} — ${String(offScope?.detail).slice(0, 70)}`,
+  );
+
+  const keyOutcome = await site.evaluate(() =>
+    globalThis.__ocadeRunTool({ name: "browser_key", arguments: { key: "Enter" } }),
+  );
+  check(
+    "a tool the extension cannot do is refused honestly rather than faked",
+    keyOutcome?.kind === "unsupported" && /cannot press keys/i.test(keyOutcome?.detail ?? ""),
+    keyOutcome?.detail,
+  );
+
+  // The navigation really happened in the OTHER tab, and the OCADE tab is
+  // still where it was. A driver that navigates itself has proven nothing.
+  check(
+    "the driven tab moved and the OCADE tab did not",
+    target.url().endsWith("/second") && site.url() === `${ORIGIN}/`,
+    `target=${target.url()} ocade=${site.url()}`,
+  );
+
+  const notATool = await site.evaluate(() =>
+    globalThis.__ocadeRunTool({ name: "workspace_write", arguments: {} }),
+  );
+  check(
+    "a non-browser tool is left alone for the PC-control path to handle",
+    notATool === null,
+    String(notATool),
+  );
 
   let w = await fromPage({ command: "handshake" });
   check(

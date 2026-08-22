@@ -8,6 +8,7 @@ import {
 } from "@/lib/agent/loop";
 import { looksMultiStep, runPlannedTask } from "@/lib/agent/planner";
 import { findTool, schemasFor, toolsFor, type ToolDefinition } from "@/lib/agent/tool-registry";
+import { runBrowserToolViaExtension } from "@/lib/native/extension-adapter";
 import type { Domain } from "@/lib/agent/domains";
 import type { ToolOutcome } from "@/lib/agent/outcomes";
 import {
@@ -846,6 +847,18 @@ export function useMission(brain: MissionBrain) {
       }
       ledgerRef.current.note(checked.call);
       setPhase(tool?.mutating ? "controlling" : "observing");
+
+      // Same rule on the fast path: the browser executes browser work. Two
+      // routes that disagreed about who runs a click would be two products.
+      const viaExtension = await runBrowserToolViaExtension(checked.call);
+      if (viaExtension) {
+        return {
+          ok: viaExtension.kind === "success",
+          detail: viaExtension.detail,
+          verified: viaExtension.verified,
+        };
+      }
+
       const outcome = await runControlActionFn({
         data: {
           missionId,
@@ -1512,6 +1525,25 @@ export function useMission(brain: MissionBrain) {
 
             const tool = findTool(checked.call.name);
             setPhase(tool?.mutating ? "controlling" : "observing");
+
+            /*
+             * BROWSER WORK GOES TO THE BROWSER, NOT TO A SERVER.
+             *
+             * OCADE is browser-first: the executor for anything that touches a
+             * web page is the MV3 extension running in the person's own
+             * browser, reached from here without a server round trip and
+             * without a desktop sidecar. This used to fall through to
+             * `runControlActionFn`, which drives Playwright over CDP from a
+             * Node host — so browser Cowork silently required a companion
+             * install that browser-first is meant to remove.
+             *
+             * `null` means this was not a browser tool, and everything else
+             * carries on to the server path below, which still owns the
+             * PC-control tools.
+             */
+            const viaExtension = await runBrowserToolViaExtension(checked.call);
+            if (viaExtension) return viaExtension;
+
             try {
               const outcome = await runControlActionFn({
                 data: {
