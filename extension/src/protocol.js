@@ -139,6 +139,7 @@ export const COMMANDS = new Set([
   "type",
   "scroll",
   "form.fill",
+  "media",
   "screenshot",
   "control.pause",
   "control.resume",
@@ -149,4 +150,12 @@ export const COMMANDS = new Set([
 ]);
 
 /** Commands that change the page, and therefore must be verified after acting. */
-export const MUTATING = new Set(["navigate", "reload", "click", "type", "scroll", "form.fill"]);
+export const MUTATING = new Set([
+  "navigate",
+  "reload",
+  "click",
+  "type",
+  "scroll",
+  "form.fill",
+  "media",
+]);

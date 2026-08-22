@@ -55,6 +55,8 @@ export const EXTENSION_TOOLS: ReadonlySet<string> = new Set([
   "browser_scroll",
   "browser_key",
   "browser_tabs",
+  "browser_media",
+  "browser_skip_ad",
 ]);
 
 export function isExtensionTool(name: string): boolean {
@@ -116,6 +118,27 @@ export function translate(call: ToolCall): Translated | { unsupported: string } 
       return {
         command: "scroll",
         argument: { by: a.direction === "up" ? -ONE_SCREEN : ONE_SCREEN },
+      };
+
+    case "browser_media":
+      return {
+        command: "media",
+        argument: { action: String(a.action ?? "play"), seconds: Number(a.seconds ?? 10) },
+      };
+
+    case "browser_skip_ad":
+      /*
+       * Honestly unavailable rather than guessed at.
+       *
+       * Skipping an advert means finding the right button among several that
+       * look alike, and a wrong click on a page mid-advert is a click on
+       * whatever the advertiser put there. The tool exists for the desktop
+       * path, which watches the player; the extension has no such view, and a
+       * heuristic that is usually right is not good enough for a click.
+       */
+      return {
+        unsupported:
+          "The Cowork extension cannot skip adverts. Skip it yourself, or ask OCADE to wait until it has finished.",
       };
 
     case "browser_key":

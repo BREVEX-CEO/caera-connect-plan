@@ -9,6 +9,7 @@
  * Every mutation is asserted on the SECOND observation, never on the call
  * returning. Exit code is non-zero if any scenario fails.
  */
+import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { chromium } from "playwright-core";
 import { build } from "esbuild";
@@ -62,6 +63,18 @@ const PAGES = {
         <input id="search" name="search" placeholder="Search">
         <button id="dead">Does nothing</button>`,
   "/second": `<!doctype html><title>Second</title><h1>Second page</h1><a href="/">Back</a>`,
+  /*
+   * A real <video> with a real source. WebM/VP9, not H.264: the open-source
+   * Chromium build carries no proprietary codecs, so an MP4 here loads no
+   * metadata at all — duration stays NaN and play() quietly does nothing, which
+   * looks exactly like a broken media command and is not one.
+   *
+   * A generated clip keeps the page self-contained. The point is an element
+   * with genuine duration, currentTime and muted state, not a stub that
+   * reports whatever it is told.
+   */
+  "/player": `<!doctype html><title>Player</title><h1>Player</h1>
+        <video id="v" width="320" height="180" src="/clip.webm" muted></video>`,
   "/login": `<!doctype html><title>Sign in</title>
         <form>
           <input id="user" name="username" placeholder="Username">
@@ -75,6 +88,38 @@ const PAGES = {
 };
 
 const server = createServer((req, res) => {
+  // The clip the player page plays. A real file, served as a real video.
+  if (req.url.split("?")[0] === "/clip.webm") {
+    const bytes = readFileSync(new URL("./fixtures/clip.webm", import.meta.url));
+    /*
+     * RANGE REQUESTS, because seeking needs them.
+     *
+     * Served whole, with no Accept-Ranges, Chromium cannot jump to a position
+     * it has not downloaded — it snaps back to zero. A seek to 12 seconds
+     * reported 0 and looked exactly like a broken media command; the command
+     * was fine and the fixture server was not a media server.
+     */
+    const range = /bytes=(\d*)-(\d*)/.exec(req.headers.range ?? "");
+    if (range) {
+      const start = range[1] ? Number(range[1]) : 0;
+      const end = range[2] ? Number(range[2]) : bytes.length - 1;
+      res.writeHead(206, {
+        "content-type": "video/webm",
+        "accept-ranges": "bytes",
+        "content-range": `bytes ${start}-${end}/${bytes.length}`,
+        "content-length": end - start + 1,
+      });
+      res.end(bytes.subarray(start, end + 1));
+      return;
+    }
+    res.writeHead(200, {
+      "content-type": "video/webm",
+      "accept-ranges": "bytes",
+      "content-length": bytes.length,
+    });
+    res.end(bytes);
+    return;
+  }
   const body = PAGES[req.url.split("?")[0]];
   if (!body) {
     res.writeHead(404);
@@ -484,6 +529,72 @@ try {
     r.ok === false && r.blocked === true,
     r.reason,
   );
+
+  /* ------------------------------------------------- MEDIA CONTROL ------- */
+  /*
+   * Playing, pausing and seeking a REAL video element.
+   *
+   * `browser_media` was in the tool registry with no route through the
+   * extension, so it fell through to the PC-control path — the exact thing
+   * browser-first forbids. It is implemented here now, and these check the
+   * element itself rather than the command's own opinion of what it did:
+   * play() can be refused by autoplay policy and a seek past the end simply
+   * does not move, and both look like success from the caller's side.
+   */
+  const player = await run("tabs.open", { url: `${ORIGIN}/player` });
+  const playerId = player.tabId;
+  check("a page with real media is open", typeof playerId === "number", String(playerId));
+
+  const readMedia = async () => {
+    const page = ctx.pages().find((pg) => pg.url().endsWith("/player"));
+    return page
+      ? page.evaluate(() => {
+          const v = document.querySelector("video");
+          return { paused: v.paused, muted: v.muted, time: v.currentTime, duration: v.duration };
+        })
+      : null;
+  };
+
+  r = await run("media", { tabId: playerId, action: "play" });
+  check("PLAY is accepted by the page", r.ok === true, JSON.stringify(r.after ?? r.reason));
+  let state = await readMedia();
+  check("the video really is playing", state?.paused === false, JSON.stringify(state));
+
+  r = await run("media", { tabId: playerId, action: "pause" });
+  state = await readMedia();
+  check("PAUSE really stops it", state?.paused === true, JSON.stringify(state));
+
+  r = await run("media", { tabId: playerId, action: "seek", seconds: 12 });
+  state = await readMedia();
+  check(
+    "SEEK moves to the position asked for",
+    Math.abs((state?.time ?? 0) - 12) < 1.5,
+    `time=${state?.time}`,
+  );
+
+  r = await run("media", { tabId: playerId, action: "back", seconds: 5 });
+  state = await readMedia();
+  check(
+    "BACK moves relative to where it was, not to zero",
+    Math.abs((state?.time ?? 0) - 7) < 1.5,
+    `time=${state?.time}`,
+  );
+
+  r = await run("media", { tabId: playerId, action: "unmute" });
+  state = await readMedia();
+  check("UNMUTE really unmutes", state?.muted === false, JSON.stringify(state));
+
+  r = await run("media", { tabId: playerId, action: "levitate" });
+  check("an action it does not know is refused by name", r.ok === false, r.reason);
+
+  // Scope still governs media, like every other page action.
+  r = await run("media", { tabId: otherId, action: "play" });
+  check(
+    "media is refused in a tab outside the approved scope",
+    r.ok === false,
+    String(r.reason).slice(0, 60),
+  );
+  await run("tabs.close", { tabId: playerId });
 
   /* -------------------------------------------------- TAKE OVER ---------- */
   /*

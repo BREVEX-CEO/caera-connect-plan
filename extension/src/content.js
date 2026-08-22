@@ -142,6 +142,64 @@ function act(command, argument) {
       return { ok: true, from: before, to: window.scrollY };
     }
 
+    case "media": {
+      /*
+       * The biggest playing media element on the page.
+       *
+       * Pages carry hidden <audio> elements for notification sounds and
+       * off-screen <video> for autoplaying backgrounds, so "the first one" is
+       * frequently the wrong one. The largest VISIBLE element is the one the
+       * person is actually looking at.
+       */
+      const candidates = [...document.querySelectorAll("video, audio")].filter((el) => {
+        const rect = el.getBoundingClientRect();
+        return el.tagName === "AUDIO" || (rect.width > 0 && rect.height > 0);
+      });
+      if (!candidates.length)
+        return { ok: false, reason: "There is no video or audio on this page." };
+      const media = candidates.sort((a, b) => {
+        const ra = a.getBoundingClientRect();
+        const rb = b.getBoundingClientRect();
+        return rb.width * rb.height - ra.width * ra.height;
+      })[0];
+
+      const before = { paused: media.paused, muted: media.muted, time: media.currentTime };
+      const seconds = Number(argument.seconds ?? 10);
+      switch (argument.action) {
+        case "play":
+          media.play?.();
+          break;
+        case "pause":
+          media.pause?.();
+          break;
+        case "mute":
+          media.muted = true;
+          break;
+        case "unmute":
+          media.muted = false;
+          break;
+        case "seek":
+          media.currentTime = Math.max(0, seconds);
+          break;
+        case "forward":
+          media.currentTime = Math.max(0, media.currentTime + Math.abs(seconds));
+          break;
+        case "back":
+          media.currentTime = Math.max(0, media.currentTime - Math.abs(seconds));
+          break;
+        default:
+          return { ok: false, reason: `Unknown media action: ${argument.action}` };
+      }
+      // Read it back: play() can be refused by autoplay policy and a seek past
+      // the end simply does not move, and both look like success from here.
+      return {
+        ok: true,
+        before,
+        after: { paused: media.paused, muted: media.muted, time: media.currentTime },
+        duration: Number.isFinite(media.duration) ? media.duration : null,
+      };
+    }
+
     default:
       return { ok: false, reason: `Unknown in-page command: ${command}` };
   }

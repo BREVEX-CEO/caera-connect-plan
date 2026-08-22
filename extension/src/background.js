@@ -550,6 +550,7 @@ async function handle(request) {
       return runMutating(tab, "type", argument);
     }
 
+    case "media":
     case "click":
     case "scroll": {
       const tab = await tabFor(argument.tabId);

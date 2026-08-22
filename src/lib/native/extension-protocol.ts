@@ -35,6 +35,7 @@ export type ExtensionCommand =
   | "type"
   | "scroll"
   | "form.fill"
+  | "media"
   | "screenshot"
   | "control.pause"
   | "control.resume"
@@ -45,6 +46,7 @@ export type ExtensionCommand =
 
 /** Commands that change the page, and whose result must carry verification. */
 export const MUTATING_COMMANDS: ReadonlySet<ExtensionCommand> = new Set([
+  "media",
   "navigate",
   "reload",
   "click",
