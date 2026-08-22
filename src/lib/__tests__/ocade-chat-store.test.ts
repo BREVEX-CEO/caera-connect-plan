@@ -4,11 +4,18 @@ import { StorageLockedError } from "../storage/types";
 /**
  * Privacy-aware chat persistence.
  *
- * The privacy promise is concrete: a `browser_only` conversation must NEVER be
- * written to Supabase, and a `private_sync` one must not be written to the local
- * vault. These tests assert on WHICH sink actually received the write, because
- * that routing is the whole privacy guarantee — a mistake here silently uploads
- * a conversation the user asked to keep on their device.
+ * The privacy promise is concrete and ASYMMETRIC, which is the part that used
+ * to be got wrong here. A `browser_only` conversation must NEVER be written to
+ * Supabase — that direction is the guarantee, and a mistake in it silently
+ * uploads a conversation somebody asked to keep on their machine.
+ *
+ * The other direction is not a guarantee at all. `private_sync` used to write
+ * ONLY to the cloud, and this file asserted that as though it were a privacy
+ * property. It was a bug: a message sent with the network down was lost, and
+ * Chat could not start a conversation offline. Writing a synchronised message
+ * to the device first leaks nothing — it is the user's own device — and it is
+ * what makes Chat fast and usable offline. So the assertion is inverted here,
+ * deliberately, while the browser_only one is untouched.
  */
 
 interface VaultRow {
@@ -83,11 +90,15 @@ describe("persistChatMessage routes by privacy mode", () => {
     expect(cloud.appended).toHaveLength(0);
   });
 
-  it("sends a private_sync message to the cloud and NOT to the vault", async () => {
+  it("writes a private_sync message to the device FIRST, then sends it", async () => {
     const r = await persistChatMessage({ ...base, chatsMode: "private_sync" });
     expect(r.stored).toBe("cloud");
+    // Both happened, and the local one is what makes the message survive a
+    // dropped connection.
+    expect(vault.put).toHaveBeenCalledTimes(1);
     expect(cloud.appended).toHaveLength(1);
-    expect(vault.put).not.toHaveBeenCalled();
+    const [, storedId] = vault.put.mock.calls[0];
+    expect(storedId).toBe(r.record.id);
   });
 
   it("returns a complete record with defaults filled in", async () => {
@@ -172,7 +183,7 @@ describe("loadChatMessages", () => {
     expect(out.map((m) => m.id)).toEqual(["ok"]);
   });
 
-  it("reads private_sync conversations from the cloud, not the vault", async () => {
+  it("reads private_sync conversations from the cloud", async () => {
     cloud.listed = [{ id: "s1", conversation_id: "c1", created_at: "2026-01-01T00:00:00Z" }];
     const out = await loadChatMessages({
       userId: "u1",
@@ -180,7 +191,6 @@ describe("loadChatMessages", () => {
       conversationId: "c1",
     });
     expect(out.map((m) => m.id)).toEqual(["s1"]);
-    expect(vault.list).not.toHaveBeenCalled();
   });
 
   it("returns an empty list when the cloud returns nothing", async () => {

@@ -44,7 +44,14 @@ function randomSuffix(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
-export type PersistTarget = "vault" | "cloud";
+/**
+ * Where the message ended up.
+ *
+ * `pending_sync` is new and is NOT a failure: the message is safely on this
+ * device and the upload is queued. A screen that renders it as an error would
+ * be telling somebody their message was lost when it was not.
+ */
+export type PersistTarget = "vault" | "cloud" | "pending_sync";
 
 export interface PersistResult {
   stored: PersistTarget;
@@ -79,17 +86,49 @@ export async function persistChatMessage(input: {
   };
 
   if (input.chatsMode === "private_sync") {
-    await appendOcadeMessage({
-      data: {
-        conversationId: input.conversationId,
-        role: input.role,
-        content: input.content,
-        modelId: input.modelId ?? null,
-        providerId: input.providerId ?? null,
-        attachments: input.attachments ?? [],
-      },
-    });
-    return { stored: "cloud", record };
+    /*
+     * DEVICE FIRST, SERVER SECOND — AND THE ORDER IS THE WHOLE POINT.
+     *
+     * This used to be `await appendOcadeMessage(...)` and nothing else: a
+     * server function, a network round trip, and no copy on the machine the
+     * user was typing on. So a message sent with the network down was lost,
+     * Chat waited on a round trip before it could show what you typed, and
+     * Supabase being briefly unreachable made Chat unusable instead of merely
+     * un-synchronised.
+     *
+     * The vault write below cannot be skipped and cannot be deferred. The
+     * upload is owed afterwards, and `syncAdapter.put` is what owes it: it
+     * writes locally, queues the obligation, and drains in the background.
+     */
+    const adapter = await resolveAdapter(input.userId, "chats");
+    await adapter.put("chats", record.id, record);
+
+    /*
+     * The server function still runs, because `ocade_messages` is a real
+     * table with its own schema that Projects, search and export read from —
+     * the generic `user_private_records` row the adapter writes is not a
+     * substitute for it.
+     *
+     * Its failure is no longer fatal. The message is already on the device
+     * and already queued, so a failed append means "not synchronised yet",
+     * and telling the user their message failed when it is safely stored
+     * would be the wrong sentence entirely.
+     */
+    try {
+      await appendOcadeMessage({
+        data: {
+          conversationId: input.conversationId,
+          role: input.role,
+          content: input.content,
+          modelId: input.modelId ?? null,
+          providerId: input.providerId ?? null,
+          attachments: input.attachments ?? [],
+        },
+      });
+      return { stored: "cloud", record };
+    } catch {
+      return { stored: "pending_sync", record };
+    }
   }
 
   // browser_only and pc_vault both go through the storage adapter.
