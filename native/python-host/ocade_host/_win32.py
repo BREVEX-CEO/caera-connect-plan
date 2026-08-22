@@ -66,6 +66,32 @@ class _LazyWindowsModule:
         return f"<lazy {self._name} ({loaded})>"
 
 
+def require(module: str, purpose: str) -> Any:
+    """
+    Import an OPTIONAL dependency, or refuse in a sentence a person can act on.
+
+    The lazy bindings above solved this for pywin32, but every other optional
+    import in this package — pyautogui, pywinauto, the capture stack, the OCR
+    bindings, the microphone — was still a bare ``import`` inside a function.
+    When one of those is not installed, the caller used to receive
+    ``ModuleNotFoundError: No module named 'pyautogui'`` under the
+    ``retryable_failure`` code.
+
+    Both halves of that are wrong. The text is a Python exception rather than an
+    explanation, and ``retryable_failure`` tells an agent loop to TRY AGAIN — so
+    it retries, forever, an action that cannot succeed until someone installs a
+    package. ``unsupported`` is the honest code and it is the one every
+    platform-specific action already gives.
+    """
+    try:
+        return importlib.import_module(module)
+    except ImportError as error:
+        raise Refusal(
+            f"{purpose} needs the {module} package, which is not installed on this system.",
+            "unsupported",
+        ) from error
+
+
 def is_available() -> bool:
     """True when the Windows bindings can actually be imported here."""
     try:

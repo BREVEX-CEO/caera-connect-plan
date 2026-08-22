@@ -38,6 +38,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
+from ._win32 import require
 from .protocol import Refusal, clamp_text
 
 SAMPLE_RATE = 44_100
@@ -68,7 +69,7 @@ MAX_LISTEN_S = 30.0
 
 def _sounddevice():
     try:
-        import sounddevice  # noqa: PLC0415
+        sounddevice = require("sounddevice", "Microphone input")  # noqa: PLC0415
     except (ImportError, OSError) as error:
         # OSError too: sounddevice raises it when PortAudio itself is missing,
         # which is a different problem from the package being absent and worth

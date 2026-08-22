@@ -54,6 +54,30 @@ jobs:
         working-directory: native/ocade_control_engine
         run: python -m pytest core/ -q
 
+  # The Windows suite above drives a real desktop, so it runs on exactly one
+  # kind of machine. Its DRIVER — starting the sidecar, framing requests,
+  # correlating replies — is not Windows-specific, and leaving that executed
+  # nowhere else means a mistake in the harness itself would only ever surface
+  # on the machine that is hardest to reach. This runs the same driver on Linux
+  # against the real sidecar, where every platform command must refuse honestly.
+  sidecar-protocol:
+    name: Sidecar protocol · any platform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the cross-platform dependencies only
+        run: python -m pip install --quiet pytest psutil
+
+      - name: The sidecar speaks its protocol and refuses honestly
+        working-directory: native/python-host
+        run: python -m pytest tests/test_sidecar_protocol_e2e.py tests/test_request_correlation.py -q
+
   windows-chrome:
     name: Cowork · real Chrome Stable
     runs-on: windows-latest
