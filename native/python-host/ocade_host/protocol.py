@@ -99,6 +99,14 @@ class Request:
     command: str
     run_id: str
     payload: dict[str, Any]
+    #: Correlates ONE request with ONE reply, and is echoed back untouched.
+    #: Not ``run_id``: a run id names an agent run and is deliberately shared by
+    #: every request in it, so a caller cannot match on it. The browser host has
+    #: echoed ``id`` since before this host existed, and the shared client in
+    #: src/lib/native/native-host-client.node.ts matches on it — without the
+    #: echo it falls back to matching by position, and one slow reply then hands
+    #: every later answer to the wrong question.
+    request_id: str | None = None
 
 
 Handler = Callable[[Request], Any]
@@ -118,15 +126,23 @@ def parse(line: str) -> Request:
     command = bounded_text(raw.get("command"), "command", 60)
     run_id = raw.get("runId") or "-"
     payload = raw.get("payload") if isinstance(raw.get("payload"), dict) else {}
-    return Request(PROTOCOL_VERSION, command, str(run_id)[:200], payload)
+    request_id = raw.get("id")
+    request_id = str(request_id)[:200] if isinstance(request_id, (str, int)) else None
+    return Request(PROTOCOL_VERSION, command, str(run_id)[:200], payload, request_id)
 
 
-def reply_ok(data: Any) -> str:
-    return json.dumps({"ok": True, "data": data}, default=str)
+def reply_ok(data: Any, request_id: str | None = None) -> str:
+    reply: dict[str, Any] = {"ok": True, "data": data}
+    if request_id is not None:
+        reply["id"] = request_id
+    return json.dumps(reply, default=str)
 
 
-def reply_error(message: str, code: str = "retryable_failure") -> str:
-    return json.dumps({"ok": False, "code": code, "error": message})
+def reply_error(message: str, code: str = "retryable_failure", request_id: str | None = None) -> str:
+    reply: dict[str, Any] = {"ok": False, "code": code, "error": message}
+    if request_id is not None:
+        reply["id"] = request_id
+    return json.dumps(reply)
 
 
 def serve(handlers: dict[str, Handler], stream_in=None, stream_out=None) -> None:
@@ -137,14 +153,28 @@ def serve(handlers: dict[str, Handler], stream_in=None, stream_out=None) -> None
         line = line.strip()
         if not line:
             continue
+        # Read the id before anything that can raise, so a REFUSAL is correlated
+        # too. A caller that can match successes but not failures still has to
+        # fall back to guessing the moment something goes wrong, which is the
+        # moment it can least afford to.
+        request_id = None
+        try:
+            raw = json.loads(line)
+            candidate = raw.get("id") if isinstance(raw, dict) else None
+            if isinstance(candidate, (str, int)):
+                request_id = str(candidate)[:200]
+        except (json.JSONDecodeError, AttributeError):
+            request_id = None
         try:
             request = parse(line)
             handler = handlers.get(request.command)
             if handler is None:
                 raise Refusal(f"Unsupported command: {request.command}", "unsupported")
-            sink.write(reply_ok(handler(request)) + "\n")
+            sink.write(reply_ok(handler(request), request.request_id) + "\n")
         except Refusal as refusal:
-            sink.write(reply_error(refusal.message, refusal.code) + "\n")
+            sink.write(reply_error(refusal.message, refusal.code, request_id) + "\n")
         except Exception as error:  # noqa: BLE001 - the boundary must not die
-            sink.write(reply_error(f"{type(error).__name__}: {error}"[:500]) + "\n")
+            sink.write(
+                reply_error(f"{type(error).__name__}: {error}"[:500], request_id=request_id) + "\n"
+            )
         sink.flush()

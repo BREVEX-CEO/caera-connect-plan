@@ -47,11 +47,29 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 export class NativeHostClient {
   private child: ChildProcessWithoutNullStreams | null = null;
   private buffer = "";
-  private readonly waiters: {
-    resolve: (reply: HostReply) => void;
-    reject: (error: Error) => void;
-    timer: ReturnType<typeof setTimeout>;
-  }[] = [];
+  /*
+   * KEYED BY REQUEST ID, NOT BY POSITION.
+   *
+   * These used to be an array, and every reply went to `waiters.shift()`. That
+   * is correct only while the queue and the reply stream stay in step, and one
+   * timeout is enough to break it: the waiter is spliced out when its deadline
+   * passes, the host answers a moment later anyway, and that late reply is
+   * handed to the NEXT request. From then on every answer belongs to the
+   * previous question.
+   *
+   * On a channel that drives a real mouse and keyboard, the answer that goes
+   * astray is the VERIFY step of observe → act → observe → verify. An agent
+   * told that an unrelated command's check succeeded is precisely the "click
+   * success is not proof" failure the whole design exists to prevent.
+   */
+  private readonly waiters = new Map<
+    string,
+    {
+      resolve: (reply: HostReply) => void;
+      timer: ReturnType<typeof setTimeout>;
+    }
+  >();
+  private nextId = 0;
   private closedReason: string | null = null;
 
   constructor(private readonly options: NativeHostOptions) {}
@@ -88,22 +106,44 @@ export class NativeHostClient {
       const line = this.buffer.slice(0, index).trim();
       this.buffer = this.buffer.slice(index + 1);
       if (!line) continue;
-      const waiter = this.waiters.shift();
-      if (!waiter) continue;
-      clearTimeout(waiter.timer);
+      let reply: HostReply & { id?: unknown };
       try {
-        waiter.resolve(JSON.parse(line) as HostReply);
+        reply = JSON.parse(line) as HostReply & { id?: unknown };
       } catch {
-        waiter.resolve({ ok: false, error: `${this.options.label} sent an unreadable reply.` });
+        /*
+         * An unreadable line cannot be attributed to anyone. Failing the
+         * OLDEST outstanding request would be a guess, and a wrong guess here
+         * means a command is told something about a reply that was never its
+         * own — so it is dropped and the real waiter times out honestly.
+         */
+        continue;
       }
+
+      const id = typeof reply.id === "string" ? reply.id : null;
+      if (id === null) {
+        /*
+         * A host that does not echo ids. Handing this to whoever happens to be
+         * at the front of the queue is the bug this file was rewritten to
+         * remove, so it is dropped and the real waiter times out honestly.
+         */
+        continue;
+      }
+      const waiter = this.waiters.get(id);
+      if (!waiter) {
+        // An id nobody is waiting on: a late reply to something that already
+        // timed out. Dropping it is the only safe move.
+        continue;
+      }
+      this.waiters.delete(id);
+      clearTimeout(waiter.timer);
+      waiter.resolve(reply);
     }
   }
 
   private fail(reason: string): void {
     this.child = null;
-    while (this.waiters.length > 0) {
-      const waiter = this.waiters.shift();
-      if (!waiter) break;
+    for (const [id, waiter] of [...this.waiters]) {
+      this.waiters.delete(id);
       clearTimeout(waiter.timer);
       waiter.resolve({ ok: false, code: "retryable_failure", error: reason });
     }
@@ -148,10 +188,17 @@ export class NativeHostClient {
     }
 
     const timeoutMs = timeout ?? this.options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    /*
+     * `id` correlates ONE request with ONE reply. It is not `runId`: a run id
+     * names an agent run and is deliberately shared by every request in it, so
+     * matching on it would reintroduce the ambiguity this replaces. The browser
+     * host has echoed `id` since before this client existed; the Python host
+     * now echoes it too.
+     */
+    const id = `${++this.nextId}`;
     return new Promise<HostReply<T>>((resolve) => {
       const timer = setTimeout(() => {
-        const index = this.waiters.findIndex((w) => w.timer === timer);
-        if (index >= 0) this.waiters.splice(index, 1);
+        this.waiters.delete(id);
         resolve({
           ok: false,
           code: "retryable_failure",
@@ -159,12 +206,8 @@ export class NativeHostClient {
         });
       }, timeoutMs);
 
-      this.waiters.push({
-        resolve: resolve as (reply: HostReply) => void,
-        reject: () => undefined,
-        timer,
-      });
-      child.stdin.write(`${JSON.stringify(body)}\n`);
+      this.waiters.set(id, { resolve: resolve as (reply: HostReply) => void, timer });
+      child.stdin.write(`${JSON.stringify({ ...body, id })}\n`);
     });
   }
 
