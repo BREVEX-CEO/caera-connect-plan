@@ -87,6 +87,7 @@
     "audit:chat": "vite-node scripts/e2e/chat-six-prompts.mjs",
     "audit:visual": "node scripts/e2e/visual-performance.mjs",
     "audit:flow-wave": "node scripts/e2e/flow-wave-render.mjs",
+    "audit:real-inference": "node scripts/e2e/real-inference.mjs",
     "desktop:bundle:windows": "node scripts/build-windows-installer.mjs",
     "agent:live-check": "vite-node scripts/agent-loop-evidence.mts"
   },
@@ -157,6 +158,7 @@
     "globals": "^15.15.0",
     "jsdom": "^30.0.1",
     "nitro": "3.0.260603-beta",
+    "node-llama-cpp": "^3.20.0",
     "prettier": "^3.7.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",

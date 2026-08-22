@@ -488,6 +488,28 @@ jobs:
           OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
         run: npm run audit:settings
 
+  local-inference:
+    name: Real local inference
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Loads a real GGUF into real llama.cpp and generates real tokens, with
+      # weights built on the spot by scripts/fixtures/make-tiny-gguf.py so the
+      # job needs no model download. The weights are random, so this measures
+      # runtime behaviour and latency only — never answer quality.
+      - name: Real GGUF loads and generates tokens
+        run: npm run audit:real-inference
+
   python-engine:
     name: Python control engine
     runs-on: ubuntu-latest
