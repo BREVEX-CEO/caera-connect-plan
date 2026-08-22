@@ -78,6 +78,23 @@ failures += (await step("SIGN IN AND ONBOARD", process.execPath, [
 ]))
   ? 1
   : 0;
+
+/*
+ * THE VISUAL STAGE RUNS HERE, BEFORE THE SETTINGS AUDIT, and the order is load
+ * bearing. The settings audit flips reduce-motion as part of its own work, and
+ * that preference syncs to the account — so a visual check running afterwards
+ * inherits a scene that was deliberately held still and reports it as a
+ * backdrop that fails to animate. Measuring the interface before anything has
+ * been changed is the only way that assertion means anything.
+ */
+failures += (await step(
+  "3D BACKDROP AND ITS BUDGET",
+  process.execPath,
+  ["scripts/e2e/visual-performance.mjs"],
+  { OCADE_STORAGE_STATE: "/tmp/ocade-onboarded-state.json" },
+))
+  ? 1
+  : 0;
 failures += (await step(
   "SETTINGS, SIGNED IN",
   process.execPath,

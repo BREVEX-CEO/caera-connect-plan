@@ -475,7 +475,9 @@ jobs:
         run: npm run audit:chat
 
       # Stands the stack up once: settings signed out, sign-in and onboarding,
-      # settings signed in, then online to offline and back.
+      # the 3D backdrop and its frame budget, settings signed in, then online to
+      # offline and back. The visual stage runs BEFORE the settings audit
+      # because that audit flips reduce-motion as part of its own work.
       - name: Settings and offline audits against a running app
         env:
           OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}

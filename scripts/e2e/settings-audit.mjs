@@ -150,6 +150,8 @@ let totalControls = 0;
 let totalSwitches = 0;
 let flippedAndPersisted = 0;
 const springBack = [];
+/** Sections where turning one switch on correctly disabled others. */
+const dependentDisables = [];
 const deadLinks = [];
 
 for (const section of SECTIONS) {
@@ -172,6 +174,22 @@ for (const section of SECTIONS) {
   totalSwitches += count;
 
   for (let i = 0; i < count; i += 1) {
+    /*
+     * RE-COUNT EVERY ROUND. Flipping a switch can DISABLE others — turning on
+     * "Reduce motion" correctly greys out the 3D depth controls it governs —
+     * so the list of enabled switches shrinks underneath a loop that walked it
+     * by index, and `nth(i)` waited thirty seconds for an element that no
+     * longer existed. A shrinking list is the product behaving correctly; the
+     * audit has to keep up with it rather than assume it stands still.
+     */
+    const nowEnabled = await switches.count();
+    if (i >= nowEnabled) {
+      dependentDisables.push(
+        `${section}: flipping a switch disabled ${count - nowEnabled} other(s)`,
+      );
+      break;
+    }
+
     const sw = switches.nth(i);
     const label =
       (await sw.evaluate((el) =>
@@ -254,6 +272,11 @@ console.log(
     `${totalSwitches} switches, ${flippedAndPersisted} flipped and persisted, ` +
     `${springBack.length} sprang back, ${consoleErrors.length} console errors`,
 );
+if (dependentDisables.length) {
+  console.log(
+    "DEPENDENT CONTROLS (a switch correctly disabled others):\n  " + dependentDisables.join("\n  "),
+  );
+}
 if (springBack.length)
   console.log("SPRANG BACK (save refused, control rolled back):\n  " + springBack.join("\n  "));
 
