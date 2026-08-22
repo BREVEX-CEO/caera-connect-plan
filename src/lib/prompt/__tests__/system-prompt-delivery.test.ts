@@ -71,7 +71,7 @@ async function sendOneMessage(system: string, opts?: { thinking?: boolean }) {
   vi.stubGlobal("fetch", impl);
   try {
     const result = await reason(
-      browserReasonDeps("http://localhost:11434", undefined, undefined, opts?.thinking),
+      browserReasonDeps("http://localhost:11434", undefined, opts?.thinking),
       {
         messages: [
           { role: "system", content: system },
@@ -79,7 +79,6 @@ async function sendOneMessage(system: string, opts?: { thinking?: boolean }) {
         ],
         task: "general",
         modelId: "qwen2.5:3b",
-        allowCloud: false,
       },
     );
     return { result, bodies };
@@ -161,7 +160,7 @@ describe("the canonical system prompt reaches the real local model request", () 
     const { impl, bodies } = recordingFetch();
     vi.stubGlobal("fetch", impl);
     try {
-      await reason(browserReasonDeps("http://localhost:11434", undefined, undefined, true), {
+      await reason(browserReasonDeps("http://localhost:11434", undefined, true), {
         messages: [
           { role: "system", content: assembleSystemPrompt({ surface: "chat" }) },
           { role: "user", content: "Hello." },
@@ -169,7 +168,6 @@ describe("the canonical system prompt reaches the real local model request", () 
         task: "general",
         // qwen3 has a native reasoning mode; qwen2.5 rejects the field.
         modelId: "qwen3:4b",
-        allowCloud: false,
       });
     } finally {
       vi.unstubAllGlobals();
@@ -188,7 +186,6 @@ describe("the canonical system prompt reaches the real local model request", () 
         ],
         task: "general",
         modelId: "qwen2.5:3b",
-        allowCloud: false,
       });
     } finally {
       vi.unstubAllGlobals();

@@ -88,7 +88,6 @@ import { Route as AuthenticatedSettingsTasksRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsUsageRouteImport } from './routes/_authenticated/settings.usage'
 import { Route as AuthenticatedSettingsVaultRouteImport } from './routes/_authenticated/settings.vault'
 import { Route as AuthenticatedSettingsVoiceRouteImport } from './routes/_authenticated/settings.voice'
-import { Route as ApiOcadeChatRouteImport } from './routes/api/ocade.chat'
 import { Route as ApiOcadeBridgeSplatRouteImport } from './routes/api/ocade.bridge.$'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
@@ -526,11 +525,6 @@ const AuthenticatedSettingsVoiceRoute =
     path: '/voice',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
-const ApiOcadeChatRoute = ApiOcadeChatRouteImport.update({
-  id: '/api/ocade/chat',
-  path: '/api/ocade/chat',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiOcadeBridgeSplatRoute = ApiOcadeBridgeSplatRouteImport.update({
   id: '/api/ocade/bridge/$',
   path: '/api/ocade/bridge/$',
@@ -620,7 +614,6 @@ export interface FileRoutesByFullPath {
   '/settings/usage': typeof AuthenticatedSettingsUsageRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/settings/voice': typeof AuthenticatedSettingsVoiceRoute
-  '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/ocade/': typeof AuthenticatedOcadeIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/api/ocade/bridge/$': typeof ApiOcadeBridgeSplatRoute
@@ -700,7 +693,6 @@ export interface FileRoutesByTo {
   '/settings/usage': typeof AuthenticatedSettingsUsageRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/settings/voice': typeof AuthenticatedSettingsVoiceRoute
-  '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/ocade': typeof AuthenticatedOcadeIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/api/ocade/bridge/$': typeof ApiOcadeBridgeSplatRoute
@@ -785,7 +777,6 @@ export interface FileRoutesById {
   '/_authenticated/settings/usage': typeof AuthenticatedSettingsUsageRoute
   '/_authenticated/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/_authenticated/settings/voice': typeof AuthenticatedSettingsVoiceRoute
-  '/api/ocade/chat': typeof ApiOcadeChatRoute
   '/_authenticated/ocade/': typeof AuthenticatedOcadeIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/api/ocade/bridge/$': typeof ApiOcadeBridgeSplatRoute
@@ -870,7 +861,6 @@ export interface FileRouteTypes {
     | '/settings/usage'
     | '/settings/vault'
     | '/settings/voice'
-    | '/api/ocade/chat'
     | '/ocade/'
     | '/settings/'
     | '/api/ocade/bridge/$'
@@ -950,7 +940,6 @@ export interface FileRouteTypes {
     | '/settings/usage'
     | '/settings/vault'
     | '/settings/voice'
-    | '/api/ocade/chat'
     | '/ocade'
     | '/settings'
     | '/api/ocade/bridge/$'
@@ -1034,7 +1023,6 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/usage'
     | '/_authenticated/settings/vault'
     | '/_authenticated/settings/voice'
-    | '/api/ocade/chat'
     | '/_authenticated/ocade/'
     | '/_authenticated/settings/'
     | '/api/ocade/bridge/$'
@@ -1064,7 +1052,6 @@ export interface RootRouteChildren {
   ProductsOcadeRoute: typeof ProductsOcadeRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
-  ApiOcadeChatRoute: typeof ApiOcadeChatRoute
   ApiOcadeBridgeSplatRoute: typeof ApiOcadeBridgeSplatRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
@@ -1624,13 +1611,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsVoiceRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
-    '/api/ocade/chat': {
-      id: '/api/ocade/chat'
-      path: '/api/ocade/chat'
-      fullPath: '/api/ocade/chat'
-      preLoaderRoute: typeof ApiOcadeChatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/ocade/bridge/$': {
       id: '/api/ocade/bridge/$'
       path: '/api/ocade/bridge/$'
@@ -1832,7 +1812,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsOcadeRoute: ProductsOcadeRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
-  ApiOcadeChatRoute: ApiOcadeChatRoute,
   ApiOcadeBridgeSplatRoute: ApiOcadeBridgeSplatRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }

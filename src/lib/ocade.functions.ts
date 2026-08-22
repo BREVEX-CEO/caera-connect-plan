@@ -199,27 +199,10 @@ export const exportConversation = createServerFn({ method: "GET" })
     };
   });
 
-/* -------------------- Improve Prompt -------------------- */
-
-export const improvePrompt = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((i) => z.object({ text: z.string().min(1).max(4000) }).parse(i))
-  .handler(async ({ data }) => {
-    const key = process.env.LOVABLE_API_KEY;
-    if (!key) throw new Response("AI gateway not configured", { status: 500 });
-    const { createLovableGateway, OCADE_DEFAULT_MODEL } = await import("./ai-gateway.server");
-    const { generateText } = await import("ai");
-    const gateway = createLovableGateway(key);
-    const result = await generateText({
-      model: gateway(OCADE_DEFAULT_MODEL),
-      messages: [
-        {
-          role: "system",
-          content:
-            "You rewrite user prompts to be clearer, more specific and complete WITHOUT changing the user's meaning, intent, task, or constraints. Keep the same language. Preserve all facts the user gave. Do not add new tasks or invent details. Return ONLY the improved prompt text, no preamble, no quotes.",
-        },
-        { role: "user", content: data.text },
-      ],
-    });
-    return { improved: result.text.trim() };
-  });
+/*
+ * Improve Prompt used to live here as a server function calling Gemini
+ * through the Lovable gateway, with no privacy gate of any kind. It is now
+ * `improvePromptLocally` in src/lib/chat/improve-prompt.ts and runs on the
+ * user's own engine. Nothing server-side is involved, so nothing server-side
+ * remains.
+ */

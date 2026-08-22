@@ -48,7 +48,13 @@ function companion(available = true): NativeCompanionAdapter {
     execute: vi.fn(),
     cancel: vi.fn(),
     emergencyStop: vi.fn(),
-    gestureStatus: vi.fn(async () => ({ available: false, running: false, controlEnabled: false, cameraIndex: null, reason: "Not installed in this unit test." })),
+    gestureStatus: vi.fn(async () => ({
+      available: false,
+      running: false,
+      controlEnabled: false,
+      cameraIndex: null,
+      reason: "Not installed in this unit test.",
+    })),
     startGestureControl: vi.fn(),
     stopGestureControl: vi.fn(),
   };

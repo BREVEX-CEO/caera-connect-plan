@@ -23,11 +23,7 @@
  */
 import { OCADE_SYSTEM_PROMPT } from "./canonical";
 import { deliberationClause } from "@/lib/local/fixed-model";
-import {
-  promptSections,
-  REQUIRED_SECTIONS,
-  CAPABILITY_GATED_SECTIONS,
-} from "./sections";
+import { promptSections, REQUIRED_SECTIONS, CAPABILITY_GATED_SECTIONS } from "./sections";
 
 /** Which surface is asking. Changes only the runtime facts, never the rules. */
 export type PromptSurface = "chat" | "cowork" | "control";
@@ -197,9 +193,7 @@ function constitutionFor(capabilities: PromptCapability[] | undefined): {
   complete: boolean;
 } {
   const sections = promptSections();
-  const have = new Set(
-    (capabilities ?? []).filter((c) => c.available).map((c) => c.name),
-  );
+  const have = new Set((capabilities ?? []).filter((c) => c.available).map((c) => c.name));
   const included: string[] = [];
   const omitted: string[] = [];
   const keep: string[] = [];

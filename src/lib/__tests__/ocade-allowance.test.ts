@@ -120,14 +120,11 @@ describe("entitlements", () => {
     ["std_8d", 28],
     ["month_1m", 56],
     ["year_1y", 128],
-  ] as const)(
-    "%s grants its plan allowance and the common device limits",
-    (id, allowance) => {
-      expect(PLANS[id].cloudAllowancePerWindow).toBe(allowance);
-      expect(PLANS[id].desktopDevices).toBe(2);
-      expect(PLANS[id].mobileDevices).toBe(2);
-    },
-  );
+  ] as const)("%s grants its plan allowance and the common device limits", (id, allowance) => {
+    expect(PLANS[id].cloudAllowancePerWindow).toBe(allowance);
+    expect(PLANS[id].desktopDevices).toBe(2);
+    expect(PLANS[id].mobileDevices).toBe(2);
+  });
 
   it("keeps local available after expiry and disables only cloud/premium", () => {
     const s = entitlementState(

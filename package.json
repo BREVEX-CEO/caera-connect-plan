@@ -13,7 +13,6 @@
     "build:dev": "npm run routes:generate && vite build --mode development",
     "performance:budget": "node scripts/check-asset-budgets.mjs",
     "stage2:baseline-check": "node scripts/check-stage2-baseline.mjs",
-    "stage2:phase22-check": "node scripts/check-stage2-phase22.mjs",
     "stage2:phase23-check": "node scripts/check-stage2-phase23.mjs",
     "stage2:phase24-check": "node scripts/check-stage2-phase24.mjs",
     "stage2:phase27-check": "node scripts/check-stage2-phase27.mjs",
@@ -95,7 +94,6 @@
     "audit:routes:prod": "node scripts/e2e/run-route-qa.mjs"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^3.0.12",
     "@capacitor/android": "^8.4.2",
     "@capacitor/core": "^8.4.2",
     "@capacitor/ios": "^8.4.2",
@@ -116,7 +114,6 @@
     "@tanstack/react-router": "^1.170.16",
     "@tanstack/react-start": "^1.168.26",
     "@wllama/wllama": "^3.5.1",
-    "ai": "^7.0.31",
     "chromium-bidi": "12.1.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

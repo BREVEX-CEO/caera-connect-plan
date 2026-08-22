@@ -1,266 +1,131 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, extname } from "node:path";
 import { resolveEngine, type EngineContext } from "../engine/resolve";
 
 /**
- * One policy for "may this request leave the device", enforced everywhere.
+ * ONE AUTHORITY, AND NOW ALSO ONE DESTINATION.
  *
- * THE TWO LAYERS, WHICH ARE NOT DUPLICATES. `routeBrain` picks WHICH ADAPTER
- * can serve a request — a question about hardware: WebGPU, memory, whether a
- * companion is paired. `resolveEngine` decides WHETHER CLOUD IS PERMITTED — a
- * question about privacy, entitlement and allowance. They stack; neither
- * replaces the other.
+ * The original version of this file proved that the local-versus-cloud rule
+ * lived in exactly one module instead of being restated in the chat screen —
+ * a real and useful property, because two copies of a privacy rule drift and
+ * the drift is silent.
  *
- * THE REAL RISK, AND WHAT THIS FILE IS FOR. The signed-in chat used to
- * reimplement the privacy half inline:
- *
- *     if (chatsMode !== "private_sync" && !allowCloud) { askForApproval(); }
- *
- * That was the same rule written twice. The two agreed, and the failure mode
- * was drift: relax one of them — add a mode, add an exemption, flip a default
- * — and a Browser-Only conversation silently reaches a server while the
- * authority still says it must not. That is the one guarantee this product
- * cannot afford to get wrong, and it would not show up as a crash or a failing
- * feature test.
- *
- * The chat now calls `resolveEngine`. These tests hold the refactor in place:
- * the authority must still reach the deleted gate's verdict in every case, and
- * the duplicate must not come back.
+ * The rule those copies implemented is gone: OCADE performs no cloud
+ * inference, so there is no permission to decide and nothing to keep in sync.
+ * What is worth proving now is that no screen has quietly grown its own
+ * escalation path back, and that the authority itself has no branch to escape
+ * through.
  */
 
-const CHAT_SOURCE = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
-
-/**
- * Comments stripped.
- *
- * The comment explaining WHY the duplicated gate was removed necessarily
- * quotes it. Matching against raw source would make that explanation register
- * as the defect it documents.
- */
-const CHAT = CHAT_SOURCE.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
-
-const BASE: EngineContext = {
+const base: EngineContext = {
   preference: "auto",
   privacyMode: "private_sync",
   deviceMode: "pc_web",
-  online: true,
-  localAvailable: false,
+  localAvailable: true,
+  localLabel: "OCADE Local",
   localVision: false,
-  localLabel: null,
   visionRequired: false,
-  cloudConfigured: true,
-  cloudEntitled: true,
-  cloudRemaining: 5,
-  cloudResetsAt: null,
-  cloudApprovedForConversation: false,
+  online: true,
 };
+const ctx = (over: Partial<EngineContext> = {}): EngineContext => ({ ...base, ...over });
 
-/**
- * The rule the signed-in chat USED to carry inline, kept here as the reference
- * behaviour the refactor had to preserve exactly.
- */
-function historicInlineGate(chatsMode: string, allowCloud: boolean): boolean {
-  return chatsMode !== "private_sync" && !allowCloud;
+function shippedFiles(root = "src"): string[] {
+  const out: string[] = [];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const full = join(dir, entry);
+      if (statSync(full).isDirectory()) {
+        if (entry === "__tests__") continue;
+        walk(full);
+        continue;
+      }
+      if (![".ts", ".tsx"].includes(extname(entry))) continue;
+      out.push(full);
+    }
+  };
+  walk(root);
+  return out;
 }
 
-/** The authority's answer to the same question. */
-function authorityAsksApproval(privacyMode: EngineContext["privacyMode"], approved: boolean) {
-  const decision = resolveEngine({
-    ...BASE,
-    privacyMode,
-    cloudApprovedForConversation: approved,
-  });
-  return decision.needsCloudApproval === true;
-}
-
-describe("the refactor preserved the rule it replaced", () => {
-  /*
-   * The signed-in chat now calls `resolveEngine` instead of deciding for
-   * itself. This is the regression net for that change: for every combination
-   * of privacy mode and prior approval, the authority must reach the same
-   * verdict the deleted inline gate did. A refactor of the one guarantee this
-   * product cannot get wrong is worth pinning case by case.
-   */
-  const modes: Array<EngineContext["privacyMode"]> = ["browser_only", "pc_vault", "private_sync"];
-
-  it.each(modes.flatMap((m) => [true, false].map((a) => [m, a] as const)))(
-    "%s, approved=%s",
-    (mode, approved) => {
-      expect(
-        historicInlineGate(mode, approved),
-        `the refactor changed behaviour for ${mode}/${approved}`,
-      ).toBe(authorityAsksApproval(mode, approved));
-    },
-  );
-});
-
-describe("a vault-backed conversation never leaves the device unasked", () => {
-  it.each(["browser_only", "pc_vault"] as const)("%s requires explicit approval", (mode) => {
-    const decision = resolveEngine({ ...BASE, privacyMode: mode });
-    expect(decision.ok).toBe(false);
-    expect(decision.needsCloudApproval).toBe(true);
-    // Refused by NAME, so the screen can explain rather than fail silently.
-    expect(decision.code).toBe("privacy_requires_approval");
-  });
-
-  it("proceeds once the user has approved that conversation", () => {
-    const decision = resolveEngine({
-      ...BASE,
-      privacyMode: "browser_only",
-      cloudApprovedForConversation: true,
-    });
-    expect(decision.ok).toBe(true);
-  });
-
-  it("does not treat approval of one conversation as approval of the next", () => {
-    // The flag is per conversation, which is why it is on the context rather
-    // than being read from a global.
-    expect(resolveEngine({ ...BASE, privacyMode: "browser_only" }).ok).toBe(false);
-  });
-
-  it("prefers a local engine over asking at all", () => {
-    const decision = resolveEngine({ ...BASE, privacyMode: "browser_only", localAvailable: true });
-    expect(decision.ok).toBe(true);
-    expect(decision.needsCloudApproval).toBeFalsy();
-    expect(decision.target?.kind).toBe("local");
-    // Your own hardware is not metered. This is the rule the product rests on.
-    expect(decision.consumesAllowance).toBe(false);
-  });
-});
+const chat = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
 
 describe("the signed-in chat delegates instead of deciding", () => {
   it("calls the authority", () => {
-    expect(CHAT).toMatch(/const decision = resolveEngine\(\{/);
-    expect(CHAT).toMatch(/from "@\/lib\/engine\/resolve"/);
+    expect(chat).toContain("resolveEngine({");
   });
 
-  it("no longer carries its own copy of the privacy rule", () => {
+  it("carries no copy of a privacy-versus-cloud rule", () => {
     /*
-     * THE POINT OF THE REFACTOR. A second implementation of "may this leave
-     * the device" is a second thing to get wrong, and the two would not
-     * announce their disagreement — the product would simply stop keeping its
-     * central promise for one of the paths.
+     * The screen used to hold its own `if (chatsMode !== "private_sync" &&
+     * !allowCloud)`. Two implementations of one privacy rule is how a
+     * Browser-Only conversation starts reaching a server while the authority
+     * still says it must not — nothing fails, the promise just quietly stops
+     * being kept.
      */
-    expect(CHAT, "the duplicated privacy gate is back").not.toMatch(
-      /chatsMode !== "private_sync" && !allowCloud/,
-    );
-  });
-
-  it("asks for approval rather than sending, when the authority says so", () => {
-    const branch = CHAT.slice(CHAT.indexOf("if (!decision.ok)"));
-    expect(branch.slice(0, 400)).toMatch(/decision\.needsCloudApproval/);
-    expect(branch.slice(0, 400)).toMatch(/setCloudApprovalNeeded/);
-    // It must RETURN — falling through would ask and send anyway.
-    expect(branch.slice(0, 400)).toMatch(/return;/);
-  });
-
-  it("sends locally only when the authority chose local", () => {
-    const local = CHAT.slice(CHAT.indexOf('decision.target?.kind === "local"'));
-    expect(local.slice(0, 200)).toMatch(/sendViaLocal/);
+    expect(chat).not.toMatch(/if \([^)]*chatsMode !== "private_sync"[^)]*allowCloud/);
+    expect(chat).not.toMatch(/allowCloud:/);
   });
 
   it("decides before it sends", () => {
-    // The decision must gate the send, not follow it.
-    expect(CHAT.indexOf("const decision = resolveEngine({")).toBeLessThan(
-      CHAT.indexOf('decision.target?.kind === "local"'),
-    );
+    const decision = chat.indexOf("const decision = resolveEngine({");
+    const send = chat.indexOf("await sendViaLocal(text, atts, hasImage);", decision);
+    expect(decision).toBeGreaterThan(-1);
+    expect(send).toBeGreaterThan(decision);
   });
 
   it("passes the real privacy mode rather than a constant", () => {
-    // Hardcoding `private_sync` here would disable the whole protection while
-    // still looking like a correct delegation.
-    const call = CHAT.slice(CHAT.indexOf("const decision = resolveEngine({"));
-    expect(call.slice(0, 2400)).toMatch(/privacyMode: chatsMode/);
-    expect(call.slice(0, 2400)).toMatch(/cloudApprovedForConversation: allowCloud/);
-    expect(call.slice(0, 2400)).toMatch(/online,/);
+    expect(chat).toMatch(/privacyMode:\s*chatsMode/);
   });
 
   it("distinguishes no-engine from no-image-engine", () => {
-    // `localVision` is the device's capability, not this message's outcome, so
-    // the refusal can say which of the two actually applies.
-    const call = CHAT.slice(CHAT.indexOf("const decision = resolveEngine({"));
-    expect(call.slice(0, 2400)).toMatch(/localVision: Boolean\(localVisionRoute\?\.ok\)/);
-    expect(call.slice(0, 2400)).toMatch(/visionRequired: hasImage/);
+    expect(chat).toContain("vision_unavailable_locally");
   });
 });
 
-describe("there is exactly one local-versus-cloud authority", () => {
-  it("is the only module that decides cloud permission", () => {
-    const source = readFileSync("src/lib/engine/resolve.ts", "utf8");
-    for (const code of [
-      "privacy_requires_approval",
-      "cloud_not_configured",
-      "cloud_not_entitled",
-      "cloud_allowance_spent",
-      "offline_and_no_local_engine",
-    ]) {
-      expect(source, `${code} is not defined in the authority`).toContain(code);
+describe("no screen has grown its own escalation path", () => {
+  it("has no cloud-approval dialog anywhere", () => {
+    const offenders = shippedFiles().filter((f) => {
+      const t = readFileSync(f, "utf8");
+      return t.includes("Approve cloud transfer") || t.includes("setCloudApprovalNeeded");
+    });
+    expect(offenders).toEqual([]);
+  });
+
+  it("offers no engine tier that means anything other than on-device", () => {
+    expect(chat).not.toMatch(/"auto",\s*"local",\s*"cloud"/);
+    expect(chat).not.toContain('providerId: "ocade-cloud"');
+  });
+});
+
+describe("the authority has no branch to escape through", () => {
+  it("prefers local whenever local can serve, in every privacy mode", () => {
+    for (const privacyMode of ["browser_only", "pc_vault", "private_sync"] as const) {
+      const d = resolveEngine(ctx({ privacyMode }));
+      expect(d.ok).toBe(true);
+      expect(d.target?.kind).toBe("local");
     }
   });
 
-  /*
-   * THE ORDER IS THE POLICY, so it is asserted by behaviour rather than by
-   * where the strings sit in the file. A textual check passes on a file that
-   * merely mentions the codes in the right sequence, and fails when someone
-   * reorders a type union that changes nothing.
-   */
-  it("prefers local even when cloud is fully available and permitted", () => {
-    const decision = resolveEngine({ ...BASE, localAvailable: true, cloudRemaining: 999 });
-    expect(decision.target?.kind).toBe("local");
-  });
-
-  it("checks privacy before entitlement", () => {
-    // Otherwise an unpaid account on a Browser-Only conversation would be told
-    // to buy a plan, implying that paying would send its data to the cloud.
-    const decision = resolveEngine({
-      ...BASE,
-      privacyMode: "browser_only",
-      cloudEntitled: false,
-    });
-    expect(decision.code).toBe("privacy_requires_approval");
-  });
-
-  it("checks privacy before the allowance", () => {
-    const decision = resolveEngine({
-      ...BASE,
-      privacyMode: "browser_only",
-      cloudRemaining: 0,
-    });
-    expect(decision.code).toBe("privacy_requires_approval");
-  });
-
-  it("checks configuration before entitlement", () => {
-    // Selling access to something that is not switched on is the wrong answer.
-    const decision = resolveEngine({ ...BASE, cloudConfigured: false, cloudEntitled: false });
-    expect(decision.code).toBe("cloud_not_configured");
-  });
-
-  it("checks entitlement before the allowance", () => {
-    const decision = resolveEngine({ ...BASE, cloudEntitled: false, cloudRemaining: 0 });
-    expect(decision.code).toBe("cloud_not_entitled");
-  });
-
-  it("reports being offline rather than blaming the plan", () => {
-    const decision = resolveEngine({ ...BASE, online: false, cloudEntitled: false });
-    expect(decision.code).toBe("offline_and_no_local_engine");
+  it("reports being offline rather than blaming a plan", () => {
+    const d = resolveEngine(ctx({ localAvailable: false, online: false }));
+    expect(d.ok).toBe(false);
+    expect(d.reason).toMatch(/offline/i);
+    expect(d.reason).not.toMatch(/plan|allowance|entitle/i);
   });
 
   it("never refuses without a code and a sentence to show", () => {
-    const refusals: EngineContext[] = [
-      { ...BASE, online: false },
-      { ...BASE, cloudConfigured: false },
-      { ...BASE, cloudEntitled: false },
-      { ...BASE, cloudRemaining: 0 },
-      { ...BASE, privacyMode: "browser_only" },
-      { ...BASE, preference: "local_only" },
-    ];
-    for (const context of refusals) {
-      const decision = resolveEngine(context);
-      expect(decision.ok, JSON.stringify(context)).toBe(false);
-      expect(decision.code, "a silent refusal").toBeTruthy();
-      // Shown verbatim, so it must be a sentence and never a code.
-      expect(decision.reason, "a refusal with nothing to show").toBeTruthy();
-      expect(decision.reason).not.toBe(decision.code);
+    for (const localAvailable of [true, false]) {
+      for (const visionRequired of [true, false]) {
+        for (const online of [true, false]) {
+          for (const preference of ["auto", "local_only"] as const) {
+            const d = resolveEngine(ctx({ localAvailable, visionRequired, online, preference }));
+            if (d.ok) continue;
+            expect(d.code, JSON.stringify({ localAvailable, visionRequired, online })).toBeTruthy();
+            expect(d.reason?.length ?? 0).toBeGreaterThan(20);
+          }
+        }
+      }
     }
   });
 });

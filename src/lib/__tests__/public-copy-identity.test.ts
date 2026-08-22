@@ -35,8 +35,6 @@ const MAY_NAME_A_RUNTIME: Record<string, string> = {
     "The advanced model screen exists to show which engine and weights are installed. Concealing the runtime on the page whose purpose is to disclose it would defeat the screen.",
   "src/routes/_authenticated/settings.browser.tsx":
     "Browser-engine settings name the in-browser runtimes so a user can tell which one their device supports before downloading several gigabytes.",
-  "src/components/settings/OnlineProvidersPanel.tsx":
-    "This IS the advanced settings page the chat identity rule points people at — 'exact runtime details are available in advanced settings'. Someone connecting a provider account has to be told which provider it is, or they cannot connect it.",
 };
 
 /** User-facing route and component copy. */

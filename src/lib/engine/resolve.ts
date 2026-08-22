@@ -38,14 +38,16 @@
 import type { RemedyAction } from "../brain/adapter";
 import type { DeviceMode } from "../brain/device-mode";
 
-/** Where a request may run, from the user's settings. */
-export type EnginePreference =
-  /** Prefer local, use cloud when local cannot serve and the user allows it. */
-  | "auto"
-  /** Never leave the device. Refuse rather than use cloud. */
-  | "local_only"
-  /** Always use cloud, even when a local engine exists. */
-  | "cloud_only";
+/**
+ * Where a request may run, from the user's settings.
+ *
+ * Both members mean the same thing now that there is no remote engine, and
+ * they are kept apart because they mean different things to the PERSON:
+ * "auto" is a user who has not thought about it, "local_only" is a user who
+ * has and wants it stated. A settings screen that silently collapses an
+ * explicit privacy choice into a default is a settings screen nobody trusts.
+ */
+export type EnginePreference = "auto" | "local_only";
 
 /** How the conversation's messages are stored, which gates cloud transfer. */
 export type PrivacyMode = "browser_only" | "pc_vault" | "private_sync";
@@ -62,35 +64,35 @@ export interface EngineContext {
   localVision: boolean;
   /** This request needs image understanding. */
   visionRequired: boolean;
-  /** A cloud provider is configured on this deployment. */
-  cloudConfigured: boolean;
-  /** The account's plan permits cloud at all. */
-  cloudEntitled: boolean;
-  /** Cloud requests left in this window. */
-  cloudRemaining: number;
-  /** When the allowance resets. Shown in the refusal. */
-  cloudResetsAt: Date | null;
-  /**
-   * The user approved cloud for THIS conversation.
-   *
-   * Asked once per conversation and remembered, so a vault-backed chat does
-   * not interrogate the user on every message — and can be revoked.
-   */
-  cloudApprovedForConversation: boolean;
   /** The device has a network path right now. */
   online: boolean;
 }
 
-export type EngineTarget =
-  { kind: "local"; label: string } | { kind: "cloud"; label: "OCADE Cloud" };
+/**
+ * One variant, deliberately.
+ *
+ * A union with a `"cloud"` arm is an invitation: every `switch` over it grows
+ * a cloud branch, and one of those branches eventually forgets to check
+ * whether cloud was allowed. There is nothing to forget when the type cannot
+ * express it.
+ */
+export type EngineTarget = { kind: "local"; label: string };
 
+/**
+ * Why OCADE could not answer, in words a screen can act on.
+ *
+ * The three cloud codes are gone with the branch that produced them. What
+ * replaced them matters more than what left: `local_engine_preparing` is the
+ * common case on a first visit and it is NOT an error — the engine is
+ * downloading itself and will finish. A product that renders that as "no
+ * engine available" sends a user to a settings screen to fix something that
+ * is already fixing itself.
+ */
 export type EngineRefusalCode =
   | "local_only_and_no_local_engine"
-  | "privacy_requires_approval"
   | "vision_unavailable_locally"
-  | "cloud_not_configured"
-  | "cloud_not_entitled"
-  | "cloud_allowance_spent"
+  | "local_engine_preparing"
+  | "local_engine_unavailable"
   | "offline_and_no_local_engine"
   | "no_engine_at_all";
 
@@ -103,13 +105,17 @@ export interface EngineDecision {
   /** What the user can do about it. Rendered as buttons. */
   remedies: RemedyAction[];
   /**
-   * True when the ONLY thing standing between the user and an answer is a
-   * per-conversation cloud approval. The screen shows a prompt rather than a
-   * dead end.
+   * Always false, and kept in the shape on purpose.
+   *
+   * Screens branched on this to show a "send this to the cloud?" dialog.
+   * Removing the field would have made those call sites vanish silently at
+   * the type level in some spots and linger in others; leaving it as a
+   * permanent `false` makes every remaining branch provably dead, which is
+   * what lets the dialogs be deleted with confidence rather than hope.
    */
-  needsCloudApproval: boolean;
-  /** Whether this request will consume allowance. Local never does. */
-  consumesAllowance: boolean;
+  needsCloudApproval: false;
+  /** Whether this request consumes a paid allowance. On-device never does. */
+  consumesAllowance: false;
 }
 
 function refuse(
@@ -146,18 +152,6 @@ function chooseLocal(label: string): EngineDecision {
   };
 }
 
-function chooseCloud(): EngineDecision {
-  return {
-    ok: true,
-    target: { kind: "cloud", label: "OCADE Cloud" },
-    reason: null,
-    code: null,
-    remedies: [],
-    needsCloudApproval: false,
-    consumesAllowance: true,
-  };
-}
-
 /** Remedies that would make an on-device engine appear, per device mode. */
 function localRemedies(mode: DeviceMode): RemedyAction[] {
   switch (mode) {
@@ -186,16 +180,19 @@ export function resolveEngine(context: EngineContext): EngineDecision {
 
   /* ---------------------------------------------------------- 1. privacy -- */
   /*
-   * A browser-vault or PC-vault conversation is stored on the device by the
-   * user's choice. Sending it to cloud contradicts that choice, so it needs an
-   * explicit approval for THIS conversation — checked before an engine is
-   * chosen, because choosing first and checking later is how a request leaks.
+   * Privacy used to be step one because it decided whether the request could
+   * leave the device. Nothing leaves the device now, so there is no gate to
+   * evaluate and the step is gone rather than left as a no-op.
+   *
+   * Worth recording why it was never enough on its own: the gate exempted
+   * `private_sync`, and `private_sync` is the default privacy mode, so the
+   * check that made the product feel safe did not run for the mode almost
+   * every conversation used. Privacy modes now decide STORAGE — where the
+   * message is written and whether it synchronises — and nothing else.
    */
-  const vaultBacked = context.privacyMode !== "private_sync";
-  const cloudForbiddenByPrivacy = vaultBacked && !context.cloudApprovedForConversation;
 
   /* ------------------------------------------------------- 2. local first -- */
-  if (context.preference !== "cloud_only" && localUsable) {
+  if (localUsable) {
     return chooseLocal(context.localLabel ?? "OCADE Local");
   }
 
@@ -215,72 +212,67 @@ export function resolveEngine(context: EngineContext): EngineDecision {
     );
   }
 
-  /* --------------------------------------------------------- 4. the cloud -- */
-  if (!context.online) {
-    // Distinguished from "no engine": the fix is a connection, or a model
-    // downloaded while one exists.
+  /* ------------------------------------------ 4. no cloud, and no pretending -- */
+  /*
+   * THERE IS NO CLOUD BRANCH ANY MORE, AND THAT IS THE POINT.
+   *
+   * This block used to end in `chooseCloud()` behind four conditions —
+   * configured, approved for this conversation, entitled, within allowance.
+   * The conditions were real and carefully written, and one of them had a hole
+   * big enough to drive the product through: `private_sync` is not
+   * vault-backed, `private_sync` is the DEFAULT for every new chat, and so the
+   * approval gate that protected the other two privacy modes did not apply to
+   * the mode almost every conversation actually used. A prompt in a chat named
+   * "private sync" went to Google without a dialog.
+   *
+   * The hole is not fixed by adding a fifth condition. OCADE's constitution
+   * says public-cloud inference is not an allowed fallback at all, so the
+   * honest implementation is that the function has no way to say "cloud" —
+   * `EngineTarget` has one variant now, and there is no code path, argument or
+   * privacy mode that produces a remote engine.
+   *
+   * What is left is the refusal, and it has to be good, because it is now the
+   * only thing standing between a user and silence. It names the real obstacle
+   * and the action that clears it.
+   */
+  if (!context.localAvailable) {
     return refuse(
-      "offline_and_no_local_engine",
-      "This device is offline and has no on-device engine, so OCADE cannot answer yet. Download a local engine while you have a connection and it will work anywhere.",
+      context.online ? "local_engine_preparing" : "offline_and_no_local_engine",
+      context.online
+        ? "OCADE is still preparing its on-device intelligence. This finishes on its own — no setup needed — and Chat will answer as soon as it is ready."
+        : "OCADE has no on-device engine yet and this device is offline. Reconnect once and OCADE will prepare itself; after that it works without a connection.",
       localRemedies(context.deviceMode),
     );
   }
 
-  if (!context.cloudConfigured) {
+  /*
+   * The engine is here and still could not serve. On today's device that means
+   * one thing, and saying which is the difference between a user who trims an
+   * attachment and a user who concludes the product is broken.
+   */
+  if (context.visionRequired && !context.localVision) {
     return refuse(
-      "cloud_not_configured",
-      "OCADE Cloud is not configured on this deployment, and no engine is available on this device.",
-      localRemedies(context.deviceMode),
+      "vision_unavailable_locally",
+      "OCADE's on-device engine cannot read images yet. Describe what is in the picture and OCADE can work from that.",
+      ["download_model"],
     );
   }
 
-  if (cloudForbiddenByPrivacy) {
-    /*
-     * NOT a refusal in the dead-end sense. The user can approve, so the screen
-     * shows a prompt. Marked separately from every other failure so a caller
-     * cannot accidentally render it as "unavailable".
-     */
-    return {
-      ok: false,
-      target: null,
-      code: "privacy_requires_approval",
-      reason:
-        "This conversation is stored on your device. Approve sending it to OCADE Cloud for this conversation, or keep it here and use an on-device engine.",
-      remedies: [],
-      needsCloudApproval: true,
-      consumesAllowance: false,
-    };
-  }
-
-  if (!context.cloudEntitled) {
-    return refuse(
-      "cloud_not_entitled",
-      "Your plan does not include OCADE Cloud. On-device processing stays unlimited.",
-      localRemedies(context.deviceMode),
-    );
-  }
-
-  if (context.cloudRemaining <= 0) {
-    const resets = context.cloudResetsAt
-      ? ` It resets at ${context.cloudResetsAt.toLocaleTimeString()}.`
-      : "";
-    return refuse(
-      "cloud_allowance_spent",
-      `You have used this window's OCADE Cloud allowance.${resets} On-device processing is unlimited — install a local engine to keep working now.`,
-      localRemedies(context.deviceMode),
-    );
-  }
-
-  return chooseCloud();
+  return refuse(
+    "local_engine_unavailable",
+    "OCADE could not start its on-device engine for this request.",
+    localRemedies(context.deviceMode),
+  );
 }
 
 /**
- * Would this context allow cloud if the user approved it?
+ * Kept as an explicit, permanent `false`.
  *
- * Used to decide whether asking is worth it. Prompting for permission and then
- * refusing for a different reason is the worst possible sequence.
+ * Callers used this to decide whether prompting for cloud approval was worth
+ * it. Deleting the export would have been tidier and would have moved the
+ * decision into whichever screen forgot to delete its dialog; a function that
+ * answers "no, and here is why" is harder to route around than an absence.
  */
-export function cloudWouldWorkAfterApproval(context: EngineContext): boolean {
-  const decision = resolveEngine({ ...context, cloudApprovedForConversation: true });
-  return decision.ok && decision.target?.kind === "cloud";
+export function cloudWouldWorkAfterApproval(_context: EngineContext): false {
+  return false;
 }

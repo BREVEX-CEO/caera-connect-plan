@@ -198,11 +198,6 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
         localLabel: outcome.ok ? outcome.availability.label : null,
         localVision: outcome.ok ? Boolean(outcome.availability.capabilities?.vision) : false,
         visionRequired,
-        cloudConfigured,
-        cloudEntitled,
-        cloudRemaining,
-        cloudResetsAt,
-        cloudApprovedForConversation,
         online: typeof navigator === "undefined" ? true : navigator.onLine,
       });
       return { outcome, decision };

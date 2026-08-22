@@ -114,11 +114,6 @@ export interface ReasonRequest {
   messages: ReasonMessage[];
   /** Drives model selection, and triggers the deterministic-work refusal. */
   task: ReasonTask;
-  /**
-   * Whether the caller permits a cloud provider if local cannot serve.
-   * Defaults to FALSE: a surface must opt in to sending anything off-device.
-   */
-  allowCloud?: boolean;
   signal?: AbortSignal;
   onToken?: (chunk: string) => void;
   policy?: RoutePolicy;
@@ -142,11 +137,6 @@ export interface ReasonDeps {
     messages: ReasonMessage[],
     handlers: { onToken: (c: string) => void; signal?: AbortSignal },
   ) => Promise<{ ok: boolean; reason?: string }>;
-  /** Optional cloud path. Absent means cloud is not configured at all. */
-  streamCloud?: (
-    messages: ReasonMessage[],
-    handlers: { onToken: (c: string) => void; signal?: AbortSignal },
-  ) => Promise<{ ok: boolean; reason?: string; modelId?: string }>;
   ledger: PerfLedger;
   now: () => number;
 }
@@ -254,58 +244,26 @@ export async function reason(deps: ReasonDeps, request: ReasonRequest): Promise<
         : (route?.receipt.refusal ?? "No installed model was suitable for this task.");
   }
 
-  // Rule 1. Cloud only on explicit permission, and only after local failed.
-  if (!request.allowCloud) {
-    const failure: ReasonFailure = models.length === 0 ? "no_local_model" : "local_unreachable";
-    return fail(
-      failure,
-      `${localFallbackReason} This request was not sent to any server, because sending it was not permitted.`,
-      { localFallbackReason, routing: route?.ok ? route.receipt : null },
-    );
-  }
-
-  if (!deps.streamCloud) {
-    return fail(
-      "cloud_unavailable",
-      `${localFallbackReason} No cloud provider is configured, so there is nothing to fall back to.`,
-      { localFallbackReason, routing: route?.ok ? route.receipt : null },
-    );
-  }
-
-  let cloudText = "";
-  const cloud = await deps.streamCloud(request.messages, {
-    onToken: (c) => {
-      cloudText += c;
-      request.onToken?.(c);
-    },
-    signal: request.signal,
+  /*
+   * LOCAL FAILED, AND THAT IS THE END OF IT.
+   *
+   * Eighty lines stood here: an `allowCloud` permission check, a
+   * `deps.streamCloud` presence check, then a streamed cloud call whose tokens
+   * went to the same `onToken` the local engine used. Every surface that
+   * wanted cloud passed its own `streamCloud`, which was a good design for
+   * making the decision explicit — and it stopped mattering the moment OCADE
+   * stopped having a cloud engine to point it at.
+   *
+   * The failure it returns is deliberately specific about what did NOT happen:
+   * "not sent anywhere" is the property a user of a local-first product cares
+   * about most when they see an error, and saying it here means the screen
+   * does not have to remember to.
+   */
+  const failure: ReasonFailure = models.length === 0 ? "no_local_model" : "local_unreachable";
+  return fail(failure, `${localFallbackReason} This request was not sent to any server.`, {
+    localFallbackReason,
+    routing: route?.ok ? route.receipt : null,
   });
-
-  if (cloud.reason === "cancelled" || request.signal?.aborted) {
-    return fail("cancelled", "Cancelled while the server was answering.", { localFallbackReason });
-  }
-  if (!cloud.ok) {
-    return fail("model_error", cloud.reason ?? "The server could not answer.", {
-      localFallbackReason,
-    });
-  }
-  if (cloudText.trim().length === 0) {
-    return fail("empty_reply", "The server returned an empty reply.", { localFallbackReason });
-  }
-
-  return {
-    ok: true,
-    text: cloudText,
-    receipt: receipt({
-      servedBy: "cloud",
-      modelId: cloud.modelId ?? null,
-      routing: route?.ok ? route.receipt : null,
-      localFallbackReason,
-      taskKind: request.task,
-      startedAt,
-      elapsedMs: done(),
-    }),
-  };
 }
 
 /** Plain-language summary of a receipt, for showing a user why they got what they got. */

@@ -11,7 +11,7 @@ import {
 } from "../ocade-allowance";
 
 /**
- * These pin the BILLING rules enforced in `src/routes/api/ocade.chat.ts`.
+ * These pin the pure allowance arithmetic the plan pages describe.
  * A regression here charges real users for work they didn't get, so each rule
  * is asserted explicitly rather than assumed from the implementation.
  */
@@ -141,35 +141,13 @@ describe("entitlement is checked, not just the counter", () => {
   });
 });
 
-describe("the chat route fails closed at authority and persistence boundaries", () => {
-  const source = readFileSync(resolve(process.cwd(), "src/routes/api/ocade.chat.ts"), "utf8");
-
-  it("verifies allowance before persisting the user turn", () => {
-    const authority = source.indexOf("const { data: usageRow, error: usageError }");
-    const persistence = source.indexOf("// Persist user message.");
-    expect(authority).toBeGreaterThan(-1);
-    expect(persistence).toBeGreaterThan(authority);
-  });
-
-  it.each([
-    "conversationError",
-    "privacyError",
-    "preferencesError",
-    "usageError",
-    "subscriptionError",
-    "userMessageResult.error",
-    "historyError",
-    "assistantMessageResult.error",
-    "conversationUpdateResult.error",
-    "chargeResult.error",
-  ])("checks %s instead of silently continuing", (boundary) => {
-    expect(source).toContain(boundary);
-  });
-
-  it("does not claim a missing migration is zero usage", () => {
-    expect(source).not.toMatch(/missing table[\s\S]{0,120}treated as zero/i);
-  });
-});
+/*
+ * The block that stood here read `src/routes/api/ocade.chat.ts` and pinned the
+ * order in which that route checked allowance, authority and persistence. The
+ * route is gone: OCADE does not perform cloud inference, so there is no server
+ * chat endpoint to fail closed. The pure allowance arithmetic above is kept
+ * because the plan pages still describe it.
+ */
 
 describe("the reset the user is told about", () => {
   it("resets on a fixed 8-hour boundary so it is predictable across devices", () => {

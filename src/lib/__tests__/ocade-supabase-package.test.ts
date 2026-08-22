@@ -26,7 +26,6 @@ const workerRollback = read(`supabase/rollback/${migrations[3]}_rollback.sql`);
 const projectsVerify = read(`supabase/verification/${migrations[0]}_verify.sql`);
 const workerVerify = read(`supabase/verification/${migrations[3]}_verify.sql`);
 const usageFunctions = read("src/lib/ocade-usage.functions.ts");
-const chatRoute = read("src/routes/api/ocade.chat.ts");
 
 describe("OCADE Supabase application package", () => {
   it("lists every unapplied migration in dependency order with rollback and verification", () => {
@@ -180,11 +179,15 @@ describe("OCADE Supabase application package", () => {
   });
 
   it("calls the service-role-only allowance RPC through the server-only admin client", () => {
-    for (const source of [usageFunctions, chatRoute]) {
-      expect(source).toContain('await import("@/integrations/supabase/client.server")');
-      expect(source).toMatch(/supabaseAdmin\.rpc\(\s*"ocade_consume_cloud_use"/);
-    }
+    /*
+     * The chat route was the second caller and is deleted with cloud
+     * inference. The property still matters for the usage functions: the
+     * service-role key must reach the RPC through `client.server`, which is
+     * excluded from the browser bundle by its filename, and never through the
+     * request-scoped client a browser can influence.
+     */
+    expect(usageFunctions).toContain('await import("@/integrations/supabase/client.server")');
+    expect(usageFunctions).toMatch(/supabaseAdmin\.rpc\(\s*"ocade_consume_cloud_use"/);
     expect(usageFunctions).not.toMatch(/context\.supabase[\s\S]{0,200}"ocade_consume_cloud_use"/);
-    expect(chatRoute).not.toMatch(/(?<!Admin)\.rpc\(\s*"ocade_consume_cloud_use"/);
   });
 });

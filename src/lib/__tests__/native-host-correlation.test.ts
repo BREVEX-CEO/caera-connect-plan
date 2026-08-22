@@ -70,15 +70,23 @@ describe("native host replies are matched to their own request", () => {
 
       // The reply this receives must be its OWN. Under position matching it
       // used to receive slow.one's.
-      const second = await client.request<{ echo: string }>("second.command", {}, {
-        timeoutMs: 5000,
-      });
+      const second = await client.request<{ echo: string }>(
+        "second.command",
+        {},
+        {
+          timeoutMs: 5000,
+        },
+      );
       expect(second.ok, second.error ?? "").toBe(true);
       expect(second.data?.echo).toBe("second.command");
 
-      const third = await client.request<{ echo: string }>("third.command", {}, {
-        timeoutMs: 5000,
-      });
+      const third = await client.request<{ echo: string }>(
+        "third.command",
+        {},
+        {
+          timeoutMs: 5000,
+        },
+      );
       expect(third.ok, third.error ?? "").toBe(true);
       expect(third.data?.echo).toBe("third.command");
     } finally {

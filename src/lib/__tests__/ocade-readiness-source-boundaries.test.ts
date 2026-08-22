@@ -38,7 +38,10 @@ describe("OCADE 77 — proof for formerly source-inspected boundaries", () => {
   });
 
   it("#19 prevents desktop release publishing", () => {
-    const workflow = expectAll(".github/workflows/release.yml", [/workflow_dispatch:/, /if: \$\{\{ false \}\}/]);
+    const workflow = expectAll(".github/workflows/release.yml", [
+      /workflow_dispatch:/,
+      /if: \$\{\{ false \}\}/,
+    ]);
     expect(workflow).not.toMatch(/tauri-apps\/tauri-action/);
     expect(workflow).not.toMatch(/push:\s*\n\s*tags:/);
   });
@@ -140,7 +143,10 @@ describe("OCADE 77 — proof for formerly source-inspected boundaries", () => {
   });
 
   it("#44 separates user-facing Studio from engineering/research Lab", () => {
-    const studio = expectAll("src/routes/_authenticated/ocade.studio.tsx", [/CreativeControlPanel/, /Open Lab/]);
+    const studio = expectAll("src/routes/_authenticated/ocade.studio.tsx", [
+      /CreativeControlPanel/,
+      /Open Lab/,
+    ]);
     const lab = expectAll("src/routes/_authenticated/ocade.lab.tsx", [
       /ResearchPanel/,
       /GovernedRunPanel/,

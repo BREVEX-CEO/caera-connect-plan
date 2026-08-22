@@ -113,8 +113,21 @@ describe("assembler", () => {
   it("has no field through which webpage or tool text could enter the system message", () => {
     // The guarantee is structural: RuntimeContext exposes no such field, so a
     // caller cannot pass retrieved content here even by mistake.
-    const keys = ["now", "surface", "mode", "engineLabel", "runtimeLabel", "local", "online",
-      "privacyMode", "capabilities", "tools", "project", "preferences", "memory"];
+    const keys = [
+      "now",
+      "surface",
+      "mode",
+      "engineLabel",
+      "runtimeLabel",
+      "local",
+      "online",
+      "privacyMode",
+      "capabilities",
+      "tools",
+      "project",
+      "preferences",
+      "memory",
+    ];
     const built = assembleSystemPrompt({ surface: "chat" });
     expect(built).not.toContain("BEGIN UNTRUSTED CONTENT");
     expect(keys).not.toContain("retrieved");
@@ -122,7 +135,10 @@ describe("assembler", () => {
   });
 
   it("states the real date when the runtime supplies one, and never invents one", () => {
-    const withDate = assembleSystemPrompt({ surface: "chat", now: new Date("2026-08-22T00:00:00Z") });
+    const withDate = assembleSystemPrompt({
+      surface: "chat",
+      now: new Date("2026-08-22T00:00:00Z"),
+    });
     expect(withDate).toContain("Current date: 2026-08-22");
     const without = assembleSystemPrompt({ surface: "chat" });
     expect(without).not.toContain("Current date:");

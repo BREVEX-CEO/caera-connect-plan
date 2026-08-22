@@ -13,11 +13,9 @@ import { AccessibilityPanel } from "@/components/settings/AccessibilityPanel";
 import { UpdatePolicyPanel } from "@/components/settings/UpdatePolicyPanel";
 import { ChatSettingsPanel } from "@/components/settings/ChatSettingsPanel";
 import { LocalEngineSettingsPanel } from "@/components/settings/LocalEngineSettingsPanel";
-import { OnlineProvidersPanel } from "@/components/settings/OnlineProvidersPanel";
 import { MotionPanel } from "@/components/settings/MotionPanel";
 import { OfflineSection } from "@/components/settings/OfflineSection";
 import { AccountPanel } from "@/components/settings/AccountPanel";
-import { CloudPermissionPanel } from "@/components/settings/CloudPermissionPanel";
 import { ImageSettingsPanel } from "@/components/settings/ImageSettingsPanel";
 import { AboutLicencesPanel } from "@/components/settings/AboutLicencesPanel";
 import { DiagnosticsSettingsPanel } from "@/components/settings/DiagnosticsSettingsPanel";
@@ -35,11 +33,9 @@ const IMPLEMENTED_SECTIONS: Record<string, () => React.ReactElement> = {
   updates: () => <UpdatePolicyPanel />,
   chat: () => <ChatSettingsPanel />,
   "local-engine": () => <LocalEngineSettingsPanel />,
-  providers: () => <OnlineProvidersPanel />,
   motion: () => <MotionPanel />,
   offline: () => <OfflineSection />,
   account: () => <AccountPanel />,
-  "cloud-permission": () => <CloudPermissionPanel />,
   images: () => <ImageSettingsPanel />,
   diagnostics: () => <DiagnosticsSettingsPanel />,
   about: () => <AboutLicencesPanel />,

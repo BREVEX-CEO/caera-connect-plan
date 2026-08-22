@@ -7,9 +7,10 @@
  * user's machine, and routing a local-only prompt through a remote host is
  * exactly the thing local-first exists to prevent.
  *
- * The cloud path deliberately stays absent here. A surface that wants cloud
- * passes its own `streamCloud`, so "this prompt may leave the device" is always
- * an explicit decision at the call site rather than an ambient capability.
+ * There is no cloud path, here or anywhere. `ReasonDeps` used to take an
+ * optional `streamCloud` so that "this prompt may leave the device" was an
+ * explicit decision at each call site; the parameter is gone with the engine
+ * it fed, so the decision no longer exists to be made.
  */
 import { discoverLocalModels, streamLocalChat, DEFAULT_LOCAL_BRIDGE_URL } from "../ocade-local";
 import { PerfLedger } from "../local/router-policy";
@@ -27,7 +28,6 @@ export const sessionPerfLedger = new PerfLedger();
 
 export function browserReasonDeps(
   bridgeUrl: string = DEFAULT_LOCAL_BRIDGE_URL,
-  streamCloud?: ReasonDeps["streamCloud"],
   /**
    * Total memory, when this machine was measured precisely.
    *
@@ -74,7 +74,6 @@ export function browserReasonDeps(
         think: thinkingFor("chat", thinking),
         ...(totalRamBytes ? { totalRamBytes } : {}),
       }),
-    ...(streamCloud ? { streamCloud } : {}),
     ledger: sessionPerfLedger,
     now: () => Date.now(),
   };
