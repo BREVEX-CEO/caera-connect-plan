@@ -417,6 +417,93 @@ jobs:
       - name: Browser policy and managed-host bridge tests
         run: npx vitest run src/lib/__tests__/browser-bridge.test.ts src/lib/__tests__/managed-browser-bridge.test.ts
 
+  browser-audits:
+    name: Real-browser audits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # These audits drive a REAL browser. A runner without one must fail the
+      # job rather than skip it: a browser suite that quietly does not run is
+      # indistinguishable from one that passes, which is the failure mode the
+      # audits exist to remove.
+      - name: Locate Chrome
+        id: chrome
+        run: |
+          for candidate in \
+            /usr/bin/google-chrome \
+            /usr/bin/google-chrome-stable \
+            /usr/bin/chromium-browser \
+            /usr/bin/chromium; do
+            if [ -x "$candidate" ]; then
+              echo "path=$candidate" >> "$GITHUB_OUTPUT"
+              echo "using $candidate"
+              exit 0
+            fi
+          done
+          echo "No Chrome or Chromium on this runner; the browser audits cannot run." >&2
+          exit 1
+
+      - name: Extension manifest and safety gate
+        run: npm run extension:check
+
+      - name: Cowork extension against a real browser
+        env:
+          OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
+        run: npm run extension:e2e
+
+      - name: One model across three tabs, with failover
+        env:
+          OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
+        run: npm run audit:model-owner
+
+      - name: On-device engine availability
+        env:
+          OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
+        run: npm run audit:engines
+
+      - name: Every settings control, signed out and signed in
+        env:
+          OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
+        run: npm run audit:settings
+
+  python-engine:
+    name: Python control engine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # The host is Windows PC control, and most of it is Windows-only. What
+      # this proves on Linux is that the package still IMPORTS and that every
+      # platform-independent rule — the path boundary, the confirmation gate,
+      # the protocol surface — still holds. Those used to be unrunnable here at
+      # all: one module imported win32con at module scope and took the whole
+      # collection down with it.
+      - name: Install cross-platform dependencies
+        run: python -m pip install --quiet pytest numpy psutil Send2Trash pyperclip
+
+      - name: Python host suite
+        working-directory: native/python-host
+        run: python -m pytest tests/ -q
+
+      - name: Control engine suite
+        working-directory: native/ocade_control_engine
+        run: python -m pytest core/ -q
+
   desktop-browser-supervisor:
     name: Desktop browser supervisor · Windows
     runs-on: windows-latest
