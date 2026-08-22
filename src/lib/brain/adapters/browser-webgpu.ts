@@ -209,9 +209,12 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
    * surfaces an error is reporting a problem with a message the user has not
    * sent yet.
    *
-   * The bytes land in the browser's Cache Storage, which is where WebLLM keeps
-   * model shards, so a second visit compiles from disk and asks the network for
-   * nothing.
+   * The bytes land in IndexedDB — see `cacheBackend` in `ensureEngine` above,
+   * and the note there explaining why not Cache Storage — so a second visit
+   * compiles from disk and asks the network for nothing. This comment said
+   * Cache Storage while the code twenty lines up said otherwise, which is
+   * exactly the kind of disagreement that sends somebody looking in the wrong
+   * drawer for a missing gigabyte.
    */
   async preload(): Promise<void> {
     try {
