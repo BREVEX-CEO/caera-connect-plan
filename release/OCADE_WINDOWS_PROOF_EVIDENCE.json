@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-08-23T13:29:00.015Z",
+  "recordedAt": "2026-08-23T13:41:38.942Z",
   "platform": "win32 x64",
   "windowsVersion": "Microsoft Windows [Version 10.0.19044.6466]",
   "node": "v24.16.0",
@@ -31,17 +31,17 @@
     {
       "name": "the full sidecar suite, with the Windows paths executing",
       "ok": true,
-      "detail": "297 passed, 17 skipped in 74.48s (0:01:14)"
+      "detail": "297 passed, 17 skipped in 74.90s (0:01:14)"
     },
     {
       "name": "REAL PC CONTROL: pointer, keyboard, OCR, windows, STOP latch",
       "ok": true,
-      "detail": "14 passed in 4.99s"
+      "detail": "14 passed in 5.03s"
     },
     {
       "name": "control engine suite",
       "ok": true,
-      "detail": "30 passed in 0.13s"
+      "detail": "30 passed in 0.14s"
     },
     {
       "name": "extension manifest and safety gate",
