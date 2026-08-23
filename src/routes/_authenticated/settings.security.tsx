@@ -63,6 +63,7 @@ function SecurityPage() {
   const { user } = useSession();
   const navigate = useNavigate();
 
+  const [currentPw, setCurrentPw] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [pwBusy, setPwBusy] = useState(false);
@@ -143,8 +144,39 @@ function SecurityPage() {
     }
     setPwBusy(true);
     try {
+      /*
+       * PROVE IT IS STILL YOU BEFORE REPLACING THE THING THAT PROVES IT IS YOU.
+       *
+       * This called `updateUser({ password })` on the session alone. A session
+       * is what somebody who walked up to an unlocked laptop already has, so
+       * the account's real owner could be locked out of their own workspace by
+       * a passer-by with no secret at all — `/reset-password` had the same hole
+       * from the other direction, and both are now closed.
+       *
+       * Supabase has no "reauthenticate with password" call, so the check is a
+       * sign-in against the current password: it succeeds only for somebody who
+       * knows it, and it refreshes the same session rather than starting a new
+       * one, so nothing about the page changes when it passes.
+       */
+      const email = identities.data?.email;
+      if (!email) {
+        throw new Error(
+          "OCADE cannot confirm this account's email address, so it will not change the password from here. Use the emailed reset link instead.",
+        );
+      }
+      const { error: reauth } = await supabase.auth.signInWithPassword({
+        email,
+        password: currentPw,
+      });
+      if (reauth) {
+        throw new Error(
+          "That current password did not match. If you have never set one — you sign in with Google, Apple or a one-time code — use “Email me a reset link” below instead.",
+        );
+      }
+
       const { error } = await supabase.auth.updateUser({ password: pw });
       if (error) throw error;
+      setCurrentPw("");
       setPw("");
       setPw2("");
       setPwMsg({ kind: "success", text: "Password updated on this account." });
@@ -258,6 +290,21 @@ function SecurityPage() {
           Setting a password does not remove Google or OTP sign-in — it adds another way in.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="grid gap-1.5 sm:col-span-2">
+            <span className="text-xs text-muted-foreground">Current password</span>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={currentPw}
+              onChange={(e) => setCurrentPw(e.target.value)}
+              className={inputCls}
+              aria-label="Current password"
+            />
+            <span className="text-[11px] text-muted-foreground">
+              Asked for so that somebody who finds this browser signed in cannot take the account
+              over. No password yet? Use the reset link below.
+            </span>
+          </label>
           <label className="grid gap-1.5">
             <span className="text-xs text-muted-foreground">New password</span>
             <input
@@ -285,7 +332,7 @@ function SecurityPage() {
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button
             onClick={() => void changePassword()}
-            disabled={pwBusy || !pw || !pw2}
+            disabled={pwBusy || !pw || !pw2 || !currentPw}
             className="inline-flex items-center gap-2 rounded-md border border-primary/50 bg-primary/15 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-primary/25 disabled:opacity-60"
           >
             {pwBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}

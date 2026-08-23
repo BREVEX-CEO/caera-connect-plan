@@ -1,11 +1,12 @@
 import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { Mail, Phone, KeyRound, Loader2 } from "lucide-react";
+import { Mail, Phone, KeyRound, Loader2, Eye, EyeOff } from "lucide-react";
 import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { LegalDialog } from "@/components/legal/LegalDialog";
 import { AuthShell } from "@/components/shell/AuthShell";
+import { OTP_SENT_NOTICE, friendlyOtpError } from "@/lib/auth/otp";
 import { cn } from "@/lib/utils";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
 
@@ -135,15 +136,27 @@ function AuthPage() {
       setBusy(false);
       return;
     }
-    const { error: err } = await supabase.auth.signInWithOtp({ phone: parsed.data });
-    if (err) {
-      setError(err.message);
+    // Same rule as email: the person says whether they are joining or
+    // returning, and a mistyped digit does not become somebody's new account.
+    const creating = signupIntent;
+    const { error: err } = await supabase.auth.signInWithOtp({
+      phone: parsed.data,
+      options: { shouldCreateUser: creating },
+    });
+    if (err && !/user|not found|signups? not allowed|otp_disabled/i.test(err.message)) {
+      setError(friendlyOtpError(err.message));
       setBusy(false);
       return;
     }
+    setNotice("If that number can receive one, a one-time code is on its way.");
     navigate({
       to: "/auth/verify",
-      search: { channel: "phone", identifier: parsed.data, next: nextPath },
+      search: {
+        channel: "phone",
+        identifier: parsed.data,
+        next: nextPath,
+        intent: creating ? "signup" : "signin",
+      },
     });
   }
 
@@ -158,6 +171,13 @@ function AuthPage() {
    * any point without leaving the form.
    */
   const [legalOpen, setLegalOpen] = useState<null | "terms" | "privacy">(null);
+  /*
+   * Returning by default. Somebody who has an account and is asked to choose
+   * loses nothing by the default being wrong; somebody who does not have one
+   * and is quietly given one loses the ability to notice.
+   */
+  const [signupIntent, setSignupIntent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function submitPassword(intent: "signin" | "signup") {
     setBusy(true);
@@ -186,7 +206,15 @@ function AuthPage() {
         },
       });
       if (err) {
-        setError(err.message);
+        /*
+         * "User already registered" answers the attacker's question, so the
+         * wording says what to DO instead of what exists.
+         */
+        setError(
+          /already registered|already exists/i.test(err.message)
+            ? "That address cannot be used to create a new account. If it is yours, sign in — or reset the password."
+            : err.message,
+        );
         setBusy(false);
         return;
       }
@@ -251,23 +279,56 @@ function AuthPage() {
       setBusy(false);
       return;
     }
+    /*
+     * A ONE-TIME CODE MUST NOT QUIETLY CREATE AN ACCOUNT.
+     *
+     * This was `shouldCreateUser: true` on a control labelled "Send one-time
+     * code", under a heading that says "Sign in". Two people were harmed by
+     * that. Somebody returning to OCADE who mistyped one character of their
+     * address got a brand-new empty account instead of a failure — signed in,
+     * with none of their conversations, and no way to tell what had happened.
+     * And somebody genuinely new had an account created for them before they
+     * had passed the point where OCADE says what an account is.
+     *
+     * The person now says which they meant. `signupIntent` is their answer,
+     * and it travels to the verify screen so a Resend cannot quietly change it
+     * either.
+     */
+    const creating = signupIntent;
     const { error: err } = await supabase.auth.signInWithOtp({
       email: parsed.data,
       options: {
-        shouldCreateUser: true,
+        shouldCreateUser: creating,
         emailRedirectTo: `${window.location.origin}/auth/callback${
           nextPath !== "/home" ? `?next=${encodeURIComponent(nextPath)}` : ""
         }`,
       },
     });
-    if (err) {
-      setError(err.message);
+    /*
+     * A REFUSAL IS NOT REPORTED, AND THAT IS THE POINT.
+     *
+     * With `shouldCreateUser: false` the provider answers "no such user" for an
+     * address that has no account. Showing that turns this form into an oracle:
+     * anybody can check whether a given person has an OCADE account by typing
+     * it in. So the screen says the same sentence either way and moves on to
+     * the code entry, which tells nobody anything. Real errors — a network
+     * failure, a rate limit — are still shown, because those are about the
+     * request rather than about the account.
+     */
+    if (err && !/user|not found|signups? not allowed|otp_disabled/i.test(err.message)) {
+      setError(friendlyOtpError(err.message));
       setBusy(false);
       return;
     }
+    setNotice(OTP_SENT_NOTICE);
     navigate({
       to: "/auth/verify",
-      search: { channel: "email", identifier: parsed.data, next: nextPath },
+      search: {
+        channel: "email",
+        identifier: parsed.data,
+        next: nextPath,
+        intent: creating ? "signup" : "signin",
+      },
     });
   }
 
@@ -331,6 +392,49 @@ function AuthPage() {
           <span>Just looking? Try the demo — no sign-in, sample data only.</span>
           <span className="font-semibold uppercase tracking-wider">Demo →</span>
         </Link>
+
+        {/*
+          RETURNING OR JOINING — asked once, plainly, before anything is sent.
+
+          The screen used to say "New here or returning — the same screen works
+          for both", which was true of the form and not true of the
+          consequences: the one-time code path created an account for any
+          address typed into it. Asking costs one tap and removes a whole class
+          of "where did my conversations go".
+        */}
+        <div
+          role="radiogroup"
+          aria-label="Are you signing in or creating an account?"
+          className="grid grid-cols-2 gap-1 rounded-lg bg-muted/40 p-1"
+        >
+          {[
+            { id: false, label: "Sign in", hint: "I already have an OCADE account" },
+            { id: true, label: "Create account", hint: "I am new to OCADE" },
+          ].map((option) => (
+            <button
+              key={String(option.id)}
+              type="button"
+              role="radio"
+              aria-checked={signupIntent === option.id}
+              title={option.hint}
+              onClick={() => {
+                setSignupIntent(option.id);
+                setNotice(null);
+                setError(null);
+                setErrorHint(null);
+              }}
+              className={cn(
+                "inline-flex min-h-[32px] items-center justify-center rounded-md px-2 py-1.5",
+                "text-xs font-medium transition-colors",
+                signupIntent === option.id
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
 
         {/* Method tabs */}
         <div
@@ -439,34 +543,45 @@ function AuthPage() {
               <KeyRound className="h-4 w-4 text-muted-foreground" aria-hidden />
               <input
                 id="password"
-                type="password"
-                autoComplete="current-password"
+                type={showPassword ? "text" : "password"}
+                /*
+                 * The autocomplete token has to match what is about to happen,
+                 * or the password manager offers the wrong thing: `new-password`
+                 * asks it to GENERATE one, `current-password` asks it to FILL
+                 * the saved one. A create-account form advertising
+                 * `current-password` is why managers quietly stop offering to
+                 * save new logins.
+                 */
+                autoComplete={signupIntent ? "new-password" : "current-password"}
                 placeholder="At least 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-pressed={showPassword}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="inline-flex min-h-[24px] min-w-[24px] items-center justify-center text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" aria-hidden />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden />
+                )}
+              </button>
             </div>
             {password.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => submitPassword("signin")}
-                  disabled={busy || !authConfigured}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
-                >
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Sign in
-                </button>
-                <button
-                  type="button"
-                  onClick={() => submitPassword("signup")}
-                  disabled={busy || !authConfigured}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-border/70 bg-background/60 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-60"
-                >
-                  Create account
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => submitPassword(signupIntent ? "signup" : "signin")}
+                disabled={busy || !authConfigured}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
+              >
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {signupIntent ? "Create account" : "Sign in"}
+              </button>
             ) : (
               <button
                 type="submit"
@@ -474,7 +589,7 @@ function AuthPage() {
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
               >
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Send one-time code
+                {signupIntent ? "Create account with a one-time code" : "Send one-time code"}
               </button>
             )}
             <button
@@ -500,7 +615,7 @@ function AuthPage() {
         ) : null}
 
         <p className="text-center text-xs text-muted-foreground">
-          New here or returning — the same screen works for both.{" "}
+          Your choice above decides whether OCADE signs you in or makes a new account.{" "}
           <Link to="/" className="text-foreground underline-offset-4 hover:underline">
             Back to home
           </Link>

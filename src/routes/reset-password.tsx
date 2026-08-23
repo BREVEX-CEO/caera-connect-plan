@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { KeyRound, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthShell } from "@/components/shell/AuthShell";
+import { opensResetForm, readRecoveryEvidence } from "@/lib/auth/recovery-link";
 
 export const Route = createFileRoute("/reset-password")({
   ssr: false,
@@ -31,33 +32,62 @@ function ResetPasswordPage() {
 
   useEffect(() => {
     let cancelled = false;
+
+    /*
+     * A SESSION IS NOT A RESET LINK.
+     *
+     * This used to accept `SIGNED_IN` and, failing that, the mere existence of
+     * a session — so anyone at a browser where the owner was still signed in
+     * could open this URL and replace the password without knowing the old
+     * one, locking the owner out of their own account. Changing a password is
+     * the one operation that must prove identity by some means OTHER than the
+     * session it is about to invalidate.
+     *
+     * `PASSWORD_RECOVERY` is kept because it IS that proof: Supabase emits it
+     * only for a session established from a recovery token. Everything else
+     * has to arrive in the URL and survive `readRecoveryEvidence`.
+     *
+     * Somebody who is signed in and wants a new password is not stuck — they
+     * are sent to Settings › Security, where the current password is required.
+     */
     const sub = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
-        if (!cancelled) {
-          setLinkValid(true);
-          setReady(true);
-        }
+      if (event === "PASSWORD_RECOVERY" && !cancelled) {
+        setLinkValid(true);
+        setReady(true);
       }
     });
+
     void (async () => {
-      const hash = window.location.hash ?? "";
-      const params = new URLSearchParams(hash.startsWith("#") ? hash.slice(1) : hash);
-      const code = new URL(window.location.href).searchParams.get("code");
-      if (code) {
-        await supabase.auth.exchangeCodeForSession(code).catch(() => undefined);
-      }
-      if (params.get("error_description")) {
+      const evidence = readRecoveryEvidence(window.location.href);
+
+      if (evidence.kind === "error") {
         if (!cancelled) {
-          setError(params.get("error_description"));
+          setError(evidence.message);
           setReady(true);
         }
         return;
       }
-      const { data } = await supabase.auth.getSession();
+
+      if (evidence.kind === "recovery_code") {
+        /*
+         * A code is a claim, not the proof. The form opens only if the
+         * exchange actually produces a session — a spent, forged or expired
+         * code fails here and the page says so.
+         */
+        const { error: exchangeError } = await supabase.auth
+          .exchangeCodeForSession(evidence.code)
+          .catch((e: unknown) => ({ error: e as Error }));
+        if (cancelled) return;
+        setLinkValid(!exchangeError);
+        setReady(true);
+        return;
+      }
+
       if (cancelled) return;
-      setLinkValid(Boolean(data.session));
+      setLinkValid(opensResetForm(evidence));
       setReady(true);
     })();
+
     return () => {
       cancelled = true;
       sub.data.subscription.unsubscribe();
@@ -116,7 +146,12 @@ function ResetPasswordPage() {
           >
             <p className="font-medium">This reset link is no longer valid.</p>
             <p className="mt-1 text-destructive/85">
-              {error ?? "Reset links expire quickly and can only be used once."}
+              {error ??
+                "Open this page from the link in your reset email. Reset links expire quickly and can only be used once."}
+            </p>
+            <p className="mt-1 text-destructive/85">
+              Already signed in and just want a new password? Change it in Settings › Security,
+              where OCADE asks for your current one first.
             </p>
           </div>
           <Link
