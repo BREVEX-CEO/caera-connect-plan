@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-23T12:54:48.869Z",
+  "generatedAt": "2026-08-23T13:34:18.628Z",
   "classificationSemantics": {
     "Done": "Executed or directly verified in this run.",
     "Modified": "Source/product changed in this run and subject to the final gates.",
@@ -10,7 +10,7 @@
   },
   "git": {
     "branch": "codex/ocade-production-completion-20260823-continuation",
-    "head": "f54b404ecd8e225b83b5d8de60e43820716afa7a"
+    "head": "8d6e1abc10394ed4f2138bbb7c34b9b5f789a201"
   },
   "sources": [
     {

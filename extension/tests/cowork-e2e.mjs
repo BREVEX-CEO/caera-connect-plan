@@ -41,6 +41,7 @@ const SOURCE = resolve("extension");
 async function buildFixture(originHost) {
   const dir = await mkdtemp(join(tmpdir(), "ocade-ext-fixture-"));
   await cp(join(SOURCE, "src"), join(dir, "src"), { recursive: true });
+  await cp(join(SOURCE, "icons"), join(dir, "icons"), { recursive: true });
   const manifest = JSON.parse(await readFile(join(SOURCE, "manifest.json"), "utf8"));
   manifest.host_permissions = [`http://${originHost}/*`];
   // The website channel is origin-gated by Chrome itself, from this list.

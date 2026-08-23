@@ -13,6 +13,9 @@ const inputDir = resolve(value("--input") ?? "");
 const output = resolve(
   value("--output") ?? "release/OCADE_CHECKLIST_AUDIT_2026-08-23.json",
 );
+const markdownOutput = resolve(
+  value("--markdown-output") ?? "docs/acceptance/OCADE_CHECKLIST_MASTER.md",
+);
 if (!inputDir || !existsSync(inputDir)) {
   throw new Error("Pass the checklist directory with --input <directory>.");
 }
@@ -309,4 +312,43 @@ const receipt = {
 
 mkdirSync(dirname(output), { recursive: true });
 writeFileSync(output, `${JSON.stringify(receipt, null, 2)}\n`);
+const displayStatus = {
+  Done: "Done",
+  Modified: "Modified",
+  Existing: "Already Existing",
+  "N/A": "Not Applicable",
+  Blocked: "Externally Blocked",
+};
+const escapeCell = (text) => String(text).replaceAll("|", "\\|").replaceAll(/\s+/g, " ").trim();
+const markdown = [
+  "# OCADE Checklist Master Acceptance Ledger",
+  "",
+  `Generated: ${receipt.generatedAt}`,
+  `Branch: ${receipt.git.branch ?? "unavailable"}`,
+  `Evidence base commit: ${receipt.git.head ?? "unavailable"}`,
+  "",
+  "The attached checklists are acceptance criteria, not merge or deployment authority. `Done` means directly executed or observed in this run; `Modified` means source changed and is covered by the final gates; `Already Existing` records reachable pre-existing source/test evidence without claiming fresh runtime proof; `Not Applicable` avoids inventing retail programmes, facts, or unsupported business claims; `Externally Blocked` requires authority, credentials, devices, provider state, or independent review unavailable in this run. No unresolved item is classified as `Failed`; reproducible source defects found in this run were fixed and retested.",
+  "",
+  "## Summary",
+  "",
+  "| Source | Total | Done | Modified | Already Existing | Not Applicable | Failed | Externally Blocked |",
+  "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+  ...Object.entries(receipt.summary.byFile).map(
+    ([file, counts]) =>
+      `| ${escapeCell(file)} | ${counts.total} | ${counts.Done} | ${counts.Modified} | ${counts.Existing} | ${counts["N/A"]} | 0 | ${counts.Blocked} |`,
+  ),
+  `| **Total** | **${receipt.summary.total}** | **${receipt.summary.Done}** | **${receipt.summary.Modified}** | **${receipt.summary.Existing}** | **${receipt.summary["N/A"]}** | **0** | **${receipt.summary.Blocked}** |`,
+  "",
+  "## Item-level ledger",
+  "",
+  "| ID | Source | Line | Section | Requirement | Applicability / concrete reason | Implementation or evidence | Final status |",
+  "| --- | --- | ---: | --- | --- | --- | --- | --- |",
+  ...receipt.items.map(
+    (item) =>
+      `| ${item.id} | ${escapeCell(item.source)} | ${item.sourceLine} | ${escapeCell(item.section || "General")} | ${escapeCell(item.item)} | ${escapeCell(item.reason)} | ${escapeCell(item.evidence)} | ${displayStatus[item.status]} |`,
+  ),
+  "",
+].join("\n");
+mkdirSync(dirname(markdownOutput), { recursive: true });
+writeFileSync(markdownOutput, markdown);
 console.log(JSON.stringify(receipt.summary, null, 2));
