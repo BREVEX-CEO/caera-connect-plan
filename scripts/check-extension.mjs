@@ -61,6 +61,40 @@ for (const file of files) {
   if (!existsSync(join(ROOT, file))) fail(`Missing file: ${file}`);
 }
 
+/*
+ * A PERMISSION THE CODE NEVER USES IS A CLAIM, NOT A CAPABILITY.
+ *
+ * The manifest declared `optional_permissions: ["downloads"]` and no file in
+ * `extension/src/` referenced `chrome.downloads` at all. Nothing was broken by
+ * it, which is exactly the problem: it read to a reviewer, to a store listing
+ * and to the person clicking Allow as though OCADE could manage downloads, and
+ * the honest answer was that it could not. An optional permission is still a
+ * prompt somebody is asked to accept.
+ *
+ * Every declared permission -- standing or optional -- must appear in the
+ * source as a `chrome.<api>` reference. Adding the ability and the permission
+ * together passes; adding either alone does not.
+ */
+const sourceText = files
+  .filter((file) => file.endsWith(".js") && existsSync(join(ROOT, file)))
+  .map((file) => readFileSync(join(ROOT, file), "utf8"))
+  .join("\n");
+
+/** `activeTab` grants access implicitly; there is no `chrome.activeTab` API. */
+const IMPLICIT_PERMISSIONS = new Set(["activeTab"]);
+for (const permission of [
+  ...(manifest.permissions ?? []),
+  ...(manifest.optional_permissions ?? []),
+]) {
+  if (IMPLICIT_PERMISSIONS.has(permission)) continue;
+  if (!sourceText.includes(`chrome.${permission}`)) {
+    fail(
+      `Permission "${permission}" is declared but chrome.${permission} is never used. ` +
+        "Use it or remove it: a permission the code cannot exercise is a capability claim the product cannot keep.",
+    );
+  }
+}
+
 const background = readFileSync(join(ROOT, "src/background.js"), "utf8");
 
 /*

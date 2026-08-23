@@ -20,7 +20,7 @@ that, and those four items are listed as prominently as the rest.
 | Production build                                   | succeeds                                                                 |
 | Asset budget                                       | largest JS 538.9/585.9 KiB; on-device engines 7,768/20,508 KiB, all lazy |
 | Stage-2 + release gate scripts                     | 42 run, 40 pass, 2 environment-blocked (below)                           |
-| Cowork extension E2E, real Chromium                | **52/52 scenarios**                                                      |
+| Cowork extension E2E, real Chromium                | **69/69 scenarios** (measured by re-running the suite)                   |
 | Chat prompts, shipped pipeline                     | **7/7**                                                                  |
 | Real llama.cpp inference                           | **15/15 checks**                                                         |
 | One model across three tabs + failover             | **8/8**                                                                  |
@@ -63,7 +63,7 @@ the wrong thing.
 `use-mission` now try it first, falling through for everything else so PC
 control keeps its own path.
 
-Proven in real Chromium (52/52 scenarios, up from 45): a `browser_read` tool
+Proven in real Chromium (69/69 scenarios): a `browser_read` tool
 call comes back with the extension's own observation of a real tab, a navigate is
 verified by the extension rather than by the adapter, an unapproved address is
 still refused so the adapter cannot widen scope, `browser_key` refuses honestly
@@ -256,7 +256,13 @@ that has memorised three lines is not a language model.
 
 ---
 
-## 5. Cowork — 45 scenarios in real Chromium
+## 5. Cowork — 69 scenarios in real Chromium
+
+> **This heading said 45 while the summary table above said 52.** Two numbers
+> for the same suite in one document, and both were stale. The count here is
+> not copied from anywhere: it is what `npm run extension:e2e` printed on the
+> current branch — `69/69 scenarios passed`. When those disagree again, the
+> suite is right and this line is wrong.
 
 Every mutation is OBSERVE → ACT → OBSERVE AGAIN → VERIFY, and an action that
 changes nothing is reported as _unverified_, never as done.
@@ -268,6 +274,17 @@ resume cannot clear; the latch surviving a service-worker recycle; password and
 one-time-code refusals with hand-over to the person, and the field verified still
 empty; instruction-shaped page text stripped and counted; the website↔extension
 bridge, and a website unable to grant or revoke its own scope.
+
+**Not proven, because it does not exist.** File upload through a page's file
+chooser, and download management, are NOT implemented in the extension and are
+not claimed anywhere in the product. The manifest used to declare an optional
+`downloads` permission that no code ever used — a prompt the person was asked
+to accept for an ability OCADE did not have — and that declaration has been
+removed. `npm run extension:check` now fails on any declared permission the
+source never calls, so the manifest cannot drift back into claiming a
+capability the extension lacks. `browser_key` remains an honest refusal for the
+same reason: the content script exposes no key dispatch, and it says so rather
+than pretending.
 
 **Login hand-off** — checkpoint recorded at hand-over; an untouched page resumes
 from the same verified state; a page that changed comes back STALE with the new

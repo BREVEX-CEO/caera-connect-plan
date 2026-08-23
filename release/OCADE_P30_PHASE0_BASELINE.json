@@ -81,7 +81,7 @@
     "status": "INSTALLED AND REACHABLE — the repository's 'no local model installed' blocker is stale",
     "endpoint": "http://127.0.0.1:11434",
     "startedThisSession": true,
-    "priorClaim": "OCADE_MASTER_EXECUTION_QUEUE.md §4: 'Blocked by: no local model installed and no gateway key'",
+    "priorClaim": "docs/archive/OCADE_MASTER_EXECUTION_QUEUE.md §4: 'Blocked by: no local model installed and no gateway key'",
     "installedModels": [
       {
         "name": "qwen3-coder:30b",
@@ -171,7 +171,7 @@
     },
     {
       "id": "D17",
-      "file": "OCADE_MASTER_EXECUTION_QUEUE.md §4",
+      "file": "docs/archive/OCADE_MASTER_EXECUTION_QUEUE.md §4",
       "was": "'Blocked by: no local model installed'",
       "now": "Three local models are installed, 27.07 GB of weights, engine reachable. The blocker is the missing Qwen3 8B Q4 tier, not the absence of a model."
     }

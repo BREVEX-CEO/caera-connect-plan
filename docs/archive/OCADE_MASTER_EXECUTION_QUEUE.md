@@ -1,3 +1,20 @@
+> **ARCHIVED — HISTORICAL. DO NOT READ THIS AS THE STATE OF OCADE.**
+>
+> This document describes a branch that no longer exists
+> (`feat/ocade-implementation`, HEAD `52cd6cf`) and a test suite roughly half
+> the size of the current one. More importantly, it describes an OCADE whose
+> Chat had no local engine, whose model came from a gateway key, and whose
+> authentication was passwordless — none of which is true of the product now.
+>
+> It sat at the repository root, where a reader would reasonably take it for
+> current status. It is kept for its history, and moved here so it cannot be
+> mistaken for the present.
+>
+> For the current state, read `docs/OCADE-AUDIT-REPORT.md`, `CHECKPOINT.md` and
+> `README.md`, all of which describe the current default branch.
+
+---
+
 # OCADE Master Execution Queue
 
 Re-audited against the uploaded specification and **real production reachability**, not against

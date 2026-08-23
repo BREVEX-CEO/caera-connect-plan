@@ -103,7 +103,7 @@ With the snapshot present the gate runs **186** checks; corrupting a recorded sh
 
 ## 5. Local engine — the "no model installed" blocker is stale
 
-`OCADE_MASTER_EXECUTION_QUEUE.md` §4 records *"Blocked by: no local model installed."* **False.**
+`docs/archive/OCADE_MASTER_EXECUTION_QUEUE.md` §4 recorded *"Blocked by: no local model installed."* **False.**
 The engine is installed, was started this session, and answers on `127.0.0.1:11434` with **27.07 GB**
 of weights:
 
