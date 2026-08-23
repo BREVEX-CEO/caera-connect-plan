@@ -93,3 +93,4 @@ native/python-host/**/__pycache__/
 ocade-licence.*
 windows-proof-evidence.json
 .output-routeqa
+public/models/*.gguf
