@@ -105,6 +105,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
       label: tier.label,
       locality: "on_device",
       modelId: storageKeyFor(tier),
+      thinkingSuitable: tier.thinkingSuitable,
       capabilities: { text: true, vision: false, imageGeneration: false, tools: false },
     };
   }

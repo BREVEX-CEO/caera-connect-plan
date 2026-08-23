@@ -6,7 +6,15 @@ import {
   type BrainStreamHandlers,
   type BrainStreamResult,
 } from "../adapter";
-import { chooseBrowserTier, formatSize, type BrowserModelTier } from "../browser-catalogue";
+import {
+  chooseBrowserTier,
+  formatSize,
+  runtimeMemoryBytes,
+  webgpuMirrorFileUrl,
+  webgpuMirrorWeightsUrl,
+  type BrowserModelTier,
+} from "../browser-catalogue";
+import { preferredWeightsUrl } from "../model-download";
 import { loadBenchmark, recordBenchmark, recordTierFailure } from "../tier-benchmark-store";
 
 /**
@@ -105,11 +113,11 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
      * recorded benchmark can promote to one.
      */
     const { tier } = chooseBrowserTier("webgpu", budget.bytes, loadBenchmark("webgpu"));
-    if (budget.bytes !== null && tier.requiredMemoryBytes > budget.bytes) {
+    if (budget.bytes !== null && runtimeMemoryBytes(tier) > budget.bytes) {
       return unavailable(
         "insufficient_memory",
         `OCADE's smallest browser engine needs about ${formatSize(
-          tier.requiredMemoryBytes,
+          runtimeMemoryBytes(tier),
         )} of graphics memory and this device offers ${formatSize(budget.bytes)}.`,
       );
     }
@@ -120,6 +128,7 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
       label: tier.label,
       locality: "on_device",
       modelId: tier.webllmId ?? null,
+      thinkingSuitable: tier.thinkingSuitable,
       capabilities: {
         text: true,
         // No browser-tier vision model is offered yet, and claiming otherwise
@@ -155,6 +164,42 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
       );
     }
 
+    const record = webllm.prebuiltAppConfig.model_list.find((m) => m.model_id === tier.webllmId)!;
+
+    /*
+     * ONE AUTHORITY DECIDES, AND THIS DEPLOYMENT DECIDES WHERE THE BYTES COME
+     * FROM.
+     *
+     * This used to spread `prebuiltAppConfig` whole, which meant two things
+     * the rest of OCADE had already decided were quietly overridden by the
+     * library:
+     *
+     *   - the context window. `browser-catalogue` states `contextTokens` and
+     *     `systemPromptBudgetFor` sizes the compiled system prompt against it,
+     *     but nothing ever told the runtime. It happened to agree at 4,096, so
+     *     the budget was right by coincidence; a library bump that changed the
+     *     record would have silently truncated OCADE's own rules out of the
+     *     window with every test still green.
+     *
+     *   - the hosts. The record fetches weights from the publisher and its
+     *     compiled library from raw.githubusercontent.com. Both are probed for
+     *     a mirrored copy first, so a deployment that serves its own files
+     *     makes no third-party request on first run, and one that does not is
+     *     unchanged.
+     *
+     * The list is narrowed to this tier as well. A model_list of ninety
+     * entries is ninety ways for a future edit to load something the
+     * catalogue never approved.
+     */
+    const mirroredWeights = await preferredWeightsUrl(
+      webgpuMirrorWeightsUrl(tier) ? `${webgpuMirrorWeightsUrl(tier)}/mlc-chat-config.json` : null,
+      record.model,
+    );
+    const mirroredLib = await preferredWeightsUrl(
+      webgpuMirrorFileUrl(tier, record.model_lib),
+      record.model_lib,
+    );
+
     this.worker = new Worker(new URL("./webllm.worker.ts", import.meta.url), { type: "module" });
     this.engine = await webllm.CreateWebWorkerMLCEngine(this.worker, tier.webllmId!, {
       /*
@@ -183,7 +228,19 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
        * nothing at all. `tsc` caught it; without types it would have shipped as
        * a setting that reads correctly and does nothing.
        */
-      appConfig: { ...webllm.prebuiltAppConfig, cacheBackend: "indexeddb" },
+      appConfig: {
+        ...webllm.prebuiltAppConfig,
+        cacheBackend: "indexeddb",
+        model_list: [
+          {
+            ...record,
+            model: mirroredWeights.local ? webgpuMirrorWeightsUrl(tier)! : record.model,
+            model_lib: mirroredLib.url,
+            vram_required_MB: tier.requiredMemoryBytes / (1024 * 1024),
+            overrides: { ...record.overrides, context_window_size: tier.contextTokens },
+          },
+        ],
+      },
       initProgressCallback: (report) => {
         this.onProgress?.({
           fraction: typeof report.progress === "number" ? report.progress : null,

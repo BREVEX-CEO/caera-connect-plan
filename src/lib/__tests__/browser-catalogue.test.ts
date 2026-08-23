@@ -4,6 +4,7 @@ import {
   formatSize,
   tiersFor,
   PROMOTION_LATENCY_CEILING_MS,
+  runtimeMemoryBytes,
   resolvedFor,
   sha256For,
   ggufUrl,
@@ -73,7 +74,7 @@ describe("choosing a tier for a device", () => {
 
   it("promotes only once this device has actually run the smaller engine quickly", () => {
     const larger = WEBGPU_TIERS.find((t) => t.rank === 1)!;
-    const promoted = chooseBrowserTier("webgpu", larger.requiredMemoryBytes, {
+    const promoted = chooseBrowserTier("webgpu", runtimeMemoryBytes(larger), {
       provenRank: 1,
       firstTokenMs: 800,
     });
@@ -82,7 +83,7 @@ describe("choosing a tier for a device", () => {
 
   it("refuses to promote when the smaller engine was already too slow here", () => {
     const larger = WEBGPU_TIERS.find((t) => t.rank === 1)!;
-    const choice = chooseBrowserTier("webgpu", larger.requiredMemoryBytes, {
+    const choice = chooseBrowserTier("webgpu", runtimeMemoryBytes(larger), {
       provenRank: 1,
       firstTokenMs: PROMOTION_LATENCY_CEILING_MS + 1,
     });
@@ -92,7 +93,7 @@ describe("choosing a tier for a device", () => {
 
   it("lets the ceiling veto a tier even when the benchmark would allow it", () => {
     const larger = WEBGPU_TIERS.find((t) => t.rank === 1)!;
-    const choice = chooseBrowserTier("webgpu", larger.requiredMemoryBytes - 1, {
+    const choice = chooseBrowserTier("webgpu", runtimeMemoryBytes(larger) - 1, {
       provenRank: 1,
       firstTokenMs: 500,
     });

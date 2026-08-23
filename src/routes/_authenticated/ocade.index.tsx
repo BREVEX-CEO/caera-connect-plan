@@ -1957,6 +1957,17 @@ function ChatSurface(props: {
           brainReasonDeps(brainRoute, {
             ...(images.length > 0 ? { images } : {}),
             think: thinkingFor("chat", chatPrefs.thinking),
+            /*
+             * A switch the engine cannot honour is told about, not ignored.
+             * The compatibility tier runs on the processor, where deliberating
+             * costs time and buys nothing; saying so once is honest, and it is
+             * how the user learns the toggle is real everywhere it can be.
+             */
+            onThinkingDegraded: () => {
+              toast.info(
+                "Thinking is not used on this device's engine — it would take longer without improving the answer. Answering directly.",
+              );
+            },
             ledger: sessionPerfLedger,
           }),
           {

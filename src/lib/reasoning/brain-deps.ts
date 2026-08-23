@@ -28,6 +28,7 @@
 import type { BrainAdapter, BrainMessage } from "../brain/adapter";
 import type { RouteChosen } from "../brain/router";
 import { PerfLedger } from "../local/router-policy";
+import { deliberationClause } from "../local/fixed-model";
 import type { ReasonDeps, ReasonMessage } from "./engine";
 import type { LocalModelInfo } from "../ocade-local";
 
@@ -101,6 +102,11 @@ export interface BrainDepsOptions {
   images?: string[];
   /** The user's Fast/Thinking choice, already resolved by `thinkingFor`. */
   think?: boolean;
+  /**
+   * Called when Thinking was asked for and the engine that answered cannot
+   * carry it, so the screen can say so instead of leaving a dead switch.
+   */
+  onThinkingDegraded?: () => void;
   ledger?: PerfLedger;
   now?: () => number;
 }
@@ -119,10 +125,46 @@ export function brainReasonDeps(route: RouteChosen, options: BrainDepsOptions = 
   return {
     listLocalModels: async () => [model],
     streamLocal: async (_modelId, messages, handlers) => {
-      const result = await adapter.stream(toBrainMessages(messages, options.images), {
+      /*
+       * THINKING HAS TO CHANGE THE REQUEST, OR IT IS A DECORATION.
+       *
+       * This passed `think` to the adapter and stopped there. The browser
+       * adapters — the only engines the shipped product has — do not read that
+       * field: WebLLM has no such parameter and wllama has no such parameter,
+       * so on the real Chat page the switch produced byte-for-byte the same
+       * request whether it was on or off. It saved, it drew itself correctly,
+       * and it did nothing. The demo hook had the clause; the product did not,
+       * which is the wrong way round.
+       *
+       * The clause goes on the system message here instead, at the boundary
+       * BOTH surfaces cross, so Chat and the demo cannot drift apart again.
+       * `think` is still passed for adapters that do have a native mode, so
+       * this is an addition rather than a replacement.
+       *
+       * And the engine keeps a veto. A tier that is `thinkingSuitable: false`
+       * runs on the processor, where deliberating multiplies the tokens
+       * produced without improving the answer; there Thinking degrades to Fast
+       * and the caller is told, rather than the weakest device being the one
+       * that appears to hang.
+       */
+      const wanted = options.think === true;
+      const engineAllows = route.availability.thinkingSuitable !== false;
+      const deliberate = wanted && engineAllows;
+      if (wanted && !engineAllows) options.onThinkingDegraded?.();
+
+      const prepared =
+        options.think === undefined
+          ? messages
+          : messages.map((message, index) =>
+              index === 0 && message.role === "system"
+                ? { ...message, content: `${message.content}${deliberationClause(deliberate)}` }
+                : message,
+            );
+
+      const result = await adapter.stream(toBrainMessages(prepared, options.images), {
         onToken: handlers.onToken,
         ...(handlers.signal ? { signal: handlers.signal } : {}),
-        ...(options.think === undefined ? {} : { think: options.think }),
+        ...(options.think === undefined ? {} : { think: deliberate }),
       });
       if (result.ok) return { ok: true };
       /*

@@ -51,6 +51,11 @@ export interface EngineState {
   remedies: RemedyAction[];
   /** 0–1 while weights load, or null when no total is known. */
   progress: number | null;
+  /**
+   * True when the user asked for Thinking and the engine that answered cannot
+   * carry it. The screen says so; the switch is not silently ignored.
+   */
+  thinkingDegraded: boolean;
 }
 
 const INITIAL: EngineState = {
@@ -59,6 +64,7 @@ const INITIAL: EngineState = {
   reason: null,
   remedies: [],
   progress: null,
+  thinkingDegraded: false,
 };
 
 export interface SendOptions {
@@ -275,7 +281,26 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
        * `think` is still passed for models that do have the mode, so this is
        * an addition rather than a replacement.
        */
-      const deliberate = thinkingFor(contextSurface, contextThinking);
+      /*
+       * AND THE ENGINE GETS A VETO, BECAUSE IT IS THE ONLY THING THAT KNOWS
+       * WHAT IT LOADED.
+       *
+       * `thinkingFor` decides whether the ROOM and the USER want deliberation.
+       * It cannot know which tier answered. On the WebAssembly compatibility
+       * tier — the processor-only fallback — deliberating multiplies the
+       * tokens produced without improving the answer, which on a weak phone is
+       * the difference between a slow reply and a page the user force-quits.
+       *
+       * So the tier's `thinkingSuitable`, declared once in the Browser Model
+       * Authority and carried up through `probe()`, degrades Thinking to Fast
+       * there. Openly: `thinkingDegraded` is surfaced so the screen can say the
+       * switch is not in force on this engine, rather than leaving a control
+       * that appears to do something and does not.
+       */
+      const wanted = thinkingFor(contextSurface, contextThinking);
+      const engineAllows = outcome.availability.thinkingSuitable !== false;
+      const deliberate = wanted && engineAllows;
+      apply({ thinkingDegraded: wanted && !engineAllows });
       const withDeliberation = messages.map((message, index) =>
         index === 0 && message.role === "system"
           ? { ...message, content: `${message.content}${deliberationClause(deliberate)}` }

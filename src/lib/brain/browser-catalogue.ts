@@ -70,8 +70,33 @@ export interface BrowserModelTier {
    * would silently truncate OCADE's rules. Qwen2.5 is trained to 32k, but a
    * 32k KV cache for a 0.5B model in a browser tab costs more memory than the
    * weights do; 4,096 is the value these tiers are sized and measured for.
+   *
+   * DECLARED HERE AND ALSO SENT TO THE RUNTIME. `browser-webgpu.ts` passes it
+   * as an explicit `context_window_size` override rather than inheriting the
+   * library's record, so this number is the one in force and not merely the
+   * one this file believes.
    */
   contextTokens: number;
+  /**
+   * Immutable identity of the exact weights this tier means.
+   *
+   * Changing the model, the quantisation or the publisher's file MUST change
+   * this string. It is what makes an upgrade atomic: the new version downloads
+   * to its own key while the proven one keeps answering, and a rollback is a
+   * pointer move rather than a re-download.
+   */
+  version: string;
+  /**
+   * Whether Thinking may run on this tier.
+   *
+   * A tier is Thinking-suitable when it has enough context budget to hold a
+   * deliberation instruction AND a conversation AND an answer without evicting
+   * the system message. On a tier that cannot, Thinking is not a stronger
+   * answer — it is the same answer, later, with the rules pushed out of the
+   * window. Fast/Thinking suitability is a property of the model, so it is
+   * decided here with the rest of the model's properties.
+   */
+  thinkingSuitable: boolean;
 }
 
 /**
@@ -103,9 +128,24 @@ export const WEBGPU_TIERS: BrowserModelTier[] = [
     rank: 0,
     label: "OCADE Browser",
     webllmId: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
+    version: "qwen2.5-0.5b-instruct-q4f16_1-mlc",
     downloadBytes: 340 * MB,
-    requiredMemoryBytes: 950 * MB,
+    /*
+     * EXACTLY the runtime's own `vram_required_MB`, in MiB.
+     *
+     * This said `950 * MB` beside a comment claiming the figure came from
+     * WebLLM. The tier below it said `1880 * MB` against a published 1629.75 —
+     * 250 MiB of hand-typed pessimism presented as the publisher's number. One
+     * of the comment and the number had to be wrong, and it was the number.
+     *
+     * Headroom is a policy, not a fudge inside a fact: it is applied once, and
+     * visibly, by `runtimeMemoryBytes`. Keeping the published figure exact is
+     * what lets `browser-catalogue.webgpu.test.ts` compare it against the
+     * installed library and fail when a version bump moves it.
+     */
+    requiredMemoryBytes: Math.round(944.62 * MB),
     contextTokens: 4096,
+    thinkingSuitable: true,
     because:
       "The smallest Qwen that still holds a conversation. It fits comfortably in browser graphics memory and answers without making this device sluggish.",
   },
@@ -113,13 +153,31 @@ export const WEBGPU_TIERS: BrowserModelTier[] = [
     rank: 1,
     label: "OCADE Browser Plus",
     webllmId: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+    version: "qwen2.5-1.5b-instruct-q4f16_1-mlc",
     downloadBytes: 900 * MB,
-    requiredMemoryBytes: 1880 * MB,
+    requiredMemoryBytes: Math.round(1629.75 * MB),
     contextTokens: 4096,
+    thinkingSuitable: true,
     because:
       "A larger Qwen, offered only because this device reported enough graphics memory to run it without stalling.",
   },
 ];
+
+/**
+ * How much more than the published requirement a tier must be allowed.
+ *
+ * The publisher's `vram_required_MB` is the weights plus the KV cache at the
+ * configured context. It is not the tab: the page, the compositor and whatever
+ * else the browser is drawing share the same device. Fifteen percent is the
+ * margin these tiers were measured with, and it is applied in ONE place so
+ * that the catalogue's numbers stay comparable to the publisher's.
+ */
+export const MEMORY_HEADROOM_FRACTION = 0.15;
+
+/** What a tier really needs at runtime: the published figure plus headroom. */
+export function runtimeMemoryBytes(tier: BrowserModelTier): number {
+  return Math.round(tier.requiredMemoryBytes * (1 + MEMORY_HEADROOM_FRACTION));
+}
 
 /**
  * WebAssembly tiers.
@@ -152,10 +210,72 @@ export const WASM_TIERS: BrowserModelTier[] = [
     downloadBytes: 491_400_032,
     requiredMemoryBytes: 700 * MB,
     contextTokens: 4096,
+    version: "qwen2.5-0.5b-instruct-q4_k_m",
+    /*
+     * NOT SUITABLE, and this is the honest half of the Fast/Thinking switch.
+     *
+     * The compatibility tier runs on the processor. Deliberating before
+     * answering multiplies the tokens it must produce, and a tier that is
+     * already the slow fallback does not become a better answer by taking four
+     * times as long to give the same one — it becomes a page the user thinks
+     * has hung. Thinking degrades to Fast here, and `use-local-chat-engine`
+     * says so rather than pretending the switch did something.
+     */
+    thinkingSuitable: false,
     because:
       "This browser cannot use its graphics card for OCADE, so the engine runs on the processor instead. It is slower, and it is the reason OCADE still works here at all.",
   },
 ];
+
+/**
+ * WHERE OCADE WOULD SERVE A WEBGPU TIER FROM ITSELF.
+ *
+ * The WebGPU path had no OCADE-controlled distribution at all. The runtime's
+ * own record points its weights at the publisher's host and its compiled
+ * library at `raw.githubusercontent.com` — two third parties, on the first
+ * run, before the user has agreed to anything, and both of them ordinary
+ * casualties of a corporate egress policy or an air-gapped install. The
+ * WebAssembly path already had `sameOriginGgufUrl` for exactly this reason;
+ * this is the same idea for the other engine.
+ *
+ * A MIRROR, NOT A SECOND CATALOGUE. These functions do not decide which files
+ * a tier needs — the installed runtime does, and it stays the only thing that
+ * knows which compiled library matches its own version. They take the URLs it
+ * asks for and answer one question: what would the same file be called if this
+ * deployment served it? An operator who mirrors the files gets a first run
+ * with no third-party request; one who does not is unaffected, because the
+ * adapter probes before it substitutes and a 404 simply means the publisher's
+ * URL is used as before.
+ *
+ * Versioned and immutable by construction: the path carries the tier's
+ * `version`, so a future tier cannot collide with a cached copy of this one
+ * and a mirrored file can be served with a long immutable cache lifetime.
+ */
+export function webgpuMirrorWeightsUrl(tier: BrowserModelTier): string | null {
+  return tier.webllmId ? `/models/webllm/${tier.version}` : null;
+}
+
+/**
+ * The mirrored path for one of the runtime's own files.
+ *
+ * `publisherUrl` is whatever the runtime asked for; only its final path
+ * segment is used, so nothing about the third party's directory layout — or a
+ * hostile value in it — can escape the mirror directory. A URL that carries no
+ * usable filename returns null rather than a guess.
+ */
+export function webgpuMirrorFileUrl(tier: BrowserModelTier, publisherUrl: string): string | null {
+  const base = webgpuMirrorWeightsUrl(tier);
+  if (!base) return null;
+  let name: string;
+  try {
+    name = new URL(publisherUrl, "https://example.invalid").pathname.split("/").pop() ?? "";
+  } catch {
+    return null;
+  }
+  // A traversal attempt, an empty segment or a hidden file is not a filename.
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(name) || name.includes("..")) return null;
+  return `${base}/${name}`;
+}
 
 /** The committed, reviewed facts for a tier — or null if OCADE cannot fetch it. */
 export function resolvedFor(tier: BrowserModelTier): CatalogueEntry | null {
@@ -272,10 +392,10 @@ export function chooseBrowserTier(
   let chosen = tiers[0];
   for (const t of tiers.slice(1)) {
     // 1. Hard ceiling. A tier the adapter cannot allocate is impossible.
-    if (ceilingBytes !== null && ceilingBytes > 0 && t.requiredMemoryBytes > ceilingBytes) {
+    if (ceilingBytes !== null && ceilingBytes > 0 && runtimeMemoryBytes(t) > ceilingBytes) {
       skipped.push({
         label: t.label,
-        why: `needs about ${(t.requiredMemoryBytes / MB).toFixed(0)} MB in one allocation; this device permits ${(ceilingBytes / MB).toFixed(0)} MB`,
+        why: `needs about ${(runtimeMemoryBytes(t) / MB).toFixed(0)} MB in one allocation; this device permits ${(ceilingBytes / MB).toFixed(0)} MB`,
       });
       continue;
     }

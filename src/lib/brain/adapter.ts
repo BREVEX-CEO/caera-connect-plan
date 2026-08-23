@@ -92,6 +92,17 @@ export interface AdapterReady {
    * genuinely faster adapter rather than a nominally better one.
    */
   measuredFirstTokenMs?: number | null;
+  /**
+   * Whether Thinking is worth running on whatever this adapter actually
+   * loaded. Absent means yes.
+   *
+   * A switch that is always available is a promise the weakest engine cannot
+   * keep. The compatibility tier runs on the processor, where deliberating
+   * multiplies the tokens produced without improving the answer, so the engine
+   * that knows what it loaded says so and Chat degrades to Fast openly rather
+   * than leaving a decorative toggle on a page that then appears to hang.
+   */
+  thinkingSuitable?: boolean;
 }
 
 export type AdapterAvailability = AdapterReady | AdapterUnavailable;
