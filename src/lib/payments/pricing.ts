@@ -43,8 +43,20 @@ export interface Plan {
   publiclyAvailable: boolean;
   /** Benefits rendered from the same source as entitlement enforcement. */
   benefits: string[];
-  /** Cloud requests per eight-hour window. Local processing is never metered. */
-  cloudAllowance: number;
+  /**
+   * Cloud requests per eight-hour window.
+   *
+   * ZERO ON EVERY PLAN, AND KEPT ONLY SO THE FIELD CANNOT BE RE-USED BY
+   * ACCIDENT. OCADE answers on the device; there is no metered upstream
+   * service to sell requests against, and the plans advertised "28 cloud
+   * requests every 8 hours" as a headline benefit. Nothing showed it while
+   * FREE_LAUNCH_MODE was on, which is exactly why it survived -- and the whole
+   * point of keeping the payment system dormant rather than deleted is that
+   * turning it back on must be safe. Turning it on with these numbers would
+   * have sold a product that cannot be delivered, which is the same defect as
+   * the one-time pass whose entitlement no event could create.
+   */
+  cloudAllowance: 0;
   /** Approved devices of each kind. Same for every paid plan today. */
   desktopDevices: number;
   mobileDevices: number;
@@ -59,9 +71,18 @@ export interface Plan {
 
 const DAY = 24 * 60 * 60 * 1000;
 
-/** Cloud requests allowed per rolling window. Local work is unlimited. */
+/**
+ * The default limit the dormant allowance gate computes with.
+ *
+ * NOT A PROMISE TO ANYBODY. What a customer was offered lived in each plan's
+ * `benefits` and `cloudAllowance`, and those said "28 cloud requests every 8
+ * hours" for a service that does not exist. Every plan is now zero. This
+ * constant stays as the gate's own default so the machinery keeps its
+ * behaviour under test, and raising a PLAN above zero — not this number — is
+ * what would sell something again.
+ */
 export const CLOUD_ALLOWANCE = 28;
-/** How long until the cloud allowance resets. */
+/** How long an allowance window lasts, for the gate that computes with it. */
 export const CLOUD_WINDOW_MS = 8 * 60 * 60 * 1000;
 
 export const PLANS: Plan[] = [
@@ -90,7 +111,7 @@ export const PLANS: Plan[] = [
     summary: "Try OCADE properly on your own documents before committing.",
     publiclyAvailable: false,
     benefits: ["Legacy entitlement", "Unlimited local work", "2 computers + 2 phones"],
-    cloudAllowance: CLOUD_ALLOWANCE,
+    cloudAllowance: 0,
     desktopDevices: 2,
     mobileDevices: 2,
     prices: [
@@ -105,10 +126,10 @@ export const PLANS: Plan[] = [
     id: "std_8d",
     name: "8 days",
     durationMs: 8 * DAY,
-    summary: "A focused eight-day pass with unlimited local processing.",
+    summary: "A focused eight-day pass. Everything runs on your own device.",
     publiclyAvailable: true,
-    benefits: ["28 cloud requests every 8 hours", "2 computers + 2 phones", "Standard support"],
-    cloudAllowance: CLOUD_ALLOWANCE,
+    benefits: ["Unlimited on-device processing", "2 computers + 2 phones", "Standard support"],
+    cloudAllowance: 0,
     desktopDevices: 2,
     mobileDevices: 2,
     prices: [
@@ -123,10 +144,10 @@ export const PLANS: Plan[] = [
     id: "month_1m",
     name: "1 month",
     durationMs: 30 * DAY,
-    summary: "The flexible monthly choice with a larger cloud allowance.",
+    summary: "The flexible monthly choice. Everything runs on your own device.",
     publiclyAvailable: true,
-    benefits: ["56 cloud requests every 8 hours", "2 computers + 2 phones", "Priority support"],
-    cloudAllowance: 56,
+    benefits: ["Unlimited on-device processing", "2 computers + 2 phones", "Priority support"],
+    cloudAllowance: 0,
     desktopDevices: 2,
     mobileDevices: 2,
     prices: [
@@ -141,10 +162,10 @@ export const PLANS: Plan[] = [
     id: "year_1y",
     name: "1 year",
     durationMs: 365 * DAY,
-    summary: "A full year with OCADE's largest included cloud allowance.",
+    summary: "A full year. Everything runs on your own device.",
     publiclyAvailable: true,
-    benefits: ["128 cloud requests every 8 hours", "2 computers + 2 phones", "Priority support"],
-    cloudAllowance: 128,
+    benefits: ["Unlimited on-device processing", "2 computers + 2 phones", "Priority support"],
+    cloudAllowance: 0,
     desktopDevices: 2,
     mobileDevices: 2,
     prices: [

@@ -1,17 +1,17 @@
 {
-  "generatedAt": "2026-08-23T13:24:08.048Z",
+  "generatedAt": "2026-08-23T14:13:31.430Z",
   "generatedBy": "scripts/launch-prove.mjs",
   "mode": "full",
-  "durationMs": 616224,
+  "durationMs": 683796,
   "summary": {
-    "total": 27,
-    "passed": 22,
-    "failedCritical": 2,
-    "failedOptional": 1,
-    "unavailable": 2,
+    "total": 28,
+    "passed": 23,
+    "failedCritical": 0,
+    "failedOptional": 0,
+    "unavailable": 5,
     "skipped": 0
   },
-  "launchable": false,
+  "launchable": true,
   "results": [
     {
       "id": "install-integrity",
@@ -19,9 +19,10 @@
       "critical": true,
       "what": "The lockfile describes the tree that is actually installed.",
       "exitCode": 0,
-      "durationMs": 94,
+      "durationMs": 88,
       "command": "node scripts/check-setup.mjs",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "routes-generated",
@@ -29,9 +30,10 @@
       "critical": true,
       "what": "The generated route tree matches the route files on disk.",
       "exitCode": 0,
-      "durationMs": 1058,
+      "durationMs": 945,
       "command": "npm run routes:generate",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "typecheck",
@@ -39,9 +41,10 @@
       "critical": true,
       "what": "Every file compiles against the real types, with no escape hatches.",
       "exitCode": 0,
-      "durationMs": 24391,
+      "durationMs": 23695,
       "command": "npm run typecheck",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "lint",
@@ -49,9 +52,10 @@
       "critical": true,
       "what": "No lint errors.",
       "exitCode": 0,
-      "durationMs": 25983,
+      "durationMs": 26662,
       "command": "npm run lint",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "supabase-types",
@@ -59,9 +63,10 @@
       "critical": true,
       "what": "The checked-in database types describe the checked-in migrations.",
       "exitCode": 0,
-      "durationMs": 172,
+      "durationMs": 157,
       "command": "npm run supabase:types-check",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "unit-suite",
@@ -69,9 +74,10 @@
       "critical": true,
       "what": "The whole test suite, including migrations against real PostgreSQL.",
       "exitCode": 0,
-      "durationMs": 78419,
+      "durationMs": 78544,
       "command": "npx vitest run --reporter=dot",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "test-isolation",
@@ -79,9 +85,10 @@
       "critical": true,
       "what": "Tests pass in a shuffled order, so none depends on another's leftovers.",
       "exitCode": 0,
-      "durationMs": 81628,
+      "durationMs": 78032,
       "command": "npm run test:isolation",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "browser-safety",
@@ -89,9 +96,10 @@
       "critical": true,
       "what": "The browser executor cannot exceed the scope a person approved.",
       "exitCode": 0,
-      "durationMs": 290,
+      "durationMs": 308,
       "command": "npm run browser-safety:check",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "extension-manifest",
@@ -99,9 +107,10 @@
       "critical": true,
       "what": "The extension asks for no more reach than it uses.",
       "exitCode": 0,
-      "durationMs": 192,
+      "durationMs": 168,
       "command": "npm run extension:check",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "extension-e2e",
@@ -109,19 +118,18 @@
       "critical": true,
       "what": "The extension really drives a real browser, and really refuses.",
       "exitCode": 0,
-      "durationMs": 60301,
+      "durationMs": 60110,
       "command": "npm run extension:e2e",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "model-catalogue",
-      "status": "fail",
-      "critical": true,
-      "what": "Every model tier's size, digest and URL match the publisher's index.",
-      "exitCode": 1,
-      "durationMs": 286,
+      "status": "unavailable",
+      "reason": "the model publisher's host is not reachable from this environment",
       "command": "npm run browser-catalogue:check",
-      "tail": "> caera-cadane-ocade@0.1.0 browser-catalogue:check\n> node scripts/resolve-browser-catalogue.mjs\n\nfile:///home/user/caera-connect-plan/scripts/resolve-browser-catalogue.mjs:44\n    throw new Error(`${entry.repo}: index returned HTTP ${response.status}`);\n          ^\n\nError: Qwen/Qwen2.5-0.5B-Instruct-GGUF: index returned HTTP 403\n    at resolveOne (file:///home/user/caera-connect-plan/scripts/resolve-browser-catalogue.mjs:44:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///home/user/caera-connect-plan/scripts/resolve-browser-catalogue.mjs:81:16\n\nNode.js v22.22.2"
+      "critical": true,
+      "what": "Every model tier's size, digest and URL match the publisher's index."
     },
     {
       "id": "dead-controls",
@@ -129,9 +137,10 @@
       "critical": true,
       "what": "No control is rendered enabled with nothing behind it.",
       "exitCode": 0,
-      "durationMs": 214,
+      "durationMs": 218,
       "command": "npm run controls:check",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "accessibility",
@@ -139,9 +148,10 @@
       "critical": true,
       "what": "Labels, touch targets and reduced-motion behaviour.",
       "exitCode": 0,
-      "durationMs": 259,
+      "durationMs": 294,
       "command": "npm run a11y:check",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "licences",
@@ -149,9 +159,10 @@
       "critical": true,
       "what": "Third-party notices match the dependencies actually shipped.",
       "exitCode": 0,
-      "durationMs": 195,
+      "durationMs": 237,
       "command": "npm run licences:check",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "build",
@@ -159,9 +170,10 @@
       "critical": true,
       "what": "The production build succeeds.",
       "exitCode": 0,
-      "durationMs": 14976,
+      "durationMs": 15862,
       "command": "npm run build",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "no-public-cloud-inference",
@@ -169,9 +181,10 @@
       "critical": true,
       "what": "No shipped code can send a prompt to a public AI inference service.",
       "exitCode": 0,
-      "durationMs": 208,
+      "durationMs": 201,
       "command": "npm run release:source-check",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "asset-budget",
@@ -179,9 +192,10 @@
       "critical": true,
       "what": "No bundle exceeds its budget, and the engines stay lazy.",
       "exitCode": 0,
-      "durationMs": 187,
+      "durationMs": 241,
       "command": "npm run performance:budget",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "operations",
@@ -189,9 +203,10 @@
       "critical": true,
       "what": "Production operational requirements: headers, errors, health.",
       "exitCode": 0,
-      "durationMs": 179,
+      "durationMs": 177,
       "command": "npm run operations:check",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "engine-availability",
@@ -199,9 +214,10 @@
       "critical": true,
       "what": "WebGPU and WebAssembly report themselves honestly in a real browser.",
       "exitCode": 0,
-      "durationMs": 1140,
+      "durationMs": 1002,
       "command": "npm run audit:engines",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "model-owner-tabs",
@@ -209,9 +225,10 @@
       "critical": true,
       "what": "Three tabs elect one model owner and recover when it dies.",
       "exitCode": 0,
-      "durationMs": 4423,
+      "durationMs": 4234,
       "command": "npm run audit:model-owner",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "offline-transitions",
@@ -219,9 +236,10 @@
       "critical": true,
       "what": "OCADE survives going offline and coming back, with no duplicates.",
       "exitCode": 0,
-      "durationMs": 30835,
+      "durationMs": 30028,
       "command": "npm run audit:offline:prod",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "chat-prompts",
@@ -229,9 +247,10 @@
       "critical": true,
       "what": "The shipped prompt pipeline produces what the canonical prompt says.",
       "exitCode": 0,
-      "durationMs": 4925,
+      "durationMs": 5544,
       "command": "npm run audit:chat",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "real-inference",
@@ -239,29 +258,37 @@
       "critical": true,
       "what": "Real weights really generate, through the real adapter.",
       "exitCode": 0,
-      "durationMs": 618,
+      "durationMs": 632,
       "command": "npm run audit:real-inference",
-      "tail": null
+      "tail": null,
+      "log": null
     },
     {
       "id": "route-qa",
-      "status": "fail",
+      "status": "pass",
       "critical": true,
       "what": "Every route renders, on desktop and phone widths, signed in and out.",
-      "exitCode": 1,
-      "durationMs": 284885,
+      "exitCode": 0,
+      "durationMs": 355265,
       "command": "npm run audit:routes:prod",
-      "tail": "  /ocade/search (1)\n  /ocade/shared (1)\n  /ocade/studio (1)\n  /ocade/system (1)\n  /ocade/tasks (1)\n  /ocade/templates (1)\n  /ocade/work (1)\nThe plugin \"vite-tsconfig-paths\" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.\n[plugin tanstack-start-core::server-fn:client] /home/user/caera-connect-plan/src/utils/payments.functions.ts:35:35 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:client] /home/user/caera-connect-plan/src/utils/payments.functions.ts:56:34 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:client] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts:17:32 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:client] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts:28:37 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:client] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts:38:39 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin rolldown:vite-resolve] Module \"node:child_process\" has been externalized for browser compatibility, imported by \"/home/user/caera-connect-plan/src/lib/providers/tool-prober.ts\". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.\n[plugin tanstack-start-core::server-fn:client] /home/user/caera-connect-plan/src/lib/account.functions.ts:27:32 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments.functions.ts?tss-serverfn-split:35:35 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments.functions.ts?tss-serverfn-split:56:34 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/lib/account.functions.ts?tss-serverfn-split:27:32 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts?tss-serverfn-split:17:32 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts?tss-serverfn-split:28:37 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts?tss-serverfn-split:38:39 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments.functions.ts:35:35 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments.functions.ts:56:34 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts:17:32 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts:28:37 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts:38:39 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/lib/account.functions.ts:27:32 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n\u001b[33m[PLUGIN_TIMINGS] \u001b[0mYour build spent significant time in plugins. Here is a breakdown:\n  - tanstack-start-core:import-protection (44%)\n  - vite-tsconfig-paths (23%)\n  - tanstack-start-core:import-protection-transform-cache (19%)\n  - tanstack-router:code-splitter:compile-reference-file (5%)\n  - tanstack-router:code-splitter:compile-virtual-file (3%)\nSee https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.\n\nsign-in failed; still at http://127.0.0.1:8099/auth\n\n3 STAGE(S) FAILED\n\u001b[90m\rStopping server gracefully (5s)... Press \u001b[1mCtrl+C\u001b[22m again to force close.\u001b[39m\u001b[2K\r\u001b[32mServer closed successfully.\n\u001b[39m"
+      "tail": null,
+      "log": null
     },
     {
       "id": "production-weights-chat",
-      "status": "fail",
-      "critical": false,
-      "what": "Real production weights answer real questions through the signed-in Chat path.",
-      "exitCode": 1,
-      "durationMs": 164,
+      "status": "unavailable",
+      "reason": "the model publisher's host is blocked here, so production weights cannot be fetched",
       "command": "node scripts/e2e/production-weights-chat.mjs",
-      "tail": "Fetching production weights from https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf?download=true\nCould not fetch the weights (HTTP 403). Set OCADE_MODEL_URL to a mirror this machine can reach."
+      "critical": false,
+      "what": "Real production weights answer real questions through the signed-in Chat path."
+    },
+    {
+      "id": "prompt-behaviour-equivalence",
+      "status": "unavailable",
+      "reason": "needs OCADE_REFERENCE_MODEL: production weights with a 32k context window",
+      "command": "node scripts/e2e/prompt-behaviour-equivalence.mjs",
+      "critical": false,
+      "what": "A model behaves the same under the compiled constitution as under the canonical one."
     },
     {
       "id": "payments-sandbox",

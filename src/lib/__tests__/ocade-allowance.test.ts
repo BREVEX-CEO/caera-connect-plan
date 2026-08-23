@@ -115,12 +115,18 @@ describe("entitlements", () => {
     expect(expiryOf(e).toISOString()).toBe("2026-07-09T00:00:00.000Z");
   });
 
+  /*
+   * Every plan grants ZERO cloud requests, because OCADE answers on the device
+   * and there is no metered service to grant access to. These numbers were 28,
+   * 56 and 128 — advertised to customers as the plans' headline benefit — for
+   * something that could never have been delivered.
+   */
   it.each([
-    ["trial_2d", CLOUD_ALLOWANCE],
-    ["std_8d", 28],
-    ["month_1m", 56],
-    ["year_1y", 128],
-  ] as const)("%s grants its plan allowance and the common device limits", (id, allowance) => {
+    ["trial_2d", 0],
+    ["std_8d", 0],
+    ["month_1m", 0],
+    ["year_1y", 0],
+  ] as const)("%s grants no cloud allowance, and the common device limits", (id, allowance) => {
     expect(PLANS[id].cloudAllowancePerWindow).toBe(allowance);
     expect(PLANS[id].desktopDevices).toBe(2);
     expect(PLANS[id].mobileDevices).toBe(2);

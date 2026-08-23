@@ -100,14 +100,34 @@ describe("the pricing rule is enforced, not remembered", () => {
     expect(year).toBeLessThan(month * 12);
   });
 
-  it("meters only cloud use, and never local processing", () => {
-    expect(CLOUD_ALLOWANCE).toBe(28);
+  it("sells no cloud requests, because there is no cloud to spend them on", () => {
+    /*
+     * THIS TEST USED TO PIN THE PHANTOM.
+     *
+     * It asserted that std_8d granted 28 cloud requests, month_1m 56, year_1y
+     * 128 — and the plans advertised exactly that, as their headline benefit.
+     * OCADE answers on the device; there is no metered upstream service, so
+     * those requests could never have been delivered. Nothing displayed them
+     * while FREE_LAUNCH_MODE was on, which is precisely why they survived, and
+     * the whole point of keeping the payment system dormant rather than
+     * deleting it is that switching it back on must be safe.
+     *
+     * Asserted at zero for EVERY plan, so re-adding one to any of them fails
+     * here rather than being discovered by a customer who paid for it.
+     */
     expect(CLOUD_WINDOW_MS).toBe(8 * 60 * 60 * 1000);
-    // The demo has no cloud allowance at all: it runs on the device or not.
-    expect(planById("demo")!.cloudAllowance).toBe(0);
-    expect(planById("std_8d")!.cloudAllowance).toBe(28);
-    expect(planById("month_1m")!.cloudAllowance).toBe(56);
-    expect(planById("year_1y")!.cloudAllowance).toBe(128);
+    for (const plan of PLANS) {
+      expect(plan.cloudAllowance, `${plan.id} still sells cloud requests`).toBe(0);
+    }
+  });
+
+  it("advertises no benefit that depends on a service OCADE does not run", () => {
+    for (const plan of PLANS) {
+      for (const benefit of plan.benefits) {
+        expect(benefit, `${plan.id} advertises: ${benefit}`).not.toMatch(/cloud/i);
+      }
+      expect(plan.summary, `${plan.id} summary`).not.toMatch(/cloud|allowance/i);
+    }
   });
 
   it("keeps payment product ids out of source", () => {
