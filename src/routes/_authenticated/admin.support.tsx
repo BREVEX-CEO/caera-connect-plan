@@ -70,7 +70,8 @@ function AdminSupportPage() {
   const visible = useMemo(() => {
     const all = tickets.data ?? [];
     if (filter === "all") return all;
-    if (filter === "active") return all.filter((ticket) => !["resolved", "closed"].includes(ticket.status));
+    if (filter === "active")
+      return all.filter((ticket) => !["resolved", "closed"].includes(ticket.status));
     return all.filter((ticket) => ticket.status === filter);
   }, [filter, tickets.data]);
   const selected = tickets.data?.find((ticket) => ticket.id === selectedId) ?? null;
@@ -162,7 +163,9 @@ function AdminSupportPage() {
                 onClick={() => setSelectedId(ticket.id)}
                 className={cn(
                   "w-full rounded-xl border p-3 text-left",
-                  selectedId === ticket.id ? "border-primary/45 bg-primary/[0.06]" : "border-border/60",
+                  selectedId === ticket.id
+                    ? "border-primary/45 bg-primary/[0.06]"
+                    : "border-border/60",
                 )}
               >
                 <span className="block text-sm font-medium">{ticket.subject}</span>

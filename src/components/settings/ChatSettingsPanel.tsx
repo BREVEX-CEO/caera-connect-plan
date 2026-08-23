@@ -26,24 +26,27 @@ import {
  * them.
  */
 
+/*
+ * The third option was "OCADE Cloud — counts against your cloud allowance".
+ * There is no cloud engine and no allowance to count against, so the option
+ * described a purchase that cannot be made and a behaviour that cannot occur.
+ *
+ * The remaining two are kept apart because they mean different things to the
+ * PERSON even though both now run on the device: "Automatic" is somebody who
+ * has not thought about it, "On this device only" is somebody who has and
+ * wants it stated back to them.
+ */
 const ENGINE_CHOICES: { value: EngineTierPreference; label: string; detail: string }[] = [
   {
     value: "auto",
     label: "Automatic",
-    detail:
-      "Prefers the engine on this device and uses OCADE Cloud only when the device cannot serve the request.",
+    detail: "Lets OCADE choose how to answer. Either way it runs on this device.",
   },
   {
     value: "local",
     label: "On this device only",
     detail:
       "Never leaves the machine. Requests the device cannot serve are refused with a reason instead of being sent anywhere.",
-  },
-  {
-    value: "cloud",
-    label: "OCADE Cloud",
-    detail:
-      "Uses the cloud engine. Counts against your cloud allowance; the local engine does not.",
   },
 ];
 

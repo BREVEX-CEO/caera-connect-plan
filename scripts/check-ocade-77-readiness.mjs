@@ -52,10 +52,7 @@ for (const item of OCADE_77_READINESS) {
   if (!(item.classification in EXPECTED_CLASSIFICATIONS)) {
     errors.push(`item ${item.id} has unsupported classification: ${item.classification}`);
   } else {
-    classifications.set(
-      item.classification,
-      (classifications.get(item.classification) ?? 0) + 1,
-    );
+    classifications.set(item.classification, (classifications.get(item.classification) ?? 0) + 1);
   }
 
   if (!Array.isArray(item.evidence) || item.evidence.length === 0) {
@@ -81,8 +78,7 @@ for (const [classification, expected] of Object.entries(EXPECTED_CLASSIFICATIONS
   }
 }
 
-const nonSourceTestIds = OCADE_77_READINESS
-  .filter((item) => item.classification !== "source+test")
+const nonSourceTestIds = OCADE_77_READINESS.filter((item) => item.classification !== "source+test")
   .map((item) => item.id)
   .sort((a, b) => a - b);
 const mappedProofIds = [...ADDED_FOCUSED_PROOF.keys()].sort((a, b) => a - b);
@@ -100,7 +96,9 @@ for (const [id, proofPath] of ADDED_FOCUSED_PROOF) {
   }
   const proofSource = readFileSync(proofPath, "utf8");
   if (!proofSource.includes(`#${id}`)) {
-    errors.push(`item ${id} proof file does not contain an explicit #${id} regression: ${proofPath}`);
+    errors.push(
+      `item ${id} proof file does not contain an explicit #${id} regression: ${proofPath}`,
+    );
   }
 }
 
@@ -121,7 +119,13 @@ if (errors.length > 0) {
 console.log("OCADE 77 readiness contract OK");
 console.log(`- materially resolved: ${EXPECTED_TOTAL}/${EXPECTED_TOTAL}`);
 console.log(`- test/proof artifacts committed: ${committedProofArtifacts}/${EXPECTED_TOTAL}`);
-console.log(`- original source+test implementation class: ${EXPECTED_CLASSIFICATIONS["source+test"]}`);
-console.log(`- source-inspected implementation class with focused proof: ${EXPECTED_CLASSIFICATIONS["source-inspected"]}`);
-console.log(`- fail-closed/unavailable implementation class with focused proof: ${EXPECTED_CLASSIFICATIONS["truthful-unavailable"]}`);
+console.log(
+  `- original source+test implementation class: ${EXPECTED_CLASSIFICATIONS["source+test"]}`,
+);
+console.log(
+  `- source-inspected implementation class with focused proof: ${EXPECTED_CLASSIFICATIONS["source-inspected"]}`,
+);
+console.log(
+  `- fail-closed/unavailable implementation class with focused proof: ${EXPECTED_CLASSIFICATIONS["truthful-unavailable"]}`,
+);
 console.log("- fresh execution success is intentionally NOT inferred by committed proof artifacts");

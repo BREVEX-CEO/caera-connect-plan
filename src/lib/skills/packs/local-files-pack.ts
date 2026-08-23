@@ -157,27 +157,48 @@ export async function assertInsideRoot(
 ): Promise<{ ok: true; resolved: string } | { ok: false; reason: string }> {
   let realRoot: string;
   try {
-    realRoot = normalise(await fs.realpath(root));
+    realRoot = await fs.realpath(root);
   } catch {
     return { ok: false, reason: "The approved folder could not be found." };
   }
 
-  // The target may not exist yet (a write), so resolve its PARENT instead.
-  const wanted = normalise(target);
+  // Resolve the target itself when it exists. The path handed to the
+  // filesystem must always be the caller's ORIGINAL path: case-folding it
+  // first makes `realpath` fail on every case-sensitive filesystem, which
+  // silently broke every operation under folders like `~/Documents`.
   let resolved: string;
   try {
-    resolved = normalise(await fs.realpath(wanted));
+    resolved = await fs.realpath(target);
   } catch {
-    const parent = wanted.slice(0, wanted.lastIndexOf("/"));
+    // The target may legitimately not exist yet (a create or a write), so
+    // resolve its PARENT and re-attach the leaf name. Only the parent is
+    // canonicalised, and the boundary check below compares against that
+    // canonical prefix, so an unresolved leaf cannot widen the scope.
+    const cut = Math.max(target.lastIndexOf("/"), target.lastIndexOf("\\"));
+    const parent = cut > 0 ? target.slice(0, cut) : root;
+    const leaf = cut >= 0 ? target.slice(cut + 1) : target;
+    if (leaf === "" || leaf === "." || leaf === "..") {
+      return { ok: false, reason: "That location doesn't exist." };
+    }
+    let realParent: string;
     try {
-      const realParent = normalise(await fs.realpath(parent || root));
-      resolved = `${realParent}/${wanted.slice(wanted.lastIndexOf("/") + 1)}`;
+      realParent = await fs.realpath(parent);
     } catch {
       return { ok: false, reason: "That location doesn't exist." };
     }
+    const sep = realParent.includes("\\") && !realParent.includes("/") ? "\\" : "/";
+    resolved = `${realParent.replace(/[\\/]+$/, "")}${sep}${leaf}`;
   }
 
-  const inside = resolved === realRoot || resolved.startsWith(`${realRoot}/`);
+  // Compare canonical path against canonical path, WITHOUT case-folding.
+  // Both sides come back from `realpath`, so a case-insensitive filesystem
+  // already reports each in its true on-disk case and an exact comparison is
+  // correct there too. Folding instead treated `/data` and `/DATA` — two
+  // genuinely different directories on Linux — as the same folder, which let
+  // a target outside the approved root pass the boundary check.
+  const rootKey = toPosix(realRoot);
+  const targetKey = toPosix(resolved);
+  const inside = targetKey === rootKey || targetKey.startsWith(`${rootKey}/`);
   if (!inside) {
     return { ok: false, reason: "That path is outside the folder you approved for this task." };
   }
@@ -190,8 +211,9 @@ export async function assertInsideRoot(
   return { ok: true, resolved };
 }
 
-function normalise(p: string): string {
-  return p.replace(/\\/g, "/").replace(/\/+$/, "").toLowerCase();
+/** Separator-normalised form used ONLY for comparison, never for filesystem calls. */
+function toPosix(p: string): string {
+  return p.replace(/\\/g, "/").replace(/\/+$/, "");
 }
 
 /** List a folder, verified by reading it back. */

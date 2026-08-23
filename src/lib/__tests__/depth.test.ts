@@ -199,7 +199,6 @@ describe("how much depth a device and a person get", () => {
     expect(depthMode({ ...base, reducedMotion: true, tier: "reduced" })).toBe("flat");
   });
 
-
   it("goes still on a device measured as unable to animate", () => {
     expect(depthMode({ ...base, tier: "static" })).toBe("static");
     expect(depthMode({ ...base, tier: "reduced" })).toBe("static");

@@ -18,7 +18,15 @@ import { useCallback, useState } from "react";
  * someone hand-edited must not be able to break the chat screen.
  */
 
-export type EngineTierPreference = "auto" | "local" | "cloud";
+/**
+ * "cloud" is gone with the engine that served it.
+ *
+ * A value persisted by an earlier build may still say "cloud" in somebody's
+ * localStorage, so the parser below maps it to "auto" rather than rejecting
+ * the whole preferences object — losing every other setting because one
+ * obsolete word survived would be a worse outcome than the obsolete word.
+ */
+export type EngineTierPreference = "auto" | "local";
 export type SendKeyPreference = "enter" | "mod_enter";
 export type MessageDensity = "comfortable" | "compact";
 
@@ -82,7 +90,7 @@ export const DEFAULT_CHAT_PREFS: ChatPrefs = {
 
 const KEY = "ocade.chat.prefs.v1";
 
-const TIERS: EngineTierPreference[] = ["auto", "local", "cloud"];
+const TIERS: EngineTierPreference[] = ["auto", "local"];
 const SEND_KEYS: SendKeyPreference[] = ["enter", "mod_enter"];
 const DENSITIES: MessageDensity[] = ["comfortable", "compact"];
 

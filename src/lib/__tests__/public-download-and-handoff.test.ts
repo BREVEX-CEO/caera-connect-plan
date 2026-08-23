@@ -36,10 +36,12 @@ describe("public installer publication gate", () => {
       ready: true,
       url: complete.url,
     });
-    expect(evaluatePublicWindowsRelease({ ...complete, url: "http://ocade.in/setup.exe" })).toEqual({
-      ready: false,
-      reason: "invalid_manifest",
-    });
+    expect(evaluatePublicWindowsRelease({ ...complete, url: "http://ocade.in/setup.exe" })).toEqual(
+      {
+        ready: false,
+        reason: "invalid_manifest",
+      },
+    );
   });
 
   it("detects mobile before desktop tokens and recognises common platforms", () => {

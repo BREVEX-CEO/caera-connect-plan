@@ -154,7 +154,6 @@ export function MotionPanel() {
         is broken.
       */}
       {depth3d && !motionOff ? (
-
         <SettingsField
           label="Depth strength"
           description="How pronounced the third dimension is. Subtle keeps the layering and almost removes the movement."

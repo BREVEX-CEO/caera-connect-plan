@@ -13,7 +13,7 @@
 import { billingEnabled } from "@/lib/launch-mode";
 import { resolvePaddlePrice } from "@/utils/payments.functions";
 
-const clientToken = import.meta.env['VITE_PAYMENTS_CLIENT_TOKEN'] as string | undefined;
+const clientToken = import.meta.env["VITE_PAYMENTS_CLIENT_TOKEN"] as string | undefined;
 
 declare global {
   interface Window {
@@ -56,7 +56,7 @@ export async function initializePaddle(): Promise<void> {
     }
     const script = document.createElement("script");
     script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
-    script.dataset['paddle'] = "1";
+    script.dataset["paddle"] = "1";
     script.onload = () => resolve();
     script.onerror = () => reject(new Error("The checkout script could not be loaded."));
     document.head.appendChild(script);

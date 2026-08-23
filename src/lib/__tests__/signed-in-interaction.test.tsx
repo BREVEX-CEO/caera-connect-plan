@@ -315,7 +315,7 @@ describe("every enabled control on a signed-in route can be pressed", () => {
       for (let round = 0; round < 80; round += 1) {
         const next = [
           ...container!.querySelectorAll<HTMLElement>(
-            "button:not([disabled]), [role='button'], [role='tab'], [role='switch']",
+            "button:not([disabled]), [role='button'], [role='tab'], [role='switch'], a[href]",
           ),
         ].find((el) => !seen.has(el));
         if (!next) break;
@@ -325,6 +325,39 @@ describe("every enabled control on a signed-in route can be pressed", () => {
           .trim()
           .slice(0, 45);
         if (skip.test(label)) continue;
+
+        /*
+         * A link IS a control — /ocade/studio is built entirely from them, and
+         * auditing only <button> reported that whole route as having nothing to
+         * press at all.
+         *
+         * A link is verified by its HREF rather than by clicking it. Clicking
+         * one navigates the memory router away from the route under audit, the
+         * component unmounts, and every control after it goes unexamined: an
+         * earlier revision of this block clicked links and cut /ocade/studio
+         * from eleven controls to one. What makes a link right or wrong is
+         * where it points, and that is checked here.
+         */
+        if (next instanceof HTMLAnchorElement) {
+          const href = next.getAttribute("href") ?? "";
+          /*
+           * A fragment is a real destination. "Skip to content" points at
+           * `#main-content`, which is the accessibility affordance that lets a
+           * keyboard user past the navigation — an earlier version of this rule
+           * counted it as a link that goes nowhere and failed six routes for
+           * having one.
+           */
+          const goesSomewhere =
+            href.startsWith("/") ||
+            /^(https?:|mailto:|tel:)/i.test(href) ||
+            (href.startsWith("#") && href.length > 1);
+          if (!goesSomewhere) {
+            failures.push(
+              `${label || "(unlabelled link)"}: href goes nowhere (${JSON.stringify(href)})`,
+            );
+          }
+          continue;
+        }
         try {
           await act(async () => {
             next.click();

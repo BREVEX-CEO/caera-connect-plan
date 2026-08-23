@@ -34,11 +34,18 @@ describe("Chat settings reach the screen", () => {
     expect(() => chat()).not.toThrow();
   });
 
-  it("offers every engine choice, including the local-only one", () => {
+  it("offers every engine choice, and no longer offers one that cannot happen", () => {
     const html = chat();
     expect(html).toContain("Automatic");
     expect(html).toContain("On this device only");
-    expect(html).toContain("OCADE Cloud");
+    /*
+     * The third option was "OCADE Cloud — counts against your cloud
+     * allowance". There is no cloud engine and no allowance, so it described
+     * a purchase that cannot be made and a behaviour that cannot occur. This
+     * assertion is inverted deliberately: the panel must not advertise it.
+     */
+    expect(html).not.toContain("OCADE Cloud");
+    expect(html).not.toMatch(/allowance/i);
   });
 
   it("states that these settings do not leave this browser", () => {

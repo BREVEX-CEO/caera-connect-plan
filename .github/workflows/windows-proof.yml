@@ -1,0 +1,132 @@
+name: Windows proof
+
+# WHY THIS WORKFLOW EXISTS SEPARATELY FROM ci.yml
+#
+# OCADE controls a Windows PC and drives Chrome. Both were being asserted from
+# Linux, where the Windows code paths cannot execute and Chrome Stable is not
+# installed — the Python suite skipped its Windows tests by name, and browser
+# parity ran against Chromium. Skips are honest, but a skip is not evidence.
+#
+# These jobs run on a real Windows machine with a real desktop session and the
+# Chrome Stable that ships on the runner image. They move a real pointer, type
+# into a real window, read the screen with the OCR engine built into Windows,
+# and drive real Chrome through the extension.
+#
+# It runs on push to the audit branch so the work can be iterated against real
+# hardware, and on demand.
+
+on:
+  push:
+    branches: ["claude/ocade-production-audit-o0o22j"]
+  workflow_dispatch:
+
+concurrency:
+  group: windows-proof-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-control:
+    name: PC control · real Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # The pinned set the sidecar actually ships with: pywin32 for the Windows
+      # API, pywinauto for UI Automation, PyAutoGUI for physical input, dxcam
+      # and mss for capture, winsdk for the OCR engine already in Windows.
+      - name: Install the sidecar's own dependencies
+        working-directory: native/python-host
+        run: python -m pip install --quiet -r requirements.txt pytest
+
+      # The whole suite, on Windows. The six tests that skip on Linux by name —
+      # window placement, per-platform voice, and two perception paths — run
+      # here for real.
+      - name: Full sidecar suite, with the Windows paths executing
+        working-directory: native/python-host
+        run: python -m pytest tests/ -q -rs
+
+      - name: Control engine suite
+        working-directory: native/ocade_control_engine
+        run: python -m pytest core/ -q
+
+  # The Windows suite above drives a real desktop, so it runs on exactly one
+  # kind of machine. Its DRIVER — starting the sidecar, framing requests,
+  # correlating replies — is not Windows-specific, and leaving that executed
+  # nowhere else means a mistake in the harness itself would only ever surface
+  # on the machine that is hardest to reach. This runs the same driver on Linux
+  # against the real sidecar, where every platform command must refuse honestly.
+  sidecar-protocol:
+    name: Sidecar protocol · any platform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the cross-platform dependencies only
+        run: python -m pip install --quiet pytest psutil
+
+      - name: The sidecar speaks its protocol and refuses honestly
+        working-directory: native/python-host
+        run: python -m pytest tests/test_sidecar_protocol_e2e.py tests/test_request_correlation.py -q
+
+  windows-chrome:
+    name: Cowork · real Chrome Stable
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Chrome Stable ships on the windows-latest image. If that ever stops
+      # being true the job must FAIL rather than quietly fall back to Chromium
+      # and keep calling itself a Chrome Stable proof.
+      - name: Locate Chrome Stable
+        id: chrome
+        shell: pwsh
+        run: |
+          $candidates = @(
+            "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
+            "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe",
+            "$env:LOCALAPPDATA\Google\Chrome\Application\chrome.exe"
+          )
+          foreach ($c in $candidates) {
+            if (Test-Path $c) {
+              "path=$c" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+              & $c --version
+              exit 0
+            }
+          }
+          Write-Error "No Chrome Stable on this runner; this job proves nothing without it."
+          exit 1
+
+      - name: Extension manifest and safety gate
+        run: npm run extension:check
+
+      - name: Cowork extension against real Chrome Stable
+        env:
+          OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
+        run: npm run extension:e2e
+
+      - name: Chrome and Edge parity through the managed host
+        env:
+          OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
+        run: npm run browser:cdp-parity
+
+      - name: Managed browser host self-test
+        run: npm run browser:host-check

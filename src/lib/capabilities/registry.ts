@@ -120,7 +120,8 @@ function cloudAI(s: CapabilitySignals): CapabilityReport {
     id: "cloudAI",
     label: "OCADE Cloud",
     status: "READY",
-    detail: "A cloud engine is configured and reachable. Requests leave this device only when you choose it.",
+    detail:
+      "A cloud engine is configured and reachable. Requests leave this device only when you choose it.",
     evidence: "Provider configured and browser online.",
   };
 }
@@ -142,7 +143,8 @@ function privateSync(s: CapabilitySignals): CapabilityReport {
       id: "privateSync",
       label: "Private Sync",
       status: "UNAVAILABLE",
-      detail: "Chats are set to Browser Only, so nothing is synchronised. That is a choice, not a fault.",
+      detail:
+        "Chats are set to Browser Only, so nothing is synchronised. That is a choice, not a fault.",
       action: { label: "Change storage mode", to: "/settings/privacy" },
       evidence: "Storage mode is browser_only.",
     };
@@ -212,7 +214,8 @@ function computerControl(s: CapabilitySignals): CapabilityReport {
     id: "computerControl",
     label: "Computer control",
     status: "READY",
-    detail: "The native companion is connected and permitted. Every action still asks before it runs.",
+    detail:
+      "The native companion is connected and permitted. Every action still asks before it runs.",
     evidence: "Companion connected and approved.",
   };
 }

@@ -63,9 +63,9 @@ describe("OCADE production launch gate", () => {
       "something.lovableproject.com",
     ]) {
       expect(isInternalHost(host)).toBe(true);
-      expect(
-        evaluateLaunchGate({ now: LAUNCH_AT_MS - 1, hostname: host, env: {} }).open,
-      ).toBe(true);
+      expect(evaluateLaunchGate({ now: LAUNCH_AT_MS - 1, hostname: host, env: {} }).open).toBe(
+        true,
+      );
     }
     // The published production host is never treated as internal.
     expect(isInternalHost("ocade.lovable.app")).toBe(false);

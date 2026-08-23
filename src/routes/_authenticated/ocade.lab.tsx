@@ -26,11 +26,22 @@ function LabPage() {
         eyebrow="OCADE"
         title="Lab"
         description="Engineering diagnostics, governed execution, research verification and runtime validation. This is intentionally technical; creative work lives in Studio."
-        actions={<Link to="/ocade/studio" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">Open Studio</Link>}
+        actions={
+          <Link
+            to="/ocade/studio"
+            className="inline-flex min-h-[24px] items-center px-1 py-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          >
+            Open Studio
+          </Link>
+        }
       />
       <div className="flex flex-col gap-5">
         <GlassPanel className="p-4">
-          <p className="text-sm text-muted-foreground">Lab surfaces inspect what OCADE can prove before a run, patch, browser/research claim or visual output is accepted. A diagnostic result is evidence, not a substitute for production runtime verification.</p>
+          <p className="text-sm text-muted-foreground">
+            Lab surfaces inspect what OCADE can prove before a run, patch, browser/research claim or
+            visual output is accepted. A diagnostic result is evidence, not a substitute for
+            production runtime verification.
+          </p>
         </GlassPanel>
         <ConversationControls />
         <GovernedRunPanel />

@@ -62,7 +62,9 @@ export function isDeveloperShortcut(event: {
  * A no-op outside the desktop shell, so calling it unconditionally from the app
  * root is safe — the web build installs nothing.
  */
-export function hardenDesktopShell(target: Window | null = typeof window !== "undefined" ? window : null): () => void {
+export function hardenDesktopShell(
+  target: Window | null = typeof window !== "undefined" ? window : null,
+): () => void {
   if (!target || !inDesktopShell()) return () => {};
 
   const onContextMenu = (event: Event) => event.preventDefault();

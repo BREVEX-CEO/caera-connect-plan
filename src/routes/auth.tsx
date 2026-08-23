@@ -4,6 +4,7 @@ import { z } from "zod";
 import { Mail, Phone, KeyRound, Loader2 } from "lucide-react";
 import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { LegalDialog } from "@/components/legal/LegalDialog";
 import { AuthShell } from "@/components/shell/AuthShell";
 import { cn } from "@/lib/utils";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
@@ -71,7 +72,11 @@ function AuthPage() {
     typeof window !== "undefined" ? window.location.hash : "",
   );
   const inboundFriendly = inboundOAuthError
-    ? describeOAuthError(search.provider ?? "google", inboundOAuthError.code, inboundOAuthError.description)
+    ? describeOAuthError(
+        search.provider ?? "google",
+        inboundOAuthError.code,
+        inboundOAuthError.description,
+      )
     : null;
   const [error, setError] = useState<string | null>(inboundFriendly?.message ?? null);
   const [errorHint, setErrorHint] = useState<string | null>(inboundFriendly?.hint ?? null);
@@ -113,7 +118,6 @@ function AuthPage() {
     }
   }
 
-
   async function sendPhoneOtp(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -142,6 +146,18 @@ function AuthPage() {
       search: { channel: "phone", identifier: parsed.data, next: nextPath },
     });
   }
+
+  /*
+   * Consent is NOT collected on this form, and that is deliberate.
+   *
+   * `LegalConsentGate` in __root.tsx already blocks the whole application
+   * until the terms are accepted and the privacy notice acknowledged, so a
+   * second set of checkboxes here would ask the same person for the same
+   * agreement twice and leave two places that have to be kept in step. The
+   * footer links still open the documents in-site so they can be re-read at
+   * any point without leaving the form.
+   */
+  const [legalOpen, setLegalOpen] = useState<null | "terms" | "privacy">(null);
 
   async function submitPassword(intent: "signin" | "signup") {
     setBusy(true);
@@ -261,15 +277,32 @@ function AuthPage() {
       subtitle="One account for OCADE."
       footer={
         <>
-          By continuing you agree to our{` `}
-          <Link to="/terms" className="underline underline-offset-2">
+          {/*
+            Buttons, not links. A `<Link to="/terms">` navigated away from this
+            form and discarded whatever had been typed into it — which is a
+            cruel thing to do to somebody who followed the link precisely
+            because they were about to agree to it.
+
+            `/terms` and `/privacy` still exist as real pages so the documents
+            can be linked from outside OCADE; from inside, they open here.
+          */}
+          Read our{` `}
+          <button
+            type="button"
+            onClick={() => setLegalOpen("terms")}
+            className="underline underline-offset-2 hover:text-foreground"
+          >
             terms
-          </Link>
+          </button>
           {` `}
           and{` `}
-          <Link to="/privacy" className="underline underline-offset-2">
+          <button
+            type="button"
+            onClick={() => setLegalOpen("privacy")}
+            className="underline underline-offset-2 hover:text-foreground"
+          >
             privacy notice
-          </Link>
+          </button>
           . Your workspace defaults to Private Sync — you can switch it to Device Only anytime.
         </>
       }
@@ -315,7 +348,11 @@ function AuthPage() {
                 setNotice(null);
               }}
               className={cn(
-                "rounded-md px-2 py-1.5 text-xs font-medium transition-colors",
+                // min-h keeps the hit area at the WCAG 2.5.8 floor of 24px
+                // without enlarging the type: these were 21px tall, which is
+                // fine with a mouse and a guess with a thumb.
+                "inline-flex min-h-[24px] items-center justify-center rounded-md px-2 py-1.5",
+                "text-xs font-medium transition-colors",
                 method === m.id
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -395,7 +432,8 @@ function AuthPage() {
               />
             </div>
             <label htmlFor="password" className="text-xs font-medium text-muted-foreground">
-              Password <span className="font-normal">(optional — leave empty for a one-time code)</span>
+              Password{" "}
+              <span className="font-normal">(optional — leave empty for a one-time code)</span>
             </label>
             <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/50 px-3 focus-within:ring-2 focus-within:ring-ring">
               <KeyRound className="h-4 w-4 text-muted-foreground" aria-hidden />
@@ -450,7 +488,6 @@ function AuthPage() {
           </form>
         ) : null}
 
-
         {error ? (
           <div
             role="alert"
@@ -469,6 +506,13 @@ function AuthPage() {
           </Link>
         </p>
       </div>
+      <LegalDialog
+        open={legalOpen !== null}
+        document={legalOpen ?? "terms"}
+        onOpenChange={(next) => {
+          if (!next) setLegalOpen(null);
+        }}
+      />
     </AuthShell>
   );
 }

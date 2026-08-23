@@ -130,16 +130,25 @@ describe("an archive cannot write outside the chosen folder", () => {
     await writeFile(join(dir, "victim.txt"), "ORIGINAL", "utf8");
     await writeFile(join(stage, "payload.txt"), "OVERWRITTEN", "utf8");
 
-    // tar -cf evil.tar -C stage ../victim.txt style entry.
+    // `-P` is required: without it GNU tar silently STRIPS the leading `../`
+    // and still exits 0, so the archive it produces is harmless and the guard
+    // is never exercised. The stored entry is verified below before asserting.
     const built = await runReal({
       bin: "tar",
-      args: ["-cf", join(dir, "evil.tar"), "-C", stage, "--", "../victim.txt"],
+      args: ["-cPf", join(dir, "evil.tar"), "-C", stage, "--", "../victim.txt"],
       cwd: dir,
     });
     if (!built.ok) {
       // Some tar builds refuse to CREATE such an archive, which is also fine —
       // skip rather than let the test pass without exercising the guard.
       return;
+    }
+
+    // Prove the archive really is malicious before asserting it is refused.
+    // Skipping this let a sanitised archive pass as though the guard had run.
+    const stored = await runReal({ bin: "tar", args: ["-tf", join(dir, "evil.tar")], cwd: dir });
+    if (!stored.stdout.split(/\r?\n/).some((l) => l.trim() === "../victim.txt")) {
+      return; // this tar sanitised the entry; nothing malicious to test against
     }
 
     const out = join(dir, "out");
@@ -171,7 +180,7 @@ describe("an archive cannot write outside the chosen folder", () => {
     const built = await runReal({
       bin: "tar",
       args: [
-        "-cf",
+        "-cPf",
         join(dir, "mixed.tar"),
         "-C",
         stage,
@@ -183,6 +192,13 @@ describe("an archive cannot write outside the chosen folder", () => {
       cwd: dir,
     });
     if (!built.ok) return;
+
+    // The point of this test is a MIXED archive: mostly safe, one escaping
+    // entry. If tar sanitised the escaping entry there is nothing to refuse.
+    const stored = await runReal({ bin: "tar", args: ["-tf", join(dir, "mixed.tar")], cwd: dir });
+    if (!stored.stdout.split(/\r?\n/).some((l) => l.trim() === "../outside.txt")) {
+      return;
+    }
 
     const out = join(dir, "mixedout");
     await mkdir(out);

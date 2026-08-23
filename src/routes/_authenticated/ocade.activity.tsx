@@ -43,7 +43,7 @@ function ActivityPage() {
           <button
             type="button"
             onClick={() => void activity.refetch()}
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            className="inline-flex min-h-[24px] items-center gap-1.5 px-1 py-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <RefreshCw className="h-3.5 w-3.5" aria-hidden /> Refresh
           </button>

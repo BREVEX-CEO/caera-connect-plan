@@ -73,8 +73,19 @@ def _is_noise(name: str) -> bool:
 
 
 def _app_paths() -> dict[str, dict[str, Any]]:
-    """The registry table Windows itself uses to resolve a bare program name."""
-    import winreg  # noqa: PLC0415
+    """The registry table Windows itself uses to resolve a bare program name.
+
+    Contributes nothing where there is no registry, rather than raising. This is
+    one of several discovery sources merged in `_discover`, and `_shortcut_target`
+    below already answers "not available here" with None. This one let
+    `ModuleNotFoundError: winreg` escape instead, so on Linux and macOS a plain
+    "which applications are installed" call died with a stdlib import error
+    rather than the engine's own refusal.
+    """
+    try:
+        import winreg  # noqa: PLC0415
+    except ImportError:
+        return {}
 
     found: dict[str, dict[str, Any]] = {}
     for hive in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
@@ -276,8 +287,15 @@ def _path_executables() -> dict[str, dict[str, Any]]:
 
 
 def _registry_metadata() -> dict[str, dict[str, Any]]:
-    """Version and publisher. No executable — that is what the others are for."""
-    import winreg  # noqa: PLC0415
+    """Version and publisher. No executable — that is what the others are for.
+
+    Contributes nothing where there is no registry, for the reason given on
+    `_app_paths`.
+    """
+    try:
+        import winreg  # noqa: PLC0415
+    except ImportError:
+        return {}
 
     roots = [
         (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"),

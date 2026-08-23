@@ -49,7 +49,7 @@ export const MEDIA_PACK: SkillPack = {
   capabilities: CAPABILITIES,
   requiresLicensedInstall: false,
   coverageNote:
-    "Inspects image files only — format, size and whether the contents match the name. OCADE cannot operate Photoshop, Illustrator, Blender or video editors, and does not edit or export images.",
+    "Inspects image files only — format, size and whether the contents match the name. OCADE cannot operate Photoshop, Illustrator, Blender or any other editor application, and does not edit or export images. Video trimming, cropping and captioning are a separate pack (ocade.video.local) that drives a local encoder.",
 };
 
 export type MediaOutcome<T> =

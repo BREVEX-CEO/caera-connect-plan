@@ -20,6 +20,7 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { SetupRequiredState } from "@/components/shell/SetupRequiredState";
+import { classifyUnavailable } from "@/lib/unavailable-reason";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -548,10 +549,31 @@ function AutomationsPage() {
       ) : null}
 
       {unavailable ? (
-        <SetupRequiredState
-          title="Automations need the database migration"
-          description={`${unavailable} The migration, RLS policies, rollback and verification SQL are prepared and ready to apply. Applying them enables persistence; real execution still requires a connected, verified worker.`}
-        />
+        (() => {
+          const state = classifyUnavailable(unavailable, {
+            migrationTitle: "Automations need the database migration",
+            migrationNote:
+              "The migration, RLS policies, rollback and verification SQL are prepared and ready to apply. Applying them enables persistence; real execution still requires a connected, verified worker.",
+            loadTitle: "Automations couldn't be loaded",
+          });
+          return (
+            <SetupRequiredState
+              title={state.title}
+              description={state.description}
+              detail={state.detail}
+              status={state.migrationMissing ? "setup_required" : "failed"}
+              action={
+                <button
+                  type="button"
+                  onClick={() => void refresh()}
+                  className="rounded-md border border-border/60 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent/30"
+                >
+                  Try again
+                </button>
+              }
+            />
+          );
+        })()
       ) : rows === null ? (
         <GlassPanel className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading automations…

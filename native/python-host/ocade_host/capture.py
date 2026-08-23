@@ -30,7 +30,7 @@ import time
 from typing import Any
 
 import numpy as np
-import win32gui
+from ._win32 import require, win32gui
 
 from .protocol import MAX_TEXT, Refusal, clamp_text, is_protected_text
 
@@ -60,7 +60,7 @@ def _grab(region: tuple[int, int, int, int]) -> np.ndarray:
 
     if not _dxcam_failed:
         try:
-            import dxcam  # noqa: PLC0415 - lazy, initialising it is expensive
+            dxcam = require("dxcam", "Fast screen capture")  # noqa: PLC0415
 
             if _dxcam_camera is None:
                 _dxcam_camera = dxcam.create(output_color="RGB")
@@ -71,7 +71,7 @@ def _grab(region: tuple[int, int, int, int]) -> np.ndarray:
         except Exception:
             _dxcam_failed = True
 
-    import mss  # noqa: PLC0415
+    mss = require("mss", "Screen capture")  # noqa: PLC0415
 
     left, top, right, bottom = region
     with mss.mss() as sct:
@@ -112,7 +112,7 @@ def capture_window(request) -> dict[str, Any]:
 
 
 def _encode_png(frame: np.ndarray) -> bytes:
-    import cv2  # noqa: PLC0415
+    cv2 = require("cv2", "Frame encoding")  # noqa: PLC0415
 
     ok, buffer = cv2.imencode(".png", frame[:, :, ::-1])
     if not ok:
@@ -122,7 +122,7 @@ def _encode_png(frame: np.ndarray) -> bytes:
 
 def _fingerprint(frame: np.ndarray) -> str:
     """A 64-bit average hash. Survives cursor blink; changes when content does."""
-    import cv2  # noqa: PLC0415
+    cv2 = require("cv2", "Frame encoding")  # noqa: PLC0415
 
     grey = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
     small = cv2.resize(grey, (8, 8), interpolation=cv2.INTER_AREA)
@@ -134,9 +134,18 @@ def _fingerprint(frame: np.ndarray) -> str:
 
 
 async def _recognise(png: bytes) -> list[dict[str, Any]]:
-    from winsdk.windows.graphics.imaging import BitmapDecoder  # noqa: PLC0415
-    from winsdk.windows.media.ocr import OcrEngine  # noqa: PLC0415
-    from winsdk.windows.storage.streams import DataWriter, InMemoryRandomAccessStream  # noqa: PLC0415
+    # `require` rather than a bare import: without winsdk the caller used to get
+    # a raw ModuleNotFoundError under `retryable_failure`, which tells an agent
+    # loop to retry an action that cannot succeed until a package is installed.
+    BitmapDecoder = require(
+        "winsdk.windows.graphics.imaging", "Reading text from the screen"
+    ).BitmapDecoder
+    OcrEngine = require("winsdk.windows.media.ocr", "Reading text from the screen").OcrEngine
+    _streams = require("winsdk.windows.storage.streams", "Reading text from the screen")
+    DataWriter, InMemoryRandomAccessStream = (
+        _streams.DataWriter,
+        _streams.InMemoryRandomAccessStream,
+    )
 
     engine = OcrEngine.try_create_from_user_profile_languages()
     if engine is None:

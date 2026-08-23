@@ -112,11 +112,6 @@ export interface ChatEngineContext {
   thinking?: boolean;
   preference?: EngineContext["preference"];
   privacyMode?: EngineContext["privacyMode"];
-  cloudConfigured?: boolean;
-  cloudEntitled?: boolean;
-  cloudRemaining?: number;
-  cloudResetsAt?: Date | null;
-  cloudApprovedForConversation?: boolean;
   visionRequired?: boolean;
 }
 
@@ -172,11 +167,6 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
   const {
     preference = "auto",
     privacyMode = "private_sync",
-    cloudConfigured = false,
-    cloudEntitled = false,
-    cloudRemaining = 0,
-    cloudResetsAt = null,
-    cloudApprovedForConversation = false,
     visionRequired: contextVision = false,
     // Destructured for the same reason as the rest: read off `context` inside
     // the callback it would be an unlisted dependency, and the switch would go
@@ -198,25 +188,11 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
         localLabel: outcome.ok ? outcome.availability.label : null,
         localVision: outcome.ok ? Boolean(outcome.availability.capabilities?.vision) : false,
         visionRequired,
-        cloudConfigured,
-        cloudEntitled,
-        cloudRemaining,
-        cloudResetsAt,
-        cloudApprovedForConversation,
         online: typeof navigator === "undefined" ? true : navigator.onLine,
       });
       return { outcome, decision };
     },
-    [
-      brain,
-      preference,
-      privacyMode,
-      cloudConfigured,
-      cloudEntitled,
-      cloudRemaining,
-      cloudResetsAt,
-      cloudApprovedForConversation,
-    ],
+    [brain, preference, privacyMode],
   );
 
   const check = useCallback(async () => {

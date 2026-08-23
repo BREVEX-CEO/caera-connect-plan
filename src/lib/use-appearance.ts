@@ -97,8 +97,6 @@ export interface AppearanceContextValue extends AppearancePrefs {
   retryPersist: () => Promise<void>;
 }
 
-
-
 export const ThemeContext = createContext<AppearanceContextValue | null>(null);
 
 export function useAppearance(): AppearanceContextValue {

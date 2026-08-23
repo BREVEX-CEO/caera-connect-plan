@@ -128,7 +128,8 @@ export function useCapabilityReports(): CapabilityReport[] {
         status: "NOT_CONFIGURED" as const,
         detail:
           "A native shell alone is not proof that a Code terminal is alive. OCADE will not claim terminal readiness until a dedicated command-host heartbeat succeeds.",
-        evidence: "No dedicated Code command-host heartbeat is wired into the capability probe yet.",
+        evidence:
+          "No dedicated Code command-host heartbeat is wired into the capability probe yet.",
         action: { label: "Code workspace", to: "/ocade/code" },
       };
     }
@@ -139,7 +140,8 @@ export function useCapabilityReports(): CapabilityReport[] {
         status: "NOT_CONFIGURED" as const,
         detail:
           "Automation source and queue logic are installed, but the global status has no live worker heartbeat. Saved schedules are not described as running until the worker itself proves it.",
-        evidence: "No dedicated automation-worker heartbeat is wired into the global capability probe yet.",
+        evidence:
+          "No dedicated automation-worker heartbeat is wired into the global capability probe yet.",
         action: { label: "Automations", to: "/ocade/automations" },
       };
     }

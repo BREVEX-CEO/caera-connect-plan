@@ -137,9 +137,7 @@ describe("installing the runtime on a machine that has none", () => {
     servePath = "/good";
     let lastPercent: number | null = null;
 
-    const result = await installRuntime(
-      realDeps({ onProgress: (p) => void (lastPercent = p) }),
-    );
+    const result = await installRuntime(realDeps({ onProgress: (p) => void (lastPercent = p) }));
 
     expect(result.ok).toBe(true);
     // The user-facing line never names the vendor — the product speaks about

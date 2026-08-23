@@ -276,6 +276,9 @@ describe("tested capabilities are genuinely tested", () => {
         "ocade.data",
         "ocade.integrity",
         "tar",
+        // Real encoder, real clip: generated, trimmed, cropped, captioned, and
+        // the export DECODED frame by frame — see `video-pack.test.ts`.
+        "ocade.video.local",
         // File-format packs. Each is exercised by its own test file against
         // real bytes or real text — see the `coverageNote` on each for what it
         // deliberately does NOT claim to do.

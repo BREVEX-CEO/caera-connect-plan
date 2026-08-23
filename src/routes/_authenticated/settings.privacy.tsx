@@ -76,7 +76,10 @@ function PrivacyPage() {
         title="Per-data-class privacy"
         description="Pick where each kind of data lives. Browser Only writes never reach the cloud."
         actions={
-          <Link to="/settings" className="text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/settings"
+            className="inline-flex min-h-[24px] items-center px-1 py-1 text-sm text-muted-foreground hover:text-foreground"
+          >
             ← Back to Settings
           </Link>
         }

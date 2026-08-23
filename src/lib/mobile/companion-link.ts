@@ -267,9 +267,20 @@ export async function dispatchMobileIntent(
     queue?: QueuedIntent[];
     /** When offline, also persist here so the intent survives a reload. */
     durable?: OfflineQueue<MobileIntent>;
+    /**
+     * The clock, injectable like every other time-dependent function here.
+     *
+     * It was the only one without it, and the gap was not theoretical: device
+     * trust expires 30 days after `lastSeenAt`, so a test pinning a device to a
+     * fixed date passed for thirty days and then began refusing everything,
+     * with a suite that had never changed. `flushMobileQueue` and
+     * `decideMobileIntent` both take a clock; this one now does too.
+     */
+    now?: Date;
   } = {},
 ): Promise<{ ok: boolean; detail: string; queue?: QueuedIntent[] }> {
-  const decision = decideMobileIntent(intent, device);
+  const now = opts.now ?? new Date();
+  const decision = decideMobileIntent(intent, device, now);
   if (!decision.allow) return { ok: false, detail: decision.reason };
   if (!device) {
     return { ok: false, detail: "This device is not paired with your account." };
@@ -279,7 +290,7 @@ export async function dispatchMobileIntent(
     if (!confirmation.ok) return confirmation;
   }
   if (opts.online === false) {
-    const q = enqueueIfSafe(opts.queue ?? [], intent);
+    const q = enqueueIfSafe(opts.queue ?? [], intent, now);
     // Persist only what the pure gate already accepted, so the two layers can
     // never disagree about what is safe to replay.
     if (q.queued) opts.durable?.enqueue(intent);

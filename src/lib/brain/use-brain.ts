@@ -1,11 +1,14 @@
 import { useCallback, useMemo, useRef } from "react";
 import { DesktopBridgeAdapter } from "./adapters/desktop-bridge";
 import { BrowserWebGpuAdapter } from "./adapters/browser-webgpu";
+import { shareAcrossTabs } from "./adapters/shared-browser-engine";
 import { BrowserWasmAdapter } from "./adapters/browser-wasm";
 import { PairedDesktopAdapter } from "./adapters/paired-desktop";
 import { pairedCredentials, hasPairing } from "./paired-credentials";
 import { detectDeviceSignals, resolveDeviceMode, type DeviceMode } from "./device-mode";
 import { routeBrain, type RouteOutcome } from "./router";
+import { publishPreparation } from "./preparation";
+import { modelStore } from "./model-store";
 import {
   REMEDY_LABELS,
   type AdapterId,
@@ -73,8 +76,47 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
      * nothing on a device that cannot run them, and neither library is loaded
      * until one is actually routed to.
      */
-    map.set("browser_webgpu", new BrowserWebGpuAdapter());
-    map.set("browser_wasm", new BrowserWasmAdapter());
+    /*
+     * Shared across tabs. Without this every open tab loaded its own copy of
+     * the weights onto the graphics card; three tabs meant three copies.
+     */
+    /*
+     * BOTH BROWSER ADAPTERS PUBLISH THEIR PROGRESS, AND UNTIL NOW NEITHER DID.
+     *
+     * Each has always accepted an `onProgress` callback. Both were constructed
+     * here with no options, so the reports were emitted into nothing:
+     * `EngineState.progress` was typed `number | null` and no code path ever
+     * assigned it, and a first visit downloading several hundred megabytes
+     * showed a spinner with no percentage, no size and no way to tell a slow
+     * download from a hung one.
+     *
+     * The runtimes' own wording is deliberately NOT forwarded. WebLLM's
+     * `report.text` names shards and quantisation formats; a person preparing
+     * OCADE for the first time is not debugging a runtime, so the stage and
+     * the numbers travel and the vocabulary does not.
+     */
+    map.set(
+      "browser_webgpu",
+      shareAcrossTabs(
+        new BrowserWebGpuAdapter({
+          onProgress: (p) =>
+            publishPreparation({
+              stage: p.fraction !== null && p.fraction >= 1 ? "loading" : "downloading",
+              fraction: p.fraction,
+            }),
+        }),
+      ),
+    );
+    map.set(
+      "browser_wasm",
+      new BrowserWasmAdapter({
+        onProgress: (p) =>
+          publishPreparation({
+            stage: p.fraction !== null && p.fraction >= 1 ? "loading" : "downloading",
+            fraction: p.fraction,
+          }),
+      }),
+    );
     map.set("paired_desktop", new PairedDesktopAdapter({ credentials: pairedCredentials }));
     return map;
   }, []);
@@ -128,12 +170,61 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
        *
        * Warming both costs nothing when the bridge wins: `preload` probes
        * first and returns immediately on a browser that cannot run WebGPU, and
-       * WebLLM serves a second visit from Cache Storage without touching the
+       * a second visit compiles from stored weights without touching the
        * network.
+       *
+       * WASM IS WARMED TOO, AND THAT IS THE HALF THAT WAS MISSING. A browser
+       * with no usable WebGPU adapter got a `preload` that probed, found
+       * nothing and returned -- so the ONE engine that device could actually
+       * run was never prepared, and the download it needed started on the
+       * user's first message instead. The fallback is only a fallback if it is
+       * made ready like the primary.
        */
       const webgpu = registry.get("browser_webgpu");
       if (webgpu instanceof BrowserWebGpuAdapter) {
-        void webgpu.preload().catch(() => {});
+        publishPreparation({ stage: "checking" });
+        void webgpu
+          .probe()
+          .then(async (availability) => {
+            /*
+             * Persistent storage is asked for BEFORE the bytes arrive.
+             *
+             * A browser that has not granted it may evict several hundred
+             * megabytes of weights under disk pressure, and the user then
+             * re-downloads them over whatever connection they are on. Asking
+             * first costs one permission check; asking afterwards is asking
+             * about something already at risk.
+             */
+            await modelStore.requestPersistence();
+            if (availability.available) {
+              await webgpu.preload();
+              publishPreparation({ stage: "ready", fraction: 1 });
+              return;
+            }
+            const wasm = registry.get("browser_wasm");
+            if (wasm instanceof BrowserWasmAdapter) {
+              const fallback = await wasm.probe();
+              if (fallback.available) {
+                await wasm.preload();
+                publishPreparation({ stage: "ready", fraction: 1 });
+                return;
+              }
+              publishPreparation({
+                stage: "unsupported",
+                detail: fallback.available ? null : fallback.reason,
+              });
+              return;
+            }
+            publishPreparation({ stage: "unsupported", detail: availability.reason });
+          })
+          .catch(() => {
+            /*
+             * An ordinary network interruption is NOT a dead end here: the
+             * downloader keeps the bytes it already wrote and resumes from
+             * them, so the honest state is "will carry on", not "failed".
+             */
+            publishPreparation({ stage: "retrying" });
+          });
       }
     },
     [registry],

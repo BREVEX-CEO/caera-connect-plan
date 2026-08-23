@@ -97,13 +97,29 @@ def _storage() -> list[dict[str, Any]]:
     """Every fixed drive this machine can actually read."""
     import psutil  # noqa: PLC0415
 
+    # Filesystems that are not storage the person has. A squashfs or a loop
+    # mount is a read-only image the system mounted for itself; listing it
+    # under "your drives" is noise at best, and at 786 KB it rounds to a
+    # nonsensical "0.0 GB drive". None of these appear on Windows, where every
+    # entry is NTFS or FAT, so this changes nothing there.
+    pseudo = {
+        "squashfs", "tmpfs", "devtmpfs", "overlay", "ramfs",
+        "iso9660", "cramfs", "efivarfs", "autofs", "proc", "sysfs", "devfs",
+    }
+
     drives: list[dict[str, Any]] = []
     for part in psutil.disk_partitions(all=False):
+        if (part.fstype or "").lower() in pseudo:
+            continue
         # A card reader with no card raises here rather than returning zeroes,
         # and skipping it is more honest than reporting an empty 0 GB drive.
         try:
             usage = psutil.disk_usage(part.mountpoint)
         except Exception:  # noqa: BLE001
+            continue
+        # The same honesty, for a drive that answers rather than raising: a
+        # total that rounds away to nothing is not a drive worth reporting.
+        if round(usage.total / 1024**3, 1) <= 0:
             continue
         drives.append(
             {

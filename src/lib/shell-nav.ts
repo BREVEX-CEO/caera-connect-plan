@@ -62,7 +62,8 @@ export function activeModule(pathname: string): ModuleId {
   if (pathname.startsWith("/settings/devices")) return "devices";
   if (pathname.startsWith("/settings")) return "settings";
   for (const module of MODULES) {
-    if (module.match.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/"))) return module.id;
+    if (module.match.some((prefix) => pathname === prefix || pathname.startsWith(prefix + "/")))
+      return module.id;
   }
   return "ocade";
 }

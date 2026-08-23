@@ -4,39 +4,14 @@ import { resolve } from "node:path";
 
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
 
-describe("Chat uses project and attachment context without duplicating the current turn", () => {
-  const route = read("src/routes/api/ocade.chat.ts");
-
-  it("proves project ownership and reads instructions before persisting or invoking a model", () => {
-    const project = route.indexOf("if (conv.project_id)");
-    const persistence = route.indexOf("// Persist user message.");
-    expect(project).toBeGreaterThan(-1);
-    expect(route).toContain('.eq("user_id", user.id)');
-    expect(route).toContain("project_context_unavailable");
-    expect(route).toContain("projectContext.instructions.slice(0, 20_000)");
-    expect(persistence).toBeGreaterThan(project);
-  });
-
-  it("removes the just-persisted turn from history and appends it once after file context", () => {
-    const filter = route.indexOf(
-      "if (userMessageResult.data && m.id === userMessageResult.data.id) continue;",
-    );
-    const documents = route.indexOf("if (docContext.trim())");
-    const current = route.indexOf("const currentImages");
-    expect(filter).toBeGreaterThan(-1);
-    expect(documents).toBeGreaterThan(filter);
-    expect(current).toBeGreaterThan(documents);
-    expect(route).toContain("content: body.message.content");
-  });
-
-  it("requires a literal cloud-transfer approval and re-guards client document context", () => {
-    expect(route).toContain("body.allowCloud !== true");
-    expect(route).toMatch(
-      /wrapUntrustedContent\(\s*docContext,\s*"client-supplied attachment context",\s*\)/,
-    );
-    expect(route).toContain("guardedDocumentContext");
-  });
-});
+/*
+ * The first block here asserted how `src/routes/api/ocade.chat.ts` proved
+ * project ownership, bounded instructions and ordered persistence around a
+ * cloud call. That route is deleted -- Chat generates on the device -- so the
+ * properties it guarded now live in the prompt assembler and are asserted in
+ * src/lib/prompt/__tests__/, against the bytes that reach the engine rather
+ * than against a server file's source order.
+ */
 
 describe("Chat outputs and project navigation are real surfaces", () => {
   const chat = read("src/routes/_authenticated/ocade.index.tsx");
@@ -68,14 +43,18 @@ describe("Chat outputs and project navigation are real surfaces", () => {
     expect(chat).not.toContain("async function sendViaApi");
   });
 
-  it("keeps Browser Only and PC Vault message bodies out of Supabase during cloud turns", () => {
-    const route = read("src/routes/api/ocade.chat.ts");
-    expect(route).toContain('const storesMessagesInCloud = chatsMode === "private_sync"');
-    expect(route).toContain("history = supplied.map");
-    expect(route).toContain("const assistantMessageResult = storesMessagesInCloud");
-    expect(chat).toContain("history: messages");
-    expect(chat).toContain('providerId: "ocade-cloud"');
-    expect(chat).toContain('if (chatsMode !== "private_sync" && !allowCloud)');
+  it("has no cloud turn left that could carry a Browser Only body to Supabase", () => {
+    /*
+     * This used to assert that the server route excluded Browser Only and PC
+     * Vault bodies from Supabase during a CLOUD turn. There are no cloud turns
+     * now, which is a stronger guarantee than the one being tested: the
+     * message never leaves the device for generation at all. What is asserted
+     * instead is that the screen carries no cloud provenance and no cloud
+     * escalation.
+     */
+    expect(chat).not.toContain('providerId: "ocade-cloud"');
+    expect(chat).not.toMatch(/allowCloud:/);
+    expect(chat).toContain('providerId: "ocade-local"');
   });
 
   it("shows the matching local output ledger in Activity", () => {
@@ -102,21 +81,20 @@ describe("Chat outputs and project navigation are real surfaces", () => {
     expect(chat).not.toMatch(/to="\/ocade\/(projects|artifacts)"[^>]*disabled/);
   });
 
-  it("uses reviewable local memory in local Chat and scoped cloud memory in cloud Chat", () => {
-    const route = read("src/routes/api/ocade.chat.ts");
+  it("uses reviewable local memory in Chat", () => {
     expect(chat).toContain("localMemoryContext(conversation.project_id ?? null)");
     expect(chat).toContain("getProject({ data: { id: conversation.project_id } })");
-    expect(chat).toContain("projectDetails.instructions.slice(0, 20_000)");
+    // The 20,000-character bound on project instructions moved out of this
+    // screen and into the single prompt assembler, where every surface gets
+    // it instead of only this one. Asserted where it now lives, and asserted
+    // as behaviour rather than as a substring, so it cannot quietly lapse.
+    expect(chat).toContain("assembleSystemPrompt({");
+    expect(chat).toMatch(/instructions:\s*projectDetails\.instructions/);
     expect(memory).toContain('setBackend("local")');
     expect(memory).toContain("addLocalMemory({");
     expect(memory).toContain('value="project"');
     expect(memory).toContain("memoryRetention");
     expect(memory).toContain("purgeExpiredLocalMemory()");
-    expect(route).toContain("memory_authority_unavailable");
-    expect(route).toContain("memory_context_unavailable");
-    expect(route.indexOf("memorySettingsError")).toBeLessThan(
-      route.indexOf("// Persist user message."),
-    );
   });
 
   it("persists citation cards by exact assistant message and restores them after reload", () => {

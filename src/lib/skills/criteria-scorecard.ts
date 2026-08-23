@@ -116,11 +116,11 @@ export const CRITERIA: Criterion[] = [
     id: "auditability",
     label: "Privacy and a reviewable record",
     mechanism:
-      "Recordable input is filtered before it reaches the DOM, protected fields are never captured, raw model identity is redacted on persist, and the clinical pack proves the strongest form of this: it reports THAT a patient identifier is present without ever emitting its value.",
+      "Recordable input is filtered before it reaches the DOM, protected fields are never captured, raw model identity is redacted on persist, generation never leaves the device at all, and the clinical pack proves the strongest form of this: it reports THAT a patient identifier is present without ever emitting its value.",
     modules: [
       "lib/skills/session-recording.ts",
       "lib/skills/packs/clinical-pack.ts",
-      "routes/api/ocade.chat.ts",
+      "lib/prompt/assemble.ts",
     ],
     provenBy: ["session-recording.test.ts", "clinical-pack.test.ts", "ocade-identity.test.ts"],
     gap: "Audit records are local; there is no exportable signed audit trail yet.",

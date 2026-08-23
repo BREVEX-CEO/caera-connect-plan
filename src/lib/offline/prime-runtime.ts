@@ -73,8 +73,7 @@ async function waitForController(
 
 /** Browser wrapper used by the application root. Never throws. */
 export async function primeOfflineRuntimeFromBrowser(): Promise<RuntimePrimeOutcome> {
-  const serviceWorkerSupported =
-    typeof navigator !== "undefined" && "serviceWorker" in navigator;
+  const serviceWorkerSupported = typeof navigator !== "undefined" && "serviceWorker" in navigator;
 
   return primeOfflineRuntime({
     online: typeof navigator !== "undefined" && navigator.onLine,

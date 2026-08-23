@@ -82,15 +82,15 @@ export function SkillTrustPanel() {
       </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
-        <label className="flex items-center gap-1.5">
+        <label className="flex items-center gap-1.5 min-h-[24px] py-1">
           <input type="checkbox" checked={signed} onChange={(e) => setSigned(e.target.checked)} />
           Skill is signed
         </label>
-        <label className="flex items-center gap-1.5">
+        <label className="flex items-center gap-1.5 min-h-[24px] py-1">
           <input type="checkbox" checked={revoked} onChange={(e) => setRevoked(e.target.checked)} />
           Publisher has withdrawn it
         </label>
-        <label className="flex items-center gap-1.5">
+        <label className="flex items-center gap-1.5 min-h-[24px] py-1">
           Application version
           <input
             className="w-20 rounded border border-border bg-background px-1.5 py-0.5"
@@ -103,7 +103,7 @@ export function SkillTrustPanel() {
 
       <div className="mt-2 flex flex-wrap gap-3 text-xs">
         {CAPS.map((c) => (
-          <label key={c} className="flex items-center gap-1.5">
+          <label key={c} className="flex min-h-[24px] items-center gap-1.5 py-1">
             <input
               type="checkbox"
               checked={granted.includes(c)}

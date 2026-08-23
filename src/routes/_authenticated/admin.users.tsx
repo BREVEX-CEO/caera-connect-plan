@@ -31,10 +31,7 @@ type TicketRow = {
 export const Route = createFileRoute("/_authenticated/admin/users")({
   ssr: false,
   head: () => ({
-    meta: [
-      { title: "Accounts — CAERA CADANE Admin" },
-      { name: "robots", content: "noindex" },
-    ],
+    meta: [{ title: "Accounts — CAERA CADANE Admin" }, { name: "robots", content: "noindex" }],
   }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();

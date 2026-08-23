@@ -58,9 +58,9 @@ function HealthPage() {
 
       <p className="mt-6 max-w-[70ch] text-xs leading-relaxed text-muted-foreground">
         Statuses are recalculated each time this page is opened. "Setup required" means the
-        capability could work here once something is connected; "Not available here" means it
-        cannot exist in this environment at all. Neither is a fault, and neither will be presented
-        as working.
+        capability could work here once something is connected; "Not available here" means it cannot
+        exist in this environment at all. Neither is a fault, and neither will be presented as
+        working.
       </p>
     </>
   );

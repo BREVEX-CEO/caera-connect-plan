@@ -27,8 +27,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-import win32con
-import win32gui
+from ._win32 import require, win32con, win32gui
 
 from .protocol import Refusal, bounded_text, clamp_text, is_protected_text
 
@@ -39,7 +38,7 @@ _FIND_TIMEOUT_S = 3.0
 
 
 def _desktop():
-    from pywinauto import Desktop  # noqa: PLC0415
+    Desktop = require("pywinauto", "Reading the accessibility tree").Desktop  # noqa: PLC0415
 
     return Desktop(backend="uia")
 
@@ -327,7 +326,7 @@ def set_text(request) -> dict[str, Any]:
 
 def pointer(request) -> dict[str, Any]:
     """Physical pointer input. The last resort, and gated accordingly."""
-    import pyautogui  # noqa: PLC0415
+    pyautogui = require("pyautogui", "Physical pointer input")  # noqa: PLC0415
 
     from .capture import _fingerprint, _grab, _window_bounds  # noqa: PLC0415
 
@@ -435,7 +434,7 @@ def _read_editable_value(hwnd: int) -> str | None:
     third answer and is treated as one: not verified, not refuted.
     """
     try:
-        from pywinauto import Desktop  # noqa: PLC0415
+        Desktop = require("pywinauto", "Reading the accessibility tree").Desktop  # noqa: PLC0415
 
         window = Desktop(backend="uia").window(handle=hwnd)
         for element in window.descendants():
@@ -509,7 +508,7 @@ def type_text(request) -> dict[str, Any]:
 
     # Rung 1: the focused element, through its value pattern.
     try:
-        from pywinauto import Desktop  # noqa: PLC0415
+        Desktop = require("pywinauto", "Reading the accessibility tree").Desktop  # noqa: PLC0415
 
         focused = Desktop(backend="uia").window(handle=hwnd).get_focus()
         if focused is not None and _append_through_value(focused):
@@ -558,7 +557,7 @@ def type_text(request) -> dict[str, Any]:
 
     # Rung 4: physical keys at whatever has focus.
     if method is None:
-        import pyautogui  # noqa: PLC0415
+        pyautogui = require("pyautogui", "Physical pointer input")  # noqa: PLC0415
 
         pyautogui.FAILSAFE = True
         pyautogui.write(value, interval=0.008)
@@ -649,7 +648,7 @@ def press_keys(request) -> dict[str, Any]:
     hwnd = win32gui.GetForegroundWindow()
     before = _fingerprint(_grab(_window_bounds(hwnd))) if hwnd else None
 
-    import pyautogui  # noqa: PLC0415
+    pyautogui = require("pyautogui", "Physical pointer input")  # noqa: PLC0415
 
     pyautogui.FAILSAFE = True
     try:
@@ -692,7 +691,7 @@ def release_input(_request=None) -> dict[str, Any]:
     A stop that leaves Shift latched or the left button down leaves the machine
     in a worse state than the task did, and the user cannot see why.
     """
-    import pyautogui  # noqa: PLC0415
+    pyautogui = require("pyautogui", "Physical pointer input")  # noqa: PLC0415
 
     released: list[str] = []
     for key in ("shift", "ctrl", "alt", "win"):

@@ -3,9 +3,27 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const source = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8");
+
+/**
+ * Collapse runs of whitespace before matching.
+ *
+ * These patterns assert that a SENTENCE is present in a screen's copy. They
+ * were matched against raw source, so they also — accidentally — asserted how
+ * the formatter had chosen to wrap it. A prettier pass that broke one line
+ * into two failed the test while the words on screen were byte-identical.
+ *
+ * Pinning wording is the point; pinning line breaks is noise that trains
+ * people to "fix" a real assertion by reflowing a file. The patterns still
+ * fail if the sentence is removed or reworded.
+ */
+const flatten = (text: string) => text.replace(/\s+/g, " ");
+
 const expectAll = (path: string, patterns: RegExp[]) => {
   const text = source(path);
-  for (const pattern of patterns) expect(text, `${path} should match ${pattern}`).toMatch(pattern);
+  const flat = flatten(text);
+  for (const pattern of patterns) {
+    expect(flat, `${path} should match ${pattern}`).toMatch(pattern);
+  }
   return text;
 };
 

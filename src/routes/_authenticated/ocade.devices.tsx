@@ -33,7 +33,7 @@ function DevicesPage() {
           <button
             type="button"
             onClick={() => void devices.refetch()}
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+            className="inline-flex min-h-[24px] items-center gap-1.5 px-1 py-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <RefreshCw className="h-3.5 w-3.5" aria-hidden /> Refresh
           </button>
@@ -72,7 +72,9 @@ function DevicesPage() {
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Reading devices…
             </div>
           ) : devices.data.length === 0 ? (
-            <p className="p-5 text-sm text-muted-foreground">No devices are registered to this account.</p>
+            <p className="p-5 text-sm text-muted-foreground">
+              No devices are registered to this account.
+            </p>
           ) : (
             <ul className="divide-y divide-border/40">
               {devices.data.map((device) => {

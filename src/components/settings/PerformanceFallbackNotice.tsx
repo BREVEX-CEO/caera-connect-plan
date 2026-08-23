@@ -23,10 +23,9 @@ export function PerformanceFallbackNotice({ className }: { className?: string })
   return (
     <section
       role="status"
-      className={[
-        "rounded-lg border border-border/60 bg-secondary/30 p-3",
-        className ?? "",
-      ].join(" ")}
+      className={["rounded-lg border border-border/60 bg-secondary/30 p-3", className ?? ""].join(
+        " ",
+      )}
     >
       <header className="flex items-center gap-2">
         <Gauge className="h-4 w-4 text-muted-foreground" aria-hidden />

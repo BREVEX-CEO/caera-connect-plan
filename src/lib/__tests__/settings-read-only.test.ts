@@ -83,7 +83,6 @@ describe("every read-only category explains itself", () => {
   const PANELS = [
     "src/components/settings/MotionPanel.tsx",
     "src/components/settings/OfflineStoragePanel.tsx",
-    "src/components/settings/CloudPermissionPanel.tsx",
   ];
 
   it.each(PANELS)("%s renders the read-only banner", (path) => {

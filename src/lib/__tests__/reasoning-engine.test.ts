@@ -5,8 +5,9 @@ import type { LocalModelInfo } from "../ocade-local";
 import { OCADE_MODEL_ID } from "../local/fixed-model";
 
 /**
- * The reasoning service's six paths, and the rule that matters most: a prompt
- * never leaves the machine unless the caller explicitly permitted it.
+ * The reasoning service's paths, and the rule that matters most: a prompt does
+ * not leave the machine. Not "unless permitted" -- there is no permission and
+ * no second engine to permit it to.
  */
 
 function model(over: Partial<LocalModelInfo> = {}): LocalModelInfo {
@@ -29,12 +30,10 @@ interface HarnessOptions {
   models?: LocalModelInfo[];
   localReply?: string | null;
   localFails?: string;
-  cloud?: "absent" | "ok" | "fails";
-  cloudReply?: string;
 }
 
 function harness(options: HarnessOptions = {}) {
-  const calls = { local: 0, cloud: 0 };
+  const calls = { local: 0 };
   let clock = 1_000;
 
   const deps: ReasonDeps = {
@@ -47,18 +46,6 @@ function harness(options: HarnessOptions = {}) {
       if (text) handlers.onToken(text);
       return { ok: true };
     },
-    ...(options.cloud && options.cloud !== "absent"
-      ? {
-          streamCloud: async (_messages: unknown, handlers: { onToken: (c: string) => void }) => {
-            calls.cloud += 1;
-            clock += 50;
-            if (options.cloud === "fails") return { ok: false, reason: "gateway 502" };
-            const text = options.cloudReply ?? "cloud answer";
-            if (text) handlers.onToken(text);
-            return { ok: true, modelId: "gpt-cloud" };
-          },
-        }
-      : {}),
     ledger: new PerfLedger(),
     now: () => clock,
   };
@@ -73,14 +60,14 @@ const ask = (over: Partial<ReasonRequest> = {}): ReasonRequest => ({
 });
 
 describe("success — local first", () => {
-  it("answers from the local engine and never touches cloud", async () => {
-    const h = harness({ cloud: "ok" });
-    const r = await reason(h.deps, ask({ allowCloud: true }));
+  it("answers from the local engine", async () => {
+    const h = harness();
+    const r = await reason(h.deps, ask());
     expect(r.ok).toBe(true);
     if (!r.ok) throw new Error(r.reason);
     expect(r.text).toBe("local answer");
     expect(r.receipt.servedBy).toBe("local");
-    expect(h.calls.cloud).toBe(0);
+    // Nothing else exists to touch: `ReasonDeps` has no second stream.
   });
 
   it("streams tokens to the caller as they arrive", async () => {
@@ -110,14 +97,14 @@ describe("refusal — deterministic work never reaches a model", () => {
    * fire. Asserting over every member keeps it that way.
    */
   it.each(DETERMINISTIC_TASKS)("refuses %s outright, before asking anything", async (task) => {
-    const h = harness({ cloud: "ok" });
-    const r = await reason(h.deps, ask({ task, allowCloud: true }));
+    const h = harness();
+    const r = await reason(h.deps, ask({ task }));
     expect(r.ok).toBe(false);
     if (r.ok) throw new Error("unreachable");
     expect(r.failure).toBe("deterministic_task");
     expect(r.reason).toMatch(/single correct answer/i);
     expect(h.calls.local).toBe(0);
-    expect(h.calls.cloud).toBe(0);
+    // There is no other engine that could have been asked instead.
   });
 
   it("still serves an ordinary model task", async () => {
@@ -127,63 +114,47 @@ describe("refusal — deterministic work never reaches a model", () => {
   });
 });
 
-describe("refusal — nothing is sent off-device without permission", () => {
-  it("does NOT use cloud when local fails and allowCloud is not set", async () => {
-    const h = harness({ localFails: "Local engine unreachable.", cloud: "ok" });
+describe("local is the only engine, and its failure is final", () => {
+  /*
+   * These three used to prove that cloud was reached only after local failed
+   * AND the caller had passed `allowCloud`. That permission is gone with the
+   * cloud branch, so what is proved instead is stronger: local failing ends
+   * the request, and the message says nothing was sent anywhere — which is
+   * the sentence a user of a local-first product most needs to see when they
+   * hit an error.
+   */
+  it("ends the request when the local engine fails", async () => {
+    const h = harness({ localFails: "Local engine unreachable." });
     const r = await reason(h.deps, ask());
     expect(r.ok).toBe(false);
     if (r.ok) throw new Error("unreachable");
-    expect(h.calls.cloud).toBe(0);
+    expect(r.failure).toBe("local_unreachable");
     expect(r.reason).toMatch(/not sent to any server/i);
   });
 
-  it("does NOT use cloud when no local model exists and permission is absent", async () => {
-    const h = harness({ models: [], cloud: "ok" });
+  it("says no local model is installed rather than looking for another route", async () => {
+    const h = harness({ models: [] });
     const r = await reason(h.deps, ask());
     expect(r.ok).toBe(false);
     if (r.ok) throw new Error("unreachable");
     expect(r.failure).toBe("no_local_model");
-    expect(h.calls.cloud).toBe(0);
-  });
-
-  it("says so plainly when cloud is permitted but not configured", async () => {
-    const h = harness({ models: [], cloud: "absent" });
-    const r = await reason(h.deps, ask({ allowCloud: true }));
-    expect(r.ok).toBe(false);
-    if (r.ok) throw new Error("unreachable");
-    expect(r.failure).toBe("cloud_unavailable");
-    expect(r.reason).toMatch(/nothing to fall back to/i);
-  });
-});
-
-describe("recovery — cloud only after local fails, and only with permission", () => {
-  it("falls back and records why local did not serve", async () => {
-    const h = harness({ localFails: "Local engine unreachable.", cloud: "ok" });
-    const r = await reason(h.deps, ask({ allowCloud: true }));
-    expect(r.ok).toBe(true);
-    if (!r.ok) throw new Error(r.reason);
-    expect(r.text).toBe("cloud answer");
-    expect(r.receipt.servedBy).toBe("cloud");
-    expect(r.receipt.localFallbackReason).toMatch(/unreachable/i);
-    expect(explainReceipt(r.receipt)).toMatch(/on a server/i);
+    expect(r.reason).toMatch(/not sent to any server/i);
   });
 
   it("treats an empty local reply as a failure, not an answer", async () => {
-    const h = harness({ localReply: "", cloud: "ok" });
-    const r = await reason(h.deps, ask({ allowCloud: true }));
-    expect(r.ok).toBe(true);
-    if (!r.ok) throw new Error(r.reason);
-    expect(r.receipt.servedBy).toBe("cloud");
-    expect(r.receipt.localFallbackReason).toMatch(/empty reply/i);
-  });
-
-  it("reports a cloud failure rather than inventing text", async () => {
-    const h = harness({ localFails: "down", cloud: "fails" });
-    const r = await reason(h.deps, ask({ allowCloud: true }));
+    const h = harness({ localReply: "" });
+    const r = await reason(h.deps, ask());
     expect(r.ok).toBe(false);
     if (r.ok) throw new Error("unreachable");
-    expect(r.failure).toBe("model_error");
-    expect(r.reason).toMatch(/502/);
+    expect(r.reason).toMatch(/empty reply/i);
+  });
+
+  it("never reports having been served by anything but the device", async () => {
+    const h = harness();
+    const r = await reason(h.deps, ask());
+    expect(r.ok).toBe(true);
+    if (!r.ok) throw new Error(r.reason);
+    expect(r.receipt.servedBy).toBe("local");
   });
 });
 
@@ -197,13 +168,13 @@ describe("cancellation", () => {
     expect(h.calls.local).toBe(0);
   });
 
-  it("a cancelled local stream is NEVER reinterpreted as a reason to use cloud", async () => {
-    const h = harness({ localFails: "cancelled", cloud: "ok" });
-    const r = await reason(h.deps, ask({ allowCloud: true }));
+  it("a cancelled local stream stays cancelled", async () => {
+    const h = harness({ localFails: "cancelled" });
+    const r = await reason(h.deps, ask());
     expect(r.ok).toBe(false);
     if (r.ok) throw new Error("unreachable");
     expect(r.failure).toBe("cancelled");
-    expect(h.calls.cloud).toBe(0);
+    // A cancellation is not a reason to look elsewhere; there is nowhere else.
   });
 });
 

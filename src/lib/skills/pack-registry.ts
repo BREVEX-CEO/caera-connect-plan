@@ -28,6 +28,7 @@ import { GEO_PACK } from "./packs/geo-pack";
 import { MONEY_PACK } from "./packs/money-pack";
 import { CALENDAR_PACK } from "./packs/calendar-pack";
 import { MEDIA_PACK } from "./packs/media-pack";
+import { VIDEO_PACK } from "./packs/video-pack";
 import { RECORDS_PACK } from "./packs/records-pack";
 import { CLINICAL_PACK } from "./packs/clinical-pack";
 import { CAPTIONS_PACK } from "./packs/captions-pack";
@@ -336,6 +337,10 @@ export const BUILT_IN_PACKS: SkillPack[] = [
   // Genuinely executed: `archive-pack.test.ts` runs real tar, and builds an
   // actual traversal archive to prove the escape guard holds.
   ARCHIVE_PACK,
+  // Genuinely executed: `video-pack.test.ts` generates a real clip with a real
+  // encoder, trims, crops and captions it, and DECODES the export frame by
+  // frame — because ffmpeg exits 0 on files nothing can play.
+  VIDEO_PACK,
 
   /*
    * FILE-FORMAT PACKS.

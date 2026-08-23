@@ -33,42 +33,48 @@ type StudioEntry = {
 const ENTRIES: StudioEntry[] = [
   {
     label: "Documents",
-    detail: "Draft, revise and save document-style outputs through OCADE Chat and the artifact ledger.",
+    detail:
+      "Draft, revise and save document-style outputs through OCADE Chat and the artifact ledger.",
     status: "READY",
     to: "/ocade",
     icon: FileText,
   },
   {
     label: "Reports",
-    detail: "Research and structured report drafting use OCADE Chat; saved results remain versioned in Artifacts.",
+    detail:
+      "Research and structured report drafting use OCADE Chat; saved results remain versioned in Artifacts.",
     status: "READY",
     to: "/ocade",
     icon: LayoutTemplate,
   },
   {
     label: "Data analysis",
-    detail: "Use the Code workspace for executable analysis or Chat for explanation. OCADE will not claim a notebook ran when no execution host exists.",
+    detail:
+      "Use the Code workspace for executable analysis or Chat for explanation. OCADE will not claim a notebook ran when no execution host exists.",
     status: "READY",
     to: "/ocade/code",
     icon: BarChart3,
   },
   {
     label: "Websites & apps",
-    detail: "The Code workspace is the real implementation surface for source files, patches, analysis and sandboxed execution where available.",
+    detail:
+      "The Code workspace is the real implementation surface for source files, patches, analysis and sandboxed execution where available.",
     status: "READY",
     to: "/ocade/code",
     icon: Code2,
   },
   {
     label: "Exports",
-    detail: "Saved outputs, versions, integrity checks and exports live in the existing Artifacts workspace.",
+    detail:
+      "Saved outputs, versions, integrity checks and exports live in the existing Artifacts workspace.",
     status: "READY",
     to: "/ocade/artifacts",
     icon: FileOutput,
   },
   {
     label: "Images",
-    detail: "Chat can offer a visual response for supported answers, but a dedicated image-generation studio is not wired in this build.",
+    detail:
+      "Chat can offer a visual response for supported answers, but a dedicated image-generation studio is not wired in this build.",
     status: "NOT_CONFIGURED",
     icon: Image,
   },
@@ -80,13 +86,15 @@ const ENTRIES: StudioEntry[] = [
   },
   {
     label: "Presentations",
-    detail: "A first-class presentation authoring/export runtime has not been connected to OCADE Studio yet.",
+    detail:
+      "A first-class presentation authoring/export runtime has not been connected to OCADE Studio yet.",
     status: "NOT_CONFIGURED",
     icon: Presentation,
   },
   {
     label: "Spreadsheets",
-    detail: "A first-class spreadsheet workbook editor is not wired here yet; executable data work belongs in Code for now.",
+    detail:
+      "A first-class spreadsheet workbook editor is not wired here yet; executable data work belongs in Code for now.",
     status: "NOT_CONFIGURED",
     icon: Sheet,
   },
@@ -100,7 +108,10 @@ function StudioPage() {
         title="Studio"
         description="Create useful outputs. Studio only marks a medium ready when there is a real implementation path behind it; engineering diagnostics have moved to Lab."
         actions={
-          <Link to="/ocade/lab" className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">
+          <Link
+            to="/ocade/lab"
+            className="inline-flex min-h-[24px] items-center px-1 py-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          >
             Open Lab
           </Link>
         }
@@ -119,10 +130,20 @@ function StudioPage() {
                 <CapabilityBadge status={entry.status} />
               </div>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{entry.detail}</p>
-              {entry.to ? <span className="mt-3 block text-xs text-foreground underline underline-offset-4">Open</span> : null}
+              {entry.to ? (
+                <span className="mt-3 block text-xs text-foreground underline underline-offset-4">
+                  Open
+                </span>
+              ) : null}
             </div>
           );
-          return entry.to ? <Link key={entry.label} to={entry.to}>{card}</Link> : <div key={entry.label}>{card}</div>;
+          return entry.to ? (
+            <Link key={entry.label} to={entry.to}>
+              {card}
+            </Link>
+          ) : (
+            <div key={entry.label}>{card}</div>
+          );
         })}
       </div>
 

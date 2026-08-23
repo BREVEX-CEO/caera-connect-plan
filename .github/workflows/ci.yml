@@ -2,9 +2,14 @@ name: CI
 
 on:
   push:
-    branches: ["feat/ocade-implementation", "main"]
+    # `claude/**` is here so agent branches are verified by the same pipeline
+    # that guards main, on the machine that runs it, rather than only on the
+    # machine they were written on. A branch whose CI never runs is a branch
+    # whose CI is unknown.
+    branches: ["feat/ocade-implementation", "main", "claude/**"]
   pull_request:
     branches: ["main"]
+  workflow_dispatch:
 
 # Cancel superseded runs on the same branch rather than queueing them.
 concurrency:
@@ -393,8 +398,9 @@ jobs:
   # ---------------------------------------------------------------------------
   # Extensionless managed-browser host.
   #
-  # Real Chrome and Edge parity evidence is collected on Windows hardware.
-  # CI keeps the host syntax, protocol unit tests, and dependency graph honest.
+  # This job keeps the host syntax, protocol unit tests, and dependency graph
+  # honest. End-to-end Chrome and Edge parity runs in `browser-audits`, against
+  # a real browser.
   # ---------------------------------------------------------------------------
   managed-browser:
     name: Managed browser host
@@ -416,6 +422,162 @@ jobs:
 
       - name: Browser policy and managed-host bridge tests
         run: npx vitest run src/lib/__tests__/browser-bridge.test.ts src/lib/__tests__/managed-browser-bridge.test.ts
+
+  browser-audits:
+    name: Real-browser audits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # These audits drive a REAL browser. A runner without one must fail the
+      # job rather than skip it: a browser suite that quietly does not run is
+      # indistinguishable from one that passes, which is the failure mode the
+      # audits exist to remove.
+      - name: Locate Chrome
+        id: chrome
+        run: |
+          for candidate in \
+            /usr/bin/google-chrome \
+            /usr/bin/google-chrome-stable \
+            /usr/bin/chromium-browser \
+            /usr/bin/chromium; do
+            if [ -x "$candidate" ]; then
+              echo "path=$candidate" >> "$GITHUB_OUTPUT"
+              echo "using $candidate"
+              exit 0
+            fi
+          done
+          echo "No Chrome or Chromium on this runner; the browser audits cannot run." >&2
+          exit 1
+
+      # Real Chrome and Edge parity, end to end through the managed browser
+      # host: launch, verified DOM action, protected-field refusal, upload,
+      # download, tab handling, immediate cancel and emergency stop.
+      #
+      # This used to be described as Windows-only evidence. It is not — the
+      # harness runs here unchanged. The reason it appeared not to was that the
+      # audit sandbox runs as root, and Chrome refuses to start its sandbox as
+      # root; the host sets `chromiumSandbox: true` deliberately and must keep
+      # doing so, which makes root the thing to avoid rather than the sandbox.
+      # A CI runner is not root, so the parity check simply runs.
+      - name: Chrome and Edge parity through the managed host
+        env:
+          OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
+        run: npm run browser:cdp-parity
+
+      - name: Extension manifest and safety gate
+        run: npm run extension:check
+
+      - name: Cowork extension against a real browser
+        env:
+          OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
+        run: npm run extension:e2e
+
+      - name: One model across three tabs, with failover
+        env:
+          OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
+        run: npm run audit:model-owner
+
+      - name: On-device engine availability
+        env:
+          OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
+        run: npm run audit:engines
+
+      - name: Flow bands render, move and follow the pointer
+        env:
+          OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
+        run: npm run audit:flow-wave
+
+      - name: Six chat prompts through the shipped pipeline
+        run: npm run audit:chat
+
+      # Stands the stack up once: settings signed out, sign-in and onboarding,
+      # the 3D backdrop and its frame budget, settings signed in, then online to
+      # offline and back. The visual stage runs BEFORE the settings audit
+      # because that audit flips reduce-motion as part of its own work.
+      - name: Settings and offline audits against a running app
+        env:
+          OCADE_BROWSER_PATH: ${{ steps.chrome.outputs.path }}
+        run: npm run audit:settings
+
+  local-runtimes:
+    name: Real local runtimes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Loads a real GGUF into real llama.cpp and generates real tokens, with
+      # weights built on the spot by scripts/fixtures/make-tiny-gguf.py so the
+      # job needs no model download. The weights are random, so this measures
+      # runtime behaviour and latency only — never answer quality.
+      - name: Real GGUF loads and generates tokens
+        run: npm run audit:real-inference
+
+      # The video pack's caption path can only run against an ffmpeg built with
+      # libfreetype, and the bundled `ffmpeg-static` is not one. Without this
+      # the caption test takes its refusal branch on every machine forever —
+      # correct behaviour, but a branch that never executes is not tested.
+      # The runner's own ffmpeg has drawtext, so both branches get exercised:
+      # the refusal in the `build` job's unit run, the real burn-in here.
+      - name: Install an ffmpeg with the text filter
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - name: Captions are really burned into the frames
+        env:
+          OCADE_TEST_FFMPEG: /usr/bin/ffmpeg
+        run: npx vitest run src/lib/__tests__/video-pack.test.ts
+
+  python-engine:
+    name: Python control engine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # The host is Windows PC control, and most of it is Windows-only. What
+      # this proves on Linux is that the package still IMPORTS and that every
+      # platform-independent rule — the path boundary, the confirmation gate,
+      # the protocol surface — still holds. Those used to be unrunnable here at
+      # all: one module imported win32con at module scope and took the whole
+      # collection down with it.
+      # pandas, python-docx and openpyxl are here because without them ten
+      # spreadsheet and document tests SKIP, and a skip in a green run is
+      # invisible. They are not Windows-only and there is no reason for them
+      # not to run: with the three installed they pass, so they run.
+      - name: Install cross-platform dependencies
+        run: >-
+          python -m pip install --quiet
+          pytest numpy psutil Send2Trash pyperclip pandas python-docx openpyxl
+
+      - name: Python host suite
+        working-directory: native/python-host
+        run: python -m pytest tests/ -q
+
+      - name: Control engine suite
+        working-directory: native/ocade_control_engine
+        run: python -m pytest core/ -q
 
   desktop-browser-supervisor:
     name: Desktop browser supervisor · Windows

@@ -20,6 +20,7 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { SetupRequiredState } from "@/components/shell/SetupRequiredState";
+import { classifyUnavailable } from "@/lib/unavailable-reason";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -484,7 +485,7 @@ function ProjectsPage() {
         title="Projects"
         description="Group conversations, instructions and generated outputs. Project instructions are applied to every chat in the project."
         actions={
-          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+          <label className="flex min-h-[24px] items-center gap-2 py-1 text-xs text-muted-foreground">
             <input
               type="checkbox"
               checked={showArchived}
@@ -497,10 +498,31 @@ function ProjectsPage() {
       />
 
       {unavailable ? (
-        <SetupRequiredState
-          title="Projects need the database migration"
-          description={`${unavailable} The migration, RLS policies, rollback and verification SQL are prepared and ready to apply — projects will work as soon as it is applied.`}
-        />
+        (() => {
+          const state = classifyUnavailable(unavailable, {
+            migrationTitle: "Projects need the database migration",
+            migrationNote:
+              "The migration, RLS policies, rollback and verification SQL are prepared and ready to apply — projects will work as soon as it is applied.",
+            loadTitle: "Projects couldn't be loaded",
+          });
+          return (
+            <SetupRequiredState
+              title={state.title}
+              description={state.description}
+              detail={state.detail}
+              status={state.migrationMissing ? "setup_required" : "failed"}
+              action={
+                <button
+                  type="button"
+                  onClick={() => void refreshProjects()}
+                  className="rounded-md border border-border/60 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent/30"
+                >
+                  Try again
+                </button>
+              }
+            />
+          );
+        })()
       ) : projects === null ? (
         <GlassPanel className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading projects…

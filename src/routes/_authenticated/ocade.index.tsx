@@ -69,7 +69,6 @@ import {
   createConversation,
   deleteConversation,
   exportConversation,
-  improvePrompt,
   appendOcadeMessage,
   listConversations,
   listMessages,
@@ -83,6 +82,18 @@ import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
 import { useDevicePolicy } from "@/lib/use-device-policy";
 import { useChatPrefs, readChatPrefs } from "@/lib/use-chat-prefs";
+import { assembleSystemPrompt } from "@/lib/prompt/assemble";
+import { chooseBrowserTier, systemPromptBudgetFor } from "@/lib/brain/browser-catalogue";
+import { loadBenchmark } from "@/lib/brain/tier-benchmark-store";
+import {
+  createConversationLocally,
+  listConversationsLocally,
+  updateConversationLocally,
+  deleteConversationLocally,
+  mergeRemoteConversations,
+  type LocalConversation,
+} from "@/lib/chat/local-conversations";
+import { improvePromptLocally } from "@/lib/chat/improve-prompt";
 import { MessageList } from "@/components/ocade/chat/MessageList";
 import { ChatSidebar } from "@/components/ocade/chat/ChatSidebar";
 import { EngineBadge } from "@/components/ocade/chat/EngineBadge";
@@ -105,7 +116,8 @@ import { recordTurn } from "@/lib/edge/session";
 import type { BrainMessage } from "@/lib/brain/adapter";
 import type { ChatMessageView, ChatConversationView } from "@/components/ocade/chat/chat-types";
 import { reason } from "@/lib/reasoning/engine";
-import { browserReasonDeps } from "@/lib/reasoning/browser-deps";
+import { brainReasonDeps, sessionPerfLedger } from "@/lib/reasoning/brain-deps";
+import { thinkingFor } from "@/lib/local/fixed-model";
 import {
   planContextWindow,
   SLOW_READ_WARNING_SECONDS,
@@ -284,10 +296,34 @@ function OcadePage() {
     );
   }
   if (!user) {
+    /*
+     * A DEAD END IS NOT A STATE, IT IS A DEFECT.
+     *
+     * This used to be the sentence alone, with no control of any kind: the
+     * reader was told they had to sign in and given nothing to press. The
+     * `_authenticated` guard normally redirects before anyone arrives here, so
+     * it went unnoticed — but a guard that has not resolved yet, a session that
+     * expires while the page is open, or a direct mount all land on it, and
+     * every one of those leaves the person stuck on the product's main screen.
+     */
     return (
       <>
         <div className="mx-auto mt-10 max-w-md rounded-lg border border-border/60 bg-card p-6 text-center">
-          <p className="text-sm text-muted-foreground">Sign-in required to use OCADE.</p>
+          <p className="text-sm text-muted-foreground">You need to be signed in to use OCADE.</p>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <Link
+              to="/auth"
+              className="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+            >
+              Sign in
+            </Link>
+            <Link
+              to="/"
+              className="rounded-md border border-border/60 px-3 py-1.5 text-sm text-foreground transition hover:bg-accent/30"
+            >
+              Back to home
+            </Link>
+          </div>
         </div>
       </>
     );
@@ -316,19 +352,41 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [sidebarHidden, setSidebarHidden] = useState(false);
 
+  /**
+   * The device answers first; the server only adds what another device wrote.
+   *
+   * This was `listConversations()` alone — a server function — so history was
+   * empty offline even though every conversation was sitting in the vault.
+   * The remote call is now best-effort: if it fails, the local list stands,
+   * which is the difference between "not synchronised yet" and "your chats
+   * are gone".
+   */
   const refreshList = useCallback(async () => {
     try {
-      const list = (await listConversations()) as Conversation[];
-      setConversations(list);
+      const local = await listConversationsLocally(userId);
+      setConversations(local as unknown as Conversation[]);
+      setLoadingList(false);
+
+      if (chatsMode !== "private_sync") return;
+      try {
+        const remote = (await listConversations()) as unknown as LocalConversation[];
+        const merged = mergeRemoteConversations(local, remote ?? []);
+        setConversations(merged as unknown as Conversation[]);
+      } catch {
+        // Offline or Supabase unavailable. The local list is already shown.
+      }
     } finally {
       setLoadingList(false);
     }
-  }, []);
+  }, [userId, chatsMode]);
+
+  useEffect(() => {
+    void getModeFor(userId, "chats").then((m) => setChatsMode(m));
+  }, [userId]);
 
   useEffect(() => {
     void refreshList();
-    void getModeFor(userId, "chats").then((m) => setChatsMode(m));
-  }, [userId, refreshList]);
+  }, [refreshList]);
 
   useEffect(() => {
     if (!activeId) {
@@ -418,36 +476,71 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
+  /**
+   * Start a conversation on this device.
+   *
+   * This used to await `createConversation`, a server function that INSERTed
+   * a row and returned the id Postgres had generated. So the id of a chat
+   * could not exist until a round trip succeeded, and starting a new chat
+   * therefore required the network — in every privacy mode, including the two
+   * whose entire promise is that they do not need one. Offline, the composer
+   * simply threw.
+   *
+   * The id is made here now. The server copy is queued and drains in the
+   * background; the conversation is real either way.
+   */
   async function ensureActive(): Promise<Conversation> {
     if (active) return active;
-    const conv = (await createConversation({ data: { modelId: model } })) as Conversation;
+    const created = await createConversationLocally(userId, {
+      modelId: model,
+      privacyMode: chatsMode,
+    });
+    const conv = created as unknown as Conversation;
     setConversations((prev) => [conv, ...prev]);
     setLoadingMessages(true);
     setActiveId(conv.id);
     return conv;
   }
 
+  /*
+   * Pin, archive and rename apply to the device immediately and are queued for
+   * the server. Awaiting a round trip for a rename meant the title did not
+   * change offline and the control looked broken; the queue makes the change
+   * real now and synchronised later.
+   */
   async function togglePin(c: Conversation) {
-    await updateConversation({ data: { id: c.id, pinned: !c.pinned } });
+    await updateConversationLocally(userId, c.id, { pinned: !c.pinned });
     await refreshList();
+    void updateConversation({ data: { id: c.id, pinned: !c.pinned } }).catch(() => {});
   }
   async function toggleArchive(c: Conversation) {
-    await updateConversation({ data: { id: c.id, archived: !c.archived } });
+    await updateConversationLocally(userId, c.id, { archived: !c.archived });
     await refreshList();
     if (c.id === activeId && !c.archived) setActiveId(null);
+    void updateConversation({ data: { id: c.id, archived: !c.archived } }).catch(() => {});
   }
   async function handleRenameSubmit(newTitle: string) {
     if (!renameTarget) return;
-    await updateConversation({ data: { id: renameTarget.id, title: newTitle } });
+    const id = renameTarget.id;
+    await updateConversationLocally(userId, id, { title: newTitle });
     setRenameTarget(null);
     await refreshList();
+    void updateConversation({ data: { id, title: newTitle } }).catch(() => {});
   }
   async function handleDelete() {
     if (!deleteTarget) return;
     const target = deleteTarget;
 
-    // Delete the conversation record...
-    await deleteConversation({ data: { id: target.id } });
+    /*
+     * Delete the conversation record on this device first, as a TOMBSTONE.
+     *
+     * Awaiting the server made deleting impossible offline, and simply
+     * removing the local row would let the conversation reappear on the next
+     * merge from a device that never saw the delete. The tombstone is what
+     * makes the deletion a fact that travels.
+     */
+    await deleteConversationLocally(userId, target.id);
+    void deleteConversation({ data: { id: target.id } }).catch(() => {});
 
     /*
      * ...AND the message bodies held on this device.
@@ -782,12 +875,7 @@ function SidebarLink({
 }: {
   icon: typeof FolderOpen;
   label: string;
-  to:
-    | "/ocade/work"
-    | "/ocade/code"
-    | "/ocade/projects"
-    | "/ocade/artifacts"
-    | "/ocade/automations";
+  to: "/ocade/work" | "/ocade/code" | "/ocade/projects" | "/ocade/artifacts" | "/ocade/automations";
 }) {
   return (
     <Link
@@ -1052,10 +1140,6 @@ function ChatSurface(props: {
   // Event handlers can run before React commits the next render. This ref is
   // the immediate authority, so a short press cannot strand the microphone on.
   const listeningRef = useRef(false);
-  const [cloudApprovalNeeded, setCloudApprovalNeeded] = useState<null | {
-    text: string;
-    attachments: Attachment[];
-  }>(null);
   const abortRef = useRef<AbortController | null>(null);
   /**
    * Models already asked to load in this session. Typing fires on EVERY
@@ -1086,8 +1170,16 @@ function ChatSurface(props: {
    * on every render — the preference decides where a chat BEGINS, not where it
    * must stay.
    */
-  const [engineTier, setEngineTier] = useState<"auto" | "local" | "cloud">(
-    () => readChatPrefs().defaultEngineTier,
+  /*
+   * "Cloud" was the third member of this and it is gone with the engine that
+   * served it. What is left is a real distinction and not a vestige: a user
+   * who never opened the setting reads "Automatic", a user who deliberately
+   * chose on-device reads it back. Collapsing an explicit privacy choice into
+   * a default because the code no longer needs it is how a settings screen
+   * stops being believed.
+   */
+  const [engineTier, setEngineTier] = useState<"auto" | "local">(() =>
+    readChatPrefs().defaultEngineTier === "local" ? "local" : "auto",
   );
   // Sources attached to the in-flight request, so the reply's [S1] markers can
   // be resolved back to real documents (never to an invented id).
@@ -1370,7 +1462,6 @@ function ChatSurface(props: {
    * background weight this product is meant not to impose.
    */
   function warmLocalEngine() {
-    if (engineTier === "cloud") return;
     if (localEngine.status !== "ready" || localEngine.models.length === 0) return;
     const route = routeTask("general", localEngine.models, localPerfLedger, devicePolicy.policy);
     if (!route.ok) return;
@@ -1400,11 +1491,7 @@ function ChatSurface(props: {
     brain.warm(pending);
   }
 
-  async function sendMessage(
-    overrideText?: string,
-    overrideAtts?: Attachment[],
-    allowCloud = false,
-  ) {
+  async function sendMessage(overrideText?: string, overrideAtts?: Attachment[]) {
     const text = (overrideText ?? draft).trim();
     const atts = overrideAtts ?? attachments;
     if (!text && atts.length === 0) return;
@@ -1439,7 +1526,15 @@ function ChatSurface(props: {
      * user to dismiss the warning in the one case where it is harmless — which
      * is how it stops working in the case where it is not.
      */
-    const willBeExposed = chatsMode === "private_sync" || engineTier === "cloud" || !sealed;
+    /*
+     * Generation is on-device now, so the only way a secret in this message
+     * leaves the machine is chat synchronisation — or a broken seal. The
+     * `engineTier === "cloud"` term is gone because that tier is gone; keeping
+     * it would have quietly widened the warning to a case that can no longer
+     * happen, and a warning that fires when nothing is at risk is a warning
+     * people learn to click through.
+     */
+    const willBeExposed = chatsMode === "private_sync" || !sealed;
     if (willBeExposed) {
       const findings = preflight(text);
       const critical = findings.filter((f) => f.severity === "critical");
@@ -1490,7 +1585,7 @@ function ChatSurface(props: {
      * This block used to make that decision itself, in three separate `if`s,
      * including its own copy of the privacy rule:
      *
-     *     if (chatsMode !== "private_sync" && !allowCloud) { askApproval(); }
+     *     if (chatsMode !== "private_sync" && !approvedForThisChat) { ask(); }
      *
      * That is the same rule `resolveEngine` already owns, written a second
      * time. Both were correct, and the failure mode was drift: relax one of
@@ -1503,8 +1598,7 @@ function ChatSurface(props: {
      * privacy → local → cloud → a named refusal.
      */
     const decision = resolveEngine({
-      preference:
-        engineTier === "local" ? "local_only" : engineTier === "cloud" ? "cloud_only" : "auto",
+      preference: engineTier === "local" ? "local_only" : "auto",
       privacyMode: chatsMode,
       deviceMode: brain.mode,
       localAvailable: Boolean(localReady && localPick),
@@ -1519,26 +1613,16 @@ function ChatSurface(props: {
        * refusing on a guess. Privacy, which the client DOES know, is decided
        * here and is never delegated.
        */
-      cloudConfigured: true,
-      cloudEntitled: true,
-      cloudRemaining: 1,
-      cloudResetsAt: null,
-      cloudApprovedForConversation: allowCloud,
       online,
     });
 
     if (!decision.ok) {
-      if (decision.needsCloudApproval) {
-        setCloudApprovalNeeded({ text, attachments: atts });
-        return;
-      }
       /*
        * When the obstacle is the local engine, ask the Brain router for the
        * detail. It knows this device's mode and each adapter's own reason, so
        * the message names the real obstacle and the actions that clear it —
        * "Install OCADE", "Pair a computer", "Start the engine" — rather than a
-       * blanket sentence telling the user to switch to cloud when cloud is
-       * exactly what they turned off.
+       * blanket sentence.
        */
       if (
         decision.code === "local_only_and_no_local_engine" ||
@@ -1559,310 +1643,21 @@ function ChatSurface(props: {
       return;
     }
 
-    if (decision.target?.kind === "local") {
-      await sendViaLocal(text, atts, hasImage);
-      return;
-    }
-    const requestContext = buildRequestContext(atts, chatsMode !== "private_sync", text);
-    if (!requestContext.ok) {
-      toast.error(requestContext.reason);
-      return;
-    }
-
-    const optimistic: Message = {
-      id: `local-${Date.now()}`,
-      role: "user",
-      content: text,
-      attachments: atts,
-      model_id: null,
-      created_at: new Date().toISOString(),
-    };
-    setMessages((m) => [...m, optimistic]);
-    saveDraft(conversation.id, text);
-    setDraft("");
-    setAttachments([]);
-    setStreaming(true);
-    setStreamText("");
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-    let acc = "";
-
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      const token = session.session?.access_token;
-      if (!token) throw new Error("Session expired");
-
-      const res = await fetch("/api/ocade/chat", {
-        method: "POST",
-        headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          conversationId: conversation.id,
-          model,
-          allowCloud,
-          documentContext: requestContext.data,
-          ...(chatsMode !== "private_sync"
-            ? {
-                history: messages
-                  .filter((message) => message.role !== "system")
-                  .slice(-200)
-                  .map((message) => ({ role: message.role, content: message.content })),
-              }
-            : {}),
-          message: { content: text, attachments: atts },
-        }),
-        signal: controller.signal,
-      });
-
-      if (res.status === 428) {
-        setStreaming(false);
-        setMessages((m) => m.filter((x) => x.id !== optimistic.id));
-        setDraft(text);
-        setAttachments(atts);
-        setCloudApprovalNeeded({ text, attachments: atts });
-        return;
-      }
-      // Cloud allowance exhausted — restore the message and point at the local
-      // alternative rather than failing generically (decision #12).
-      if (res.status === 429) {
-        setStreaming(false);
-        setMessages((m) => m.filter((x) => x.id !== optimistic.id));
-        setDraft(text);
-        setAttachments(atts);
-        const info = (await res.json().catch(() => null)) as {
-          message?: string;
-          resetsAt?: string;
-        } | null;
-        const resets = info?.resetsAt ? new Date(info.resetsAt) : null;
-        const localReady = localEngine.status === "ready" && localEngine.models.length > 0;
-        toast.error(
-          localReady
-            ? "OCADE Cloud allowance is used up. Switch to OCADE Local — it's unlimited."
-            : (info?.message ??
-                `OCADE Cloud allowance is used up${resets ? ` until ${resets.toLocaleTimeString()}` : ""}.`),
-        );
-        if (localReady) setEngineTier("local");
-        return;
-      }
-      if (!res.ok || !res.body) {
-        const errTxt = await res.text().catch(() => "Chat request failed");
-        throw new Error(readChatError(errTxt, res.status));
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        acc += decoder.decode(value, { stream: true });
-        /*
-         * Stop a reply that never ends. Cancellation covers the case where the
-         * USER wants out; nothing bounded a server that simply keeps sending,
-         * and every chunk here also triggers a re-render, so the page degrades
-         * long before memory does.
-         */
-        assertStreamWithinLimit(acc.length);
-        pushStreamText(acc);
-      }
-
-      let rows: Message[];
-      if (chatsMode === "private_sync") {
-        rows = (await listMessages({
-          data: { conversationId: conversation.id },
-        })) as unknown as Message[];
-      } else {
-        try {
-          await persistChatMessage({
-            userId,
-            chatsMode,
-            conversationId: conversation.id,
-            role: "user",
-            content: text,
-            attachments: atts.map((attachment) => ({
-              kind: attachment.kind,
-              name: attachment.name,
-              mime: attachment.mime,
-              sizeBytes: attachment.sizeBytes,
-            })),
-          });
-          await persistChatMessage({
-            userId,
-            chatsMode,
-            conversationId: conversation.id,
-            role: "assistant",
-            content: acc,
-            modelId: model,
-            providerId: "ocade-cloud",
-          });
-          rows = (await loadChatMessages({
-            userId,
-            chatsMode,
-            conversationId: conversation.id,
-          })) as unknown as Message[];
-        } catch (storageError) {
-          const reason = describeStorageError(storageError);
-          setMessages((current) => [
-            ...current.filter((message) => message.id !== optimistic.id),
-            optimistic,
-            {
-              id: `unsaved-cloud-${Date.now()}`,
-              role: "assistant",
-              content: `${acc}\n\n_[Cloud response completed but could not be saved on this device: ${reason}]_`,
-              attachments: [],
-              model_id: model,
-              created_at: new Date().toISOString(),
-            },
-          ]);
-          setCitationError(
-            "The response was not saved in the selected vault, so its citation history was not recorded.",
-          );
-          toast.error(`Cloud response completed, but vault persistence failed. ${reason}`);
-          setStreamText("");
-          await onRefreshList();
-          return;
-        }
-      }
-      const assistant = [...rows].reverse().find((message) => message.role === "assistant");
-      recordCitations(acc, assistant?.id);
-      setMessages(rows);
-      clearDraft(conversation.id);
-      setStreamText("");
-      await onRefreshList();
-    } catch (e) {
-      if ((e as { name?: string }).name === "AbortError") {
-        const stopped = `${acc}\n\n_[stopped by you]_`;
-        try {
-          let rows: Message[];
-          if (chatsMode === "private_sync") {
-            rows = (await listMessages({
-              data: { conversationId: conversation.id },
-            })) as unknown as Message[];
-            const persistedUser = rows.some(
-              (message) =>
-                message.role === "user" &&
-                message.content === text &&
-                Date.parse(message.created_at) >= Date.parse(optimistic.created_at) - 5_000,
-            );
-            if (!persistedUser) {
-              await appendOcadeMessage({
-                data: {
-                  conversationId: conversation.id,
-                  role: "user",
-                  content: text,
-                  attachments: atts.map((attachment) => ({
-                    kind: attachment.kind,
-                    name: attachment.name,
-                    mime: attachment.mime,
-                    sizeBytes: attachment.sizeBytes,
-                  })),
-                },
-              });
-            }
-            const completedAssistant = rows.find(
-              (message) =>
-                message.role === "assistant" &&
-                Date.parse(message.created_at) >= Date.parse(optimistic.created_at) - 5_000,
-            );
-            if (!completedAssistant) {
-              await appendOcadeMessage({
-                data: {
-                  conversationId: conversation.id,
-                  role: "assistant",
-                  content: stopped,
-                  modelId: model,
-                  providerId: "ocade-cloud",
-                },
-              });
-            }
-            rows = (await listMessages({
-              data: { conversationId: conversation.id },
-            })) as unknown as Message[];
-          } else {
-            await persistChatMessage({
-              userId,
-              chatsMode,
-              conversationId: conversation.id,
-              role: "user",
-              content: text,
-              attachments: atts.map((attachment) => ({
-                kind: attachment.kind,
-                name: attachment.name,
-                mime: attachment.mime,
-                sizeBytes: attachment.sizeBytes,
-              })),
-            });
-            await persistChatMessage({
-              userId,
-              chatsMode,
-              conversationId: conversation.id,
-              role: "assistant",
-              content: stopped,
-              modelId: model,
-              providerId: "ocade-cloud",
-            });
-            rows = (await loadChatMessages({
-              userId,
-              chatsMode,
-              conversationId: conversation.id,
-            })) as unknown as Message[];
-          }
-          const assistant = [...rows].reverse().find((message) => message.role === "assistant");
-          recordCitations(assistant?.content ?? acc, assistant?.id);
-          setMessages(rows);
-          clearDraft(conversation.id);
-          await onRefreshList();
-        } catch (storageError) {
-          const reason = describeStorageError(storageError);
-          setMessages((current) => [
-            ...current.filter((message) => message.id !== optimistic.id),
-            optimistic,
-            {
-              id: `unsaved-stopped-${Date.now()}`,
-              role: "assistant",
-              content: `${stopped}\n\n_[This stopped response could not be persisted: ${reason}]_`,
-              attachments: [],
-              model_id: model,
-              created_at: new Date().toISOString(),
-            },
-          ]);
-          setCitationError(
-            "The stopped response was not persisted, so its citations were not saved.",
-          );
-          toast.error(`The response stopped, but persistence failed. ${reason}`);
-        }
-      } else {
-        toast.error((e as Error).message || "OCADE could not respond");
-        let persisted = false;
-        if (chatsMode === "private_sync") {
-          try {
-            const rows = (await listMessages({
-              data: { conversationId: conversation.id },
-            })) as unknown as Message[];
-            persisted = rows.some(
-              (message) =>
-                message.role === "user" &&
-                message.content === text &&
-                Date.parse(message.created_at) >= Date.parse(optimistic.created_at) - 5_000,
-            );
-            if (persisted) setMessages(rows);
-          } catch {
-            // Preserve the visible failure state below when persistence itself
-            // cannot be inspected.
-          }
-        }
-        if (!persisted) {
-          setMessages((m) => m.filter((x) => x.id !== optimistic.id));
-          setDraft(text);
-          setAttachments(atts);
-        } else {
-          clearDraft(conversation.id);
-        }
-      }
-    } finally {
-      setStreaming(false);
-      setStreamText("");
-      abortRef.current = null;
-    }
+    /*
+     * EVERY ANSWER IS AN ON-DEVICE ANSWER.
+     *
+     * Three hundred lines used to live here: a fetch to a server chat
+     * endpoint, an
+     * SSE reader, cloud allowance handling for 428 and 429, and persistence
+     * with providerId "ocade-cloud". That path streamed the user's message to
+     * the Lovable AI Gateway and on to google/gemini-3.5-flash.
+     *
+     * It is gone rather than gated. `resolveEngine` can no longer return a
+     * remote target — `EngineTarget` has one variant — so this branch was
+     * unreachable, and unreachable code that knows how to reach a public AI
+     * provider is exactly the code that comes back.
+     */
+    await sendViaLocal(text, atts, hasImage);
   }
 
   /**
@@ -1901,30 +1696,50 @@ function ChatSurface(props: {
 
   async function sendViaLocal(text: string, atts: Attachment[], hasImage: boolean) {
     /*
-     * ONE ENGINE, chosen by the same authority every other surface uses.
+     * THE BROWSER IS THE ENGINE, AND THIS IS WHERE THAT BECAME TRUE.
      *
-     * This screen used to build a fallback chain and start at its first step.
-     * On a machine holding several models that step resolved to the LARGEST
-     * installed model — a 9.3 GB one on a 15.6 GB laptop with no GPU — while
-     * Control + Work ran the fixed 1.9 GB engine. The chain was left behind
-     * when OCADE moved to a single engine; the comment inside it even said
-     * there was "no chain to protect". Now there is no chain.
+     * This screen used to select an Ollama model with `routeTask` and stream
+     * from `http://localhost:11434`. Ollama is a program the user installs on
+     * their computer, so a person on a clean laptop with only Chrome got a
+     * refusal — while `useBrain`, imported a few lines above, was quietly
+     * preloading a 340 MB WebGPU model that nothing would ever generate with,
+     * because the hook returns `{ mode, route, warm, remedyLabel }` and has no
+     * `generate` at all.
      *
-     * `routeTask` delegates to `selectFixedModel`, so the vision branch (the
-     * fixed engine cannot read images) and the refusal wording live in one
-     * place instead of being restated here.
+     * `brain.route()` asks the adapter chain instead: browser WebGPU first,
+     * browser WASM when there is no usable GPU adapter, then a desktop bridge
+     * or a paired machine for the people who have one. Ollama becomes a bonus
+     * for whoever installed it rather than the only way in.
+     *
+     * The route is awaited HERE rather than inside the stream because probing
+     * WebGPU is a real hardware check that can take seconds, and the screen
+     * needs to be able to say "preparing" while it happens instead of looking
+     * frozen inside what appears to be a synchronous send.
      */
-    const route = routeTask(
-      hasImage ? "vision" : "general",
-      localEngine.models,
-      localPerfLedger,
-      devicePolicy.policy,
-    );
-    if (!route.ok) {
-      toast.error(route.receipt.refusal ?? "No on-device engine can serve this request.");
+    const brainRoute = await brain.route({ visionRequired: hasImage });
+    if (!brainRoute.ok) {
+      const actions = brainRoute.remedies.map(brain.remedyLabel).join(" · ");
+      toast.error(brainRoute.reason, actions ? { description: actions } : undefined);
       return;
     }
-    const localSteps = [{ modelId: route.model.id, label: route.model.label }];
+    const localSteps = [
+      { modelId: brainRoute.availability.modelId ?? brainRoute.adapter.id, label: "OCADE Local" },
+    ];
+    /*
+     * A browser adapter runs a small fixed window; a desktop bridge or paired
+     * machine does not, and there the canonical document is sent unchanged.
+     * `null` means unbounded, which is the honest description of the latter.
+     */
+    const promptBudget =
+      brainRoute.adapter.id === "browser_webgpu" || brainRoute.adapter.id === "browser_wasm"
+        ? systemPromptBudgetFor(
+            chooseBrowserTier(
+              brainRoute.adapter.id === "browser_webgpu" ? "webgpu" : "wasm",
+              null,
+              loadBenchmark(brainRoute.adapter.id === "browser_webgpu" ? "webgpu" : "wasm"),
+            ).tier,
+          )
+        : null;
     const requestContext = buildRequestContext(atts, true, text);
     if (!requestContext.ok) {
       toast.error(requestContext.reason);
@@ -1957,16 +1772,45 @@ function ChatSurface(props: {
     try {
       for (const step of localSteps) {
         const label = step.label ?? "OCADE Local";
-        const sys =
-          `You are OCADE, developed and created by CAERA CADANE, running as ${label} on the user's own device. ` +
-          `Refer to your engine only as "${label}"; never print raw model or provider names. ` +
-          `Never claim to be another product. Be helpful, concise, and honest about your limits.` +
-          (projectDetails
-            ? ` This conversation belongs to the user project "${projectDetails.name}".` +
-              (projectDetails.instructions?.trim()
-                ? ` Apply these user-authored project instructions: ${projectDetails.instructions.slice(0, 20_000)}`
-                : "")
-            : "");
+        /*
+         * ONE CONSTITUTION, ASSEMBLED IN ONE PLACE.
+         *
+         * This used to be a hand-written template literal: an identity line,
+         * a "never print model names" line, and the project instructions
+         * concatenated straight onto the end. It carried no safety policy at
+         * all — `ocadeCorePolicy` existed in the repository and this surface,
+         * the one real customers use, never imported it. It also pasted
+         * user-authored project text into the same flat string as OCADE's own
+         * rules, which is exactly the shape that lets "ignore your
+         * instructions" in a project document read as a system instruction.
+         *
+         * `assembleSystemPrompt` fixes both by construction: the canonical
+         * prompt is always first and always whole, and the project text lands
+         * in a labelled lower-priority block after it.
+         */
+        const sys = assembleSystemPrompt({
+          now: new Date(),
+          surface: "chat",
+          mode: chatPrefs.thinking ? "thinking" : "fast",
+          engineLabel: label,
+          local: true,
+          online: typeof navigator === "undefined" ? undefined : navigator.onLine,
+          privacyMode: chatsMode,
+          /*
+           * The budget comes from the engine that will actually read this.
+           *
+           * Measured: the canonical constitution is 32,713 tokens and the
+           * browser tiers run a 4,096-token window. Without a budget the
+           * assembler sends the full document and the model has no room left
+           * for the conversation. `systemPromptBudgetFor` reserves 35% of the
+           * real window; the compiler then substitutes the compact core,
+           * which carries the same behavioural rules.
+           */
+          budgetTokens: promptBudget,
+          project: projectDetails
+            ? { name: projectDetails.name, instructions: projectDetails.instructions }
+            : undefined,
+        });
         const localMessages: LocalChatMessage[] = [{ role: "system", content: sys }];
         for (const m of priorMessages) {
           if (m.role === "system") continue;
@@ -2095,12 +1939,15 @@ function ChatSurface(props: {
          * machine as a side effect of the local engine failing.
          */
         const reasoned = await reason(
-          browserReasonDeps(DEFAULT_LOCAL_BRIDGE_URL, undefined, devicePolicy.policy.totalRamBytes),
+          brainReasonDeps(brainRoute, {
+            ...(images.length > 0 ? { images } : {}),
+            think: thinkingFor("chat", chatPrefs.thinking),
+            ledger: sessionPerfLedger,
+          }),
           {
             messages: localMessages,
             task: hasImage ? "vision" : "general",
             modelId: step.modelId!,
-            allowCloud: false,
             signal: controller.signal,
             onToken: (c) => {
               if (firstTokenMs === null) firstTokenMs = Date.now() - routeStarted;
@@ -2288,13 +2135,17 @@ function ChatSurface(props: {
       setMessages((current) => current.filter((message) => message.id !== optimistic.id));
       setDraft(text);
       setAttachments(atts);
+      /*
+       * This used to open the cloud-approval dialog. There is nowhere to
+       * escalate to now, so the message says what actually happened and what
+       * clears it, rather than offering a door that no longer exists.
+       */
       const why = failures.length > 0 ? ` (${failures[failures.length - 1]})` : "";
-      if (online) {
-        setCloudApprovalNeeded({ text, attachments: atts });
-        toast.error(`On-device engines couldn't answer${why}. Approve OCADE Cloud to continue.`);
-      } else {
-        toast.error(`You're offline and no on-device engine could answer${why}.`);
-      }
+      toast.error(
+        online
+          ? `OCADE's on-device engine could not answer${why}. Your message is back in the box — try again in a moment.`
+          : `You're offline and OCADE's on-device engine could not answer${why}.`,
+      );
     } catch (e) {
       // Surfaces vault-locked / companion-required reasons actionably.
       toast.error(describeStorageError(e));
@@ -2508,9 +2359,11 @@ function ChatSurface(props: {
       })) as { id: string; title: string };
     }
 
-    const created = (await createConversation({
-      data: { title, modelId: model },
-    })) as Conversation;
+    const created = (await createConversationLocally(userId, {
+      title,
+      modelId: model,
+      privacyMode: chatsMode,
+    })) as unknown as Conversation;
     try {
       if (conversation.project_id) {
         await setConversationProject({
@@ -2701,17 +2554,37 @@ function ChatSurface(props: {
     }
   }
 
+  /**
+   * Improve the draft using the engine on this machine.
+   *
+   * The old handler called a server function that sent the draft to Gemini
+   * with no privacy gate. The failure message is also different now, and
+   * deliberately so: "Could not improve prompt" told a user nothing, and the
+   * commonest cause on a first visit is simply that the engine is still
+   * preparing — which is not an error and resolves itself.
+   */
   async function handleImprove() {
     if (!draft.trim()) return;
     setImproving(true);
     try {
-      const { improved } = (await improvePrompt({ data: { text: draft.trim() } })) as {
-        improved: string;
-      };
-      setDraft(improved);
-      toast.success("Prompt improved");
-    } catch {
-      toast.error("Could not improve prompt");
+      const route = await brain.route();
+      if (!route.ok) {
+        toast.error(route.reason);
+        return;
+      }
+      const outcome = await improvePromptLocally(
+        // Fast, deliberately: rewriting is a short bounded transformation, and
+        // deliberating over it costs seconds on a machine with no graphics
+        // acceleration while changing nothing about the result.
+        brainReasonDeps(route, { think: false, ledger: sessionPerfLedger }),
+        draft,
+      );
+      if (outcome.ok && outcome.improved) {
+        setDraft(outcome.improved);
+        toast.success("Prompt improved on this device");
+      } else {
+        toast.error(outcome.reason ?? "OCADE could not improve that prompt here.");
+      }
     } finally {
       setImproving(false);
     }
@@ -3343,8 +3216,8 @@ function ChatSurface(props: {
           ) : null}
           <div className="mb-1.5 flex items-center gap-1 text-[11px]">
             <span className="text-muted-foreground">Engine</span>
-            {(["auto", "local", "cloud"] as const).map((t) => {
-              const lbl = t === "auto" ? "Automatic" : t === "local" ? "Local" : "Cloud";
+            {(["auto", "local"] as const).map((t) => {
+              const lbl = t === "auto" ? "Automatic" : "On this device";
               const disabled = t === "local" && localEngine.status !== "ready";
               return (
                 <button
@@ -3354,12 +3227,10 @@ function ChatSurface(props: {
                   onClick={() => setEngineTier(t)}
                   title={
                     disabled
-                      ? "No on-device engine detected"
+                      ? "OCADE is still preparing its on-device intelligence"
                       : t === "local"
-                        ? "Run on your device — unlimited, private"
-                        : t === "cloud"
-                          ? "Use OCADE Cloud (counts toward your allowance)"
-                          : "Prefer on-device, fall back to cloud with approval"
+                        ? "Always run on this device — unlimited and private"
+                        : "Let OCADE choose. Either way it runs on this device."
                   }
                   className={cn(
                     "rounded px-2 py-0.5 transition-colors",
@@ -3428,44 +3299,6 @@ function ChatSurface(props: {
           />
         </div>
       </div>
-
-      {/* Cloud approval */}
-      <Dialog open={!!cloudApprovalNeeded} onOpenChange={(o) => !o && setCloudApprovalNeeded(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Approve cloud transfer</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2 text-sm">
-            <p>
-              Your chats are set to{" "}
-              <span className="font-medium">
-                {chatsMode === "pc_vault" ? "PC Vault" : "Browser Only"}
-              </span>
-              . Sending this message uses <span className="font-medium">OCADE Cloud</span>, a cloud
-              engine.
-            </p>
-            <p className="text-muted-foreground">
-              The current message, relevant conversation history, extracted context and any attached
-              images will be sent for this request. Message storage remains in your selected vault.
-              Approve this one-time transfer to continue.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setCloudApprovalNeeded(null)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                const payload = cloudApprovalNeeded!;
-                setCloudApprovalNeeded(null);
-                void sendMessage(payload.text, payload.attachments, true);
-              }}
-            >
-              Approve & send
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
@@ -3921,22 +3754,14 @@ function Composer(props: {
           </SelectContent>
         </Select>
 
-        {/* Model */}
-        <Select value={model} onValueChange={setModel}>
-          <SelectTrigger className="ml-1 h-7 w-[168px] border-border/60 bg-background/40 text-[11px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {OCADE_MODELS.map((m) => (
-              <SelectItem key={m.id} value={m.id} className="text-xs">
-                <div>
-                  <div>{m.display}</div>
-                  <div className="text-[10px] text-muted-foreground">{m.description}</div>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/*
+          The model picker stood here and listed a dozen hosted models. It
+          cannot mean anything now: generation happens on this device whatever
+          is selected, so the control would persist a value and change nothing.
+          The engine OCADE is actually running is shown on /ocade/models, which
+          is a page about the engine rather than a dropdown pretending to
+          choose one.
+        */}
 
         {/* Privacy indicator */}
         <span

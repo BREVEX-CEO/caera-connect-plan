@@ -22,7 +22,7 @@
  *     deploy cannot leave two generations of assets fighting.
  */
 
-const VERSION = "ocade-shell-v6";
+const VERSION = "ocade-shell-v7";
 const OFFLINE_URL = "/offline.html";
 
 /**
@@ -38,8 +38,21 @@ const PRECACHE = [
   OFFLINE_URL,
   "/favicon.ico",
   "/manifest.webmanifest",
-  "/icons/ocade-128.png",
+  /*
+   * EXACTLY THE ICONS THE MANIFEST ASKS FOR.
+   *
+   * This listed 128 and 192. The manifest declares 192 and 512 -- 512 twice,
+   * once as `maskable` -- and never mentions 128 at all. So offline, Chrome
+   * read the cached manifest, went looking for an icon that had never been
+   * stored, and logged "Download error or resource isn't a valid image"
+   * against a file that is a perfectly valid PNG sitting in public/icons.
+   *
+   * Caching a file nothing references while missing one that is referenced
+   * twice is the kind of mismatch that only shows up with the network off,
+   * which is the one condition nobody tests by hand.
+   */
   "/icons/ocade-192.png",
+  "/icons/ocade-512.png",
   "/brand/ocade-mark.png",
   "/brand/ocade-wordmark.png",
   "/brand/ocade-companion-v1.png",

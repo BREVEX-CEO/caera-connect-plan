@@ -154,7 +154,10 @@ function VaultPage() {
         title="Browser Vault"
         description="Encrypts every Browser Only record on this device with AES-GCM. The data key never leaves memory and auto-locks after inactivity."
         actions={
-          <Link to="/settings" className="text-sm text-muted-foreground hover:text-foreground">
+          <Link
+            to="/settings"
+            className="inline-flex min-h-[24px] items-center px-1 py-1 text-sm text-muted-foreground hover:text-foreground"
+          >
             ← Back to Settings
           </Link>
         }

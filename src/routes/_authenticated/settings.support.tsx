@@ -215,7 +215,9 @@ function SupportPage() {
               </button>
             ))}
             {!tickets.isLoading && tickets.data?.length === 0 ? (
-              <p className="py-6 text-center text-xs text-muted-foreground">No support cases yet.</p>
+              <p className="py-6 text-center text-xs text-muted-foreground">
+                No support cases yet.
+              </p>
             ) : null}
           </div>
         </GlassPanel>
@@ -226,7 +228,8 @@ function SupportPage() {
               <div className="border-b border-border/60 pb-3">
                 <h2 className="text-sm font-semibold">{selected.subject}</h2>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Case {selected.id.slice(0, 8).toUpperCase()} · {selected.status.replace(/_/g, " ")}
+                  Case {selected.id.slice(0, 8).toUpperCase()} ·{" "}
+                  {selected.status.replace(/_/g, " ")}
                 </p>
               </div>
               <div className="flex-1 space-y-3 overflow-y-auto py-4">

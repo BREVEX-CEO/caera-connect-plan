@@ -19,8 +19,8 @@ let cached: ReturnType<typeof createClient<Database>> | null = null;
 function getSupabase() {
   if (!cached) {
     cached = createClient<Database>(
-      process.env['SUPABASE_URL']!,
-      process.env['SUPABASE_SERVICE_ROLE_KEY']!,
+      process.env["SUPABASE_URL"]!,
+      process.env["SUPABASE_SERVICE_ROLE_KEY"]!,
     );
   }
   return cached;
@@ -29,7 +29,17 @@ function getSupabase() {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
-  const { id, customerId, customer_id, items, status, currentBillingPeriod, current_billing_period, customData, custom_data } = data;
+  const {
+    id,
+    customerId,
+    customer_id,
+    items,
+    status,
+    currentBillingPeriod,
+    current_billing_period,
+    customData,
+    custom_data,
+  } = data;
 
   const userId = customData?.userId ?? custom_data?.userId ?? custom_data?.user_id;
   if (!userId) {
@@ -73,7 +83,14 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
 }
 
 async function handleSubscriptionUpdated(data: any, env: PaddleEnv) {
-  const { id, status, currentBillingPeriod, current_billing_period, scheduledChange, scheduled_change } = data;
+  const {
+    id,
+    status,
+    currentBillingPeriod,
+    current_billing_period,
+    scheduledChange,
+    scheduled_change,
+  } = data;
   const period = currentBillingPeriod ?? current_billing_period;
   const change = scheduledChange ?? scheduled_change;
 

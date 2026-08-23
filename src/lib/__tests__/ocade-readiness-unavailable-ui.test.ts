@@ -20,7 +20,11 @@ describe("OCADE 77 — unavailable UI boundaries", () => {
   });
 
   it("#20 gates updater/signing/notarization claims", () => {
-    expectAll("README.md", [/public desktop downloads\/releases are intentionally disabled/i, /notarization/i, /signing/i]);
+    expectAll("README.md", [
+      /public desktop downloads\/releases are intentionally disabled/i,
+      /notarization/i,
+      /signing/i,
+    ]);
     expectAll(".github/workflows/release.yml", [/if: \$\{\{ false \}\}/]);
   });
 

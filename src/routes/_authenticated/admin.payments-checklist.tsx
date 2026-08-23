@@ -26,10 +26,7 @@ import {
   type ChecklistRun,
   type ChecklistStepResult,
 } from "@/lib/payments/checklist";
-import {
-  runPaymentsChecklist,
-  fastForwardTestRenewal,
-} from "@/utils/payments-readiness.functions";
+import { runPaymentsChecklist, fastForwardTestRenewal } from "@/utils/payments-readiness.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/payments-checklist")({
   ssr: false,
@@ -124,8 +121,6 @@ function PaymentsChecklistPage() {
 
       <PayoutSetupGuide />
 
-
-
       <GlassPanel className="flex items-start gap-2 p-3 text-xs text-muted-foreground">
         <FlaskConical className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
         <span>
@@ -139,7 +134,9 @@ function PaymentsChecklistPage() {
       </GlassPanel>
 
       {error ? (
-        <GlassPanel className="border-destructive/40 p-3 text-xs text-destructive">{error}</GlassPanel>
+        <GlassPanel className="border-destructive/40 p-3 text-xs text-destructive">
+          {error}
+        </GlassPanel>
       ) : null}
       {checkoutError ? (
         <GlassPanel className="border-destructive/40 p-3 text-xs text-destructive">

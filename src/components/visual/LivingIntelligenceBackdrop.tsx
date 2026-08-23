@@ -91,6 +91,29 @@ export function LivingIntelligenceBackdrop({
       play();
     }
 
+    /*
+     * POINTER RESPONSE, and only where there is motion to respond with.
+     *
+     * Attached to the window rather than the canvas because the canvas is
+     * `pointer-events: none` — it must never intercept a click meant for the
+     * interface in front of it. The listener is passive and does nothing but
+     * store two numbers; the easing that turns them into movement happens
+     * inside the frame the scene was already drawing, so following the cursor
+     * costs no extra work per frame.
+     *
+     * Not attached at all when the scene is still: someone who asked for less
+     * motion did not ask for motion that follows them.
+     */
+    const onPointer = (event: PointerEvent) => {
+      const rect = parent?.getBoundingClientRect();
+      const w = rect?.width || window.innerWidth;
+      const h = rect?.height || window.innerHeight;
+      const left = rect?.left ?? 0;
+      const top = rect?.top ?? 0;
+      scene?.setPointer(((event.clientX - left) / w) * 2 - 1, ((event.clientY - top) / h) * 2 - 1);
+    };
+    if (!still) window.addEventListener("pointermove", onPointer, { passive: true });
+
     const onVisibility = () => {
       if (document.hidden) stop();
       else play();
@@ -109,6 +132,7 @@ export function LivingIntelligenceBackdrop({
     }
 
     return () => {
+      window.removeEventListener("pointermove", onPointer);
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
       if (ro) ro.disconnect();

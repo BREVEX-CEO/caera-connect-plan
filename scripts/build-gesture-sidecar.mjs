@@ -1,13 +1,7 @@
 #!/usr/bin/env node
 /** Build MediaPipe hand control as a self-contained Tauri sidecar. */
 import { spawnSync } from "node:child_process";
-import {
-  chmodSync,
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  rmSync,
-} from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -20,7 +14,8 @@ const python =
   process.env.OCADE_GESTURE_PYTHON?.trim() ||
   join(host, ".venv-gesture", process.platform === "win32" ? "Scripts/python.exe" : "bin/python");
 const bootstrapPython =
-  process.env.OCADE_BOOTSTRAP_PYTHON?.trim() || (process.platform === "win32" ? "python" : "python3");
+  process.env.OCADE_BOOTSTRAP_PYTHON?.trim() ||
+  (process.platform === "win32" ? "python" : "python3");
 const model = join(host, "models", "hand_landmarker.task");
 
 function run(command, args, options = {}) {
@@ -40,22 +35,27 @@ function run(command, args, options = {}) {
 if (!existsSync(python)) {
   run(bootstrapPython, ["-m", "venv", join(host, ".venv-gesture")], { cwd: host });
 }
-const environmentReady = spawnSync(
-  python,
-  ["-c", "import cv2, mediapipe, PyInstaller, pynput, pyautogui"],
-  { cwd: host, stdio: "ignore", shell: false },
-).status === 0;
+const environmentReady =
+  spawnSync(python, ["-c", "import cv2, mediapipe, PyInstaller, pynput, pyautogui"], {
+    cwd: host,
+    stdio: "ignore",
+    shell: false,
+  }).status === 0;
 if (!environmentReady) {
-  run(python, [
-    "-m",
-    "pip",
-    "install",
-    "--disable-pip-version-check",
-    "-r",
-    join(host, "requirements-gesture.txt"),
-    "-r",
-    join(host, "requirements-gesture-build.txt"),
-  ], { cwd: host });
+  run(
+    python,
+    [
+      "-m",
+      "pip",
+      "install",
+      "--disable-pip-version-check",
+      "-r",
+      join(host, "requirements-gesture.txt"),
+      "-r",
+      join(host, "requirements-gesture-build.txt"),
+    ],
+    { cwd: host },
+  );
 }
 if (!existsSync(model)) {
   run(python, ["-m", "ocade_host.gesture.download_model"], { cwd: host });

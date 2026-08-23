@@ -148,7 +148,6 @@ function CallbackPage() {
     };
   }, [code, error, navigate, next]);
 
-
   return (
     <AuthShell
       title="Signing you in"

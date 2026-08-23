@@ -51,7 +51,10 @@ export function ControlCommandDeck({
     const needle = query.trim().toLowerCase();
     if (!needle) return CONTROL_DOMAINS.find((domain) => domain.id === active)?.launchers ?? [];
     return CONTROL_DOMAINS.flatMap((domain) => domain.launchers).filter((launcher) =>
-      [launcher.label, launcher.description, launcher.prompt].join(" ").toLowerCase().includes(needle),
+      [launcher.label, launcher.description, launcher.prompt]
+        .join(" ")
+        .toLowerCase()
+        .includes(needle),
     );
   }, [active, query]);
 

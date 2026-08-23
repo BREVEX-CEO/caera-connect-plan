@@ -140,15 +140,7 @@ def power(action: str, *, confirmed: bool = False) -> dict[str, Any]:
     does there is no undo and no receipt to read afterwards — the machine is
     gone. Sleep and lock are ungated because a mouse movement reverses both.
     """
-    if not _WINDOWS:
-        raise OsRefused("Power control is wired up for Windows only.")
     verb = " ".join((action or "").split()).lower()
-
-    if verb in ("shutdown", "restart", "reboot") and not confirmed:
-        raise OsRefused(
-            f"A {verb} closes everything that is open, including unsaved work, "
-            "and cannot be undone. Ask again with confirmation if you mean it."
-        )
 
     commands = {
         "sleep": ["rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0"],
@@ -157,8 +149,30 @@ def power(action: str, *, confirmed: bool = False) -> dict[str, Any]:
         "restart": ["shutdown", "/r", "/t", "5"],
         "reboot": ["shutdown", "/r", "/t", "5"],
     }
+
+    # THE REQUEST IS JUDGED BEFORE THE MACHINE IS.
+    #
+    # The platform check used to come first, so on anything but Windows an
+    # unconfirmed "shut down the computer" was answered "power control is wired
+    # up for Windows only". True, and the wrong answer: it reports a capability
+    # gap where the real objection is that nobody confirmed. It also meant the
+    # confirmation gate — the one rule here that protects unsaved work — could
+    # only ever be exercised on Windows, so no other platform, and no CI run,
+    # could prove it was still in place.
+    #
+    # Validating the request first makes the refusal the same everywhere, and
+    # makes the safety rule testable everywhere.
     if verb not in commands:
         raise OsRefused(f"Unknown power action {verb!r}. Use sleep, lock, shutdown or restart.")
+
+    if verb in ("shutdown", "restart", "reboot") and not confirmed:
+        raise OsRefused(
+            f"A {verb} closes everything that is open, including unsaved work, "
+            "and cannot be undone. Ask again with confirmation if you mean it."
+        )
+
+    if not _WINDOWS:
+        raise OsRefused("Power control is wired up for Windows only.")
 
     _shell(commands[verb], timeout=10.0)
     return {

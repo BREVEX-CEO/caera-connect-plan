@@ -18,7 +18,7 @@ import {
 } from "../browser-catalogue";
 import { modelStore, ModelStore } from "../model-store";
 import { downloadModel, preferredWeightsUrl } from "../model-download";
-import { loadBenchmark, recordBenchmark } from "../tier-benchmark-store";
+import { loadBenchmark, recordBenchmark, recordTierFailure } from "../tier-benchmark-store";
 
 /**
  * OCADE in the browser on the processor, via wllama (llama.cpp compiled to
@@ -116,6 +116,32 @@ export class BrowserWasmAdapter implements BrainAdapter {
       downloadLabel: formatSize(this.cachedTier.downloadBytes),
       multiThreaded: typeof SharedArrayBuffer !== "undefined",
     };
+  }
+
+  /**
+   * Download and load the model before anybody asks a question.
+   *
+   * THE FALLBACK NEEDS THIS MORE THAN THE PRIMARY DID. `use-brain` warmed only
+   * the WebGPU adapter, so a browser with no usable GPU adapter -- which is
+   * exactly the machine this adapter exists for -- prepared nothing at all,
+   * and its download started on the user's first message. A fallback that is
+   * not made ready like the primary is a fallback that is always cold.
+   *
+   * Idempotent and fire-and-forget by contract, matching the WebGPU adapter:
+   * `ensureLoaded` returns the existing instance when there is one, and every
+   * failure is swallowed. A warm-up that surfaces an error is reporting a
+   * problem with a message the user has not sent yet.
+   */
+  async preload(): Promise<void> {
+    try {
+      const availability = await this.probe();
+      if (!availability.available) return;
+      const chosen = this.plan();
+      if (!chosen) return;
+      await this.ensureLoaded(chosen.tier);
+    } catch {
+      /* A browser that cannot warm up can still be told so when it is used. */
+    }
   }
 
   private async ensureLoaded(tier: BrowserModelTier): Promise<WllamaInstance> {
@@ -282,6 +308,13 @@ export class BrowserWasmAdapter implements BrainAdapter {
       if (handlers.signal?.aborted || name === "WllamaAbortError" || name === "AbortError") {
         return { ok: false, failure: "cancelled", reason: "Stopped." };
       }
+      /*
+       * A tier that died here must not be offered again — see the matching
+       * note in browser-webgpu.ts. Rank 0 is exempt: there is nothing smaller
+       * to fall back to, and marking the only available engine as failed would
+       * leave the device with none.
+       */
+      if (tier.rank > 0) recordTierFailure("wasm", tier.rank);
       return {
         ok: false,
         failure: "error",

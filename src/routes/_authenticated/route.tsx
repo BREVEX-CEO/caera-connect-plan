@@ -6,6 +6,7 @@ import { mayUseCachedSession, cachedSessionIsCurrent } from "@/lib/auth/session-
 import { registerDeviceForCurrentSession } from "@/lib/devices";
 import { reportLovableError } from "@/lib/lovable-error-reporting";
 import { FirstRunEngineSetup } from "@/components/ocade/FirstRunEngineSetup";
+import { startSyncLoop } from "@/lib/storage/sync-queue";
 import { SettingsAccessProvider } from "@/components/settings/SettingsGate";
 import { OcadeMobileBottomNav } from "@/components/shell/OcadeMobileBottomNav";
 
@@ -131,6 +132,20 @@ function AuthedLayout() {
     registerDeviceForCurrentSession().catch((e) =>
       reportLovableError(e, { boundary: "device_registration" }),
     );
+  }, [signedIn]);
+
+  /*
+   * Drain whatever this device still owes the server.
+   *
+   * The `online` event inside the loop is the one that matters: it is what
+   * turns "your chats are staying on this device" back into a synchronised
+   * account without the user doing anything or even noticing. Started here
+   * because this layout is mounted for the whole signed-in session, so the
+   * queue is drained on every visit rather than only while Chat is open.
+   */
+  useEffect(() => {
+    if (!signedIn) return;
+    return startSyncLoop();
   }, [signedIn]);
 
   return (

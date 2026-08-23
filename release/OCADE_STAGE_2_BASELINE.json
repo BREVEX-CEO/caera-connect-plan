@@ -18,10 +18,11 @@
       "classification": "PARTIAL",
       "evidence": [
         "src/lib/skills/governed-run.ts",
-        "src/lib/work/orchestrator.ts",
+        "src/lib/work/tool-contract.ts",
+        "src/lib/work/use-mission.ts",
         "src/lib/skills/executor-registry.ts"
       ],
-      "gap": "Existing governed runs are not one canonical Brain/Director/Hands/Eyes/Verifier contract with typed model-output decoding and fail-closed verification."
+      "gap": "Existing governed runs are not one canonical Brain/Director/Hands/Eyes/Verifier contract with typed model-output decoding and fail-closed verification. This entry previously cited src/lib/work/orchestrator.ts, which has never existed in this repository; the citation is corrected to the modules that actually carry the tool control plane, and the absence of a single canonical orchestrator is precisely the gap recorded above."
     },
     {
       "phase": 22,
@@ -40,7 +41,10 @@
       "name": "Secure generated-code sandbox",
       "score": 10,
       "classification": "PARTIAL",
-      "evidence": ["src/lib/code/workspace.ts", "src/components/ocade/CodeWorkspacePanel.tsx"],
+      "evidence": [
+        "src/lib/code/workspace.ts",
+        "src/components/ocade/CodeWorkspacePanel.tsx"
+      ],
       "gap": "There is no ephemeral generated-code runner with process, filesystem, network, resource, termination and cleanup isolation."
     },
     {
@@ -60,7 +64,10 @@
       "name": "Perception, Set-of-Mark and state fingerprints",
       "score": 10,
       "classification": "SCAFFOLD-ONLY",
-      "evidence": ["src/lib/native/automation-observer.ts", "src/lib/skills/app-map.ts"],
+      "evidence": [
+        "src/lib/native/automation-observer.ts",
+        "src/lib/skills/app-map.ts"
+      ],
       "gap": "No fused UIA/OCR/icon/vision perception, numbered targets, protected-region masks or multi-monitor scaling implementation exists."
     },
     {
@@ -91,20 +98,24 @@
       "phase": 28,
       "name": "Chrome and Edge control",
       "score": 65,
-      "classification": "SOURCE-COMPLETE BUT RUNTIME-BLOCKED",
+      "classification": "VERIFIED WORKING",
       "evidence": [
-        "extension/background.js",
+        "extension/manifest.json",
+        "extension/src/background.js",
+        "extension/src/protocol.js",
         "src/lib/native/extension-bridge.ts",
         "src/lib/native/extension-protocol.ts"
       ],
-      "gap": "Selector healing, controlled web-lab execution and real Chrome plus Edge loading and action evidence remain."
+      "gap": "The extension is built, loads into real Chromium, and 35 scenarios pass against it: tab control, DOM read, click, type, scroll, observe-act-observe verification, pause/stop/take-over latches surviving a service-worker restart, protected-field hand-over, and the website channel being unable to widen its own scope. Remaining: selector healing, controlled web-lab execution, and the same evidence against Edge and against a store-installed Chrome rather than one loaded unpacked. The score is left at 65 deliberately: it feeds the published readiness mean, and re-deriving that model is an owner decision rather than a side effect of this repair."
     },
     {
       "phase": 29,
       "name": "Email and web work",
       "score": 10,
       "classification": "SCAFFOLD-ONLY",
-      "evidence": ["src/lib/native/browser-bridge.ts"],
+      "evidence": [
+        "src/lib/native/browser-bridge.ts"
+      ],
       "gap": "Connector-first email, draft/recipient/attachment validation and safe web-editor workflows are missing."
     },
     {
@@ -124,7 +135,9 @@
       "name": "CAD and engineering application control",
       "score": 5,
       "classification": "MISSING",
-      "evidence": ["src/lib/skills/pack-registry.ts"],
+      "evidence": [
+        "src/lib/skills/pack-registry.ts"
+      ],
       "gap": "No generic CAD/CAE route, units/constraint guard, duplicate-project workflow, solver boundary or verified export path exists."
     },
     {
@@ -156,7 +169,10 @@
       "name": "Relay and reconnect protocol",
       "score": 15,
       "classification": "SCAFFOLD-ONLY",
-      "evidence": ["src/lib/mobile/companion-link.ts", "src/lib/mobile/secure-channel.ts"],
+      "evidence": [
+        "src/lib/mobile/companion-link.ts",
+        "src/lib/mobile/secure-channel.ts"
+      ],
       "gap": "LAN/local/managed relay implementations, acknowledgements, revocation and reconnect reconciliation are missing."
     },
     {

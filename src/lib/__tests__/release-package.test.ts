@@ -80,9 +80,7 @@ describe("OCADE release source package", () => {
     expect(nitro).toContain('"@mlc-ai/web-llm"');
     expect(nitro).toContain("webllm.server.ts");
     expect(serverShim).toContain("available only inside a user's browser");
-    expect(read("src/lib/brain/adapters/browser-webgpu.ts")).toContain(
-      'import("@mlc-ai/web-llm")',
-    );
+    expect(read("src/lib/brain/adapters/browser-webgpu.ts")).toContain('import("@mlc-ai/web-llm")');
   });
 
   it("provides a dependency-free liveness endpoint with safe method and cache boundaries", async () => {

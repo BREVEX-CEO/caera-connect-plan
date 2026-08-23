@@ -6,6 +6,12 @@ import { activateModel } from "@/lib/local/model-lifecycle";
 import { discoverLocalModels, streamLocalChat, DEFAULT_LOCAL_BRIDGE_URL } from "@/lib/ocade-local";
 import { serverIsThisMachine } from "@/lib/hardware/detect.browser";
 import { useDevicePolicy } from "@/lib/use-device-policy";
+import { useBrain } from "@/lib/brain/use-brain";
+import {
+  subscribeToPreparation,
+  describePreparation,
+  type PreparationState,
+} from "@/lib/brain/preparation";
 
 /**
  * First-run engine setup — silent, automatic, and out of the way.
@@ -111,6 +117,9 @@ function markAttempted() {
 
 export function FirstRunEngineSetup() {
   const device = useDevicePolicy();
+  const brain = useBrain();
+  const [preparation, setPreparation] = useState<PreparationState | null>(null);
+  useEffect(() => subscribeToPreparation(setPreparation), []);
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState<PullProgress | null>(null);
   // Which engine is being installed. There is only ever one, so this is a
@@ -122,6 +131,28 @@ export function FirstRunEngineSetup() {
   const run = useCallback(async () => {
     setPhase("checking");
 
+    /*
+     * 0. THE BROWSER IS THE ENGINE, SO THE BROWSER IS PREPARED FIRST.
+     *
+     * This whole component used to begin at step 1 below: ask Ollama on
+     * localhost:11434 what it has, and if nothing is listening, start or
+     * install Ollama — but only when `serverIsThisMachine()`, so a person
+     * visiting a hosted OCADE in Chrome went straight to "unavailable" and
+     * OCADE prepared nothing at all. First run on the product's own primary
+     * platform did nothing.
+     *
+     * `brain.warm()` asks for persistent storage, probes WebGPU, falls back to
+     * the WASM runtime when there is no usable GPU adapter, and downloads
+     * through the resumable, checksum-verified path in `model-download.ts`.
+     * Progress reaches this component through the preparation store rather
+     * than a callback, because the adapters are shared across tabs and the
+     * thing displaying progress is whichever screen happens to be mounted.
+     *
+     * No button is involved anywhere in this. The user opened OCADE; that is
+     * the whole of the consent required to make OCADE work.
+     */
+    brain.warm();
+
     // 1. Is a usable engine already here? Then there is nothing to do, and the
     //    user should never learn this check happened.
     const first = await discoverLocalModels(DEFAULT_LOCAL_BRIDGE_URL);
@@ -130,12 +161,19 @@ export function FirstRunEngineSetup() {
       return;
     }
 
-    // 2. Nothing listening. Only try to START a runtime when the server really
-    //    is this machine — otherwise that would mean starting an engine on
-    //    somebody else's server, which is both wrong and futile.
+    /*
+     * 2. Nothing listening on the local bridge.
+     *
+     * That is no longer a problem: the browser engine above is preparing, and
+     * on most devices it is the only engine there will be. Ollama is a bonus
+     * for people who happen to run it, so this path is attempted ONLY when the
+     * server genuinely is this machine — starting an engine on somebody else's
+     * server is both wrong and futile — and its failure is not the product
+     * failing.
+     */
     if (!first.reachable) {
       if (!serverIsThisMachine()) {
-        setPhase("unavailable");
+        setPhase("done");
         return;
       }
       setPhase("starting");
@@ -190,8 +228,13 @@ export function FirstRunEngineSetup() {
     });
 
     if (!pulled.ok) {
+      /*
+       * The optional engine failed, not OCADE. The browser engine warmed at
+       * step 0 is what actually answers on this device, so reporting this as
+       * "unavailable" would tell a working product it is broken.
+       */
       recordFailure();
-      setPhase("unavailable");
+      setPhase("done");
       return;
     }
 
@@ -237,7 +280,7 @@ export function FirstRunEngineSetup() {
 
     if (!activated.ok) {
       recordFailure();
-      setPhase("unavailable");
+      setPhase("done");
       return;
     }
 
@@ -248,7 +291,7 @@ export function FirstRunEngineSetup() {
     setPhase("done");
     // No dependencies: this decides nothing from the device any more. It
     // checks whether the engine is present and, if not, installs THE engine.
-  }, []);
+  }, [brain]);
 
   useEffect(() => {
     if (started.current) return;
@@ -270,14 +313,39 @@ export function FirstRunEngineSetup() {
 
   useEffect(() => () => controller.current?.abort(), []);
 
-  // Silent in every state except active work.
-  if (phase !== "downloading" && phase !== "starting") return null;
+  /*
+   * WHAT THE PILL SHOWS, AND WHY IT PREFERS THE BROWSER.
+   *
+   * Two things can be preparing: the browser engine (the one that answers on
+   * nearly every device) and the optional local runtime. The browser is shown
+   * when it is working, because that is the transfer the user is actually
+   * waiting on. The runtime's own progress is the fallback.
+   *
+   * `unsupported` is shown too, briefly and honestly: a browser that cannot
+   * run any on-device engine is not a spinner that will eventually finish, and
+   * leaving the pill silent there would mean waiting forever for nothing.
+   */
+  const browserBusy =
+    preparation?.stage === "checking" ||
+    preparation?.stage === "downloading" ||
+    preparation?.stage === "loading" ||
+    preparation?.stage === "retrying";
+  const runtimeBusy = phase === "downloading" || phase === "starting";
+  if (!browserBusy && !runtimeBusy && preparation?.stage !== "unsupported") return null;
 
-  const percent = progress?.percent ?? null;
-  const label =
-    phase === "starting" || percent === null
-      ? "Preparing OCADE"
-      : `Setting up OCADE · ${Math.round(percent)}%`;
+  const percent = browserBusy
+    ? preparation?.fraction === null || preparation?.fraction === undefined
+      ? null
+      : preparation.fraction * 100
+    : (progress?.percent ?? null);
+
+  const label = browserBusy
+    ? describePreparation(preparation!)
+    : preparation?.stage === "unsupported"
+      ? describePreparation(preparation)
+      : percent === null
+        ? "Preparing OCADE Intelligence…"
+        : `Preparing OCADE Intelligence — ${Math.round(percent)}%`;
 
   return (
     <div
@@ -299,9 +367,11 @@ export function FirstRunEngineSetup() {
           </div>
         ) : null}
         <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
-          {selection
-            ? "Runs privately on this device. Manage it in Settings › Local Engine."
-            : "Getting this device ready."}
+          {preparation?.stage === "unsupported"
+            ? "You can still use everything else. Manage this in Settings › Local Engine."
+            : selection || browserBusy
+              ? "Runs privately on this device. Nothing to install, and you can keep working."
+              : "Getting this device ready."}
         </p>
       </div>
     </div>

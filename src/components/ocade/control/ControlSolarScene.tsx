@@ -271,7 +271,11 @@ function paintCommandConstellation(
     const active = (Math.floor(time * 0.7) + point.domainIndex) % 8 === point.domainIndex;
     const size = (compact ? 2.1 : 2.8) + point.depth * (compact ? 2.2 : 3.4);
     const red = state === "error" || (state === "controlling" && point.globalIndex % 7 === 0);
-    const base = red ? "238, 62, 74" : point.globalIndex % 5 === 0 ? "213, 220, 232" : "69, 139, 255";
+    const base = red
+      ? "238, 62, 74"
+      : point.globalIndex % 5 === 0
+        ? "213, 220, 232"
+        : "69, 139, 255";
     if (quality === "full") {
       const glow = context.createRadialGradient(point.x, point.y, 0, point.x, point.y, size * 4.5);
       glow.addColorStop(0, `rgba(${base}, ${0.42 + point.depth * 0.24})`);
@@ -305,7 +309,12 @@ function paintCommandConstellation(
   context.arc(cx, cy, orbRadius * 3.8, 0, Math.PI * 2);
   context.fill();
 
-  const metal = context.createLinearGradient(cx - orbRadius, cy - orbRadius, cx + orbRadius, cy + orbRadius);
+  const metal = context.createLinearGradient(
+    cx - orbRadius,
+    cy - orbRadius,
+    cx + orbRadius,
+    cy + orbRadius,
+  );
   metal.addColorStop(0, "rgba(248,250,255,.96)");
   metal.addColorStop(0.28, "rgba(85,96,116,.9)");
   metal.addColorStop(0.52, "rgba(8,12,20,.98)");

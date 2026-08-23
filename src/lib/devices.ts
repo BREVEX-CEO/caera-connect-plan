@@ -84,14 +84,19 @@ export async function registerDeviceForCurrentSession(): Promise<void> {
       .eq("user_id", user.id)
       .maybeSingle();
     if (deviceReadError) throw deviceReadError;
-    if (!device) throw new Error("This browser grant points to a device record that no longer exists.");
+    if (!device)
+      throw new Error("This browser grant points to a device record that no longer exists.");
 
     // Device revocation is authoritative even if an old grant row was not
     // stamped during a previous partial write.
     if (device.revoked_at) return;
 
     const [{ error: deviceUpdateError }, { error: grantUpdateError }] = await Promise.all([
-      supabase.from("devices").update({ last_active_at: now }).eq("id", device.id).eq("user_id", user.id),
+      supabase
+        .from("devices")
+        .update({ last_active_at: now })
+        .eq("id", device.id)
+        .eq("user_id", user.id),
       supabase
         .from("browser_grants")
         .update({ last_seen_at: now, user_agent: ua, origin: window.location.origin })
