@@ -64,6 +64,7 @@
     "blocker-reduction:check": "node scripts/check-blocker-reduction.mjs",
     "stakeholder-research:check": "node scripts/check-stakeholder-research.mjs",
     "launch-authority:check": "node scripts/launch-authority.mjs",
+    "launch:prove": "node scripts/launch-prove.mjs",
     "application-lifecycle:check": "node scripts/check-lifecycle-policy.mjs",
     "deploy:check": "node scripts/deploy.mjs --check",
     "deploy:web": "node scripts/deploy.mjs --execute",
@@ -166,5 +167,10 @@
     "typescript-eslint": "^8.56.1",
     "vite": "^8.0.16",
     "vitest": "^3.2.7"
+  },
+  "overrides": {
+    "@lovable.dev/mcp-js": {
+      "esbuild": "0.28.1"
+    }
   }
 }

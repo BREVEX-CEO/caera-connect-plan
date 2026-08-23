@@ -15,9 +15,10 @@ credential, device, distribution identity or independently controlled target.
 
 | Gate                                               | Result                                                                   |
 | -------------------------------------------------- | ------------------------------------------------------------------------ |
+| `npm run launch:prove`                             | **16/16 local gates pass; merge refused while external authority is open** |
 | Typecheck                                          | clean                                                                    |
 | Lint                                               | 0 errors (pre-existing prettier warnings only)                           |
-| Unit suite                                         | **338 files, 5,845 passed, 3 skipped, 0 failed**                         |
+| Full + shuffled test corpora                       | **356 files pass, 2 skip; 6,017 tests pass, 8 skip in both orders**      |
 | Production build                                   | succeeds                                                                 |
 | Asset budget                                       | largest JS 538.9/585.9 KiB; on-device engines 7,768/20,508 KiB, all lazy |
 | Stage-2 + release gate scripts                     | 42 run, 40 pass, 2 environment-blocked (below)                           |
@@ -28,17 +29,16 @@ credential, device, distribution identity or independently controlled target.
 | WebGPU / WASM availability                         | **8/8**                                                                  |
 | Flow-wave render                                   | **5/5**                                                                  |
 | Settings signed-out / visual / signed-in / offline | **16 + 7 + 20 + 13 = 56**                                                |
-| Python sidecar suite                               | **294 passed, 20 skipped**                                               |
+| Python sidecar suite                               | **297 passed, 17 capability skips**                                      |
 | Python control engine                              | **30 passed**                                                            |
 | Chrome + Edge CDP parity                           | `ok: true`, both browsers                                                |
 
-Two gate scripts fail for environment reasons and are correct to fail:
-`deploy:check` refuses without Cloudflare credentials (CI asserts it _must_
-refuse rather than deploy), and `browser-catalogue:check` needs huggingface.co,
-which is blocked. `browser:cdp-parity` passes, but only when run as a non-root
-user — Chrome will not start its sandbox as root, and the managed host sets
-`chromiumSandbox: true` deliberately, so root is the thing to avoid rather than
-the sandbox. CI itself gets no runner at all (§6).
+The executable top-level receipt is `release/OCADE_LAUNCH_PROOF.json`. It keeps
+the 16 locally executable gates separate from eight external blocker areas and
+four launch-authority approvals. A locally green matrix therefore does not
+authorize deployment, signing, publication or merge. Chrome/Edge managed-host
+parity passes on Windows; store publication and installed-store upgrade proof
+remain external.
 
 ---
 

@@ -1,0 +1,308 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-23T09:19:20.762Z",
+  "classification": "SOURCE-FIXED AND EXECUTED; LAUNCH EXTERNALLY BLOCKED",
+  "readyToMerge": false,
+  "localProof": {
+    "passed": 16,
+    "failed": 0,
+    "results": [
+      {
+        "id": "typecheck",
+        "description": "TypeScript and generated routes",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 27154,
+        "evidence": {
+          "stdoutTail": "> caera-cadane-ocade@0.1.0 typecheck\n> npm run routes:generate && tsc --noEmit\n\n\n> caera-cadane-ocade@0.1.0 routes:generate\n> node scripts/generate-routes.mjs",
+          "stderrTail": ""
+        }
+      },
+      {
+        "id": "lint",
+        "description": "Lint with zero errors",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 32649,
+        "evidence": {
+          "stdoutTail": "     prettier/prettier\n  30:93   warning  Insert `␍`                                                                                      prettier/prettier\n  42:59   warning  Insert `␍`                                                                                      prettier/prettier\n  43:12   warning  Insert `␍`                                                                                      prettier/prettier\n  44:99   warning  Insert `␍`                                                                                      prettier/prettier\n  45:87   warning  Insert `␍`                                                                                      prettier/prettier\n  46:98   warning  Insert `␍`                                                                                      prettier/prettier\n  47:93   warning  Replace `⏎··········feature·available·offline.` with `·feature␍⏎··········available·offline.␍`  prettier/prettier\n  49:13   warning  Insert `␍`                                                                                      prettier/prettier\n\n✖ 440 problems (0 errors, 440 warnings)\n  0 errors and 431 warnings potentially fixable with the `--fix` option.",
+          "stderrTail": ""
+        }
+      },
+      {
+        "id": "tests",
+        "description": "Full unit, integration, auth, payment and PostgreSQL-twin suite",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 80869,
+        "evidence": {
+          "stdoutTail": "_tests__/composer-drop-wiring.test.tsx (9 tests) 430ms\n ✓ src/lib/__tests__/shell-hardening.test.ts (7 tests) 16ms\n ✓ src/lib/__tests__/browser-media-and-ads.test.ts (12 tests) 152ms\n ✓ src/lib/storage/__tests__/sync-queue-privacy.test.ts (2 tests) 11ms\n ✓ src/lib/__tests__/message-list-a11y.test.tsx (2 tests) 174ms\n ✓ src/lib/__tests__/settings-interaction.test.tsx (59 tests) 4452ms\n   ✓ the audit as a whole is not inert > presses a meaningful number of controls across the settings surface  856ms\n ✓ src/lib/__tests__/signed-in-interaction.test.tsx (49 tests) 4227ms\n   ✓ every enabled control on a signed-in route can be pressed > _authenticated/ocade.work.tsx survives pressing everything  1620ms\n   ✓ every enabled control on a signed-in route can be pressed > _authenticated/ocade.automations.tsx survives pressing everything  421ms\n   ✓ every enabled control on a signed-in route can be pressed > _authenticated/ocade.code.tsx survives pressing everything  359ms\n\n Test Files  356 passed | 2 skipped (358)\n      Tests  6017 passed | 8 skipped (6025)\n   Start at  14:42:42\n   Duration  79.64s (transform 31.55s, setup 0ms, collect 83.14s, tests 119.49s, environment 33.05s, prepare 102.34s)",
+          "stderrTail": "pt-conversation-this-is-an\\work\\caera-connect-plan-production\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:15832:11)\n    at recursivelyTraverseReconnectPassiveEffects (C:\\Users\\haans\\Documents\\Codex\\2026-08-23\\referenced-chatgpt-conversation-this-is-an\\work\\caera-connect-plan-production\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:15784:9)\n    at reconnectPassiveEffects (C:\\Users\\haans\\Documents\\Codex\\2026-08-23\\referenced-chatgpt-conversation-this-is-an\\work\\caera-connect-plan-production\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:15824:11) {\n  [stack]: [Getter/Setter],\n  [message]: 'Missing Supabase environment variable(s): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY. Connect Supabase in Lovable Cloud.'\n}\n\nThe above error occurred in the <PaymentsChecklistPage> component.\n\nReact will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl.\n\nWarning: The following error wasn't caught by any route! At the very least, consider setting an 'errorComponent' in your RootRoute!\nWarning: Missing Supabase environment variable(s): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY. Connect Supabase in Lovable Cloud."
+        }
+      },
+      {
+        "id": "test-isolation",
+        "description": "Shuffled-file isolation stress",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 78934,
+        "evidence": {
+          "stdoutTail": "sx (7 tests) 673ms\n ✓ src/lib/__tests__/depth-scene.test.tsx (5 tests) 145ms\n ✓ src/lib/__tests__/composer-drop-wiring.test.tsx (9 tests) 276ms\n ✓ src/lib/__tests__/message-list-a11y.test.tsx (2 tests) 148ms\n ✓ src/lib/__tests__/settings-interaction.test.tsx (59 tests) 4395ms\n   ✓ every enabled control in settings can be pressed > ChatSettingsPanel survives pressing everything  333ms\n   ✓ the audit as a whole is not inert > presses a meaningful number of controls across the settings surface  870ms\n ✓ src/lib/__tests__/signed-in-interaction.test.tsx (49 tests) 4257ms\n   ✓ every enabled control on a signed-in route can be pressed > _authenticated/ocade.work.tsx survives pressing everything  1687ms\n   ✓ every enabled control on a signed-in route can be pressed > _authenticated/ocade.automations.tsx survives pressing everything  456ms\n   ✓ every enabled control on a signed-in route can be pressed > _authenticated/ocade.code.tsx survives pressing everything  347ms\n\n Test Files  356 passed | 2 skipped (358)\n      Tests  6017 passed | 8 skipped (6025)\n   Start at  14:44:03\n   Duration  77.78s (transform 32.34s, setup 0ms, collect 91.38s, tests 108.69s, environment 32.57s, prepare 101.34s)",
+          "stderrTail": "pt-conversation-this-is-an\\work\\caera-connect-plan-production\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:15832:11)\n    at recursivelyTraverseReconnectPassiveEffects (C:\\Users\\haans\\Documents\\Codex\\2026-08-23\\referenced-chatgpt-conversation-this-is-an\\work\\caera-connect-plan-production\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:15784:9)\n    at reconnectPassiveEffects (C:\\Users\\haans\\Documents\\Codex\\2026-08-23\\referenced-chatgpt-conversation-this-is-an\\work\\caera-connect-plan-production\\node_modules\\react-dom\\cjs\\react-dom-client.development.js:15824:11) {\n  [stack]: [Getter/Setter],\n  [message]: 'Missing Supabase environment variable(s): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY. Connect Supabase in Lovable Cloud.'\n}\n\nThe above error occurred in the <PaymentsChecklistPage> component.\n\nReact will try to recreate this component tree from scratch using the error boundary you provided, CatchBoundaryImpl.\n\nWarning: The following error wasn't caught by any route! At the very least, consider setting an 'errorComponent' in your RootRoute!\nWarning: Missing Supabase environment variable(s): SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY. Connect Supabase in Lovable Cloud."
+        }
+      },
+      {
+        "id": "build",
+        "description": "Production web and Worker build",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 18457,
+        "evidence": {
+          "stdoutTail": "  192.10 kB │ gzip:  35.05 kB\n.output/server/_ssr/ocade.lab-DD95vJQ-.mjs                           195.13 kB │ gzip:  53.88 kB\n.output/server/_libs/jszip+[...].mjs                                 273.47 kB │ gzip:  60.98 kB\n.output/server/_libs/supabase__auth-js.mjs                           302.11 kB │ gzip:  60.25 kB\n.output/server/_ssr/wllama-0Jo7yQto.mjs                              337.15 kB │ gzip: 138.29 kB\n.output/server/_ssr/ocade.index-25GeMIxb.mjs                         428.12 kB │ gzip: 128.18 kB\n.output/server/_libs/@tanstack/react-router+[...].mjs                659.20 kB │ gzip: 138.75 kB\n.output/server/_libs/pdfjs-dist.mjs                                  760.42 kB │ gzip: 169.99 kB\n.output/server/_libs/@lovable.dev/mcp-js+[...].mjs                   950.95 kB │ gzip: 201.01 kB\n.output/server/_libs/three.mjs                                     1,186.53 kB │ gzip: 239.63 kB\n\n✓ built in 1.52s\ni Generated .output/server/wrangler.json\ni Generated .wrangler/deploy/config.json\ni Generated .output/public/_headers\ni Generated .output/nitro.json\n\n[nitro] √ You can preview this build using npx vite preview\n[nitro] √ You can deploy this build using npx nitro deploy --prebuilt",
+          "stderrTail": "lugin tanstack-start-core::server-fn:ssr] C:/Users/haans/Documents/Codex/2026-08-23/referenced-chatgpt-conversation-this-is-an/work/caera-connect-plan-production/src/utils/payments-readiness.functions.ts:38:39 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] C:/Users/haans/Documents/Codex/2026-08-23/referenced-chatgpt-conversation-this-is-an/work/caera-connect-plan-production/src/lib/account.functions.ts:27:32 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n\u001b[33m[PLUGIN_TIMINGS] \u001b[0mYour build spent significant time in plugins. Here is a breakdown:\n  - vite-tsconfig-paths (46%)\n  - tanstack-start-core:import-protection (30%)\n  - tanstack-start-core:import-protection-transform-cache (14%)\n  - tanstack-router:code-splitter:compile-reference-file (4%)\n  - tanstack-start-core::server-fn:ssr (2%)\nSee https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.\n\n\n WARN  inlineDynamicImports option is ignored because the codeSplitting option is specified.\n\n\n[nitro]  WARN  [cloudflare] Wrangler config assets is overridden and will be ignored."
+        }
+      },
+      {
+        "id": "performance",
+        "description": "Production asset budgets",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 371,
+        "evidence": {
+          "stdoutTail": "> caera-cadane-ocade@0.1.0 performance:budget\n> node scripts/check-asset-budgets.mjs\n\nPerformance budget: 161/250 assets\nsource maps 0 (must be 0)\n4174.2 KiB/4296.9 KiB total\n4050.0 KiB/4150.4 KiB JavaScript\n846.6 KiB/976.6 KiB eager JavaScript (5 chunks)\nlargest eager index-CiSR5B5Z.js 458.9 KiB/507.8 KiB\n124.2 KiB/146.5 KiB CSS\nlargest JS SolarSystem-DZi8ndPr.js 538.9 KiB/585.9 KiB\nlazy PDF chunks 1\non-device engines 7768.3 KiB/20507.8 KiB (all lazy: true)",
+          "stderrTail": ""
+        }
+      },
+      {
+        "id": "dead-controls",
+        "description": "Rendered-control dead-path scan",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 393,
+        "evidence": {
+          "stdoutTail": "> caera-cadane-ocade@0.1.0 controls:check\n> node scripts/check-dead-controls.mjs\n\nNo-Dead-Button audit: scanned 201 component and route files\nNo dead controls found.",
+          "stderrTail": ""
+        }
+      },
+      {
+        "id": "mutation",
+        "description": "Safety mutation campaign",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 57841,
+        "evidence": {
+          "stdoutTail": "> caera-cadane-ocade@0.1.0 test:mutation\n> node scripts/mutation-safety.mjs\n\ncaught    privacy: cloud approval is reported as a possible inference path\ncaught    privacy: on-device inference is treated as consuming paid allowance\ncaught    provenance: privacy reported from the setting, not the measurement\ncaught    provenance: an unmeasured window is reported as private\ncaught    preflight: AWS access keys are no longer detected\ncaught    preflight: the Luhn check is dropped, so any digit run is a card\ncaught    ledger: entries no longer link to the one before them\ncaught    sealed mode: sendBeacon is allowed through the seal\ncaught    sealed mode: a sealed conversation never installs its barrier\ncaught    sealed mode: the page seal lets any origin through\ncaught    sealed mode: overlapping seals take the loosest policy, not the strictest\ncaught    deletion: the database row is dropped before the stored object\ncaught    service worker: the /api/ cache exclusion is removed\ncaught    RLS: any authenticated user may read any conversation\ncaught    RLS: row-level security is disabled on conversations\n\n15/15 caught",
+          "stderrTail": ""
+        }
+      },
+      {
+        "id": "ocade-77",
+        "description": "OCADE 77-item and production-wiring source gate",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 568,
+        "evidence": {
+          "stdoutTail": "rc/lib/providers/free-tool-adapters.ts\n  src/routes/_authenticated/ocade.lab.tsx -> src/components/ocade/AppCoveragePanel.tsx -> src/lib/providers/tool-prober.ts -> src/lib/providers/free-tool-adapters.ts\nwired: src/lib/code/generated-sandbox-node.ts\n  src/routes/_authenticated/ocade.code.tsx -> src/components/ocade/CodeWorkspacePanel.tsx -> src/lib/sandbox.functions.ts -> src/lib/code/generated-sandbox-node.ts\nreplaced/retired: src/lib/packaging/update-signature.ts\n  production owner: Tauri native updater signature verification\n  public desktop distribution remains disabled until external signing/device proof exists\ntracked CI owner: .github/workflows/ci.yml\ntracked CI owner: .github/workflows/platforms.yml\ntracked CI owner: .github/workflows/ocade-77-readiness.yml\nOCADE Phase-5 production wiring OK\n- production entry points scanned: 86\n- production source modules reachable: 552\n- historical modules directly/transitively production-wired: 9/10\n- historical modules replaced/retired with production proof: 1/10\n- historical Phase-5 dispositions materially resolved: 10/10\n- runtime availability, signed public release, hardware success and hosted CI are NOT inferred by this source gate",
+          "stderrTail": ""
+        }
+      },
+      {
+        "id": "release-source",
+        "description": "Release source and blocker-honesty gate",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 395,
+        "evidence": {
+          "stdoutTail": "> caera-cadane-ocade@0.1.0 release:source-check\n> node scripts/check-release-source.mjs\n\nOCADE release source gate: 62/62 checks passed\nSTATUS: SOURCE READY; PRODUCTION RELEASE EXTERNALLY BLOCKED (8 areas)\nThe gated web Worker is deployed; no signing, store publication, migration, or device install was performed.",
+          "stderrTail": ""
+        }
+      },
+      {
+        "id": "model-distribution",
+        "description": "Fixed local-model distribution gate",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 339,
+        "evidence": {
+          "stdoutTail": "> caera-cadane-ocade@0.1.0 model:distribution-check\n> node scripts/check-model-distribution.mjs\n\nmodel distribution: SOURCE-FIXED AND EXECUTED; DISTRIBUTION EXTERNALLY BLOCKED\n  EXECUTED 1 · SOURCE-FIXED 7 · EXTERNALLY BLOCKED 5\n  EXTERNAL: same-origin browser weight is absent: public/models/qwen2.5-0.5b-instruct-q4_k_m.gguf\n  EXTERNAL: the optional same-origin WebGPU model/library mirror is not populated\n  EXTERNAL: desktop publishing is intentionally disabled\n  EXTERNAL: control-engine provenance review remains open\n  EXTERNAL: the runtime registry licence is not machine-classified (Qwen RESEARCH LICENSE AGREEMENT)",
+          "stderrTail": ""
+        }
+      },
+      {
+        "id": "licences",
+        "description": "Generated third-party notices are current",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 468,
+        "evidence": {
+          "stdoutTail": "> caera-cadane-ocade@0.1.0 licences:check\n> node scripts/generate-licence-notices.mjs --check\n\nLicence notices are current: 373 production packages.",
+          "stderrTail": ""
+        }
+      },
+      {
+        "id": "supabase-types",
+        "description": "Database types match the migration surface",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 327,
+        "evidence": {
+          "stdoutTail": "> caera-cadane-ocade@0.1.0 supabase:types-check\n> node scripts/check-supabase-types.mjs\n\nSupabase types cover all 67 migrated tables (75 declared in types).",
+          "stderrTail": ""
+        }
+      },
+      {
+        "id": "launch-authority",
+        "description": "Launch authority remains fail-closed",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 313,
+        "evidence": {
+          "stdoutTail": "> caera-cadane-ocade@0.1.0 launch-authority:check\n> node scripts/launch-authority.mjs\n\nLaunch-authority gate: four dependency-ordered stages remain externally blocked.\n- signing: EXTERNALLY_BLOCKED\n- deployment: EXTERNALLY_BLOCKED\n- support_readiness: EXTERNALLY_BLOCKED\n- announcement: EXTERNALLY_BLOCKED",
+          "stderrTail": ""
+        }
+      },
+      {
+        "id": "windows-runtime",
+        "description": "Native, desktop and browser real-target proof",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 158444,
+        "evidence": {
+          "stdoutTail": "k popup.\nPASS  the approved origin survived the revoke attempt\nPASS  the website can drive a real observation — title=\"Edited by hand\" controls=4\n\n69/69 scenarios passed\nPASS  COWORK extension against Chrome for Testing — 69/69 scenarios passed\n\r\n── Chrome and Edge parity through the managed host\r\n\n> caera-cadane-ocade@0.1.0 browser:cdp-parity\n> node scripts/browser-cdp-parity.mjs\n\n{\n  \"ok\": true,\n  \"architecture\": \"playwright-cdp-no-extension\",\n  \"results\": [\n    {\n      \"browser\": \"chrome\",\n      \"protectedFieldRefused\": true,\n      \"verifiedDomAction\": true,\n      \"upload\": true,\n      \"download\": true,\n      \"tabs\": true,\n      \"immediateCancel\": true,\n      \"emergencyStop\": true\n    },\n    {\n      \"browser\": \"edge\",\n      \"protectedFieldRefused\": true,\n      \"verifiedDomAction\": true,\n      \"upload\": true,\n      \"download\": true,\n      \"tabs\": true,\n      \"immediateCancel\": true,\n      \"emergencyStop\": true\n    }\n  ]\n}\nPASS  Chrome and Edge parity through the managed host — }\n\r\n10/10 stages passed\r\nevidence written to C:\\Users\\haans\\Documents\\Codex\\2026-08-23\\referenced-chatgpt-conversation-this-is-an\\work\\caera-connect-plan-production\\release\\OCADE_WINDOWS_PROOF_EVIDENCE.json",
+          "stderrTail": ""
+        }
+      },
+      {
+        "id": "production-dependencies",
+        "description": "Production dependency vulnerability audit",
+        "status": "executed_pass",
+        "exitCode": 0,
+        "durationMs": 1312,
+        "evidence": {
+          "stdoutTail": "found 0 vulnerabilities",
+          "stderrTail": ""
+        }
+      }
+    ]
+  },
+  "distribution": {
+    "classification": "SOURCE-FIXED AND EXECUTED; DISTRIBUTION EXTERNALLY BLOCKED",
+    "externalBlocked": [
+      {
+        "id": "browser-model-mirror:wasm-qwen2.5-0.5b-instruct-q4_k_m",
+        "detail": "same-origin browser weight is absent: public/models/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+        "requiredEvidence": "place the reviewed 491400032-byte file at that path and rerun this gate"
+      },
+      {
+        "id": "webgpu-model-mirror",
+        "detail": "the optional same-origin WebGPU model/library mirror is not populated",
+        "requiredEvidence": "mirror the installed WebLLM runtime files under public/models/webllm and verify a third-party-free first load"
+      },
+      {
+        "id": "signed-desktop-distribution",
+        "detail": "desktop publishing is intentionally disabled",
+        "requiredEvidence": "platform signing/notarization identities, trusted updater channel, and clean-machine install/upgrade/rollback proof"
+      },
+      {
+        "id": "control-engine-provenance",
+        "detail": "control-engine provenance review remains open",
+        "requiredEvidence": "clean-room/provenance inventory and qualified commercial-distribution review bound to the release commit"
+      },
+      {
+        "id": "desktop-model-licence-review",
+        "detail": "the runtime registry licence is not machine-classified (Qwen RESEARCH LICENSE AGREEMENT)",
+        "requiredEvidence": "review the exact fetched licence digest before redistributing desktop model bytes; runtime-managed pulls may remain separate"
+      }
+    ]
+  },
+  "externalBlockers": [
+    {
+      "id": "web-cloudflare-runtime",
+      "area": "web",
+      "requiredEvidence": [
+        "Supabase and provider values entered through platform secret storage",
+        "Post-gate authentication and critical-route smoke tests"
+      ]
+    },
+    {
+      "id": "supabase-apply-and-rls",
+      "area": "supabase",
+      "requiredEvidence": [
+        "Authorized live project access and explicit database-apply authority",
+        "All 48 OCADE migrations applied in documented order to the intended project",
+        "Post-apply verification SQL and cross-tenant attack tests passed on that project",
+        "Generated database types refreshed after apply"
+      ]
+    },
+    {
+      "id": "desktop-build-sign-update",
+      "area": "desktop",
+      "requiredEvidence": [
+        "Target-OS builders for macOS and Linux (the Windows build is NOT blocked - verified building on x86_64-pc-windows-msvc, see release/OCADE_P24_COMPANION_BUILD_EVIDENCE.json)",
+        "Platform signing and notarization identities",
+        "Updater signing key and controlled update endpoint",
+        "Clean-machine install update rollback and emergency-stop runtime tests"
+      ]
+    },
+    {
+      "id": "android-build-sign-device",
+      "area": "android",
+      "requiredEvidence": [
+        "Java Android SDK ADB and target emulator or physical device",
+        "Release keystore supplied outside the repository",
+        "Push-notification project configuration",
+        "Signed bundle install pairing approval stop and recovery tests"
+      ]
+    },
+    {
+      "id": "ios-build-sign-device",
+      "area": "ios",
+      "requiredEvidence": [
+        "macOS Xcode and target simulator or physical device",
+        "Apple team provisioning and distribution signing",
+        "Push-notification capability and production entitlement",
+        "Archive validation install pairing approval stop and recovery tests"
+      ]
+    },
+    {
+      "id": "browser-extension-store",
+      "area": "browser-extension",
+      "requiredEvidence": [
+        "Store identities review listings signing and publication",
+        "Installed-store upgrade and permission-revocation tests"
+      ]
+    },
+    {
+      "id": "real-application-and-device-matrix",
+      "area": "universal-control",
+      "requiredEvidence": [
+        "Licensed target applications and exact version matrix",
+        "Observed adapter actions receipts cancellation and recovery",
+        "GPU media voice vision and long-duration workload evidence",
+        "Cross-device revocation offline recovery and security validation"
+      ]
+    },
+    {
+      "id": "model-distribution-and-provenance",
+      "area": "local-ai-distribution",
+      "requiredEvidence": [
+        "Populate and independently hash the same-origin browser model mirrors",
+        "Resolve the desktop-model licence and control-engine provenance reviews for the exact release commit",
+        "Signed clean-machine desktop distribution and supported browser/mobile device matrix"
+      ]
+    }
+  ],
+  "authorityBlocked": [
+    "productionSigningIdentityPresent",
+    "productionDeploymentObserved",
+    "onCallAssigned",
+    "announcementApproved"
+  ],
+  "sideEffects": {
+    "deployed": false,
+    "migrationsAppliedToLiveProject": false,
+    "chargedPaymentMethod": false,
+    "publishedOrSigned": false,
+    "merged": false
+  }
+}
