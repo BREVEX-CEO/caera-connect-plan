@@ -76,9 +76,10 @@ describe("what this installation can honestly supervise", () => {
     expect(cap.mode).toBe("none");
     expect(cap.canRunOffline).toBe(false);
     expect(cap.canAnswerOffline).toBe(false);
-    // Names the two things that would fix it.
+    // Names the two local-only ways that would fix it.
     expect(cap.summary).toMatch(/desktop app/);
-    expect(cap.summary).toMatch(/Cloud/);
+    expect(cap.summary).toMatch(/supported browser with a local engine/);
+    expect(cap.summary).not.toMatch(/cloud/i);
   });
 });
 
@@ -164,10 +165,11 @@ describe("the progressive web assets actually ship", () => {
     expect(existsSync("public/sw.js")).toBe(true);
     expect(existsSync("public/offline.html")).toBe(true);
     const offline = readFileSync("public/offline.html", "utf8");
-    // The offline page must not overclaim: vault-backed chats survive, cloud
-    // does not.
+    // The offline page must not overclaim: vault-backed chats survive, network
+    // services do not.
     expect(offline).toMatch(/Browser Only|PC Vault/);
-    expect(offline).toMatch(/Cloud is unavailable/i);
+    expect(offline).toMatch(/Network services are unavailable/i);
+    expect(offline).not.toMatch(/cloud/i);
   });
 
   it("never caches API, server-function or auth responses", () => {

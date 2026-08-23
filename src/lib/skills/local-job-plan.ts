@@ -12,9 +12,9 @@
  *     governor)
  *
  * The honesty carries straight through: if no local profile fits, the answer is
- * "use cloud (with consent)", not a forced local run; if a profile fits but the
- * job is too big or the machine too hot, the governor's defer/downgrade/refuse
- * verdict is returned verbatim. Nothing here overrides either library's refusal.
+ * an explicit refusal, not a forced local run or remote fallback; if a profile
+ * fits but the job is too big or the machine too hot, the governor's verdict is
+ * returned verbatim. Nothing here overrides either library's refusal.
  */
 import { recommendProfile, type LocalProfile } from "./hardware-profile";
 import {
@@ -34,8 +34,8 @@ export type LocalJobDecision =
   | { where: "needs_install"; profileLabel: string; reason: string }
   /** The governor blocked it (over budget / too hot / low battery). */
   | { where: "blocked"; recommendation: Recommendation }
-  /** Nothing local fits; cloud is the honest fallback (with consent). */
-  | { where: "cloud"; reason: string };
+  /** Nothing local fits; no remote inference fallback is permitted. */
+  | { where: "unavailable"; reason: string };
 
 /**
  * Decide where and how to run a job.
@@ -51,12 +51,12 @@ export function planLocalJob(
   const profile = recommendProfile(hw, profiles);
   if (!profile.ok) return profile;
 
-  // No local profile fits the machine at all → cloud (with consent).
-  if (profile.data.needsCloud) {
+  // No local profile fits the machine at all: refuse without escalating.
+  if (profile.data.localUnavailable) {
     return {
       ok: true,
-      data: { where: "cloud", reason: profile.data.recommendation },
-      evidence: "No local profile fits; recommending cloud.",
+      data: { where: "unavailable", reason: profile.data.recommendation },
+      evidence: "No local profile fits; remote inference refused.",
     };
   }
 
@@ -75,12 +75,12 @@ export function planLocalJob(
 
   const ready = profile.data.ready;
   if (!ready) {
-    // Fits but neither ready nor installable-with-approval — treat as cloud
-    // rather than assume something runnable.
+    // Fits but neither ready nor installable-with-approval: refuse rather than
+    // assume something runnable or escalate remotely.
     return {
       ok: true,
-      data: { where: "cloud", reason: profile.data.recommendation },
-      evidence: "No runnable local profile; recommending cloud.",
+      data: { where: "unavailable", reason: profile.data.recommendation },
+      evidence: "No runnable local profile; remote inference refused.",
     };
   }
 

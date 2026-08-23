@@ -1,4 +1,4 @@
-import { Cloud, Cpu, Download, ShieldAlert } from "lucide-react";
+import { Cpu, Download, ShieldAlert } from "lucide-react";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { planLocalJob, type LocalJobDecision } from "@/lib/skills/local-job-plan";
 import type { LocalProfile } from "@/lib/skills/hardware-profile";
@@ -8,8 +8,8 @@ import type { HardwareSnapshot, JobSpec } from "@/lib/skills/resource-governor";
  * Where a local job would run — the placement decision, surfaced.
  *
  * `planLocalJob` composes the hardware-profile recommender and the resource
- * governor into one verdict: run locally, install first (with approval), refuse,
- * or fall back to cloud. It was fully implemented and tested but reached by no
+ * governor into one verdict: run locally, install first (with approval), or
+ * refuse. It was fully implemented and tested but reached by no
  * route or panel, and it is the only consumer of `hardware-profile`, so both sat
  * unreachable from the product.
  *
@@ -127,10 +127,10 @@ function describe(decision: LocalJobDecision): {
         headline: "Refused by the resource governor",
         detail: decision.recommendation.reason,
       };
-    case "cloud":
+    case "unavailable":
       return {
-        icon: Cloud,
-        headline: "Cloud, with consent",
+        icon: ShieldAlert,
+        headline: "No supported local runtime",
         detail: decision.reason,
       };
   }

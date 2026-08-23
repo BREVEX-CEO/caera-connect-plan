@@ -209,7 +209,7 @@ describe("what happened is recorded from what happened", () => {
     expect(result.receipt.messageId).toBe("m1");
     expect(result.entry.index).toBe(0);
     expect(result.pinned.pin.modelSha256).toBe("a".repeat(64));
-    expect(result.cost.allowanceUsed).toBe(0);
+    expect(result.cost.where).toBe("local");
   });
 
   it("derives the cost from the receipt, not from the settings", async () => {

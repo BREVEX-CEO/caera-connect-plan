@@ -260,7 +260,8 @@ describe("local job placement is reachable and shows real verdicts", () => {
 
   it("falls back to cloud only with consent when nothing local fits", () => {
     const html = panel();
-    expect(html).toContain("Cloud, with consent");
+    expect(html).toContain("No supported local runtime");
+    expect(html).not.toContain("Cloud, with consent");
   });
 
   it("does not present declared snapshots as a reading of real hardware", () => {

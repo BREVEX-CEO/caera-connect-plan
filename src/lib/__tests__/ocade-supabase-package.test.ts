@@ -178,16 +178,12 @@ describe("OCADE Supabase application package", () => {
     );
   });
 
-  it("calls the service-role-only allowance RPC through the server-only admin client", () => {
-    /*
-     * The chat route was the second caller and is deleted with cloud
-     * inference. The property still matters for the usage functions: the
-     * service-role key must reach the RPC through `client.server`, which is
-     * excluded from the browser bundle by its filename, and never through the
-     * request-scoped client a browser can influence.
-     */
-    expect(usageFunctions).toContain('await import("@/integrations/supabase/client.server")');
-    expect(usageFunctions).toMatch(/supabaseAdmin\.rpc\(\s*"ocade_consume_cloud_use"/);
-    expect(usageFunctions).not.toMatch(/context\.supabase[\s\S]{0,200}"ocade_consume_cloud_use"/);
+  it("keeps the usage server surface entitlement-read-only", () => {
+    expect(usageFunctions).toContain("export const getEntitlement");
+    expect(usageFunctions).toContain('.from("ocade_subscriptions")');
+    expect(usageFunctions).not.toContain("supabaseAdmin");
+    expect(usageFunctions).not.toContain("client.server");
+    expect(usageFunctions).not.toContain("ocade_consume_cloud_use");
+    expect(usageFunctions).not.toMatch(/createServerFn\(\{ method: "POST"/);
   });
 });

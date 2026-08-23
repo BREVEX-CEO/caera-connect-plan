@@ -204,10 +204,6 @@ export async function runGuarded(input: {
   ]);
 
   const cost = measureRun({
-    // Taken from the RECEIPT, not from the settings — the receipt is the one
-    // derived from measurement, and a cost line that disagreed with the
-    // privacy line would undermine both.
-    where: receipt.leftDevice ? "cloud" : "local",
     durationMs,
     powerClass: input.guards.powerClass,
     tariffMinorPerKwh: input.guards.tariffMinorPerKwh,

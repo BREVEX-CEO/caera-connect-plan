@@ -17,9 +17,8 @@
  *    started behind the user's back.
  *
  * 2. **When nothing local fits, say so — don't pretend.** If even the smallest
- *    local profile exceeds the machine, the recommendation is to use cloud
- *    (with the usual consent) or free resources, not to run something that
- *    won't load.
+ *    local profile exceeds the machine, the recommendation is to free resources
+ *    or move to capable hardware, not to run something that won't load.
  *
  * Reuses `HardwareSnapshot` from the resource governor so there is one shape
  * for "the machine right now".
@@ -58,8 +57,8 @@ export interface ProfileRecommendation {
   excluded: { profile: LocalProfile; reason: string }[];
   /** What OCADE recommends the user do. */
   recommendation: string;
-  /** True when nothing local can run and cloud is the honest fallback. */
-  needsCloud: boolean;
+  /** True when nothing local can run on this machine. */
+  localUnavailable: boolean;
 }
 
 /** Keep this much RAM free for the OS, matching the resource governor. */
@@ -116,7 +115,7 @@ export function recommendProfile(
   const ready = fitting.find((p) => p.installed) ?? null;
   // A better profile than the ready one, that fits but must be downloaded.
   const installable = fitting.find((p) => !p.installed && (!ready || p.tier > ready.tier)) ?? null;
-  const needsCloud = fitting.length === 0;
+  const localUnavailable = fitting.length === 0;
 
   return {
     ok: true,
@@ -124,10 +123,10 @@ export function recommendProfile(
       ready,
       installable,
       excluded,
-      needsCloud,
-      recommendation: describe(ready, installable, needsCloud),
+      localUnavailable,
+      recommendation: describe(ready, installable, localUnavailable),
     },
-    evidence: needsCloud
+    evidence: localUnavailable
       ? `No local profile fits; ${excluded.length} excluded.`
       : `${fitting.length} local profile(s) fit; best ready: ${ready?.label ?? "none installed"}.`,
   };
@@ -136,10 +135,10 @@ export function recommendProfile(
 function describe(
   ready: LocalProfile | null,
   installable: LocalProfile | null,
-  needsCloud: boolean,
+  localUnavailable: boolean,
 ): string {
-  if (needsCloud) {
-    return "Nothing local will run on this machine as it is. OCADE recommends using the cloud option (with your consent) or freeing memory and disk, rather than starting something that won't load.";
+  if (localUnavailable) {
+    return "Nothing local will run on this machine as it is. Free memory or disk, or use a device with supported local hardware; OCADE will not move the job to public-cloud inference.";
   }
   if (ready && installable) {
     return `${ready.label} is installed and ready. A more capable option, ${installable.label}, would also fit — it needs a ${formatBytes(installable.downloadBytes)} download, which OCADE will not start without your approval.`;

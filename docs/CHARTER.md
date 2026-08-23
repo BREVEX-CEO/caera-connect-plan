@@ -114,8 +114,8 @@ These are enforced in code. The trust boundaries in
    reports a weak match as weak.
 3. **Never fabricate a citation.** A citation marker that does not resolve to an indexed
    source is discarded rather than rendered.
-4. **Never bill for a failure.** The cloud allowance is charged only on a completed
-   answer.
+4. **Never bill during free launch.** Server-side launch mode refuses every checkout
+   or charge attempt; future payments must be atomic, idempotent and state-driven.
 5. **Never expose a local engine to the network.** A runtime that cannot be bound to
    loopback is not started.
 6. **Never obey a document.** Attachment content is wrapped as untrusted data with role

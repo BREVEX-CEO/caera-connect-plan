@@ -1,13 +1,6 @@
 /**
  * What an answer actually cost — in money, energy and time.
  *
- * THE NUMBER NOBODY WILL SHOW YOU. A cloud assistant cannot tell you what your
- * question cost, because the honest answer involves their margin, their batch
- * utilisation and their hardware amortisation. What you get instead is a
- * subscription and a usage bar that resets on a schedule you did not choose.
- * The relationship between "I asked a hard question" and "I have less left" is
- * deliberately opaque.
- *
  * When the compute is yours, the arithmetic is yours too. A local answer costs
  * electricity and nothing else, and that is a number this can actually derive:
  * measured wall-clock time, a declared power draw for the machine class, and
@@ -15,9 +8,8 @@
  *
  * WHY THIS IS A FEATURE AND NOT A GIMMICK. It reframes the product's central
  * claim from a slogan into arithmetic. "Unlimited local use" is marketing;
- * "this conversation cost 0.03 p and used no allowance, while the same
- * conversation would have spent 14 of your 28 cloud requests" is a fact the
- * user can check against their own electricity bill.
+ * "this conversation cost 0.03 p and stayed on this device" is a fact the user
+ * can check against their own electricity bill and the runtime receipt.
  *
  * EVERY FIGURE IS LABELLED. Power draw is a class estimate, not a measurement —
  * browsers cannot read a wattmeter. The interface says "estimated" and shows
@@ -36,24 +28,20 @@ export const POWER_CLASS = {
 export type PowerClass = keyof typeof POWER_CLASS;
 
 export interface RunCost {
-  /** Where it ran. Cloud runs consume allowance; local runs do not. */
-  where: "local" | "cloud";
+  where: "local";
   durationMs: number;
   /** Tokens produced, when the engine reports them. */
   outputTokens: number | null;
   /** Tokens per second, or null when unknown. */
   tokensPerSecond: number | null;
-  /** Watt-hours, estimated. Null for cloud — we cannot know their hardware. */
-  energyWh: number | null;
+  /** Watt-hours, estimated from the declared device class. */
+  energyWh: number;
   /** Money, in the smallest unit of the given currency. Local is always 0. */
   costMinor: number;
   currency: string;
-  /** Cloud requests consumed. Local is always 0. */
-  allowanceUsed: number;
 }
 
 export interface MeterInputs {
-  where: "local" | "cloud";
   durationMs: number;
   outputTokens?: number | null;
   powerClass?: PowerClass;
@@ -66,25 +54,6 @@ export function measureRun(input: MeterInputs): RunCost {
   const seconds = Math.max(0, input.durationMs) / 1000;
   const tokens = input.outputTokens ?? null;
   const tokensPerSecond = tokens !== null && seconds > 0 ? tokens / seconds : null;
-
-  if (input.where === "cloud") {
-    /*
-     * Energy is NULL, not zero, and that distinction is the honest one. A cloud
-     * answer certainly consumed energy — in a datacentre, on hardware we know
-     * nothing about. Reporting 0 would imply local compute is dirtier than
-     * cloud, which is the opposite of what the arithmetic shows.
-     */
-    return {
-      where: "cloud",
-      durationMs: input.durationMs,
-      outputTokens: tokens,
-      tokensPerSecond,
-      energyWh: null,
-      costMinor: 0,
-      currency: input.currency ?? "GBP",
-      allowanceUsed: 1,
-    };
-  }
 
   const watts = POWER_CLASS[input.powerClass ?? "laptop_integrated"];
   const energyWh = (watts * seconds) / 3600;
@@ -99,30 +68,23 @@ export function measureRun(input: MeterInputs): RunCost {
     energyWh,
     costMinor,
     currency: input.currency ?? "GBP",
-    // The claim the product rests on, expressed as a number rather than a
-    // promise: your own hardware is not metered.
-    allowanceUsed: 0,
   };
 }
 
 export interface Totals {
   runs: number;
   local: number;
-  cloud: number;
   energyWh: number;
   costMinor: number;
-  allowanceUsed: number;
   currency: string;
 }
 
 export function total(runs: readonly RunCost[]): Totals {
   return {
     runs: runs.length,
-    local: runs.filter((r) => r.where === "local").length,
-    cloud: runs.filter((r) => r.where === "cloud").length,
-    energyWh: runs.reduce((n, r) => n + (r.energyWh ?? 0), 0),
+    local: runs.length,
+    energyWh: runs.reduce((n, r) => n + r.energyWh, 0),
     costMinor: runs.reduce((n, r) => n + r.costMinor, 0),
-    allowanceUsed: runs.reduce((n, r) => n + r.allowanceUsed, 0),
     currency: runs[0]?.currency ?? "GBP",
   };
 }
@@ -147,15 +109,7 @@ export function formatEnergy(wh: number): string {
 /**
  * What this conversation actually cost, on this machine.
  *
- * THE ALLOWANCE COMPARISON IS GONE, AND THE REASON MATTERS. This used to end
- * with "The same conversation on a cloud-only assistant would have used N of
- * your 28 requests" and, when a cloud turn had happened, "spending N of your
- * 28". Both described a metered cloud service OCADE no longer has: there is no
- * remote engine, nothing consumes an allowance, and `totals.cloud` can no
- * longer be anything but zero.
- *
- * A counterfactual about a competitor is also not this component's job. What a
- * person can act on is what their own hardware did, so that is what is
+ * What a person can act on is what their own hardware did, so that is what is
  * reported — and the honest limit of it is stated in `energyAssumption`.
  */
 export function describeTotals(totals: Totals): string {

@@ -32,7 +32,7 @@ describe("picking a local profile", () => {
     ]);
     if (!r.ok) throw new Error("unreachable");
     expect(r.data.ready?.id).toBe("mid");
-    expect(r.data.needsCloud).toBe(false);
+    expect(r.data.localUnavailable).toBe(false);
   });
 
   it("excludes a profile that needs more RAM than is safely available", () => {
@@ -114,24 +114,24 @@ describe("never auto-downloads a large component", () => {
     ]);
     if (!r.ok) throw new Error("unreachable");
     expect(r.data.excluded[0].reason).toMatch(/free disk to install/i);
-    expect(r.data.needsCloud).toBe(true);
+    expect(r.data.localUnavailable).toBe(true);
   });
 });
 
 /**
- * When nothing local fits, be honest — recommend cloud, don't pretend a profile
- * will run.
+ * When nothing local fits, be honest and refuse; do not pretend a profile will
+ * run or escalate remotely.
  */
 describe("when nothing local fits", () => {
-  it("recommends cloud rather than running something that won't load", () => {
+  it("refuses rather than running something that won't load", () => {
     const r = recommendProfile(hw({ availableRamBytes: 1 * GB }), [
       profile({ id: "mid", label: "Standard", minRamBytes: 6 * GB, installed: true }),
     ]);
     if (!r.ok) throw new Error("unreachable");
-    expect(r.data.needsCloud).toBe(true);
+    expect(r.data.localUnavailable).toBe(true);
     expect(r.data.ready).toBeNull();
-    expect(r.data.recommendation).toMatch(/cloud option \(with your consent\)/i);
-    expect(r.data.recommendation).toMatch(/rather than starting something that won't load/i);
+    expect(r.data.recommendation).toMatch(/supported local hardware/i);
+    expect(r.data.recommendation).toMatch(/will not move the job to public-cloud inference/i);
   });
 
   it("refuses with no profiles to choose from", () => {

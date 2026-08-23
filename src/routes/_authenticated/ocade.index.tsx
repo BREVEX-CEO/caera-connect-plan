@@ -1272,11 +1272,7 @@ function ChatSurface(props: {
   /**
    * What this conversation has actually cost.
    *
-   * More meaningful here than in the demo, because this surface has a REAL
-   * allowance to compare against. "You have used 0 of your 28 cloud requests,
-   * and about 0.02p of electricity" is a fact the user can check against their
-   * own bill and their own usage page — which is the honest form of the claim
-   * the whole product rests on.
+   * This is measured on-device electricity and duration, not a payment meter.
    */
   const [costs, setCosts] = useState<RunCost[]>([]);
 
@@ -2169,17 +2165,12 @@ function ChatSurface(props: {
             setReceipts((current) => ({ ...current, [assistant.id]: receipt }));
 
             /*
-             * Cost derived from the RECEIPT, not from the branch this code sits
-             * in. This is the on-device path, so it is tempting to record
-             * "local" unconditionally — but then a cost line saying "free, no
-             * allowance used" could sit directly beneath a receipt reporting
-             * that data left. Reading the measurement keeps them consistent by
-             * construction rather than by discipline.
+             * Generation always ran on-device. A receipt may report network use
+             * for current-information sources, but that does not move inference.
              */
             setCosts((current) => [
               ...current,
               measureRun({
-                where: receipt.leftDevice ? "cloud" : "local",
                 durationMs: Date.now() - routeStarted,
               }),
             ]);

@@ -14,10 +14,11 @@ contract. Age/parental-consent rules must be resolved before launch.
 
 ## 2. Service
 
-OCADE combines local software and optional online account, Private Sync, cloud,
-payment and remote-device features. Availability varies by hardware, platform,
-region, store approval and plan. Source presence, tests, screenshots and
-previews are not promises that a production feature is available.
+OCADE combines local software and optional online account, Private Sync,
+current-information retrieval, payment and remote-device features. Chat
+generation stays on the user's device. Availability varies by hardware,
+platform, region, store approval and plan. Source presence, tests, screenshots
+and previews are not promises that a production feature is available.
 
 ## 3. Account and devices
 
@@ -26,17 +27,15 @@ access. Current entitlement source allows up to **two desktop and two mobile
 devices**. The final commercial schedule must define replacement, household,
 business-seat, transfer and abuse rules.
 
-## 4. Demo, cloud allowance and local access
+## 4. Demo and local access
 
-Demo mode uses sample data and does not create a production entitlement. The
-8-day, 30-day and annual plans model **28, 56 and 128 successful cloud requests**
-respectively per aligned eight-hour window. Failed, cancelled and system-retried
-requests do not consume allowance, and supported local processing remains
-unlimited. This is not “28 hours on, 8 hours locked.”
+Demo mode uses sample data and does not create a production entitlement. OCADE
+does not send Chat generation to a public-cloud AI provider, does not meter Chat
+requests, and keeps supported local processing unlimited.
 
-After subscription expiry, cloud/premium features may stop, but supported local
-inference, local data access and local export remain available. Final copy must
-match the checkout and production enforcement exactly.
+After subscription expiry, supported local inference, local data access and
+local export remain available. Final copy must match the checkout and production
+enforcement exactly.
 
 ## 5. Pricing, renewal, cancellation and refunds
 
@@ -45,8 +44,8 @@ supported international currency; 30 days — ₹488 / 28; 1 year — ₹5,888 /
 The final total may include tax and provider-supported currency conversion,
 which must be shown before confirmation. These are fixed-duration purchases;
 there is no automatic renewal unless checkout clearly offers it and obtains a
-separate opt-in. Before accepting money, show currency, taxes, term, allowance,
-device limits, cancellation steps, refund policy, provider terms and statutory
+separate opt-in. Before accepting money, show currency, taxes, term, device
+limits, cancellation steps, refund policy, provider terms and statutory
 consumer rights. India UPI should use supported Intent/QR flows rather than the
 deprecated UPI Collect flow.
 
@@ -89,7 +88,7 @@ third-party/open-source licence.
 
 Online services may change or be suspended for security, abuse, non-payment or
 legal reasons, with notice and an appeal route where practicable. The final
-terms must specify data export, account closure, cloud deletion, backup expiry
+terms must specify data export, account closure, remote-record deletion, backup expiry
 and dispute handling. Termination must not claim a right to destroy user-owned
 local data outside OCADE’s control.
 

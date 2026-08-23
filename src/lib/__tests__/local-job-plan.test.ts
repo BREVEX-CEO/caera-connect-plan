@@ -44,13 +44,14 @@ describe("composing profile fit and resource governance", () => {
     expect(r.data.profileLabel).toBe("Compact");
   });
 
-  /** No local profile fits → cloud, not a forced local run. */
-  it("recommends cloud when nothing local fits the machine", () => {
+  /** No local profile fits → explicit refusal, not a forced or remote run. */
+  it("refuses when nothing local fits the machine", () => {
     const r = planLocalJob(job(), hw({ availableRamBytes: 1 * GB }), [
       profile({ minRamBytes: 8 * GB }),
     ]);
     if (!r.ok) throw new Error("unreachable");
-    expect(r.data.where).toBe("cloud");
+    expect(r.data.where).toBe("unavailable");
+    expect(r.evidence).toMatch(/remote inference refused/i);
   });
 
   /** A fitting-but-uninstalled profile needs approval first — never auto-run. */
