@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { LegalDialog } from "./LegalDialog";
 import { ShieldCheck } from "lucide-react";
 import {
   Dialog,
@@ -55,6 +56,7 @@ export function LegalConsentGate({
 }) {
   const required = needsLegalConsent(pathname);
   const [accepted, setAccepted] = useState(false);
+  const [legalOpen, setLegalOpen] = useState<null | "terms" | "privacy">(null);
   const [terms, setTerms] = useState(false);
   const [privacy, setPrivacy] = useState(false);
   const [storageWarning, setStorageWarning] = useState(false);
@@ -117,28 +119,34 @@ export function LegalConsentGate({
             </DialogHeader>
 
             <div className="relative mt-5 grid gap-3">
+              {/*
+                THESE OPENED A NEW BROWSER TAB, AND THAT WAS THE DEFECT.
+                `href="/terms" target="_blank"` threw the reader out of OCADE
+                to read OCADE's own terms — and this gate is modal, so they
+                came back to a dialog they had to find their place in again.
+                Buttons opening an in-site dialog keep the reader here and
+                keep the ticks they had already made.
+              */}
               <ConsentCheck checked={terms} onChange={setTerms}>
                 I have read and accept the{` `}
-                <a
-                  href="/terms"
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  type="button"
+                  onClick={() => setLegalOpen("terms")}
                   className="text-primary underline"
                 >
                   Terms of Service
-                </a>
+                </button>
                 .
               </ConsentCheck>
               <ConsentCheck checked={privacy} onChange={setPrivacy}>
                 I have read and acknowledge the{` `}
-                <a
-                  href="/privacy"
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  type="button"
+                  onClick={() => setLegalOpen("privacy")}
                   className="text-primary underline"
                 >
                   Privacy Notice
-                </a>
+                </button>
                 , including device permissions and local storage.
               </ConsentCheck>
               <p className="text-[11px] leading-relaxed text-muted-foreground">
@@ -172,6 +180,13 @@ export function LegalConsentGate({
           </div>
         </DialogContent>
       </Dialog>
+      <LegalDialog
+        open={legalOpen !== null}
+        document={legalOpen ?? "terms"}
+        onOpenChange={(next) => {
+          if (!next) setLegalOpen(null);
+        }}
+      />
     </>
   );
 }

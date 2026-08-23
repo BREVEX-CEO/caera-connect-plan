@@ -59,8 +59,7 @@ const b = await openTab("tab-b");
 const c = await openTab("tab-c");
 
 results.initialRoles = { a: a.role, b: b.role, c: c.role };
-results.exactlyOneOwner =
-  [a.role, b.role, c.role].filter((r) => r === "owner").length === 1;
+results.exactlyOneOwner = [a.role, b.role, c.role].filter((r) => r === "owner").length === 1;
 
 /* The owner's tab closes without releasing — a crash, not a clean handover. */
 const owner = [a, b, c].find((t) => t.role === "owner");
@@ -87,7 +86,9 @@ async function waitForOwnership(page, ms = 5000) {
 }
 
 const promoted = await Promise.all(others.map((t) => waitForOwnership(t.page)));
-results.afterOwnerTabClosed = promoted.map((ok, i) => `${others[i].name}:${ok ? "owner" : "follower"}`);
+results.afterOwnerTabClosed = promoted.map(
+  (ok, i) => `${others[i].name}:${ok ? "owner" : "follower"}`,
+);
 results.recoveredOwnership = promoted.filter(Boolean).length === 1;
 
 /*
