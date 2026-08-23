@@ -11,7 +11,7 @@
  *  3. No request goes to a public AI inference provider at any point.
  */
 import { chromium } from "playwright-core";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -30,15 +30,32 @@ const INFERENCE_HOSTS = [
 ];
 
 const profile = mkdtempSync(join(tmpdir(), "ocade-clean-"));
+const executablePath =
+  process.env.OCADE_BROWSER_PATH ??
+  [
+    "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
+    "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
+    "/opt/pw-browsers/chromium",
+  ].find(existsSync);
+if (!executablePath) throw new Error("Set OCADE_BROWSER_PATH to a Chromium-family browser.");
 const browser = await chromium.launchPersistentContext(profile, {
-  executablePath: "/opt/pw-browsers/chromium",
+  executablePath,
   headless: true,
   args: ["--no-sandbox", "--enable-unsafe-webgpu"],
 });
 
 const requests = [];
 const consoleErrors = [];
+const httpErrors = [];
+const requestFailures = [];
 browser.on("request", (r) => requests.push(r.url()));
+browser.on("response", (r) => {
+  if (r.status() >= 400) httpErrors.push({ status: r.status(), url: r.url() });
+});
+browser.on("requestfailed", (r) =>
+  requestFailures.push({ url: r.url(), reason: r.failure()?.errorText ?? "unknown" }),
+);
 browser.on("console", (m) => {
   if (m.type() === "error") consoleErrors.push(m.text());
 });
@@ -86,6 +103,28 @@ await step("storage_state_after_first_visit", async () =>
     return out;
   }),
 );
+
+await step("demo_prepares_when_typing_starts", async () => {
+  await page.goto(BASE + "/demo/ocade", { waitUntil: "domcontentloaded", timeout: 60000 });
+  await page.waitForTimeout(1200);
+  const dialog = page.getByRole("dialog", { name: "Before you use OCADE" });
+  if (await dialog.isVisible().catch(() => false)) {
+    for (const box of await dialog.getByRole("checkbox").all()) await box.check();
+    await dialog.getByRole("button", { name: "Accept and continue" }).click();
+  }
+  const composer = page.getByRole("textbox", { name: "Message OCADE" });
+  await composer.fill("Hello OCADE");
+  await page.waitForTimeout(1500);
+  const body = await page.locator("body").innerText();
+  const statuses = await page.getByRole("status").allTextContents();
+  return {
+    composerEnabled: await composer.isEnabled(),
+    preparationVisible:
+      /Preparing OCADE Intelligence|Almost ready|OCADE Intelligence is ready/i.test(body),
+    preparationStatus: statuses.find((text) => /OCADE Intelligence/i.test(text)) ?? null,
+    sample: body.replace(/\s+/g, " ").slice(-220),
+  };
+});
 
 await step("webgpu_available_here", async () =>
   page.evaluate(async () => {
@@ -162,9 +201,14 @@ const report = {
   totalRequests: requests.length,
   inferenceLeaks: leaks,
   externalHosts,
+  httpErrors: httpErrors.slice(0, 20),
+  requestFailures: requestFailures.slice(0, 20),
   consoleErrors: consoleErrors.slice(0, 20),
   results,
 };
-writeFileSync(process.env.OUT ?? "/tmp/clean-machine.json", JSON.stringify(report, null, 2));
+writeFileSync(
+  process.env.OUT ?? join(tmpdir(), "ocade-clean-machine.json"),
+  JSON.stringify(report, null, 2),
+);
 console.log(JSON.stringify(report, null, 2));
 await browser.close();

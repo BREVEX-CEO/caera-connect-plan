@@ -62,6 +62,14 @@ try {
     const page = await context.newPage();
     await page.goto(ORIGIN, { waitUntil: "load" });
     tabs.push(page);
+    if (i === 0) {
+      const immediate = await page.evaluate(() => window.__ask("immediate"));
+      check(
+        "a fresh tab does not lose its first request during election",
+        immediate.ok && immediate.text === "answer:immediate" && immediate.ranOn === "owner",
+        `${immediate.ranOn}:${immediate.text}`,
+      );
+    }
     await page.waitForTimeout(250);
   }
   await tabs[0].waitForTimeout(600);

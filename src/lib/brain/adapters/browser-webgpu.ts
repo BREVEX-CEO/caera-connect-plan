@@ -336,6 +336,12 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
     try {
       const completion = await engine.chat.completions.create({
         stream: true,
+        // Keep the runtime aligned with the sampling values recorded in the
+        // answer receipt. Leaving these implicit made the receipt say 0.2/0.9
+        // while WebLLM used its own defaults, and the 0.5B browser tier became
+        // needlessly erratic on exact and arithmetic prompts.
+        temperature: 0.2,
+        top_p: 0.9,
         messages: messages.map((m) => ({ role: m.role, content: m.content })),
       });
 

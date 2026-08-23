@@ -351,7 +351,7 @@ function AuthPage() {
           <button
             type="button"
             onClick={() => setLegalOpen("terms")}
-            className="underline underline-offset-2 hover:text-foreground"
+            className="-mx-1 inline-flex min-h-6 items-center rounded px-1 underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             terms
           </button>
@@ -360,7 +360,7 @@ function AuthPage() {
           <button
             type="button"
             onClick={() => setLegalOpen("privacy")}
-            className="underline underline-offset-2 hover:text-foreground"
+            className="-mx-1 inline-flex min-h-6 items-center rounded px-1 underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             privacy notice
           </button>

@@ -32,8 +32,12 @@ describe("OCADE 77 — proof for formerly source-inspected boundaries", () => {
     expect(readme).toMatch(/Browser Only data never leaves/i);
   });
 
-  it("#16 withdraws pricing and billing during free launch", () => {
-    expectAll("src/routes/pricing.tsx", [/FREE_LAUNCH_MODE/, /redirect\(\{ to: "\/" \}\)/]);
+  it("#16 keeps pricing visible but withdraws billing during free launch", () => {
+    expectAll("src/routes/pricing.tsx", [
+      /createFileRoute\("\/pricing"\)/,
+      /deploymentDetails=\{false\}/,
+    ]);
+    expect(source("src/routes/pricing.tsx")).not.toMatch(/beforeLoad/);
     expectAll("src/routes/_authenticated/settings.billing.tsx", [
       /FREE_LAUNCH_MODE/,
       /redirect\(\{ to: "\/settings\/usage" \}\)/,
@@ -65,6 +69,20 @@ describe("OCADE 77 — proof for formerly source-inspected boundaries", () => {
       /Show earlier messages/,
       /WINDOW_STEP/,
     ]);
+  });
+
+  it("uses the complete demo reset path from both New chat controls", () => {
+    const demo = source("src/routes/demo.ocade.tsx");
+    expect(demo.match(/onNewChat=\{resetConversation\}/g) ?? []).toHaveLength(2);
+  });
+
+  it("keeps browser sampling deterministic enough for the recorded demo receipt", () => {
+    for (const path of [
+      "src/lib/brain/adapters/browser-webgpu.ts",
+      "src/lib/brain/adapters/browser-wasm.ts",
+    ]) {
+      expectAll(path, [/temperature: 0\.2/, /top_p: 0\.9/]);
+    }
   });
 
   it("#31 searches real OCADE tables without raw .or grammar", () => {

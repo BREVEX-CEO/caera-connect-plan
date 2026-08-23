@@ -16,7 +16,11 @@ describe("OCADE 77 — unavailable UI boundaries", () => {
       /status: "UNAVAILABLE" as const/,
       /Desktop downloads are disabled for the current free launch/,
     ]);
-    expectAll("src/routes/download.tsx", [/FREE_LAUNCH_MODE/, /redirect\(\{ to: "\/" \}\)/]);
+    expectAll("src/routes/download.tsx", [
+      /createFileRoute\("\/download"\)/,
+      /Signing and clean-device test required/,
+    ]);
+    expect(source("src/routes/download.tsx")).not.toMatch(/beforeLoad/);
   });
 
   it("#20 gates updater/signing/notarization claims", () => {
@@ -26,6 +30,22 @@ describe("OCADE 77 — unavailable UI boundaries", () => {
       /signing/i,
     ]);
     expectAll(".github/workflows/release.yml", [/if: \$\{\{ false \}\}/]);
+  });
+
+  it("does not let a cold browser engine be sealed before its first completed answer", () => {
+    expectAll("src/routes/demo.ocade.tsx", [
+      /const canStartSeal = turns\.some/,
+      /disabled=\{!sealed && !canStartSeal\}/,
+      /Send one message first so OCADE can finish preparing its local engine/,
+    ]);
+  });
+
+  it("states the FREE LAUNCH payment boundary in the consent gate", () => {
+    const gate = expectAll("src/components/legal/LegalConsentGate.tsx", [
+      /Purchases and payment collection are/,
+      /disabled during FREE LAUNCH/,
+    ]);
+    expect(gate).not.toMatch(/Payment credentials are entered/);
   });
 
   it("#45 marks unwired Studio generators NOT_CONFIGURED", () => {

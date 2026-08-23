@@ -161,6 +161,8 @@ export interface BrainAdapter {
   probe(): Promise<AdapterAvailability>;
   /** Stream a reply. Resolves with a result; never rejects. */
   stream(messages: BrainMessage[], handlers: BrainStreamHandlers): Promise<BrainStreamResult>;
+  /** Optionally prepare weights before the first send. Must be idempotent. */
+  preload?(): Promise<void>;
   /**
    * Release whatever this adapter is holding — weights, workers, sockets.
    * Called when the user switches engines or leaves the screen, so a browser

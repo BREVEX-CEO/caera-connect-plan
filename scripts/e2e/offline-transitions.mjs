@@ -16,6 +16,13 @@ import { chromium } from "playwright-core";
 
 const BASE = process.env.OCADE_BASE_URL ?? "http://127.0.0.1:8080";
 const STATE = process.env.OCADE_STORAGE_STATE;
+// Without authenticated storage, exercise the product's genuine no-account
+// surface. Visiting /ocade in that case only measures the auth/configuration
+// gate and used to misreport its concise, truthful failure page as an offline
+// rendering defect because it contained fewer than 200 characters.
+const START_ROUTE = STATE ? "/ocade" : "/demo/ocade";
+const SETTINGS_ROUTE = STATE ? "/settings/appearance" : "/demo/settings";
+const SURFACE = STATE ? "authenticated workspace" : "no-account demo";
 
 const results = [];
 const check = (name, ok, detail = "") => {
@@ -82,7 +89,7 @@ const seenEvents = () => page.evaluate(() => JSON.parse(sessionStorage.getItem("
 
 try {
   await page.addInitScript(WATCHER);
-  await page.goto(`${BASE}/ocade`, { waitUntil: "networkidle", timeout: 60000 });
+  await page.goto(`${BASE}${START_ROUTE}`, { waitUntil: "networkidle", timeout: 60000 });
   await page.waitForTimeout(1800);
   await clearModals();
   await watchEvents();
@@ -90,7 +97,7 @@ try {
   check("starts online", (await onLine()) === true);
   const onlineBody = await page.evaluate(() => document.body.innerText.replace(/\s+/g, " ").trim());
   check(
-    "the workspace rendered while online",
+    `${SURFACE} rendered while online`,
     onlineBody.length > 200,
     `${onlineBody.length} characters: ${JSON.stringify(onlineBody.slice(0, 120))}`,
   );
@@ -107,14 +114,14 @@ try {
 
   const offlineText = (await page.evaluate(() => document.body.innerText)).length;
   check(
-    "the workspace still renders with the network down",
+    `${SURFACE} still renders with the network down`,
     offlineText > 200,
     `${offlineText} characters`,
   );
 
   // A client-side route change must not need the network.
   await page
-    .goto(`${BASE}/settings/appearance`, { waitUntil: "domcontentloaded", timeout: 30000 })
+    .goto(`${BASE}${SETTINGS_ROUTE}`, { waitUntil: "domcontentloaded", timeout: 30000 })
     .catch(() => {});
   await page.waitForTimeout(1200);
   await clearModals();
@@ -146,12 +153,12 @@ try {
     JSON.stringify(await seenEvents()),
   );
 
-  await page.goto(`${BASE}/ocade`, { waitUntil: "networkidle", timeout: 60000 });
+  await page.goto(`${BASE}${START_ROUTE}`, { waitUntil: "networkidle", timeout: 60000 });
   await page.waitForTimeout(1500);
   await clearModals();
   const backText = (await page.evaluate(() => document.body.innerText)).length;
   check(
-    "the workspace reloads cleanly once the network is back",
+    `${SURFACE} reloads cleanly once the network is back`,
     backText > 200,
     `${backText} characters`,
   );

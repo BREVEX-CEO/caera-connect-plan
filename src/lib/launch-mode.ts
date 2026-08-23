@@ -6,7 +6,8 @@
  * one flag that every surface reads.
  *
  * WHAT THIS FLAG DOES:
- *  - hides every pricing, checkout, upgrade, plan and billing surface;
+ *  - keeps future pricing visible as read-only information;
+ *  - hides or disables checkout, upgrade and account-billing controls;
  *  - stops paid entitlement from gating any implemented feature.
  *
  * WHAT IT DELIBERATELY DOES NOT DO:
@@ -20,7 +21,7 @@
  */
 export const FREE_LAUNCH_MODE = true;
 
-/** True when billing/checkout surfaces may be shown at all. */
+/** True only when an operation may initialize billing or checkout. */
 export function billingEnabled(): boolean {
   return !FREE_LAUNCH_MODE;
 }

@@ -1,5 +1,3 @@
-import { redirect } from "@tanstack/react-router";
-import { FREE_LAUNCH_MODE } from "@/lib/launch-mode";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
@@ -12,13 +10,11 @@ import {
   evaluatePublicWindowsRelease,
   type ClientPlatform,
 } from "@/lib/packaging/public-download";
+import { FREE_LAUNCH_MODE } from "@/lib/launch-mode";
 
 export const Route = createFileRoute("/download")({
-  /* Desktop installer promotion is withdrawn until packages are runtime-proven. The page itself is kept, unreachable, so
-     re-enabling billing is a flag change rather than a rebuild. */
-  beforeLoad: () => {
-    if (FREE_LAUNCH_MODE) throw redirect({ to: "/" });
-  },
+  /* The availability page is public even though every unverified installer is
+     locked. A truthful disabled state is more useful than a silent redirect. */
   head: () => ({
     meta: [
       { title: "Download OCADE — desktop and mobile availability" },
@@ -54,9 +50,9 @@ function DownloadPage() {
         <PackageRow
           icon={<Laptop className="h-5 w-5" aria-hidden />}
           title={platform === "windows" ? "Recommended for this device" : "OCADE for Windows"}
-          description="Tauri desktop shell, local companion bridge and optional on-device runtime. Payment opens the secure browser checkout and the app refreshes access after server verification."
+          description="Tauri desktop shell, local companion bridge and optional on-device runtime. Public packages remain unavailable until signing and clean-device verification are complete."
         />
-        {release.ready ? (
+        {release.ready && !FREE_LAUNCH_MODE ? (
           <Button asChild className="mt-4 rounded-full">
             <a href={release.url} download>
               <Download className="mr-2 h-4 w-4" aria-hidden />

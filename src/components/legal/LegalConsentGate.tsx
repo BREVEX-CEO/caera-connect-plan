@@ -151,8 +151,8 @@ export function LegalConsentGate({
               </ConsentCheck>
               <p className="text-[11px] leading-relaxed text-muted-foreground">
                 Camera, microphone, browser control and computer-control permissions are requested
-                separately only when you activate them. Payment credentials are entered only on the
-                payment provider’s hosted page.
+                separately only when you activate them. Purchases and payment collection are
+                disabled during FREE LAUNCH.
               </p>
               {storageWarning ? (
                 <p role="status" className="text-[11px] text-[color:var(--state-warning)]">

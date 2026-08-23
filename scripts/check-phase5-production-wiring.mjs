@@ -48,7 +48,11 @@ const REPLACED_HISTORICAL_MODULES = [
       },
       {
         path: "src/routes/download.tsx",
-        patterns: [/FREE_LAUNCH_MODE/, /redirect\(\{\s*to:\s*"\/"\s*\}\)/],
+        patterns: [
+          /FREE_LAUNCH_MODE/,
+          /release\.ready\s*&&\s*!FREE_LAUNCH_MODE/,
+          /Signing and clean-device test required/,
+        ],
       },
     ],
   },

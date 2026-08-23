@@ -219,7 +219,7 @@ export function summarise(findings: Finding[]): string {
   }
   const critical = findings.filter((f) => f.severity === "critical").length;
   if (critical > 0) {
-    return `${critical} ${critical === 1 ? "item" : "items"} in this message could give someone access to an account. Sending it will put ${critical === 1 ? "it" : "them"} in a server's logs.`;
+    return `${critical} ${critical === 1 ? "item" : "items"} in this message could give someone access to an account. Remove or redact ${critical === 1 ? "it" : "them"} before continuing.`;
   }
   return `${findings.length} personal ${findings.length === 1 ? "detail" : "details"} found in this message.`;
 }

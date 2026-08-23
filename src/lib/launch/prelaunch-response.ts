@@ -88,7 +88,8 @@ function publicDocument(pathname: string): PublicDocument | null {
   if (pathname === "/company") {
     return {
       title: "CARCC CADANE — Company and founder information",
-      description: "Official pre-launch information about CARCC CADANE, OCADE and founder HAANS ANTONI.",
+      description:
+        "Official pre-launch information about CARCC CADANE, OCADE and founder HAANS ANTONI.",
       eyebrow: "Official company information",
       heading: "CARCC CADANE",
       lead: `CARCC CADANE is the independent venture behind OCADE, led from Bengaluru, Karnataka, India by HAANS ANTONI as CEO, Chairman and Founder. Public launch is planned for ${LAUNCH_PUBLIC_DATE_LABEL}.`,
@@ -170,9 +171,10 @@ export function renderPrelaunchPublicPage(pathname: string): string | null {
   const canonical = `https://ocade.in${pathname}`;
   const sections = document.sections
     .map(
-      (section) => `<section><h2>${escapeHtml(section.heading)}</h2>${section.paragraphs
-        .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
-        .join("")}</section>`,
+      (section) =>
+        `<section><h2>${escapeHtml(section.heading)}</h2>${section.paragraphs
+          .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+          .join("")}</section>`,
     )
     .join("");
   const structuredData = JSON.stringify(document.structuredData).replaceAll("<", "\\u003c");
@@ -187,12 +189,14 @@ export function renderPrelaunchPublicPage(pathname: string): string | null {
 <style>:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#050505;color:#eeeaf1;font:16px/1.7 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}a{color:inherit}header,main,footer{width:min(920px,calc(100% - 32px));margin:auto}header{padding:28px 0 18px}header img{display:block;width:min(540px,100%);height:auto}nav{display:flex;flex-wrap:wrap;gap:18px;padding:16px 0;border-top:1px solid #2a2630;border-bottom:1px solid #2a2630}main{padding:56px 0}.eyebrow{color:#d6a64f;font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase}h1{font-size:clamp(42px,8vw,76px);line-height:1.05;margin:12px 0 22px;letter-spacing:-.035em}.lead{max-width:760px;color:#c6beca;font-size:clamp(18px,3vw,23px)}section{margin-top:28px;padding:24px;border:1px solid #2a2630;border-radius:18px;background:#0b090d}h2{margin:0 0 10px;font-size:22px}p{margin:10px 0;color:#aaa2ae}footer{padding:26px 0 40px;border-top:1px solid #2a2630;color:#918896;font-size:13px}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}</style></head>
 <body><header><a href="/company" aria-label="CARCC CADANE company page"><img src="/brand/ocade-carcc-wordmark.png" alt="OCADE by CARCC CADANE — Command the Next Era." width="2172" height="724" /></a><nav aria-label="Public information"><a href="/company">Company</a><a href="/founder/haans-antoni">Founder</a><a href="/products/ocade">OCADE</a></nav></header>
 <main><p class="eyebrow">${escapeHtml(document.eyebrow)}</p><h1>${escapeHtml(document.heading)}</h1><p class="lead">${escapeHtml(document.lead)}</p>${sections}</main>
-<footer>© 2026 Haans Antoni. CARCC CADANE brand. Pre-launch factual information.</footer></body></html>`;
+<footer>© 2026 CARCC CADANE. Pre-launch factual information.</footer></body></html>`;
 }
 
 function prelaunchPublicResponse(pathname: string): Response | null {
   const html = renderPrelaunchPublicPage(pathname);
-  return html ? new Response(html, { status: 200, headers: publicHeaders("text/html; charset=utf-8") }) : null;
+  return html
+    ? new Response(html, { status: 200, headers: publicHeaders("text/html; charset=utf-8") })
+    : null;
 }
 
 function prelaunchSitemapResponse(): Response {
@@ -200,7 +204,10 @@ function prelaunchSitemapResponse(): Response {
     .map((pathname) => `  <url><loc>https://ocade.in${pathname}</loc></url>`)
     .join("\n");
   const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
-  return new Response(body, { status: 200, headers: publicHeaders("application/xml; charset=utf-8") });
+  return new Response(body, {
+    status: 200,
+    headers: publicHeaders("application/xml; charset=utf-8"),
+  });
 }
 
 /** Minimal, dependency-free pre-launch page. Contains no application script. */
@@ -269,7 +276,10 @@ export function prelaunchRobotsResponse(decision: LaunchGateDecision): Response 
   ].join("\n");
   return new Response(body, {
     status: 200,
-    headers: { ...publicHeaders("text/plain; charset=utf-8"), "retry-after": String(decision.retryAfterSeconds) },
+    headers: {
+      ...publicHeaders("text/plain; charset=utf-8"),
+      "retry-after": String(decision.retryAfterSeconds),
+    },
   });
 }
 

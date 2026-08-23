@@ -97,6 +97,7 @@ import { improvePromptLocally } from "@/lib/chat/improve-prompt";
 import { MessageList } from "@/components/ocade/chat/MessageList";
 import { ChatSidebar } from "@/components/ocade/chat/ChatSidebar";
 import { EngineBadge } from "@/components/ocade/chat/EngineBadge";
+import { PreparationStatus } from "@/components/ocade/chat/PreparationStatus";
 import { useBrain } from "@/lib/brain/use-brain";
 import { resolveEngine } from "@/lib/engine/resolve";
 import { NetworkWitness, limits as networkLimits } from "@/lib/provenance/network-witness";
@@ -1475,12 +1476,13 @@ function ChatSurface(props: {
    * background weight this product is meant not to impose.
    */
   function warmLocalEngine() {
-    if (localEngine.status !== "ready" || localEngine.models.length === 0) return;
-    const route = routeTask("general", localEngine.models, localPerfLedger, devicePolicy.policy);
-    if (!route.ok) return;
-    const id = route.model.id;
-    if (warmedRef.current.has(id)) return;
-    warmedRef.current.add(id);
+    let warmKey = "browser-or-paired";
+    if (localEngine.status === "ready" && localEngine.models.length > 0) {
+      const route = routeTask("general", localEngine.models, localPerfLedger, devicePolicy.policy);
+      if (route.ok) warmKey = route.model.id;
+    }
+    if (warmedRef.current.has(warmKey)) return;
+    warmedRef.current.add(warmKey);
     /*
      * Warm at the window this message will actually need.
      *
@@ -3320,6 +3322,7 @@ function ChatSurface(props: {
               </button>
             </div>
           ) : null}
+          <PreparationStatus />
           <div className="mb-1.5 flex items-center gap-1 text-[11px]">
             <span className="text-muted-foreground">Engine</span>
             {(["auto", "local"] as const).map((t) => {

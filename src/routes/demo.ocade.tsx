@@ -20,6 +20,7 @@ import { ChatComposer } from "@/components/ocade/chat/ChatComposer";
 import { useChatPrefs } from "@/lib/use-chat-prefs";
 import { ChatEmptyState } from "@/components/ocade/chat/ChatEmptyState";
 import { EngineBadge } from "@/components/ocade/chat/EngineBadge";
+import { PreparationStatus } from "@/components/ocade/chat/PreparationStatus";
 import { DemoSessionBadge } from "@/components/ocade/demo/DemoSessionBadge";
 import { DemoControlNav, DemoSidebarNav } from "@/components/ocade/demo/DemoSidebarNav";
 import { useDemoSession } from "@/lib/demo/use-demo-session";
@@ -578,6 +579,14 @@ function DemoOcade() {
   }, [draft, streaming, turns, engine, guards]);
 
   const unavailable = engine.state.status === "unavailable";
+  // A seal blocks every external model/file request. Probe readiness only
+  // proves that an adapter exists; it does not prove that its weights have
+  // finished loading. Requiring one completed answer prevents a visitor from
+  // sealing a cold engine and watching an apparently live send stall while
+  // the download it needs is correctly refused by the seal.
+  const canStartSeal = turns.some(
+    (turn) => turn.role === "assistant" && turn.content.trim().length > 0,
+  );
 
   return (
     <ChatShell
@@ -585,12 +594,7 @@ function DemoOcade() {
         <ChatSidebar
           conversations={DEMO_CONVERSATION}
           activeId="demo"
-          onNewChat={() => {
-            engine.stop();
-            setStreaming(false);
-            setTurns([]);
-            setDraft("");
-          }}
+          onNewChat={resetConversation}
           emptyLabel="This conversation is temporary."
           primaryAction={<DemoControlNav active="chat" />}
           footer={<DemoSidebarNav active="chat" />}
@@ -612,6 +616,7 @@ function DemoOcade() {
           <button
             type="button"
             onClick={() => {
+              if (!sealed && !canStartSeal) return;
               setSealed((v) => !v);
               toast.info(
                 sealed
@@ -619,12 +624,20 @@ function DemoOcade() {
                   : "Conversation sealed. Nothing can leave this device until you unseal it.",
               );
             }}
+            disabled={!sealed && !canStartSeal}
+            title={
+              sealed || canStartSeal
+                ? undefined
+                : "Send one message first so OCADE can finish preparing its local engine."
+            }
             aria-pressed={sealed}
             className={cn(
               "ml-auto inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[11.5px] transition",
               sealed
                 ? "border-[color:var(--state-success)]/50 bg-[color:var(--state-success)]/10 text-[color:var(--state-success)]"
-                : "border-border/60 text-muted-foreground hover:bg-accent",
+                : canStartSeal
+                  ? "border-border/60 text-muted-foreground hover:bg-accent"
+                  : "cursor-not-allowed border-border/40 text-muted-foreground/55",
             )}
           >
             {sealed ? (
@@ -704,12 +717,15 @@ function DemoOcade() {
               toggle: dictation.toggle,
               languageLabel: language.nativeLabel,
             }}
+            onTypingStarted={engine.warm}
             streaming={streaming}
             disabled={unavailable}
             engine={engineStatus}
             placeholder={unavailable ? "OCADE cannot run on this device." : "Ask OCADE anything…"}
             imageDisabledReason="Attachments are available once you create an account."
-          />
+          >
+            <PreparationStatus />
+          </ChatComposer>
         </>
       }
     >

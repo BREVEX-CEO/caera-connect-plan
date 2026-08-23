@@ -181,7 +181,7 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
        * made ready like the primary.
        */
       const webgpu = registry.get("browser_webgpu");
-      if (webgpu instanceof BrowserWebGpuAdapter) {
+      if (webgpu?.preload) {
         publishPreparation({ stage: "checking" });
         void webgpu
           .probe()
@@ -197,15 +197,15 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
              */
             await modelStore.requestPersistence();
             if (availability.available) {
-              await webgpu.preload();
+              await webgpu.preload!();
               publishPreparation({ stage: "ready", fraction: 1 });
               return;
             }
             const wasm = registry.get("browser_wasm");
-            if (wasm instanceof BrowserWasmAdapter) {
+            if (wasm?.preload) {
               const fallback = await wasm.probe();
               if (fallback.available) {
-                await wasm.preload();
+                await wasm.preload!();
                 publishPreparation({ stage: "ready", fraction: 1 });
                 return;
               }

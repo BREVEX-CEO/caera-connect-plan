@@ -110,6 +110,7 @@ export function createModelOwner(options: ModelOwnerOptions): ModelOwnerHandle {
     {
       onToken: (t: string) => void;
       settle: (r: ModelOwnerResult) => void;
+      payload: unknown;
       timer: ReturnType<typeof setTimeout>;
     }
   >();
@@ -129,6 +130,31 @@ export function createModelOwner(options: ModelOwnerOptions): ModelOwnerHandle {
   async function becomeOwner() {
     setRole("owner");
     post({ k: "owner", who: me });
+
+    /*
+     * A fresh tab can ask before the Web Locks callback promotes it. The
+     * BroadcastChannel request cannot loop back to its sender, so without
+     * adopting these entries the first warm-up (or first chat) waits until it
+     * times out even though this very tab has become the owner.
+     */
+    for (const [id, entry] of [...pending]) {
+      clearTimeout(entry.timer);
+      pending.delete(id);
+      try {
+        if (loads === 0) {
+          loads += 1;
+          await options.load();
+        }
+        const result = await options.run(entry.payload, entry.onToken);
+        entry.settle({ ...result, ranOn: "owner" });
+      } catch (error) {
+        entry.settle({
+          ok: false,
+          reason: error instanceof Error ? error.message : "The model failed.",
+          ranOn: "owner",
+        });
+      }
+    }
   }
 
   async function handleRequest(message: Extract<Message, { k: "req" }>) {
@@ -208,7 +234,7 @@ export function createModelOwner(options: ModelOwnerOptions): ModelOwnerHandle {
         pending.delete(id);
         entry.settle({ ok: false, reason: "The tab holding the model did not answer." });
       }, timeoutMs);
-      post({ k: "req", id, from: me, payload: (entry as { payload?: unknown }).payload });
+      post({ k: "req", id, from: me, payload: entry.payload });
     }
   }
 
@@ -239,7 +265,7 @@ export function createModelOwner(options: ModelOwnerOptions): ModelOwnerHandle {
           resolve({ ok: false, reason: "The tab holding the model did not answer." });
         }, timeoutMs),
       };
-      pending.set(id, entry as never);
+      pending.set(id, entry);
       post({ k: "req", id, from: me, payload });
     });
   }

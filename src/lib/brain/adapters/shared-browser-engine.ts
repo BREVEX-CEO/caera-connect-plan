@@ -34,10 +34,13 @@ import {
   type ModelOwnerHandle,
 } from "@/lib/local/model-owner";
 
-interface ForwardedRequest {
-  messages: BrainMessage[];
-  think?: boolean;
-}
+type ForwardedRequest =
+  | { kind: "preload" }
+  | {
+      kind: "stream";
+      messages: BrainMessage[];
+      think?: boolean;
+    };
 
 export function shareAcrossTabs(inner: BrainAdapter): BrainAdapter {
   if (!modelOwnerSupported()) return inner;
@@ -52,6 +55,10 @@ export function shareAcrossTabs(inner: BrainAdapter): BrainAdapter {
       load: async () => {},
       run: async (payload, onToken) => {
         const request = payload as ForwardedRequest;
+        if (request.kind === "preload") {
+          await inner.preload?.();
+          return { ok: true };
+        }
         const result = await inner.stream(request.messages, {
           onToken,
           think: request.think,
@@ -68,6 +75,16 @@ export function shareAcrossTabs(inner: BrainAdapter): BrainAdapter {
     id: inner.id,
     displayName: inner.displayName,
     probe: () => inner.probe(),
+    async preload() {
+      const coordinator = owner();
+      // Treat warm-up as owner work. This also covers the first milliseconds
+      // of a fresh tab, while the lock election is still settling.
+      const result = await coordinator.request(
+        { kind: "preload" } satisfies ForwardedRequest,
+        () => {},
+      );
+      if (!result.ok) throw new Error(result.reason ?? "The browser engine could not warm up.");
+    },
     async stream(
       messages: BrainMessage[],
       handlers: BrainStreamHandlers,
@@ -89,7 +106,7 @@ export function shareAcrossTabs(inner: BrainAdapter): BrainAdapter {
       const startedAt = Date.now();
       let firstTokenMs: number | null = null;
       const result = await coordinator.request(
-        { messages, think: handlers.think } satisfies ForwardedRequest,
+        { kind: "stream", messages, think: handlers.think } satisfies ForwardedRequest,
         (token) => {
           if (firstTokenMs === null) firstTokenMs = Date.now() - startedAt;
           handlers.onToken(token);
