@@ -116,6 +116,28 @@ describe("a message row offers only the actions it was given", () => {
     // Regenerating a half-finished answer is meaningless, so it is not offered.
     expect(html).not.toContain("Regenerate answer");
   });
+
+  it("renders truthful processing receipts rather than pretending a human read the turn", () => {
+    const html = renderToStaticMarkup(
+      <MessageBubble
+        message={message({ role: "user", deliveryState: "processed" })}
+        actions={{ onReply: () => {} }}
+      />,
+    );
+    expect(html).toContain("Processed by OCADE");
+    expect(html).toContain("Reply to message");
+    expect(html).toContain("Swipe right to reply");
+    expect(html).not.toContain("Read by");
+  });
+
+  it("shows both feedback controls and exposes the selected reaction", () => {
+    const html = renderToStaticMarkup(
+      <MessageBubble message={message({ reaction: "helpful" })} actions={{ onReact: () => {} }} />,
+    );
+    expect(html).toContain('aria-label="Helpful"');
+    expect(html).toContain('aria-label="Not helpful"');
+    expect(html).toContain('aria-pressed="true"');
+  });
 });
 
 describe("the composer", () => {

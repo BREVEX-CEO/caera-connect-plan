@@ -393,6 +393,17 @@ function AuthPage() {
           <span className="font-semibold uppercase tracking-wider">Demo →</span>
         </Link>
 
+        <Link
+          to="/blog/$slug"
+          params={{ slug: "why-ocade-starts-local" }}
+          className="rounded-md border border-border/60 bg-background/35 px-3 py-2.5 text-xs hover:border-primary/35"
+        >
+          <span className="block font-medium text-foreground">Why OCADE starts local</span>
+          <span className="mt-1 block text-muted-foreground">
+            Read the product note before deciding whether to sign in or create an account.
+          </span>
+        </Link>
+
         {/*
           RETURNING OR JOINING — asked once, plainly, before anything is sent.
 

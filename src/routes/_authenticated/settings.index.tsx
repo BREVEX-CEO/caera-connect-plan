@@ -19,6 +19,7 @@ import { recordAction } from "@/lib/actions";
 import { type ThemeMode, type CursorKind } from "@/lib/theme-provider";
 import { useAppearance } from "@/lib/use-appearance";
 import { cn } from "@/lib/utils";
+import { DeviceAvatarEditor } from "@/components/settings/DeviceAvatarEditor";
 
 export const Route = createFileRoute("/_authenticated/settings/")({
   head: () => ({
@@ -247,9 +248,7 @@ function GeneralPage() {
       <GlassPanel className="p-5">
         <SectionHeading icon={UserIcon} title="Identity" />
         <div className="mt-4 flex items-start gap-4">
-          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-border/60 bg-secondary/60 text-sm font-semibold text-foreground">
-            {initials}
-          </div>
+          <DeviceAvatarEditor storageKey={`ocade:device-avatar:${user?.id ?? "anonymous"}`} initials={initials} />
           <div className="min-w-0 flex-1 grid gap-3 sm:grid-cols-2">
             <Field label="Full name">
               <input

@@ -6,6 +6,7 @@ import { AlertCircle, Loader2, Pause, Play, RefreshCw, Square, ListChecks } from
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { StatusBadge } from "@/components/shell/StatusBadge";
+import { TaskBoard } from "@/components/ocade/TaskBoard";
 import { useSession } from "@/lib/session";
 import {
   listAutomations,
@@ -110,6 +111,8 @@ export function TasksWorkspace({ backTo, backLabel }: { backTo: string; backLabe
           {error}
         </div>
       ) : null}
+
+      <TaskBoard />
 
       {/* Automations */}
       <GlassPanel className="mt-6 p-5">

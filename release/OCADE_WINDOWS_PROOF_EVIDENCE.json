@@ -1,5 +1,5 @@
 {
-  "recordedAt": "2026-08-23T16:30:23.223Z",
+  "recordedAt": "2026-08-23T19:02:22.893Z",
   "platform": "win32 x64",
   "windowsVersion": "Microsoft Windows [Version 10.0.19044.6466]",
   "node": "v24.16.0",
@@ -26,17 +26,17 @@
     {
       "name": "the sidecar speaks its protocol and refuses honestly",
       "ok": true,
-      "detail": "23 passed, 8 skipped in 4.38s"
+      "detail": "23 passed, 8 skipped in 4.25s"
     },
     {
       "name": "the full sidecar suite, with the Windows paths executing",
       "ok": true,
-      "detail": "297 passed, 17 skipped in 79.30s (0:01:19)"
+      "detail": "297 passed, 17 skipped in 79.71s (0:01:19)"
     },
     {
       "name": "REAL PC CONTROL: pointer, keyboard, OCR, windows, STOP latch",
       "ok": true,
-      "detail": "14 passed in 5.57s"
+      "detail": "14 passed in 5.60s"
     },
     {
       "name": "control engine suite",

@@ -47,6 +47,12 @@ export function PublicPage({
             <Link to="/founder/haans-antoni" className={TAP_LINK}>
               Founder
             </Link>
+            <Link to="/search" className={TAP_LINK}>
+              Search
+            </Link>
+            <Link to="/blog" className={TAP_LINK}>
+              Journal
+            </Link>
             <Link to="/privacy" className={TAP_LINK}>
               Privacy
             </Link>

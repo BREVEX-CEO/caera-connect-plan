@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PublicPage, PublicSection } from "@/components/public/PublicPage";
+import { CapabilityCarousel } from "@/components/public/CapabilityCarousel";
 import { OCADE_STRUCTURED_DATA, PUBLIC_IDENTITY } from "@/lib/public-identity";
 
 export const Route = createFileRoute("/products/ocade")({
@@ -24,6 +25,7 @@ function OcadePage() {
       summary="OCADE is a cross-platform, local-inference AI workspace with optional private synchronization and permissioned current-information retrieval. Public launch is planned for 28 August 2026."
       structuredData={OCADE_STRUCTURED_DATA}
     >
+      <CapabilityCarousel />
       <PublicSection title="What is implemented in source">
         <p>
           The private repository contains a web application and offline shell, Supabase-backed
@@ -44,8 +46,8 @@ function OcadePage() {
           OCADE generates Chat replies locally; public-cloud AI inference is not a fallback. Local
           capabilities depend on device support and installed models. Sign-in, private
           synchronization, live web requests and payments require a network. A service worker can
-          preserve an offline web shell after a successful visit, but it does not make every
-          feature available offline.
+          preserve an offline web shell after a successful visit, but it does not make every feature
+          available offline.
         </p>
       </PublicSection>
       <PublicSection title="Subscriptions and devices">

@@ -58,6 +58,19 @@ describe("useBrain hands back a stable handle", () => {
     expect(memo![1]).toContain("effectiveMode");
     expect(memo![1]).toContain("route");
   });
+
+  it("warms the preferred desktop engine before starting a browser preload", () => {
+    const body = code(SOURCE);
+    const warm = body.slice(body.indexOf("const warm = useCallback"));
+    const bridgeProbe = warm.indexOf("await bridge.probe()");
+    const browserCandidate = warm.indexOf('registry.get("browser_webgpu")');
+
+    expect(bridgeProbe).toBeGreaterThan(-1);
+    expect(browserCandidate).toBeGreaterThan(bridgeProbe);
+    expect(warm).toMatch(
+      /if \(availability\.available\) \{\s*await bridge\.preload\(pending\);\s*publishPreparation\(\{ stage: "ready", fraction: 1 \}\);\s*return;/,
+    );
+  });
 });
 
 describe("the shared chat engine keeps its own callbacks stable", () => {

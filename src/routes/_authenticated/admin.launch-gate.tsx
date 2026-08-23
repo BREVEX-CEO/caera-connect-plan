@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/shell/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { executeAction, ActionConfirmationError } from "@/lib/actions";
 import { updateLaunchGateItem, upsertFeatureFlag } from "@/lib/launch-gate.functions";
+import { OcadeDatePicker } from "@/components/ui/ocade-date-picker";
 import { cn } from "@/lib/utils";
 import { BlockerResolutionPolicy } from "@/components/admin/BlockerResolutionPolicy";
 import { StakeholderResearchBoundary } from "@/components/admin/StakeholderResearchBoundary";
@@ -402,15 +403,12 @@ function ItemRow({ item, onSaved }: { item: Item; onSaved: () => void }) {
               className="mt-1 w-full rounded-md border border-border/60 bg-background/40 px-2 py-1.5 text-sm"
             />
           </label>
-          <label className="text-xs">
-            <span className="text-muted-foreground">Due date</span>
-            <input
-              type="date"
-              value={due}
-              onChange={(e) => setDue(e.target.value)}
-              className="mt-1 w-full rounded-md border border-border/60 bg-background/40 px-2 py-1.5 text-sm"
-            />
-          </label>
+          <OcadeDatePicker
+            id={`launch-gate-due-${item.id}`}
+            label="Due date"
+            value={due}
+            onChange={setDue}
+          />
           <label className="text-xs sm:col-span-2">
             <span className="text-muted-foreground">Evidence URL</span>
             <input

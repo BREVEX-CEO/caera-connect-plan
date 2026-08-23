@@ -150,82 +150,94 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
 
   const warm = useCallback(
     (pending?: BrainMessage[]) => {
-      const bridge = registry.get("desktop_bridge");
-      if (bridge instanceof DesktopBridgeAdapter) {
-        // Fire and forget: a failed warm-up must never surface as an error for a
-        // message the user has not sent yet.
-        void bridge
-          .probe()
-          .then(() => bridge.preload(pending))
-          .catch(() => {});
-      }
-
       /*
-       * THE BROWSER ENGINE WARMS TOO, AND ON THE WEB IT IS THE ONLY ONE.
+       * WARM THE SAME ENGINE ORDER THAT ROUTING USES.
        *
-       * This warmed the desktop bridge alone. On `pc_web` there is no bridge --
-       * `browser_webgpu` is the whole engine list -- so nothing was prepared
-       * until the user pressed send, and then a 340 MB download started
-       * mid-sentence behind a progress bar they had not asked for.
+       * Starting every candidate in parallel looked harmless until the desktop
+       * bridge answered a turn while the speculative browser preload remained
+       * at 0%. The conversation then truthfully said "response complete" and,
+       * at the same time, falsely looked stuck on "Preparing OCADE
+       * Intelligence". It also spent bandwidth preparing an engine that the
+       * router had already decided not to use.
        *
-       * Warming both costs nothing when the bridge wins: `preload` probes
-       * first and returns immediately on a browser that cannot run WebGPU, and
-       * a second visit compiles from stored weights without touching the
-       * network.
+       * Probe the preferred local bridge first. If it is genuinely available,
+       * warm it and stop. Only a missing or failed bridge falls through to the
+       * browser engines. The whole chain stays fire-and-forget: a failed warm
+       * must never become an error for a message that has not been sent.
        *
-       * WASM IS WARMED TOO, AND THAT IS THE HALF THAT WAS MISSING. A browser
+       * WASM IS WARMED TOO, AND THAT IS THE FALLBACK THAT MATTERS. A browser
        * with no usable WebGPU adapter got a `preload` that probed, found
        * nothing and returned -- so the ONE engine that device could actually
        * run was never prepared, and the download it needed started on the
        * user's first message instead. The fallback is only a fallback if it is
        * made ready like the primary.
        */
-      const webgpu = registry.get("browser_webgpu");
-      if (webgpu?.preload) {
-        publishPreparation({ stage: "checking" });
-        void webgpu
-          .probe()
-          .then(async (availability) => {
-            /*
-             * Persistent storage is asked for BEFORE the bytes arrive.
-             *
-             * A browser that has not granted it may evict several hundred
-             * megabytes of weights under disk pressure, and the user then
-             * re-downloads them over whatever connection they are on. Asking
-             * first costs one permission check; asking afterwards is asking
-             * about something already at risk.
-             */
-            await modelStore.requestPersistence();
+      void (async () => {
+        const bridge = registry.get("desktop_bridge");
+        if (bridge instanceof DesktopBridgeAdapter) {
+          try {
+            const availability = await bridge.probe();
             if (availability.available) {
-              await webgpu.preload!();
+              await bridge.preload(pending);
               publishPreparation({ stage: "ready", fraction: 1 });
               return;
             }
-            const wasm = registry.get("browser_wasm");
-            if (wasm?.preload) {
-              const fallback = await wasm.probe();
-              if (fallback.available) {
-                await wasm.preload!();
-                publishPreparation({ stage: "ready", fraction: 1 });
-                return;
-              }
-              publishPreparation({
-                stage: "unsupported",
-                detail: fallback.available ? null : fallback.reason,
-              });
+          } catch {
+            // A bridge that disappears during probing simply yields to the
+            // browser fallback, exactly as a normal route would.
+          }
+        }
+
+        const webgpu = registry.get("browser_webgpu");
+        if (!webgpu?.preload) return;
+
+        publishPreparation({ stage: "checking", fraction: null });
+        try {
+          const availability = await webgpu.probe();
+          /*
+           * Persistent storage is asked for BEFORE the bytes arrive.
+           *
+           * A browser that has not granted it may evict several hundred
+           * megabytes of weights under disk pressure, and the user then
+           * re-downloads them over whatever connection they are on. Asking
+           * first costs one permission check; asking afterwards is asking
+           * about something already at risk.
+           */
+          await modelStore.requestPersistence();
+          if (availability.available) {
+            await webgpu.preload();
+            publishPreparation({ stage: "ready", fraction: 1 });
+            return;
+          }
+          const wasm = registry.get("browser_wasm");
+          if (wasm?.preload) {
+            const fallback = await wasm.probe();
+            if (fallback.available) {
+              await wasm.preload();
+              publishPreparation({ stage: "ready", fraction: 1 });
               return;
             }
-            publishPreparation({ stage: "unsupported", detail: availability.reason });
-          })
-          .catch(() => {
-            /*
-             * An ordinary network interruption is NOT a dead end here: the
-             * downloader keeps the bytes it already wrote and resumes from
-             * them, so the honest state is "will carry on", not "failed".
-             */
-            publishPreparation({ stage: "retrying" });
+            publishPreparation({
+              stage: "unsupported",
+              detail: fallback.reason,
+              fraction: null,
+            });
+            return;
+          }
+          publishPreparation({
+            stage: "unsupported",
+            detail: availability.reason,
+            fraction: null,
           });
-      }
+        } catch {
+          /*
+           * An ordinary network interruption is NOT a dead end here: the
+           * downloader keeps the bytes it already wrote and resumes from
+           * them, so the honest state is "will carry on", not "failed".
+           */
+          publishPreparation({ stage: "retrying" });
+        }
+      })();
     },
     [registry],
   );

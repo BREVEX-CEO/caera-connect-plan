@@ -32,6 +32,8 @@ export interface UnifiedTask {
   startedAt?: string;
   finishedAt?: string;
   lastError?: string;
+  scheduledFor?: string;
+  dependencyTaskIds?: string[];
 }
 
 export interface AutomationRunLike {

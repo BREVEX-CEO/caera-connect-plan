@@ -3,10 +3,10 @@ import { Link } from "@tanstack/react-router";
 /**
  * One footer link set for every public and marketing surface.
  *
- * The routes here are the four a visitor is entitled to reach from anywhere:
- * answers (/faq), the rules (/terms), the data promise (/privacy) and a human
- * (/settings/support — the support form, which signs you in first because a
- * ticket without an account has nowhere to go back to).
+ * The routes here are the public utilities a visitor is entitled to reach from
+ * anywhere: search, answers, the rules, the data promise and a human. Support
+ * signs a visitor in first because a ticket without an account has nowhere to
+ * go back to.
  */
 /**
  * Footer links are small TEXT and must not be small TARGETS.
@@ -29,6 +29,13 @@ export const TAP_LINK =
  * three times and would have had to be fixed three times.
  */
 const FOOTER_LINKS = [
+  { to: "/search", label: "Search" },
+  { to: "/blog", label: "Journal" },
+  { to: "/careers", label: "Careers" },
+  { to: "/compare", label: "Compare" },
+  { to: "/team", label: "Team" },
+  { to: "/press", label: "Press" },
+  { to: "/status", label: "Status" },
   { to: "/faq", label: "FAQ" },
   { to: "/terms", label: "Terms" },
   { to: "/privacy", label: "Privacy" },

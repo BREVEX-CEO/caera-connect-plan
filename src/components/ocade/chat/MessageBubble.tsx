@@ -1,4 +1,4 @@
-import { memo, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   Copy,
@@ -14,6 +14,10 @@ import {
   RotateCcw,
   FileText,
   ImageIcon,
+  Reply,
+  ThumbsDown,
+  ThumbsUp,
+  CheckCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessageView, MessageActions } from "./chat-types";
@@ -39,11 +43,13 @@ function ActionButton({
   onClick,
   children,
   destructive,
+  pressed,
 }: {
   label: string;
   onClick: () => void;
   children: React.ReactNode;
   destructive?: boolean;
+  pressed?: boolean;
 }) {
   return (
     <button
@@ -51,11 +57,13 @@ function ActionButton({
       onClick={onClick}
       title={label}
       aria-label={label}
+      aria-pressed={pressed}
       className={cn(
         "inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition",
         "hover:bg-accent hover:text-foreground",
         "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         destructive && "hover:text-destructive",
+        pressed && "bg-accent text-foreground",
       )}
     >
       {children}
@@ -135,17 +143,67 @@ export const MessageBubble = memo(function MessageBubble({
 }) {
   const isUser = message.role === "user";
   const time = showTimestamp ? formatTime(message.createdAt) : null;
+  const [touchActionsOpen, setTouchActionsOpen] = useState(false);
+  const gestureRef = useRef<{ x: number; y: number } | null>(null);
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearLongPress = () => {
+    if (longPressRef.current) clearTimeout(longPressRef.current);
+    longPressRef.current = null;
+  };
+
+  useEffect(
+    () => () => {
+      if (longPressRef.current) clearTimeout(longPressRef.current);
+    },
+    [],
+  );
+
+  const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    if (event.pointerType === "mouse") return;
+    gestureRef.current = { x: event.clientX, y: event.clientY };
+    clearLongPress();
+    longPressRef.current = setTimeout(() => setTouchActionsOpen(true), 450);
+  };
+
+  const onPointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    const start = gestureRef.current;
+    if (!start) return;
+    if (Math.abs(event.clientX - start.x) > 12 || Math.abs(event.clientY - start.y) > 12) {
+      clearLongPress();
+    }
+  };
+
+  const onPointerEnd = (event: React.PointerEvent<HTMLElement>) => {
+    const start = gestureRef.current;
+    clearLongPress();
+    gestureRef.current = null;
+    if (!start || !actions.onReply || event.pointerType === "mouse") return;
+    const dx = event.clientX - start.x;
+    const dy = Math.abs(event.clientY - start.y);
+    if (dx >= 64 && dy <= 48) {
+      actions.onReply(message);
+      setTouchActionsOpen(true);
+    }
+  };
 
   const rowActions = (
     <div
       className={cn(
         "flex items-center gap-0.5 transition-opacity",
         // Visible on hover and on keyboard focus. Never removed from the tree.
-        "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+        touchActionsOpen || message.reaction
+          ? "opacity-100"
+          : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
         isUser && "justify-end",
       )}
     >
       {message.content ? <CopyButton text={message.content} /> : null}
+      {actions.onReply ? (
+        <ActionButton label="Reply to message" onClick={() => actions.onReply?.(message)}>
+          <Reply className="h-3.5 w-3.5" />
+        </ActionButton>
+      ) : null}
       {actions.onEdit ? (
         <ActionButton label="Edit and resend" onClick={() => actions.onEdit?.(message)}>
           <Pencil className="h-3.5 w-3.5" />
@@ -185,20 +243,59 @@ export const MessageBubble = memo(function MessageBubble({
           <Trash2 className="h-3.5 w-3.5" />
         </ActionButton>
       ) : null}
+      {!isUser && actions.onReact ? (
+        <>
+          <ActionButton
+            label="Helpful"
+            pressed={message.reaction === "helpful"}
+            onClick={() => actions.onReact?.(message, "helpful")}
+          >
+            <ThumbsUp className="h-3.5 w-3.5" />
+          </ActionButton>
+          <ActionButton
+            label="Not helpful"
+            pressed={message.reaction === "not_helpful"}
+            onClick={() => actions.onReact?.(message, "not_helpful")}
+          >
+            <ThumbsDown className="h-3.5 w-3.5" />
+          </ActionButton>
+        </>
+      ) : null}
     </div>
   );
 
   if (isUser) {
     return (
       <article
-        className={cn("group flex flex-col items-end", density === "compact" ? "gap-1" : "gap-1.5")}
+        className={cn(
+          "group flex touch-pan-y flex-col items-end",
+          density === "compact" ? "gap-1" : "gap-1.5",
+        )}
         aria-label="Your message"
+        aria-description="Swipe right to reply. Long press for message actions."
+        data-touch-actions-open={touchActionsOpen ? "true" : "false"}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerEnd}
+        onPointerCancel={() => {
+          clearLongPress();
+          gestureRef.current = null;
+        }}
       >
         {time ? <span className="text-[11px] text-muted-foreground">{time}</span> : null}
         <div className="max-w-[min(46rem,88%)] rounded-2xl rounded-br-md bg-secondary/80 px-4 py-2.5 text-[14.5px] leading-relaxed text-foreground">
           {message.attachments ? <Attachments items={message.attachments} /> : null}
           <div className="whitespace-pre-wrap break-words">{message.content}</div>
         </div>
+        {message.deliveryState ? (
+          <span
+            className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"
+            role="status"
+          >
+            <CheckCheck className="h-3 w-3" aria-hidden />
+            {deliveryLabel(message.deliveryState)}
+          </span>
+        ) : null}
         {rowActions}
       </article>
     );
@@ -206,8 +303,17 @@ export const MessageBubble = memo(function MessageBubble({
 
   return (
     <article
-      className={cn("group flex flex-col", density === "compact" ? "gap-1" : "gap-1.5")}
+      className={cn("group flex touch-pan-y flex-col", density === "compact" ? "gap-1" : "gap-1.5")}
       aria-label="OCADE reply"
+      aria-description="Swipe right to reply. Long press for message actions."
+      data-touch-actions-open={touchActionsOpen ? "true" : "false"}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerEnd}
+      onPointerCancel={() => {
+        clearLongPress();
+        gestureRef.current = null;
+      }}
     >
       <div className="flex items-center gap-2">
         <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[color:var(--accent-ocade)]">
@@ -273,4 +379,10 @@ function formatTime(iso: string): string | null {
   const ms = Date.parse(iso);
   if (!Number.isFinite(ms)) return null;
   return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+function deliveryLabel(state: NonNullable<ChatMessageView["deliveryState"]>): string {
+  if (state === "processed") return "Processed by OCADE";
+  if (state === "processing") return "OCADE is processing";
+  return "Sent";
 }

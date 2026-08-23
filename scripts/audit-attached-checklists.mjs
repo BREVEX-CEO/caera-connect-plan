@@ -49,13 +49,13 @@ const sectionStatus = {
     "Color System": STATUS.executed,
     Tokens: STATUS.tested,
     Drawer: STATUS.tested,
-    "Date Picker": STATUS.missing,
-    Breadcrumb: STATUS.source,
-    Accordion: STATUS.source,
-    Skeleton: STATUS.source,
-    Carousel: STATUS.missing,
-    Banner: STATUS.source,
-    Slider: STATUS.missing,
+    "Date Picker": STATUS.tested,
+    Breadcrumb: STATUS.tested,
+    Accordion: STATUS.tested,
+    Skeleton: STATUS.tested,
+    Carousel: STATUS.tested,
+    Banner: STATUS.tested,
+    Slider: STATUS.tested,
     Toast: STATUS.tested,
     Tabs: STATUS.executed,
     Checkbox: STATUS.executed,
@@ -67,11 +67,11 @@ const sectionStatus = {
     Toggle: STATUS.tested,
     "Input Field": STATUS.executed,
     Icon: STATUS.executed,
-    Table: STATUS.source,
+    Table: STATUS.tested,
     Card: STATUS.executed,
     Button: STATUS.executed,
     Badge: STATUS.executed,
-    Avatar: STATUS.source,
+    Avatar: STATUS.tested,
     "Dropdown Menu": STATUS.executed,
   },
   flow: {
@@ -121,22 +121,22 @@ const sectionStatus = {
     Billing: STATUS.policy,
     Settings: STATUS.tested,
     "User Management": STATUS.tested,
-    "Single Item Detail": STATUS.source,
+    "Single Item Detail": STATUS.tested,
     "Admin Panel": STATUS.tested,
     "Empty State": STATUS.executed,
     "Data Table": STATUS.tested,
-    Analytics: STATUS.source,
+    Analytics: STATUS.tested,
     Onboarding: STATUS.tested,
     Notifications: STATUS.tested,
     "Public Profile": STATUS.missing,
-    "Timeline / Gantt View": STATUS.source,
-    Feed: STATUS.missing,
+    "Timeline / Gantt View": STATUS.tested,
+    Feed: STATUS.tested,
     "Search Results": STATUS.tested,
     Integrations: STATUS.tested,
     "Version History": STATUS.tested,
-    Comments: STATUS.missing,
+    Comments: STATUS.tested,
     "Multi-step form": STATUS.tested,
-    "Kanban board": STATUS.missing,
+    "Kanban board": STATUS.tested,
     Chat: STATUS.executed,
     Maintenance: STATUS.tested,
     Pricing: STATUS.executed,
@@ -150,22 +150,22 @@ const sectionStatus = {
     Testimonials: STATUS.missing,
     Affiliate: STATUS.missing,
     "Coming Soon": STATUS.executed,
-    Compare: STATUS.source,
-    Status: STATUS.source,
+    Compare: STATUS.tested,
+    Status: STATUS.tested,
     Billing: STATUS.policy,
-    "Press / Media": STATUS.source,
+    "Press / Media": STATUS.tested,
     Waitlist: STATUS.missing,
-    Team: STATUS.source,
+    Team: STATUS.tested,
     Cart: STATUS.excluded,
-    Search: STATUS.missing,
-    Careers: STATUS.missing,
-    "Blog Post": STATUS.missing,
+    Search: STATUS.executed,
+    Careers: STATUS.tested,
+    "Blog Post": STATUS.tested,
     "Contact Us": STATUS.tested,
     Pricing: STATUS.executed,
     FAQ: STATUS.executed,
     404: STATUS.executed,
     Login: STATUS.executed,
-    Blog: STATUS.missing,
+    Blog: STATUS.tested,
     "Sign up": STATUS.executed,
   },
 };
@@ -183,6 +183,13 @@ const runtimeEvidence = [
     result:
       "legal gate, local replies, sealed reply, oversize and credential refusals, reset, attachment gates, and Control + Work unavailable state observed",
     source: "src/routes/demo.ocade.tsx",
+  },
+  {
+    id: "interactive-public-search",
+    kind: "in-app Browser on localhost at a 390 by 844 phone viewport",
+    result:
+      "search box, suggestions, eight indexed results, category filtering, ordering control, live result count, empty-capable result surface, and highlighted privacy matches observed",
+    source: "src/routes/search.tsx",
   },
   {
     id: "offline-transitions",
@@ -221,6 +228,7 @@ const evidenceFor = {
   ],
   [STATUS.blocked]: [
     "Requires a real provider, delivered email/notification, physical device, authenticated production account, or independent assurance receipt.",
+    "release/OCADE_EXTERNAL_CONTENT_AND_ACCOUNT_BLOCKERS_2026-08-24.md",
   ],
   [STATUS.missing]: [
     "No dedicated OCADE product surface plus test/runtime receipt was found for this requirement.",
@@ -291,26 +299,72 @@ function classify(group, section, item) {
     return STATUS.blocked;
   }
   if (
+    group === "website" &&
+    section === "Careers" &&
+    /job openings|employee testimonials/i.test(item)
+  ) {
+    return STATUS.blocked;
+  }
+  if (
+    group === "website" &&
+    ["Blog", "Blog Post"].includes(section) &&
+    /opt-in for subscription|comments/i.test(item)
+  ) {
+    return STATUS.blocked;
+  }
+  if (
+    group === "website" &&
+    (["Blog", "Blog Post"].includes(section) || section === "Careers")
+  ) {
+    return base;
+  }
+  if (
+    group === "website" &&
+    ["Login", "Sign up"].includes(section) &&
+    /blog post/i.test(item)
+  ) {
+    return STATUS.tested;
+  }
+  if (
+    group === "webapp" &&
+    section === "Public Profile" &&
+    /avatar and display name|role or title|bio or description|activity or contributions|joined date/i.test(item)
+  ) {
+    return STATUS.tested;
+  }
+  if (
+    group === "webapp" &&
+    section === "Public Profile" &&
+    /contact or follow action|profile visibility controls/i.test(item)
+  ) {
+    return STATUS.blocked;
+  }
+  if (
+    (group === "mobile" && ["Map View", "Invite"].includes(section)) ||
+    (group === "mobile" && section === "Sign up" && /marketing opt-in/i.test(item)) ||
+    (group === "website" && ["Testimonials", "Affiliate", "Waitlist"].includes(section))
+  ) {
+    return STATUS.blocked;
+  }
+  if (
+    group === "website" &&
+    ((section === "Status" && /uptime metrics|subscribe to updates|separate domain/i.test(item)) ||
+      (section === "Press / Media" && /press contact/i.test(item)))
+  ) {
+    return STATUS.blocked;
+  }
+  if (
     /investor|backer|customer count|traction|testimonial|social proof|affiliate programme|job opening|vacanc|published article|blog author|blog post|press mention|marketing opt-in/i.test(
       item,
     )
   ) {
-    return STATUS.missing;
+    return STATUS.blocked;
   }
   if (
-    (group === "mobile" &&
-      section === "Chat" &&
-      /swipe to reply|long press|read receipts|media and file sharing/i.test(item)) ||
-    (group === "webapp" && section === "Chat" && /read receipts|reactions/i.test(item)) ||
-    (group === "webapp" &&
-      section === "Pricing" &&
-      /billing period toggle|feature comparison/i.test(item)) ||
-    (group === "website" &&
-      ((section === "Coming Soon" && /email capture|launch date|social links/i.test(item)) ||
-        (section === "FAQ" &&
-          /table of contents|search functionality|navigate by topic/i.test(item))))
+    (group === "webapp" && section === "Pricing" && /billing period toggle/i.test(item)) ||
+    (group === "website" && section === "Coming Soon" && /email capture|social links/i.test(item))
   ) {
-    return STATUS.missing;
+    return group === "website" ? STATUS.blocked : STATUS.missing;
   }
   if (base !== STATUS.executed) return base;
 
@@ -359,6 +413,7 @@ function classify(group, section, item) {
   }
   if (group === "website") {
     if (section === "404") return STATUS.executed;
+    if (section === "Search") return STATUS.executed;
     if (["Login", "Sign up"].includes(section)) {
       return /logo|title|description|account identification|password|reset password|link to sign up|link to login/i.test(
         item,
@@ -376,9 +431,16 @@ function classify(group, section, item) {
   return STATUS.tested;
 }
 
-function evidenceForItem(status, group, section) {
+function evidenceForItem(status, group, section, item) {
   if (status === STATUS.executed) {
     if (section === "Chat") return ["runtime:interactive-demo-chat", "scripts/e2e/route-qa.mjs"];
+    if (group === "website" && section === "Search") {
+      return [
+        "runtime:interactive-public-search",
+        "src/routes/search.tsx",
+        "src/lib/__tests__/public-search.test.tsx",
+      ];
+    }
     if (section === "Loading") {
       return [
         "runtime:clean-machine-preparation",
@@ -386,6 +448,159 @@ function evidenceForItem(status, group, section) {
       ];
     }
     return ["runtime:responsive-route-qa", "scripts/e2e/route-qa.mjs"];
+  }
+  if (status === STATUS.tested && section === "Chat") {
+    return [
+      "src/lib/__tests__/chat-ui.test.tsx",
+      "src/lib/__tests__/chat-mobile-interactions.test.tsx",
+      "src/lib/__tests__/message-feedback.test.ts",
+    ];
+  }
+  if (status === STATUS.tested && section === "Pricing") {
+    return [
+      "src/lib/__tests__/pricing-comparison-render.test.tsx",
+      "src/lib/__tests__/pricing-and-demo-session.test.ts",
+      "src/lib/__tests__/free-launch-payments.test.ts",
+    ];
+  }
+  if (status === STATUS.tested && section === "FAQ") {
+    return [
+      "src/lib/__tests__/faq-directory.test.tsx",
+      "src/routes/faq.tsx",
+      "src/lib/__tests__/public-copy-identity.test.ts",
+    ];
+  }
+  if (status === STATUS.tested && group === "design" && section === "Slider") {
+    return [
+      "src/routes/_authenticated/settings.voice.tsx",
+      "src/routes/_authenticated/settings.appearance.tsx",
+      "src/lib/__tests__/slider-controls.test.ts",
+    ];
+  }
+  if (status === STATUS.tested && group === "design" && section === "Carousel") {
+    return [
+      "src/components/public/CapabilityCarousel.tsx",
+      "src/routes/products.ocade.tsx",
+      "src/lib/__tests__/capability-carousel.test.tsx",
+    ];
+  }
+  if (status === STATUS.tested && group === "design" && section === "Date Picker") {
+    return [
+      "src/components/ui/ocade-date-picker.tsx",
+      "src/routes/_authenticated/admin.launch-gate.tsx",
+      "src/lib/__tests__/ocade-date-picker.test.tsx",
+    ];
+  }
+  if (
+    status === STATUS.tested &&
+    group === "design" &&
+    ["Breadcrumb", "Skeleton", "Banner", "Table", "Avatar"].includes(section)
+  ) {
+    const components = {
+      Breadcrumb: "src/components/ui/ocade-breadcrumbs.tsx",
+      Skeleton: "src/components/ui/ocade-skeleton.tsx",
+      Banner: "src/components/ui/ocade-banner.tsx",
+      Table: "src/components/ui/ocade-data-table.tsx",
+      Avatar: "src/components/settings/DeviceAvatarEditor.tsx",
+    };
+    return [
+      components[section],
+      "src/lib/__tests__/design-components.test.tsx",
+    ];
+  }
+  if (status === STATUS.tested && group === "design" && section === "Accordion") {
+    return ["src/routes/faq.tsx", "src/lib/__tests__/faq-directory.test.tsx"];
+  }
+  if (status === STATUS.tested && group === "website" && ["Blog", "Blog Post"].includes(section)) {
+    return [
+      "src/routes/blog.tsx",
+      "src/routes/blog.index.tsx",
+      "src/routes/blog.$slug.tsx",
+      "src/lib/public-content.ts",
+      "src/lib/__tests__/public-content.test.tsx",
+    ];
+  }
+  if (status === STATUS.tested && group === "webapp" && section === "Kanban board") {
+    return [
+      "src/components/ocade/TaskBoard.tsx",
+      "src/lib/tasks/task-board.ts",
+      "src/lib/tasks/unified-task.ts",
+      "src/lib/__tests__/task-board.test.ts",
+    ];
+  }
+  if (status === STATUS.tested && group === "webapp" && section === "Feed") {
+    return [
+      "src/components/ocade/TaskBoard.tsx",
+      "src/lib/tasks/task-board.ts",
+      "src/lib/__tests__/task-board.test.ts",
+    ];
+  }
+  if (status === STATUS.tested && group === "webapp" && section === "Comments") {
+    return [
+      "src/components/ocade/TaskComments.tsx",
+      "src/lib/comments/local-task-comments.ts",
+      "src/lib/__tests__/local-task-comments.test.ts",
+    ];
+  }
+  if (status === STATUS.tested && group === "webapp" && section === "Public Profile") {
+    return [
+      "src/routes/founder.haans-antoni.tsx",
+      "src/lib/public-identity.ts",
+      "src/lib/__tests__/founder-profile.test.ts",
+      "src/lib/__tests__/public-identity-record.test.ts",
+    ];
+  }
+  if (
+    status === STATUS.tested &&
+    group === "webapp" &&
+    ["Single Item Detail", "Analytics", "Timeline / Gantt View"].includes(section)
+  ) {
+    const component = {
+      "Single Item Detail": "src/components/ocade/TaskBoard.tsx",
+      Analytics: "src/components/ocade/TaskAnalytics.tsx",
+      "Timeline / Gantt View": "src/components/ocade/TaskTimeline.tsx",
+    }[section];
+    return [
+      component,
+      "src/lib/tasks/task-insights.ts",
+      "src/lib/__tests__/task-insights.test.ts",
+    ];
+  }
+  if (status === STATUS.tested && group === "website" && section === "Careers") {
+    return ["src/routes/careers.tsx", "src/lib/__tests__/public-content.test.tsx"];
+  }
+  if (
+    status === STATUS.tested &&
+    group === "website" &&
+    ["Compare", "Status", "Press / Media", "Team"].includes(section)
+  ) {
+    const routes = {
+      Compare: "src/routes/compare.tsx",
+      Status: "src/routes/status.tsx",
+      "Press / Media": "src/routes/press.tsx",
+      Team: "src/routes/team.tsx",
+    };
+    return [routes[section], "src/lib/__tests__/public-directories.test.tsx"];
+  }
+  if (
+    status === STATUS.tested &&
+    group === "website" &&
+    ["Login", "Sign up"].includes(section) &&
+    /blog post/i.test(item)
+  ) {
+    return [
+      "src/routes/auth.tsx",
+      "src/routes/blog.$slug.tsx",
+      "src/lib/public-content.ts",
+      "src/lib/__tests__/public-content.test.tsx",
+    ];
+  }
+  if (status === STATUS.tested && section === "Coming Soon") {
+    return [
+      "src/lib/launch/prelaunch-response.ts",
+      "src/lib/__tests__/launch-gate.test.ts",
+      "src/lib/__tests__/brand-release.test.ts",
+    ];
   }
   if (status === STATUS.tested) return testedEvidenceByGroup[group];
   return evidenceFor[status];
@@ -441,7 +656,7 @@ for (const [group, fileName] of files) {
       item,
       status,
       reason: reasonFor(status, section, item),
-      evidence: evidenceForItem(status, group, section),
+      evidence: evidenceForItem(status, group, section, item),
     });
   }
 }

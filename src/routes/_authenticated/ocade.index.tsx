@@ -114,7 +114,19 @@ import { append as appendLedger, type LedgerEntry } from "@/lib/edge/ledger";
 import { emptyTree, type Tree } from "@/lib/edge/checkpoints";
 import { recordTurn } from "@/lib/edge/session";
 import type { BrainMessage } from "@/lib/brain/adapter";
-import type { ChatMessageView, ChatConversationView } from "@/components/ocade/chat/chat-types";
+import type {
+  ChatMessageView,
+  ChatConversationView,
+  ChatReaction,
+} from "@/components/ocade/chat/chat-types";
+import {
+  deliveryStateFor,
+  quoteForReply,
+  readChatReactions,
+  toggleChatReaction,
+  writeChatReactions,
+  type ChatReactionMap,
+} from "@/lib/chat/message-feedback";
 import { reason } from "@/lib/reasoning/engine";
 import { brainReasonDeps, sessionPerfLedger } from "@/lib/reasoning/brain-deps";
 import { thinkingFor } from "@/lib/local/fixed-model";
@@ -1141,6 +1153,7 @@ function ChatSurface(props: {
   } = props;
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [reactions, setReactions] = useState<ChatReactionMap>({});
   const [streaming, setStreaming] = useState(false);
   const [streamText, setStreamTextState] = useState("");
   /*
@@ -1159,6 +1172,25 @@ function ChatSurface(props: {
   // the immediate authority, so a short press cannot strand the microphone on.
   const listeningRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    setReactions(readChatReactions(userId, conversation.id));
+  }, [conversation.id, userId]);
+
+  const reactToMessage = useCallback(
+    (messageId: string, reaction: ChatReaction) => {
+      setReactions((current) => {
+        const next = toggleChatReaction(current, messageId, reaction);
+        if (!writeChatReactions(userId, conversation.id, next)) {
+          toast.error("Reaction saved for this session only.", {
+            description: "This browser did not allow local storage.",
+          });
+        }
+        return next;
+      });
+    },
+    [conversation.id, userId],
+  );
   /**
    * Models already asked to load in this session. Typing fires on EVERY
    * keystroke; without this the runtime would receive a load request per
@@ -3044,7 +3076,11 @@ function ChatSurface(props: {
               <MessageList
                 conversationKey={conversation.id}
                 messages={[
-                  ...messages.map(toMessageView),
+                  ...messages.map((message, index) => ({
+                    ...toMessageView(message),
+                    reaction: reactions[message.id] ?? null,
+                    deliveryState: deliveryStateFor(messages, index, streaming),
+                  })),
                   ...(streaming && streamText
                     ? [
                         {
@@ -3076,6 +3112,15 @@ function ChatSurface(props: {
                 }
                 actions={{
                   onSpeak: (m) => readAloud(m.content),
+                  onReply: (m) => {
+                    setDraft((current) => `${quoteForReply(m.content)}${current}`);
+                    window.requestAnimationFrame(() =>
+                      document.getElementById("ocade-composer")?.focus(),
+                    );
+                  },
+                  onReact: (m, reaction) => {
+                    if (m.role === "assistant") reactToMessage(m.id, reaction);
+                  },
                   onEdit: (m) => {
                     const original = messages.find((x) => x.id === m.id);
                     if (original?.role === "user") void prepareEdit(original);

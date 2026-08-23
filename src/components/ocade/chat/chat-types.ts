@@ -9,6 +9,9 @@
 
 export type ChatRole = "user" | "assistant" | "system";
 
+export type ChatReaction = "helpful" | "not_helpful";
+export type ChatDeliveryState = "sent" | "processing" | "processed";
+
 export interface ChatAttachmentView {
   kind: "image" | "file";
   name: string;
@@ -30,6 +33,10 @@ export interface ChatMessageView {
   error?: string | null;
   /** True while this message is still arriving. */
   streaming?: boolean;
+  /** Local feedback for an OCADE reply. It never contains message content. */
+  reaction?: ChatReaction | null;
+  /** Truthful lifecycle of a user turn, rather than a simulated human read receipt. */
+  deliveryState?: ChatDeliveryState;
 }
 
 export interface ChatConversationView {
@@ -74,4 +81,6 @@ export interface MessageActions {
   onSpeak?: (message: ChatMessageView) => void;
   onSave?: (message: ChatMessageView) => void;
   onDelete?: (message: ChatMessageView) => void;
+  onReply?: (message: ChatMessageView) => void;
+  onReact?: (message: ChatMessageView, reaction: ChatReaction) => void;
 }
