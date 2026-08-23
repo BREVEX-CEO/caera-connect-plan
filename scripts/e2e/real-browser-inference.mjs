@@ -8,6 +8,20 @@
  * are unreachable here), so the text is meaningless. Everything else is real:
  * the fetch, the GGUF parse, the tokenizer, the KV cache, the sampling loop,
  * token streaming and cancellation.
+ *
+ * WHY CORRECTNESS IS PROVED IN scripts/e2e/real-inference.mjs AND NOT HERE.
+ * That harness runs the trained fixture through native llama.cpp and asserts
+ * the completions are "paris", "tokyo" and "cairo". It gets an exact answer by
+ * building token ids BY HAND — `byte + 3` — with a comment saying it does so
+ * to keep "SentencePiece's whitespace handling out of an assertion that is
+ * about the RUNTIME, not about the tokenizer".
+ *
+ * wllama has no such door: `createCompletion` takes a string and must tokenise
+ * it, so the same fixture fed the same prompt here produces fragments of the
+ * memorised facts rather than the facts. That is the fixture's tokenizer, not
+ * the browser runtime — the same model, the same weights and the same greedy
+ * sampling answer correctly one layer down. Chasing it would mean training a
+ * fixture against SPM tokenisation, which tests the fixture rather than OCADE.
  */
 import { chromium } from "playwright-core";
 import { mkdtempSync } from "node:fs";
@@ -17,6 +31,9 @@ import { join } from "node:path";
 const BASE = process.env.BASE ?? "http://127.0.0.1:4173";
 const MODEL_URL = process.env.MODEL_URL ?? `${BASE}/models/ocade-proof.gguf`;
 const BYTE_RANGE = (process.env.BYTE_TOKEN_RANGE ?? "3,258").split(",").map(Number);
+const PROMPT = process.env.PROMPT ?? "hello world this is a local device answer";
+const N_PREDICT = Number(process.env.N_PREDICT ?? 24);
+const EXPECT = process.env.EXPECT ?? null;
 
 const ctx = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), "ocade-inf-")), {
   executablePath: "/opt/pw-browsers/chromium",
@@ -34,7 +51,7 @@ page.on("console", (m) => {
 await page.goto(BASE + "/", { waitUntil: "domcontentloaded", timeout: 60000 });
 
 const result = await page.evaluate(
-  async ({ modelUrl, byteTokenRange }) => {
+  async ({ modelUrl, byteTokenRange, PROMPT, N_PREDICT, EXPECT }) => {
     const t = (label) => ({ label, at: performance.now() });
     const marks = [t("start")];
     try {
@@ -104,10 +121,21 @@ const result = await page.evaluate(
        * latency measurable rather than inferred.
        */
       const stream = await wllama.createCompletion({
-        prompt: "hello world this is a local device answer",
-        nPredict: 24,
+        prompt: PROMPT,
+        nPredict: N_PREDICT,
         stream: true,
-        sampling: { temp: 0.7, top_k: 40, seed: 42, logit_bias: banned },
+        /*
+         * Greedy when an exact completion is expected.
+         *
+         * The trained fixture has memorised three facts and nothing else, so
+         * temperature sampling scrambles them into fragments — an earlier run
+         * produced " japan irapariro" rather than "paris". Temperature is a
+         * property of the sampler, not of whether the runtime works, so the
+         * correctness check takes the highest-probability token.
+         */
+        sampling: EXPECT
+          ? { temp: 0, top_k: 1, logit_bias: banned }
+          : { temp: 0.7, top_k: 40, seed: 42, logit_bias: banned },
       });
       let firstChunkShape = null;
       for await (const chunk of stream) {
@@ -184,7 +212,7 @@ const result = await page.evaluate(
       return { ok: false, error: String(e?.stack ?? e).slice(0, 900) };
     }
   },
-  { modelUrl: MODEL_URL, byteTokenRange: BYTE_RANGE },
+  { modelUrl: MODEL_URL, byteTokenRange: BYTE_RANGE, PROMPT, N_PREDICT, EXPECT },
 );
 
 const external = [
@@ -199,6 +227,11 @@ const external = [
   ),
 ].filter((h) => !h.startsWith("127.0.0.1") && !h.startsWith("localhost"));
 
+if (EXPECT) {
+  result.prompt = PROMPT;
+  result.expected = EXPECT;
+  result.answeredCorrectly = (result.generatedSample ?? "").startsWith(EXPECT);
+}
 console.log(JSON.stringify({ result, externalHosts: external }, null, 2));
 await ctx.close();
 process.exit(result.ok ? 0 : 1);
