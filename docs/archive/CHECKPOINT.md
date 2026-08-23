@@ -1,3 +1,20 @@
+> **ARCHIVED — HISTORICAL. THIS IS NOT THE STATE OF OCADE.**
+>
+> This is a phase log from 2026-08-01, on branch `feat/ocade-implementation`,
+> which no longer exists. It reports 255 test files and 4,187 tests against a
+> suite that is now substantially larger, and it describes an OCADE whose Chat
+> had no on-device engine.
+>
+> It sat at the repository root, where a reader would reasonably take it for
+> current status. It is kept because its defect analyses are still worth
+> reading, and moved here so it cannot be mistaken for the present.
+>
+> For the current state, read `docs/OCADE-AUDIT-REPORT.md` and `README.md`,
+> both of which describe the current default branch, and
+> `release/LAUNCH_PROOF.json`, which is written by `npm run launch:prove`.
+
+---
+
 # OCADE Phase Checkpoint
 
 **Last updated:** 2026-08-01
