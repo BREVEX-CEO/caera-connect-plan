@@ -11,16 +11,14 @@ import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
 import {
   PLANS,
-  CLOUD_ALLOWANCE,
   WINDOW_HOURS,
-  allowanceState,
   entitlementState,
   describeAllowance,
   offlineEntitlementValid,
   OFFLINE_GRACE_DAYS,
   type Entitlement,
 } from "@/lib/ocade-allowance";
-import { getCloudUsage, getEntitlement } from "@/lib/ocade-usage.functions";
+import { getEntitlement } from "@/lib/ocade-usage.functions";
 import { PlanComparison } from "@/components/settings/PlanComparison";
 import { BillingHistory } from "@/components/settings/BillingHistory";
 
@@ -34,7 +32,6 @@ export const Route = createFileRoute("/_authenticated/settings/usage")({
 function UsagePage() {
   const online = useOnline();
   const local = useLocalEngine();
-  const [used, setUsed] = useState<number | null>(null);
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [unavailable, setUnavailable] = useState<string | null>(null);
   const [lastVerified, setLastVerified] = useState<Date | null>(null);
@@ -43,10 +40,9 @@ function UsagePage() {
     let live = true;
     void (async () => {
       try {
-        const [usage, ent] = await Promise.all([getCloudUsage(), getEntitlement()]);
+        const ent = await getEntitlement();
         if (!live) return;
-        setUsed(usage.usedInWindow);
-        setLastVerified(usage.verifiedAt ? new Date(usage.verifiedAt) : new Date());
+        setLastVerified(new Date());
         setEntitlement(
           ent
             ? {
@@ -68,18 +64,17 @@ function UsagePage() {
     };
   }, []);
 
-  const state = useMemo(
-    () =>
-      allowanceState(
-        used ?? 0,
-        new Date(),
-        entitlement ? PLANS[entitlement.planId].cloudAllowancePerWindow : CLOUD_ALLOWANCE,
-      ),
-    [entitlement, used],
-  );
+  /*
+   * THE ALLOWANCE WAS STILL BEING COMPUTED FOR NOBODY.
+   *
+   * `allowanceState` and its percentage were calculated on every render after
+   * the panel that displayed them was removed, and `getCloudUsage()` was still
+   * fetched on page load to feed them. Dead work is easy to forgive; a dead
+   * FETCH on a page about not being metered is a request the person did not
+   * need, on a product whose claim is that it does not make them.
+   */
   const ent = useMemo(() => entitlementState(entitlement), [entitlement]);
   const graceOk = lastVerified ? offlineEntitlementValid(lastVerified) : true;
-  const pct = Math.round((state.used / state.limit) * 100);
 
   return (
     <>
@@ -126,9 +121,19 @@ function UsagePage() {
             <Gauge className="h-4 w-4" aria-hidden /> Plan
           </h3>
           <p className="text-xs text-muted-foreground">{FREE_LAUNCH_NOTICE}</p>
+          {/*
+            THIS SENTENCE DESCRIBED SOMETHING THE PAGE HAD ALREADY REMOVED.
+
+            It said "the cloud allowance shown above is a rate limit on a
+            metered upstream service" — directly beneath a comment explaining
+            that the allowance panel was deleted because nothing can consume an
+            allowance. There is no allowance above, there is no metered
+            upstream service, and a reader had no way to know which of the two
+            statements to believe.
+          */}
           <p className="mt-2 text-xs text-muted-foreground">
-            The cloud allowance shown above is a rate limit on a metered upstream service, not a
-            paywall. OCADE Local stays unlimited either way.
+            Nothing here is metered. OCADE answers on this device, so there is no per-request quota
+            to spend and nothing to buy more of.
           </p>
         </GlassPanel>
 

@@ -318,15 +318,15 @@ const actions: Action[] = [
     confirmation: "strong",
     confirmPhrase: "delete",
   },
-  {
-    id: "ocade.chat.cloud_transfer_approved",
-    featureId: "ocade.chat",
-    title: "Approved cloud transfer for Browser Only chats",
-    log: "compliance",
-    category: "sensitive_export",
-    description:
-      "User acknowledged that a message stored under Browser Only privacy will be sent to a cloud model.",
-  },
+  /*
+   * `ocade.chat.cloud_transfer_approved` STOOD HERE and nothing referenced it.
+   *
+   * It described a person approving a Browser Only message being "sent to a
+   * cloud model". There is no cloud model and no such approval dialog: the
+   * transfer it recorded consent for cannot happen. A compliance action that
+   * can never fire is not harmless — it is a claim, in the catalogue an
+   * auditor reads, that OCADE has a cloud path it obtained consent for.
+   */
   {
     id: "ocade.model.change",
     featureId: "ocade.models",

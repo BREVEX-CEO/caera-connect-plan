@@ -74,5 +74,5 @@ export const OCADE_STRUCTURED_DATA = {
     "@id": "https://ocade.in/#haans-antoni",
     name: PUBLIC_IDENTITY.founder,
   },
-  description: `OCADE, defined by its creator as ${PUBLIC_IDENTITY.productMeaning}, is a pre-launch local-first AI workspace with optional private synchronization and cloud-assisted features.`,
+  description: `OCADE, defined by its creator as ${PUBLIC_IDENTITY.productMeaning}, is a pre-launch workspace whose intelligence runs on your own device, with optional private synchronization.`,
 };

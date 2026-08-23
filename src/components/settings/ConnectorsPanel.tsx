@@ -92,7 +92,7 @@ export function ConnectorsPanel() {
       {
         id: "models",
         label: "Model providers and local engines",
-        description: "Routing, health checks and provider setup for local and cloud inference.",
+        description: "Routing, health checks and engine setup for on-device intelligence.",
         available: true,
         detail: "The model control centre is available; each provider reports its own live health.",
         to: "/ocade/models",

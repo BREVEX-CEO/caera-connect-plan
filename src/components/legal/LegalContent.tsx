@@ -175,10 +175,13 @@ export function PrivacyContent() {
       <PublicSection title="Local-first does not mean local-only">
         <p>
           Device-only or local processing keeps supported data on your device. Private Sync stores
-          selected account data in the configured Supabase service. Cloud-assisted AI, web access,
-          mobile pairing and payments can send the minimum necessary data to the disclosed service
-          after the applicable choice or request. OCADE must not silently move device-only content
-          to cloud storage.
+          selected account data in the configured Supabase service. Conversations are answered by
+          on-device processing: your messages, drafts and attached files are not sent to a
+          third-party artificial-intelligence service. Current-information retrieval, mobile pairing
+          and payments can send the minimum necessary data to the disclosed service after the
+          applicable choice or request — for retrieval that is the words of your question and
+          nothing else, and only for a question whose answer depends on current information. OCADE
+          must not silently move device-only content to cloud storage.
         </p>
       </PublicSection>
       <PublicSection title="Purposes and legal basis">
@@ -191,10 +194,11 @@ export function PrivacyContent() {
       </PublicSection>
       <PublicSection title="Sharing and international processing">
         <p>
-          Depending on the feature, recipients may include Supabase, Cloudflare, selected model or
-          search providers, authentication providers, app stores and payment providers. The final
-          provider list, locations, retention terms and cross-border safeguards must be verified
-          before those features are enabled.
+          Depending on the feature, recipients may include Supabase, Cloudflare, the hosts that
+          distribute the intelligence files your device downloads once, search or reference sites
+          consulted for current information, authentication providers, app stores and payment
+          providers. The final provider list, locations, retention terms and cross-border safeguards
+          must be verified before those features are enabled.
         </p>
       </PublicSection>
       <PublicSection title="Retention and deletion">
