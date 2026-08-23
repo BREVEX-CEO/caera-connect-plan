@@ -25,12 +25,15 @@
  *   5. Cowork against real Chrome Stable: the extension E2E and CDP parity.
  */
 import { execFileSync, execFileSync as run } from "node:child_process";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { EOL } from "node:os";
 
 const PYTHON_HOST = join(process.cwd(), "native", "python-host");
 const CONTROL_ENGINE = join(process.cwd(), "native", "ocade_control_engine");
+const npmCli =
+  process.env.npm_execpath ??
+  join(process.execPath, "..", "node_modules", "npm", "bin", "npm-cli.js");
 
 if (process.platform !== "win32") {
   console.error(
@@ -55,6 +58,35 @@ function findChrome() {
     join(process.env.LOCALAPPDATA ?? "", "Google/Chrome/Application/chrome.exe"),
   ];
   return candidates.find((c) => c && existsSync(c)) ?? null;
+}
+
+/**
+ * Official Chrome branded builds no longer honour --load-extension (Chrome
+ * 137+). Chrome for Testing and Chromium remain the supported automation
+ * targets, so extension E2E must use one of those rather than silently waiting
+ * for a worker that branded Chrome will never install.
+ */
+function findExtensionTestBrowser() {
+  const explicit = process.env.OCADE_EXTENSION_TEST_BROWSER;
+  if (explicit && existsSync(explicit)) return explicit;
+
+  const candidates = [
+    join(
+      process.env.LOCALAPPDATA ?? "",
+      "Google/Chrome for Testing/Application/chrome.exe",
+    ),
+    join(process.env["ProgramFiles"] ?? "", "Google/Chrome for Testing/Application/chrome.exe"),
+  ];
+
+  const playwrightRoot = join(process.env.LOCALAPPDATA ?? "", "ms-playwright");
+  if (existsSync(playwrightRoot)) {
+    for (const entry of readdirSync(playwrightRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !entry.name.startsWith("chromium-")) continue;
+      candidates.push(join(playwrightRoot, entry.name, "chrome-win64", "chrome.exe"));
+    }
+  }
+
+  return candidates.find((candidate) => candidate && existsSync(candidate)) ?? null;
 }
 
 function stage(name, command, args, options = {}) {
@@ -88,6 +120,7 @@ try {
 console.log(`OCADE Windows proof${EOL}  ${windowsVersion}${EOL}  node ${process.version}`);
 
 const chrome = findChrome();
+const extensionTestBrowser = findExtensionTestBrowser();
 if (chrome) {
   let version = "";
   try {
@@ -106,6 +139,31 @@ if (chrome) {
   // Not fatal for the Python stages, but the Cowork stages below cannot run,
   // and they are recorded as failures rather than skipped silently.
   record("real Chrome Stable is installed", false, "no chrome.exe in any standard location");
+}
+if (extensionTestBrowser) {
+  let version = "";
+  try {
+    version = execFileSync("powershell", [
+      "-NoProfile",
+      "-Command",
+      `(Get-Item '${extensionTestBrowser}').VersionInfo.ProductVersion`,
+    ])
+      .toString()
+      .trim();
+  } catch {
+    /* the executable path remains usable evidence */
+  }
+  record(
+    "Chrome for Testing or Chromium is installed",
+    true,
+    `${extensionTestBrowser}${version ? ` (${version})` : ""}`,
+  );
+} else {
+  record(
+    "Chrome for Testing or Chromium is installed",
+    false,
+    "required because Chrome Stable 137+ refuses command-line unpacked extensions",
+  );
 }
 
 // ---- Python -----------------------------------------------------------------
@@ -142,19 +200,21 @@ stage(
 
 stage("control engine suite", python, ["-m", "pytest", "core/", "-q"], { cwd: CONTROL_ENGINE });
 
-// ---- Cowork, against real Chrome Stable --------------------------------------
+// ---- Cowork and managed-browser parity ---------------------------------------
+if (extensionTestBrowser) {
+  const withTestBrowser = {
+    env: { ...process.env, OCADE_BROWSER_PATH: extensionTestBrowser },
+  };
+  stage("extension manifest and safety gate", process.execPath, [npmCli, "run", "extension:check"], {
+    ...withTestBrowser,
+  });
+  stage("COWORK extension against Chrome for Testing", process.execPath, [npmCli, "run", "extension:e2e"], {
+    ...withTestBrowser,
+  });
+}
 if (chrome) {
   const withChrome = { env: { ...process.env, OCADE_BROWSER_PATH: chrome } };
-  stage("extension manifest and safety gate", "npm", ["run", "extension:check"], {
-    shell: true,
-    ...withChrome,
-  });
-  stage("COWORK against real Chrome Stable", "npm", ["run", "extension:e2e"], {
-    shell: true,
-    ...withChrome,
-  });
-  stage("Chrome and Edge parity through the managed host", "npm", ["run", "browser:cdp-parity"], {
-    shell: true,
+  stage("Chrome and Edge parity through the managed host", process.execPath, [npmCli, "run", "browser:cdp-parity"], {
     ...withChrome,
   });
 }
@@ -167,11 +227,12 @@ const evidence = {
   windowsVersion,
   node: process.version,
   chrome,
+  extensionTestBrowser,
   passed: results.length - failed.length,
   total: results.length,
   results,
 };
-const path = join(process.cwd(), "windows-proof-evidence.json");
+const path = join(process.cwd(), "release", "OCADE_WINDOWS_PROOF_EVIDENCE.json");
 writeFileSync(path, JSON.stringify(evidence, null, 2));
 
 console.log(

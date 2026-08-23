@@ -31,6 +31,7 @@ import sys
 import time
 from typing import Any, NamedTuple
 
+from ._win32 import require
 from .protocol import Refusal, bounded_text, clamp_text
 
 # How long to wait for a launched application to put a window on screen before
@@ -344,28 +345,60 @@ def _foreground(hwnd: int) -> bool:
         win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
 
     current = win32gui.GetForegroundWindow()
-    attached = False
+    attachments: list[tuple[int, int]] = []
+    native_failed = False
     try:
+        import win32api  # noqa: PLC0415
+
+        caller_thread = win32api.GetCurrentThreadId()
         target_thread, _ = win32process.GetWindowThreadProcessId(hwnd)
-        source_thread, _ = (
+        foreground_thread, _ = (
             win32process.GetWindowThreadProcessId(current) if current else (0, 0)
         )
-        if source_thread and target_thread and source_thread != target_thread:
-            import win32api  # noqa: PLC0415
-
-            win32api.AttachThreadInput(source_thread, target_thread, True)
-            attached = True
+        # SetForegroundWindow is called by *this* thread, so this thread must
+        # join the input queues that currently own focus. The previous version
+        # attached the foreground app directly to the target app and never
+        # attached the caller, which made success depend on which terminal or
+        # test runner happened to be active.
+        for other_thread in (foreground_thread, target_thread):
+            if other_thread and other_thread != caller_thread:
+                pair = (caller_thread, other_thread)
+                if pair not in attachments:
+                    win32api.AttachThreadInput(*pair, True)
+                    attachments.append(pair)
+        win32gui.BringWindowToTop(hwnd)
         win32gui.SetForegroundWindow(hwnd)
+        try:
+            win32gui.SetFocus(hwnd)
+        except Exception:
+            # Top-level windows do not always accept SetFocus directly; the
+            # foreground readback below remains the authority.
+            pass
     except Exception:
-        return False
+        native_failed = True
     finally:
-        if attached:
+        if attachments:
             try:
                 import win32api  # noqa: PLC0415
 
-                win32api.AttachThreadInput(source_thread, target_thread, False)
+                for source_thread, destination_thread in reversed(attachments):
+                    win32api.AttachThreadInput(source_thread, destination_thread, False)
             except Exception:
                 pass
+    time.sleep(0.12)
+    if not native_failed and win32gui.GetForegroundWindow() == hwnd:
+        return True
+
+    # Windows can still reject the native sequence under its foreground lock
+    # (notably when a browser owns the shell's last input). pywinauto's UIA
+    # wrapper has a second, platform-maintained focus path. This remains a
+    # semantic focus operation on the same validated hwnd, not a blind click.
+    try:
+        require("pywinauto", "Focusing a window").Desktop(backend="uia").window(
+            handle=hwnd
+        ).set_focus()
+    except Exception:
+        return False
     time.sleep(0.12)
     return win32gui.GetForegroundWindow() == hwnd
 

@@ -154,7 +154,9 @@ assets remain under their own terms; notices are recorded in
 
 ## Audit status
 
-`docs/OCADE-AUDIT-REPORT.md` records what has been executed and what has not,
-including four items that are **not proven** and say so: Windows PC control,
-real Chrome Stable Cowork, production CI, and production-model answer quality.
-`docs/WINDOWS-PROOF.md` covers how to close the first two.
+`docs/OCADE-AUDIT-REPORT.md` records what has been executed and what remains
+external. Windows PC control, the Chrome for Testing extension, installed Chrome
+Stable/Edge parity, and local production-model text/vision paths now have live
+evidence. Production CI, signing/store distribution, live Supabase apply,
+mobile devices, and clean-machine release matrices remain externally blocked.
+See `docs/WINDOWS-PROOF.md` and the ledgers under `release/`.

@@ -1,12 +1,13 @@
 # OCADE production audit — final report
 
-Branch `claude/ocade-production-audit-o0o22j`. Every number below was produced by
-running the thing it describes, on the commit this file ships in.
+Originally produced on `claude/ocade-production-audit-o0o22j`; reconciled on 23
+August 2026 on `codex/ocade-production-completion-20260823`. Historical numbers
+remain where useful, but the current release evidence ledgers are authoritative.
 
 The report is split the way the brief asked for: **EXECUTED** means a machine ran
 it and I read the output. **SOURCE-FIXED** means the code is written and covered
-by tests but the end-to-end path has not run here. **NOT PROVEN** means exactly
-that, and those four items are listed as prominently as the rest.
+by tests but the end-to-end path has not run. **EXTERNALLY BLOCKED** requires a
+credential, device, distribution identity or independently controlled target.
 
 ---
 
@@ -202,9 +203,11 @@ a switch list that shrinks as dependent controls disable.
 
 ## 3. Chat — seven prompts, with timings
 
-Timings are **pipeline** latency, not inference latency: no production weights are
-reachable from this environment, so the engine is a protocol-faithful fixture.
-Every prompt has ground truth that exists before the engine answers.
+The table below remains the deterministic pipeline harness: its timings are
+pipeline latency, not production-model latency, and every prompt has ground
+truth before the engine answers. Production runtime behaviour is recorded
+separately in `release/OCADE_CHAT_RUNTIME_EVIDENCE.json` so fixture timings are
+never presented as model timings.
 
 | #   | Prompt                                    | Correct | First token | Total | Answer                                       |
 | --- | ----------------------------------------- | ------- | ----------- | ----- | -------------------------------------------- |
@@ -232,6 +235,17 @@ is claimed.
 ---
 
 ## 4. Real local inference
+
+The current fixed production path executed on Windows with the exact installed
+`qwen2.5:3b` digest and `qwen2.5vl:7b` vision runtime: **19 observed, 0 failed,
+0 skipped**. It covers text ground truth, streaming, cancellation, retry,
+activation, fixed context bounds and a known-image vision readback. The
+distribution gate binds that receipt to the model manifest and records the
+remaining mirror, signing and licence/provenance blockers.
+
+The small llama.cpp harness below is a separate **15/15 runtime correctness
+test**. It proves GGUF load/export/inference mechanics, not general answer
+quality.
 
 Two models, answering two different questions.
 
@@ -316,28 +330,25 @@ So production CI is **NOT PROVEN**. Everything above was executed locally.
 
 ---
 
-## 7. Not proven
+## 7. Current proof and external blockers
 
-Four items. They are labelled this way in the code and the docs, not only here.
+`npm run windows:prove` now passes **10/10** on a real Windows machine. That
+includes 297 passing native-sidecar tests (17 capability-based skips), 14/14
+live PC-control tests, 30/30 control-engine tests, 69/69 extension scenarios in
+Chrome for Testing, and installed Chrome Stable/Edge CDP parity. See
+`release/OCADE_WINDOWS_PROOF_EVIDENCE.json`.
 
-1. **Windows PC control.** Real pointer, real typing, OCR, window and app
-   control, on Windows. The harness exists (14 tests driving a real desktop) and
-   its protocol driver is executed on Linux, but the Windows API calls have never
-   run.
-2. **Real Chrome Stable Cowork.** Parity and the extension E2E are proven against
-   Chromium. `dl.google.com` is blocked, so Chrome Stable is not present.
-3. **Production CI.** §6.
-4. **Production-model answer quality.** §4.
+The fixed local runtime also has a live 19/19 text, stream, cancellation,
+recovery and vision receipt, with the installed model digest matched to the
+resolved manifest. This closes the old statement that production weights were
+unreachable; it does not prove broad answer quality or redistribution rights.
 
-All four routes to a Windows machine were tested individually and are closed:
-Actions gives no runner; there is no `/dev/kvm`, no `vmx`/`svm` CPU flag and no
-qemu; Microsoft's image hosts are blocked; and `list_environments` returns one
-Linux cloud environment.
-
-**To close 1, 2 and 4:** run `npm ci && npm run windows:prove` on a Windows PC.
-It refuses to run on any other platform, records a missing Chrome Stable as a
-FAILED stage rather than a skipped one, and writes `windows-proof-evidence.json`.
-See `docs/WINDOWS-PROOF.md`.
+Still externally blocked: production CI; live Supabase migration apply and
+post-apply RLS attacks; signed desktop/store distribution and clean-machine
+upgrade/rollback; Android and iOS device matrices; same-origin browser model
+mirrors; exact model/control-engine provenance review; production credentials,
+support staffing and launch authority. `release/OCADE_RELEASE_BLOCKERS.json`
+is the machine-readable authority.
 
 ---
 

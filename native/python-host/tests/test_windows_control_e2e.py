@@ -26,6 +26,7 @@ import os
 import subprocess
 import sys
 import time
+import uuid
 
 import pytest
 
@@ -141,7 +142,15 @@ class TestKeyboard:
     def test_typed_text_can_be_read_back_out_of_the_window(self, host: Host, notepad: int):
         # OBSERVE → ACT → OBSERVE AGAIN. The readback is the proof; `typed` is
         # only what the command believes about itself.
-        marker = f"ocade-{int(time.time())}"
+        # A long digit run deliberately looks like an OTP/reference number to
+        # the protected-input guard. Use letters so this is ordinary prose,
+        # while retaining enough entropy to prove the readback is from this run.
+        suffix = "".join(chr(ord("a") + byte % 26) for byte in uuid.uuid4().bytes[:8])
+        marker = f"ocade-proof-{suffix}"
+        # The module fixture may reuse a Notepad window from an earlier proof
+        # run. Reset it through the semantic value pattern so the bounded
+        # readback cannot hide the newest marker behind old evidence.
+        host.ok("control.set_text", {"hwnd": notepad, "value": "OCADE proof begins: "})
         data = host.ok("input.type", {"hwnd": notepad, "text": marker})
         assert marker in data.get("readback", ""), (
             f"the window does not contain what was typed: {data.get('readback')!r}"

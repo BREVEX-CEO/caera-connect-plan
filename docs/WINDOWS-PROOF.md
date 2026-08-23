@@ -1,13 +1,10 @@
 # Proving OCADE on a real Windows PC
 
-Everything in this repository that needs Windows has a harness written for it.
-None of those harnesses has executed, and the final report marks every
-Windows-specific claim UNPROVEN because of it.
+The Windows harness executed on 23 August 2026. The current tracked evidence is
+`release/OCADE_WINDOWS_PROOF_EVIDENCE.json`: **10/10 stages passed** on Windows
+10.0.19044 with Node 24.16.0, Chrome Stable 151 and Chrome for Testing 151.
 
-That is not caution. It is the literal state of the evidence, and this page
-exists so it can stop being the state of the evidence.
-
-## Why it has not run here
+## Earlier blocker and current status
 
 Three routes were tried and all three are closed in the audit environment:
 
@@ -17,9 +14,12 @@ Three routes were tried and all three are closed in the audit environment:
 | A local Windows VM              | No `/dev/kvm`, no `vmx`/`svm` CPU flags, no qemu installed.                                                                                                                                                                                                                                                                                          |
 | Downloading a Windows image     | `software-download.microsoft.com` and `dl.microsoft.com` are both blocked by the network policy.                                                                                                                                                                                                                                                     |
 
-Real Chrome Stable is unavailable for the same kind of reason: `dl.google.com`
-is blocked, so only the bundled Chromium is present, and Chromium is not the
-thing the requirement names.
+Those routes remain relevant to hosted CI, but no longer block local Windows
+proof. Chrome Stable is installed and executed for managed-host Chrome/Edge
+parity. Chrome for Testing is installed and executes the unpacked-extension E2E.
+This split is required because official Chrome branded builds 137+ no longer
+honour command-line unpacked-extension loading; Chrome for Testing and Chromium
+remain the supported automation targets.
 
 ## Running it
 
@@ -34,8 +34,8 @@ The runner **refuses to run on anything but Windows**. A proof that quietly
 degrades on the wrong platform is worse than no proof, so on Linux or macOS it
 exits non-zero and says why rather than reporting a partial pass.
 
-It writes `windows-proof-evidence.json` recording the Windows build, the Node
-version, the Chrome path and version it found, and the outcome of every stage.
+It writes `release/OCADE_WINDOWS_PROOF_EVIDENCE.json` recording the Windows
+build, Node version, both browser paths and versions, and every stage outcome.
 
 ## What it actually exercises
 
@@ -51,12 +51,14 @@ version, the Chrome path and version it found, and the outcome of every stage.
    tree, captures real pixels, runs the OCR engine built into Windows,
    exercises the STOP latch, and requires refusals for a six-digit code and for
    a field named Password.
-4. **Cowork against real Chrome Stable** — the extension E2E (45 scenarios,
-   including the login hand-off, the stale-checkpoint resume and the STOP
-   latch surviving a service-worker recycle) and Chrome/Edge CDP parity.
+4. **Cowork and installed browsers** — the extension E2E runs 69 scenarios in
+   Chrome for Testing, including login hand-off, stale-checkpoint resume and a
+   STOP latch surviving a service-worker recycle. The managed host separately
+   drives installed Chrome Stable and Edge through CDP for protected-field,
+   observed DOM mutation, upload, download, tabs, cancellation and stop parity.
 
-If Chrome Stable is not installed, the Cowork stages are recorded as
-**failures**, not skipped. A missing browser must not look like a pass.
+If Chrome Stable or an extension-capable Chrome for Testing/Chromium is absent,
+the corresponding stage is a **failure**, not a skip.
 
 ## Unblocking CI instead
 
@@ -68,8 +70,7 @@ runners bill at 2× Linux, which is why they were the first to stop.
 
 ## What this page does not claim
 
-That the harnesses pass. They have never run. Their protocol driver and their
-refusal behaviour are executed on Linux and are covered by tests; the
-Windows-specific API calls — real pointer, real typing, OCR, window focus — are
-not, and nothing here should be read as saying otherwise until
-`windows-proof-evidence.json` exists and says so.
+This is proof on one Windows machine, not a signed clean-machine distribution
+matrix. It does not prove macOS/Linux packaging, mobile devices, store review,
+signed extension upgrade, or every licensed desktop application. Those remain
+separate externally blocked release requirements.

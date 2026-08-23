@@ -61,19 +61,18 @@ def focus_window(request) -> dict[str, Any]:
     if not win32gui.IsWindow(hwnd):
         raise Refusal("That window no longer exists.", "state_changed")
 
-    if win32gui.IsIconic(hwnd):
-        win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-    try:
-        win32gui.SetForegroundWindow(hwnd)
-    except Exception:
-        # Windows refuses foreground changes from a process without input
-        # focus. Say so instead of reporting a success the user cannot see.
+    # Use the same bounded foreground-lock workaround as app.launch and
+    # app.focus. Calling SetForegroundWindow directly works only while this
+    # sidecar already owns input focus, which is rarely true when it is driven
+    # from a browser or test runner.
+    from .desktop import _foreground  # noqa: PLC0415
+
+    if not _foreground(hwnd):
         raise Refusal(
             "Windows would not move focus to that window. Click it once, then ask again.",
             "blocked",
-        ) from None
+        )
 
-    time.sleep(0.12)
     actual = win32gui.GetForegroundWindow()
     verified = actual == hwnd
     return {
@@ -229,7 +228,6 @@ def invoke_control(request) -> dict[str, Any]:
 def set_text(request) -> dict[str, Any]:
     """Write into a field through its value pattern, never by keystrokes."""
     payload = request.payload
-    hwnd, window = _window(payload.get("hwnd"))
     value = bounded_text(payload.get("value"), "value", 50_000)
     if is_protected_text(value):
         raise Refusal(
@@ -238,6 +236,16 @@ def set_text(request) -> dict[str, Any]:
         )
     role, name = payload.get("role"), payload.get("name")
     automation_id = payload.get("automationId")
+    # Refuse from the caller's selector before touching the desktop. Password
+    # controls usually expose an ordinary `Edit` role; their accessible name or
+    # automation id is the only portable signal at this boundary.
+    if any(is_protected_text(item) for item in (name, automation_id) if isinstance(item, str)):
+        raise Refusal(
+            "That field is for a password, code or payment value. OCADE does not write into it.",
+            "blocked",
+        )
+
+    hwnd, window = _window(payload.get("hwnd"))
 
     target = None
     how = "named"
@@ -291,6 +299,17 @@ def set_text(request) -> dict[str, Any]:
     if target is None:
         raise Refusal("That window has no editable field to write into.", "state_changed")
 
+    info = target.element_info
+    if (
+        bool(getattr(info, "is_password", False))
+        or is_protected_text(getattr(info, "name", "") or "")
+        or is_protected_text(getattr(info, "automation_id", "") or "")
+    ):
+        raise Refusal(
+            "That field is for a password, code or payment value. OCADE does not write into it.",
+            "blocked",
+        )
+
     try:
         target.set_edit_text(value)
         method = "uia.value"
@@ -305,7 +324,6 @@ def set_text(request) -> dict[str, Any]:
     except Exception:
         readback = ""
 
-    info = target.element_info
     return {
         "hwnd": hwnd,
         "written": len(value),

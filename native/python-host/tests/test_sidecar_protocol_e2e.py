@@ -182,3 +182,5 @@ class TestProtectedInputIsNotPlatformSpecific:
             "control.set_text", {"hwnd": 1, "name": "Password", "value": "hunter2", "role": "Edit"}
         )
         assert reply["ok"] is False
+        assert reply["code"] == "blocked"
+        assert "field" in reply["error"].lower()

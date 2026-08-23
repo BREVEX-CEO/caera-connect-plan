@@ -21,10 +21,15 @@
       "id": "supabase-apply-and-rls",
       "area": "supabase",
       "status": "externally_blocked",
+      "achievedEvidence": [
+        "All 48 migrations, verification scripts and reverse rollbacks execute in PGlite PostgreSQL",
+        "Atomic payment webhook RPC rollback, duplicate, stale-event and cross-tenant tests pass",
+        "Entitlement helpers use SECURITY INVOKER with RLS instead of public SECURITY DEFINER access"
+      ],
       "requiredEvidence": [
-        "Authorized project access",
-        "All OCADE migrations applied in documented order",
-        "Verification SQL and cross-tenant attack tests passed",
+        "Authorized live project access and explicit database-apply authority",
+        "All 48 OCADE migrations applied in documented order to the intended project",
+        "Post-apply verification SQL and cross-tenant attack tests passed on that project",
         "Generated database types refreshed after apply"
       ]
     },
@@ -66,9 +71,12 @@
       "id": "browser-extension-store",
       "area": "browser-extension",
       "status": "externally_blocked",
+      "achievedEvidence": [
+        "69/69 unpacked-extension scenarios pass in Chrome for Testing 151",
+        "Installed Chrome Stable 151 and Edge pass managed-host protected-field, DOM, upload, download, tabs, cancel and stop parity",
+        "Manifest safety gate confirms no standing host access, remote code or website-controlled scope changes"
+      ],
       "requiredEvidence": [
-        "Load-unpacked tests in supported Chrome and Edge versions",
-        "Observed DOM accessibility masked-capture upload download and stop tests",
         "Store identities review listings signing and publication",
         "Installed-store upgrade and permission-revocation tests"
       ]
@@ -77,6 +85,11 @@
       "id": "real-application-and-device-matrix",
       "area": "universal-control",
       "status": "externally_blocked",
+      "achievedEvidence": [
+        "Windows proof passes 10/10 stages on Windows 10.0.19044",
+        "Live Notepad proof passes focus, UIA observation, typed-text readback, pointer movement, capture, OCR/refusal, STOP and protected-input checks",
+        "Full native sidecar suite passes 297 tests with 17 capability-based skips; control engine passes 30/30"
+      ],
       "requiredEvidence": [
         "Licensed target applications and exact version matrix",
         "Observed adapter actions receipts cancellation and recovery",
