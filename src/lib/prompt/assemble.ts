@@ -23,6 +23,7 @@
  */
 import { OCADE_SYSTEM_PROMPT } from "./canonical";
 import { deliberationClause } from "@/lib/local/fixed-model";
+import { compileConstitution, estimateTokens } from "./compile";
 import { promptSections, REQUIRED_SECTIONS, CAPABILITY_GATED_SECTIONS } from "./sections";
 
 /** Which surface is asking. Changes only the runtime facts, never the rules. */
@@ -85,6 +86,15 @@ export interface RuntimeContext {
   preferences?: string | null;
   /** Memory the user has permitted for this surface. */
   memory?: string | null;
+  /**
+   * How many tokens the caller has room for in the system message.
+   *
+   * Taken from the model's real context window, not guessed here. `undefined`
+   * means unbounded, which yields the canonical document unchanged — correct
+   * for a desktop runtime with a large window, and wrong for a browser model
+   * whose entire window is 4,096 tokens against a 32,713-token constitution.
+   */
+  budgetTokens?: number | null;
 }
 
 /** Hard ceilings so one oversized field cannot crowd out the constitution. */
@@ -186,11 +196,16 @@ function toolManifest(tools: PromptToolSchema[]): string {
  * A gated section is included when its capability is present AND available.
  * Anything not gated is required, so it is always in.
  */
-function constitutionFor(capabilities: PromptCapability[] | undefined): {
+function constitutionFor(
+  capabilities: PromptCapability[] | undefined,
+  budgetTokens: number | null | undefined,
+): {
   text: string;
   included: string[];
   omitted: string[];
   complete: boolean;
+  form: "canonical" | "compiled";
+  estimatedTokens: number;
 } {
   const sections = promptSections();
   const have = new Set((capabilities ?? []).filter((c) => c.available).map((c) => c.name));
@@ -219,10 +234,41 @@ function constitutionFor(capabilities: PromptCapability[] | undefined): {
    * string to the test, and a test that has to normalise whitespace before it
    * compares is a test that would not notice a section going missing.
    */
-  if (omitted.length === 0) {
-    return { text: OCADE_SYSTEM_PROMPT, included, omitted, complete: true };
+  const gated = omitted.length === 0 ? OCADE_SYSTEM_PROMPT : keep.join("\n\n");
+
+  /*
+   * The budget decides the FORM; capability gating decided the content.
+   *
+   * Gating alone was never going to be enough: the sections that survive it
+   * still total tens of thousands of tokens against a browser window of four
+   * thousand. When the text does not fit, the compiler substitutes the
+   * compact core — same behavioural rules, compressed — plus whatever modules
+   * the remaining room allows.
+   */
+  const compiled = compileConstitution({
+    canonical: gated,
+    budgetTokens: budgetTokens ?? null,
+    capabilities: new Set((capabilities ?? []).filter((c) => c.available).map((c) => c.name)),
+  });
+
+  if (compiled.form === "canonical") {
+    return {
+      text: compiled.text,
+      included,
+      omitted,
+      complete: omitted.length === 0,
+      form: "canonical",
+      estimatedTokens: compiled.estimatedTokens,
+    };
   }
-  return { text: keep.join("\n\n"), included, omitted, complete: false };
+  return {
+    text: compiled.text,
+    included: compiled.includedModules,
+    omitted: compiled.droppedModules,
+    complete: false,
+    form: "compiled",
+    estimatedTokens: compiled.estimatedTokens,
+  };
 }
 
 /** What the assembler decided, for tests and for the health view. */
@@ -232,6 +278,10 @@ export interface AssembledPrompt {
   omittedSections: string[];
   /** True when the constitution went out whole and byte-identical. */
   completeConstitution: boolean;
+  /** "canonical" = the real document; "compiled" = the compact core. */
+  constitutionForm: "canonical" | "compiled";
+  /** Estimated tokens in the finished system message. */
+  estimatedTokens: number;
 }
 
 /**
@@ -241,7 +291,7 @@ export interface AssembledPrompt {
  * because nothing that follows is ever prepended.
  */
 export function assembleSystemPromptDetailed(context: RuntimeContext): AssembledPrompt {
-  const constitution = constitutionFor(context.capabilities);
+  const constitution = constitutionFor(context.capabilities, context.budgetTokens);
   const parts: string[] = [constitution.text];
 
   parts.push(block("runtime_context", runtimeFacts(context)));
@@ -294,11 +344,14 @@ export function assembleSystemPromptDetailed(context: RuntimeContext): Assembled
     ),
   );
 
+  const text = parts.join("\n\n");
   return {
-    text: parts.join("\n\n"),
+    text,
     includedSections: constitution.included,
     omittedSections: constitution.omitted,
     completeConstitution: constitution.complete,
+    constitutionForm: constitution.form,
+    estimatedTokens: estimateTokens(text),
   };
 }
 

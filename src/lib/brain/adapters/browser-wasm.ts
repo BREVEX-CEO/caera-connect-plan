@@ -18,7 +18,7 @@ import {
 } from "../browser-catalogue";
 import { modelStore, ModelStore } from "../model-store";
 import { downloadModel, preferredWeightsUrl } from "../model-download";
-import { loadBenchmark, recordBenchmark } from "../tier-benchmark-store";
+import { loadBenchmark, recordBenchmark, recordTierFailure } from "../tier-benchmark-store";
 
 /**
  * OCADE in the browser on the processor, via wllama (llama.cpp compiled to
@@ -308,6 +308,13 @@ export class BrowserWasmAdapter implements BrainAdapter {
       if (handlers.signal?.aborted || name === "WllamaAbortError" || name === "AbortError") {
         return { ok: false, failure: "cancelled", reason: "Stopped." };
       }
+      /*
+       * A tier that died here must not be offered again — see the matching
+       * note in browser-webgpu.ts. Rank 0 is exempt: there is nothing smaller
+       * to fall back to, and marking the only available engine as failed would
+       * leave the device with none.
+       */
+      if (tier.rank > 0) recordTierFailure("wasm", tier.rank);
       return {
         ok: false,
         failure: "error",

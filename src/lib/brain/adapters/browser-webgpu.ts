@@ -7,7 +7,7 @@ import {
   type BrainStreamResult,
 } from "../adapter";
 import { chooseBrowserTier, formatSize, type BrowserModelTier } from "../browser-catalogue";
-import { loadBenchmark, recordBenchmark } from "../tier-benchmark-store";
+import { loadBenchmark, recordBenchmark, recordTierFailure } from "../tier-benchmark-store";
 
 /**
  * OCADE in the browser, on the graphics card, via WebLLM.
@@ -300,6 +300,17 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
       if (handlers.signal?.aborted) {
         return { ok: false, failure: "cancelled", reason: "Stopped." };
       }
+      /*
+       * A TIER THAT DIED HERE MUST NOT BE OFFERED AGAIN.
+       *
+       * Without this, a device fast enough at the smaller tier is promoted,
+       * crashes or runs out of memory at the larger one, falls back, is fast
+       * again, and is promoted straight back into the same crash — a silent
+       * loop costing a large download each time round. Rank 0 is exempt
+       * because there is nothing smaller to fall back to, and marking the only
+       * available engine as failed would leave the device with none.
+       */
+      if (tier.rank > 0) recordTierFailure("webgpu", tier.rank);
       return {
         ok: false,
         failure: "error",

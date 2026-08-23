@@ -62,6 +62,30 @@ export interface BrowserModelTier {
   requiredMemoryBytes: number;
   /** Plain sentence explaining the pick, shown before any download. */
   because: string;
+  /**
+   * The context window OCADE runs this tier with, in tokens.
+   *
+   * Stated here rather than left to the runtime's default, because the default
+   * is what decides whether the system prompt fits and a silent library change
+   * would silently truncate OCADE's rules. Qwen2.5 is trained to 32k, but a
+   * 32k KV cache for a 0.5B model in a browser tab costs more memory than the
+   * weights do; 4,096 is the value these tiers are sized and measured for.
+   */
+  contextTokens: number;
+}
+
+/**
+ * How much of the window the system message may take.
+ *
+ * The rest is the conversation. At 4,096 this leaves about 2,700 tokens for
+ * history and the answer, which is a usable chat; giving the prompt more would
+ * buy stricter rules the user could not then talk to.
+ */
+export const SYSTEM_PROMPT_BUDGET_FRACTION = 0.35;
+
+/** Tokens available for the system message on a tier. */
+export function systemPromptBudgetFor(tier: BrowserModelTier): number {
+  return Math.floor(tier.contextTokens * SYSTEM_PROMPT_BUDGET_FRACTION);
 }
 
 const MB = 1024 * 1024;
@@ -81,6 +105,7 @@ export const WEBGPU_TIERS: BrowserModelTier[] = [
     webllmId: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
     downloadBytes: 340 * MB,
     requiredMemoryBytes: 950 * MB,
+    contextTokens: 4096,
     because:
       "The smallest Qwen that still holds a conversation. It fits comfortably in browser graphics memory and answers without making this device sluggish.",
   },
@@ -90,6 +115,7 @@ export const WEBGPU_TIERS: BrowserModelTier[] = [
     webllmId: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
     downloadBytes: 900 * MB,
     requiredMemoryBytes: 1880 * MB,
+    contextTokens: 4096,
     because:
       "A larger Qwen, offered only because this device reported enough graphics memory to run it without stalling.",
   },
@@ -125,6 +151,7 @@ export const WASM_TIERS: BrowserModelTier[] = [
      */
     downloadBytes: 491_400_032,
     requiredMemoryBytes: 700 * MB,
+    contextTokens: 4096,
     because:
       "This browser cannot use its graphics card for OCADE, so the engine runs on the processor instead. It is slower, and it is the reason OCADE still works here at all.",
   },
@@ -195,6 +222,16 @@ export interface TierBenchmark {
   provenRank: number;
   /** Measured first-token latency at that rank, in milliseconds. */
   firstTokenMs: number;
+  /**
+   * Lowest rank that has FAILED on this device — crashed, ran out of memory,
+   * or answered slower than the ceiling once actually loaded.
+   *
+   * Without this, a device that is fast at rank 0 is promoted to rank 1, rank
+   * 1 dies, the device falls back to rank 0, is fast again, and is promoted
+   * again. The loop is silent and costs the user a large download every time.
+   * A recorded failure is what makes the fallback permanent.
+   */
+  failedRank?: number;
 }
 
 /**
@@ -243,8 +280,37 @@ export function chooseBrowserTier(
       continue;
     }
 
-    // 2. Evidence. Nothing else promotes.
-    if (!benchmark || benchmark.provenRank < t.rank) {
+    /*
+     * 2. A TIER THAT ALREADY FAILED HERE IS NOT OFFERED AGAIN.
+     *
+     * Checked before the evidence rule, because a device that is fast at the
+     * smaller tier is exactly the device the evidence rule would promote —
+     * straight back into the crash it just recovered from.
+     */
+    if (benchmark?.failedRank !== undefined && t.rank >= benchmark.failedRank) {
+      skipped.push({
+        label: t.label,
+        why: "this engine did not run properly on this device last time, so OCADE is staying with the one that works",
+      });
+      continue;
+    }
+
+    /*
+     * 3. EVIDENCE — proving the tier BELOW earns a trial of this one.
+     *
+     * This read `benchmark.provenRank < t.rank` -> skip, which required a
+     * device to have already proven rank 1 in order to be offered rank 1.
+     * `recordBenchmark` only ever records a rank the device was ALLOWED to
+     * run, and every device starts at rank 0, so `provenRank` could never
+     * exceed 0 and no device on earth could be promoted. The rule was written
+     * as "you must have proven THIS tier" when what it meant was "you must
+     * have proven the tier below it".
+     *
+     * Promotion is still one step at a time: proving rank 0 unlocks a trial of
+     * rank 1 and nothing further, so a device climbs only as far as it keeps
+     * demonstrating it can.
+     */
+    if (!benchmark || benchmark.provenRank < t.rank - 1) {
       skipped.push({
         label: t.label,
         why: "this device has not yet run a smaller engine fast enough to justify a larger one",

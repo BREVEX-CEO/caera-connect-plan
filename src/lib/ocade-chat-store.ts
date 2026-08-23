@@ -14,6 +14,7 @@
 import { resolveAdapter } from "./storage/resolver";
 import { StorageLockedError } from "./storage/types";
 import { appendOcadeMessage, listMessages } from "./ocade.functions";
+import { isConversationKey } from "./chat/local-conversations";
 
 export type ChatsMode = "browser_only" | "pc_vault" | "private_sync";
 
@@ -146,19 +147,69 @@ export async function loadChatMessages(input: {
   chatsMode: ChatsMode;
   conversationId: string;
 }): Promise<ChatMessageRecord[]> {
-  if (input.chatsMode === "private_sync") {
-    const rows = (await listMessages({
-      data: { conversationId: input.conversationId },
-    })) as unknown as ChatMessageRecord[];
-    return rows ?? [];
+  /*
+   * THE DEVICE IS READ FIRST, IN EVERY MODE.
+   *
+   * `private_sync` used to call `listMessages` and nothing else. Writing to
+   * the device and then reading back from the server is not local-first: it is
+   * a slower way of depending on the server, and it meant opening a
+   * synchronised conversation with the connection down returned an empty
+   * transcript while the messages sat in the vault a few milliseconds away.
+   *
+   * Now the vault answers, and the server is asked only to pick up what
+   * another device wrote. If that request fails the local answer stands, which
+   * is why Chat keeps working when Supabase does not.
+   */
+  const adapter = await resolveAdapter(input.userId, "chats");
+  const stored = await adapter.list<ChatMessageRecord>("chats");
+  const local = stored
+    .filter((r) => !isConversationKey(r.id))
+    .map((r) => r.value)
+    .filter(
+      (m): m is ChatMessageRecord => Boolean(m) && m.conversation_id === input.conversationId,
+    );
+
+  if (input.chatsMode !== "private_sync") {
+    return local.sort((a, b) => a.created_at.localeCompare(b.created_at));
   }
 
-  const adapter = await resolveAdapter(input.userId, "chats");
-  const all = await adapter.list<ChatMessageRecord>("chats");
-  return all
-    .map((r) => r.value)
-    .filter((m): m is ChatMessageRecord => Boolean(m) && m.conversation_id === input.conversationId)
-    .sort((a, b) => a.created_at.localeCompare(b.created_at));
+  let remote: ChatMessageRecord[] = [];
+  try {
+    remote =
+      ((await listMessages({
+        data: { conversationId: input.conversationId },
+      })) as unknown as ChatMessageRecord[]) ?? [];
+  } catch {
+    // Offline, or Supabase down. The device's own copy is a complete answer
+    // for this device; throwing here would empty a conversation being read.
+    return local.sort((a, b) => a.created_at.localeCompare(b.created_at));
+  }
+
+  return mergeMessages(local, remote);
+}
+
+/**
+ * Union two views of one conversation without duplicating a turn.
+ *
+ * Matching is by id first, because ids are generated on the device and are the
+ * idempotency key. The content fallback exists for one real case: a message
+ * written before this change went to the server, which assigned its own uuid,
+ * so the same turn can genuinely carry two different ids. Matching those on
+ * role + content + timestamp is imperfect in theory and exact in practice,
+ * and the alternative is showing every one of those turns twice forever.
+ */
+export function mergeMessages(
+  local: ChatMessageRecord[],
+  remote: ChatMessageRecord[],
+): ChatMessageRecord[] {
+  const byId = new Map(local.map((m) => [m.id, m]));
+  const fingerprint = new Set(local.map((m) => `${m.role}\u0000${m.content}\u0000${m.created_at}`));
+  for (const m of remote) {
+    if (byId.has(m.id)) continue;
+    if (fingerprint.has(`${m.role}\u0000${m.content}\u0000${m.created_at}`)) continue;
+    byId.set(m.id, m);
+  }
+  return [...byId.values()].sort((a, b) => a.created_at.localeCompare(b.created_at));
 }
 
 /** Remove every vault-stored message for a conversation (privacy control). */
@@ -168,7 +219,9 @@ export async function deleteVaultConversation(
 ): Promise<number> {
   const adapter = await resolveAdapter(userId, "chats");
   const all = await adapter.list<ChatMessageRecord>("chats");
-  const targets = all.filter((r) => r.value?.conversation_id === conversationId);
+  const targets = all.filter(
+    (r) => !isConversationKey(r.id) && r.value?.conversation_id === conversationId,
+  );
   for (const t of targets) {
     await adapter.delete("chats", t.id);
   }

@@ -68,11 +68,47 @@ export function recordBenchmark(kind: BrowserEngineKind, rank: number, firstToke
     const existing = all[kind];
     if (existing && existing.provenRank > rank) return;
     if (existing && existing.provenRank === rank && existing.firstTokenMs <= firstTokenMs) return;
-    all[kind] = { provenRank: rank, firstTokenMs: Math.round(firstTokenMs) };
+    all[kind] = {
+      provenRank: rank,
+      firstTokenMs: Math.round(firstTokenMs),
+      // A recorded failure is a fact about this device and survives a later
+      // success at a SMALLER tier — that success is exactly what would
+      // otherwise re-promote it into the tier that failed.
+      ...(existing?.failedRank !== undefined ? { failedRank: existing.failedRank } : {}),
+    };
     window.localStorage.setItem(KEY, JSON.stringify(all));
   } catch {
     // A browser refusing storage simply never promotes. Acceptable: the
     // smallest engine works, it is only slower to get better ones.
+  }
+}
+
+/**
+ * Record that a tier could not run here.
+ *
+ * Called when a larger tier crashes, exhausts memory, or loads and then
+ * answers slower than the ceiling. Without it, a device that is fast at the
+ * smaller tier gets promoted, dies, falls back, is fast again, and gets
+ * promoted again — a silent loop that costs a large download each time.
+ *
+ * Only ever LOWERS the ceiling. A tier failing at rank 2 tells us nothing
+ * good about rank 3, so the lowest failure wins.
+ */
+export function recordTierFailure(kind: BrowserEngineKind, rank: number): void {
+  if (typeof window === "undefined") return;
+  if (!Number.isFinite(rank) || rank < 0) return;
+  try {
+    const all = read();
+    const existing = all[kind];
+    if (existing?.failedRank !== undefined && existing.failedRank <= rank) return;
+    all[kind] = {
+      provenRank: existing?.provenRank ?? 0,
+      firstTokenMs: existing?.firstTokenMs ?? 1,
+      failedRank: rank,
+    };
+    window.localStorage.setItem(KEY, JSON.stringify(all));
+  } catch {
+    /* A browser refusing storage retries the larger tier next visit. */
   }
 }
 

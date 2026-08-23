@@ -83,6 +83,16 @@ import { useLocalEngine } from "@/lib/use-local-engine";
 import { useDevicePolicy } from "@/lib/use-device-policy";
 import { useChatPrefs, readChatPrefs } from "@/lib/use-chat-prefs";
 import { assembleSystemPrompt } from "@/lib/prompt/assemble";
+import { chooseBrowserTier, systemPromptBudgetFor } from "@/lib/brain/browser-catalogue";
+import { loadBenchmark } from "@/lib/brain/tier-benchmark-store";
+import {
+  createConversationLocally,
+  listConversationsLocally,
+  updateConversationLocally,
+  deleteConversationLocally,
+  mergeRemoteConversations,
+  type LocalConversation,
+} from "@/lib/chat/local-conversations";
 import { improvePromptLocally } from "@/lib/chat/improve-prompt";
 import { MessageList } from "@/components/ocade/chat/MessageList";
 import { ChatSidebar } from "@/components/ocade/chat/ChatSidebar";
@@ -342,19 +352,41 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [sidebarHidden, setSidebarHidden] = useState(false);
 
+  /**
+   * The device answers first; the server only adds what another device wrote.
+   *
+   * This was `listConversations()` alone — a server function — so history was
+   * empty offline even though every conversation was sitting in the vault.
+   * The remote call is now best-effort: if it fails, the local list stands,
+   * which is the difference between "not synchronised yet" and "your chats
+   * are gone".
+   */
   const refreshList = useCallback(async () => {
     try {
-      const list = (await listConversations()) as Conversation[];
-      setConversations(list);
+      const local = await listConversationsLocally(userId);
+      setConversations(local as unknown as Conversation[]);
+      setLoadingList(false);
+
+      if (chatsMode !== "private_sync") return;
+      try {
+        const remote = (await listConversations()) as unknown as LocalConversation[];
+        const merged = mergeRemoteConversations(local, remote ?? []);
+        setConversations(merged as unknown as Conversation[]);
+      } catch {
+        // Offline or Supabase unavailable. The local list is already shown.
+      }
     } finally {
       setLoadingList(false);
     }
-  }, []);
+  }, [userId, chatsMode]);
+
+  useEffect(() => {
+    void getModeFor(userId, "chats").then((m) => setChatsMode(m));
+  }, [userId]);
 
   useEffect(() => {
     void refreshList();
-    void getModeFor(userId, "chats").then((m) => setChatsMode(m));
-  }, [userId, refreshList]);
+  }, [refreshList]);
 
   useEffect(() => {
     if (!activeId) {
@@ -444,36 +476,71 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
+  /**
+   * Start a conversation on this device.
+   *
+   * This used to await `createConversation`, a server function that INSERTed
+   * a row and returned the id Postgres had generated. So the id of a chat
+   * could not exist until a round trip succeeded, and starting a new chat
+   * therefore required the network — in every privacy mode, including the two
+   * whose entire promise is that they do not need one. Offline, the composer
+   * simply threw.
+   *
+   * The id is made here now. The server copy is queued and drains in the
+   * background; the conversation is real either way.
+   */
   async function ensureActive(): Promise<Conversation> {
     if (active) return active;
-    const conv = (await createConversation({ data: { modelId: model } })) as Conversation;
+    const created = await createConversationLocally(userId, {
+      modelId: model,
+      privacyMode: chatsMode,
+    });
+    const conv = created as unknown as Conversation;
     setConversations((prev) => [conv, ...prev]);
     setLoadingMessages(true);
     setActiveId(conv.id);
     return conv;
   }
 
+  /*
+   * Pin, archive and rename apply to the device immediately and are queued for
+   * the server. Awaiting a round trip for a rename meant the title did not
+   * change offline and the control looked broken; the queue makes the change
+   * real now and synchronised later.
+   */
   async function togglePin(c: Conversation) {
-    await updateConversation({ data: { id: c.id, pinned: !c.pinned } });
+    await updateConversationLocally(userId, c.id, { pinned: !c.pinned });
     await refreshList();
+    void updateConversation({ data: { id: c.id, pinned: !c.pinned } }).catch(() => {});
   }
   async function toggleArchive(c: Conversation) {
-    await updateConversation({ data: { id: c.id, archived: !c.archived } });
+    await updateConversationLocally(userId, c.id, { archived: !c.archived });
     await refreshList();
     if (c.id === activeId && !c.archived) setActiveId(null);
+    void updateConversation({ data: { id: c.id, archived: !c.archived } }).catch(() => {});
   }
   async function handleRenameSubmit(newTitle: string) {
     if (!renameTarget) return;
-    await updateConversation({ data: { id: renameTarget.id, title: newTitle } });
+    const id = renameTarget.id;
+    await updateConversationLocally(userId, id, { title: newTitle });
     setRenameTarget(null);
     await refreshList();
+    void updateConversation({ data: { id, title: newTitle } }).catch(() => {});
   }
   async function handleDelete() {
     if (!deleteTarget) return;
     const target = deleteTarget;
 
-    // Delete the conversation record...
-    await deleteConversation({ data: { id: target.id } });
+    /*
+     * Delete the conversation record on this device first, as a TOMBSTONE.
+     *
+     * Awaiting the server made deleting impossible offline, and simply
+     * removing the local row would let the conversation reappear on the next
+     * merge from a device that never saw the delete. The tombstone is what
+     * makes the deletion a fact that travels.
+     */
+    await deleteConversationLocally(userId, target.id);
+    void deleteConversation({ data: { id: target.id } }).catch(() => {});
 
     /*
      * ...AND the message bodies held on this device.
@@ -1658,6 +1725,21 @@ function ChatSurface(props: {
     const localSteps = [
       { modelId: brainRoute.availability.modelId ?? brainRoute.adapter.id, label: "OCADE Local" },
     ];
+    /*
+     * A browser adapter runs a small fixed window; a desktop bridge or paired
+     * machine does not, and there the canonical document is sent unchanged.
+     * `null` means unbounded, which is the honest description of the latter.
+     */
+    const promptBudget =
+      brainRoute.adapter.id === "browser_webgpu" || brainRoute.adapter.id === "browser_wasm"
+        ? systemPromptBudgetFor(
+            chooseBrowserTier(
+              brainRoute.adapter.id === "browser_webgpu" ? "webgpu" : "wasm",
+              null,
+              loadBenchmark(brainRoute.adapter.id === "browser_webgpu" ? "webgpu" : "wasm"),
+            ).tier,
+          )
+        : null;
     const requestContext = buildRequestContext(atts, true, text);
     if (!requestContext.ok) {
       toast.error(requestContext.reason);
@@ -1714,6 +1796,17 @@ function ChatSurface(props: {
           local: true,
           online: typeof navigator === "undefined" ? undefined : navigator.onLine,
           privacyMode: chatsMode,
+          /*
+           * The budget comes from the engine that will actually read this.
+           *
+           * Measured: the canonical constitution is 32,713 tokens and the
+           * browser tiers run a 4,096-token window. Without a budget the
+           * assembler sends the full document and the model has no room left
+           * for the conversation. `systemPromptBudgetFor` reserves 35% of the
+           * real window; the compiler then substitutes the compact core,
+           * which carries the same behavioural rules.
+           */
+          budgetTokens: promptBudget,
           project: projectDetails
             ? { name: projectDetails.name, instructions: projectDetails.instructions }
             : undefined,
@@ -2266,9 +2359,11 @@ function ChatSurface(props: {
       })) as { id: string; title: string };
     }
 
-    const created = (await createConversation({
-      data: { title, modelId: model },
-    })) as Conversation;
+    const created = (await createConversationLocally(userId, {
+      title,
+      modelId: model,
+      privacyMode: chatsMode,
+    })) as unknown as Conversation;
     try {
       if (conversation.project_id) {
         await setConversationProject({
