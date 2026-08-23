@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-08-23T14:13:31.430Z",
+  "generatedAt": "2026-08-23T14:30:12.031Z",
   "generatedBy": "scripts/launch-prove.mjs",
   "mode": "full",
-  "durationMs": 683796,
+  "durationMs": 670141,
   "summary": {
     "total": 28,
     "passed": 23,
@@ -19,7 +19,7 @@
       "critical": true,
       "what": "The lockfile describes the tree that is actually installed.",
       "exitCode": 0,
-      "durationMs": 88,
+      "durationMs": 91,
       "command": "node scripts/check-setup.mjs",
       "tail": null,
       "log": null
@@ -30,7 +30,7 @@
       "critical": true,
       "what": "The generated route tree matches the route files on disk.",
       "exitCode": 0,
-      "durationMs": 945,
+      "durationMs": 998,
       "command": "npm run routes:generate",
       "tail": null,
       "log": null
@@ -41,7 +41,7 @@
       "critical": true,
       "what": "Every file compiles against the real types, with no escape hatches.",
       "exitCode": 0,
-      "durationMs": 23695,
+      "durationMs": 23136,
       "command": "npm run typecheck",
       "tail": null,
       "log": null
@@ -52,7 +52,7 @@
       "critical": true,
       "what": "No lint errors.",
       "exitCode": 0,
-      "durationMs": 26662,
+      "durationMs": 27333,
       "command": "npm run lint",
       "tail": null,
       "log": null
@@ -63,7 +63,7 @@
       "critical": true,
       "what": "The checked-in database types describe the checked-in migrations.",
       "exitCode": 0,
-      "durationMs": 157,
+      "durationMs": 166,
       "command": "npm run supabase:types-check",
       "tail": null,
       "log": null
@@ -74,7 +74,7 @@
       "critical": true,
       "what": "The whole test suite, including migrations against real PostgreSQL.",
       "exitCode": 0,
-      "durationMs": 78544,
+      "durationMs": 79503,
       "command": "npx vitest run --reporter=dot",
       "tail": null,
       "log": null
@@ -85,7 +85,7 @@
       "critical": true,
       "what": "Tests pass in a shuffled order, so none depends on another's leftovers.",
       "exitCode": 0,
-      "durationMs": 78032,
+      "durationMs": 80092,
       "command": "npm run test:isolation",
       "tail": null,
       "log": null
@@ -96,7 +96,7 @@
       "critical": true,
       "what": "The browser executor cannot exceed the scope a person approved.",
       "exitCode": 0,
-      "durationMs": 308,
+      "durationMs": 364,
       "command": "npm run browser-safety:check",
       "tail": null,
       "log": null
@@ -107,7 +107,7 @@
       "critical": true,
       "what": "The extension asks for no more reach than it uses.",
       "exitCode": 0,
-      "durationMs": 168,
+      "durationMs": 163,
       "command": "npm run extension:check",
       "tail": null,
       "log": null
@@ -118,7 +118,7 @@
       "critical": true,
       "what": "The extension really drives a real browser, and really refuses.",
       "exitCode": 0,
-      "durationMs": 60110,
+      "durationMs": 59984,
       "command": "npm run extension:e2e",
       "tail": null,
       "log": null
@@ -137,7 +137,7 @@
       "critical": true,
       "what": "No control is rendered enabled with nothing behind it.",
       "exitCode": 0,
-      "durationMs": 218,
+      "durationMs": 211,
       "command": "npm run controls:check",
       "tail": null,
       "log": null
@@ -148,7 +148,7 @@
       "critical": true,
       "what": "Labels, touch targets and reduced-motion behaviour.",
       "exitCode": 0,
-      "durationMs": 294,
+      "durationMs": 263,
       "command": "npm run a11y:check",
       "tail": null,
       "log": null
@@ -159,7 +159,7 @@
       "critical": true,
       "what": "Third-party notices match the dependencies actually shipped.",
       "exitCode": 0,
-      "durationMs": 237,
+      "durationMs": 216,
       "command": "npm run licences:check",
       "tail": null,
       "log": null
@@ -170,7 +170,7 @@
       "critical": true,
       "what": "The production build succeeds.",
       "exitCode": 0,
-      "durationMs": 15862,
+      "durationMs": 14864,
       "command": "npm run build",
       "tail": null,
       "log": null
@@ -181,7 +181,7 @@
       "critical": true,
       "what": "No shipped code can send a prompt to a public AI inference service.",
       "exitCode": 0,
-      "durationMs": 201,
+      "durationMs": 233,
       "command": "npm run release:source-check",
       "tail": null,
       "log": null
@@ -192,7 +192,7 @@
       "critical": true,
       "what": "No bundle exceeds its budget, and the engines stay lazy.",
       "exitCode": 0,
-      "durationMs": 241,
+      "durationMs": 256,
       "command": "npm run performance:budget",
       "tail": null,
       "log": null
@@ -203,7 +203,7 @@
       "critical": true,
       "what": "Production operational requirements: headers, errors, health.",
       "exitCode": 0,
-      "durationMs": 177,
+      "durationMs": 192,
       "command": "npm run operations:check",
       "tail": null,
       "log": null
@@ -214,7 +214,7 @@
       "critical": true,
       "what": "WebGPU and WebAssembly report themselves honestly in a real browser.",
       "exitCode": 0,
-      "durationMs": 1002,
+      "durationMs": 1000,
       "command": "npm run audit:engines",
       "tail": null,
       "log": null
@@ -225,7 +225,7 @@
       "critical": true,
       "what": "Three tabs elect one model owner and recover when it dies.",
       "exitCode": 0,
-      "durationMs": 4234,
+      "durationMs": 4314,
       "command": "npm run audit:model-owner",
       "tail": null,
       "log": null
@@ -236,7 +236,7 @@
       "critical": true,
       "what": "OCADE survives going offline and coming back, with no duplicates.",
       "exitCode": 0,
-      "durationMs": 30028,
+      "durationMs": 29202,
       "command": "npm run audit:offline:prod",
       "tail": null,
       "log": null
@@ -247,7 +247,7 @@
       "critical": true,
       "what": "The shipped prompt pipeline produces what the canonical prompt says.",
       "exitCode": 0,
-      "durationMs": 5544,
+      "durationMs": 4985,
       "command": "npm run audit:chat",
       "tail": null,
       "log": null
@@ -258,7 +258,7 @@
       "critical": true,
       "what": "Real weights really generate, through the real adapter.",
       "exitCode": 0,
-      "durationMs": 632,
+      "durationMs": 605,
       "command": "npm run audit:real-inference",
       "tail": null,
       "log": null
@@ -269,7 +269,7 @@
       "critical": true,
       "what": "Every route renders, on desktop and phone widths, signed in and out.",
       "exitCode": 0,
-      "durationMs": 355265,
+      "durationMs": 341799,
       "command": "npm run audit:routes:prod",
       "tail": null,
       "log": null
