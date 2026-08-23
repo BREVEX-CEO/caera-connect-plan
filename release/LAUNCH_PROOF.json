@@ -1,13 +1,13 @@
 {
-  "generatedAt": "2026-08-23T05:50:21.856Z",
+  "generatedAt": "2026-08-23T13:24:08.048Z",
   "generatedBy": "scripts/launch-prove.mjs",
   "mode": "full",
-  "durationMs": 310523,
+  "durationMs": 616224,
   "summary": {
-    "total": 26,
-    "passed": 20,
-    "failedCritical": 4,
-    "failedOptional": 0,
+    "total": 27,
+    "passed": 22,
+    "failedCritical": 2,
+    "failedOptional": 1,
     "unavailable": 2,
     "skipped": 0
   },
@@ -19,7 +19,7 @@
       "critical": true,
       "what": "The lockfile describes the tree that is actually installed.",
       "exitCode": 0,
-      "durationMs": 90,
+      "durationMs": 94,
       "command": "node scripts/check-setup.mjs",
       "tail": null
     },
@@ -29,7 +29,7 @@
       "critical": true,
       "what": "The generated route tree matches the route files on disk.",
       "exitCode": 0,
-      "durationMs": 890,
+      "durationMs": 1058,
       "command": "npm run routes:generate",
       "tail": null
     },
@@ -39,7 +39,7 @@
       "critical": true,
       "what": "Every file compiles against the real types, with no escape hatches.",
       "exitCode": 0,
-      "durationMs": 22398,
+      "durationMs": 24391,
       "command": "npm run typecheck",
       "tail": null
     },
@@ -49,7 +49,7 @@
       "critical": true,
       "what": "No lint errors.",
       "exitCode": 0,
-      "durationMs": 23538,
+      "durationMs": 25983,
       "command": "npm run lint",
       "tail": null
     },
@@ -59,7 +59,7 @@
       "critical": true,
       "what": "The checked-in database types describe the checked-in migrations.",
       "exitCode": 0,
-      "durationMs": 140,
+      "durationMs": 172,
       "command": "npm run supabase:types-check",
       "tail": null
     },
@@ -69,7 +69,7 @@
       "critical": true,
       "what": "The whole test suite, including migrations against real PostgreSQL.",
       "exitCode": 0,
-      "durationMs": 73848,
+      "durationMs": 78419,
       "command": "npx vitest run --reporter=dot",
       "tail": null
     },
@@ -79,19 +79,9 @@
       "critical": true,
       "what": "Tests pass in a shuffled order, so none depends on another's leftovers.",
       "exitCode": 0,
-      "durationMs": 98503,
+      "durationMs": 81628,
       "command": "npm run test:isolation",
       "tail": null
-    },
-    {
-      "id": "no-public-cloud-inference",
-      "status": "fail",
-      "critical": true,
-      "what": "No shipped code can send a prompt to a public AI inference service.",
-      "exitCode": 1,
-      "durationMs": 182,
-      "command": "npm run release:source-check",
-      "tail": "> caera-cadane-ocade@0.1.0 release:source-check\n> node scripts/check-release-source.mjs\n\nOCADE release source gate failed (1/57 checks):\n- production output is missing; run npm run build first"
     },
     {
       "id": "browser-safety",
@@ -99,7 +89,7 @@
       "critical": true,
       "what": "The browser executor cannot exceed the scope a person approved.",
       "exitCode": 0,
-      "durationMs": 243,
+      "durationMs": 290,
       "command": "npm run browser-safety:check",
       "tail": null
     },
@@ -109,7 +99,7 @@
       "critical": true,
       "what": "The extension asks for no more reach than it uses.",
       "exitCode": 0,
-      "durationMs": 148,
+      "durationMs": 192,
       "command": "npm run extension:check",
       "tail": null
     },
@@ -119,7 +109,7 @@
       "critical": true,
       "what": "The extension really drives a real browser, and really refuses.",
       "exitCode": 0,
-      "durationMs": 60159,
+      "durationMs": 60301,
       "command": "npm run extension:e2e",
       "tail": null
     },
@@ -129,7 +119,7 @@
       "critical": true,
       "what": "Every model tier's size, digest and URL match the publisher's index.",
       "exitCode": 1,
-      "durationMs": 248,
+      "durationMs": 286,
       "command": "npm run browser-catalogue:check",
       "tail": "> caera-cadane-ocade@0.1.0 browser-catalogue:check\n> node scripts/resolve-browser-catalogue.mjs\n\nfile:///home/user/caera-connect-plan/scripts/resolve-browser-catalogue.mjs:44\n    throw new Error(`${entry.repo}: index returned HTTP ${response.status}`);\n          ^\n\nError: Qwen/Qwen2.5-0.5B-Instruct-GGUF: index returned HTTP 403\n    at resolveOne (file:///home/user/caera-connect-plan/scripts/resolve-browser-catalogue.mjs:44:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///home/user/caera-connect-plan/scripts/resolve-browser-catalogue.mjs:81:16\n\nNode.js v22.22.2"
     },
@@ -139,7 +129,7 @@
       "critical": true,
       "what": "No control is rendered enabled with nothing behind it.",
       "exitCode": 0,
-      "durationMs": 192,
+      "durationMs": 214,
       "command": "npm run controls:check",
       "tail": null
     },
@@ -149,7 +139,7 @@
       "critical": true,
       "what": "Labels, touch targets and reduced-motion behaviour.",
       "exitCode": 0,
-      "durationMs": 206,
+      "durationMs": 259,
       "command": "npm run a11y:check",
       "tail": null
     },
@@ -159,7 +149,7 @@
       "critical": true,
       "what": "Third-party notices match the dependencies actually shipped.",
       "exitCode": 0,
-      "durationMs": 215,
+      "durationMs": 195,
       "command": "npm run licences:check",
       "tail": null
     },
@@ -169,8 +159,18 @@
       "critical": true,
       "what": "The production build succeeds.",
       "exitCode": 0,
-      "durationMs": 14208,
+      "durationMs": 14976,
       "command": "npm run build",
+      "tail": null
+    },
+    {
+      "id": "no-public-cloud-inference",
+      "status": "pass",
+      "critical": true,
+      "what": "No shipped code can send a prompt to a public AI inference service.",
+      "exitCode": 0,
+      "durationMs": 208,
+      "command": "npm run release:source-check",
       "tail": null
     },
     {
@@ -179,7 +179,7 @@
       "critical": true,
       "what": "No bundle exceeds its budget, and the engines stay lazy.",
       "exitCode": 0,
-      "durationMs": 179,
+      "durationMs": 187,
       "command": "npm run performance:budget",
       "tail": null
     },
@@ -189,7 +189,7 @@
       "critical": true,
       "what": "Production operational requirements: headers, errors, health.",
       "exitCode": 0,
-      "durationMs": 138,
+      "durationMs": 179,
       "command": "npm run operations:check",
       "tail": null
     },
@@ -199,7 +199,7 @@
       "critical": true,
       "what": "WebGPU and WebAssembly report themselves honestly in a real browser.",
       "exitCode": 0,
-      "durationMs": 929,
+      "durationMs": 1140,
       "command": "npm run audit:engines",
       "tail": null
     },
@@ -209,19 +209,19 @@
       "critical": true,
       "what": "Three tabs elect one model owner and recover when it dies.",
       "exitCode": 0,
-      "durationMs": 4057,
+      "durationMs": 4423,
       "command": "npm run audit:model-owner",
       "tail": null
     },
     {
       "id": "offline-transitions",
-      "status": "fail",
+      "status": "pass",
       "critical": true,
       "what": "OCADE survives going offline and coming back, with no duplicates.",
-      "exitCode": 1,
-      "durationMs": 840,
-      "command": "npm run audit:offline",
-      "tail": "> caera-cadane-ocade@0.1.0 audit:offline\n> node scripts/e2e/offline-transitions.mjs\n\nnode:internal/modules/run_main:123\n    triggerUncaughtException(\n    ^\n\npage.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:8080/ocade\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:8080/ocade\", waiting until \"networkidle\"\u001b[22m\n\n    at /home/user/caera-connect-plan/scripts/e2e/offline-transitions.mjs:85:14 {\n  log: [\n    '  - navigating to \"http://127.0.0.1:8080/ocade\", waiting until \"networkidle\"'\n  ],\n  name: 'Error'\n}\n\nNode.js v22.22.2"
+      "exitCode": 0,
+      "durationMs": 30835,
+      "command": "npm run audit:offline:prod",
+      "tail": null
     },
     {
       "id": "chat-prompts",
@@ -229,7 +229,7 @@
       "critical": true,
       "what": "The shipped prompt pipeline produces what the canonical prompt says.",
       "exitCode": 0,
-      "durationMs": 4802,
+      "durationMs": 4925,
       "command": "npm run audit:chat",
       "tail": null
     },
@@ -239,7 +239,7 @@
       "critical": true,
       "what": "Real weights really generate, through the real adapter.",
       "exitCode": 0,
-      "durationMs": 2166,
+      "durationMs": 618,
       "command": "npm run audit:real-inference",
       "tail": null
     },
@@ -249,9 +249,19 @@
       "critical": true,
       "what": "Every route renders, on desktop and phone widths, signed in and out.",
       "exitCode": 1,
-      "durationMs": 2198,
-      "command": "npm run audit:routes",
-      "tail": "  /admin/support (2)\n  /admin/users (2)\n  /ocade/activity (2)\n  /ocade/artifacts (2)\n  /ocade/automations (2)\n  /ocade/code (2)\n  /ocade/connectors (2)\n  /ocade/devices (2)\n  /ocade/health (2)\n  /ocade/inbox (2)\n  /ocade/knowledge (2)\n  /ocade/lab (2)\n  /ocade/models (2)\n  /ocade/monitors (2)\n  /ocade/notifications (2)\n  /ocade/permissions (2)\n  /ocade/projects (2)\n  /ocade/search (2)\n  /ocade/shared (2)\n  /ocade/studio (2)\n  /ocade/system (2)\n  /ocade/tasks (2)\n  /ocade/templates (2)\n  /ocade/work (2)\n  /settings/activity (2)\n  /settings/appearance (2)\n  /settings/billing (2)\n  /settings/browser (2)\n  /settings/devices (2)\n  /settings/mobile (2)\n  /settings/privacy (2)\n  /settings/security (2)\n  /settings/skills (2)\n  /settings/support (2)\n  /settings/tasks (2)\n  /settings/usage (2)\n  /settings/vault (2)\n  /settings/voice (2)\n  /this-route-does-not-exist (2)\n  an (1)"
+      "durationMs": 284885,
+      "command": "npm run audit:routes:prod",
+      "tail": "  /ocade/search (1)\n  /ocade/shared (1)\n  /ocade/studio (1)\n  /ocade/system (1)\n  /ocade/tasks (1)\n  /ocade/templates (1)\n  /ocade/work (1)\nThe plugin \"vite-tsconfig-paths\" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.\n[plugin tanstack-start-core::server-fn:client] /home/user/caera-connect-plan/src/utils/payments.functions.ts:35:35 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:client] /home/user/caera-connect-plan/src/utils/payments.functions.ts:56:34 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:client] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts:17:32 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:client] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts:28:37 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:client] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts:38:39 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin rolldown:vite-resolve] Module \"node:child_process\" has been externalized for browser compatibility, imported by \"/home/user/caera-connect-plan/src/lib/providers/tool-prober.ts\". See https://vite.dev/guide/troubleshooting.html#module-externalized-for-browser-compatibility for more details.\n[plugin tanstack-start-core::server-fn:client] /home/user/caera-connect-plan/src/lib/account.functions.ts:27:32 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments.functions.ts?tss-serverfn-split:35:35 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments.functions.ts?tss-serverfn-split:56:34 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/lib/account.functions.ts?tss-serverfn-split:27:32 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts?tss-serverfn-split:17:32 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts?tss-serverfn-split:28:37 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts?tss-serverfn-split:38:39 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments.functions.ts:35:35 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments.functions.ts:56:34 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts:17:32 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts:28:37 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/utils/payments-readiness.functions.ts:38:39 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n[plugin tanstack-start-core::server-fn:ssr] /home/user/caera-connect-plan/src/lib/account.functions.ts:27:32 createServerFn().inputValidator() is deprecated. Use createServerFn().validator() instead.\n\u001b[33m[PLUGIN_TIMINGS] \u001b[0mYour build spent significant time in plugins. Here is a breakdown:\n  - tanstack-start-core:import-protection (44%)\n  - vite-tsconfig-paths (23%)\n  - tanstack-start-core:import-protection-transform-cache (19%)\n  - tanstack-router:code-splitter:compile-reference-file (5%)\n  - tanstack-router:code-splitter:compile-virtual-file (3%)\nSee https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.\n\nsign-in failed; still at http://127.0.0.1:8099/auth\n\n3 STAGE(S) FAILED\n\u001b[90m\rStopping server gracefully (5s)... Press \u001b[1mCtrl+C\u001b[22m again to force close.\u001b[39m\u001b[2K\r\u001b[32mServer closed successfully.\n\u001b[39m"
+    },
+    {
+      "id": "production-weights-chat",
+      "status": "fail",
+      "critical": false,
+      "what": "Real production weights answer real questions through the signed-in Chat path.",
+      "exitCode": 1,
+      "durationMs": 164,
+      "command": "node scripts/e2e/production-weights-chat.mjs",
+      "tail": "Fetching production weights from https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf?download=true\nCould not fetch the weights (HTTP 403). Set OCADE_MODEL_URL to a mirror this machine can reach."
     },
     {
       "id": "payments-sandbox",

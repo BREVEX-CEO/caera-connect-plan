@@ -117,6 +117,9 @@ import type { ChatMessageView, ChatConversationView } from "@/components/ocade/c
 import { reason } from "@/lib/reasoning/engine";
 import { brainReasonDeps, sessionPerfLedger } from "@/lib/reasoning/brain-deps";
 import { thinkingFor } from "@/lib/local/fixed-model";
+import { routeForFreshness } from "@/lib/research/freshness";
+import { buildEvidencePacket } from "@/lib/research/evidence-packet";
+import { runResearchQuery } from "@/lib/research.functions";
 import {
   planContextWindow,
   SLOW_READ_WARNING_SECONDS,
@@ -147,6 +150,7 @@ import {
   parseCitations,
   stripCitationMarkers,
   describeLocator,
+  safeCitationHref,
   type IndexedSource,
   type Citation,
 } from "@/lib/ocade-citations";
@@ -1200,6 +1204,13 @@ function ChatSurface(props: {
   // be resolved back to real documents (never to an invented id).
   const sourceIndexRef = useRef<IndexedSource[]>([]);
   const [citations, setCitations] = useState<Citation[]>([]);
+  /*
+   * A ref rather than state: `recordCitations` runs at the end of the same send
+   * that produced these, and state set during that send would not be visible
+   * to it. The ref is written before the model is asked and read after it
+   * answers, which is exactly the lifetime needed.
+   */
+  const webCitationsRef = useRef<Citation[]>([]);
   const [citationError, setCitationError] = useState<string | null>(null);
   /**
    * What retrieval did to the attachments on the last request, in one sentence.
@@ -1838,6 +1849,82 @@ function ChatSurface(props: {
             content: `Context from files the user attached (extracted on this device):\n\n${docContext}`,
           });
         }
+        /*
+         * DOES ANSWERING THIS NEED TO KNOW WHAT DAY IT IS?
+         *
+         * Chat had no retrieval at all. The whole research stack — ranking,
+         * evidence snippets, the restricted HTTP layer, cited answers — was
+         * reachable only from /ocade/lab, so "who won the election last month"
+         * was answered from whatever the weights remembered, in the same
+         * confident voice used for arithmetic, with nothing on screen to tell
+         * the reader which kind of answer they had been given.
+         *
+         * Retrieval on EVERY message is not the fix either. On a product whose
+         * promise is that nothing leaves the device, a network request behind
+         * "what is 17 times 4" makes that promise false. So the router decides,
+         * and an unclassifiable question stays on the device: retrieval happens
+         * on evidence, never on suspicion.
+         */
+        const routing = routeForFreshness(text, {
+          online: typeof navigator === "undefined" ? true : navigator.onLine,
+          researchAllowed: chatPrefs.research,
+        });
+        webCitationsRef.current = [];
+        if (routing.notice) setRetrievalNotice(routing.notice);
+        if (routing.research) {
+          setRetrievalNotice("Checking current sources…");
+          try {
+            const found = await runResearchQuery({
+              data: { query: text.slice(0, 500), topic: text.slice(0, 120), volatility: "daily" },
+            });
+            if (found.ok && found.result.subAnswers.length > 0) {
+              const packet = buildEvidencePacket({
+                result: found.result,
+                sources: found.sources,
+                retrievedAt: new Date(),
+              });
+              /*
+               * A USER TURN. Never the system message — that is where OCADE's
+               * identity and refusal boundaries live, and a model cannot tell
+               * those from a stranger's sentences once they share a channel.
+               * `buildEvidencePacket` returns role "user" and offers no other
+               * option; this line only respects it.
+               */
+              localMessages.push({ role: packet.role, content: packet.content });
+              webCitationsRef.current = packet.sources.map((source, index) => ({
+                sourceId: `S${index + 1}`,
+                name: source.title,
+                kind: "text" as const,
+                locator: {},
+                snippet: null,
+                url: source.url,
+                retrievedAt: source.retrievedAt,
+                asOf: source.asOf,
+              }));
+              setRetrievalNotice(
+                packet.injectionAttempted && packet.injectionNotice
+                  ? packet.injectionNotice
+                  : `Read ${packet.sources.length} ${packet.sources.length === 1 ? "source" : "sources"} on the web for this answer.`,
+              );
+            } else {
+              setRetrievalNotice(
+                "OCADE could not find a source it trusts for this. Answering from what this device already knows, which may be out of date.",
+              );
+            }
+          } catch {
+            /*
+             * A failed lookup degrades to a local answer with a note. It is
+             * never an error the person has to read: the device can still
+             * answer, and saying "search failed" instead of answering would
+             * make the network a hard dependency of a product sold on not
+             * having one.
+             */
+            setRetrievalNotice(
+              "OCADE could not reach the web just now. Answering from what this device already knows, which may be out of date.",
+            );
+          }
+        }
+
         const images = atts
           .filter(
             (attachment): attachment is Attachment & { dataUrl: string } =>
@@ -2334,7 +2421,21 @@ function ChatSurface(props: {
   /** Map citation markers in a finished answer back to the real sources. */
   function recordCitations(answer: string, messageId?: string) {
     const sources = sourceIndexRef.current;
-    const parsed = sources.length > 0 ? parseCitations(answer, sources) : [];
+    const fromFiles = sources.length > 0 ? parseCitations(answer, sources) : [];
+    /*
+     * WEB SOURCES ARE CITED ONLY IF THE ANSWER ACTUALLY REFERRED TO THEM.
+     *
+     * Listing everything OCADE fetched would attach five confident-looking
+     * sources to an answer that used none of them, which is the specific way a
+     * citation list stops meaning anything. The evidence packet numbers its
+     * sources [1], [2]…; a source is cited when its marker appears in the
+     * finished answer, and not otherwise.
+     */
+    const cited = webCitationsRef.current.filter((citation) => {
+      const marker = citation.sourceId.replace(/^S/, "");
+      return new RegExp(`\\[${marker}\\]`).test(answer);
+    });
+    const parsed = [...fromFiles, ...cited];
     setCitations(parsed);
     if (parsed.length === 0) {
       setCitationError(null);
@@ -3129,13 +3230,54 @@ function ChatSurface(props: {
                   >
                     {citations.map((c) => {
                       const where = describeLocator(c.locator);
+                      /*
+                       * A web source is rendered as a link so it can be
+                       * checked, and ONLY through `safeCitationHref`.
+                       * Citations live in localStorage, which anything running
+                       * in this origin can write, and an unchecked href is
+                       * `javascript:` away from being stored XSS on click.
+                       */
+                      const href = safeCitationHref(c.url);
                       return (
                         <li key={c.sourceId} className="text-[12px]">
                           <span className="mr-1.5 rounded bg-secondary px-1 py-0.5 text-[10px] text-muted-foreground">
                             {c.sourceId}
                           </span>
-                          <span className="font-medium text-foreground">{c.name}</span>
+                          {href ? (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
+                            >
+                              {c.name}
+                            </a>
+                          ) : (
+                            <span className="font-medium text-foreground">{c.name}</span>
+                          )}
+                          {href ? (
+                            <span className="text-muted-foreground">
+                              {" "}
+                              · {new URL(href).hostname.replace(/^www\./, "")}
+                            </span>
+                          ) : null}
                           {where ? <span className="text-muted-foreground"> · {where}</span> : null}
+                          {/*
+                            TWO DATES, BECAUSE THEY ANSWER DIFFERENT QUESTIONS.
+                            "As of" is what the page claimed; "read" is when
+                            OCADE looked. A page from 2019 fetched this morning
+                            and a page from this morning fetched in 2019 are not
+                            the same evidence, and one date cannot say which.
+                          */}
+                          {c.asOf || c.retrievedAt ? (
+                            <span className="ml-1 text-[10px] text-muted-foreground/80">
+                              {c.asOf ? `as of ${c.asOf}` : ""}
+                              {c.asOf && c.retrievedAt ? " · " : ""}
+                              {c.retrievedAt
+                                ? `read ${new Date(c.retrievedAt).toLocaleString()}`
+                                : ""}
+                            </span>
+                          ) : null}
                           {c.snippet ? (
                             <p className="mt-0.5 line-clamp-2 text-muted-foreground">
                               “{c.snippet}”

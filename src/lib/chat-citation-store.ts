@@ -1,4 +1,4 @@
-import type { Citation, SourceLocator } from "./ocade-citations";
+import { safeCitationHref, type Citation, type SourceLocator } from "./ocade-citations";
 import type { ArtifactOutcome } from "./artifacts/store";
 
 const STORAGE_KEY = "ocade.chat-citations.v1";
@@ -31,7 +31,15 @@ function validCitation(value: unknown): value is Citation {
     typeof citation.name === "string" &&
     typeof citation.kind === "string" &&
     validLocator(citation.locator) &&
-    (citation.snippet === null || typeof citation.snippet === "string")
+    (citation.snippet === null || typeof citation.snippet === "string") &&
+    /*
+     * A web citation's URL is validated on the way IN as well as on the way
+     * out. The renderer refuses a non-http(s) href, but a record that cannot
+     * be rendered should never have been stored: keeping it means the next
+     * reader of this store has to remember the rule too.
+     */
+    (citation.url === undefined || safeCitationHref(citation.url) !== null) &&
+    (citation.retrievedAt === undefined || typeof citation.retrievedAt === "string")
   );
 }
 

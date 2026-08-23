@@ -248,7 +248,13 @@ function ProjectsPage() {
     return () => {
       live = false;
     };
-  }, [selected]);
+    /*
+     * `userId` belongs here for the same reason it belongs on
+     * `refreshProjects`: the session resolves after first paint, and without it
+     * a project selected in that first moment would load its outputs against
+     * an empty user and then never reload them.
+     */
+  }, [selected, userId]);
 
   async function addProjectFiles(files: FileList | null) {
     if (!selected || !files) return;

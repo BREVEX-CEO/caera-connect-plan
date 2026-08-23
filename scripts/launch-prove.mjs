@@ -61,16 +61,30 @@ const LIST_ONLY = args.includes("--list");
 const npm = (script, ...rest) => ["npm", "run", script, ...(rest.length ? ["--", ...rest] : [])];
 
 /**
- * Can this machine open a connection to that host at all?
+ * Can this machine actually reach that host?
  *
- * Deliberately lenient about the STATUS: a 403 on the root path still proves
- * the host answered, and what this distinguishes is "blocked by egress policy"
- * from "the publisher said something we did not expect".
+ * THE FIRST VERSION OF THIS WAS WRONG, and wrong in the direction that
+ * matters. It ignored the status on the theory that "a 403 still proves the
+ * host answered" — but in an environment with an egress proxy, the 403 IS the
+ * denial: the proxy answers on the host's behalf and the host is never
+ * contacted. So the probe returned "reachable", the gate ran, the gate got the
+ * same 403, and a blocked network was reported as a launch-critical catalogue
+ * defect.
+ *
+ * Two signals are read instead. An explicit denial header, which this
+ * environment's proxy sets (`x-deny-reason: host_not_allowed`), and the
+ * status: a public file index that anonymous readers are meant to fetch does
+ * not answer 403 or 407 to a HEAD of its root. Either means blocked.
+ *
+ * A thrown request is unreachable too. Anything else — including a status the
+ * publisher chose, like 404 or 500 — counts as reached, so a real catalogue
+ * problem is still a failure rather than a shrug.
  */
 async function reachable(url) {
   try {
-    await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(15_000) });
-    return true;
+    const response = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(15_000) });
+    if (response.headers.get("x-deny-reason")) return false;
+    return response.status !== 403 && response.status !== 407;
   } catch {
     return false;
   }
@@ -308,6 +322,9 @@ if (LIST_ONLY) {
   process.exit(0);
 }
 
+/** Where a failing gate's complete output is written, for evidence. */
+const LOG_DIR = "release/launch-proof-logs";
+
 const started = Date.now();
 const results = [];
 
@@ -349,6 +366,10 @@ for (const gate of GATES) {
   const ms = Date.now() - at;
   const ok = proc.status === 0;
   const output = `${proc.stdout ?? ""}${proc.stderr ?? ""}`;
+  if (!ok) {
+    if (!existsSync(LOG_DIR)) mkdirSync(LOG_DIR, { recursive: true });
+    writeFileSync(`${LOG_DIR}/${gate.id}.log`, output);
+  }
 
   results.push({
     id: gate.id,
@@ -358,8 +379,16 @@ for (const gate of GATES) {
     exitCode: proc.status,
     durationMs: ms,
     command: gate.run.join(" "),
-    // Enough to identify the failure without pasting a whole build log.
-    tail: ok ? null : output.trim().split("\n").slice(-40).join("\n"),
+    /*
+     * The tail identifies the failure; the full log is on disk beside it.
+     *
+     * Forty lines was not enough: a Vite build prints dozens of deprecation
+     * notices AFTER the failure summary, so the tail captured the notices and
+     * cut off the part naming what failed. A launch proof whose evidence omits
+     * the reason is a launch proof somebody has to re-run to read.
+     */
+    tail: ok ? null : output.trim().split("\n").slice(-120).join("\n"),
+    log: ok ? null : `${LOG_DIR}/${gate.id}.log`,
   });
 
   console.log(`${ok ? "PASS" : "FAIL"} (${(ms / 1000).toFixed(1)}s)`);

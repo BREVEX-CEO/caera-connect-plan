@@ -347,11 +347,23 @@ function AuthPage() {
             `/terms` and `/privacy` still exist as real pages so the documents
             can be linked from outside OCADE; from inside, they open here.
           */}
+          {/*
+            THESE ARE 24 CSS PIXELS TALL BECAUSE A THUMB IS NOT A MOUSE.
+
+            They were 30x16 and 73x16 — under the WCAG 2.5.8 floor of 24x24 —
+            and the route audit found them at phone width on EVERY signed-out
+            route, because this footer is what a phone user sees before they
+            are signed in. The links people are most likely to want on a phone,
+            the terms and the privacy notice, were the hardest to hit on one.
+
+            `min-h` rather than padding: the type size is unchanged, only the
+            hit area grows, so the footer looks the same and is reachable.
+          */}
           Read our{` `}
           <button
             type="button"
             onClick={() => setLegalOpen("terms")}
-            className="underline underline-offset-2 hover:text-foreground"
+            className="inline-flex min-h-[24px] items-center underline underline-offset-2 hover:text-foreground"
           >
             terms
           </button>
@@ -360,7 +372,7 @@ function AuthPage() {
           <button
             type="button"
             onClick={() => setLegalOpen("privacy")}
-            className="underline underline-offset-2 hover:text-foreground"
+            className="inline-flex min-h-[24px] items-center underline underline-offset-2 hover:text-foreground"
           >
             privacy notice
           </button>
@@ -407,9 +419,22 @@ function AuthPage() {
           aria-label="Are you signing in or creating an account?"
           className="grid grid-cols-2 gap-1 rounded-lg bg-muted/40 p-1"
         >
+          {/*
+            NOT "Sign in" / "Create account", which is what these said first.
+
+            The submit button below says "Sign in" too, so the screen carried
+            two different controls with the same words — and the route audit's
+            sign-in step, which looks for a button labelled "Sign in", clicked
+            this one instead. It set the intent, submitted nothing, and every
+            "signed in" route check afterwards silently ran signed OUT.
+
+            A harness can be taught to disambiguate. A person cannot, and they
+            are the reason to fix it here: the two controls do different things
+            and must not read identically.
+          */}
           {[
-            { id: false, label: "Sign in", hint: "I already have an OCADE account" },
-            { id: true, label: "Create account", hint: "I am new to OCADE" },
+            { id: false, label: "I have an account", hint: "Sign in to OCADE" },
+            { id: true, label: "I am new here", hint: "Create an OCADE account" },
           ].map((option) => (
             <button
               key={String(option.id)}

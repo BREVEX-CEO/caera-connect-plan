@@ -49,6 +49,39 @@ export interface Citation {
   locator: SourceLocator;
   /** Short quoted evidence from the source, when locatable. */
   snippet: string | null;
+  /**
+   * Where a WEB source lives. Absent for an attached file, and that absence is
+   * the distinction the receipt is built on.
+   *
+   * A reader has to be able to tell "OCADE read this off a page this morning"
+   * from "OCADE read this out of the document you gave it" from "OCADE knew
+   * this already" — those three carry completely different weight, and a
+   * citation list that renders them identically is worse than no list at all.
+   */
+  url?: string;
+  /** When OCADE fetched it. Distinct from when the source says it was true. */
+  retrievedAt?: string;
+  /** What the source itself claimed as its date, where it said so. */
+  asOf?: string | null;
+}
+
+/**
+ * Whether a citation URL may be rendered as a link.
+ *
+ * Citations are persisted to localStorage and read back, so the store is
+ * writable by anything that can run script in this origin — and a citation is
+ * rendered as an anchor. `javascript:` in an href is script execution on
+ * click, which turns a corrupted or poisoned citation record into stored XSS.
+ * Only http(s) is ever linked; anything else is shown as inert text.
+ */
+export function safeCitationHref(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Build a stable, ordered source index from extraction results. */
