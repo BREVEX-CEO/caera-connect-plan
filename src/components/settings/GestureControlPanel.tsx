@@ -154,7 +154,10 @@ export function GestureControlPanel() {
           {confirming && !status.running ? (
             <div className="mt-4 rounded-lg border border-[color:var(--state-warning)]/30 bg-[color:var(--state-warning)]/[0.06] p-4">
               <div className="flex gap-2">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--state-warning)]" aria-hidden />
+                <ShieldCheck
+                  className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--state-warning)]"
+                  aria-hidden
+                />
                 <div>
                   <p className="text-sm font-medium text-foreground">Allow hand control?</p>
                   <p className="mt-1 text-xs text-muted-foreground">
@@ -178,12 +181,25 @@ export function GestureControlPanel() {
       )}
 
       <div className="mt-4 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
-        <p><strong className="text-foreground">Move:</strong> point with your index finger.</p>
-        <p><strong className="text-foreground">Select:</strong> short thumb/index pinch.</p>
-        <p><strong className="text-foreground">Drag files:</strong> hold that pinch, move, release.</p>
-        <p><strong className="text-foreground">Open:</strong> thumb/middle pinch for double-click.</p>
-        <p><strong className="text-foreground">Scroll:</strong> index and middle up; move vertically.</p>
-        <p><strong className="text-foreground">Delete:</strong> intentionally not mapped to a gesture.</p>
+        <p>
+          <strong className="text-foreground">Move:</strong> point with your index finger.
+        </p>
+        <p>
+          <strong className="text-foreground">Select:</strong> short thumb/index pinch.
+        </p>
+        <p>
+          <strong className="text-foreground">Drag files:</strong> hold that pinch, move, release.
+        </p>
+        <p>
+          <strong className="text-foreground">Open:</strong> thumb/middle pinch for double-click.
+        </p>
+        <p>
+          <strong className="text-foreground">Scroll:</strong> index and middle up; move vertically.
+        </p>
+        <p>
+          <strong className="text-foreground">Delete:</strong> intentionally not mapped to a
+          gesture.
+        </p>
       </div>
     </GlassPanel>
   );

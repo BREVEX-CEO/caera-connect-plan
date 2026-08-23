@@ -75,9 +75,9 @@ export function PlanComparison({
         <div>
           <h2 className="text-base font-semibold text-foreground">Plans</h2>
           <p className="mt-1 max-w-prose text-[13px] text-muted-foreground">
-            On-device processing is unlimited on every plan, including after one expires — your own
-            hardware is not something OCADE meters. Plans differ by how long they last and by access
-            to OCADE Cloud.
+            OCADE is free during launch, and everything it does runs on your own device. Your
+            hardware is not something OCADE meters, so there is nothing here to use up. Plans below
+            are shown for reference only; nothing is charged today.
           </p>
         </div>
         <label className="flex items-center gap-2 text-[12px] text-muted-foreground">
@@ -176,10 +176,15 @@ export function PlanComparison({
         </p>
       ) : null}
 
+      {/*
+        This said "Cloud allowance depends on the selected plan and applies
+        only to OCADE Cloud." There is no OCADE Cloud and no allowance, so the
+        sentence described a limit that cannot be reached on a service that
+        does not exist.
+      */}
       <p className="text-[12px] text-muted-foreground">
-        Cloud allowance depends on the selected plan and applies only to OCADE Cloud. Work that runs
-        on your device never counts against it, and never stops when a plan ends. Taxes and any
-        provider-supported currency conversion are shown before payment.
+        Work that runs on your device never counts against anything and never stops when a plan
+        ends. Taxes and any provider-supported currency conversion would be shown before payment.
       </p>
     </section>
   );

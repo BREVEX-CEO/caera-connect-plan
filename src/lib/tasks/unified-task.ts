@@ -56,7 +56,14 @@ const TRANSITIONS: Record<UnifiedTaskStatus, ReadonlySet<UnifiedTaskStatus>> = {
   CREATED: new Set(["PLANNING", "WAITING_PERMISSION", "EXECUTING", "CANCELLED", "FAILED"]),
   PLANNING: new Set(["WAITING_PERMISSION", "EXECUTING", "WAITING_USER", "FAILED", "CANCELLED"]),
   WAITING_PERMISSION: new Set(["EXECUTING", "WAITING_USER", "FAILED", "CANCELLED"]),
-  EXECUTING: new Set(["WAITING_PERMISSION", "WAITING_USER", "VERIFYING", "COMPLETED", "FAILED", "CANCELLED"]),
+  EXECUTING: new Set([
+    "WAITING_PERMISSION",
+    "WAITING_USER",
+    "VERIFYING",
+    "COMPLETED",
+    "FAILED",
+    "CANCELLED",
+  ]),
   WAITING_USER: new Set(["EXECUTING", "VERIFYING", "FAILED", "CANCELLED"]),
   VERIFYING: new Set(["COMPLETED", "FAILED", "EXECUTING", "CANCELLED"]),
   COMPLETED: new Set(),
@@ -87,7 +94,9 @@ export function transitionTask(
     throw new Error(`Invalid task transition: ${task.status} -> ${status}`);
   }
   const startedAt = task.startedAt ?? (status === "EXECUTING" ? at : undefined);
-  const finishedAt = TERMINAL.has(status) ? patch.finishedAt ?? at : patch.finishedAt ?? task.finishedAt;
+  const finishedAt = TERMINAL.has(status)
+    ? (patch.finishedAt ?? at)
+    : (patch.finishedAt ?? task.finishedAt);
   return {
     ...task,
     ...patch,
@@ -100,10 +109,19 @@ export function transitionTask(
 }
 
 export function createUnifiedTask(
-  input: Pick<UnifiedTask, "source" | "title"> & Partial<Omit<UnifiedTask, "source" | "title" | "id" | "status" | "createdAt" | "updatedAt" | "retryCount">>,
+  input: Pick<UnifiedTask, "source" | "title"> &
+    Partial<
+      Omit<
+        UnifiedTask,
+        "source" | "title" | "id" | "status" | "createdAt" | "updatedAt" | "retryCount"
+      >
+    >,
   at = nowIso(),
 ): UnifiedTask {
-  const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `task-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const id =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `task-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   return {
     ...input,
     id,
@@ -141,7 +159,10 @@ export function taskFromAutomationRun(run: AutomationRunLike, title: string): Un
   };
   const status = statusMap[run.status] ?? "FAILED";
   const firstStep = run.plan?.steps?.[0]?.summary;
-  const blockedError = run.status === "blocked" ? run.blocked_reason ?? "The automation plan was blocked." : undefined;
+  const blockedError =
+    run.status === "blocked"
+      ? (run.blocked_reason ?? "The automation plan was blocked.")
+      : undefined;
   return {
     id: `automation:${run.id}`,
     source: "automation",
@@ -164,10 +185,12 @@ function openDb(): Promise<IDBDatabase | null> {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) db.createObjectStore(STORE_NAME, { keyPath: "id" });
+      if (!db.objectStoreNames.contains(STORE_NAME))
+        db.createObjectStore(STORE_NAME, { keyPath: "id" });
     };
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("Could not open OCADE task database."));
+    request.onerror = () =>
+      reject(request.error ?? new Error("Could not open OCADE task database."));
   });
 }
 
@@ -192,7 +215,10 @@ export async function listLocalTasks(): Promise<UnifiedTask[]> {
     if (!db) return readFallback();
     return await new Promise((resolve, reject) => {
       const request = db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).getAll();
-      request.onsuccess = () => resolve((request.result as UnifiedTask[]).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
+      request.onsuccess = () =>
+        resolve(
+          (request.result as UnifiedTask[]).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+        );
       request.onerror = () => reject(request.error);
     });
   } catch {

@@ -32,8 +32,6 @@ import {
 } from "./use-appearance";
 import { FALLBACK_CHANGES, assessDevice, readDeviceSignals } from "./perf-fallback";
 
-
-
 export type { AppearancePrefs, CursorKind, ThemeMode };
 
 const DEFAULT: AppearancePrefs = {
@@ -83,7 +81,6 @@ function writeFallbackOverride(value: boolean): void {
   }
 }
 
-
 function readLocal(): AppearancePrefs {
   if (typeof window === "undefined") return DEFAULT;
   try {
@@ -111,7 +108,6 @@ function writeLocal(prefs: AppearancePrefs): boolean {
     return false;
   }
 }
-
 
 /** Apply prefs to the document element via classes + CSS vars. */
 function applyToDocument(prefs: AppearancePrefs, osReducedMotion: boolean, autoLowPerf: boolean) {
@@ -145,7 +141,6 @@ function applyToDocument(prefs: AppearancePrefs, osReducedMotion: boolean, autoL
     "--depth-strength",
     lowPerf ? "0" : (clampDepthStrength(prefs.depthStrength) / 100).toFixed(2),
   );
-
 
   // Cursor
   root.classList.toggle("cursor-accessibility", prefs.cursor === "accessibility");
@@ -236,7 +231,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const pendingRowRef = useRef<Record<string, unknown>>({});
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
-
 
   // OS reduced-motion listener
   useEffect(() => {
@@ -535,7 +529,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       retryPersist,
     ],
   );
-
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

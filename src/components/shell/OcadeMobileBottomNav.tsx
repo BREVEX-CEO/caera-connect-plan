@@ -27,7 +27,10 @@ export function OcadeMobileBottomNav() {
     >
       <ul className="mx-auto grid max-w-lg grid-cols-5 gap-1">
         {ITEMS.map((item) => {
-          const active = "exact" in item && item.exact ? pathname === item.to : pathname === item.to || pathname.startsWith(`${item.to}/`);
+          const active =
+            "exact" in item && item.exact
+              ? pathname === item.to
+              : pathname === item.to || pathname.startsWith(`${item.to}/`);
           const Icon = item.icon;
           return (
             <li key={item.to}>
@@ -36,7 +39,9 @@ export function OcadeMobileBottomNav() {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-lg px-1 text-[10px] font-medium transition-colors",
-                  active ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
+                  active
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <Icon className="h-4 w-4" aria-hidden />

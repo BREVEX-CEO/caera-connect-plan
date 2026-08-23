@@ -27,8 +27,14 @@ const offlineFetches = await page.evaluate(async () => {
     try {
       const r = await fetch(path);
       const text = await r.text();
-      out[path] = { status: r.status, ct: r.headers.get("content-type"), starts: text.slice(0, 40) };
-    } catch (e) { out[path] = { error: String(e).slice(0, 120) }; }
+      out[path] = {
+        status: r.status,
+        ct: r.headers.get("content-type"),
+        starts: text.slice(0, 40),
+      };
+    } catch (e) {
+      out[path] = { error: String(e).slice(0, 120) };
+    }
   }
   return out;
 });

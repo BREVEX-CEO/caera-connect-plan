@@ -13,22 +13,82 @@ export interface CommandEntry {
 export const COMMAND_ENTRIES: CommandEntry[] = [
   { to: "/ocade", label: "Chat", group: "Primary", keywords: "conversation ask" },
   { to: "/ocade/projects", label: "Projects", group: "Primary", keywords: "folders workspace" },
-  { to: "/ocade/work", label: "Control + Work", group: "Primary", keywords: "pc computer control agent" },
+  {
+    to: "/ocade/work",
+    label: "Control + Work",
+    group: "Primary",
+    keywords: "pc computer control agent",
+  },
   { to: "/ocade/code", label: "Code", group: "Primary", keywords: "terminal shell repository" },
-  { to: "/ocade/automations", label: "Automations", group: "Tools", keywords: "schedule recurring" },
-  { to: "/ocade/artifacts", label: "Files & artifacts", group: "Tools", keywords: "outputs exports files" },
+  {
+    to: "/ocade/automations",
+    label: "Automations",
+    group: "Tools",
+    keywords: "schedule recurring",
+  },
+  {
+    to: "/ocade/artifacts",
+    label: "Files & artifacts",
+    group: "Tools",
+    keywords: "outputs exports files",
+  },
   { to: "/ocade/tasks", label: "Tasks", group: "Tools", keywords: "runs queue pause stop" },
-  { to: "/ocade/inbox", label: "Inbox", group: "Tools", keywords: "approvals outcomes notifications" },
-  { to: "/ocade/search", label: "Search", group: "Tools", keywords: "messages projects outputs universal" },
+  {
+    to: "/ocade/inbox",
+    label: "Inbox",
+    group: "Tools",
+    keywords: "approvals outcomes notifications",
+  },
+  {
+    to: "/ocade/search",
+    label: "Search",
+    group: "Tools",
+    keywords: "messages projects outputs universal",
+  },
   { to: "/ocade/monitors", label: "Monitors", group: "Tools", keywords: "watch alerts sources" },
-  { to: "/ocade/studio", label: "Studio", group: "Tools", keywords: "creative documents reports apps" },
-  { to: "/ocade/models", label: "Models", group: "System", keywords: "local intelligence engines providers" },
-  { to: "/ocade/devices", label: "Devices", group: "System", keywords: "approved revoke machine phone" },
-  { to: "/ocade/connectors", label: "Connectors", group: "System", keywords: "browser cloud sync integrations" },
-  { to: "/ocade/permissions", label: "Permissions", group: "System", keywords: "approval privacy access" },
+  {
+    to: "/ocade/studio",
+    label: "Studio",
+    group: "Tools",
+    keywords: "creative documents reports apps",
+  },
+  {
+    to: "/ocade/models",
+    label: "Models",
+    group: "System",
+    keywords: "local intelligence engines providers",
+  },
+  {
+    to: "/ocade/devices",
+    label: "Devices",
+    group: "System",
+    keywords: "approved revoke machine phone",
+  },
+  {
+    to: "/ocade/connectors",
+    label: "Connectors",
+    group: "System",
+    keywords: "browser cloud sync integrations",
+  },
+  {
+    to: "/ocade/permissions",
+    label: "Permissions",
+    group: "System",
+    keywords: "approval privacy access",
+  },
   { to: "/ocade/activity", label: "Activity", group: "System", keywords: "logs audit history" },
-  { to: "/ocade/health", label: "Health", group: "System", keywords: "status capability diagnostics" },
-  { to: "/ocade/lab", label: "Lab", group: "System", keywords: "engineering diagnostics research sandbox" },
+  {
+    to: "/ocade/health",
+    label: "Health",
+    group: "System",
+    keywords: "status capability diagnostics",
+  },
+  {
+    to: "/ocade/lab",
+    label: "Lab",
+    group: "System",
+    keywords: "engineering diagnostics research sandbox",
+  },
   { to: "/settings", label: "Settings", group: "System", keywords: "preferences account" },
 ];
 
@@ -100,7 +160,9 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             setActive((index) => (results.length ? (index + 1) % results.length : 0));
           } else if (event.key === "ArrowUp") {
             event.preventDefault();
-            setActive((index) => (results.length ? (index - 1 + results.length) % results.length : 0));
+            setActive((index) =>
+              results.length ? (index - 1 + results.length) % results.length : 0,
+            );
           } else if (event.key === "Enter") {
             event.preventDefault();
             go(results[active]);
@@ -132,9 +194,16 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           aria-label="Search pages"
           className="w-full border-b border-border/60 bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
         />
-        <ul id="command-palette-list" role="listbox" aria-label="Pages" className="max-h-[50vh] overflow-y-auto py-1">
+        <ul
+          id="command-palette-list"
+          role="listbox"
+          aria-label="Pages"
+          className="max-h-[50vh] overflow-y-auto py-1"
+        >
           {results.length === 0 ? (
-            <li className="px-4 py-6 text-center text-sm text-muted-foreground">Nothing here matches “{query}”.</li>
+            <li className="px-4 py-6 text-center text-sm text-muted-foreground">
+              Nothing here matches “{query}”.
+            </li>
           ) : (
             results.map((entry, index) => (
               <li
@@ -153,7 +222,9 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                 )}
               >
                 <span>{entry.label}</span>
-                <span className="text-[11px] uppercase tracking-wide opacity-60">{entry.group}</span>
+                <span className="text-[11px] uppercase tracking-wide opacity-60">
+                  {entry.group}
+                </span>
               </li>
             ))
           )}

@@ -142,7 +142,6 @@ function GeneralPage() {
     };
   }, [user, reloadKey]);
 
-
   function update<K extends keyof ProfileRow>(key: K, value: ProfileRow[K]) {
     setDirty((d) => ({ ...d, [key]: value }));
   }
@@ -243,8 +242,6 @@ function GeneralPage() {
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading your profile…
         </GlassPanel>
       ) : null}
-
-
 
       {/* Identity */}
       <GlassPanel className="p-5">

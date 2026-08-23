@@ -551,10 +551,7 @@ export function createSolarScene(
   /** Off when the frame budget is tight; see the note in `frame`. */
   let bloomEnabled = tier === "full";
 
-  const runPass = (
-    material: THREE.ShaderMaterial,
-    destination: THREE.WebGLRenderTarget | null,
-  ) => {
+  const runPass = (material: THREE.ShaderMaterial, destination: THREE.WebGLRenderTarget | null) => {
     passQuad.material = material;
     renderer.setRenderTarget(destination);
     renderer.render(rippleScene, rippleCamera);

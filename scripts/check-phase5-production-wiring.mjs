@@ -183,12 +183,18 @@ function chainFor(target) {
 
 function verifyReplacement(item) {
   if (!existsSync(resolve(ROOT, item.path))) {
-    return { ok: false, reason: `${item.path}: historical source file is missing without an explicit deletion record` };
+    return {
+      ok: false,
+      reason: `${item.path}: historical source file is missing without an explicit deletion record`,
+    };
   }
   for (const proof of item.evidence) {
     const abs = resolve(ROOT, proof.path);
     if (!existsSync(abs)) {
-      return { ok: false, reason: `${item.path}: replacement evidence file is missing: ${proof.path}` };
+      return {
+        ok: false,
+        reason: `${item.path}: replacement evidence file is missing: ${proof.path}`,
+      };
     }
     const text = readFileSync(abs, "utf8");
     for (const pattern of proof.patterns) {
@@ -231,7 +237,9 @@ for (const item of REPLACED_HISTORICAL_MODULES) {
   replacedCount += 1;
   console.log(`replaced/retired: ${item.path}`);
   console.log(`  production owner: ${item.replacement}`);
-  console.log("  public desktop distribution remains disabled until external signing/device proof exists");
+  console.log(
+    "  public desktop distribution remains disabled until external signing/device proof exists",
+  );
 }
 
 for (const path of REQUIRED_CI_FILES) {
@@ -257,7 +265,15 @@ if (errors.length > 0) {
 console.log("OCADE Phase-5 production wiring OK");
 console.log(`- production entry points scanned: ${entrypoints.length}`);
 console.log(`- production source modules reachable: ${reachable.size}`);
-console.log(`- historical modules directly/transitively production-wired: ${wiredCount}/${totalHistorical}`);
-console.log(`- historical modules replaced/retired with production proof: ${replacedCount}/${totalHistorical}`);
-console.log(`- historical Phase-5 dispositions materially resolved: ${wiredCount + replacedCount}/${totalHistorical}`);
-console.log("- runtime availability, signed public release, hardware success and hosted CI are NOT inferred by this source gate");
+console.log(
+  `- historical modules directly/transitively production-wired: ${wiredCount}/${totalHistorical}`,
+);
+console.log(
+  `- historical modules replaced/retired with production proof: ${replacedCount}/${totalHistorical}`,
+);
+console.log(
+  `- historical Phase-5 dispositions materially resolved: ${wiredCount + replacedCount}/${totalHistorical}`,
+);
+console.log(
+  "- runtime availability, signed public release, hardware success and hosted CI are NOT inferred by this source gate",
+);

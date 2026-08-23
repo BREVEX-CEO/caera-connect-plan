@@ -27,7 +27,8 @@ interface ProviderPrice {
 
 /** Does this price charge an Indian buyer in rupees? */
 function inrDetail(price: ProviderPrice | undefined): { hasInrPrice: boolean; detail: string } {
-  if (!price) return { hasInrPrice: false, detail: "No such price exists in the provider catalogue." };
+  if (!price)
+    return { hasInrPrice: false, detail: "No such price exists in the provider catalogue." };
 
   const base = price.unit_price?.currency_code;
   const override = price.unit_price_overrides?.find(
@@ -48,10 +49,7 @@ function inrDetail(price: ProviderPrice | undefined): { hasInrPrice: boolean; de
 }
 
 async function fetchPrice(env: PaddleEnv, externalId: string): Promise<ProviderPrice | undefined> {
-  const response = await gatewayFetch(
-    env,
-    `/prices?external_id=${encodeURIComponent(externalId)}`,
-  );
+  const response = await gatewayFetch(env, `/prices?external_id=${encodeURIComponent(externalId)}`);
   if (response.status === 401 || response.status === 403) {
     const error = new Error("provider_rejected_credentials");
     error.name = "ProviderAuthError";

@@ -86,7 +86,7 @@ function UsagePage() {
       <PageHeader
         eyebrow="Settings"
         title="Usage and plan"
-        description="OCADE Local is unlimited. Only OCADE Cloud draws from your allowance."
+        description="OCADE runs on this device. Nothing you ask it is metered."
       />
 
       <div className="flex flex-col gap-5">
@@ -94,73 +94,16 @@ function UsagePage() {
         <PlanComparison currentPlan={entitlement?.planId ?? null} />
         <BillingHistory />
 
-        {/* Cloud allowance */}
-        <GlassPanel className="p-4">
-          <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold">
-            <Cloud className="h-4 w-4" aria-hidden /> OCADE Cloud allowance
-          </h3>
-          {unavailable ? (
-            <p className="text-xs text-muted-foreground">
-              Live usage needs the database migration. The allowance rules below are already active
-              in the app: {CLOUD_ALLOWANCE} cloud requests every {WINDOW_HOURS} hours.
-            </p>
-          ) : used === null ? (
-            <p className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Loading usage…
-            </p>
-          ) : (
-            <>
-              <p className="text-xs text-muted-foreground">{describeAllowance(state)}</p>
-              <div
-                className="mt-3 h-2 w-full overflow-hidden rounded-full bg-secondary"
-                role="progressbar"
-                aria-valuenow={state.used}
-                aria-valuemin={0}
-                aria-valuemax={state.limit}
-                aria-label="Cloud allowance used"
-              >
-                <div
-                  className={cn(
-                    "h-full rounded-full transition-all",
-                    state.exhausted ? "bg-[color:var(--state-warning)]" : "bg-foreground/70",
-                  )}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-              <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
-                <span>
-                  <span className="font-medium text-foreground">{state.remaining}</span> of{" "}
-                  {state.limit} left
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5" aria-hidden />
-                  Resets{" "}
-                  {state.resetsAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </span>
-              </div>
-              {state.exhausted ? (
-                <p className="mt-3 rounded-md bg-secondary/60 px-3 py-2 text-xs">
-                  Cloud allowance is used up for this window.{" "}
-                  {local.status === "ready" ? (
-                    <>
-                      <span className="font-medium text-foreground">OCADE Local is ready</span> and
-                      stays unlimited — keep working on-device.
-                    </>
-                  ) : (
-                    <>
-                      Install an on-device engine to keep working without the cloud, or wait for the
-                      reset.{" "}
-                      <Link to="/ocade/models" className="underline">
-                        Set up OCADE Local
-                      </Link>
-                    </>
-                  )}
-                </p>
-              ) : null}
-            </>
-          )}
-        </GlassPanel>
-
+        {/*
+          THE CLOUD ALLOWANCE PANEL STOOD HERE.
+          It showed a progress bar of "OCADE Cloud requests used", a reset
+          time, and an "allowance is used up" state offering to install a
+          local engine instead. None of it can happen: there is no cloud
+          engine, nothing consumes an allowance, and the bar could only ever
+          read zero. A meter that can only show zero, next to a plan that
+          implies you might buy more of it, is a promise of a product that
+          does not exist.
+        */}
         {/* Local — always unlimited */}
         <GlassPanel className="p-4">
           <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold">

@@ -16,15 +16,15 @@ describe("capability registry", () => {
   });
 
   it("reports the local engine as ready only when it is reachable with models", () => {
-    expect(capabilityReport("localAI", { localEngine: { reachable: false, modelCount: 0 } }).status).toBe(
-      "NOT_CONFIGURED",
-    );
-    expect(capabilityReport("localAI", { localEngine: { reachable: true, modelCount: 0 } }).status).toBe(
-      "DEGRADED",
-    );
-    expect(capabilityReport("localAI", { localEngine: { reachable: true, modelCount: 2 } }).status).toBe(
-      "READY",
-    );
+    expect(
+      capabilityReport("localAI", { localEngine: { reachable: false, modelCount: 0 } }).status,
+    ).toBe("NOT_CONFIGURED");
+    expect(
+      capabilityReport("localAI", { localEngine: { reachable: true, modelCount: 0 } }).status,
+    ).toBe("DEGRADED");
+    expect(
+      capabilityReport("localAI", { localEngine: { reachable: true, modelCount: 2 } }).status,
+    ).toBe("READY");
   });
 
   it("marks cloud as offline rather than failed when the device has no network", () => {
@@ -50,10 +50,12 @@ describe("capability registry", () => {
 
   it("requires approval when the companion is connected but unpermitted", () => {
     expect(
-      capabilityReport("computerControl", { companion: { connected: true, approved: false } }).status,
+      capabilityReport("computerControl", { companion: { connected: true, approved: false } })
+        .status,
     ).toBe("NEEDS_APPROVAL");
     expect(
-      capabilityReport("computerControl", { companion: { connected: true, approved: true } }).status,
+      capabilityReport("computerControl", { companion: { connected: true, approved: true } })
+        .status,
     ).toBe("READY");
   });
 

@@ -22,7 +22,9 @@ export function BillingHistory() {
           .limit(28),
         supabase
           .from("ocade_invoices")
-          .select("id, invoice_number, status, amount_minor, tax_minor, currency, issued_at, receipt_url")
+          .select(
+            "id, invoice_number, status, amount_minor, tax_minor, currency, issued_at, receipt_url",
+          )
           .order("issued_at", { ascending: false })
           .limit(28),
       ]);
@@ -45,8 +47,8 @@ export function BillingHistory() {
 
       {history.isError ? (
         <p className="mt-3 rounded-lg border border-border/60 bg-secondary/30 p-3 text-xs text-muted-foreground">
-          Billing history is prepared but its production database migration is not available in
-          this environment yet. Live charging is disabled.
+          Billing history is prepared but its production database migration is not available in this
+          environment yet. Live charging is disabled.
         </p>
       ) : null}
 
@@ -85,7 +87,10 @@ export function BillingHistory() {
             </h4>
             <div className="mt-2 space-y-2">
               {history.data.invoices.map((invoice) => (
-                <article key={invoice.id} className="rounded-lg border border-border/60 p-3 text-xs">
+                <article
+                  key={invoice.id}
+                  className="rounded-lg border border-border/60 p-3 text-xs"
+                >
                   <div className="flex items-center justify-between gap-3">
                     <span className="flex items-center gap-1.5 font-medium text-foreground">
                       <FileText className="h-3.5 w-3.5" /> {invoice.invoice_number}

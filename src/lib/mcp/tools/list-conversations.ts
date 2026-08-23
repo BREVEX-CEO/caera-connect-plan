@@ -8,7 +8,13 @@ export default defineTool({
   description:
     "List the signed-in user's OCADE conversations, newest first, with title, model and privacy mode.",
   inputSchema: {
-    limit: z.number().int().min(1).max(50).default(20).describe("How many conversations to return."),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(50)
+      .default(20)
+      .describe("How many conversations to return."),
     includeArchived: z.boolean().default(false).describe("Include archived conversations."),
   },
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },

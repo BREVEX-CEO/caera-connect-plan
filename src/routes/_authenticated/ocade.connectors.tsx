@@ -10,11 +10,41 @@ export const Route = createFileRoute("/_authenticated/ocade/connectors")({
   component: ConnectorsPage,
 });
 
-const CONNECTORS: Array<{ id: CapabilityId; label: string; description: string; to: string; icon: typeof Cable }> = [
-  { id: "cloudAI", label: "Cloud model providers", description: "Cloud inference configured for this deployment.", to: "/ocade/models", icon: Cloud },
-  { id: "browser", label: "Browser bridge", description: "The permissioned bridge OCADE uses for browser control.", to: "/settings/browser", icon: Globe2 },
-  { id: "privateSync", label: "Private Sync", description: "Account sync for content whose storage mode allows it.", to: "/settings/privacy", icon: RefreshCw },
-  { id: "localAI", label: "Local model runtime", description: "On-device models and the local inference engine.", to: "/ocade/models", icon: HardDrive },
+const CONNECTORS: Array<{
+  id: CapabilityId;
+  label: string;
+  description: string;
+  to: string;
+  icon: typeof Cable;
+}> = [
+  {
+    id: "cloudAI",
+    label: "Cloud model providers",
+    description: "Cloud inference configured for this deployment.",
+    to: "/ocade/models",
+    icon: Cloud,
+  },
+  {
+    id: "browser",
+    label: "Browser bridge",
+    description: "The permissioned bridge OCADE uses for browser control.",
+    to: "/settings/browser",
+    icon: Globe2,
+  },
+  {
+    id: "privateSync",
+    label: "Private Sync",
+    description: "Account sync for content whose storage mode allows it.",
+    to: "/settings/privacy",
+    icon: RefreshCw,
+  },
+  {
+    id: "localAI",
+    label: "Local model runtime",
+    description: "On-device models and the local inference engine.",
+    to: "/ocade/models",
+    icon: HardDrive,
+  },
 ];
 
 function ConnectorsPage() {
@@ -33,9 +63,16 @@ function ConnectorsPage() {
           const Icon = connector.icon;
           if (!report) return null;
           return (
-            <Link key={connector.id} to={connector.to} className="rounded-xl border border-border/60 bg-card/30 p-4 transition hover:bg-accent/30">
+            <Link
+              key={connector.id}
+              to={connector.to}
+              className="rounded-xl border border-border/60 bg-card/30 p-4 transition hover:bg-accent/30"
+            >
               <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-2"><Icon className="h-4 w-4 text-muted-foreground" aria-hidden /><h2 className="text-sm font-medium">{connector.label}</h2></div>
+                <div className="flex items-center gap-2">
+                  <Icon className="h-4 w-4 text-muted-foreground" aria-hidden />
+                  <h2 className="text-sm font-medium">{connector.label}</h2>
+                </div>
                 <CapabilityBadge status={report.status} />
               </div>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{report.detail}</p>
@@ -45,8 +82,14 @@ function ConnectorsPage() {
         })}
       </div>
       <div className="mt-5 rounded-xl border border-dashed border-border/60 p-4">
-        <div className="flex items-center gap-2 text-sm font-medium"><Cable className="h-4 w-4" /> App connectors</div>
-        <p className="mt-2 text-sm text-muted-foreground">No first-class Gmail, Google Drive, Slack, Notion, Microsoft 365, Jira, Linear, Figma or Canva account connection is configured by this build yet. OCADE will not display fake connected accounts.</p>
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Cable className="h-4 w-4" /> App connectors
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          No first-class Gmail, Google Drive, Slack, Notion, Microsoft 365, Jira, Linear, Figma or
+          Canva account connection is configured by this build yet. OCADE will not display fake
+          connected accounts.
+        </p>
       </div>
     </>
   );

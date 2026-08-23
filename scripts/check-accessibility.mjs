@@ -100,8 +100,81 @@ const files = ROOTS.flatMap((d) => walk(d)).filter(
   (f) => !/[\\/]src[\\/]components[\\/]ui[\\/]/.test(f),
 );
 
+/**
+ * Blank out comments before scanning, keeping every byte offset.
+ *
+ * The scanner matches raw source, so a comment that MENTIONS an element was
+ * being read as that element. Documenting a checkbox with the words
+ * `<input type="checkbox">` reported an unlabelled input on a file whose
+ * checkboxes were correctly wrapped in labels.
+ *
+ * That is worth fixing rather than working around: a gate that fires on prose
+ * teaches people to stop reading it, and the next finding it raises is the
+ * real one they will skip.
+ *
+ * WHY A SCANNER AND NOT A REGEX. The first attempt was
+ * `/\/\*[\s\S]*?\*\//` and it was worse than the bug it fixed:
+ * `accept="image/*"` contains `/*`, so it opened a "comment" that swallowed
+ * the next several hundred characters — including a correctly labelled file
+ * input, which the gate then reported as unlabelled. Comment starts have to
+ * be recognised outside string and template literals, which needs state.
+ *
+ * Comment bodies become spaces rather than being deleted, and newlines are
+ * preserved, so `lineAt` still reports the right line.
+ */
+function blankComments(text) {
+  let out = "";
+  let i = 0;
+  let quote = null; // ' " ` when inside a string
+  while (i < text.length) {
+    const c = text[i];
+    const next = text[i + 1];
+
+    if (quote) {
+      out += c;
+      if (c === "\\") {
+        // Escaped character: copy both so a \" cannot close the string.
+        out += text[i + 1] ?? "";
+        i += 2;
+        continue;
+      }
+      if (c === quote) quote = null;
+      i += 1;
+      continue;
+    }
+
+    if (c === '"' || c === "'" || c === "`") {
+      quote = c;
+      out += c;
+      i += 1;
+      continue;
+    }
+
+    if (c === "/" && next === "*") {
+      const close = text.indexOf("*/", i + 2);
+      const stop = close === -1 ? text.length : close + 2;
+      for (let k = i; k < stop; k += 1) out += text[k] === "\n" ? "\n" : " ";
+      i = stop;
+      continue;
+    }
+
+    if (c === "/" && next === "/") {
+      const nl = text.indexOf("\n", i);
+      const stop = nl === -1 ? text.length : nl;
+      for (let k = i; k < stop; k += 1) out += " ";
+      i = stop;
+      continue;
+    }
+
+    out += c;
+    i += 1;
+  }
+  return out;
+}
+
 for (const file of files) {
-  const src = readFileSync(file, "utf8");
+  const raw = readFileSync(file, "utf8");
+  const src = blankComments(raw);
   const reportFile = relative(root, file).replaceAll("\\", "/");
 
   // --- positive tabIndex -------------------------------------------------

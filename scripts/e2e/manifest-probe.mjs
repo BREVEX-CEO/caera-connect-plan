@@ -6,15 +6,26 @@ const BASE = process.env.BASE ?? "http://127.0.0.1:4173";
 let phase = "start";
 const events = [];
 const ctx = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), "ocade-mf-")), {
-  executablePath: "/opt/pw-browsers/chromium", headless: true, args: ["--no-sandbox"],
+  executablePath: "/opt/pw-browsers/chromium",
+  headless: true,
+  args: ["--no-sandbox"],
 });
-ctx.on("console", (m) => { if (m.type() === "error") events.push({ phase, text: m.text() }); });
+ctx.on("console", (m) => {
+  if (m.type() === "error") events.push({ phase, text: m.text() });
+});
 ctx.on("requestfailed", (r) => {
-  if (r.url().includes("manifest")) events.push({ phase, failed: r.url(), why: r.failure()?.errorText });
+  if (r.url().includes("manifest"))
+    events.push({ phase, failed: r.url(), why: r.failure()?.errorText });
 });
 ctx.on("response", async (r) => {
   if (!r.url().includes("manifest")) return;
-  events.push({ phase, url: r.url(), status: r.status(), ct: r.headers()["content-type"], fromSW: r.fromServiceWorker?.() });
+  events.push({
+    phase,
+    url: r.url(),
+    status: r.status(),
+    ct: r.headers()["content-type"],
+    fromSW: r.fromServiceWorker?.(),
+  });
 });
 const page = await ctx.newPage();
 

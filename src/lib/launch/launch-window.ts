@@ -38,11 +38,7 @@ export type LaunchGateDecision = {
   /** True when the shipping application may be served. */
   open: boolean;
   /** Machine-readable reason, safe to log. Never contains the launch time. */
-  reason:
-    | "open_launched"
-    | "open_internal_preview"
-    | "locked_before_launch"
-    | "locked_not_ready";
+  reason: "open_launched" | "open_internal_preview" | "locked_before_launch" | "locked_not_ready";
   /** True when this request came from an approved internal/dev origin. */
   internal: boolean;
   /** Seconds a client should wait before retrying, when locked. */
@@ -52,7 +48,8 @@ export type LaunchGateDecision = {
 export type LaunchEnvLike = Record<string, unknown> | undefined | null;
 
 function readEnv(env: LaunchEnvLike, key: string): string | undefined {
-  const fromEnv = env && typeof env === "object" ? (env as Record<string, unknown>)[key] : undefined;
+  const fromEnv =
+    env && typeof env === "object" ? (env as Record<string, unknown>)[key] : undefined;
   if (typeof fromEnv === "string") return fromEnv;
   const proc = typeof process !== "undefined" ? process.env : undefined;
   const fromProcess = proc?.[key];
@@ -68,7 +65,10 @@ function isTrue(value: string | undefined): boolean {
  * testable before launch; none of them is the production product.
  */
 export function isInternalHost(hostname: string): boolean {
-  const host = hostname.trim().toLowerCase().replace(/^\[|\]$/g, "");
+  const host = hostname
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "");
   if (host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "0.0.0.0") {
     return true;
   }

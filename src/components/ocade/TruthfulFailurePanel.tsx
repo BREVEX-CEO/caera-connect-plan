@@ -34,10 +34,7 @@ export function TruthfulFailurePanel({
   return (
     <section
       role="alert"
-      className={cn(
-        "rounded-xl border border-destructive/30 bg-destructive/[0.06] p-4",
-        className,
-      )}
+      className={cn("rounded-xl border border-destructive/30 bg-destructive/[0.06] p-4", className)}
     >
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />

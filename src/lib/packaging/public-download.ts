@@ -36,9 +36,7 @@ export const PUBLIC_WINDOWS_RELEASE: PublicWindowsRelease = {
 
 const SHA256 = /^[a-f0-9]{64}$/;
 
-export function evaluatePublicWindowsRelease(
-  release: PublicWindowsRelease,
-): PublicReleaseVerdict {
+export function evaluatePublicWindowsRelease(release: PublicWindowsRelease): PublicReleaseVerdict {
   if (!release.authenticodeSigned || !release.publisher) {
     return { ready: false, reason: "signing_required" };
   }

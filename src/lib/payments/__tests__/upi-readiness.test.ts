@@ -37,7 +37,11 @@ describe("UPI readiness reasoning", () => {
 
   it("names the buyer's currency when explaining a hidden UPI option", () => {
     const text = summariseUpiReadiness(
-      readiness({ state: "region_not_eligible", reasons: ["region_not_eligible"], currency: "EUR" }),
+      readiness({
+        state: "region_not_eligible",
+        reasons: ["region_not_eligible"],
+        currency: "EUR",
+      }),
     );
     expect(text).toContain("EUR");
   });

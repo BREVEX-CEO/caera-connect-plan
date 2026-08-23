@@ -7,7 +7,6 @@ import {
 } from "@/lib/landing/solar-scene";
 import { useAppearance } from "@/lib/use-appearance";
 
-
 /**
  * The hero scene, mounted.
  *
@@ -61,8 +60,6 @@ export function SolarSystem({ className }: { className?: string }) {
   const { reducedMotion, osReducedMotion } = useAppearance();
   const holdStill = reducedMotion || osReducedMotion;
 
-
-
   useEffect(() => {
     const wrap = wrapRef.current;
     if (!wrap) return;
@@ -92,7 +89,6 @@ export function SolarSystem({ className }: { className?: string }) {
     wrap.insertBefore(canvas, wrap.firstChild);
 
     const tier = pickTier(holdStill);
-
 
     let scene: SceneHandles;
     try {
@@ -247,7 +243,6 @@ export function SolarSystem({ className }: { className?: string }) {
     // Rebuilt when the motion preference changes: the quality tier is chosen at
     // construction, so a scene built for movement cannot simply be told to stop.
   }, [holdStill]);
-
 
   return (
     <div ref={wrapRef} className={className} data-scene={failed ? "unavailable" : "live"}>

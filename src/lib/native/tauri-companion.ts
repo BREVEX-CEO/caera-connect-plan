@@ -199,7 +199,8 @@ function parseGestureStatus(value: unknown): GestureControlStatus {
     running: status.running,
     controlEnabled: status.controlEnabled,
     cameraIndex: status.cameraIndex === null ? null : Number(status.cameraIndex),
-    reason: typeof status.reason === "string" ? redactForAudit(status.reason).slice(0, 500) : undefined,
+    reason:
+      typeof status.reason === "string" ? redactForAudit(status.reason).slice(0, 500) : undefined,
   };
 }
 
@@ -431,7 +432,11 @@ export class TauriCompanion implements NativeCompanionAdapter, NativeObservation
 
   async startGestureControl(options: GestureControlOptions): Promise<GestureControlStatus> {
     this.ensureOpen();
-    if (!Number.isInteger(options.cameraIndex) || options.cameraIndex < 0 || options.cameraIndex > 8) {
+    if (
+      !Number.isInteger(options.cameraIndex) ||
+      options.cameraIndex < 0 ||
+      options.cameraIndex > 8
+    ) {
       throw new Error("Camera index must be between 0 and 8.");
     }
     const args = {

@@ -56,52 +56,52 @@ export function AccountPanel() {
 
   return (
     <div className="flex flex-col gap-4">
-    <GlassPanel className="flex flex-col gap-4 p-5">
-      <header className="flex items-center gap-2">
-        <User className="h-4 w-4 text-muted-foreground" aria-hidden />
-        <h3 className="text-sm font-semibold text-foreground">Account</h3>
-      </header>
+      <GlassPanel className="flex flex-col gap-4 p-5">
+        <header className="flex items-center gap-2">
+          <User className="h-4 w-4 text-muted-foreground" aria-hidden />
+          <h3 className="text-sm font-semibold text-foreground">Account</h3>
+        </header>
 
-      {signedIn ? (
-        <>
-          <div>
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              Signed in as
-            </p>
-            <p className="mt-1 text-[14px] text-foreground">{email ?? "…"}</p>
-          </div>
+        {signedIn ? (
+          <>
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                Signed in as
+              </p>
+              <p className="mt-1 text-[14px] text-foreground">{email ?? "…"}</p>
+            </div>
 
-          <div>
-            <Button size="sm" variant="outline" disabled={busy} onClick={() => void signOut()}>
-              <LogOut className="h-3.5 w-3.5" aria-hidden />
-              {busy ? "Signing out…" : "Sign out"}
-            </Button>
-          </div>
-        </>
-      ) : (
-        /*
+            <div>
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => void signOut()}>
+                <LogOut className="h-3.5 w-3.5" aria-hidden />
+                {busy ? "Signing out…" : "Sign out"}
+              </Button>
+            </div>
+          </>
+        ) : (
+          /*
           Signed out this is a statement, not a wall — the rest of Settings is
           readable, and this page is the one place where saying so is the whole
           content rather than a banner over something else.
         */
-        <>
-          <p className="text-[13px] leading-relaxed text-muted-foreground">
-            An account keeps your conversations, files and approved devices between visits.
-            Everything else in Settings is readable without one.
-          </p>
-          <p className="text-[12px] text-muted-foreground/70">{reason}</p>
-          <div>
-            <Link
-              to="/auth"
-              className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-[13px] font-medium text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              Sign in
-            </Link>
-          </div>
-        </>
-      )}
-    </GlassPanel>
-    {signedIn ? <DeleteAccountCard /> : null}
+          <>
+            <p className="text-[13px] leading-relaxed text-muted-foreground">
+              An account keeps your conversations, files and approved devices between visits.
+              Everything else in Settings is readable without one.
+            </p>
+            <p className="text-[12px] text-muted-foreground/70">{reason}</p>
+            <div>
+              <Link
+                to="/auth"
+                className="inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-[13px] font-medium text-primary-foreground transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Sign in
+              </Link>
+            </div>
+          </>
+        )}
+      </GlassPanel>
+      {signedIn ? <DeleteAccountCard /> : null}
     </div>
   );
 }

@@ -17,9 +17,16 @@ import { join } from "node:path";
 
 const BASE = process.env.BASE ?? "http://127.0.0.1:4173";
 const INFERENCE_HOSTS = [
-  "api.openai.com", "ai.gateway.lovable.dev", "generativelanguage.googleapis.com",
-  "api.anthropic.com", "openrouter.ai", "api.groq.com", "api.mistral.ai",
-  "api.cohere.ai", "api.together.xyz", "api.deepseek.com",
+  "api.openai.com",
+  "ai.gateway.lovable.dev",
+  "generativelanguage.googleapis.com",
+  "api.anthropic.com",
+  "openrouter.ai",
+  "api.groq.com",
+  "api.mistral.ai",
+  "api.cohere.ai",
+  "api.together.xyz",
+  "api.deepseek.com",
 ];
 
 const profile = mkdtempSync(join(tmpdir(), "ocade-clean-"));
@@ -32,14 +39,19 @@ const browser = await chromium.launchPersistentContext(profile, {
 const requests = [];
 const consoleErrors = [];
 browser.on("request", (r) => requests.push(r.url()));
-browser.on("console", (m) => { if (m.type() === "error") consoleErrors.push(m.text()); });
+browser.on("console", (m) => {
+  if (m.type() === "error") consoleErrors.push(m.text());
+});
 
 const page = await browser.newPage();
 const results = {};
 
 async function step(name, fn) {
-  try { results[name] = await fn(); }
-  catch (e) { results[name] = { error: String(e).slice(0, 300) }; }
+  try {
+    results[name] = await fn();
+  } catch (e) {
+    results[name] = { error: String(e).slice(0, 300) };
+  }
 }
 
 await step("load_home", async () => {
@@ -55,14 +67,22 @@ await step("load_home", async () => {
 await step("storage_state_after_first_visit", async () =>
   page.evaluate(async () => {
     const out = { serviceWorker: false, caches: [], indexedDb: [], opfs: [], persisted: null };
-    try { out.serviceWorker = !!(await navigator.serviceWorker?.getRegistration()); } catch {}
-    try { out.caches = await caches.keys(); } catch {}
-    try { out.indexedDb = (await indexedDB.databases()).map((d) => d.name); } catch {}
+    try {
+      out.serviceWorker = !!(await navigator.serviceWorker?.getRegistration());
+    } catch {}
+    try {
+      out.caches = await caches.keys();
+    } catch {}
+    try {
+      out.indexedDb = (await indexedDB.databases()).map((d) => d.name);
+    } catch {}
     try {
       const root = await navigator.storage.getDirectory();
       for await (const [name] of root.entries()) out.opfs.push(name);
     } catch {}
-    try { out.persisted = await navigator.storage.persisted(); } catch {}
+    try {
+      out.persisted = await navigator.storage.persisted();
+    } catch {}
     return out;
   }),
 );
@@ -73,7 +93,9 @@ await step("webgpu_available_here", async () =>
     try {
       const a = await navigator.gpu.requestAdapter();
       return { gpu: true, adapter: !!a };
-    } catch (e) { return { gpu: true, adapter: false, reason: String(e) }; }
+    } catch (e) {
+      return { gpu: true, adapter: false, reason: String(e) };
+    }
   }),
 );
 
@@ -99,7 +121,9 @@ await step("offline_reload_uses_cached_shell", async () => {
     try {
       const r = await navigator.serviceWorker?.ready;
       return !!r?.active;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   });
   await browser.setOffline(true);
   let offlineBody = "";
@@ -112,13 +136,26 @@ await step("offline_reload_uses_cached_shell", async () => {
     offlineBody = String(e).slice(0, 200);
   }
   await browser.setOffline(false);
-  return { serviceWorkerActive: reg, offlineOk, offlineChars: offlineBody.length,
-           sample: offlineBody.slice(0, 160) };
+  return {
+    serviceWorkerActive: reg,
+    offlineOk,
+    offlineChars: offlineBody.length,
+    sample: offlineBody.slice(0, 160),
+  };
 });
 
 const leaks = requests.filter((u) => INFERENCE_HOSTS.some((h) => u.includes(h)));
-const externalHosts = [...new Set(requests.map((u) => { try { return new URL(u).host; } catch { return u; } }))]
-  .filter((h) => !h.startsWith("127.0.0.1") && !h.startsWith("localhost"));
+const externalHosts = [
+  ...new Set(
+    requests.map((u) => {
+      try {
+        return new URL(u).host;
+      } catch {
+        return u;
+      }
+    }),
+  ),
+].filter((h) => !h.startsWith("127.0.0.1") && !h.startsWith("localhost"));
 
 const report = {
   base: BASE,

@@ -25,17 +25,34 @@ function SharedPage() {
           <CapabilityBadge status="NOT_CONFIGURED" />
         </div>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          No share token, public URL, recipient grant, or anonymous read path is configured. OCADE will not imply that an item was shared when no sharing backend exists.
+          No share token, public URL, recipient grant, or anonymous read path is configured. OCADE
+          will not imply that an item was shared when no sharing backend exists.
         </p>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <Link to="/ocade/projects" className="rounded-xl border border-border/60 p-4 transition hover:bg-accent/30">
-          <div className="flex items-center gap-2 text-sm font-medium"><FolderKanban className="h-4 w-4" aria-hidden />Projects</div>
-          <p className="mt-1 text-xs text-muted-foreground">Keep work private inside your authenticated workspace.</p>
+        <Link
+          to="/ocade/projects"
+          className="rounded-xl border border-border/60 p-4 transition hover:bg-accent/30"
+        >
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <FolderKanban className="h-4 w-4" aria-hidden />
+            Projects
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Keep work private inside your authenticated workspace.
+          </p>
         </Link>
-        <Link to="/ocade/artifacts" className="rounded-xl border border-border/60 p-4 transition hover:bg-accent/30">
-          <div className="flex items-center gap-2 text-sm font-medium"><PackageOpen className="h-4 w-4" aria-hidden />Artifacts</div>
-          <p className="mt-1 text-xs text-muted-foreground">Review generated outputs without creating a public link.</p>
+        <Link
+          to="/ocade/artifacts"
+          className="rounded-xl border border-border/60 p-4 transition hover:bg-accent/30"
+        >
+          <div className="flex items-center gap-2 text-sm font-medium">
+            <PackageOpen className="h-4 w-4" aria-hidden />
+            Artifacts
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Review generated outputs without creating a public link.
+          </p>
         </Link>
       </div>
     </>

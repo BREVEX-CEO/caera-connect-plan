@@ -4,6 +4,7 @@ import { z } from "zod";
 import { Mail, Phone, KeyRound, Loader2 } from "lucide-react";
 import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { LegalDialog } from "@/components/legal/LegalDialog";
 import { AuthShell } from "@/components/shell/AuthShell";
 import { cn } from "@/lib/utils";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
@@ -146,7 +147,28 @@ function AuthPage() {
     });
   }
 
+  /*
+   * Consent is per-checkbox and starts unticked, which is the point: a
+   * pre-ticked box is not consent, and a single combined box makes it
+   * impossible to tell which document somebody actually agreed to.
+   */
+  const [agreedTerms, setAgreedTerms] = useState(false);
+  const [acknowledgedPrivacy, setAcknowledgedPrivacy] = useState(false);
+  const [legalOpen, setLegalOpen] = useState<null | "terms" | "privacy">(null);
+  const consentGiven = agreedTerms && acknowledgedPrivacy;
+
   async function submitPassword(intent: "signin" | "signup") {
+    /*
+     * Signing IN is not signing UP: somebody who agreed months ago should not
+     * be asked to tick boxes again to get back into their own account. The
+     * gate applies to account creation only.
+     */
+    if (intent === "signup" && !consentGiven) {
+      setError(
+        "Please agree to the terms and acknowledge the privacy notice to create an account.",
+      );
+      return;
+    }
     setBusy(true);
     setError(null);
     setErrorHint(null);
@@ -264,15 +286,32 @@ function AuthPage() {
       subtitle="One account for OCADE."
       footer={
         <>
-          By continuing you agree to our{` `}
-          <Link to="/terms" className="underline underline-offset-2">
+          {/*
+            Buttons, not links. A `<Link to="/terms">` navigated away from this
+            form and discarded whatever had been typed into it — which is a
+            cruel thing to do to somebody who followed the link precisely
+            because they were about to agree to it.
+
+            `/terms` and `/privacy` still exist as real pages so the documents
+            can be linked from outside OCADE; from inside, they open here.
+          */}
+          Read our{` `}
+          <button
+            type="button"
+            onClick={() => setLegalOpen("terms")}
+            className="underline underline-offset-2 hover:text-foreground"
+          >
             terms
-          </Link>
+          </button>
           {` `}
           and{` `}
-          <Link to="/privacy" className="underline underline-offset-2">
+          <button
+            type="button"
+            onClick={() => setLegalOpen("privacy")}
+            className="underline underline-offset-2 hover:text-foreground"
+          >
             privacy notice
-          </Link>
+          </button>
           . Your workspace defaults to Private Sync — you can switch it to Device Only anytime.
         </>
       }
@@ -418,25 +457,90 @@ function AuthPage() {
               />
             </div>
             {password.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => submitPassword("signin")}
-                  disabled={busy || !authConfigured}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
-                >
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  Sign in
-                </button>
-                <button
-                  type="button"
-                  onClick={() => submitPassword("signup")}
-                  disabled={busy || !authConfigured}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-border/70 bg-background/60 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-60"
-                >
-                  Create account
-                </button>
-              </div>
+              <>
+                {/*
+                  Shown only once a password has been typed, which is the point
+                  at which "Create account" becomes reachable. Asking for
+                  consent before there is anything to consent to is noise.
+
+                  Each control is a real <input type="checkbox">: it gets the
+                  browser's own tick, keyboard behaviour and screen-reader
+                  semantics for free, and a 24px target satisfies WCAG 2.5.8
+                  without a custom hit area that can drift out of alignment.
+                */}
+                <fieldset className="flex flex-col gap-2.5">
+                  <legend className="sr-only">Agreements required to create an account</legend>
+                  <label className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={agreedTerms}
+                      onChange={(e) => setAgreedTerms(e.target.checked)}
+                      className="mt-0.5 h-[18px] w-[18px] shrink-0 cursor-pointer accent-[color:var(--primary)]"
+                    />
+                    <span>
+                      I agree to the{` `}
+                      <button
+                        type="button"
+                        onClick={() => setLegalOpen("terms")}
+                        className="underline underline-offset-2 hover:text-foreground"
+                      >
+                        terms of service
+                      </button>
+                      .
+                    </span>
+                  </label>
+                  <label className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-snug text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={acknowledgedPrivacy}
+                      onChange={(e) => setAcknowledgedPrivacy(e.target.checked)}
+                      className="mt-0.5 h-[18px] w-[18px] shrink-0 cursor-pointer accent-[color:var(--primary)]"
+                    />
+                    <span>
+                      I have read the{` `}
+                      <button
+                        type="button"
+                        onClick={() => setLegalOpen("privacy")}
+                        className="underline underline-offset-2 hover:text-foreground"
+                      >
+                        privacy notice
+                      </button>
+                      .
+                    </span>
+                  </label>
+                  {!consentGiven ? (
+                    <p id="consent-required" className="text-[12px] text-muted-foreground">
+                      Both are needed to create a new account. Signing in to an existing account
+                      does not require them again.
+                    </p>
+                  ) : null}
+                </fieldset>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => submitPassword("signin")}
+                    disabled={busy || !authConfigured}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
+                  >
+                    {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Sign in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => submitPassword("signup")}
+                    disabled={busy || !authConfigured || !consentGiven}
+                    aria-describedby={consentGiven ? undefined : "consent-required"}
+                    title={
+                      consentGiven
+                        ? undefined
+                        : "Agree to the terms and acknowledge the privacy notice first"
+                    }
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-border/70 bg-background/60 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-60"
+                  >
+                    Create account
+                  </button>
+                </div>
+              </>
             ) : (
               <button
                 type="submit"
@@ -476,6 +580,13 @@ function AuthPage() {
           </Link>
         </p>
       </div>
+      <LegalDialog
+        open={legalOpen !== null}
+        document={legalOpen ?? "terms"}
+        onOpenChange={(next) => {
+          if (!next) setLegalOpen(null);
+        }}
+      />
     </AuthShell>
   );
 }

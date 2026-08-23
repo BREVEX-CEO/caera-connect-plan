@@ -9,11 +9,29 @@ import {
 
 describe("unified task runtime", () => {
   it("allows the normal planning to verification lifecycle", () => {
-    const created = createUnifiedTask({ source: "research", title: "Research a claim" }, "2026-08-17T12:00:00.000Z");
+    const created = createUnifiedTask(
+      { source: "research", title: "Research a claim" },
+      "2026-08-17T12:00:00.000Z",
+    );
     const planning = transitionTask(created, "PLANNING", {}, "2026-08-17T12:00:01.000Z");
-    const executing = transitionTask(planning, "EXECUTING", { currentStep: "Open sources" }, "2026-08-17T12:00:02.000Z");
-    const verifying = transitionTask(executing, "VERIFYING", { progress: 90 }, "2026-08-17T12:00:03.000Z");
-    const completed = transitionTask(verifying, "COMPLETED", { progress: 100 }, "2026-08-17T12:00:04.000Z");
+    const executing = transitionTask(
+      planning,
+      "EXECUTING",
+      { currentStep: "Open sources" },
+      "2026-08-17T12:00:02.000Z",
+    );
+    const verifying = transitionTask(
+      executing,
+      "VERIFYING",
+      { progress: 90 },
+      "2026-08-17T12:00:03.000Z",
+    );
+    const completed = transitionTask(
+      verifying,
+      "COMPLETED",
+      { progress: 100 },
+      "2026-08-17T12:00:04.000Z",
+    );
     expect(completed.status).toBe("COMPLETED");
     expect(completed.startedAt).toBe("2026-08-17T12:00:02.000Z");
     expect(completed.finishedAt).toBe("2026-08-17T12:00:04.000Z");

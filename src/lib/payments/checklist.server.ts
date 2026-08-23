@@ -92,9 +92,7 @@ async function stepWebhookConfigured(env: PaddleEnv): Promise<ChecklistStepResul
   const active = destinations.filter((d) => d.active !== false);
   const appEndpoint = active.find((d) => d.destination?.includes("/api/public/payments/webhook"));
   const missingEvents = appEndpoint
-    ? REQUIRED_EVENTS.filter(
-        (e) => !appEndpoint.subscribed_events?.some((s) => s.name === e),
-      )
+    ? REQUIRED_EVENTS.filter((e) => !appEndpoint.subscribed_events?.some((s) => s.name === e))
     : REQUIRED_EVENTS;
 
   if (!secretPresent || !appEndpoint) {

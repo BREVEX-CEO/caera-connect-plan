@@ -110,7 +110,10 @@ const server = http.createServer((req, res) => {
     let sent = 0;
     const slice = 32 * 1024;
     const pump = () => {
-      if (sent >= body.length) { res.end(); return; }
+      if (sent >= body.length) {
+        res.end();
+        return;
+      }
       res.write(body.subarray(sent, sent + slice));
       sent += slice;
       setTimeout(pump, 2);
@@ -131,7 +134,9 @@ function makeStore() {
   return {
     _files: files,
     _metas: metas,
-    async sizeOf(key) { return files.get(key)?.length ?? 0; },
+    async sizeOf(key) {
+      return files.get(key)?.length ?? 0;
+    },
     /*
      * `at` is the offset, and honouring it is the whole point: the downloader
      * resets it to zero when a server ignores Range, and a store that just
@@ -147,35 +152,58 @@ function makeStore() {
       files.set(key, Buffer.concat([head, Buffer.from(chunk)]));
       return true;
     },
-    async truncate(key) { files.set(key, Buffer.alloc(0)); },
-    async remove(key) { files.delete(key); return true; },
+    async truncate(key) {
+      files.set(key, Buffer.alloc(0));
+    },
+    async remove(key) {
+      files.delete(key);
+      return true;
+    },
     async readBlob(key) {
       const b = files.get(key);
       return b ? new Blob([b]) : null;
     },
-    async writeMeta(key, meta) { meta === null ? metas.delete(key) : metas.set(key, meta); },
-    async readMeta(key) { return metas.get(key) ?? null; },
-    async requestPersistence() { return true; },
-    async list() { return []; },
+    async writeMeta(key, meta) {
+      meta === null ? metas.delete(key) : metas.set(key, meta);
+    },
+    async readMeta(key) {
+      return metas.get(key) ?? null;
+    },
+    async requestPersistence() {
+      return true;
+    },
+    async list() {
+      return [];
+    },
   };
 }
 
 const results = {};
 const run = async (name, fn) => {
-  try { results[name] = await fn(); }
-  catch (e) { results[name] = { error: String(e).slice(0, 300) }; }
+  try {
+    results[name] = await fn();
+  } catch (e) {
+    results[name] = { error: String(e).slice(0, 300) };
+  }
 };
 
 await run("1_clean_download_verifies_checksum", async () => {
-  mode = "normal"; servedRanges = [];
+  mode = "normal";
+  servedRanges = [];
   const store = makeStore();
   const seen = [];
   const r = await downloadModel({
-    key: "m", url: URL_, expectedBytes: SIZE, sha256: DIGEST, store,
+    key: "m",
+    url: URL_,
+    expectedBytes: SIZE,
+    sha256: DIGEST,
+    store,
     onProgress: (p) => seen.push(p.fraction),
   });
   return {
-    ok: r.ok, bytes: r.ok ? r.bytes : null, verified: r.ok ? r.verified : null,
+    ok: r.ok,
+    bytes: r.ok ? r.bytes : null,
+    verified: r.ok ? r.verified : null,
     resumed: r.ok ? r.resumed : null,
     storedBytes: store._files.get("m")?.length ?? 0,
     progressReports: seen.length,
@@ -185,12 +213,27 @@ await run("1_clean_download_verifies_checksum", async () => {
 
 await run("2_interrupted_then_resumes_from_bytes_on_disk", async () => {
   const store = makeStore();
-  mode = "cut"; cutAfterBytes = 2 * 1024 * 1024; servedRanges = [];
-  const first = await downloadModel({ key: "m", url: URL_, expectedBytes: SIZE, sha256: DIGEST, store });
+  mode = "cut";
+  cutAfterBytes = 2 * 1024 * 1024;
+  servedRanges = [];
+  const first = await downloadModel({
+    key: "m",
+    url: URL_,
+    expectedBytes: SIZE,
+    sha256: DIGEST,
+    store,
+  });
   const afterInterrupt = store._files.get("m")?.length ?? 0;
 
-  mode = "normal"; servedRanges = [];
-  const second = await downloadModel({ key: "m", url: URL_, expectedBytes: SIZE, sha256: DIGEST, store });
+  mode = "normal";
+  servedRanges = [];
+  const second = await downloadModel({
+    key: "m",
+    url: URL_,
+    expectedBytes: SIZE,
+    sha256: DIGEST,
+    store,
+  });
   return {
     firstFailed: !first.ok,
     keptBytesAfterInterrupt: afterInterrupt,
@@ -205,12 +248,21 @@ await run("2_interrupted_then_resumes_from_bytes_on_disk", async () => {
 
 await run("3_server_ignoring_range_restarts_instead_of_corrupting", async () => {
   const store = makeStore();
-  mode = "cut"; cutAfterBytes = 1024 * 1024; servedRanges = [];
+  mode = "cut";
+  cutAfterBytes = 1024 * 1024;
+  servedRanges = [];
   await downloadModel({ key: "m", url: URL_, expectedBytes: SIZE, sha256: DIGEST, store });
   const partial = store._files.get("m")?.length ?? 0;
 
-  mode = "ignores-range"; servedRanges = [];
-  const r = await downloadModel({ key: "m", url: URL_, expectedBytes: SIZE, sha256: DIGEST, store });
+  mode = "ignores-range";
+  servedRanges = [];
+  const r = await downloadModel({
+    key: "m",
+    url: URL_,
+    expectedBytes: SIZE,
+    sha256: DIGEST,
+    store,
+  });
   const final = store._files.get("m")?.length ?? 0;
   return {
     partialBefore: partial,
@@ -224,9 +276,16 @@ await run("3_server_ignoring_range_restarts_instead_of_corrupting", async () => 
 
 await run("4_corrupt_file_is_deleted_not_resumed", async () => {
   const store = makeStore();
-  mode = "normal"; servedRanges = [];
+  mode = "normal";
+  servedRanges = [];
   const wrongDigest = createHash("sha256").update("something else").digest("hex");
-  const r = await downloadModel({ key: "m", url: URL_, expectedBytes: SIZE, sha256: wrongDigest, store });
+  const r = await downloadModel({
+    key: "m",
+    url: URL_,
+    expectedBytes: SIZE,
+    sha256: wrongDigest,
+    store,
+  });
   return {
     ok: r.ok,
     failure: r.ok ? null : r.failure,
@@ -238,10 +297,17 @@ await run("4_corrupt_file_is_deleted_not_resumed", async () => {
 
 await run("5_complete_file_is_not_downloaded_again", async () => {
   const store = makeStore();
-  mode = "normal"; servedRanges = [];
+  mode = "normal";
+  servedRanges = [];
   await downloadModel({ key: "m", url: URL_, expectedBytes: SIZE, sha256: DIGEST, store });
   servedRanges = [];
-  const again = await downloadModel({ key: "m", url: URL_, expectedBytes: SIZE, sha256: DIGEST, store });
+  const again = await downloadModel({
+    key: "m",
+    url: URL_,
+    expectedBytes: SIZE,
+    sha256: DIGEST,
+    store,
+  });
   return {
     ok: again.ok,
     resumed: again.ok ? again.resumed : null,
@@ -254,11 +320,17 @@ await run("6_abort_keeps_what_arrived", async () => {
   const store = makeStore();
   // A slow server, so the abort genuinely lands mid-stream rather than after
   // a localhost transfer has already finished.
-  mode = "slow"; servedRanges = [];
+  mode = "slow";
+  servedRanges = [];
   const ac = new AbortController();
   setTimeout(() => ac.abort(), 120);
   const r = await downloadModel({
-    key: "m", url: URL_, expectedBytes: SIZE, sha256: DIGEST, store, signal: ac.signal,
+    key: "m",
+    url: URL_,
+    expectedBytes: SIZE,
+    sha256: DIGEST,
+    store,
+    signal: ac.signal,
   });
   return {
     ok: r.ok,
@@ -270,4 +342,6 @@ await run("6_abort_keeps_what_arrived", async () => {
 });
 
 server.close();
-console.log(JSON.stringify({ fileSize: SIZE, digest: DIGEST.slice(0, 16) + "…", results }, null, 2));
+console.log(
+  JSON.stringify({ fileSize: SIZE, digest: DIGEST.slice(0, 16) + "…", results }, null, 2),
+);

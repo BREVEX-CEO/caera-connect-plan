@@ -38,35 +38,45 @@ async function searchOcade(raw: string): Promise<SearchResult[]> {
   if (q.length < 2) return [];
   const pattern = `%${escapedLike(q)}%`;
 
-  const [conversations, messages, projectsByName, projectsByInstructions, outputsByTitle, outputsByContent] =
-    await Promise.all([
-      supabase.from("ocade_conversations").select("id, title, updated_at").ilike("title", pattern).limit(20),
-      supabase
-        .from("ocade_messages")
-        .select("id, conversation_id, role, content, created_at")
-        .ilike("content", pattern)
-        .limit(30),
-      supabase
-        .from("ocade_projects")
-        .select("id, name, instructions, updated_at")
-        .ilike("name", pattern)
-        .limit(20),
-      supabase
-        .from("ocade_projects")
-        .select("id, name, instructions, updated_at")
-        .ilike("instructions", pattern)
-        .limit(20),
-      supabase
-        .from("ocade_outputs")
-        .select("id, title, content, kind, created_at")
-        .ilike("title", pattern)
-        .limit(20),
-      supabase
-        .from("ocade_outputs")
-        .select("id, title, content, kind, created_at")
-        .ilike("content", pattern)
-        .limit(20),
-    ]);
+  const [
+    conversations,
+    messages,
+    projectsByName,
+    projectsByInstructions,
+    outputsByTitle,
+    outputsByContent,
+  ] = await Promise.all([
+    supabase
+      .from("ocade_conversations")
+      .select("id, title, updated_at")
+      .ilike("title", pattern)
+      .limit(20),
+    supabase
+      .from("ocade_messages")
+      .select("id, conversation_id, role, content, created_at")
+      .ilike("content", pattern)
+      .limit(30),
+    supabase
+      .from("ocade_projects")
+      .select("id, name, instructions, updated_at")
+      .ilike("name", pattern)
+      .limit(20),
+    supabase
+      .from("ocade_projects")
+      .select("id, name, instructions, updated_at")
+      .ilike("instructions", pattern)
+      .limit(20),
+    supabase
+      .from("ocade_outputs")
+      .select("id, title, content, kind, created_at")
+      .ilike("title", pattern)
+      .limit(20),
+    supabase
+      .from("ocade_outputs")
+      .select("id, title, content, kind, created_at")
+      .ilike("content", pattern)
+      .limit(20),
+  ]);
 
   const responses = [
     conversations,
@@ -163,7 +173,8 @@ function SearchPage() {
             role="alert"
             className="mt-4 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
           >
-            Search failed: {results.error instanceof Error ? results.error.message : String(results.error)}
+            Search failed:{" "}
+            {results.error instanceof Error ? results.error.message : String(results.error)}
           </div>
         ) : results.data.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">No matching OCADE content.</p>
@@ -182,8 +193,18 @@ function SearchPage() {
 }
 
 function ResultRow({ result }: { result: SearchResult }) {
-  const Icon = result.kind === "project" ? FolderKanban : result.kind === "output" ? FileOutput : MessageSquare;
-  const to = result.kind === "project" ? "/ocade/projects" : result.kind === "output" ? "/ocade/artifacts" : "/ocade";
+  const Icon =
+    result.kind === "project"
+      ? FolderKanban
+      : result.kind === "output"
+        ? FileOutput
+        : MessageSquare;
+  const to =
+    result.kind === "project"
+      ? "/ocade/projects"
+      : result.kind === "output"
+        ? "/ocade/artifacts"
+        : "/ocade";
 
   return (
     <li>

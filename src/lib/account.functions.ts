@@ -68,7 +68,8 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
 
     // The identity last. After this the session cannot be refreshed.
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
-    if (error) throw new Error(`Account records were removed but sign-in deletion failed: ${error.message}`);
+    if (error)
+      throw new Error(`Account records were removed but sign-in deletion failed: ${error.message}`);
 
     return { deleted: true as const };
   });
