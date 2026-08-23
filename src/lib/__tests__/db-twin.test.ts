@@ -44,14 +44,14 @@ describe("every migration applies in the declared order", () => {
    * two parity tests at the bottom of this file then force the paired
    * verification and rollback scripts to arrive with it.
    *
-   * Last raised for `20260823090000_payment_webhook_audit.sql`, which gives
-   * the payment webhook replay protection, event ordering and an audit trail.
+   * Last raised for `20260823140000_legal_consent_receipts.sql`, which makes
+   * consent provable against an account instead of only on one device.
    * Loosening
    * this to a range would defeat the point: an exact count is what catches a
    * migration going missing.
    */
-  it("finds all 46 migrations", () => {
-    expect(DatabaseTwin.migrationFiles()).toHaveLength(46);
+  it("finds all 47 migrations", () => {
+    expect(DatabaseTwin.migrationFiles()).toHaveLength(47);
   });
 
   /**
@@ -85,7 +85,7 @@ describe("every migration applies in the declared order", () => {
       failed.map((f) => `${f.file}: ${f.error}`),
       "a migration failed against real PostgreSQL",
     ).toEqual([]);
-    expect(applied).toHaveLength(46);
+    expect(applied).toHaveLength(47);
   });
 
   it("rebuilds the whole schema from zero, including the tables defined after the old break", async () => {

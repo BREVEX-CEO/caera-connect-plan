@@ -1809,6 +1809,36 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_consent_receipts: {
+        Row: {
+          accepted_at: string
+          created_at: string
+          id: string
+          privacy_version: string
+          source: string
+          terms_version: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          created_at?: string
+          id?: string
+          privacy_version: string
+          source?: string
+          terms_version: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          created_at?: string
+          id?: string
+          privacy_version?: string
+          source?: string
+          terms_version?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       madee_resume_projects: {
         Row: {
           archived: boolean

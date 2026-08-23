@@ -300,6 +300,24 @@ const GATES = [
         : "the model publisher's host is blocked here, so production weights cannot be fetched",
   },
   {
+    id: "prompt-behaviour-equivalence",
+    what: "A model behaves the same under the compiled constitution as under the canonical one.",
+    run: ["node", "scripts/e2e/prompt-behaviour-equivalence.mjs"],
+    critical: false,
+    slow: true,
+    /*
+     * `prompt-equivalence.test.ts` proves every prohibition survives
+     * compilation, that none is softened and that none is quietly permitted.
+     * It cannot prove a model READS the compressed form the same way — that
+     * needs production weights AND a 32k context for the canonical side, which
+     * is the very reason the compiled form exists.
+     */
+    unavailable: async () =>
+      process.env["OCADE_REFERENCE_MODEL"]
+        ? null
+        : "needs OCADE_REFERENCE_MODEL: production weights with a 32k context window",
+  },
+  {
     id: "payments-sandbox",
     what: "A real provider sandbox accepts checkout and delivers the entitlement.",
     run: npm("stage2:phase30-check"),

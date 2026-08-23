@@ -22,12 +22,17 @@ export default tseslint.config(
      */
     ignores: [
       "dist",
-      ".output",
-      // The route audit builds the product with the node preset so it can serve
-      // it here, and moves it aside so it cannot clobber the shipping build.
-      // Without this, eslint crawls 481 generated files and `npm run lint` goes
-      // from minutes to more than forty of them.
-      ".output-routeqa",
+      // The E2E harnesses build the product with the node preset so they can
+      // serve it here, and move it aside so it cannot clobber the shipping
+      // build. Without this, eslint crawls 481 generated files and `npm run
+      // lint` goes from seconds to minutes.
+      //
+      // A GLOB RATHER THAN A LIST, because a list is a second authority that
+      // has to be kept in step and was not: adding the offline harness created
+      // `.output-offline`, nobody added it here, and the next full lint took
+      // five minutes at 100% CPU while it crawled a production bundle. The
+      // pattern covers whatever the next harness calls its output.
+      ".output*",
       ".vinxi",
       ".browser-sidecar/**",
       "native/**/binaries/**",
