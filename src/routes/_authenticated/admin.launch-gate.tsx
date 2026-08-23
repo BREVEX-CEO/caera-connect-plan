@@ -59,7 +59,7 @@ const STAGE_OPTIONS: Stage[] = ["demo", "private_alpha", "beta", "ga"];
 export const Route = createFileRoute("/_authenticated/admin/launch-gate")({
   ssr: false,
   head: () => ({
-    meta: [{ title: "Launch Gate — CAERA CADANE Admin" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Launch Gate — CARCC CADANE Admin" }, { name: "robots", content: "noindex" }],
   }),
   beforeLoad: async () => {
     const { data: userData } = await supabase.auth.getUser();
@@ -76,7 +76,7 @@ export const Route = createFileRoute("/_authenticated/admin/launch-gate")({
         to: "/access-denied",
         search: {
           area: "the Launch Gate administration console",
-          reason: "This area requires the admin role on your CAERA CADANE account.",
+          reason: "This area requires the admin role on your CARCC CADANE account.",
         },
       });
   },

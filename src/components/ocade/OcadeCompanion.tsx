@@ -1,10 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/**
- * OCADE's original device companion. The image is a project-owned generated
- * asset, not a copy of a third-party mascot. Motion is compositor-only and
- * disappears when the operating system requests reduced motion.
- */
+/** OCADE's canonical supplied symbol, presented as the local companion. */
 export function OcadeCompanion({
   label = "OCADE is standing by",
   compact = false,
@@ -30,16 +26,16 @@ export function OcadeCompanion({
       >
         <div
           aria-hidden
-          className="absolute inset-[-10%] -z-10 rounded-full bg-[conic-gradient(from_180deg,transparent,rgba(42,124,255,.38),transparent_42%,rgba(245,50,66,.28),transparent_78%)] blur-xl"
+          className="absolute inset-[-10%] -z-10 rounded-full bg-[conic-gradient(from_180deg,transparent,rgba(116,84,164,.38),transparent_42%,rgba(203,163,82,.3),transparent_78%)] blur-xl"
         />
         <img
-          src="/brand/ocade-companion-v1.png"
+          src="/brand/ocade-carcc-mark.png"
           alt=""
           width={512}
           height={512}
           loading="lazy"
           decoding="async"
-          className="h-full w-full object-contain drop-shadow-[0_8px_24px_rgba(35,116,255,.22)]"
+          className="h-full w-full object-contain drop-shadow-[0_8px_24px_rgba(116,84,164,.24)]"
         />
       </div>
       {!compact ? (

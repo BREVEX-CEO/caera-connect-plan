@@ -21,7 +21,7 @@ import { BillingHistory } from "@/components/settings/BillingHistory";
 
 export const Route = createFileRoute("/_authenticated/settings/usage")({
   head: () => ({
-    meta: [{ title: "Usage and plan — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Usage and plan — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: UsagePage,
 });

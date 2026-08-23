@@ -1,5 +1,5 @@
 /**
- * Overlay logic for the CAERA Native Companion.
+ * Overlay logic for the OCADE Native Companion.
  *
  * Talks to the Rust host over Tauri IPC only. Everything shown here is REAL
  * host state — if the host cannot be reached the overlay says so rather than

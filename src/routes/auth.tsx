@@ -31,8 +31,8 @@ export const Route = createFileRoute("/auth")({
   },
   head: () => ({
     meta: [
-      { title: "Sign in — CAERA CADANE" },
-      { name: "description", content: "Sign in to your CAERA CADANE workspace." },
+      { title: "Sign in — CARCC CADANE" },
+      { name: "description", content: "Sign in to your CARCC CADANE workspace." },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -334,7 +334,7 @@ function AuthPage() {
 
   return (
     <AuthShell
-      title="Welcome to CAERA CADANE"
+      title="Welcome to CARCC CADANE"
       subtitle="One account for OCADE."
       footer={
         <>

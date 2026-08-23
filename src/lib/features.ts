@@ -1,5 +1,5 @@
 /**
- * CAERA CADANE Feature + Action registries.
+ * CARCC CADANE Feature + Action registries.
  *
  * Every visible capability MUST have a Feature entry. Every triggerable
  * action MUST have an Action entry. The UI reads these to decide whether a

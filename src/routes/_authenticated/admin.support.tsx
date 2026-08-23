@@ -23,7 +23,7 @@ type Ticket = {
 export const Route = createFileRoute("/_authenticated/admin/support")({
   ssr: false,
   head: () => ({
-    meta: [{ title: "Support Queue — CAERA CADANE Admin" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Support Queue — CARCC CADANE Admin" }, { name: "robots", content: "noindex" }],
   }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
@@ -39,7 +39,7 @@ export const Route = createFileRoute("/_authenticated/admin/support")({
         to: "/access-denied",
         search: {
           area: "the customer support queue",
-          reason: "This area requires the admin role on your CAERA CADANE account.",
+          reason: "This area requires the admin role on your CARCC CADANE account.",
         },
       });
     }

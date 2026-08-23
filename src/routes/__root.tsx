@@ -39,7 +39,7 @@ function NotFoundComponent() {
       />
       <div className="relative w-full max-w-lg rounded-xl border border-border/70 bg-background/70 p-8 text-center shadow-[0_28px_90px_rgba(0,0,0,0.35)] backdrop-blur-xl">
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
-          CAERA CADANE
+          CARCC CADANE
         </p>
         <h1 className="mt-4 text-6xl font-semibold tracking-tight text-foreground">404</h1>
         <h2 className="mt-3 text-lg font-semibold text-foreground">
@@ -112,25 +112,25 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "CAERA CADANE — Private AI workspace" },
+      { title: "CARCC CADANE — Private AI workspace" },
       {
         name: "description",
         content:
-          "CAERA CADANE is a privacy-first cross-platform AI work platform. OCADE is a local-first AI assistant that reads your documents on your own device.",
+          "CARCC CADANE is a privacy-first cross-platform AI work platform. OCADE is a local-first AI assistant that reads your documents on your own device.",
       },
       { name: "author", content: "Haans Antoni" },
       // Matches --background in the default (black) theme, so the browser
       // chrome and the app do not meet at a visible seam on mobile.
       { name: "theme-color", content: "#0a0a09" },
-      { property: "og:title", content: "CAERA CADANE — Private AI workspace" },
+      { property: "og:title", content: "CARCC CADANE — Private AI workspace" },
       {
         property: "og:description",
         content:
           "Private AI assistant, commerce and studio for solo builders, small businesses and enterprise.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:site_name", content: "CAERA CADANE" },
-      { property: "og:image", content: "/brand/ocade-wordmark.png" },
+      { property: "og:site_name", content: "CARCC CADANE" },
+      { property: "og:image", content: "/brand/ocade-carcc-wordmark.png" },
       { name: "robots", content: "index,follow,max-image-preview:large" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -151,7 +151,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         costs a wasted round trip on every navigation.
       */
       ...(appCss ? [{ rel: "stylesheet", href: appCss }] : []),
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "icon", href: "/favicon.ico", sizes: "any" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png", sizes: "180x180" },
       // Makes OCADE installable as its own window (HWE-35). Without it the
       // offline shell registered below has an application to open but no
@@ -334,7 +334,7 @@ function RootComponent() {
         */}
         <DepthScene>
           <ErrorBoundary
-            label="CAERA CADANE"
+            label="CARCC CADANE"
             fallback={(retry, message) => (
               <main className="flex min-h-screen items-center justify-center bg-background px-4">
                 <div className="max-w-md text-center" role="alert">

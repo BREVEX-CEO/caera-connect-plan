@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
   head: () => ({
-    meta: [{ title: "Onboarding — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Onboarding — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: OnboardingPage,
 });
@@ -283,7 +283,7 @@ function titleFor(step: number) {
     case 1:
       return "Tell us about you";
     case 2:
-      return "How will you use CAERA CADANE?";
+      return "How will you use CARCC CADANE?";
     case 3:
       return "Choose your privacy mode";
     case 4:

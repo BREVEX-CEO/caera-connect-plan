@@ -1,7 +1,7 @@
 # OCADE
 
-OCADE is the active product being developed under the **CAERA CADANE** brand by
-**Haans Antoni, Founder, Chairman & CEO**. It is a browser-first, local-first AI
+OCADE is the active product being developed under the **CARCC CADANE** brand by
+**HAANS ANTONI — CEO, Chairman and Founder**. It is a browser-first, local-first AI
 workspace with web, desktop and mobile source paths plus optional private
 synchronization.
 
@@ -131,11 +131,13 @@ approves a push or merge to `main`.
 
 Official pre-launch identity:
 
-- Brand/venture: **CAERA CADANE**
+- Brand/venture: **CARCC CADANE**
 - Active product: **OCADE**
 - Founder: **Haans Antoni**
-- Public roles: **Founder, Chairman & CEO**
+- Formal leadership statement: **HAANS ANTONI — CEO, Chairman and Founder**
 - Location: **Bengaluru, Karnataka, India**
+- Founding record: **28 August 2026** (planned until that date; this does not
+  claim that an incorporated entity already exists)
 - Planned public launch date: **28 August 2026**
 - FICIA, MADEE and CANIA: reserved names for possible future products; not AI
   models and not currently advertised as available
@@ -148,7 +150,7 @@ be guaranteed to display any specific result.
 ## Licence
 
 The repository is proprietary. Copyright © 2026 Haans Antoni, operating under
-the CAERA CADANE brand. See [LICENSE](LICENSE). Third-party packages, models and
+the CARCC CADANE brand. See [LICENSE](LICENSE). Third-party packages, models and
 assets remain under their own terms; notices are recorded in
 [release/THIRD_PARTY_NOTICES.md](release/THIRD_PARTY_NOTICES.md).
 

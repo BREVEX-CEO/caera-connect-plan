@@ -1,14 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicPage, PublicSection } from "@/components/public/PublicPage";
-import { ORGANIZATION_STRUCTURED_DATA, PUBLIC_IDENTITY } from "@/lib/public-identity";
+import { organizationStructuredData, PUBLIC_IDENTITY } from "@/lib/public-identity";
 
 export const Route = createFileRoute("/company")({
   head: () => ({
     meta: [
-      { title: "CAERA CADANE — Company and brand information" },
+      { title: "CARCC CADANE — Company and brand information" },
       {
         name: "description",
-        content: "Official pre-launch information about CAERA CADANE, the brand behind OCADE.",
+        content: "Official pre-launch information about CARCC CADANE, the brand behind OCADE.",
       },
     ],
   }),
@@ -20,35 +20,34 @@ function CompanyPage() {
     <PublicPage
       eyebrow="Official information"
       title={PUBLIC_IDENTITY.brand}
-      summary="CAERA CADANE is the brand and product venture behind OCADE. It is based in Bengaluru, Karnataka, India, and is preparing for a planned public launch on 28 August 2026."
-      structuredData={ORGANIZATION_STRUCTURED_DATA}
+      summary="CARCC CADANE is the brand and product venture behind OCADE. It is based in Bengaluru, Karnataka, India, and is preparing for a planned public launch on 28 August 2026."
+      structuredData={organizationStructuredData()}
     >
       <PublicSection title="Current status">
         <p>
-          CAERA CADANE is currently a pre-launch brand operated by Haans Antoni. This page does not
+          CARCC CADANE is currently a pre-launch brand operated by Haans Antoni. This page does not
           claim that an Indian company has already been incorporated. Formal entity details, CIN,
           GSTIN and a registered-office address will be published only after they are issued and
           independently verified.
         </p>
       </PublicSection>
-      <PublicSection title="Name, meaning and pronunciation">
+      <PublicSection title="Identity and launch record">
         <p>
-          Haans Antoni created the CAERA CADANE brand name and defines it as “Crown Era / Sovereign
-          New Age” and “Command Domain / Capital Dynasty Network.” The official tagline is “Command
-          the Next Era.” Pronounce CAERA CADANE as “KAY-rah kuh-DAYN,” simplified as “Kay-ra
-          Ka-dane.”
+          Haans Antoni created the CARCC CADANE brand and OCADE product identity. The official
+          tagline is “Command the Next Era.” The venture records 28 August 2026 as its planned
+          founding and public-launch date; until that date, every public surface must describe it
+          as planned or pre-launch rather than already founded or launched.
         </p>
         <p>
-          These definitions record the founder’s intended brand meaning and creative expression.
-          Publication alone does not create exclusive ownership of ordinary words in every context.
-          Enforceable exclusivity depends on applicable trademark, passing-off, copyright, contract
-          and company-name law, including successful registration where required.
+          Publication does not by itself establish incorporation, trademark registration or
+          exclusive ownership. Those claims remain separate and will be published only when
+          independently verified.
         </p>
       </PublicSection>
       <PublicSection title="Leadership">
         <p>
-          Haans Antoni is the founder and publicly uses the roles Founder, Chairman &amp; CEO for
-          the CAERA CADANE venture. Read the{` `}
+          HAANS ANTONI is the founder and publicly uses the roles CEO, Chairman and Founder for
+          the CARCC CADANE venture. Read the{` `}
           <Link to="/founder/haans-antoni" className="text-foreground underline">
             official founder profile
           </Link>

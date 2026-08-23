@@ -1,4 +1,4 @@
-# CAERA CADANE / OCADE External Action Plan
+# CARCC CADANE / OCADE External Action Plan
 
 **Research date:** 15 August 2026
 **Boundary:** no account, filing, payment, contract or public claim is authorized by this document
@@ -75,7 +75,7 @@ is not guaranteed or automatically tax-free.
 
 ## 4. Trademark and IP
 
-Search OCADE and CAERA CADANE across relevant classes and similar marks before
+Search OCADE and CARCC CADANE across relevant classes and similar marks before
 launch. IP India lists TM-A e-filing at **₹4,500 per mark per class** for an
 individual/startup/small enterprise and **₹9,000** otherwise. Fees and workflow:
 [IP India forms and official fees](https://www.ipindia.gov.in/pages/trade-marks/learn/forms-and-official-fees).

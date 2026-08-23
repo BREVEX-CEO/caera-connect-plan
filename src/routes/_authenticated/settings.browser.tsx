@@ -27,7 +27,7 @@ import { bootstrapCompanion } from "@/lib/native/tauri-companion";
 
 export const Route = createFileRoute("/_authenticated/settings/browser")({
   head: () => ({
-    meta: [{ title: "Browser control — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Browser control — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: BrowserSettingsPage,
 });

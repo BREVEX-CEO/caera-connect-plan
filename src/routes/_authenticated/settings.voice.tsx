@@ -22,7 +22,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/settings/voice")({
   head: () => ({
-    meta: [{ title: "OCADE Voice — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "OCADE Voice — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: VoiceSettingsPage,
 });

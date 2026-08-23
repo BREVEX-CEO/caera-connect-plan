@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  macOS entitlements for the CAERA Native Companion.
+  macOS entitlements for the OCADE Native Companion.
 
   Deliberately minimal. The companion performs bounded, user-approved actions on
   the local machine; it does not need network access, camera, microphone, or

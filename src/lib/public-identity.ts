@@ -1,42 +1,52 @@
+import { COMPANY_FACTS } from "@/config/company-facts";
+
 export const PUBLIC_IDENTITY = {
-  brand: "CAERA CADANE",
-  brandPronunciation: "KAY-rah kuh-DAYN",
-  brandPronunciationSimple: "Kay-ra Ka-dane",
-  brandMeaning: "Crown Era / Sovereign New Age; Command Domain / Capital Dynasty Network",
-  tagline: "Command the Next Era.",
-  product: "OCADE",
+  brand: COMPANY_FACTS.companyName,
+  brandAlternateName: COMPANY_FACTS.companyAlternateName,
+  tagline: COMPANY_FACTS.tagline,
+  product: COMPANY_FACTS.productName,
   productPronunciation: "OH-kayd",
   productMeaning: "Orbital-scale command and autonomous decision engine",
-  founder: "Haans Antoni",
-  founderRoles: "Founder, Chairman & CEO",
-  location: "Bengaluru, Karnataka, India",
-  plannedLaunchDate: "28 August 2026",
-  status: "pre-launch" as const,
+  founder: COMPANY_FACTS.founderName,
+  founderAlternateName: COMPANY_FACTS.founderDisplayName,
+  founderRoles: COMPANY_FACTS.founderRoles,
+  location: COMPANY_FACTS.location,
+  plannedFoundingDate: COMPANY_FACTS.foundingDateIso,
+  plannedLaunchDate: COMPANY_FACTS.foundingDateLabel,
+  status: COMPANY_FACTS.status,
 };
 
-export const ORGANIZATION_STRUCTURED_DATA = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "@id": "https://ocade.in/#organization",
-  name: PUBLIC_IDENTITY.brand,
-  alternateName: ["Caera Cadane", PUBLIC_IDENTITY.tagline],
-  url: "https://ocade.in/company",
-  slogan: PUBLIC_IDENTITY.tagline,
-  description: `CAERA CADANE is the pre-launch venture created by Haans Antoni and the brand behind OCADE. The founder defines the name as ${PUBLIC_IDENTITY.brandMeaning}.`,
-  founder: {
-    "@type": "Person",
-    "@id": "https://ocade.in/#haans-antoni",
-    name: PUBLIC_IDENTITY.founder,
-    jobTitle: PUBLIC_IDENTITY.founderRoles,
-    url: "https://ocade.in/founder/haans-antoni",
-  },
-  address: {
-    "@type": "PostalAddress",
-    addressLocality: "Bengaluru",
-    addressRegion: "Karnataka",
-    addressCountry: "IN",
-  },
-};
+export function organizationStructuredData(now: number = Date.now()) {
+  const founded = now >= Date.parse(`${PUBLIC_IDENTITY.plannedFoundingDate}T00:00:00+05:30`);
+  return {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "@id": "https://ocade.in/#organization",
+    name: PUBLIC_IDENTITY.brand,
+    alternateName: [PUBLIC_IDENTITY.brandAlternateName, PUBLIC_IDENTITY.tagline],
+    url: "https://ocade.in/company",
+    logo: "https://ocade.in/brand/ocade-carcc-mark.png",
+    image: "https://ocade.in/brand/ocade-carcc-wordmark.png",
+    slogan: PUBLIC_IDENTITY.tagline,
+    ...(founded ? { foundingDate: PUBLIC_IDENTITY.plannedFoundingDate } : {}),
+    description:
+      "CARCC CADANE is the independent venture created by Haans Antoni and the brand behind OCADE.",
+    founder: {
+      "@type": "Person",
+      "@id": "https://ocade.in/#haans-antoni",
+      name: PUBLIC_IDENTITY.founder,
+      alternateName: PUBLIC_IDENTITY.founderAlternateName,
+      jobTitle: PUBLIC_IDENTITY.founderRoles,
+      url: "https://ocade.in/founder/haans-antoni",
+    },
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Bengaluru",
+      addressRegion: "Karnataka",
+      addressCountry: "IN",
+    },
+  };
+}
 
 export const FOUNDER_STRUCTURED_DATA = {
   "@context": "https://schema.org",
@@ -45,6 +55,7 @@ export const FOUNDER_STRUCTURED_DATA = {
     "@type": "Person",
     "@id": "https://ocade.in/#haans-antoni",
     name: PUBLIC_IDENTITY.founder,
+    alternateName: PUBLIC_IDENTITY.founderAlternateName,
     jobTitle: PUBLIC_IDENTITY.founderRoles,
     url: "https://ocade.in/founder/haans-antoni",
     worksFor: {
@@ -52,6 +63,20 @@ export const FOUNDER_STRUCTURED_DATA = {
       "@id": "https://ocade.in/#organization",
       name: PUBLIC_IDENTITY.brand,
     },
+  },
+};
+
+export const WEBSITE_STRUCTURED_DATA = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": "https://ocade.in/#website",
+  name: `${PUBLIC_IDENTITY.brand} — ${PUBLIC_IDENTITY.product}`,
+  alternateName: `${PUBLIC_IDENTITY.product} by ${PUBLIC_IDENTITY.brand}`,
+  url: "https://ocade.in/",
+  publisher: {
+    "@type": "Organization",
+    "@id": "https://ocade.in/#organization",
+    name: PUBLIC_IDENTITY.brand,
   },
 };
 
@@ -73,6 +98,7 @@ export const OCADE_STRUCTURED_DATA = {
     "@type": "Person",
     "@id": "https://ocade.in/#haans-antoni",
     name: PUBLIC_IDENTITY.founder,
+    alternateName: PUBLIC_IDENTITY.founderAlternateName,
   },
-  description: `OCADE, defined by its creator as ${PUBLIC_IDENTITY.productMeaning}, is a pre-launch local-first AI workspace with optional private synchronization and cloud-assisted features.`,
+  description: `OCADE, defined by its creator as ${PUBLIC_IDENTITY.productMeaning}, is a pre-launch local-first AI workspace with optional private synchronization and permissioned current-information retrieval.`,
 };

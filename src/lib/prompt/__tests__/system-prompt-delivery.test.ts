@@ -120,7 +120,7 @@ describe("the canonical system prompt reaches the real local model request", () 
 
     // The whole constitution, unedited, at the front of the system message.
     expect(sent[0].content.startsWith(OCADE_SYSTEM_PROMPT)).toBe(true);
-    expect(sent[0].content).toContain("developed and created by CAERA CADANE");
+    expect(sent[0].content).toContain("developed and created by CARCC CADANE");
     expect(sent[0].content).toContain("Public-cloud AI inference is not an allowed fallback");
     expect(sent[0].content).toContain("# instruction_priority_and_integrity");
   });
@@ -132,7 +132,7 @@ describe("the canonical system prompt reaches the real local model request", () 
     expect(sent[0].role).toBe("system");
     expect(sent[0].content).toContain("# ocade_behavior");
     expect(sent[0].content).toContain("# instruction_priority_and_integrity");
-    expect(sent[0].content).toContain("developed and created by CAERA CADANE");
+    expect(sent[0].content).toContain("developed and created by CARCC CADANE");
   });
 
   it("puts project text BELOW the constitution on the wire, not above it", async () => {

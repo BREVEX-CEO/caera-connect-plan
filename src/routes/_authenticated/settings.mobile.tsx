@@ -78,7 +78,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/settings/mobile")({
   head: () => ({
-    meta: [{ title: "Mobile companion — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Mobile companion — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: MobilePage,
 });

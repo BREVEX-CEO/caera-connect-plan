@@ -46,7 +46,7 @@ export const Route = createFileRoute("/_authenticated/settings/$section")({
     const found = findSection(params.section);
     const label = found?.item.label ?? "Settings";
     return {
-      meta: [{ title: `${label} — CAERA CADANE` }, { name: "robots", content: "noindex" }],
+      meta: [{ title: `${label} — CARCC CADANE` }, { name: "robots", content: "noindex" }],
     };
   },
   component: SectionCatchall,

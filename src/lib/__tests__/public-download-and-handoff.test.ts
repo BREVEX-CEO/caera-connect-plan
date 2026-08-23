@@ -13,7 +13,7 @@ const complete: PublicWindowsRelease = {
   authenticodeSigned: true,
   updateSignatureVerified: true,
   cleanDeviceTested: true,
-  publisher: "CAERA CADANE",
+  publisher: "CARCC CADANE",
 };
 
 describe("public installer publication gate", () => {

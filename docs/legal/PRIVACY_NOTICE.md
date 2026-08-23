@@ -8,7 +8,7 @@
 ## 1. Proposed data fiduciary
 
 Before incorporation and a written IP/data-controller transition, Haans Antoni
-operates the CAERA CADANE brand and is the proposed data fiduciary for OCADE.
+operates the CARCC CADANE brand and is the proposed data fiduciary for OCADE.
 Before launch, replace this paragraph with the verified provider name, legal
 form, registered address, grievance officer/contact and privacy contact. Do not
 publish a CIN, GSTIN or company founding date until issued and verified.
@@ -121,9 +121,9 @@ deletion, breach contacts, vendor notification paths and production monitoring.
 
 Inbound delivery to `support@ocade.in`, `privacy@ocade.in`,
 `security@ocade.in` and `legal@ocade.in` was verified on 15 August 2026 through
-Cloudflare Email Routing to `CAERACADANE28@gmail.com`. Branded outbound sending
-from those aliases is not yet verified; responses may originate from the Gmail
-address until a separate authenticated outbound mail service is configured.
+Cloudflare Email Routing to an owner-controlled mailbox. Branded outbound
+sending from those aliases is not yet verified; responses may originate from
+that mailbox until a separate authenticated outbound mail service is configured.
 
 Material changes require a dated notice and, where required, renewed consent.
 

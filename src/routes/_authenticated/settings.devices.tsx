@@ -28,7 +28,7 @@ import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/_authenticated/settings/devices")({
   head: () => ({
-    meta: [{ title: "Devices — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Devices — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: DevicesPage,
 });

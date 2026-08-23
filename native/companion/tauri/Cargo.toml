@@ -2,7 +2,7 @@
 name = "caera-companion"
 version = "0.1.0"
 edition = "2021"
-description = "CAERA Native Companion — signed desktop agent that performs bounded, permission-gated OCADE actions."
+description = "OCADE Native Companion — signed desktop agent that performs bounded, permission-gated OCADE actions."
 license = "UNLICENSED"
 publish = false
 

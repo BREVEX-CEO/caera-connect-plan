@@ -87,7 +87,7 @@ The product succeeds if:
 
 Recorded because a non-goal that is never written down gets built anyway.
 
-- **Not a foundation-model trainer.** CAERA CADANE trains no model. The system prompt
+- **Not a foundation-model trainer.** CARCC CADANE trains no model. The system prompt
   forbids claiming otherwise.
 - **Not an autonomous agent.** Anything touching files, accounts, messages, databases or
   operating-system controls requires explicit permission, a preview, and a cancel path.

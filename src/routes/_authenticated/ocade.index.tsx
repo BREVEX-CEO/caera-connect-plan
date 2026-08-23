@@ -200,7 +200,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/ocade/")({
   head: () => ({
-    meta: [{ title: "OCADE — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "OCADE — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   /*
    * `?conversation=<id>` so a search result can open the conversation it
@@ -1052,7 +1052,7 @@ function HomeSurface(props: {
           <div>
             <h1 className="text-[22px] font-semibold text-foreground">Welcome, {userLabel}.</h1>
             <p className="mt-1 text-[13px] text-muted-foreground">
-              OCADE by CAERA CADANE. Ask a question or start a task.
+              OCADE by CARCC CADANE. Ask a question or start a task.
             </p>
           </div>
         </div>

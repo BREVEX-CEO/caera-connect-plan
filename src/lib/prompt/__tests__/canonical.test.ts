@@ -17,7 +17,7 @@ describe("canonical prompt loads", () => {
   });
 
   it("carries the identity and local-inference clauses", () => {
-    expect(OCADE_SYSTEM_PROMPT).toContain("developed and created by CAERA CADANE");
+    expect(OCADE_SYSTEM_PROMPT).toContain("developed and created by CARCC CADANE");
     expect(OCADE_SYSTEM_PROMPT).toContain("Public-cloud AI inference is not an allowed fallback");
   });
 
@@ -74,7 +74,7 @@ describe("assembler", () => {
     // The behaviour itself survives regardless.
     expect(built.text).toContain("# ocade_behavior");
     expect(built.text).toContain("# instruction_priority_and_integrity");
-    expect(built.text).toContain("developed and created by CAERA CADANE");
+    expect(built.text).toContain("developed and created by CARCC CADANE");
   });
 
   it("keeps the browser-control rules when browser control is available", () => {

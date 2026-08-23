@@ -1,4 +1,4 @@
-//! Safety enforcement for the CAERA Native Companion.
+//! Safety enforcement for the OCADE Native Companion.
 //!
 //! STATUS: source scaffold — not built or signed yet.
 //!

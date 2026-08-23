@@ -1,5 +1,5 @@
 /**
- * CAERA CADANE ThemeProvider.
+ * CARCC CADANE ThemeProvider.
  *
  * Owns the visual mode (dark | light | real), reduced-motion preference,
  * low-performance mode (auto-detected via rAF FPS sampling), and cursor

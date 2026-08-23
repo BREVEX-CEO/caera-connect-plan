@@ -33,7 +33,7 @@ const isEnv = (v: unknown): v is BillingEnvironment => v === "sandbox" || v === 
  * page already shows, and checkout cannot open without it.
  */
 export const resolvePaddlePrice = createServerFn({ method: "GET" })
-  .inputValidator((data: { priceId: string; environment: BillingEnvironment }) => {
+  .validator((data: { priceId: string; environment: BillingEnvironment }) => {
     if (!data?.priceId || !isEnv(data.environment)) {
       throw new Error("A price id and environment are required.");
     }
@@ -59,7 +59,7 @@ export const resolvePaddlePrice = createServerFn({ method: "GET" })
 /** The signed-in account's most recent subscription in the given environment. */
 export const getMySubscription = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { environment: BillingEnvironment }) => {
+  .validator((data: { environment: BillingEnvironment }) => {
     if (!isEnv(data?.environment)) throw new Error("An environment is required.");
     return data;
   })

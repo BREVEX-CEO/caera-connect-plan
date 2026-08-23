@@ -14,10 +14,10 @@ export const Route = createFileRoute("/_authenticated/access-denied")({
   validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: "Access denied — CAERA CADANE" },
+      { title: "Access denied — CARCC CADANE" },
       {
         name: "description",
-        content: "You do not have permission to open this area of your CAERA CADANE workspace.",
+        content: "You do not have permission to open this area of your CARCC CADANE workspace.",
       },
       { name: "robots", content: "noindex" },
     ],

@@ -252,12 +252,12 @@ export function LandingUniverse() {
             centred ? "w-[82vw] max-w-[900px]" : "w-[210px] sm:w-[250px]",
           )}
         >
-          <span className="sr-only">OCADE by CAERA CADANE — Command the Next Era.</span>
+          <span className="sr-only">OCADE by CARCC CADANE — Command the Next Era.</span>
           <img
-            src="/brand/ocade-wordmark.png"
+            src="/brand/ocade-carcc-wordmark.png"
             alt=""
-            width={1480}
-            height={383}
+            width={2172}
+            height={724}
             className="h-auto w-full drop-shadow-[0_16px_45px_rgba(0,0,0,0.75)]"
             fetchPriority="high"
           />

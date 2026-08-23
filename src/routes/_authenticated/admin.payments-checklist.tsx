@@ -32,7 +32,7 @@ export const Route = createFileRoute("/_authenticated/admin/payments-checklist")
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Payments test checklist — CAERA CADANE Admin" },
+      { title: "Payments test checklist — CARCC CADANE Admin" },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -51,7 +51,7 @@ export const Route = createFileRoute("/_authenticated/admin/payments-checklist")
         to: "/access-denied",
         search: {
           area: "the payments test checklist",
-          reason: "This area requires the admin role on your CAERA CADANE account.",
+          reason: "This area requires the admin role on your CARCC CADANE account.",
         },
       });
   },

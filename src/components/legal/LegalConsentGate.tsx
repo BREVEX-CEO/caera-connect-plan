@@ -100,7 +100,7 @@ export function LegalConsentGate({
           showClose={false}
           onEscapeKeyDown={(event) => event.preventDefault()}
           onPointerDownOutside={(event) => event.preventDefault()}
-          className="max-w-xl overflow-hidden border-white/15 bg-[oklch(0.09_0.012_255/0.97)] p-0 shadow-[0_28px_100px_rgba(0,0,0,0.72)]"
+          className="max-h-[calc(100dvh-2rem)] max-w-xl overflow-y-auto border-white/15 bg-[oklch(0.09_0.012_255/0.97)] p-0 shadow-[0_28px_100px_rgba(0,0,0,0.72)]"
         >
           <div className="relative p-6 sm:p-7">
             <div

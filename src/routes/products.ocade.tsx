@@ -5,11 +5,11 @@ import { OCADE_STRUCTURED_DATA, PUBLIC_IDENTITY } from "@/lib/public-identity";
 export const Route = createFileRoute("/products/ocade")({
   head: () => ({
     meta: [
-      { title: "OCADE — Local-first AI workspace by CAERA CADANE" },
+      { title: "OCADE — Local-first AI workspace by CARCC CADANE" },
       {
         name: "description",
         content:
-          "Official pre-launch product information for OCADE, a local-first AI workspace by CAERA CADANE.",
+          "Official pre-launch product information for OCADE, a local-first AI workspace by CARCC CADANE.",
       },
     ],
   }),

@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/settings/")({
   head: () => ({
-    meta: [{ title: "General — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "General — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: GeneralPage,
 });
@@ -80,8 +80,8 @@ const THEMES: { id: ThemeMode; label: string; icon: typeof Sun }[] = [
 
 const CURSORS: { id: CursorKind; label: string }[] = [
   { id: "system", label: "System" },
-  { id: "caera_black", label: "CAERA Black" },
-  { id: "caera_white", label: "CAERA White" },
+  { id: "caera_black", label: "OCADE Black" },
+  { id: "caera_white", label: "OCADE White" },
   { id: "auto_contrast", label: "Auto Contrast" },
 ];
 

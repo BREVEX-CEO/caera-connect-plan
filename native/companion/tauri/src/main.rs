@@ -1,4 +1,4 @@
-//! CAERA Native Companion — Tauri application entry point.
+//! OCADE Native Companion — Tauri application entry point.
 //!
 //! STATUS: the unsigned Windows companion has been built and startup-tested in
 //! this environment. Production signing and clean-device release validation
@@ -1393,7 +1393,7 @@ fn main() {
 
             TrayIconBuilder::with_id("caera-tray")
                 .menu(&menu)
-                .tooltip("OCADE — CAERA Companion")
+                .tooltip("OCADE Native Companion")
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => {
                         if let Some(w) = app.get_webview_window("overlay") {
@@ -1493,5 +1493,5 @@ fn main() {
             audit_log
         ])
         .run(tauri::generate_context!())
-        .expect("failed to start the CAERA Companion");
+        .expect("failed to start the OCADE Native Companion");
 }

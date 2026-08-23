@@ -4,7 +4,7 @@ import { ComingLater } from "@/components/shell/ComingLater";
 
 export const Route = createFileRoute("/_authenticated/madee")({
   head: () => ({
-    meta: [{ title: "MADEE — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "MADEE — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: () => (
     <ComingLater name="MADEE" icon={Sparkles} wasGoingToBe="a document and resume builder" />

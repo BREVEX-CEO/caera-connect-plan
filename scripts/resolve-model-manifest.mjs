@@ -231,7 +231,7 @@ const document = {
   provenance:
     "Every tag, digest, byte size, quantization and licence below was READ from the runtime's own registry at the time above. Nothing is hand-typed. RAM figures are derived from the real weight size by the stated formula and are the only computed values here.",
   ownership:
-    "These are third-party model weights. CAERA CADANE does not own them and does not claim to. The licence text for each tier is fetched and hashed above and must remain reachable from the product UI before any tier is offered for download.",
+    "These are third-party model weights. CARCC CADANE does not own them and does not claim to. The licence text for each tier is fetched and hashed above and must remain reachable from the product UI before any tier is offered for download.",
   ramFormula: ramFor(0).formula,
   tiers: results,
   unresolved: failures,

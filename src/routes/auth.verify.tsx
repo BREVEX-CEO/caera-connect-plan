@@ -32,7 +32,7 @@ export const Route = createFileRoute("/auth/verify")({
   ssr: false,
   validateSearch: searchSchema,
   head: () => ({
-    meta: [{ title: "Enter your code — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Enter your code — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: VerifyPage,
 });

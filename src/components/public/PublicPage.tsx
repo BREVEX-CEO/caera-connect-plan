@@ -68,7 +68,7 @@ export function PublicPage({
       </main>
       <footer className="border-t border-border/60">
         <div className="mx-auto flex max-w-5xl flex-wrap justify-between gap-3 px-5 py-7 text-xs text-muted-foreground">
-          <p>© {new Date().getFullYear()} Haans Antoni. CAERA CADANE brand.</p>
+          <p>© {new Date().getFullYear()} Haans Antoni. CARCC CADANE brand.</p>
           <SiteFooterLinks />
           <div className="flex flex-wrap gap-4">
             <Link to="/data-rights" className={TAP_LINK}>

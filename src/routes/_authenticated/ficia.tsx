@@ -4,7 +4,7 @@ import { ComingLater } from "@/components/shell/ComingLater";
 
 export const Route = createFileRoute("/_authenticated/ficia")({
   head: () => ({
-    meta: [{ title: "FICIA — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "FICIA — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: () => (
     <ComingLater name="FICIA" icon={Building2} wasGoingToBe="a workforce and company directory" />

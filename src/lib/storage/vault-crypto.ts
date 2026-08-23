@@ -112,7 +112,7 @@ export async function createPrfCredential(userId: string, userLabel: string, prf
   const cred = (await navigator.credentials.create({
     publicKey: {
       challenge: ab(randomBytes(32)),
-      rp: { name: "CAERA CADANE" },
+      rp: { name: "CARCC CADANE" },
       user: { id: ab(enc.encode(userId)), name: userLabel, displayName: userLabel },
       pubKeyCredParams: [
         { type: "public-key", alg: -7 },

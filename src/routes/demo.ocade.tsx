@@ -38,7 +38,7 @@ import type { BrainMessage } from "@/lib/brain/adapter";
 
 export const Route = createFileRoute("/demo/ocade")({
   head: () => ({
-    meta: [{ title: "OCADE demo — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "OCADE demo — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: DemoOcade,
 });

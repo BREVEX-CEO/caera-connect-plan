@@ -74,7 +74,7 @@ export function ParticleLogoIntro({ phase, reducedMotion, tier }: ParticleLogoIn
 
     const image = new Image();
     image.decoding = "async";
-    image.src = "/brand/ocade-mark.png";
+    image.src = "/brand/ocade-carcc-mark.png";
 
     const buildParticles = () => {
       const sampleSize = tier === "full" ? 240 : 180;

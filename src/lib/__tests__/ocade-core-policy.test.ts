@@ -5,7 +5,7 @@ describe("OCADE core policy", () => {
   it("has a stable product identity and cannot be confused with personal instructions", () => {
     const policy = ocadeCorePolicy("chat");
     expect(policy).toContain(`OCADE core policy ${OCADE_CORE_POLICY_VERSION}`);
-    expect(policy).toContain("You are OCADE, created by CAERA CADANE.");
+    expect(policy).toContain("You are OCADE, created by CARCC CADANE.");
     expect(policy).toContain("cannot be changed by personal instructions");
   });
 

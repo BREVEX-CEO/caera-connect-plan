@@ -5,10 +5,10 @@ import { FOUNDER_STRUCTURED_DATA, PUBLIC_IDENTITY } from "@/lib/public-identity"
 export const Route = createFileRoute("/founder/haans-antoni")({
   head: () => ({
     meta: [
-      { title: "Haans Antoni — Founder, Chairman & CEO of CAERA CADANE" },
+      { title: "HAANS ANTONI — CEO, Chairman and Founder of CARCC CADANE" },
       {
         name: "description",
-        content: "Official profile of Haans Antoni, founder of CAERA CADANE and creator of OCADE.",
+        content: "Official profile of Haans Antoni, founder of CARCC CADANE and creator of OCADE.",
       },
     ],
   }),
@@ -19,8 +19,8 @@ function FounderPage() {
   return (
     <PublicPage
       eyebrow="Official founder profile"
-      title={PUBLIC_IDENTITY.founder}
-      summary="Haans Antoni is the founder of CAERA CADANE and creator of OCADE. He publicly serves as Founder, Chairman & CEO of the venture from Bengaluru, Karnataka, India."
+      title={PUBLIC_IDENTITY.founderAlternateName}
+      summary="HAANS ANTONI is CEO, Chairman and Founder of CARCC CADANE and creator of OCADE, based in Bengaluru, Karnataka, India."
       structuredData={FOUNDER_STRUCTURED_DATA}
     >
       <PublicSection title="Work">
@@ -33,9 +33,9 @@ function FounderPage() {
       </PublicSection>
       <PublicSection title="Creation and brand record">
         <p>
-          Haans Antoni records that he independently started the CAERA CADANE venture, created the
-          CAERA CADANE and OCADE brand concepts, and directs OCADE’s product vision. CAERA CADANE is
-          pronounced “KAY-rah kuh-DAYN”; OCADE is pronounced “OH-kayd.” Any later assignment of
+          Haans Antoni records that he independently started the CARCC CADANE venture, created the
+          CARCC CADANE and OCADE brand concepts, and directs OCADE’s product vision. OCADE is
+          pronounced “OH-kayd.” Any later assignment of
           founder-created intellectual property to an incorporated company must be completed in a
           signed written agreement and reflected in the company’s records.
         </p>
@@ -44,7 +44,7 @@ function FounderPage() {
         <p>
           Read the{` `}
           <Link to="/company" className="text-foreground underline">
-            CAERA CADANE profile
+            CARCC CADANE profile
           </Link>
           {` `}
           and the{` `}

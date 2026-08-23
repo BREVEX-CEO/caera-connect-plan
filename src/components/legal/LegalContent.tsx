@@ -34,7 +34,7 @@ export function TermsContent() {
       <PublicSection title="Provider and eligibility">
         <p>
           The final terms must identify the incorporated provider or, if still lawful and intended,
-          Haans Antoni operating the CAERA CADANE brand. Users must have legal capacity to contract.
+          Haans Antoni operating the CARCC CADANE brand. Users must have legal capacity to contract.
           Age and parental-consent requirements must be finalized before launch.
         </p>
       </PublicSection>
@@ -97,9 +97,9 @@ export function TermsContent() {
           OCADE accesses at your direction.
         </p>
       </PublicSection>
-      <PublicSection title="CAERA CADANE and OCADE intellectual property">
+      <PublicSection title="CARCC CADANE and OCADE intellectual property">
         <p>
-          CAERA CADANE, OCADE, the tagline “Command the Next Era,” their logos, official
+          CARCC CADANE, OCADE, the tagline “Command the Next Era,” their logos, official
           pronunciations, and the original brand definitions published on the official company and
           product pages are proprietary brand materials claimed by Haans Antoni before formal
           company assignment. After a valid written assignment, the identified incorporated entity
@@ -153,7 +153,7 @@ export function PrivacyContent() {
       <DraftNotice />
       <PublicSection title="Who is responsible">
         <p>
-          Before incorporation and formal assignment, Haans Antoni operates the CAERA CADANE brand
+          Before incorporation and formal assignment, Haans Antoni operates the CARCC CADANE brand
           and is the proposed data fiduciary for OCADE. The final notice must replace this statement
           with the verified legal entity name, registered address, grievance contact and privacy
           contact before launch.

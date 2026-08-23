@@ -8,7 +8,7 @@ export const Route = createFileRoute("/privacy")({
       { title: "Privacy notice — OCADE" },
       {
         name: "description",
-        content: "Pre-launch privacy notice for OCADE by CAERA CADANE.",
+        content: "Pre-launch privacy notice for OCADE by CARCC CADANE.",
       },
     ],
   }),

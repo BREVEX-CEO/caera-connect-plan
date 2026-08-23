@@ -35,7 +35,7 @@ export function ConnectorsPanel() {
     setRows([
       {
         id: "native",
-        label: "CAERA Native Companion",
+        label: "OCADE Native Companion",
         description: "Signed local route for approved apps, windows, files and OS actions.",
         available: native.available,
         detail: native.available

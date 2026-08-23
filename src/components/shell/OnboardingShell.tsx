@@ -24,7 +24,7 @@ export function OnboardingShell({
       </a>
       <header className="border-b border-border/60">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
-          <Link to="/" aria-label="CAERA CADANE home">
+          <Link to="/" aria-label="CARCC CADANE home">
             <BrandMark />
           </Link>
           <div className="text-xs text-muted-foreground">

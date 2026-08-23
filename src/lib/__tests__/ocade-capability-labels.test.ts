@@ -45,12 +45,12 @@ describe("OCADE capability labels", () => {
 
 describe("chat identity disclosure", () => {
   it("uses the confirmed creator wording", () => {
-    expect(ocadeCreatorStatement()).toBe("I am OCADE, developed and created by CAERA CADANE.");
+    expect(ocadeCreatorStatement()).toBe("I am OCADE, developed and created by CARCC CADANE.");
   });
 
   it("discloses the capability tier in chat without leaking a raw model", () => {
     const line = ocadeChatCapabilityDisclosure("OCADE Local");
-    expect(line).toContain("developed and created by CAERA CADANE");
+    expect(line).toContain("developed and created by CARCC CADANE");
     expect(line).toContain("OCADE Local");
     expect(line).toContain("advanced settings");
     expect(leaksRawModelIdentity(line)).toBe(false);
@@ -117,6 +117,6 @@ describe("identity probes route to the capability disclosure", () => {
     const answer = ocadeChatCapabilityDisclosure("OCADE Local");
     expect(leaksRawModelIdentity(answer)).toBe(false);
     expect(answer).toContain("OCADE Local");
-    expect(answer).toContain("CAERA CADANE");
+    expect(answer).toContain("CARCC CADANE");
   });
 });

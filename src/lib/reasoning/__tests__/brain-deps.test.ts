@@ -92,7 +92,7 @@ describe("a device with only a browser can answer", () => {
     await withNoNetwork(() => reason(brainReasonDeps(route(adapter({}, capture))), ask(system)));
     expect(capture.messages).toHaveLength(1);
     expect(capture.messages[0][0].role).toBe("system");
-    expect(capture.messages[0][0].content).toContain("developed and created by CAERA CADANE");
+    expect(capture.messages[0][0].content).toContain("developed and created by CARCC CADANE");
     expect(capture.messages[0][0].content).toContain("# ocade_behavior");
   });
 

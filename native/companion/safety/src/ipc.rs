@@ -1,4 +1,4 @@
-//! Secure local IPC envelope for the CAERA Native Companion.
+//! Secure local IPC envelope for the OCADE Native Companion.
 //!
 //! The companion only ever listens on loopback, but loopback is not a trust
 //! boundary on a shared machine: any local process can send it requests. Every

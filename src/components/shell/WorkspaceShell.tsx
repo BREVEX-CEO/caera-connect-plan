@@ -369,7 +369,7 @@ function WorkspaceShellInner({
           >
             <Link
               to={isDemo ? "/" : "/home"}
-              aria-label="CAERA CADANE home"
+              aria-label="CARCC CADANE home"
               className="inline-flex"
             >
               <BrandMark className={collapsed ? "[&_.flex-col]:hidden" : ""} />

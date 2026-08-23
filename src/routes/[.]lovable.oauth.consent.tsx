@@ -85,7 +85,7 @@ function Consent() {
       <div className="space-y-2">
         <h1 className="text-lg font-medium">Connect {clientName} to your account</h1>
         <p className="text-sm text-muted-foreground">
-          {clientName} will be able to use CAERA CADANE agent tools as you: read your OCADE
+          {clientName} will be able to use CARCC CADANE agent tools as you: read your OCADE
           conversations and projects, and create new projects. It cannot see anything your account
           cannot.
         </p>

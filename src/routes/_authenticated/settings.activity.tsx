@@ -15,7 +15,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/settings/activity")({
   head: () => ({
-    meta: [{ title: "Activity — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Activity — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: ActivityPage,
 });

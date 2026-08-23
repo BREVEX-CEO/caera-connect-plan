@@ -9,11 +9,11 @@ import createProject from "./tools/create-project";
 const projectRef = import.meta.env["VITE_SUPABASE_PROJECT_ID"] ?? "project-ref-unset";
 
 export default defineMcp({
-  name: "caera-foundation-plan",
-  title: "CAERA Foundation Plan",
+  name: "ocade-foundation-plan",
+  title: "OCADE Foundation Plan",
   version: "0.1.0",
   instructions:
-    "Tools for CAERA CADANE. Read the signed-in user's OCADE conversations and projects, and create new projects. All access runs as the authenticated user.",
+    "Tools for CARCC CADANE. Read the signed-in user's OCADE conversations and projects, and create new projects. All access runs as the authenticated user.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",

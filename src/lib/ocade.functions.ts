@@ -195,7 +195,7 @@ export const exportConversation = createServerFn({ method: "GET" })
       conversation: conv,
       messages: msgs ?? [],
       exported_at: new Date().toISOString(),
-      exported_by: "OCADE by CAERA CADANE",
+      exported_by: "OCADE by CARCC CADANE",
     };
   });
 

@@ -22,7 +22,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
       </a>
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 shadow-[0_14px_45px_rgba(0,0,0,0.2)] backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
-          <Link to="/" aria-label="CAERA CADANE home">
+          <Link to="/" aria-label="CARCC CADANE home">
             <BrandMark />
           </Link>
           <nav className="hidden items-center gap-6 md:flex">
@@ -61,7 +61,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
       <footer className="border-t border-border/60 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-muted-foreground sm:flex-row">
           <BrandMark />
-          <p>© {new Date().getFullYear()} CAERA CADANE. Original work.</p>
+          <p>© {new Date().getFullYear()} CARCC CADANE. Original work.</p>
           <SiteFooterLinks className="text-xs" />
         </div>
       </footer>

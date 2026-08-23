@@ -1,5 +1,5 @@
 /**
- * StorageAdapter contract — every persistent write in CAERA CADANE flows
+ * StorageAdapter contract — every persistent write in CARCC CADANE flows
  * through one of three adapters chosen by the resolver based on the user's
  * per-data-class privacy setting.
  *
@@ -67,7 +67,7 @@ export class NativeCompanionRequiredError extends Error {
   constructor(message?: string) {
     super(
       message ??
-        "PC Device Vault requires the CAERA Native Companion. Not available in the browser yet.",
+        "PC Device Vault requires the OCADE Native Companion. Not available in the browser yet.",
     );
     this.name = "NativeCompanionRequiredError";
   }

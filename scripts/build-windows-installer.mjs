@@ -29,7 +29,7 @@ const installer = join(
   "release",
   "bundle",
   "nsis",
-  "CAERA Companion_0.1.0_x64-setup.exe",
+  "OCADE Native Companion_0.1.0_x64-setup.exe",
 );
 const bytes = readFileSync(installer);
 process.stdout.write(

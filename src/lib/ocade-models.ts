@@ -2,7 +2,8 @@
  * What OCADE runs on. One entry, because there is one engine.
  *
  * THIS FILE USED TO BE A CLOUD CATALOGUE. Four providers — Lovable Gateway,
- * OpenAI Direct, Ollama Local, CAERA Native — and a dozen hosted models
+ * Historical engine labels and hosted providers are normalized behind OCADE's
+ * local-first runtime boundary.
  * including google/gemini-3.5-flash and openai/gpt-5.5, each with locality,
  * cost, speed and vision metadata, plus `autoSelectModel` to pick between them
  * from the user's privacy/cost/speed preferences.

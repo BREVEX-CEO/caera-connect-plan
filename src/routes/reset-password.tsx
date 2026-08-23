@@ -9,10 +9,10 @@ export const Route = createFileRoute("/reset-password")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Choose a new password — CAERA CADANE" },
+      { title: "Choose a new password — CARCC CADANE" },
       {
         name: "description",
-        content: "Set a new password for your CAERA CADANE account from your reset link.",
+        content: "Set a new password for your CARCC CADANE account from your reset link.",
       },
       { name: "robots", content: "noindex" },
     ],
@@ -119,7 +119,7 @@ function ResetPasswordPage() {
   return (
     <AuthShell
       title="Choose a new password"
-      subtitle="Set a new password for your CAERA CADANE account."
+      subtitle="Set a new password for your CARCC CADANE account."
       footer={
         <>
           Changed your mind?{" "}

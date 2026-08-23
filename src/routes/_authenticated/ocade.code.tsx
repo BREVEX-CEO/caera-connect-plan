@@ -5,7 +5,7 @@ import { FileManagerPanel } from "@/components/ocade/FileManagerPanel";
 
 export const Route = createFileRoute("/_authenticated/ocade/code")({
   head: () => ({
-    meta: [{ title: "OCADE Code — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "OCADE Code — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: CodePage,
 });

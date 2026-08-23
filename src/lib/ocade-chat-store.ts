@@ -234,7 +234,7 @@ export function describeStorageError(e: unknown): string {
     return "Your Browser Vault is locked. Unlock it in Settings → Storage to keep this chat on this device.";
   }
   if (e instanceof Error && e.name === "NativeCompanionRequiredError") {
-    return "PC Vault storage needs the CAERA Native Companion, which isn't connected.";
+    return "PC Vault storage needs the OCADE Native Companion, which isn't connected.";
   }
   return e instanceof Error ? e.message : "Could not save this message.";
 }

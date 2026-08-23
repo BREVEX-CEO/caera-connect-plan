@@ -35,7 +35,7 @@ import { webauthnPrfSupported } from "@/lib/storage/vault-crypto";
 
 export const Route = createFileRoute("/_authenticated/settings/vault")({
   head: () => ({
-    meta: [{ title: "Browser Vault — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Browser Vault — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: VaultPage,
 });
@@ -182,7 +182,7 @@ function VaultPage() {
           Browser Only data belongs to <strong>this browser on this device</strong>. Clearing site
           data, uninstalling the browser, or wiping the OS profile will delete it permanently.
           Losing every unlock method AND the recovery kit makes the encrypted data unrecoverable —
-          CAERA CADANE cannot restore it.
+          CARCC CADANE cannot restore it.
         </p>
       </GlassPanel>
 

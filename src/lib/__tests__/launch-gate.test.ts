@@ -9,8 +9,11 @@ import {
 } from "../launch/launch-window";
 import {
   PRELAUNCH_ALLOWED_PATHS,
+  PRELAUNCH_PUBLIC_ASSET_PATHS,
+  PRELAUNCH_PUBLIC_PATHS,
   prelaunchResponse,
   renderPrelaunchPage,
+  renderPrelaunchPublicPage,
 } from "../launch/prelaunch-response";
 import { releaseHealthResponse } from "../release-health";
 
@@ -23,7 +26,7 @@ function gate(now: number, env: Record<string, unknown> = {}) {
 
 describe("OCADE production launch gate", () => {
   it("pins the launch instant and the public date label", () => {
-    expect(LAUNCH_AT_ISO).toBe("2026-08-28T02:58:00.000Z");
+    expect(LAUNCH_AT_ISO).toBe("2026-08-28T02:58:00Z");
     expect(LAUNCH_PUBLIC_DATE_LABEL).toBe("28 August 2026");
   });
 
@@ -85,7 +88,7 @@ describe("OCADE production launch gate", () => {
 
   it("answers locked page, API and asset paths with 503 and no-store", async () => {
     const decision = gate(LAUNCH_AT_MS - 1);
-    for (const path of ["/", "/auth", "/ocade", "/sitemap.xml", "/assets/index-abc123.js"]) {
+    for (const path of ["/", "/auth", "/ocade", "/assets/index-abc123.js"]) {
       const response = prelaunchResponse(path, decision);
       expect(response.status).toBe(503);
       expect(response.headers.get("cache-control")).toBe("no-store");
@@ -98,15 +101,48 @@ describe("OCADE production launch gate", () => {
     }
   });
 
-  it("serves a disallow-all robots directive before launch and no sitemap link", async () => {
+  it("keeps factual founder, company and product pages crawlable while the app is locked", async () => {
+    const decision = gate(LAUNCH_AT_MS - 1);
+    for (const path of ["/company", "/founder/haans-antoni", "/products/ocade"]) {
+      expect(PRELAUNCH_PUBLIC_PATHS.has(path)).toBe(true);
+      expect(PRELAUNCH_ALLOWED_PATHS.has(path)).toBe(true);
+      const response = prelaunchResponse(path, decision);
+      expect(response.status).toBe(200);
+      expect(response.headers.get("x-robots-tag")).toContain("index");
+      expect(response.headers.get("x-ocade-launch-state")).toBe(
+        "prelaunch-public-information",
+      );
+      const html = await response.text();
+      expect(html).toContain('rel="canonical"');
+      expect(html).toContain('type="application/ld+json"');
+      expect(html).toContain("CARCC CADANE");
+      expect(html).not.toContain("02:58");
+      expect(renderPrelaunchPublicPage(path)).toBe(html);
+    }
+    expect(PRELAUNCH_PUBLIC_ASSET_PATHS.has("/brand/ocade-carcc-wordmark.png")).toBe(true);
+    expect(PRELAUNCH_PUBLIC_PATHS.has("/ocade")).toBe(false);
+  });
+
+  it("serves a restrictive robots directive with the factual allowlist and sitemap", async () => {
     const decision = gate(LAUNCH_AT_MS - 1);
     expect(PRELAUNCH_ALLOWED_PATHS.has("/robots.txt")).toBe(true);
     const response = prelaunchResponse("/robots.txt", decision);
     expect(response.status).toBe(200);
     const body = await response.text();
     expect(body).toContain("Disallow: /");
-    expect(body).not.toContain("Sitemap:");
-    expect(body).not.toContain("Allow: /");
+    expect(body).toContain("Allow: /company");
+    expect(body).toContain("Allow: /founder/haans-antoni");
+    expect(body).toContain("Sitemap: https://ocade.in/sitemap.xml");
+  });
+
+  it("serves only the factual pre-launch pages in the sitemap", async () => {
+    const response = prelaunchResponse("/sitemap.xml", gate(LAUNCH_AT_MS - 1));
+    expect(response.status).toBe(200);
+    const body = await response.text();
+    expect(body).toContain("https://ocade.in/company");
+    expect(body).toContain("https://ocade.in/founder/haans-antoni");
+    expect(body).toContain("https://ocade.in/products/ocade");
+    expect(body).not.toContain("https://ocade.in/ocade");
   });
 
   it("keeps health available while locked without leaking the launch time", async () => {

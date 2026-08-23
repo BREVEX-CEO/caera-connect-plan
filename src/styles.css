@@ -5,12 +5,11 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * CAERA CADANE design system: BLACK, SILVER, BLUE, RED.
+ * CARCC CADANE design system: BLACK, SILVER, AUBERGINE, GOLD.
  *
- * Black occupies the field, silver carries content, blue identifies an action
- * or verified connection, and red is reserved for stop, danger and a small
- * amount of active-control energy. The intended visual ratio is approximately
- * 68 / 18 / 8 / 6. Components use semantic tokens so the ratio is controlled
+ * Black occupies the field, silver carries content, gold identifies an action
+ * or verified connection, aubergine carries depth, and red is reserved for
+ * destructive safety states. Components use semantic tokens so the ratio is controlled
  * here rather than becoming a collection of unrelated utility colours.
  *
  * TWO HUES SURVIVE THE REBRAND, AND ONLY FOR SAFETY. Destructive stays red and
@@ -96,16 +95,16 @@
   --popover: oklch(0.175 0.004 90);
   --popover-foreground: oklch(0.94 0.003 90);
 
-  /* ELECTRIC BLUE. Action, focus and verified live connection. */
-  --primary: oklch(0.74 0.16 255);
-  --primary-foreground: oklch(0.11 0.02 255);
+  /* GOLD. Action, focus and verified live connection. */
+  --primary: oklch(0.78 0.13 78);
+  --primary-foreground: oklch(0.12 0.015 78);
 
   --secondary: oklch(0.2 0.004 90);
   --secondary-foreground: oklch(0.93 0.003 90);
   --muted: oklch(0.185 0.004 90);
   /* SILVER. 0.76 against a 0.115 ground clears AA for body text comfortably. */
   --muted-foreground: oklch(0.76 0.006 90);
-  --accent: oklch(0.235 0.006 88);
+  --accent: oklch(0.245 0.045 315);
   --accent-foreground: oklch(0.95 0.003 90);
   --destructive: oklch(0.62 0.17 27);
   --destructive-foreground: oklch(0.98 0.004 90);
@@ -113,42 +112,42 @@
      black flare and make a bordered grid look like a spreadsheet. */
   --border: oklch(0.86 0.012 90 / 12%);
   --input: oklch(0.86 0.012 90 / 15%);
-  --ring: oklch(0.74 0.16 255 / 90%);
+  --ring: oklch(0.78 0.13 78 / 90%);
 
   /*
-   * Charts run blue → silver → red → graphite. Sequential by lightness
+   * Charts run gold → silver → aubergine → graphite → red. Sequential by lightness
    * on purpose: a series stays distinguishable in greyscale and to anyone who
    * cannot separate hues, which a five-hue rainbow never manages.
    */
-  --chart-1: oklch(0.76 0.16 255);
+  --chart-1: oklch(0.78 0.13 78);
   --chart-2: oklch(0.88 0.01 260);
-  --chart-3: oklch(0.66 0.18 27);
+  --chart-3: oklch(0.62 0.1 315);
   --chart-4: oklch(0.66 0.02 90);
-  --chart-5: oklch(0.64 0.12 250);
+  --chart-5: oklch(0.62 0.17 27);
 
   /* Sidebar = the deepest black in the app, edged in silver */
   --sidebar: oklch(0.085 0.002 90);
   --sidebar-foreground: oklch(0.89 0.004 90);
-  --sidebar-primary: oklch(0.74 0.16 255);
-  --sidebar-primary-foreground: oklch(0.11 0.02 255);
-  --sidebar-accent: oklch(0.205 0.005 88);
+  --sidebar-primary: oklch(0.78 0.13 78);
+  --sidebar-primary-foreground: oklch(0.12 0.015 78);
+  --sidebar-accent: oklch(0.22 0.04 315);
   --sidebar-accent-foreground: oklch(0.96 0.003 90);
   --sidebar-border: oklch(0.86 0.012 90 / 9%);
-  --sidebar-ring: oklch(0.74 0.16 255 / 55%);
+  --sidebar-ring: oklch(0.78 0.13 78 / 55%);
 
   /*
-   * Module accents. OCADE is the product, so OCADE gets the blue; the modules
+   * Module accents. OCADE is the product, so OCADE gets the gold; the modules
    * that remain disabled are silver at descending weight rather than four
    * different colours competing with it.
    */
-  --accent-ocade: oklch(0.76 0.16 255); /* electric blue */
+  --accent-ocade: oklch(0.78 0.13 78); /* gold */
   --accent-ficia: oklch(0.82 0.008 90); /* silver */
   --accent-madee: oklch(0.7 0.008 90); /* graphite silver */
-  --accent-cania: oklch(0.66 0.18 27); /* signal red */
+  --accent-cania: oklch(0.62 0.1 315); /* aubergine */
 
   /* States — see the note at the top about why two hues survived. */
   --state-success: oklch(0.84 0.09 148);
-  --state-warning: oklch(0.78 0.15 27);
+  --state-warning: oklch(0.8 0.13 78);
   --state-info: oklch(0.85 0.01 90);
   --state-pending: oklch(0.7 0.006 90);
 
@@ -171,7 +170,7 @@
 
 /*
  * Light theme: the same three materials inverted — brushed silver ground, ink
- * text, and a deeper blue. Blue has to darken here or it disappears: the same
+ * text, and a deeper aubergine. Gold is reserved for non-text decoration here:
  * lightness that glows on black is nearly invisible on silver.
  */
 .light {
@@ -181,7 +180,7 @@
   --card-foreground: oklch(0.16 0.004 90);
   --popover: oklch(0.995 0.001 90);
   --popover-foreground: oklch(0.16 0.004 90);
-  --primary: oklch(0.44 0.18 255); /* deep blue: clears AA on light surfaces */
+  --primary: oklch(0.38 0.11 315); /* deep aubergine: clears AA on light surfaces */
   --primary-foreground: oklch(0.99 0.002 90);
   --secondary: oklch(0.915 0.003 90);
   --secondary-foreground: oklch(0.16 0.004 90);
@@ -193,26 +192,26 @@
   --destructive-foreground: oklch(0.99 0 0);
   --border: oklch(0.2 0.005 90 / 15%);
   --input: oklch(0.2 0.005 90 / 17%);
-  --ring: oklch(0.44 0.18 255);
+  --ring: oklch(0.38 0.11 315);
   --sidebar: oklch(0.93 0.003 90);
   --sidebar-foreground: oklch(0.18 0.004 90);
-  --sidebar-primary: oklch(0.44 0.18 255);
+  --sidebar-primary: oklch(0.38 0.11 315);
   --sidebar-primary-foreground: oklch(0.99 0.002 90);
   --sidebar-accent: oklch(0.885 0.004 90);
   --sidebar-accent-foreground: oklch(0.14 0.004 90);
   --sidebar-border: oklch(0.2 0.005 90 / 13%);
-  --sidebar-ring: oklch(0.44 0.18 255);
-  --chart-1: oklch(0.48 0.18 255);
+  --sidebar-ring: oklch(0.38 0.11 315);
+  --chart-1: oklch(0.48 0.12 315);
   --chart-2: oklch(0.58 0.02 260);
-  --chart-3: oklch(0.48 0.2 27);
+  --chart-3: oklch(0.6 0.12 78);
   --chart-4: oklch(0.62 0.01 90);
-  --chart-5: oklch(0.38 0.13 250);
-  --accent-ocade: oklch(0.44 0.18 255);
+  --chart-5: oklch(0.48 0.2 27);
+  --accent-ocade: oklch(0.38 0.11 315);
   --accent-ficia: oklch(0.42 0.006 90);
   --accent-madee: oklch(0.52 0.006 90);
-  --accent-cania: oklch(0.48 0.2 27);
+  --accent-cania: oklch(0.48 0.1 315);
   --state-success: oklch(0.42 0.1 148);
-  --state-warning: oklch(0.46 0.17 27);
+  --state-warning: oklch(0.46 0.11 78);
   --state-info: oklch(0.4 0.008 90);
   --state-pending: oklch(0.46 0.005 90);
   --surface-glass: oklch(0.2 0.005 90 / 3%);
@@ -235,8 +234,8 @@
  */
 
 /*
- * REAL theme: the same black, lit. Blue, silver and restrained red move behind the
- * glass instead of the old blue/violet aurora, so the depth comes from the
+ * REAL theme: the same black, lit. Gold, silver and aubergine move behind the
+ * glass, so the depth comes from the
  * brand's own light rather than from a second palette.
  */
 .real {
@@ -246,17 +245,17 @@
   --card-foreground: oklch(0.96 0.004 90);
   --popover: oklch(0.21 0.009 88 / 82%);
   --popover-foreground: oklch(0.96 0.004 90);
-  --primary: oklch(0.78 0.17 255);
-  --primary-foreground: oklch(0.1 0.02 255);
+  --primary: oklch(0.8 0.13 78);
+  --primary-foreground: oklch(0.11 0.015 78);
   --secondary: oklch(0.25 0.008 88 / 65%);
   --secondary-foreground: oklch(0.95 0.004 90);
   --muted: oklch(0.23 0.008 88 / 55%);
   --muted-foreground: oklch(0.88 0.008 90);
-  --accent: oklch(0.29 0.02 88 / 70%);
+  --accent: oklch(0.29 0.055 315 / 70%);
   --accent-foreground: oklch(0.96 0.004 90);
   --border: oklch(0.88 0.02 90 / 16%);
   --input: oklch(0.88 0.02 90 / 18%);
-  --ring: oklch(0.78 0.17 255 / 65%);
+  --ring: oklch(0.8 0.13 78 / 65%);
   --sidebar: oklch(0.13 0.005 88 / 75%);
   --sidebar-accent: oklch(0.25 0.012 88 / 70%);
   --sidebar-border: oklch(0.88 0.02 90 / 14%);
@@ -271,7 +270,7 @@
   --border: oklch(0.92 0.01 90 / 34%);
   --muted-foreground: oklch(0.9 0.006 90);
   --surface-glass-border: oklch(0.92 0.01 90 / 30%);
-  --ring: oklch(0.78 0.17 255);
+  --ring: oklch(0.8 0.13 78);
 }
 
 .light.high-contrast {
@@ -340,11 +339,11 @@
   /* REAL: liquid animated aurora background */
   html.real body {
     background-color: var(--color-background);
-    /* Restrained blue and red light moving behind neutral black glass. */
+    /* Restrained gold and aubergine light moving behind neutral black glass. */
     background-image:
-      radial-gradient(60% 40% at 20% 10%, oklch(0.62 0.17 255 / 30%), transparent 65%),
-      radial-gradient(55% 45% at 85% 20%, oklch(0.62 0.18 27 / 22%), transparent 65%),
-      radial-gradient(70% 55% at 50% 100%, oklch(0.5 0.12 250 / 22%), transparent 65%),
+      radial-gradient(60% 40% at 20% 10%, oklch(0.68 0.11 78 / 26%), transparent 65%),
+      radial-gradient(55% 45% at 85% 20%, oklch(0.5 0.1 315 / 26%), transparent 65%),
+      radial-gradient(70% 55% at 50% 100%, oklch(0.42 0.08 315 / 24%), transparent 65%),
       radial-gradient(50% 40% at 100% 90%, oklch(0.72 0.01 90 / 18%), transparent 60%);
     background-size:
       200% 200%,
@@ -356,7 +355,7 @@
       100% 0%,
       50% 100%,
       100% 100%;
-    animation: caera-aurora 28s ease-in-out infinite alternate;
+    animation: carcc-aurora 28s ease-in-out infinite alternate;
   }
 
   html.real.reduce-motion body,
@@ -457,7 +456,7 @@
   outline-offset: 2px;
 }
 
-@keyframes caera-aurora {
+@keyframes carcc-aurora {
   0% {
     background-position:
       0% 0%,
@@ -706,15 +705,12 @@
 }
 
 /*
- * A surface that is ALREADY transformed.
+ * A surface that is ALREADY positioned with Tailwind's translate utilities.
  *
- * `.ocade-depth` sets `transform` outright, so putting it on an element that
- * relies on a transform of its own silently destroys that transform. The dialog
- * is the case that matters: it centres itself with
- * `translate(-50%, -50%)`, and `.ocade-depth` would have replaced that and
- * dropped every modal in the product to the bottom-right quadrant of the
- * screen. This variant folds the centring in, so depth composes with it instead
- * of competing.
+ * Tailwind 4 emits the centring offsets through the standalone CSS `translate`
+ * property. Repeating translate(-50%, -50%) in `transform` therefore moves the
+ * dialog twice and clips it on mobile. This variant supplies depth only; the
+ * utility-owned `translate` property remains the single centring authority.
  *
  * A portalled dialog renders OUTSIDE `.ocade-scene`, so it has no shared
  * vanishing point to sit in and carries its own perspective. That is correct
@@ -724,8 +720,9 @@
 .ocade-depth-centered {
   --depth-z: calc(var(--depth-level, 96px) + var(--depth-boost, 0px));
   perspective: var(--scene-perspective, 1400px);
-  transform: translate(-50%, -50%)
-    translateZ(calc(var(--depth-z) * var(--depth-active, 0) * var(--depth-strength, 1)));
+  transform: translateZ(
+    calc(var(--depth-z) * var(--depth-active, 0) * var(--depth-strength, 1))
+  );
   transform-style: preserve-3d;
 }
 
@@ -795,8 +792,8 @@
 .ocade-brand-mark {
   border: 1px solid oklch(0.86 0.02 90 / 22%);
   box-shadow:
-    -7px 0 18px oklch(0.62 0.19 255 / 18%),
-    7px 0 18px oklch(0.62 0.22 28 / 16%),
+    -7px 0 18px oklch(0.5 0.1 315 / 20%),
+    7px 0 18px oklch(0.72 0.12 78 / 18%),
     inset 0 1px 0 oklch(1 0 0 / 18%);
   transition:
     transform 220ms ease,
@@ -814,8 +811,8 @@
   isolation: isolate;
   overflow: hidden;
   background-image:
-    radial-gradient(circle at 12% 0%, oklch(0.66 0.18 255 / 9%), transparent 34%),
-    radial-gradient(circle at 92% 100%, oklch(0.58 0.19 27 / 7%), transparent 30%),
+    radial-gradient(circle at 12% 0%, oklch(0.68 0.12 78 / 9%), transparent 34%),
+    radial-gradient(circle at 92% 100%, oklch(0.5 0.1 315 / 9%), transparent 30%),
     linear-gradient(145deg, oklch(1 0 0 / 3%), transparent 42%);
 }
 
@@ -828,9 +825,9 @@
   background: conic-gradient(
     from 180deg,
     transparent 0 36%,
-    oklch(0.7 0.17 255 / 7%) 42%,
+    oklch(0.72 0.12 78 / 7%) 42%,
     transparent 48% 76%,
-    oklch(0.62 0.18 27 / 6%) 82%,
+    oklch(0.52 0.1 315 / 7%) 82%,
     transparent 88%
   );
   animation: ocade-relational-drift 28s linear infinite;
@@ -844,16 +841,16 @@
 
 .ocade-command-card:hover,
 .ocade-command-card:focus-visible {
-  border-color: oklch(0.7 0.16 255 / 42%);
-  background-color: oklch(0.7 0.08 255 / 6%);
+  border-color: oklch(0.72 0.12 78 / 42%);
+  background-color: oklch(0.58 0.07 315 / 8%);
   box-shadow:
     inset 0 1px 0 oklch(1 0 0 / 5%),
-    0 12px 26px -20px oklch(0.66 0.18 255 / 55%);
+    0 12px 26px -20px oklch(0.64 0.12 78 / 55%);
   transform: translate3d(0, -2px, 0);
 }
 
 .ocade-command-tab[aria-selected="true"] {
-  box-shadow: 0 0 22px -10px oklch(0.7 0.18 255 / 75%);
+  box-shadow: 0 0 22px -10px oklch(0.72 0.12 78 / 75%);
 }
 
 @keyframes ocade-relational-drift {
@@ -894,8 +891,8 @@
   button:hover .ocade-brand-mark {
     transform: translateY(-1px) scale(1.025);
     box-shadow:
-      -9px 0 24px oklch(0.62 0.19 255 / 24%),
-      9px 0 24px oklch(0.62 0.22 28 / 22%),
+      -9px 0 24px oklch(0.5 0.1 315 / 26%),
+      9px 0 24px oklch(0.72 0.12 78 / 24%),
       inset 0 1px 0 oklch(1 0 0 / 22%);
   }
 }

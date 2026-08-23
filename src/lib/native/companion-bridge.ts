@@ -1,5 +1,5 @@
 /**
- * CAERA Native Companion bridge contract (Plan §23–§25, §29).
+ * OCADE Native Companion bridge contract (Plan §23–§25, §29).
  *
  * This is the TYPED CONTRACT ONLY. Nothing here executes OS actions: the web
  * app cannot control a computer. A signed Tauri + Rust companion implements
@@ -194,7 +194,7 @@ export interface GestureControlStatus {
 }
 
 export const COMPANION_UNAVAILABLE_REASON =
-  "The CAERA Native Companion isn't connected. Computer control requires the signed companion app.";
+  "The OCADE Native Companion isn't connected. Computer control requires the signed companion app.";
 
 /**
  * Active adapter until a signed companion exists. Every action fails loudly.

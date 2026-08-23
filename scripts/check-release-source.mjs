@@ -170,6 +170,10 @@ check(
   wrangler.assets?.run_worker_first === true,
   "Cloudflare assets can bypass the production launch gate",
 );
+check(
+  wrangler.assets?.html_handling === "none",
+  "Cloudflare HTML canonicalization can redirect the required offline shell",
+);
 check(wrangler.vars === undefined, "Cloudflare values must not be committed in source config");
 check(
   Array.isArray(wrangler.compatibility_flags) &&
@@ -274,6 +278,10 @@ if (existsSync(generatedPath)) {
   check(
     generated.assets?.run_worker_first === true,
     "generated assets can bypass the production launch gate",
+  );
+  check(
+    generated.assets?.html_handling === "none",
+    "generated assets can redirect /offline.html and break service-worker installation",
   );
   check(statSync(resolve(root, ".output/server/index.mjs")).size > 0, "worker entry is empty");
 }

@@ -1,11 +1,11 @@
 {
-  "recordedAt": "2026-08-23T09:28:39.134Z",
+  "recordedAt": "2026-08-23T12:28:05.563Z",
   "platform": "win32 x64",
   "windowsVersion": "Microsoft Windows [Version 10.0.19044.6466]",
   "node": "v24.16.0",
   "chrome": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
   "extensionTestBrowser": "C:\\Users\\haans\\AppData\\Local\\ms-playwright\\chromium-1234\\chrome-win64\\chrome.exe",
-  "passed": 10,
+  "passed": 9,
   "total": 10,
   "results": [
     {
@@ -26,22 +26,22 @@
     {
       "name": "the sidecar speaks its protocol and refuses honestly",
       "ok": true,
-      "detail": "23 passed, 8 skipped in 3.57s"
+      "detail": "23 passed, 8 skipped in 3.42s"
     },
     {
       "name": "the full sidecar suite, with the Windows paths executing",
       "ok": true,
-      "detail": "297 passed, 17 skipped in 78.91s (0:01:18)"
+      "detail": "297 passed, 17 skipped in 76.82s (0:01:16)"
     },
     {
       "name": "REAL PC CONTROL: pointer, keyboard, OCR, windows, STOP latch",
-      "ok": true,
-      "detail": "14 passed in 5.45s"
+      "ok": false,
+      "detail": "1 failed, 13 passed in 5.00s"
     },
     {
       "name": "control engine suite",
       "ok": true,
-      "detail": "30 passed in 0.20s"
+      "detail": "30 passed in 0.17s"
     },
     {
       "name": "extension manifest and safety gate",

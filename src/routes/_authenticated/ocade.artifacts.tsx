@@ -35,7 +35,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/ocade/artifacts")({
   head: () => ({
-    meta: [{ title: "Artifacts — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Artifacts — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: ArtifactsPage,
 });

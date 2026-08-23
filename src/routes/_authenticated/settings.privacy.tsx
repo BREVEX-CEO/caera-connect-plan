@@ -13,7 +13,7 @@ import { TelemetryPanel } from "@/components/settings/TelemetryPanel";
 
 export const Route = createFileRoute("/_authenticated/settings/privacy")({
   head: () => ({
-    meta: [{ title: "Privacy — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Privacy — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: PrivacyPage,
 });
@@ -103,7 +103,7 @@ function PrivacyPage() {
           </p>
           <p>
             <strong className="text-foreground">PC Vault</strong> — OS-level encrypted storage via
-            the CAERA Native Companion. <em>Native Companion Required</em> — ships with the desktop
+            the OCADE Native Companion. <em>Native Companion Required</em> — ships with the desktop
             package.
           </p>
           <p>

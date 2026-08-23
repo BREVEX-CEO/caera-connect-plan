@@ -745,7 +745,7 @@ export function unfocusedTarget(camera: CameraState): CameraState {
 export const INTRO_SEEN_KEY = "caera:landing:intro:v1";
 
 export type IntroPhase =
-  /** "CAERA CADANE" resolving out of the dark. */
+  /** "CARCC CADANE" resolving out of the dark. */
   | "wordmark"
   /** The planned launch date beneath it. */
   | "established"

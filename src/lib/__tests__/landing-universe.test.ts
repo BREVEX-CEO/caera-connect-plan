@@ -352,11 +352,11 @@ describe("the landing page keeps its promises to a keyboard and a screen reader"
 
   it("forms the same-origin OCADE mark from particles without replacing the real heading", () => {
     expect(LANDING).toMatch(/<ParticleLogoIntro/);
-    expect(PARTICLES).toMatch(/\/brand\/ocade-mark\.png/);
+    expect(PARTICLES).toMatch(/\/brand\/ocade-carcc-mark\.png/);
     expect(PARTICLES).toMatch(/requestAnimationFrame/);
     expect(PARTICLES).toMatch(/aria-hidden="true"/);
     expect(PARTICLES).toMatch(/reducedMotion/);
-    expect(LANDING).toMatch(/<span className="sr-only">OCADE by CAERA CADANE/);
+    expect(LANDING).toMatch(/<span className="sr-only">OCADE by CARCC CADANE/);
   });
 
   it("says so when motion has been reduced, instead of looking broken", () => {

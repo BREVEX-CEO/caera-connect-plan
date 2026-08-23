@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 
 /**
- * The black / silver / blue / red palette, checked as colour rather than as text.
+ * The black / silver / aubergine / gold palette, checked as colour rather than as text.
  *
- * This does NOT search the stylesheet for the word "gold". It parses every
+ * This does not trust colour names in comments. It parses every
  * oklch token, converts it to sRGB the way a browser does, and computes real
  * WCAG contrast ratios — so a token nudged two steps darker fails here instead
  * of failing on somebody's screen. The figures it produces were confirmed
@@ -13,8 +13,8 @@ import { describe, it, expect } from "vitest";
  * the same declarations.
  *
  * It also enforces that the palette stayed a palette. Any hue outside the
- * blue or red bands is a failure unless it is the success safety colour, which
- * stops the old cyan/teal/violet/gold accents from creeping back one component
+ * gold, aubergine or destructive-red bands is a failure unless it is the success
+ * safety colour, which stops unrelated cyan/teal/blue accents from creeping back
  * at a time.
  */
 
@@ -110,8 +110,8 @@ const READABLE_PAIRS: Array<[string, string, string]> = [
   ["body text", "--foreground", "--background"],
   ["secondary text", "--muted-foreground", "--background"],
   ["secondary text on a card", "--muted-foreground", "--card"],
-  ["blue on the page", "--primary", "--background"],
-  ["label on a blue button", "--primary-foreground", "--primary"],
+  ["brand action on the page", "--primary", "--background"],
+  ["label on a brand button", "--primary-foreground", "--primary"],
   ["warning", "--state-warning", "--background"],
   ["success", "--state-success", "--background"],
   ["destructive", "--destructive", "--background"],
@@ -138,12 +138,13 @@ describe("every readable pair clears WCAG AA", () => {
   }
 });
 
-describe("the palette stayed black, silver, blue and red", () => {
+describe("the palette stayed black, silver, aubergine and gold", () => {
   /*
-   * The deliberately broad blue band contains deep/electric brand blues; the
-   * red band contains destructive, warning and CANIA signal red.
+   * Gold carries action and focus, aubergine carries brand depth, and red is
+   * restricted to destructive safety roles.
    */
-  const BLUE_BAND = [220, 280] as const;
+  const GOLD_BAND = [60, 95] as const;
+  const AUBERGINE_BAND = [285, 335] as const;
   const RED_BAND = [0, 45] as const;
   /** Below this, hue is meaningless — the colour is black, silver or white. */
   const NEUTRAL_CHROMA = 0.025;
@@ -163,17 +164,22 @@ describe("the palette stayed black, silver, blue and red", () => {
           expect(Math.abs(colour.h - safety), `${name} moved off its safety hue`).toBeLessThan(20);
           continue;
         }
-        const inBlue = colour.h >= BLUE_BAND[0] && colour.h <= BLUE_BAND[1];
+        const inGold = colour.h >= GOLD_BAND[0] && colour.h <= GOLD_BAND[1];
+        const inAubergine =
+          colour.h >= AUBERGINE_BAND[0] && colour.h <= AUBERGINE_BAND[1];
         const inRed = colour.h >= RED_BAND[0] && colour.h <= RED_BAND[1];
-        if (!inBlue && !inRed) {
+        if (!inGold && !inAubergine && !inRed) {
           strays.push(`${name}: hue ${colour.h}, chroma ${colour.c}`);
         }
       }
-      expect(strays, `colours outside the blue/red bands: ${strays.join("; ")}`).toEqual([]);
+      expect(
+        strays,
+        `colours outside the gold/aubergine/red bands: ${strays.join("; ")}`,
+      ).toEqual([]);
     });
   }
 
-  it("keeps only OCADE blue and CANIA red as saturated module accents", () => {
+  it("keeps only OCADE gold and CANIA aubergine as saturated module accents", () => {
     const dark = tokensIn(":root {");
     // FICIA and MADEE remain neutral future-product placeholders.
     const saturated = ["--accent-ocade", "--accent-ficia", "--accent-madee", "--accent-cania"]

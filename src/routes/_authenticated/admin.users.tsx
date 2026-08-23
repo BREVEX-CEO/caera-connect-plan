@@ -31,7 +31,7 @@ type TicketRow = {
 export const Route = createFileRoute("/_authenticated/admin/users")({
   ssr: false,
   head: () => ({
-    meta: [{ title: "Accounts — CAERA CADANE Admin" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Accounts — CARCC CADANE Admin" }, { name: "robots", content: "noindex" }],
   }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
@@ -47,7 +47,7 @@ export const Route = createFileRoute("/_authenticated/admin/users")({
         to: "/access-denied",
         search: {
           area: "the account overview",
-          reason: "This area requires the admin role on your CAERA CADANE account.",
+          reason: "This area requires the admin role on your CARCC CADANE account.",
         },
       });
     }
@@ -120,7 +120,7 @@ function AdminUsersPage() {
     <AppShell>
       <PageHeader
         title="Accounts & support"
-        description="Every registered CAERA CADANE profile and the support tickets that are still open."
+        description="Every registered CARCC CADANE profile and the support tickets that are still open."
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">

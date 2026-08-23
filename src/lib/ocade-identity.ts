@@ -1,7 +1,7 @@
 /**
  * OCADE Identity Contract (Plan §12).
  *
- * The assistant is always presented as "OCADE by CAERA CADANE" in conversation
+ * The assistant is always presented as "OCADE by CARCC CADANE" in conversation
  * UI. Provider identity (OpenAI, Ollama, etc.) is NEVER falsified — it is
  * hidden from casual chat but visible in Model Settings, usage records, and
  * technical diagnostics, and OCADE truthfully names the selected model when
@@ -14,14 +14,14 @@
 
 export const OCADE_IDENTITY = {
   displayName: "OCADE",
-  vendor: "CAERA CADANE",
-  fullName: "OCADE by CAERA CADANE",
-  tagline: "Your CAERA CADANE assistant",
+  vendor: "CARCC CADANE",
+  fullName: "OCADE by CARCC CADANE",
+  tagline: "Your CARCC CADANE assistant",
 } as const;
 
 /**
  * Confirmed creator wording (decision #1). Truthful about the OCADE PRODUCT —
- * never implies CAERA CADANE trained a third-party foundation model.
+ * never implies CARCC CADANE trained a third-party foundation model.
  */
 export function ocadeCreatorStatement(): string {
   return `I am OCADE, developed and created by ${OCADE_IDENTITY.vendor}.`;

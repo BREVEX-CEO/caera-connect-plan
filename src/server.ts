@@ -4,8 +4,12 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { releaseHealthResponse } from "./lib/release-health";
 import { evaluateLaunchGate } from "./lib/launch/launch-window";
-import { prelaunchResponse } from "./lib/launch/prelaunch-response";
+import {
+  PRELAUNCH_PUBLIC_ASSET_PATHS,
+  prelaunchResponse,
+} from "./lib/launch/prelaunch-response";
 import { withPublicSecurityHeaders } from "./lib/security/public-response";
+import offlineShellHtml from "../public/offline.html?raw";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -76,8 +80,36 @@ export default {
      * subscription rows.
      */
     const isPaymentWebhook = url.pathname === "/api/public/payments/webhook";
-    if (!gate.open && !isPaymentWebhook) {
+    const isPublicPrelaunchAsset =
+      (request.method === "GET" || request.method === "HEAD") &&
+      PRELAUNCH_PUBLIC_ASSET_PATHS.has(url.pathname);
+    if (!gate.open && !isPaymentWebhook && !isPublicPrelaunchAsset) {
       return withPublicSecurityHeaders(prelaunchResponse(url.pathname, gate));
+    }
+
+    /*
+     * TanStack canonicalizes unknown *.html routes by redirecting
+     * /offline.html to /offline. The latter is not an application route, so the
+     * service worker's REQUIRED_PRECACHE saw a 307 followed by a 404 and could
+     * fail installation. This exact, non-sensitive source file is bundled into
+     * the Worker and returned only after the gate is open. It cannot depend on
+     * env.ASSETS here because TanStack's custom server entry does not receive
+     * Cloudflare bindings as its second argument.
+     */
+    if (
+      gate.open &&
+      (request.method === "GET" || request.method === "HEAD") &&
+      url.pathname === "/offline.html"
+    ) {
+      return withPublicSecurityHeaders(
+        new Response(request.method === "HEAD" ? null : offlineShellHtml, {
+          status: 200,
+          headers: {
+            "content-type": "text/html; charset=utf-8",
+            "cache-control": "public, max-age=3600",
+          },
+        }),
+      );
     }
 
     try {

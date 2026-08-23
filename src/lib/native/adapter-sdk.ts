@@ -107,7 +107,7 @@ export class AdapterRegistry {
       return {
         status: "unavailable",
         adapterId: adapter.id,
-        reason: `${adapter.label} isn't connected. Computer control needs the CAERA Native Companion.`,
+        reason: `${adapter.label} isn't connected. Computer control needs the OCADE Native Companion.`,
       };
     }
 

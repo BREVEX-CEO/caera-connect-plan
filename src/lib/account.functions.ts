@@ -26,7 +26,7 @@ export const deleteAccountInput = z.object({
 
 export const deleteMyAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: unknown) => deleteAccountInput.parse(data))
+  .validator((data: unknown) => deleteAccountInput.parse(data))
   .handler(async ({ data, context }) => {
     if (data.confirmation.trim().toUpperCase() !== DELETE_CONFIRMATION) {
       throw new Error("Confirmation phrase did not match.");

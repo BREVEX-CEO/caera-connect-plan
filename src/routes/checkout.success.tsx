@@ -16,9 +16,9 @@ export const Route = createFileRoute("/checkout/success")({
   },
   head: () => ({
     meta: [
-      { title: "Purchase confirmed — CAERA CADANE" },
+      { title: "Purchase confirmed — CARCC CADANE" },
       { name: "robots", content: "noindex" },
-      { name: "description", content: "Confirmation of your CAERA CADANE plan purchase." },
+      { name: "description", content: "Confirmation of your CARCC CADANE plan purchase." },
     ],
   }),
   component: CheckoutSuccessPage,

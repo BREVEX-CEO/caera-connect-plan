@@ -1,17 +1,18 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SiteFooterLinks } from "@/components/shell/SiteFooter";
 import { LandingUniverse } from "@/components/landing/LandingUniverse";
+import { WEBSITE_STRUCTURED_DATA } from "@/lib/public-identity";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "CAERA CADANE — Private AI workspace for people and companies" },
+      { title: "CARCC CADANE — Private AI workspace for people and companies" },
       {
         name: "description",
         content:
           "OCADE: a private, local-first AI assistant. It reads your documents on your own device and runs on your own hardware where it can.",
       },
-      { property: "og:title", content: "CAERA CADANE — Private AI workspace" },
+      { property: "og:title", content: "CARCC CADANE — Private AI workspace" },
       {
         property: "og:description",
         content:
@@ -46,6 +47,12 @@ export const Route = createFileRoute("/")({
 function LandingPage() {
   return (
     <div className="min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(WEBSITE_STRUCTURED_DATA).replace(/</g, "\\u003c"),
+        }}
+      />
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
@@ -54,7 +61,7 @@ function LandingPage() {
       </main>
       <footer className="relative z-10 border-t border-border/40 py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-4 text-[11.5px] text-muted-foreground/70 sm:flex-row">
-          <p>© {new Date().getFullYear()} CAERA CADANE</p>
+          <p>© {new Date().getFullYear()} CARCC CADANE</p>
           <SiteFooterLinks
             extra={[
               { to: "/company", label: "Company" },

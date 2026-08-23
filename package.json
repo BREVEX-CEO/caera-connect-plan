@@ -28,7 +28,7 @@
     "stage2:phase39-check": "node scripts/check-stage2-phase39.mjs",
     "release:source-check": "node scripts/check-release-source.mjs",
     "evidence:collect": "node scripts/collect-evidence.mjs",
-    "preview": "nitro preview",
+    "preview": "wrangler dev --config .output/server/wrangler.json --ip 127.0.0.1",
     "lint": "eslint .",
     "typecheck": "npm run routes:generate && tsc --noEmit",
     "test": "vitest run",
@@ -166,7 +166,8 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^8.0.16",
-    "vitest": "^3.2.7"
+    "vitest": "^3.2.7",
+    "wrangler": "4.125.0"
   },
   "overrides": {
     "@lovable.dev/mcp-js": {

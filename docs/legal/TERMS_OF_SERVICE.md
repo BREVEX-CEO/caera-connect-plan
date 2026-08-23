@@ -9,7 +9,7 @@
 
 The final terms must name the verified provider, legal form, address and contact.
 Until incorporation/assignment is completed, the repository records Haans
-Antoni as the owner operating the CAERA CADANE brand. Users must have capacity to
+Antoni as the owner operating the CARCC CADANE brand. Users must have capacity to
 contract. Age/parental-consent rules must be resolved before launch.
 
 ## 2. Service
@@ -97,15 +97,15 @@ local data outside OCADE’s control.
 Haans Antoni owns the proprietary repository rights to the extent established by
 the documented chain of title, pending any written assignment to an incorporated
 entity. Third-party components/models/assets remain under their own terms.
-CAERA CADANE/OCADE trademark claims must match actual applications/registrations.
+CARCC CADANE/OCADE trademark claims must match actual applications/registrations.
 
-The founder-authored brand record identifies CAERA CADANE (pronounced
-"KAY-rah kuh-DAYN") with the meanings "Crown Era / Sovereign New Age" and
-"Command Domain / Capital Dynasty Network," the tagline "Command the Next
-Era," and OCADE (pronounced "OH-kayd") as "Orbital-scale command and autonomous
-decision engine." These are claimed proprietary brand materials and creative
-definitions, not an assertion of exclusive ownership over ordinary words in
-every context or over third-party software and model rights. No shareholder,
+The founder-authored brand record identifies CARCC CADANE, the tagline
+"Command the Next Era.", OCADE BY CARCC CADANE as the active product, and
+"HAANS ANTONI — CEO, Chairman and Founder" as the formal leadership statement.
+It records 28 August 2026 as the planned founding date. These are claimed
+proprietary brand materials and creative definitions, not an assertion of
+exclusive ownership over ordinary words in every context or over third-party
+software and model rights. No shareholder,
 contractor, adviser, customer or provider receives ownership merely by working
 with or using OCADE; any transfer requires a signed written instrument.
 

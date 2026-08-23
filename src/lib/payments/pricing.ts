@@ -1,7 +1,7 @@
 /**
  * Every price OCADE displays, and the rule they all satisfy.
  *
- * CAERA CADANE prices carry a deliberate numeric signature. The rule, in the
+ * CARCC CADANE prices carry a deliberate numeric signature. The rule, in the
  * order it is applied: every displayed paid price ends in 8 or 28. Prices are
  * stored as integer minor units so $4.28 is exact and never becomes a floating
  * point billing value.

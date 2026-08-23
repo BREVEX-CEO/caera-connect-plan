@@ -71,7 +71,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/ocade/automations")({
   head: () => ({
-    meta: [{ title: "OCADE Automations — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "OCADE Automations — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: AutomationsPage,
 });

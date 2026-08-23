@@ -7,7 +7,7 @@ import { TasksWorkspace } from "@/components/ocade/TasksWorkspace";
  */
 export const Route = createFileRoute("/_authenticated/settings/tasks")({
   head: () => ({
-    meta: [{ title: "Tasks — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Tasks — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: () => <TasksWorkspace backTo="/settings" backLabel="Back to Settings" />,
 });

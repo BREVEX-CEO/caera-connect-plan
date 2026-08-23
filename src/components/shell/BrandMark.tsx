@@ -12,11 +12,11 @@ export function BrandMark({
   return (
     <div
       className={cn("ocade-brand-lockup inline-flex items-center gap-2.5", className)}
-      aria-label="OCADE by CAERA CADANE"
+      aria-label="OCADE by CARCC CADANE"
     >
       <span className="ocade-brand-mark relative grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-[10px]">
         <img
-          src="/icons/ocade-128.png"
+          src="/brand/ocade-carcc-mark.png"
           alt=""
           width={32}
           height={32}
@@ -31,7 +31,7 @@ export function BrandMark({
             OCADE
           </span>
           <span className="mt-1 text-[8px] font-medium uppercase tracking-[0.24em] text-muted-foreground">
-            By CAERA CADANE
+            By CARCC CADANE
           </span>
         </div>
       ) : null}

@@ -140,7 +140,7 @@
     {
       "id": "IC-05",
       "name": "Update server",
-      "host": "updates.caeracadane.com",
+      "host": "updates.ocade.in",
       "direction": "outbound",
       "carries": "version check only",
       "credential": "none",

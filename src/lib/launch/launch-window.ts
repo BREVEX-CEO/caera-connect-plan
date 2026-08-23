@@ -16,8 +16,10 @@
  * rather than opening broken. The browser clock is never consulted.
  */
 
+import { COMPANY_FACTS } from "@/config/company-facts";
+
 /** Exact launch instant. 28 August 2026, 08:28:00 IST. */
-export const LAUNCH_AT_ISO = "2026-08-28T02:58:00.000Z";
+export const LAUNCH_AT_ISO = COMPANY_FACTS.launchAtIso;
 
 /** Milliseconds since epoch for `LAUNCH_AT_ISO`. */
 export const LAUNCH_AT_MS = Date.parse(LAUNCH_AT_ISO);
@@ -26,7 +28,7 @@ export const LAUNCH_AT_MS = Date.parse(LAUNCH_AT_ISO);
  * The only launch wording allowed in public copy, metadata or structured data.
  * The exact time of day is deliberately absent.
  */
-export const LAUNCH_PUBLIC_DATE_LABEL = "28 August 2026";
+export const LAUNCH_PUBLIC_DATE_LABEL = COMPANY_FACTS.foundingDateLabel;
 
 /** Environment variable that carries the human-set production readiness flag. */
 export const LAUNCH_READY_ENV_KEY = "OCADE_LAUNCH_READY";

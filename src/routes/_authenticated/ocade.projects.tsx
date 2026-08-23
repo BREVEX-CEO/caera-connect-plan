@@ -66,7 +66,7 @@ import {
 
 export const Route = createFileRoute("/_authenticated/ocade/projects")({
   head: () => ({
-    meta: [{ title: "OCADE Projects — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "OCADE Projects — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: ProjectsPage,
 });

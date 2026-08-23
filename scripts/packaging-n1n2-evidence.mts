@@ -41,8 +41,8 @@ import { join } from "node:path";
 const write = process.argv.includes("--write");
 const OUT = "release/OCADE_N1_N2_INSTALLER_SIGNING.json";
 const BUNDLE = "native/companion/tauri/target/release/bundle";
-const MSI = join(BUNDLE, "msi", "CAERA Companion_0.1.0_x64_en-US.msi");
-const NSIS = join(BUNDLE, "nsis", "CAERA Companion_0.1.0_x64-setup.exe");
+const MSI = join(BUNDLE, "msi", "OCADE Native Companion_0.1.0_x64_en-US.msi");
+const NSIS = join(BUNDLE, "nsis", "OCADE Native Companion_0.1.0_x64-setup.exe");
 const SIG = `${NSIS}.sig`;
 
 /** minisign: line 2 is base64 of [alg 2][keyId 8][payload]. */
@@ -170,7 +170,7 @@ const doc = {
       bytes: installerBytes.length,
     },
     note:
-      "Built by `tauri build` from the real Rust sources. Verification of the MSI is recorded separately in the N2 evidence: an administrative install (msiexec /a /qn) opened and parsed the package and extracted PFiles\\CAERA Companion\\caera-companion.exe, exit code 0, without installing or registering anything.",
+      "Built by `tauri build` from the real Rust sources. Verification of the MSI is recorded separately in the N2 evidence: an administrative install (msiexec /a /qn) opened and parsed the package and extracted PFiles\\OCADE Native Companion\\caera-companion.exe, exit code 0, without installing or registering anything.",
   },
   authenticodeStatus: {
     windowsReport: authenticode,

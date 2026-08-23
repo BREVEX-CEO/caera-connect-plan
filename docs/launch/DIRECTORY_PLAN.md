@@ -24,7 +24,7 @@ reviews, or post the same promotional text everywhere.
 - one-sentence product positioning matched to actual production behavior;
 - verified launch status and date;
 - founder spelling: Haans Antoni;
-- brand spelling: CAERA CADANE;
+- brand spelling: CARCC CADANE;
 - screenshots/video from the real production build;
 - platforms actually downloadable, not merely present in source;
 - exact pricing, limits and refund/cancellation rules;

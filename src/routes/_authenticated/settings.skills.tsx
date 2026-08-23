@@ -30,7 +30,7 @@ import { ApplicationLifecycleBoundaryPanel } from "@/components/settings/Applica
 
 export const Route = createFileRoute("/_authenticated/settings/skills")({
   head: () => ({
-    meta: [{ title: "Software skills — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Software skills — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: SkillsPage,
 });

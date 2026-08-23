@@ -16,7 +16,7 @@ const currency = z.enum(["USD", "EUR", "GBP", "INR"]);
 /** What the signed-in buyer would see, and why. */
 export const getUpiReadiness = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { environment: string; currency: string }) =>
+  .validator((data: { environment: string; currency: string }) =>
     z.object({ environment, currency }).parse(data),
   )
   .handler(async ({ data }): Promise<UpiReadiness> => {
@@ -27,7 +27,7 @@ export const getUpiReadiness = createServerFn({ method: "GET" })
 /** Admin only: run every automatable end-to-end payment verification. */
 export const runPaymentsChecklist = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { environment: string }) => z.object({ environment }).parse(data))
+  .validator((data: { environment: string }) => z.object({ environment }).parse(data))
   .handler(async ({ data, context }): Promise<ChecklistRun> => {
     const { assertAdmin, runChecklist } = await import("@/lib/payments/checklist.server");
     await assertAdmin(context.supabase, context.userId);
@@ -37,7 +37,7 @@ export const runPaymentsChecklist = createServerFn({ method: "POST" })
 /** Admin only, test environment only: trigger a renewal within the hour. */
 export const fastForwardTestRenewal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { environment: string }) => z.object({ environment }).parse(data))
+  .validator((data: { environment: string }) => z.object({ environment }).parse(data))
   .handler(async ({ data, context }) => {
     const { assertAdmin, fastForwardRenewal } = await import("@/lib/payments/checklist.server");
     await assertAdmin(context.supabase, context.userId);

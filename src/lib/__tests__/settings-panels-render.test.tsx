@@ -125,7 +125,7 @@ describe("About and licences reach the screen", () => {
     }
   });
 
-  it("states that CAERA CADANE does not own the model weights", () => {
+  it("states that CARCC CADANE does not own the model weights", () => {
     expect(about()).toMatch(/does not own them and does not claim to/i);
   });
 });

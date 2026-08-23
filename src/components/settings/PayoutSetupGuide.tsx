@@ -21,7 +21,7 @@ const PAYOUT_STEPS: PayoutStep[] = [
   {
     title: "Publish the site",
     detail:
-      "The provider reviews a live, reachable site before approving an account. Publish CAERA CADANE, including the pricing, terms, privacy and refund pages, then start the review.",
+      "The provider reviews a live, reachable site before approving an account. Publish CARCC CADANE, including the pricing, terms, privacy and refund pages, then start the review.",
   },
   {
     title: "Complete the verification form",
@@ -69,7 +69,7 @@ export function PayoutSetupGuide() {
           <p className="mt-1 text-xs text-muted-foreground">
             Card, UPI and PayPal are all collected by one merchant of record, so there is a single
             payout account rather than one per method. These steps are done in the provider's own
-            dashboard, reached from the Payments tab — CAERA CADANE never stores your bank details.
+            dashboard, reached from the Payments tab — CARCC CADANE never stores your bank details.
           </p>
         </div>
       </div>

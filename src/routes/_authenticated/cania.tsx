@@ -4,7 +4,7 @@ import { ComingLater } from "@/components/shell/ComingLater";
 
 export const Route = createFileRoute("/_authenticated/cania")({
   head: () => ({
-    meta: [{ title: "CANIA — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "CANIA — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: () => (
     <ComingLater

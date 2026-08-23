@@ -73,7 +73,7 @@ const GROUPS: { title: string; items: Faq[] }[] = [
     items: [
       {
         q: "Who is OCADE?",
-        a: "OCADE is the assistant built by CAERA CADANE. It answers as OCADE by CAERA CADANE. If you ask directly which engine is running a request, it tells you truthfully, and the technical detail lives in the model settings.",
+        a: "OCADE is the assistant built by CARCC CADANE. It answers as OCADE by CARCC CADANE. If you ask directly which engine is running a request, it tells you truthfully, and the technical detail lives in the model settings.",
       },
       {
         q: "Can OCADE control my computer?",
@@ -90,16 +90,16 @@ const GROUPS: { title: string; items: Faq[] }[] = [
 export const Route = createFileRoute("/faq")({
   head: () => ({
     meta: [
-      { title: "FAQ — CAERA CADANE" },
+      { title: "FAQ — CARCC CADANE" },
       {
         name: "description",
         content:
-          "Answers about accounts, cross-device sync, billing, privacy modes and account deletion in CAERA CADANE.",
+          "Answers about accounts, cross-device sync, billing, privacy modes and account deletion in CARCC CADANE.",
       },
-      { property: "og:title", content: "FAQ — CAERA CADANE" },
+      { property: "og:title", content: "FAQ — CARCC CADANE" },
       {
         property: "og:description",
-        content: "Common questions about accounts, sync, billing and privacy in CAERA CADANE.",
+        content: "Common questions about accounts, sync, billing and privacy in CARCC CADANE.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

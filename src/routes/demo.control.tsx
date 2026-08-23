@@ -14,7 +14,7 @@ import { stopAllLocalMissionsFn } from "@/lib/control-work.functions";
 export const Route = createFileRoute("/demo/control")({
   head: () => ({
     meta: [
-      { title: "OCADE Control + Work — CAERA CADANE" },
+      { title: "OCADE Control + Work — CARCC CADANE" },
       { name: "robots", content: "noindex" },
     ],
   }),

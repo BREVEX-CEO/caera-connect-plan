@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/settings/appearance")({
   head: () => ({
-    meta: [{ title: "Appearance — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Appearance — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: AppearancePage,
 });
@@ -32,8 +32,8 @@ const THEMES: { id: ThemeMode; label: string; description: string }[] = [
 
 const CURSORS: { id: CursorKind; label: string; description: string }[] = [
   { id: "system", label: "System default", description: "Use your operating system cursor." },
-  { id: "caera_black", label: "CAERA Black Arrow", description: "Dark arrow with light outline." },
-  { id: "caera_white", label: "CAERA White Arrow", description: "Light arrow with dark outline." },
+  { id: "caera_black", label: "OCADE Black Arrow", description: "Dark arrow with light outline." },
+  { id: "caera_white", label: "OCADE White Arrow", description: "Light arrow with dark outline." },
   {
     id: "auto_contrast",
     label: "Auto Contrast",
@@ -179,7 +179,7 @@ function AppearancePage() {
         <GlassPanel className="p-5">
           <h3 className="text-sm font-semibold text-foreground">Cursor</h3>
           <p className="mt-1 text-xs text-muted-foreground">
-            Choose a CAERA cursor, upload your own, or force the system cursor for accessibility.
+            Choose an OCADE cursor, upload your own, or force the system cursor for accessibility.
           </p>
 
           <input

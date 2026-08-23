@@ -1,4 +1,4 @@
-# CAERA Native Companion (Tauri + Rust)
+# OCADE Native Companion (Tauri + Rust)
 
 > **STATUS: SOURCE-COMPLETE, RUNTIME-BLOCKED — NOT BUILT, NOT SIGNED, NOT RUNTIME-PROVEN.**
 > Nothing in the web app treats computer control as available. Until a signed

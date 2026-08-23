@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "CAERA Companion",
+  "productName": "OCADE Native Companion",
   "version": "0.1.0",
   "identifier": "com.caeracadane.companion",
   "build": {
@@ -35,7 +35,7 @@
       "id": "caera-tray",
       "iconPath": "icons/tray.png",
       "iconAsTemplate": true,
-      "tooltip": "OCADE \u2014 CAERA Companion",
+      "tooltip": "OCADE Native Companion",
       "menuOnLeftClick": false
     }
   },
@@ -52,7 +52,7 @@
       "icons/128x128@2x.png",
       "icons/icon.ico"
     ],
-    "copyright": "CAERA CADANE",
+    "copyright": "CARCC CADANE",
     "category": "Productivity",
     "shortDescription": "OCADE desktop companion",
     "longDescription": "Performs bounded, permission-gated OCADE actions on this computer. Every action is risk-checked, confirmable and auditable, and protected input is always refused.",
@@ -77,7 +77,7 @@
       "dialog": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ1RjJERDNCOTExM0ZERjEKUldUeC9ST1JPOTN5UlZMbG1jSWR6N2VLVlNkZmU1eWpyUDBHYUFwUUZMaGtlY2xzY05aYXE5cG0K",
       "endpoints": [
-        "https://updates.caeracadane.com/companion/{{target}}/{{arch}}/{{current_version}}"
+        "https://updates.ocade.in/companion/{{target}}/{{arch}}/{{current_version}}"
       ]
     }
   }

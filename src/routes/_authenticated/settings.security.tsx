@@ -20,7 +20,7 @@ import { listDevicesForCurrentUser } from "@/lib/devices";
 
 export const Route = createFileRoute("/_authenticated/settings/security")({
   head: () => ({
-    meta: [{ title: "Security — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+    meta: [{ title: "Security — CARCC CADANE" }, { name: "robots", content: "noindex" }],
   }),
   component: SecurityPage,
 });

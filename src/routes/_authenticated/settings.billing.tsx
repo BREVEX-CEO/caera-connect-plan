@@ -35,7 +35,7 @@ export const Route = createFileRoute("/_authenticated/settings/billing")({
   },
   head: () => ({
     meta: [
-      { title: "Billing and subscription — CAERA CADANE" },
+      { title: "Billing and subscription — CARCC CADANE" },
       { name: "robots", content: "noindex" },
     ],
   }),

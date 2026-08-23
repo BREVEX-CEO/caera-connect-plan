@@ -25,7 +25,7 @@ export function AuthShell({
         className="mx-auto flex min-h-screen w-full max-w-md flex-col items-stretch justify-center gap-6 px-4 py-10"
       >
         <div className="flex flex-col items-center gap-6">
-          <Link to="/" aria-label="CAERA CADANE home">
+          <Link to="/" aria-label="CARCC CADANE home">
             <BrandMark />
           </Link>
           <div className="text-center">

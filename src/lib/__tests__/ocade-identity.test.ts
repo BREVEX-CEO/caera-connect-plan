@@ -7,14 +7,14 @@ import {
 } from "../ocade-identity";
 
 describe("OCADE identity contract", () => {
-  it("names CAERA CADANE as the vendor", () => {
-    expect(OCADE_IDENTITY.vendor).toBe("CAERA CADANE");
+  it("names CARCC CADANE as the vendor", () => {
+    expect(OCADE_IDENTITY.vendor).toBe("CARCC CADANE");
     expect(OCADE_IDENTITY.displayName).toBe("OCADE");
   });
 
   it("intro never leaks a provider and always brands OCADE", () => {
     const intro = ocadeIntro();
-    expect(intro).toContain("OCADE by CAERA CADANE");
+    expect(intro).toContain("OCADE by CARCC CADANE");
     expect(intro.toLowerCase()).not.toMatch(/openai|gpt|gemini|claude|llama|ollama/);
   });
 
@@ -47,7 +47,7 @@ describe("OCADE identity contract", () => {
         modelId: "gpt-4o-mini",
         locality: "cloud",
       });
-      expect(out).toContain("developed and created by CAERA CADANE");
+      expect(out).toContain("developed and created by CARCC CADANE");
       expect(out).toContain("gpt-4o-mini");
       expect(out).toContain("openai");
       expect(out).toContain("cloud");
@@ -56,7 +56,7 @@ describe("OCADE identity contract", () => {
 
     it("never fabricates a model when metadata is missing", () => {
       const out = ocadeHonestDisclosure({});
-      expect(out).toContain("developed and created by CAERA CADANE");
+      expect(out).toContain("developed and created by CARCC CADANE");
       expect(out).toContain("Model Settings");
       expect(out.toLowerCase()).not.toMatch(/gpt-|gemini|llama|claude/);
     });
