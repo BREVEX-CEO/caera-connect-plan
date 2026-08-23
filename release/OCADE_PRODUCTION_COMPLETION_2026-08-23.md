@@ -22,8 +22,8 @@ The launch standard reached here is zero known fixable web-launch-critical sourc
 | Recovered full SHA | `f54b404ecd8e225b83b5d8de60e43820716afa7a` |
 | Recovered commits relative to `origin/main` | 14 |
 | Recovery branch backed up | Yes; exact remote ref verified at the recovered SHA |
-| Continuation commits through clean proof target | 3 |
-| Total continuation line relative to `origin/main` | 17 commits |
+| Additional commits after the recovered SHA at this report cutoff | 5: three implementation/proof commits plus two evidence/report commits |
+| Total continuation line relative to `origin/main` | 19 commits |
 | Current `origin/main` and merge base | `4a286cd1578c68870f65d5c9313dac8d34d98205` |
 | Main merge SHA | NOT EXECUTED — separate merge authority is required |
 | Deployed completion SHA | NOT EXECUTED |
@@ -166,6 +166,8 @@ Google Search Console access was not available. Sitemap submission, URL inspecti
 - `git diff --check` has no content errors; sensitive extension scan found no environment files, keys, certificates, model weights, or similar binaries in the change set.
 - FREE LAUNCH remains free. Billing/provider enablement is not activated; subscription/software-payment architecture, cancellation/refund/failure states, history, and receipts remain source-tested but dormant.
 
+GitHub Actions observation: PR #9 triggered CI run `32643337814` and OCADE 77 run `32643337812`. All 20 jobs were marked failed before any job exposed steps, and the runs completed in 4–8 seconds; GitHub returned no log blob for sampled jobs. This is classified as an EXTERNALLY BLOCKED runner/account-provisioning observation, not as executed test failure. No check was bypassed: the same gates ran locally against the clean proof target and passed as recorded above.
+
 ## Platform readiness
 
 | Release authority | Status |
@@ -203,7 +205,7 @@ Therefore the current public deployment is healthy enough to answer liveness but
 
 ## Point-of-action status
 
-- PR creation/update: authorized and pending this final evidence commit.
+- PR creation/update: EXECUTED — draft PR #9, `https://github.com/BREVEX-CEO/caera-connect-plan/pull/9`, mergeable at observation time.
 - Merge to `main`: NOT EXECUTED; requires separate point-of-action approval after the PR is available for review.
 - Cloudflare/Supabase deployment: NOT EXECUTED; requires a second, deployment-specific approval after merge and a fresh-main proof.
 - Scheduled public opening at `2026-08-28T02:58:00Z`: source gate is configured, but production readiness remains fail-closed. Time alone cannot open the product.
