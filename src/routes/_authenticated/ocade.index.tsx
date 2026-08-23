@@ -1680,7 +1680,7 @@ function ChatSurface(props: {
   /**
    * On-device send with the capability-aware fallback chain: preferred local →
    * secondary → lightweight. Only after every local engine fails do we ask
-   * permission to cross to OCADE Cloud (never silently). Cancellation is
+   * permission to use a network-backed current-information connector. Cancellation is
    * honoured at any step and the partial answer is preserved.
    */
   /**
@@ -3167,10 +3167,8 @@ function ChatSurface(props: {
                 What this conversation cost on this machine. Hidden until there
                 is something real to report — a running total of zero is noise.
 
-                The second argument used to be CLOUD_ALLOWANCE, so this line
-                compared on-device work against a metered cloud service OCADE
-                does not have. Importing a payment constant into Chat to say
-                that was the coupling as well as the falsehood.
+                This reports measured on-device work only. It has no payment
+                meter and no network-inference comparison.
               */}
               {costs.length > 0 ? (
                 <p className="mt-2 px-1 text-[11px] leading-relaxed text-muted-foreground">

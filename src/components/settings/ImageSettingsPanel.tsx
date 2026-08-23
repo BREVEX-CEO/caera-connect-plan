@@ -119,10 +119,6 @@ export function ImageSettingsPanel() {
                     Install an image-reading engine from the same page. OCADE selects one that fits
                     this machine and shows the download size before it starts.
                   </li>
-                  <li>
-                    Alternatively, enable a cloud provider in Settings › Online providers. OCADE
-                    asks before sending any image off this device.
-                  </li>
                 </ol>
               </div>
             </>
@@ -149,15 +145,14 @@ export function ImageSettingsPanel() {
               The local engine OCADE runs serves language and image-reading models. It cannot run an
               image generation model at all, so installing one would not help by itself.
             </li>
-            <li>No configured cloud provider currently exposes image generation to OCADE.</li>
+            <li>OCADE has no public-cloud image-generation fallback.</li>
           </ul>
           <div className="mt-3 rounded-md border border-white/10 bg-white/[0.02] p-3 text-[13px] text-muted-foreground">
             <div className="font-medium text-foreground">What would have to be true</div>
             <p className="mt-1">
-              A separate image generation runtime on this machine, or an image generation provider
-              configured as a server secret. When one exists, this page gains the prompt, progress,
-              cancel and save controls — and not before, because a button that produces nothing is
-              worse than no button.
+              A reviewed image-generation runtime installed on this machine. When one exists, this
+              page gains the prompt, progress, cancel and save controls — and not before, because a
+              button that produces nothing is worse than no button.
             </p>
           </div>
           <div className="mt-3">

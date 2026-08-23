@@ -65,7 +65,6 @@ export function isActionable(status: CapabilityStatus): boolean {
 
 export type CapabilityId =
   | "localAI"
-  | "cloudAI"
   | "browser"
   | "computerControl"
   | "voice"
@@ -92,7 +91,6 @@ export interface CapabilityReport {
 
 export const CAPABILITY_ORDER: readonly CapabilityId[] = [
   "localAI",
-  "cloudAI",
   "privateSync",
   "browser",
   "computerControl",

@@ -76,7 +76,7 @@ export const OCADE_77_READINESS = [
   },
   {
     id: 11,
-    requirement: "Cloud inference is optional and disclosed",
+    requirement: "Public-cloud inference is absent and cannot be selected",
     classification: "source+test",
     evidence: ["README.md", "src/lib/capabilities/registry.ts"],
   },

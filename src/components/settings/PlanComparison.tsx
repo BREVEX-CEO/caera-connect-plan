@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Infinity as InfinityIcon, Cloud, Monitor, AlertTriangle } from "lucide-react";
+import { Check, Infinity as InfinityIcon, Monitor, AlertTriangle } from "lucide-react";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   PLANS,
-  CLOUD_ALLOWANCE,
-  CLOUD_WINDOW_MS,
   describePrice,
   priceFor,
   currencyForRegion,
@@ -67,8 +65,6 @@ export function PlanComparison({
   const checkoutConfigured = missing.length === 0 && typeof onChoose === "function";
 
   const paid = PLANS.filter((plan) => plan.publiclyAvailable);
-  const windowHours = Math.round(CLOUD_WINDOW_MS / 3_600_000);
-
   return (
     <section className="flex flex-col gap-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -127,7 +123,7 @@ export function PlanComparison({
               <ul className="flex flex-col gap-1.5 text-[12px] text-muted-foreground">
                 <Feature icon={InfinityIcon}>Unlimited on-device processing</Feature>
                 {plan.benefits.map((benefit) => (
-                  <Feature key={benefit} icon={benefit.includes("cloud") ? Cloud : Monitor}>
+                  <Feature key={benefit} icon={Monitor}>
                     {benefit}
                   </Feature>
                 ))}

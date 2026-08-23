@@ -319,15 +319,6 @@ const actions: Action[] = [
     confirmPhrase: "delete",
   },
   {
-    id: "ocade.chat.cloud_transfer_approved",
-    featureId: "ocade.chat",
-    title: "Approved cloud transfer for Browser Only chats",
-    log: "compliance",
-    category: "sensitive_export",
-    description:
-      "User acknowledged that a message stored under Browser Only privacy will be sent to a cloud model.",
-  },
-  {
     id: "ocade.model.change",
     featureId: "ocade.models",
     title: "Change OCADE model",

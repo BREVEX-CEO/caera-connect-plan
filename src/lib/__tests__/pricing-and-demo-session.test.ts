@@ -1,8 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   PLANS,
-  CLOUD_ALLOWANCE,
-  CLOUD_WINDOW_MS,
   checkPrice,
   describePrice,
   planById,
@@ -100,14 +98,12 @@ describe("the pricing rule is enforced, not remembered", () => {
     expect(year).toBeLessThan(month * 12);
   });
 
-  it("meters only cloud use, and never local processing", () => {
-    expect(CLOUD_ALLOWANCE).toBe(28);
-    expect(CLOUD_WINDOW_MS).toBe(8 * 60 * 60 * 1000);
-    // The demo has no cloud allowance at all: it runs on the device or not.
-    expect(planById("demo")!.cloudAllowance).toBe(0);
-    expect(planById("std_8d")!.cloudAllowance).toBe(28);
-    expect(planById("month_1m")!.cloudAllowance).toBe(56);
-    expect(planById("year_1y")!.cloudAllowance).toBe(128);
+  it("describes every plan as local-only and unmetered", () => {
+    for (const plan of PLANS) {
+      expect(plan).not.toHaveProperty("cloudAllowance");
+      expect(plan.benefits.join(" ")).not.toMatch(/cloud requests|metered/i);
+    }
+    expect(planById("std_8d")!.benefits).toContain("Unlimited on-device work");
   });
 
   it("keeps payment product ids out of source", () => {

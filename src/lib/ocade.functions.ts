@@ -110,8 +110,8 @@ export const deleteMessage = createServerFn({ method: "POST" })
  * produced by OCADE Local on-device — the browser streams the completion and
  * then records the user + assistant turns here. Ownership is enforced by RLS
  * (own-row on ocade_messages/ocade_conversations). Prompts to a local engine
- * never touch the server; only the resulting message text is persisted, exactly
- * as the cloud path already persists it.
+ * never touch the server; only the resulting message text is persisted when
+ * private sync is enabled.
  */
 export const appendOcadeMessage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -160,7 +160,7 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Response(error.message, { status: 500 });
 
-    // Auto-title from the first user message, matching the cloud path.
+    // Auto-title from the first user message.
     if (
       data.role === "user" &&
       (conv.title ?? "").toLowerCase() === "new chat" &&

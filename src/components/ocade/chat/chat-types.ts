@@ -43,11 +43,11 @@ export interface ChatConversationView {
 }
 
 /** Where this reply is coming from, shown as a badge the user can trust. */
-export type EngineLocality = "local" | "cloud" | "unknown";
+export type EngineLocality = "local" | "unknown";
 
 export interface EngineStatusView {
   locality: EngineLocality;
-  /** "OCADE Local", "OCADE Cloud" — capability names, never model ids. */
+  /** Local capability name or an honest unavailable label; never a model id. */
   label: string;
   /** False shows the offline treatment rather than hiding the badge. */
   online: boolean;

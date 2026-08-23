@@ -15,7 +15,7 @@ publish a CIN, GSTIN or company founding date until issued and verified.
 
 ## 2. Scope
 
-This notice covers the OCADE website, account, optional Private Sync, web/cloud
+This notice covers the OCADE website, account, optional Private Sync, network
 features, desktop/mobile applications, support and security operations. A local
 file that never leaves the device is not collected by the provider merely
 because local OCADE software processed it.
@@ -27,10 +27,9 @@ OCADE may process:
 - account identifiers, authentication methods and security events;
 - profile, preferences, privacy mode and consent records;
 - registered-device identifiers, pairing approvals and entitlement status;
-- conversations, messages, projects, settings and files selected for Private
-  Sync or a user-approved cloud operation;
-- prompt/request content sent to a disclosed cloud model, search or live-data
-  provider when the user permits that operation;
+- conversations, messages, projects, settings and files selected for Private Sync;
+- current-information search terms and bounded page requests sent to search or
+  live-data sources when the user requests current information;
 - subscription, tax region, payment status and provider references (not full
   card or UPI credentials, which should remain with the payment provider);
 - support, grievance and data-rights correspondence; and
@@ -45,13 +44,14 @@ purpose, lawful basis/notice, retention period and deletion path.
 - **Device/browser local:** supported content remains on the device.
 - **Private Sync:** selected account data is stored in the configured Supabase
   project under account-scoped row-level security.
-- **Cloud assisted:** minimum necessary data may go to a disclosed provider only
-  when the selected privacy mode, consent/approval and entitlement permit it.
+- **Current information and connected services:** a requested query or bounded
+  tool request may leave the device; retrieved evidence is treated as untrusted
+  data and local inference produces the answer.
 
-OCADE must never describe Private Sync or cloud-assisted processing as “entirely
-on your machine.” Sign-in, sync, live web data, payments, remote device features
-and cloud models require a network. Local capability depends on device support
-and installed models.
+OCADE must never describe Private Sync, current-information retrieval or connected
+services as “entirely on your machine.” Sign-in, sync, live web data, payments and
+remote device features require a network. Public-cloud AI inference is not an
+allowed fallback. Local capability depends on device support and installed models.
 
 ## 5. Purposes
 
@@ -64,8 +64,8 @@ required, a new consent.
 
 ## 6. Recipients and international processing
 
-Potential recipients include Supabase, Cloudflare, selected authentication and
-AI/search providers, payment processors, Apple/Google stores, professional
+Potential recipients include Supabase, Cloudflare, selected authentication,
+search/live-data and connected-service providers, payment processors, Apple/Google stores, professional
 advisers and authorities when lawfully required. Before enabling a recipient,
 record its exact legal entity, role, processing location, terms, retention,
 security, subprocessors, transfer safeguards and deletion support.

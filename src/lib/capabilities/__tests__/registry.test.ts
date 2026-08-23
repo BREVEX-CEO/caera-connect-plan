@@ -27,11 +27,6 @@ describe("capability registry", () => {
     ).toBe("READY");
   });
 
-  it("marks cloud as offline rather than failed when the device has no network", () => {
-    const report = capabilityReport("cloudAI", { cloud: { configured: true }, online: false });
-    expect(report.status).toBe("OFFLINE");
-  });
-
   it("does not call sync a failure when the user chose local-only storage", () => {
     const report = capabilityReport("privateSync", {
       sync: { signedIn: true, mode: "browser_only" },
@@ -70,7 +65,7 @@ describe("capability registry", () => {
     expect(
       worstStatus([
         { id: "localAI", label: "a", status: "READY", detail: "" },
-        { id: "cloudAI", label: "b", status: "FAILED", detail: "" },
+        { id: "localAI", label: "b", status: "FAILED", detail: "" },
       ]),
     ).toBe("FAILED");
   });

@@ -1,4 +1,4 @@
-import { Cpu, Cloud, CloudOff, Loader2, ShieldCheck } from "lucide-react";
+import { Cpu, CloudOff, Loader2, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { EngineStatusView } from "./chat-types";
 
@@ -10,8 +10,8 @@ import type { EngineStatusView } from "./chat-types";
  *
  *  - "On this device" appears only when a local engine is actually serving.
  *    It is the strongest claim OCADE makes and the easiest to get wrong.
- *  - "Cloud" is stated plainly rather than softened. A user who has not
- *    noticed they left the device is the failure this badge exists to prevent.
+ *  - A missing local engine is shown as unavailable, never replaced by a
+ *    public-cloud fallback.
  *  - While the engine is still being fetched it says so, because a badge that
  *    reads "ready" during a download is a lie with a two-minute lifespan.
  *
@@ -29,31 +29,27 @@ export function EngineBadge({
   onClick?: () => void;
 }) {
   const local = status.locality === "local";
-  const Icon = status.preparing ? Loader2 : local ? Cpu : status.online ? Cloud : CloudOff;
+  const Icon = status.preparing ? Loader2 : local ? Cpu : CloudOff;
 
   const tone = status.preparing
     ? "text-muted-foreground"
     : local
       ? "text-[color:var(--state-success)]"
-      : status.online
-        ? "text-[color:var(--state-info)]"
-        : "text-[color:var(--state-warning)]";
+      : "text-[color:var(--state-warning)]";
 
   const text = status.preparing
     ? "Preparing engine"
     : local
       ? "On this device"
       : status.online
-        ? status.label
+        ? "Local engine unavailable"
         : "Offline";
 
   const title =
     status.detail ??
     (local
       ? "Answers are generated on this computer. Nothing is sent anywhere."
-      : status.online
-        ? "Answers come from the cloud engine for this request."
-        : "No engine is reachable right now.");
+      : "No local engine is reachable right now.");
 
   const content = (
     <>

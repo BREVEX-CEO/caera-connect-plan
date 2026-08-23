@@ -40,10 +40,11 @@ export function TermsContent() {
       </PublicSection>
       <PublicSection title="OCADE service">
         <p>
-          OCADE combines local software with optional online account, synchronization, cloud,
-          payment and remote-device features. Feature availability varies by platform, hardware,
-          region and plan. Pre-release source, demos and test evidence are not promises that a
-          production feature is available.
+          OCADE combines local software with optional online account, private synchronization,
+          current-information retrieval, payment and remote-device features. Chat generation stays
+          on the user's device. Feature availability varies by platform, hardware, region and plan.
+          Pre-release source, demos and test evidence are not promises that a production feature is
+          available.
         </p>
       </PublicSection>
       <PublicSection title="Accounts, security and devices">
@@ -129,9 +130,9 @@ export function TermsContent() {
       <PublicSection title="Suspension, termination and local access">
         <p>
           Online services may be limited for security, abuse, non-payment or legal reasons with fair
-          notice where practicable. Subscription expiry may end cloud and premium access but should
-          not block supported local inference, local data access or local export. Final deletion and
-          appeal procedures must be approved before launch.
+          notice where practicable. Subscription expiry must not block supported local inference,
+          local data access or local export. Final deletion and appeal procedures must be approved
+          before launch.
         </p>
       </PublicSection>
       <PublicSection title="Warranties, liability, law and disputes">
@@ -161,7 +162,7 @@ export function PrivacyContent() {
       <PublicSection title="Data OCADE may handle">
         <ul className="list-disc space-y-2 pl-5">
           <li>Account identifiers and authentication events when you sign in.</li>
-          <li>Profile, settings, device registrations, subscription and allowance records.</li>
+          <li>Profile, settings, device registrations and subscription records.</li>
           <li>Conversations, messages and files only under the storage mode you choose.</li>
           <li>
             Security, abuse-prevention and failure records designed to avoid raw user content.
@@ -175,10 +176,10 @@ export function PrivacyContent() {
       <PublicSection title="Local-first does not mean local-only">
         <p>
           Device-only or local processing keeps supported data on your device. Private Sync stores
-          selected account data in the configured Supabase service. Cloud-assisted AI, web access,
+          selected account data in the configured Supabase service. Current-information requests,
           mobile pairing and payments can send the minimum necessary data to the disclosed service
-          after the applicable choice or request. OCADE must not silently move device-only content
-          to cloud storage.
+          after the applicable choice or request. Chat generation is not sent to a public-cloud AI
+          provider. OCADE must not silently move device-only content to remote storage.
         </p>
       </PublicSection>
       <PublicSection title="Purposes and legal basis">
@@ -191,8 +192,8 @@ export function PrivacyContent() {
       </PublicSection>
       <PublicSection title="Sharing and international processing">
         <p>
-          Depending on the feature, recipients may include Supabase, Cloudflare, selected model or
-          search providers, authentication providers, app stores and payment providers. The final
+          Depending on the feature, recipients may include Supabase, Cloudflare, cited search or
+          source sites, authentication providers, app stores and payment providers. The final
           provider list, locations, retention terms and cross-border safeguards must be verified
           before those features are enabled.
         </p>

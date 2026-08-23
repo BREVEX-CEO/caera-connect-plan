@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Cable, Cloud, Globe2, HardDrive, RefreshCw } from "lucide-react";
+import { Cable, Globe2, HardDrive, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { CapabilityBadge } from "@/components/capability/CapabilityBadge";
 import { useCapabilityReports } from "@/lib/capabilities/use-capabilities";
@@ -17,13 +17,6 @@ const CONNECTORS: Array<{
   to: string;
   icon: typeof Cable;
 }> = [
-  {
-    id: "cloudAI",
-    label: "Cloud model providers",
-    description: "Cloud inference configured for this deployment.",
-    to: "/ocade/models",
-    icon: Cloud,
-  },
   {
     id: "browser",
     label: "Browser bridge",

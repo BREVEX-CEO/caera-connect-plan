@@ -100,6 +100,24 @@ describe("no shipped code can send a prompt to a public AI provider", () => {
     expect(all).toMatch(/supabase/i);
     expect(all).toMatch(/huggingface|\.gguf|model-download/i);
   });
+
+  it("does not advertise a remote inference path in shipped copy", () => {
+    const forbiddenClaims = [
+      /cloud-assisted AI/i,
+      /cloud requests? every/i,
+      /larger cloud allowance/i,
+      /largest included cloud allowance/i,
+      /OCADE Cloud\s*[—-]/i,
+    ];
+    const offenders: string[] = [];
+    for (const [file, text] of SOURCES) {
+      const withoutComments = text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+      for (const pattern of forbiddenClaims) {
+        if (pattern.test(withoutComments)) offenders.push(`${file} -> ${pattern.source}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
 });
 
 describe("the engine resolver cannot choose a remote engine", () => {

@@ -72,8 +72,7 @@ export const PLANETS: Planet[] = [
   {
     id: "chat",
     name: "Chat",
-    benefit:
-      "Ask anything. OCADE uses your selected local or disclosed cloud path, subject to device support.",
+    benefit: "Ask anything. OCADE generates replies on this device, subject to local engine support.",
     orbit: 1.9,
     speed: 0.132,
     phase: 0,
@@ -102,7 +101,7 @@ export const PLANETS: Planet[] = [
     id: "vision",
     name: "Vision",
     benefit:
-      "Drop in a screenshot. Supported local processing stays on-device; any approved cloud path is disclosed.",
+      "Drop in a screenshot. OCADE reads it on-device when a supported local vision model is ready.",
     orbit: 3.1,
     speed: -0.086,
     phase: 1.9,
@@ -159,7 +158,7 @@ export const PLANETS: Planet[] = [
     id: "offline",
     name: "Offline intelligence",
     benefit:
-      "Download a supported local engine for offline work; sign-in, sync, live web and cloud features still need a network.",
+      "Download a supported local engine for offline work; sign-in, private sync and live web still need a network.",
     orbit: 5.6,
     speed: -0.045,
     phase: 5.2,

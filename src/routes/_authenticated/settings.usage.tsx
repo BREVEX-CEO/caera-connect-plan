@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FREE_LAUNCH_NOTICE } from "@/lib/launch-mode";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Gauge, Cloud, HardDrive, MonitorSmartphone, Clock, Loader2 } from "lucide-react";
+import { Gauge, HardDrive, MonitorSmartphone } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { SetupRequiredState } from "@/components/shell/SetupRequiredState";
@@ -10,17 +10,12 @@ import { cn } from "@/lib/utils";
 import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
 import {
-  PLANS,
-  CLOUD_ALLOWANCE,
-  WINDOW_HOURS,
-  allowanceState,
   entitlementState,
-  describeAllowance,
   offlineEntitlementValid,
   OFFLINE_GRACE_DAYS,
   type Entitlement,
 } from "@/lib/ocade-allowance";
-import { getCloudUsage, getEntitlement } from "@/lib/ocade-usage.functions";
+import { getEntitlement } from "@/lib/ocade-usage.functions";
 import { PlanComparison } from "@/components/settings/PlanComparison";
 import { BillingHistory } from "@/components/settings/BillingHistory";
 
@@ -34,7 +29,6 @@ export const Route = createFileRoute("/_authenticated/settings/usage")({
 function UsagePage() {
   const online = useOnline();
   const local = useLocalEngine();
-  const [used, setUsed] = useState<number | null>(null);
   const [entitlement, setEntitlement] = useState<Entitlement | null>(null);
   const [unavailable, setUnavailable] = useState<string | null>(null);
   const [lastVerified, setLastVerified] = useState<Date | null>(null);
@@ -43,10 +37,9 @@ function UsagePage() {
     let live = true;
     void (async () => {
       try {
-        const [usage, ent] = await Promise.all([getCloudUsage(), getEntitlement()]);
+        const ent = await getEntitlement();
         if (!live) return;
-        setUsed(usage.usedInWindow);
-        setLastVerified(usage.verifiedAt ? new Date(usage.verifiedAt) : new Date());
+        setLastVerified(new Date());
         setEntitlement(
           ent
             ? {
@@ -68,18 +61,8 @@ function UsagePage() {
     };
   }, []);
 
-  const state = useMemo(
-    () =>
-      allowanceState(
-        used ?? 0,
-        new Date(),
-        entitlement ? PLANS[entitlement.planId].cloudAllowancePerWindow : CLOUD_ALLOWANCE,
-      ),
-    [entitlement, used],
-  );
   const ent = useMemo(() => entitlementState(entitlement), [entitlement]);
   const graceOk = lastVerified ? offlineEntitlementValid(lastVerified) : true;
-  const pct = Math.round((state.used / state.limit) * 100);
 
   return (
     <>
@@ -127,8 +110,7 @@ function UsagePage() {
           </h3>
           <p className="text-xs text-muted-foreground">{FREE_LAUNCH_NOTICE}</p>
           <p className="mt-2 text-xs text-muted-foreground">
-            The cloud allowance shown above is a rate limit on a metered upstream service, not a
-            paywall. OCADE Local stays unlimited either way.
+            Chat generation stays on your device and is never counted or metered.
           </p>
         </GlassPanel>
 

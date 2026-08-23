@@ -16,8 +16,6 @@ export interface CapabilitySignals {
   online?: boolean;
   /** On-device engine probe. */
   localEngine?: { reachable: boolean; modelCount: number; checking?: boolean };
-  /** Cloud chat: is a provider actually configured and permitted? */
-  cloud?: { configured: boolean; blockedReason?: string };
   /** Encrypted account sync. */
   sync?: { signedIn: boolean; mode: "browser_only" | "pc_vault" | "private_sync" | "unknown" };
   /** Native companion / machine control bridge. */
@@ -83,46 +81,6 @@ function localAI(s: CapabilitySignals): CapabilityReport {
     status: "READY",
     detail: `${probe.modelCount} on-device engine${probe.modelCount === 1 ? "" : "s"} ready. Unlimited and never metered.`,
     evidence: "Engine reachable with installed models.",
-  };
-}
-
-function cloudAI(s: CapabilitySignals): CapabilityReport {
-  if (s.cloud?.blockedReason) {
-    return {
-      id: "cloudAI",
-      label: "OCADE Cloud",
-      status: "FAILED",
-      detail: s.cloud.blockedReason,
-      evidence: "Provider reported a blocking condition.",
-    };
-  }
-  if (!s.cloud?.configured) {
-    return {
-      id: "cloudAI",
-      label: "OCADE Cloud",
-      status: "NOT_CONFIGURED",
-      detail: "No cloud provider is configured for this deployment.",
-      action: { label: "Review model connections", to: "/ocade/models" },
-      evidence: s.cloud ? "Provider check reported not configured." : NOT_OBSERVED,
-    };
-  }
-  if (s.online === false) {
-    return {
-      id: "cloudAI",
-      label: "OCADE Cloud",
-      status: "OFFLINE",
-      detail: "This device is offline, so nothing can be sent to a cloud engine.",
-      action: { label: "Use OCADE Local instead", to: "/ocade" },
-      evidence: "Browser reports offline.",
-    };
-  }
-  return {
-    id: "cloudAI",
-    label: "OCADE Cloud",
-    status: "READY",
-    detail:
-      "A cloud engine is configured and reachable. Requests leave this device only when you choose it.",
-    evidence: "Provider configured and browser online.",
   };
 }
 
@@ -450,7 +408,6 @@ function desktopInstaller(): CapabilityReport {
 
 const BUILDERS: Record<CapabilityId, (s: CapabilitySignals) => CapabilityReport> = {
   localAI,
-  cloudAI,
   privateSync,
   browser,
   computerControl,

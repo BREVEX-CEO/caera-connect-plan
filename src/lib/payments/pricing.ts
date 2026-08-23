@@ -43,8 +43,6 @@ export interface Plan {
   publiclyAvailable: boolean;
   /** Benefits rendered from the same source as entitlement enforcement. */
   benefits: string[];
-  /** Cloud requests per eight-hour window. Local processing is never metered. */
-  cloudAllowance: number;
   /** Approved devices of each kind. Same for every paid plan today. */
   desktopDevices: number;
   mobileDevices: number;
@@ -59,11 +57,6 @@ export interface Plan {
 
 const DAY = 24 * 60 * 60 * 1000;
 
-/** Cloud requests allowed per rolling window. Local work is unlimited. */
-export const CLOUD_ALLOWANCE = 28;
-/** How long until the cloud allowance resets. */
-export const CLOUD_WINDOW_MS = 8 * 60 * 60 * 1000;
-
 export const PLANS: Plan[] = [
   {
     id: "demo",
@@ -72,7 +65,6 @@ export const PLANS: Plan[] = [
     summary: "28 minutes of the real product, in your browser, with no account.",
     publiclyAvailable: false,
     benefits: ["No account", "On-device demo", "No payment details"],
-    cloudAllowance: 0,
     desktopDevices: 0,
     mobileDevices: 0,
     prices: [
@@ -90,7 +82,6 @@ export const PLANS: Plan[] = [
     summary: "Try OCADE properly on your own documents before committing.",
     publiclyAvailable: false,
     benefits: ["Legacy entitlement", "Unlimited local work", "2 computers + 2 phones"],
-    cloudAllowance: CLOUD_ALLOWANCE,
     desktopDevices: 2,
     mobileDevices: 2,
     prices: [
@@ -107,8 +98,7 @@ export const PLANS: Plan[] = [
     durationMs: 8 * DAY,
     summary: "A focused eight-day pass with unlimited local processing.",
     publiclyAvailable: true,
-    benefits: ["28 cloud requests every 8 hours", "2 computers + 2 phones", "Standard support"],
-    cloudAllowance: CLOUD_ALLOWANCE,
+    benefits: ["Unlimited on-device work", "2 computers + 2 phones", "Standard support"],
     desktopDevices: 2,
     mobileDevices: 2,
     prices: [
@@ -123,10 +113,9 @@ export const PLANS: Plan[] = [
     id: "month_1m",
     name: "1 month",
     durationMs: 30 * DAY,
-    summary: "The flexible monthly choice with a larger cloud allowance.",
+    summary: "A flexible monthly licence for unlimited on-device processing.",
     publiclyAvailable: true,
-    benefits: ["56 cloud requests every 8 hours", "2 computers + 2 phones", "Priority support"],
-    cloudAllowance: 56,
+    benefits: ["Unlimited on-device work", "2 computers + 2 phones", "Priority support"],
     desktopDevices: 2,
     mobileDevices: 2,
     prices: [
@@ -141,10 +130,9 @@ export const PLANS: Plan[] = [
     id: "year_1y",
     name: "1 year",
     durationMs: 365 * DAY,
-    summary: "A full year with OCADE's largest included cloud allowance.",
+    summary: "A full year of unlimited on-device processing.",
     publiclyAvailable: true,
-    benefits: ["128 cloud requests every 8 hours", "2 computers + 2 phones", "Priority support"],
-    cloudAllowance: 128,
+    benefits: ["Unlimited on-device work", "2 computers + 2 phones", "Priority support"],
     desktopDevices: 2,
     mobileDevices: 2,
     prices: [

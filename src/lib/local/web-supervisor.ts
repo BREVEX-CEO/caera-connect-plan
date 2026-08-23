@@ -96,7 +96,7 @@ export function supervisionCapability(input: SupervisionInputs): SupervisionCapa
     canRunOffline: false,
     canAnswerOffline: false,
     summary:
-      "This browser cannot run OCADE offline or on-device. Install the desktop app, or use OCADE Cloud.",
+      "This browser cannot run OCADE offline or on-device. Install the desktop app or use a supported browser with a local engine.",
   };
 }
 
@@ -106,8 +106,8 @@ function webSummary(canRunOffline: boolean, canAnswerOffline: boolean): string {
   }
   if (canRunOffline) {
     // The precise case the split exists for: the shell is offline-capable but
-    // there is no engine, so questions still need the network.
-    return "OCADE opens without a connection, but answering still needs OCADE Cloud or an on-device engine.";
+    // there is no engine, so Chat must refuse rather than leave the device.
+    return "OCADE opens without a connection, but answering still needs an on-device engine.";
   }
   return "OCADE can answer using an engine in this browser, but the app itself still needs a connection to open.";
 }

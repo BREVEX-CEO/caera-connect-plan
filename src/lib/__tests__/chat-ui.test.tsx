@@ -35,11 +35,11 @@ describe("the engine badge never overstates where an answer came from", () => {
     expect(html).toContain("On this device");
   });
 
-  it("says plainly that the cloud is in use, rather than softening it", () => {
+  it("refuses to imply a cloud fallback when the local engine is unavailable", () => {
     const html = renderToStaticMarkup(
-      <EngineBadge status={{ locality: "cloud", label: "OCADE Cloud", online: true }} />,
+      <EngineBadge status={{ locality: "unknown", label: "Unavailable", online: true }} />,
     );
-    expect(html).toContain("OCADE Cloud");
+    expect(html).toContain("Local engine unavailable");
     expect(html).not.toContain("On this device");
   });
 
@@ -55,7 +55,7 @@ describe("the engine badge never overstates where an answer came from", () => {
 
   it("shows offline as a state rather than hiding the badge", () => {
     const html = renderToStaticMarkup(
-      <EngineBadge status={{ locality: "cloud", label: "OCADE Cloud", online: false }} />,
+      <EngineBadge status={{ locality: "unknown", label: "Unavailable", online: false }} />,
     );
     expect(html).toContain("Offline");
   });

@@ -1,113 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
-  CLOUD_ALLOWANCE,
   PLANS,
-  currentWindow,
-  allowanceState,
-  consumesAllowance,
-  canUseCloud,
   entitlementState,
   expiryOf,
   canRegisterDevice,
-  cloudEntitlementActive,
   offlineEntitlementValid,
-  describeAllowance,
 } from "../ocade-allowance";
 
 const at = (iso: string) => new Date(iso);
-
-describe("windowing", () => {
-  it("uses fixed 8-hour windows aligned to UTC midnight", () => {
-    const w = currentWindow(at("2026-07-22T09:30:00Z"));
-    expect(w.start.toISOString()).toBe("2026-07-22T08:00:00.000Z");
-    expect(w.end.toISOString()).toBe("2026-07-22T16:00:00.000Z");
-  });
-
-  it("rolls to the next window at the boundary", () => {
-    expect(currentWindow(at("2026-07-22T16:00:00Z")).start.toISOString()).toBe(
-      "2026-07-22T16:00:00.000Z",
-    );
-  });
-});
-
-describe("allowance state", () => {
-  it("reports remaining and reset time", () => {
-    const s = allowanceState(3, at("2026-07-22T09:00:00Z"));
-    expect(s.limit).toBe(CLOUD_ALLOWANCE);
-    expect(s.used).toBe(3);
-    expect(s.remaining).toBe(25);
-    expect(s.exhausted).toBe(false);
-    expect(s.resetsAt.toISOString()).toBe("2026-07-22T16:00:00.000Z");
-  });
-
-  it("clamps and marks exhaustion at the limit", () => {
-    const s = allowanceState(99, at("2026-07-22T09:00:00Z"));
-    expect(s.used).toBe(CLOUD_ALLOWANCE);
-    expect(s.remaining).toBe(0);
-    expect(s.exhausted).toBe(true);
-  });
-
-  it("fails closed on malformed usage, limits, or clocks", () => {
-    expect(allowanceState(Number.NaN, at("2026-07-22T09:00:00Z")).exhausted).toBe(true);
-    expect(allowanceState(0, at("2026-07-22T09:00:00Z"), Number.NaN).exhausted).toBe(true);
-    expect(() => currentWindow(new Date(Number.NaN))).toThrow(/time/i);
-  });
-});
-
-describe("what consumes allowance", () => {
-  it("never charges local, whatever the outcome", () => {
-    for (const o of ["success", "failed", "cancelled", "system_retry"] as const) {
-      expect(consumesAllowance("local", o)).toBe(false);
-    }
-  });
-
-  it("charges cloud only on success", () => {
-    expect(consumesAllowance("cloud", "success")).toBe(true);
-    expect(consumesAllowance("cloud", "failed")).toBe(false);
-    expect(consumesAllowance("cloud", "cancelled")).toBe(false);
-    expect(consumesAllowance("cloud", "system_retry")).toBe(false);
-  });
-});
-
-describe("cloud gating", () => {
-  const fresh = allowanceState(0, at("2026-07-22T09:00:00Z"));
-  const spent = allowanceState(CLOUD_ALLOWANCE, at("2026-07-22T09:00:00Z"));
-
-  it("allows cloud with an active plan and remaining allowance", () => {
-    expect(canUseCloud({ entitlementActive: true, state: fresh })).toEqual({ allowed: true });
-  });
-
-  it("blocks when the allowance is spent but points at unlimited local", () => {
-    const d = canUseCloud({ entitlementActive: true, state: spent });
-    expect(d.allowed).toBe(false);
-    if (!d.allowed) {
-      expect(d.code).toBe("allowance_exhausted");
-      expect(d.reason).toMatch(/local is still unlimited/i);
-      expect(d.resetsAt).toBeInstanceOf(Date);
-    }
-  });
-
-  it("blocks when the plan has expired, without blocking local", () => {
-    const d = canUseCloud({ entitlementActive: false, state: fresh });
-    expect(d.allowed).toBe(false);
-    if (!d.allowed) {
-      expect(d.code).toBe("subscription_expired");
-      expect(d.reason).toMatch(/local still works/i);
-    }
-  });
-
-  it("requires an observed active, unexpired subscription record", () => {
-    const now = at("2026-07-22T09:00:00Z");
-    expect(cloudEntitlementActive(null, now)).toBe(false);
-    expect(
-      cloudEntitlementActive({ status: "active", expiresAt: "2026-07-23T09:00:00.000Z" }, now),
-    ).toBe(true);
-    expect(
-      cloudEntitlementActive({ status: "cancelled", expiresAt: "2026-07-23T09:00:00.000Z" }, now),
-    ).toBe(false);
-    expect(cloudEntitlementActive({ status: "active", expiresAt: "invalid" }, now)).toBe(false);
-  });
-});
 
 describe("entitlements", () => {
   it("derives expiry from plan duration", () => {
@@ -115,16 +15,13 @@ describe("entitlements", () => {
     expect(expiryOf(e).toISOString()).toBe("2026-07-09T00:00:00.000Z");
   });
 
-  it.each([
-    ["trial_2d", CLOUD_ALLOWANCE],
-    ["std_8d", 28],
-    ["month_1m", 56],
-    ["year_1y", 128],
-  ] as const)("%s grants its plan allowance and the common device limits", (id, allowance) => {
-    expect(PLANS[id].cloudAllowancePerWindow).toBe(allowance);
+  it.each(["trial_2d", "std_8d", "month_1m", "year_1y"] as const)(
+    "%s grants the common device limits",
+    (id) => {
     expect(PLANS[id].desktopDevices).toBe(2);
     expect(PLANS[id].mobileDevices).toBe(2);
-  });
+    },
+  );
 
   it("keeps local available after expiry and disables only cloud/premium", () => {
     const s = entitlementState(
@@ -132,8 +29,6 @@ describe("entitlements", () => {
       at("2026-07-20T00:00:00Z"),
     );
     expect(s.active).toBe(false);
-    expect(s.cloudAvailable).toBe(false);
-    expect(s.premiumAvailable).toBe(false);
     // Never locked out of your own device or data.
     expect(s.localInferenceAvailable).toBe(true);
     expect(s.localDataAvailable).toBe(true);
@@ -142,7 +37,6 @@ describe("entitlements", () => {
 
   it("treats no subscription as local-only, never as locked out", () => {
     const s = entitlementState(null, at("2026-07-22T00:00:00Z"));
-    expect(s.cloudAvailable).toBe(false);
     expect(s.localInferenceAvailable).toBe(true);
     expect(s.localDataAvailable).toBe(true);
   });
@@ -153,7 +47,6 @@ describe("entitlements", () => {
       at("2026-07-22T00:00:00Z"),
     );
     expect(s.active).toBe(true);
-    expect(s.cloudAvailable).toBe(true);
   });
 });
 
@@ -206,16 +99,5 @@ describe("offline entitlement grace", () => {
       false,
     );
     expect(offlineEntitlementValid(new Date(Number.NaN), at("2026-07-22T00:00:00Z"))).toBe(false);
-  });
-});
-
-describe("describeAllowance", () => {
-  it("shows remaining requests", () => {
-    expect(describeAllowance(allowanceState(5, at("2026-07-22T09:00:00Z")))).toMatch(/23 of 28/);
-  });
-  it("explains exhaustion and points at unlimited local", () => {
-    const msg = describeAllowance(allowanceState(28, at("2026-07-22T09:00:00Z")));
-    expect(msg).toMatch(/resets at 16:00 UTC/);
-    expect(msg).toMatch(/Local is unlimited/i);
   });
 });

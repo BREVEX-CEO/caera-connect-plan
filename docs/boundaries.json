@@ -109,23 +109,23 @@
     },
     {
       "id": "IC-02",
-      "name": "Cloud inference gateway",
-      "host": "ai.gateway.lovable.dev",
+      "name": "Current-information search",
+      "host": "html.duckduckgo.com",
       "direction": "outbound",
-      "carries": "prompt, approved history, extracted document passages",
-      "credential": "LOVABLE_API_KEY (server only)",
-      "failureMode": "502 with the gateway error; the allowance is not charged.",
-      "declaredIn": "src/lib/ai-gateway.server.ts"
+      "carries": "current-information search query only; never a model prompt or conversation history",
+      "credential": "none",
+      "failureMode": "Named retrieval refusal; local Chat continues without inventing current facts.",
+      "declaredIn": "src/lib/research/web-search.ts"
     },
     {
       "id": "IC-03",
-      "name": "OpenAI direct",
-      "host": "api.openai.com",
+      "name": "Cited source retrieval",
+      "host": "the source URL selected from current-information results",
       "direction": "outbound",
-      "carries": "prompt, approved history, extracted document passages",
-      "credential": "OPENAI_API_KEY (server only, opt-in per user)",
-      "failureMode": "502 with the provider error; the allowance is not charged.",
-      "declaredIn": "src/lib/ai-gateway.server.ts"
+      "carries": "bounded public page request; source content is untrusted evidence for local inference",
+      "credential": "none unless a separately authorized connector owns the source",
+      "failureMode": "Source omitted with a named fetch reason; no citation is fabricated.",
+      "declaredIn": "src/lib/research/current-information.ts"
     },
     {
       "id": "IC-04",

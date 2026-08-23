@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
 import { useSession } from "@/lib/session";
 import { getModeFor } from "@/lib/storage/resolver";
 import { detectTauri } from "@/lib/native/tauri-companion";
 import { getBrowserBridge } from "@/lib/native/browser-bridge";
-import { getCapabilityEnvironment } from "./environment.functions";
 import { allCapabilityReports, type CapabilitySignals } from "./registry";
 import type { CapabilityReport } from "./types";
 
@@ -18,14 +16,6 @@ export function useCapabilitySignals(): CapabilitySignals {
   const online = useOnline();
   const { user } = useSession();
   const localEngine = useLocalEngine();
-  const fetchEnv = useServerFn(getCapabilityEnvironment);
-  const env = useQuery({
-    queryKey: ["capability-environment", user?.id],
-    enabled: !!user?.id,
-    staleTime: 5 * 60_000,
-    queryFn: () => fetchEnv(),
-  });
-
   const nativeHost = typeof window === "undefined" ? false : detectTauri();
 
   const [browserBridge, setBrowserBridge] = useState<boolean | undefined>(undefined);
@@ -79,14 +69,12 @@ export function useCapabilitySignals(): CapabilitySignals {
       modelCount: localEngine.models.length,
       checking: localEngine.status === "checking",
     },
-    cloud: env.data ? { configured: env.data.cloudConfigured } : undefined,
     sync: { signedIn: !!user?.id, mode: storageMode },
     companion: nativeHost ? { connected: true } : { connected: false },
     browserBridge: browserBridge === undefined ? undefined : { connected: browserBridge },
     speech,
     vision: {
-      engineSupportsImages:
-        localEngine.models.some((model) => model.vision) || Boolean(env.data?.cloudConfigured),
+      engineSupportsImages: localEngine.models.some((model) => model.vision),
     },
     /*
      * The repository contains a durable automation worker, but `detectTauri()`

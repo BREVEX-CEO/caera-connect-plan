@@ -93,8 +93,9 @@ Recorded because a non-goal that is never written down gets built anyway.
   operating-system controls requires explicit permission, a preview, and a cancel path.
   The Director/Hands/Eyes/Verifier plane holds no OS authority of its own.
 - **Not a social or collaborative product.** No feeds, no sharing, no multiplayer.
-- **Not free cloud inference.** Cloud is metered and the meter is visible. The landing
-  page says "never called free" because an unmetered promise would be broken later.
+- **Not public-cloud inference.** Normal Chat, planning, summarization and image
+  understanding run through reviewed local engines or refuse. Network access remains
+  available for authentication, private sync, current information and connected services.
 - **Not a replacement for a browser or an operating system.** Computer control is scoped,
   permissioned and observable, not ambient.
 - **Not FICIA, MADEE or CANIA.** Three products were started and are not shipping. Their
@@ -106,8 +107,8 @@ These are enforced in code. The trust boundaries in
 [`boundaries.json`](boundaries.json) are the mechanisms; these are the commitments.
 
 1. **Never misrepresent where data went.** The privacy badge reflects the resolved
-   storage mode, not the requested one. A vault-backed conversation refuses cloud
-   transfer with HTTP 428 until the user approves that specific turn.
+   storage mode, not the requested one. No storage mode creates a path to public-cloud
+   AI inference.
 2. **Never claim work that did not happen.** OCADE does not say it searched a document
    when retrieval did not run, does not present unmatched passages as relevant, and
    reports a weak match as weak.
@@ -124,14 +125,10 @@ These are enforced in code. The trust boundaries in
 
 ### Where the ethics are genuinely in tension
 
-The system prompt instructs the model not to name the provider behind OCADE Cloud, and
-replies are redacted before storage. This is presented as product identity, and it sits
-uneasily beside commitment 1. The resolution the product has chosen: **capability
-labels are used everywhere, and the exact runtime is disclosed in advanced settings** —
-those pages are listed by name in the identity test's exemption list, and
-`OnlineProvidersPanel` names each provider plainly because a user connecting an account
-must know whose account it is. Anyone reviewing this should know the tension exists
-rather than discover it.
+The system prompt asks the model not to expose raw runtime or model identifiers in
+ordinary answers, while advanced settings disclose the exact local runtime, weights and
+licence. Capability labels preserve a stable product identity; technical settings remain
+the evidence surface. Public-cloud AI providers are not an inference option.
 
 ## 6. Governance (AZ-007)
 

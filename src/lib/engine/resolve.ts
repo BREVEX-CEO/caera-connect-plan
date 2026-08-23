@@ -7,7 +7,7 @@
  *   brain/router            which on-device adapter can serve this?
  *   local/fixed-model       which model OCADE uses (one, everywhere)
  *   local/device-route-policy  hardware profile -> policy
- *   ocade-router            which cloud provider, server-side?
+ *   ocade-router            which local runtime, on this device?
  *   reasoning/engine        a wrapper that called some of the above
  *
  * They are not duplicates — they work at different levels — but they were

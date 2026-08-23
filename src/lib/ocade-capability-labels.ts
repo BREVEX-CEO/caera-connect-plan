@@ -17,7 +17,6 @@ export type OcadeCapabilityLabel =
   | "OCADE Local Fast"
   | "OCADE Local Vision"
   | "OCADE Local Code"
-  | "OCADE Cloud"
   | "OCADE Automatic";
 
 export const OCADE_CAPABILITY_LABELS: readonly OcadeCapabilityLabel[] = [
@@ -26,7 +25,6 @@ export const OCADE_CAPABILITY_LABELS: readonly OcadeCapabilityLabel[] = [
   "OCADE Local Fast",
   "OCADE Local Vision",
   "OCADE Local Code",
-  "OCADE Cloud",
 ] as const;
 
 /** Internal capability profile of a local engine. Never shown raw to users. */
@@ -34,7 +32,7 @@ export type OcadeLocalProfile = "general" | "fast" | "vision" | "code";
 
 export interface EngineDescriptor {
   /** Where inference runs. */
-  locality: "local" | "cloud";
+  locality: "local";
   /** For local engines, the capability profile that produced the label. */
   profile?: OcadeLocalProfile;
   /** True when routing was decided by "Automatic" rather than a fixed choice. */
@@ -54,10 +52,7 @@ const LOCAL_PROFILE_LABEL: Record<OcadeLocalProfile, OcadeCapabilityLabel> = {
  */
 export function capabilityLabelFor(engine: EngineDescriptor): OcadeCapabilityLabel {
   if (engine.automatic) return "OCADE Automatic";
-  if (engine.locality === "local") {
-    return engine.profile ? LOCAL_PROFILE_LABEL[engine.profile] : "OCADE Local";
-  }
-  return "OCADE Cloud";
+  return engine.profile ? LOCAL_PROFILE_LABEL[engine.profile] : "OCADE Local";
 }
 
 /** True when a label denotes local (on-device) execution. */

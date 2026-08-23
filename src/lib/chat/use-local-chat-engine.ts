@@ -216,13 +216,6 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
       });
       return;
     }
-    if (decision.ok) {
-      // Cloud is the resolved target. This hook only drives on-device
-      // generation, so it reports ready-with-no-local-label rather than
-      // claiming an engine it does not own.
-      apply({ status: "ready", label: "OCADE Cloud", reason: null, remedies: [], progress: null });
-      return;
-    }
     apply({
       status: "unavailable",
       label: null,
