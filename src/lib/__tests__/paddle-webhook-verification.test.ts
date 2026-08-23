@@ -35,11 +35,15 @@ describe("Paddle webhook verification", () => {
     process.env["PAYMENTS_SANDBOX_WEBHOOK_SECRET"] = SECRET;
     const body = JSON.stringify({
       event_type: EventName.SubscriptionUpdated,
+      event_id: "evt_fixture",
+      occurred_at: "2026-03-01T12:00:00.000Z",
       data: { id: "sub_123", status: "active" },
     });
 
     await expect(verifyWebhook(signedRequest(body), "sandbox", NOW)).resolves.toEqual({
+      eventId: "evt_fixture",
       eventType: EventName.SubscriptionUpdated,
+      occurredAt: "2026-03-01T12:00:00.000Z",
       data: { id: "sub_123", status: "active" },
     });
   });
@@ -48,6 +52,8 @@ describe("Paddle webhook verification", () => {
     process.env["PAYMENTS_SANDBOX_WEBHOOK_SECRET"] = SECRET;
     const body = JSON.stringify({
       event_type: EventName.SubscriptionCreated,
+      event_id: "evt_fixture",
+      occurred_at: "2026-03-01T12:00:00.000Z",
       data: { id: "sub_1" },
     });
     const valid = createHmac("sha256", SECRET).update(`${NOW}:${body}`, "utf8").digest("hex");
@@ -62,6 +68,8 @@ describe("Paddle webhook verification", () => {
     process.env["PAYMENTS_SANDBOX_WEBHOOK_SECRET"] = SECRET;
     const body = JSON.stringify({
       event_type: EventName.SubscriptionCanceled,
+      event_id: "evt_fixture",
+      occurred_at: "2026-03-01T12:00:00.000Z",
       data: { id: "sub_2" },
     });
     const request = signedRequest(body, NOW, ["f".repeat(64)]);
@@ -75,6 +83,8 @@ describe("Paddle webhook verification", () => {
     process.env["PAYMENTS_SANDBOX_WEBHOOK_SECRET"] = SECRET;
     const body = JSON.stringify({
       event_type: EventName.SubscriptionUpdated,
+      event_id: "evt_fixture",
+      occurred_at: "2026-03-01T12:00:00.000Z",
       data: { id: "sub_3" },
     });
 
@@ -97,5 +107,65 @@ describe("Paddle webhook verification", () => {
     await expect(verifyWebhook(malformed, "sandbox", NOW)).rejects.toThrow(
       /malformed paddle-signature/i,
     );
+  });
+});
+
+/**
+ * The two fields that make the handler safe, and why verification refuses
+ * without them.
+ *
+ * They were being parsed away: `parseVerifiedEvent` returned only `eventType`
+ * and `data`. An event with no id cannot be told apart from its own retry, and
+ * an event with no timestamp cannot be ordered against the one that superseded
+ * it — so accepting either is the replay and the resurrection this endpoint
+ * exists to resist. Paddle sends both on every event.
+ */
+describe("an event that cannot be de-duplicated or ordered is refused", () => {
+  const signedBody = (payload: Record<string, unknown>) => {
+    process.env["PAYMENTS_SANDBOX_WEBHOOK_SECRET"] = SECRET;
+    return signedRequest(JSON.stringify(payload));
+  };
+
+  it("refuses an event with no event_id", async () => {
+    await expect(
+      verifyWebhook(
+        signedBody({
+          event_type: EventName.SubscriptionUpdated,
+          occurred_at: "2026-03-01T12:00:00.000Z",
+          data: { id: "sub_1" },
+        }),
+        "sandbox",
+        NOW,
+      ),
+    ).rejects.toThrow(/event_id/);
+  });
+
+  it("refuses an event with no occurred_at", async () => {
+    await expect(
+      verifyWebhook(
+        signedBody({
+          event_type: EventName.SubscriptionUpdated,
+          event_id: "evt_1",
+          data: { id: "sub_1" },
+        }),
+        "sandbox",
+        NOW,
+      ),
+    ).rejects.toThrow(/occurred_at/);
+  });
+
+  it("refuses an occurred_at that is not a real time", async () => {
+    await expect(
+      verifyWebhook(
+        signedBody({
+          event_type: EventName.SubscriptionUpdated,
+          event_id: "evt_1",
+          occurred_at: "the day before yesterday",
+          data: { id: "sub_1" },
+        }),
+        "sandbox",
+        NOW,
+      ),
+    ).rejects.toThrow(/occurred_at/);
   });
 });

@@ -21,13 +21,34 @@ export const EventName = {
   SubscriptionCreated: "subscription.created",
   SubscriptionUpdated: "subscription.updated",
   SubscriptionCanceled: "subscription.canceled",
+  /*
+   * The event a ONE-TIME purchase arrives on. It was absent, which is why the
+   * 8-day pass in the sellable catalogue could take money and create nothing.
+   */
+  TransactionCompleted: "transaction.completed",
 } as const;
 
 /** `sandbox` is the test environment; `live` takes real money. */
 export type PaddleEnv = "sandbox" | "live";
 
 export type VerifiedPaddleEvent = {
+  /**
+   * The provider's id for this delivery. REQUIRED, because it is the only
+   * thing that makes a retry distinguishable from a second purchase.
+   *
+   * It used to be discarded here. Providers retry by contract, so the same
+   * event arrives more than once as a matter of course, and without this a
+   * retried completion writes a second entitlement for one payment.
+   */
+  eventId: string;
   eventType: string;
+  /**
+   * The provider's own timestamp. Also required, and also previously
+   * discarded: delivery order is not guaranteed, so this is the only thing
+   * that stops a `subscription.updated` held up in a retry queue from arriving
+   * after the cancellation that superseded it and handing back access.
+   */
+  occurredAt: string;
   data: unknown;
 };
 
@@ -95,7 +116,24 @@ function parseVerifiedEvent(body: string): VerifiedPaddleEvent {
     throw new Error("Verified Paddle webhook is missing event_type or data");
   }
 
-  return { eventType, data: record.data };
+  const eventId = typeof record.event_id === "string" ? record.event_id : record.eventId;
+  const occurredAt =
+    typeof record.occurred_at === "string" ? record.occurred_at : record.occurredAt;
+
+  /*
+   * FAIL CLOSED. An event with no id cannot be de-duplicated and an event with
+   * no timestamp cannot be ordered, so applying either is precisely the replay
+   * and out-of-order risk this endpoint exists to resist. Paddle sends both on
+   * every event; anything that does not is not a Paddle event.
+   */
+  if (typeof eventId !== "string" || eventId.length === 0) {
+    throw new Error("Verified Paddle webhook is missing event_id");
+  }
+  if (typeof occurredAt !== "string" || Number.isNaN(new Date(occurredAt).getTime())) {
+    throw new Error("Verified Paddle webhook is missing a usable occurred_at");
+  }
+
+  return { eventId, eventType, occurredAt, data: record.data };
 }
 
 /**

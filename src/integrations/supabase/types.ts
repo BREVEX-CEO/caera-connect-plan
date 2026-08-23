@@ -3262,6 +3262,42 @@ export type Database = {
           },
         ]
       }
+      payment_webhook_events: {
+        Row: {
+          entity_id: string | null
+          environment: string
+          event_id: string
+          event_type: string
+          occurred_at: string
+          outcome: string
+          reason: string | null
+          received_at: string
+          user_id: string | null
+        }
+        Insert: {
+          entity_id?: string | null
+          environment: string
+          event_id: string
+          event_type: string
+          occurred_at: string
+          outcome: string
+          reason?: string | null
+          received_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          entity_id?: string | null
+          environment?: string
+          event_id?: string
+          event_type?: string
+          occurred_at?: string
+          outcome?: string
+          reason?: string | null
+          received_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -3377,10 +3413,12 @@ export type Database = {
           current_period_start: string | null
           environment: string
           id: string
+          kind: string
           paddle_customer_id: string
           paddle_subscription_id: string
           price_id: string
           product_id: string
+          provider_event_at: string | null
           status: string
           updated_at: string | null
           user_id: string
@@ -3392,10 +3430,12 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
+          kind?: string
           paddle_customer_id: string
           paddle_subscription_id: string
           price_id: string
           product_id: string
+          provider_event_at?: string | null
           status?: string
           updated_at?: string | null
           user_id: string
@@ -3407,10 +3447,12 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
+          kind?: string
           paddle_customer_id?: string
           paddle_subscription_id?: string
           price_id?: string
           product_id?: string
+          provider_event_at?: string | null
           status?: string
           updated_at?: string | null
           user_id?: string
