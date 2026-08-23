@@ -119,10 +119,14 @@ export function ImageSettingsPanel() {
                     Install an image-reading engine from the same page. OCADE selects one that fits
                     this machine and shows the download size before it starts.
                   </li>
-                  <li>
-                    Alternatively, enable a cloud provider in Settings › Online providers. OCADE
-                    asks before sending any image off this device.
-                  </li>
+                  {/*
+                    THIS POINTED AT A PAGE THAT DOES NOT EXIST, to enable a
+                    capability that cannot. "Settings › Online providers" is
+                    not a route in this product, and there is no cloud provider
+                    to enable: images are read on this device or not at all.
+                    An instruction a person cannot follow is worse than no
+                    instruction — they conclude they did something wrong.
+                  */}
                 </ol>
               </div>
             </>
@@ -149,7 +153,10 @@ export function ImageSettingsPanel() {
               The local engine OCADE runs serves language and image-reading models. It cannot run an
               image generation model at all, so installing one would not help by itself.
             </li>
-            <li>No configured cloud provider currently exposes image generation to OCADE.</li>
+            <li>
+              OCADE does not send images to an outside service, so there is no provider that could
+              generate one on its behalf.
+            </li>
           </ul>
           <div className="mt-3 rounded-md border border-white/10 bg-white/[0.02] p-3 text-[13px] text-muted-foreground">
             <div className="font-medium text-foreground">What would have to be true</div>

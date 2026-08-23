@@ -100,8 +100,8 @@ export function BrowserStoragePanel() {
         </div>
         <p className="mt-2 text-[13px] text-muted-foreground">{report.problem}</p>
         <p className="mt-2 text-[12px] text-muted-foreground">
-          OCADE will still answer using a device engine or a cloud engine — it just cannot keep a
-          browser engine here between visits.
+          OCADE can still answer if an engine is already loaded for this session — it just cannot
+          keep one here between visits, so it has to be prepared again each time.
         </p>
       </GlassPanel>
     );

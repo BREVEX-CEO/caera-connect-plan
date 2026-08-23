@@ -52,7 +52,7 @@ export function EngineBadge({
     (local
       ? "Answers are generated on this computer. Nothing is sent anywhere."
       : status.online
-        ? "Answers come from the cloud engine for this request."
+        ? "This engine is reachable and answering."
         : "No engine is reachable right now.");
 
   const content = (

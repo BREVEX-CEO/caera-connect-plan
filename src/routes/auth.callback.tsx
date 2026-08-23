@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthShell } from "@/components/shell/AuthShell";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
+import { safeNext } from "@/lib/auth/safe-next";
 
 const searchSchema = z.object({
   next: z.string().optional(),
@@ -24,12 +25,6 @@ export const Route = createFileRoute("/auth/callback")({
   }),
   component: CallbackPage,
 });
-
-function safeNext(value: string | undefined): string | null {
-  if (!value) return null;
-  if (value.startsWith("/") && !value.startsWith("//")) return value;
-  return null;
-}
 
 function CallbackPage() {
   const { next, code, error: providerError, error_description } = Route.useSearch();
