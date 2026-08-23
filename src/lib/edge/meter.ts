@@ -145,34 +145,28 @@ export function formatEnergy(wh: number): string {
 }
 
 /**
- * The comparison that makes the point.
+ * What this conversation actually cost, on this machine.
  *
- * States what the same work WOULD have cost in allowance had it gone to cloud,
- * which is the number a user actually feels — not watt-hours.
+ * THE ALLOWANCE COMPARISON IS GONE, AND THE REASON MATTERS. This used to end
+ * with "The same conversation on a cloud-only assistant would have used N of
+ * your 28 requests" and, when a cloud turn had happened, "spending N of your
+ * 28". Both described a metered cloud service OCADE no longer has: there is no
+ * remote engine, nothing consumes an allowance, and `totals.cloud` can no
+ * longer be anything but zero.
+ *
+ * A counterfactual about a competitor is also not this component's job. What a
+ * person can act on is what their own hardware did, so that is what is
+ * reported — and the honest limit of it is stated in `energyAssumption`.
  */
-export function describeTotals(totals: Totals, cloudAllowance: number): string {
+export function describeTotals(totals: Totals): string {
   if (totals.runs === 0) return "Nothing has been asked yet in this conversation.";
-
-  const parts: string[] = [];
-  if (totals.local > 0) {
-    parts.push(
-      `${totals.local} ${totals.local === 1 ? "answer" : "answers"} ran on your own hardware, using about ${formatEnergy(
-        totals.energyWh,
-      )} of electricity — roughly ${formatCost(totals.costMinor, totals.currency)}, and none of your cloud allowance.`,
-    );
-  }
-  if (totals.cloud > 0) {
-    parts.push(
-      `${totals.cloud} used OCADE Cloud, spending ${totals.allowanceUsed} of your ${cloudAllowance} requests.`,
-    );
-  }
-  if (totals.local > 0 && totals.cloud === 0) {
-    // The counterfactual, which is the whole argument in one clause.
-    parts.push(
-      `The same conversation on a cloud-only assistant would have used ${totals.local} of ${cloudAllowance}.`,
-    );
-  }
-  return parts.join(" ");
+  if (totals.local === 0)
+    return "Nothing has been generated on this device yet in this conversation.";
+  return (
+    `${totals.local} ${totals.local === 1 ? "answer" : "answers"} ran on your own hardware, ` +
+    `using about ${formatEnergy(totals.energyWh)} of electricity — roughly ` +
+    `${formatCost(totals.costMinor, totals.currency)}. Nothing was metered and nothing left this device.`
+  );
 }
 
 /** The assumption behind the energy figure, shown wherever it is. */

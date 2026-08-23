@@ -6,19 +6,23 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  readLocalCorpus,
+  searchLocalRecords,
+  mergeSearchResults,
+  scoreMatch,
+  snippetAround,
+  type LocalSearchResult,
+} from "@/lib/search/local-search";
+import { getModeFor } from "@/lib/storage/resolver";
+import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/_authenticated/ocade/search")({
   head: () => ({ meta: [{ title: "Search — OCADE" }, { name: "robots", content: "noindex" }] }),
   component: SearchPage,
 });
 
-type SearchResult = {
-  key: string;
-  kind: "conversation" | "message" | "project" | "output";
-  title: string;
-  excerpt?: string | null;
-  createdAt?: string | null;
-};
+type SearchResult = LocalSearchResult;
 
 /** Escape LIKE wildcards while keeping the value inside typed filter calls. */
 function escapedLike(raw: string) {
@@ -33,7 +37,15 @@ function escapedLike(raw: string) {
  * expression even when LIKE wildcards are escaped. Separate typed queries keep
  * the user's text as data, then de-duplicate matching records by id.
  */
-async function searchOcade(raw: string): Promise<SearchResult[]> {
+/**
+ * The REMOTE half only. Runs when Private Sync is on and the network answers.
+ *
+ * Kept as separate typed queries rather than one `.or()` because `.or()` takes
+ * raw PostgREST grammar, and interpolating a person's search text into that
+ * lets punctuation alter the filter expression even with LIKE wildcards
+ * escaped. The user's text stays data.
+ */
+async function searchRemote(raw: string): Promise<SearchResult[]> {
   const q = raw.trim();
   if (q.length < 2) return [];
   const pattern = `%${escapedLike(q)}%`;
@@ -105,38 +117,81 @@ async function searchOcade(raw: string): Promise<SearchResult[]> {
       kind: "conversation" as const,
       title: row.title || "Untitled conversation",
       createdAt: row.updated_at,
+      conversationId: row.id,
+      score: scoreMatch(row.title ?? "", "", q),
+      local: false,
     })),
     ...(messages.data ?? []).map((row) => ({
       key: `message:${row.id}`,
       kind: "message" as const,
       title: `${row.role === "assistant" ? "OCADE" : "You"} message`,
-      excerpt: row.content.slice(0, 220),
+      excerpt: snippetAround(row.content ?? "", q),
       createdAt: row.created_at,
+      conversationId: row.conversation_id,
+      score: scoreMatch("", row.content ?? "", q),
+      local: false,
     })),
     ...[...projects.values()].map((row) => ({
       key: `project:${row.id}`,
       kind: "project" as const,
       title: row.name,
-      excerpt: row.instructions?.slice(0, 220),
+      excerpt: row.instructions ? snippetAround(row.instructions, q) : undefined,
       createdAt: row.updated_at,
+      score: scoreMatch(row.name ?? "", row.instructions ?? "", q),
+      local: false,
     })),
     ...[...outputs.values()].map((row) => ({
       key: `output:${row.id}`,
       kind: "output" as const,
       title: row.title,
-      excerpt: row.content?.slice(0, 220),
+      excerpt: row.content ? snippetAround(row.content, q) : undefined,
       createdAt: row.created_at,
+      score: scoreMatch(row.title ?? "", row.content ?? "", q),
+      local: false,
     })),
-  ].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? "")));
+  ];
 }
 
 function SearchPage() {
+  /*
+   * `useSession` rather than the route context: the context's `user` is typed
+   * as possibly-absent on this layout, and Search is only reachable signed in,
+   * so the hook the rest of the authenticated product uses is the honest
+   * source. Without a user id there is no local corpus to read.
+   */
+  const { user } = useSession();
+  const userId = user?.id ?? "";
   const [query, setQuery] = useState("");
   const normalized = useMemo(() => query.trim(), [query]);
+
   const results = useQuery({
-    queryKey: ["ocade-universal-search", normalized],
-    enabled: normalized.length >= 2,
-    queryFn: () => searchOcade(normalized),
+    queryKey: ["ocade-universal-search", normalized, userId],
+    enabled: normalized.length >= 2 && userId.length > 0,
+    /*
+     * THE DEVICE ANSWERS FIRST, AND SOMETIMES IT IS THE ONLY ANSWER.
+     *
+     * This used to be six Supabase queries and nothing else, which made a
+     * Browser Only conversation — never uploaded, by design — permanently
+     * unfindable, threw when offline, and could not see a Private Sync message
+     * written seconds ago that had not yet drained from the outbox.
+     *
+     * The remote half now runs only for private_sync, only when online, and
+     * its failure is not the search failing: the local rows already answered.
+     */
+    queryFn: async () => {
+      const corpus = await readLocalCorpus(userId);
+      const local = searchLocalRecords(normalized, corpus);
+
+      const mode = await getModeFor(userId, "chats").catch(() => "browser_only");
+      const online = typeof navigator === "undefined" ? true : navigator.onLine;
+      if (mode !== "private_sync" || !online) return local;
+
+      try {
+        return mergeSearchResults(local, await searchRemote(normalized));
+      } catch {
+        return local;
+      }
+    },
     staleTime: 10_000,
   });
 
@@ -206,9 +261,20 @@ function ResultRow({ result }: { result: SearchResult }) {
         ? "/ocade/artifacts"
         : "/ocade";
 
+  /*
+   * A result you cannot open is a result you did not find. Conversation and
+   * message rows carry the id they matched, so the link opens THAT
+   * conversation instead of dropping the reader at the top of Chat.
+   */
+  const search = result.conversationId ? { conversation: result.conversationId } : undefined;
+
   return (
     <li>
-      <Link to={to} className="flex gap-3 px-4 py-3 hover:bg-accent/40">
+      <Link
+        to={to}
+        {...(search ? { search } : {})}
+        className="flex gap-3 px-4 py-3 hover:bg-accent/40"
+      >
         <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-medium text-foreground">{result.title}</span>

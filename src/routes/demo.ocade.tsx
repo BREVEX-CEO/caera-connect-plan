@@ -671,7 +671,7 @@ function DemoOcade() {
           */}
           {costs.length > 0 ? (
             <p className="mb-1.5 px-1 text-[11px] leading-relaxed text-muted-foreground">
-              {describeTotals(totalCost(costs), 28)}
+              {describeTotals(totalCost(costs))}
             </p>
           ) : null}
           <ChatComposer

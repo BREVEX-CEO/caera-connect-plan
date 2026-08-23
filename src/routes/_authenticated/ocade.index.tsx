@@ -109,7 +109,6 @@ import { Seal, describeSeal } from "@/lib/edge/sealed-mode";
 import { installConversationSeal } from "@/lib/edge/seal-policy";
 import { preflight, summarise as summarisePreflight } from "@/lib/edge/preflight";
 import { measureRun, total as totalCost, describeTotals, type RunCost } from "@/lib/edge/meter";
-import { CLOUD_ALLOWANCE } from "@/lib/payments/pricing";
 import { append as appendLedger, type LedgerEntry } from "@/lib/edge/ledger";
 import { emptyTree, type Tree } from "@/lib/edge/checkpoints";
 import { recordTurn } from "@/lib/edge/session";
@@ -200,6 +199,16 @@ import {
 export const Route = createFileRoute("/_authenticated/ocade/")({
   head: () => ({
     meta: [{ title: "OCADE — CAERA CADANE" }, { name: "robots", content: "noindex" }],
+  }),
+  /*
+   * `?conversation=<id>` so a search result can open the conversation it
+   * actually matched rather than dropping the reader at the top of Chat and
+   * leaving them to find it. Validated rather than trusted: anything that is
+   * not a string becomes undefined, so a hand-edited URL cannot push a
+   * non-string into the id state.
+   */
+  validateSearch: (raw: Record<string, unknown>): { conversation?: string } => ({
+    conversation: typeof raw.conversation === "string" ? raw.conversation : undefined,
   }),
   component: OcadePage,
 });
@@ -335,7 +344,13 @@ function OcadePage() {
 
 function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: string }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  /*
+   * Seeded from `?conversation=`, so a deep link from Search opens that
+   * conversation. `useState`'s initialiser rather than an effect: setting it
+   * afterwards would render the empty state first and flash.
+   */
+  const requestedConversation = Route.useSearch().conversation;
+  const [activeId, setActiveId] = useState<string | null>(requestedConversation ?? null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -3065,13 +3080,17 @@ function ChatSurface(props: {
               ) : null}
 
               {/*
-                What this conversation cost, against the allowance the user
-                actually has. Hidden until there is something real to report —
-                a running total of zero is noise.
+                What this conversation cost on this machine. Hidden until there
+                is something real to report — a running total of zero is noise.
+
+                The second argument used to be CLOUD_ALLOWANCE, so this line
+                compared on-device work against a metered cloud service OCADE
+                does not have. Importing a payment constant into Chat to say
+                that was the coupling as well as the falsehood.
               */}
               {costs.length > 0 ? (
                 <p className="mt-2 px-1 text-[11px] leading-relaxed text-muted-foreground">
-                  {describeTotals(totalCost(costs), CLOUD_ALLOWANCE)}
+                  {describeTotals(totalCost(costs))}
                 </p>
               ) : null}
               {!streaming && citationError ? (

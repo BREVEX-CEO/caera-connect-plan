@@ -109,29 +109,28 @@ describe("totals add up across a conversation", () => {
     expect(totals.energyWh).toBeCloseTo(22, 3);
   });
 
-  it("states the counterfactual, which is the actual argument", () => {
+  it("reports what this device did, with no allowance to compare against", () => {
     const totals = total([
       measureRun({ where: "local", durationMs: 5_000 }),
       measureRun({ where: "local", durationMs: 5_000 }),
     ]);
-    const text = describeTotals(totals, 28);
-    expect(text).toMatch(/none of your cloud allowance/i);
-    // The number a user actually feels.
-    expect(text).toMatch(/would have used 2 of 28/);
-  });
-
-  it("does not invent a counterfactual once cloud was genuinely used", () => {
-    const totals = total([
-      measureRun({ where: "local", durationMs: 5_000 }),
-      measureRun({ where: "cloud", durationMs: 900 }),
-    ]);
-    const text = describeTotals(totals, 28);
-    expect(text).toMatch(/1 used OCADE Cloud/);
-    expect(text).not.toMatch(/would have used/);
+    const text = describeTotals(totals);
+    expect(text).toMatch(/2 answers ran on your own hardware/i);
+    expect(text).toMatch(/nothing was metered and nothing left this device/i);
+    /*
+     * These two assertions are inverted from what they were, deliberately.
+     * The line used to end "...and none of your cloud allowance" and
+     * "The same conversation on a cloud-only assistant would have used 2 of
+     * 28" — both describing a metered service OCADE no longer has, and the
+     * second being a claim about a competitor rather than about this machine.
+     */
+    expect(text).not.toMatch(/allowance/i);
+    expect(text).not.toMatch(/would have used/i);
+    expect(text).not.toMatch(/cloud/i);
   });
 
   it("says nothing has happened rather than reporting zeroes", () => {
-    expect(describeTotals(total([]), 28)).toMatch(/nothing has been asked/i);
+    expect(describeTotals(total([]))).toMatch(/nothing has been asked/i);
   });
 });
 
@@ -206,9 +205,18 @@ describe("the signed-in chat meters its own conversation", () => {
     expect(c, "the cost was hardcoded to local").not.toMatch(/measureRun\(\{ where: "local"/);
   });
 
-  it("compares against the real allowance, not a literal", () => {
-    // A hardcoded 28 here would drift the moment the plan changed.
-    expect(code(CHAT)).toMatch(/describeTotals\(totalCost\(costs\), CLOUD_ALLOWANCE\)/);
+  it("meters this device only, with no payment constant coupled into Chat", () => {
+    /*
+     * This asserted `describeTotals(totalCost(costs), CLOUD_ALLOWANCE)` — that
+     * the allowance came from the pricing module rather than a literal, which
+     * was the right check while a metered cloud engine existed. It does not,
+     * so the assertion is inverted: Chat must not import a payment constant at
+     * all, and the meter takes one argument.
+     */
+    const c = code(CHAT);
+    expect(c).toMatch(/describeTotals\(totalCost\(costs\)\)/);
+    expect(c).not.toMatch(/CLOUD_ALLOWANCE/);
+    expect(c).not.toMatch(/payments\/pricing/);
   });
 
   it("clears the tally when the conversation changes", () => {
