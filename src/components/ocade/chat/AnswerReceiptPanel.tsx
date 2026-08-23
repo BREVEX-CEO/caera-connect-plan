@@ -117,6 +117,21 @@ export function AnswerReceiptPanel({
             </div>
           ) : null}
 
+          {receipt.networkUses?.length ? (
+            <div>
+              <p className="flex items-center gap-1.5 font-medium text-foreground">
+                <Globe className="h-3 w-3" aria-hidden /> Network retrieval
+              </p>
+              <ul className="mt-1 flex flex-col gap-0.5 text-muted-foreground">
+                {receipt.networkUses.map((use) => (
+                  <li key={`${use.purpose}-${use.retrievedAt}`}>
+                    {use.provider} · {use.contacted.join(", ")} · local generation
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           {/*
             The limits of the measurement, in the same panel that makes the
             claim. Putting them anywhere else would be choosing which half of

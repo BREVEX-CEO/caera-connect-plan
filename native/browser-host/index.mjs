@@ -8,7 +8,7 @@
  * extension, and never accepts an unrestricted JavaScript expression.
  */
 import { createHash } from "node:crypto";
-import { access, mkdir, realpath } from "node:fs/promises";
+import { access, mkdir, open, realpath, stat } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { homedir, platform } from "node:os";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
@@ -107,14 +107,35 @@ function browserPaths(kind) {
 
 async function detectBrowser(kind) {
   for (const candidate of browserPaths(kind)) {
-    try {
-      await access(candidate, fsConstants.X_OK);
-      return candidate;
-    } catch {
-      // Keep looking.
-    }
+    if (await isRunnableBrowser(candidate)) return candidate;
   }
   return null;
+}
+
+async function isRunnableBrowser(candidate) {
+  try {
+    const metadata = await stat(candidate);
+    if (!metadata.isFile()) return false;
+    if (platform() !== "win32") {
+      await access(candidate, fsConstants.X_OK);
+      return true;
+    }
+
+    // Windows' X_OK is only an existence check. Requiring a real PE executable
+    // keeps an arbitrary text file supplied through OCADE_BROWSER_PATH from
+    // being accepted and handed to Playwright as though it were Chrome.
+    if (!candidate.toLowerCase().endsWith(".exe")) return false;
+    const handle = await open(candidate, "r");
+    try {
+      const magic = Buffer.alloc(2);
+      const { bytesRead } = await handle.read(magic, 0, magic.length, 0);
+      return bytesRead === 2 && magic[0] === 0x4d && magic[1] === 0x5a;
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    return false;
+  }
 }
 
 function managedRoot() {

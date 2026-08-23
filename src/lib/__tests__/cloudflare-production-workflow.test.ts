@@ -1,7 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const workflow = readFileSync(".github/workflows/cloudflare-production.yml", "utf8");
+const workflow = readFileSync(".github/workflows/cloudflare-production.yml", "utf8").replace(
+  /\r\n/g,
+  "\n",
+);
 
 describe("the Cloudflare production workflow stays under human control", () => {
   it("can only be started manually", () => {

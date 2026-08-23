@@ -203,23 +203,26 @@ describe("the approved folder is a real boundary", () => {
    * genuinely different directories, so folding let a target outside the
    * approved root pass as though it were inside it.
    */
-  it("REFUSES a sibling folder that differs from the root only by case", async () => {
-    const upper = `${root}-CASE`;
-    const lower = `${root}-case`;
-    await mkdir(upper);
-    await mkdir(lower);
-    try {
-      await writeFile(join(upper, "secret.txt"), "top secret", "utf8");
-      // Approve the lowercase folder, then aim at the uppercase one.
-      const r = await readTextFile(realFs, lower, join(upper, "secret.txt"));
-      expect(r.ok).toBe(false);
-      if (r.ok) throw new Error("unreachable");
-      expect(r.reason).toMatch(/outside the folder you approved/i);
-    } finally {
-      await rm(upper, { recursive: true, force: true });
-      await rm(lower, { recursive: true, force: true });
-    }
-  });
+  it.skipIf(process.platform === "win32")(
+    "REFUSES a sibling folder that differs from the root only by case",
+    async () => {
+      const upper = `${root}-CASE`;
+      const lower = `${root}-case`;
+      await mkdir(upper);
+      await mkdir(lower);
+      try {
+        await writeFile(join(upper, "secret.txt"), "top secret", "utf8");
+        // Approve the lowercase folder, then aim at the uppercase one.
+        const r = await readTextFile(realFs, lower, join(upper, "secret.txt"));
+        expect(r.ok).toBe(false);
+        if (r.ok) throw new Error("unreachable");
+        expect(r.reason).toMatch(/outside the folder you approved/i);
+      } finally {
+        await rm(upper, { recursive: true, force: true });
+        await rm(lower, { recursive: true, force: true });
+      }
+    },
+  );
 
   /**
    * REGRESSION. Paths were lowercased BEFORE being handed to `realpath`, so on

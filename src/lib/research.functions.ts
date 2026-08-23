@@ -25,6 +25,12 @@ import { runResearch, type ResearchResult } from "@/lib/research/research-run";
 import { createHttpSourceFetcher } from "@/lib/research/http-source";
 import { ResearchCache, type Volatility } from "@/lib/research/research-cache";
 import type { SourceRecord, SourceKind } from "@/lib/research/source-ranking";
+import { searchWeb } from "@/lib/research/web-search";
+import {
+  collectCurrentInformation,
+  type CurrentInformationPacket,
+} from "@/lib/research/current-information";
+import { guardPublicNetworkUrl } from "@/lib/research/public-network.server";
 
 /**
  * Hosts a research run may reach.
@@ -150,4 +156,60 @@ export const runResearchQuery = createServerFn({ method: "POST" })
     return outcome.ok
       ? { ok: true, result: outcome.data, allowedHosts }
       : { ok: false, reason: outcome.reason, allowedHosts };
+  });
+
+const currentInformationInput = z.object({
+  query: z.string().trim().min(3).max(500),
+  volatility: z.enum(["realtime", "hourly", "daily", "stable"]),
+});
+
+export type CurrentInformationResponse =
+  { ok: true; packet: CurrentInformationPacket } | { ok: false; reason: string };
+
+/**
+ * Production Chat current-information boundary.
+ *
+ * Discovery is a normal non-AI search request. The caller cannot choose a
+ * provider, an allowlist, a redirect policy, a byte budget, or an address. All
+ * of those stay on the server, while final reasoning remains in the browser's
+ * local model.
+ */
+export const retrieveCurrentInformation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((raw: unknown) => currentInformationInput.parse(raw))
+  .handler(async ({ data }): Promise<CurrentInformationResponse> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 40_000);
+    try {
+      const searched = await searchWeb(data.query, { signal: controller.signal, limit: 8 });
+      if (!searched.ok) return searched;
+
+      const screened = [];
+      for (const candidate of searched.results) {
+        const refusal = await guardPublicNetworkUrl(new URL(candidate.url));
+        if (!refusal) screened.push(candidate);
+      }
+      if (screened.length === 0) {
+        return { ok: false, reason: "Search returned no safely reachable public sources." };
+      }
+
+      const allowedHosts = [
+        ...new Set(screened.map((candidate) => new URL(candidate.url).hostname)),
+      ];
+      const fetcher = createHttpSourceFetcher({
+        allowedHosts,
+        maxBytes: 256 * 1024,
+        maxRedirects: 2,
+        networkGuard: guardPublicNetworkUrl,
+      });
+      return await collectCurrentInformation({
+        query: data.query,
+        candidates: screened,
+        fetcher,
+        signal: controller.signal,
+        maxSources: 4,
+      });
+    } finally {
+      clearTimeout(timer);
+    }
   });

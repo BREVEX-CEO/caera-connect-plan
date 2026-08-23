@@ -42,6 +42,19 @@ export interface SourceUse {
   passagesUsed: number;
   /** Sections the document was split into. */
   passagesTotal: number;
+  category?: "attached_document" | "project_context" | "internet_evidence";
+  url?: string;
+  domain?: string;
+  publishedAt?: string | null;
+  retrievedAt?: string;
+}
+
+export interface NetworkUse {
+  purpose: "current_information";
+  provider: string;
+  contacted: string[];
+  querySent: boolean;
+  retrievedAt: string;
 }
 
 export interface AnswerReceipt {
@@ -55,6 +68,8 @@ export interface AnswerReceipt {
   /** Digest of the answer as delivered. */
   answerSha256: string;
   sources: SourceUse[];
+  /** Explicit server-side retrieval that browser resource timing cannot see. */
+  networkUses?: NetworkUse[];
   /**
    * Whether anything left this device while the answer was produced.
    *
@@ -86,6 +101,7 @@ export interface ReceiptInput {
   prompt: string;
   answer: string;
   sources: SourceUse[];
+  networkUses?: NetworkUse[];
   observation: NetworkObservation;
   blindSpots: string[];
   startedAt: Date;
@@ -115,7 +131,9 @@ export async function buildReceipt(input: ReceiptInput): Promise<AnswerReceipt> 
   const revealing = input.observation.contacts.filter(
     (c) => c.kind === "data" || c.kind === "third_party",
   );
-  const leftDevice = input.observation.measured ? revealing.length > 0 : null;
+  const explicitContacts = (input.networkUses ?? []).flatMap((use) => use.contacted);
+  const leftDevice =
+    explicitContacts.length > 0 ? true : input.observation.measured ? revealing.length > 0 : null;
 
   return {
     messageId: input.messageId,
@@ -124,11 +142,19 @@ export async function buildReceipt(input: ReceiptInput): Promise<AnswerReceipt> 
     promptSha256,
     answerSha256,
     sources: input.sources,
+    ...(input.networkUses && input.networkUses.length > 0
+      ? { networkUses: input.networkUses }
+      : {}),
     leftDevice,
     // Only the contacts that could have carried content OFF the machine.
     // Listing the app's own asset requests, or an engine on localhost, would
     // put an on-device address in a "sent to" line.
-    contacted: input.observation.measured ? [...new Set(revealing.map((c) => c.origin))] : [],
+    contacted: [
+      ...new Set([
+        ...(input.observation.measured ? revealing.map((c) => c.origin) : []),
+        ...explicitContacts,
+      ]),
+    ],
     localServer: input.observation.contacts.find((c) => c.kind === "loopback")?.origin ?? null,
     blindSpots: input.blindSpots,
     startedAt: input.startedAt.toISOString(),
@@ -154,6 +180,13 @@ export function verdict(receipt: AnswerReceipt): {
     };
   }
   if (receipt.leftDevice) {
+    const research = receipt.networkUses?.find((use) => use.purpose === "current_information");
+    if (research) {
+      return {
+        tone: "sent",
+        headline: `The answer was generated on this device after OCADE used ${research.provider} to retrieve current information from ${research.contacted.length} ${research.contacted.length === 1 ? "source" : "sources"}. No hosted AI received the prompt.`,
+      };
+    }
     return {
       tone: "sent",
       headline: `This answer used ${receipt.engineLabel}, and your browser recorded requests to ${receipt.contacted.join(", ")}.`,
@@ -185,13 +218,18 @@ export function verdict(receipt: AnswerReceipt): {
  * the difference between a citation and a claim.
  */
 export function describeSourceUse(use: SourceUse): string {
-  if (use.passagesTotal === 0) return `${use.name} — nothing readable was extracted.`;
+  if (use.category === "internet_evidence") {
+    const date = use.publishedAt ?? use.retrievedAt;
+    return `${use.name} — current-information evidence from ${use.domain ?? "the web"}${date ? ` (${date})` : ""}.`;
+  }
+  const prefix = use.category === "project_context" ? "Project context: " : "";
+  if (use.passagesTotal === 0) return `${prefix}${use.name} — nothing readable was extracted.`;
   if (use.passagesUsed >= use.passagesTotal) {
-    return `${use.name} — read in full (${use.passagesTotal} ${
+    return `${prefix}${use.name} — read in full (${use.passagesTotal} ${
       use.passagesTotal === 1 ? "section" : "sections"
     }).`;
   }
-  return `${use.name} — ${use.passagesUsed} of ${use.passagesTotal} sections were used; the rest were searched and did not match.`;
+  return `${prefix}${use.name} — ${use.passagesUsed} of ${use.passagesTotal} sections were used; the rest were searched and did not match.`;
 }
 
 /**
@@ -213,7 +251,17 @@ export async function receiptDigest(receipt: AnswerReceipt): Promise<string> {
     [...receipt.contacted].sort().join(","),
     receipt.localServer ?? "",
     receipt.sources
-      .map((s) => `${s.name}:${s.sha256}:${s.passagesUsed}/${s.passagesTotal}`)
+      .map(
+        (s) =>
+          `${s.category ?? "attached_document"}:${s.name}:${s.sha256}:${s.passagesUsed}/${s.passagesTotal}:${s.url ?? ""}:${s.retrievedAt ?? ""}`,
+      )
+      .sort()
+      .join("|"),
+    (receipt.networkUses ?? [])
+      .map(
+        (use) =>
+          `${use.purpose}:${use.provider}:${use.querySent}:${[...use.contacted].sort().join(",")}:${use.retrievedAt}`,
+      )
       .sort()
       .join("|"),
     receipt.startedAt,
@@ -257,6 +305,14 @@ export function receiptToText(receipt: AnswerReceipt, digest: string): string {
   if (receipt.sources.length > 0) {
     lines.push("", "What it read:");
     for (const source of receipt.sources) lines.push(`  - ${describeSourceUse(source)}`);
+  }
+  if (receipt.networkUses?.length) {
+    lines.push("", "Network retrieval:");
+    for (const use of receipt.networkUses) {
+      lines.push(
+        `  - ${use.provider}: ${use.querySent ? "query sent" : "query not sent"}; ${use.contacted.join(", ")}`,
+      );
+    }
   }
   if (receipt.blindSpots.length > 0) {
     lines.push("", "What this check cannot see:");

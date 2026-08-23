@@ -27,11 +27,21 @@ function validCitation(value: unknown): value is Citation {
   const citation = value as Partial<Citation>;
   return (
     typeof citation.sourceId === "string" &&
-    /^S\d+$/.test(citation.sourceId) &&
+    /^(?:S|W)\d+$/.test(citation.sourceId) &&
     typeof citation.name === "string" &&
     typeof citation.kind === "string" &&
     validLocator(citation.locator) &&
-    (citation.snippet === null || typeof citation.snippet === "string")
+    (citation.snippet === null || typeof citation.snippet === "string") &&
+    (citation.provenance === undefined ||
+      citation.provenance === "attached_document" ||
+      citation.provenance === "project_context" ||
+      citation.provenance === "internet_evidence") &&
+    (citation.url === undefined || typeof citation.url === "string") &&
+    (citation.domain === undefined || typeof citation.domain === "string") &&
+    (citation.publishedAt === undefined ||
+      citation.publishedAt === null ||
+      typeof citation.publishedAt === "string") &&
+    (citation.retrievedAt === undefined || typeof citation.retrievedAt === "string")
   );
 }
 

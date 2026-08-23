@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { execFile } from "node:child_process";
-import { mkdtemp, writeFile, chmod, rm, readFile } from "node:fs/promises";
+import { mkdtemp, writeFile, chmod, rm, readFile, copyFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -43,9 +43,13 @@ describe("the browser host finds a browser that is genuinely installed", () => {
   it("honours OCADE_BROWSER_PATH, so an unlisted location is still reachable", async () => {
     const dir = await mkdtemp(join(tmpdir(), "ocade-browser-"));
     try {
-      const fake = join(dir, "chrome");
-      await writeFile(fake, "#!/bin/sh\nexit 0\n", "utf8");
-      await chmod(fake, 0o755);
+      const fake = join(dir, process.platform === "win32" ? "chrome.exe" : "chrome");
+      if (process.platform === "win32") {
+        await copyFile(process.execPath, fake);
+      } else {
+        await writeFile(fake, "#!/bin/sh\nexit 0\n", "utf8");
+        await chmod(fake, 0o755);
+      }
 
       const result = await selfTest({ OCADE_BROWSER_PATH: fake });
       expect(result.chrome).toBe(fake);
@@ -57,7 +61,7 @@ describe("the browser host finds a browser that is genuinely installed", () => {
   it("does not accept a path that is not executable", async () => {
     const dir = await mkdtemp(join(tmpdir(), "ocade-browser-"));
     try {
-      const notExecutable = join(dir, "chrome");
+      const notExecutable = join(dir, process.platform === "win32" ? "chrome.exe" : "chrome");
       await writeFile(notExecutable, "not a browser", "utf8");
       await chmod(notExecutable, 0o644);
 

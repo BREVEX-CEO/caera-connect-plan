@@ -32,7 +32,8 @@ export interface IndexedSource {
   /** Stable marker id, e.g. "S1". */
   id: string;
   name: string;
-  kind: DocumentKind;
+  kind: DocumentKind | "web";
+  provenance?: "attached_document" | "project_context" | "internet_evidence";
   /** False when OCADE could not actually read the content. */
   readable: boolean;
   /** Why it is unreadable — surfaced instead of a fake citation. */
@@ -40,15 +41,24 @@ export interface IndexedSource {
   /** Bounded text used as model context. */
   text: string | null;
   locator: SourceLocator;
+  url?: string;
+  domain?: string;
+  publishedAt?: string | null;
+  retrievedAt?: string;
 }
 
 export interface Citation {
   sourceId: string;
   name: string;
-  kind: DocumentKind;
+  kind: DocumentKind | "web";
+  provenance?: "attached_document" | "project_context" | "internet_evidence";
   locator: SourceLocator;
   /** Short quoted evidence from the source, when locatable. */
   snippet: string | null;
+  url?: string;
+  domain?: string;
+  publishedAt?: string | null;
+  retrievedAt?: string;
 }
 
 /** Build a stable, ordered source index from extraction results. */
@@ -93,7 +103,7 @@ export function citationInstruction(sources: IndexedSource[]): string {
   );
 }
 
-const MARKER = /\[(S\d+)\]/g;
+const MARKER = /\[((?:S|W)\d+)\]/g;
 
 /**
  * Extract citations from an answer. Unknown or unreadable ids are dropped so a
@@ -144,8 +154,13 @@ export function parseCitations(answer: string, sources: IndexedSource[]): Citati
       sourceId: src.id,
       name: src.name,
       kind: src.kind,
+      provenance: src.provenance,
       locator: quotedLine ? { ...src.locator, line: quotedLine } : src.locator,
       snippet: quotedLine ? quoted : firstMeaningfulLine(src.text),
+      url: src.url,
+      domain: src.domain,
+      publishedAt: src.publishedAt,
+      retrievedAt: src.retrievedAt,
     });
   }
   return out;

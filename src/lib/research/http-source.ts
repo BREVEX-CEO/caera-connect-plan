@@ -22,6 +22,12 @@ export interface HttpSourceOptions {
   fetch?: FetchLike;
   maxBytes?: number;
   maxRedirects?: number;
+  /**
+   * Server-side DNS/address guard. It runs immediately before every request,
+   * including redirects. The browser implementation may omit it because the
+   * browser cannot reach private network targets through this server fetcher.
+   */
+  networkGuard?: (url: URL) => Promise<string | null>;
 }
 
 export function validateResearchUrl(raw: string, allowedHosts: string[]): UrlValidation {
@@ -85,6 +91,10 @@ export function createHttpSourceFetcher(options: HttpSourceOptions): SourceFetch
     if (!checked.ok) return { result: "hard", error: checked.reason };
 
     for (let redirect = 0; redirect <= maxRedirects; redirect++) {
+      if (options.networkGuard) {
+        const refused = await options.networkGuard(checked.url);
+        if (refused) return { result: "hard", error: refused };
+      }
       let response: Response;
       try {
         response = await request(checked.url.toString(), {

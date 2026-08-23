@@ -139,14 +139,40 @@ const probes = await Promise.all(
 );
 const internetReachable = probes.some((p) => p.reachable);
 const probeDetail = probes.map((p) => p.detail).join(", ");
-await ask(
-  "6 offline — answered with no route to any public host",
-  [{ role: "user", content: "What is the capital of France?" }],
-  (a) => /paris/i.test(a),
-  internetReachable
-    ? `WARNING: a public host answered (${probeDetail}), so this is NOT an offline result`
-    : `verified offline: no public host reachable (${probeDetail})`,
-);
+/*
+ * A connected runner can still prove the offline path by closing public egress
+ * around the request. The planted guard allows loopback (the local engine) and
+ * rejects every public destination. We probe before installing it so the
+ * receipt distinguishes a naturally offline machine from a deliberately
+ * isolated test; both are real "no public route during generation" evidence.
+ */
+const realFetch = globalThis.fetch;
+let blockedPublicRequests = 0;
+globalThis.fetch = async (input, init) => {
+  const url = new URL(typeof input === "string" || input instanceof URL ? input : input.url);
+  const loopback =
+    url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "::1";
+  if (!loopback) {
+    blockedPublicRequests++;
+    throw new TypeError("offline proof guard refused public network access");
+  }
+  return await realFetch(input, init);
+};
+try {
+  await ask(
+    "6 offline — answered while public egress is blocked",
+    [{ role: "user", content: "What is the capital of France?" }],
+    (a) => /paris/i.test(a),
+    internetReachable
+      ? `verified offline: public hosts were reachable before isolation (${probeDetail}); the proof guard then refused public egress during generation`
+      : `verified offline: no public host reachable before generation (${probeDetail})`,
+  );
+} finally {
+  globalThis.fetch = realFetch;
+}
+if (internetReachable && blockedPublicRequests !== 0) {
+  throw new Error("The offline answer tried to use a public host; the guard had to stop it.");
+}
 
 /* 7. IMAGE UPLOAD → VISION, on the wire and not merely intended */
 /*

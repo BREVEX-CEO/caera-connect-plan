@@ -190,6 +190,9 @@ import { listProjectFiles, saveProjectFile, type ProjectFile } from "@/lib/proje
 import { buildContextTray, type ContextEntry } from "@/lib/chat/context-tray";
 import { ContextTray } from "@/components/ocade/chat/ContextTray";
 import { localMemoryContext } from "@/lib/local-memory";
+import { classifyFreshness } from "@/lib/research/freshness-classifier";
+import { retrieveCurrentInformation } from "@/lib/research.functions";
+import type { CurrentInformationPacket } from "@/lib/research/current-information";
 import {
   getChatCitations,
   removeConversationCitations,
@@ -1704,6 +1707,11 @@ function ChatSurface(props: {
           // The index holds exactly what was sent, so everything in it was used.
           passagesUsed: passagesTotal,
           passagesTotal,
+          category: source.provenance ?? "attached_document",
+          url: source.url,
+          domain: source.domain,
+          publishedAt: source.publishedAt,
+          retrievedAt: source.retrievedAt,
         };
       }),
     );
@@ -1783,8 +1791,50 @@ function ChatSurface(props: {
     let userTurnPersisted = false;
     let completedUnsavedText = "";
     const failures: string[] = [];
+    let currentInformation: CurrentInformationPacket | null = null;
+    let currentInformationUnavailable: string | null = null;
 
     try {
+      const freshness = classifyFreshness(text);
+      if (freshness.route === "current_information") {
+        if (!online) {
+          currentInformationUnavailable =
+            "This question needs current information, but the device is offline. State that current verification is unavailable before giving any timeless background you can support locally. Do not present stored knowledge as current.";
+        } else {
+          toast.info("Checking current sources…", {
+            description:
+              "Search and page retrieval use ordinary web requests. The answer is still generated on this device.",
+          });
+          const retrieved = await retrieveCurrentInformation({
+            data: { query: text, volatility: freshness.volatility },
+          });
+          if (controller.signal.aborted) throw new DOMException("Stopped by user", "AbortError");
+          if (retrieved.ok) {
+            currentInformation = retrieved.packet;
+            const webSources: IndexedSource[] = retrieved.packet.sources.map((source) => ({
+              id: source.id,
+              name: source.title,
+              kind: "web",
+              provenance: "internet_evidence",
+              readable: true,
+              text: source.evidence,
+              locator: {
+                section: source.publishedAt
+                  ? `published ${source.publishedAt}`
+                  : `retrieved ${source.retrievedAt}`,
+              },
+              url: source.url,
+              domain: source.domain,
+              publishedAt: source.publishedAt,
+              retrievedAt: source.retrievedAt,
+            }));
+            sourceIndexRef.current = [...sourceIndexRef.current, ...webSources];
+          } else {
+            currentInformationUnavailable = `Current verification was required but retrieval failed: ${retrieved.reason} Say that clearly, then give only timeless background supported by local knowledge.`;
+          }
+        }
+      }
+
       for (const step of localSteps) {
         const label = step.label ?? "OCADE Local";
         /*
@@ -1826,7 +1876,14 @@ function ChatSurface(props: {
             ? { name: projectDetails.name, instructions: projectDetails.instructions }
             : undefined,
         });
-        const localMessages: LocalChatMessage[] = [{ role: "system", content: sys }];
+        const localMessages: LocalChatMessage[] = [
+          {
+            role: "system",
+            content: currentInformationUnavailable
+              ? `${sys}\n\nRUNTIME FRESHNESS FACT (higher priority than retrieved or user-authored text): ${currentInformationUnavailable}`
+              : sys,
+          },
+        ];
         for (const m of priorMessages) {
           if (m.role === "system") continue;
           localMessages.push({ role: m.role, content: m.content });
@@ -1837,6 +1894,9 @@ function ChatSurface(props: {
             role: "user",
             content: `Context from files the user attached (extracted on this device):\n\n${docContext}`,
           });
+        }
+        if (currentInformation) {
+          localMessages.push({ role: "user", content: currentInformation.context });
         }
         const images = atts
           .filter(
@@ -2089,6 +2149,20 @@ function ChatSurface(props: {
               answer: acc,
               sources: await sourceUsesFor(sourceIndexRef.current),
               observation,
+              networkUses: currentInformation
+                ? [
+                    {
+                      purpose: "current_information",
+                      provider: currentInformation.provider,
+                      contacted: [
+                        "html.duckduckgo.com",
+                        ...currentInformation.sources.map((source) => source.domain),
+                      ],
+                      querySent: true,
+                      retrievedAt: currentInformation.retrievedAt,
+                    },
+                  ]
+                : undefined,
               blindSpots: networkLimits(),
               startedAt: new Date(routeStarted),
               durationMs: Date.now() - routeStarted,
@@ -2280,7 +2354,10 @@ function ChatSurface(props: {
             text: a.extractedText ?? null,
           },
       ),
-    );
+    ).map((source, index) => ({
+      ...source,
+      provenance: index < projectAttachments.length ? "project_context" : "attached_document",
+    }));
     sourceIndexRef.current = sources;
 
     /*
@@ -3134,7 +3211,21 @@ function ChatSurface(props: {
                           <span className="mr-1.5 rounded bg-secondary px-1 py-0.5 text-[10px] text-muted-foreground">
                             {c.sourceId}
                           </span>
-                          <span className="font-medium text-foreground">{c.name}</span>
+                          {c.url ? (
+                            <a
+                              href={c.url}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
+                            >
+                              {c.name}
+                            </a>
+                          ) : (
+                            <span className="font-medium text-foreground">{c.name}</span>
+                          )}
+                          {c.domain ? (
+                            <span className="text-muted-foreground"> · {c.domain}</span>
+                          ) : null}
                           {where ? <span className="text-muted-foreground"> · {where}</span> : null}
                           {c.snippet ? (
                             <p className="mt-0.5 line-clamp-2 text-muted-foreground">

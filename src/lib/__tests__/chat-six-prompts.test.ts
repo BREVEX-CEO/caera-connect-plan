@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { join } from "node:path";
 
 const run = promisify(execFile);
 
@@ -13,7 +14,8 @@ const run = promisify(execFile);
  */
 describe("the chat prompts go through the real chat pipeline", () => {
   it("answers all of them correctly and records what it measured", async () => {
-    const { stdout } = await run("npx", ["vite-node", "scripts/e2e/chat-six-prompts.mjs"], {
+    const viteNode = join(process.cwd(), "node_modules", "vite-node", "vite-node.mjs");
+    const { stdout } = await run(process.execPath, [viteNode, "scripts/e2e/chat-six-prompts.mjs"], {
       timeout: 300_000,
       maxBuffer: 8 * 1024 * 1024,
     });
@@ -37,7 +39,9 @@ describe("the chat prompts go through the real chat pipeline", () => {
     }
 
     // The offline prompt must have CONFIRMED it was offline, not assumed it.
-    expect(stdout).toMatch(/verified offline: no public host reachable/);
+    expect(stdout).toMatch(
+      /verified offline: (?:no public host reachable|public hosts were reachable before isolation.*proof guard then refused public egress)/,
+    );
 
     // And the image prompt must have confirmed the bytes ARRIVED at the engine.
     // "an image row exists" would pass even if the picture were dropped on the
