@@ -33,20 +33,39 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
-  listProjects,
-  createProject,
-  updateProject,
-  deleteProject,
-  listOutputs,
-  getOutput,
-  createOutput,
-  deleteOutput,
-  purgeExpiredOutputs,
   listProjectConversations,
   setConversationProject,
   type OcadeProject,
   type ProjectConversation,
 } from "@/lib/ocade-projects.functions";
+/*
+ * PROJECTS GO THROUGH THE PRIVACY GATE, NOT STRAIGHT TO THE SERVER.
+ *
+ * This imported the server functions directly, which meant every project name,
+ * every one of the twenty thousand characters of project instructions a person
+ * may write, and every saved output was inserted into Supabase regardless of
+ * the storage mode they had chosen — while Settings › Privacy told them, in
+ * those words, that "Browser Only writes never reach the cloud". Chat honoured
+ * that setting; this page did not, so the promise was true where they could
+ * check it and false where they could not.
+ *
+ * `ocade-projects-store` resolves the person's choice first. In Browser Only it
+ * does not call these server functions at all — there is no request to
+ * intercept and nothing to leak.
+ */
+import {
+  listProjectsFor,
+  createProjectFor,
+  updateProjectFor,
+  deleteProjectFor,
+  listOutputsFor,
+  getOutputFor,
+  createOutputFor,
+  deleteOutputFor,
+  purgeExpiredOutputsFor,
+  projectsStayOnThisDevice,
+} from "@/lib/ocade-projects-store";
+import { useSession } from "@/lib/session";
 import {
   listProjectFiles,
   saveProjectFile,
@@ -85,6 +104,24 @@ interface OutputRow {
 type OutputKind = "document" | "export" | "visual" | "transcript" | "other";
 
 function ProjectsPage() {
+  /*
+   * The privacy gate needs to know whose choice to read, and every store call
+   * is scoped to that person. Projects is only reachable signed in.
+   */
+  const { user } = useSession();
+  const userId = user?.id ?? "";
+  const [staysLocal, setStaysLocal] = useState(false);
+
+  useEffect(() => {
+    if (!userId) return;
+    let live = true;
+    void projectsStayOnThisDevice(userId).then((local) => {
+      if (live) setStaysLocal(local);
+    });
+    return () => {
+      live = false;
+    };
+  }, [userId]);
   const [projects, setProjects] = useState<OcadeProject[] | null>(null);
   const [unavailable, setUnavailable] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -131,9 +168,19 @@ function ProjectsPage() {
   });
 
   const refreshProjects = useCallback(async () => {
+    /*
+     * WAIT FOR THE SESSION, AND RE-RUN WHEN IT ARRIVES.
+     *
+     * `useSession` resolves after first paint, so the first run of this effect
+     * has no user id. Fetching anyway failed and set `unavailable`, and because
+     * `userId` was not in the dependency list nothing ever retried — the page
+     * would have said "Projects aren't available until the database is set up"
+     * permanently, to a signed-in person whose database was fine.
+     */
+    if (!userId) return;
     setUnavailable(null);
     try {
-      const rows = await listProjects({ data: { includeArchived: showArchived } });
+      const rows = await listProjectsFor(userId, { includeArchived: showArchived });
       setProjects(rows);
       setSelectedId((cur) => (cur && rows.some((r) => r.id === cur) ? cur : (rows[0]?.id ?? null)));
     } catch (e) {
@@ -142,7 +189,7 @@ function ProjectsPage() {
         e instanceof Error ? e.message : "Projects aren't available until the database is set up.",
       );
     }
-  }, [showArchived]);
+  }, [showArchived, userId]);
 
   useEffect(() => {
     void refreshProjects();
@@ -184,7 +231,7 @@ function ProjectsPage() {
       try {
         const [c, o, u] = await Promise.all([
           listProjectConversations({ data: { projectId: selected.id } }),
-          listOutputs({ data: { projectId: selected.id } }),
+          listOutputsFor(userId, { projectId: selected.id }),
           listProjectConversations({ data: { projectId: null } }),
         ]);
         if (!live) return;
@@ -292,7 +339,7 @@ function ProjectsPage() {
     if (!name) return;
     setCreating(true);
     try {
-      const p = await createProject({ data: { name } });
+      const p = await createProjectFor(userId, { name });
       toast.success(`Project “${p.name}” created.`);
       setNewName("");
       await refreshProjects();
@@ -308,12 +355,10 @@ function ProjectsPage() {
     if (!selected) return;
     setBusy(true);
     try {
-      await updateProject({
-        data: {
-          id: selected.id,
-          name: nameDraft.trim() || selected.name,
-          instructions: instructions.trim() ? instructions : null,
-        },
+      await updateProjectFor(userId, {
+        id: selected.id,
+        name: nameDraft.trim() || selected.name,
+        instructions: instructions.trim() ? instructions : null,
       });
       toast.success("Project saved.");
       await refreshProjects();
@@ -327,7 +372,7 @@ function ProjectsPage() {
   async function toggleArchive(p: OcadeProject) {
     setBusy(true);
     try {
-      await updateProject({ data: { id: p.id, archived: !p.archived } });
+      await updateProjectFor(userId, { id: p.id, archived: !p.archived });
       toast.success(p.archived ? "Project restored." : "Project archived.");
       await refreshProjects();
     } catch (e) {
@@ -349,7 +394,7 @@ function ProjectsPage() {
        * would stay behind with no record that they belong to a deleted file.
        */
       const doomed = listProjectFiles(p.id);
-      await deleteProject({ data: { id: p.id } });
+      await deleteProjectFor(userId, p.id);
       if (doomed.ok) {
         for (const file of doomed.data) {
           await deleteAttachment({ name: file.name });
@@ -398,7 +443,11 @@ function ProjectsPage() {
 
   async function openPreview(id: string) {
     try {
-      const row = await getOutput({ data: { id } });
+      const row = await getOutputFor(userId, id);
+      if (!row) {
+        toast.error("That output is no longer available.");
+        return;
+      }
       setPreview({
         id: row.id,
         title: row.title,
@@ -428,19 +477,17 @@ function ProjectsPage() {
     if (!preview || !selected || !previewDraft.trim()) return;
     setSavingVersion(true);
     try {
-      const created = await createOutput({
-        data: {
-          projectId: selected.id,
-          parentOutputId: preview.id,
-          kind: preview.kind,
-          title: preview.title,
-          content: previewDraft,
-          mime: preview.mime,
-          retentionDays: outputRetention === "keep" ? null : Number(outputRetention),
-        },
+      const created = await createOutputFor(userId, {
+        projectId: selected.id,
+        parentOutputId: preview.id,
+        kind: preview.kind,
+        title: preview.title,
+        content: previewDraft,
+        mime: preview.mime,
+        retentionDays: outputRetention === "keep" ? null : Number(outputRetention),
       });
       toast.success(`Saved ${preview.title} as version ${created.version}.`);
-      setOutputs((await listOutputs({ data: { projectId: selected.id } })) as OutputRow[]);
+      setOutputs((await listOutputsFor(userId, { projectId: selected.id })) as OutputRow[]);
       setPreview(null);
     } catch (error) {
       toast.error(
@@ -453,10 +500,10 @@ function ProjectsPage() {
 
   async function removeOutput(id: string) {
     try {
-      await deleteOutput({ data: { id } });
+      await deleteOutputFor(userId, id);
       toast.success("Output deleted.");
       if (selected)
-        setOutputs((await listOutputs({ data: { projectId: selected.id } })) as OutputRow[]);
+        setOutputs((await listOutputsFor(userId, { projectId: selected.id })) as OutputRow[]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not delete the output.");
     }
@@ -464,14 +511,14 @@ function ProjectsPage() {
 
   async function removeExpiredOutputs() {
     try {
-      const result = await purgeExpiredOutputs();
+      const removed = await purgeExpiredOutputsFor(userId);
       toast.success(
-        result.removed > 0
-          ? `${result.removed} expired ${result.removed === 1 ? "output" : "outputs"} deleted.`
+        removed > 0
+          ? `${removed} expired ${removed === 1 ? "output" : "outputs"} deleted.`
           : "No expired outputs to delete.",
       );
       if (selected) {
-        setOutputs((await listOutputs({ data: { projectId: selected.id } })) as OutputRow[]);
+        setOutputs((await listOutputsFor(userId, { projectId: selected.id })) as OutputRow[]);
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not remove expired outputs.");
@@ -496,6 +543,19 @@ function ProjectsPage() {
           </label>
         }
       />
+
+      {/*
+        WHERE THIS DATA LIVES, SAID ON THE PAGE THAT HOLDS IT.
+
+        The privacy setting is two screens away in Settings, and until now this
+        page uploaded everything regardless of it. Saying which mode is in force
+        here is how somebody notices if it is ever wrong again.
+      */}
+      <p className="mt-2 text-xs text-muted-foreground">
+        {staysLocal
+          ? "Projects and saved outputs stay in this browser. Nothing here is uploaded."
+          : "Projects and saved outputs are synchronised to your private account storage."}
+      </p>
 
       {unavailable ? (
         (() => {
@@ -523,11 +583,18 @@ function ProjectsPage() {
             />
           );
         })()
-      ) : projects === null ? (
-        <GlassPanel className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading projects…
-        </GlassPanel>
       ) : (
+        /*
+         * THE SHELL RENDERS WHILE THE LIST LOADS.
+         *
+         * A full-page spinner replaced everything, including the box you type a
+         * new project name into — which is local UI that never needed the
+         * network. Worse, the session resolves after first paint, so there is
+         * always a moment where the whole page is a spinner, and if a person is
+         * signed out the moment lasts forever: no header controls, nothing to
+         * press, nothing explaining why. The loading state now covers only the
+         * part that is actually loading.
+         */
         <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
           {/* Project list + create */}
           <div className="flex flex-col gap-3">
@@ -566,7 +633,11 @@ function ProjectsPage() {
               />
             </GlassPanel>
 
-            {projects.length === 0 ? (
+            {projects === null ? (
+              <GlassPanel className="flex items-center gap-2 p-4 text-xs text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading projects…
+              </GlassPanel>
+            ) : projects.length === 0 ? (
               <EmptyState
                 icon={<FolderOpen className="h-6 w-6" aria-hidden />}
                 title="No projects yet"

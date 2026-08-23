@@ -112,7 +112,13 @@ describe("Chat outputs and project navigation are real surfaces", () => {
     expect(projects).toContain("removeProjectFilesForProject(p.id)");
     expect(projects).toContain("saveNewOutputVersion");
     expect(projects).toContain("parentOutputId: preview.id");
-    expect(projects).toContain("purgeExpiredOutputs()");
+    /*
+     * The sweep is still wired; it now goes through the privacy gate, because
+     * this page used to insert into Supabase whatever storage mode the person
+     * had chosen. `purgeExpiredOutputsFor` delegates to the same server
+     * function for a synced account and sweeps the device for a local one.
+     */
+    expect(projects).toContain("purgeExpiredOutputsFor(userId)");
     expect(chat).toContain("onSaveAttachmentToProject(a)");
     expect(outputs).toContain('.lt("expires_at", new Date().toISOString())');
   });
