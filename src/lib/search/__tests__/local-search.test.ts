@@ -12,6 +12,7 @@ import {
 } from "../local-search";
 import type { LocalConversation } from "@/lib/chat/local-conversations";
 import type { ChatMessageRecord } from "@/lib/ocade-chat-store";
+import type { LocalOutput, LocalProject } from "@/lib/projects/local-projects";
 
 const conv = (over: Partial<LocalConversation> = {}): LocalConversation => ({
   id: "c1",
@@ -86,6 +87,56 @@ describe("a Browser Only conversation is findable", () => {
 
   it("requires two characters", () => {
     expect(searchLocalRecords("t", { conversations: [conv()], messages: [] })).toEqual([]);
+  });
+});
+
+describe("device-first workspace records are findable", () => {
+  const project: LocalProject = {
+    record_type: "project",
+    id: "p1",
+    name: "Launch research",
+    instructions: "Use official sources for the checklist.",
+    archived: false,
+    created_at: "2026-01-01T00:00:00.000Z",
+    updated_at: "2026-01-02T00:00:00.000Z",
+    deleted_at: null,
+  };
+  const output: LocalOutput = {
+    record_type: "output",
+    id: "o1",
+    project_id: "p1",
+    conversation_id: null,
+    parent_output_id: null,
+    kind: "document",
+    title: "Release evidence",
+    content: "The browser proof is attached here.",
+    mime: "text/plain",
+    size_bytes: 35,
+    lineage_id: "l1",
+    version: 1,
+    content_sha256: null,
+    expires_at: null,
+    created_at: "2026-01-03T00:00:00.000Z",
+    updated_at: "2026-01-03T00:00:00.000Z",
+    deleted_at: null,
+  };
+
+  it("finds local project instructions", () => {
+    const found = searchLocalRecords("official", {
+      conversations: [],
+      messages: [],
+      projects: [project],
+    });
+    expect(found[0]).toMatchObject({ kind: "project", title: "Launch research", local: true });
+  });
+
+  it("finds local output content", () => {
+    const found = searchLocalRecords("browser proof", {
+      conversations: [],
+      messages: [],
+      outputs: [output],
+    });
+    expect(found[0]).toMatchObject({ kind: "output", title: "Release evidence", local: true });
   });
 });
 

@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import type { DataClass } from "./types";
 import { drainOutbox, type OutboxEntry, type OutboxStore } from "./outbox";
+import { indexedDbAdapter } from "./indexeddb-adapter";
 
 const QUEUE_KEY = "ocade.sync.outbox.v1";
 
@@ -25,13 +26,38 @@ interface MessagePayload {
   value: unknown;
 }
 
+interface QueuedRecordRef {
+  dataClass: DataClass;
+  id: string;
+}
+
+/**
+ * Remove record bodies written by older builds. The queue is deliberately
+ * plaintext metadata so it can be inspected before vault unlock; user content
+ * must never be part of it.
+ */
+function metadataOnly(entry: OutboxEntry): OutboxEntry {
+  if (entry.kind !== "message" || !entry.payload || typeof entry.payload !== "object") return entry;
+  const payload = entry.payload as Partial<MessagePayload>;
+  if (!payload.dataClass || typeof payload.id !== "string") return entry;
+  return {
+    ...entry,
+    payload: { dataClass: payload.dataClass, id: payload.id } satisfies QueuedRecordRef,
+  };
+}
+
 function read(): OutboxEntry[] {
   if (typeof localStorage === "undefined") return [];
   try {
     const raw = localStorage.getItem(QUEUE_KEY);
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as OutboxEntry[]) : [];
+    if (!Array.isArray(parsed)) return [];
+    const entries = (parsed as OutboxEntry[]).map(metadataOnly);
+    // Rewrite once so plaintext bodies left by an older build are removed as
+    // soon as this version reads the queue.
+    if (JSON.stringify(entries) !== raw) write(entries);
+    return entries;
   } catch {
     /*
      * A corrupt queue must not brick sync. Everything it referenced is still
@@ -77,7 +103,7 @@ export async function enqueue(payload: MessagePayload): Promise<void> {
     id: `put:${payload.dataClass}:${payload.id}`,
     kind: "message",
     conversationId: payload.id,
-    payload,
+    payload: { dataClass: payload.dataClass, id: payload.id } satisfies QueuedRecordRef,
     queuedAt: new Date().toISOString(),
     attempts: 0,
     nextAttemptAt: 0,
@@ -133,13 +159,27 @@ async function deliver(
     return { ok: true };
   }
 
-  const payload = entry.payload as MessagePayload;
+  const payload = entry.payload as QueuedRecordRef;
+  let local;
+  try {
+    local = await indexedDbAdapter.get<unknown>(payload.dataClass, payload.id);
+  } catch (error) {
+    return {
+      ok: false,
+      reason: error instanceof Error ? error.message : "browser vault is locked",
+    };
+  }
+  if (!local) {
+    // A later delete removes the pending put before queuing its tombstone. If
+    // no record exists here, retrying this write can never recover a body.
+    return { ok: false, permanent: true, reason: "local record no longer exists" };
+  }
   const { error } = await supabase.from("user_private_records").upsert(
     {
       user_id,
       data_class: payload.dataClass,
       id: payload.id,
-      value: payload.value as Json,
+      value: local.value as Json,
     },
     /*
      * The upsert key is what makes a retry safe. A send that timed out may

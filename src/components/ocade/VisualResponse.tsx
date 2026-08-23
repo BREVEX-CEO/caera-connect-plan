@@ -13,7 +13,8 @@ import {
   type ChartPoint,
   type DiagramStep,
 } from "@/lib/ocade-visual";
-import { createOutput } from "@/lib/ocade-projects.functions";
+import { createLocalOutput } from "@/lib/projects/local-projects";
+import { useSession } from "@/lib/session";
 
 /**
  * OCADE visual response (Plan §38–41).
@@ -41,6 +42,7 @@ export function VisualResponse({
   conversationId?: string | null;
 }) {
   const { reducedMotion, lowPerformance } = useAppearance();
+  const { user } = useSession();
   const [saving, setSaving] = useState(false);
 
   const plan = useMemo(() => planVisualResponse(answer), [answer]);
@@ -72,21 +74,18 @@ export function VisualResponse({
   async function saveToOutputs() {
     setSaving(true);
     try {
-      await createOutput({
-        data: {
-          projectId: projectId ?? null,
-          conversationId: conversationId ?? null,
-          kind: "visual",
-          title: plan.blocks.find((b) => b.kind === "heading")?.title ?? "Visual response",
-          content: visualPlanToText(plan),
-          mime: "text/plain",
-        },
+      if (!user?.id) throw new Error("Sign in to save this output.");
+      await createLocalOutput(user.id, {
+        projectId: projectId ?? null,
+        conversationId: conversationId ?? null,
+        kind: "visual",
+        title: plan.blocks.find((b) => b.kind === "heading")?.title ?? "Visual response",
+        content: visualPlanToText(plan),
+        mime: "text/plain",
       });
       toast.success("Saved to Outputs.");
     } catch (e) {
-      toast.error(
-        e instanceof Error ? e.message : "Couldn't save — Outputs needs the database migration.",
-      );
+      toast.error(e instanceof Error ? e.message : "Couldn't save this output on the device.");
     } finally {
       setSaving(false);
     }

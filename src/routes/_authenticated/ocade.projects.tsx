@@ -20,7 +20,6 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { SetupRequiredState } from "@/components/shell/SetupRequiredState";
-import { classifyUnavailable } from "@/lib/unavailable-reason";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,21 +31,24 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { type OcadeProject } from "@/lib/ocade-projects.functions";
 import {
-  listProjects,
-  createProject,
-  updateProject,
-  deleteProject,
-  listOutputs,
-  getOutput,
-  createOutput,
-  deleteOutput,
-  purgeExpiredOutputs,
-  listProjectConversations,
-  setConversationProject,
-  type OcadeProject,
-  type ProjectConversation,
-} from "@/lib/ocade-projects.functions";
+  createLocalOutput,
+  createLocalProject,
+  deleteLocalOutput,
+  deleteLocalProject,
+  getLocalOutput,
+  listLocalOutputs,
+  listLocalProjects,
+  purgeExpiredLocalOutputs,
+  updateLocalProject,
+} from "@/lib/projects/local-projects";
+import {
+  listConversationsLocally,
+  updateConversationLocally,
+  type LocalConversation,
+} from "@/lib/chat/local-conversations";
+import { useSession } from "@/lib/session";
 import {
   listProjectFiles,
   saveProjectFile,
@@ -85,6 +87,8 @@ interface OutputRow {
 type OutputKind = "document" | "export" | "visual" | "transcript" | "other";
 
 function ProjectsPage() {
+  const { user } = useSession();
+  const userId = user?.id ?? "";
   const [projects, setProjects] = useState<OcadeProject[] | null>(null);
   const [unavailable, setUnavailable] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
@@ -97,8 +101,8 @@ function ProjectsPage() {
   const [instructions, setInstructions] = useState("");
   const [nameDraft, setNameDraft] = useState("");
 
-  const [conversations, setConversations] = useState<ProjectConversation[] | null>(null);
-  const [unfiled, setUnfiled] = useState<ProjectConversation[] | null>(null);
+  const [conversations, setConversations] = useState<LocalConversation[] | null>(null);
+  const [unfiled, setUnfiled] = useState<LocalConversation[] | null>(null);
   const [outputs, setOutputs] = useState<OutputRow[] | null>(null);
   const [projectFiles, setProjectFiles] = useState<ProjectFile[] | null>(null);
   const [projectFolders, setProjectFolders] = useState<ProjectFolder[] | null>(null);
@@ -133,16 +137,17 @@ function ProjectsPage() {
   const refreshProjects = useCallback(async () => {
     setUnavailable(null);
     try {
-      const rows = await listProjects({ data: { includeArchived: showArchived } });
+      if (!userId) throw new Error("Sign in to open your on-device projects.");
+      const rows = await listLocalProjects(userId, showArchived);
       setProjects(rows);
       setSelectedId((cur) => (cur && rows.some((r) => r.id === cur) ? cur : (rows[0]?.id ?? null)));
     } catch (e) {
       setProjects(null);
       setUnavailable(
-        e instanceof Error ? e.message : "Projects aren't available until the database is set up.",
+        e instanceof Error ? e.message : "Projects aren't available in this browser vault.",
       );
     }
-  }, [showArchived]);
+  }, [showArchived, userId]);
 
   useEffect(() => {
     void refreshProjects();
@@ -182,11 +187,12 @@ function ProjectsPage() {
     let live = true;
     void (async () => {
       try {
-        const [c, o, u] = await Promise.all([
-          listProjectConversations({ data: { projectId: selected.id } }),
-          listOutputs({ data: { projectId: selected.id } }),
-          listProjectConversations({ data: { projectId: null } }),
+        const [allConversations, o] = await Promise.all([
+          listConversationsLocally(userId),
+          listLocalOutputs(userId, selected.id),
         ]);
+        const c = allConversations.filter((row) => row.project_id === selected.id);
+        const u = allConversations.filter((row) => !row.project_id);
         if (!live) return;
         setConversations(c);
         setOutputs(o as OutputRow[]);
@@ -201,7 +207,7 @@ function ProjectsPage() {
     return () => {
       live = false;
     };
-  }, [selected]);
+  }, [selected, userId]);
 
   async function addProjectFiles(files: FileList | null) {
     if (!selected || !files) return;
@@ -292,7 +298,7 @@ function ProjectsPage() {
     if (!name) return;
     setCreating(true);
     try {
-      const p = await createProject({ data: { name } });
+      const p = await createLocalProject(userId, { name });
       toast.success(`Project “${p.name}” created.`);
       setNewName("");
       await refreshProjects();
@@ -308,12 +314,9 @@ function ProjectsPage() {
     if (!selected) return;
     setBusy(true);
     try {
-      await updateProject({
-        data: {
-          id: selected.id,
-          name: nameDraft.trim() || selected.name,
-          instructions: instructions.trim() ? instructions : null,
-        },
+      await updateLocalProject(userId, selected.id, {
+        name: nameDraft.trim() || selected.name,
+        instructions: instructions.trim() ? instructions : null,
       });
       toast.success("Project saved.");
       await refreshProjects();
@@ -327,7 +330,7 @@ function ProjectsPage() {
   async function toggleArchive(p: OcadeProject) {
     setBusy(true);
     try {
-      await updateProject({ data: { id: p.id, archived: !p.archived } });
+      await updateLocalProject(userId, p.id, { archived: !p.archived });
       toast.success(p.archived ? "Project restored." : "Project archived.");
       await refreshProjects();
     } catch (e) {
@@ -349,7 +352,7 @@ function ProjectsPage() {
        * would stay behind with no record that they belong to a deleted file.
        */
       const doomed = listProjectFiles(p.id);
-      await deleteProject({ data: { id: p.id } });
+      await deleteLocalProject(userId, p.id);
       if (doomed.ok) {
         for (const file of doomed.data) {
           await deleteAttachment({ name: file.name });
@@ -381,15 +384,15 @@ function ProjectsPage() {
 
   async function moveConversation(conversationId: string, projectId: string | null) {
     try {
-      await setConversationProject({ data: { conversationId, projectId } });
+      const moved = await updateConversationLocally(userId, conversationId, {
+        project_id: projectId,
+      });
+      if (!moved) throw new Error("Conversation not found on this device.");
       toast.success(projectId ? "Conversation moved into the project." : "Conversation unfiled.");
       if (selected) {
-        const [c, u] = await Promise.all([
-          listProjectConversations({ data: { projectId: selected.id } }),
-          listProjectConversations({ data: { projectId: null } }),
-        ]);
-        setConversations(c);
-        setUnfiled(u);
+        const all = await listConversationsLocally(userId);
+        setConversations(all.filter((row) => row.project_id === selected.id));
+        setUnfiled(all.filter((row) => !row.project_id));
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not move the conversation.");
@@ -398,7 +401,7 @@ function ProjectsPage() {
 
   async function openPreview(id: string) {
     try {
-      const row = await getOutput({ data: { id } });
+      const row = await getLocalOutput(userId, id);
       setPreview({
         id: row.id,
         title: row.title,
@@ -428,19 +431,17 @@ function ProjectsPage() {
     if (!preview || !selected || !previewDraft.trim()) return;
     setSavingVersion(true);
     try {
-      const created = await createOutput({
-        data: {
-          projectId: selected.id,
-          parentOutputId: preview.id,
-          kind: preview.kind,
-          title: preview.title,
-          content: previewDraft,
-          mime: preview.mime,
-          retentionDays: outputRetention === "keep" ? null : Number(outputRetention),
-        },
+      const created = await createLocalOutput(userId, {
+        projectId: selected.id,
+        parentOutputId: preview.id,
+        kind: preview.kind,
+        title: preview.title,
+        content: previewDraft,
+        mime: preview.mime,
+        retentionDays: outputRetention === "keep" ? null : Number(outputRetention),
       });
       toast.success(`Saved ${preview.title} as version ${created.version}.`);
-      setOutputs((await listOutputs({ data: { projectId: selected.id } })) as OutputRow[]);
+      setOutputs((await listLocalOutputs(userId, selected.id)) as OutputRow[]);
       setPreview(null);
     } catch (error) {
       toast.error(
@@ -453,10 +454,9 @@ function ProjectsPage() {
 
   async function removeOutput(id: string) {
     try {
-      await deleteOutput({ data: { id } });
+      await deleteLocalOutput(userId, id);
       toast.success("Output deleted.");
-      if (selected)
-        setOutputs((await listOutputs({ data: { projectId: selected.id } })) as OutputRow[]);
+      if (selected) setOutputs((await listLocalOutputs(userId, selected.id)) as OutputRow[]);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not delete the output.");
     }
@@ -464,14 +464,14 @@ function ProjectsPage() {
 
   async function removeExpiredOutputs() {
     try {
-      const result = await purgeExpiredOutputs();
+      const result = await purgeExpiredLocalOutputs(userId);
       toast.success(
         result.removed > 0
           ? `${result.removed} expired ${result.removed === 1 ? "output" : "outputs"} deleted.`
           : "No expired outputs to delete.",
       );
       if (selected) {
-        setOutputs((await listOutputs({ data: { projectId: selected.id } })) as OutputRow[]);
+        setOutputs((await listLocalOutputs(userId, selected.id)) as OutputRow[]);
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not remove expired outputs.");
@@ -498,31 +498,21 @@ function ProjectsPage() {
       />
 
       {unavailable ? (
-        (() => {
-          const state = classifyUnavailable(unavailable, {
-            migrationTitle: "Projects need the database migration",
-            migrationNote:
-              "The migration, RLS policies, rollback and verification SQL are prepared and ready to apply — projects will work as soon as it is applied.",
-            loadTitle: "Projects couldn't be loaded",
-          });
-          return (
-            <SetupRequiredState
-              title={state.title}
-              description={state.description}
-              detail={state.detail}
-              status={state.migrationMissing ? "setup_required" : "failed"}
-              action={
-                <button
-                  type="button"
-                  onClick={() => void refreshProjects()}
-                  className="rounded-md border border-border/60 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent/30"
-                >
-                  Try again
-                </button>
-              }
-            />
-          );
-        })()
+        <SetupRequiredState
+          title="Projects couldn't open the browser vault"
+          description="Projects and outputs are written to this device first. Unlock the vault or retry; a database connection is not required."
+          detail={unavailable}
+          status="failed"
+          action={
+            <button
+              type="button"
+              onClick={() => void refreshProjects()}
+              className="rounded-md border border-border/60 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent/30"
+            >
+              Try again
+            </button>
+          }
+        />
       ) : projects === null ? (
         <GlassPanel className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading projects…

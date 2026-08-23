@@ -23,6 +23,12 @@ import { resolveAdapter } from "@/lib/storage/resolver";
 import { isConversationKey } from "@/lib/chat/local-conversations";
 import type { LocalConversation } from "@/lib/chat/local-conversations";
 import type { ChatMessageRecord } from "@/lib/ocade-chat-store";
+import {
+  isLocalOutputKey,
+  isLocalProjectKey,
+  type LocalOutput,
+  type LocalProject,
+} from "@/lib/projects/local-projects";
 
 export type LocalSearchKind = "conversation" | "message" | "project" | "output";
 
@@ -82,6 +88,8 @@ export function scoreMatch(title: string, body: string, query: string): number {
 export interface LocalSearchDeps {
   conversations: LocalConversation[];
   messages: ChatMessageRecord[];
+  projects?: LocalProject[];
+  outputs?: LocalOutput[];
 }
 
 /** Pure, so every ranking rule is testable without a browser or a database. */
@@ -127,6 +135,36 @@ export function searchLocalRecords(query: string, deps: LocalSearchDeps): LocalS
     });
   }
 
+  for (const project of deps.projects ?? []) {
+    if (project.deleted_at) continue;
+    const score = scoreMatch(project.name, project.instructions ?? "", q);
+    if (score <= 0) continue;
+    out.push({
+      key: `project:${project.id}`,
+      kind: "project",
+      title: project.name,
+      excerpt: project.instructions ? snippetAround(project.instructions, q) : undefined,
+      createdAt: project.updated_at,
+      score,
+      local: true,
+    });
+  }
+
+  for (const output of deps.outputs ?? []) {
+    if (output.deleted_at) continue;
+    const score = scoreMatch(output.title, output.content ?? "", q);
+    if (score <= 0) continue;
+    out.push({
+      key: `output:${output.id}`,
+      kind: "output",
+      title: output.title,
+      excerpt: output.content ? snippetAround(output.content, q) : undefined,
+      createdAt: output.updated_at,
+      score,
+      local: true,
+    });
+  }
+
   return sortResults(out);
 }
 
@@ -157,14 +195,27 @@ export function mergeSearchResults(
 
 /** Read everything this device holds for the signed-in user. */
 export async function readLocalCorpus(userId: string): Promise<LocalSearchDeps> {
-  const adapter = await resolveAdapter(userId, "chats");
-  const rows = await adapter.list<LocalConversation | ChatMessageRecord>("chats");
+  const [chatAdapter, fileAdapter] = await Promise.all([
+    resolveAdapter(userId, "chats"),
+    resolveAdapter(userId, "files"),
+  ]);
+  const [rows, fileRows] = await Promise.all([
+    chatAdapter.list<LocalConversation | ChatMessageRecord>("chats"),
+    fileAdapter.list<LocalProject | LocalOutput>("files"),
+  ]);
   const conversations: LocalConversation[] = [];
   const messages: ChatMessageRecord[] = [];
+  const projects: LocalProject[] = [];
+  const outputs: LocalOutput[] = [];
   for (const row of rows) {
     if (!row.value) continue;
     if (isConversationKey(row.id)) conversations.push(row.value as LocalConversation);
     else messages.push(row.value as ChatMessageRecord);
   }
-  return { conversations, messages };
+  for (const row of fileRows) {
+    if (!row.value) continue;
+    if (isLocalProjectKey(row.id)) projects.push(row.value as LocalProject);
+    if (isLocalOutputKey(row.id)) outputs.push(row.value as LocalOutput);
+  }
+  return { conversations, messages, projects, outputs };
 }

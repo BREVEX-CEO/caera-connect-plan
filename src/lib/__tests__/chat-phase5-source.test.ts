@@ -19,6 +19,7 @@ describe("Chat outputs and project navigation are real surfaces", () => {
   const projects = read("src/routes/_authenticated/ocade.projects.tsx");
   const memory = read("src/components/settings/MemoryPanel.tsx");
   const outputs = read("src/lib/ocade-projects.functions.ts");
+  const localProjects = read("src/lib/projects/local-projects.ts");
 
   it("saves an exact assistant message through the hashed output flow", () => {
     expect(chat).toContain("saveChatOutput({");
@@ -83,7 +84,7 @@ describe("Chat outputs and project navigation are real surfaces", () => {
 
   it("uses reviewable local memory in Chat", () => {
     expect(chat).toContain("localMemoryContext(conversation.project_id ?? null)");
-    expect(chat).toContain("getProject({ data: { id: conversation.project_id } })");
+    expect(chat).toContain("getLocalProject(userId, conversation.project_id)");
     // The 20,000-character bound on project instructions moved out of this
     // screen and into the single prompt assembler, where every surface gets
     // it instead of only this one. Asserted where it now lives, and asserted
@@ -104,7 +105,7 @@ describe("Chat outputs and project navigation are real surfaces", () => {
     expect(chat).toContain("Citation evidence could not be restored or saved");
   });
 
-  it("makes project files and cloud-output lifecycle operational", () => {
+  it("makes project files and device-first output lifecycle operational", () => {
     expect(projects).toContain("saveProjectFile({");
     expect(projects).toContain("createProjectFolder({");
     expect(projects).toContain('placeholder="Search projects"');
@@ -112,9 +113,11 @@ describe("Chat outputs and project navigation are real surfaces", () => {
     expect(projects).toContain("removeProjectFilesForProject(p.id)");
     expect(projects).toContain("saveNewOutputVersion");
     expect(projects).toContain("parentOutputId: preview.id");
-    expect(projects).toContain("purgeExpiredOutputs()");
+    expect(projects).toContain("purgeExpiredLocalOutputs(userId)");
     expect(chat).toContain("onSaveAttachmentToProject(a)");
     expect(outputs).toContain('.lt("expires_at", new Date().toISOString())');
+    expect(localProjects).toContain('resolveAdapter(userId, "files")');
+    expect(localProjects).toContain("deleted_at: now");
   });
 
   it("shows artifact privacy, compatible apps, previews and version restore controls", () => {

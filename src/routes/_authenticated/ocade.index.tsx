@@ -160,10 +160,9 @@ import { LivingIntelligenceBackdrop } from "@/components/visual/LivingIntelligen
 import {
   branchConversation,
   forkConversationBeforeMessage,
-  getProject,
-  setConversationProject,
   type OcadeProject,
 } from "@/lib/ocade-projects.functions";
+import { getLocalProject } from "@/lib/projects/local-projects";
 import {
   persistChatMessage,
   loadChatMessages,
@@ -1369,7 +1368,7 @@ function ChatSurface(props: {
     }
     let live = true;
     setProjectContextLoading(true);
-    void getProject({ data: { id: conversation.project_id } })
+    void getLocalProject(userId, conversation.project_id)
       .then((project) => {
         if (!live) return;
         setProjectDetails(project);
@@ -1388,7 +1387,7 @@ function ChatSurface(props: {
     return () => {
       live = false;
     };
-  }, [conversation.project_id]);
+  }, [conversation.project_id, userId]);
 
   /*
    * The retrieval sentence describes the last request in THIS conversation.
@@ -2469,11 +2468,8 @@ function ChatSurface(props: {
     })) as unknown as Conversation;
     try {
       if (conversation.project_id) {
-        await setConversationProject({
-          data: {
-            conversationId: created.id,
-            projectId: conversation.project_id,
-          },
+        await updateConversationLocally(userId, created.id, {
+          project_id: conversation.project_id,
         });
       }
       const source = await loadChatMessages({

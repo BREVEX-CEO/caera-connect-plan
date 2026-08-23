@@ -13,10 +13,11 @@ import {
   deleteMemory,
   clearAllMemory,
   purgeExpiredMemory,
-  listProjects,
   type OcadeProject,
   type OcadeMemoryRow,
 } from "@/lib/ocade-projects.functions";
+import { listLocalProjects } from "@/lib/projects/local-projects";
+import { useSession } from "@/lib/session";
 import {
   addLocalMemory,
   clearLocalMemory,
@@ -38,6 +39,7 @@ import {
  * the panel switches explicitly to on-device storage and never claims sync.
  */
 export function MemoryPanel() {
+  const { user } = useSession();
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [rows, setRows] = useState<OcadeMemoryRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -91,10 +93,12 @@ export function MemoryPanel() {
 
   useEffect(() => {
     void refresh();
-    void listProjects({ data: { includeArchived: false } })
-      .then((available) => setProjects(available))
-      .catch(() => setProjects([]));
-  }, []);
+    if (user?.id) {
+      void listLocalProjects(user.id)
+        .then((available) => setProjects(available))
+        .catch(() => setProjects([]));
+    }
+  }, [user?.id]);
 
   async function toggle(next: boolean) {
     setBusy(true);

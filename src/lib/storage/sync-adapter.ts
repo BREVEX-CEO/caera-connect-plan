@@ -133,7 +133,17 @@ export const syncAdapter: StorageAdapter = {
      * another device wrote, and it is added.
      */
     const byId = new Map(local.map((r) => [r.id, r]));
-    for (const r of remote) if (!byId.has(r.id)) byId.set(r.id, r);
+    const unseen: StoredRecord<T>[] = [];
+    for (const r of remote) {
+      if (byId.has(r.id)) continue;
+      byId.set(r.id, r);
+      unseen.push(r);
+    }
+    // A successful sync is also an offline cache fill. Best effort: returning
+    // the server rows is still useful if the browser refuses a cache write.
+    await Promise.allSettled(
+      unseen.map((record) => indexedDbAdapter.put(dataClass, record.id, record.value)),
+    );
     return [...byId.values()];
   },
   async delete(dataClass, id) {
@@ -149,10 +159,16 @@ export const syncAdapter: StorageAdapter = {
     void drainNow();
   },
   async clear(dataClass) {
-    const user_id = await uid();
-    let q = supabase.from("user_private_records").delete().eq("user_id", user_id);
-    if (dataClass) q = q.eq("data_class", dataClass);
-    const { error } = await q;
-    if (error) throw error;
+    const classes: DataClass[] = dataClass
+      ? [dataClass]
+      : ["chats", "images", "files", "recordings", "copilot", "learning_replays"];
+    for (const klass of classes) {
+      const existing = await indexedDbAdapter.list(klass);
+      for (const record of existing) {
+        await indexedDbAdapter.delete(klass, record.id);
+        await enqueueDelete({ dataClass: klass, id: record.id });
+      }
+    }
+    void drainNow();
   },
 };

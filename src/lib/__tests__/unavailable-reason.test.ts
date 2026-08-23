@@ -84,7 +84,6 @@ describe("a raw exception message never becomes user-facing prose", () => {
  */
 describe("no route splices an error message into SetupRequiredState copy", () => {
   const ROUTES = [
-    "src/routes/_authenticated/ocade.projects.tsx",
     "src/routes/_authenticated/ocade.automations.tsx",
     "src/routes/_authenticated/settings.usage.tsx",
   ];
@@ -93,6 +92,13 @@ describe("no route splices an error message into SetupRequiredState copy", () =>
     const source = readFileSync(file, "utf8");
     expect(source).toContain("classifyUnavailable");
     // The original defect, verbatim in shape: `${unavailable} …` inside copy.
+    expect(source).not.toMatch(/description=\{`\$\{unavailable\}/);
+  });
+
+  it("Projects uses static vault copy and labels the error as technical detail", () => {
+    const source = readFileSync("src/routes/_authenticated/ocade.projects.tsx", "utf8");
+    expect(source).toContain('description="Projects and outputs are written to this device first.');
+    expect(source).toContain("detail={unavailable}");
     expect(source).not.toMatch(/description=\{`\$\{unavailable\}/);
   });
 });
