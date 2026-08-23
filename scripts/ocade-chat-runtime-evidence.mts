@@ -29,8 +29,6 @@ import { promisify } from "node:util";
 import {
   discoverLocalModels,
   streamLocalChat,
-  pickLocalModelForHardware,
-  buildLocalFirstPlan,
   modelFit,
   DEFAULT_LOCAL_BRIDGE_URL,
   type LocalModelInfo,
@@ -245,13 +243,18 @@ async function main() {
   const manifestNames = Array.isArray((manifest as { tiers?: { tag?: string }[] }).tiers)
     ? (manifest as { tiers: { tag?: string }[] }).tiers.map((t) => t.tag)
     : [];
-  judge("E03", "the one fixed engine is what this machine runs", true, {
-    chosen: FIXED_MODEL.id,
-    parameters: FIXED_MODEL.parameters,
-    quantisation: FIXED_MODEL.quantisation,
-    approxBytes: FIXED_MODEL.approxBytes,
-    manifestMentionsIt: manifestNames.includes(FIXED_MODEL.id),
-  });
+  judge(
+    "E03",
+    "the one fixed engine is the manifest's only runtime model",
+    manifestNames.length === 1 && manifestNames[0] === FIXED_MODEL.id,
+    {
+      chosen: FIXED_MODEL.id,
+      parameters: FIXED_MODEL.parameters,
+      quantisation: FIXED_MODEL.quantisation,
+      approxBytes: FIXED_MODEL.approxBytes,
+      manifestModels: manifestNames,
+    },
+  );
 
   // E04 — discovery through the shipped adapter.
   const discovery = await discoverLocalModels(BRIDGE);
@@ -296,17 +299,17 @@ async function main() {
   const routePolicy = {
     totalRamBytes,
     hasDiscreteGpu: profile.gpuCertain ? profile.hasDiscreteGpu : undefined,
-    deviceMatchedModelId: tier.ok ? tier.tier.tag : null,
+    deviceMatchedModelId: FIXED_MODEL.id,
   };
   const generalRoute = routeTask("general", models, ledger, routePolicy);
   const chosen = generalRoute.ok ? generalRoute.model : null;
   judge(
     "E06",
     "routeTask('general') chooses the device-matched engine, not merely the largest that fits",
-    !!chosen && (!tier.ok || chosen.id === tier.tier.tag),
+    !!chosen && chosen.id === FIXED_MODEL.id,
     {
       chosen: chosen?.id ?? null,
-      tierPolicyChose: tier.ok ? tier.tier.tag : null,
+      fixedPolicyChose: FIXED_MODEL.id,
       basis: generalRoute.receipt.basis,
       rejected: generalRoute.receipt.rejected,
       refusal: generalRoute.receipt.refusal,
@@ -580,22 +583,15 @@ async function main() {
   // E15 — vision requested with no vision model: the chain must FAIL explicitly
   // rather than quietly serving the request with a text-only model.
   const textOnly = models.filter((m) => !m.vision);
-  const visionPlan = buildLocalFirstPlan({
-    desired: "vision",
-    models: textOnly,
-    cloudAllowed: false,
-    online: false,
-    totalRamBytes,
-  });
-  const visionPick = pickLocalModelForHardware(textOnly, "vision", totalRamBytes);
+  const noVisionRoute = routeTask("vision", textOnly, ledger, routePolicy);
   judge(
     "E15",
     "vision with no vision model refuses instead of substituting a text model",
-    visionPick.picked === null,
+    !noVisionRoute.ok,
     {
-      picked: visionPick.picked,
-      planKinds: visionPlan.map((s) => s.kind),
-      reason: visionPick.reason,
+      picked: noVisionRoute.ok ? noVisionRoute.model.id : null,
+      refusal: noVisionRoute.receipt.refusal,
+      rejected: noVisionRoute.receipt.rejected,
     },
   );
 
@@ -661,10 +657,15 @@ async function main() {
     { verify: missing, missingModelRepair: repair, damagedModelRepair: damaged },
   );
 
-  // E19 — rollback target comes from the manifest, not invented at failure time.
+  // E19 — one fixed model has no imaginary fallback. A prior multi-tier version
+  // invented a "previous" tier even when it was absent, turning rollback into
+  // another failing install. The manifest's null is the authority.
+  const fixedManifest = (
+    manifest as { tiers?: Array<{ tag?: string; rollbackTarget?: string | null }> }
+  ).tiers?.find((candidate) => candidate.tag === FIXED_MODEL.id);
   const rollback = planRollback({
     failedModelId: chosen.id,
-    previousModelId: tier.ok ? tier.tier.rollbackTarget : null,
+    previousModelId: fixedManifest?.rollbackTarget ?? null,
     installedModelIds: models.map((m) => m.id),
   });
   // A rollback target that is not installed must be refused, not attempted.
@@ -675,9 +676,15 @@ async function main() {
   });
   judge(
     "E19",
-    "rollback targets the manifest's previous tier, and refuses when it is absent",
-    rollback.target !== null && impossibleRollback.target === null,
-    { rollback, refusedWhenTargetMissing: impossibleRollback },
+    "single-model rollback refuses instead of inventing an unavailable target",
+    fixedManifest?.rollbackTarget === null &&
+      rollback.target === null &&
+      impossibleRollback.target === null,
+    {
+      manifestRollbackTarget: fixedManifest?.rollbackTarget ?? null,
+      rollback,
+      refusedWhenTargetMissing: impossibleRollback,
+    },
   );
 
   finish();

@@ -37,24 +37,26 @@ import { execFileSync } from "node:child_process";
  */
 const MUTATIONS = [
   {
-    name: "privacy: a vault-backed chat may reach cloud without being asked",
+    name: "privacy: cloud approval is reported as a possible inference path",
     file: "src/lib/engine/resolve.ts",
     tests: [
       "src/lib/__tests__/engine-resolve.test.ts",
       "src/lib/__tests__/engine-routing-single-policy.test.ts",
     ],
-    find: "const cloudForbiddenByPrivacy = vaultBacked && !context.cloudApprovedForConversation;",
-    replace: "const cloudForbiddenByPrivacy = false;",
+    find: "export function cloudWouldWorkAfterApproval(_context: EngineContext): false {\n  return false;\n}",
+    replace:
+      "export function cloudWouldWorkAfterApproval(_context: EngineContext): false {\n  return true as false;\n}",
   },
   {
-    name: "privacy: every conversation is treated as already synced",
+    name: "privacy: on-device inference is treated as consuming paid allowance",
     file: "src/lib/engine/resolve.ts",
     tests: [
       "src/lib/__tests__/engine-resolve.test.ts",
       "src/lib/__tests__/engine-routing-single-policy.test.ts",
     ],
-    find: 'const vaultBacked = context.privacyMode !== "private_sync";',
-    replace: "const vaultBacked = false;",
+    find: "// The rule the whole product rests on: your own hardware is not metered.\n    consumesAllowance: false,",
+    replace:
+      "// Mutated: local work is incorrectly treated as paid usage.\n    consumesAllowance: true as false,",
   },
   {
     name: "provenance: privacy reported from the setting, not the measurement",
@@ -63,7 +65,7 @@ const MUTATIONS = [
       "src/lib/__tests__/answer-provenance.test.ts",
       "src/lib/__tests__/measurable-properties.test.ts",
     ],
-    find: "const leftDevice = input.observation.measured ? revealing.length > 0 : null;",
+    find: "const leftDevice =\n    explicitContacts.length > 0 ? true : input.observation.measured ? revealing.length > 0 : null;",
     replace: 'const leftDevice = input.producedOn !== "this_device";',
   },
   {
@@ -73,7 +75,7 @@ const MUTATIONS = [
       "src/lib/__tests__/answer-provenance.test.ts",
       "src/lib/__tests__/measurable-properties.test.ts",
     ],
-    find: "const leftDevice = input.observation.measured ? revealing.length > 0 : null;",
+    find: "const leftDevice =\n    explicitContacts.length > 0 ? true : input.observation.measured ? revealing.length > 0 : null;",
     replace: "const leftDevice = revealing.length > 0;",
   },
   {
@@ -171,7 +173,7 @@ const MUTATIONS = [
    */
   {
     name: "RLS: any authenticated user may read any conversation",
-    file: "supabase/migrations/20260722090000_ocade_projects_outputs_memory.sql",
+    file: "supabase/migrations/20260815123219_b6afc017-4c53-405f-b498-96cb9cfb16f3.sql",
     tests: ["src/lib/__tests__/db-twin.test.ts"],
     find: 'CREATE POLICY "own_conversations" ON public.ocade_conversations FOR ALL\n  TO authenticated\n  USING (auth.uid() = user_id)',
     replace:

@@ -147,8 +147,8 @@ describe("the worker's stated invariants are still in the file", () => {
 
   it("pre-caches the application root for cold-start navigation", () => {
     const precache = SOURCE.slice(
-      SOURCE.indexOf("const PRECACHE"),
-      SOURCE.indexOf("];", SOURCE.indexOf("const PRECACHE")),
+      SOURCE.indexOf("const REQUIRED_PRECACHE"),
+      SOURCE.indexOf("];", SOURCE.indexOf("const REQUIRED_PRECACHE")),
     );
     expect(precache).toMatch(/["']\/["']/);
   });
@@ -178,7 +178,8 @@ describe("the worker's stated invariants are still in the file", () => {
   });
 
   it("deletes previous cache versions on activate", () => {
-    expect(SOURCE).toMatch(/keys\.filter\(\(k\)\s*=>\s*k\s*!==\s*VERSION\)/);
+    expect(SOURCE).toContain("k.startsWith(SHELL_CACHE_PREFIX)");
+    expect(SOURCE).toMatch(/k\s*!==\s*VERSION/);
   });
 
   it("stores only successful basic responses", () => {

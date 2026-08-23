@@ -429,11 +429,13 @@ export interface LocalChatMessage {
  *
  * WHY IT IS NOT SIMPLY SET LARGE. The KV cache scales with the window, and it
  * is resident memory on a machine that is also running everything else the
- * person is doing. So the window is sized to the REQUEST: short chats send no
- * override at all and pay nothing, and only a request that genuinely needs more
- * asks for more.
+ * person is doing. So the window is sized to the REQUEST: short chats
+ * explicitly ask for the 4,096-token floor, and only a request that genuinely
+ * needs more asks for more. An explicit floor matters because model defaults
+ * are not stable: the installed vision model defaulted to 128,000 tokens and
+ * allocated about 13 GB for a one-image proof until OCADE bounded it.
  */
-const CONTEXT_DEFAULT = 4096;
+export const CONTEXT_DEFAULT = 4096;
 /**
  * Steps rather than an exact figure: the runtime reallocates and reloads when
  * the window changes, so a value that drifts with every message would reload
@@ -498,8 +500,8 @@ export function estimateTokens(messages: LocalChatMessage[]): number {
 }
 
 export interface ContextPlan {
-  /** Null when the runtime's own default is enough; nothing is then sent. */
-  numCtx: number | null;
+  /** Explicit window sent to the runtime; never delegated to a model default. */
+  numCtx: number;
   estimatedTokens: number;
   /** True when the request is too large even for the ceiling. */
   exceedsCeiling: boolean;
@@ -563,7 +565,7 @@ export function planContextWindow(
   const needed = estimatedTokens + CONTEXT_REPLY_RESERVE;
   if (needed <= CONTEXT_DEFAULT) {
     return {
-      numCtx: null,
+      numCtx: CONTEXT_DEFAULT,
       estimatedTokens,
       exceedsCeiling: false,
       estimatedReadSeconds: readSeconds,
@@ -701,7 +703,7 @@ export async function preloadLocalModel(
       body: JSON.stringify({
         model: modelId,
         messages: [],
-        ...(numCtx ? { options: { num_ctx: numCtx } } : {}),
+        options: { num_ctx: numCtx ?? CONTEXT_DEFAULT },
         // A warm-up that lets the model be evicted five minutes later has not
         // warmed anything up.
         keep_alive: MODEL_KEEP_ALIVE,
@@ -772,9 +774,9 @@ export async function streamLocalChat(
 
   /*
    * Size the context to this request before sending it. Short conversations
-   * get no override and keep the runtime's own default, so nothing extra is
-   * allocated for the ordinary case; a long document asks for the window it
-   * actually needs instead of being cut down without anybody being told.
+   * get the explicit 4,096-token floor, so a model update cannot silently make
+   * an ordinary request reserve a 128k KV cache; a long document asks for the
+   * larger bounded window it actually needs.
    */
   const context = planContextWindow(messages, handlers.totalRamBytes);
   handlers.onContextPlan?.(context);
@@ -792,7 +794,7 @@ export async function streamLocalChat(
         // updated.
         ...(includeThink ? { think: handlers.think === true } : {}),
         ...(handlers.tools && handlers.tools.length > 0 ? { tools: handlers.tools } : {}),
-        ...(context.numCtx === null ? {} : { options: { num_ctx: context.numCtx } }),
+        options: { num_ctx: context.numCtx },
         // Keeps the next question on the 222 ms path instead of the 5750 ms one.
         keep_alive: MODEL_KEEP_ALIVE,
       }),

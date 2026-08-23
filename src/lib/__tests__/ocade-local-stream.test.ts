@@ -157,7 +157,12 @@ describe("preloading warms the engine without sending anything", () => {
     });
     const ok = await preloadLocalModel("http://127.0.0.1:11434", OCADE_MODEL_ID, fetchImpl);
     expect(ok).toBe(true);
-    expect(body).toEqual({ model: OCADE_MODEL_ID, messages: [], keep_alive: MODEL_KEEP_ALIVE });
+    expect(body).toEqual({
+      model: OCADE_MODEL_ID,
+      messages: [],
+      options: { num_ctx: 4096 },
+      keep_alive: MODEL_KEEP_ALIVE,
+    });
   });
 
   it("targets the chat endpoint on the given bridge", async () => {
@@ -212,14 +217,19 @@ describe("preloading warms the engine without sending anything", () => {
     });
   });
 
-  it("sends no window at all when the next message needs no more than the default", async () => {
-    // A short chat must not reserve memory it will never use.
+  it("pins the floor when the next message needs no more than the default", async () => {
+    // Model defaults vary; one installed vision model otherwise reserved 128k.
     let body: Record<string, unknown> | null = null;
     const fetchImpl = vi.fn(async (_input: string, init?: RequestInit) => {
       body = JSON.parse(String(init?.body)) as Record<string, unknown>;
       return new Response("{}", { status: 200 });
     });
     await preloadLocalModel("http://127.0.0.1:11434", OCADE_MODEL_ID, fetchImpl, null);
-    expect(body).toEqual({ model: OCADE_MODEL_ID, messages: [], keep_alive: MODEL_KEEP_ALIVE });
+    expect(body).toEqual({
+      model: OCADE_MODEL_ID,
+      messages: [],
+      options: { num_ctx: 4096 },
+      keep_alive: MODEL_KEEP_ALIVE,
+    });
   });
 });

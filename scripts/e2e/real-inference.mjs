@@ -50,7 +50,9 @@ const modelPath = join(workdir, "tiny-llama.gguf");
 
 try {
   // ---- 1. The weights ------------------------------------------------------
-  const python = process.env.PYTHON ?? "python3";
+  // Windows commonly installs `python.exe` while leaving `python3.exe` as the
+  // Microsoft Store placeholder, which exits 9009 even when Python is present.
+  const python = process.env.PYTHON ?? (process.platform === "win32" ? "python" : "python3");
   const written = execFileSync(python, ["scripts/fixtures/make-tiny-gguf.py", modelPath], {
     encoding: "utf8",
   }).trim();

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-08T19:17:00.401Z",
+  "generatedAt": "2026-08-23T07:46:04.569Z",
   "tier": "REAL TARGET RUNTIME VERIFIED",
   "caveat": "Observed on ONE machine against ONE local engine build. Single-host evidence is not a platform matrix. This covers the engine and the modules the chat screen calls; it does NOT cover the authenticated browser UI, which requires a signed-in session.",
   "host": {
@@ -27,32 +27,26 @@
       "what": "measureHardware() + profileFrom() on this machine",
       "status": "observed",
       "detail": {
-        "platform": "win32 10.0.19045",
+        "platform": "win32 10.0.19044",
         "cpu": "11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz",
         "totalRamGib": 15.65,
-        "freeRamGib": 7.26,
-        "freeStorageGib": 35.54,
+        "freeRamGib": 2.7,
+        "freeStorageGib": 103.41,
         "discreteGpu": false,
         "gpuCertain": true
       }
     },
     {
       "id": "E03",
-      "what": "selectTier() picks a tier this machine can run",
+      "what": "the one fixed engine is the manifest's only runtime model",
       "status": "observed",
       "detail": {
-        "chosen": "qwen3:8b",
-        "downloadGib": 4.87,
-        "because": "This machine has 15.65 GB of memory and no dedicated graphics card, so OCADE selected the engine matched to that hardware. It downloads about 4.87 GB and runs entirely on this computer.",
-        "skipped": [
-          {
-            "tag": "qwen3:30b-a3b",
-            "why": "needs a dedicated graphics card; measured at under half the speed of a smaller model without one"
-          },
-          {
-            "tag": "qwen3:14b",
-            "why": "needs a dedicated graphics card; measured at under half the speed of a smaller model without one"
-          }
+        "chosen": "qwen2.5:3b",
+        "parameters": "3B",
+        "quantisation": "Q4_K_M",
+        "approxBytes": 1929000000,
+        "manifestModels": [
+          "qwen2.5:3b"
         ]
       }
     },
@@ -65,60 +59,25 @@
         "version": "0.30.11",
         "models": [
           {
+            "id": "qwen2.5:0.5b",
+            "gb": 0.4,
+            "profile": "fast",
+            "label": "OCADE Local Fast",
+            "vision": false
+          },
+          {
+            "id": "qwen2.5:3b",
+            "gb": 1.93,
+            "profile": "fast",
+            "label": "OCADE Local Fast",
+            "vision": false
+          },
+          {
             "id": "qwen2.5vl:7b",
             "gb": 5.97,
             "profile": "vision",
             "label": "OCADE Local Vision",
             "vision": true
-          },
-          {
-            "id": "qwen3:14b",
-            "gb": 9.28,
-            "profile": "general",
-            "label": "OCADE Local",
-            "vision": false
-          },
-          {
-            "id": "qwen3:8b",
-            "gb": 5.23,
-            "profile": "general",
-            "label": "OCADE Local",
-            "vision": false
-          },
-          {
-            "id": "qwen3:4b",
-            "gb": 2.5,
-            "profile": "fast",
-            "label": "OCADE Local Fast",
-            "vision": false
-          },
-          {
-            "id": "qwen3:1.7b",
-            "gb": 1.36,
-            "profile": "fast",
-            "label": "OCADE Local Fast",
-            "vision": false
-          },
-          {
-            "id": "deepseek-coder:6.7b",
-            "gb": 3.83,
-            "profile": "code",
-            "label": "OCADE Local Code",
-            "vision": false
-          },
-          {
-            "id": "qwen3-coder:30b",
-            "gb": 18.56,
-            "profile": "code",
-            "label": "OCADE Local Code",
-            "vision": false
-          },
-          {
-            "id": "qwen2.5-coder:7b",
-            "gb": 4.68,
-            "profile": "code",
-            "label": "OCADE Local Code",
-            "vision": false
           }
         ]
       }
@@ -129,14 +88,9 @@
       "status": "observed",
       "detail": {
         "rawNames": [
+          "qwen2.5:0.5b",
+          "qwen2.5:3b",
           "qwen2.5vl:7b",
-          "qwen3:14b",
-          "qwen3:8b",
-          "qwen3:4b",
-          "qwen3:1.7b",
-          "deepseek-coder:6.7b",
-          "qwen3-coder:30b",
-          "qwen2.5-coder:7b",
           "deepseek-v4-pro:cloud"
         ],
         "pointers": [
@@ -150,25 +104,17 @@
       "what": "routeTask('general') chooses the device-matched engine, not merely the largest that fits",
       "status": "observed",
       "detail": {
-        "chosen": "qwen3:8b",
-        "tierPolicyChose": "qwen3:8b",
-        "basis": "device_matched",
+        "chosen": "qwen2.5:3b",
+        "fixedPolicyChose": "qwen2.5:3b",
+        "basis": "unmeasured",
         "rejected": [
           {
-            "modelId": "qwen3-coder:30b",
-            "why": "qwen3-coder:30b needs about 22.3 GB of RAM but only 13.4 GB of this machine's 16.8 GB can safely be used."
-          },
-          {
-            "modelId": "qwen3:14b",
-            "why": "needs a dedicated graphics card; without one it is measurably slower than a smaller model"
-          },
-          {
-            "modelId": "qwen3:4b",
-            "why": "leaks its own reasoning into replies despite think:false, producing 274-448 tokens where other tiers use 50-56"
+            "modelId": "qwen2.5:0.5b",
+            "why": "OCADE always uses its own configured engine on this platform."
           },
           {
             "modelId": "qwen2.5vl:7b",
-            "why": "profile \"vision\" is not suitable for general"
+            "why": "OCADE always uses its own configured engine on this platform."
           }
         ],
         "priorDefectMeasured": "Before this policy was applied the router chose qwen3:14b on this same machine and took 184,260 ms to first token for a one-word answer."
@@ -180,9 +126,9 @@
       "status": "observed",
       "detail": {
         "ok": true,
-        "modelId": "qwen3:8b",
-        "sizeBytes": 5225388164,
-        "digest": "500a1f067a9f782620b40bee6f7b0c89e17ae61f686b92c24933e4ca4b2b8b41",
+        "modelId": "qwen2.5:3b",
+        "sizeBytes": 1929912432,
+        "digest": "357c53fb659c5076de1d65ccb0b397446227b71a42be9d1603d46168015c9e4b",
         "digestVerified": true
       }
     },
@@ -191,13 +137,13 @@
       "what": "streamLocalChat() returns a REAL answer, verified against ground truth",
       "status": "observed",
       "detail": {
-        "model": "qwen3:8b",
-        "firstTokenMs": 15657,
-        "totalMs": 16515,
-        "tokensPerSecondApprox": 0.09,
+        "model": "qwen2.5:3b",
+        "firstTokenMs": 283,
+        "totalMs": 396,
+        "tokensPerSecondApprox": 3.16,
         "groundTruth": "Tokyo",
         "containsGroundTruth": true,
-        "reply": "Tokyo."
+        "reply": "Tokyo"
       }
     },
     {
@@ -206,10 +152,10 @@
       "status": "observed",
       "detail": {
         "chunks": 9,
-        "firstChunkMs": 2114,
-        "lastChunkMs": 4143,
-        "spreadMs": 2029,
-        "charsStreamed": 35
+        "firstChunkMs": 229,
+        "lastChunkMs": 668,
+        "spreadMs": 439,
+        "charsStreamed": 27
       }
     },
     {
@@ -218,10 +164,10 @@
       "status": "observed",
       "detail": {
         "reason": "cancelled",
-        "cancelledAfterMs": 3083,
+        "cancelledAfterMs": 471,
         "tokensBeforeStop": 5,
         "tokensAfterStopIncludingGracePeriod": 0,
-        "returnedMs": 3853
+        "returnedMs": 1232
       }
     },
     {
@@ -242,7 +188,7 @@
         "ok": true,
         "inferenceOk": true,
         "cancellationOk": true,
-        "firstTokenMs": 1974,
+        "firstTokenMs": 475,
         "replyPreview": "OCADE_READY"
       }
     },
@@ -252,7 +198,7 @@
       "status": "observed",
       "detail": {
         "model": "qwen2.5vl:7b",
-        "elapsedMs": 148536,
+        "elapsedMs": 3967,
         "groundTruth": {
           "code": "742913",
           "tallestBar": "C"
@@ -280,10 +226,12 @@
       "status": "observed",
       "detail": {
         "picked": null,
-        "planKinds": [
-          "local_secondary",
-          "local_lightweight",
-          "local_reduced"
+        "refusal": "This request includes an image, and no engine on this device can read images. Install a vision engine, or remove the image.",
+        "rejected": [
+          {
+            "modelId": "qwen2.5:0.5b",
+            "why": "OCADE always uses its own configured engine on this platform."
+          }
         ]
       }
     },
@@ -292,9 +240,9 @@
       "what": "the disk pre-flight refuses before a download, not after it fails",
       "status": "observed",
       "detail": {
-        "modelGb": 5.23,
+        "modelGb": 1.93,
         "refusedWhenHalfTheModelIsFree": true,
-        "refusalReason": "Needs about 6.0 GB of free disk (model plus working space) but only 2.6 GB is free.",
+        "refusalReason": "Needs about 2.2 GB of free disk (model plus working space) but only 1.0 GB is free.",
         "allowedWithHeadroom": true
       }
     },
@@ -304,13 +252,7 @@
       "status": "observed",
       "detail": {
         "totalRamGib": 15.65,
-        "excluded": [
-          {
-            "id": "qwen3-coder:30b",
-            "needGb": 22.27,
-            "reason": "qwen3-coder:30b needs about 22.3 GB of RAM but only 13.4 GB of this machine's 16.8 GB can safely be used."
-          }
-        ]
+        "excluded": []
       }
     },
     {
@@ -330,19 +272,20 @@
         },
         "damagedModelRepair": {
           "kind": "reinstall",
-          "modelId": "qwen3:8b",
-          "why": "qwen3:8b is installed but failed to answer, which usually means a damaged download."
+          "modelId": "qwen2.5:3b",
+          "why": "qwen2.5:3b is installed but failed to answer, which usually means a damaged download."
         }
       }
     },
     {
       "id": "E19",
-      "what": "rollback targets the manifest's previous tier, and refuses when it is absent",
+      "what": "single-model rollback refuses instead of inventing an unavailable target",
       "status": "observed",
       "detail": {
+        "manifestRollbackTarget": null,
         "rollback": {
-          "target": "qwen3:4b",
-          "reason": "Going back to qwen3:4b, which was working before qwen3:8b."
+          "target": null,
+          "reason": "There is no earlier model to go back to."
         },
         "refusedWhenTargetMissing": {
           "target": null,

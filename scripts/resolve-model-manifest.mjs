@@ -32,7 +32,7 @@
  * Usage: node scripts/resolve-model-manifest.mjs [--write]
  */
 import { createHash } from "node:crypto";
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
 const REGISTRY = "https://registry.ollama.ai/v2/library";
 const MANIFEST_ACCEPT = "application/vnd.docker.distribution.manifest.v2+json";
@@ -243,8 +243,23 @@ if (failures.length > 0) console.log(`UNRESOLVED: ${failures.map((f) => f.tag).j
 if (write) {
   writeFileSync(OUT, JSON.stringify(document, null, 2) + "\n");
   console.log(`Wrote ${OUT}`);
+} else if (existsSync(OUT)) {
+  const committed = JSON.parse(readFileSync(OUT, "utf8"));
+  const stable = (tiers) =>
+    tiers.map((tier) => {
+      const copy = structuredClone(tier);
+      delete copy.resolvedAt;
+      return copy;
+    });
+  if (JSON.stringify(stable(committed.tiers ?? [])) !== JSON.stringify(stable(results))) {
+    console.error(`\n${OUT} is stale. Run npm run engine:manifest-write and review the drift.`);
+    process.exitCode = 1;
+  } else {
+    console.log(`${OUT} is current.`);
+  }
 } else {
-  console.log("(dry run — pass --write to update the manifest)");
+  console.error(`${OUT} is missing. Run npm run engine:manifest-write.`);
+  process.exitCode = 1;
 }
 
 if (failures.length > 0) process.exit(1);

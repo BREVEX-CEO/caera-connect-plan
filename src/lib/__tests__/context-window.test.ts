@@ -30,20 +30,19 @@ const user = (content: string, images?: string[]): LocalChatMessage => ({
   ...(images ? { images } : {}),
 });
 
-describe("a short conversation costs nothing extra", () => {
-  it("sends no override at all, so the runtime keeps its own default", () => {
-    // This matters for a machine that is also doing other things: the KV cache
-    // is resident memory, and an ordinary chat must not reserve a window it
-    // will never use.
+describe("a short conversation gets a bounded floor", () => {
+  it("explicitly sends 4,096 so a model's larger default cannot take over", () => {
+    // The installed vision model advertises a 128k default. Delegating to that
+    // default allocated about 13 GB for a tiny image proof on the reference PC.
     const plan = planContextWindow([user("What is the capital of Japan?")]);
-    expect(plan.numCtx).toBeNull();
+    expect(plan.numCtx).toBe(4096);
     expect(plan.exceedsCeiling).toBe(false);
   });
 
-  it("still sends nothing just below the default, where the reply must also fit", () => {
+  it("keeps the floor just below 4,096, where the reply must also fit", () => {
     // 4096 minus the reply reserve, in characters at the estimator's rate.
     const plan = planContextWindow([user("x".repeat(Math.floor((4096 - 1024) * 3.5) - 100))]);
-    expect(plan.numCtx).toBeNull();
+    expect(plan.numCtx).toBe(4096);
   });
 });
 
@@ -188,7 +187,7 @@ describe("the window is stepped, not exact", () => {
     const sizes = new Set<number>();
     for (const length of [20_000, 40_000, 60_000, 100_000]) {
       const plan = planContextWindow([user("q".repeat(length))], 64 * GIB);
-      if (plan.numCtx !== null) sizes.add(plan.numCtx);
+      sizes.add(plan.numCtx);
     }
     for (const size of sizes) expect([8192, 16384, 32768]).toContain(size);
   });

@@ -22,7 +22,8 @@
  *     deploy cannot leave two generations of assets fighting.
  */
 
-const VERSION = "ocade-shell-v7";
+const SHELL_CACHE_PREFIX = "ocade-shell-v";
+const VERSION = `${SHELL_CACHE_PREFIX}8`;
 const OFFLINE_URL = "/offline.html";
 
 /**
@@ -33,11 +34,10 @@ const OFFLINE_URL = "/offline.html";
  * require this file to be generated. They are picked up by the runtime cache
  * below once they have been fetched successfully at least once.
  */
-const PRECACHE = [
-  "/",
-  OFFLINE_URL,
+const REQUIRED_PRECACHE = ["/", OFFLINE_URL, "/manifest.webmanifest"];
+
+const OPTIONAL_PRECACHE = [
   "/favicon.ico",
-  "/manifest.webmanifest",
   /*
    * EXACTLY THE ICONS THE MANIFEST ASKS FOR.
    *
@@ -64,12 +64,23 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(VERSION)
-      // Cache entries independently. One optional image or route being
-      // unavailable during a rolling deployment must not discard the offline
-      // page, manifest and every other successful response in the batch.
-      .then((cache) => Promise.allSettled(PRECACHE.map((url) => cache.addAll([url]))))
-      .catch(() => undefined)
-      .then(() => self.skipWaiting()),
+      .then(async (cache) => {
+        /*
+         * Upgrade atomically around the actual shell. If the root, offline
+         * page, or manifest is missing during a rolling deploy, rejecting this
+         * install leaves the previous worker and its complete cache active.
+         * Optional brand art and revisit routes are independent: one 404 must
+         * not block an otherwise usable upgrade.
+         */
+        await cache.addAll(REQUIRED_PRECACHE);
+        await Promise.allSettled(OPTIONAL_PRECACHE.map((url) => cache.addAll([url])));
+        await self.skipWaiting();
+      })
+      .catch(async (error) => {
+        // Do not retain a half-staged cache that a later activation could use.
+        await caches.delete(VERSION);
+        throw error;
+      }),
   );
 });
 
@@ -79,7 +90,11 @@ self.addEventListener("activate", (event) => {
       caches
         .keys()
         .then((keys) =>
-          Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))),
+          Promise.all(
+            keys
+              .filter((k) => k.startsWith(SHELL_CACHE_PREFIX) && k !== VERSION)
+              .map((k) => caches.delete(k)),
+          ),
         ),
       // Navigation preload removes the service-worker startup round trip on a
       // normal online visit. Unsupported engines simply skip this branch.
@@ -149,59 +164,61 @@ self.addEventListener("fetch", (event) => {
   if (isNeverCached(url)) return; // straight to the network, unrecorded
 
   if (request.mode === "navigate") {
-    event.respondWith(
-      Promise.resolve(event.preloadResponse)
-        .then((preloaded) => preloaded ?? fetch(request))
-        .then((response) => {
-          const cacheControl = response.headers.get("cache-control") ?? "";
-          const contentType = response.headers.get("content-type") ?? "";
+    const navigation = Promise.resolve(event.preloadResponse)
+      .then((preloaded) => preloaded ?? fetch(request))
+      .then(async (response) => {
+        const cacheControl = response.headers.get("cache-control") ?? "";
+        const contentType = response.headers.get("content-type") ?? "";
 
-          // Keep the last successful document for this exact route. This is
-          // still network-first, so a connection always receives the current
-          // deployment. Private/no-store responses are never copied, and a
-          // cached shell cannot contain an API response or a signed-out user's
-          // data because those paths were excluded above.
-          if (
-            response.ok &&
-            response.type === "basic" &&
-            contentType.includes("text/html") &&
-            !/\b(?:private|no-store)\b/i.test(cacheControl)
-          ) {
-            const copy = response.clone();
-            event.waitUntil(caches.open(VERSION).then((cache) => cache.put(request, copy)));
-          }
-          return response;
-        })
-        .catch(async () => {
-          // Offline. Prefer this exact page if it was cached, then the generic
-          // offline shell. Never a different page's markup, which would show
-          // the user somewhere they are not.
-          const cached = await caches.match(request);
-          const appShell = await caches.match("/");
-          return cached ?? appShell ?? (await caches.match(OFFLINE_URL)) ?? Response.error();
-        }),
-    );
+        // Keep the last successful document for this exact route. This is
+        // still network-first, so a connection always receives the current
+        // deployment. Private/no-store responses are never copied, and a
+        // cached shell cannot contain an API response or a signed-out user's
+        // data because those paths were excluded above.
+        if (
+          response.ok &&
+          response.type === "basic" &&
+          contentType.includes("text/html") &&
+          !/\b(?:private|no-store)\b/i.test(cacheControl)
+        ) {
+          const copy = response.clone();
+          await caches.open(VERSION).then((cache) => cache.put(request, copy));
+        }
+        return response;
+      })
+      .catch(async () => {
+        // Offline. Prefer this exact page if it was cached, then the generic
+        // offline shell. Never a different page's markup, which would show
+        // the user somewhere they are not.
+        const cached = await caches.match(request);
+        const appShell = await caches.match("/");
+        return cached ?? appShell ?? (await caches.match(OFFLINE_URL)) ?? Response.error();
+      });
+    event.waitUntil(navigation.then(() => undefined));
+    event.respondWith(navigation);
     return;
   }
 
   if (!isRuntimeCacheable(url)) return;
 
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((response) => {
-          // Only successful, same-origin, basic responses are worth storing.
-          // An opaque or error response cached here would be served forever.
-          if (response.ok && response.type === "basic") {
-            const copy = response.clone();
-            caches.open(VERSION).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached ?? Response.error());
-      // Content-hashed assets never change under one URL, so the cached copy
-      // is served immediately and the network refreshes it behind.
-      return cached ?? network;
-    }),
+  const cachedResponse = caches.match(request);
+  const network = cachedResponse.then((cached) =>
+    fetch(request)
+      .then(async (response) => {
+        // Only successful, same-origin, basic responses are worth storing.
+        // An opaque or error response cached here would be served forever.
+        if (response.ok && response.type === "basic") {
+          const copy = response.clone();
+          await caches.open(VERSION).then((cache) => cache.put(request, copy));
+        }
+        return response;
+      })
+      .catch(() => cached ?? Response.error()),
   );
+  // Register the background refresh while the fetch event is still active;
+  // calling waitUntil from a later promise callback is too late in browsers.
+  event.waitUntil(network.then(() => undefined));
+  // Content-hashed assets never change under one URL, so the cached copy is
+  // served immediately while the registered network refresh runs behind it.
+  event.respondWith(cachedResponse.then((cached) => cached ?? network));
 });

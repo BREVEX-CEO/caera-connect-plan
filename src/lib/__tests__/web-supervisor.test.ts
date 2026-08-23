@@ -197,6 +197,6 @@ describe("the progressive web assets actually ship", () => {
   it("deletes previous cache versions when a new worker activates", () => {
     const sw = readFileSync("public/sw.js", "utf8");
     expect(sw).toMatch(/caches\.delete/);
-    expect(sw).toMatch(/keys\.filter/);
+    expect(sw).toContain("k.startsWith(SHELL_CACHE_PREFIX)");
   });
 });

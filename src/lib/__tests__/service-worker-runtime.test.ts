@@ -187,7 +187,7 @@ describe("install fills the cache that makes the app openable offline", () => {
     expect([...cache.entries.keys()]).toContain("/offline.html");
   });
 
-  it("still installs when a precache entry cannot be fetched", async () => {
+  it("still installs when an optional precache entry cannot be fetched", async () => {
     /*
      * A single missing asset must not leave the worker permanently
      * uninstalled — that would take offline support down entirely because one
@@ -235,6 +235,55 @@ describe("install fills the cache that makes the app openable offline", () => {
     await Promise.all(waits);
     expect(claimed, "a failed precache left the worker uninstalled").toBe(true);
   });
+
+  it("refuses a half-staged upgrade when the required offline shell is missing", async () => {
+    const source = SOURCE.replace(
+      'const OFFLINE_URL = "/offline.html"',
+      'const OFFLINE_URL = "/missing.html"',
+    );
+    const listeners = new Map<string, (e: Record<string, unknown>) => void>();
+    const store = new Map<string, FakeCache>();
+    store.set("ocade-shell-v7", new FakeCache());
+    const caches = {
+      async open(name: string) {
+        if (!store.has(name)) store.set(name, new FakeCache());
+        return store.get(name)!;
+      },
+      async keys() {
+        return [...store.keys()];
+      },
+      async delete(name: string) {
+        return store.delete(name);
+      },
+      async match() {
+        return undefined;
+      },
+    };
+    let skipped = false;
+    new Function("self", "caches", "fetch", "Response", "URL", source)(
+      {
+        location: new URL("https://app.example.com/sw.js"),
+        addEventListener: (t: string, f: (e: Record<string, unknown>) => void) =>
+          listeners.set(t, f),
+        skipWaiting: () => {
+          skipped = true;
+          return Promise.resolve();
+        },
+        clients: { claim: () => Promise.resolve() },
+      },
+      caches,
+      () => Promise.resolve(new FakeResponse("x")),
+      FakeResponse,
+      URL,
+    );
+
+    const waits: Array<Promise<unknown>> = [];
+    listeners.get("install")!({ waitUntil: (p: Promise<unknown>) => waits.push(p) });
+    await expect(Promise.all(waits)).rejects.toThrow(/failed to fetch/);
+    expect(skipped, "a broken shell was allowed to activate").toBe(false);
+    expect(store.has("ocade-shell-v7"), "the working prior shell was removed").toBe(true);
+    expect(store.has("ocade-shell-v8"), "the half-staged cache survived").toBe(false);
+  });
 });
 
 describe("activate removes only the previous versions", () => {
@@ -246,6 +295,16 @@ describe("activate removes only the previous versions", () => {
     await h.fire("activate", {});
     expect([...h.caches.keys()], "activate deleted the cache it depends on").toContain(current);
     expect([...h.caches.keys()], "a superseded cache survived").not.toContain("ocade-shell-v0");
+  });
+
+  it("preserves caches owned by the model runtime or another feature", async () => {
+    await h.fire("install", {});
+    h.caches.set("webllm/model-qwen", new FakeCache());
+    h.caches.set("ocade-attachments", new FakeCache());
+
+    await h.fire("activate", {});
+    expect(h.caches.has("webllm/model-qwen")).toBe(true);
+    expect(h.caches.has("ocade-attachments")).toBe(true);
   });
 });
 

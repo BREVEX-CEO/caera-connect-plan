@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-23T07:52:26.296Z",
+  "classification": "SOURCE-FIXED AND EXECUTED; DISTRIBUTION EXTERNALLY BLOCKED",
+  "executed": [
+    "live Windows runtime proof is fresh (2026-08-23T07:46:04.569Z): 19 observed, 0 failed, 0 skipped; installed digest, text answer, streaming, cancellation, recovery and vision ground truth passed"
+  ],
+  "sourceFixed": [
+    "the desktop/local runtime manifest resolves exactly one fixed qwen2.5:3b model",
+    "the local runtime tag is pinned to a registry manifest digest",
+    "the production model layer has an exact content digest and byte size",
+    "the shipped fixed-model authority matches the resolved manifest",
+    "every browser GGUF has a pinned publisher digest and exact size",
+    "the browser engine probes a same-origin mirror before its reviewed publisher fallback",
+    "a dedicated source gate refuses public-cloud inference"
+  ],
+  "sourceFailures": [],
+  "externalBlocked": [
+    {
+      "id": "browser-model-mirror:wasm-qwen2.5-0.5b-instruct-q4_k_m",
+      "detail": "same-origin browser weight is absent: public/models/qwen2.5-0.5b-instruct-q4_k_m.gguf",
+      "requiredEvidence": "place the reviewed 491400032-byte file at that path and rerun this gate"
+    },
+    {
+      "id": "webgpu-model-mirror",
+      "detail": "the optional same-origin WebGPU model/library mirror is not populated",
+      "requiredEvidence": "mirror the installed WebLLM runtime files under public/models/webllm and verify a third-party-free first load"
+    },
+    {
+      "id": "signed-desktop-distribution",
+      "detail": "desktop publishing is intentionally disabled",
+      "requiredEvidence": "platform signing/notarization identities, trusted updater channel, and clean-machine install/upgrade/rollback proof"
+    },
+    {
+      "id": "control-engine-provenance",
+      "detail": "control-engine provenance review remains open",
+      "requiredEvidence": "clean-room/provenance inventory and qualified commercial-distribution review bound to the release commit"
+    },
+    {
+      "id": "desktop-model-licence-review",
+      "detail": "the runtime registry licence is not machine-classified (Qwen RESEARCH LICENSE AGREEMENT)",
+      "requiredEvidence": "review the exact fetched licence digest before redistributing desktop model bytes; runtime-managed pulls may remain separate"
+    }
+  ]
+}

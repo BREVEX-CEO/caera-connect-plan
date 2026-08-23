@@ -137,9 +137,9 @@ describe("stop and regenerate", () => {
 });
 
 describe("the context window is planned before the request is sent", () => {
-  it("leaves a short conversation on the engine's own default", () => {
+  it("pins a short conversation to OCADE's bounded default", () => {
     const plan = planContextWindow([{ role: "user", content: "hello" }], undefined);
-    expect(plan.numCtx).toBeNull();
+    expect(plan.numCtx).toBe(4096);
     expect(plan.exceedsCeiling).toBe(false);
   });
 

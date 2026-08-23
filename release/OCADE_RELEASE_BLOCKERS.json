@@ -85,16 +85,20 @@
       ]
     },
     {
-      "id": "db01-schema-authority",
-      "area": "supabase",
+      "id": "model-distribution-and-provenance",
+      "area": "local-ai-distribution",
       "status": "externally_blocked",
-      "requiredEvidence": [
-        "Authenticated access to the Supabase project that owns public.ficia_time_entries",
-        "Definition dump including RLS policies GRANTs indexes and foreign-key actions",
-        "CREATE TABLE migration ordered before 20260721153321 with verification and rollback",
-        "Full migration set applies cleanly to an empty database"
+      "achievedEvidence": [
+        "The pinned qwen2.5:3b registry manifest is current and the installed digest matches it",
+        "Live Windows production path: 19 observed, 0 failed, 0 skipped including text, streaming, cancellation and vision ground truth",
+        "Browser GGUF catalogue digest and exact byte size are current; downloads are verified before OPFS promotion"
       ],
-      "detail": "release/OCADE_DB01_SCHEMA_AUTHORITY_BLOCKER.json"
+      "requiredEvidence": [
+        "Populate and independently hash the same-origin browser model mirrors",
+        "Resolve the desktop-model licence and control-engine provenance reviews for the exact release commit",
+        "Signed clean-machine desktop distribution and supported browser/mobile device matrix"
+      ],
+      "detail": "release/OCADE_MODEL_DISTRIBUTION_PROOF.json"
     }
   ]
 }
