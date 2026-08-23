@@ -21,6 +21,11 @@ export const EventName = {
   SubscriptionCreated: "subscription.created",
   SubscriptionUpdated: "subscription.updated",
   SubscriptionCanceled: "subscription.canceled",
+  SubscriptionPastDue: "subscription.past_due",
+  SubscriptionPaused: "subscription.paused",
+  SubscriptionResumed: "subscription.resumed",
+  AdjustmentCreated: "adjustment.created",
+  AdjustmentUpdated: "adjustment.updated",
   /*
    * The event a ONE-TIME purchase arrives on. It was absent, which is why the
    * 8-day pass in the sellable catalogue could take money and create nothing.

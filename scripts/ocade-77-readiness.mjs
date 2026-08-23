@@ -136,9 +136,9 @@ export const OCADE_77_READINESS = [
   },
   {
     id: 21,
-    requirement: "OCADE Chat uses a real server route",
+    requirement: "OCADE Chat uses a real on-device inference path",
     classification: "source+test",
-    evidence: ["src/routes/api/ocade.chat.ts", "src/lib/__tests__"],
+    evidence: ["src/routes/_authenticated/ocade.index.tsx", "src/lib/brain", "src/lib/__tests__"],
   },
   {
     id: 22,
@@ -171,7 +171,11 @@ export const OCADE_77_READINESS = [
     id: 26,
     requirement: "Chat failures and retries do not imply success",
     classification: "source+test",
-    evidence: ["src/routes/api/ocade.chat.ts", "src/lib/__tests__"],
+    evidence: [
+      "src/routes/_authenticated/ocade.index.tsx",
+      "src/lib/ocade-chat-store.ts",
+      "src/lib/__tests__",
+    ],
   },
   {
     id: 27,
@@ -193,18 +197,18 @@ export const OCADE_77_READINESS = [
   },
   {
     id: 30,
-    requirement: "Projects use durable scoped records",
+    requirement: "Projects use durable device-authoritative scoped records",
     classification: "source+test",
     evidence: [
       "src/routes/_authenticated/ocade.projects.tsx",
-      "src/integrations/supabase/types.ts",
+      "src/lib/projects/local-projects.ts",
     ],
   },
   {
     id: 31,
-    requirement: "Universal Search reads real RLS-backed OCADE records",
+    requirement: "Universal Search reads device records first and merges private sync",
     classification: "source-inspected",
-    evidence: ["src/routes/_authenticated/ocade.search.tsx", "src/integrations/supabase/types.ts"],
+    evidence: ["src/routes/_authenticated/ocade.search.tsx", "src/lib/search/local-search.ts"],
   },
   {
     id: 32,

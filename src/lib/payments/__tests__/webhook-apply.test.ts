@@ -203,6 +203,109 @@ describe("money that went back stays back", () => {
   });
 });
 
+describe("provider refund and dispute adjustments", () => {
+  const existing = {
+    paddleSubscriptionId: "sub_1",
+    status: "active",
+    providerEventAt: T0,
+    environment: "sandbox",
+  };
+
+  function adjustment(
+    action: string,
+    status: string,
+    type: "full" | "partial" = "full",
+  ): VerifiedEventEnvelope {
+    return envelope({
+      eventType: "adjustment.updated",
+      data: {
+        id: "adj_1",
+        subscription_id: "sub_1",
+        transaction_id: "txn_1",
+        action,
+        status,
+        type,
+      },
+    });
+  }
+
+  it("does not revoke access while a refund is only pending approval", () => {
+    expect(decide(adjustment("refund", "pending_approval"), existing)).toEqual({
+      action: "ignore",
+      reason: "refund_pending_approval",
+    });
+  });
+
+  it("revokes immediately when a full refund is approved", () => {
+    const result = decide(adjustment("refund", "approved"), existing);
+    expect(result.action).toBe("update");
+    if (result.action === "update") expect(result.patch.status).toBe("refunded");
+  });
+
+  it("records but does not erase entitlement for a partial refund", () => {
+    expect(decide(adjustment("refund", "approved", "partial"), existing)).toEqual({
+      action: "ignore",
+      reason: "partial_refund",
+    });
+  });
+
+  it("suspends access for a chargeback warning and a completed chargeback", () => {
+    const warning = decide(adjustment("chargeback_warning", "approved"), existing);
+    const chargedBack = decide(adjustment("chargeback", "approved"), existing);
+    if (warning.action !== "update" || chargedBack.action !== "update") throw new Error("no");
+    expect(warning.patch.status).toBe("disputed");
+    expect(chargedBack.patch.status).toBe("charged_back");
+  });
+
+  it("restores only an entitlement that an explicit chargeback reversal suspended", () => {
+    const reversed = decide(adjustment("chargeback_reverse", "approved"), {
+      ...existing,
+      status: "charged_back",
+    });
+    expect(reversed.action).toBe("update");
+    if (reversed.action === "update") expect(reversed.patch.status).toBe("active");
+
+    expect(decide(adjustment("chargeback_reverse", "approved"), existing)).toEqual({
+      action: "ignore",
+      reason: "unexpected_chargeback_reversal",
+    });
+  });
+
+  it("targets the subscription when present and a one-time transaction otherwise", async () => {
+    const { targetEntityIdOf } = await import("../webhook-apply");
+    expect(
+      targetEntityIdOf("adjustment.created", {
+        subscription_id: "sub_1",
+        transaction_id: "txn_1",
+      }),
+    ).toBe("sub_1");
+    expect(targetEntityIdOf("adjustment.created", { transaction_id: "txn_1" })).toBe("txn_1");
+  });
+});
+
+describe("subscription lifecycle events form an explicit state machine", () => {
+  const existing = {
+    paddleSubscriptionId: "sub_1",
+    status: "active",
+    providerEventAt: T0,
+    environment: "sandbox",
+  };
+
+  for (const [eventType, status] of [
+    ["subscription.past_due", "past_due"],
+    ["subscription.paused", "paused"],
+    ["subscription.resumed", "active"],
+    ["subscription.activated", "active"],
+    ["subscription.trialing", "trialing"],
+  ] as const) {
+    it(`${eventType} writes ${status}`, () => {
+      const result = decide(envelope({ eventType, data: { id: "sub_1" } }), existing);
+      expect(result.action).toBe("update");
+      if (result.action === "update") expect(result.patch.status).toBe(status);
+    });
+  }
+});
+
 describe("sandbox and live never touch each other", () => {
   it("refuses a live event against a sandbox row", () => {
     const live = envelope({

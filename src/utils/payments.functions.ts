@@ -40,6 +40,10 @@ export const resolvePaddlePrice = createServerFn({ method: "GET" })
     return data;
   })
   .handler(async ({ data }) => {
+    const { billingEnabled } = await import("@/lib/launch-mode");
+    if (!billingEnabled()) {
+      throw new Error("Price resolution is disabled while OCADE is in free launch mode.");
+    }
     const { gatewayFetch } = await import("@/lib/paddle.server");
     const response = await gatewayFetch(
       data.environment,

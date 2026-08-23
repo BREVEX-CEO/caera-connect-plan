@@ -22,7 +22,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import { verifyWebhook, isPaddleEnv, type PaddleEnv } from "@/lib/paddle.server";
-import { decide, type ExistingRecord } from "@/lib/payments/webhook-apply";
+import { decide, targetEntityIdOf, type ExistingRecord } from "@/lib/payments/webhook-apply";
 import type { Database } from "@/integrations/supabase/types";
 
 let cached: ReturnType<typeof createClient<Database>> | null = null;
@@ -36,51 +36,11 @@ function getSupabase() {
   return cached;
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-/** The subscription/transaction id an event is about, whatever its shape. */
-function entityIdOf(data: any): string | null {
-  return typeof data?.id === "string" ? data.id : null;
-}
-
 async function handleWebhook(req: Request, env: PaddleEnv) {
   const event = await verifyWebhook(req, env);
   const supabase = getSupabase();
   const data = (event.data ?? {}) as Record<string, unknown>;
-  const entityId = entityIdOf(data);
-
-  /*
-   * THE AUDIT ROW IS THE LOCK, and it is claimed BEFORE anything is applied.
-   *
-   * `event_id` is the table's primary key, so a retried delivery loses the
-   * insert and returns here having changed nothing. Doing it first rather than
-   * last is what makes it a guard instead of a log: recorded afterwards, two
-   * concurrent deliveries of the same event both find no row, both apply, and
-   * both then record success.
-   */
-  const claim = await supabase
-    .from("payment_webhook_events")
-    .insert({
-      event_id: event.eventId,
-      event_type: event.eventType,
-      occurred_at: event.occurredAt,
-      environment: env,
-      entity_id: entityId,
-      outcome: "received",
-    })
-    .select("event_id")
-    .maybeSingle();
-
-  if (claim.error) {
-    /*
-     * A duplicate key is the expected, healthy outcome of a provider retry, so
-     * it is a success: the event has already been handled. Anything else is a
-     * real database failure and must surface, because silently continuing
-     * would apply an event OCADE cannot prove it applied.
-     */
-    if (claim.error.code === "23505") return;
-    throw claim.error;
-  }
+  const entityId = targetEntityIdOf(event.eventType, data);
 
   let existing: ExistingRecord | null = null;
   if (entityId) {
@@ -110,31 +70,41 @@ async function handleWebhook(req: Request, env: PaddleEnv) {
     existing,
   );
 
-  if (instruction.action === "upsert") {
-    const { error } = await supabase.from("subscriptions").upsert(
-      { ...instruction.row, updated_at: new Date().toISOString() },
-      {
-        onConflict: "paddle_subscription_id",
-      },
-    );
-    if (error) throw error;
-  } else if (instruction.action === "update") {
-    const { error } = await supabase
-      .from("subscriptions")
-      .update({ ...instruction.patch, updated_at: new Date().toISOString() })
-      .eq("paddle_subscription_id", instruction.paddleSubscriptionId)
-      .eq("environment", env);
-    if (error) throw error;
-  }
-
-  await supabase
-    .from("payment_webhook_events")
-    .update({
-      outcome: instruction.action,
-      reason: instruction.action === "ignore" ? instruction.reason : null,
-      user_id: instruction.action === "upsert" ? instruction.row.user_id : null,
-    })
-    .eq("event_id", event.eventId);
+  /*
+   * ONE RPC, ONE DATABASE TRANSACTION. The old three-call sequence could crash
+   * after claiming an event but before changing access; every retry then saw a
+   * duplicate claim and the customer stayed permanently out of sync. The RPC
+   * inserts the idempotency row and changes entitlement state atomically, and
+   * repeats the stale/terminal guards under the database lock.
+   */
+  const row = instruction.action === "upsert" ? instruction.row : null;
+  const patch = instruction.action === "update" ? instruction.patch : null;
+  const adjustmentAction = typeof data["action"] === "string" ? data["action"] : "";
+  const { error } = await supabase.rpc("apply_payment_webhook_event", {
+    p_event_id: event.eventId,
+    p_event_type: event.eventType,
+    p_occurred_at: event.occurredAt,
+    p_environment: env,
+    p_entity_id: entityId,
+    p_action: instruction.action,
+    p_reason: instruction.action === "ignore" ? instruction.reason : null,
+    p_user_id: row?.user_id ?? null,
+    p_paddle_subscription_id:
+      row?.paddle_subscription_id ??
+      (instruction.action === "update" ? instruction.paddleSubscriptionId : null),
+    p_paddle_customer_id: row?.paddle_customer_id ?? null,
+    p_product_id: row?.product_id ?? null,
+    p_price_id: row?.price_id ?? null,
+    p_status: row?.status ?? patch?.status ?? null,
+    p_current_period_start: row?.current_period_start ?? patch?.current_period_start ?? null,
+    p_current_period_end: row?.current_period_end ?? patch?.current_period_end ?? null,
+    p_cancel_at_period_end: row?.cancel_at_period_end ?? patch?.cancel_at_period_end ?? null,
+    p_kind: row?.kind ?? null,
+    p_allow_terminal_reversal:
+      adjustmentAction === "chargeback_reverse" ||
+      adjustmentAction === "chargeback_warning_reverse",
+  });
+  if (error) throw error;
 }
 
 export const Route = createFileRoute("/api/public/payments/webhook")({

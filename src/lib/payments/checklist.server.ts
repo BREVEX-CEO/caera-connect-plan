@@ -66,8 +66,13 @@ const REQUIRED_EVENTS = [
   "subscription.created",
   "subscription.updated",
   "subscription.canceled",
+  "subscription.past_due",
+  "subscription.paused",
+  "subscription.resumed",
   "transaction.completed",
   "transaction.payment_failed",
+  "adjustment.created",
+  "adjustment.updated",
 ];
 
 async function stepWebhookConfigured(env: PaddleEnv): Promise<ChecklistStepResult> {

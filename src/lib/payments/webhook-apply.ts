@@ -98,6 +98,18 @@ export interface IgnoreInstruction {
 
 export type Instruction = UpsertInstruction | UpdateInstruction | IgnoreInstruction;
 
+/** The entitlement row an event is allowed to affect. */
+export function targetEntityIdOf(eventType: string, data: Record<string, unknown>): string | null {
+  if (eventType === "adjustment.created" || eventType === "adjustment.updated") {
+    const subscriptionId = pick(data, "subscriptionId", "subscription_id");
+    if (typeof subscriptionId === "string" && subscriptionId.length > 0) return subscriptionId;
+    const transactionId = pick(data, "transactionId", "transaction_id");
+    return typeof transactionId === "string" && transactionId.length > 0 ? transactionId : null;
+  }
+  const id = pick(data, "id");
+  return typeof id === "string" && id.length > 0 ? id : null;
+}
+
 /** How long a one-time pass lasts, by plan. Days. */
 const ONE_TIME_DAYS: Record<string, number> = { std_8d: 8 };
 
@@ -322,6 +334,91 @@ export function decide(
           kind: "one_time",
         },
       };
+    }
+
+    case "subscription.activated":
+    case "subscription.resumed":
+    case "subscription.past_due":
+    case "subscription.paused":
+    case "subscription.trialing": {
+      const id = pick(data, "id");
+      if (typeof id !== "string") return { action: "ignore", reason: "no_entity_id" };
+      if (existing && TERMINAL.has(existing.status)) {
+        return { action: "ignore", reason: "terminal_state" };
+      }
+      const statuses: Record<string, string> = {
+        "subscription.activated": "active",
+        "subscription.resumed": "active",
+        "subscription.past_due": "past_due",
+        "subscription.paused": "paused",
+        "subscription.trialing": "trialing",
+      };
+      return {
+        action: "update",
+        paddleSubscriptionId: id,
+        patch: {
+          status: statuses[envelope.eventType],
+          provider_event_at: envelope.occurredAt,
+        },
+      };
+    }
+
+    /*
+     * Refunds and disputes are Adjustment events in Paddle Billing. A pending
+     * refund is not money returned, a rejected refund changes nothing, and a
+     * partial refund does not erase the entitlement that was partly paid for.
+     * Chargebacks are different: access is suspended as soon as the provider
+     * reports the dispute, then restored only by the explicit reversal event.
+     */
+    case "adjustment.created":
+    case "adjustment.updated": {
+      const target = targetEntityIdOf(envelope.eventType, data);
+      if (!target) return { action: "ignore", reason: "no_adjustment_target" };
+      if (!existing) return { action: "ignore", reason: "entitlement_not_found" };
+
+      const action = pick(data, "action");
+      const status = pick(data, "status");
+      const adjustmentType = pick(data, "type");
+      if (typeof action !== "string" || typeof status !== "string") {
+        return { action: "ignore", reason: "invalid_adjustment" };
+      }
+
+      if (action === "refund") {
+        if (status === "pending_approval") {
+          return { action: "ignore", reason: "refund_pending_approval" };
+        }
+        if (status === "rejected") return { action: "ignore", reason: "refund_rejected" };
+        if (status !== "approved") return { action: "ignore", reason: `refund_${status}` };
+        if (adjustmentType !== "full") return { action: "ignore", reason: "partial_refund" };
+        return {
+          action: "update",
+          paddleSubscriptionId: target,
+          patch: { status: "refunded", provider_event_at: envelope.occurredAt },
+        };
+      }
+
+      if (action === "chargeback" || action === "chargeback_warning") {
+        return {
+          action: "update",
+          paddleSubscriptionId: target,
+          patch: {
+            status: action === "chargeback" ? "charged_back" : "disputed",
+            provider_event_at: envelope.occurredAt,
+          },
+        };
+      }
+
+      if (action === "chargeback_reverse" || action === "chargeback_warning_reverse") {
+        const reversible = existing.status === "charged_back" || existing.status === "disputed";
+        if (!reversible) return { action: "ignore", reason: "unexpected_chargeback_reversal" };
+        return {
+          action: "update",
+          paddleSubscriptionId: target,
+          patch: { status: "active", provider_event_at: envelope.occurredAt },
+        };
+      }
+
+      return { action: "ignore", reason: `adjustment_action:${action}` };
     }
 
     default:

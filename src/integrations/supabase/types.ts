@@ -3814,6 +3814,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_payment_webhook_event: {
+        Args: {
+          p_action: string
+          p_allow_terminal_reversal: boolean
+          p_cancel_at_period_end: boolean | null
+          p_current_period_end: string | null
+          p_current_period_start: string | null
+          p_entity_id: string | null
+          p_environment: string
+          p_event_id: string
+          p_event_type: string
+          p_kind: string | null
+          p_occurred_at: string
+          p_paddle_customer_id: string | null
+          p_paddle_subscription_id: string | null
+          p_price_id: string | null
+          p_product_id: string | null
+          p_reason: string | null
+          p_status: string | null
+          p_user_id: string | null
+        }
+        Returns: string
+      }
       create_company_with_owner: {
         Args: { _payload: Json; _uid: string }
         Returns: string

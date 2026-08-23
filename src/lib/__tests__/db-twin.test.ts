@@ -44,14 +44,15 @@ describe("every migration applies in the declared order", () => {
    * two parity tests at the bottom of this file then force the paired
    * verification and rollback scripts to arrive with it.
    *
-   * Last raised for `20260823090000_payment_webhook_audit.sql`, which gives
-   * the payment webhook replay protection, event ordering and an audit trail.
+   * Last raised for the atomic payment-webhook and entitlement-invoker
+   * migrations, which close the crash gap between event claiming and access
+   * changes and stop cross-account entitlement probes.
    * Loosening
    * this to a range would defeat the point: an exact count is what catches a
    * migration going missing.
    */
-  it("finds all 46 migrations", () => {
-    expect(DatabaseTwin.migrationFiles()).toHaveLength(46);
+  it("finds all 48 migrations", () => {
+    expect(DatabaseTwin.migrationFiles()).toHaveLength(48);
   });
 
   /**
@@ -85,7 +86,7 @@ describe("every migration applies in the declared order", () => {
       failed.map((f) => `${f.file}: ${f.error}`),
       "a migration failed against real PostgreSQL",
     ).toEqual([]);
-    expect(applied).toHaveLength(46);
+    expect(applied).toHaveLength(48);
   });
 
   it("rebuilds the whole schema from zero, including the tables defined after the old break", async () => {
@@ -287,6 +288,107 @@ describe("deleting an attachment cannot orphan its bytes", () => {
       "select storage_path from storage_tombstones",
     );
     expect(other.rows, "a tombstone leaked across tenants").toHaveLength(0);
+  });
+});
+
+describe("payment state is transactional and tenant-scoped", () => {
+  const ALICE = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
+  const BOB = "ffffffff-ffff-ffff-ffff-ffffffffffff";
+  const SUBSCRIPTION = "sub_db_twin_atomic";
+
+  beforeAll(async () => {
+    await twin.execSuperuser(`
+      insert into auth.users (id, email) values
+        ('${ALICE}', 'payment-alice@example.com'),
+        ('${BOB}', 'payment-bob@example.com')
+      on conflict (id) do nothing;
+    `);
+  });
+
+  it("claims and changes an entitlement in the same PostgreSQL transaction", async () => {
+    const result = await twin.asSuperuser<{ result: string }>(`
+      select public.apply_payment_webhook_event(
+        'evt_db_twin_create', 'subscription.created', '2026-08-23T06:00:00Z',
+        'sandbox', '${SUBSCRIPTION}', 'upsert', null, '${ALICE}',
+        '${SUBSCRIPTION}', 'ctm_db_twin', 'pro_db_twin', 'pri_db_twin',
+        'active', '2026-08-23T06:00:00Z', '2026-09-23T06:00:00Z',
+        false, 'subscription', false
+      ) as result;
+    `);
+    expect(result[0].result).toBe("upsert");
+
+    const state = await twin.asSuperuser<{ status: string; outcome: string }>(`
+      select s.status, e.outcome
+      from subscriptions s
+      join payment_webhook_events e on e.entity_id = s.paddle_subscription_id
+      where s.paddle_subscription_id = '${SUBSCRIPTION}'
+        and e.event_id = 'evt_db_twin_create';
+    `);
+    expect(state).toEqual([{ status: "active", outcome: "upsert" }]);
+  });
+
+  it("deduplicates retries and refuses an older event", async () => {
+    const duplicate = await twin.asSuperuser<{ result: string }>(`
+      select public.apply_payment_webhook_event(
+        'evt_db_twin_create', 'subscription.created', '2026-08-23T06:00:00Z',
+        'sandbox', '${SUBSCRIPTION}', 'ignore', 'retry', null, null, null,
+        null, null, null, null, null, null, null, false
+      ) as result;
+    `);
+    expect(duplicate[0].result).toBe("duplicate");
+
+    const stale = await twin.asSuperuser<{ result: string }>(`
+      select public.apply_payment_webhook_event(
+        'evt_db_twin_stale', 'subscription.canceled', '2026-08-22T06:00:00Z',
+        'sandbox', '${SUBSCRIPTION}', 'update', null, null, '${SUBSCRIPTION}',
+        null, null, null, 'canceled', null, null, false, null, false
+      ) as result;
+    `);
+    expect(stale[0].result).toBe("ignore");
+    const state = await twin.asSuperuser<{ status: string; reason: string }>(`
+      select s.status, e.reason
+      from subscriptions s, payment_webhook_events e
+      where s.paddle_subscription_id = '${SUBSCRIPTION}'
+        and e.event_id = 'evt_db_twin_stale';
+    `);
+    expect(state).toEqual([{ status: "active", reason: "target_missing_stale_or_terminal" }]);
+  });
+
+  it("rolls the event claim back when its entitlement change is invalid", async () => {
+    await expect(
+      twin.asSuperuser(`
+        select public.apply_payment_webhook_event(
+          'evt_db_twin_invalid', 'subscription.created', now(), 'sandbox',
+          'sub_invalid', 'upsert', null, '${ALICE}', 'sub_invalid', null,
+          null, null, 'active', null, null, false, 'subscription', false
+        );
+      `),
+    ).rejects.toThrow(/missing required state/i);
+    const rows = await twin.asSuperuser(`
+      select event_id from payment_webhook_events
+      where event_id = 'evt_db_twin_invalid';
+    `);
+    expect(rows, "a failed entitlement write left a poisoned idempotency claim").toEqual([]);
+  });
+
+  it("does not reveal another tenant's paid state through the helper", async () => {
+    await twin.execSuperuser(`
+      insert into subscriptions (
+        user_id, paddle_subscription_id, paddle_customer_id, product_id,
+        price_id, status, current_period_end, environment, kind
+      ) values (
+        '${BOB}', 'sub_db_twin_bob', 'ctm_bob', 'pro_bob', 'pri_bob',
+        'active', now() + interval '1 day', 'sandbox', 'subscription'
+      ) on conflict (paddle_subscription_id) do nothing;
+    `);
+    const probe = await twin.asTenant<{ own: boolean; other: boolean }>(
+      ALICE,
+      `select
+         public.has_active_subscription('${ALICE}', 'sandbox') as own,
+         public.has_active_subscription('${BOB}', 'sandbox') as other`,
+    );
+    expect(probe.error).toBeUndefined();
+    expect(probe.rows).toEqual([{ own: true, other: false }]);
   });
 });
 
