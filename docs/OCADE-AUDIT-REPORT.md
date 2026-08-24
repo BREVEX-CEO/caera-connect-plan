@@ -15,7 +15,7 @@ credential, device, distribution identity or independently controlled target.
 
 | Gate                                               | Result                                                                   |
 | -------------------------------------------------- | ------------------------------------------------------------------------ |
-| `npm run launch:prove`                             | **16/16 local gates pass; merge refused while external authority is open** |
+| `npm run launch:prove:defer-windows`               | **Windows UI explicitly deferred; all other local gates form the source-merge proof** |
 | Typecheck                                          | clean                                                                    |
 | Lint                                               | 0 errors (pre-existing prettier warnings only)                           |
 | Full + shuffled test corpora                       | **356 files pass, 2 skip; 6,017 tests pass, 8 skip in both orders**      |
@@ -33,16 +33,16 @@ credential, device, distribution identity or independently controlled target.
 | WebGPU / WASM availability                         | **8/8**                                                                  |
 | Flow-wave render                                   | **5/5**                                                                  |
 | Settings signed-out / visual / signed-in / offline | **16 + 7 + 20 + 13 = 56**                                                |
-| Python sidecar suite                               | **297 passed, 17 capability skips**                                      |
+| Python sidecar / real Windows UI                   | **DEFERRED / NOT FINAL-PROVEN; last retained Windows matrix was 8/10**    |
 | Python control engine                              | **30 passed**                                                            |
 | Chrome + Edge CDP parity                           | `ok: true`, both browsers                                                |
 
 The executable top-level receipt is `release/OCADE_LAUNCH_PROOF.json`. It keeps
-the 16 locally executable gates separate from eight external blocker areas and
-four launch-authority approvals. A locally green matrix therefore does not
-authorize deployment, signing, publication or merge. Chrome/Edge managed-host
-parity passes on Windows; store publication and installed-store upgrade proof
-remain external.
+source-merge readiness separate from production-launch authority. For this run,
+the release owner explicitly authorized merge with the disruptive Notepad/
+Windows UI proof recorded as `DEFERRED / NOT FINAL-PROVEN`; that deferral is not
+a pass and does not authorize launch. Chrome/Edge managed-host parity passes on
+Windows; store publication and installed-store upgrade proof remain external.
 
 The five gates that could not run here are in §7, each with the command that
 runs it where it can. `npm run launch:prove` records them as UNAVAILABLE and

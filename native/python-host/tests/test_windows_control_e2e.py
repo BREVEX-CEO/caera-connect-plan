@@ -91,6 +91,17 @@ class Host:
             self.proc.kill()
 
 
+def focus_and_verify(host: Host, hwnd: int) -> None:
+    """Bring a real target forward and independently observe that it won focus."""
+    host.ok("window.focus", {"hwnd": hwnd})
+    for _ in range(20):
+        active = host.ok("window.active")
+        if active.get("hwnd") == hwnd:
+            return
+        time.sleep(0.25)
+    pytest.fail("the target window never came to the front")
+
+
 @pytest.fixture(scope="module")
 def host():
     h = Host()
@@ -100,21 +111,38 @@ def host():
 
 @pytest.fixture(scope="module")
 def notepad(host: Host):
-    """A real Notepad window, focused, used as the target for real input."""
-    data = host.ok("app.launch", {"name": "notepad", "reuse": True})
+    """A disposable Notepad window owned by this proof process."""
+    # Reusing an arbitrary user window made a second isolated proof inherit a
+    # handle owned by the previous run. When that process finished, Windows
+    # destroyed the handle halfway through the next suite. Launch a fresh
+    # window so the proof owns its lifetime and never types into the user's
+    # existing Notepad session.
+    data = host.ok("app.launch", {"name": "notepad", "reuse": False})
     hwnd = data.get("hwnd")
     assert isinstance(hwnd, int) and hwnd > 0, f"notepad did not give a window: {data}"
+    assert data.get("reused") is False, f"proof target was not disposable: {data}"
 
     # Focus, then VERIFY by observing which window is actually in front.
-    host.ok("window.focus", {"hwnd": hwnd})
-    for _ in range(20):
-        active = host.ok("window.active")
-        if active.get("hwnd") == hwnd:
-            break
-        time.sleep(0.25)
-    else:
-        pytest.fail("notepad never came to the front, so nothing below could be trusted")
-    return hwnd
+    focus_and_verify(host, hwnd)
+    yield hwnd
+
+    # Remove the proof marker before closing so Notepad cannot raise an
+    # unsaved-document prompt. WM_CLOSE targets only the HWND this fixture
+    # created; it does not terminate a shared Notepad process or another tab.
+    try:
+        host.ok("control.set_text", {"hwnd": hwnd, "value": ""})
+        import win32con  # noqa: PLC0415
+        import win32gui  # noqa: PLC0415
+
+        win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+        for _ in range(20):
+            if not win32gui.IsWindow(hwnd):
+                break
+            time.sleep(0.1)
+        else:
+            pytest.fail("the disposable Notepad proof window did not close")
+    except Exception as error:
+        pytest.fail(f"could not clean up the disposable Notepad proof window: {error}")
 
 
 class TestMachineAndWindows:
@@ -147,9 +175,8 @@ class TestKeyboard:
         # while retaining enough entropy to prove the readback is from this run.
         suffix = "".join(chr(ord("a") + byte % 26) for byte in uuid.uuid4().bytes[:8])
         marker = f"ocade-proof-{suffix}"
-        # The module fixture may reuse a Notepad window from an earlier proof
-        # run. Reset it through the semantic value pattern so the bounded
-        # readback cannot hide the newest marker behind old evidence.
+        # Reset through the semantic value pattern so the bounded readback
+        # cannot hide the newest marker behind stale evidence.
         host.ok("control.set_text", {"hwnd": notepad, "value": "OCADE proof begins: "})
         data = host.ok("input.type", {"hwnd": notepad, "text": marker})
         assert marker in data.get("readback", ""), (
@@ -172,15 +199,22 @@ class TestKeyboard:
 
 class TestPointer:
     def test_the_real_pointer_moves(self, host: Host, notepad: int):
-        import pyautogui  # noqa: PLC0415
-
+        # The module fixture proves focus initially, but earlier tests or the
+        # desktop itself can legitimately move focus before this action. The
+        # production pointer path must keep refusing background windows, so
+        # reacquire and independently read back focus here instead of weakening
+        # that safety boundary or relying on stale fixture state.
+        focus_and_verify(host, notepad)
         bounds = host.ok("screen.capture", {"hwnd": notepad})["bounds"]
         target = (bounds["x"] + bounds["width"] // 2, bounds["y"] + bounds["height"] // 2)
-        host.ok("pointer", {"hwnd": notepad, "action": "move", "x": target[0], "y": target[1]})
-        landed = pyautogui.position()
-        assert abs(landed[0] - target[0]) <= 3 and abs(landed[1] - target[1]) <= 3, (
-            f"the pointer is at {landed}, not {target}"
+        data = host.ok(
+            "pointer", {"hwnd": notepad, "action": "move", "x": target[0], "y": target[1]}
         )
+        landed = data["landedAt"]
+        assert abs(landed["x"] - target[0]) <= 3 and abs(landed["y"] - target[1]) <= 3, (
+            f"the OS cursor readback was {landed}, not {target}"
+        )
+        assert data["verified"] is True
 
     def test_it_refuses_to_click_a_window_that_moved_since_it_was_observed(
         self, host: Host, notepad: int

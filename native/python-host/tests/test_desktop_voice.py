@@ -36,6 +36,77 @@ class TestApplicationLaunch:
             desktop.launch_application(request())
 
 
+class TestPointerLandingReceipt:
+    @staticmethod
+    def pointer_at(x: int, y: int) -> SimpleNamespace:
+        return SimpleNamespace(position=lambda: SimpleNamespace(x=x, y=y))
+
+    def test_it_verifies_the_coordinate_the_os_reports(self) -> None:
+        landed, verified = act._pointer_landing_receipt(
+            self.pointer_at(403, 297), {"x": 400, "y": 300}, "move"
+        )
+        assert landed == {"x": 403, "y": 297}
+        assert verified is True
+
+    def test_it_does_not_claim_a_takeover_landed(self) -> None:
+        landed, verified = act._pointer_landing_receipt(
+            self.pointer_at(430, 260), {"x": 400, "y": 300}, "move"
+        )
+        assert landed == {"x": 430, "y": 260}
+        assert verified is False
+
+    def test_scroll_keeps_visual_verification_as_its_evidence(self) -> None:
+        landed, verified = act._pointer_landing_receipt(
+            self.pointer_at(12, 34), {"amount": -300}, "scroll"
+        )
+        assert landed == {"x": 12, "y": 34}
+        assert verified is None
+
+
+class TestSemanticTextEditing:
+    class Target:
+        def __init__(self) -> None:
+            self.value = "before"
+            self.element_info = SimpleNamespace(
+                name="Notes",
+                automation_id="notes",
+                control_type="Edit",
+                is_password=False,
+            )
+
+        def set_edit_text(self, value: str) -> None:
+            self.value = value
+
+        def get_value(self) -> str:
+            return self.value
+
+    def test_it_can_clear_a_field_and_read_the_empty_value_back(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        target = self.Target()
+        window = SimpleNamespace(descendants=lambda: [target])
+        monkeypatch.setattr(act, "_window", lambda hwnd: (123, window))
+
+        result = act.set_text(request(hwnd=123, name="Notes", value=""))
+
+        assert target.value == ""
+        assert result["written"] == 0
+        assert result["readback"] == ""
+        assert result["verified"] is True
+
+    def test_it_preserves_whitespace_in_a_field_value(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        target = self.Target()
+        window = SimpleNamespace(descendants=lambda: [target])
+        monkeypatch.setattr(act, "_window", lambda hwnd: (123, window))
+
+        result = act.set_text(request(hwnd=123, name="Notes", value="  text  "))
+
+        assert target.value == "  text  "
+        assert result["verified"] is True
+
+
 class TestDisplays:
     def test_display_list_reports_a_count_that_matches_its_rows(self) -> None:
         report = desktop.list_displays()

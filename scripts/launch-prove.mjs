@@ -13,6 +13,7 @@ import { join } from "node:path";
 
 const ROOT = process.cwd();
 const OUTPUT = join(ROOT, "release", "OCADE_LAUNCH_PROOF.json");
+const DEFER_WINDOWS = process.argv.includes("--defer-windows");
 const npmCli =
   process.env.npm_execpath ??
   join(process.execPath, "..", "node_modules", "npm", "bin", "npm-cli.js");
@@ -39,7 +40,7 @@ const gates = [
   npmRun("licences", "Generated third-party notices are current", "licences:check"),
   npmRun("supabase-types", "Database types match the migration surface", "supabase:types-check"),
   npmRun("launch-authority", "Launch authority remains fail-closed", "launch-authority:check"),
-  ...(process.platform === "win32"
+  ...(process.platform === "win32" && !DEFER_WINDOWS
     ? [npmRun("windows-runtime", "Native, desktop and browser real-target proof", "windows:prove")]
     : []),
   {
@@ -106,6 +107,19 @@ export function runLaunchProof() {
   );
 
   const sourceFailures = results.filter((item) => item.status === "executed_fail");
+  const deferredGates = DEFER_WINDOWS
+    ? [
+        {
+          id: "windows-runtime",
+          status: "deferred_not_executed",
+          classification: "DEFERRED / NOT FINAL-PROVEN",
+          reason:
+            "The release owner explicitly deferred disruptive real Windows UI and Notepad execution for this run.",
+          mergePolicy:
+            "This deferral does not block source merge; it remains a production-proof debt and cannot be reported as passed.",
+        },
+      ]
+    : [];
   const externalBlockers = blockerLedger.blockers.map((item) => ({
     id: item.id,
     area: item.area,
@@ -114,13 +128,24 @@ export function runLaunchProof() {
   const authorityBlocked = Object.entries(authority.currentAuthority)
     .filter(([, ready]) => ready !== true)
     .map(([id]) => id);
-  const readyToMerge =
-    sourceFailures.length === 0 && externalBlockers.length === 0 && authorityBlocked.length === 0;
+  // A verified source merge and a production launch are different authority
+  // boundaries. External credentials, signing, publication and launch-owner
+  // approvals must keep launch closed, but they must not trap otherwise-green
+  // engineering work on a continuation branch. An explicitly deferred Windows
+  // proof is visible debt, never a fabricated pass.
+  const readyToMerge = sourceFailures.length === 0;
+  const readyToLaunch =
+    readyToMerge &&
+    deferredGates.length === 0 &&
+    externalBlockers.length === 0 &&
+    authorityBlocked.length === 0;
   const classification =
     sourceFailures.length > 0
       ? "EXECUTED WITH SOURCE FAILURES; LAUNCH BLOCKED"
-      : readyToMerge
+      : readyToLaunch
         ? "LAUNCH-CRITICAL PROOF GREEN"
+        : deferredGates.length > 0
+          ? "SOURCE-FIXED AND EXECUTED; WINDOWS DEFERRED / NOT FINAL-PROVEN; LAUNCH EXTERNALLY BLOCKED"
         : "SOURCE-FIXED AND EXECUTED; LAUNCH EXTERNALLY BLOCKED";
 
   const report = {
@@ -130,6 +155,8 @@ export function runLaunchProof() {
     startingChanges,
     classification,
     readyToMerge,
+    readyToLaunch,
+    deferredGates,
     localProof: {
       passed: results.length - sourceFailures.length,
       failed: sourceFailures.length,
@@ -157,11 +184,16 @@ export function runLaunchProof() {
       `${externalBlockers.length} external blocker areas; ${authorityBlocked.length} authority gates open.`,
   );
   console.log(`Evidence: ${OUTPUT}`);
-  if (!readyToMerge) console.log("MERGE REFUSED: launch-critical proof is not green.");
+  if (!readyToMerge) console.log("MERGE REFUSED: local source proof has failures.");
+  else if (!readyToLaunch) {
+    console.log("SOURCE MERGE READY; LAUNCH REFUSED: external or deferred proof remains open.");
+  }
   return report;
 }
 
 if (process.argv[1] && new URL(import.meta.url).pathname.endsWith(process.argv[1].replaceAll("\\", "/"))) {
   const report = runLaunchProof();
-  process.exitCode = report.readyToMerge ? 0 : 1;
+  // The explicit deferral command is the owner-authorized source-merge gate.
+  // The ordinary launch proof remains fail-closed until launch itself is ready.
+  process.exitCode = (DEFER_WINDOWS ? report.readyToMerge : report.readyToLaunch) ? 0 : 1;
 }

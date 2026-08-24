@@ -65,6 +65,7 @@
     "stakeholder-research:check": "node scripts/check-stakeholder-research.mjs",
     "launch-authority:check": "node scripts/launch-authority.mjs",
     "launch:prove": "node scripts/launch-prove.mjs",
+    "launch:prove:defer-windows": "node scripts/launch-prove.mjs --defer-windows",
     "application-lifecycle:check": "node scripts/check-lifecycle-policy.mjs",
     "deploy:check": "node scripts/deploy.mjs --check",
     "deploy:web": "node scripts/deploy.mjs --execute",

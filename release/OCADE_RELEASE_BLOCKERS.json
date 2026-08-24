@@ -90,11 +90,12 @@
       "area": "universal-control",
       "status": "externally_blocked",
       "achievedEvidence": [
-        "Windows proof passes 10/10 stages on Windows 10.0.19044",
-        "Live Notepad proof passes focus, UIA observation, typed-text readback, pointer movement, capture, OCR/refusal, STOP and protected-input checks",
-        "Full native sidecar suite passes 297 tests with 17 capability-based skips; control engine passes 30/30"
+        "The last retained Windows execution passed 8/10 stages; extension and managed-browser parity remained green",
+        "Non-disruptive pointer receipt and semantic text-clearing tests pass, including honest user-takeover detection",
+        "The source merge is owner-authorized with Windows UI proof explicitly DEFERRED / NOT FINAL-PROVEN"
       ],
       "requiredEvidence": [
+        "A later supervised real Windows UI proof with an isolated disposable desktop target; do not infer this from source or earlier runs",
         "Licensed target applications and exact version matrix",
         "Observed adapter actions receipts cancellation and recovery",
         "GPU media voice vision and long-duration workload evidence",

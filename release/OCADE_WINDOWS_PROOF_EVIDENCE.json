@@ -1,11 +1,15 @@
 {
-  "recordedAt": "2026-08-24T10:42:58.036Z",
+  "classification": "DEFERRED / NOT FINAL-PROVEN",
+  "deferredAt": "2026-08-24T13:42:39.045Z",
+  "deferredReason": "The release owner explicitly directed this run to stop opening Notepad and defer disruptive real Windows UI proof. The last execution is retained below as evidence, not converted into a pass.",
+  "mergePolicy": "The Windows UI proof debt does not block source merge for this run, but it keeps the Windows runtime claim and final production proof open.",
+  "recordedAt": "2026-08-24T13:25:50.635Z",
   "platform": "win32 x64",
   "windowsVersion": "Microsoft Windows [Version 10.0.19045.6466]",
   "node": "v24.16.0",
   "chrome": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
   "extensionTestBrowser": "C:\\Users\\haans\\AppData\\Local\\ms-playwright\\chromium-1234\\chrome-win64\\chrome.exe",
-  "passed": 10,
+  "passed": 8,
   "total": 10,
   "results": [
     {
@@ -26,22 +30,22 @@
     {
       "name": "the sidecar speaks its protocol and refuses honestly",
       "ok": true,
-      "detail": "23 passed, 8 skipped in 3.29s"
+      "detail": "23 passed, 8 skipped in 4.55s"
     },
     {
       "name": "the full sidecar suite, with the Windows paths executing",
-      "ok": true,
-      "detail": "297 passed, 17 skipped in 77.07s (0:01:17)"
+      "ok": false,
+      "detail": "1 failed, 296 passed, 17 skipped in 91.26s (0:01:31)"
     },
     {
       "name": "REAL PC CONTROL: pointer, keyboard, OCR, windows, STOP latch",
-      "ok": true,
-      "detail": "14 passed in 5.24s"
+      "ok": false,
+      "detail": "1 failed, 13 passed in 6.23s"
     },
     {
       "name": "control engine suite",
       "ok": true,
-      "detail": "30 passed in 0.13s"
+      "detail": "30 passed in 0.32s"
     },
     {
       "name": "extension manifest and safety gate",

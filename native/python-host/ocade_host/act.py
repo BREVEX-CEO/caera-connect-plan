@@ -228,7 +228,12 @@ def invoke_control(request) -> dict[str, Any]:
 def set_text(request) -> dict[str, Any]:
     """Write into a field through its value pattern, never by keystrokes."""
     payload = request.payload
-    value = bounded_text(payload.get("value"), "value", 50_000)
+    value = payload.get("value")
+    # Clearing a field is a valid semantic edit and is required for safe
+    # disposal of temporary documents. Unlike identifiers and commands, text
+    # values may therefore be empty (and whitespace must be preserved).
+    if not isinstance(value, str) or len(value) > 50_000:
+        raise Refusal("value must be text of at most 50000 characters.", "unsupported")
     if is_protected_text(value):
         raise Refusal(
             "That looks like a password, code or payment value. OCADE does not type those.",
@@ -319,8 +324,10 @@ def set_text(request) -> dict[str, Any]:
         method = "uia.type_keys"
 
     readback = ""
+    readback_observed = False
     try:
         readback = clamp_text(target.get_value(), 400)
+        readback_observed = True
     except Exception:
         readback = ""
 
@@ -333,13 +340,32 @@ def set_text(request) -> dict[str, Any]:
         "readback": readback,
         # Reading the value back is proof. Without it OCADE says it does not
         # know, rather than saying yes.
-        "verified": (value[:50] in readback) if readback else None,
+        "verified": (value[:50] in readback) if readback_observed else None,
         "detail": (
             f"Wrote {len(value)} characters into "
             f"{clamp_text(info.name or info.control_type or 'the editable field', 60)}"
-            + (" and read them back." if readback else ", but could not read the field back.")
+            + (
+                " and read them back."
+                if readback_observed
+                else ", but could not read the field back."
+            )
         ),
     }
+
+
+def _pointer_landing_receipt(
+    pyautogui, payload: dict[str, Any], action: str
+) -> tuple[dict[str, int], bool | None]:
+    """Read the live OS cursor and compare it with the requested coordinate."""
+    position = pyautogui.position()
+    landed_at = {"x": int(position.x), "y": int(position.y)}
+    if action not in ("move", "click", "double_click", "right_click"):
+        return landed_at, None
+    verified = (
+        abs(landed_at["x"] - int(payload["x"])) <= 3
+        and abs(landed_at["y"] - int(payload["y"])) <= 3
+    )
+    return landed_at, verified
 
 
 def pointer(request) -> dict[str, Any]:
@@ -374,7 +400,12 @@ def pointer(request) -> dict[str, Any]:
     pyautogui.FAILSAFE = True
     before = current
     if action == "move":
-        pyautogui.moveTo(int(payload["x"]), int(payload["y"]), duration=0.12)
+        # An interpolated 120 ms move can be partially overwritten by a person
+        # taking the mouse during the animation, producing a false successful
+        # receipt at an in-between coordinate. Set the requested point in one
+        # OS action, then read it back below; a subsequent human move remains a
+        # takeover rather than something OCADE should fight by retrying.
+        pyautogui.moveTo(int(payload["x"]), int(payload["y"]), duration=0)
     elif action in ("click", "double_click", "right_click"):
         x, y = int(payload["x"]), int(payload["y"])
         if not (bounds[0] <= x <= bounds[2] and bounds[1] <= y <= bounds[3]):
@@ -394,6 +425,18 @@ def pointer(request) -> dict[str, Any]:
     else:
         raise Refusal(f"Unsupported pointer action: {action}", "unsupported")
 
+    # Read the OS cursor back immediately after the action. A screen
+    # fingerprint is useful for clicks and scrolls, but pointer movement alone
+    # may not change captured pixels and a delayed external read can be changed
+    # by the person taking over the mouse. This receipt records what actually
+    # landed, not merely what was requested.
+    landed_at, coordinate_verified = _pointer_landing_receipt(pyautogui, payload, action)
+    if coordinate_verified is False:
+        raise Refusal(
+            "The pointer moved somewhere else during the action, so OCADE stopped for user takeover.",
+            "state_changed",
+        )
+
     time.sleep(0.3)
     after = _fingerprint(_grab(_window_bounds(hwnd))) if win32gui.IsWindow(hwnd) else None
     return {
@@ -402,7 +445,8 @@ def pointer(request) -> dict[str, Any]:
         "fingerprintBefore": before,
         "fingerprintAfter": after,
         "screenChanged": after != before,
-        "verified": after != before,
+        "landedAt": landed_at,
+        "verified": coordinate_verified if coordinate_verified is not None else after != before,
     }
 
 

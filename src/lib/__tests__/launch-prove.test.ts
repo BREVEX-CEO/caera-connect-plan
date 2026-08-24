@@ -9,6 +9,9 @@ const pkg = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
 describe("launch:prove", () => {
   it("is the package-level launch proof command", () => {
     expect(pkg.scripts["launch:prove"]).toBe("node scripts/launch-prove.mjs");
+    expect(pkg.scripts["launch:prove:defer-windows"]).toBe(
+      "node scripts/launch-prove.mjs --defer-windows",
+    );
   });
 
   it("runs safety, stress, build, model, database-type and Windows proof gates", () => {
@@ -25,10 +28,19 @@ describe("launch:prove", () => {
     }
   });
 
-  it("cannot report merge-ready while blockers or launch authority remain open", () => {
+  it("keeps source-merge readiness separate from production-launch authority", () => {
+    expect(script).toContain("const readyToMerge = sourceFailures.length === 0");
+    expect(script).toContain("const readyToLaunch =");
     expect(script).toContain("externalBlockers.length === 0");
     expect(script).toContain("authorityBlocked.length === 0");
-    expect(script).toContain("MERGE REFUSED: launch-critical proof is not green.");
+    expect(script).toContain("SOURCE MERGE READY; LAUNCH REFUSED");
+  });
+
+  it("records an owner-directed Windows deferral without fabricating a pass", () => {
+    expect(script).toContain('process.argv.includes("--defer-windows")');
+    expect(script).toContain('status: "deferred_not_executed"');
+    expect(script).toContain('classification: "DEFERRED / NOT FINAL-PROVEN"');
+    expect(script).toContain("deferredGates.length === 0");
   });
 
   it("keeps stdout and stderr evidence separate so warnings cannot hide pass totals", () => {
