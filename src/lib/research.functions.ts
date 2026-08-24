@@ -19,6 +19,7 @@
  * The allowlist is therefore built here and never accepted from the caller.
  */
 import { createServerFn } from "@tanstack/react-start";
+import { discoverCandidates } from "./research/candidate-discovery";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { runResearch, type ResearchResult } from "@/lib/research/research-run";
@@ -92,8 +93,28 @@ const researchInput = z.object({
     .default([]),
 });
 
+/** A source as the answer will cite it. Returned so the caller need not guess. */
+export interface ResearchSource {
+  title: string;
+  url: string;
+  asOf: string | null;
+}
+
 export type ResearchRunResponse =
-  | { ok: true; result: ResearchResult; allowedHosts: string[] }
+  | {
+      ok: true;
+      result: ResearchResult;
+      allowedHosts: string[];
+      /**
+       * The sources actually read, in the order the answer should number them.
+       *
+       * Returned rather than left to the caller to reconstruct, because a
+       * caller reconstructing them from the candidate list it sent would cite
+       * pages the run never actually fetched — a citation naming a source the
+       * model never saw is worse than no citation.
+       */
+      sources: ResearchSource[];
+    }
   | { ok: false; reason: string; allowedHosts: string[] };
 
 export const runResearchQuery = createServerFn({ method: "POST" })
@@ -114,7 +135,25 @@ export const runResearchQuery = createServerFn({ method: "POST" })
      * publishedAt, which is what the source claims about itself.
      */
     const retrievedAt = new Date();
-    const candidateSources: SourceRecord[] = data.candidates.map((c, i) => {
+
+    /*
+     * DISCOVER CANDIDATES WHEN THE CALLER HAS NONE.
+     *
+     * The only caller used to be the research panel, which passes two
+     * hardcoded URLs about flood warnings — fine for a demonstration, useless
+     * for Chat, where the question is whatever somebody just typed. The
+     * alternative to discovery is asking a model to invent URLs, and a model
+     * inventing URLs is how a citation ends up pointing at a page that does
+     * not exist.
+     *
+     * Discovery cannot widen scope: it queries the allowlisted sites' own
+     * search indexes, and the fetcher revalidates every URL against
+     * ALLOWED_HOSTS regardless of what comes back.
+     */
+    const supplied =
+      data.candidates.length > 0 ? data.candidates : await discoverCandidates(data.query);
+
+    const candidateSources: SourceRecord[] = supplied.map((c, i) => {
       let publisher: string;
       try {
         publisher = new URL(c.url).hostname.replace(/^www\./, "");
@@ -137,7 +176,7 @@ export const runResearchQuery = createServerFn({ method: "POST" })
       // no sources would read as "nothing exists" rather than "nothing asked".
       return {
         ok: false,
-        reason: "No candidate sources were supplied, so there was nothing to research.",
+        reason: "No candidate source could be found for that question.",
         allowedHosts,
       };
     }
@@ -154,7 +193,23 @@ export const runResearchQuery = createServerFn({ method: "POST" })
     });
 
     return outcome.ok
-      ? { ok: true, result: outcome.data, allowedHosts }
+      ? {
+          ok: true,
+          result: outcome.data,
+          allowedHosts,
+          /*
+           * A SourceRecord's `url` is optional — some source kinds have none —
+           * so sources without one are dropped rather than cited as a link
+           * that goes nowhere.
+           */
+          sources: candidateSources
+            .filter((source): source is SourceRecord & { url: string } => Boolean(source.url))
+            .map((source) => ({
+              title: source.title,
+              url: source.url,
+              asOf: source.publishedAt ? source.publishedAt.toISOString().slice(0, 10) : null,
+            })),
+        }
       : { ok: false, reason: outcome.reason, allowedHosts };
   });
 

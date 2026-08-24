@@ -21,10 +21,14 @@ credential, device, distribution identity or independently controlled target.
 | Full + shuffled test corpora                       | **356 files pass, 2 skip; 6,017 tests pass, 8 skip in both orders**      |
 | Production build                                   | succeeds                                                                 |
 | Asset budget                                       | largest JS 538.9/585.9 KiB; on-device engines 7,768/20,508 KiB, all lazy |
-| Stage-2 + release gate scripts                     | 42 run, 40 pass, 2 environment-blocked (below)                           |
+| `npm run launch:prove`                             | **23 passed, 0 launch-critical failures, 5 externally unavailable**      |
+| Test isolation (shuffled order)                    | passes                                                                   |
+| Every route, both viewports, signed out            | **68 routes, 750/750 checks, 482 controls pressed**                      |
+| Every route, both viewports, signed in             | **68 routes, 750/750 checks, 533 controls pressed**                      |
+| Online -> offline -> online, production build      | **13/13**                                                                |
 | Cowork extension E2E, real Chromium                | **69/69 scenarios** (measured by re-running the suite)                   |
 | Chat prompts, shipped pipeline                     | **7/7**                                                                  |
-| Real llama.cpp inference                           | **15/15 checks**                                                         |
+| Real llama.cpp inference (FIXTURES ONLY — see §7)   | **15/15 checks**                                                         |
 | One model across three tabs + failover             | **8/8**                                                                  |
 | WebGPU / WASM availability                         | **8/8**                                                                  |
 | Flow-wave render                                   | **5/5**                                                                  |
@@ -39,6 +43,10 @@ four launch-authority approvals. A locally green matrix therefore does not
 authorize deployment, signing, publication or merge. Chrome/Edge managed-host
 parity passes on Windows; store publication and installed-store upgrade proof
 remain external.
+
+The five gates that could not run here are in §7, each with the command that
+runs it where it can. `npm run launch:prove` records them as UNAVAILABLE and
+never as passes, so this table cannot quietly absorb them.
 
 ---
 
@@ -94,8 +102,152 @@ check that something rendered — and it missed `/demo/control`, `/demo/ocade`,
 
 ## 2. Defects found, fixed and regression-tested
 
-23 in total. Each was reproduced first, root-caused, fixed, and covered by a test
-that fails without the fix.
+Each was reproduced first, root-caused, fixed, and covered by a test that fails
+without the fix. The first group is from the completion run that produced this
+version of the report; the rest are from the phases before it.
+
+## 2a. Found in the completion run
+
+Every one of these was live on the commit this branch started from, and every
+one is now held by a test written as the attack or the incident rather than as
+the shape of the fix.
+
+### Account takeover, two ways
+
+**`/reset-password` accepted any signed-in session as proof of a reset link.**
+
+```ts
+if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") …
+setLinkValid(Boolean(data.session));
+```
+
+Neither is evidence of a reset link; an ordinary session satisfies both. Anyone
+at a browser where the owner was still signed in — a shared desk, a phone on a
+table — could open that URL and replace the password without knowing the old
+one, locking the owner out. Reachable by typing a URL.
+
+Fixed: the gate now requires a recovery token in the link, or a PKCE code that
+actually survives the exchange. `readRecoveryEvidence` is a pure URL-in,
+verdict-out function so every link shape is tested, and it fails closed.
+
+**Settings › Security had the same hole from the other side.** It called
+`updateUser({ password })` on the session alone — again, exactly what a
+passer-by already has. It now re-authenticates against the current password
+first. Somebody who has never set one is not stranded: the error names the
+emailed reset link.
+
+### A one-time code quietly created accounts
+
+`shouldCreateUser: true` sat on a control labelled "Send one-time code", under a
+heading that says "Sign in". Somebody returning who mistyped one character got a
+new empty account instead of a failure — signed in, none of their
+conversations, no way to tell what had happened.
+
+The person now states their intent, and it travels to the verify screen, because
+Resend called `signInWithOtp` with no options at all and would otherwise have
+created the account the sender had just declined.
+
+### An open redirect through the sign-in link
+
+`?next=/\evil.com` passed both copies of `safeNext` and resolved to
+`https://evil.com/`. The check read as "a relative path, not protocol-relative":
+
+```ts
+if (value.startsWith("/") && !value.startsWith("//")) return value;
+```
+
+A browser normalises the backslash, so that string starts with one slash, does
+not start with two, and lands on another origin. Measured:
+
+```
+new URL("/\\evil.com", "https://ocade.test")  ->  https://evil.com/
+```
+
+Fixed by resolving the value the way a browser will and requiring the result to
+be this origin. Writing the tests found a second case immediately:
+`/..//evil.com` keeps this origin but normalises to a pathname of
+`//evil.com` — protocol-relative again the moment anything resolves it twice —
+so the returned path is checked as well.
+
+### Browser Only uploaded project data anyway
+
+Settings › Privacy says, in those words: "Browser Only writes never reach the
+cloud." Chat honoured it. The Projects page imported the server functions
+directly and inserted into `ocade_projects` and `ocade_outputs` regardless — a
+grep of that module for the privacy mode returns nothing at all, not a check
+that fails open. Project names, up to twenty thousand characters of the
+person's own project instructions, and every saved output went to the server.
+
+The gate has to live in the browser: a server function TOLD its own privacy mode
+by its caller is not a gate. In Browser Only the store does not call those
+functions at all, so there is no request to intercept.
+
+### OCADE sold a product its webhook could not deliver
+
+`std_8d` — "8 days", "charged once" — is in the sellable catalogue. A one-time
+purchase emits `transaction.completed`, not `subscription.created`, and the
+webhook handled three subscription events and logged everything else as
+"Unhandled payment event". The pass wrote no row, and `/checkout/success`, which
+correctly refuses to believe the browser, would have told a paying customer
+"pending" forever.
+
+`event_id` and `occurred_at` were parsed away, so a provider retry was
+indistinguishable from a second purchase and a delayed event could restore
+refunded access. Fixed, with the audit row as the lock rather than a log.
+
+And the plans advertised "28 cloud requests every 8 hours" as their headline
+benefit, for a metered service OCADE does not run. Every plan is zero now.
+
+### Fast/Thinking was a decoration on the shipped page
+
+`brainReasonDeps` passed `think` to the adapter and stopped. Neither browser
+adapter reads that field — WebLLM has no such parameter and wllama has no such
+parameter — so the real Chat page produced byte-for-byte the same request in
+both positions. It saved, it drew correctly, and the dead-controls scan passed
+it, because that scan proves a control is wired and not that it has an effect.
+
+
+### Two the route audit found, once it could run
+
+`npm run audit:routes:prod` had never been part of a full sweep. When it was:
+
+**Every phone-width route failed WCAG 2.5.8.** The terms and privacy-notice
+buttons in the footer were 30x16 and 73x16 against a 24x24 floor — and that
+footer is what a phone user meets before they are signed in, so the links people
+most want on a phone were the hardest to hit on one.
+
+**The signed-in stage was silently running signed OUT.** A radio labelled "Sign
+in" sat above a submit button labelled "Sign in" — introduced by this run's own
+auth work — and the harness clicked the first match. Intent set, nothing
+submitted, every "signed in" route check meaningless. A harness can be taught to
+disambiguate; a person cannot, so the labels changed instead.
+
+### Four the launch proof found in the gates themselves
+
+Running every gate together, in order, from one command exposed four failures
+that each individual script had never shown, because nobody had run them in that
+order before:
+
+- `release:source-check` inspects `.output` and ran BEFORE the build, failing
+  with "production output is missing" — which reads, in a launch proof, as a
+  cloud-inference finding and is really a missing directory.
+- `offline-transitions` expected something to already be listening on
+  127.0.0.1:8080 and said nothing about it. Run alone by somebody with a dev
+  server up it passed; run in a sweep it died with ERR_CONNECTION_REFUSED, and
+  was reported as "OCADE does not survive going offline".
+- `route-qa` needed the same and now uses the self-contained runner.
+- `browser-catalogue:check` was failing on a 403 from an egress proxy, which is
+  indistinguishable in a summary from "a digest changed".
+
+And one in the toolchain: `eslint` took five minutes at 100% CPU instead of
+twenty-six seconds, because the ignore list named `.output-routeqa` and the new
+offline harness creates `.output-offline`. A hand-maintained list, beside a
+comment explaining that exact failure, is a second authority that has to be kept
+in step and was not.
+
+---
+
+## 2b. Found in earlier phases
 
 ### Critical — sandbox and path boundaries
 
@@ -354,17 +506,37 @@ is the machine-readable authority.
 
 ## 8. How to re-run any claim here
 
+One command runs every gate this machine can run, in order, and writes
+`release/LAUNCH_PROOF.json`:
+
 ```
-npm run test                  # 338 files
+npm run launch:prove          # everything
+npm run launch:prove -- --list   # the gates, without running them
+npm run launch:prove -- --fast   # skips the gates over ~60s
+```
+
+It exits non-zero on a launch-critical failure. A gate that could not run here
+is recorded UNAVAILABLE with the command to run it elsewhere, and never counted
+as a pass — that distinction is the reason the script exists, and it is what
+turned four silent harness defects into visible ones the first time it ran.
+
+Individually:
+
+```
+npm run test                  # the whole suite
 npm run typecheck && npm run lint
 npm run build && npm run performance:budget
+npm run supabase:types-check  # generated types match the migrations
 npm run extension:check && npm run extension:e2e
-npm run audit:chat            # the table in §3
-npm run audit:real-inference  # §4
+npm run audit:routes:prod     # every route, both viewports, signed out and in
+npm run audit:offline:prod    # online -> offline -> online, against the build
+npm run audit:chat            # the shipped prompt pipeline
+npm run audit:real-inference  # fixtures only -- see §7
 npm run audit:model-owner     # three tabs, one model, failover
 npm run audit:engines         # WebGPU / WASM
-npm run audit:settings        # signed out, visual, signed in, offline
 npm run browser:cdp-parity    # needs a non-root user
-npm run windows:prove         # Windows only — §7
+npm run windows:prove         # Windows only -- §7
 cd native/python-host && python -m pytest tests/ -q
 ```
+
+Each of the five unavailable proofs carries its own command in §7.

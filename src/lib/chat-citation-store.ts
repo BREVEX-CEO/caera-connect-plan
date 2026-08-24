@@ -1,4 +1,4 @@
-import type { Citation, SourceLocator } from "./ocade-citations";
+import { safeCitationHref, type Citation, type SourceLocator } from "./ocade-citations";
 import type { ArtifactOutcome } from "./artifacts/store";
 
 const STORAGE_KEY = "ocade.chat-citations.v1";

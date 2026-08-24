@@ -31,6 +31,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { getModeFor } from "@/lib/storage/resolver";
 import { type OcadeProject } from "@/lib/ocade-projects.functions";
 import {
   createLocalOutput,
@@ -123,6 +124,7 @@ function ProjectsPage() {
   const [previewDraft, setPreviewDraft] = useState("");
   const [outputRetention, setOutputRetention] = useState<"keep" | "30" | "90" | "365">("keep");
   const [savingVersion, setSavingVersion] = useState(false);
+  const [projectsStayLocal, setProjectsStayLocal] = useState<boolean | null>(null);
 
   const selected = projects?.find((p) => p.id === selectedId) ?? null;
   const visibleProjects =
@@ -135,10 +137,24 @@ function ProjectsPage() {
   });
 
   const refreshProjects = useCallback(async () => {
+    /*
+     * WAIT FOR THE SESSION, AND RE-RUN WHEN IT ARRIVES.
+     *
+     * `useSession` resolves after first paint, so the first run of this effect
+     * has no user id. Fetching anyway failed and set `unavailable`, and because
+     * `userId` was not in the dependency list nothing ever retried — the page
+     * would have said "Projects aren't available until the database is set up"
+     * permanently, to a signed-in person whose database was fine.
+     */
+    if (!userId) return;
     setUnavailable(null);
     try {
       if (!userId) throw new Error("Sign in to open your on-device projects.");
-      const rows = await listLocalProjects(userId, showArchived);
+      const [rows, mode] = await Promise.all([
+        listLocalProjects(userId, showArchived),
+        getModeFor(userId, "files"),
+      ]);
+      setProjectsStayLocal(mode !== "private_sync");
       setProjects(rows);
       setSelectedId((cur) => (cur && rows.some((r) => r.id === cur) ? cur : (rows[0]?.id ?? null)));
     } catch (e) {
@@ -497,6 +513,21 @@ function ProjectsPage() {
         }
       />
 
+      {/*
+        WHERE THIS DATA LIVES, SAID ON THE PAGE THAT HOLDS IT.
+
+        The privacy setting is two screens away in Settings, and until now this
+        page uploaded everything regardless of it. Saying which mode is in force
+        here is how somebody notices if it is ever wrong again.
+      */}
+      <p className="mt-2 text-xs text-muted-foreground">
+        {projectsStayLocal === null
+          ? "Checking this browser's project storage mode…"
+          : projectsStayLocal
+          ? "Projects and saved outputs stay in this browser. Nothing here is uploaded."
+          : "Projects and saved outputs are synchronised to your private account storage."}
+      </p>
+
       {unavailable ? (
         <SetupRequiredState
           title="Projects couldn't open the browser vault"
@@ -518,6 +549,17 @@ function ProjectsPage() {
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading projects…
         </GlassPanel>
       ) : (
+        /*
+         * THE SHELL RENDERS WHILE THE LIST LOADS.
+         *
+         * A full-page spinner replaced everything, including the box you type a
+         * new project name into — which is local UI that never needed the
+         * network. Worse, the session resolves after first paint, so there is
+         * always a moment where the whole page is a spinner, and if a person is
+         * signed out the moment lasts forever: no header controls, nothing to
+         * press, nothing explaining why. The loading state now covers only the
+         * part that is actually loading.
+         */
         <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
           {/* Project list + create */}
           <div className="flex flex-col gap-3">
@@ -556,7 +598,11 @@ function ProjectsPage() {
               />
             </GlassPanel>
 
-            {projects.length === 0 ? (
+            {projects === null ? (
+              <GlassPanel className="flex items-center gap-2 p-4 text-xs text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading projects…
+              </GlassPanel>
+            ) : projects.length === 0 ? (
               <EmptyState
                 icon={<FolderOpen className="h-6 w-6" aria-hidden />}
                 title="No projects yet"

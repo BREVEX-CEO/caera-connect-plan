@@ -160,6 +160,7 @@ import {
   parseCitations,
   stripCitationMarkers,
   describeLocator,
+  safeCitationHref,
   type IndexedSource,
   type Citation,
 } from "@/lib/ocade-citations";
@@ -3238,14 +3239,22 @@ function ChatSurface(props: {
                   >
                     {citations.map((c) => {
                       const where = describeLocator(c.locator);
+                      /*
+                       * A web source is rendered as a link so it can be
+                       * checked, and ONLY through `safeCitationHref`.
+                       * Citations live in localStorage, which anything running
+                       * in this origin can write, and an unchecked href is
+                       * `javascript:` away from being stored XSS on click.
+                       */
+                      const href = safeCitationHref(c.url);
                       return (
                         <li key={c.sourceId} className="text-[12px]">
                           <span className="mr-1.5 rounded bg-secondary px-1 py-0.5 text-[10px] text-muted-foreground">
                             {c.sourceId}
                           </span>
-                          {c.url ? (
+                          {href ? (
                             <a
-                              href={c.url}
+                              href={href}
                               target="_blank"
                               rel="noreferrer noopener"
                               className="font-medium text-foreground underline decoration-border underline-offset-2 hover:decoration-foreground"
@@ -3259,6 +3268,22 @@ function ChatSurface(props: {
                             <span className="text-muted-foreground"> · {c.domain}</span>
                           ) : null}
                           {where ? <span className="text-muted-foreground"> · {where}</span> : null}
+                          {/*
+                            TWO DATES, BECAUSE THEY ANSWER DIFFERENT QUESTIONS.
+                            "As of" is what the page claimed; "read" is when
+                            OCADE looked. A page from 2019 fetched this morning
+                            and a page from this morning fetched in 2019 are not
+                            the same evidence, and one date cannot say which.
+                          */}
+                          {c.publishedAt || c.retrievedAt ? (
+                            <span className="ml-1 text-[10px] text-muted-foreground/80">
+                              {c.publishedAt ? `as of ${c.publishedAt}` : ""}
+                              {c.publishedAt && c.retrievedAt ? " · " : ""}
+                              {c.retrievedAt
+                                ? `read ${new Date(c.retrievedAt).toLocaleString()}`
+                                : ""}
+                            </span>
+                          ) : null}
                           {c.snippet ? (
                             <p className="mt-0.5 line-clamp-2 text-muted-foreground">
                               “{c.snippet}”

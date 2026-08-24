@@ -96,7 +96,7 @@ export const PLANS: Plan[] = [
     id: "std_8d",
     name: "8 days",
     durationMs: 8 * DAY,
-    summary: "A focused eight-day pass with unlimited local processing.",
+    summary: "A focused eight-day pass. Everything runs on your own device.",
     publiclyAvailable: true,
     benefits: ["Unlimited on-device work", "2 computers + 2 phones", "Standard support"],
     desktopDevices: 2,

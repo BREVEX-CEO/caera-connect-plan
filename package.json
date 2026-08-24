@@ -94,7 +94,8 @@
     "desktop:bundle:windows": "node scripts/build-windows-installer.mjs",
     "agent:live-check": "vite-node scripts/agent-loop-evidence.mts",
     "audit:routes": "node scripts/e2e/route-qa.mjs",
-    "audit:routes:prod": "node scripts/e2e/run-route-qa.mjs"
+    "audit:routes:prod": "node scripts/e2e/run-route-qa.mjs",
+    "audit:offline:prod": "node scripts/e2e/run-offline.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",

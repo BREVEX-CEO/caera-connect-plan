@@ -75,6 +75,24 @@ export interface ChatPrefs {
    * success. See `thinkingFor` in `local/fixed-model.ts` for the measurement.
    */
   thinking: boolean;
+  /**
+   * Whether Chat may look things up on the web for time-sensitive questions.
+   *
+   * ON BY DEFAULT, AND THAT IS A DELIBERATE CHOICE RATHER THAN AN OVERSIGHT.
+   * The alternative to looking up "who won last night" is answering it from
+   * training data in the same confident voice used for arithmetic, which is
+   * the failure this setting exists to prevent — a person cannot tell a stale
+   * answer from a current one by reading it.
+   *
+   * Turning it off is honoured completely: a time-sensitive question is then
+   * answered from the device with a note saying the live part was not checked.
+   * It never silently degrades into a confident guess.
+   *
+   * Only time-sensitive questions ever reach the network. A timeless one — and
+   * anything the classifier cannot place — is answered on the device with no
+   * request at all, whatever this is set to.
+   */
+  research: boolean;
 }
 
 export const DEFAULT_CHAT_PREFS: ChatPrefs = {
@@ -86,6 +104,7 @@ export const DEFAULT_CHAT_PREFS: ChatPrefs = {
   keepDrafts: true,
   showDiagnostics: false,
   thinking: true,
+  research: true,
 };
 
 const KEY = "ocade.chat.prefs.v1";
@@ -119,6 +138,7 @@ export function parseChatPrefs(raw: string | null): ChatPrefs {
         : DEFAULT_CHAT_PREFS.density,
       renderMarkdown: bool("renderMarkdown"),
       keepDrafts: bool("keepDrafts"),
+      research: bool("research"),
       showDiagnostics: bool("showDiagnostics"),
       thinking: bool("thinking"),
     };

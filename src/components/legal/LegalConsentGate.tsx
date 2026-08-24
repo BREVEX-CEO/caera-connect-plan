@@ -10,8 +10,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { useSession } from "@/lib/session";
+import {
+  LEGAL_CONSENT_VERSION as CONSENT_VERSION,
+  coversCurrentDocuments,
+  latestServerReceipt,
+  recordServerConsent,
+} from "@/lib/legal/consent-receipts";
 
-export const LEGAL_CONSENT_VERSION = "ocade-prelaunch-2026-08-16";
+/**
+ * Re-exported rather than declared, so the local receipt and the server
+ * receipt cannot disagree about which documents are in force. Two
+ * hand-maintained version strings eventually diverge, and the divergence shows
+ * up as somebody being re-asked on one device and not another.
+ */
+export const LEGAL_CONSENT_VERSION = CONSENT_VERSION;
 export const LEGAL_CONSENT_STORAGE_KEY = "caera:legal-consent:v1";
 
 interface ConsentReceipt {
@@ -61,9 +74,41 @@ export function LegalConsentGate({
   const [privacy, setPrivacy] = useState(false);
   const [storageWarning, setStorageWarning] = useState(false);
 
+  const { user } = useSession();
+  const userId = user?.id ?? "";
+
   useEffect(() => {
-    setAccepted(readLegalConsent() !== null);
-  }, [pathname]);
+    const local = readLegalConsent();
+    if (local) {
+      setAccepted(true);
+      return;
+    }
+    /*
+     * THE ACCOUNT REMEMBERS, SO THE PERSON IS NOT ASKED TWICE.
+     *
+     * Acceptance lived only in `localStorage`, so somebody who had already
+     * agreed was asked again on their phone, again after clearing site data,
+     * and again in a private window. A gate that reappears is a gate people
+     * learn to click through, which is the opposite of informed consent.
+     *
+     * The local receipt is still checked first and answers instantly; the
+     * server is consulted only when this device has none. An unreachable
+     * server leaves the gate up, which is the right way round: OCADE asks
+     * again rather than assuming an agreement it cannot see.
+     */
+    if (!userId) {
+      setAccepted(false);
+      return;
+    }
+    let live = true;
+    void latestServerReceipt(userId).then((receipt) => {
+      if (!live) return;
+      setAccepted(coversCurrentDocuments(receipt));
+    });
+    return () => {
+      live = false;
+    };
+  }, [pathname, userId]);
 
   const open = required && !accepted;
   const canContinue = terms && privacy;
@@ -89,6 +134,18 @@ export function LegalConsentGate({
       // Continue for this tab, but say plainly that the receipt will not persist.
       setStorageWarning(true);
     }
+    /*
+     * Recorded against the account as well, when there is one, so OCADE can
+     * answer "which version did they accept, and when?" — a question the
+     * person's own localStorage cannot answer to anybody else, and which they
+     * can erase.
+     *
+     * Fire-and-forget on purpose. A database that is unreachable must not stop
+     * somebody agreeing to the terms and getting on with their work; the local
+     * receipt already carries this device, and the worst case is being asked
+     * again on the next one.
+     */
+    if (userId) void recordServerConsent(userId, "gate");
     setAccepted(true);
   }
 

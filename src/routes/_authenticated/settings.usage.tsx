@@ -109,6 +109,16 @@ function UsagePage() {
             <Gauge className="h-4 w-4" aria-hidden /> Plan
           </h3>
           <p className="text-xs text-muted-foreground">{FREE_LAUNCH_NOTICE}</p>
+          {/*
+            THIS SENTENCE DESCRIBED SOMETHING THE PAGE HAD ALREADY REMOVED.
+
+            It said "the cloud allowance shown above is a rate limit on a
+            metered upstream service" — directly beneath a comment explaining
+            that the allowance panel was deleted because nothing can consume an
+            allowance. There is no allowance above, there is no metered
+            upstream service, and a reader had no way to know which of the two
+            statements to believe.
+          */}
           <p className="mt-2 text-xs text-muted-foreground">
             Chat generation stays on your device and is never counted or metered.
           </p>

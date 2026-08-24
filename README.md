@@ -30,6 +30,23 @@ proof that the corresponding production service or store release is available.
 | Mobile             | Capacitor Android and iOS projects, mobile pairing and restricted control paths                           | Store signing, privacy declarations, billing compliance and device testing are still required before a store-release claim.                                                                                                          |
 | Billing            | Historical subscription/allowance records and provider/webhook source remain intact                       | **Free launch mode is active.** Checkout, pricing, upgrades and paid entitlement gates are disabled. A provider token alone cannot re-enable checkout.                                                                               |
 
+## Proving it
+
+One command runs every release-critical gate this machine can run:
+
+```
+npm run launch:prove
+```
+
+It writes `release/LAUNCH_PROOF.json` and exits non-zero on a launch-critical
+failure. Its value is a distinction the individual scripts do not make: a gate
+either **passed**, **failed**, or was **UNAVAILABLE** — it could not run here
+because something outside this machine is missing, such as a payment sandbox
+credential or a model host this network cannot reach. Unavailable is never
+counted as a pass, and each one is recorded with the exact command to run where
+it can run. `npm run launch:prove -- --list` shows the gates without running
+them.
+
 ## Current launch mode
 
 OCADE is currently configured as a **free launch** for every signed-in account.

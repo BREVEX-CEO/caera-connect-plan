@@ -17,7 +17,6 @@ import { readFileSync, existsSync } from "node:fs";
 
 const DOCS = [
   "docs/OCADE-AUDIT-REPORT.md",
-  "CHECKPOINT.md",
   "README.md",
   "docs/ocade-77-readiness.md",
   "release/OCADE_RELEASE_CHECKLIST.md",

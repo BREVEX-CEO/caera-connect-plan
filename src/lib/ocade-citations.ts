@@ -61,6 +61,21 @@ export interface Citation {
   retrievedAt?: string;
 }
 
+/**
+ * Return a citation URL only when it is safe to render as a clickable link.
+ * Citation history is persisted in browser storage, so an unchecked value
+ * could otherwise turn a corrupted record into a `javascript:` navigation.
+ */
+export function safeCitationHref(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Build a stable, ordered source index from extraction results. */
 export function buildSourceIndex(results: ExtractResult[]): IndexedSource[] {
   return results.map((r, i) => ({
