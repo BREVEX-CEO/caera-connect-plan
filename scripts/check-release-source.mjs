@@ -291,6 +291,8 @@ check(
     cloudflareLive.deployment?.stagedAtZeroTraffic === true &&
     cloudflareLive.deployment?.immutableHealthProbePassed === true &&
     cloudflareLive.deployment?.immutableHashedAssetProbePassed === true &&
+    cloudflareLive.deployment?.immutableSupabaseRuntimeAttestationPassed === true &&
+    cloudflareLive.deployment?.compiledSupabasePublicConfigurationVerified === true &&
     cloudflareLive.deployment?.postPromotionHealthPassed === true,
   "Cloudflare live proof is incomplete or overstates launch state",
 );

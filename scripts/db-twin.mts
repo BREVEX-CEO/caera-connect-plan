@@ -106,14 +106,14 @@ create or replace function auth.email() returns text language sql stable as $$
   select nullif(current_setting('request.jwt.claim.email', true), '')
 $$;
 
--- Supabase Storage. Only storage.objects is referenced (3 policies), so the
--- twin reproduces that table with the columns those policies actually read.
--- Reproducing more would invent a surface nothing depends on.
+-- Supabase Storage. Reproduce the object-policy columns plus the private
+-- bucket fields the provisioning migration owns and verifies.
 create schema if not exists storage;
 create table if not exists storage.buckets (
   id text primary key,
   name text not null,
-  public boolean not null default false
+  public boolean not null default false,
+  file_size_limit bigint
 );
 create table if not exists storage.objects (
   id uuid primary key default gen_random_uuid(),

@@ -118,6 +118,17 @@ describe("rollbacks are safe to run", () => {
     const undocumented = rollbacks.filter((n) => !read(ROLLBACK, n).includes("--"));
     expect(undocumented).toEqual([]);
   });
+
+  it("labels forward-only recovery companions instead of pretending they undo state", () => {
+    const forwardOnly = rollbacks.filter((n) => read(ROLLBACK, n).includes("OCADE-IRREVERSIBLE"));
+    expect(forwardOnly.length).toBeGreaterThan(0);
+    for (const name of forwardOnly) {
+      const sql = read(ROLLBACK, name);
+      expect(sql).toMatch(/restore|forward migration/i);
+      expect(sql).toMatch(/raise notice/i);
+      expect(sql).not.toMatch(/raise exception/i);
+    }
+  });
 });
 
 describe("verifications actually assert something", () => {

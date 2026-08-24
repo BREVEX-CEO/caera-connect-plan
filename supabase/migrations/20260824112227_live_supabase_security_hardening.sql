@@ -63,12 +63,34 @@ GRANT EXECUTE ON FUNCTION private.ocade_is_support_admin() TO authenticated, ser
 
 -- pg_trgm is relocatable. Its existing GIN index depends on extension objects by
 -- OID and remains valid when the extension leaves the exposed public schema.
-ALTER EXTENSION pg_trgm SET SCHEMA extensions;
+DO $$
+DECLARE
+  extension_schema TEXT;
+BEGIN
+  SELECT n.nspname
+  INTO extension_schema
+  FROM pg_catalog.pg_extension AS e
+  JOIN pg_catalog.pg_namespace AS n ON n.oid = e.extnamespace
+  WHERE e.extname = 'pg_trgm';
+
+  IF extension_schema IS NOT NULL AND extension_schema <> 'extensions' THEN
+    ALTER EXTENSION pg_trgm SET SCHEMA extensions;
+  END IF;
+END;
+$$;
 
 -- Trigger and event-trigger functions execute through their owning trigger;
 -- browser roles never need direct EXECUTE permission.
-REVOKE ALL ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.tombstone_deleted_attachment() FROM PUBLIC, anon, authenticated;
+DO $$
+BEGIN
+  IF pg_catalog.to_regprocedure('public.rls_auto_enable()') IS NOT NULL THEN
+    REVOKE ALL ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated;
+  END IF;
+  IF pg_catalog.to_regprocedure('public.tombstone_deleted_attachment()') IS NOT NULL THEN
+    REVOKE ALL ON FUNCTION public.tombstone_deleted_attachment() FROM PUBLIC, anon, authenticated;
+  END IF;
+END;
+$$;
 
 -- This is the one intended browser RPC in this group. It derives ownership
 -- exclusively from auth.uid(); anonymous callers must not reach it.
