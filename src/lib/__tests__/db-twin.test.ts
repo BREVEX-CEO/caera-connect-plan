@@ -51,8 +51,8 @@ describe("every migration applies in the declared order", () => {
    * this to a range would defeat the point: an exact count is what catches a
    * migration going missing.
    */
-  it("finds all 48 migrations", () => {
-    expect(DatabaseTwin.migrationFiles()).toHaveLength(48);
+  it("finds all 49 migrations", () => {
+    expect(DatabaseTwin.migrationFiles()).toHaveLength(49);
   });
 
   /**
@@ -86,7 +86,7 @@ describe("every migration applies in the declared order", () => {
       failed.map((f) => `${f.file}: ${f.error}`),
       "a migration failed against real PostgreSQL",
     ).toEqual([]);
-    expect(applied).toHaveLength(48);
+    expect(applied).toHaveLength(49);
   });
 
   it("rebuilds the whole schema from zero, including the tables defined after the old break", async () => {
