@@ -101,6 +101,8 @@ describe("OCADE release source package", () => {
         cloudflare: {
           env: {
             CF_VERSION_METADATA: { id: "cf-version-123", tag: "release-test" },
+            SUPABASE_URL: "https://project.supabase.co",
+            SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
           },
         },
       },
@@ -115,6 +117,7 @@ describe("OCADE release source package", () => {
       version: OCADE_RELEASE_VERSION,
       deploymentId: "cf-version-123",
       deploymentTag: "release-test",
+      configuration: { supabasePublic: true },
       scope: "liveness",
     });
 

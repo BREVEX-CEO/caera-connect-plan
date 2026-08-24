@@ -349,13 +349,14 @@ async function probeHealthOnce(plan, fetcher, expectedDeploymentId, useVersionOv
       body?.status !== "ok" ||
       body?.service !== "ocade-web" ||
       body?.version !== plan.expectedHealthVersion ||
-      body?.deploymentId !== expectedDeploymentId
+      body?.deploymentId !== expectedDeploymentId ||
+      (plan.mode === "deploy" && body?.configuration?.supabasePublic !== true)
     ) {
       return {
         ok: false,
         reason:
           `health payload did not verify service/version ${plan.expectedHealthVersion} ` +
-          `at Cloudflare version ${expectedDeploymentId}`,
+          `at Cloudflare version ${expectedDeploymentId} with required runtime configuration`,
       };
     }
     return {

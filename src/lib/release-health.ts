@@ -22,6 +22,8 @@ type VersionMetadataEnv = {
     id?: unknown;
     tag?: unknown;
   };
+  SUPABASE_URL?: unknown;
+  SUPABASE_PUBLISHABLE_KEY?: unknown;
 };
 
 type CloudflareRuntimeRequest = Request & {
@@ -52,10 +54,22 @@ function deploymentMetadata(env: unknown): { deploymentId: string; deploymentTag
   return deploymentTag ? { deploymentId, deploymentTag } : { deploymentId };
 }
 
+function configurationMetadata(env: unknown): { supabasePublic: boolean } {
+  const runtime = env && typeof env === "object" ? (env as VersionMetadataEnv) : undefined;
+  return {
+    supabasePublic:
+      typeof runtime?.SUPABASE_URL === "string" &&
+      runtime.SUPABASE_URL.length > 0 &&
+      typeof runtime?.SUPABASE_PUBLISHABLE_KEY === "string" &&
+      runtime.SUPABASE_PUBLISHABLE_KEY.length > 0,
+  };
+}
+
 export function releaseHealthResponse(request: Request, env?: unknown): Response | null {
   const url = new URL(request.url);
   if (url.pathname !== HEALTH_PATH) return null;
   const deployment = deploymentMetadata(cloudflareRequestEnv(request, env));
+  const configuration = configurationMetadata(cloudflareRequestEnv(request, env));
 
   if (request.method !== "GET" && request.method !== "HEAD") {
     return new Response(
@@ -64,6 +78,7 @@ export function releaseHealthResponse(request: Request, env?: unknown): Response
         service: "ocade-web",
         version: OCADE_RELEASE_VERSION,
         ...deployment,
+        configuration,
       }),
       {
         status: 405,
@@ -77,6 +92,7 @@ export function releaseHealthResponse(request: Request, env?: unknown): Response
     service: "ocade-web",
     version: OCADE_RELEASE_VERSION,
     ...deployment,
+    configuration,
     scope: "liveness",
   });
   return new Response(request.method === "HEAD" ? null : body, {

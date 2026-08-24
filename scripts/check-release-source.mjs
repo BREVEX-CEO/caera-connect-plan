@@ -158,6 +158,10 @@ check(
   "iOS version differs from web",
 );
 check(health.includes(`OCADE_RELEASE_VERSION = "${version}"`), "health version differs from web");
+check(
+  health.includes("configurationMetadata") && health.includes("supabasePublic"),
+  "health endpoint does not attest to required runtime configuration",
+);
 
 check(wrangler.name === "ocade-web", "Cloudflare worker name is not stable");
 check(wrangler.keep_vars === true, "Cloudflare deploy could erase dashboard-managed values");

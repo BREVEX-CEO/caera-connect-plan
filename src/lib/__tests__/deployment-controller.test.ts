@@ -89,10 +89,19 @@ function recordingRunner(
 }
 
 const healthy = (version = "0.1.0", deploymentId = "new_version_1234") =>
-  new Response(JSON.stringify({ status: "ok", service: "ocade-web", version, deploymentId }), {
-    status: 200,
-    headers: { "content-type": "application/json" },
-  });
+  new Response(
+    JSON.stringify({
+      status: "ok",
+      service: "ocade-web",
+      version,
+      deploymentId,
+      configuration: { supabasePublic: true },
+    }),
+    {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    },
+  );
 
 const lockedAsset = () =>
   new Response("locked", {
@@ -343,6 +352,37 @@ describe("deploy success requires an independent postcondition", () => {
     });
     expect(result.status).toBe("failed");
     expect(result.reason).toMatch(/asset-gate.*bypassed/i);
+    expect(
+      calls.filter((call) => call.args.includes("versions") && call.args.includes("deploy")),
+    ).toHaveLength(1);
+  });
+
+  it("refuses promotion when staged runtime Supabase variables are absent", async () => {
+    const calls: RunCall[] = [];
+    const result = await runDeployment({
+      cwd: root,
+      env: deployEnv(),
+      mode: "deploy",
+      runner: recordingRunner(calls),
+      fetcher: async (url: string | URL | Request) => {
+        const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname;
+        return pathname.startsWith("/assets/")
+          ? lockedAsset()
+          : new Response(
+              JSON.stringify({
+                status: "ok",
+                service: "ocade-web",
+                version: "0.1.0",
+                deploymentId: "new_version_1234",
+                configuration: { supabasePublic: false },
+              }),
+              { status: 200, headers: { "content-type": "application/json" } },
+            );
+      },
+      waiter: async () => {},
+    });
+    expect(result.status).toBe("failed");
+    expect(result.reason).toMatch(/runtime configuration/i);
     expect(
       calls.filter((call) => call.args.includes("versions") && call.args.includes("deploy")),
     ).toHaveLength(1);
