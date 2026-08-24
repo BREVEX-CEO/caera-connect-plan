@@ -18,7 +18,7 @@
  */
 import { spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
-import { rename, rm } from "node:fs/promises";
+import { cp, rename, rm } from "node:fs/promises";
 import { startStubSupabase } from "../fixtures/stub-supabase.mjs";
 
 /**
@@ -85,13 +85,21 @@ export async function startServedBuild({
    * source with a server this machine can run. Deployment is unchanged.
    */
   console.log("\n===== BUILD THE PRODUCT =====");
-  const buildCode = await new Promise((resolve) => {
-    const child = spawnTracked("npm", ["run", "build"], {
+  const npmExecPath = process.env.npm_execpath;
+  const buildCommand = npmExecPath
+    ? process.execPath
+    : process.platform === "win32"
+      ? "npm.cmd"
+      : "npm";
+  const buildArgs = npmExecPath ? [npmExecPath, "run", "build"] : ["run", "build"];
+  const buildCode = await new Promise((resolve, reject) => {
+    const child = spawnTracked(buildCommand, buildArgs, {
       ...env,
       NITRO_PRESET: "node-server",
     });
     child.stdout.on("data", (d) => process.stdout.write(String(d)));
     child.stderr.on("data", (d) => process.stderr.write(String(d)));
+    child.on("error", reject);
     child.on("exit", (code) => resolve(code ?? 1));
   });
   if (buildCode !== 0) {
@@ -109,7 +117,16 @@ export async function startServedBuild({
    * after it gets blamed for a defect it invented.
    */
   await rm(outDir, { recursive: true, force: true });
-  await rename(".output", outDir);
+  try {
+    await rename(".output", outDir);
+  } catch (error) {
+    if (process.platform !== "win32" || error?.code !== "EPERM") throw error;
+    // Antivirus and file indexers can briefly hold the generated directory on
+    // Windows, making an otherwise valid same-volume rename fail. Copying the
+    // finished build and then removing only that generated source is reliable.
+    await cp(".output", outDir, { recursive: true });
+    await rm(".output", { recursive: true, force: true });
+  }
 
   const server = spawnTracked(process.execPath, [`${outDir}/server/index.mjs`], {
     ...env,

@@ -13,6 +13,7 @@
  * would be exactly the kind of unearned claim this audit exists to remove.
  */
 import { chromium } from "playwright-core";
+import { resolveBrowserPath } from "./browser-path.mjs";
 
 const BASE = process.env.OCADE_BASE_URL ?? "http://127.0.0.1:8080";
 const STATE = process.env.OCADE_STORAGE_STATE;
@@ -31,7 +32,7 @@ const check = (name, ok, detail = "") => {
 };
 
 const browser = await chromium.launch({
-  executablePath: process.env.OCADE_BROWSER_PATH ?? "/opt/pw-browsers/chromium",
+  executablePath: resolveBrowserPath(),
   args: ["--no-sandbox"],
 });
 const context = await browser.newContext(STATE ? { storageState: STATE } : {});
@@ -119,17 +120,25 @@ try {
     `${offlineText} characters`,
   );
 
-  // A client-side route change must not need the network.
-  await page
-    .goto(`${BASE}${SETTINGS_ROUTE}`, { waitUntil: "domcontentloaded", timeout: 30000 })
-    .catch(() => {});
+  // A client-side route change must not need the network. Use the product's
+  // real link; page.goto() would perform a document navigation and test only
+  // the service worker's fallback rather than the warm app router.
+  if (STATE) {
+    await page
+      .goto(`${BASE}${SETTINGS_ROUTE}`, { waitUntil: "domcontentloaded", timeout: 30000 })
+      .catch(() => {});
+  } else {
+    await page.getByRole("link", { name: "Settings" }).click({ timeout: 10000 }).catch(() => {});
+  }
   await page.waitForTimeout(1200);
   await clearModals();
-  const settingsOffline = (await page.evaluate(() => document.body.innerText)).length;
+  const settingsBody = (await page.evaluate(() => document.body.innerText))
+    .replace(/\s+/g, " ")
+    .trim();
   check(
     "settings is reachable offline from a warm page",
-    settingsOffline > 200,
-    `${settingsOffline} characters`,
+    page.url().endsWith(SETTINGS_ROUTE) && settingsBody.length > 200,
+    `${page.url()} — ${settingsBody.length} characters: ${JSON.stringify(settingsBody.slice(0, 120))}`,
   );
 
   // Local preferences must keep working with no network at all.

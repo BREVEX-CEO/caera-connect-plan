@@ -16,6 +16,7 @@ import { build } from "esbuild";
 import { mkdtemp, rm, cp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { resolveBrowserPath } from "../../scripts/e2e/browser-path.mjs";
 
 const SOURCE = resolve("extension");
 
@@ -150,7 +151,7 @@ const OTHER_ORIGIN = `http://127.0.0.1:${otherServer.address().port}`;
 const EXTENSION = await buildFixture(`127.0.0.1:${server.address().port}`);
 const profile = await mkdtemp(join(tmpdir(), "ocade-cowork-"));
 const ctx = await chromium.launchPersistentContext(profile, {
-  executablePath: process.env.OCADE_BROWSER_PATH || "/opt/pw-browsers/chromium",
+  executablePath: resolveBrowserPath(),
   args: [
     "--no-sandbox",
     "--headless=new",

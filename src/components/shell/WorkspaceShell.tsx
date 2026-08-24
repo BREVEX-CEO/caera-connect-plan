@@ -64,9 +64,18 @@ export interface WorkspaceShellProps {
 export function WorkspaceShell(props: WorkspaceShellProps) {
   return (
     <ShellProvider>
-      <WorkspaceShellInner {...props} />
+      {props.variant === "demo" ? (
+        <WorkspaceShellInner {...props} user={null} />
+      ) : (
+        <AccountWorkspaceShell {...props} />
+      )}
     </ShellProvider>
   );
+}
+
+function AccountWorkspaceShell(props: WorkspaceShellProps) {
+  const { user } = useSession();
+  return <WorkspaceShellInner {...props} user={user} />;
 }
 
 function WorkspaceShellInner({
@@ -74,11 +83,11 @@ function WorkspaceShellInner({
   variant = "app",
   onDemoReset,
   onDemoExit,
-}: WorkspaceShellProps) {
+  user,
+}: WorkspaceShellProps & { user: ReturnType<typeof useSession>["user"] }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { theme, update } = useAppearance();
-  const { user } = useSession();
   const shell = useShell();
   const isDemo = variant === "demo";
   const reach = useHistoryReach();
@@ -519,7 +528,7 @@ function WorkspaceShellInner({
             <MotionScope>{children}</MotionScope>
           </div>
           {/* Three-step welcome, once per account. Renders nothing afterwards. */}
-          <WelcomeTour />
+          {isDemo ? null : <WelcomeTour />}
         </main>
 
         {/* Adaptive Copilot panel */}

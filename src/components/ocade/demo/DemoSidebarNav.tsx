@@ -16,7 +16,8 @@ export function DemoSidebarNav({ active }: { active: "chat" | "control" }) {
   return (
     <div className="grid gap-1">
       <Link
-        to="/settings"
+        to="/demo/settings"
+        preload="render"
         className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-muted-foreground transition hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Settings2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
