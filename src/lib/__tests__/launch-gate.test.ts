@@ -123,6 +123,16 @@ describe("OCADE production launch gate", () => {
     expect(PRELAUNCH_PUBLIC_PATHS.has("/ocade")).toBe(false);
   });
 
+  it("redirects trailing-slash factual paths to their crawlable canonical URL", () => {
+    const response = prelaunchResponse("/products/ocade/", gate(LAUNCH_AT_MS - 1));
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("/products/ocade");
+    expect(response.headers.get("x-robots-tag")).toContain("index");
+    expect(response.headers.get("x-ocade-launch-state")).toBe(
+      "prelaunch-public-information",
+    );
+  });
+
   it("serves a restrictive robots directive with the factual allowlist and sitemap", async () => {
     const decision = gate(LAUNCH_AT_MS - 1);
     expect(PRELAUNCH_ALLOWED_PATHS.has("/robots.txt")).toBe(true);

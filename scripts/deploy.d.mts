@@ -10,6 +10,7 @@ export interface DeploymentPlan {
   readonly generatedEntryPath: string;
   readonly rollbackVersionId: string | null;
   readonly expectedHealthVersion: string | null;
+  expectedDeploymentId: string | null;
 }
 
 export interface CommandResult {
@@ -32,6 +33,7 @@ export interface DeploymentOptions {
   readonly versionId?: string | null;
   readonly runner?: CommandRunner;
   readonly fetcher?: typeof fetch;
+  readonly waiter?: (milliseconds: number) => Promise<void>;
 }
 
 export interface DeploymentResult {

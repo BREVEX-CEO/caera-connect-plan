@@ -289,6 +289,17 @@ export function prelaunchRobotsResponse(decision: LaunchGateDecision): Response 
  * crawlers record the rule instead of retrying an error.
  */
 export function prelaunchResponse(pathname: string, decision: LaunchGateDecision): Response {
+  const canonicalPath =
+    pathname.length > 1 && pathname.endsWith("/") ? pathname.replace(/\/+$/, "") : pathname;
+  if (canonicalPath !== pathname && PRELAUNCH_PUBLIC_PATHS.has(canonicalPath)) {
+    return new Response(null, {
+      status: 308,
+      headers: {
+        ...publicHeaders("text/html; charset=utf-8"),
+        location: canonicalPath,
+      },
+    });
+  }
   if (pathname === "/robots.txt") return prelaunchRobotsResponse(decision);
   if (pathname === "/sitemap.xml") return prelaunchSitemapResponse();
   if (PRELAUNCH_PUBLIC_PATHS.has(pathname)) return prelaunchPublicResponse(pathname)!;
