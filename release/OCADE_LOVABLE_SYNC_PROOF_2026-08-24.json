@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-24T14:32:29.931Z",
+  "classification": "EXECUTED GITHUB TO LOVABLE SYNC PASS",
+  "github": {
+    "repository": "BREVEX-CEO/caera-connect-plan",
+    "branch": "main",
+    "commit": "d9bccf9fdb3463e24a912e23d1392f32354868da"
+  },
+  "lovable": {
+    "workspaceId": "6DdsgQlvotnOU5J0tz3q",
+    "projectId": "3fe938df-e664-403c-b25c-dabeeb0f8858",
+    "projectName": "caera-connect-plan",
+    "status": "ready",
+    "published": false,
+    "latestCommitSha": "d9bccf9fdb3463e24a912e23d1392f32354868da",
+    "editorUrl": "https://lovable.dev/projects/3fe938df-e664-403c-b25c-dabeeb0f8858"
+  },
+  "independentReadback": {
+    "path": "release/OCADE_FRESH_CLONE_REVERIFY_2026-08-24.json",
+    "ref": "d9bccf9fdb3463e24a912e23d1392f32354868da",
+    "classification": "FRESH-CLONE EXECUTED PASS; WINDOWS DEFERRED / NOT FINAL-PROVEN",
+    "passed": 15,
+    "failed": 0
+  },
+  "limits": [
+    "Lovable project readiness and file readback prove repository synchronization, not public publication.",
+    "The Lovable project remains unpublished; no Lovable production deployment was performed.",
+    "The last screenshot URL may lag the latest repository commit and is not used as commit proof."
+  ]
+}
