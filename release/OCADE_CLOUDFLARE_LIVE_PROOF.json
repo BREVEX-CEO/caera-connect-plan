@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-24T12:59:54Z",
+  "generatedAt": "2026-08-24T15:00:44.128Z",
   "classification": "EXECUTED PRELAUNCH DEPLOYMENT; LAUNCH NOT OPEN",
   "source": {
-    "commit": "78398e8c0a8fa7af5189881fa9f47d53fda7cb6a",
-    "branch": "codex/ocade-production-completion-20260823-continuation",
+    "commit": "5f3d544116307d7366247c78e0a793464d90676b",
+    "branch": "main",
     "packageVersion": "0.1.0"
   },
   "deployment": {
     "provider": "Cloudflare Workers",
     "worker": "ocade-web",
-    "previousVerifiedVersionId": "3e6229f5-0f29-4d70-a681-26bb1c48b2a9",
-    "deployedVersionId": "9bf53828-f27e-4806-8d89-26209c3cf386",
+    "previousVerifiedVersionId": "7d6f6f5f-c248-4ea2-9cd6-0ddeefa35d59",
+    "deployedVersionId": "b83f2579-32ea-44bc-9557-116f65e9cde9",
     "stagedAtZeroTraffic": true,
     "immutableHealthProbePassed": true,
     "immutableHashedAssetProbePassed": true,
@@ -31,21 +31,21 @@
   },
   "liveMatrix": [
     { "host": "ocade.in", "path": "/", "status": 503, "launchState": "prelaunch", "cacheControl": "no-store", "robots": "noindex" },
-    { "host": "ocade.in", "path": "/api/health", "status": 200, "deploymentId": "9bf53828-f27e-4806-8d89-26209c3cf386", "supabasePublic": true },
+    { "host": "ocade.in", "path": "/api/health", "status": 200, "deploymentId": "b83f2579-32ea-44bc-9557-116f65e9cde9", "supabasePublic": true },
     { "host": "ocade.in", "path": "/company", "status": 200, "launchState": "prelaunch-public-information", "robots": "index" },
     { "host": "ocade.in", "path": "/founder/haans-antoni", "status": 200, "launchState": "prelaunch-public-information", "robots": "index" },
     { "host": "ocade.in", "path": "/products/ocade", "status": 200, "launchState": "prelaunch-public-information", "robots": "index" },
     { "host": "ocade.in", "path": "/products/ocade/", "status": 308, "location": "/products/ocade" },
     { "host": "ocade.in", "path": "/auth", "status": 503, "launchState": "prelaunch", "robots": "noindex" },
     { "host": "ocade.in", "path": "/ocade", "status": 503, "launchState": "prelaunch", "robots": "noindex" },
-    { "host": "ocade.in", "path": "/assets/index-Z4SRZwbR.js", "status": 503, "launchState": "prelaunch", "edgeGate": "asset-v1", "cacheControl": "no-store", "robots": "noindex" },
+    { "host": "ocade.in", "path": "/assets/index-Dmhzn-dl.js", "status": 503, "launchState": "prelaunch", "edgeGate": "asset-v1", "cacheControl": "no-store", "robots": "noindex" },
     { "host": "ocade.in", "path": "/assets/styles-D4_vOpQO.css", "status": 503, "launchState": "prelaunch", "edgeGate": "asset-v1", "cacheControl": "no-store", "robots": "noindex" },
     { "host": "ocade.in", "path": "/brand/ocade-carcc-wordmark.png", "status": 200, "launchState": "prelaunch-public-information", "robots": "index" },
     { "host": "ocade.in", "path": "/brand/ocade-carcc-mark.png", "status": 200, "launchState": "prelaunch-public-information", "robots": "index" },
     { "host": "www.ocade.in", "path": "/", "status": 503, "launchState": "prelaunch", "cacheControl": "no-store", "robots": "noindex" },
-    { "host": "www.ocade.in", "path": "/api/health", "status": 200, "deploymentId": "9bf53828-f27e-4806-8d89-26209c3cf386", "supabasePublic": true },
+    { "host": "www.ocade.in", "path": "/api/health", "status": 200, "deploymentId": "b83f2579-32ea-44bc-9557-116f65e9cde9", "supabasePublic": true },
     { "host": "www.ocade.in", "path": "/products/ocade", "status": 200, "launchState": "prelaunch-public-information", "robots": "index" },
-    { "host": "www.ocade.in", "path": "/assets/index-Z4SRZwbR.js", "status": 503, "launchState": "prelaunch", "edgeGate": "asset-v1", "cacheControl": "no-store", "robots": "noindex" }
+    { "host": "www.ocade.in", "path": "/assets/index-Dmhzn-dl.js", "status": 503, "launchState": "prelaunch", "edgeGate": "asset-v1", "cacheControl": "no-store", "robots": "noindex" }
   ],
   "robots": {
     "managedCloudflareOverrideDisabled": true,
@@ -68,11 +68,13 @@
     "publicNavigationToCompanyPassed": true,
     "companyTitle": "CARCC CADANE — Company and founder information",
     "authRouteVisuallyRenderedPrelaunchLock": true,
-    "consoleErrors": 0
+    "consoleErrors": 0,
+    "pageErrors": 0,
+    "repeatableReceipt": "release/OCADE_CLOUDFLARE_REDEPLOY_PROOF_2026-08-24.json"
   },
   "configurationPreparation": {
     "cloudflarePreparationVersionId": "53716659-ee11-403f-80fc-4ce5a6607140",
-    "cloudflareDeployedVersionId": "9bf53828-f27e-4806-8d89-26209c3cf386",
+    "cloudflareDeployedVersionId": "b83f2579-32ea-44bc-9557-116f65e9cde9",
     "cloudflareDeployedTrafficPercent": 100,
     "cloudflareEncryptedNames": [
       "OCADE_LAUNCH_READY",
@@ -84,6 +86,8 @@
       "VITE_SUPABASE_PUBLISHABLE_KEY",
       "VITE_SUPABASE_URL"
     ],
+    "wranglerOauthUsed": true,
+    "dryRunPassed": true,
     "secretValuesRecorded": false
   },
   "remainingBoundaries": [

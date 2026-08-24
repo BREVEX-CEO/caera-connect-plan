@@ -10,11 +10,12 @@
       "achievedEvidence": [
         "Cloudflare free-plan Worker deployed to ocade.in and www.ocade.in",
         "Prelaunch origin returns 503 with noindex and no-store controls",
-        "Live /api/health returns HTTP 200 for OCADE 0.1.0 at immutable Cloudflare version 9bf53828-f27e-4806-8d89-26209c3cf386 and attests the Supabase public runtime variables are present",
+        "Live /api/health returns HTTP 200 for OCADE 0.1.0 at immutable Cloudflare version b83f2579-32ea-44bc-9557-116f65e9cde9 and attests the Supabase public runtime variables are present",
         "The immutable version was staged at zero traffic, and both health and the real hashed JavaScript entry passed before promotion",
         "Application JavaScript and CSS return 503 no-store noindex through edge gate asset-v1 on both apex and www",
         "Company, founder, product, sitemap and factual brand-image routes remain publicly readable during prelaunch",
-        "Cloudflare managed robots.txt is disabled and the live file matches the repository allowlist"
+        "Cloudflare managed robots.txt is disabled and the live file matches the repository allowlist",
+        "Installed Chrome Stable rendered product, company and locked auth routes with zero unexpected console errors and zero page errors"
       ],
       "requiredEvidence": [
         "Post-gate authentication and critical-route smoke tests after the authorized launch opening"

@@ -1,0 +1,235 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-24T15:00:44.128Z",
+  "classification": "EXECUTED PRELAUNCH REDEPLOYMENT PASS",
+  "source": {
+    "commit": "5f3d544116307d7366247c78e0a793464d90676b",
+    "branch": "main"
+  },
+  "deployment": {
+    "worker": "ocade-web",
+    "versionId": "b83f2579-32ea-44bc-9557-116f65e9cde9",
+    "trafficPercent": 100,
+    "expectedAssetState": "locked",
+    "supabasePublicAttested": true
+  },
+  "matrix": [
+    {
+      "host": "ocade.in",
+      "path": "/",
+      "status": 503,
+      "launchState": "prelaunch",
+      "edgeGate": null,
+      "cacheControl": "no-store",
+      "robots": "noindex, nofollow, noarchive",
+      "location": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "host": "ocade.in",
+      "path": "/api/health",
+      "status": 200,
+      "launchState": null,
+      "edgeGate": null,
+      "cacheControl": "no-store",
+      "robots": null,
+      "location": null,
+      "contentType": "application/json; charset=utf-8",
+      "deploymentId": "b83f2579-32ea-44bc-9557-116f65e9cde9",
+      "version": "0.1.0",
+      "supabasePublic": true
+    },
+    {
+      "host": "ocade.in",
+      "path": "/company",
+      "status": 200,
+      "launchState": "prelaunch-public-information",
+      "edgeGate": null,
+      "cacheControl": "public, max-age=300",
+      "robots": "index, follow, max-image-preview:large",
+      "location": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "host": "ocade.in",
+      "path": "/founder/haans-antoni",
+      "status": 200,
+      "launchState": "prelaunch-public-information",
+      "edgeGate": null,
+      "cacheControl": "public, max-age=300",
+      "robots": "index, follow, max-image-preview:large",
+      "location": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "host": "ocade.in",
+      "path": "/products/ocade",
+      "status": 200,
+      "launchState": "prelaunch-public-information",
+      "edgeGate": null,
+      "cacheControl": "public, max-age=300",
+      "robots": "index, follow, max-image-preview:large",
+      "location": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "host": "ocade.in",
+      "path": "/products/ocade/",
+      "status": 308,
+      "launchState": "prelaunch-public-information",
+      "edgeGate": null,
+      "cacheControl": "public, max-age=300",
+      "robots": "index, follow, max-image-preview:large",
+      "location": "/products/ocade",
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "host": "ocade.in",
+      "path": "/auth",
+      "status": 503,
+      "launchState": "prelaunch",
+      "edgeGate": null,
+      "cacheControl": "no-store",
+      "robots": "noindex, nofollow, noarchive",
+      "location": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "host": "ocade.in",
+      "path": "/ocade",
+      "status": 503,
+      "launchState": "prelaunch",
+      "edgeGate": null,
+      "cacheControl": "no-store",
+      "robots": "noindex, nofollow, noarchive",
+      "location": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "host": "ocade.in",
+      "path": "/assets/index-Dmhzn-dl.js",
+      "status": 503,
+      "launchState": "prelaunch",
+      "edgeGate": "asset-v1",
+      "cacheControl": "no-store",
+      "robots": "noindex, nofollow, noarchive",
+      "location": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "host": "ocade.in",
+      "path": "/brand/ocade-carcc-wordmark.png",
+      "status": 200,
+      "launchState": "prelaunch-public-information",
+      "edgeGate": null,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "robots": "index, follow, max-image-preview:large",
+      "location": null,
+      "contentType": "image/png"
+    },
+    {
+      "host": "ocade.in",
+      "path": "/brand/ocade-carcc-mark.png",
+      "status": 200,
+      "launchState": "prelaunch-public-information",
+      "edgeGate": null,
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "robots": "index, follow, max-image-preview:large",
+      "location": null,
+      "contentType": "image/png"
+    },
+    {
+      "host": "ocade.in",
+      "path": "/robots.txt",
+      "status": 200,
+      "launchState": "prelaunch-public-information",
+      "edgeGate": null,
+      "cacheControl": "public, max-age=300",
+      "robots": "index, follow, max-image-preview:large",
+      "location": null,
+      "contentType": "text/plain; charset=utf-8"
+    },
+    {
+      "host": "ocade.in",
+      "path": "/sitemap.xml",
+      "status": 200,
+      "launchState": "prelaunch-public-information",
+      "edgeGate": null,
+      "cacheControl": "public, max-age=300",
+      "robots": "index, follow, max-image-preview:large",
+      "location": null,
+      "contentType": "application/xml; charset=utf-8"
+    },
+    {
+      "host": "www.ocade.in",
+      "path": "/",
+      "status": 503,
+      "launchState": "prelaunch",
+      "edgeGate": null,
+      "cacheControl": "no-store",
+      "robots": "noindex, nofollow, noarchive",
+      "location": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "host": "www.ocade.in",
+      "path": "/api/health",
+      "status": 200,
+      "launchState": null,
+      "edgeGate": null,
+      "cacheControl": "no-store",
+      "robots": null,
+      "location": null,
+      "contentType": "application/json; charset=utf-8",
+      "deploymentId": "b83f2579-32ea-44bc-9557-116f65e9cde9",
+      "version": "0.1.0",
+      "supabasePublic": true
+    },
+    {
+      "host": "www.ocade.in",
+      "path": "/products/ocade",
+      "status": 200,
+      "launchState": "prelaunch-public-information",
+      "edgeGate": null,
+      "cacheControl": "public, max-age=300",
+      "robots": "index, follow, max-image-preview:large",
+      "location": null,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "host": "www.ocade.in",
+      "path": "/assets/index-Dmhzn-dl.js",
+      "status": 503,
+      "launchState": "prelaunch",
+      "edgeGate": "asset-v1",
+      "cacheControl": "no-store",
+      "robots": "noindex, nofollow, noarchive",
+      "location": null,
+      "contentType": "text/html; charset=utf-8"
+    }
+  ],
+  "realChromeStable": {
+    "executablePath": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+    "productStatus": 200,
+    "productTitle": "OCADE — Local-first AI workspace by CARCC CADANE",
+    "publicNavigationToCompanyPassed": true,
+    "companyTitle": "CARCC CADANE — Company and founder information",
+    "authStatus": 503,
+    "authTitle": "CARCC CADANE — OCADE",
+    "lockCopyObserved": true,
+    "expectedLockConsoleEvents": [
+      {
+        "text": "Failed to load resource: the server responded with a status of 503 ()",
+        "url": "https://ocade.in/auth?qa=b83f2579-32ea-44bc-9557-116f65e9cde9"
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": []
+  },
+  "failures": [],
+  "limits": [
+    "This verifies the deployed prelaunch boundary; it does not open the launch gate.",
+    "Windows UI and Notepad proof remains deferred and was not run.",
+    "Provider credentials, SMTP, signing, stores and same-origin model mirrors remain separate evidence."
+  ]
+}

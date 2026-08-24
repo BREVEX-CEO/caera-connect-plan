@@ -80,6 +80,7 @@ for (const path of [
   "src/cloudflare-entry.ts",
   "release/OCADE_RELEASE_BLOCKERS.json",
   "release/OCADE_CLOUDFLARE_LIVE_PROOF.json",
+  "release/OCADE_CLOUDFLARE_REDEPLOY_PROOF_2026-08-24.json",
   "release/OCADE_SUPABASE_AUTH_LIVE_PROOF_2026-08-24.json",
   "release/OCADE_PRODUCTION_WEIGHTS_CHAT_PROOF_2026-08-24.json",
   "release/OCADE_RELEASE_CHECKLIST.md",
@@ -130,6 +131,7 @@ const blockers = JSON.parse(
 );
 const operations = json("release/OCADE_PRODUCTION_OPERATIONS.json");
 const cloudflareLive = json("release/OCADE_CLOUDFLARE_LIVE_PROOF.json");
+const cloudflareRedeploy = json("release/OCADE_CLOUDFLARE_REDEPLOY_PROOF_2026-08-24.json");
 const authLive = json("release/OCADE_SUPABASE_AUTH_LIVE_PROOF_2026-08-24.json");
 const android = read("android/app/build.gradle");
 const androidManifest = read("android/app/src/main/AndroidManifest.xml");
@@ -341,8 +343,39 @@ check(
 );
 check(
   cloudflareLive.realChromeQA?.status === "passed" &&
-    cloudflareLive.realChromeQA?.consoleErrors === 0,
+    cloudflareLive.realChromeQA?.consoleErrors === 0 &&
+    cloudflareLive.realChromeQA?.pageErrors === 0,
   "Cloudflare live proof lacks real Chrome verification",
+);
+check(
+  cloudflareRedeploy.classification === "EXECUTED PRELAUNCH REDEPLOYMENT PASS" &&
+    cloudflareRedeploy.deployment?.versionId === cloudflareLive.deployment?.deployedVersionId &&
+    cloudflareRedeploy.deployment?.trafficPercent === 100 &&
+    cloudflareRedeploy.deployment?.expectedAssetState === "locked" &&
+    cloudflareRedeploy.failures?.length === 0,
+  "Cloudflare redeployment receipt is missing, failed or differs from the live proof",
+);
+check(
+  cloudflareRedeploy.realChromeStable?.consoleErrors?.length === 0 &&
+    cloudflareRedeploy.realChromeStable?.pageErrors?.length === 0 &&
+    cloudflareRedeploy.realChromeStable?.productStatus === 200 &&
+    cloudflareRedeploy.realChromeStable?.authStatus === 503,
+  "Cloudflare redeployment receipt lacks clean installed-Chrome proof",
+);
+check(
+  cloudflareRedeploy.matrix?.some(
+    (item) =>
+      item.path === "/api/health" &&
+      item.status === 200 &&
+      item.deploymentId === cloudflareRedeploy.deployment?.versionId,
+  ) &&
+    cloudflareRedeploy.matrix?.some(
+      (item) =>
+        item.path?.startsWith("/assets/index-") &&
+        item.status === 503 &&
+        item.edgeGate === "asset-v1",
+    ),
+  "Cloudflare redeployment receipt lacks exact health or live asset-lock proof",
 );
 check(
   cloudflareLive.configurationPreparation?.secretValuesRecorded === false,
@@ -355,6 +388,10 @@ check(!secretShape.test(JSON.stringify(wrangler)), "secret-shaped value in wrang
 check(!secretShape.test(JSON.stringify(blockers)), "secret-shaped value in blocker ledger");
 check(!secretShape.test(JSON.stringify(operations)), "secret-shaped value in operations ledger");
 check(!secretShape.test(JSON.stringify(cloudflareLive)), "secret-shaped value in Cloudflare proof");
+check(
+  !secretShape.test(JSON.stringify(cloudflareRedeploy)),
+  "secret-shaped value in Cloudflare redeployment proof",
+);
 
 const generatedPath = resolve(root, ".output/server/wrangler.json");
 check(existsSync(generatedPath), "production output is missing; run npm run build first");

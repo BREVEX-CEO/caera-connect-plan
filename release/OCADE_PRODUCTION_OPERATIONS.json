@@ -12,12 +12,12 @@
     "onCallAssigned": false
   },
   "webDeploymentEvidence": {
-    "observedAt": "2026-08-24T12:59:54Z",
+    "observedAt": "2026-08-24T15:00:44.128Z",
     "domain": "ocade.in",
     "provider": "Cloudflare Workers",
     "worker": "ocade-web",
-    "versionId": "9bf53828-f27e-4806-8d89-26209c3cf386",
-    "testedCommit": "78398e8c0a8fa7af5189881fa9f47d53fda7cb6a",
+    "versionId": "b83f2579-32ea-44bc-9557-116f65e9cde9",
+    "testedCommit": "5f3d544116307d7366247c78e0a793464d90676b",
     "launchState": "prelaunch",
     "apexStatus": 503,
     "wwwStatus": 503,
@@ -30,7 +30,7 @@
     "postPromotionHealthVerified": true,
     "supabasePublicRuntimeConfigured": true,
     "supabasePublicClientBuildConfigured": true,
-    "rollbackVersionId": "3e6229f5-0f29-4d70-a681-26bb1c48b2a9",
+    "rollbackVersionId": "7d6f6f5f-c248-4ea2-9cd6-0ddeefa35d59",
     "plannedLaunchDate": "2026-08-28",
     "launchReadyControlSet": true
   },
