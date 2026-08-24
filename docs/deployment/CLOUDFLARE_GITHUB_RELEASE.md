@@ -17,6 +17,18 @@ In GitHub, create an environment named `cloudflare-production`. Add these enviro
   keeps release configuration centralized and prevents the wrong project from
   being compiled into a production bundle.
 
+Add these non-secret environment variables, all initially `false`:
+
+- `VITE_AUTH_GOOGLE_ENABLED`
+- `VITE_AUTH_APPLE_ENABLED`
+- `VITE_AUTH_PHONE_ENABLED`
+- `VITE_AUTH_EMAIL_DELIVERY_READY`
+
+Change a value to `true` only after the corresponding live Supabase provider or
+custom SMTP delivery path has been configured and executed successfully. An
+unset value remains fail-closed and the production UI will not offer a broken
+provider.
+
 Keep `OCADE_LAUNCH_READY`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and any
 server-only Supabase values as encrypted Cloudflare Worker secrets or
 dashboard-managed variables. `wrangler.json` has `keep_vars: true`, so a normal

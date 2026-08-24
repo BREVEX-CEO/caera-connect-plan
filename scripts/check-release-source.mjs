@@ -80,10 +80,12 @@ for (const path of [
   "src/cloudflare-entry.ts",
   "release/OCADE_RELEASE_BLOCKERS.json",
   "release/OCADE_CLOUDFLARE_LIVE_PROOF.json",
+  "release/OCADE_SUPABASE_AUTH_LIVE_PROOF_2026-08-24.json",
   "release/OCADE_RELEASE_CHECKLIST.md",
   "release/OCADE_PRODUCTION_OPERATIONS.json",
   "release/OCADE_INCIDENT_RESPONSE_RUNBOOK.md",
   "src/lib/release-health.ts",
+  "src/lib/auth/provider-availability.ts",
   "native/browser-host/index.mjs",
   "native/companion/tauri/tauri.conf.json",
   "native/companion/tauri/tauri.windows.conf.json",
@@ -127,12 +129,15 @@ const blockers = JSON.parse(
 );
 const operations = json("release/OCADE_PRODUCTION_OPERATIONS.json");
 const cloudflareLive = json("release/OCADE_CLOUDFLARE_LIVE_PROOF.json");
+const authLive = json("release/OCADE_SUPABASE_AUTH_LIVE_PROOF_2026-08-24.json");
 const android = read("android/app/build.gradle");
 const androidManifest = read("android/app/src/main/AndroidManifest.xml");
 const iosProject = read("ios/App/App.xcodeproj/project.pbxproj");
 const health = read("src/lib/release-health.ts");
 const nitro = read("nitro.config.ts");
 const cloudflareEntry = read("src/cloudflare-entry.ts");
+const authAvailability = read("src/lib/auth/provider-availability.ts");
+const cloudflareWorkflow = read(".github/workflows/cloudflare-production.yml");
 const webllmServer = read("src/lib/brain/adapters/webllm.server.ts");
 const capability = json("native/companion/tauri/capabilities/default.json");
 
@@ -212,6 +217,35 @@ check(
 check(
   webllmServer.includes("available only inside a user's browser"),
   "server WebLLM shim does not fail closed",
+);
+
+check(
+  authAvailability.includes('const developmentFallback = !production') &&
+    authAvailability.includes('environment.VITE_AUTH_GOOGLE_ENABLED') &&
+    authAvailability.includes('environment.VITE_AUTH_EMAIL_DELIVERY_READY'),
+  "production auth provider availability does not fail closed",
+);
+check(
+  [
+    "VITE_AUTH_GOOGLE_ENABLED",
+    "VITE_AUTH_APPLE_ENABLED",
+    "VITE_AUTH_PHONE_ENABLED",
+    "VITE_AUTH_EMAIL_DELIVERY_READY",
+  ].every((name) =>
+    cloudflareWorkflow.includes(`${name}: \${{ vars.${name} || 'false' }}`),
+  ),
+  "Cloudflare deployment does not default unverified auth providers to false",
+);
+check(
+  authLive.projectRef === "sazhgaisyhkdbrooycdv" &&
+    authLive.classification ===
+      "SOURCE-FIXED; PRODUCTION AUTH DELIVERY EXTERNALLY BLOCKED" &&
+    authLive.executedReadback?.googleProviderEnabled === false &&
+    authLive.executedReadback?.customSmtpEnabled === false &&
+    Array.isArray(authLive.externalBlockers) &&
+    authLive.externalBlockers.some((item) => item.id === "google-oauth-credentials") &&
+    authLive.externalBlockers.some((item) => item.id === "custom-smtp"),
+  "Supabase Auth live proof is incomplete or overstates provider readiness",
 );
 
 check(tauri.plugins?.updater?.active === false, "unsigned desktop updater is active");

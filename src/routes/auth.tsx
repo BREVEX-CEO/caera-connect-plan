@@ -10,6 +10,7 @@ import { OTP_SENT_NOTICE, friendlyOtpError } from "@/lib/auth/otp";
 import { safeNext } from "@/lib/auth/safe-next";
 import { cn } from "@/lib/utils";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
+import { authProviderAvailability } from "@/lib/auth/provider-availability";
 
 const searchSchema = z.object({
   next: z.string().optional(),
@@ -43,9 +44,9 @@ export const Route = createFileRoute("/auth")({
 type Method = "google" | "apple" | "phone" | "email";
 
 const methods: { id: Method; label: string }[] = [
-  { id: "google", label: "Google" },
-  { id: "apple", label: "Apple" },
-  { id: "phone", label: "Phone" },
+  ...(authProviderAvailability.google ? [{ id: "google" as const, label: "Google" }] : []),
+  ...(authProviderAvailability.apple ? [{ id: "apple" as const, label: "Apple" }] : []),
+  ...(authProviderAvailability.phone ? [{ id: "phone" as const, label: "Phone" }] : []),
   { id: "email", label: "Email" },
 ];
 
@@ -53,7 +54,7 @@ function AuthPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
   const nextPath = safeNext(search.next) ?? "/home";
-  const [method, setMethod] = useState<Method>("google");
+  const [method, setMethod] = useState<Method>(methods[0]?.id ?? "email");
   const [busy, setBusy] = useState(false);
   const inboundOAuthError = readOAuthErrorFromUrl(
     { error: search.error, error_description: search.error_description },
@@ -80,6 +81,11 @@ function AuthPage() {
   }, [method]);
 
   async function signInOAuth(provider: "google" | "apple") {
+    if (!authProviderAvailability[provider]) {
+      setError(`${provider === "google" ? "Google" : "Apple"} sign-in is not available yet.`);
+      setErrorHint("Use an enabled sign-in method, or try again after launch configuration is complete.");
+      return;
+    }
     setBusy(true);
     setError(null);
     setErrorHint(null);
@@ -108,6 +114,10 @@ function AuthPage() {
 
   async function sendPhoneOtp(e: React.FormEvent) {
     e.preventDefault();
+    if (!authProviderAvailability.phone) {
+      setError("Phone sign-in is not available yet.");
+      return;
+    }
     setBusy(true);
     setError(null);
     const parsed = z
@@ -183,6 +193,12 @@ function AuthPage() {
       return;
     }
     if (intent === "signup") {
+      if (!authProviderAvailability.emailDelivery) {
+        setError("New email accounts are temporarily unavailable while production mail is prepared.");
+        setErrorHint("No account was created. Existing members can still sign in with a password.");
+        setBusy(false);
+        return;
+      }
       const { data, error: err } = await supabase.auth.signUp({
         email: parsedEmail.data,
         password,
@@ -233,6 +249,10 @@ function AuthPage() {
   }
 
   async function sendPasswordReset() {
+    if (!authProviderAvailability.emailDelivery) {
+      setError("Password reset email is temporarily unavailable while production mail is prepared.");
+      return;
+    }
     setBusy(true);
     setError(null);
     setErrorHint(null);
@@ -258,6 +278,10 @@ function AuthPage() {
 
   async function sendEmailOtp(e: React.FormEvent) {
     e.preventDefault();
+    if (!authProviderAvailability.emailDelivery) {
+      setError("Email one-time codes are temporarily unavailable while production mail is prepared.");
+      return;
+    }
     setBusy(true);
     setError(null);
     const parsed = z.string().trim().email("Enter a valid email address.").safeParse(email);
@@ -463,7 +487,8 @@ function AuthPage() {
         <div
           role="tablist"
           aria-label="Sign-in method"
-          className="grid grid-cols-4 gap-1 rounded-lg bg-muted/40 p-1"
+          className="grid gap-1 rounded-lg bg-muted/40 p-1"
+          style={{ gridTemplateColumns: `repeat(${methods.length}, minmax(0, 1fr))` }}
         >
           {methods.map((m) => (
             <button
@@ -543,6 +568,15 @@ function AuthPage() {
 
         {method === "email" ? (
           <form onSubmit={sendEmailOtp} className="flex flex-col gap-3">
+            {!authProviderAvailability.emailDelivery ? (
+              <div
+                role="status"
+                className="rounded-md border border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 px-3 py-2 text-xs text-[color:var(--state-warning)]"
+              >
+                Existing members can sign in with a password. New email accounts, one-time codes,
+                and password reset will open after production mail delivery is verified.
+              </div>
+            ) : null}
             <label htmlFor="email" className="text-xs font-medium text-muted-foreground">
               Email
             </label>
@@ -599,7 +633,11 @@ function AuthPage() {
               <button
                 type="button"
                 onClick={() => submitPassword(signupIntent ? "signup" : "signin")}
-                disabled={busy || !authConfigured}
+                disabled={
+                  busy ||
+                  !authConfigured ||
+                  (signupIntent && !authProviderAvailability.emailDelivery)
+                }
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
               >
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -608,7 +646,7 @@ function AuthPage() {
             ) : (
               <button
                 type="submit"
-                disabled={busy || !authConfigured}
+                disabled={busy || !authConfigured || !authProviderAvailability.emailDelivery}
                 className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
               >
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -618,7 +656,7 @@ function AuthPage() {
             <button
               type="button"
               onClick={sendPasswordReset}
-              disabled={busy || !authConfigured}
+              disabled={busy || !authConfigured || !authProviderAvailability.emailDelivery}
               className="self-start text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-60"
             >
               Forgot password?

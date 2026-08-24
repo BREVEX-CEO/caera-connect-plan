@@ -140,6 +140,12 @@ server-side bindings. Missing bindings leave public pages available but make
 authentication fail closed. Never commit service keys, access tokens or local
 `.env` files.
 
+Production auth methods are separately fail-closed by the public boolean flags
+`VITE_AUTH_GOOGLE_ENABLED`, `VITE_AUTH_APPLE_ENABLED`,
+`VITE_AUTH_PHONE_ENABLED`, and `VITE_AUTH_EMAIL_DELIVERY_READY`. These flags do
+not contain credentials. Set one to `true` only after its provider or production
+mail delivery is configured and verified in the selected Supabase project.
+
 ## Release and public identity
 
 The private repository is connected to Lovable. Do not rewrite published Git

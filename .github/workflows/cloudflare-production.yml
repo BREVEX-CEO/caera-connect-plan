@@ -44,6 +44,10 @@ jobs:
       OCADE_SUPABASE_PROJECT_REF: sazhgaisyhkdbrooycdv
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_AUTH_GOOGLE_ENABLED: ${{ vars.VITE_AUTH_GOOGLE_ENABLED || 'false' }}
+      VITE_AUTH_APPLE_ENABLED: ${{ vars.VITE_AUTH_APPLE_ENABLED || 'false' }}
+      VITE_AUTH_PHONE_ENABLED: ${{ vars.VITE_AUTH_PHONE_ENABLED || 'false' }}
+      VITE_AUTH_EMAIL_DELIVERY_READY: ${{ vars.VITE_AUTH_EMAIL_DELIVERY_READY || 'false' }}
     steps:
       - name: Check out main
         uses: actions/checkout@v4
