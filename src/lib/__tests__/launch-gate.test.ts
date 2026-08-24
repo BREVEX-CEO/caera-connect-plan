@@ -97,6 +97,9 @@ describe("OCADE production launch gate", () => {
       expect(response.headers.get("content-security-policy")).toContain(
         "script-src https://static.cloudflareinsights.com/beacon.min.js",
       );
+      expect(response.headers.get("content-security-policy")).toContain(
+        "https://static.cloudflareinsights.com/beacon.min.js/",
+      );
       expect(response.headers.get("content-security-policy")).toContain("connect-src 'self'");
       expect(response.headers.get("x-content-type-options")).toBe("nosniff");
       expect(response.headers.get("x-ocade-launch-state")).toBe("prelaunch");

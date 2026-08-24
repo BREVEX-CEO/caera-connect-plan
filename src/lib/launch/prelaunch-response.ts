@@ -35,7 +35,9 @@ export const PRELAUNCH_ALLOWED_PATHS = new Set([
 ]);
 
 const NOINDEX = "noindex, nofollow, noarchive";
-const CLOUDFLARE_WEB_ANALYTICS = "https://static.cloudflareinsights.com/beacon.min.js";
+const CLOUDFLARE_WEB_ANALYTICS =
+  "https://static.cloudflareinsights.com/beacon.min.js " +
+  "https://static.cloudflareinsights.com/beacon.min.js/";
 
 function lockedHeaders(decision: LaunchGateDecision, contentType: string): HeadersInit {
   return {

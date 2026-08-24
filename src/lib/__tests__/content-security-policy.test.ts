@@ -73,9 +73,10 @@ describe("the rest of the policy still holds", () => {
     expect(script).not.toContain("'unsafe-eval'");
   });
 
-  it("allows only Cloudflare's exact SRI-protected analytics beacon URL", () => {
+  it("allows only Cloudflare's SRI-protected analytics beacon path", () => {
     const script = directive("script-src");
     expect(script).toContain("https://static.cloudflareinsights.com/beacon.min.js");
+    expect(script).toContain("https://static.cloudflareinsights.com/beacon.min.js/");
     expect(script).not.toContain("https://static.cloudflareinsights.com ");
   });
 
