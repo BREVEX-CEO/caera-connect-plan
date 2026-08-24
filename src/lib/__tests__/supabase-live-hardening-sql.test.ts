@@ -47,4 +47,14 @@ describe("live Supabase hardening migrations", () => {
     expect(sql).toContain("UPDATE public.ocade_automations AS automation");
     expect(sql).not.toMatch(/\n\s*WHERE id = p_automation_id/);
   });
+
+  it("provisions a private messenger bucket and denies malformed object paths", () => {
+    const sql = migration("20260824114319_provision_messenger_storage_bucket.sql");
+
+    expect(sql).toContain("VALUES ('messenger', 'messenger', false, 26214400)");
+    expect(sql).toContain("CREATE POLICY messenger_insert");
+    expect(sql).toContain("THEN private.msg_thread_writable(");
+    expect(sql).toContain("ELSE false");
+    expect(sql).toContain("owner = (SELECT auth.uid())");
+  });
 });

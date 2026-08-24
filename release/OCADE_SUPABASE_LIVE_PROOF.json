@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-24T11:38:35.7378229Z",
+  "generatedAt": "2026-08-24T11:45:36.3361139Z",
   "classification": "EXECUTED",
   "project": {
     "ref": "sazhgaisyhkdbrooycdv",
@@ -12,13 +12,14 @@
   },
   "migrationReconciliation": {
     "repositoryBaselineMigrationsApplied": 49,
-    "hardeningMigrationsApplied": 4,
-    "liveTrackedMigrations": 53,
+    "hardeningMigrationsApplied": 5,
+    "liveTrackedMigrations": 54,
     "latest": [
       "live_supabase_security_hardening",
       "rls_and_foreign_key_performance",
       "consolidate_permissive_rls_policies",
-      "fix_automation_enqueue_ambiguity"
+      "fix_automation_enqueue_ambiguity",
+      "provision_messenger_storage_bucket"
     ],
     "publicTables": 68,
     "allPublicTablesRlsEnabled": true
@@ -45,7 +46,7 @@
     "authRlsInitPlanAfter": 0,
     "multiplePermissivePoliciesBefore": 24,
     "multiplePermissivePoliciesAfter": 0,
-    "unusedIndexesAfter": 123,
+    "unusedIndexesAfter": 121,
     "unusedIndexesDisposition": "Expected before production traffic on the newly migrated empty project; includes 74 required foreign-key covering indexes."
   },
   "runtimeIsolationProbe": {
@@ -62,6 +63,35 @@
     "redFirstDefectFound": "ocade_enqueue_automation_run failed with ambiguous id",
     "redFirstDefectFixed": true
   },
+  "authConfiguration": {
+    "status": "PARTIALLY_EXECUTED",
+    "emailPasswordEnabled": true,
+    "newUserSignupEnabled": true,
+    "emailConfirmationRequired": true,
+    "anonymousSigninEnabled": false,
+    "socialProvidersEnabled": [],
+    "siteUrl": "https://ocade.in",
+    "redirectUrls": [
+      "https://ocade.in/auth/callback",
+      "https://ocade.in/reset-password",
+      "http://localhost:8080/auth/callback",
+      "http://localhost:8080/reset-password",
+      "http://127.0.0.1:8080/auth/callback",
+      "http://127.0.0.1:8080/reset-password"
+    ],
+    "customSmtpConfigured": false
+  },
+  "storage": {
+    "status": "SOURCE-FIXED AND EXECUTED",
+    "bucket": "messenger",
+    "public": false,
+    "fileSizeLimitBytes": 26214400,
+    "ownThreadInsertReadProbePassed": true,
+    "crossThreadInsertBlocked": true,
+    "malformedPathDeniedWithoutCastError": true,
+    "temporaryRowsRolledBack": true,
+    "realStorageApiDeleteProbe": "BLOCKED without a real signed-in account session"
+  },
   "sourceParity": {
     "typescriptTypesRegeneratedFromLiveProject": true,
     "generatedTypesMatchCheckedInFile": true,
@@ -72,9 +102,9 @@
     "typecheckPassed": true
   },
   "remainingExternalProof": [
-    "Real email signup, verification link delivery, login, logout, and account recovery",
+    "Custom SMTP credentials and real email signup, confirmation delivery, login, logout, and account recovery",
     "Real OAuth provider flow if OAuth is enabled for launch",
-    "Storage upload/download/deletion against a real signed-in account",
+    "Storage upload/download/deletion through the real Storage API with a signed-in account",
     "Production-domain redirect URL and email-template verification"
   ]
 }
