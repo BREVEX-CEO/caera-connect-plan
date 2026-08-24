@@ -83,6 +83,17 @@ describe("OCADE release source package", () => {
     expect(read("src/lib/brain/adapters/browser-webgpu.ts")).toContain('import("@mlc-ai/web-llm")');
   });
 
+  it("gates uploaded static assets before Nitro can forward them", () => {
+    const nitro = read("nitro.config.ts");
+    const edge = read("src/cloudflare-entry.ts");
+    expect(nitro).toContain('entry: "./src/cloudflare-entry.ts"');
+    expect(edge).toContain("isPublicAssetURL(url.pathname)");
+    expect(edge).toContain('headers.set("x-ocade-edge-gate", "asset-v1")');
+    expect(edge.indexOf("evaluateLaunchGate({")).toBeLessThan(
+      edge.indexOf("env.ASSETS.fetch(request)"),
+    );
+  });
+
   it("provides a dependency-free liveness endpoint with safe method and cache boundaries", async () => {
     const request = new Request("https://ocade.invalid/api/health");
     Object.assign(request, {

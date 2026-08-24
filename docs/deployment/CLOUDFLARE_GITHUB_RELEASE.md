@@ -20,10 +20,16 @@ GitHub Actions must also be able to start. A billing or spending-limit block pre
 1. Let the `CI` workflow pass on `main`.
 2. In Cloudflare, copy the last verified Worker version ID. This is the recovery target if the new release fails.
 3. In GitHub Actions, run **Cloudflare production deployment**.
-4. Enter `I_APPROVE_OCADE_PRODUCTION_DEPLOY` and the copied recovery version ID.
+4. Enter `I_APPROVE_OCADE_PRODUCTION_DEPLOY`, the copied recovery version ID,
+   and choose `locked` before the launch instant or `open` after it.
 5. The workflow rebuilds and reruns the main release gates.
 6. The controller uploads an immutable Worker version without changing traffic, attaches it at zero percent, and smoke-tests that exact version through Cloudflare's version-override header.
-7. Only after the staged response reports the expected package and Cloudflare version IDs does the controller promote it to 100 percent and independently verify `https://ocade.in/api/health` again.
+7. The same staged version must also prove that its real hashed JavaScript entry
+   is either fail-closed or launch-open, exactly matching the selected release
+   state. This prevents framework or static-asset routing from bypassing the
+   edge gate.
+8. Only after both staged probes pass does the controller promote it to 100
+   percent and independently verify `https://ocade.in/api/health` again.
 
 The health endpoint includes the immutable Cloudflare Worker version ID. A stale deployment with the same package version therefore cannot satisfy the post-deployment check.
 

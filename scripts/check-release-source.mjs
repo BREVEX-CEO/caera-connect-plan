@@ -77,6 +77,7 @@ function committedMinisignSecretKey() {
 for (const path of [
   "wrangler.json",
   "nitro.config.ts",
+  "src/cloudflare-entry.ts",
   "release/OCADE_RELEASE_BLOCKERS.json",
   "release/OCADE_RELEASE_CHECKLIST.md",
   "release/OCADE_PRODUCTION_OPERATIONS.json",
@@ -129,6 +130,7 @@ const androidManifest = read("android/app/src/main/AndroidManifest.xml");
 const iosProject = read("ios/App/App.xcodeproj/project.pbxproj");
 const health = read("src/lib/release-health.ts");
 const nitro = read("nitro.config.ts");
+const cloudflareEntry = read("src/cloudflare-entry.ts");
 const webllmServer = read("src/lib/brain/adapters/webllm.server.ts");
 const capability = json("native/companion/tauri/capabilities/default.json");
 
@@ -189,6 +191,17 @@ check(
 check(
   nitro.includes('"@mlc-ai/web-llm"') && nitro.includes("webllm.server.ts"),
   "Cloudflare server does not alias the browser-only WebLLM runtime",
+);
+check(
+  nitro.includes('entry: "./src/cloudflare-entry.ts"'),
+  "Nitro is not using the outermost OCADE Cloudflare entry",
+);
+check(
+  cloudflareEntry.includes("isPublicAssetURL(url.pathname)") &&
+    cloudflareEntry.includes('headers.set("x-ocade-edge-gate", "asset-v1")') &&
+    cloudflareEntry.indexOf("evaluateLaunchGate({") <
+      cloudflareEntry.indexOf("env.ASSETS.fetch(request)"),
+  "Cloudflare static assets can bypass the outermost launch gate",
 );
 check(
   webllmServer.includes("available only inside a user's browser"),
@@ -296,6 +309,10 @@ if (existsSync(generatedPath)) {
     "generated immutable version metadata binding is missing",
   );
   check(statSync(resolve(root, ".output/server/index.mjs")).size > 0, "worker entry is empty");
+  check(
+    readFileSync(resolve(root, ".output/server/index.mjs"), "utf8").includes("x-ocade-edge-gate"),
+    "generated Worker is missing the outermost asset launch gate",
+  );
 }
 
 if (failures.length > 0) {

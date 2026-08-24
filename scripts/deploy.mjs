@@ -11,7 +11,7 @@
  * No shell is used. Secrets are presence-checked but never read into output.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -135,6 +135,9 @@ export function createDeploymentPlan({
     ) {
       blockers.push("OCADE_ROLLBACK_VERSION_ID must name the previously verified deployment");
     }
+    if (!["locked", "open"].includes(env.OCADE_DEPLOY_EXPECT_ASSET_STATE ?? "")) {
+      blockers.push("OCADE_DEPLOY_EXPECT_ASSET_STATE must be locked or open");
+    }
   } else if (mode === "rollback") {
     if (env.OCADE_ROLLBACK_APPROVAL !== ROLLBACK_APPROVAL) {
       blockers.push("explicit production rollback approval is missing");
@@ -163,6 +166,8 @@ export function createDeploymentPlan({
       mode === "deploy" ? (env.OCADE_ROLLBACK_VERSION_ID ?? null) : (versionId ?? null),
     expectedHealthVersion:
       mode === "rollback" ? (env.OCADE_ROLLBACK_EXPECTED_VERSION ?? null) : version,
+    expectedAssetState: mode === "deploy" ? (env.OCADE_DEPLOY_EXPECT_ASSET_STATE ?? null) : null,
+    assetProbePath: null,
   };
 }
 
@@ -191,10 +196,83 @@ function validateBuiltOutput(plan, cwd) {
     if (generated.version_metadata?.binding !== "CF_VERSION_METADATA") {
       failures.push("generated Cloudflare version metadata binding is missing");
     }
+    const builtEntry = readFileSync(path.join(cwd, plan.generatedEntryPath), "utf8");
+    if (!builtEntry.includes("x-ocade-edge-gate")) {
+      failures.push("generated Worker entry is missing the outermost asset launch gate");
+    }
+    const assetsDirectory = path.join(cwd, ".output", "public", "assets");
+    const entryAssets = existsSync(assetsDirectory)
+      ? readdirSync(assetsDirectory).filter((name) => /^index-[A-Za-z0-9_-]+\.js$/.test(name))
+      : [];
+    if (entryAssets.length !== 1) {
+      failures.push("generated client entry asset is missing or ambiguous");
+    } else {
+      plan.assetProbePath = `/assets/${entryAssets[0]}`;
+    }
   } catch {
     failures.push("generated Wrangler configuration is unreadable");
   }
   return failures;
+}
+
+async function probeAssetGateOnce(plan, fetcher, expectedDeploymentId) {
+  try {
+    const assetUrl = new URL(plan.assetProbePath, plan.healthUrl);
+    assetUrl.searchParams.set("ocade-version-probe", expectedDeploymentId);
+    const response = await fetcher(assetUrl, {
+      headers: {
+        accept: "text/javascript,*/*;q=0.1",
+        "cache-control": "no-cache",
+        "Cloudflare-Workers-Version-Overrides": `${plan.workerName}="${expectedDeploymentId}"`,
+      },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (plan.expectedAssetState === "locked") {
+      const locked =
+        response.status === 503 &&
+        response.headers.get("cache-control") === "no-store" &&
+        response.headers.get("x-ocade-launch-state") === "prelaunch" &&
+        response.headers.get("x-ocade-edge-gate") === "asset-v1" &&
+        response.headers.get("x-robots-tag")?.includes("noindex");
+      return locked
+        ? { ok: true, evidence: `staged asset ${plan.assetProbePath} is fail-closed` }
+        : {
+            ok: false,
+            reason:
+              `staged asset ${plan.assetProbePath} bypassed the locked edge gate ` +
+              `(HTTP ${response.status})`,
+          };
+    }
+    const contentType = response.headers.get("content-type") ?? "";
+    return response.ok && contentType.includes("javascript")
+      ? { ok: true, evidence: `staged asset ${plan.assetProbePath} is launch-open` }
+      : {
+          ok: false,
+          reason:
+            `staged asset ${plan.assetProbePath} did not open correctly ` +
+            `(HTTP ${response.status}, ${contentType || "no content type"})`,
+        };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: `asset gate probe failed: ${error instanceof Error ? error.message : "unknown error"}`,
+    };
+  }
+}
+
+async function probeAssetGate(
+  plan,
+  fetcher,
+  expectedDeploymentId,
+  waiter = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+) {
+  let lastResult;
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    lastResult = await probeAssetGateOnce(plan, fetcher, expectedDeploymentId);
+    if (lastResult.ok) return lastResult;
+    if (attempt < 5) await waiter(Math.min(2_000 * 2 ** attempt, 5_000));
+  }
+  return lastResult;
 }
 
 function readWranglerVersionId(outputPath, recordType) {
@@ -429,6 +507,18 @@ export async function runDeployment({
         status: "failed",
         plan,
         reason: `Zero-traffic staged version failed smoke verification: ${stagedHealth.reason}`,
+        recovery:
+          `Production remains on Cloudflare version ${plan.rollbackVersionId} at 100 percent. ` +
+          "Remove the zero-percent staged version after investigating.",
+      };
+    }
+
+    const stagedAsset = await probeAssetGate(plan, fetcher, uploadedVersionId, waiter);
+    if (!stagedAsset.ok) {
+      return {
+        status: "failed",
+        plan,
+        reason: `Zero-traffic staged version failed asset-gate verification: ${stagedAsset.reason}`,
         recovery:
           `Production remains on Cloudflare version ${plan.rollbackVersionId} at 100 percent. ` +
           "Remove the zero-percent staged version after investigating.",

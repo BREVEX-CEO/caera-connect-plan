@@ -19,6 +19,7 @@ const deployEnv = (): NodeJS.ProcessEnv => ({
   OCADE_DEPLOY_HEALTH_URL: "https://ocade.example.invalid/api/health",
   OCADE_DEPLOY_APPROVAL: "I_APPROVE_OCADE_PRODUCTION_DEPLOY",
   OCADE_ROLLBACK_VERSION_ID: "previous_version_1234",
+  OCADE_DEPLOY_EXPECT_ASSET_STATE: "locked",
 });
 
 function materialiseFixture(options: { generatedName?: string; generatedMain?: string } = {}) {
@@ -49,7 +50,12 @@ function materialiseFixture(options: { generatedName?: string; generatedMain?: s
       version_metadata: { binding: "CF_VERSION_METADATA" },
     }),
   );
-  writeFileSync(join(root, ".output", "server", "index.mjs"), "export default {};\n");
+  writeFileSync(
+    join(root, ".output", "server", "index.mjs"),
+    'const gate = "x-ocade-edge-gate"; export default {};\n',
+  );
+  mkdirSync(join(root, ".output", "public", "assets"), { recursive: true });
+  writeFileSync(join(root, ".output", "public", "assets", "index-fixture123.js"), "export {};\n");
 }
 
 function recordingRunner(
@@ -80,6 +86,17 @@ const healthy = (version = "0.1.0", deploymentId = "new_version_1234") =>
   new Response(JSON.stringify({ status: "ok", service: "ocade-web", version, deploymentId }), {
     status: 200,
     headers: { "content-type": "application/json" },
+  });
+
+const lockedAsset = () =>
+  new Response("locked", {
+    status: 503,
+    headers: {
+      "cache-control": "no-store",
+      "x-ocade-launch-state": "prelaunch",
+      "x-ocade-edge-gate": "asset-v1",
+      "x-robots-tag": "noindex, nofollow, noarchive",
+    },
   });
 
 beforeEach(() => {
@@ -139,6 +156,18 @@ describe("deployment preflight fails closed", () => {
     });
     expect(noRecovery.ready).toBe(false);
   });
+
+  it("requires an explicit locked or open staged asset expectation", () => {
+    for (const expectedAssetState of ["", "unknown"]) {
+      const plan = createDeploymentPlan({
+        cwd: root,
+        env: { ...deployEnv(), OCADE_DEPLOY_EXPECT_ASSET_STATE: expectedAssetState },
+        mode: "deploy",
+      });
+      expect(plan.ready).toBe(false);
+      expect(plan.blockers.join(" ")).toMatch(/asset.*locked or open/i);
+    }
+  });
 });
 
 describe("check mode is read-only", () => {
@@ -187,12 +216,13 @@ describe("deploy success requires an independent postcondition", () => {
       env: deployEnv(),
       mode: "deploy",
       runner: recordingRunner(calls),
-      fetcher: async (_url: string | URL | Request, init?: RequestInit) => {
+      fetcher: async (url: string | URL | Request, init?: RequestInit) => {
         observedSignal = init?.signal as AbortSignal;
         observedVersionOverrides.push(
           new Headers(init?.headers).get("Cloudflare-Workers-Version-Overrides"),
         );
-        return healthy();
+        const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname;
+        return pathname.startsWith("/assets/") ? lockedAsset() : healthy();
       },
     });
     expect(result.status).toBe("verified");
@@ -210,7 +240,11 @@ describe("deploy success requires an independent postcondition", () => {
     ]);
     expect(calls.every((call) => !("shell" in call.options))).toBe(true);
     expect(observedSignal).toBeInstanceOf(AbortSignal);
-    expect(observedVersionOverrides).toEqual(['ocade-web="new_version_1234"', null]);
+    expect(observedVersionOverrides).toEqual([
+      'ocade-web="new_version_1234"',
+      'ocade-web="new_version_1234"',
+      null,
+    ]);
   });
 
   it("never calls Wrangler deploy after a failed build", async () => {
@@ -224,6 +258,27 @@ describe("deploy success requires an independent postcondition", () => {
     expect(result.status).toBe("failed");
     expect(result.reason).toMatch(/build failed/i);
     expect(calls.some((call) => call.args.includes("deploy"))).toBe(false);
+  });
+
+  it("can verify the same staged entry asset as launch-open", async () => {
+    const calls: RunCall[] = [];
+    const result = await runDeployment({
+      cwd: root,
+      env: { ...deployEnv(), OCADE_DEPLOY_EXPECT_ASSET_STATE: "open" },
+      mode: "deploy",
+      runner: recordingRunner(calls),
+      fetcher: async (url: string | URL | Request) => {
+        const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname;
+        return pathname.startsWith("/assets/")
+          ? new Response("export {};", {
+              status: 200,
+              headers: { "content-type": "text/javascript; charset=utf-8" },
+            })
+          : healthy();
+      },
+    });
+    expect(result.status).toBe("verified");
+    expect(calls.filter((call) => call.args.includes("deploy"))).toHaveLength(2);
   });
 
   it("never reports success when Wrangler fails", async () => {
@@ -249,6 +304,31 @@ describe("deploy success requires an independent postcondition", () => {
     expect(result.status).toBe("failed");
     expect(result.reason).toMatch(/did not verify/);
     expect(result.recovery).toContain("previous_version_1234");
+  });
+
+  it("refuses promotion when a staged application asset bypasses the edge gate", async () => {
+    const calls: RunCall[] = [];
+    const result = await runDeployment({
+      cwd: root,
+      env: deployEnv(),
+      mode: "deploy",
+      runner: recordingRunner(calls),
+      fetcher: async (url: string | URL | Request) => {
+        const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname;
+        return pathname.startsWith("/assets/")
+          ? new Response("public bundle", {
+              status: 200,
+              headers: { "content-type": "text/javascript" },
+            })
+          : healthy();
+      },
+      waiter: async () => {},
+    });
+    expect(result.status).toBe("failed");
+    expect(result.reason).toMatch(/asset-gate.*bypassed/i);
+    expect(
+      calls.filter((call) => call.args.includes("versions") && call.args.includes("deploy")),
+    ).toHaveLength(1);
   });
 
   it("rejects mismatched generated output before Wrangler deploy", async () => {

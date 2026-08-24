@@ -2,6 +2,10 @@ import { defineNitroConfig } from "nitro/config";
 import { fileURLToPath } from "node:url";
 
 export default defineNitroConfig({
+  // Nitro's stock Cloudflare entry serves matching public files before the
+  // application handler. OCADE must gate uploaded bundles at the outermost
+  // edge boundary, so use the project entry that performs that decision first.
+  entry: "./src/cloudflare-entry.ts",
   // WebLLM is a browser-only runtime. The client build keeps its lazy WebGPU
   // chunks, while the Cloudflare server resolves accidental imports to a tiny
   // fail-closed shim. This avoids both a multi-megabyte server copy and an

@@ -11,6 +11,14 @@ on:
         description: Last verified Cloudflare version ID (used if recovery is needed)
         required: true
         type: string
+      expected_asset_state:
+        description: Expected staged asset gate state (locked before launch, open after launch)
+        required: true
+        default: locked
+        type: choice
+        options:
+          - locked
+          - open
 
 permissions:
   contents: read
@@ -32,6 +40,7 @@ jobs:
       OCADE_DEPLOY_HEALTH_URL: https://ocade.in/api/health
       OCADE_DEPLOY_APPROVAL: ${{ inputs.deploy_approval }}
       OCADE_ROLLBACK_VERSION_ID: ${{ inputs.rollback_version_id }}
+      OCADE_DEPLOY_EXPECT_ASSET_STATE: ${{ inputs.expected_asset_state }}
     steps:
       - name: Check out main
         uses: actions/checkout@v4

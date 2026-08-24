@@ -11,6 +11,8 @@ export interface DeploymentPlan {
   readonly rollbackVersionId: string | null;
   readonly expectedHealthVersion: string | null;
   expectedDeploymentId: string | null;
+  readonly expectedAssetState: "locked" | "open" | string | null;
+  assetProbePath: string | null;
 }
 
 export interface CommandResult {
