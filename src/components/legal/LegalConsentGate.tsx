@@ -74,8 +74,8 @@ export function LegalConsentGate({
   const [privacy, setPrivacy] = useState(false);
   const [storageWarning, setStorageWarning] = useState(false);
 
-  const { user } = useSession();
-  const userId = user?.id ?? "";
+  const [userId, setUserId] = useState("");
+  const usesAccountReceipt = !pathname.startsWith("/demo") && !pathname.startsWith("/auth");
 
   useEffect(() => {
     const local = readLegalConsent();
@@ -151,6 +151,7 @@ export function LegalConsentGate({
 
   return (
     <>
+      {usesAccountReceipt ? <ConsentAccountBridge onUserId={setUserId} /> : null}
       {children}
       <Dialog open={open} onOpenChange={() => undefined}>
         <DialogContent
@@ -246,6 +247,18 @@ export function LegalConsentGate({
       />
     </>
   );
+}
+
+/**
+ * Keep account lookup out of anonymous routes. `useSession` intentionally
+ * fails closed when Supabase is not configured, but the no-account demo must
+ * remain usable with only local consent storage.
+ */
+function ConsentAccountBridge({ onUserId }: { onUserId: (userId: string) => void }) {
+  const { user } = useSession();
+  const userId = user?.id ?? "";
+  useEffect(() => onUserId(userId), [onUserId, userId]);
+  return null;
 }
 
 function ConsentCheck({

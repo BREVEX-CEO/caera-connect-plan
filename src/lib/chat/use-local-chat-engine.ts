@@ -230,9 +230,20 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
 
   const send = useCallback(
     async ({ messages, onToken, tools, onToolCall }: SendOptions): Promise<SendResult> => {
+      // Install cancellation before adapter discovery/model preparation. STOP
+      // must work while the first-run engine is still being selected, not only
+      // after token generation has begun.
+      const controller = new AbortController();
+      abortRef.current?.abort();
+      abortRef.current = controller;
       apply({ status: "checking", reason: null, remedies: [] });
       const { outcome, decision } = await decide(contextVision);
       if (!liveRef.current) return { ok: false, cancelled: true };
+      if (controller.signal.aborted) {
+        abortRef.current = null;
+        apply({ status: "ready", progress: null });
+        return { ok: false, cancelled: true, reason: "Stopped by the user." };
+      }
 
       /*
        * The authority decides, not the adapter probe. Checking privacy on the
@@ -249,11 +260,10 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
           remedies:
             decision.remedies.length > 0 ? decision.remedies : outcome.ok ? [] : outcome.remedies,
         });
+        abortRef.current = null;
         return { ok: false, reason };
       }
 
-      const controller = new AbortController();
-      abortRef.current = controller;
       apply({
         status: "generating",
         label: outcome.availability.label,
@@ -354,7 +364,8 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
   const stop = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
-  }, []);
+    apply({ status: "ready", progress: null });
+  }, [apply]);
 
   /**
    * Load the weights before they are needed.

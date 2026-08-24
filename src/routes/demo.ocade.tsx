@@ -691,7 +691,19 @@ function DemoOcade() {
             value={draft}
             onChange={setDraft}
             onSubmit={() => void send()}
-            onStop={streaming ? engine.stop : undefined}
+            onStop={
+              streaming
+                ? () => {
+                    // STOP is a UI state transition as well as an engine
+                    // abort. Do not leave the composer showing an active Stop
+                    // button while first-run preparation unwinds.
+                    engine.stop();
+                    setStreaming(false);
+                    setStreamText("");
+                    streamRef.current = "";
+                  }
+                : undefined
+            }
             onNewChat={resetConversation}
             /*
               The demo has no account, so the three upload actions answer with a
