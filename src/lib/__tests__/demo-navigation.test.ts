@@ -15,4 +15,14 @@ describe("anonymous demo navigation", () => {
     expect(source).toContain("function AccountWorkspaceShell");
     expect(source).toContain("{isDemo ? null : <WelcomeTour />}");
   });
+
+  it("routes public support links to the signed-out help page", () => {
+    const footer = readFileSync("src/components/shell/SiteFooter.tsx", "utf8");
+    const faq = readFileSync("src/routes/faq.tsx", "utf8");
+    expect(footer).toContain('{ to: "/support", label: "Support" }');
+    expect(faq).toContain('to="/support"');
+    expect(readFileSync("src/routes/support.tsx", "utf8")).toContain(
+      'href="mailto:support@ocade.in"',
+    );
+  });
 });

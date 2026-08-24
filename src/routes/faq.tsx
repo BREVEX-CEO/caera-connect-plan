@@ -61,7 +61,7 @@ function FaqPage() {
           delivery before the support service confirms it.
         </p>
         <Link
-          to="/settings/support"
+          to="/support"
           className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
         >
           Contact support

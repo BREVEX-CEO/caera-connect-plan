@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-24T11:07:12.909Z",
+  "status": "PACKAGED_AND_VERIFIED_STORE_SUBMISSION_EXTERNAL",
+  "package": "release/packages/ocade-cowork-1.0.0.zip",
+  "bytes": 33061,
+  "sha256": "2eb65270454ebbfa7c4cd70d9d0448c2e652c79a99b09ec3575d108cbd24d60b",
+  "manifestVersion": 3,
+  "extensionVersion": "1.0.0",
+  "permissions": [
+    "tabs",
+    "scripting",
+    "storage",
+    "activeTab"
+  ],
+  "standingHostPermissions": [],
+  "optionalHostPermissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "files": [
+    "manifest.json",
+    "icons/ocade-16.png",
+    "icons/ocade-32.png",
+    "icons/ocade-48.png",
+    "icons/ocade-128.png",
+    "src/background.js",
+    "src/content.js",
+    "src/popup.html",
+    "src/popup.js",
+    "src/protocol.d.ts",
+    "src/protocol.js"
+  ],
+  "verification": [
+    "ZIP parsed after writing",
+    "entry allowlist matched exactly",
+    "every extracted entry matched source bytes",
+    "standing host permissions remained empty"
+  ],
+  "external": [
+    "Chrome Web Store developer account and review",
+    "Microsoft Edge Add-ons developer account and review",
+    "store-issued installation identity and production install proof"
+  ]
+}

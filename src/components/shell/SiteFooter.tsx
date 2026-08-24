@@ -39,7 +39,7 @@ const FOOTER_LINKS = [
   { to: "/faq", label: "FAQ" },
   { to: "/terms", label: "Terms" },
   { to: "/privacy", label: "Privacy" },
-  { to: "/settings/support", label: "Support" },
+  { to: "/support", label: "Support" },
 ] as const;
 
 export function SiteFooterLinks({
