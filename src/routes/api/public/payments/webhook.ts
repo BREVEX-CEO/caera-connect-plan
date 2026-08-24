@@ -25,6 +25,34 @@ import { verifyWebhook, isPaddleEnv, type PaddleEnv } from "@/lib/paddle.server"
 import { decide, targetEntityIdOf, type ExistingRecord } from "@/lib/payments/webhook-apply";
 import type { Database } from "@/integrations/supabase/types";
 
+type ApplyPaymentWebhookArgs = {
+  p_event_id: string;
+  p_event_type: string;
+  p_occurred_at: string;
+  p_environment: string;
+  p_entity_id: string | null;
+  p_action: string;
+  p_reason: string | null;
+  p_user_id: string | null;
+  p_paddle_subscription_id: string | null;
+  p_paddle_customer_id: string | null;
+  p_product_id: string | null;
+  p_price_id: string | null;
+  p_status: string | null;
+  p_current_period_start: string | null;
+  p_current_period_end: string | null;
+  p_cancel_at_period_end: boolean | null;
+  p_kind: string | null;
+  p_allow_terminal_reversal: boolean;
+};
+
+type PaymentWebhookRpcClient = {
+  rpc: (
+    functionName: "apply_payment_webhook_event",
+    args: ApplyPaymentWebhookArgs,
+  ) => PromiseLike<{ data: string | null; error: unknown | null }>;
+};
+
 let cached: ReturnType<typeof createClient<Database>> | null = null;
 function getSupabase() {
   if (!cached) {
@@ -80,7 +108,11 @@ async function handleWebhook(req: Request, env: PaddleEnv) {
   const row = instruction.action === "upsert" ? instruction.row : null;
   const patch = instruction.action === "update" ? instruction.patch : null;
   const adjustmentAction = typeof data["action"] === "string" ? data["action"] : "";
-  const { error } = await supabase.rpc("apply_payment_webhook_event", {
+  // PostgreSQL function arguments do not expose nullability metadata, so the
+  // generated Supabase type marks every argument non-null even though this RPC
+  // deliberately accepts null fields for ignore/update events.
+  const rpcClient = supabase as unknown as PaymentWebhookRpcClient;
+  const { error } = await rpcClient.rpc("apply_payment_webhook_event", {
     p_event_id: event.eventId,
     p_event_type: event.eventType,
     p_occurred_at: event.occurredAt,

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-24T11:38:35.7378229Z",
+  "classification": "EXECUTED",
+  "project": {
+    "ref": "sazhgaisyhkdbrooycdv",
+    "name": "OCADE",
+    "region": "ap-southeast-2",
+    "postgresVersion": "17.6",
+    "status": "ACTIVE_HEALTHY",
+    "positivelyIdentified": true
+  },
+  "migrationReconciliation": {
+    "repositoryBaselineMigrationsApplied": 49,
+    "hardeningMigrationsApplied": 4,
+    "liveTrackedMigrations": 53,
+    "latest": [
+      "live_supabase_security_hardening",
+      "rls_and_foreign_key_performance",
+      "consolidate_permissive_rls_policies",
+      "fix_automation_enqueue_ambiguity"
+    ],
+    "publicTables": 68,
+    "allPublicTablesRlsEnabled": true
+  },
+  "security": {
+    "anonymousSelectableTables": 0,
+    "anonymousInsertableTables": 0,
+    "publicExtensionFindings": 0,
+    "rlsEnabledWithoutPolicyFindings": 0,
+    "anonymousSecurityDefinerFindings": 0,
+    "authenticatedSecurityDefinerFindings": 14,
+    "authenticatedSecurityDefinerDisposition": "Intentional authenticated automation RPC surface; each function derives ownership from auth.uid(), and worker mutations additionally require a per-run claim token. Cross-user runtime probes passed.",
+    "publishableKeys": {
+      "activeLegacy": 1,
+      "activeModern": 1,
+      "valuesRecorded": false
+    }
+  },
+  "performance": {
+    "advisorFindingsBefore": 265,
+    "unindexedForeignKeysBefore": 74,
+    "unindexedForeignKeysAfter": 0,
+    "authRlsInitPlanBefore": 118,
+    "authRlsInitPlanAfter": 0,
+    "multiplePermissivePoliciesBefore": 24,
+    "multiplePermissivePoliciesAfter": 0,
+    "unusedIndexesAfter": 123,
+    "unusedIndexesDisposition": "Expected before production traffic on the newly migrated empty project; includes 74 required foreign-key covering indexes."
+  },
+  "runtimeIsolationProbe": {
+    "status": "passed",
+    "temporaryUsersRolledBack": true,
+    "temporaryRowsRemaining": 0,
+    "crossUserReadBlocked": true,
+    "crossUserUpdateBlocked": true,
+    "crossUserDeviceRpcBlocked": true,
+    "ownDeviceRpcSucceeded": true,
+    "crossUserAutomationRpcBlocked": true,
+    "ownAutomationRpcSucceeded": true,
+    "privateHelperPolicyExecuted": true,
+    "redFirstDefectFound": "ocade_enqueue_automation_run failed with ambiguous id",
+    "redFirstDefectFixed": true
+  },
+  "sourceParity": {
+    "typescriptTypesRegeneratedFromLiveProject": true,
+    "generatedTypesMatchCheckedInFile": true,
+    "targetedTests": {
+      "filesPassed": 4,
+      "testsPassed": 39
+    },
+    "typecheckPassed": true
+  },
+  "remainingExternalProof": [
+    "Real email signup, verification link delivery, login, logout, and account recovery",
+    "Real OAuth provider flow if OAuth is enabled for launch",
+    "Storage upload/download/deletion against a real signed-in account",
+    "Production-domain redirect URL and email-template verification"
+  ]
+}
