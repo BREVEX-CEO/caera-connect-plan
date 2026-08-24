@@ -380,7 +380,10 @@ async function probeHealth(
   useVersionOverride = false,
   waiter = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
 ) {
-  const attempts = useVersionOverride ? 6 : 1;
+  // Both the version override and the promoted production route can take a
+  // short time to converge at Cloudflare's edge. Keep the probe fail-closed,
+  // but do not declare a recovery incident from a single stale edge read.
+  const attempts = 6;
   let lastResult;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     lastResult = await probeHealthOnce(plan, fetcher, expectedDeploymentId, useVersionOverride);
@@ -611,7 +614,7 @@ export async function runDeployment({
     plan.expectedDeploymentId = plan.rollbackVersionId;
   }
 
-  const health = await probeHealth(plan, fetcher, plan.expectedDeploymentId);
+  const health = await probeHealth(plan, fetcher, plan.expectedDeploymentId, false, waiter);
   if (!health.ok) {
     return {
       status: "failed",

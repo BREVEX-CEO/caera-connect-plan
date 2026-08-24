@@ -273,6 +273,31 @@ describe("deploy success requires an independent postcondition", () => {
     ]);
   });
 
+  it("waits for the promoted production route to converge before declaring recovery", async () => {
+    let call = 0;
+    let waits = 0;
+    const result = await runDeployment({
+      cwd: root,
+      env: deployEnv(),
+      mode: "deploy",
+      runner: recordingRunner([]),
+      fetcher: async (url: string | URL | Request) => {
+        call += 1;
+        const pathname = new URL(url instanceof Request ? url.url : url.toString()).pathname;
+        if (pathname.startsWith("/assets/")) return lockedAsset();
+        // Staged override succeeds. The first ordinary production read is
+        // still the prior version, then the edge converges to the promotion.
+        if (call === 3) return healthy("0.1.0", "previous_version_1234");
+        return healthy();
+      },
+      waiter: async () => {
+        waits += 1;
+      },
+    });
+    expect(result.status).toBe("verified");
+    expect(waits).toBe(1);
+  });
+
   it("never calls Wrangler deploy after a failed build", async () => {
     const calls: RunCall[] = [];
     const result = await runDeployment({
