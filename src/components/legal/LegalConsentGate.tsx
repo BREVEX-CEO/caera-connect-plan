@@ -40,6 +40,14 @@ export function needsLegalConsent(pathname: string): boolean {
   );
 }
 
+export function usesAccountConsentReceipt(pathname: string): boolean {
+  return (
+    needsLegalConsent(pathname) &&
+    !pathname.startsWith("/demo") &&
+    !pathname.startsWith("/auth")
+  );
+}
+
 export function readLegalConsent(storage?: Pick<Storage, "getItem">): ConsentReceipt | null {
   if (typeof window === "undefined" && !storage) return null;
   try {
@@ -75,7 +83,7 @@ export function LegalConsentGate({
   const [storageWarning, setStorageWarning] = useState(false);
 
   const [userId, setUserId] = useState("");
-  const usesAccountReceipt = !pathname.startsWith("/demo") && !pathname.startsWith("/auth");
+  const usesAccountReceipt = usesAccountConsentReceipt(pathname);
 
   useEffect(() => {
     const local = readLegalConsent();

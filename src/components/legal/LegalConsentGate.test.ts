@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { LEGAL_CONSENT_VERSION, needsLegalConsent, readLegalConsent } from "./LegalConsentGate";
+import {
+  LEGAL_CONSENT_VERSION,
+  needsLegalConsent,
+  readLegalConsent,
+  usesAccountConsentReceipt,
+} from "./LegalConsentGate";
 
 describe("mandatory legal consent gate", () => {
   it("gates product, demo, authentication and settings routes but not public legal pages", () => {
@@ -10,6 +15,30 @@ describe("mandatory legal consent gate", () => {
     expect(needsLegalConsent("/privacy")).toBe(false);
     expect(needsLegalConsent("/terms")).toBe(false);
     expect(needsLegalConsent("/download")).toBe(false);
+  });
+
+  it("never initializes account state from an anonymous public route", () => {
+    for (const pathname of [
+      "/",
+      "/products/ocade",
+      "/pricing",
+      "/download",
+      "/company",
+      "/founder/haans-antoni",
+      "/terms",
+      "/privacy",
+      "/status",
+      "/faq",
+      "/search",
+      "/auth",
+      "/demo/ocade",
+      "/demo/control",
+    ]) {
+      expect(usesAccountConsentReceipt(pathname), pathname).toBe(false);
+    }
+
+    expect(usesAccountConsentReceipt("/ocade/work")).toBe(true);
+    expect(usesAccountConsentReceipt("/settings/privacy")).toBe(true);
   });
 
   it("accepts only the current version with both acknowledgements", () => {
