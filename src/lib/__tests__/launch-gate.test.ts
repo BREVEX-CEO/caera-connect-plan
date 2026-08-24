@@ -94,6 +94,10 @@ describe("OCADE production launch gate", () => {
       expect(response.headers.get("cache-control")).toBe("no-store");
       expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow, noarchive");
       expect(response.headers.get("content-security-policy")).toContain("default-src 'none'");
+      expect(response.headers.get("content-security-policy")).toContain(
+        "script-src https://static.cloudflareinsights.com/beacon.min.js",
+      );
+      expect(response.headers.get("content-security-policy")).toContain("connect-src 'self'");
       expect(response.headers.get("x-content-type-options")).toBe("nosniff");
       expect(response.headers.get("x-ocade-launch-state")).toBe("prelaunch");
       expect(response.headers.get("retry-after")).toBe(String(decision.retryAfterSeconds));
@@ -111,6 +115,9 @@ describe("OCADE production launch gate", () => {
       expect(response.headers.get("x-robots-tag")).toContain("index");
       expect(response.headers.get("x-ocade-launch-state")).toBe(
         "prelaunch-public-information",
+      );
+      expect(response.headers.get("content-security-policy")).toContain(
+        "https://static.cloudflareinsights.com/beacon.min.js",
       );
       const html = await response.text();
       expect(html).toContain('rel="canonical"');

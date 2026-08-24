@@ -35,13 +35,14 @@ export const PRELAUNCH_ALLOWED_PATHS = new Set([
 ]);
 
 const NOINDEX = "noindex, nofollow, noarchive";
+const CLOUDFLARE_WEB_ANALYTICS = "https://static.cloudflareinsights.com/beacon.min.js";
 
 function lockedHeaders(decision: LaunchGateDecision, contentType: string): HeadersInit {
   return {
     "content-type": contentType,
     "cache-control": "no-store",
     "content-security-policy":
-      "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+      `default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src ${CLOUDFLARE_WEB_ANALYTICS}; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
     "cross-origin-resource-policy": "same-origin",
     "referrer-policy": "no-referrer",
     "x-robots-tag": NOINDEX,
@@ -56,7 +57,7 @@ function publicHeaders(contentType: string): Record<string, string> {
     "content-type": contentType,
     "cache-control": "public, max-age=300",
     "content-security-policy":
-      "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+      `default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline' ${CLOUDFLARE_WEB_ANALYTICS}; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
     "cross-origin-resource-policy": "same-origin",
     "referrer-policy": "strict-origin-when-cross-origin",
     "x-robots-tag": "index, follow, max-image-preview:large",

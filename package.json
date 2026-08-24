@@ -70,6 +70,7 @@
     "deploy:check": "node scripts/deploy.mjs --check",
     "deploy:web": "node scripts/deploy.mjs --execute",
     "deploy:rollback": "node scripts/deploy.mjs --rollback",
+    "cloudflare:live-qa": "node scripts/e2e/cloudflare-live-qa.mjs",
     "engine:preload-evidence": "vite-node scripts/ocade-preload-evidence.mts -- --write",
     "browser-catalogue": "node scripts/resolve-browser-catalogue.mjs --write",
     "browser-catalogue:check": "node scripts/resolve-browser-catalogue.mjs",

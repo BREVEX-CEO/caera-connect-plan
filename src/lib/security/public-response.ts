@@ -11,7 +11,8 @@ const APP_CSP = [
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:",
+  "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: " +
+    "https://static.cloudflareinsights.com/beacon.min.js",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
