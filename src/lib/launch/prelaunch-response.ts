@@ -20,6 +20,9 @@ import { LAUNCH_PUBLIC_DATE_LABEL, type LaunchGateDecision } from "./launch-wind
 
 /** Paths the edge gate may answer while the product is locked. */
 export const PRELAUNCH_PUBLIC_PATHS = new Set([
+  "/",
+  "/privacy",
+  "/terms",
   "/company",
   "/founder/haans-antoni",
   "/products/ocade",
@@ -87,7 +90,165 @@ type PublicDocument = {
   structuredData: Record<string, unknown>;
 };
 
+function webPageStructuredData(name: string, description: string, url: string) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name,
+    description,
+    url,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "OCADE",
+      url: "https://ocade.in/",
+    },
+  };
+}
+
 function publicDocument(pathname: string): PublicDocument | null {
+  if (pathname === "/") {
+    return {
+      title: "OCADE — Local-first AI workspace by CARCC CADANE",
+      description:
+        "Official pre-launch home page for OCADE, a local-first AI workspace by CARCC CADANE.",
+      eyebrow: "Official OCADE home",
+      heading: "OCADE",
+      lead: `OCADE is a local-first AI workspace by CARCC CADANE. Chat generation is designed to run on the user's device, while optional sign-in, Private Sync and permissioned current-information services use disclosed network services. Public launch is planned for ${LAUNCH_PUBLIC_DATE_LABEL}.`,
+      sections: [
+        {
+          heading: "What OCADE is",
+          paragraphs: [
+            "OCADE is being built as a cross-platform AI workspace for chat, research, work and permissioned computer-control tasks. Its normal AI generation path is designed around local inference rather than public-cloud AI inference.",
+            "Feature availability differs by platform, hardware and release readiness. A pre-launch information page does not mean the authenticated product or every native application is already publicly available.",
+          ],
+        },
+        {
+          heading: "Privacy and account services",
+          paragraphs: [
+            "Device-only processing keeps supported data on the device. Optional account, Private Sync, authentication, current-information retrieval and other user-requested network features can use disclosed online services.",
+            "Read the Privacy notice for the intended data handling and the Terms of service for the intended service rules before OCADE launches.",
+          ],
+        },
+        {
+          heading: "Current status",
+          paragraphs: [
+            `OCADE remains pre-launch until ${LAUNCH_PUBLIC_DATE_LABEL}. The authenticated application, application JavaScript and private product APIs remain blocked by the production launch gate until the authorized opening.`,
+          ],
+        },
+      ],
+      structuredData: OCADE_STRUCTURED_DATA,
+    };
+  }
+  if (pathname === "/privacy") {
+    const description = "Pre-launch privacy notice describing the intended data handling for OCADE.";
+    return {
+      title: "Privacy notice — OCADE",
+      description,
+      eyebrow: "Last updated 15 August 2026",
+      heading: "Privacy notice",
+      lead:
+        "This notice explains the intended data handling for OCADE. It will take effect only after legal review, contact-channel activation and publication with the launched service.",
+      sections: [
+        {
+          heading: "Who is responsible",
+          paragraphs: [
+            "Before incorporation and formal assignment, Haans Antoni operates the CARCC CADANE brand and is the proposed data fiduciary for OCADE. The final notice must replace this statement with the verified legal entity name, registered address, grievance contact and privacy contact before launch.",
+          ],
+        },
+        {
+          heading: "Data OCADE may handle",
+          paragraphs: [
+            "OCADE may handle account identifiers and authentication events when you sign in; profile, settings, device registrations and subscription records; conversations, messages and files under the storage mode you choose; security and failure records designed to avoid raw user content; and payment status or provider references when payment features are enabled.",
+            "Full card details, UPI PINs and payment credentials are intended to remain with the applicable payment provider rather than OCADE.",
+          ],
+        },
+        {
+          heading: "Local-first does not mean local-only",
+          paragraphs: [
+            "Device-only or local processing keeps supported data on your device. Private Sync stores selected account data in the configured Supabase service. Current-information requests, mobile pairing and payments can send the minimum necessary data to the disclosed service after the applicable choice or request.",
+            "Chat generation is not sent to a public-cloud AI provider. OCADE must not silently move device-only content to remote storage.",
+          ],
+        },
+        {
+          heading: "Purposes, sharing and international processing",
+          paragraphs: [
+            "Data is intended to be used to provide the service you request, secure accounts and devices, enforce entitlements, maintain reliability, comply with law and respond to support or rights requests.",
+            "Depending on the feature, recipients may include Supabase, Cloudflare, cited search or source sites, authentication providers, app stores and payment providers. Final provider locations, retention terms and cross-border safeguards must be verified before those features are enabled.",
+          ],
+        },
+        {
+          heading: "Retention, deletion and your choices",
+          paragraphs: [
+            "Device-only data remains under your device controls. Cloud records should be retained only while necessary for the stated purpose, legal obligations, security and dispute handling. Exact retention periods and backup-deletion windows are not yet approved and must be added before launch.",
+            "Depending on applicable law, you may request access, correction, erasure, withdrawal of consent or grievance handling. OCADE must verify a requester without collecting more identity data than necessary.",
+          ],
+        },
+        {
+          heading: "Cookies, security and children",
+          paragraphs: [
+            "The audited source does not include advertising or third-party analytics trackers. Local storage needed for authentication, preferences, security and offline operation is treated as essential. Any future non-essential analytics or marketing technology must remain off until the legally required user choice is available.",
+            "Age eligibility and parental-consent handling are not yet finalized. OCADE uses access controls, row-level security and restricted storage patterns, but no service can promise absolute security. A working grievance and privacy contact must be published before launch.",
+          ],
+        },
+      ],
+      structuredData: webPageStructuredData("OCADE Privacy notice", description, "https://ocade.in/privacy"),
+    };
+  }
+  if (pathname === "/terms") {
+    const description = "Pre-launch terms describing the intended service rules for OCADE.";
+    return {
+      title: "Terms of service — OCADE",
+      description,
+      eyebrow: "Last updated 16 August 2026",
+      heading: "Terms of service",
+      lead:
+        "These draft terms describe the intended service rules. They are not effective until legal review, publication and acceptance through the launched service.",
+      sections: [
+        {
+          heading: "Provider and eligibility",
+          paragraphs: [
+            "The final terms must identify the incorporated provider or, if still lawful and intended, Haans Antoni operating the CARCC CADANE brand. Users must have legal capacity to contract. Age and parental-consent requirements must be finalized before launch.",
+          ],
+        },
+        {
+          heading: "OCADE service",
+          paragraphs: [
+            "OCADE combines local software with optional online account, Private Sync, current-information retrieval, payment and remote-device features. Chat generation stays on the user's device. Feature availability varies by platform, hardware, region and plan.",
+            "Pre-release source, demos and test evidence are not promises that a production feature is available.",
+          ],
+        },
+        {
+          heading: "Accounts, subscriptions and payments",
+          paragraphs: [
+            "You are responsible for protecting your account and devices and for keeping recovery information current. OCADE is free during launch and nothing can be purchased today. Plan prices shown elsewhere in the product are for reference only.",
+            "If paid plans are introduced, applicable taxes, currency conversion, renewal, cancellation and refund terms must be shown before payment and comply with mandatory consumer rights.",
+          ],
+        },
+        {
+          heading: "Your data and content",
+          paragraphs: [
+            "You retain rights in content you submit. You grant only the permissions needed to provide the selected features, secure the service and meet legal obligations. You remain responsible for having permission to use content, accounts and systems that OCADE accesses at your direction.",
+            "The OCADE Privacy notice describes the intended data handling for the service.",
+          ],
+        },
+        {
+          heading: "AI and computer-control safety",
+          paragraphs: [
+            "AI output may be inaccurate or incomplete and must be checked before reliance. Computer control can open apps, type, read screens and act on files or accounts. Users must supervise important actions, respect confirmation prompts and stop the agent when an action is wrong.",
+            "OCADE is not a substitute for professional medical, legal or financial advice.",
+          ],
+        },
+        {
+          heading: "Acceptable use and legal review",
+          paragraphs: [
+            "You may not use OCADE to break law, infringe rights, access systems without permission, distribute malware, evade security or payment controls, or harm people.",
+            "Consumer rights that cannot be waived remain intact. Final warranty, liability, governing-law and dispute wording requires legal review before these terms become effective.",
+          ],
+        },
+      ],
+      structuredData: webPageStructuredData("OCADE Terms of service", description, "https://ocade.in/terms"),
+    };
+  }
   if (pathname === "/company") {
     return {
       title: "CARCC CADANE — Company and founder information",
@@ -190,9 +351,9 @@ export function renderPrelaunchPublicPage(pathname: string): string | null {
 <meta property="og:image" content="https://ocade.in/brand/ocade-carcc-wordmark.png" /><meta name="twitter:card" content="summary_large_image" />
 <script type="application/ld+json">${structuredData}</script>
 <style>:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#050505;color:#eeeaf1;font:16px/1.7 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}a{color:inherit}header,main,footer{width:min(920px,calc(100% - 32px));margin:auto}header{padding:28px 0 18px}header img{display:block;width:min(540px,100%);height:auto}nav{display:flex;flex-wrap:wrap;gap:18px;padding:16px 0;border-top:1px solid #2a2630;border-bottom:1px solid #2a2630}main{padding:56px 0}.eyebrow{color:#d6a64f;font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase}h1{font-size:clamp(42px,8vw,76px);line-height:1.05;margin:12px 0 22px;letter-spacing:-.035em}.lead{max-width:760px;color:#c6beca;font-size:clamp(18px,3vw,23px)}section{margin-top:28px;padding:24px;border:1px solid #2a2630;border-radius:18px;background:#0b090d}h2{margin:0 0 10px;font-size:22px}p{margin:10px 0;color:#aaa2ae}footer{padding:26px 0 40px;border-top:1px solid #2a2630;color:#918896;font-size:13px}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}</style></head>
-<body><header><a href="/company" aria-label="CARCC CADANE company page"><img src="/brand/ocade-carcc-wordmark.png" alt="OCADE by CARCC CADANE — Command the Next Era." width="2172" height="724" /></a><nav aria-label="Public information"><a href="/company">Company</a><a href="/founder/haans-antoni">Founder</a><a href="/products/ocade">OCADE</a></nav></header>
+<body><header><a href="/" aria-label="OCADE home page"><img src="/brand/ocade-carcc-wordmark.png" alt="OCADE by CARCC CADANE — Command the Next Era." width="2172" height="724" /></a><nav aria-label="Public information"><a href="/">Home</a><a href="/products/ocade">OCADE</a><a href="/company">Company</a><a href="/founder/haans-antoni">Founder</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav></header>
 <main><p class="eyebrow">${escapeHtml(document.eyebrow)}</p><h1>${escapeHtml(document.heading)}</h1><p class="lead">${escapeHtml(document.lead)}</p>${sections}</main>
-<footer>© 2026 CARCC CADANE. Pre-launch factual information.</footer></body></html>`;
+<footer>© 2026 CARCC CADANE. Pre-launch factual information. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></footer></body></html>`;
 }
 
 function prelaunchPublicResponse(pathname: string): Response | null {
