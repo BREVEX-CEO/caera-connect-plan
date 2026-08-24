@@ -24,6 +24,24 @@ type VersionMetadataEnv = {
   };
 };
 
+type CloudflareRuntimeRequest = Request & {
+  runtime?: {
+    cloudflare?: {
+      env?: unknown;
+    };
+  };
+};
+
+/**
+ * Nitro attaches the native Cloudflare bindings to the augmented Request.
+ * TanStack's custom server entry is invoked inside Nitro, so its second
+ * argument is not guaranteed to be the platform env object.
+ */
+export function cloudflareRequestEnv(request: Request, env?: unknown): unknown {
+  const runtimeEnv = (request as CloudflareRuntimeRequest).runtime?.cloudflare?.env;
+  return runtimeEnv && typeof runtimeEnv === "object" ? runtimeEnv : env;
+}
+
 function deploymentMetadata(env: unknown): { deploymentId: string; deploymentTag?: string } {
   const metadata =
     env && typeof env === "object" ? (env as VersionMetadataEnv).CF_VERSION_METADATA : undefined;
@@ -37,7 +55,7 @@ function deploymentMetadata(env: unknown): { deploymentId: string; deploymentTag
 export function releaseHealthResponse(request: Request, env?: unknown): Response | null {
   const url = new URL(request.url);
   if (url.pathname !== HEALTH_PATH) return null;
-  const deployment = deploymentMetadata(env);
+  const deployment = deploymentMetadata(cloudflareRequestEnv(request, env));
 
   if (request.method !== "GET" && request.method !== "HEAD") {
     return new Response(

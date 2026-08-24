@@ -2,7 +2,7 @@ import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
-import { releaseHealthResponse } from "./lib/release-health";
+import { cloudflareRequestEnv, releaseHealthResponse } from "./lib/release-health";
 import { evaluateLaunchGate } from "./lib/launch/launch-window";
 import { PRELAUNCH_PUBLIC_ASSET_PATHS, prelaunchResponse } from "./lib/launch/prelaunch-response";
 import { withPublicSecurityHeaders } from "./lib/security/public-response";
@@ -51,9 +51,10 @@ function isH3SwallowedErrorBody(body: string): boolean {
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
+    const runtimeEnv = cloudflareRequestEnv(request, env);
     // Health stays available for deployment verification in every state. It
     // reports only service name, version and liveness — never the launch time.
-    const health = releaseHealthResponse(request, env);
+    const health = releaseHealthResponse(request, runtimeEnv);
     if (health) return withPublicSecurityHeaders(health);
 
     // The launch gate runs before the application is even imported, so no
@@ -64,7 +65,7 @@ export default {
     const gate = evaluateLaunchGate({
       now: Date.now(),
       hostname: url.hostname,
-      env: env as Record<string, unknown> | null,
+      env: runtimeEnv as Record<string, unknown> | null,
     });
     /*
      * ONE EXCEPTION: the payment webhook.

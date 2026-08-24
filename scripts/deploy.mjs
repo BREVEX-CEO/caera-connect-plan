@@ -215,7 +215,7 @@ function readWranglerVersionId(outputPath, recordType) {
   return deployed?.version_id ?? null;
 }
 
-async function probeHealth(plan, fetcher, expectedDeploymentId, useVersionOverride = false) {
+async function probeHealthOnce(plan, fetcher, expectedDeploymentId, useVersionOverride) {
   try {
     const headers = { accept: "application/json", "cache-control": "no-cache" };
     if (useVersionOverride) {
@@ -255,6 +255,25 @@ async function probeHealth(plan, fetcher, expectedDeploymentId, useVersionOverri
   }
 }
 
+async function probeHealth(
+  plan,
+  fetcher,
+  expectedDeploymentId,
+  useVersionOverride = false,
+  waiter = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
+) {
+  const attempts = useVersionOverride ? 6 : 1;
+  let lastResult;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    lastResult = await probeHealthOnce(plan, fetcher, expectedDeploymentId, useVersionOverride);
+    if (lastResult.ok) return lastResult;
+    if (attempt + 1 < attempts) {
+      await waiter(Math.min(2_000 * 2 ** attempt, 5_000));
+    }
+  }
+  return lastResult;
+}
+
 function commandFailed(result) {
   return result?.error || result?.status !== 0;
 }
@@ -266,6 +285,7 @@ export async function runDeployment({
   versionId = null,
   runner = realRunner,
   fetcher = fetch,
+  waiter,
 } = {}) {
   const plan = createDeploymentPlan({ cwd, env, mode, versionId });
   if (!plan.ready) return { status: "blocked", plan, reason: plan.blockers.join("; ") };
@@ -403,7 +423,7 @@ export async function runDeployment({
       };
     }
 
-    const stagedHealth = await probeHealth(plan, fetcher, uploadedVersionId, true);
+    const stagedHealth = await probeHealth(plan, fetcher, uploadedVersionId, true, waiter);
     if (!stagedHealth.ok) {
       return {
         status: "failed",

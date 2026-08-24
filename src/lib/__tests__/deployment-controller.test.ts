@@ -244,6 +244,7 @@ describe("deploy success requires an independent postcondition", () => {
       mode: "deploy",
       runner: recordingRunner([]),
       fetcher: async () => healthy("9.9.9"),
+      waiter: async () => {},
     });
     expect(result.status).toBe("failed");
     expect(result.reason).toMatch(/did not verify/);
