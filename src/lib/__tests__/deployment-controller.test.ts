@@ -23,13 +23,18 @@ const deployEnv = (): NodeJS.ProcessEnv => ({
 
 function materialiseFixture(options: { generatedName?: string; generatedMain?: string } = {}) {
   writeFileSync(join(root, "package.json"), JSON.stringify({ name: "ocade", version: "0.1.0" }));
+  mkdirSync(join(root, "node_modules", "wrangler", "bin"), { recursive: true });
+  writeFileSync(join(root, "node_modules", "wrangler", "bin", "wrangler.js"), "");
   writeFileSync(
     join(root, "wrangler.json"),
     JSON.stringify({
       name: "ocade-web",
       keep_vars: true,
+      workers_dev: false,
+      preview_urls: false,
       observability: { enabled: true },
       assets: { run_worker_first: true },
+      version_metadata: { binding: "CF_VERSION_METADATA" },
     }),
   );
   mkdirSync(join(root, ".output", "server"), { recursive: true });
@@ -39,6 +44,9 @@ function materialiseFixture(options: { generatedName?: string; generatedMain?: s
       name: options.generatedName ?? "ocade-web",
       main: options.generatedMain ?? "index.mjs",
       assets: { binding: "ASSETS", run_worker_first: true },
+      workers_dev: false,
+      preview_urls: false,
+      version_metadata: { binding: "CF_VERSION_METADATA" },
     }),
   );
   writeFileSync(join(root, ".output", "server", "index.mjs"), "export default {};\n");
@@ -50,14 +58,26 @@ function recordingRunner(
 ) {
   return (command: string, args: string[], options: RunCall["options"]) => {
     calls.push({ command, args, options });
-    return failAt?.(command, args)
+    const failed = failAt?.(command, args) ?? false;
+    const outputPath = options.env?.WRANGLER_OUTPUT_FILE_PATH;
+    if (!failed && args.includes("upload") && typeof outputPath === "string") {
+      writeFileSync(
+        outputPath,
+        JSON.stringify({
+          type: "version-upload",
+          worker_name: "ocade-web",
+          version_id: "new_version_1234",
+        }) + "\n",
+      );
+    }
+    return failed
       ? { status: 1, stdout: "", stderr: "synthetic failure" }
       : { status: 0, stdout: "ok", stderr: "" };
   };
 }
 
-const healthy = (version = "0.1.0") =>
-  new Response(JSON.stringify({ status: "ok", service: "ocade-web", version }), {
+const healthy = (version = "0.1.0", deploymentId = "new_version_1234") =>
+  new Response(JSON.stringify({ status: "ok", service: "ocade-web", version, deploymentId }), {
     status: 200,
     headers: { "content-type": "application/json" },
   });
@@ -136,8 +156,11 @@ describe("check mode is read-only", () => {
       },
     });
     expect(result.status).toBe("ready");
-    expect(calls).toHaveLength(1);
-    expect(calls[0]).toMatchObject({ command: "wrangler", args: ["--version"] });
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toMatchObject({
+      command: process.execPath,
+      args: [join(root, "node_modules", "wrangler", "bin", "wrangler.js"), "--version"],
+    });
     expect(fetched).toBe(false);
   });
 
@@ -146,7 +169,7 @@ describe("check mode is read-only", () => {
       cwd: root,
       env: deployEnv(),
       mode: "check",
-      runner: recordingRunner([], (command) => command === "wrangler"),
+      runner: recordingRunner([], (_command, args) => args.includes("--version")),
     });
     expect(result.status).toBe("blocked");
     expect(result.reason).toMatch(/Wrangler is unavailable/);
@@ -158,6 +181,7 @@ describe("deploy success requires an independent postcondition", () => {
   it("builds, deploys without a shell, then verifies the exact health version", async () => {
     const calls: RunCall[] = [];
     let observedSignal: AbortSignal | undefined;
+    const observedVersionOverrides: Array<string | null> = [];
     const result = await runDeployment({
       cwd: root,
       env: deployEnv(),
@@ -165,14 +189,20 @@ describe("deploy success requires an independent postcondition", () => {
       runner: recordingRunner(calls),
       fetcher: async (_url: string | URL | Request, init?: RequestInit) => {
         observedSignal = init?.signal as AbortSignal;
+        observedVersionOverrides.push(
+          new Headers(init?.headers).get("Cloudflare-Workers-Version-Overrides"),
+        );
         return healthy();
       },
     });
     expect(result.status).toBe("verified");
     expect(result.evidence).toMatch(/Deployment completed.*health verified/i);
-    expect(calls.map((call) => call.args[0])).toEqual(["--version", "run", "deploy"]);
-    expect(calls[2].args).toEqual([
-      "deploy",
+    expect(calls).toHaveLength(6);
+    expect(calls[3].args).toEqual([
+      join(root, "node_modules", "wrangler", "bin", "wrangler.js"),
+      "versions",
+      "upload",
+      "--strict",
       "--config",
       ".output/server/wrangler.json",
       "--message",
@@ -180,6 +210,7 @@ describe("deploy success requires an independent postcondition", () => {
     ]);
     expect(calls.every((call) => !("shell" in call.options))).toBe(true);
     expect(observedSignal).toBeInstanceOf(AbortSignal);
+    expect(observedVersionOverrides).toEqual(['ocade-web="new_version_1234"', null]);
   });
 
   it("never calls Wrangler deploy after a failed build", async () => {
@@ -188,11 +219,11 @@ describe("deploy success requires an independent postcondition", () => {
       cwd: root,
       env: deployEnv(),
       mode: "deploy",
-      runner: recordingRunner(calls, (_command, args) => args[0] === "run"),
+      runner: recordingRunner(calls, (_command, args) => args.includes("run")),
     });
     expect(result.status).toBe("failed");
     expect(result.reason).toMatch(/build failed/i);
-    expect(calls.some((call) => call.args[0] === "deploy")).toBe(false);
+    expect(calls.some((call) => call.args.includes("deploy"))).toBe(false);
   });
 
   it("never reports success when Wrangler fails", async () => {
@@ -200,10 +231,10 @@ describe("deploy success requires an independent postcondition", () => {
       cwd: root,
       env: deployEnv(),
       mode: "deploy",
-      runner: recordingRunner([], (_command, args) => args[0] === "deploy"),
+      runner: recordingRunner([], (_command, args) => args.includes("upload")),
     });
     expect(result.status).toBe("failed");
-    expect(result.reason).toMatch(/Wrangler deploy failed/);
+    expect(result.reason).toMatch(/version upload failed/);
   });
 
   it("keeps the incident open and names the prior version when health fails", async () => {
@@ -231,7 +262,7 @@ describe("deploy success requires an independent postcondition", () => {
     });
     expect(result.status).toBe("failed");
     expect(result.reason).toMatch(/worker name differs/i);
-    expect(calls.some((call) => call.args[0] === "deploy")).toBe(false);
+    expect(calls.some((call) => call.args.includes("deploy"))).toBe(false);
   });
 });
 
@@ -249,10 +280,11 @@ describe("rollback is separately approved and independently verified", () => {
       mode: "rollback",
       versionId: "previous_version_1234",
       runner: recordingRunner(calls),
-      fetcher: async () => healthy("0.0.9"),
+      fetcher: async () => healthy("0.0.9", "previous_version_1234"),
     });
     expect(result.status).toBe("verified");
-    expect(calls[1].args).toEqual([
+    expect(calls[2].args).toEqual([
+      join(root, "node_modules", "wrangler", "bin", "wrangler.js"),
       "rollback",
       "previous_version_1234",
       "--config",

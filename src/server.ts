@@ -4,10 +4,7 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { releaseHealthResponse } from "./lib/release-health";
 import { evaluateLaunchGate } from "./lib/launch/launch-window";
-import {
-  PRELAUNCH_PUBLIC_ASSET_PATHS,
-  prelaunchResponse,
-} from "./lib/launch/prelaunch-response";
+import { PRELAUNCH_PUBLIC_ASSET_PATHS, prelaunchResponse } from "./lib/launch/prelaunch-response";
 import { withPublicSecurityHeaders } from "./lib/security/public-response";
 import offlineShellHtml from "../public/offline.html?raw";
 
@@ -56,7 +53,7 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     // Health stays available for deployment verification in every state. It
     // reports only service name, version and liveness — never the launch time.
-    const health = releaseHealthResponse(request);
+    const health = releaseHealthResponse(request, env);
     if (health) return withPublicSecurityHeaders(health);
 
     // The launch gate runs before the application is even imported, so no

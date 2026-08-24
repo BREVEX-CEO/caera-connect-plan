@@ -1,8 +1,11 @@
 {
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "ocade-web",
-  "compatibility_date": "2026-07-25",
+  "compatibility_date": "2026-08-24",
   "compatibility_flags": ["nodejs_compat"],
   "keep_vars": true,
+  "workers_dev": false,
+  "preview_urls": false,
   "routes": [
     { "pattern": "ocade.in/*", "zone_name": "ocade.in" },
     { "pattern": "www.ocade.in/*", "zone_name": "ocade.in" }
@@ -14,5 +17,8 @@
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
+  },
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA"
   }
 }

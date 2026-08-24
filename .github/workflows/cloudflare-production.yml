@@ -47,9 +47,6 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Install Cloudflare Wrangler
-        run: npm install --global wrangler@4
-
       - name: Verify source and operations gates
         run: |
           npm run typecheck

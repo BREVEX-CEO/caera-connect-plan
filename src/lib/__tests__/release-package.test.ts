@@ -84,7 +84,9 @@ describe("OCADE release source package", () => {
   });
 
   it("provides a dependency-free liveness endpoint with safe method and cache boundaries", async () => {
-    const get = releaseHealthResponse(new Request("https://ocade.invalid/api/health"));
+    const get = releaseHealthResponse(new Request("https://ocade.invalid/api/health"), {
+      CF_VERSION_METADATA: { id: "cf-version-123", tag: "release-test" },
+    });
     expect(get?.status).toBe(200);
     expect(get?.headers.get("cache-control")).toBe("no-store");
     expect(get?.headers.get("x-content-type-options")).toBe("nosniff");
@@ -92,6 +94,8 @@ describe("OCADE release source package", () => {
       status: "ok",
       service: "ocade-web",
       version: OCADE_RELEASE_VERSION,
+      deploymentId: "cf-version-123",
+      deploymentTag: "release-test",
       scope: "liveness",
     });
 
@@ -110,10 +114,10 @@ describe("OCADE release source package", () => {
 
   it("routes liveness before loading the application SSR entry", () => {
     const server = read("src/server.ts");
-    expect(server).toContain("releaseHealthResponse(request)");
+    expect(server).toContain("releaseHealthResponse(request, env)");
     expect(server).toContain("evaluateLaunchGate({");
     expect(server).toContain("prelaunchResponse(url.pathname, gate)");
-    expect(server.indexOf("releaseHealthResponse(request)")).toBeLessThan(
+    expect(server.indexOf("releaseHealthResponse(request, env)")).toBeLessThan(
       server.indexOf("evaluateLaunchGate({"),
     );
     expect(server.indexOf("evaluateLaunchGate({")).toBeLessThan(

@@ -21,7 +21,11 @@ GitHub Actions must also be able to start. A billing or spending-limit block pre
 2. In Cloudflare, copy the last verified Worker version ID. This is the recovery target if the new release fails.
 3. In GitHub Actions, run **Cloudflare production deployment**.
 4. Enter `I_APPROVE_OCADE_PRODUCTION_DEPLOY` and the copied recovery version ID.
-5. The workflow rebuilds, reruns the main release gates, deploys, and independently checks `https://ocade.in/api/health`.
+5. The workflow rebuilds and reruns the main release gates.
+6. The controller uploads an immutable Worker version without changing traffic, attaches it at zero percent, and smoke-tests that exact version through Cloudflare's version-override header.
+7. Only after the staged response reports the expected package and Cloudflare version IDs does the controller promote it to 100 percent and independently verify `https://ocade.in/api/health` again.
+
+The health endpoint includes the immutable Cloudflare Worker version ID. A stale deployment with the same package version therefore cannot satisfy the post-deployment check.
 
 This process updates the web Worker. Android, iOS, Windows and macOS packages still require their own build and signing pipelines; they are not rebuilt by a web deployment.
 

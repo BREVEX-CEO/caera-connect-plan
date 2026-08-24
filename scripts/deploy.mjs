@@ -3,13 +3,16 @@
  *
  * This script used to report a simulated deployment as successful while the
  * Wrangler command was commented out. It now fails closed. A production
- * success exists only after Wrangler exits zero and an independent HTTPS
- * /api/health probe reports the exact package version.
+ * success exists only after the locked Wrangler uploads an immutable version,
+ * stages it at zero traffic, an override request verifies that exact version,
+ * the version is promoted, and an independent HTTPS /api/health probe reports
+ * the same package and Cloudflare version IDs.
  *
  * No shell is used. Secrets are presence-checked but never read into output.
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -90,6 +93,17 @@ export function createDeploymentPlan({
           "Cloudflare assets must run the Worker first so the launch gate cannot be bypassed",
         );
       }
+      if (source.workers_dev !== false) {
+        blockers.push("workers_dev must be false so production cannot bypass the custom domain");
+      }
+      if (source.preview_urls !== false) {
+        blockers.push(
+          "preview_urls must be false unless a protected preview is explicitly approved",
+        );
+      }
+      if (source.version_metadata?.binding !== "CF_VERSION_METADATA") {
+        blockers.push("Cloudflare version metadata binding is missing");
+      }
       if (source.vars !== undefined)
         blockers.push("source config must not contain deploy-time values");
     } catch {
@@ -101,8 +115,15 @@ export function createDeploymentPlan({
   if (healthUrl === null) {
     blockers.push("OCADE_DEPLOY_HEALTH_URL must be an HTTPS /api/health URL");
   }
-  if (!hasValue(env.CLOUDFLARE_API_TOKEN)) blockers.push("CLOUDFLARE_API_TOKEN is missing");
-  if (!hasValue(env.CLOUDFLARE_ACCOUNT_ID)) blockers.push("CLOUDFLARE_ACCOUNT_ID is missing");
+  const useWranglerOAuth = env.OCADE_DEPLOY_USE_WRANGLER_OAUTH === "true";
+  if (!hasValue(env.CLOUDFLARE_API_TOKEN) && !useWranglerOAuth) {
+    blockers.push(
+      "CLOUDFLARE_API_TOKEN is missing and persisted Wrangler OAuth was not explicitly selected",
+    );
+  }
+  if (!hasValue(env.CLOUDFLARE_ACCOUNT_ID) && !useWranglerOAuth) {
+    blockers.push("CLOUDFLARE_ACCOUNT_ID is missing");
+  }
 
   if (mode === "deploy") {
     if (env.OCADE_DEPLOY_APPROVAL !== DEPLOY_APPROVAL) {
@@ -161,16 +182,48 @@ function validateBuiltOutput(plan, cwd) {
     if (generated.assets?.run_worker_first !== true) {
       failures.push("generated assets do not enforce Worker-first launch gating");
     }
+    if (generated.workers_dev !== false) {
+      failures.push("generated config enables the workers.dev surface");
+    }
+    if (generated.preview_urls !== false) {
+      failures.push("generated config enables public preview URLs");
+    }
+    if (generated.version_metadata?.binding !== "CF_VERSION_METADATA") {
+      failures.push("generated Cloudflare version metadata binding is missing");
+    }
   } catch {
     failures.push("generated Wrangler configuration is unreadable");
   }
   return failures;
 }
 
-async function probeHealth(plan, fetcher) {
+function readWranglerVersionId(outputPath, recordType) {
+  if (!existsSync(outputPath)) return null;
+  const records = readFileSync(outputPath, "utf8")
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .flatMap((line) => {
+      try {
+        return [JSON.parse(line)];
+      } catch {
+        return [];
+      }
+    });
+  const deployed = records.findLast(
+    (record) => record?.type === recordType && typeof record?.version_id === "string",
+  );
+  return deployed?.version_id ?? null;
+}
+
+async function probeHealth(plan, fetcher, expectedDeploymentId, useVersionOverride = false) {
   try {
+    const headers = { accept: "application/json", "cache-control": "no-cache" };
+    if (useVersionOverride) {
+      headers["Cloudflare-Workers-Version-Overrides"] =
+        `${plan.workerName}="${expectedDeploymentId}"`;
+    }
     const response = await fetcher(plan.healthUrl, {
-      headers: { accept: "application/json", "cache-control": "no-cache" },
+      headers,
       signal: AbortSignal.timeout(15_000),
     });
     if (!response.ok) return { ok: false, reason: `health probe returned HTTP ${response.status}` };
@@ -178,14 +231,22 @@ async function probeHealth(plan, fetcher) {
     if (
       body?.status !== "ok" ||
       body?.service !== "ocade-web" ||
-      body?.version !== plan.expectedHealthVersion
+      body?.version !== plan.expectedHealthVersion ||
+      body?.deploymentId !== expectedDeploymentId
     ) {
       return {
         ok: false,
-        reason: `health payload did not verify service/version ${plan.expectedHealthVersion}`,
+        reason:
+          `health payload did not verify service/version ${plan.expectedHealthVersion} ` +
+          `at Cloudflare version ${expectedDeploymentId}`,
       };
     }
-    return { ok: true, evidence: `HTTPS health verified ocade-web ${body.version}` };
+    return {
+      ok: true,
+      evidence:
+        `HTTPS health verified ocade-web ${body.version} ` +
+        `at Cloudflare version ${body.deploymentId}`,
+    };
   } catch (error) {
     return {
       ok: false,
@@ -209,12 +270,35 @@ export async function runDeployment({
   const plan = createDeploymentPlan({ cwd, env, mode, versionId });
   if (!plan.ready) return { status: "blocked", plan, reason: plan.blockers.join("; ") };
 
-  const wranglerVersion = runner("wrangler", ["--version"], { cwd, env });
+  const nodeCommand = process.execPath;
+  const wranglerCli = path.join(cwd, "node_modules", "wrangler", "bin", "wrangler.js");
+  if (!existsSync(wranglerCli)) {
+    return {
+      status: "blocked",
+      plan,
+      reason: "The lockfile-installed Wrangler entrypoint is missing; run npm ci first.",
+    };
+  }
+  const wranglerVersion = runner(nodeCommand, [wranglerCli, "--version"], {
+    cwd,
+    env,
+  });
   if (commandFailed(wranglerVersion)) {
     return {
       status: "blocked",
       plan,
       reason: "Wrangler is unavailable in this release environment.",
+    };
+  }
+  const wranglerIdentity = runner(nodeCommand, [wranglerCli, "whoami"], {
+    cwd,
+    env,
+  });
+  if (commandFailed(wranglerIdentity)) {
+    return {
+      status: "blocked",
+      plan,
+      reason: "Wrangler is not authenticated to a Cloudflare account.",
     };
   }
   if (mode === "check") {
@@ -226,8 +310,20 @@ export async function runDeployment({
   }
 
   if (mode === "deploy") {
-    const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-    const built = runner(npmCommand, ["run", "build"], { cwd, env, inherit: true });
+    const npmCli = env.npm_execpath ?? process.env.npm_execpath;
+    if (!hasValue(npmCli) || !existsSync(npmCli)) {
+      return {
+        status: "blocked",
+        plan,
+        reason:
+          "The npm CLI entrypoint is unavailable; invoke deployment through npm run deploy:web.",
+      };
+    }
+    const built = runner(nodeCommand, [npmCli, "run", "build"], {
+      cwd,
+      env,
+      inherit: true,
+    });
     if (commandFailed(built)) {
       return {
         status: "failed",
@@ -240,18 +336,112 @@ export async function runDeployment({
       return { status: "failed", plan, reason: outputFailures.join("; ") };
     }
 
-    const deployed = runner(
-      "wrangler",
-      ["deploy", "--config", plan.generatedConfigPath, "--message", `OCADE ${plan.version}`],
+    const outputDirectory = mkdtempSync(path.join(tmpdir(), "ocade-wrangler-"));
+    const outputPath = path.join(outputDirectory, "upload.ndjson");
+    let uploaded;
+    let uploadedVersionId;
+    try {
+      uploaded = runner(
+        nodeCommand,
+        [
+          wranglerCli,
+          "versions",
+          "upload",
+          "--strict",
+          "--config",
+          plan.generatedConfigPath,
+          "--message",
+          `OCADE ${plan.version}`,
+        ],
+        {
+          cwd,
+          env: { ...env, WRANGLER_OUTPUT_FILE_PATH: outputPath },
+          inherit: true,
+        },
+      );
+      uploadedVersionId = readWranglerVersionId(outputPath, "version-upload");
+    } finally {
+      rmSync(outputDirectory, { recursive: true, force: true });
+    }
+    if (commandFailed(uploaded)) {
+      return {
+        status: "failed",
+        plan,
+        reason: "Wrangler version upload failed; production traffic was not changed.",
+      };
+    }
+    if (!uploadedVersionId) {
+      return {
+        status: "failed",
+        plan,
+        reason: "Wrangler did not emit the immutable uploaded version id; traffic was not changed.",
+      };
+    }
+    plan.expectedDeploymentId = uploadedVersionId;
+
+    const staged = runner(
+      nodeCommand,
+      [
+        wranglerCli,
+        "versions",
+        "deploy",
+        `${plan.rollbackVersionId}@100%`,
+        `${uploadedVersionId}@0%`,
+        "--name",
+        plan.workerName,
+        "--message",
+        `OCADE ${plan.version} staged at zero traffic`,
+        "--yes",
+      ],
       { cwd, env, inherit: true },
     );
-    if (commandFailed(deployed)) {
-      return { status: "failed", plan, reason: "Wrangler deploy failed; no success is recorded." };
+    if (commandFailed(staged)) {
+      return {
+        status: "failed",
+        plan,
+        reason: "Wrangler could not stage the uploaded version at zero traffic.",
+      };
+    }
+
+    const stagedHealth = await probeHealth(plan, fetcher, uploadedVersionId, true);
+    if (!stagedHealth.ok) {
+      return {
+        status: "failed",
+        plan,
+        reason: `Zero-traffic staged version failed smoke verification: ${stagedHealth.reason}`,
+        recovery:
+          `Production remains on Cloudflare version ${plan.rollbackVersionId} at 100 percent. ` +
+          "Remove the zero-percent staged version after investigating.",
+      };
+    }
+
+    const promoted = runner(
+      nodeCommand,
+      [
+        wranglerCli,
+        "versions",
+        "deploy",
+        `${uploadedVersionId}@100%`,
+        "--name",
+        plan.workerName,
+        "--message",
+        `OCADE ${plan.version} verified promotion`,
+        "--yes",
+      ],
+      { cwd, env, inherit: true },
+    );
+    if (commandFailed(promoted)) {
+      return {
+        status: "failed",
+        plan,
+        reason: "Wrangler promotion failed; the previous version remains the traffic target.",
+      };
     }
   } else {
     const rolledBack = runner(
-      "wrangler",
+      nodeCommand,
       [
+        wranglerCli,
         "rollback",
         plan.rollbackVersionId,
         "--config",
@@ -268,9 +458,10 @@ export async function runDeployment({
         reason: "Wrangler rollback failed; recovery is unverified.",
       };
     }
+    plan.expectedDeploymentId = plan.rollbackVersionId;
   }
 
-  const health = await probeHealth(plan, fetcher);
+  const health = await probeHealth(plan, fetcher, plan.expectedDeploymentId);
   if (!health.ok) {
     return {
       status: "failed",

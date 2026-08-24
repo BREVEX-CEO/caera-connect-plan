@@ -2,6 +2,7 @@
 export const OCADE_RELEASE_VERSION = "0.1.0";
 
 const HEALTH_PATH = "/api/health";
+const LOCAL_DEPLOYMENT_ID = "local";
 const HEALTH_HEADERS = {
   "cache-control": "no-store",
   "content-type": "application/json; charset=utf-8",
@@ -16,9 +17,27 @@ const HEALTH_HEADERS = {
  * an upstream outage. Deep dependency checks belong in authenticated release
  * validation, not in a public endpoint.
  */
-export function releaseHealthResponse(request: Request): Response | null {
+type VersionMetadataEnv = {
+  CF_VERSION_METADATA?: {
+    id?: unknown;
+    tag?: unknown;
+  };
+};
+
+function deploymentMetadata(env: unknown): { deploymentId: string; deploymentTag?: string } {
+  const metadata =
+    env && typeof env === "object" ? (env as VersionMetadataEnv).CF_VERSION_METADATA : undefined;
+  const deploymentId =
+    typeof metadata?.id === "string" && metadata.id.length > 0 ? metadata.id : LOCAL_DEPLOYMENT_ID;
+  const deploymentTag =
+    typeof metadata?.tag === "string" && metadata.tag.length > 0 ? metadata.tag : undefined;
+  return deploymentTag ? { deploymentId, deploymentTag } : { deploymentId };
+}
+
+export function releaseHealthResponse(request: Request, env?: unknown): Response | null {
   const url = new URL(request.url);
   if (url.pathname !== HEALTH_PATH) return null;
+  const deployment = deploymentMetadata(env);
 
   if (request.method !== "GET" && request.method !== "HEAD") {
     return new Response(
@@ -26,6 +45,7 @@ export function releaseHealthResponse(request: Request): Response | null {
         status: "method_not_allowed",
         service: "ocade-web",
         version: OCADE_RELEASE_VERSION,
+        ...deployment,
       }),
       {
         status: 405,
@@ -38,6 +58,7 @@ export function releaseHealthResponse(request: Request): Response | null {
     status: "ok",
     service: "ocade-web",
     version: OCADE_RELEASE_VERSION,
+    ...deployment,
     scope: "liveness",
   });
   return new Response(request.method === "HEAD" ? null : body, {

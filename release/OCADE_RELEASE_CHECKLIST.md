@@ -22,9 +22,12 @@ device. The web application remains closed behind the production launch gate.
 
 - Web: run `npm run operations:check` and `npm run deploy:check`, configure
   values in platform secret storage, record the prior verified version, then
-  run the separately approved `npm run deploy:web`. Probe `/api/health`,
+  run the separately approved `npm run deploy:web`. The controller must stage
+  the new immutable version at zero traffic, verify its version-bound health
+  response through a Cloudflare version override, promote it, and verify the
+  same version without an override. Then probe
   authentication, OCADE Chat, Projects, Usage, and error pages. A zero
-  deployment exit without the independent versioned health response is not
+  deployment exit without both immutable-version health observations is not
   success.
 - Launch gate: the production Worker must deploy with `OCADE_LAUNCH_READY`
   absent or `false`. Confirm the public origin returns the 503 pre-launch page,

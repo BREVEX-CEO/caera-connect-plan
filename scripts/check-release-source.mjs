@@ -157,6 +157,12 @@ check(health.includes(`OCADE_RELEASE_VERSION = "${version}"`), "health version d
 
 check(wrangler.name === "ocade-web", "Cloudflare worker name is not stable");
 check(wrangler.keep_vars === true, "Cloudflare deploy could erase dashboard-managed values");
+check(wrangler.workers_dev === false, "Cloudflare workers.dev surface is enabled");
+check(wrangler.preview_urls === false, "Cloudflare public preview URLs are enabled");
+check(
+  wrangler.version_metadata?.binding === "CF_VERSION_METADATA",
+  "Cloudflare immutable version metadata binding is missing",
+);
 check(
   JSON.stringify(wrangler.routes) ===
     JSON.stringify([
@@ -282,6 +288,12 @@ if (existsSync(generatedPath)) {
   check(
     generated.assets?.html_handling === "none",
     "generated assets can redirect /offline.html and break service-worker installation",
+  );
+  check(generated.workers_dev === false, "generated config enables the workers.dev surface");
+  check(generated.preview_urls === false, "generated config enables public preview URLs");
+  check(
+    generated.version_metadata?.binding === "CF_VERSION_METADATA",
+    "generated immutable version metadata binding is missing",
   );
   check(statSync(resolve(root, ".output/server/index.mjs")).size > 0, "worker entry is empty");
 }
