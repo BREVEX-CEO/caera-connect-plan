@@ -5,8 +5,8 @@
  * large a context OCADE runs it with. The library that actually loads the
  * weights publishes both of those numbers itself. Nothing was comparing them.
  *
- * They had already drifted: the catalogue claimed 1880 MB for the larger tier
- * beside a comment saying the figure came from the publisher, who publishes
+ * They had already drifted: the catalogue once claimed 1880 MB for a tier
+ * beside a comment saying the figure came from the publisher, who published
  * 1629.75 — 250 MB of hand-typed pessimism presented as a fact. It happened to
  * be harmless because it only ever excluded a tier. The context window was the
  * dangerous one: OCADE sizes its compiled system prompt against
@@ -113,9 +113,9 @@ describe("a deployment can serve the WebGPU weights itself", () => {
     expect(
       webgpuMirrorFileUrl(
         tier,
-        "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/web-llm-models/v0_2_84/base/Qwen2-0.5B-Instruct-q4f16_1_cs1k-webgpu.wasm",
+        "https://raw.githubusercontent.com/mlc-ai/binary-mlc-llm-libs/main/web-llm-models/v0_2_84/base/Qwen2-1.5B-Instruct-q4f16_1_cs1k-webgpu.wasm",
       ),
-    ).toBe(`/models/webllm/${tier.version}/Qwen2-0.5B-Instruct-q4f16_1_cs1k-webgpu.wasm`);
+    ).toBe(`/models/webllm/${tier.version}/Qwen2-1.5B-Instruct-q4f16_1_cs1k-webgpu.wasm`);
   });
 
   it("refuses a path that would climb out of the mirror directory", () => {

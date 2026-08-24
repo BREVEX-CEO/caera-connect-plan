@@ -1,9 +1,10 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-23T07:52:26.296Z",
+  "generatedAt": "2026-08-24T14:14:50.412Z",
   "classification": "SOURCE-FIXED AND EXECUTED; DISTRIBUTION EXTERNALLY BLOCKED",
   "executed": [
-    "live Windows runtime proof is fresh (2026-08-23T07:46:04.569Z): 19 observed, 0 failed, 0 skipped; installed digest, text answer, streaming, cancellation, recovery and vision ground truth passed"
+    "live Windows runtime proof is fresh (2026-08-23T07:46:04.569Z): 19 observed, 0 failed, 0 skipped; installed digest, text answer, streaming, cancellation, recovery and vision ground truth passed",
+    "reviewed production browser weights passed 8/8 real download, digest, load and answer checks (2026-08-24T14:12:37.237Z)"
   ],
   "sourceFixed": [
     "the desktop/local runtime manifest resolves exactly one fixed qwen2.5:3b model",
@@ -11,15 +12,16 @@
     "the production model layer has an exact content digest and byte size",
     "the shipped fixed-model authority matches the resolved manifest",
     "every browser GGUF has a pinned publisher digest and exact size",
+    "the failed 0.5B browser model is absent and the quality-qualified 1.5B tier is authoritative",
     "the browser engine probes a same-origin mirror before its reviewed publisher fallback",
     "a dedicated source gate refuses public-cloud inference"
   ],
   "sourceFailures": [],
   "externalBlocked": [
     {
-      "id": "browser-model-mirror:wasm-qwen2.5-0.5b-instruct-q4_k_m",
-      "detail": "same-origin browser weight is absent: public/models/qwen2.5-0.5b-instruct-q4_k_m.gguf",
-      "requiredEvidence": "place the reviewed 491400032-byte file at that path and rerun this gate"
+      "id": "browser-model-mirror:wasm-qwen2.5-1.5b-instruct-q4_k_m",
+      "detail": "same-origin browser weight is absent: public/models/qwen2.5-1.5b-instruct-q4_k_m.gguf",
+      "requiredEvidence": "place the reviewed 1117320736-byte file at that path and rerun this gate"
     },
     {
       "id": "webgpu-model-mirror",

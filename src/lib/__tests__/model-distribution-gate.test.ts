@@ -7,7 +7,7 @@ describe("production model distribution gate", () => {
       encoding: "utf8",
     });
     expect(output).toContain("SOURCE-FIXED AND EXECUTED; DISTRIBUTION EXTERNALLY BLOCKED");
-    expect(output).toMatch(/EXECUTED 1 .* SOURCE-FIXED 7 .* EXTERNALLY BLOCKED 5/);
+    expect(output).toMatch(/EXECUTED 2 .* SOURCE-FIXED 8 .* EXTERNALLY BLOCKED 5/);
     expect(output).toContain("same-origin browser weight is absent");
     expect(output).toContain("desktop publishing is intentionally disabled");
   });

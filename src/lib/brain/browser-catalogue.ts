@@ -8,10 +8,11 @@
  * evicted by the browser at any moment. Sharing one table would force one set
  * of numbers to be wrong for one of them.
  *
- * THE SIZES ARE DELIBERATELY SMALL. A 0.5B model is not impressive on paper;
- * it answers in a second on an integrated GPU and does not make a laptop
- * unusable, which is the entire point of the browser tier. Anything larger is
- * offered only after a real memory check, never on optimism.
+ * THE SIZES ARE DELIBERATELY BOUNDED, BUT QUALITY IS A HARD GATE. The former
+ * 0.5B base loaded quickly yet failed the production-weight knowledge,
+ * arithmetic and freshness suite. It is therefore not a shippable default.
+ * The 1.5B tier is the smallest offered model; anything larger is offered only
+ * after a real memory/latency check, never on optimism.
  */
 
 import catalogueJson from "../../../release/OCADE_BROWSER_MODEL_CATALOGUE.json";
@@ -127,9 +128,9 @@ export const WEBGPU_TIERS: BrowserModelTier[] = [
   {
     rank: 0,
     label: "OCADE Browser",
-    webllmId: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
-    version: "qwen2.5-0.5b-instruct-q4f16_1-mlc",
-    downloadBytes: 340 * MB,
+    webllmId: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
+    version: "qwen2.5-1.5b-instruct-q4f16_1-mlc",
+    downloadBytes: 900 * MB,
     /*
      * EXACTLY the runtime's own `vram_required_MB`, in MiB.
      *
@@ -143,23 +144,23 @@ export const WEBGPU_TIERS: BrowserModelTier[] = [
      * what lets `browser-catalogue.webgpu.test.ts` compare it against the
      * installed library and fail when a version bump moves it.
      */
-    requiredMemoryBytes: Math.round(944.62 * MB),
-    contextTokens: 4096,
-    thinkingSuitable: true,
-    because:
-      "The smallest Qwen that still holds a conversation. It fits comfortably in browser graphics memory and answers without making this device sluggish.",
-  },
-  {
-    rank: 1,
-    label: "OCADE Browser Plus",
-    webllmId: "Qwen2.5-1.5B-Instruct-q4f16_1-MLC",
-    version: "qwen2.5-1.5b-instruct-q4f16_1-mlc",
-    downloadBytes: 900 * MB,
     requiredMemoryBytes: Math.round(1629.75 * MB),
     contextTokens: 4096,
     thinkingSuitable: true,
     because:
-      "A larger Qwen, offered only because this device reported enough graphics memory to run it without stalling.",
+      "The smallest Qwen that passes OCADE's production answer-quality gate. It remains bounded for browser graphics memory.",
+  },
+  {
+    rank: 1,
+    label: "OCADE Browser Plus",
+    webllmId: "Qwen2.5-3B-Instruct-q4f16_1-MLC",
+    version: "qwen2.5-3b-instruct-q4f16_1-mlc",
+    downloadBytes: 1800 * MB,
+    requiredMemoryBytes: Math.round(2504.76 * MB),
+    contextTokens: 4096,
+    thinkingSuitable: true,
+    because:
+      "A larger Qwen, offered only after this device ran the base engine quickly enough and exposes sufficient graphics capacity.",
   },
 ];
 
@@ -182,18 +183,17 @@ export function runtimeMemoryBytes(tier: BrowserModelTier): number {
 /**
  * WebAssembly tiers.
  *
- * Only the smallest is offered, and that is a decision rather than an
- * omission. WASM inference runs on the CPU at a fraction of WebGPU speed; a
- * 1.5B model there produces a first token slowly enough that the user assumes
- * the page has hung. The fallback exists to keep a browser WORKING, not to
- * match the WebGPU experience, and pretending otherwise would be worse than
- * the honest limit.
+ * Only the smallest quality-qualified model is offered, and that is a decision
+ * rather than an omission. WASM inference is slower than WebGPU, but the old
+ * 0.5B fallback gave materially wrong production answers. A fast wrong answer
+ * is not a working fallback, so compatibility starts at 1.5B and reports its
+ * preparation cost honestly.
  */
 export const WASM_TIERS: BrowserModelTier[] = [
   {
     rank: 0,
     label: "OCADE Browser (compatibility)",
-    catalogueId: "wasm-qwen2.5-0.5b-instruct-q4_k_m",
+    catalogueId: "wasm-qwen2.5-1.5b-instruct-q4_k_m",
     /*
      * EXACT, and it has to be. `469 * MB` was written here beside a comment
      * correctly stating the real size — 382,112 bytes more than the file that
@@ -207,10 +207,10 @@ export const WASM_TIERS: BrowserModelTier[] = [
      * verified digest decides that — but it stays exact so progress reaches
      * 100% instead of stalling at 99.9%.
      */
-    downloadBytes: 491_400_032,
-    requiredMemoryBytes: 700 * MB,
+    downloadBytes: 1_117_320_736,
+    requiredMemoryBytes: 1600 * MB,
     contextTokens: 4096,
-    version: "qwen2.5-0.5b-instruct-q4_k_m",
+    version: "qwen2.5-1.5b-instruct-q4_k_m",
     /*
      * NOT SUITABLE, and this is the honest half of the Fast/Thinking switch.
      *

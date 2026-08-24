@@ -114,7 +114,9 @@
       "achievedEvidence": [
         "The pinned qwen2.5:3b registry manifest is current and the installed digest matches it",
         "Live Windows production path: 19 observed, 0 failed, 0 skipped including text, streaming, cancellation and vision ground truth",
-        "Browser GGUF catalogue digest and exact byte size are current; downloads are verified before OPFS promotion"
+        "Browser GGUF catalogue digest and exact byte size are current; downloads are verified before OPFS promotion",
+        "The authentic 0.5B browser model failed the red-first quality run at 5/8 and was removed from shipping tiers",
+        "The reviewed Qwen2.5 1.5B Q4_K_M browser weights passed 8/8 real download digest load knowledge arithmetic instruction and honesty checks"
       ],
       "requiredEvidence": [
         "Populate and independently hash the same-origin browser model mirrors",

@@ -23,7 +23,7 @@
 const MODEL_DIRECTORY = "ocade-models";
 
 export interface StoredModel {
-  /** Stable key, e.g. "wasm/qwen2.5-0.5b-instruct-q4_k_m.gguf". */
+  /** Stable key, e.g. "wasm/qwen2.5-1.5b-instruct-q4_k_m.gguf". */
   key: string;
   bytes: number;
   /** Set once the file has been verified against its expected digest. */

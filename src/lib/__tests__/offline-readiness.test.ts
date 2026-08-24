@@ -25,7 +25,7 @@ const READY: OfflineInputs = {
   serviceWorkerActive: true,
   shellCachedEntries: 369,
   runtimeCached: true,
-  models: [{ key: "wasm/qwen2.5-0.5b.gguf", bytes: 400_000_000, verified: true }],
+  models: [{ key: "wasm/qwen2.5-1.5b.gguf", bytes: 1_117_320_736, verified: true }],
   persistent: true,
 };
 

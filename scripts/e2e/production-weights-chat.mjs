@@ -22,7 +22,7 @@
  *
  * Usage:
  *   node scripts/e2e/production-weights-chat.mjs
- *   OCADE_MODEL_URL=https://your-mirror/qwen2.5-0.5b-instruct-q4_k_m.gguf \
+ *   OCADE_MODEL_URL=https://your-mirror/qwen2.5-1.5b-instruct-q4_k_m.gguf \
  *     node scripts/e2e/production-weights-chat.mjs
  */
 import { createWriteStream } from "node:fs";

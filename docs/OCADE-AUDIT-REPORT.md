@@ -395,6 +395,14 @@ activation, fixed context bounds and a known-image vision readback. The
 distribution gate binds that receipt to the model manifest and records the
 remaining mirror, signing and licence/provenance blockers.
 
+The browser production-weight gate also executed against the exact reviewed
+Qwen2.5 1.5B Q4_K_M GGUF: 1,117,320,736 bytes and SHA-256
+`6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e`.
+It passed 8/8 size, digest, real-load, knowledge, arithmetic, multi-step,
+instruction-following and freshness-honesty checks. The red-first 0.5B run
+passed only 5/8, so that tier was removed rather than shipped as a fast but
+wrong compatibility path.
+
 The small llama.cpp harness below is a separate **15/15 runtime correctness
 test**. It proves GGUF load/export/inference mechanics, not general answer
 quality.
@@ -405,10 +413,12 @@ Two models, answering two different questions.
 10 ms, first token 8 ms, 8 tokens in 25 ms, every id inside the declared
 259-token vocabulary, not stuck repeating one token.
 
-**Trained weights** — for correctness. No weight host is reachable
-(huggingface.co and download.pytorch.org both 403), so the weights were _trained_
-here: torch from PyPI, three capital-city facts deliberately overfit, exported to
-GGUF. The architecture matches llama.cpp's `llama` arch — RMSNorm, no biases,
+**Trained weights** — for fixture correctness. In the earlier isolated run no
+weight host was reachable, so the weights were _trained_ here: torch from PyPI,
+three capital-city facts deliberately overfit, exported to GGUF. That historical
+constraint is not current production evidence; the reviewed publisher weights
+were subsequently downloaded and tested as described above. The fixture
+architecture matches llama.cpp's `llama` arch — RMSNorm, no biases,
 SwiGLU, and interleaved-pair RoPE (ggml NORM mode, not the split-half NEOX
 variant, which is the trap: it trains identically and produces noise on load).
 

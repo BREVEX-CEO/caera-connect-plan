@@ -24,7 +24,7 @@ async function run(over: Partial<Parameters<typeof pinRun>[0]> = {}): Promise<Pi
   return pinRun({
     prompt: "summarise the termination clause",
     answer: "Either party may terminate with 30 days' notice.",
-    modelKey: "wasm/qwen2.5-0.5b.gguf",
+    modelKey: "wasm/qwen2.5-1.5b.gguf",
     modelSha256: "a".repeat(64),
     seed: 1234,
     temperature: 0.2,

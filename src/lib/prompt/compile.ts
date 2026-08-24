@@ -3,7 +3,7 @@
  *
  * THE MEASUREMENT THAT FORCED THIS. `scripts/measure-prompt-size.mjs` reads the
  * canonical file and reports 117,765 bytes — about 32,713 tokens. The browser
- * models OCADE ships are Qwen2.5-0.5B and 1.5B running with a 4,096-token
+ * browser models OCADE ships are Qwen2.5-1.5B and 3B running with a 4,096-token
  * context. Reserving a sensible share for the conversation leaves roughly
  * 1,400 tokens for the system message. The full constitution is more than
  * twenty times that. Its `ocade_behavior` section ALONE is 6,244 tokens.

@@ -30,10 +30,10 @@ const write = process.argv.includes("--write");
 /** Every GGUF tier OCADE may fetch in a browser. */
 const WANTED = [
   {
-    id: "wasm-qwen2.5-0.5b-instruct-q4_k_m",
+    id: "wasm-qwen2.5-1.5b-instruct-q4_k_m",
     label: "OCADE Browser (compatibility)",
-    repo: "Qwen/Qwen2.5-0.5B-Instruct-GGUF",
-    path: "qwen2.5-0.5b-instruct-q4_k_m.gguf",
+    repo: "Qwen/Qwen2.5-1.5B-Instruct-GGUF",
+    path: "qwen2.5-1.5b-instruct-q4_k_m.gguf",
   },
 ];
 

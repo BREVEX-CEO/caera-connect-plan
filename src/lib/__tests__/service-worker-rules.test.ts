@@ -113,7 +113,7 @@ describe("model weights stay out of Cache Storage", () => {
      * the copy the user cannot see, resume or delete — the Offline Storage
      * screen reports OPFS.
      */
-    expect(isRuntimeCacheable(at("/models/qwen2.5-0.5b.gguf"))).toBe(false);
+    expect(isRuntimeCacheable(at("/models/qwen2.5-1.5b.gguf"))).toBe(false);
   });
 
   it("cross-origin weights are excluded by the origin check", () => {

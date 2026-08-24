@@ -36,6 +36,7 @@ async function sha256(path) {
 const manifest = json("release/OCADE_LOCAL_ENGINE_MODEL_MANIFEST.json");
 const browser = json("release/OCADE_BROWSER_MODEL_CATALOGUE.json");
 const runtime = json("release/OCADE_CHAT_RUNTIME_EVIDENCE.json");
+const productionWeights = json("release/OCADE_PRODUCTION_WEIGHTS_CHAT_PROOF_2026-08-24.json");
 const fixedSource = read("src/lib/local/fixed-model.ts");
 const resolverSource = read("src/lib/brain/browser-catalogue.ts");
 const downloadSource = read("src/lib/brain/model-download.ts");
@@ -74,6 +75,11 @@ requireSource(
   "every browser GGUF has a pinned publisher digest and exact size",
 );
 requireSource(
+  browser.entries?.length === 1 &&
+    browser.entries[0]?.id === "wasm-qwen2.5-1.5b-instruct-q4_k_m",
+  "the failed 0.5B browser model is absent and the quality-qualified 1.5B tier is authoritative",
+);
+requireSource(
   resolverSource.includes("sameOriginGgufUrl") &&
     downloadSource.includes("preferredWeightsUrl") &&
     wasmAdapterSource.includes("preferredWeightsUrl(sameOriginGgufUrl(tier)") &&
@@ -106,6 +112,28 @@ if (runtimeGreen) {
 } else {
   sourceFailures.push(
     "retained production-model runtime evidence is missing, stale, or does not match the manifest",
+  );
+}
+
+const qualityEntry = browser.entries?.[0];
+const qualityTime = Date.parse(productionWeights.executedAt);
+const qualityAgeDays = Number.isFinite(qualityTime)
+  ? (Date.now() - qualityTime) / 86_400_000
+  : Infinity;
+const qualityGreen =
+  productionWeights.classification === "EXECUTED PASS" &&
+  productionWeights.summary?.passed === 8 &&
+  productionWeights.summary?.failed === 0 &&
+  productionWeights.model?.sizeBytes === qualityEntry?.sizeBytes &&
+  productionWeights.model?.sha256 === qualityEntry?.sha256 &&
+  qualityAgeDays <= 30;
+if (qualityGreen) {
+  executed.push(
+    `reviewed production browser weights passed 8/8 real download, digest, load and answer checks (${productionWeights.executedAt})`,
+  );
+} else {
+  sourceFailures.push(
+    "production browser-weight quality evidence is missing, stale, failing, or differs from the catalogue",
   );
 }
 

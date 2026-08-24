@@ -251,7 +251,7 @@ describe("preferring weights this deployment serves itself", () => {
 
   it("points at this origin, not a third party", () => {
     const local = sameOriginGgufUrl(WASM_TIERS[0]);
-    expect(local).toBe("/models/qwen2.5-0.5b-instruct-q4_k_m.gguf");
+    expect(local).toBe("/models/qwen2.5-1.5b-instruct-q4_k_m.gguf");
     // The catalogue URL is absolute and external; the self-hosted one is not.
     expect(local?.startsWith("/")).toBe(true);
     expect(ggufUrl(WASM_TIERS[0])?.startsWith("http")).toBe(true);

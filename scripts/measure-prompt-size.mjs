@@ -31,9 +31,9 @@ const tok = (s) => Math.ceil(Buffer.byteLength(s, "utf8") / BYTES_PER_TOKEN);
 
 // Context windows the shipping browser models actually expose.
 const MODELS = [
-  { label: "OCADE Browser (WebGPU, Qwen2.5-0.5B)", context: 4096 },
-  { label: "OCADE Browser Plus (WebGPU, Qwen2.5-1.5B)", context: 4096 },
-  { label: "OCADE Browser compatibility (WASM, Qwen2.5-0.5B)", context: 2048 },
+  { label: "OCADE Browser (WebGPU, Qwen2.5-1.5B)", context: 4096 },
+  { label: "OCADE Browser Plus (WebGPU, Qwen2.5-3B)", context: 4096 },
+  { label: "OCADE Browser compatibility (WASM, Qwen2.5-1.5B)", context: 4096 },
 ];
 
 const total = tok(prompt);

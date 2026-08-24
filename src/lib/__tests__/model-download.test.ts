@@ -437,7 +437,7 @@ describe("the published catalogue matches the file it points at", () => {
      * 491,782,144 and is what bricked the engine.
      */
     const { WASM_TIERS } = await import("../brain/browser-catalogue");
-    expect(WASM_TIERS[0].downloadBytes).toBe(491_400_032);
+    expect(WASM_TIERS[0].downloadBytes).toBe(1_117_320_736);
     // Not a whole number of MiB — a rounded constant is the bug returning.
     expect(WASM_TIERS[0].downloadBytes % (1024 * 1024)).not.toBe(0);
   });
