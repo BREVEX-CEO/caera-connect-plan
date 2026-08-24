@@ -18,6 +18,7 @@
         "Installed Chrome Stable rendered product, company and locked auth routes with zero unexpected console errors and zero page errors"
       ],
       "requiredEvidence": [
+        "Deploy a production build with VITE_AUTH_GOOGLE_ENABLED=true after an authorized Cloudflare configuration change; localhost proof does not change the locked build",
         "Post-gate authentication and critical-route smoke tests after the authorized launch opening"
       ]
     },
@@ -32,11 +33,13 @@
         "Live cross-user read, update, device RPC and automation RPC attacks were denied while own-user operations succeeded",
         "Generated TypeScript database types were refreshed from the live project and match source",
         "Production Auth Site URL and six exact callback/reset allowlist entries were read back from Supabase",
-        "Email confirmation is required; Google, Apple, phone and custom SMTP were observed disabled",
+        "Email confirmation is required; Apple, phone and custom SMTP remain disabled",
+        "Production Google OAuth is enabled and executed from localhost through Google, the Supabase callback, an OCADE session, logout and a same-account repeat login",
+        "The localhost OAuth transport was corrected to use direct Supabase OAuth outside Lovable preview hosts",
         "Production UI now fails closed for every unconfigured provider and for unavailable email delivery"
       ],
       "requiredEvidence": [
-        "Google OAuth web client ID and secret, exact callback registration, provider enablement, and real sign-in/sign-out proof",
+        "Repair and execute signed-in profile reads: production currently returns HTTP 403 because authenticated cannot execute public.has_role even though profiles RLS invokes it",
         "Custom SMTP credentials and real signup confirmation login logout and recovery delivery proof to a non-team address",
         "Real signed-in Storage API upload download and deletion proof",
         "Production-domain email-template verification; redirect configuration itself is already observed"

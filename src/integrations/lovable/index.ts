@@ -9,12 +9,50 @@ type SignInOptions = {
   extraParams?: Record<string, string>;
 };
 
+/**
+ * Lovable previews expose their own `/~oauth/initiate` broker. Ordinary OCADE
+ * hosts do not: localhost and ocade.in must begin OAuth at the configured
+ * Supabase project or the relative broker URL becomes an application 404.
+ */
+export function oauthTransportForHostname(
+  hostname: string,
+  provider: "google" | "apple" | "microsoft" | "lovable",
+): "supabase" | "lovable" {
+  const normalized = hostname.trim().toLowerCase().replace(/\.$/, "");
+  const lovableHosted =
+    normalized === "lovable.dev" ||
+    normalized.endsWith(".lovable.app") ||
+    normalized.endsWith(".lovableproject.com");
+  return !lovableHosted && (provider === "google" || provider === "apple")
+    ? "supabase"
+    : "lovable";
+}
+
 export const lovable = {
   auth: {
     signInWithOAuth: async (
       provider: "google" | "apple" | "microsoft" | "lovable",
       opts?: SignInOptions,
     ) => {
+      if (
+        typeof window !== "undefined" &&
+        (provider === "google" || provider === "apple") &&
+        oauthTransportForHostname(window.location.hostname, provider) === "supabase"
+      ) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: opts?.redirect_uri,
+            queryParams: opts?.extraParams,
+            skipBrowserRedirect: true,
+          },
+        });
+        if (error) return { error };
+        if (!data.url) return { error: new Error("Supabase did not return an OAuth URL") };
+        window.location.assign(data.url);
+        return { error: null, redirected: true as const };
+      }
+
       const result = await lovableAuth.signInWithOAuth(provider, {
         ...opts,
         extraParams: {

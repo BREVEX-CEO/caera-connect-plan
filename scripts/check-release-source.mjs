@@ -242,11 +242,17 @@ check(
 check(
   authLive.projectRef === "sazhgaisyhkdbrooycdv" &&
     authLive.classification ===
-      "SOURCE-FIXED; PRODUCTION AUTH DELIVERY EXTERNALLY BLOCKED" &&
-    authLive.executedReadback?.googleProviderEnabled === false &&
+      "GOOGLE AUTH EXECUTED ON LOCALHOST; PRODUCTION EMAIL DELIVERY AND CLOUDFLARE AUTH RELEASE REMAIN BLOCKED" &&
+    authLive.executedReadback?.googleProviderEnabled === true &&
+    authLive.executedReadback?.googleCredentialsConfigured === true &&
     authLive.executedReadback?.customSmtpEnabled === false &&
+    authLive.executedOAuthProof?.provider === "google" &&
+    authLive.executedOAuthProof?.firstLogin?.supabaseUserReadStatus === 200 &&
+    authLive.executedOAuthProof?.firstLogin?.logoutPath === "/auth" &&
+    authLive.executedOAuthProof?.repeatLogin?.supabaseUserReadStatus === 200 &&
+    authLive.executedOAuthProof?.cloudflareStateChanged === false &&
     Array.isArray(authLive.externalBlockers) &&
-    authLive.externalBlockers.some((item) => item.id === "google-oauth-credentials") &&
+    !authLive.externalBlockers.some((item) => item.id === "google-oauth-credentials") &&
     authLive.externalBlockers.some((item) => item.id === "custom-smtp"),
   "Supabase Auth live proof is incomplete or overstates provider readiness",
 );

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "observedAt": "2026-08-24T13:42:39.045Z",
+  "observedAt": "2026-08-24T16:35:19.004Z",
   "projectRef": "sazhgaisyhkdbrooycdv",
   "projectName": "OCADE",
-  "classification": "SOURCE-FIXED; PRODUCTION AUTH DELIVERY EXTERNALLY BLOCKED",
+  "classification": "GOOGLE AUTH EXECUTED ON LOCALHOST; PRODUCTION EMAIL DELIVERY AND CLOUDFLARE AUTH RELEASE REMAIN BLOCKED",
   "executedReadback": {
     "siteUrl": "https://ocade.in",
     "redirectUrls": [
@@ -17,8 +17,8 @@
     "newUserSignupsEnabled": true,
     "emailConfirmationRequired": true,
     "emailProviderEnabled": true,
-    "googleProviderEnabled": false,
-    "googleCredentialsConfigured": false,
+    "googleProviderEnabled": true,
+    "googleCredentialsConfigured": true,
     "appleProviderEnabled": false,
     "phoneProviderEnabled": false,
     "customSmtpEnabled": false,
@@ -29,14 +29,37 @@
     "Production email account creation, one-time codes and password reset remain disabled until custom delivery is attested.",
     "Existing members can still use email and password without claiming production email delivery.",
     "Development and test forms remain reachable without weakening the production default.",
-    "Cloudflare GitHub deployment defaults every provider-readiness variable to false."
+    "Cloudflare GitHub deployment defaults every provider-readiness variable to false.",
+    "Localhost and ocade.in start Google and Apple OAuth directly through the configured Supabase project; Lovable preview hosts retain the Lovable broker."
   ],
-  "externalBlockers": [
-    {
-      "id": "google-oauth-credentials",
-      "detail": "The production Supabase Google provider has no client ID or client secret and is disabled.",
-      "requiredEvidence": "Create or supply an authorized Google OAuth web client, register the exact Supabase callback, enable Google in Supabase, execute sign-in and sign-out, then set VITE_AUTH_GOOGLE_ENABLED=true."
+  "executedOAuthProof": {
+    "origin": "http://127.0.0.1:8080",
+    "provider": "google",
+    "testAccount": "CAERA CADANE test user",
+    "redFirstFinding": "The first localhost click reached /~oauth/initiate on the OCADE origin and returned the application 404 because that relative broker only exists on Lovable hosts.",
+    "sourceFix": "Non-Lovable hosts now call supabase.auth.signInWithOAuth with the exact local callback and perform the returned provider redirect.",
+    "firstLogin": {
+      "authorizeObservedAt": "2026-08-24T16:27:16Z",
+      "callbackObservedAt": "2026-08-24T16:27:56Z",
+      "supabaseCallbackStatus": 302,
+      "supabaseLoginEvent": "oauth/google",
+      "supabaseUserReadStatus": 200,
+      "ocadePath": "/ocade",
+      "visibleSessionEvidence": "Welcome, caeracadane28.",
+      "logoutPath": "/auth"
     },
+    "repeatLogin": {
+      "authorizeObservedAt": "2026-08-24T16:30:44Z",
+      "callbackObservedAt": "2026-08-24T16:30:53Z",
+      "supabaseCallbackStatus": 302,
+      "supabaseLoginEvent": "oauth/google",
+      "supabaseUserReadStatus": 200,
+      "ocadePath": "/ocade",
+      "visibleSessionEvidence": "Welcome, caeracadane28."
+    },
+    "cloudflareStateChanged": false
+  },
+  "externalBlockers": [
     {
       "id": "custom-smtp",
       "detail": "Custom SMTP is disabled; Supabase default SMTP is restricted to organization-team addresses and is not a production delivery service.",
@@ -44,8 +67,9 @@
     }
   ],
   "prohibitedInference": [
-    "Correct redirect URLs do not prove Google sign-in.",
+    "The executed localhost OAuth loop does not prove that the currently locked Cloudflare build exposes Google sign-in.",
     "An enabled email provider does not prove production message delivery.",
-    "Source tests do not prove a delivered message or a real provider account."
+    "Source tests do not prove a delivered message or a real provider account.",
+    "A successful Auth session does not close the independently observed profiles RLS failure: signed-in profile reads returned HTTP 403 because authenticated cannot execute public.has_role."
   ]
 }
