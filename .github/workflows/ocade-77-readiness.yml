@@ -49,6 +49,7 @@ jobs:
           src/lib/__tests__/free-launch-payments.test.ts
           src/lib/__tests__/paddle-webhook-verification.test.ts
           src/lib/__tests__/message-list-a11y.test.tsx
+          src/lib/__tests__/prelaunch-public-pages.test.ts
           src/lib/tasks/__tests__/unified-task.test.ts
           src/lib/__tests__/automation-worker-controller.test.ts
           src/lib/__tests__/ocade-readiness-source-boundaries.test.ts
