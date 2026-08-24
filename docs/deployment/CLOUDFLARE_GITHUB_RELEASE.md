@@ -10,8 +10,19 @@ In GitHub, create an environment named `cloudflare-production`. Add these enviro
 
 - `CLOUDFLARE_API_TOKEN`: a least-privilege Cloudflare token that can edit the `ocade.in` Worker and zone.
 - `CLOUDFLARE_ACCOUNT_ID`: the Cloudflare account identifier.
+- `VITE_SUPABASE_URL`: the public API URL of the positively identified OCADE
+  Supabase project.
+- `VITE_SUPABASE_PUBLISHABLE_KEY`: an active modern publishable key from that
+  project. This value is designed to be public, but the protected environment
+  keeps release configuration centralized and prevents the wrong project from
+  being compiled into a production bundle.
 
-Keep `OCADE_LAUNCH_READY` and any Supabase values as encrypted Cloudflare Worker secrets or dashboard-managed variables. `wrangler.json` has `keep_vars: true`, so a normal release preserves those dashboard-managed values.
+Keep `OCADE_LAUNCH_READY`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and any
+server-only Supabase values as encrypted Cloudflare Worker secrets or
+dashboard-managed variables. `wrangler.json` has `keep_vars: true`, so a normal
+release preserves those dashboard-managed values. The deployment controller
+also verifies that the approved public URL and publishable key actually reached
+the generated client before it can upload a version.
 
 GitHub Actions must also be able to start. A billing or spending-limit block prevents both tests and deployment.
 

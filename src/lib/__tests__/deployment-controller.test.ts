@@ -20,6 +20,9 @@ const deployEnv = (): NodeJS.ProcessEnv => ({
   OCADE_DEPLOY_APPROVAL: "I_APPROVE_OCADE_PRODUCTION_DEPLOY",
   OCADE_ROLLBACK_VERSION_ID: "previous_version_1234",
   OCADE_DEPLOY_EXPECT_ASSET_STATE: "locked",
+  OCADE_SUPABASE_PROJECT_REF: "project-ref",
+  VITE_SUPABASE_URL: "https://project-ref.supabase.co/",
+  VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_fixture_key_123456789",
 });
 
 function materialiseFixture(options: { generatedName?: string; generatedMain?: string } = {}) {
@@ -55,7 +58,10 @@ function materialiseFixture(options: { generatedName?: string; generatedMain?: s
     'const gate = "x-ocade-edge-gate"; export default {};\n',
   );
   mkdirSync(join(root, ".output", "public", "assets"), { recursive: true });
-  writeFileSync(join(root, ".output", "public", "assets", "index-fixture123.js"), "export {};\n");
+  writeFileSync(
+    join(root, ".output", "public", "assets", "index-fixture123.js"),
+    'const url="https://project-ref.supabase.co/"; const key="sb_publishable_fixture_key_123456789"; export {url,key};\n',
+  );
 }
 
 function recordingRunner(
@@ -166,6 +172,17 @@ describe("deployment preflight fails closed", () => {
       });
       expect(plan.ready).toBe(false);
       expect(plan.blockers.join(" ")).toMatch(/asset.*locked or open/i);
+    }
+  });
+
+  it("requires the approved project URL and modern publishable key at build time", () => {
+    for (const env of [
+      { ...deployEnv(), VITE_SUPABASE_URL: "https://wrong.supabase.co/" },
+      { ...deployEnv(), VITE_SUPABASE_PUBLISHABLE_KEY: "legacy-or-missing" },
+    ]) {
+      const plan = createDeploymentPlan({ cwd: root, env, mode: "deploy" });
+      expect(plan.ready).toBe(false);
+      expect(plan.blockers.join(" ")).toMatch(/Supabase/i);
     }
   });
 });

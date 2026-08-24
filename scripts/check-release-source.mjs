@@ -79,6 +79,7 @@ for (const path of [
   "nitro.config.ts",
   "src/cloudflare-entry.ts",
   "release/OCADE_RELEASE_BLOCKERS.json",
+  "release/OCADE_CLOUDFLARE_LIVE_PROOF.json",
   "release/OCADE_RELEASE_CHECKLIST.md",
   "release/OCADE_PRODUCTION_OPERATIONS.json",
   "release/OCADE_INCIDENT_RESPONSE_RUNBOOK.md",
@@ -125,6 +126,7 @@ const blockers = JSON.parse(
   readFileSync(isAbsolute(blockersPath) ? blockersPath : resolve(root, blockersPath), "utf8"),
 );
 const operations = json("release/OCADE_PRODUCTION_OPERATIONS.json");
+const cloudflareLive = json("release/OCADE_CLOUDFLARE_LIVE_PROOF.json");
 const android = read("android/app/build.gradle");
 const androidManifest = read("android/app/src/main/AndroidManifest.xml");
 const iosProject = read("ios/App/App.xcodeproj/project.pbxproj");
@@ -280,12 +282,38 @@ check(
     operations.releaseControls?.separateRollbackApprovalRequired === true,
   "production operations approval boundaries are incomplete",
 );
+check(
+  cloudflareLive.classification === "EXECUTED PRELAUNCH DEPLOYMENT; LAUNCH NOT OPEN" &&
+    cloudflareLive.deployment?.stagedAtZeroTraffic === true &&
+    cloudflareLive.deployment?.immutableHealthProbePassed === true &&
+    cloudflareLive.deployment?.immutableHashedAssetProbePassed === true &&
+    cloudflareLive.deployment?.postPromotionHealthPassed === true,
+  "Cloudflare live proof is incomplete or overstates launch state",
+);
+check(
+  Array.isArray(cloudflareLive.liveMatrix) &&
+    cloudflareLive.liveMatrix.some(
+      (item) => item.path?.startsWith("/assets/index-") && item.status === 503,
+    ) &&
+    cloudflareLive.liveMatrix.some((item) => item.path === "/api/health" && item.status === 200),
+  "Cloudflare live proof lacks health or real asset-gate evidence",
+);
+check(
+  cloudflareLive.realChromeQA?.status === "passed" &&
+    cloudflareLive.realChromeQA?.consoleErrors === 0,
+  "Cloudflare live proof lacks real Chrome verification",
+);
+check(
+  cloudflareLive.configurationPreparation?.secretValuesRecorded === false,
+  "Cloudflare live proof records secret values",
+);
 
 const secretShape =
   /AKIA[0-9A-Z]{16}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|sk-[A-Za-z0-9_-]{20,}/;
 check(!secretShape.test(JSON.stringify(wrangler)), "secret-shaped value in wrangler config");
 check(!secretShape.test(JSON.stringify(blockers)), "secret-shaped value in blocker ledger");
 check(!secretShape.test(JSON.stringify(operations)), "secret-shaped value in operations ledger");
+check(!secretShape.test(JSON.stringify(cloudflareLive)), "secret-shaped value in Cloudflare proof");
 
 const generatedPath = resolve(root, ".output/server/wrangler.json");
 check(existsSync(generatedPath), "production output is missing; run npm run build first");
@@ -326,5 +354,5 @@ console.log(
   `STATUS: SOURCE READY; PRODUCTION RELEASE EXTERNALLY BLOCKED (${blockers.blockers.length} areas)`,
 );
 console.log(
-  "The gated web Worker is deployed; no signing, store publication, migration, or device install was performed.",
+  "This source gate does not itself sign, publish to stores, mutate a database, or install on a device; executed external evidence is recorded separately.",
 );

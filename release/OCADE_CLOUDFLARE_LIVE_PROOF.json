@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-24T12:41:55Z",
+  "classification": "EXECUTED PRELAUNCH DEPLOYMENT; LAUNCH NOT OPEN",
+  "source": {
+    "commit": "70847efaa8deb66ff1b4eab7c3fc8e395dcdd0df",
+    "branch": "codex/ocade-production-completion-20260823-continuation",
+    "packageVersion": "0.1.0"
+  },
+  "deployment": {
+    "provider": "Cloudflare Workers",
+    "worker": "ocade-web",
+    "previousVerifiedVersionId": "3bf9fab8-e50a-4cfb-af07-71cbda28b47c",
+    "deployedVersionId": "3e6229f5-0f29-4d70-a681-26bb1c48b2a9",
+    "stagedAtZeroTraffic": true,
+    "immutableHealthProbePassed": true,
+    "immutableHashedAssetProbePassed": true,
+    "expectedAssetState": "locked",
+    "promotedToPercent": 100,
+    "postPromotionHealthPassed": true
+  },
+  "redFirstDefect": {
+    "observed": "Nitro's stock Cloudflare adapter served matching uploaded application assets before the application launch gate despite run_worker_first being enabled.",
+    "realProductionSymptom": "A hashed application JavaScript bundle returned HTTP 200 while the application was prelaunch-locked.",
+    "cachePurgeRuledOutStaleContent": true,
+    "rootCause": "The generated Nitro Cloudflare entry called env.ASSETS.fetch before the TanStack server entry.",
+    "fix": "A custom outer Cloudflare entry evaluates the launch gate before any ASSETS binding fetch.",
+    "plantedFailureTestPassed": true
+  },
+  "liveMatrix": [
+    { "host": "ocade.in", "path": "/", "status": 503, "launchState": "prelaunch", "cacheControl": "no-store", "robots": "noindex" },
+    { "host": "ocade.in", "path": "/api/health", "status": 200, "deploymentId": "3e6229f5-0f29-4d70-a681-26bb1c48b2a9" },
+    { "host": "ocade.in", "path": "/company", "status": 200, "launchState": "prelaunch-public-information", "robots": "index" },
+    { "host": "ocade.in", "path": "/founder/haans-antoni", "status": 200, "launchState": "prelaunch-public-information", "robots": "index" },
+    { "host": "ocade.in", "path": "/products/ocade", "status": 200, "launchState": "prelaunch-public-information", "robots": "index" },
+    { "host": "ocade.in", "path": "/products/ocade/", "status": 308, "location": "/products/ocade" },
+    { "host": "ocade.in", "path": "/auth", "status": 503, "launchState": "prelaunch", "robots": "noindex" },
+    { "host": "ocade.in", "path": "/ocade", "status": 503, "launchState": "prelaunch", "robots": "noindex" },
+    { "host": "ocade.in", "path": "/assets/index-CHOohEw2.js", "status": 503, "launchState": "prelaunch", "edgeGate": "asset-v1", "cacheControl": "no-store", "robots": "noindex" },
+    { "host": "ocade.in", "path": "/assets/styles-D4_vOpQO.css", "status": 503, "launchState": "prelaunch", "edgeGate": "asset-v1", "cacheControl": "no-store", "robots": "noindex" },
+    { "host": "ocade.in", "path": "/brand/ocade-carcc-wordmark.png", "status": 200, "launchState": "prelaunch-public-information", "robots": "index" },
+    { "host": "ocade.in", "path": "/brand/ocade-carcc-mark.png", "status": 200, "launchState": "prelaunch-public-information", "robots": "index" },
+    { "host": "www.ocade.in", "path": "/", "status": 503, "launchState": "prelaunch", "cacheControl": "no-store", "robots": "noindex" },
+    { "host": "www.ocade.in", "path": "/api/health", "status": 200, "deploymentId": "3e6229f5-0f29-4d70-a681-26bb1c48b2a9" },
+    { "host": "www.ocade.in", "path": "/products/ocade", "status": 200, "launchState": "prelaunch-public-information", "robots": "index" },
+    { "host": "www.ocade.in", "path": "/assets/index-CHOohEw2.js", "status": 503, "launchState": "prelaunch", "edgeGate": "asset-v1", "cacheControl": "no-store", "robots": "noindex" }
+  ],
+  "robots": {
+    "managedCloudflareOverrideDisabled": true,
+    "exactRepositoryAllowlistObserved": true,
+    "defaultDisallow": true,
+    "allowedPaths": [
+      "/company",
+      "/founder/haans-antoni",
+      "/products/ocade",
+      "/brand/ocade-carcc-wordmark.png",
+      "/brand/ocade-carcc-mark.png"
+    ],
+    "sitemap": "https://ocade.in/sitemap.xml"
+  },
+  "realChromeQA": {
+    "status": "passed",
+    "productRoute": "https://ocade.in/products/ocade",
+    "productTitle": "OCADE — Local-first AI workspace by CARCC CADANE",
+    "productPageVisuallyRendered": true,
+    "publicNavigationToCompanyPassed": true,
+    "companyTitle": "CARCC CADANE — Company and founder information",
+    "authRouteVisuallyRenderedPrelaunchLock": true,
+    "consoleErrors": 0
+  },
+  "configurationPreparation": {
+    "cloudflareLatestConfigurationVersionId": "53716659-ee11-403f-80fc-4ce5a6607140",
+    "cloudflareLatestConfigurationTrafficPercent": 0,
+    "cloudflareEncryptedNames": [
+      "OCADE_LAUNCH_READY",
+      "SUPABASE_PUBLISHABLE_KEY",
+      "SUPABASE_URL"
+    ],
+    "githubEnvironment": "cloudflare-production",
+    "githubBuildSecretNames": [
+      "VITE_SUPABASE_PUBLISHABLE_KEY",
+      "VITE_SUPABASE_URL"
+    ],
+    "secretValuesRecorded": false
+  },
+  "remainingBoundaries": [
+    "The application remains deliberately locked until the authorized launch instant.",
+    "This deployment is not evidence of post-gate authentication, signed distribution, store publication, monitoring, backup restore, or launch announcement.",
+    "GitHub environment secrets for CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are still absent, so the hosted deployment workflow cannot run until a least-privilege token is supplied."
+  ]
+}

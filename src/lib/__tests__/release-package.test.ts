@@ -176,6 +176,11 @@ describe("OCADE release source package", () => {
       blockers: Array<{ id: string; status: string; requiredEvidence: string[] }>;
     }>("release/OCADE_RELEASE_BLOCKERS.json");
     const checklist = read("release/OCADE_RELEASE_CHECKLIST.md");
+    const cloudflare = json<{
+      classification: string;
+      deployment: { immutableHashedAssetProbePassed: boolean; postPromotionHealthPassed: boolean };
+      realChromeQA: { status: string; consoleErrors: number };
+    }>("release/OCADE_CLOUDFLARE_LIVE_PROOF.json");
 
     expect(pkg.scripts["release:source-check"]).toBe("node scripts/check-release-source.mjs");
     expect(existsSync(resolve(root, "scripts/check-release-source.mjs"))).toBe(true);
@@ -191,5 +196,11 @@ describe("OCADE release source package", () => {
     expect(checklist).toContain("/api/health");
     expect(checklist).toContain("Cloudflare prelaunch Worker was deployed");
     expect(checklist).toContain("remains closed behind the production launch gate");
+    expect(cloudflare.classification).toBe("EXECUTED PRELAUNCH DEPLOYMENT; LAUNCH NOT OPEN");
+    expect(cloudflare.deployment.immutableHashedAssetProbePassed).toBe(true);
+    expect(cloudflare.deployment.postPromotionHealthPassed).toBe(true);
+    expect(cloudflare.realChromeQA).toEqual(
+      expect.objectContaining({ status: "passed", consoleErrors: 0 }),
+    );
   });
 });

@@ -12,16 +12,23 @@
     "onCallAssigned": false
   },
   "webDeploymentEvidence": {
-    "observedAt": "2026-08-15T13:48:39Z",
+    "observedAt": "2026-08-24T12:41:55Z",
     "domain": "ocade.in",
     "provider": "Cloudflare Workers",
     "worker": "ocade-web",
-    "versionId": "8e093362-d00a-4ad0-a8a4-3b7a9997da26",
+    "versionId": "3e6229f5-0f29-4d70-a681-26bb1c48b2a9",
+    "testedCommit": "70847efaa8deb66ff1b4eab7c3fc8e395dcdd0df",
     "launchState": "prelaunch",
     "apexStatus": 503,
     "wwwStatus": 503,
     "healthStatus": 200,
-    "robotsDisallowAll": true,
+    "robotsDefaultDisallow": true,
+    "robotsAllowlistExact": true,
+    "applicationAssetsFailClosed": true,
+    "assetGateMarker": "asset-v1",
+    "stagedVersionVerifiedAtZeroTraffic": true,
+    "postPromotionHealthVerified": true,
+    "rollbackVersionId": "3bf9fab8-e50a-4cfb-af07-71cbda28b47c",
     "plannedLaunchDate": "2026-08-28",
     "launchReadyControlSet": true
   },
@@ -182,7 +189,7 @@
     "named incident and service owners",
     "monitoring and alert-delivery provider",
     "production health endpoints and alert receivers",
-    "Supabase project authority and an approved migration window",
+    "custom SMTP credentials and real production email-flow proof",
     "backup retention, offsite-copy and restore-target policy",
     "executed restore drill and incident exercise evidence"
   ]

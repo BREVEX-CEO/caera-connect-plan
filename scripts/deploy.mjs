@@ -48,6 +48,24 @@ function validHealthUrl(raw) {
   }
 }
 
+function validSupabaseBuildUrl(raw, projectRef) {
+  if (!hasValue(raw) || !hasValue(projectRef)) return false;
+  try {
+    const url = new URL(raw);
+    return (
+      url.protocol === "https:" &&
+      !url.username &&
+      !url.password &&
+      !url.search &&
+      !url.hash &&
+      url.pathname === "/" &&
+      url.hostname === `${projectRef}.supabase.co`
+    );
+  } catch {
+    return false;
+  }
+}
+
 function realRunner(command, args, options = {}) {
   return spawnSync(command, args, {
     cwd: options.cwd,
@@ -124,6 +142,16 @@ export function createDeploymentPlan({
   if (!hasValue(env.CLOUDFLARE_ACCOUNT_ID) && !useWranglerOAuth) {
     blockers.push("CLOUDFLARE_ACCOUNT_ID is missing");
   }
+  if (mode !== "rollback") {
+    if (!validSupabaseBuildUrl(env.VITE_SUPABASE_URL, env.OCADE_SUPABASE_PROJECT_REF)) {
+      blockers.push(
+        "VITE_SUPABASE_URL must identify the explicitly selected HTTPS Supabase project",
+      );
+    }
+    if (!/^sb_publishable_[A-Za-z0-9_-]{16,}$/.test(env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "")) {
+      blockers.push("VITE_SUPABASE_PUBLISHABLE_KEY must be an active modern publishable key");
+    }
+  }
 
   if (mode === "deploy") {
     if (env.OCADE_DEPLOY_APPROVAL !== DEPLOY_APPROVAL) {
@@ -171,7 +199,7 @@ export function createDeploymentPlan({
   };
 }
 
-function validateBuiltOutput(plan, cwd) {
+function validateBuiltOutput(plan, cwd, env) {
   const failures = [];
   for (const relativePath of [plan.generatedConfigPath, plan.generatedEntryPath]) {
     if (!existsSync(path.join(cwd, relativePath)))
@@ -201,13 +229,24 @@ function validateBuiltOutput(plan, cwd) {
       failures.push("generated Worker entry is missing the outermost asset launch gate");
     }
     const assetsDirectory = path.join(cwd, ".output", "public", "assets");
-    const entryAssets = existsSync(assetsDirectory)
-      ? readdirSync(assetsDirectory).filter((name) => /^index-[A-Za-z0-9_-]+\.js$/.test(name))
-      : [];
+    const assetNames = existsSync(assetsDirectory) ? readdirSync(assetsDirectory) : [];
+    const entryAssets = assetNames.filter((name) => /^index-[A-Za-z0-9_-]+\.js$/.test(name));
     if (entryAssets.length !== 1) {
       failures.push("generated client entry asset is missing or ambiguous");
     } else {
       plan.assetProbePath = `/assets/${entryAssets[0]}`;
+    }
+    const clientJavaScript = assetNames.filter((name) => name.endsWith(".js"));
+    const hasSupabaseUrl = clientJavaScript.some((name) =>
+      readFileSync(path.join(assetsDirectory, name), "utf8").includes(env.VITE_SUPABASE_URL),
+    );
+    const hasSupabasePublishableKey = clientJavaScript.some((name) =>
+      readFileSync(path.join(assetsDirectory, name), "utf8").includes(
+        env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      ),
+    );
+    if (!hasSupabaseUrl || !hasSupabasePublishableKey) {
+      failures.push("generated client is missing the approved Supabase public configuration");
     }
   } catch {
     failures.push("generated Wrangler configuration is unreadable");
@@ -429,7 +468,7 @@ export async function runDeployment({
         reason: "Production build failed; Wrangler was not called.",
       };
     }
-    const outputFailures = validateBuiltOutput(plan, cwd);
+    const outputFailures = validateBuiltOutput(plan, cwd, env);
     if (outputFailures.length > 0) {
       return { status: "failed", plan, reason: outputFailures.join("; ") };
     }

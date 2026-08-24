@@ -10,11 +10,15 @@
       "achievedEvidence": [
         "Cloudflare free-plan Worker deployed to ocade.in and www.ocade.in",
         "Prelaunch origin returns 503 with noindex and no-store controls",
-        "Live /api/health returns HTTP 200 for OCADE 0.1.0"
+        "Live /api/health returns HTTP 200 for OCADE 0.1.0 at immutable Cloudflare version 3e6229f5-0f29-4d70-a681-26bb1c48b2a9",
+        "The immutable version was staged at zero traffic, and both health and the real hashed JavaScript entry passed before promotion",
+        "Application JavaScript and CSS return 503 no-store noindex through edge gate asset-v1 on both apex and www",
+        "Company, founder, product, sitemap and factual brand-image routes remain publicly readable during prelaunch",
+        "Cloudflare managed robots.txt is disabled and the live file matches the repository allowlist"
       ],
       "requiredEvidence": [
-        "Supabase and provider values entered through platform secret storage",
-        "Post-gate authentication and critical-route smoke tests"
+        "Required Supabase and provider values confirmed in Cloudflare encrypted secret storage without disclosing values",
+        "Post-gate authentication and critical-route smoke tests after the authorized launch opening"
       ]
     },
     {
@@ -22,15 +26,16 @@
       "area": "supabase",
       "status": "externally_blocked",
       "achievedEvidence": [
-        "All 48 migrations, verification scripts and reverse rollbacks execute in PGlite PostgreSQL",
-        "Atomic payment webhook RPC rollback, duplicate, stale-event and cross-tenant tests pass",
-        "Entitlement helpers use SECURITY INVOKER with RLS instead of public SECURITY DEFINER access"
+        "The positively identified production project sazhgaisyhkdbrooycdv is ACTIVE_HEALTHY",
+        "All 49 repository baseline migrations and five live hardening migrations are tracked on the production project",
+        "All 68 public tables have RLS enabled, with zero anonymous table access and zero missing-policy findings",
+        "Live cross-user read, update, device RPC and automation RPC attacks were denied while own-user operations succeeded",
+        "Generated TypeScript database types were refreshed from the live project and match source"
       ],
       "requiredEvidence": [
-        "Authorized live project access and explicit database-apply authority",
-        "All 48 OCADE migrations applied in documented order to the intended project",
-        "Post-apply verification SQL and cross-tenant attack tests passed on that project",
-        "Generated database types refreshed after apply"
+        "Custom SMTP credentials and real signup confirmation login logout and recovery delivery proof",
+        "Real signed-in Storage API upload download and deletion proof",
+        "Production-domain email-template and redirect verification"
       ]
     },
     {

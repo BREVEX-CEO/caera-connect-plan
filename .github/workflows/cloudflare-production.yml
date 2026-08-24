@@ -41,6 +41,9 @@ jobs:
       OCADE_DEPLOY_APPROVAL: ${{ inputs.deploy_approval }}
       OCADE_ROLLBACK_VERSION_ID: ${{ inputs.rollback_version_id }}
       OCADE_DEPLOY_EXPECT_ASSET_STATE: ${{ inputs.expected_asset_state }}
+      OCADE_SUPABASE_PROJECT_REF: sazhgaisyhkdbrooycdv
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
     steps:
       - name: Check out main
         uses: actions/checkout@v4
