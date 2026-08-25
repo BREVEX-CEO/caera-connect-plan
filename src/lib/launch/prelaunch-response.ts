@@ -56,7 +56,7 @@ function publicHeaders(contentType: string): Record<string, string> {
     "content-type": contentType,
     "cache-control": "public, max-age=300",
     "content-security-policy":
-      `default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline' ${CLOUDFLARE_WEB_ANALYTICS}; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+      `default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net ${CLOUDFLARE_WEB_ANALYTICS}; connect-src 'self' https://stream.mux.com; media-src https://stream.mux.com blob:; worker-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
     "cross-origin-resource-policy": "same-origin",
     "referrer-policy": "strict-origin-when-cross-origin",
     "x-robots-tag": "index, follow, max-image-preview:large",
@@ -193,7 +193,11 @@ function publicDocument(pathname: string): PublicDocument | null {
           ],
         },
       ],
-      structuredData: webPageStructuredData("About CARCC CADANE and OCADE", description, "https://ocade.in/about"),
+      structuredData: webPageStructuredData(
+        "About CARCC CADANE and OCADE",
+        description,
+        "https://ocade.in/about",
+      ),
     };
   }
 
@@ -263,7 +267,11 @@ function publicDocument(pathname: string): PublicDocument | null {
           ],
         },
       ],
-      structuredData: webPageStructuredData("OCADE Privacy notice", description, "https://ocade.in/privacy"),
+      structuredData: webPageStructuredData(
+        "OCADE Privacy notice",
+        description,
+        "https://ocade.in/privacy",
+      ),
     };
   }
 
@@ -294,128 +302,128 @@ function publicDocument(pathname: string): PublicDocument | null {
         {
           heading: "3. Local-first service architecture",
           paragraphs: [
-            "OCADE combines local software with optional online authentication, Private Sync, current-information retrieval, support, payments and permissioned computer or remote-device features. Supported chat generation is designed to run on the user's device rather than through a public-cloud AI inference provider.",
-            "Feature availability can vary by device, hardware, browser, operating system, region, release stage and plan.",
+            "OCADE combines local software with optional online authentication, Private Sync, current-information retrieval, support, payments and permissioned computer or remote-device features. Supported chat generation is designed to run on the user's own device rather than through a public-cloud AI inference provider.",
+            "Feature availability may vary by device, hardware, browser, operating system, region, release stage and plan.",
           ],
         },
         {
-          heading: "4. Accounts and security",
+          heading: "4. Accounts, devices and security",
           paragraphs: [
-            "You are responsible for safeguarding your device, account, recovery methods and third-party credentials. Never give OCADE Support your password, one-time code, PIN, recovery code, private key, full card number, CVV or other payment secret.",
+            "Users are responsible for safeguarding their devices, accounts, recovery methods and credentials used with third-party services. Never provide OCADE Support with a password, one-time code, PIN, recovery code, private key, CVV or full payment credential.",
           ],
         },
         {
-          heading: "5. AI output can be inaccurate or wrong",
+          heading: "5. AI output can be wrong",
           paragraphs: [
-            "OCADE can produce inaccurate, incomplete, outdated, misleading, duplicated, fabricated or otherwise incorrect output. You must independently verify important output before relying on it.",
-            "OCADE is not a substitute for a qualified lawyer, doctor, accountant, tax professional, investment or financial adviser, cybersecurity professional, emergency service or another licensed professional. You remain responsible for decisions you make using OCADE.",
+            "OCADE may produce inaccurate, incomplete, outdated, misleading, duplicated or otherwise incorrect output. Users must independently verify important output before relying on it.",
+            "OCADE is not a substitute for a qualified lawyer, doctor, accountant, tax professional, investment or financial adviser, cybersecurity professional or emergency service. Users remain responsible for decisions made using OCADE.",
           ],
         },
         {
-          heading: "6. High-impact decisions",
+          heading: "6. Computer control and authorized actions",
           paragraphs: [
-            "Do not rely on OCADE alone for medical, legal, tax, accounting, investment, lending, insurance, employment, education, safety, cybersecurity, emergency, regulatory or other high-impact decisions. Obtain appropriate independent verification or professional advice when a decision can materially affect money, health, safety, legal rights or another person.",
+            "Permissioned computer-control features may open applications, read visible screens, type, click, create, edit, move or delete files, navigate websites and perform other actions a user authorizes. AI can select the wrong control, open the wrong application, alter or delete the wrong file, submit incorrect information or send content to an unintended destination.",
+            "Users may use computer control only on systems, accounts and content they are authorized to control. Important actions may require confirmation, but users must still supervise the agent, review important work and maintain appropriate backups.",
           ],
         },
         {
-          heading: "7. Computer control and user supervision",
+          heading: "7. User content and AI output",
           paragraphs: [
-            "Permissioned computer-control features may open applications, read visible screens, type, click, navigate websites, create or edit files, move or delete files, interact with accounts and perform other actions you authorize. AI can choose the wrong control, modify or delete the wrong file, submit incorrect information, make an unintended action or send content to an unintended destination.",
-            "You may use these features only on systems, accounts and content you are authorized to control. Confirmation controls do not remove your responsibility to supervise the agent, review important work, maintain appropriate backups and stop the agent when an action is wrong or unexpected.",
+            "Users retain the rights they have in prompts, files and other content they provide. Subject to applicable law, third-party rights and separately disclosed licences, users may use OCADE-generated output for personal or commercial purposes, including posts, videos, reels, documents and business work.",
+            "AI output is not guaranteed to be unique and other users may receive similar output.",
           ],
         },
         {
-          heading: "8. Your content and commercial use of output",
+          heading: "8. OCADE and CARCC CADANE intellectual property",
           paragraphs: [
-            "You retain the rights you have in prompts, files and other content you provide. Subject to applicable law, third-party rights and separately disclosed licences, you may use OCADE-generated output for personal or commercial purposes, including posts, reels, videos, documents, presentations, software and business work.",
-            "AI output is not guaranteed to be unique, copyrightable, accurate or free of third-party rights, and other users may receive similar output.",
+            "CARCC CADANE and its rights holders retain their rights in OCADE software, original code, interfaces, designs, systems, proprietary technology, brand materials, logos and the tagline “Command the Next Era.” Third-party and open-source materials remain governed by their own licences and rights.",
           ],
         },
         {
-          heading: "9. OCADE and CARCC CADANE intellectual property",
+          heading: "9. Acceptable use",
           paragraphs: [
-            "CARCC CADANE and its applicable rights holders retain their rights in OCADE software, original code, interfaces, designs, systems, proprietary technology, brand materials, logos, product identity and the tagline “Command the Next Era.” Third-party and open-source materials remain governed by their own licences and rights.",
+            "Users may not use OCADE to violate law, infringe rights, access systems or accounts without authorization, distribute malware, commit fraud, evade security or payment controls, attack OCADE or another service, intentionally harm people or repeatedly violate these Terms.",
           ],
         },
         {
-          heading: "10. Acceptable use and account enforcement",
+          heading: "10. Suspension, termination and feature changes",
           paragraphs: [
-            "You may not use OCADE to violate law, infringe rights, access systems without authorization, distribute malware, commit fraud, facilitate theft, evade security or payment controls, attack OCADE or another service, intentionally harm people or repeatedly violate these Terms.",
             "CARCC CADANE may limit, suspend or terminate online access for illegal activity, hacking, malware, fraud, abuse, security-bypass attempts, attacks, non-payment, material or repeated Terms violations, security emergencies or legal requirements.",
+            "CARCC CADANE may modify, discontinue or replace a feature or service subject to rights that applicable law does not permit these Terms to waive.",
           ],
         },
         {
-          heading: "11. Free launch and future paid services",
+          heading: "11. Free period, future paid plans and checkout",
           paragraphs: [
-            "OCADE may initially be offered without charge while product and payment work is completed. Free availability can change. Paid plans, subscriptions, fixed-duration access, add-ons or other commercial services may be introduced later.",
-            "Before a paid purchase, checkout must display the applicable price, taxes where required, duration or renewal rule, cancellation information and purchase-specific conditions.",
+            "OCADE may initially be available without charge while coding, release and payment work is completed. Free availability can change. Paid plans, subscriptions or other commercial services may be introduced later.",
+            "Before a paid purchase, the checkout should display the applicable price, taxes where required, duration or renewal rule, cancellation information and purchase-specific conditions.",
           ],
         },
         {
           heading: "12. Refunds and payment errors",
           paragraphs: [
-            "Except where applicable law requires otherwise, a paid digital service is not eligible for a voluntary refund after the purchased service has been activated, accessed or used. Changing your mind after activation or use does not create a contractual right to a refund.",
-            "A refund, reversal, credit or other remedy may still be required for a duplicate charge, billing or payment-processing error, non-delivery, unauthorized transaction where law provides protection, material service defect or deficiency, or another non-waivable consumer right.",
+            "Except where applicable law requires otherwise, a paid digital service is not eligible for a voluntary refund after the purchased service has been activated or used.",
+            "A refund, reversal, credit or other remedy may still be required for a duplicate charge, billing or payment-processing error, non-delivery, material service defect, unauthorized transaction where law provides protection or another non-waivable consumer right.",
           ],
         },
         {
           heading: "13. Third-party services",
           paragraphs: [
-            "OCADE may depend on Google, Supabase, Cloudflare, app stores, payment providers, network operators, cited websites, search or retrieval sources and other third parties. CARCC CADANE does not control those services and cannot guarantee their availability, accuracy, security, pricing, policies or continued operation.",
+            "OCADE may depend on Google, Supabase, Cloudflare, app stores, payment providers, cited websites, network operators and other third parties. CARCC CADANE does not control those services and cannot guarantee their availability, accuracy, security, policies or continued operation.",
           ],
         },
         {
           heading: "14. Service provided as available",
           paragraphs: [
-            "To the maximum extent permitted by applicable law, OCADE is provided on an “as is” and “as available” basis. CARCC CADANE does not promise uninterrupted, error-free, loss-free, perfectly secure or perfectly accurate operation, or that every defect will be corrected.",
-            "You should maintain independent records and backups for information that is important to you.",
+            "To the maximum extent permitted by applicable law, OCADE is provided on an “as is” and “as available” basis. CARCC CADANE does not promise uninterrupted, error-free, loss-free or perfectly accurate operation, or that every defect will be corrected.",
+            "Users should maintain independent records and backups for important information.",
           ],
         },
         {
-          heading: "15. Limitation of liability and assumed risk",
+          heading: "15. Limitation of liability and assumed risks",
           paragraphs: [
-            "To the maximum extent permitted by applicable law, CARCC CADANE, OCADE and their founder, personnel, contractors and service providers are not liable for indirect, incidental, special, exemplary, punitive or consequential loss; lost profits, revenue, business, opportunities or anticipated savings; investment or trading loss; data loss or corruption; business interruption; reputational harm; device, software or account problems; or losses caused by reliance on AI output, computer-control actions, third-party services, external information or incorrect professional decisions.",
-            "This exclusion is intended to apply broadly, including to legal, medical, accounting, tax, investment, financial, cybersecurity and business decisions made using OCADE. Where liability cannot lawfully be excluded, and except for liability that applicable law does not permit to be capped, any aggregate contractual liability arising from a paid OCADE service is limited to the amount actually paid by the claimant for the affected service in the three months immediately before the event giving rise to the claim.",
-            "A free service does not create a promise to pay compensation merely because it was offered without charge. Nothing here excludes, limits or waives a statutory right, remedy or liability that applicable law does not permit a contract to exclude, limit or waive.",
+            "To the maximum extent permitted by applicable law, CARCC CADANE, OCADE and their founder, personnel and service providers are not liable for indirect, incidental, special, exemplary, punitive or consequential loss, or for lost profits, revenue, business, opportunities, investment loss, data loss or corruption, business interruption, reputational harm, device or software problems, or losses caused by reliance on AI output, computer-control actions or third-party services.",
+            "Where liability cannot lawfully be excluded and except for liability that applicable law does not permit to be capped, aggregate liability arising from a paid OCADE service is limited to the amount actually paid by the claimant for the affected OCADE service during the three months immediately before the event giving rise to the claim. Mandatory statutory rights and liabilities remain unaffected.",
           ],
         },
         {
           heading: "16. Indemnity for unlawful or unauthorized use",
           paragraphs: [
-            "To the extent permitted by law, you agree to be responsible for third-party claims and reasonable losses caused by your unlawful use of OCADE, intentional infringement of another person's rights, fraud or use of OCADE to access systems, accounts or content without authorization.",
+            "To the extent permitted by law, a user is responsible for third-party claims and reasonable losses caused by that user's unlawful use of OCADE, intentional infringement of another person's rights, or use of OCADE to access systems, accounts or content without authorization.",
           ],
         },
         {
-          heading: "17. Investors, future ownership and shareholders",
+          heading: "17. Governing law and disputes",
           paragraphs: [
-            "Public references to investors, future ownership, equity or shareholding are invitations to begin a private discussion only. They are not an offer of securities, investment prospectus, solicitation to invest, crowdfunding offer, promise of allocation, valuation, dividend, liquidity event, return or future listing.",
-            "Any future investment, ownership or shareholder arrangement requires separate diligence, legal advice, documentation, approvals, valuation discussions and compliance with the laws that apply to that transaction. No outside shareholder or investor is announced by these Terms.",
+            "These Terms are governed by the laws of India without removing mandatory protections that may apply to a user elsewhere. The parties should first try in good faith to resolve a dispute through the OCADE support process.",
+            "Where legally capable of arbitration and not resolved informally, a dispute may be referred to arbitration under the Arbitration and Conciliation Act, 1996, in English, subject to non-waivable consumer, regulatory, urgent-relief and other statutory rights.",
           ],
         },
         {
-          heading: "18. Governing law and dispute process",
+          heading: "18. Communications and marketing",
           paragraphs: [
-            "These Terms are governed by the laws of India, without removing mandatory protections that may apply to a user in another jurisdiction. The parties should first try in good faith to resolve a dispute through OCADE Support and direct negotiation.",
-            "If an eligible dispute is not resolved informally, the parties may use mediation and, where the dispute is legally capable of arbitration, arbitration under the Arbitration and Conciliation Act, 1996, in English, by a mutually appointed sole arbitrator or another lawful appointment method. These Terms do not create an exclusive court-jurisdiction clause and do not block access to a consumer commission, regulator, non-arbitrable statutory forum, urgent interim relief or another forum that applicable law makes available and does not permit the parties to exclude.",
+            "OCADE may send essential account, authentication, security, legal and service messages. Marketing communications are sent only where the required permission exists and include the applicable opt-out method.",
           ],
         },
         {
-          heading: "19. Communications, changes and feature parity",
+          heading: "19. Changes to these Terms",
           paragraphs: [
-            "OCADE may send essential authentication, account, security, service, transaction, support and legal communications. Marketing communications will be sent only where the required permission exists and will include an applicable way to opt out.",
-            "CARCC CADANE may update these Terms as OCADE changes. Material changes will be identified through an appropriate notice and fresh consent will be requested where the law requires it.",
-            "Web, Windows, macOS, Android, iOS, browser-extension and other releases may differ in capability, timing and availability. A source-code feature, demo, roadmap or test build is not a promise of production availability on every platform.",
+            "CARCC CADANE may update these Terms as OCADE changes. Material changes will be identified through an appropriate notice where required. If a change legally requires fresh consent, OCADE will request that consent.",
           ],
         },
         {
-          heading: "20. Support, legal, privacy and investor contact",
+          heading: "20. Support, legal, privacy and investor enquiries",
           paragraphs: [
-            "OCADE uses a ticket-based support system rather than publishing unverified email addresses. Supported categories include Account, Billing, Technical, Privacy, Security, Feedback, Legal, Investor and Partnership. Dedicated domain email channels may be published later only after they are activated and verified.",
-            "Nothing in these Terms removes consumer, data-protection or other statutory rights that applicable law does not allow a contract to waive.",
+            "OCADE uses a ticket-based support system. Intended categories include Account, Billing, Technical, Privacy, Security, Feedback, Legal, Investor and Partnership.",
+            "Investor and partnership enquiries start a private discussion only. Nothing on this website is an offer to sell securities, a solicitation to invest or a promise that equity or shareholding will be offered.",
           ],
         },
       ],
-      structuredData: webPageStructuredData("OCADE Terms of service", description, "https://ocade.in/terms"),
+      structuredData: webPageStructuredData(
+        "OCADE Terms of service",
+        description,
+        "https://ocade.in/terms",
+      ),
     };
   }
 
@@ -455,7 +463,11 @@ function publicDocument(pathname: string): PublicDocument | null {
           ],
         },
       ],
-      structuredData: webPageStructuredData("OCADE Support and contact", description, "https://ocade.in/support"),
+      structuredData: webPageStructuredData(
+        "OCADE Support and contact",
+        description,
+        "https://ocade.in/support",
+      ),
     };
   }
 
@@ -556,15 +568,25 @@ function renderPrelaunchPublicPage(pathname: string): string | null {
   if (!document) return null;
 
   const canonical = `https://ocade.in${pathname}`;
+  const isHome = pathname === "/";
   const sections = document.sections
     .map(
       (section, index) =>
-        `<section class="card" style="--i:${index}"><h2>${escapeHtml(section.heading)}</h2>${section.paragraphs
+        `<section class="card ${index === 0 ? "card-wide" : ""}" data-tilt style="--i:${index}"><div class="card-index">${String(index + 1).padStart(2, "0")}</div><h2>${escapeHtml(section.heading)}</h2>${section.paragraphs
           .map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
           .join("")}</section>`,
     )
     .join("");
   const structuredData = JSON.stringify(document.structuredData).replaceAll("<", "\\u003c");
+  const launchStats = isHome
+    ? `<section class="stats" aria-label="OCADE facts"><div><strong>LOCAL</strong><span>AI generation first</span></div><div><strong>16+</strong><span>Intended user age</span></div><div><strong>28 AUG</strong><span>Formal launch 2026</span></div></section>`
+    : "";
+  const homeCtas = isHome
+    ? `<div class="hero-actions"><a class="btn btn-solid" href="/products/ocade">Explore OCADE <span>↗</span></a><a class="btn btn-ghost" href="/about">About CARCC CADANE</a></div><div class="scroll-cue" aria-hidden="true"><span>SCROLL</span><i></i></div>`
+    : `<div class="hero-actions"><a class="btn btn-ghost" href="/">Back to OCADE</a></div>`;
+  const loader = isHome
+    ? `<div id="loader" class="loader" aria-hidden="true"><div class="loader-top">OCADE / CARCC CADANE</div><div class="loader-word" id="loaderWord">PRIVATE</div><div class="loader-count" id="loaderCount">000</div><div class="loader-track"><div id="loaderBar"></div></div></div>`
+    : "";
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -573,13 +595,53 @@ function renderPrelaunchPublicPage(pathname: string): string | null {
 <meta property="og:type" content="website" /><meta property="og:site_name" content="CARCC CADANE" />
 <meta property="og:title" content="${escapeHtml(document.title)}" /><meta property="og:description" content="${escapeHtml(document.description)}" />
 <meta property="og:image" content="https://ocade.in/brand/ocade-carcc-wordmark.png" /><meta name="twitter:card" content="summary_large_image" />
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script type="application/ld+json">${structuredData}<\/script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.13/dist/hls.min.js"><\/script>
 <style>
-:root{color-scheme:dark;--bg:#050506;--surface:#0b090d;--surface2:#111016;--text:#f4f0f7;--muted:#aaa2ae;--stroke:#28232c;--aub:#3c234c;--gold:#d2a64d;--crimson:#551b2a}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -10%,rgba(96,57,123,.24),transparent 31rem),radial-gradient(circle at 92% 32%,rgba(142,104,35,.10),transparent 27rem),var(--bg);color:var(--text);font:15px/1.75 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:hidden}body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.16;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:54px 54px;mask-image:linear-gradient(to bottom,#000,transparent 78%)}a{color:inherit}header,main,footer{width:min(1040px,calc(100% - 32px));margin:auto;position:relative;z-index:1}header{padding:22px 0 8px}.brand{display:block;width:min(410px,76vw);filter:drop-shadow(0 18px 38px rgba(0,0,0,.55))}nav{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px;padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:rgba(11,9,13,.74);backdrop-filter:blur(18px);box-shadow:inset 0 1px rgba(255,255,255,.04),0 14px 50px rgba(0,0,0,.24)}nav a{padding:7px 11px;border-radius:999px;text-decoration:none;color:#b8b0bc;font-size:12px;transition:.2s ease}nav a:hover,nav a:focus-visible{color:#fff;background:rgba(255,255,255,.07);outline:none}main{padding:48px 0 80px}.hero{position:relative;isolation:isolate;overflow:hidden;padding:48px clamp(22px,5vw,58px);border:1px solid rgba(255,255,255,.09);border-radius:34px;background:linear-gradient(145deg,rgba(17,16,22,.82),rgba(5,5,6,.62));box-shadow:0 36px 120px rgba(0,0,0,.5),inset 0 1px rgba(255,255,255,.045);backdrop-filter:blur(20px);perspective:900px}.orb{position:absolute;right:-75px;top:-105px;width:290px;height:290px;border-radius:50%;border:1px solid rgba(255,255,255,.08);background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.18),rgba(93,52,122,.12) 30%,rgba(0,0,0,0) 70%);box-shadow:inset -38px -38px 80px rgba(0,0,0,.67),0 36px 90px rgba(0,0,0,.4);transform:rotateX(62deg) rotateZ(-24deg);animation:orbit 34s linear infinite;z-index:-1}.orb2{position:absolute;right:20%;bottom:-75px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle at 30% 25%,rgba(221,181,91,.20),rgba(78,43,102,.09) 43%,transparent 70%);filter:blur(.4px);z-index:-1}.eyebrow{margin:0;color:var(--gold);font-size:11px;font-weight:800;letter-spacing:.25em;text-transform:uppercase}.hero h1{max-width:790px;margin:14px 0 20px;font-size:clamp(42px,8vw,76px);line-height:1.01;letter-spacing:-.045em}.lead{max-width:780px;margin:0;color:#c8c0cb;font-size:clamp(17px,2.6vw,22px);line-height:1.65}.grid{display:grid;gap:16px;margin-top:24px}.card{position:relative;overflow:hidden;padding:24px;border:1px solid rgba(255,255,255,.075);border-radius:24px;background:rgba(255,255,255,.018);box-shadow:inset 0 1px rgba(255,255,255,.04),0 18px 54px rgba(0,0,0,.16);transform:translateZ(0);transition:transform .28s ease,border-color .28s ease,background .28s ease}.card:before{content:"";position:absolute;inset:0 auto 0 0;width:1px;background:linear-gradient(transparent,rgba(210,166,77,.55),transparent);opacity:.2}.card:hover{transform:perspective(900px) translateY(-3px) rotateX(.6deg);border-color:rgba(255,255,255,.13);background:rgba(255,255,255,.026)}h2{margin:0 0 10px;font-size:20px;letter-spacing:-.02em}p{margin:9px 0;color:var(--muted)}footer{padding:28px 0 42px;border-top:1px solid rgba(255,255,255,.07);color:#8f8794;font-size:12px}footer strong{color:#d8d2dc}.footer-links{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px}.footer-links a{color:#aaa2ae}@keyframes orbit{to{transform:rotateX(62deg) rotateZ(336deg)}}@media(min-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.card:nth-child(3n){grid-column:span 2}}@media(max-width:700px){header{padding-top:14px}nav{border-radius:22px}.hero{padding-top:38px}.orb{opacity:.62}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.orb{animation:none}.card{transition:none}.card:hover{transform:none}}
+:root{color-scheme:dark;--bg:#0a0a0b;--surface:#101013;--surface2:#151519;--text:#f5f5f7;--muted:#8d8d98;--stroke:#26262c;--silver:#c9ccd4;--gold:#c89d4c;--aub:#4f2d63;--crimson:#5c1f31;--mx:50vw;--my:20vh}
+*{box-sizing:border-box}html{scroll-behavior:smooth;background:var(--bg)}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font:400 15px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:hidden}
+body:before{content:"";position:fixed;inset:0;z-index:-3;pointer-events:none;background:radial-gradient(700px circle at var(--mx) var(--my),rgba(105,72,132,.13),transparent 46%),radial-gradient(500px circle at 90% 60%,rgba(178,130,58,.07),transparent 50%),#080809}
+body:after{content:"";position:fixed;inset:0;z-index:-2;pointer-events:none;opacity:.18;background-image:radial-gradient(circle,rgba(255,255,255,.18) .7px,transparent .8px);background-size:28px 28px;mask-image:linear-gradient(to bottom,#000,transparent 82%)}
+a{color:inherit}.loader{position:fixed;inset:0;z-index:9999;background:#080809;transition:opacity .55s ease,visibility .55s ease}.loader.done{opacity:0;visibility:hidden}.loader-top{position:absolute;left:28px;top:25px;color:#777782;font-size:10px;letter-spacing:.28em;text-transform:uppercase}.loader-word{position:absolute;inset:0;display:grid;place-items:center;font:italic clamp(44px,8vw,104px)/1 "Instrument Serif",serif;color:rgba(245,245,247,.86);letter-spacing:-.035em}.loader-count{position:absolute;right:28px;bottom:32px;font:400 clamp(62px,10vw,132px)/.8 "Instrument Serif",serif;color:#ececf0;font-variant-numeric:tabular-nums}.loader-track{position:absolute;left:0;right:0;bottom:0;height:3px;background:#18181c}.loader-track div{height:100%;width:100%;transform:scaleX(0);transform-origin:left;background:linear-gradient(90deg,#bfc5cf 0%,#6f4a86 48%,#c89d4c 100%);box-shadow:0 0 14px rgba(126,89,151,.45)}
+.video-stage{position:absolute;inset:0;overflow:hidden;background:radial-gradient(circle at 50% 36%,#17121c 0,#09090b 48%,#070708 100%)}.video-stage video{position:absolute;left:50%;top:50%;width:100%;height:100%;min-width:100%;min-height:100%;object-fit:cover;transform:translate(-50%,-50%) scale(1.025);opacity:.62;filter:saturate(.72) contrast(1.06) brightness(.62)}.video-stage:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,5,7,.24) 0%,rgba(5,5,7,.16) 42%,#080809 100%),radial-gradient(circle at center,transparent 20%,rgba(6,6,8,.68) 100%)}
+.nav-wrap{position:fixed;left:0;right:0;top:0;z-index:80;display:flex;justify-content:center;padding:18px 16px;pointer-events:none}.nav{pointer-events:auto;display:inline-flex;align-items:center;gap:5px;max-width:calc(100vw - 28px);padding:7px;border:1px solid rgba(255,255,255,.10);border-radius:999px;background:rgba(12,12,15,.68);backdrop-filter:blur(22px) saturate(1.25);box-shadow:0 14px 44px rgba(0,0,0,.18),inset 0 1px rgba(255,255,255,.04);transition:background .25s ease,box-shadow .25s ease}.nav.scrolled{background:rgba(10,10,12,.88);box-shadow:0 18px 55px rgba(0,0,0,.34)}.nav-logo{display:grid;place-items:center;width:38px;height:38px;padding:2px;border-radius:50%;background:linear-gradient(135deg,#d8dbe2,#4f2d63 58%,#c89d4c);text-decoration:none}.nav-logo img{display:block;width:34px;height:34px;border-radius:50%;object-fit:cover;background:#080809;transition:transform .3s ease}.nav-logo:hover img{transform:scale(1.08) rotate(-4deg)}.nav-divider{width:1px;height:20px;margin:0 4px;background:#2b2b30}.nav-links{display:flex;align-items:center;gap:2px;overflow:auto;scrollbar-width:none}.nav-links::-webkit-scrollbar{display:none}.nav-links a{white-space:nowrap;text-decoration:none;color:#9c9ca6;font-size:11px;padding:8px 11px;border-radius:999px;transition:.22s ease}.nav-links a:hover,.nav-links a:focus-visible{color:#fff;background:#202024;outline:none}.nav-contact{margin-left:3px;color:#0b0b0c!important;background:#f0f0f2!important;font-weight:600!important}
+.hero{position:relative;min-height:${isHome ? "100svh" : "68svh"};display:flex;align-items:center;justify-content:center;overflow:hidden;padding:120px 24px 82px}.hero-inner{position:relative;z-index:4;width:min(1100px,100%);text-align:center}.hero-wordmark{display:block;width:min(560px,78vw);height:auto!important;margin:0 auto 34px;object-fit:contain;filter:drop-shadow(0 28px 70px rgba(0,0,0,.55));animation:heroFloat 7s ease-in-out infinite}.eyebrow{margin:0 0 22px;color:#a6a6b0;font-size:10px;font-weight:600;letter-spacing:.32em;text-transform:uppercase}.hero h1{margin:0 auto;max-width:1000px;font:italic clamp(56px,9vw,112px)/.9 "Instrument Serif",serif;font-weight:400;letter-spacing:-.055em;text-wrap:balance}.inner-page .hero h1{font-size:clamp(48px,7vw,86px)}.lead{max-width:710px;margin:26px auto 0;color:#aaaab4;font-size:clamp(15px,1.8vw,18px);line-height:1.75;text-wrap:balance}.hero-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:34px}.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:0 23px;border-radius:999px;text-decoration:none;font-size:13px;font-weight:600;transition:transform .22s ease,background .22s ease,border-color .22s ease}.btn:hover{transform:translateY(-2px) scale(1.015)}.btn-solid{background:#f1f1f3;color:#09090a;border:1px solid #f1f1f3}.btn-ghost{background:rgba(9,9,11,.46);color:#efeff2;border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(16px)}.btn-ghost:hover{border-color:rgba(200,157,76,.42);background:rgba(20,18,23,.78)}.scroll-cue{position:absolute;left:50%;bottom:24px;z-index:6;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;color:#73737c;font-size:9px;letter-spacing:.25em}.scroll-cue i{position:relative;width:1px;height:38px;background:#28282d;overflow:hidden}.scroll-cue i:after{content:"";position:absolute;left:0;top:-100%;width:1px;height:44%;background:#c8c8ce;animation:scrollDown 1.5s ease-in-out infinite}
+.content{position:relative;z-index:7;width:min(1180px,calc(100% - 34px));margin:-2px auto 0;padding:70px 0 110px}.section-head{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:28px}.section-kicker{display:flex;align-items:center;gap:10px;color:#777781;font-size:10px;text-transform:uppercase;letter-spacing:.28em}.section-kicker:before{content:"";width:34px;height:1px;background:#343439}.section-head h2{margin:12px 0 0;font:italic clamp(38px,5vw,62px)/1 "Instrument Serif",serif;font-weight:400}.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:18px;perspective:1200px}.card{position:relative;grid-column:span 6;min-height:230px;padding:28px;border:1px solid rgba(255,255,255,.075);border-radius:28px;background:linear-gradient(145deg,rgba(19,19,23,.86),rgba(11,11,13,.76));box-shadow:inset 0 1px rgba(255,255,255,.035),0 24px 80px rgba(0,0,0,.18);overflow:hidden;transform:perspective(1000px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateY(var(--lift,0));transform-style:preserve-3d;transition:transform .18s ease,border-color .25s ease,background .25s ease}.card-wide{grid-column:span 7}.card:nth-child(2n){grid-column:span 5}.card:nth-child(4n){grid-column:span 7}.card:before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:linear-gradient(135deg,rgba(198,202,212,.18),rgba(79,45,99,.4),rgba(200,157,76,.14));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:0;transition:opacity .3s}.card:after{content:"";position:absolute;width:220px;height:220px;right:-90px;top:-110px;border-radius:50%;background:radial-gradient(circle,rgba(101,65,125,.17),transparent 68%);pointer-events:none}.card:hover{--lift:-5px;border-color:rgba(255,255,255,.13);background:linear-gradient(145deg,rgba(24,23,29,.94),rgba(12,12,15,.86))}.card:hover:before{opacity:1}.card-index{color:#5f5f69;font-size:10px;letter-spacing:.2em;margin-bottom:42px}.card h2{position:relative;z-index:1;margin:0 0 16px;font:italic 31px/1.05 "Instrument Serif",serif;font-weight:400;letter-spacing:-.02em}.card p{position:relative;z-index:1;margin:10px 0;color:#9898a3;font-size:14px;line-height:1.8}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin:72px 0 0;border:1px solid #222228;border-radius:28px;overflow:hidden;background:#222228}.stats div{display:flex;flex-direction:column;justify-content:center;min-height:170px;padding:28px;background:#0d0d10}.stats strong{font:italic clamp(32px,5vw,58px)/1 "Instrument Serif",serif;font-weight:400;color:#f0f0f2}.stats span{margin-top:10px;color:#777781;font-size:11px;letter-spacing:.13em;text-transform:uppercase}
+.marquee{position:relative;z-index:4;overflow:hidden;border-top:1px solid #1f1f23;border-bottom:1px solid #1f1f23;padding:22px 0;background:#09090b}.marquee-track{display:flex;width:max-content;white-space:nowrap;font:italic clamp(38px,6vw,76px)/1 "Instrument Serif",serif;color:#17171b;animation:marquee 32s linear infinite}.marquee-track span{padding-right:32px}.footer{position:relative;z-index:4;padding:70px 24px 38px;background:radial-gradient(circle at 50% 120%,rgba(79,45,99,.18),transparent 38%),#080809;text-align:center}.footer h2{margin:0 auto;max-width:800px;font:italic clamp(48px,7vw,90px)/.95 "Instrument Serif",serif;font-weight:400;letter-spacing:-.04em}.footer p{max-width:560px;margin:20px auto 0;color:#83838d}.footer-actions{margin-top:30px}.footer-bar{width:min(1180px,100%);margin:70px auto 0;padding-top:22px;border-top:1px solid #1f1f24;display:flex;justify-content:space-between;gap:18px;color:#666670;font-size:11px}.footer-links{display:flex;flex-wrap:wrap;gap:16px}.footer-links a{color:#8d8d96;text-decoration:none}.footer-links a:hover{color:#fff}
+@keyframes heroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}@keyframes scrollDown{0%{transform:translateY(-100%)}100%{transform:translateY(320%)}}@keyframes marquee{to{transform:translateX(-50%)}}@media(max-width:780px){.nav-wrap{padding-top:10px}.nav-divider,.nav-contact{display:none}.nav{max-width:calc(100vw - 18px)}.nav-links a{padding:8px 9px}.hero{padding-left:18px;padding-right:18px}.hero-wordmark{width:min(460px,88vw);margin-bottom:28px}.content{width:min(100% - 24px,1180px);padding-top:50px}.grid{display:block}.card{min-height:0;margin-bottom:14px}.card-index{margin-bottom:28px}.stats{grid-template-columns:1fr}.stats div{min-height:120px}.footer-bar{flex-direction:column;align-items:center}.loader-top{left:18px}.loader-count{right:18px}.section-head{display:block}}@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.hero-wordmark,.scroll-cue i:after,.marquee-track{animation:none}.card,.btn{transition:none}.loader{display:none}}
 </style></head>
-<body><header><a href="/" aria-label="OCADE home"><img class="brand" src="/brand/ocade-carcc-wordmark.png" alt="OCADE by CARCC CADANE — Command the Next Era." width="2172" height="724" /></a><nav aria-label="Public information"><a href="/">Home</a><a href="/about">About</a><a href="/products/ocade">OCADE</a><a href="/company">Company</a><a href="/founder/haans-antoni">Founder</a><a href="/support">Contact</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav></header>
-<main><section class="hero"><div class="orb" aria-hidden="true"></div><div class="orb2" aria-hidden="true"></div><p class="eyebrow">${escapeHtml(document.eyebrow)}</p><h1>${escapeHtml(document.heading)}</h1><p class="lead">${escapeHtml(document.lead)}</p></section><div class="grid">${sections}</div></main>
-<footer><strong>CARCC CADANE</strong><div>OCADE — Command the Next Era.</div><div class="footer-links"><a href="/about">About</a><a href="/support">Contact</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div><div style="margin-top:10px">© 2026 CARCC CADANE.</div></footer></body></html>`;
+<body class="${isHome ? "home-page" : "inner-page"}">${loader}
+<div class="nav-wrap"><nav class="nav" id="nav" aria-label="Public information"><a class="nav-logo" href="/" aria-label="OCADE home"><img src="/brand/ocade-carcc-mark.png" alt="" width="96" height="96"></a><span class="nav-divider"></span><div class="nav-links"><a href="/">Home</a><a href="/about">About</a><a href="/products/ocade">OCADE</a><a href="/company">Company</a><a href="/founder/haans-antoni">Founder</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div><span class="nav-divider"></span><a class="nav-contact" href="/support">Contact ↗</a></nav></div>
+<section class="hero"><div class="video-stage"><video id="heroVideo" muted loop playsinline preload="metadata" aria-hidden="true"></video></div><div class="hero-inner"><img class="hero-wordmark" src="/brand/ocade-carcc-wordmark.png" alt="OCADE by CARCC CADANE — Command the Next Era." width="2172" height="724"><p class="eyebrow">${escapeHtml(document.eyebrow)}</p><h1>${escapeHtml(document.heading)}</h1><p class="lead">${escapeHtml(document.lead)}</p>${homeCtas}</div></section>
+<main class="content"><div class="section-head"><div><div class="section-kicker">${isHome ? "Inside OCADE" : "Official information"}</div><h2>${isHome ? "Designed for the next era." : "Clear. Current. Verifiable."}</h2></div></div><div class="grid">${sections}</div>${launchStats}</main>
+<div class="marquee" aria-hidden="true"><div class="marquee-track"><span>COMMAND THE NEXT ERA • PRIVATE INTELLIGENCE • PERMISSIONED ACTION • </span><span>COMMAND THE NEXT ERA • PRIVATE INTELLIGENCE • PERMISSIONED ACTION • </span></div></div>
+<footer class="footer"><h2>Building the next era.</h2><p>OCADE by CARCC CADANE. Local-first AI, optional connected services, and a controlled public launch.</p><div class="footer-actions"><a class="btn btn-ghost" href="/support">Contact / Support ↗</a></div><div class="footer-bar"><span>© 2026 CARCC CADANE</span><div class="footer-links"><a href="/about">About</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/support">Contact</a></div><span>Command the Next Era.</span></div></footer>
+<script>
+(function(){
+  const source="https://stream.mux.com/Aa02T7oM1wH5Mk5EEVDYhbZ1ChcdhRsS2m1NYyx4Ua1g.m3u8";
+  const video=document.getElementById("heroVideo");
+  if(video){
+    try{
+      if(video.canPlayType("application/vnd.apple.mpegurl")){video.src=source;video.play().catch(()=>{});}
+      else if(window.Hls&&window.Hls.isSupported()){const hls=new window.Hls({enableWorker:true,lowLatencyMode:false,maxBufferLength:20});hls.loadSource(source);hls.attachMedia(video);hls.on(window.Hls.Events.MANIFEST_PARSED,()=>video.play().catch(()=>{}));}
+    }catch(e){}
+  }
+  const nav=document.getElementById("nav");
+  const onScroll=()=>nav&&nav.classList.toggle("scrolled",window.scrollY>80);
+  onScroll();window.addEventListener("scroll",onScroll,{passive:true});
+  if(!window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+    window.addEventListener("pointermove",(e)=>{document.documentElement.style.setProperty("--mx",e.clientX+"px");document.documentElement.style.setProperty("--my",e.clientY+"px");},{passive:true});
+    document.querySelectorAll("[data-tilt]").forEach((card)=>{
+      card.addEventListener("pointermove",(e)=>{const r=card.getBoundingClientRect();const x=(e.clientX-r.left)/r.width-.5;const y=(e.clientY-r.top)/r.height-.5;card.style.setProperty("--ry",(x*3.2)+"deg");card.style.setProperty("--rx",(-y*3.2)+"deg");});
+      card.addEventListener("pointerleave",()=>{card.style.setProperty("--ry","0deg");card.style.setProperty("--rx","0deg");});
+    });
+    const loader=document.getElementById("loader"),count=document.getElementById("loaderCount"),bar=document.getElementById("loaderBar"),word=document.getElementById("loaderWord");
+    if(loader&&count&&bar&&word){const words=["PRIVATE","LOCAL","OCADE"];const start=performance.now(),duration=1650;const tick=(now)=>{const p=Math.min(1,(now-start)/duration);const n=Math.floor(p*100);count.textContent=String(n).padStart(3,"0");bar.style.transform="scaleX("+p+")";word.textContent=words[Math.min(words.length-1,Math.floor(p*words.length))];if(p<1)requestAnimationFrame(tick);else setTimeout(()=>loader.classList.add("done"),260)};requestAnimationFrame(tick);}
+  }
+})();
+<\/script></body></html>`;
 }
 
 function prelaunchPublicResponse(pathname: string): Response | null {
