@@ -176,13 +176,16 @@ function SupportPage() {
                 <option value="privacy">Privacy</option>
                 <option value="security">Security</option>
                 <option value="feedback">Feedback</option>
+                <option value="legal">Legal</option>
+                <option value="investor">Investor</option>
+                <option value="partnership">Partnership</option>
               </select>
               <textarea
                 value={detail}
                 onChange={(event) => setDetail(event.target.value)}
                 maxLength={5000}
                 rows={5}
-                placeholder="What happened, what you expected, and the exact safe-to-share error text"
+                placeholder="What happened, what you expected, and the exact safe-to-share details"
                 aria-label="Support details"
                 className="w-full resize-y rounded-lg border border-border bg-background px-3 py-2 text-sm"
               />
@@ -215,9 +218,7 @@ function SupportPage() {
               </button>
             ))}
             {!tickets.isLoading && tickets.data?.length === 0 ? (
-              <p className="py-6 text-center text-xs text-muted-foreground">
-                No support cases yet.
-              </p>
+              <p className="py-6 text-center text-xs text-muted-foreground">No support cases yet.</p>
             ) : null}
           </div>
         </GlassPanel>
