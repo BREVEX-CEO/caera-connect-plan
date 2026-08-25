@@ -8,7 +8,7 @@ export const Route = createFileRoute("/privacy")({
       { title: "Privacy notice — OCADE" },
       {
         name: "description",
-        content: "Pre-launch privacy notice for OCADE by CARCC CADANE.",
+        content: "Current Privacy notice for OCADE by CARCC CADANE, effective 25 August 2026.",
       },
     ],
   }),
@@ -16,10 +16,6 @@ export const Route = createFileRoute("/privacy")({
 });
 
 function PrivacyPage() {
-  /*
-   * The words live in `components/legal/LegalContent.tsx` so this page and the
-   * in-site dialog on the signup form cannot drift apart.
-   */
   return (
     <PublicPage
       eyebrow={PRIVACY_META.eyebrow}
