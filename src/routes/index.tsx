@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { SiteFooterLinks } from "@/components/shell/SiteFooter";
 import { LandingUniverse } from "@/components/landing/LandingUniverse";
 import { WEBSITE_STRUCTURED_DATA } from "@/lib/public-identity";
@@ -6,43 +6,30 @@ import { WEBSITE_STRUCTURED_DATA } from "@/lib/public-identity";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "CARCC CADANE — Private AI workspace for people and companies" },
+      { title: "OCADE by CARCC CADANE — Local-first AI workspace" },
       {
         name: "description",
         content:
-          "OCADE: a private, local-first AI assistant. It reads your documents on your own device and runs on your own hardware where it can.",
+          "OCADE is a local-first AI workspace by CARCC CADANE for private chat, research, work and permissioned computer control. Formal founding and public launch: 28 August 2026.",
       },
-      { property: "og:title", content: "CARCC CADANE — Private AI workspace" },
+      { property: "og:title", content: "OCADE by CARCC CADANE — Command the Next Era." },
       {
         property: "og:description",
         content:
-          "A private AI assistant that runs on your device first and asks before it uses the cloud.",
+          "Private intelligence on your own hardware where supported, with optional authentication, Private Sync and permissioned network services.",
       },
+      { property: "og:type", content: "website" },
+      { property: "og:image", content: "https://ocade.in/brand/ocade-carcc-wordmark.png" },
     ],
   }),
   component: LandingPage,
 });
 
 /**
- * The landing page.
- *
- * NOT INSIDE `MarketingShell`, and that is the point rather than an oversight.
- * The shell contributes a sticky header carrying the identity and the sign-in
- * actions — exactly the furniture this page exists without. The identity here
- * is a single element that travels from the centre of the opening into the
- * corner, and a second copy of it in a header would make that journey look like
- * a duplicate rather than a move.
- *
- * WHAT IS DELIBERATELY GONE. The four module cards (OCADE plus three names
- * reserved for products that are not being built) and the four "pillar" cards
- * below them. Sixteen paragraphs of reassurance in eight rectangles, read by
- * nobody, in front of the one thing on this page worth looking at. FICIA, MADEE
- * and CANIA appear nowhere public: a card for something that does not exist is
- * a promise, and three of them made the product look like a suite rather than
- * an assistant.
- *
- * The skip link stays. It is the one piece of shell chrome that is not
- * decoration.
+ * The public landing experience deliberately stays outside the marketing shell.
+ * The Three.js universe is already the highest-value visual element on this
+ * route, so legal/about/support pages use a lighter CSS depth system instead of
+ * pulling the full 3D engine into every public document.
  */
 function LandingPage() {
   return (
@@ -59,12 +46,20 @@ function LandingPage() {
       <main id="main-content" tabIndex={-1} className="focus:outline-none">
         <LandingUniverse />
       </main>
-      <footer className="relative z-10 border-t border-border/40 py-8">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-4 text-[11.5px] text-muted-foreground/70 sm:flex-row">
-          <p>© {new Date().getFullYear()} CARCC CADANE</p>
+      <footer className="relative z-10 border-t border-border/40 bg-background/55 py-8 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-[11.5px] text-muted-foreground/70 sm:flex-row">
+          <div className="text-center sm:text-left">
+            <p className="font-medium text-foreground/90">CARCC CADANE</p>
+            <p className="mt-1">OCADE — Command the Next Era.</p>
+            <p className="mt-1">© {new Date().getFullYear()} CARCC CADANE</p>
+          </div>
           <SiteFooterLinks
             extra={[
+              { to: "/about", label: "About" },
               { to: "/company", label: "Company" },
+              { to: "/support", label: "Contact" },
+              { to: "/privacy", label: "Privacy" },
+              { to: "/terms", label: "Terms" },
               { to: "/auth", label: "Sign in" },
             ]}
           />
