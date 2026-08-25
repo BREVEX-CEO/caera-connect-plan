@@ -10,25 +10,18 @@ import {
 } from "@/lib/local/model-lifecycle";
 import { streamLocalChat, DEFAULT_LOCAL_BRIDGE_URL } from "@/lib/ocade-local";
 import { useLocalEngine } from "@/lib/use-local-engine";
+import { presentOcadeEngine } from "@/lib/ocade-model-presentation";
 
 /**
  * Production owner for the local-model lifecycle (P05).
  *
- * `model-lifecycle.ts` had no reachable entry point, which would have made it a
- * source-complete module imported only by tests — the exact shape this audit
- * counts as unwired. This panel is that entry point.
- *
- * It is deliberately plain about three things the user is entitled to know
- * before a multi-hundred-megabyte download starts: how big it is, where it
- * goes, and that it stays on this machine. It does not start anything on its
- * own — every action here is a button the user presses.
+ * Runtime model ids stay internal. A customer chooses an OCADE capability,
+ * while the local bridge still receives the exact verified runtime id it needs.
  */
-
-/** Storage disclosure is not optional, so the size travels with the id. */
 const SUGGESTED = [
-  { id: "smollm2:135m", label: "Smallest", approxBytes: 271_000_000 },
-  { id: "qwen2.5:0.5b", label: "Small", approxBytes: 398_000_000 },
-  { id: "qwen2.5-coder:1.5b", label: "Code", approxBytes: 986_000_000 },
+  { id: "smollm2:135m", approxBytes: 271_000_000 },
+  { id: "qwen2.5:0.5b", approxBytes: 398_000_000 },
+  { id: "qwen2.5-coder:1.5b", approxBytes: 986_000_000 },
 ] as const;
 
 const gb = (b: number) => (b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : `${Math.round(b / 1e6)} MB`);
@@ -51,11 +44,12 @@ export function LocalModelLifecyclePanel({
 
   const install = useCallback(async () => {
     const suggestion = SUGGESTED.find((s) => s.id === target);
+    const presentation = presentOcadeEngine(target);
     const ac = new AbortController();
     setController(ac);
     setPhase("downloading");
     setProgress(null);
-    say(`Downloading ${target} (${gb(suggestion?.approxBytes ?? 0)})…`);
+    say(`Downloading ${presentation.label}…`);
 
     const pulled = await pullModel(bridgeUrl, target, {
       signal: ac.signal,
@@ -66,7 +60,6 @@ export function LocalModelLifecyclePanel({
 
     if (!pulled.ok) {
       setPhase("idle");
-      // Cancelling is a normal outcome, not an error, and resuming works.
       if (pulled.failure === "cancelled") {
         say(pulled.reason);
         toast.info(pulled.reason);
@@ -78,7 +71,7 @@ export function LocalModelLifecyclePanel({
     }
 
     setPhase("verifying");
-    say("Checking the download actually installed…");
+    say("Checking the download…");
     const verified = await verifyInstalled(bridgeUrl, target);
     if (!verified.ok) {
       setPhase("idle");
@@ -86,15 +79,10 @@ export function LocalModelLifecyclePanel({
       toast.error(verified.reason);
       return;
     }
-    say(
-      verified.digestVerified
-        ? `Installed, ${gb(verified.sizeBytes)}, digest checked.`
-        : `Installed, ${gb(verified.sizeBytes)}. The engine did not report a digest, so this is unverified.`,
-    );
+    say(verified.digestVerified ? "Installed and verified." : "Installed. Integrity proof is unavailable from this runtime.");
 
-    // Downloaded is not ready. Prove it answers AND stops.
     setPhase("activating");
-    say("Testing that it answers and that it can be stopped…");
+    say("Testing OCADE Local Intelligence…");
     const activated = await activateModel(target, {
       runInference: async (id, prompt) => {
         let text = "";
@@ -122,13 +110,14 @@ export function LocalModelLifecyclePanel({
       toast.error(activated.reason);
       return;
     }
-    say(`Ready. First reply in ${activated.firstTokenMs} ms.`);
-    toast.success("Local engine ready.");
+    say("Ready.");
+    toast.success(`${presentation.label} is ready.`);
     engine.refresh(true);
   }, [bridgeUrl, target, say, engine]);
 
   const remove = useCallback(
     async (modelId: string) => {
+      const presentation = presentOcadeEngine(modelId);
       setPhase("removing");
       const r = await removeModel(bridgeUrl, modelId);
       setPhase("idle");
@@ -137,8 +126,8 @@ export function LocalModelLifecyclePanel({
         toast.error(r.reason);
         return;
       }
-      say(`Removed ${modelId} and freed its storage.`);
-      toast.success(`Removed ${modelId}.`);
+      say(`${presentation.label} removed.`);
+      toast.success(`${presentation.label} removed.`);
       engine.refresh(true);
     },
     [bridgeUrl, say, engine],
@@ -146,13 +135,13 @@ export function LocalModelLifecyclePanel({
 
   const busy = phase !== "idle";
   const suggestion = SUGGESTED.find((s) => s.id === target);
+  const selectedPresentation = presentOcadeEngine(target);
 
   return (
     <section className="rounded-lg border border-border p-4" data-testid="local-model-lifecycle">
-      <h3 className="text-sm font-medium">On-device engines</h3>
+      <h3 className="text-sm font-medium">OCADE Local Intelligence</h3>
       <p className="mt-1 text-xs text-muted-foreground">
-        Downloads run through the engine on your own machine and stay there. Nothing you type is
-        sent anywhere while an on-device engine is answering.
+        Choose the level you want. OCADE handles the underlying runtime and keeps generation on this device.
       </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -161,13 +150,16 @@ export function LocalModelLifecyclePanel({
           value={target}
           disabled={busy}
           onChange={(e) => setTarget(e.target.value)}
-          aria-label="Engine to install"
+          aria-label="OCADE local intelligence level"
         >
-          {SUGGESTED.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.label} — {s.id} ({gb(s.approxBytes)})
-            </option>
-          ))}
+          {SUGGESTED.map((s) => {
+            const presentation = presentOcadeEngine(s.id);
+            return (
+              <option key={s.id} value={s.id}>
+                {presentation.label} · {gb(s.approxBytes)}
+              </option>
+            );
+          })}
         </select>
 
         <button
@@ -194,13 +186,13 @@ export function LocalModelLifecyclePanel({
             Cancel
           </button>
         )}
-
-        {suggestion && (
-          <span className="text-xs text-muted-foreground">
-            Uses about {gb(Math.round(suggestion.approxBytes * 1.15))} of disk while installing.
-          </span>
-        )}
       </div>
+
+      {suggestion ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          {selectedPresentation.description} Download size is about {gb(suggestion.approxBytes)}.
+        </p>
+      ) : null}
 
       {progress && (
         <div className="mt-3">
@@ -212,8 +204,7 @@ export function LocalModelLifecyclePanel({
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             {progress.status}
-            {progress.totalBytes > 0 &&
-              ` — ${gb(progress.completedBytes)} of ${gb(progress.totalBytes)}`}
+            {progress.totalBytes > 0 && ` · ${Math.round(progress.percent ?? 0)}%`}
           </p>
         </div>
       )}
@@ -221,10 +212,8 @@ export function LocalModelLifecyclePanel({
       {engine.models.length > 0 && (
         <ul className="mt-4 space-y-1">
           {engine.models.map((m) => (
-            <li key={m.id} className="flex items-center justify-between text-xs">
-              <span>
-                {m.label} <span className="text-muted-foreground">— {gb(m.sizeBytes)}</span>
-              </span>
+            <li key={m.id} className="flex items-center justify-between gap-3 text-xs">
+              <span>{presentOcadeEngine(m.id).label}</span>
               <button
                 type="button"
                 className="rounded border border-border px-2 py-0.5 disabled:opacity-50"
@@ -251,3 +240,4 @@ export function LocalModelLifecyclePanel({
 
 /** Exported for the panel's tests — the disclosure must match the check. */
 const disclosedInstallBytes = (approxBytes: number) => checkDisk(approxBytes, Number.NaN).needBytes;
+void disclosedInstallBytes;
