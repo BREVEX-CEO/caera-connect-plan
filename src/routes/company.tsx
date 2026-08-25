@@ -8,7 +8,7 @@ export const Route = createFileRoute("/company")({
       { title: "CARCC CADANE — Company and brand information" },
       {
         name: "description",
-        content: "Official pre-launch information about CARCC CADANE, the brand behind OCADE.",
+        content: "Official information about CARCC CADANE, the technology enterprise and brand behind OCADE.",
       },
     ],
   }),
@@ -20,45 +20,63 @@ function CompanyPage() {
     <PublicPage
       eyebrow="Official information"
       title={PUBLIC_IDENTITY.brand}
-      summary="CARCC CADANE is the brand and product venture behind OCADE. It is based in Bengaluru, Karnataka, India, and is preparing for a planned public launch on 28 August 2026."
+      summary="CARCC CADANE is an independent technology enterprise, business brand and venture building OCADE. The scheduled founding and public-launch date is 28 August 2026."
       structuredData={organizationStructuredData()}
     >
-      <PublicSection title="Current status">
+      <PublicSection title="What CARCC CADANE is">
         <p>
-          CARCC CADANE is currently a pre-launch brand operated by Haans Antoni. This page does not
-          claim that an Indian company has already been incorporated. Formal entity details, CIN,
-          GSTIN and a registered-office address will be published only after they are issued and
-          independently verified.
+          CARCC CADANE is the technology enterprise and product venture behind OCADE. It develops
+          software, AI systems and related products under the CARCC CADANE identity. The official
+          tagline is “Command the Next Era.”
+        </p>
+        <p>
+          Public references use the CARCC CADANE enterprise and brand identity. Legal-form,
+          securities, trademark, funding or registration claims are published only when they are
+          separately established and appropriate to disclose.
         </p>
       </PublicSection>
-      <PublicSection title="Identity and launch record">
+
+      <PublicSection title="Founding and launch record">
         <p>
-          Haans Antoni created the CARCC CADANE brand and OCADE product identity. The official
-          tagline is “Command the Next Era.” The venture records 28 August 2026 as its planned
-          founding and public-launch date; until that date, every public surface must describe it
-          as planned or pre-launch rather than already founded or launched.
-        </p>
-        <p>
-          Publication does not by itself establish incorporation, trademark registration or
-          exclusive ownership. Those claims remain separate and will be published only when
-          independently verified.
+          CARCC CADANE records 28 August 2026 as its scheduled founding date and the scheduled public
+          launch of OCADE. Before that opening, public information pages may be available for
+          identity, legal, privacy and verification purposes while the authenticated product remains
+          launch-gated.
         </p>
       </PublicSection>
+
       <PublicSection title="Leadership">
         <p>
-          HAANS ANTONI is the founder and publicly uses the roles CEO, Chairman and Founder for
-          the CARCC CADANE venture. Read the{` `}
+          HAANS ANTONI is Founder, CEO and Chairman of CARCC CADANE and creator of OCADE. Read the{` `}
           <Link to="/founder/haans-antoni" className="text-foreground underline">
             official founder profile
           </Link>
           .
         </p>
       </PublicSection>
-      <PublicSection title="Products">
+
+      <PublicSection title="OCADE">
         <p>
-          OCADE is the active product in development. FICIA, MADEE and CANIA are reserved names for
-          possible future products; they are not AI models and no availability claim is made for
-          them.
+          OCADE is the active local-first AI workspace in development. Its supported AI generation
+          is designed around on-device inference, with optional authentication, Private Sync,
+          current-information retrieval and other permissioned online services clearly separated
+          from the local AI path.
+        </p>
+        <p>
+          Read the <Link to="/products/ocade" className="text-foreground underline">OCADE product page</Link> for the current product boundary.
+        </p>
+      </PublicSection>
+
+      <PublicSection title="Investors and strategic partners">
+        <p>
+          CARCC CADANE welcomes serious enquiries from prospective investors and strategic partners
+          who want to discuss the business, product strategy or a possible future investment or
+          ownership transaction. No outside shareholder or investor is publicly announced on this
+          page today, and nothing on this website is an offer to sell securities or a solicitation
+          to invest.
+        </p>
+        <p>
+          Use the <Link to="/about" className="text-foreground underline">About page</Link> for the current investor-enquiry process.
         </p>
       </PublicSection>
     </PublicPage>
