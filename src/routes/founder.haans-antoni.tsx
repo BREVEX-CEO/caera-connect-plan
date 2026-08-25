@@ -8,7 +8,7 @@ export const Route = createFileRoute("/founder/haans-antoni")({
       { title: "HAANS ANTONI — CEO, Chairman and Founder of CARCC CADANE" },
       {
         name: "description",
-        content: "Official profile of Haans Antoni, founder of CARCC CADANE and creator of OCADE.",
+        content: "Official profile of HAANS ANTONI, Founder, CEO and Chairman of CARCC CADANE and creator of OCADE.",
       },
     ],
   }),
@@ -20,7 +20,7 @@ function FounderPage() {
     <PublicPage
       eyebrow="Official founder profile"
       title={PUBLIC_IDENTITY.founderAlternateName}
-      summary="HAANS ANTONI is CEO, Chairman and Founder of CARCC CADANE and creator of OCADE, based in Bengaluru, Karnataka, India."
+      summary="HAANS ANTONI is Founder, CEO and Chairman of CARCC CADANE and creator of OCADE."
       structuredData={FOUNDER_STRUCTURED_DATA}
     >
       <div className="flex items-center gap-4 rounded-2xl border border-white/7 bg-white/[0.018] p-5">
@@ -33,56 +33,51 @@ function FounderPage() {
         </div>
         <div>
           <p className="font-semibold">HAANS ANTONI</p>
-          <p className="text-sm text-muted-foreground">CEO, Chairman and Founder</p>
-          <p className="mt-1 text-xs text-muted-foreground">Bengaluru, Karnataka, India</p>
+          <p className="text-sm text-muted-foreground">Founder, CEO and Chairman</p>
           <p className="mt-1 text-xs text-muted-foreground">Founder record · 28 August 2026</p>
         </div>
       </div>
-      <PublicSection title="Work">
+
+      <PublicSection title="Role">
         <p>
-          Haans Antoni leads the product direction for OCADE, a cross-platform, local-first AI
-          workspace being prepared for public launch. This profile records the founder’s role; it
-          does not imply an incorporation, trademark registration, funding round or public listing
-          that has not occurred.
+          Haans Antoni leads CARCC CADANE and directs the product vision for OCADE, a local-first AI
+          workspace scheduled for public launch on 28 August 2026. This page records the leadership
+          and product-creation information CARCC CADANE has chosen to publish.
         </p>
       </PublicSection>
+
       <PublicSection title="Contribution record">
         <ul className="list-disc space-y-2 pl-5">
           <li>Created and directs OCADE’s local-first product vision.</li>
           <li>Established the CARCC CADANE and OCADE brand concepts.</li>
-          <li>Leads the pre-launch product, safety and evidence requirements.</li>
+          <li>Leads product, safety, launch and evidence requirements.</li>
         </ul>
       </PublicSection>
+
       <PublicSection title="Public profile scope">
         <p>
-          This is the official public founder profile. It contains only the founder identity and
-          work record CARCC CADANE has chosen to publish; it does not expose an OCADE user profile,
-          private account activity, contact address or follower count. Per-user profile visibility
-          controls and contact or follow actions remain unavailable until the correct production
-          identity project and communication channel are verified.
+          This profile contains only the founder identity and work record intentionally published by
+          CARCC CADANE. It does not expose private OCADE account activity, personal contact details,
+          private communications or user-profile data, and it does not imply an unannounced funding
+          round, public listing or securities offering.
         </p>
       </PublicSection>
+
       <PublicSection title="Creation and brand record">
         <p>
-          Haans Antoni records that he independently started the CARCC CADANE venture, created the
-          CARCC CADANE and OCADE brand concepts, and directs OCADE’s product vision. OCADE is
-          pronounced “OH-kayd.” Any later assignment of
-          founder-created intellectual property to an incorporated company must be completed in a
-          signed written agreement and reflected in the company’s records.
+          Haans Antoni created the CARCC CADANE and OCADE brand concepts and directs OCADE’s product
+          vision. OCADE is pronounced “OH-kayd.” Brand, intellectual-property, registration and
+          ownership claims remain subject to the rights, licences and legal records that actually
+          apply to each asset.
         </p>
       </PublicSection>
+
       <PublicSection title="Official references">
         <p>
-          Read the{` `}
-          <Link to="/company" className="text-foreground underline">
-            CARCC CADANE profile
-          </Link>
-          {` `}
-          and the{` `}
-          <Link to="/products/ocade" className="text-foreground underline">
-            OCADE product profile
-          </Link>
-          . Search engines decide independently how and when this information appears.
+          Read the <Link to="/company" className="text-foreground underline">CARCC CADANE profile</Link>, the{` `}
+          <Link to="/about" className="text-foreground underline">About page</Link> and the{` `}
+          <Link to="/products/ocade" className="text-foreground underline">OCADE product profile</Link>.
+          Search engines decide independently how and when this information appears.
         </p>
       </PublicSection>
     </PublicPage>
