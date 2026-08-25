@@ -88,12 +88,10 @@ function lockedAssetResponse(
 /**
  * Outermost Cloudflare entrypoint.
  *
- * Nitro's stock Cloudflare adapter forwards matching public files to ASSETS
- * before the TanStack server entry runs. That is normally a useful fast path,
- * but it would bypass OCADE's pre-launch gate for hashed application bundles.
- * This entry owns that decision at the actual edge boundary: only the two
- * factual brand images may pass while locked; every other uploaded asset gets
- * the same 503/no-store/noindex response as a private page.
+ * While the launch gate is locked, this boundary owns every public request.
+ * Only the explicit public information surface and deployment-health probe may
+ * escape the lock. No authenticated route, application HTML or hashed bundle
+ * may fall through to Nitro before launch.
  */
 export default {
   async fetch(request: Request, env: CloudflareEnvironment, context: WaitUntilContext) {
@@ -101,15 +99,16 @@ export default {
     augmentRequest(request, env, context);
 
     const url = new URL(request.url);
+    const gate = evaluateLaunchGate({
+      now: Date.now(),
+      hostname: url.hostname,
+      env,
+    });
+    const isGetOrHead = request.method === "GET" || request.method === "HEAD";
+
     if (env.ASSETS && isPublicAssetURL(url.pathname)) {
-      const gate = evaluateLaunchGate({
-        now: Date.now(),
-        hostname: url.hostname,
-        env,
-      });
       const mayReadPublicAsset =
-        (request.method === "GET" || request.method === "HEAD") &&
-        PRELAUNCH_PUBLIC_ASSET_PATHS.has(url.pathname);
+        isGetOrHead && PRELAUNCH_PUBLIC_ASSET_PATHS.has(url.pathname);
 
       if (!gate.open && !mayReadPublicAsset) {
         return lockedAssetResponse(url.pathname, gate);
@@ -117,6 +116,17 @@ export default {
 
       const response = await env.ASSETS.fetch(request);
       return gate.open ? withPublicSecurityHeaders(response) : publicAssetResponse(response);
+    }
+
+    if (!gate.open) {
+      // Keep the immutable deployment-health probe reachable while locked.
+      if (isGetOrHead && url.pathname === "/api/health") {
+        return nitroApp.fetch(request);
+      }
+
+      // Public Home/Privacy/Terms/company/founder/product/robots/sitemap are
+      // answered by prelaunchResponse; every other route receives 503.
+      return withPublicSecurityHeaders(prelaunchResponse(url.pathname, gate));
     }
 
     return nitroApp.fetch(request);
