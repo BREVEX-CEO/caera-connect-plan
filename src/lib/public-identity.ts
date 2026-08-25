@@ -29,7 +29,7 @@ export function organizationStructuredData(now: number = Date.now()) {
     slogan: PUBLIC_IDENTITY.tagline,
     ...(founded ? { foundingDate: PUBLIC_IDENTITY.plannedFoundingDate } : {}),
     description:
-      "CARCC CADANE is an independent technology enterprise, business brand and venture behind OCADE.",
+      "CARCC CADANE is the independent technology enterprise, business brand and venture behind OCADE.",
     founder: {
       "@type": "Person",
       "@id": "https://ocade.in/#haans-antoni",
@@ -93,5 +93,5 @@ export const OCADE_STRUCTURED_DATA = {
     name: PUBLIC_IDENTITY.founder,
     alternateName: PUBLIC_IDENTITY.founderAlternateName,
   },
-  description: `OCADE, defined by its creator as ${PUBLIC_IDENTITY.productMeaning}, is a local-first AI workspace scheduled for public launch on ${PUBLIC_IDENTITY.plannedLaunchDate}, with optional private synchronization and permissioned current-information retrieval.`,
+  description: `OCADE, defined by its creator as ${PUBLIC_IDENTITY.productMeaning}, is a local-first AI workspace whose formal public-launch date is ${PUBLIC_IDENTITY.plannedLaunchDate}, with optional private synchronization and permissioned current-information retrieval.`,
 };
