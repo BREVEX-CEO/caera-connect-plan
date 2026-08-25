@@ -7,22 +7,6 @@ import {
   type LocalRuntimeStatus,
 } from "@/lib/local-runtime.functions";
 
-/**
- * Production owner for the OCADE Local Engine supervisor (B1).
- *
- * Before this, every local-engine surface assumed the runtime was already
- * listening — which meant local mode worked only for someone who had already
- * opened a terminal and started it by hand. That is exactly the manual step the
- * product exists to remove, and it is the reason this control exists rather
- * than a line in the documentation telling the user to run a command.
- *
- * The engine is only ever bound to loopback. That is not enforced here — the
- * server function does not accept a bind address at all, and the supervisor
- * refuses anything that is not loopback — but it is STATED here, because a user
- * deciding whether to start a local AI server is entitled to know it will not
- * be reachable from the rest of their network.
- */
-
 type Phase = "idle" | "checking" | "starting" | "stopping";
 
 export function LocalEngineControl() {
@@ -36,8 +20,6 @@ export function LocalEngineControl() {
       setStatus(await localRuntimeStatusFn());
       setProblem(null);
     } catch (error) {
-      // A status probe that fails is reported, not swallowed into "stopped" —
-      // "we could not tell" and "it is not running" are different facts.
       setProblem(`Could not read the engine status: ${String(error)}`);
     } finally {
       setPhase("idle");
@@ -56,19 +38,16 @@ export function LocalEngineControl() {
       if (result.ok) {
         toast.success(
           result.alreadyRunning
-            ? "OCADE Local Engine was already running."
-            : `OCADE Local Engine started in ${(result.waitedMs / 1000).toFixed(1)}s.`,
+            ? "OCADE Local Intelligence was already running."
+            : "OCADE Local Intelligence is ready.",
         );
       } else {
-        // Failures name the specific cause; a generic "failed to start" would
-        // leave a user with no idea whether to install something, free a port,
-        // or wait longer.
         setProblem(result.reason);
-        toast.error("The local engine did not start.");
+        toast.error("OCADE Local Intelligence did not start.");
       }
     } catch (error) {
       setProblem(String(error));
-      toast.error("The local engine did not start.");
+      toast.error("OCADE Local Intelligence did not start.");
     } finally {
       setPhase("idle");
       void refresh();
@@ -83,16 +62,16 @@ export function LocalEngineControl() {
       if (result.ok) {
         toast.success(
           result.alreadyStopped
-            ? "OCADE Local Engine was already stopped."
-            : "OCADE Local Engine stopped.",
+            ? "OCADE Local Intelligence was already stopped."
+            : "OCADE Local Intelligence stopped.",
         );
       } else {
         setProblem(result.reason);
-        toast.error("The local engine did not stop.");
+        toast.error("OCADE Local Intelligence did not stop.");
       }
     } catch (error) {
       setProblem(String(error));
-      toast.error("The local engine did not stop.");
+      toast.error("OCADE Local Intelligence did not stop.");
     } finally {
       setPhase("idle");
       void refresh();
@@ -106,12 +85,12 @@ export function LocalEngineControl() {
   return (
     <section className="rounded-lg border border-border p-4" aria-labelledby="local-engine-heading">
       <h3 id="local-engine-heading" className="text-sm font-medium">
-        OCADE Local Engine
+        OCADE Local Intelligence
       </h3>
 
       <p className="mt-1 text-xs text-muted-foreground">
-        Runs on this machine and listens on {status?.baseUrl ?? "127.0.0.1:11434"} only. Nothing it
-        does is reachable from your network, and no prompt sent to it leaves this computer.
+        Runs only on this device. OCADE manages the local runtime automatically; network addresses,
+        process details and engine identifiers stay in Advanced diagnostics.
       </p>
 
       <p className="mt-2 text-xs" aria-live="polite">
@@ -120,14 +99,12 @@ export function LocalEngineControl() {
         {phase === "starting" && "Starting…"}
         {phase === "stopping" && "Stopping…"}
         {phase === "idle" && status === null && "Unknown"}
-        {phase === "idle" && status !== null && (running ? "Running" : "Stopped")}
+        {phase === "idle" && status !== null && (running ? "Ready" : "Stopped")}
       </p>
 
       {status !== null && !installed && (
         <p className="mt-2 text-xs text-muted-foreground">
-          The engine is not installed in any location OCADE recognises, so it cannot be started from
-          here. OCADE will not search your PATH for it — that would let anything with a matching
-          name be launched.
+          Local Intelligence is not installed on this device yet.
         </p>
       )}
 
@@ -138,7 +115,7 @@ export function LocalEngineControl() {
           onClick={() => void start()}
           disabled={busy || running || !installed}
         >
-          {phase === "starting" ? "Starting…" : "Start engine"}
+          {phase === "starting" ? "Starting…" : "Start"}
         </button>
 
         <button
@@ -147,7 +124,7 @@ export function LocalEngineControl() {
           onClick={() => void stop()}
           disabled={busy || !running}
         >
-          {phase === "stopping" ? "Stopping…" : "Stop engine"}
+          {phase === "stopping" ? "Stopping…" : "Stop"}
         </button>
 
         <button
@@ -161,9 +138,12 @@ export function LocalEngineControl() {
       </div>
 
       {problem && (
-        <p className="mt-3 text-xs text-destructive" role="alert">
-          {problem}
-        </p>
+        <details className="mt-3 text-xs text-destructive">
+          <summary className="cursor-pointer">Technical details</summary>
+          <p className="mt-1 break-words" role="alert">
+            {problem}
+          </p>
+        </details>
       )}
     </section>
   );
