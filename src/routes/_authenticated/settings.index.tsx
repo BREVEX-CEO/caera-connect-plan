@@ -1,25 +1,13 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import {
-  Check,
-  LogOut,
-  Loader2,
-  Palette,
-  MousePointer,
-  User as UserIcon,
-  Sun,
-  Moon,
-  Waves,
-} from "lucide-react";
+import { Check, LogOut, Loader2, Palette, User as UserIcon } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
+import { DeviceAvatarEditor } from "@/components/settings/DeviceAvatarEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { recordAction } from "@/lib/actions";
-import { type ThemeMode, type CursorKind } from "@/lib/theme-provider";
-import { useAppearance } from "@/lib/use-appearance";
 import { cn } from "@/lib/utils";
-import { DeviceAvatarEditor } from "@/components/settings/DeviceAvatarEditor";
 
 export const Route = createFileRoute("/_authenticated/settings/")({
   head: () => ({
@@ -65,49 +53,27 @@ function guessTz(): string[] {
     "Australia/Sydney",
   ];
   try {
-    const cur = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (cur && !list.includes(cur)) list.unshift(cur);
+    const current = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (current && !list.includes(current)) list.unshift(current);
   } catch {
-    /* ignore */
+    // Keep the stable list when Intl timezone detection is unavailable.
   }
   return list;
 }
 
-const THEMES: { id: ThemeMode; label: string; icon: typeof Sun }[] = [
-  { id: "dark", label: "Dark", icon: Moon },
-  { id: "light", label: "Light", icon: Sun },
-  { id: "real", label: "REAL", icon: Waves },
-];
-
-const CURSORS: { id: CursorKind; label: string }[] = [
-  { id: "system", label: "System" },
-  { id: "caera_black", label: "OCADE Black" },
-  { id: "caera_white", label: "OCADE White" },
-  { id: "auto_contrast", label: "Auto Contrast" },
-];
-
 function GeneralPage() {
   const navigate = useNavigate();
   const { user } = useSession();
-  const appearance = useAppearance();
-
   const [row, setRow] = useState<ProfileRow | null>(null);
   const [dirty, setDirty] = useState<Partial<ProfileRow>>({});
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
-  const tzList = guessTz();
-
-  /**
-   * The form must not pretend to be empty while the profile is still in
-   * flight. `loading` says so out loud, and any edit made meanwhile survives
-   * because `dirty` is merged over the loaded row rather than replaced by it.
-   * `loadError` offers a retry instead of a silently blank page.
-   */
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const tzList = guessTz();
 
   useEffect(() => {
     if (!user) return;
@@ -144,7 +110,7 @@ function GeneralPage() {
   }, [user, reloadKey]);
 
   function update<K extends keyof ProfileRow>(key: K, value: ProfileRow[K]) {
-    setDirty((d) => ({ ...d, [key]: value }));
+    setDirty((current) => ({ ...current, [key]: value }));
   }
 
   const view: ProfileRow | null = row
@@ -184,8 +150,8 @@ function GeneralPage() {
         actionId: "settings.profile.update",
         metadata: { fields: Object.keys(dirty) },
       });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught));
     } finally {
       setSaving(false);
     }
@@ -203,36 +169,27 @@ function GeneralPage() {
       .split(/[\s@.]+/)
       .filter(Boolean)
       .slice(0, 2)
-      .map((s) => s[0]?.toUpperCase())
+      .map((part) => part[0]?.toUpperCase())
       .join("") || "?";
 
   return (
     <>
       <PageHeader
-        eyebrow="Account · General"
+        eyebrow="Settings"
         title="General"
-        description="Your identity, personal OCADE instructions and quick appearance controls."
+        description="Your identity, preferences and the short instructions OCADE should remember."
       />
 
       {error ? (
-        <div
-          role="alert"
-          className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
-        >
+        <div role="alert" className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
           {error}
         </div>
       ) : null}
 
       {loadError ? (
-        <div
-          role="alert"
-          className="mb-4 flex items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
-        >
-          <span>Could not load your profile: {loadError}</span>
-          <button
-            onClick={() => setReloadKey((k) => k + 1)}
-            className="underline underline-offset-2"
-          >
+        <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          <span>Could not load your profile.</span>
+          <button onClick={() => setReloadKey((key) => key + 1)} className="underline underline-offset-2">
             Retry
           </button>
         </div>
@@ -244,250 +201,97 @@ function GeneralPage() {
         </GlassPanel>
       ) : null}
 
-      {/* Identity */}
       <GlassPanel className="p-5">
-        <SectionHeading icon={UserIcon} title="Identity" />
+        <SectionHeading icon={UserIcon} title="You" />
         <div className="mt-4 flex items-start gap-4">
           <DeviceAvatarEditor storageKey={`ocade:device-avatar:${user?.id ?? "anonymous"}`} initials={initials} />
-          <div className="min-w-0 flex-1 grid gap-3 sm:grid-cols-2">
+          <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
             <Field label="Full name">
-              <input
-                aria-label="Full name"
-                type="text"
-                value={view?.full_name ?? ""}
-                onChange={(e) => update("full_name", e.target.value)}
-                placeholder="e.g. Priya Sharma"
-                className={inputCls}
-              />
+              <input aria-label="Full name" type="text" value={view?.full_name ?? ""} onChange={(event) => update("full_name", event.target.value)} className={inputCls} />
             </Field>
             <Field label="Preferred name">
-              <input
-                aria-label="Preferred name"
-                type="text"
-                value={view?.preferred_name ?? ""}
-                onChange={(e) => update("preferred_name", e.target.value)}
-                placeholder="OCADE will greet you with this"
-                className={inputCls}
-              />
+              <input aria-label="Preferred name" type="text" value={view?.preferred_name ?? ""} onChange={(event) => update("preferred_name", event.target.value)} className={inputCls} />
             </Field>
             <Field label="Occupation or role" className="sm:col-span-2">
-              <input
-                aria-label="Occupation or role"
-                type="text"
-                value={view?.occupation ?? ""}
-                onChange={(e) => update("occupation", e.target.value)}
-                placeholder="e.g. Product designer, CA articled trainee"
-                className={inputCls}
-              />
+              <input aria-label="Occupation or role" type="text" value={view?.occupation ?? ""} onChange={(event) => update("occupation", event.target.value)} className={inputCls} />
             </Field>
           </div>
         </div>
       </GlassPanel>
 
-      {/* Personal OCADE instructions */}
       <GlassPanel className="mt-4 p-5">
-        <SectionHeading title="Personal OCADE instructions" />
-        <p className="mt-1 text-xs text-muted-foreground">
-          A short note OCADE reads before every conversation. Kept in your account under RLS. Do not
-          paste secrets or passwords.
-        </p>
+        <SectionHeading title="How OCADE should respond" />
         <textarea
           aria-label="Custom instructions"
           value={view?.custom_instructions ?? ""}
-          onChange={(e) => update("custom_instructions", e.target.value)}
-          placeholder="Prefer concise replies. Use metric units. Explain financial terms in plain English."
-          rows={4}
+          onChange={(event) => update("custom_instructions", event.target.value)}
+          placeholder="Prefer concise replies. Use metric units."
+          rows={3}
           maxLength={2000}
           className="mt-3 w-full rounded-md border border-border/60 bg-background/60 px-2.5 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-primary/40"
         />
-        <p className="mt-1 text-[11px] text-muted-foreground">
-          {view?.custom_instructions?.length ?? 0} / 2000 characters
-        </p>
       </GlassPanel>
 
-      {/* Language & timezone */}
       <GlassPanel className="mt-4 p-5">
-        <SectionHeading title="Language and region" />
+        <SectionHeading title="Language & region" />
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Field label="Language">
-            <select
-              aria-label="Language"
-              value={view?.locale ?? "en-US"}
-              onChange={(e) => update("locale", e.target.value)}
-              className={inputCls}
-            >
-              {LOCALES.map((l) => (
-                <option key={l.value} value={l.value}>
-                  {l.label}
-                </option>
+            <select aria-label="Language" value={view?.locale ?? "en-US"} onChange={(event) => update("locale", event.target.value)} className={inputCls}>
+              {LOCALES.map((locale) => (
+                <option key={locale.value} value={locale.value}>{locale.label}</option>
               ))}
             </select>
           </Field>
           <Field label="Time zone">
-            <select
-              aria-label="Time zone"
-              value={view?.timezone ?? "UTC"}
-              onChange={(e) => update("timezone", e.target.value)}
-              className={inputCls}
-            >
-              {tzList.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
+            <select aria-label="Time zone" value={view?.timezone ?? "UTC"} onChange={(event) => update("timezone", event.target.value)} className={inputCls}>
+              {tzList.map((timezone) => (
+                <option key={timezone} value={timezone}>{timezone}</option>
               ))}
             </select>
           </Field>
         </div>
       </GlassPanel>
 
-      {/* Save bar */}
+      <GlassPanel className="mt-4 flex items-center justify-between gap-4 p-5">
+        <div className="min-w-0">
+          <SectionHeading icon={Palette} title="Appearance" />
+          <p className="mt-1 text-xs text-muted-foreground">Visual style and 3D motion are managed in one place.</p>
+        </div>
+        <Link to="/settings/appearance" className="rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-xs text-foreground hover:bg-accent">
+          Open appearance
+        </Link>
+      </GlassPanel>
+
       <div className="sticky bottom-3 mt-4 flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/90 px-4 py-2.5 backdrop-blur">
         <span className="text-xs text-muted-foreground">
           {saving ? (
-            <span className="inline-flex items-center gap-1.5">
-              <Loader2 className="h-3 w-3 animate-spin" /> Saving…
-            </span>
+            <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3 w-3 animate-spin" /> Saving…</span>
           ) : hasChanges ? (
             "Unsaved changes"
           ) : savedAt ? (
-            <span className="inline-flex items-center gap-1.5">
-              <Check className="h-3 w-3 text-primary" /> Saved
-            </span>
+            <span className="inline-flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> Saved</span>
           ) : (
             "All changes saved"
           )}
         </span>
         <div className="flex items-center gap-2">
           {hasChanges ? (
-            <button
-              onClick={() => setDirty({})}
-              disabled={saving}
-              className="rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50"
-            >
+            <button onClick={() => setDirty({})} disabled={saving} className="rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50">
               Discard
             </button>
           ) : null}
-          <button
-            onClick={save}
-            disabled={saving || !hasChanges}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
-          >
-            Save changes
+          <button onClick={() => void save()} disabled={saving || !hasChanges} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+            Save
           </button>
         </div>
       </div>
 
-      {/* Quick appearance */}
-      <GlassPanel className="mt-4 p-5">
-        <SectionHeading icon={Palette} title="Quick appearance" />
-        <p className="mt-1 text-xs text-muted-foreground">
-          Full controls live in{" "}
-          <Link to="/settings/appearance" className="underline underline-offset-4">
-            Appearance
-          </Link>
-          .
-        </p>
-
-        <div className="mt-3">
-          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            Theme
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {THEMES.map((t) => {
-              const active = appearance.theme === t.id;
-              const Icon = t.icon;
-              return (
-                <button
-                  aria-pressed={active}
-                  key={t.id}
-                  onClick={() => appearance.update({ theme: t.id })}
-                  className={cn(
-                    "inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs",
-                    active
-                      ? "border-primary/60 bg-primary/10 text-foreground"
-                      : "border-border/60 bg-background/40 text-muted-foreground hover:bg-accent",
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5" aria-hidden /> {t.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="mt-4">
-          <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            Cursor
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {CURSORS.map((c) => {
-              const active = appearance.cursor === c.id;
-              return (
-                <button
-                  aria-pressed={active}
-                  key={c.id}
-                  onClick={() => appearance.update({ cursor: c.id })}
-                  className={cn(
-                    "inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-xs",
-                    active
-                      ? "border-primary/60 bg-primary/10 text-foreground"
-                      : "border-border/60 bg-background/40 text-muted-foreground hover:bg-accent",
-                  )}
-                >
-                  <MousePointer className="h-3.5 w-3.5" aria-hidden /> {c.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <label className="mt-4 flex items-center justify-between gap-4">
-          <span className="min-w-0">
-            <span className="block text-sm font-medium text-foreground">Reduce motion</span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">
-              Disables nonessential animation across the app.
-              {appearance.osReducedMotion ? " Your OS setting is on." : ""}
-            </span>
-          </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={appearance.reducedMotion || appearance.osReducedMotion}
-            disabled={appearance.osReducedMotion}
-            onClick={() => appearance.update({ reducedMotion: !appearance.reducedMotion })}
-            className={cn(
-              "relative h-6 w-11 shrink-0 rounded-full border border-border transition-colors",
-              appearance.reducedMotion || appearance.osReducedMotion ? "bg-primary" : "bg-muted",
-              appearance.osReducedMotion && "cursor-not-allowed opacity-70",
-            )}
-          >
-            <span
-              className={cn(
-                "absolute top-0.5 h-5 w-5 rounded-full bg-background shadow transition-transform",
-                appearance.reducedMotion || appearance.osReducedMotion
-                  ? "translate-x-5"
-                  : "translate-x-0.5",
-              )}
-            />
-          </button>
-        </label>
-      </GlassPanel>
-
-      {/* Sign out */}
       <GlassPanel className="mt-4 flex items-center justify-between gap-4 p-5">
         <div className="min-w-0">
           <div className="text-sm font-medium text-foreground">Sign out</div>
-          <div className="text-xs text-muted-foreground">
-            Signed in as{" "}
-            <span className="text-foreground">{user?.email ?? user?.phone ?? "your account"}</span>.
-            This ends the current session on this browser only.
-          </div>
+          <div className="text-xs text-muted-foreground">Ends this browser session only.</div>
         </div>
-        <button
-          onClick={signOut}
-          disabled={signingOut}
-          className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-xs text-foreground hover:bg-accent disabled:opacity-50"
-        >
+        <button onClick={() => void signOut()} disabled={signingOut} className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-xs text-foreground hover:bg-accent disabled:opacity-50">
           <LogOut className="h-3.5 w-3.5" aria-hidden /> Sign out
         </button>
       </GlassPanel>
@@ -495,23 +299,12 @@ function GeneralPage() {
   );
 }
 
-const inputCls =
-  "h-9 w-full rounded-md border border-border/60 bg-background/60 px-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-1 focus:ring-primary/40";
+const inputCls = "h-9 w-full rounded-md border border-border/60 bg-background/60 px-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40";
 
-function Field({
-  label,
-  children,
-  className,
-}: {
-  label: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
+function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1 block text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
-      </span>
+      <span className="mb-1 block text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
       {children}
     </label>
   );
