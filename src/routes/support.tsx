@@ -1,20 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Mail, MessageSquareText, ShieldAlert, Signal } from "lucide-react";
+import { MessageSquarePlus, MessageSquareText, ShieldAlert, Signal } from "lucide-react";
 import { PublicPage, PublicSection } from "@/components/public/PublicPage";
 
 export const Route = createFileRoute("/support")({
   head: () => ({
     meta: [
-      { title: "Support — OCADE by CARCC CADANE" },
+      { title: "Support and contact — OCADE by CARCC CADANE" },
       {
         name: "description",
         content:
-          "Public help and contact routes for OCADE, including account support, service status, privacy, and security reporting.",
+          "Current support, legal, privacy, security, investor and partnership contact options for OCADE by CARCC CADANE.",
       },
-      { property: "og:title", content: "Support — OCADE" },
+      { property: "og:title", content: "Support and contact — OCADE" },
       {
         property: "og:description",
-        content: "Get public OCADE help or continue to the signed-in support workspace.",
+        content: "Use OCADE's ticket-based support and administrative review channels.",
       },
       { property: "og:type", content: "website" },
     ],
@@ -28,58 +28,70 @@ const ACTION_LINK =
 function SupportPage() {
   return (
     <PublicPage
-      eyebrow="Public help centre"
+      eyebrow="Support and contact"
       title="OCADE support"
-      summary="Read common answers, check the service, or contact CARCC CADANE without signing in. Account-specific tickets remain inside the private signed-in workspace."
+      summary="OCADE uses a ticket-based support queue and administrative review workspace. Dedicated domain email addresses will be published only after they are activated and verified."
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <PublicSection title="Common questions">
-          <p>Start with setup, local-engine, offline, account, privacy, and FREE LAUNCH answers.</p>
+          <p>Start with setup, local-engine, offline, account, privacy and launch information.</p>
           <Link to="/faq" className={ACTION_LINK}>
             <MessageSquareText className="h-4 w-4" aria-hidden /> Browse the FAQ
           </Link>
         </PublicSection>
 
         <PublicSection title="Service status">
-          <p>Check current prelaunch availability, incidents, maintenance, and update notices.</p>
+          <p>Check availability, incidents, maintenance and update notices where the status page is available.</p>
           <Link to="/status" className={ACTION_LINK}>
             <Signal className="h-4 w-4" aria-hidden /> View OCADE status
           </Link>
         </PublicSection>
       </div>
 
-      <PublicSection title="Contact support">
+      <PublicSection title="Ticket-based contact">
         <p>
-          Email support for installation, browser-extension, demo, or account-access help. Do not
-          send passwords, one-time codes, PINs, private keys, recovery codes, or payment secrets.
+          Signed-in OCADE accounts can create support cases that remain attached to the account and
+          appear in the OCADE administrative support queue. Categories include Account, Billing,
+          Technical, Privacy, Security, Feedback, Legal, Investor and Partnership.
         </p>
-        <div className="flex flex-wrap gap-3">
-          <a href="mailto:support@ocade.in" className={ACTION_LINK}>
-            <Mail className="h-4 w-4" aria-hidden /> support@ocade.in
-          </a>
-          <Link to="/settings/support" className={ACTION_LINK}>
-            Open signed-in support
-          </Link>
-        </div>
-        <p className="text-xs">
-          The email link opens your mail application. Delivery is confirmed only by your mail
-          provider; the link itself does not claim that a message was received.
+        <p>
+          Before authenticated account access opens, this public page is the authoritative contact
+          status: no dedicated support, legal, privacy, security or investor email address is claimed
+          to be active. Those addresses may be added later after their mailboxes and delivery are
+          verified.
         </p>
+        <Link to="/settings/support" className={ACTION_LINK}>
+          <MessageSquarePlus className="h-4 w-4" aria-hidden /> Open signed-in support
+        </Link>
       </PublicSection>
 
-      <PublicSection title="Privacy and security">
+      <PublicSection title="Privacy, legal and security requests">
         <p>
-          Privacy requests use the public data-rights route. Security reports can be sent to the
-          dedicated security mailbox without including exploit secrets in a public page.
+          Use a Privacy, Legal or Security ticket when signed-in ticket intake is available. Privacy
+          rights requests may also use the public data-rights route where that route is available.
+          Do not place passwords, one-time codes, PINs, recovery codes, private keys, full card
+          numbers or payment secrets in a ticket.
         </p>
         <div className="flex flex-wrap gap-3">
           <Link to="/data-rights" className={ACTION_LINK}>
             Data rights
           </Link>
-          <a href="mailto:security@ocade.in" className={ACTION_LINK}>
-            <ShieldAlert className="h-4 w-4" aria-hidden /> security@ocade.in
-          </a>
+          <Link to="/privacy" className={ACTION_LINK}>
+            <ShieldAlert className="h-4 w-4" aria-hidden /> Privacy notice
+          </Link>
         </div>
+      </PublicSection>
+
+      <PublicSection title="Investor and partnership enquiries">
+        <p>
+          Prospective investors and strategic partners may use the Investor or Partnership ticket
+          category when account intake is available. An enquiry starts a private discussion only;
+          it is not an offer of securities, a solicitation to invest or a promise that equity or
+          shareholding will be offered.
+        </p>
+        <Link to="/about" className={ACTION_LINK}>
+          About CARCC CADANE
+        </Link>
       </PublicSection>
     </PublicPage>
   );
