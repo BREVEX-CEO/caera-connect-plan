@@ -5,6 +5,6 @@
 -- privilege model must change.
 DO $$
 BEGIN
-  RAISE NOTICE 'has_role authenticated EXECUTE grant retained; use a forward migration to change it.';
+  RAISE NOTICE 'has_role authenticated EXECUTE privilege retained; use a forward migration to change it.';
 END;
 $$;
