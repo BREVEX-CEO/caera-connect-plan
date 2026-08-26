@@ -1,4 +1,5 @@
 import { memoryAge, memoryFreshnessText } from "@/primary-logic/memory/memoryAge";
+import { assessMemory } from "@/lib/memory/quality";
 import type { OcadeMemoryRow } from "./ocade-projects.functions";
 import type { ArtifactOutcome } from "./artifacts/store";
 
@@ -123,7 +124,26 @@ export function addLocalMemory(input: {
   };
   const saved = write({ ...current.data, rows: [row, ...current.data.rows] });
   if (!saved.ok) return saved;
-  return { ok: true, data: row, evidence: "Memory saved only on this device." };
+  /*
+   * SAVED EITHER WAY, WITH A NOTE WHEN IT IS THE WRONG SHAPE.
+   *
+   * A memory system's real failure after a month is not forgetting — it is
+   * remembering everything, until recall is forty lines of noise that crowd out
+   * the two facts worth having. The assessment names the common shapes of noise
+   * (a copy of something lookup-able, today's state, a list) so the person can
+   * see why a later recall might disappoint them.
+   *
+   * It never refuses. Overruling somebody about their own memory because a
+   * regular expression disagreed is the interface deciding it knows better.
+   */
+  const note = assessMemory(content);
+  return {
+    ok: true,
+    data: row,
+    evidence: note.reason
+      ? `Memory saved only on this device. ${note.reason}`
+      : "Memory saved only on this device.",
+  };
 }
 
 export function updateLocalMemory(input: {

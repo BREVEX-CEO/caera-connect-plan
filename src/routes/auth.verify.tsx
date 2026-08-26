@@ -182,14 +182,14 @@ function VerifyPage() {
           autoComplete="one-time-code"
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          className="rounded-lg border border-border/70 bg-background/50 px-3 py-2.5 text-center text-lg tracking-[0.4em] text-foreground outline-none focus:ring-2 focus:ring-ring"
+          className="border-b border-border/70 bg-transparent px-1 py-3 text-center font-mono text-2xl tracking-[0.5em] text-foreground outline-none transition-colors focus:border-foreground/70"
           placeholder="••••••"
           maxLength={8}
         />
         <button
           type="submit"
           disabled={busy || wait > 0}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-none bg-primary px-4 py-3 text-[13px] font-medium uppercase tracking-[0.18em] text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           {/*

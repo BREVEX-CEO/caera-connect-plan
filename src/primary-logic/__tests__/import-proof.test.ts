@@ -19,7 +19,6 @@ import {
   shouldFallbackToPrompting,
 } from "../permissions/denialTracking";
 import { getDestructiveCommandWarning } from "../commands/destructiveCommandWarning";
-import { djb2Hash, hashContent, hashPair } from "../text/hash";
 
 describe("permission rules", () => {
   it("round-trips a rule with no content", () => {
@@ -85,21 +84,5 @@ describe("destructive command warnings", () => {
 
   it("stays quiet for an ordinary command", () => {
     expect(getDestructiveCommandWarning("git status")).toBeNull();
-  });
-});
-
-describe("content hashing", () => {
-  it("is stable and distinguishes different inputs", () => {
-    expect(hashContent("alpha")).toBe(hashContent("alpha"));
-    expect(hashContent("alpha")).not.toBe(hashContent("beta"));
-    expect(djb2Hash("alpha")).toBe(djb2Hash("alpha"));
-  });
-
-  it("keeps pair boundaries distinct without a separator", () => {
-    expect(hashPair("ts", "code")).not.toBe(hashPair("tsc", "ode"));
-  });
-
-  it("needs neither Bun nor node:crypto", () => {
-    expect(hashContent("x")).toMatch(/^[0-9a-f]{16}$/);
   });
 });

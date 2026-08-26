@@ -1,6 +1,12 @@
 import { feature } from '../shims/featureFlags'
 import z from 'zod/v4'
-import { PAUSE_ICON } from '../text/figures'
+/*
+ * The donor's whole glyph table came in for one character. The table also chose
+ * per-platform glyphs for a terminal — a concern OCADE does not have, since a
+ * web surface renders what the font gives it. The one character it needed is
+ * inline.
+ */
+const PAUSE_ICON = '\u23f8'
 // Types extracted to src/types/permissions.ts to break import cycles
 import {
   EXTERNAL_PERMISSION_MODES,

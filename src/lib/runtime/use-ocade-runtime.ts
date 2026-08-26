@@ -66,6 +66,7 @@ import {
 } from "./permissions";
 import { currentPermissionContext } from "./permission-settings";
 import { consume } from "@/lib/limits/use-limits";
+import { memoryPolicyPrompt } from "@/lib/memory/quality";
 
 export interface RuntimeApproval {
   call: QueryToolCall;
@@ -275,8 +276,16 @@ export function systemPromptWith(surface: OcadeSurface, memoryContext: string | 
     "",
     "When the task is done, say briefly what you did and what you verified.",
   ];
+  /*
+   * The memory policy travels with the memory, not on its own.
+   *
+   * A model told what not to remember, in a turn where it has nothing to
+   * remember and no tool to do it with, is a model spending context on a rule
+   * it cannot apply. The rule appears when memory does.
+   */
   const context = (memoryContext ?? "").trim();
   if (context) {
+    parts.push("", memoryPolicyPrompt());
     parts.push(
       "",
       "What you already know about this person, from previous sessions:",

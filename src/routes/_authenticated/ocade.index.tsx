@@ -216,6 +216,27 @@ import {
   saveChatCitations,
 } from "@/lib/chat-citation-store";
 
+/**
+ * What a person chooses, in their words.
+ *
+ * Not model names, not runtimes, not "automatic". Two of these are the same
+ * question anybody actually has — sooner or better — and the third is a
+ * different promise: nothing leaves this device, including a web lookup.
+ */
+const MODES: { id: "fast" | "thinking" | "local"; label: string; hint: string }[] = [
+  { id: "fast", label: "Fast", hint: "Answers as quickly as this device can." },
+  {
+    id: "thinking",
+    label: "Thinking",
+    hint: "Takes longer and reasons before answering. Better for hard questions.",
+  },
+  {
+    id: "local",
+    label: "Local Intelligence",
+    hint: "Stays entirely on this device. No lookups, no sync — nothing leaves.",
+  },
+];
+
 export const Route = createFileRoute("/_authenticated/ocade/")({
   head: () => ({
     meta: [{ title: "OCADE — CARCC CADANE" }, { name: "robots", content: "noindex" }],
@@ -1225,7 +1246,7 @@ function ChatSurface(props: {
    * answer on this hardware, and excluded an installed vision model that works.
    */
   const devicePolicy = useDevicePolicy();
-  const { prefs: chatPrefs } = useChatPrefs();
+  const { prefs: chatPrefs, update: setChatPrefs } = useChatPrefs();
   /** A local engine that is genuinely serving, not merely installed. */
   const localEngineReady = localEngine.status === "ready" && localEngine.models.length > 0;
   const navigate = useNavigate();
@@ -3601,33 +3622,52 @@ function ChatSurface(props: {
             </div>
           ) : null}
           <PreparationStatus />
+          {/*
+            THREE CHOICES, NAMED FOR WHAT THEY GIVE THE PERSON.
+
+            This row said "Engine: OCADE Automatic / OCADE On this device", which
+            is two ways of saying the same thing — both run on the device — and
+            neither answers the question somebody actually has, which is whether
+            they want the answer sooner or better.
+
+            Fast and Thinking are that question. Local Intelligence is the third
+            because it is a genuinely different promise: never leave this device
+            for anything, including looking something up. It is the privacy
+            choice, not a speed choice, which is why it sits alongside rather
+            than inside them.
+          */}
           <div className="mb-1.5 flex items-center gap-1 text-[11px]">
-            <span className="text-muted-foreground">Engine</span>
-            {(["auto", "local"] as const).map((t) => {
-              const lbl = t === "auto" ? "Automatic" : "On this device";
-              const disabled = t === "local" && localEngine.status !== "ready";
+            <span className="text-muted-foreground">Mode</span>
+            {MODES.map((mode) => {
+              const active =
+                mode.id === "local"
+                  ? engineTier === "local"
+                  : engineTier === "auto" && chatPrefs.thinking === (mode.id === "thinking");
+              const disabled = mode.id === "local" && localEngine.status !== "ready";
               return (
                 <button
-                  key={t}
+                  key={mode.id}
                   type="button"
+                  aria-pressed={active}
                   disabled={disabled}
-                  onClick={() => setEngineTier(t)}
-                  title={
-                    disabled
-                      ? "OCADE is still preparing its on-device intelligence"
-                      : t === "local"
-                        ? "Always run on this device — unlimited and private"
-                        : "Let OCADE choose. Either way it runs on this device."
-                  }
+                  onClick={() => {
+                    if (mode.id === "local") {
+                      setEngineTier("local");
+                      return;
+                    }
+                    setEngineTier("auto");
+                    setChatPrefs({ thinking: mode.id === "thinking" });
+                  }}
+                  title={disabled ? "OCADE is still getting ready on this device." : mode.hint}
                   className={cn(
                     "rounded px-2 py-0.5 transition-colors",
-                    engineTier === t
+                    active
                       ? "bg-sidebar-accent text-foreground"
                       : "text-muted-foreground hover:text-foreground",
                     disabled && "cursor-not-allowed opacity-40",
                   )}
                 >
-                  OCADE {lbl}
+                  {mode.label}
                 </button>
               );
             })}

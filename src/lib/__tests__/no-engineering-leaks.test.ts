@@ -110,3 +110,31 @@ describe("the facts stay available where they belong", () => {
     expect(advanced).toMatch(/entry\.sha256/);
   });
 });
+
+describe("the choice a person is offered", () => {
+  const CHAT = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
+
+  it("is Fast, Thinking and Local Intelligence", () => {
+    for (const label of ["Fast", "Thinking", "Local Intelligence"]) {
+      expect(CHAT).toContain(`label: "${label}"`);
+    }
+  });
+
+  it("no longer offers two names for the same thing", () => {
+    /*
+     * The row said "OCADE Automatic / OCADE On this device". Both run on the
+     * device, so it was two ways of saying one thing — and neither answered the
+     * question somebody actually has, which is whether they want the answer
+     * sooner or better.
+     */
+    expect(CHAT).not.toContain('t === "auto" ? "Automatic" : "On this device"');
+  });
+
+  it("explains each mode without naming a runtime", () => {
+    const hints = [...CHAT.matchAll(/hint: "([^"]+)"/g)].map((match) => match[1]);
+    expect(hints.length).toBeGreaterThanOrEqual(3);
+    for (const hint of hints) {
+      expect(hint).not.toMatch(/webgpu|wasm|model|engine|runtime|adapter/i);
+    }
+  });
+});
