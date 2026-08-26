@@ -34,7 +34,7 @@ import {
   stopMissionFn,
   type MissionStart,
 } from "@/lib/control-work.functions";
-import { finishRun, pauseRun, resumeRun, startRun, stopRun } from "@/lib/tasks/runs";
+import { finishRun, pauseRun, resumeRun, startRun, stopRun, updateRun } from "@/lib/tasks/runs";
 import type { BrainMessage } from "@/lib/brain/adapter";
 import type { ControlState } from "./control-solar";
 import { routeDirect } from "./fast-router";
@@ -691,6 +691,22 @@ export function useMission(brain: MissionBrain) {
   // event as far as the machine is concerned: nothing of OCADE's should still
   // be held.
   useEffect(() => () => void release(), [release]);
+
+  /*
+   * LEAVING THE ROOM BACKGROUNDS THE RUN.
+   *
+   * A task the user is watching is not a "background task" — the panel in front
+   * of them already says what it is doing, and a second badge saying the same
+   * thing is noise. The moment they navigate away it becomes one, which is when
+   * the status pill elsewhere in the product should start reporting it.
+   */
+  useEffect(
+    () => () => {
+      const runId = runIdRef.current;
+      if (runId) updateRun(runId, { isBackgrounded: true });
+    },
+    [],
+  );
 
   /**
    * Stop, and stay visibly stopped.

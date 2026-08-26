@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { BrandMark } from "./BrandMark";
 import { DemoBadge } from "./DemoBadge";
+import { RunningTasksPill } from "@/components/ocade/RunningTasksPill";
 import { ShellProvider } from "./shell-context";
 import { useShell } from "./use-shell";
 import { cn } from "@/lib/utils";
@@ -303,6 +304,12 @@ function WorkspaceShellInner({
         )}
 
         <div className="ml-auto flex items-center gap-1">
+          {/*
+            Only ever visible when work is genuinely running somewhere else in
+            the product. It renders nothing at all otherwise, so the header does
+            not carry a permanent empty slot.
+          */}
+          <RunningTasksPill />
           {isDemo ? <DemoBadge /> : null}
           <button
             onClick={cycleTheme}

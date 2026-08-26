@@ -169,6 +169,15 @@ describe("what the rest of the product sees", () => {
     expect(describeRuns().needsAttention).toBe(true);
   });
 
+  it("says nothing about a task the user is already watching", () => {
+    const run = startRun({ kind: "mission", description: "Sort the invoices", kill: () => {} });
+    expect(describeRuns().label).toBe("");
+
+    // Navigating away is what turns it into a background task.
+    updateRun(run.id, { isBackgrounded: true });
+    expect(describeRuns().label).toBe("1 task");
+  });
+
   it("names no engine, model or file in the pill", () => {
     const label = getPillLabel([
       createTaskRun({ kind: "mission", description: "Anything" }),
