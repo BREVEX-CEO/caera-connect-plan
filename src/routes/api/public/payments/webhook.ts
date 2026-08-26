@@ -22,6 +22,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
 import { verifyWebhook, isPaddleEnv, type PaddleEnv } from "@/lib/paddle.server";
+import { checkServerLimit } from "@/lib/limits/server";
 import { decide, targetEntityIdOf, type ExistingRecord } from "@/lib/payments/webhook-apply";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -149,10 +150,41 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
           return new Response("Invalid payment environment", { status: 400 });
         }
 
+        /*
+         * A CHEAP REFUSAL IN FRONT OF AN EXPENSIVE ONE.
+         *
+         * Every unsigned request still costs an HMAC over the body before it is
+         * rejected. That is the correct check and it is not free, so a flood of
+         * forged posts is a way to spend the isolate's budget without ever
+         * guessing a signature.
+         *
+         * Keyed by source address rather than by account, because an
+         * unauthenticated endpoint has no account. The quota is far above what
+         * the provider sends — a busy account sees a handful of events a minute
+         * — and the signature check remains the thing that decides whether an
+         * event is real. This only decides how many strangers may ask.
+         */
+        const source =
+          request.headers.get("cf-connecting-ip") ??
+          request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+          "unknown";
+        const allowance = checkServerLimit("billing_write", `webhook:${source}`);
+        if (!allowance.allowed) {
+          return new Response("Too many requests", {
+            status: 429,
+            headers: allowance.headers,
+          });
+        }
+
         try {
           await handleWebhook(request, requestedEnv);
           return Response.json({ received: true });
         } catch (e) {
+          /*
+           * The reason is logged, never returned. A response that distinguishes
+           * "bad signature" from "stale timestamp" from "unknown event type"
+           * tells whoever is probing exactly which part of the request to fix.
+           */
           console.error("Payment webhook error:", e);
           return new Response("Webhook error", { status: 400 });
         }

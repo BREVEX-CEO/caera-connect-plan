@@ -19,6 +19,7 @@
  * The allowlist is therefore built here and never accepted from the caller.
  */
 import { createServerFn } from "@tanstack/react-start";
+import { checkServerLimit } from "@/lib/limits/server";
 import { discoverCandidates } from "./research/candidate-discovery";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -232,7 +233,16 @@ export type CurrentInformationResponse =
 export const retrieveCurrentInformation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((raw: unknown) => currentInformationInput.parse(raw))
-  .handler(async ({ data }): Promise<CurrentInformationResponse> => {
+  .handler(async ({ data, context }): Promise<CurrentInformationResponse> => {
+    /*
+     * Outbound search spends somebody else's quota, so the limit is enforced
+     * here rather than only in the browser: a device-local counter is reset by
+     * clearing site data, which is not a limit on a third party's service.
+     */
+    const allowance = checkServerLimit("research", context.userId);
+    if (!allowance.allowed) {
+      return { ok: false, reason: allowance.decision.message ?? "Too many searches just now." };
+    }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 40_000);
     try {

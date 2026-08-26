@@ -262,7 +262,10 @@ export function recordUse(
    */
   const cutoff = now - longest;
   return {
-    events: [...state.events.filter((event) => event.at > cutoff), { at: now, cost: options.cost ?? 1 }],
+    events: [
+      ...state.events.filter((event) => event.at > cutoff),
+      { at: now, cost: options.cost ?? 1 },
+    ],
   };
 }
 

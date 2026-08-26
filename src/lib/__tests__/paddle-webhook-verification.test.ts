@@ -169,3 +169,55 @@ describe("an event that cannot be de-duplicated or ordered is refused", () => {
     ).rejects.toThrow(/occurred_at/);
   });
 });
+
+describe("the endpoint refuses cheaply before it works expensively", () => {
+  it("rejects a missing signature without reading the body", async () => {
+    /*
+     * The order matters and is the point of the test. Reading first meant
+     * anybody could make the Worker buffer an arbitrary payload by sending no
+     * signature at all: free memory pressure, nothing to forge, nothing that
+     * looked like an attack. A body that would blow the cap is used here, so a
+     * regression that reads first fails on the size rather than passing.
+     */
+    let bodyRead = false;
+    const request = new Request("https://ocade.in/api/public/payments/webhook", {
+      method: "POST",
+      body: "x",
+    });
+    const spied = new Proxy(request, {
+      get(target, prop, receiver) {
+        if (prop === "text") {
+          return async () => {
+            bodyRead = true;
+            return "x";
+          };
+        }
+        const value = Reflect.get(target, prop, receiver);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    await expect(verifyWebhook(spied as Request, "sandbox")).rejects.toThrow(/signature/i);
+    expect(bodyRead).toBe(false);
+  });
+
+  it("refuses a body far larger than any real event", async () => {
+    const request = new Request("https://ocade.in/api/public/payments/webhook", {
+      method: "POST",
+      headers: {
+        "paddle-signature": "ts=1;h1=deadbeef",
+        "content-length": String(2 * 1024 * 1024),
+      },
+      body: "{}",
+    });
+    await expect(verifyWebhook(request, "sandbox")).rejects.toThrow(/too large/i);
+  });
+
+  it("refuses an oversized chunked body, which declares no length at all", async () => {
+    const request = new Request("https://ocade.in/api/public/payments/webhook", {
+      method: "POST",
+      headers: { "paddle-signature": "ts=1;h1=deadbeef" },
+      body: "y".repeat(70 * 1024),
+    });
+    await expect(verifyWebhook(request, "sandbox")).rejects.toThrow(/too large/i);
+  });
+});

@@ -65,6 +65,7 @@ import {
   type PermissionDecision,
 } from "./permissions";
 import { currentPermissionContext } from "./permission-settings";
+import { consume } from "@/lib/limits/use-limits";
 
 export interface RuntimeApproval {
   call: QueryToolCall;
@@ -198,6 +199,31 @@ export function useOcadeRuntime(options: RuntimeOptions) {
       const domains = opts.domains ?? classifyDeterministic(request) ?? ["conversation"];
       const tools = toolsForRequest(request, domains);
       if (tools.length === 0) return { used: false };
+
+      /*
+       * THE RESOURCE GOVERNOR, ASKED ONCE PER REQUEST RATHER THAN PER TURN.
+       *
+       * A single request can spend a dozen model turns, and charging each one
+       * would make a legitimate multi-step task look like abuse. What the limit
+       * is protecting against is a loop that got away, and a runaway shows up
+       * as many REQUESTS, not as one thorough one.
+       *
+       * A rejection is returned rather than thrown, and carries the engine's own
+       * sentence, so every surface says the same thing about the same limit.
+       */
+      const allowance = consume("inference");
+      if (allowance.outcome === "rejected") {
+        return {
+          used: true,
+          result: {
+            terminal: { reason: "blocking_limit", error: allowance.message },
+            text: allowance.message ?? "OCADE needs a moment before it can do that again.",
+            messages: [],
+            toolResults: [],
+            turns: 0,
+          },
+        };
+      }
 
       const memory = optionsRef.current.memoryContext?.() ?? null;
       const result = await runQuery(

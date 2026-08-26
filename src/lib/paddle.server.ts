@@ -58,6 +58,15 @@ export type VerifiedPaddleEvent = {
 };
 
 const SIGNATURE_TOLERANCE_SECONDS = 5;
+
+/**
+ * The largest webhook body OCADE will read.
+ *
+ * A provider event is a few kilobytes. 64 KiB is generous enough that a schema
+ * change cannot break delivery and small enough that a flood of them cannot
+ * exhaust an isolate.
+ */
+const MAX_WEBHOOK_BODY_BYTES = 64 * 1024;
 const HEX_SHA256 = /^[a-f0-9]{64}$/i;
 
 export function isPaddleEnv(value: string | null): value is PaddleEnv {
@@ -154,10 +163,39 @@ export async function verifyWebhook(
   nowSeconds = Math.floor(Date.now() / 1000),
 ): Promise<VerifiedPaddleEvent> {
   const signatureHeader = req.headers.get("paddle-signature");
-  const body = await req.text();
 
-  if (!signatureHeader || !body) {
-    throw new Error("Missing Paddle signature or body");
+  /*
+   * REFUSE BEFORE READING THE BODY.
+   *
+   * This endpoint is unauthenticated by necessity — the provider has no OCADE
+   * session — so anybody on the internet can post to it. Reading the body first
+   * and checking the header afterwards meant an attacker could make the Worker
+   * buffer an arbitrary payload by sending no signature at all: free memory
+   * pressure, no signature to forge, nothing logged as an attack.
+   *
+   * The header is a few dozen bytes and settles the question, so it is checked
+   * first, and the body is size-capped either way. The provider's events are
+   * small; anything past the cap is not one.
+   */
+  if (!signatureHeader) {
+    throw new Error("Missing Paddle signature");
+  }
+
+  const declaredLength = Number(req.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_WEBHOOK_BODY_BYTES) {
+    throw new Error("Paddle webhook body is too large");
+  }
+
+  const body = await req.text();
+  if (!body) {
+    throw new Error("Missing Paddle body");
+  }
+  /*
+   * Checked again after reading, because `content-length` is a claim by the
+   * sender and a chunked request carries none at all.
+   */
+  if (body.length > MAX_WEBHOOK_BODY_BYTES) {
+    throw new Error("Paddle webhook body is too large");
   }
 
   const { timestamp, signatures } = parseSignatureHeader(signatureHeader);

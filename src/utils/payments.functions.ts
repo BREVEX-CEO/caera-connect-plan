@@ -8,6 +8,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { checkServerLimit, limitError } from "@/lib/limits/server";
 
 export type BillingEnvironment = "sandbox" | "live";
 
@@ -64,6 +65,10 @@ export const getMySubscription = createServerFn({ method: "GET" })
     return data;
   })
   .handler(async ({ data, context }): Promise<SubscriptionRecord | null> => {
+    // Cheap per call, and a free loop against the provider if left ungated.
+    const allowance = checkServerLimit("billing_read", context.userId);
+    if (!allowance.allowed) throw limitError(allowance);
+
     const { data: row, error } = await context.supabase
       .from("subscriptions")
       .select("*")
@@ -100,6 +105,11 @@ export const getMySubscription = createServerFn({ method: "GET" })
 export const createBillingPortalSession = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ url: string }> => {
+    // Opens a session on the provider's surface. Tight, because nothing
+    // legitimate opens twenty billing portals in five hours.
+    const allowance = checkServerLimit("billing_write", context.userId);
+    if (!allowance.allowed) throw limitError(allowance);
+
     const { data: row, error } = await context.supabase
       .from("subscriptions")
       .select("paddle_customer_id, paddle_subscription_id, environment")
@@ -133,6 +143,9 @@ export const createBillingPortalSession = createServerFn({ method: "POST" })
 export const cancelMySubscription = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<{ ok: true; effectiveAt: string | null }> => {
+    const allowance = checkServerLimit("billing_write", context.userId);
+    if (!allowance.allowed) throw limitError(allowance);
+
     const { data: row, error } = await context.supabase
       .from("subscriptions")
       .select("paddle_subscription_id, environment, status, current_period_end")
