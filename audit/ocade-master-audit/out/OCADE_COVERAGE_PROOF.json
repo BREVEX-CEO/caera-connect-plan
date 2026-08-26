@@ -1,9 +1,0 @@
-{
-  "totalLines": 109510,
-  "coveredLines": 109510,
-  "firstLineCovered": true,
-  "lastLineCovered": true,
-  "gapsOrOverlaps": 0,
-  "problems": [],
-  "verdict": "COMPLETE LINE COVERAGE PROVEN"
-}
