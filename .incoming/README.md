@@ -1,26 +1,23 @@
 # OCADE primary-logic archive staging
 
-This folder is the isolated transfer point for the current user-supplied OCADE primary-logic archive.
+This folder is the isolated upload point for the next user-supplied OCADE primary-logic archive.
 
-Expected archive:
+Expected archive name:
 
 `OCADE_PRIMARY_LOGIC.rar`
-
-Verified archive identity:
-
-- SHA-256: `a1ce51f92447ada16a52631a2fdf61ec4d5ff24efa1e078beaa00b6b4741f467`
-- Git blob SHA-1: `c3121695459979b5ca77ac14e267488675fba7e4`
-- Size: `10,140,038` bytes
-- Expected extracted files from the user-supplied archive: `2,123`
-- Expected extracted directories: `346`
-- Expected uncompressed bytes: `33,932,339`
 
 Branch:
 
 `import/ocade-primary-logic-20260826`
 
-The previous ZIP has been removed. Do not place the archive on `main` and do not extract it over production `src/`.
+The previous RAR has been removed from HEAD. Keep this README so `.incoming/` remains browsable and does not become a 404 while the replacement archive is prepared.
 
-Claude Code must first reconcile this branch with the current `main`, then extract the RAR into a temporary directory in its coding environment, verify the SHA-256/inventory, stage the extracted tree under `imports/ocade-primary-logic/source/`, classify it, repair unresolved imports/dependencies as appropriate, and integrate only through the existing OCADE architecture after tracing current authorities and routes.
+Before re-uploading, the replacement archive should contain at its root:
 
-The archive is a source input, not proof that every contained module is production-safe or legally reusable. Preserve legally required copyright, licence, attribution and provenance notices. Do not use string renaming as a substitute for provenance or licensing review. If a particular module cannot be reused under the applicable rights, reproduce the required behavior with an independently implemented OCADE-native module instead.
+- `LICENSE.md` — the current controlling licence/authorization for the source.
+- `package.json` — its `license` field should point to that licence, for example `SEE LICENSE IN LICENSE.md`, instead of `UNLICENSED` if the rights holder has actually granted the stated rights.
+- `NOTICE.md` — only where third-party/open-source notices are required.
+
+The controlling licence must truthfully identify the rights holder/licensor and the licensed source, and explicitly state the rights actually granted for OCADE/CARCC CADANE. Historical audit notes are not a substitute for the current archive and current licence, but legally required attribution/provenance records must not be falsified or removed.
+
+After the replacement archive is uploaded, verify its current hash and inventory before integration. Do not rely on the superseded archive hash recorded in earlier commits.
