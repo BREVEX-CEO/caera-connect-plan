@@ -15,7 +15,7 @@ import {
   type PermissionContext,
 } from "@/lib/runtime/permissions";
 import { currentPermissionContext } from "@/lib/runtime/permission-settings";
-import { runBrowserToolViaExtension } from "@/lib/native/extension-adapter";
+import { executeToolCall } from "@/lib/runtime/execute";
 import type { Domain } from "@/lib/agent/domains";
 import type { ToolOutcome } from "@/lib/agent/outcomes";
 import {
@@ -30,7 +30,6 @@ import {
   missionMicFn,
   missionSpeakFn,
   refreshMemoryFn,
-  runControlActionFn,
   startMissionFn,
   stopMissionFn,
   type MissionStart,
@@ -80,7 +79,7 @@ import { TaskLedger, checkCall } from "./tool-contract";
  * The pieces stay exactly where they already were. `runAgentTask` is the same
  * loop the server used, unchanged. The tool registry is the same registry. The
  * adapters are the same adapters — reached one action at a time through
- * `runControlActionFn`, with the sidecars held open server-side for the life of
+ * `executeToolCall`, with the sidecars held open server-side for the life of
  * the mission so a browser session survives between clicks.
  *
  * THREE BANDS, AND THE MIDDLE ONE IS THE INTERESTING ONE
@@ -591,7 +590,7 @@ export function useMission(brain: MissionBrain) {
    * Re-read the memory context after something wrote to it.
    *
    * ITS OWN SERVER FUNCTION RATHER THAN A TOOL CALL, and the first attempt got
-   * this wrong: it went through `runControlActionFn` with the name
+   * this wrong: it went through the control action path with the name
    * `memory_context_refresh`, which is not in the registry — and the server
    * refuses any tool it cannot look up, correctly. Registering one to get
    * around that would have advertised it to the model, which must never call
@@ -841,26 +840,17 @@ export function useMission(brain: MissionBrain) {
       ledgerRef.current.note(checked.call);
       setPhase(tool?.mutating ? "controlling" : "observing");
 
-      // Same rule on the fast path: the browser executes browser work. Two
-      // routes that disagreed about who runs a click would be two products.
-      const viaExtension = await runBrowserToolViaExtension(checked.call);
-      if (viaExtension) {
-        return {
-          ok: viaExtension.kind === "success",
-          detail: viaExtension.detail,
-          verified: viaExtension.verified,
-        };
-      }
-
-      const outcome = await runControlActionFn({
-        data: {
-          missionId,
-          tool: checked.call.name,
-          args: (checked.call.arguments ?? {}) as Record<string, unknown>,
-          confirmed: tool?.risk === "high",
-        },
+      // Same executor on the fast path. Two routes that disagreed about who
+      // runs a click would be two products.
+      const outcome = await executeToolCall(checked.call, {
+        missionId,
+        confirmed: tool?.risk === "high",
       });
-      return { ok: outcome.kind === "success", detail: outcome.detail, verified: outcome.verified };
+      return {
+        ok: outcome.kind === "success",
+        detail: outcome.detail,
+        ...(outcome.verified === undefined ? {} : { verified: outcome.verified }),
+      };
     },
     [],
   );
@@ -1555,38 +1545,22 @@ export function useMission(brain: MissionBrain) {
              *
              * OCADE is browser-first: the executor for anything that touches a
              * web page is the MV3 extension running in the person's own
-             * browser, reached from here without a server round trip and
-             * without a desktop sidecar. This used to fall through to
-             * `runControlActionFn`, which drives Playwright over CDP from a
-             * Node host — so browser Cowork silently required a companion
-             * install that browser-first is meant to remove.
+             * browser, reached without a server round trip and without a
+             * desktop sidecar. Machine work goes to the companion. That
+             * routing used to be written out twice inside this file and a
+             * third time would have been written for Chat; it now lives once,
+             * in `@/lib/runtime/execute`, and both rooms call it.
              *
-             * `null` means this was not a browser tool, and everything else
-             * carries on to the server path below, which still owns the
-             * PC-control tools.
+             * The `confirmed` flag is passed for a high-risk tool because such
+             * a call only reaches here after `permit` returned true. The server
+             * still checks that claim against the tool's own band rather than
+             * trusting the client on its own.
              */
-            const viaExtension = await runBrowserToolViaExtension(checked.call);
-            if (viaExtension) return viaExtension;
-
             try {
-              const outcome = await runControlActionFn({
-                data: {
-                  missionId,
-                  tool: checked.call.name,
-                  args: (checked.call.arguments ?? {}) as Record<string, unknown>,
-                  // A `high` action only reaches here after `permit` returned
-                  // true, and the server checks that claim against the tool's
-                  // own band rather than trusting this flag on its own.
-                  confirmed: tool?.risk === "high",
-                },
+              return await executeToolCall(checked.call, {
+                missionId,
+                confirmed: tool?.risk === "high",
               });
-              return {
-                kind: outcome.kind as ToolOutcome["kind"],
-                detail: outcome.detail,
-                verified: outcome.verified,
-                observation: outcome.observation,
-                elapsedMs: outcome.elapsedMs,
-              };
             } catch (cause) {
               return {
                 kind: "retryable_failure",
