@@ -8,6 +8,13 @@ import {
 } from "@/lib/agent/loop";
 import { looksMultiStep, runPlannedTask } from "@/lib/agent/planner";
 import { findTool, schemasFor, toolsFor, type ToolDefinition } from "@/lib/agent/tool-registry";
+import {
+  decide,
+  noteApproved,
+  noteDenied,
+  type PermissionContext,
+} from "@/lib/runtime/permissions";
+import { currentPermissionContext } from "@/lib/runtime/permission-settings";
 import { runBrowserToolViaExtension } from "@/lib/native/extension-adapter";
 import type { Domain } from "@/lib/agent/domains";
 import type { ToolOutcome } from "@/lib/agent/outcomes";
@@ -146,39 +153,18 @@ export type MissionMode = "prompt" | "voice";
  *             reason to be more careful, not less. Voice mode speaks the
  *             question; it does not skip it.
  */
-/**
- * AUTONOMOUS BY DEFAULT. The approval card was the last thing standing between
- * "in wordpad type about cars" and it actually happening: the text was written,
- * the window was found, and the run stopped on a Yes/No nobody wanted.
+/*
+ * THE APPROVAL POLICY THAT USED TO LIVE HERE IS GONE.
  *
- * Everything OCADE does on this machine is now done without asking, because
- * every one of those actions is one the user just requested in words and can
- * see happen: opening an application, typing into a window, writing a file.
- * Asking permission to do the thing you were told to do is friction, not
- * safety — and a prompt shown on every action is a prompt people learn to
- * dismiss without reading.
+ * It read a risk band and a mode, discarded both with `void`, and returned
+ * "auto" for everything except one hard-coded tool name. That is not a
+ * permission model; it is a single exception with a permission model's shape.
  *
- * WHAT IS STILL ASKED, AND WHY IT IS EXACTLY ONE THING.
- * `message_send` puts words in front of ANOTHER PERSON under the user's name,
- * and it cannot be undone. Every other action here affects only this computer
- * and can be looked at, corrected or reversed. That asymmetry is the whole
- * reason the exception exists; it is not a general timidity about automation.
- * Set OCADE_AUTONOMY_SENDS_MESSAGES to true to remove it as well.
+ * Cowork now asks the same layer Chat asks — `@/lib/runtime/permissions` —
+ * which carries modes, rules, the dangerous-command tables and denial
+ * tracking from the imported primary logic. There is one answer to "may this
+ * run", and both surfaces get it from the same place.
  */
-const ALWAYS_ASK = new Set<string>(["message_send"]);
-
-export const OCADE_AUTONOMY_SENDS_MESSAGES = false;
-
-export function approvalPolicy(
-  risk: ToolDefinition["risk"],
-  mode: MissionMode,
-  toolName?: string,
-): "auto" | "announce" | "ask" {
-  if (toolName && ALWAYS_ASK.has(toolName) && !OCADE_AUTONOMY_SENDS_MESSAGES) return "ask";
-  void risk;
-  void mode;
-  return "auto";
-}
 
 export interface AudioInput {
   id: number;
@@ -646,6 +632,13 @@ export function useMission(brain: MissionBrain) {
   // Approvals granted for one exact action within one task. Reset per task, so
   // consent never survives into the next instruction.
   const grantedRef = useRef<Set<string>>(new Set());
+  /*
+   * The permission context, refreshed at the start of every mission so a policy
+   * the user changed between turns takes effect on the next one. Denial
+   * tracking accumulates across the session, which is what lets a run of
+   * refusals turn a permissive mode back into a careful one.
+   */
+  const permissionRef = useRef<PermissionContext>(currentPermissionContext());
   // Sticky until the next instruction, so a Stop stays visible on the scene
   // through the reconnect that follows it.
   const stoppedRef = useRef(false);
@@ -890,6 +883,16 @@ export function useMission(brain: MissionBrain) {
       // Consent never carries from one instruction to the next, and neither
       // does a stop: asking for something new is what clears both.
       grantedRef.current = new Set();
+      /*
+       * Re-read the policy, keep the denial history. A user who changed their
+       * mind about how much OCADE may do meant it to apply now; a user who has
+       * refused six things in a row has not stopped meaning that just because
+       * they typed something else.
+       */
+      permissionRef.current = {
+        ...currentPermissionContext(),
+        denials: permissionRef.current.denials,
+      };
       stoppedRef.current = false;
       ledgerRef.current.reset();
       setPhase("thinking");
@@ -917,42 +920,63 @@ export function useMission(brain: MissionBrain) {
         if (controller.signal.aborted) return false;
         const tool = findTool(call.name);
         if (!tool) return false;
-        if (risk === "low") return true;
 
         const signatureKey = `${call.name}:${JSON.stringify(call.arguments ?? {})}`;
-        if (risk === "medium" && grantedRef.current.has(signatureKey)) return true;
-
-        const question = approvalQuestion(call, tool);
 
         /*
-         * VOICE MODE: medium risk proceeds, high risk still stops.
+         * ONE LAYER DECIDES, FOR BOTH SURFACES.
          *
-         * The user is hands-free. A card with two buttons is unanswerable from
-         * across the room, so asking for every medium action would either
-         * deadlock the task or train them to say yes to everything — and the
-         * second is worse than not asking.
-         *
-         * What happened is still SAID and still written to the timeline, so the
-         * action is visible and interruptible ("stop" cuts it mid-flight). That
-         * is the trade: medium-risk work is announced rather than gated.
+         * The context is re-read per call rather than captured when the mission
+         * started: a user who tightens their policy mid-task means it to apply
+         * to the rest of the task, not to the next one.
          */
-        const policy = approvalPolicy(tool.risk, modeRef.current, call.name);
-        if (policy === "auto") {
-          // Announced in the timeline so it is visible, never blocking.
-          grantedRef.current.add(signatureKey);
-          return true;
-        }
-        if (policy === "announce") {
+        const decision = decide(call, tool, permissionRef.current);
+        const question = approvalQuestion(call, tool);
+
+        if (decision.outcome === "deny") {
           push({
-            id: `v${Date.now()}${entries.length}`,
-            kind: "acting",
+            id: `d${Date.now()}${entries.length}`,
+            kind: "refused",
             label: question.replace(/\?$/, ""),
-            detail: "Hands-free — say “stop” to interrupt.",
+            detail: decision.reason,
           });
-          void speak(question.replace(/\?$/, "."));
+          if (modeRef.current === "voice") void speak(decision.reason);
+          return false;
+        }
+
+        if (decision.outcome === "allow") {
           grantedRef.current.add(signatureKey);
+          /*
+           * An allowed action that CHANGES something is still announced —
+           * visibly in the timeline, and aloud when the user is hands-free.
+           * "Not asked" must never mean "not seen": the whole reason a
+           * permissive mode is safe to offer is that the user can watch it
+           * work and say "stop" mid-flight.
+           */
+          if (tool.mutating) {
+            push({
+              id: `v${Date.now()}${entries.length}`,
+              kind: "acting",
+              label: question.replace(/\?$/, ""),
+              detail:
+                modeRef.current === "voice"
+                  ? "Say “stop” to interrupt."
+                  : decision.reason,
+            });
+            if (modeRef.current === "voice") void speak(question.replace(/\?$/, "."));
+          }
           return true;
         }
+
+        /*
+         * An approval already granted for this exact call in this mission is not
+         * asked twice — but only for calls the layer merely wanted checked, never
+         * for one it flagged as irreversible or destructive. Those ask every time,
+         * because "you said yes to this a minute ago" is not consent to do it
+         * again.
+         */
+        const repeatable = tool.risk !== "high" && !decision.warning;
+        if (repeatable && grantedRef.current.has(signatureKey)) return true;
 
         setPhase("paused");
         /*
@@ -971,7 +995,7 @@ export function useMission(brain: MissionBrain) {
             call,
             tool,
             question,
-            risk: risk === "high" ? "high" : "medium",
+            risk: tool.risk === "high" || decision.warning ? "high" : "medium",
             resolve,
             spoken,
           });
@@ -984,7 +1008,10 @@ export function useMission(brain: MissionBrain) {
           label: question,
           detail: allowed ? "You allowed it." : "You said no.",
         });
-        if (allowed && risk === "medium") grantedRef.current.add(signatureKey);
+        permissionRef.current = allowed
+          ? noteApproved(permissionRef.current)
+          : noteDenied(permissionRef.current);
+        if (allowed && repeatable) grantedRef.current.add(signatureKey);
         return allowed;
       };
 
