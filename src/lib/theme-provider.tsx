@@ -40,12 +40,17 @@ const DEFAULT: AppearancePrefs = {
   highContrast: false,
   lowPerformance: false,
   cursor: "system",
-  cursorCustom: null,
   cursorSize: 24,
-  cursorTrail: false,
   depth3d: true,
   depthStrength: 100,
 };
+
+/** Keep a stored or typed pointer size inside the range the artwork stays legible at. */
+export function clampCursorSize(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return 24;
+  return Math.max(16, Math.min(64, Math.round(n)));
+}
 
 /** Keep a stored or typed strength inside the range the geometry is tuned for. */
 export function clampDepthStrength(value: unknown): number {
@@ -142,39 +147,61 @@ function applyToDocument(prefs: AppearancePrefs, osReducedMotion: boolean, autoL
     lowPerf ? "0" : (clampDepthStrength(prefs.depthStrength) / 100).toFixed(2),
   );
 
-  // Cursor
+  /* ------------------------------------------------------------- cursor --
+   * WHY THE POINTER IS BUILT HERE RATHER THAN LINKED FROM /cursors.
+   *
+   * `cursor: url(...)` takes the image at its intrinsic size. The two files in
+   * /cursors are 24px, so the size preference below could not change anything
+   * — it was written to a `--cursor-size` custom property that no rule read,
+   * and a person who set the pointer to 64px got a 24px pointer and no error.
+   *
+   * Generating the SVG at the chosen size fixes that, and it fixes the hotspot
+   * with it: the arrow tip sits at 2/24ths of the artwork, so on a 64px pointer
+   * the hotspot has to move to 5, or the click lands where the pointer is not.
+   */
   root.classList.toggle("cursor-accessibility", prefs.cursor === "accessibility");
-  root.style.setProperty("--cursor-size", `${prefs.cursorSize}px`);
-  root.style.setProperty("--cursor-hotspot", `${Math.round(prefs.cursorSize / 8)}`);
 
-  let cursorUrl: string | null = null;
-  switch (prefs.cursor) {
-    case "caera_black":
-      cursorUrl = "/cursors/caera-black.svg";
-      break;
-    case "caera_white":
-      cursorUrl = "/cursors/caera-white.svg";
-      break;
-    case "auto_contrast":
-      // Choose based on theme brightness.
-      cursorUrl = prefs.theme === "light" ? "/cursors/caera-black.svg" : "/cursors/caera-white.svg";
-      break;
-    case "custom":
-      cursorUrl = prefs.cursorCustom;
-      break;
-    case "system":
-    case "accessibility":
-    default:
-      cursorUrl = null;
-  }
+  const size = clampCursorSize(prefs.cursorSize);
+  const fill =
+    prefs.cursor === "caera_black"
+      ? "black"
+      : prefs.cursor === "caera_white"
+        ? "white"
+        : prefs.cursor === "auto_contrast"
+          ? // Contrast against the page, not against the cursor: a light theme
+            // needs a dark pointer.
+            prefs.theme === "light"
+            ? "black"
+            : "white"
+          : null;
 
-  if (cursorUrl) {
-    root.style.setProperty("--app-cursor", `url("${cursorUrl}") 2 2, auto`);
+  if (fill) {
+    root.style.setProperty(
+      "--app-cursor",
+      `${pointerDataUri(fill, size)} ${hotspotFor(size)}, auto`,
+    );
     root.classList.add("has-custom-cursor");
   } else {
     root.style.removeProperty("--app-cursor");
     root.classList.remove("has-custom-cursor");
   }
+}
+
+/** The pointer artwork, at a given size, as a `url()` value. */
+function pointerDataUri(fill: "black" | "white", size: number): string {
+  const body = fill === "white" ? "#f5f7fa" : "#0a0d12";
+  const edge = fill === "white" ? "#0a0d12" : "#f5f7fa";
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24">` +
+    `<path d="M3 2 L3 20 L8 15.5 L11 22 L14 20.5 L11 14 L18 14 Z" fill="${body}" ` +
+    `stroke="${edge}" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+
+/** The click point, scaled with the artwork so it stays on the arrow tip. */
+function hotspotFor(size: number): string {
+  const offset = Math.round((2 / 24) * size);
+  return `${offset} ${offset}`;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -334,12 +361,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         highContrast: !!rec.high_contrast,
         lowPerformance: !!rec.appearance_low_performance,
         cursor: (rec.appearance_cursor as CursorKind) ?? "system",
-        cursorCustom: (rec.appearance_cursor_custom as string | null) ?? null,
-        cursorSize:
-          typeof rec.appearance_cursor_size === "number"
-            ? (rec.appearance_cursor_size as number)
-            : 24,
-        cursorTrail: !!rec.appearance_cursor_trail,
+        cursorSize: clampCursorSize(rec.appearance_cursor_size),
         /*
          * Absent means ON. A row written before these columns existed must not
          * read as "this person switched depth off" — that would silently
@@ -444,9 +466,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (patch.highContrast !== undefined) row.high_contrast = patch.highContrast;
       if (patch.lowPerformance !== undefined) row.appearance_low_performance = patch.lowPerformance;
       if (patch.cursor !== undefined) row.appearance_cursor = patch.cursor;
-      if (patch.cursorCustom !== undefined) row.appearance_cursor_custom = patch.cursorCustom;
-      if (patch.cursorSize !== undefined) row.appearance_cursor_size = patch.cursorSize;
-      if (patch.cursorTrail !== undefined) row.appearance_cursor_trail = patch.cursorTrail;
+      if (patch.cursorSize !== undefined)
+        row.appearance_cursor_size = clampCursorSize(patch.cursorSize);
       if (patch.depth3d !== undefined) row.appearance_depth_3d = patch.depth3d;
       if (patch.depthStrength !== undefined)
         row.appearance_depth_strength = clampDepthStrength(patch.depthStrength);
@@ -495,9 +516,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         high_contrast: p.highContrast,
         appearance_low_performance: p.lowPerformance,
         appearance_cursor: p.cursor,
-        appearance_cursor_custom: p.cursorCustom,
-        appearance_cursor_size: p.cursorSize,
-        appearance_cursor_trail: p.cursorTrail,
+        appearance_cursor_size: clampCursorSize(p.cursorSize),
         appearance_depth_3d: p.depth3d,
         appearance_depth_strength: clampDepthStrength(p.depthStrength),
       };

@@ -597,8 +597,8 @@ export function renderPrelaunchPublicPage(pathname: string): string | null {
 <meta property="og:image" content="https://ocade.in/brand/ocade-carcc-wordmark.png" /><meta name="twitter:card" content="summary_large_image" />
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script type="application/ld+json">${structuredData}<\/script>
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.13/dist/hls.min.js"><\/script>
+<script type="application/ld+json">${structuredData}</script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.13/dist/hls.min.js"></script>
 <style>
 :root{color-scheme:dark;--bg:#0a0a0b;--surface:#101013;--surface2:#151519;--text:#f5f5f7;--muted:#8d8d98;--stroke:#26262c;--silver:#c9ccd4;--gold:#c89d4c;--aub:#4f2d63;--crimson:#5c1f31;--mx:50vw;--my:20vh}
 *{box-sizing:border-box}html{scroll-behavior:smooth;background:var(--bg)}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font:400 15px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:hidden}
@@ -641,7 +641,7 @@ a{color:inherit}.loader{position:fixed;inset:0;z-index:9999;background:#080809;t
     if(loader&&count&&bar&&word){const words=["PRIVATE","LOCAL","OCADE"];const start=performance.now(),duration=1650;const tick=(now)=>{const p=Math.min(1,(now-start)/duration);const n=Math.floor(p*100);count.textContent=String(n).padStart(3,"0");bar.style.transform="scaleX("+p+")";word.textContent=words[Math.min(words.length-1,Math.floor(p*words.length))];if(p<1)requestAnimationFrame(tick);else setTimeout(()=>loader.classList.add("done"),260)};requestAnimationFrame(tick);}
   }
 })();
-<\/script></body></html>`;
+</script></body></html>`;
 }
 
 function prelaunchPublicResponse(pathname: string): Response | null {

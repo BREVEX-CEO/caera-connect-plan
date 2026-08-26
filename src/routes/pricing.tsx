@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CreditCard, ShieldCheck, Smartphone } from "lucide-react";
 import { z } from "zod";
-import { PublicPage, PublicSection, DraftNotice } from "@/components/public/PublicPage";
+import { PublicPage, PublicSection, Notice } from "@/components/public/PublicPage";
 import { PlanComparison } from "@/components/settings/PlanComparison";
 import { PAYMENT_METHODS } from "@/lib/payments/methods";
 import { billingHandoffMessage } from "@/lib/payments/browser-handoff";
@@ -39,10 +39,10 @@ function PricingPage() {
       title="Choose the time you need"
       summary="Three fixed-duration OCADE plans. Your local data, exports and supported on-device features remain available when a paid term ends. Live checkout is not enabled yet."
     >
-      <DraftNotice>
-        Prices are founder-approved, but taxes, refund wording, recurring-payment behavior and the
-        final checkout must receive legal and provider review before OCADE accepts money.
-      </DraftNotice>
+      <Notice>
+        OCADE is free while it launches, and these plans are here so you can see what is coming.
+        Checkout is not open — nothing on this page can charge you.
+      </Notice>
 
       {handoff ? (
         <div

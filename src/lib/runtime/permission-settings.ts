@@ -61,7 +61,8 @@ export function normalizeRules(value: unknown): StoredRule[] {
     const rule = typeof record.rule === "string" ? record.rule.trim() : "";
     const behavior = record.behavior;
     if (!rule) continue;
-    if (typeof behavior !== "string" || !BEHAVIORS.includes(behavior as PermissionBehavior)) continue;
+    if (typeof behavior !== "string" || !BEHAVIORS.includes(behavior as PermissionBehavior))
+      continue;
     const key = `${behavior}:${rule}`;
     if (seen.has(key)) continue;
     seen.add(key);

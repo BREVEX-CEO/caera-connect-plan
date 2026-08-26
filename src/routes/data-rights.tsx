@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { DraftNotice, PublicPage, PublicSection } from "@/components/public/PublicPage";
+import { Notice, PublicPage, PublicSection } from "@/components/public/PublicPage";
 
 export const Route = createFileRoute("/data-rights")({
   head: () => ({
@@ -44,10 +44,10 @@ function DataRightsPage() {
       title="Data-rights request builder"
       summary="Prepare a request without uploading identity documents or personal data to this website. Nothing entered here is transmitted or saved by this page."
     >
-      <DraftNotice>
-        The receiving mailbox and grievance process are not active yet. This builder only prepares
-        text; it does not submit a request.
-      </DraftNotice>
+      <Notice>
+        This page prepares your request; it does not send it. Nothing you type here leaves your
+        browser. Copy the finished text and send it yourself when you are ready.
+      </Notice>
       <PublicSection title="Prepare your request">
         <div className="space-y-4 rounded-lg border border-border/60 p-5">
           <label className="block">

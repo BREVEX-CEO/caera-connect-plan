@@ -147,7 +147,17 @@ export function noteApproved(context: PermissionContext): PermissionContext {
  */
 export function subjectOf(call: ToolCallLike): string | null {
   const args = call.arguments ?? {};
-  for (const key of ["command", "script", "path", "file", "filePath", "url", "name", "app", "query"]) {
+  for (const key of [
+    "command",
+    "script",
+    "path",
+    "file",
+    "filePath",
+    "url",
+    "name",
+    "app",
+    "query",
+  ]) {
     const value = args[key];
     if (typeof value === "string" && value.trim()) return value.trim();
   }
@@ -273,7 +283,12 @@ export function decide(
 
   const allowed = findRule(call, context.rules, "allow");
   if (allowed) {
-    return { outcome: "allow", reason: "You allowed this before.", warning, matchedRule: allowed.rule };
+    return {
+      outcome: "allow",
+      reason: "You allowed this before.",
+      warning,
+      matchedRule: allowed.rule,
+    };
   }
 
   /*
@@ -334,12 +349,18 @@ export function decide(
   }
 
   if (context.mode === "trusted") {
-    return { outcome: "allow", reason: "Running without asking, as you set.", warning, matchedRule: null };
+    return {
+      outcome: "allow",
+      reason: "Running without asking, as you set.",
+      warning,
+      matchedRule: null,
+    };
   }
 
   if (context.mode === "acceptEdits" && (tool.domain === "files" || tool.domain === "content")) {
     return {
-      outcome: tool.risk === "read" || tool.risk === "low" || tool.risk === "medium" ? "allow" : "ask",
+      outcome:
+        tool.risk === "read" || tool.risk === "low" || tool.risk === "medium" ? "allow" : "ask",
       reason: "Edits go through without asking, as you set.",
       warning,
       matchedRule: null,

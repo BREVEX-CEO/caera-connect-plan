@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { CheckCircle2, Download, Laptop, ShieldCheck, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DraftNotice, PublicPage, PublicSection } from "@/components/public/PublicPage";
+import { Notice, PublicPage, PublicSection } from "@/components/public/PublicPage";
 import {
   PUBLIC_WINDOWS_RELEASE,
   detectClientPlatform,
@@ -40,11 +40,11 @@ function DownloadPage() {
       title="OCADE on your devices"
       summary="The web app needs no installer. Native packages add the permission-gated local bridge used for computer control, deeper offline storage and operating-system integration. OCADE never installs itself."
     >
-      <DraftNotice>
-        Public installers remain locked until publisher signing, malware scanning and clean-device
-        installation tests are complete. This prevents an unsigned development build from causing a
-        Windows SmartScreen warning or being mistaken for a public release.
-      </DraftNotice>
+      <Notice>
+        Downloads are not open yet. OCADE runs in your browser today with no installer, and the
+        native packages arrive once they are signed and verified. Nothing on this page will ask you
+        to install an unsigned build.
+      </Notice>
 
       <PublicSection title="Windows desktop">
         <PackageRow

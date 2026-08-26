@@ -46,7 +46,16 @@ describe("pre-launch public verification pages", () => {
     expect(response.status).toBe(503);
     expect(response.headers.get("x-ocade-launch-state")).toBe("prelaunch");
     expect(response.headers.get("x-robots-tag")).toContain("noindex");
-    expect(await response.text()).toContain("Planned launch");
+    /*
+     * The locked page used to print "Planned launch <date>". It says only that
+     * access is not open yet, which is the honest thing to tell a stranger
+     * about a date that may still move. What is asserted instead is that the
+     * page still explains itself and still points at the public information —
+     * a bare 503 is a dead end.
+     */
+    const body = await response.text();
+    expect(body).toContain("not open yet");
+    expect(body).not.toMatch(/Planned launch/);
   });
 
   it("advertises the public pages in robots and sitemap while locked", async () => {

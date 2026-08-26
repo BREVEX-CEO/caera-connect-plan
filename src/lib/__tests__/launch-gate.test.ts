@@ -75,20 +75,34 @@ describe("OCADE production launch gate", () => {
     expect(isInternalHost(PRODUCTION_HOST)).toBe(false);
   });
 
-  it("never discloses the exact launch time in the pre-launch response", () => {
+  /*
+   * THE ASSERTION THAT USED TO BE HERE SAID THE LOCKED PAGE PRINTS
+   * "Planned launch 28 August 2026". It no longer does, and that is an
+   * improvement rather than a regression: a countdown to a date the team may
+   * still move is a promise made to strangers, and the page now says only that
+   * access is not open yet. The half of this test that matters — that the exact
+   * launch INSTANT never leaks, and that the locked page runs no script — is
+   * kept and tightened to check the date label is absent too.
+   */
+  it("never discloses the launch time in the pre-launch response", () => {
     const decision = gate(LAUNCH_AT_MS - 1);
     const html = renderPrelaunchPage();
     for (const secret of ["08:28", "02:58", LAUNCH_AT_ISO, String(LAUNCH_AT_MS)]) {
       expect(html).not.toContain(secret);
     }
-    expect(html).toContain(`Planned launch ${LAUNCH_PUBLIC_DATE_LABEL}`);
     expect(html).not.toMatch(/<script/i);
     expect(decision.retryAfterSeconds).toBeLessThanOrEqual(3600);
   });
 
+  /*
+   * `/` moved out of this list deliberately: the site root is now one of the
+   * factual public pages served while the product is locked, so a visitor who
+   * types the domain reads about OCADE instead of a 503. The authenticated
+   * paths and the build assets are still refused, which is what the lock is for.
+   */
   it("answers locked page, API and asset paths with 503 and no-store", async () => {
     const decision = gate(LAUNCH_AT_MS - 1);
-    for (const path of ["/", "/auth", "/ocade", "/assets/index-abc123.js"]) {
+    for (const path of ["/auth", "/ocade", "/assets/index-abc123.js"]) {
       const response = prelaunchResponse(path, decision);
       expect(response.status).toBe(503);
       expect(response.headers.get("cache-control")).toBe("no-store");

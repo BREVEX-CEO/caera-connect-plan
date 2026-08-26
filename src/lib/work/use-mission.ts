@@ -958,10 +958,7 @@ export function useMission(brain: MissionBrain) {
               id: `v${Date.now()}${entries.length}`,
               kind: "acting",
               label: question.replace(/\?$/, ""),
-              detail:
-                modeRef.current === "voice"
-                  ? "Say “stop” to interrupt."
-                  : decision.reason,
+              detail: modeRef.current === "voice" ? "Say “stop” to interrupt." : decision.reason,
             });
             if (modeRef.current === "voice") void speak(question.replace(/\?$/, "."));
           }

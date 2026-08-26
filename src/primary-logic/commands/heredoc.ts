@@ -67,7 +67,13 @@ function generatePlaceholderSalt(): string {
  * a security issue (could hide commands between << and the delimiter).
  */
 const HEREDOC_START_PATTERN =
-  // eslint-disable-next-line custom-rules/no-lookbehind-regex -- gated by command.includes('<<') at extractHeredocs() entry
+  /*
+   * Lookbehind. The donor suppressed its own rule against these here; OCADE has
+   * no such rule because its baseline is Safari 16.4+, where lookbehind is
+   * supported. The donor's reason for the exception still holds and is worth
+   * keeping: this only runs once `extractHeredocs()` has already seen a `<<`,
+   * so it never scans an ordinary command.
+   */
   /(?<!<)<<(?!<)(-)?[ \t]*(?:(['"])(\\?\w+)\2|\\?(\w+))/
 
 export type HeredocInfo = {

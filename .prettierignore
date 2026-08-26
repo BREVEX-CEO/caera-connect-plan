@@ -22,3 +22,11 @@ native/ocade_control_engine/
 # generated artefacts, never product source.
 native/python-host/.venv/
 native/companion/*/target/
+
+# Imported primary logic, kept in the donor archive's own formatting.
+# Reformatting 13.5k ported lines would destroy the only thing that makes an
+# import auditable: a diff against the archive it came from. The OCADE code
+# that CONSUMES this directory (src/lib/runtime) is formatted normally.
+# Excluded from the tests below because tests here are OCADE's own.
+src/primary-logic/**/*.ts
+!src/primary-logic/__tests__/**
