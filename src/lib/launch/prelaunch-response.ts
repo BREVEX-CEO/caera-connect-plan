@@ -56,7 +56,7 @@ function publicHeaders(contentType: string): Record<string, string> {
     "content-type": contentType,
     "cache-control": "public, max-age=300",
     "content-security-policy":
-      `default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline' https://cdn.jsdelivr.net ${CLOUDFLARE_WEB_ANALYTICS}; connect-src 'self' https://stream.mux.com; media-src https://stream.mux.com blob:; worker-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+      `default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline' ${CLOUDFLARE_WEB_ANALYTICS}; connect-src 'self' https://stream.mux.com; media-src https://stream.mux.com blob:; worker-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
     "cross-origin-resource-policy": "same-origin",
     "referrer-policy": "strict-origin-when-cross-origin",
     "x-robots-tag": "index, follow, max-image-preview:large",
@@ -598,7 +598,6 @@ export function renderPrelaunchPublicPage(pathname: string): string | null {
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script type="application/ld+json">${structuredData}</script>
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1.6.13/dist/hls.min.js"></script>
 <style>
 :root{color-scheme:dark;--bg:#0a0a0b;--surface:#101013;--surface2:#151519;--text:#f5f5f7;--muted:#8d8d98;--stroke:#26262c;--silver:#c9ccd4;--gold:#c89d4c;--aub:#4f2d63;--crimson:#5c1f31;--mx:50vw;--my:20vh}
 *{box-sizing:border-box}html{scroll-behavior:smooth;background:var(--bg)}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font:400 15px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:hidden}
@@ -620,12 +619,17 @@ a{color:inherit}.loader{position:fixed;inset:0;z-index:9999;background:#080809;t
 <footer class="footer"><h2>Building the next era.</h2><p>OCADE by CARCC CADANE. Local-first AI, optional connected services, and a controlled public launch.</p><div class="footer-actions"><a class="btn btn-ghost" href="/support">Contact / Support ↗</a></div><div class="footer-bar"><span>© 2026 CARCC CADANE</span><div class="footer-links"><a href="/about">About</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/support">Contact</a></div><span>Command the Next Era.</span></div></footer>
 <script>
 (function(){
+  // Native adaptive streaming where the browser has it, the progressive file
+  // everywhere else. No third-party player script: the application pages
+  // dropped theirs when the route sweep proved the CSP had been refusing it on
+  // every request, and this page has no reason to keep one either.
   const source="https://stream.mux.com/Aa02T7oM1wH5Mk5EEVDYhbZ1ChcdhRsS2m1NYyx4Ua1g.m3u8";
+  const progressive="https://stream.mux.com/Aa02T7oM1wH5Mk5EEVDYhbZ1ChcdhRsS2m1NYyx4Ua1g/high.mp4";
   const video=document.getElementById("heroVideo");
   if(video){
     try{
-      if(video.canPlayType("application/vnd.apple.mpegurl")){video.src=source;video.play().catch(()=>{});}
-      else if(window.Hls&&window.Hls.isSupported()){const hls=new window.Hls({enableWorker:true,lowLatencyMode:false,maxBufferLength:20});hls.loadSource(source);hls.attachMedia(video);hls.on(window.Hls.Events.MANIFEST_PARSED,()=>video.play().catch(()=>{}));}
+      video.src=video.canPlayType("application/vnd.apple.mpegurl")?source:progressive;
+      video.play().catch(()=>{});
     }catch(e){}
   }
   const nav=document.getElementById("nav");

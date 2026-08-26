@@ -56,7 +56,16 @@ function BlogPage() {
                     {article.tags.map((item) => <span key={item}>{item}</span>)}
                   </div>
                   <h3 className="mt-2 text-lg font-semibold">
-                    <Link to="/blog/$slug" params={{ slug: article.slug }} className="hover:underline">
+                    {/*
+                      An 18px heading is a 20px-tall link, which is under the
+                      24-pixel minimum on a phone. The padding gives the thumb
+                      the height without changing where the title sits.
+                    */}
+                    <Link
+                      to="/blog/$slug"
+                      params={{ slug: article.slug }}
+                      className="inline-flex min-h-6 items-center py-0.5 hover:underline"
+                    >
                       {article.title}
                     </Link>
                   </h3>

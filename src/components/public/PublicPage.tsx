@@ -6,20 +6,25 @@ import { SiteFooterLinks, TAP_LINK } from "@/components/shell/SiteFooter";
 const MUX_PLAYBACK_ID = "Aa02T7oM1wH5Mk5EEVDYhbZ1ChcdhRsS2m1NYyx4Ua1g";
 const MUX_HLS = `https://stream.mux.com/${MUX_PLAYBACK_ID}.m3u8`;
 const MUX_MP4 = `https://stream.mux.com/${MUX_PLAYBACK_ID}/high.mp4`;
-const HLS_SCRIPT = "https://cdn.jsdelivr.net/npm/hls.js@1.5.20/dist/hls.min.js";
-
-type HlsInstance = {
-  loadSource(source: string): void;
-  attachMedia(media: HTMLMediaElement): void;
-  destroy(): void;
-};
-
-type HlsConstructor = {
-  new (): HlsInstance;
-  isSupported(): boolean;
-};
-
-type WindowWithHls = Window & { Hls?: HlsConstructor };
+/*
+ * NO THIRD-PARTY SCRIPT, AND THE PROOF THAT ONE WAS POINTLESS HERE.
+ *
+ * Every public page used to append a <script> tag for hls.js from a public CDN.
+ * The application's own Content-Security-Policy allows scripts from this origin
+ * and nowhere else, so the browser refused the request — on every page, for
+ * every visitor, in production. The route sweep is what finally said so out
+ * loud: sixty-seven pages, each with one failing request to a host we do not
+ * permit.
+ *
+ * It was never doing anything either. The load handler that would have used the
+ * library never ran; the error handler did, and fell back to the MP4. So the
+ * fallback below is not a downgrade — it is what has actually been playing all
+ * along, minus a blocked request, a console error, and a third party watching
+ * everyone who reads the pricing page.
+ *
+ * Safari and iOS play the adaptive stream natively, which is where adaptive
+ * bitrate matters most; everything else gets the progressive file.
+ */
 
 export function PublicPage({
   eyebrow,
@@ -41,57 +46,20 @@ export function PublicPage({
     const video = videoRef.current;
     if (!video) return;
 
-    let hls: HlsInstance | null = null;
-    let cancelled = false;
-
     const playQuietly = () => {
       void video.play().catch(() => undefined);
     };
 
-    const fallBackToMp4 = () => {
-      if (cancelled) return;
-      video.src = MUX_MP4;
-      playQuietly();
-    };
-
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = MUX_HLS;
-      playQuietly();
-    } else {
-      const startHls = () => {
-        const Hls = (window as WindowWithHls).Hls;
-        if (!Hls?.isSupported()) {
-          fallBackToMp4();
-          return;
-        }
-        hls = new Hls();
-        hls.loadSource(MUX_HLS);
-        hls.attachMedia(video);
-        playQuietly();
-      };
-
-      if ((window as WindowWithHls).Hls) {
-        startHls();
-      } else {
-        const existing = document.querySelector<HTMLScriptElement>(`script[src="${HLS_SCRIPT}"]`);
-        if (existing) {
-          existing.addEventListener("load", startHls, { once: true });
-          existing.addEventListener("error", fallBackToMp4, { once: true });
-        } else {
-          const script = document.createElement("script");
-          script.src = HLS_SCRIPT;
-          script.async = true;
-          script.crossOrigin = "anonymous";
-          script.addEventListener("load", startHls, { once: true });
-          script.addEventListener("error", fallBackToMp4, { once: true });
-          document.head.appendChild(script);
-        }
-      }
-    }
+    video.src = video.canPlayType("application/vnd.apple.mpegurl") ? MUX_HLS : MUX_MP4;
+    playQuietly();
 
     return () => {
-      cancelled = true;
-      hls?.destroy();
+      // Stop the download when the page goes away. Without this, navigating
+      // between public pages leaves the previous page's video still pulling
+      // bytes until the browser gets round to collecting it.
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
     };
   }, []);
 

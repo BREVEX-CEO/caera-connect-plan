@@ -63,9 +63,16 @@ export function AuthShell({
           >
             <BrandMark />
           </Link>
+          {/*
+            The tappable area is larger than the lettering. At 11px this link
+            was 17 pixels tall, which is below the 24-pixel minimum a thumb can
+            reliably hit — the route sweep flagged it on every page that uses
+            this shell. `-mr-2` keeps the added padding from pushing the text
+            off its optical alignment with the mark opposite.
+          */}
           <Link
             to="/support"
-            className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground"
+            className="-mr-2 inline-flex min-h-11 items-center rounded-sm px-2 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
           >
             Support
           </Link>

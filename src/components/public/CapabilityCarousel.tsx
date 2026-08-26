@@ -76,18 +76,29 @@ export function CapabilityCarousel() {
 
       <div className="mt-4 flex items-center justify-center gap-2" aria-label="Choose a capability">
         {CAPABILITIES.map((capability, itemIndex) => (
+          /*
+            THE DOT IS THE PICTURE; THE BUTTON IS THE TARGET.
+            A 10x10 dot is a 10x10 button, and on a phone that is under half the
+            24-pixel minimum — three of these sat side by side and none of them
+            could be hit reliably. The visual moves into a span so the button
+            can be big enough to press without the dots becoming blobs.
+          */
           <button
             key={capability.title}
             type="button"
             aria-label={`Show ${capability.title}`}
             aria-current={itemIndex === index ? "true" : undefined}
             onClick={() => setIndex(itemIndex)}
-            className={`h-2.5 rounded-full transition-[width,background-color] duration-300 motion-reduce:transition-none ${
-              itemIndex === index
-                ? "w-8 bg-primary"
-                : "w-2.5 bg-muted-foreground/35 hover:bg-muted-foreground/60"
-            }`}
-          />
+            className="flex h-6 min-w-6 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span
+              className={`h-2.5 rounded-full transition-[width,background-color] duration-300 motion-reduce:transition-none ${
+                itemIndex === index
+                  ? "w-8 bg-primary"
+                  : "w-2.5 bg-muted-foreground/35 hover:bg-muted-foreground/60"
+              }`}
+            />
+          </button>
         ))}
       </div>
     </section>
