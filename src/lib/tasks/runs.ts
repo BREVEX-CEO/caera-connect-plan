@@ -138,7 +138,13 @@ export function project(task: TaskRun, existing?: UnifiedTask): UnifiedTask {
     sourceRef: task.toolUseId,
     title: task.description,
     request: task.command,
-    currentStep: existing?.currentStep,
+    /*
+     * The run's own last word — a receipt when it finished, the stop reason
+     * when the user ended it. It is what the task row shows under the title,
+     * which is the only place a person who was not watching finds out what
+     * happened without opening the transcript.
+     */
+    currentStep: task.detail ?? existing?.currentStep,
     status: BOARD_STATUS[task.status],
     progress: task.progress,
     retryCount: existing?.retryCount ?? 0,

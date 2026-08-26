@@ -1029,10 +1029,11 @@ export function useMission(brain: MissionBrain) {
        * the registry leaves it alone — "you stopped it" must not be overwritten
        * by "it finished".
        */
+      let runReceipt: string | undefined;
       const settleRun = (failed: boolean) => {
         const runId = runIdRef.current;
         runIdRef.current = null;
-        if (runId) finishRun(runId, failed ? "failed" : "completed");
+        if (runId) finishRun(runId, failed ? "failed" : "completed", runReceipt);
       };
       const entries: TimelineEntry[] = [];
       const push = (entry: TimelineEntry) => {
@@ -1850,6 +1851,23 @@ export function useMission(brain: MissionBrain) {
             verified: result.allVerified,
           },
         ]);
+        /*
+         * WHAT THE TASK LIST WILL SAY LATER.
+         *
+         * The transcript above is for the person watching. This is for the
+         * person coming back tomorrow, and it carries the one thing the
+         * transcript makes them scroll for: how much was done, and whether
+         * OCADE could confirm it. "Not all confirmed" is said plainly rather
+         * than rounded up to "done".
+         */
+        const stepCount = result.steps.length;
+        runReceipt =
+          stepCount === 0
+            ? ending.slice(0, 160)
+            : `${stepCount} step${stepCount === 1 ? "" : "s"} — ${
+                result.allVerified ? "all confirmed" : "not all confirmed"
+              }.`;
+
         if (result.reason === "repeating" || result.reason === "step_limit") {
           setPhase("error");
         }
