@@ -1,0 +1,40 @@
+{
+  "source": "user-approved uploaded source",
+  "purpose": "primary OCADE logic source for later wiring",
+  "original_file_count": 2161,
+  "current_file_count": 2120,
+  "removed_file_count": 41,
+  "rewritten_file_count": 1116,
+  "renamed_path_count": 104,
+  "removed_categories": [
+    "vendor-hosted tool-server deployment",
+    "vendor authentication test scripts",
+    "stale package lockfiles",
+    "reconstruction prompts and non-runtime documentation",
+    "funding metadata",
+    "OS metadata files"
+  ],
+  "preserved_categories": [
+    "Cowork/control logic",
+    "Buddy logic",
+    "task orchestration",
+    "permissions and human handoff",
+    "rate-limit and subscription state logic",
+    "memory/session logic",
+    "tool execution patterns",
+    "system prompts and reusable UI",
+    "local sandbox and computer-control patterns"
+  ],
+  "external_network_policy": {
+    "hosted_model_api": "removed/not wired",
+    "vendor_oauth": "removed from active transport path",
+    "remote_tool_protocol": "external transport removed; reusable local tool patterns retained",
+    "external_telemetry": "disabled/replaced with local compatibility"
+  },
+  "validation_status": "READY_FOR_REPO_STAGING_NOT_WIRED",
+  "notes": [
+    "Provider/server transports are not wired into OCADE.",
+    "This source tree is staged for later selective routing/integration."
+  ],
+  "validation_file": "OCADE_IMPORT_VALIDATION.json"
+}
