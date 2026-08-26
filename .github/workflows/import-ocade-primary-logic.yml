@@ -1,0 +1,71 @@
+name: Import OCADE primary logic archive
+
+on:
+  push:
+    branches:
+      - import/ocade-primary-logic-20260826
+    paths:
+      - '.incoming/OCADE_PRIMARY_LOGIC_RENAMED.zip'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ocade-primary-logic-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/import/ocade-primary-logic-20260826'
+    steps:
+      - name: Checkout import branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: import/ocade-primary-logic-20260826
+
+      - name: Verify archive is present
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f '.incoming/OCADE_PRIMARY_LOGIC_RENAMED.zip'
+          sha256sum '.incoming/OCADE_PRIMARY_LOGIC_RENAMED.zip'
+
+      - name: Install dependencies
+        shell: bash
+        run: npm ci --ignore-scripts
+
+      - name: Extract, classify, and inventory archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/import-ocade-primary-logic.mjs '.incoming/OCADE_PRIMARY_LOGIC_RENAMED.zip' --replace
+
+      - name: Verify staged source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d imports/ocade-primary-logic/source/src
+          test -f imports/ocade-primary-logic/IMPORT_RECEIPT.json
+          test -f imports/ocade-primary-logic/SOURCE_INVENTORY.json
+          node -e "const r=require('./imports/ocade-primary-logic/IMPORT_RECEIPT.json'); if(r.extractedFileCount < 2000) process.exit(1); console.log(r)"
+
+      - name: Remove transfer archive
+        shell: bash
+        run: rm -f '.incoming/OCADE_PRIMARY_LOGIC_RENAMED.zip'
+
+      - name: Commit extracted staging tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add imports/ocade-primary-logic .incoming/OCADE_PRIMARY_LOGIC_RENAMED.zip
+          if git diff --cached --quiet; then
+            echo 'No staged import changes.'
+            exit 0
+          fi
+          git commit -m 'Stage extracted OCADE primary logic source'
+          git push origin HEAD:import/ocade-primary-logic-20260826
