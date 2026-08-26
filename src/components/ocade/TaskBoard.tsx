@@ -32,6 +32,7 @@ import {
   type TaskBoardGroup,
   type TaskBoardSort,
 } from "@/lib/tasks/task-board";
+import { reconcileInterruptedRuns, subscribeToRuns } from "@/lib/tasks/runs";
 
 const SOURCES: Array<UnifiedTaskSource | "all"> = [
   "all",
@@ -59,14 +60,36 @@ export function TaskBoard() {
 
   useEffect(() => {
     let live = true;
-    void listLocalTasks().then((items) => {
-      if (live) {
-        setTasks(items);
-        setLoading(false);
-      }
+    const refresh = () =>
+      listLocalTasks().then((items) => {
+        if (live) {
+          setTasks(items);
+          setLoading(false);
+        }
+      });
+
+    /*
+     * RECONCILE BEFORE SHOWING ANYTHING.
+     *
+     * A run left mid-flight by a closed tab or a crash is still recorded as
+     * executing, and this registry only holds runs THIS session started — so
+     * nothing is going to finish it. Saying so first is what makes the board
+     * true on the second visit, and it is what turns a stranded row into one
+     * the user can pick back up.
+     */
+    void reconcileInterruptedRuns()
+      .catch(() => undefined)
+      .then(refresh);
+
+    // Live runs write through to the same store, so a mission starting in
+    // Cowork appears here without the user reloading.
+    const unsubscribe = subscribeToRuns(() => {
+      void refresh();
     });
+
     return () => {
       live = false;
+      unsubscribe();
     };
   }, []);
 

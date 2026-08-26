@@ -18,7 +18,7 @@ A directory of imported code nothing imports is not integration, which is why
 
 | Archive files | Dispositioned | Ported modules | Reached from production |
 |---:|---:|---:|---:|
-| 2126 | 2126 (100%) | 23 | 23 |
+| 2126 | 2126 (100%) | 26 | 26 |
 
 ## By disposition
 
@@ -26,7 +26,7 @@ A directory of imported code nothing imports is not integration, which is why
 |---|---:|---:|---:|
 | `MERGE_REPLACE` | 850 | 10 | 10 |
 | `UI_PORT` | 423 | 3 | 3 |
-| `PRIMARY_WIRE` | 406 | 19 | 19 |
+| `PRIMARY_WIRE` | 406 | 21 | 21 |
 | `BOUNDARY_NATIVE` | 149 | 6 | 6 |
 | `NATIVE_DEV_KEEP` | 138 | 3 | 3 |
 | `TRANSPORT_REPLACE_LOCAL` | 22 | 0 | 0 |
@@ -72,5 +72,8 @@ A directory of imported code nothing imports is not integration, which is why
 - `src/primary-logic/query/tokenBudget.ts`
 - `src/primary-logic/query/transitions.ts`
 - `src/primary-logic/shims/featureFlags.ts`
+- `src/primary-logic/tasks/lifecycle.ts`
+- `src/primary-logic/tasks/pillLabel.ts`
+- `src/primary-logic/tasks/stopTask.ts`
 - `src/primary-logic/text/lazySchema.ts`
 - `src/primary-logic/text/sanitization.ts`

@@ -34,6 +34,7 @@ import {
   stopMissionFn,
   type MissionStart,
 } from "@/lib/control-work.functions";
+import { finishRun, pauseRun, resumeRun, startRun, stopRun } from "@/lib/tasks/runs";
 import type { BrainMessage } from "@/lib/brain/adapter";
 import type { ControlState } from "./control-solar";
 import { routeDirect } from "./fast-router";
@@ -701,17 +702,105 @@ export function useMission(brain: MissionBrain) {
    * moment the interface must not be ambiguous, so the stopped state is sticky
    * until the user actually asks for something else.
    */
-  const stop = useCallback(() => {
-    stoppedRef.current = true;
+  /**
+   * The live run this mission is tracking, if any.
+   *
+   * Registered with the task registry so that "what is OCADE doing" and "stop
+   * it" are answerable from anywhere — the Cowork panel, the task list, a tool
+   * call in Chat — instead of only from the button inside this hook.
+   */
+  const runIdRef = useRef<string | null>(null);
+
+  /**
+   * Everything stopping actually does to the machine: drop the loop, refuse any
+   * question still on screen, let go of the keyboard and mouse, then reconnect
+   * so the next instruction has a mission to run in.
+   *
+   * Separated from `stop` because it is also what the registry's killer calls.
+   * A stop issued from the task list has to do the same work as the button.
+   */
+  /**
+   * True while the user has taken the computer back.
+   *
+   * A ref as well as state because `teardown` runs from a killer that may fire
+   * long after the render that set it, and it has to read the CURRENT answer to
+   * "should OCADE reconnect".
+   */
+  const handOverRef = useRef(false);
+  const [handedOver, setHandedOver] = useState(false);
+
+  const teardown = useCallback(async () => {
     abortRef.current?.abort();
     abortRef.current = null;
     approvalRefResolve.current?.(false);
     approvalRefResolve.current = null;
     setApproval(null);
     setPaused(false);
-    setPhase("stopped");
-    void release().then(() => void connect());
+    await release();
+    /*
+     * Stop reconnects; Take over does not. That difference IS the difference
+     * between the two controls: after Stop, OCADE is standing by with the
+     * machine still available to it; after Take over, the keyboard and mouse
+     * are the user's and OCADE holds nothing until they ask for something.
+     */
+    if (!handOverRef.current) void connect();
   }, [release, connect]);
+
+  const stop = useCallback(() => {
+    stoppedRef.current = true;
+    handOverRef.current = false;
+    setHandedOver(false);
+    setPhase("stopped");
+    const runId = runIdRef.current;
+    runIdRef.current = null;
+    /*
+     * Through the registry when there is a run, so the stop is recorded once
+     * and the task list agrees with the panel. Directly when there is not —
+     * pressing Stop while idle still has to release the machine.
+     */
+    if (runId) {
+      void stopRun(runId, "You stopped it.").catch(() => void teardown());
+    } else {
+      void teardown();
+    }
+  }, [teardown]);
+
+  /**
+   * Pause and resume, banked against the run so elapsed time stays honest.
+   *
+   * The registry subtracts paused time, which is why a task the user left
+   * paused overnight does not report as having worked for nine hours.
+   */
+  const changePaused = useCallback((next: boolean) => {
+    setPaused(next);
+    const runId = runIdRef.current;
+    if (!runId) return;
+    if (next) pauseRun(runId);
+    else resumeRun(runId);
+  }, []);
+
+  /**
+   * Hand the computer back to the user.
+   *
+   * This used to call `stop` — two buttons doing one thing, which is the kind
+   * of control the specification calls fake. It now does the thing its label
+   * promises: the run is stopped, the machine is released, and OCADE does NOT
+   * take it again. The next instruction reconnects, because asking OCADE for
+   * something is how the user gives it back.
+   */
+  const takeOver = useCallback(() => {
+    stoppedRef.current = true;
+    handOverRef.current = true;
+    setHandedOver(true);
+    setPhase("stopped");
+    const runId = runIdRef.current;
+    runIdRef.current = null;
+    if (runId) {
+      void stopRun(runId, "You took over.").catch(() => void teardown());
+    } else {
+      void teardown();
+    }
+  }, [teardown]);
 
   const approvalRefResolve = useRef<((allowed: boolean) => void) | null>(null);
 
@@ -857,6 +946,17 @@ export function useMission(brain: MissionBrain) {
 
   const send = useCallback(
     async (request: string) => {
+      /*
+       * The user took the machine back, and is now asking for something. That
+       * is the handover in the other direction, and it needs a fresh mission —
+       * the old one released its sidecars when control was handed over.
+       */
+      if (handOverRef.current) {
+        handOverRef.current = false;
+        setHandedOver(false);
+        stoppedRef.current = false;
+        await connect();
+      }
       const missionId = missionRef.current;
       if (!missionId) {
         setError("OCADE is not connected to this computer.");
@@ -891,6 +991,33 @@ export function useMission(brain: MissionBrain) {
       abortRef.current = controller;
       const revision = new Revision();
       revisionRef.current = revision;
+      /*
+       * REGISTER THE RUN BEFORE ANY WORK STARTS.
+       *
+       * Everything after this point can be stopped from outside this hook, can
+       * be seen in the task list while it runs, and leaves a durable record if
+       * the tab closes mid-task. The killer is `teardown` — the same work the
+       * Stop button does — so there is exactly one way a mission ends.
+       */
+      const run = startRun({
+        kind: "mission",
+        description: request,
+        kill: () => teardown(),
+      });
+      runIdRef.current = run.id;
+      let runFailed = false;
+      /**
+       * Close the run exactly once, whichever way the instruction ended.
+       *
+       * A run the user stopped is already terminal by the time this runs, and
+       * the registry leaves it alone — "you stopped it" must not be overwritten
+       * by "it finished".
+       */
+      const settleRun = (failed: boolean) => {
+        const runId = runIdRef.current;
+        runIdRef.current = null;
+        if (runId) finishRun(runId, failed ? "failed" : "completed");
+      };
       const entries: TimelineEntry[] = [];
       const push = (entry: TimelineEntry) => {
         entries.push(entry);
@@ -1295,6 +1422,7 @@ export function useMission(brain: MissionBrain) {
             },
           ]);
         } catch (cause) {
+          runFailed = true;
           const message = cause instanceof Error ? cause.message : "OCADE could not write that.";
           setTurns((current) => [
             ...current,
@@ -1312,6 +1440,7 @@ export function useMission(brain: MissionBrain) {
           abortRef.current = null;
           revisionRef.current = null;
           setLive([]);
+          settleRun(runFailed);
           setPhase((current) => (current === "stopped" || current === "error" ? current : "idle"));
         }
         return;
@@ -1723,6 +1852,7 @@ export function useMission(brain: MissionBrain) {
          * Both now happen. The banner turns red because `error` is set, and the
          * phase holds at "error" so the panel does not quietly return to idle.
          */
+        runFailed = true;
         const message =
           cause instanceof Error
             ? cause.message
@@ -1743,6 +1873,7 @@ export function useMission(brain: MissionBrain) {
         abortRef.current = null;
         revisionRef.current = null;
         setLive([]);
+        settleRun(runFailed);
         // A held state — stopped, or a failure the user has not seen yet —
         // survives the cleanup. Only a normal finish returns to idle.
         setPhase((current) => (current === "stopped" || current === "error" ? current : "idle"));
@@ -1751,7 +1882,7 @@ export function useMission(brain: MissionBrain) {
     // `speak` and `refreshMemory` are stable `useCallback([])`s, so listing
     // them changes nothing at runtime — but suppressing the rule here would
     // hide the next dependency that is not stable.
-    [brain, runOneCall, speak, refreshMemory],
+    [brain, runOneCall, speak, refreshMemory, teardown, connect],
   );
 
   const busy = phase === "thinking" || phase === "observing" || phase === "controlling";
@@ -1766,7 +1897,7 @@ export function useMission(brain: MissionBrain) {
     phase,
     busy,
     paused,
-    setPaused,
+    setPaused: changePaused,
     turns,
     live,
     approval,
@@ -1774,6 +1905,10 @@ export function useMission(brain: MissionBrain) {
     revise,
     send,
     stop,
+    /** Hand the keyboard and mouse back. OCADE holds nothing until asked. */
+    takeOver,
+    /** True while the user has control and OCADE is deliberately holding off. */
+    handedOver,
     error,
     /** Prompt (typing) or voice (hands-free). Changes approvals, not powers. */
     mode,

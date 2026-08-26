@@ -189,11 +189,14 @@ export function ControlWorkPanel({
           state={orbStateFor({
             phase: sceneState,
             awaitingApproval: mission.approval !== null,
+            userHasControl: mission.handedOver,
           })}
           label={
-            connected
-              ? "OCADE is connected to this device"
-              : "OCADE is waiting for the companion on this computer"
+            mission.handedOver
+              ? "You have the computer — OCADE is standing by"
+              : connected
+                ? "OCADE is connected to this device"
+                : "OCADE is waiting for the companion on this computer"
           }
           className="absolute bottom-4 left-4 z-20"
         />
@@ -275,9 +278,7 @@ export function ControlWorkPanel({
                 label="Stop"
               />
               <SceneButton
-                onClick={() => {
-                  mission.stop();
-                }}
+                onClick={mission.takeOver}
                 icon={<Hand className="h-3.5 w-3.5" />}
                 label="Take over"
               />

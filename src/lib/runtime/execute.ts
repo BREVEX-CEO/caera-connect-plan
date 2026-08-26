@@ -28,6 +28,7 @@ import { runControlActionFn } from "@/lib/control-work.functions";
 import { findTool } from "@/lib/agent/tool-registry";
 import type { ToolOutcome } from "@/lib/agent/outcomes";
 import type { ToolCallLike } from "./permissions";
+import { isTaskTool, runTaskTool } from "@/lib/tasks/task-tools";
 
 export interface ExecuteContext {
   /**
@@ -58,7 +59,18 @@ export async function executeToolCall(
   }
 
   /*
-   * The browser first. A click in a web page belongs to the extension that is
+   * OCADE'S OWN TASK STATE FIRST, BECAUSE IT IS NOT OUT THERE.
+   *
+   * `task_list`, `task_stop` and `task_create` act on the run registry in this
+   * tab. Neither the extension nor the companion holds that state, so routing
+   * them outward would refuse a question OCADE can always answer.
+   */
+  if (isTaskTool(call.name)) {
+    return runTaskTool(call.name, (call.arguments ?? {}) as Record<string, unknown>);
+  }
+
+  /*
+   * Then the browser. A click in a web page belongs to the extension that is
    * already in that page; sending it to the companion would move the mouse on
    * the desktop instead, which looks like the same action and is not.
    */

@@ -3,8 +3,8 @@
   "totals": {
     "archiveFiles": 2126,
     "dispositioned": 2126,
-    "portedModules": 23,
-    "reachedModules": 23
+    "portedModules": 26,
+    "reachedModules": 26
   },
   "byAction": {
     "DEVOPS_MERGE": {
@@ -34,8 +34,8 @@
     },
     "PRIMARY_WIRE": {
       "total": 406,
-      "ported": 19,
-      "reached": 19
+      "ported": 21,
+      "reached": 21
     },
     "MERGE_REPLACE": {
       "total": 850,
@@ -9715,17 +9715,21 @@
       "file": "src/tasks/pillLabel.ts",
       "action": "PRIMARY_WIRE",
       "target": "canonical task engine",
-      "ported": false,
-      "reached": false,
-      "portedAs": []
+      "ported": true,
+      "reached": true,
+      "portedAs": [
+        "src/primary-logic/tasks/pillLabel.ts"
+      ]
     },
     {
       "file": "src/tasks/stopTask.ts",
       "action": "PRIMARY_WIRE",
       "target": "canonical task engine",
-      "ported": false,
-      "reached": false,
-      "portedAs": []
+      "ported": true,
+      "reached": true,
+      "portedAs": [
+        "src/primary-logic/tasks/stopTask.ts"
+      ]
     },
     {
       "file": "src/tasks/types.ts",
