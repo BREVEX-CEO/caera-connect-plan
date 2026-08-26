@@ -6,6 +6,7 @@ on:
       - import/ocade-primary-logic-20260826
     paths:
       - '.incoming/*.zip'
+      - '.github/workflows/import-ocade-primary-logic.yml'
   workflow_dispatch:
 
 permissions:
@@ -18,6 +19,7 @@ concurrency:
 jobs:
   import:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: github.ref == 'refs/heads/import/ocade-primary-logic-20260826'
     steps:
       - name: Checkout import branch
@@ -34,12 +36,9 @@ jobs:
           expected_sha256='4b9590a17222ba460c26905daba7273076d0bb42163f5a8e6d9cda9076de2e49'
           mapfile -t archives < <(find .incoming -maxdepth 1 -type f -name '*.zip' -print | sort)
 
-          # The extraction commit removes the transfer ZIP. That deletion also
-          # matches the workflow path filter and can trigger one follow-up run.
-          # Treat that follow-up as a clean no-op instead of a false red build.
           if [ "${#archives[@]}" -eq 0 ] && [ -f imports/ocade-primary-logic/IMPORT_RECEIPT.json ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Archive already imported; this is the expected post-import deletion event."
+            echo "Archive already imported; nothing to do."
             exit 0
           fi
 
