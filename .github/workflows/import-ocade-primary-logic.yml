@@ -31,6 +31,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          expected_sha256='4b9590a17222ba460c26905daba7273076d0bb42163f5a8e6d9cda9076de2e49'
           mapfile -t archives < <(find .incoming -maxdepth 1 -type f -name '*.zip' -print | sort)
 
           # The extraction commit removes the transfer ZIP. That deletion also
@@ -49,9 +50,17 @@ jobs:
           fi
 
           archive="${archives[0]}"
+          actual_sha256="$(sha256sum "$archive" | awk '{print $1}')"
+          if [ "$actual_sha256" != "$expected_sha256" ]; then
+            echo "Archive SHA-256 mismatch." >&2
+            echo "Expected: $expected_sha256" >&2
+            echo "Actual:   $actual_sha256" >&2
+            exit 1
+          fi
+
           echo "skip=false" >> "$GITHUB_OUTPUT"
           echo "path=$archive" >> "$GITHUB_OUTPUT"
-          sha256sum "$archive"
+          echo "Verified archive SHA-256: $actual_sha256"
 
       - name: Install dependencies
         if: steps.archive.outputs.skip != 'true'
@@ -73,7 +82,7 @@ jobs:
           test -d imports/ocade-primary-logic/source/src
           test -f imports/ocade-primary-logic/IMPORT_RECEIPT.json
           test -f imports/ocade-primary-logic/SOURCE_INVENTORY.json
-          node -e "const r=require('./imports/ocade-primary-logic/IMPORT_RECEIPT.json'); if(r.extractedFileCount < 2000) process.exit(1); console.log(r)"
+          node -e "const r=require('./imports/ocade-primary-logic/IMPORT_RECEIPT.json'); if(r.extractedFileCount < 2000) process.exit(1); if(r.archiveSha256 !== '4b9590a17222ba460c26905daba7273076d0bb42163f5a8e6d9cda9076de2e49') process.exit(1); console.log(r)"
 
       - name: Remove transfer archive
         if: steps.archive.outputs.skip != 'true'
