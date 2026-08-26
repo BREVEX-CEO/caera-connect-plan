@@ -1,6 +1,7 @@
 {
   "analyzedAt": "2026-08-26",
   "uploadedArchive": "OCADE_PRIMARY_LOGIC_RENAMED(1).zip",
+  "archiveSha256": "4b9590a17222ba460c26905daba7273076d0bb42163f5a8e6d9cda9076de2e49",
   "archiveFiles": 2124,
   "uncompressedBytes": 33941081,
   "approximateTextLines": 544055,
@@ -20,22 +21,70 @@
     ".example": 1
   },
   "largestAreas": {
-    "src/utils": 563,
-    "src/components": 389,
-    "src/commands": 209,
-    "src/tools": 184,
-    "src/services": 137,
-    "src/hooks": 104,
-    "src/ink": 96,
-    "web": 151
+    "src/components": { "files": 389, "approxMiB": 9.12 },
+    "src/utils": { "files": 563, "approxMiB": 6.31 },
+    "src/server": { "files": 23, "approxMiB": 2.94 },
+    "src/tools": { "files": 184, "approxMiB": 2.57 },
+    "src/commands": { "files": 209, "approxMiB": 2.38 },
+    "src/services": { "files": 137, "approxMiB": 1.67 },
+    "src/hooks": { "files": 104, "approxMiB": 1.19 },
+    "src/ink": { "files": 96, "approxMiB": 0.99 },
+    "src/screens": { "files": 3, "approxMiB": 0.98 },
+    "web": { "files": 151, "approxMiB": 0.47 }
   },
   "highLevelArchitecture": {
-    "core": ["src/QueryEngine.ts", "src/Task.ts", "src/Tool.ts", "src/tools.ts", "src/commands.ts"],
+    "core": [
+      "src/QueryEngine.ts",
+      "src/Task.ts",
+      "src/Tool.ts",
+      "src/tools.ts",
+      "src/commands.ts"
+    ],
     "toolFamilies": 43,
-    "toolExamples": ["FileRead", "FileWrite", "FileEdit", "Glob", "Grep", "Bash", "PowerShell", "LSP", "WebSearch", "WebFetch", "TaskCreate", "TaskUpdate", "TaskStop", "Agent", "Team"],
+    "toolExamples": [
+      "FileRead",
+      "FileWrite",
+      "FileEdit",
+      "Glob",
+      "Grep",
+      "Bash",
+      "PowerShell",
+      "LSP",
+      "WebSearch",
+      "WebFetch",
+      "TaskCreate",
+      "TaskUpdate",
+      "TaskStop",
+      "Agent",
+      "Team"
+    ],
     "separateWebRuntime": "Next.js 14 + React 18",
     "mainDonorRuntime": "Bun/Node + React/Ink terminal UI",
     "productionRepoRuntime": "TanStack Start + Vite + React 19 + Cloudflare"
+  },
+  "runtimeBoundaryScan": {
+    "filesReferencingNodeFs": 56,
+    "filesReferencingNodeChildProcess": 25,
+    "filesReferencingProcessEnv": 385,
+    "filesReferencingWebSocketOrWsUrls": 54,
+    "filesWithNextJsReferences": 15,
+    "filesWithInkOrReactReconcilerReferences": 144,
+    "meaning": "The donor tree is not browser/Cloudflare-native. Node filesystem, process, PTY, shell and server assumptions must remain behind a local companion or be rewritten for OCADE-native browser abstractions."
+  },
+  "standaloneHealth": {
+    "status": "READY_FOR_REPO_STAGING_NOT_WIRED",
+    "brokenRelativeImportOccurrences": 474,
+    "brokenRelativeImportsUnique": 357,
+    "typescriptDiagnostics": 7230,
+    "missingModuleTS2307": 2178,
+    "syntaxParseErrors": 0,
+    "note": "These numbers come from the archive's own validation receipt and mean the donor tree is not a standalone build snapshot."
+  },
+  "provenanceAndLicence": {
+    "packageLicenseField": "UNLICENSED",
+    "licenseFileFoundInArchive": false,
+    "commercialShippingStatus": "UNRESOLVED — do not ship donor source or derivative ports commercially until provenance/rights are confirmed for the relevant code.",
+    "repositoryPolicy": "Private staging/reference is separated from production wiring. Production integration must be selective, attributable and reviewed."
   },
   "observedCompatibilityRisks": [
     "Donor validation reports 357 unique unresolved relative imports.",
@@ -44,17 +93,18 @@
     "CLI/tool runtime assumes filesystem, shell, PTY and Node/Bun capabilities unavailable in Cloudflare Workers.",
     "Donor QueryEngine uses a different model/protocol/service stack and must be adapted to OCADE's local WebGPU/WASM authority.",
     "Donor Next file read/write routes resolve arbitrary paths and are not acceptable public web endpoints.",
-    "The existing OCADE repository already has agent loop, tool registry, browser Cowork, extension, local AI and permissions, so direct donor registration would duplicate authority."
+    "The existing OCADE repository already has agent loop, tool registry, browser Cowork, extension, local AI and permissions, so direct donor registration would duplicate authority.",
+    "The donor package is marked UNLICENSED and contains no LICENSE file; commercial reuse rights are not established by the archive itself."
   ],
   "observedReferenceStrings": {
-    "anthropicFiles": ["Skill.md"],
-    "claudeFiles": ["Skill.md", "agent.md"],
+    "anthropicOrClaudeFiles": ["Skill.md", "agent.md"],
     "openaiReferences": [
-      "src/skills/bundled/ocadeApi.ts (documentation trigger example)",
+      "src/skills/bundled/ocadeApi.ts (documentation/trigger example)",
       "src/services/teamMemorySync/secretScanner.ts (secret-pattern detector)"
     ],
     "qwenFiles": [],
-    "note": "These findings are classification/provenance observations, not evidence of an active hosted-model route."
+    "somllmFiles": [],
+    "note": "These are classification/provenance observations, not proof of an active hosted-model route."
   },
-  "recommendedStrategy": "Preserve the archive under a quarantined import namespace, then port only reusable logic into the existing OCADE-native architecture with adapters and tests. Do not place the donor root directly under production src/."
+  "recommendedStrategy": "Preserve the archive under a quarantined import namespace, then port only reusable logic into the existing OCADE-native architecture with adapters and tests. Never place the donor root directly under production src/ and never activate its provider/server/runtime authority wholesale."
 }
