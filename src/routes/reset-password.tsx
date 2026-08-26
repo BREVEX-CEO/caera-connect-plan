@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { KeyRound, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { friendlyOtpError } from "@/lib/auth/otp";
 import { AuthShell } from "@/components/shell/AuthShell";
 import { opensResetForm, readRecoveryEvidence } from "@/lib/auth/recovery-link";
 
@@ -109,7 +110,19 @@ function ResetPasswordPage() {
     const { error: err } = await supabase.auth.updateUser({ password });
     setBusy(false);
     if (err) {
-      setError(err.message);
+      /*
+       * The provider's own words used to land here verbatim, naming the
+       * service and occasionally an internal endpoint. This is a person
+       * halfway through recovering their account; what they need is a sentence
+       * about what to do next.
+       */
+      setError(
+        /same.*password|should be different/i.test(err.message)
+          ? "That is the password you already had. Choose a different one."
+          : /expired|invalid|token/i.test(err.message)
+            ? "This reset link has expired. Ask for a new one from the sign-in page."
+            : friendlyOtpError(err.message),
+      );
       return;
     }
     setDone(true);

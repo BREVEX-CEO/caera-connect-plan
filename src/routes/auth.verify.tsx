@@ -10,6 +10,14 @@ import {
   friendlyOtpError,
   secondsUntilResend,
 } from "@/lib/auth/otp";
+import {
+  describeWait,
+  loadThrottle,
+  recordFailure,
+  recordSuccess,
+  saveThrottle,
+  secondsUntilAllowed,
+} from "@/lib/auth/throttle";
 
 const searchSchema = z.object({
   channel: z.enum(["phone", "email"]),
@@ -52,7 +60,25 @@ function VerifyPage() {
    */
   const [lastSentAt, setLastSentAt] = useState<number | null>(() => Date.now());
   const [cooldown, setCooldown] = useState(OTP_RESEND_COOLDOWN_SECONDS);
-  const attempts = useRef(0);
+  /*
+   * WRONG CODES NOW COST TIME.
+   *
+   * This used to be `useRef(0)`: a counter that, from the fifth failure on,
+   * showed a longer sentence and then let the sixth attempt through at once.
+   * The message claimed OCADE had stopped; nothing had, and a script
+   * working through six-digit codes was slowed only by string rendering. The
+   * backoff is real now — free for the first two failures, because that is what
+   * a typo costs, and doubling to five minutes after that.
+   */
+  const [throttle, setThrottle] = useState(() => loadThrottle("otp_verify", identifier));
+  const [wait, setWait] = useState(0);
+
+  useEffect(() => {
+    const tick = () => setWait(secondsUntilAllowed(throttle, Date.now()));
+    tick();
+    const id = window.setInterval(tick, 500);
+    return () => window.clearInterval(id);
+  }, [throttle]);
 
   useEffect(() => {
     const tick = () => setCooldown(secondsUntilResend(lastSentAt, Date.now()));
@@ -65,6 +91,11 @@ function VerifyPage() {
 
   async function verify(e: React.FormEvent) {
     e.preventDefault();
+    const remaining = secondsUntilAllowed(throttle, Date.now());
+    if (remaining > 0) {
+      setError(describeWait(remaining));
+      return;
+    }
     setBusy(true);
     setError(null);
     const parsed = z
@@ -82,20 +113,26 @@ function VerifyPage() {
         ? await supabase.auth.verifyOtp({ phone: identifier, token: parsed.data, type: "sms" })
         : await supabase.auth.verifyOtp({ email: identifier, token: parsed.data, type: "email" });
     if (err) {
-      attempts.current += 1;
+      const next = recordFailure(throttle, Date.now());
+      setThrottle(next);
+      saveThrottle("otp_verify", identifier, next);
       /*
        * The provider's text is never shown: it names the service, sometimes
        * names internal endpoints, and answers "does this account exist?" for
        * anyone working through a list of addresses.
+       *
+       * The wait is appended rather than replacing the reason — a person who
+       * mistyped needs to know both that the code was wrong and when they may
+       * try again.
        */
-      setError(
-        attempts.current >= 5
-          ? "That code did not match. After several attempts OCADE stops guessing — ask for a new code, or go back and check the address."
-          : friendlyOtpError(err.message),
-      );
+      const delay = secondsUntilAllowed(next, Date.now());
+      setError([friendlyOtpError(err.message), describeWait(delay)].filter(Boolean).join(" "));
       setBusy(false);
       return;
     }
+    const cleared = recordSuccess();
+    setThrottle(cleared);
+    saveThrottle("otp_verify", identifier, cleared);
     navigate({ to: target, replace: true });
   }
 
@@ -151,11 +188,17 @@ function VerifyPage() {
         />
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || wait > 0}
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Verify and continue
+          {/*
+            The countdown is ON the button, not only in the error. A control
+            that has silently stopped working is a bug as far as the person
+            pressing it is concerned; one that says when it will work again is
+            an instruction.
+          */}
+          {wait > 0 ? `Wait ${wait}s` : "Verify and continue"}
         </button>
         <button
           type="button"

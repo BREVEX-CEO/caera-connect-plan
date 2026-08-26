@@ -7,6 +7,15 @@ import { lovable } from "@/integrations/lovable";
 import { LegalDialog } from "@/components/legal/LegalDialog";
 import { AuthShell } from "@/components/shell/AuthShell";
 import { OTP_SENT_NOTICE, friendlyOtpError } from "@/lib/auth/otp";
+import {
+  describeWait,
+  loadThrottle,
+  recordFailure,
+  recordSuccess,
+  saveThrottle,
+  secondsUntilAllowed,
+  type ThrottledAction,
+} from "@/lib/auth/throttle";
 import { safeNext } from "@/lib/auth/safe-next";
 import { cn } from "@/lib/utils";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
@@ -83,7 +92,9 @@ function AuthPage() {
   async function signInOAuth(provider: "google" | "apple") {
     if (!authProviderAvailability[provider]) {
       setError(`${provider === "google" ? "Google" : "Apple"} sign-in is not available yet.`);
-      setErrorHint("Use an enabled sign-in method, or try again after launch configuration is complete.");
+      setErrorHint(
+        "Use an enabled sign-in method, or try again after launch configuration is complete.",
+      );
       return;
     }
     setBusy(true);
@@ -135,13 +146,30 @@ function AuthPage() {
     }
     // Same rule as email: the person says whether they are joining or
     // returning, and a mistyped digit does not become somebody's new account.
+    const sendWait = blockedFor("otp_send", parsed.data);
+    if (sendWait > 0) {
+      setError(describeWait(sendWait));
+      setBusy(false);
+      return;
+    }
     const creating = signupIntent;
     const { error: err } = await supabase.auth.signInWithOtp({
       phone: parsed.data,
       options: { shouldCreateUser: creating },
     });
+    /*
+     * Counted whether or not the provider accepted it, for the same reason the
+     * reset path counts successes: what is being rate-limited here is the
+     * outbound mail, and an attacker learns nothing from which of their sends
+     * worked.
+     */
+    noteAttempt("otp_send", parsed.data, false);
     if (err && !/user|not found|signups? not allowed|otp_disabled/i.test(err.message)) {
-      setError(friendlyOtpError(err.message));
+      setError(
+        [friendlyOtpError(err.message), describeWait(blockedFor("otp_send", parsed.data))]
+          .filter(Boolean)
+          .join(" "),
+      );
       setBusy(false);
       return;
     }
@@ -194,7 +222,9 @@ function AuthPage() {
     }
     if (intent === "signup") {
       if (!authProviderAvailability.emailDelivery) {
-        setError("New email accounts are temporarily unavailable while production mail is prepared.");
+        setError(
+          "New email accounts are temporarily unavailable while production mail is prepared.",
+        );
         setErrorHint("No account was created. Existing members can still sign in with a password.");
         setBusy(false);
         return;
@@ -213,10 +243,16 @@ function AuthPage() {
          * "User already registered" answers the attacker's question, so the
          * wording says what to DO instead of what exists.
          */
+        const delay = noteAttempt("signup", parsedEmail.data, false);
         setError(
-          /already registered|already exists/i.test(err.message)
-            ? "That address cannot be used to create a new account. If it is yours, sign in — or reset the password."
-            : err.message,
+          [
+            /already registered|already exists/i.test(err.message)
+              ? "That address cannot be used to create a new account. If it is yours, sign in — or reset the password."
+              : friendlyOtpError(err.message),
+            describeWait(delay),
+          ]
+            .filter(Boolean)
+            .join(" "),
         );
         setBusy(false);
         return;
@@ -231,26 +267,70 @@ function AuthPage() {
       navigate({ to: nextPath, replace: true });
       return;
     }
+    const waiting = blockedFor("password_signin", parsedEmail.data);
+    if (waiting > 0) {
+      setError(describeWait(waiting));
+      setErrorHint("You can also sign in with a one-time code, or reset your password below.");
+      setBusy(false);
+      return;
+    }
     const { error: err } = await supabase.auth.signInWithPassword({
       email: parsedEmail.data,
       password,
     });
     if (err) {
+      const delay = noteAttempt("password_signin", parsedEmail.data, false);
+      /*
+       * The provider's text is not shown. It names the service, sometimes names
+       * internal endpoints, and its wording distinguishes "no such user" from
+       * "wrong password" — which is exactly the difference somebody working
+       * through a list of addresses is trying to measure.
+       */
       setError(
-        err.message.toLowerCase().includes("invalid login")
-          ? "That email and password combination did not match an account."
-          : err.message,
+        [
+          err.message.toLowerCase().includes("invalid login")
+            ? "That email and password combination did not match an account."
+            : friendlyOtpError(err.message),
+          describeWait(delay),
+        ]
+          .filter(Boolean)
+          .join(" "),
       );
       setErrorHint("You can also sign in with a one-time code, or reset your password below.");
       setBusy(false);
       return;
     }
+    noteAttempt("password_signin", parsedEmail.data, true);
     navigate({ to: nextPath, replace: true });
+  }
+
+  /**
+   * The wait an attempt has earned, and the record of it.
+   *
+   * Kept as two small functions rather than a hook so every path on this screen
+   * — password sign-in, sign-up, reset, one-time code — goes through the same
+   * two lines. Four screens each remembering to back off in their own way is
+   * three chances to forget.
+   */
+  function blockedFor(action: ThrottledAction, identifier: string): number {
+    return secondsUntilAllowed(loadThrottle(action, identifier), Date.now());
+  }
+
+  function noteAttempt(action: ThrottledAction, identifier: string, ok: boolean): number {
+    if (ok) {
+      saveThrottle(action, identifier, recordSuccess());
+      return 0;
+    }
+    const next = recordFailure(loadThrottle(action, identifier), Date.now());
+    saveThrottle(action, identifier, next);
+    return secondsUntilAllowed(next, Date.now());
   }
 
   async function sendPasswordReset() {
     if (!authProviderAvailability.emailDelivery) {
-      setError("Password reset email is temporarily unavailable while production mail is prepared.");
+      setError(
+        "Password reset email is temporarily unavailable while production mail is prepared.",
+      );
       return;
     }
     setBusy(true);
@@ -263,14 +343,31 @@ function AuthPage() {
       setBusy(false);
       return;
     }
+    const waiting = blockedFor("password_reset", parsedEmail.data);
+    if (waiting > 0) {
+      setBusy(false);
+      setError(describeWait(waiting));
+      return;
+    }
     const { error: err } = await supabase.auth.resetPasswordForEmail(parsedEmail.data, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setBusy(false);
     if (err) {
-      setError(err.message);
+      const delay = noteAttempt("password_reset", parsedEmail.data, false);
+      setError([friendlyOtpError(err.message), describeWait(delay)].filter(Boolean).join(" "));
       return;
     }
+    /*
+     * A SUCCESSFUL SEND IS RATE-LIMITED TOO, AND THAT IS NOT THE SAME RULE.
+     *
+     * Everywhere else the backoff counts failures. Here it counts sends,
+     * because the thing being abused is the mail itself: a reset endpoint that
+     * succeeds every time is a way to fill somebody's inbox using nothing but
+     * their address. The notice below is deliberately the same whether or not
+     * the address has an account.
+     */
+    noteAttempt("password_reset", parsedEmail.data, false);
     setNotice(
       "If that address has an account, a password reset link is on its way. The link expires shortly.",
     );
@@ -279,7 +376,9 @@ function AuthPage() {
   async function sendEmailOtp(e: React.FormEvent) {
     e.preventDefault();
     if (!authProviderAvailability.emailDelivery) {
-      setError("Email one-time codes are temporarily unavailable while production mail is prepared.");
+      setError(
+        "Email one-time codes are temporarily unavailable while production mail is prepared.",
+      );
       return;
     }
     setBusy(true);
