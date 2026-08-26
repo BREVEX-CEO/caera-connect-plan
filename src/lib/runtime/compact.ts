@@ -48,14 +48,55 @@ const KEEP_RECENT = 12;
 /** Below this, compaction cannot save enough to be worth the disruption. */
 const MIN_MESSAGES_TO_COMPACT = 16;
 
+/**
+ * How far the cut may move back to land on a round boundary.
+ *
+ * A long unbroken chain of tool calls has no boundary inside it, and walking
+ * back to the start of the conversation looking for one would mean never
+ * compacting the transcripts that need it most. Eight is generous enough to
+ * clear an ordinary exchange and small enough that the search always ends.
+ */
+const MAX_BOUNDARY_SEARCH = 8;
+
+/** A tool result, as this transcript writes them. */
+function isToolResult(message: QueryMessage): boolean {
+  return (
+    message.role === "user" &&
+    typeof message.content === "string" &&
+    message.content.startsWith("Result of ")
+  );
+}
+
+/**
+ * Move a cut back to the start of an exchange.
+ *
+ * TAKEN FROM THE ARCHIVE, WHICH GROUPS ITS TRANSCRIPT BY ROUND BEFORE
+ * COMPACTING FOR EXACTLY THIS REASON: a window that opens part-way through a
+ * round begins with the RESULTS of a request the model can no longer see. It
+ * then has observations with no question attached, and the reliable failure is
+ * that it invents the question — usually a plausible one, which is worse.
+ *
+ * A round starts at a real user turn. A tool result is written as a user
+ * message here, so it is explicitly not one.
+ */
+function roundBoundary(messages: readonly QueryMessage[], cut: number): number {
+  const floor = Math.max(0, cut - MAX_BOUNDARY_SEARCH);
+  for (let index = cut; index > floor; index -= 1) {
+    const message = messages[index];
+    if (message && message.role === "user" && !isToolResult(message)) return index;
+  }
+  return cut;
+}
+
 export async function compactTranscript(
   messages: readonly QueryMessage[],
 ): Promise<QueryMessage[] | null> {
   if (messages.length < MIN_MESSAGES_TO_COMPACT) return null;
 
   const first = messages.find((message) => message.role === "user");
-  const recent = messages.slice(-KEEP_RECENT);
-  const middle = messages.slice(0, -KEEP_RECENT).filter((message) => message !== first);
+  const cut = roundBoundary(messages, messages.length - KEEP_RECENT);
+  const recent = messages.slice(cut);
+  const middle = messages.slice(0, cut).filter((message) => message !== first);
   if (middle.length === 0) return null;
 
   /*
@@ -64,9 +105,7 @@ export async function compactTranscript(
    * confabulate the gap; told plainly that earlier steps were summarised, it
    * asks or works with what it has.
    */
-  const droppedTools = middle.filter(
-    (message) => typeof message.content === "string" && message.content.startsWith("Result of "),
-  ).length;
+  const droppedTools = middle.filter(isToolResult).length;
 
   const summary: QueryMessage = {
     role: "user",
