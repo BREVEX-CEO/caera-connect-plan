@@ -10,7 +10,7 @@ Branch:
 
 `import/ocade-primary-logic-20260826`
 
-When the ZIP is committed, `.github/workflows/import-ocade-primary-logic.yml` automatically:
+The archive is verified against its pinned SHA-256 before extraction. The controlled importer then:
 
 1. detects the single ZIP in this folder,
 2. verifies and hashes the archive,
@@ -22,3 +22,5 @@ When the ZIP is committed, `.github/workflows/import-ocade-primary-logic.yml` au
 8. commits and pushes the organized extracted tree back to the same import branch.
 
 Do not place the archive on `main` and do not unzip it manually into production `src/`.
+
+Extraction trigger refreshed after the uploaded archive was verified on 26 August 2026.
