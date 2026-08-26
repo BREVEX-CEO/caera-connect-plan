@@ -1,125 +1,287 @@
-# OCADE — Claude Opus 5 Master Execution Prompt
+# OCADE — CLAUDE OPUS 5 MASTER INTEGRATION + PRODUCTION EXECUTION PROMPT
 
-## Outcome
+## Mission
 
-Finish OCADE as one coherent production product by making the uploaded `OCADE_PRIMARY_LOGIC_RENAMED.zip` donor the primary implementation source for overlapping runtime logic, extracting and normalizing it, replacing broken/duplicate legacy OCADE implementations where the donor is stronger, wiring every surviving feature through one canonical route and service boundary, repairing all integration errors, then completing the UI/product redesign and production proof.
+Take over the current OCADE production-completion branch and finish the source integration, architecture unification, routing, feature wiring, duplicate removal, Cowork/browser/computer-control repair, UI redesign, performance hardening, testing and production proof.
 
-Do not return a plan-only audit. Execute the repository work autonomously until the Definition of Done is met or a genuine external blocker requires a secret/account action that cannot be performed from the coding environment.
+This is not an audit-only task. Use the loop:
 
-Work on branch `import/ocade-primary-logic-20260826`. Do not start from an old `main` snapshot.
+**READ → TRACE → PLAN → CODE → RUN → BREAK → FIX → RETEST → VERIFY → COMMIT**
 
-## Authoritative context
+Repeat until the reachable launch-critical surface is coherent and green. Produce a short execution map first, then continue immediately into implementation. Do not stop after the plan and do not ask the user to edit code manually.
 
 Repository: `BREVEX-CEO/caera-connect-plan`
 
-Uploaded donor archive: `.incoming/*.zip`
+Working branch: `import/ocade-primary-logic-20260826`
 
-Required donor SHA-256:
-`4b9590a17222ba460c26905daba7273076d0bb42163f5a8e6d9cda9076de2e49`
+Current production base: `main`
 
-Expected extracted file count: `2124`
+Current source archive: `.incoming/OCADE_PRIMARY_LOGIC.rar`
 
-Existing importer:
-`scripts/import-ocade-primary-logic.mjs`
+Verified archive identity:
 
-Staging root:
-`imports/ocade-primary-logic/source/`
+- SHA-256: `a1ce51f92447ada16a52631a2fdf61ec4d5ff24efa1e078beaa00b6b4741f467`
+- Git blob SHA-1: `c3121695459979b5ca77ac14e267488675fba7e4`
+- Size: `10,140,038` bytes
+- Expected extracted file count: `2,123`
+- Expected extracted directory count: `346`
+- Expected uncompressed bytes: `33,932,339`
 
-Read the existing import documentation and source inventory/receipt when generated. Treat the donor as a source code donor, not as a second application that should be mounted beside OCADE.
+The previous ZIP path is obsolete. Do not use old ZIP hashes, names, counts or instructions.
 
-## Product architecture authority
+---
 
-The donor ZIP becomes the preferred implementation source for overlapping agent/runtime capabilities when its implementation is complete and compatible. Replace weak, broken, stale or duplicate OCADE logic with adapted donor logic rather than keeping two competing systems.
+# 0. FIRST ACTIONS — REPOSITORY STATE AND BRANCH RECONCILIATION
 
-Do not blindly overwrite protected OCADE boundaries. Preserve these system authorities unless there is a proven bug that can be fixed without changing their external contract:
+Before changing product code:
 
-- current OCADE TanStack/React application shell and canonical product router
-- browser-first/local-first normal Chat architecture
-- no public-cloud AI inference fallback for normal OCADE Chat
-- current local WebGPU/WASM model authority and local inference boundary
-- Supabase authentication and Private Sync boundaries
-- existing RLS/security model
-- Cloudflare deployment/domain/public-route contracts
-- prelaunch/launch readiness gates
-- current legal/public URLs
-- extension/native/local-companion security boundaries
+1. Run `git status`.
+2. Run `git branch --show-current`.
+3. Run `git log --oneline --decorate -30`.
+4. Fetch the latest remote refs.
+5. Compare `import/ocade-primary-logic-20260826` against `origin/main`.
+6. Preserve all useful committed and uncommitted work.
+7. Do not reset, clean, discard or overwrite unknown changes.
+8. Reconcile the branch with the latest `main` before deep integration. Prefer a clean merge/rebase strategy that preserves the import work and production changes. Resolve conflicts by tracing current production authorities, not by choosing one side blindly.
+9. Re-run the compare after reconciliation and record the resulting base/head SHAs in the final report.
 
-## Hard Cloudflare boundary
+At handoff time the branch had diverged from `main`; therefore do not assume the branch is already current.
 
-Do not change, rename, replace or rotate the existing Cloudflare URLs, domains, route mappings, Worker endpoints, public legal URLs, OAuth-facing public URLs, DNS assumptions or deployment bindings as part of this integration/UI work.
+Do not merge to `main` at the beginning. All integration and verification happens on the working branch first.
 
-The UI and runtime must adapt around the existing Cloudflare contracts.
+---
 
-If a Cloudflare-side change is truly unavoidable, stop that specific change and report the exact external requirement instead of silently modifying it.
+# 1. VERIFY AND STAGE THE RAR — DO NOT EXTRACT OVER PRODUCTION
 
-## Donor integration goal
+The archive is a source input, not a second application to mount beside OCADE.
 
-Use the donor at the fullest technically safe extent for capabilities such as:
+1. Verify the RAR SHA-256 exactly matches:
+   `a1ce51f92447ada16a52631a2fdf61ec4d5ff24efa1e078beaa00b6b4741f467`
+2. Extract it with a trusted RAR-capable tool into a temporary directory outside production `src/`.
+3. Verify the extracted file count and approximate inventory against the values above.
+4. Inspect the top-level structure before staging.
+5. Run:
+   `node scripts/import-ocade-primary-logic.mjs <extracted-directory> --replace`
+6. Confirm generated:
+   - `imports/ocade-primary-logic/source/`
+   - `imports/ocade-primary-logic/SOURCE_INVENTORY.json`
+   - `imports/ocade-primary-logic/IMPORT_RECEIPT.json`
+7. Verify no extracted path escaped the staging boundary.
+8. Commit the staged inventory/receipt separately before production integration so the migration remains reviewable.
 
-- agent loop/orchestration
-- tool registry and tool execution contracts
-- task/background-run orchestration
-- permission and human-approval patterns
-- file search/read/edit/write concepts
-- context/session/history management
-- memory and compaction patterns
-- command routing
-- browser-control coordination
-- local computer-control coordination
-- handoffs
-- task state and result state
-- error/state normalization
-- developer/runtime diagnostics where useful
+Never bulk-copy the entire staged source tree into production `src/`.
 
-For every overlapping subsystem, choose one canonical production implementation. Migrate all callers and tests to it, then remove or archive the obsolete competing implementation. Do not leave `legacy`, `new`, `v2`, donor and old implementations all active together.
+---
 
-The donor currently contains mixed runtime assumptions and unresolved imports. Repair its dependency graph as part of adaptation instead of copy-pasting broken files into production.
+# 2. RIGHTS / PROVENANCE / THIRD-PARTY GATE
 
-Never push Node/Bun-only filesystem, shell, PowerShell, PTY or process execution into the browser bundle. Those capabilities must stay behind a trusted local/native companion boundary with explicit permissions.
+Do not infer ownership merely from renamed strings, package names or deleted documentation.
 
-Do not mount the donor Next.js web application as a second product shell. Reuse/adapt useful UI logic or patterns only when they belong in the existing OCADE application.
+Before reusing a module verbatim:
 
-Do not reintroduce hosted model-provider fallbacks or donor provider/API/OAuth systems into normal OCADE Chat.
+- inspect any licence/authorization/NOTICE files supplied with the source;
+- preserve legally required copyright, attribution, licence and provenance notices;
+- identify third-party and open-source dependencies and retain their required notices;
+- do not remove required provenance simply to make a source appear independently authored;
+- do not treat the absence of `Claude`, `Anthropic`, `@ant`, `tengu`, `sk-ant` or other historical identifiers as proof of origin or ownership.
 
-## Canonical product routing
+If the applicable rights allow reuse/modification/rebranding, adapt the module normally while preserving mandatory notices. If a particular module is technically useful but cannot be reused under the applicable rights, implement the required behavior independently in OCADE-native code rather than copying that module.
 
-After integration there must be one clear, working route/surface for each real customer capability. Consolidate duplicates and repair direct navigation, refresh, back/forward and deep links.
+This gate applies per module; it must not become an excuse to stop the entire engineering run if clean-room implementation can achieve the same product behavior.
 
-Core customer surfaces should be simplified around:
+---
 
-- Chat
-- Cowork / Control
-- Projects
-- Search
-- Studio / Outputs
-- Tasks / Automations
-- Devices where genuinely useful
-- Settings
+# 3. BUILD A REAL SOURCE MAP BEFORE PORTING
 
-Secondary/internal/admin/diagnostic routes must not compete with primary navigation.
+Read the complete staged source and the complete current OCADE architecture before making replacement decisions.
 
-MADEE/CANIA/FICIA or other future/unfinished products must not occupy prime navigation if they are only placeholders. Hide or feature-gate them until they provide real value.
+Classify each staged subsystem as one of:
 
-## Cowork + browser/computer control
+- `REUSE_AND_ADAPT`
+- `CLEAN_ROOM_REIMPLEMENT`
+- `LOCAL_COMPANION_ONLY`
+- `REFERENCE_ONLY`
+- `QUARANTINE`
+- `DO_NOT_WIRE`
+- `OBSOLETE`
 
-Rebuild the Control + Work experience as a first-class OCADE product, not an engineering dashboard.
+For each major subsystem record:
+
+- source paths;
+- current OCADE equivalent paths;
+- runtime/environment assumptions;
+- missing imports/dependencies;
+- security boundary;
+- browser/native/server compatibility;
+- tests currently covering the behavior;
+- migration target;
+- final canonical authority;
+- old code to remove after migration.
+
+Do not program toward old audit documents when reachable code proves otherwise. Current code + newly executed proof outrank stale docs.
+
+---
+
+# 4. REPAIR THE STAGED DEPENDENCY GRAPH WITHOUT POLLUTING PRODUCTION
+
+The source may contain unresolved internal imports, missing dependencies, obsolete package aliases, differing Zod versions, Node/Bun assumptions or incomplete integrations.
+
+Repair methodically:
+
+1. Generate a list of unresolved internal imports.
+2. Separate missing local modules from unavailable private/vendor packages.
+3. Do not add questionable private packages merely to make compilation pass.
+4. Replace unavailable integrations with OCADE-owned interfaces/adapters where needed.
+5. Keep Node/Bun filesystem, process, PTY, shell, PowerShell and native execution out of browser/Cloudflare bundles.
+6. Move native capabilities behind the existing trusted desktop/local-companion boundary.
+7. Normalize schemas/types to OCADE's current dependency versions instead of downgrading the production application to fit the source.
+8. Remove or quarantine web/server routes that expose arbitrary filesystem read/write behavior or secrets.
+9. Do not introduce public hosted model-provider inference into normal OCADE Chat.
+
+The goal is not to make the staged source a standalone application. The goal is to migrate useful capabilities into the canonical OCADE architecture.
+
+---
+
+# 5. PRESERVE THESE OCADE AUTHORITIES
+
+Unless a concrete bug is proven and repaired without breaking the external contract, preserve:
+
+- TanStack/React production application shell and canonical product router;
+- browser-first/local-first normal Chat;
+- browser WebGPU local inference authority;
+- browser WASM fallback;
+- desktop/local Ollama or local-native bridge where currently supported;
+- no public-cloud AI inference fallback for normal OCADE Chat;
+- Supabase authentication and Private Sync boundaries;
+- current production Supabase project and RLS model;
+- Cloudflare deployment/domain/public-route contracts;
+- legal/public routes;
+- OAuth callback contracts;
+- Chrome/Edge extension trust boundary;
+- desktop/native permission boundary;
+- PWA/offline architecture;
+- prelaunch/launch readiness gates;
+- STOP/PAUSE/TAKE OVER safety behavior;
+- truthful failure and audit/evidence recording.
+
+Do not change Cloudflare/public/OAuth URLs as part of this integration unless technically unavoidable. If an external account-side change is genuinely required, isolate that blocker and continue everything else.
+
+---
+
+# 6. TARGET CANONICAL ARCHITECTURE
+
+Unify the product around one execution path:
+
+**Chat `/ocade` or Cowork `/ocade/work`**
+→ one shared session/controller API
+→ prompt/context assembly
+→ fast/deterministic router where appropriate
+→ one local-chat/local-model entry
+→ local brain/model router
+→ tool protocol
+→ tool contract validation
+→ agent loop
+→ permission boundary
+→ executor
+→ verification
+→ evidence/audit ledger
+→ shared mission state surfaced back to Chat/Cowork.
+
+Create or converge on a single shared surface API such as:
+
+`useOcadeSession()`
+
+with behavior equivalent to:
+
+- `messages`
+- `send()`
+- `mission`
+- `toolEvents`
+- `permissionRequests`
+- `pause()`
+- `resume()`
+- `takeOver()`
+- `stop()`
+- `retry()`
+- `status`
+
+Do not keep Chat and Cowork as two unrelated AI products. They may differ visually, but they must share the same canonical runtime plumbing.
+
+---
+
+# 7. CHAT — WIRE REAL AGENT/TOOL CAPABILITY INTO NORMAL OCADE
+
+Current normal Chat must not remain isolated from the real tool/agent execution layer.
+
+Tasks:
+
+1. Trace `/ocade` from route → composer → message pipeline → model router → persistence.
+2. Trace the existing shared chat components/hooks used elsewhere.
+3. Replace giant route-local duplicate chat logic with the shared canonical chat/session system where practical.
+4. Wire normal Chat into the agent/tool loop through the same tool contract and permission boundary used by Cowork.
+5. Preserve a fast plain-chat path when no tool is needed.
+6. Preserve local model inference.
+7. Add tool-event rendering and clear execution state without turning Chat into a debugging console.
+8. Make STOP actually cancel generation/tool/mission work.
+9. Ensure deep links to conversations, search results and projects work.
+10. Verify streaming, retry, regenerate, cancel, attachments where actually supported, citations/retrieval, offline behavior and persistence.
+
+Every action-capable Chat request must pass through permissions and verification. No hidden bypass path.
+
+---
+
+# 8. TOOL REGISTRY — ONE EXECUTION AUTHORITY
+
+There are multiple registries/catalogs in the codebase. Collapse execution authority.
+
+- Keep one canonical executable tool registry.
+- Other catalogs may remain only as descriptive metadata/governance if genuinely required.
+- Migrate callers/tests.
+- Delete or archive dead duplicate registries after proof.
+- Every executable tool must have:
+  - stable ID/name;
+  - schema validation;
+  - permission classification;
+  - execution boundary;
+  - cancellation support where applicable;
+  - normalized success/error result;
+  - verification/evidence behavior;
+  - tests.
+
+Do not count a tool as working because it appears in a registry. Exercise representative real paths.
+
+---
+
+# 9. COWORK / CONTROL — REBUILD AS A REAL PRODUCT
+
+Rebuild `/ocade/work` as OCADE's mission/control room, not an engineering dashboard.
 
 Functional requirements:
 
-- browser control must use the existing trusted browser/extension boundary
-- computer control must use the correct local/native boundary
-- permissions are explicit and scoped
-- high-impact actions require the existing confirmation/safety model
-- PAUSE, TAKE OVER and STOP are always obvious when OCADE is acting
-- activity is observable in plain language
-- failures do not leave phantom running state
-- STOP actually stops the active run/action chain
-- browser and PC-control states survive the necessary navigation/reconnect cases without lying to the user
-- no fake control, fake success or fake execution states
+- same canonical session/agent/tool runtime as Chat;
+- browser control through the trusted extension/browser boundary;
+- computer control through trusted local/native companion boundary;
+- explicit scoped permissions;
+- high-impact actions require confirmation according to existing policy;
+- PAUSE, TAKE OVER and STOP always visible while acting;
+- STOP cancels the active mission/action chain, not just the animation;
+- PAUSE freezes at a safe boundary;
+- TAKE OVER cleanly hands control back to the user;
+- reconnect/navigation does not invent phantom running state;
+- failures show truthful plain-language state;
+- action history/evidence is inspectable without overwhelming the main view;
+- no fake execution/success indicators.
 
-The primary Cowork UI should be minimal and orb-centered, with contextual panels appearing only when useful.
+Primary visual structure:
 
-Create an original OCADE state-driven orb inspired by high-quality Jarvis/orb interaction patterns. Do not copy another product's branding or exact trade dress. The orb should communicate real state:
+- centered state-driven OCADE orb;
+- minimal task/composer area;
+- mission/activity panel only when relevant;
+- permission/confirmation sheets when required;
+- compact evidence/result cards;
+- emergency STOP in clear crimson treatment.
+
+Orb states must be driven by real runtime state:
 
 - idle
 - listening
@@ -135,224 +297,587 @@ Create an original OCADE state-driven orb inspired by high-quality Jarvis/orb in
 - offline/local-only
 - retrieval/network activity
 
-Use restrained gold for confirmation/important intent and crimson for danger/STOP. The orb is a state language, not decoration.
+The orb is a state language, not decorative animation.
 
-## Remove complexity and duplication
+---
 
-The current customer-facing product exposes too much implementation detail. Simplify aggressively without deleting real capability.
+# 10. BROWSER CONTROL
 
-Remove or consolidate:
+Trace all browser-control paths: extension pairing, permissions, content scripts, background/service worker, page state, browser executor and Cowork/Chat caller.
 
-- duplicate pages
-- duplicate options
-- duplicate settings
-- dead controls
-- controls that do not affect real behavior
-- excessive instructional copy
-- technical diagnostics from normal customer flows
-- unnecessary cursor customization
-- raw storage/database/browser internals from ordinary Settings
-- raw model filenames/hashes from ordinary Settings
-- placeholder product pages from main navigation
+Verify:
 
-Settings should become a small set of understandable groups, approximately:
+- per-site permission model;
+- extension pairing/reconnect;
+- tab selection and navigation;
+- reading page state;
+- click/type/scroll/select actions;
+- protected input restrictions;
+- downloads/uploads where actually supported;
+- cancellation;
+- STOP persistence;
+- recovery when a tab closes or navigation changes origin;
+- no broad host permission regression if current design intentionally uses per-site opt-in;
+- action result verification.
 
-- Account
-- Personalization
-- AI & Voice
+Remove duplicate browser executors only after all callers are migrated.
+
+---
+
+# 11. COMPUTER CONTROL / LOCAL COMPANION
+
+Keep filesystem/shell/process/native control behind trusted local boundaries.
+
+Verify desktop/Tauri/Python/local-host paths for:
+
+- explicit device pairing;
+- scoped permissions;
+- window/screen observation if supported;
+- mouse/keyboard control if supported;
+- app/process/file actions only within approved capabilities;
+- protected input/credential restrictions;
+- cancellation and emergency stop;
+- audit/evidence;
+- disconnect/reconnect behavior;
+- no remote unauthenticated arbitrary file endpoints.
+
+Cloudflare/browser code must never directly gain unrestricted host OS capabilities.
+
+---
+
+# 12. MODEL ROUTING — COLLAPSE DUPLICATION
+
+There must be one public surface entry into model inference and one authoritative local runtime router underneath it.
+
+Consolidate overlapping model-routing layers while preserving:
+
+- Fast mode;
+- Thinking mode;
+- browser WebGPU;
+- browser WASM fallback;
+- desktop/local bridge where supported;
+- context-window authority;
+- model download/storage integrity;
+- offline operation after model availability;
+- no public hosted inference fallback.
+
+Customer UI should use OCADE-native behavior labels such as:
+
+- Fast
+- Thinking
+- Local Intelligence
+
+Do not expose raw model filenames, hashes, implementation runtimes or unexplained internal names in normal UI. Truthful underlying model/runtime provenance belongs in Advanced diagnostics.
+
+---
+
+# 13. TASKS / AUTOMATIONS — ONE DURABLE ENGINE
+
+Trace every task/automation implementation and route.
+
+Choose one durable canonical authority, then:
+
+- migrate active callers;
+- preserve offline/local caching only where useful;
+- unify scheduled tasks and automations into one understandable product surface;
+- remove duplicate task stores/engines after migration;
+- ensure cancellation, pause, retry, history, failure state and permissions are coherent;
+- make tasks created from Chat/Cowork appear in the same canonical system.
+
+Target user-facing route:
+
+`/ocade/tasks`
+
+Use tabs/filters rather than separate duplicate products when possible.
+
+---
+
+# 14. MEMORY / CONTEXT / SEARCH / PROJECTS / OUTPUTS
+
+Unify these as connected product capabilities rather than isolated pages.
+
+Memory:
+
+- one user-visible memory authority;
+- editable/deletable where promised;
+- clear local/private-sync behavior;
+- no hidden duplicate stores affecting responses inconsistently.
+
+Search:
+
+- conversations/messages search;
+- local-first indexes where available;
+- direct deep links to results;
+- clear scope and empty/error states.
+
+Projects:
+
+- project context/files/conversations/outputs share one project identity;
+- remove duplicate project/studio/code shells if unfinished or redundant;
+- context passed into Chat must be visible/understandable.
+
+Outputs/Studio:
+
+- retain only real artifact/output functionality;
+- remove placeholder or duplicate creation surfaces;
+- link generated outputs back to conversation/project/task provenance where appropriate.
+
+---
+
+# 15. ROUTE CONSOLIDATION
+
+Target signed-in primary product surfaces:
+
+1. `/ocade` — Chat
+2. `/ocade/work` — Cowork / Control
+3. `/ocade/tasks` — Tasks & Automations
+4. `/ocade/projects` — Projects / Files / Context
+5. `/ocade/devices` — Devices / Connections / Extension pairing
+6. `/settings` — canonical Settings
+7. Search and Outputs may be dedicated routes or integrated trays only if that is cleaner, but there must be one canonical path per capability.
+
+Admin/internal diagnostics remain separate and must not compete with main navigation.
+
+For every retired route:
+
+- trace inbound links;
+- add redirect/compatibility route when necessary;
+- update navigation;
+- update tests;
+- test direct URL, refresh, back/forward and deep linking.
+
+Hide or feature-gate unfinished future products rather than occupying prime navigation.
+
+---
+
+# 16. SETTINGS — ONE SYSTEM, FEWER OPTIONS
+
+Collapse duplicate settings routers/stores/panels.
+
+Recommended groups:
+
+- General
+- Account & Security
+- Appearance
+- Chat & Voice
 - Privacy & Data
 - Devices & Control
 - Plan & Billing
 - Advanced
 
-Advanced retains truthful diagnostics and provenance.
+Rules:
 
-## Model naming and customer-facing AI identity
+- every visible control must work and persist;
+- remove dead/duplicate controls;
+- remove cursor customization if it does not materially affect the real product;
+- normal storage UI shows simple usage and Manage Storage, not raw IndexedDB/OPFS internals;
+- raw model/runtime/provenance/debug details live under Advanced;
+- motion/depth should be presets rather than many technical sliders;
+- appearance changes should visibly affect supported orb/environment/accent surfaces.
 
-Do not prominently expose `Qwen`, raw model filenames, hashes, runtime implementation names or `SOMLLM` in the normal OCADE customer UI.
-
-Customer-facing choices should communicate OCADE behavior, for example `Fast`, `Thinking`, `Local Intelligence`, or similarly clear OCADE-native labels.
-
-Truthful underlying model/runtime provenance must remain available under Advanced diagnostics/model information where appropriate. Do not falsify origin; simplify presentation.
-
-If `SOMLLM` is only an internal/undefined identifier, remove it from normal UI and either give it a precise internal definition or eliminate it if unused.
-
-## Quick Appearance + Motion & Depth
-
-Quick Appearance must contain only controls that visibly work. Remove controls that are cosmetic clutter or disconnected from behavior.
-
-Appearance/accent changes must visibly propagate into the supported 3D/orb/environment treatment rather than changing only a small UI token.
-
-Simplify motion/depth controls into understandable presets instead of exposing many technical sliders. A suitable product model is:
+Suggested motion model:
 
 - Motion: Off / Balanced / Immersive
 - Depth: Low / Standard / High
 
-Map those presets internally to the actual animation/parallax/particle/GPU configuration.
+Respect `prefers-reduced-motion` and low-performance devices.
 
-## UI design authority
+---
 
-The redesign must feel simpler than the current product while looking more premium and spatial. The target is Claude/ChatGPT-level surface simplicity with OCADE's deeper local/control capabilities underneath.
+# 17. UI / DESIGN SYSTEM
 
-### Login / authentication — ECHOID-inspired
+The product should feel simpler than the current build while retaining deeper capability underneath.
 
-Use the user-supplied ECHOID design direction for OCADE authentication:
+## Overall language
 
-- full-viewport black cinematic composition
-- full-bleed dark AI/surreal background media
-- minimal top navigation/brand treatment
-- right-aligned authentication panel on desktop, responsive on mobile
-- sharp, restrained controls rather than generic rounded dashboard cards
-- minimal copy
-- strong typography hierarchy
-- proper keyboard/focus behavior
-- reduced-motion fallback using a poster/static background
-- no fake invite/referral behavior unless OCADE actually supports it
-- replace all ECHOID/E-network copy with OCADE/CARCC CADANE product copy
+- black foundation;
+- silver/graphite structural UI;
+- restrained gold for confirmation/important intent;
+- aubergine for depth/identity accents;
+- crimson reserved for danger/STOP/destructive actions;
+- premium typography;
+- minimal borders;
+- strong spacing hierarchy;
+- spatial depth only where it helps comprehension;
+- no generic dashboard-card overload;
+- no movie-title treatment;
+- no excessive gradients or glowing everything.
 
-Reference media supplied by the user:
-`https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260806_133255_956f653f-5d80-4b06-abd5-0f46c98b60fa.mp4`
+## Login / auth
 
-Poster:
-`https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260806_132328_5f9029c8-218f-4489-82b6-29ff2849920e.png`
+Use the supplied ECHOID reference only as visual inspiration:
 
-Use only where legally/technically appropriate; keep a local/fallback path so auth remains usable if media fails.
+- full-viewport dark cinematic composition;
+- minimal OCADE branding/navigation;
+- right-aligned auth panel on desktop;
+- responsive single-column mobile adaptation;
+- minimal copy;
+- strong keyboard/focus behavior;
+- reduced-motion/static fallback;
+- background media failure must not break authentication;
+- do not copy reference brand names, proprietary copy or fake invite mechanics.
 
-### Global product/site language — Operational AI Infrastructure-inspired
+## Signed-in product
 
-Use the user-supplied Operational AI Infrastructure direction as the dominant visual language for most pages:
+Use an Operational-AI-Infrastructure feel:
 
-- pure black foundation
-- crisp white/silver typography
-- restrained metallic/liquid interaction surfaces
-- Inter/system UI typography with selective editorial serif emphasis where appropriate
-- controlled entrance motion
-- premium hover/focus states
-- strong whitespace and hierarchy
-- background/ambient presence that never prevents content interaction
-- no white flash
-- responsive/mobile behavior
-- reduced-motion behavior
-- avoid rainbow gaming aesthetics and excessive glowing chrome
+- precision black/silver surfaces;
+- restrained spatial depth;
+- minimal navigation;
+- plain language;
+- no fake metrics, clients or social proof.
 
-Reference background media supplied by the user:
-`https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260818_072341_50851634-bbc3-4c33-9acc-7647d4db44aa.mp4`
+## Liquid/refractive glass
 
-Do not force this media onto every page if it harms readability/performance; preserve the design language with lighter ambient treatment on precision/settings surfaces.
+Use Terranova-style refractive/liquid-glass inspiration selectively for overlays, modals and focus surfaces. Do not make every panel expensive glass. Provide performance-safe fallbacks.
 
-### Glass overlays / focused surfaces — Terranova-inspired
+## Performance tiers
 
-Use the user-supplied Terranova direction selectively for overlays, confirmation sheets, Cowork contextual panels, device pairing, model download/progress and other high-value focused surfaces:
+Tier 1 — cinematic:
+- Login
+- Cowork
+- Voice/orb-focused surfaces
 
-- refractive/liquid-glass feel
-- clear foreground/content stacking
-- restrained frost and border treatment
-- premium open/close motion
-- do not run expensive live refraction on every card/page
-- use simpler CSS/backdrop fallbacks on weaker devices
+Tier 2 — lightweight spatial:
+- Projects
+- Search
+- Outputs
+- Tasks
 
-Reference media supplied by the user:
-`https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260816_125506_3a597378-ec85-4ebd-bd22-03b45508ac62.mp4`
+Tier 3 — precision UI:
+- Settings
+- Privacy
+- Security
+- Billing
 
-The source reference deliberately uses a live duplicated video + SVG displacement effect; adapt the visual result only where the performance budget supports it. Do not make the entire application depend on a per-frame canvas refraction pipeline.
+No heavy WebGL everywhere.
 
-## Global focus-depth behavior
+---
 
-When a drawer, modal, command surface, confirmation or critical permission sheet opens, the background should reduce visual dominance consistently.
+# 18. AUTHENTICATION / ACCOUNT SECURITY
 
-Use one shared focus-depth system:
+Preserve and verify:
 
-- ordinary page: full ambient presence
-- drawer/sheet: background reduced
-- important modal: stronger dim/blur
-- permission/security confirmation: stronger focus isolation
-- emergency STOP state: almost all visual noise removed
+- explicit Sign In vs Create Account intent;
+- no silent account creation from OTP sign-in paths;
+- resend cooldown/rate limit behavior;
+- password recovery safety;
+- current-password verification for ordinary password changes where required;
+- Google OAuth callback behavior;
+- session persistence and logout;
+- protected route redirects;
+- auth error messages that do not leak unnecessary account state;
+- mobile auth usability.
 
-Transitions should feel fast and premium, not cinematicly slow.
+Do not replace Supabase auth with source-donor auth systems.
 
-## Performance requirements
+---
 
-Interactive/3D design must remain fast.
+# 19. SUPABASE / DATA / RLS
 
-Use performance tiers rather than WebGL everywhere:
+Do not blindly apply every migration.
 
-- Cinematic: Login, Voice, Cowork/Control and a small number of hero experiences
-- Spatial: Projects, Search, Studio, Tasks, Devices using lightweight depth and limited effects
-- Precision: Settings, Privacy, Security, Billing, Local Engine using mostly static premium UI with small ambient cues
+1. Confirm current production Supabase project reference from existing production configuration.
+2. Inspect live schema if the environment permits.
+3. Diff required migration state against production.
+4. Apply only missing safe changes.
+5. Preserve RLS.
+6. Verify tenant/user ownership boundaries.
+7. Verify sync conflicts and offline behavior.
+8. Keep rollback notes for every production schema change.
 
-3D/orb code must lazy-load outside the critical shell, dispose resources when leaving, pause/reduce work when hidden, respect reduced motion, cap DPR/particle load, and provide a lightweight fallback.
+Do not resurrect stale project references from old docs or source packages.
 
-Do not let UI polish regress startup, typing latency, scrolling, navigation, model inference or control responsiveness.
+---
 
-## Product-state honesty
+# 20. PAYMENTS / BILLING
 
-Every enabled button must execute a real action.
+If payments are not launch-ready, keep paid purchase paths disabled/locked rather than faking completion.
 
-Every route must either:
+Where payment code exists, verify:
 
-- load a real working page,
-- intentionally redirect,
-- or show an honest setup/access/unavailable state.
+- webhook signature verification;
+- idempotency;
+- atomic entitlement changes;
+- replay resistance;
+- price/product mapping;
+- failure/retry handling;
+- no client-side trust for subscription state.
 
-Do not use fake successes, fake uploads, fake AI responses, fake device activity, fake automation runs or fake control states.
+Do not open paid launch gates without proof.
 
-Technical errors should be translated into customer language first, with optional expandable diagnostics.
+---
 
-## Data/storage presentation
+# 21. OFFLINE / PWA / STORAGE
 
-Normal customers should not see low-level IndexedDB/cache/model-file/hash details by default.
+Verify:
 
-Show a simple storage summary such as local space used + Manage Storage. Put implementation details in Advanced diagnostics.
+- service worker update behavior;
+- offline shell;
+- local conversations/messages;
+- model availability state;
+- model storage/download resume/integrity if supported;
+- storage quota behavior;
+- no data loss from upgrades;
+- private sync reconnection;
+- clear user messaging when network-only features are unavailable.
 
-Preserve actual local/offline behavior and storage management underneath.
+Keep UI simple: local-first does not mean exposing every storage implementation detail.
 
-## Testing and Definition of Done
+---
 
-The work is done only when all of the following are true:
+# 22. VOICE / VISION / DEVICES
 
-1. The uploaded ZIP is extracted and verified by exact SHA-256 and exact `2124` file count.
-2. `IMPORT_RECEIPT.json` and `SOURCE_INVENTORY.json` accurately describe the extracted donor.
-3. Donor logic is adapted into production rather than merely stored in `imports/`.
-4. Overlapping old/broken logic is migrated or removed so one canonical implementation remains per subsystem.
-5. Unresolved donor imports used by production are fixed; quarantined/reference-only donor files do not leak into production builds.
-6. Chat/local inference authority remains local-first with no hosted inference fallback.
-7. Browser control and Cowork computer control work through correct trusted boundaries with real permissions and STOP/PAUSE/TAKE OVER behavior.
-8. Direct routes, refresh, back/forward and deep links work for surviving customer pages.
-9. Duplicate/dead/placeholder customer pages and settings are removed or feature-gated.
-10. Qwen/raw model implementation details and SOMLLM do not dominate normal UI; provenance remains truthful in Advanced.
-11. Login follows the OCADE-adapted ECHOID direction.
-12. Main product UI follows the Operational AI Infrastructure direction without becoming visually noisy.
-13. Selective glass/focus surfaces follow the Terranova direction without introducing broad performance regressions.
-14. Appearance controls visibly work, including supported orb/3D accent propagation.
-15. Motion/depth settings are simplified and functional.
-16. Desktop and mobile layouts are production-quality.
-17. Keyboard/focus/accessibility and `prefers-reduced-motion` are respected.
-18. Console/network errors caused by OCADE code are resolved in tested customer journeys.
-19. Typecheck, lint, production build and relevant automated tests pass.
-20. Existing Cloudflare URLs/routes/contracts remain unchanged.
-21. Existing public legal/OAuth URLs remain unchanged.
-22. Launch gate remains closed until the final production proof is clean; do not open it merely because the calendar date arrives.
-23. The final repository contains no obvious duplicate runtime/router/task/tool/control implementations left active without a documented reason.
+Only expose capabilities that are real.
 
-## Execution behavior
+Voice:
 
-Use autonomous repository execution. Read broadly enough to understand dependencies, then implement and verify end-to-end. Make checkpoint commits by coherent integration slice so work can be recovered.
+- permission flow;
+- listening state;
+- stop/cancel;
+- transcript/error behavior;
+- orb state synchronization;
+- no fake continuous listening.
 
-Do not stop after telling the user what should be changed. Change it.
+Vision/files:
 
-Do not ask the user to edit source code manually.
+- supported upload types actually work;
+- unsupported upload claims removed;
+- permissions and size limits are clear;
+- local/private behavior is truthful.
 
-Do not micromanage your own work back to the user. Keep user-facing updates concise and outcome-oriented.
+Devices:
 
-If blocked only by an external credential/account action, finish every independent code task first, then report the smallest exact manual action required.
+- pairing state;
+- disconnect/revoke;
+- online/offline state;
+- extension/native companion distinction understandable to normal users.
 
-Final response should be concise and include:
+---
 
-- branch and final commit SHA
-- donor integration summary
-- old implementations removed/replaced
-- routes/features verified
-- UI surfaces redesigned
-- tests/build results
-- any genuine external blocker
-- whether it is safe to proceed to final launch verification
+# 23. SECURITY REVIEW OF IMPORTED/ADAPTED CODE
+
+Before wiring any imported/adapted server/native module, check for:
+
+- unauthenticated filesystem access;
+- arbitrary path traversal;
+- command injection;
+- unsafe shell interpolation;
+- leaked secrets/API keys;
+- public environment variables containing secrets;
+- unsafe token parsing;
+- SSRF/open proxy patterns;
+- permissive CORS;
+- missing authorization;
+- insecure WebSocket/session ingress;
+- unbounded file uploads;
+- untrusted deserialization;
+- insecure extension messaging;
+- capability escalation across browser/native boundaries.
+
+Do not port unsafe endpoints simply because they are functional.
+
+---
+
+# 24. DELETE DUPLICATION ONLY AFTER MIGRATION
+
+Known duplication classes to trace include:
+
+- multiple Chat implementations;
+- multiple model routers;
+- multiple tool registries;
+- multiple task engines/routes;
+- multiple Settings systems;
+- multiple memory stores;
+- duplicate dictation/voice paths;
+- duplicate offline queues;
+- multiple browser executors;
+- dead 3D/motion surfaces;
+- dead marketing/billing shells;
+- stale imports/actions/routes.
+
+For each duplicate:
+
+1. identify all callers;
+2. choose canonical authority;
+3. migrate callers;
+4. migrate tests;
+5. verify behavior;
+6. remove old implementation;
+7. search for dead imports/routes/IDs.
+
+Do not keep `old`, `new`, `v2`, `legacy`, `donor` and `canonical` implementations active together.
+
+---
+
+# 25. PERFORMANCE
+
+Target a smooth ChatGPT/Claude-class interaction feel.
+
+Measure/fix:
+
+- route bundle size;
+- duplicate dependencies;
+- unnecessary hydration/re-renders;
+- giant route components;
+- expensive selectors/effects;
+- GPU/particle load;
+- memory leaks;
+- long tasks;
+- model-worker contention;
+- scrolling performance;
+- chat streaming jank;
+- mobile layout shifts;
+- service-worker/update stalls.
+
+Use lazy loading/code splitting for heavy Cowork/3D/native-control surfaces. Do not load cinematic graphics in Settings or ordinary Chat when not needed.
+
+---
+
+# 26. TESTING STRATEGY
+
+After every integration slice run focused tests. At major checkpoints run larger suites.
+
+Required proof categories:
+
+- TypeScript/typecheck
+- lint/static analysis
+- unit tests
+- agent/tool contract tests
+- local inference regression tests
+- no-public-cloud-inference regression
+- auth tests
+- Supabase/RLS tests where available
+- extension tests
+- browser-control tests
+- native/local companion tests
+- service worker/PWA tests
+- route/deep-link tests
+- build
+- release/launch proof scripts
+- E2E/browser tests
+
+For browser QA, use localhost like a real user:
+
+- Chrome desktop;
+- responsive/mobile widths;
+- keyboard-only navigation;
+- reduced motion;
+- offline mode;
+- loading/error/empty states;
+- direct route navigation;
+- refresh/back/forward;
+- console errors;
+- failed network requests;
+- Chat send/stop/retry;
+- tool permission/approval;
+- Cowork pause/takeover/stop;
+- browser extension disconnected/connected states.
+
+Do not call a feature working because a file exists or a unit test mocks the entire boundary.
+
+---
+
+# 27. CHECKPOINT COMMITS
+
+Make coherent commits throughout, for example:
+
+1. reconcile branch with main + archive proof;
+2. stage/import inventory;
+3. dependency/provenance classification;
+4. shared Chat/Cowork runtime;
+5. tool registry/agent loop consolidation;
+6. browser/computer control repair;
+7. tasks/memory/projects/search consolidation;
+8. route/settings cleanup;
+9. UI/orb/auth redesign;
+10. performance/security hardening;
+11. test/release proof;
+12. final dead-code/docs cleanup.
+
+Do not leave all work in one giant unreviewable commit.
+
+---
+
+# 28. FINAL PRODUCTION PROOF
+
+Before proposing merge:
+
+1. working tree clean;
+2. branch reconciled with latest `main`;
+3. no unresolved merge markers;
+4. no accidental source archive extraction into production paths;
+5. no duplicate active implementations for migrated systems;
+6. no public hosted AI fallback;
+7. build green;
+8. tests green or every unavoidable exception documented with exact evidence;
+9. route audit green;
+10. browser/Cowork safety controls proven;
+11. auth/OAuth/legal URLs unchanged unless explicitly required;
+12. production Supabase changes verified and minimal;
+13. no secrets committed;
+14. release/launch proof executed;
+15. launch gate remains closed unless its independent readiness conditions are genuinely satisfied.
+
+Only after proof is clean should you open/update the final PR and merge according to repository policy.
+
+Do not merge merely because the UI looks finished.
+
+---
+
+# 29. FINAL REPORT FORMAT
+
+At completion report:
+
+## Repository state
+- starting branch/head
+- final branch/head
+- main base used
+- commits created
+
+## Archive/import proof
+- archive SHA-256
+- extracted count
+- staging receipt
+- classification summary
+
+## What was integrated
+For each major subsystem state the final canonical path/authority.
+
+## What was replaced/removed
+List duplicate/dead systems removed and redirects/migrations added.
+
+## What was clean-room reimplemented
+List behaviors implemented independently rather than copied, with reason.
+
+## UI/product changes
+Summarize Chat, Cowork, orb, auth, navigation, Settings and responsive work.
+
+## Tests/proof
+List exact commands and pass/fail results.
+
+## External blockers
+Only genuine credential/account/provider blockers that could not be completed from the coding environment.
+
+## Merge/launch state
+State explicitly whether the branch is safe to merge and whether the public launch gate is still closed/open.
+
+---
+
+# NON-NEGOTIABLE RULES
+
+- Do not start over from old `main`.
+- Do not return only an audit or suggestions.
+- Do not blindly overwrite production `src/` with the archive.
+- Do not mount the source's separate web app as a second OCADE product.
+- Do not introduce public-cloud AI inference fallback.
+- Do not expose arbitrary filesystem/shell/native execution through Cloudflare/browser routes.
+- Do not weaken RLS/auth/permission boundaries to make tests pass.
+- Do not fake execution, success, storage, model, device or network states.
+- Do not hide legally required provenance/attribution.
+- Do not treat string renaming as proof of ownership.
+- Do not keep duplicate implementations after callers are migrated and proof is green.
+- Do not change public/OAuth/Cloudflare URLs casually.
+- Do not merge or open launch gates until production proof is genuinely green.
+
+**Finish the product, not just the import.**
