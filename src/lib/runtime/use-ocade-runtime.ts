@@ -1,53 +1,64 @@
 /**
  * The OCADE runtime: one engine, one tool registry, one permission layer, one
- * agent loop — handed to whichever room asked.
+ * query loop — handed to whichever room asked.
  *
  * WHAT WAS TRUE BEFORE THIS FILE
  * ------------------------------
- * Cowork could act and could not talk about anything. Chat could talk and could
+ * Cowork could act and could not hold a conversation. Chat could talk and could
  * not act. The split was not a design; it was where two features happened to
  * stop. A person in Chat who typed "put this in a file on my desktop" got a
  * paragraph explaining how they might do that themselves, from a product that
  * was, in another tab, capable of doing it.
  *
- * They now share this. The engine is the one `useLocalChatEngine` resolves —
- * on-device, WebGPU or WASM, no hosted inference on any path. The tools are the
- * one registry. The permission answer comes from one layer. The loop is
- * `runAgentTask`, which was already Cowork's and is now both rooms'.
+ * WHAT DRIVES A TURN NOW
+ * ----------------------
+ * The imported query loop (`primary-logic/query`). It owns the control flow —
+ * tool rounds, truncation recovery, compaction, token budgets, bounded turns,
+ * abort — through the donor's own dependency boundary. This file supplies the
+ * three dependencies that cross a runtime boundary and therefore cannot live
+ * inside it:
+ *
+ *   `callModel`  → OCADE's on-device engine. No hosted inference on any path.
+ *   `runTools`   → permission decision, then the correct executor, then
+ *                  OCADE's outcome governance. The loop has no other way to
+ *                  touch the world, so there is no route around the gate.
+ *   `compact`    → transcript reduction, so a long conversation degrades
+ *                  instead of dying.
  *
  * WHAT STAYS DIFFERENT BETWEEN THE ROOMS, AND WHY THAT IS NOT A SECOND RUNTIME
  * ---------------------------------------------------------------------------
  * Cowork deliberates less (`surface: "control"` — the turn must produce a call,
  * not an essay about one), and Cowork holds a mission on the companion for the
  * length of a task. Chat deliberates by default and holds no mission until a
- * request needs the machine. Those are arguments to the same runtime, not
- * different runtimes.
+ * request needs the machine. Those are arguments to the same runtime.
  *
  * WHEN CHAT USES A TOOL AT ALL
  * ----------------------------
  * Only when the request asks for something a tool can do. The classifier's
  * `conversation` domain means "no tool needed", and a chat turn that classifies
- * that way never loads a schema, never starts a mission and costs nothing extra.
- * A product that reached for the machine on "how are you" would be worse than
- * one that never reached for it at all.
+ * that way never loads a schema and costs nothing extra. A product that reached
+ * for the machine on "how are you" would be worse than one that never reached
+ * for it at all.
  */
 
 import { useCallback, useMemo, useRef } from "react";
 import { useLocalChatEngine } from "@/lib/chat/use-local-chat-engine";
 import { classifyDeterministic, type Domain } from "@/lib/agent/domains";
-import { findTool, schemasFor } from "@/lib/agent/tool-registry";
-import {
-  runAgentTask,
-  type AgentEvent,
-  type AgentMessage,
-  type AgentResult,
-  type ToolCall,
-} from "@/lib/agent/loop";
-import type { BrainMessage } from "@/lib/brain/adapter";
+import { findTool, schemasFor, selectTools } from "@/lib/agent/tool-registry";
+import { ocadeCorePolicy } from "@/lib/agent/ocade-core-policy";
 import type { OcadeSurface } from "@/lib/local/fixed-model";
-import { executeToolCall } from "./execute";
 import {
-  decide,
+  estimateTranscriptTokens,
+  runQuery,
+  type QueryEvent,
+  type QueryResult,
+} from "@/primary-logic/query/query";
+import { parseTokenBudget } from "@/primary-logic/query/budgetText";
+import type { QueryDeps, QueryMessage, QueryTool, QueryToolCall } from "@/primary-logic/query/deps";
+import { createCallModel } from "./call-model";
+import { createToolRunner, type ToolRunnerEvent } from "./tool-runner";
+import { compactTranscript } from "./compact";
+import {
   noteApproved,
   noteDenied,
   type PermissionContext,
@@ -56,11 +67,13 @@ import {
 import { currentPermissionContext } from "./permission-settings";
 
 export interface RuntimeApproval {
-  call: ToolCall;
+  call: QueryToolCall;
   decision: PermissionDecision;
   /** A question in words about the thing, not about the tool. */
   question: string;
 }
+
+export type RuntimeEvent = QueryEvent | ToolRunnerEvent;
 
 export interface RuntimeOptions {
   surface: OcadeSurface;
@@ -73,17 +86,19 @@ export interface RuntimeOptions {
    * closed.
    */
   onApprovalNeeded?: (approval: RuntimeApproval) => Promise<boolean>;
-  onEvent?: (event: AgentEvent) => void;
+  onEvent?: (event: RuntimeEvent) => void;
   /** The live companion session, when the surface holds one. */
   missionId?: () => string | null;
   /** What OCADE already knows about this person, for the system prompt. */
   memoryContext?: () => string | null;
+  /** True while the person has pressed stop or pause. */
+  shouldStop?: () => string | null;
 }
 
 export interface RuntimeRun {
   /** False when the request needed no tool; the caller answers normally. */
   used: boolean;
-  result?: AgentResult;
+  result?: QueryResult;
 }
 
 /**
@@ -91,13 +106,21 @@ export interface RuntimeRun {
  *
  * Deliberately conservative and deterministic: it only answers "no tools" for
  * requests the keyword pass recognises as conversation, and defers everything
- * else to the loop's own classifier, which can ask the model. Guessing "no
- * tools" wrongly is the expensive mistake — it is the one that puts the product
- * back to explaining instead of doing.
+ * else to the classifier. Guessing "no tools" wrongly is the expensive mistake
+ * — it is the one that puts the product back to explaining instead of doing.
  */
 export function plainlyConversational(request: string): boolean {
   const domains = classifyDeterministic(request);
   return domains !== null && domains.length === 1 && domains[0] === "conversation";
+}
+
+/** The tools to offer this turn, in the query loop's schema shape. */
+export function toolsForRequest(request: string, domains: readonly Domain[]): QueryTool[] {
+  return selectTools(domains, request).map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    input_schema: tool.parameters,
+  }));
 }
 
 export function useOcadeRuntime(options: RuntimeOptions) {
@@ -106,102 +129,46 @@ export function useOcadeRuntime(options: RuntimeOptions) {
   const optionsRef = useRef(options);
   optionsRef.current = options;
 
-  /**
-   * One model turn, with tool schemas when there are any.
-   *
-   * The engine constrains the reply into a real call when it can carry tools,
-   * so a call either arrives well-formed or does not arrive. Text is
-   * accumulated because `send` streams and resolves with a status; the loop
-   * needs the whole reply to decide what happened.
-   */
-  const turn = useCallback<Parameters<typeof runAgentTask>[0]["turn"]>(
-    async (messages, tools, handlers) => {
-      let text = "";
-      const toolCalls: ToolCall[] = [];
-      const result = await engine.send({
-        messages: forEngine(messages),
-        onToken: (chunk) => {
-          text += chunk;
-          handlers.onToken?.(chunk);
+  const runner = useMemo(
+    () =>
+      createToolRunner({
+        permissions: () => permissionRef.current,
+        executeContext: () => ({ missionId: optionsRef.current.missionId?.() ?? null }),
+        onEvent: (event) => optionsRef.current.onEvent?.(event),
+        onDecision: (allowed) => {
+          permissionRef.current = allowed
+            ? noteApproved(permissionRef.current)
+            : noteDenied(permissionRef.current);
         },
-        ...(tools.length
-          ? {
-              tools,
-              onToolCall: (call) =>
-                toolCalls.push({
-                  name: call.name,
-                  arguments: call.arguments,
-                  ...(call.id ? { id: call.id } : {}),
-                }),
-            }
-          : {}),
-      });
-      if (!result.ok && !result.cancelled) {
-        /*
-         * A failed turn returns whatever streamed rather than throwing. The
-         * loop reads an empty reply as "nothing to do" and stops, which is the
-         * correct end for an engine that could not answer — and it lets the
-         * surface show the partial text instead of losing it.
-         */
-        return { text, toolCalls: [] };
-      }
-      return { text, toolCalls };
-    },
-    [engine],
+        requestApproval: async (call, decision) => {
+          const ask = optionsRef.current.onApprovalNeeded;
+          if (!ask) return false;
+          return await ask({ call, decision, question: approvalQuestionFor(call, decision) });
+        },
+      }),
+    [],
   );
 
-  /**
-   * One short completion, for the loop's classifier.
-   *
-   * Non-streaming from the caller's point of view: the tokens are collected and
-   * the whole string returned. Returns null when the engine cannot answer, and
-   * the classifier then falls back rather than guessing.
-   */
-  const complete = useCallback(
-    async (prompt: string, signal?: AbortSignal): Promise<string | null> => {
-      let text = "";
-      const result = await engine.send({
-        messages: [{ role: "user", content: prompt }],
-        onToken: (chunk) => {
-          text += chunk;
-        },
-        ...(signal ? { signal } : {}),
-      });
-      return result.ok ? text : null;
-    },
-    [engine],
-  );
-
-  const permit = useCallback(async (call: ToolCall): Promise<boolean> => {
-    const tool = findTool(call.name);
-    const decision = decide(call, tool, permissionRef.current);
-    if (decision.outcome === "allow") return true;
-    if (decision.outcome === "deny") return false;
-
-    const ask = optionsRef.current.onApprovalNeeded;
-    if (!ask) return false;
-
-    const allowed = await ask({ call, decision, question: approvalQuestionFor(call, decision) });
-    permissionRef.current = allowed
-      ? noteApproved(permissionRef.current)
-      : noteDenied(permissionRef.current);
-    return allowed;
-  }, []);
-
-  const execute = useCallback(async (call: ToolCall, signal?: AbortSignal) => {
-    void signal;
-    const tool = findTool(call.name);
-    return await executeToolCall(call, {
-      missionId: optionsRef.current.missionId?.() ?? null,
+  const deps = useMemo<QueryDeps>(
+    () => ({
+      callModel: createCallModel(engine),
+      runTools: (calls, signal) => runner.run(calls, signal),
+      compact: compactTranscript,
+      countTokens: estimateTranscriptTokens,
       /*
-       * The companion refuses an unconfirmed high-risk call. By the time a call
-       * reaches here the permission layer has either asked the user or matched
-       * a rule the user wrote, and both are a person's decision — which is what
-       * the flag is for.
+       * Two independent reasons to stop, checked as one. The surface's own stop
+       * (a pressed button) and the runner's (the same call failing the same way
+       * twice) both mean "do not start another round", and the loop should not
+       * have to know which.
        */
-      confirmed: tool?.risk === "high",
-    });
-  }, []);
+      shouldStop: () => optionsRef.current.shouldStop?.() ?? runner.stuckReason(),
+      uuid: () =>
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    }),
+    [engine, runner],
+  );
 
   /**
    * Run a request that may need tools.
@@ -212,7 +179,12 @@ export function useOcadeRuntime(options: RuntimeOptions) {
   const run = useCallback(
     async (
       request: string,
-      opts: { signal?: AbortSignal; domains?: readonly Domain[] } = {},
+      opts: {
+        signal?: AbortSignal;
+        domains?: readonly Domain[];
+        history?: readonly QueryMessage[];
+        onToken?: (chunk: string) => void;
+      } = {},
     ): Promise<RuntimeRun> => {
       if (plainlyConversational(request)) return { used: false };
 
@@ -221,32 +193,39 @@ export function useOcadeRuntime(options: RuntimeOptions) {
         ...currentPermissionContext(),
         denials: permissionRef.current.denials,
       };
+      runner.reset();
 
-      const result = await runAgentTask(
+      const domains = opts.domains ?? classifyDeterministic(request) ?? ["conversation"];
+      const tools = toolsForRequest(request, domains);
+      if (tools.length === 0) return { used: false };
+
+      const memory = optionsRef.current.memoryContext?.() ?? null;
+      const result = await runQuery(
         {
-          complete,
-          turn,
-          execute,
-          permit,
-          ...(optionsRef.current.onEvent ? { onEvent: optionsRef.current.onEvent } : {}),
-        },
-        {
-          request,
+          messages: [...(opts.history ?? []), { role: "user", content: request }],
+          systemPrompt: systemPromptWith(optionsRef.current.surface, memory),
+          tools,
+          deps,
           ...(opts.signal ? { signal: opts.signal } : {}),
-          ...(opts.domains ? { domains: [...opts.domains] } : {}),
-          memoryContext: optionsRef.current.memoryContext?.() ?? null,
+          ...(opts.onToken ? { onToken: opts.onToken } : {}),
+          /*
+           * A budget only exists when the person wrote one. "+500k" in a
+           * request is an explicit instruction to keep working past the point
+           * a model would normally stop and offer to continue.
+           */
+          tokenBudget: parseTokenBudget(request),
         },
+        (event) => optionsRef.current.onEvent?.(event),
       );
       return { used: true, result };
     },
-    [complete, execute, permit, turn],
+    [deps, runner],
   );
 
   return useMemo(
     () => ({
       engine,
       run,
-      /** For a surface that wants to show what it could do before it does it. */
       schemasFor,
       permissions: () => permissionRef.current,
       stop: engine.stop,
@@ -257,31 +236,31 @@ export function useOcadeRuntime(options: RuntimeOptions) {
 }
 
 /**
- * The loop's transcript, in the three roles an on-device engine understands.
+ * The system prompt for a turn that may use tools.
  *
- * THE ADAPTER IS FOUR LINES AND IT IS LOAD-BEARING.
- *
- * `runAgentTask` writes a fourth role, `tool`, carrying what a call returned.
- * The browser engines take the three chat roles and nothing else — a `tool`
- * message reaches them as an unknown role and is dropped, which is the worst
- * possible outcome: the loop believes the model saw the result of its action,
- * the model saw nothing, and it repeats the call. So a tool result is folded
- * into a user-role message that names the tool, which is how the model reads
- * it as an observation rather than as an instruction.
- *
- * Rewriting the loop to emit three roles was the alternative and it is worse:
- * the fourth role is correct, engines that support it should get it, and the
- * narrowing belongs at the boundary that needs it.
+ * Memory goes AFTER the instructions and is labelled as background rather than
+ * as orders. A small model handed "Address them as Sir" at the top of its
+ * prompt starts every reply with "Sir,", including the one-word ones; below the
+ * instructions and marked as context, it uses it the way a person would.
  */
-function forEngine(messages: readonly AgentMessage[]): BrainMessage[] {
-  return messages.map((message) =>
-    message.role === "tool"
-      ? {
-          role: "user" as const,
-          content: `Result of ${message.toolName ?? "the action"}: ${message.content}`,
-        }
-      : { role: message.role, content: message.content },
-  );
+export function systemPromptWith(surface: OcadeSurface, memoryContext: string | null): string {
+  const parts = [
+    ocadeCorePolicy(surface === "control" ? "control" : "chat"),
+    "",
+    "When the task is done, say briefly what you did and what you verified.",
+  ];
+  const context = (memoryContext ?? "").trim();
+  if (context) {
+    parts.push(
+      "",
+      "What you already know about this person, from previous sessions:",
+      context,
+      "",
+      "Use it naturally when it is relevant. Do not recite it back, and do not",
+      "mention that you are reading it from a memory.",
+    );
+  }
+  return parts.join("\n");
 }
 
 /**
@@ -292,7 +271,7 @@ function forEngine(messages: readonly AgentMessage[]): BrainMessage[] {
  * out the subject of the call, so the sentence is built from that plus what the
  * layer decided.
  */
-function approvalQuestionFor(call: ToolCall, decision: PermissionDecision): string {
+function approvalQuestionFor(call: QueryToolCall, decision: PermissionDecision): string {
   const tool = findTool(call.name);
   const subject = typeof call.arguments?.name === "string" ? call.arguments.name : null;
   const base = tool?.description?.split(/[.!?]/)[0]?.trim();

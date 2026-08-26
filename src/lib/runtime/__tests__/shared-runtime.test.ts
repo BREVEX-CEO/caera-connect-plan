@@ -17,6 +17,9 @@ const CHAT = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
 const COWORK = readFileSync("src/lib/work/use-mission.ts", "utf8");
 const RUNTIME = readFileSync("src/lib/runtime/use-ocade-runtime.ts", "utf8");
 const EXECUTE = readFileSync("src/lib/runtime/execute.ts", "utf8");
+const RUNNER = readFileSync("src/lib/runtime/tool-runner.ts", "utf8");
+const CALL_MODEL = readFileSync("src/lib/runtime/call-model.ts", "utf8");
+const QUERY = readFileSync("src/primary-logic/query/query.ts", "utf8");
 
 describe("one permission layer", () => {
   it("is the only thing either surface asks", () => {
@@ -64,7 +67,10 @@ describe("one executor", () => {
   });
 
   it("is the only path either surface uses to run a call", () => {
-    expect(RUNTIME).toContain("executeToolCall");
+    // The runtime reaches it through the tool runner, which is where permission
+    // is decided; the property under test is that there is exactly one route.
+    expect(RUNNER).toContain("executeToolCall");
+    expect(RUNTIME).toContain("createToolRunner");
     expect(COWORK).toContain("executeToolCall");
     /*
      * Cowork had this routing written out twice — once on its fast path, once
@@ -97,5 +103,51 @@ describe("chat pays nothing for tools it does not need", () => {
   it("does not short-circuit a request that names an action", () => {
     expect(plainlyConversational("open Notepad and type a poem")).toBe(false);
     expect(plainlyConversational("what's on my screen")).toBe(false);
+  });
+});
+
+describe("the query loop is the heart", () => {
+  it("drives every turn through the imported loop", () => {
+    expect(RUNTIME).toContain('from "@/primary-logic/query/query"');
+    expect(RUNTIME).toContain("runQuery(");
+  });
+
+  it("reaches the world only through the injected dependencies", () => {
+    /*
+     * The property the donor's dependency boundary exists for, and the reason
+     * the loop was portable at all: it imports no model client, no executor and
+     * no permission layer. If it ever does, the recovery paths stop being
+     * testable and the permission gate stops being unavoidable.
+     */
+    expect(QUERY).not.toMatch(/from "@\/lib\//);
+    expect(QUERY).not.toMatch(/fetch\(/);
+    expect(QUERY).toContain("deps.callModel");
+    expect(QUERY).toContain("deps.runTools");
+  });
+
+  it("routes inference to this device and nowhere else", () => {
+    expect(CALL_MODEL).toContain("useLocalChatEngine");
+    expect(CALL_MODEL).not.toMatch(/https?:\/\//);
+    expect(RUNTIME).toContain("createCallModel");
+  });
+
+  it("keeps permission ahead of every executor, with no second route", () => {
+    // `decide` in the runner, `executeToolCall` in the runner, and the runner
+    // is the loop's only `runTools`. Anything that called the executor without
+    // deciding first would be a way past the gate.
+    expect(RUNNER.indexOf("decide(")).toBeLessThan(RUNNER.indexOf("executeToolCall("));
+    expect(RUNTIME).not.toMatch(/executeToolCall\(/);
+  });
+
+  it("carries the donor's transition vocabulary rather than inventing one", () => {
+    expect(QUERY).toContain('from "./transitions"');
+    for (const reason of [
+      "max_output_tokens_recovery",
+      "reactive_compact_retry",
+      "token_budget_continuation",
+      "tool_use",
+    ]) {
+      expect(QUERY).toContain(reason);
+    }
   });
 });

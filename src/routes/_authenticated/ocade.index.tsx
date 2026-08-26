@@ -1260,14 +1260,20 @@ function ChatSurface(props: {
         setToolApproval(approval);
       }),
     onEvent: (event) => {
-      if (event.kind === "tool_start") {
+      if (event.kind === "started") {
         setToolSteps((current) => [...current, `Working — ${event.call.name.replace(/_/g, " ")}`]);
       }
-      if (event.kind === "tool_end") {
+      if (event.kind === "finished") {
         setToolSteps((current) => [...current.slice(0, -1), describeOutcome(event.outcome)]);
       }
       if (event.kind === "refused") {
         setToolSteps((current) => [...current.slice(0, -1), event.reason]);
+      }
+      if (event.kind === "compacted") {
+        // Said out loud rather than hidden: the person is watching a long run,
+        // and a silent context drop is how a later answer stops making sense
+        // without anybody knowing why.
+        setToolSteps((current) => [...current, "Condensing earlier context…"]);
       }
     },
   });
@@ -1799,19 +1805,23 @@ function ChatSurface(props: {
       const run = await runtime.run(text, { signal: controller.signal });
       if (!run.used || !run.result) return false;
       const { result } = run;
-      if (result.steps.length === 0) return false;
+      if (result.toolResults.length === 0) return false;
 
       streamed = result.text;
+      /*
+       * Said out loud rather than buried. A step that reported success and
+       * could not be verified is the one case where "Done" would be a lie,
+       * and the user is the person who can go and look.
+       */
+      const unverified = result.toolResults.some((step) => step.verified === false);
       const transcript = [
         result.text.trim(),
         "",
-        ...result.steps.map((step) => `- ${describeOutcome(step.outcome)}`),
-        /*
-         * Said out loud rather than buried. A step that reported success and
-         * could not be verified is the one case where "Done" would be a lie,
-         * and the user is the person who can go and look.
-         */
-        result.allVerified ? "" : "\nOCADE could not confirm every step. Worth a look.",
+        ...result.toolResults.map((step) => `- ${step.content.split("\n")[0]}`),
+        unverified ? "\nOCADE could not confirm every step. Worth a look." : "",
+        result.terminal.reason === "max_turns"
+          ? "\nOCADE stopped after several rounds without finishing. Tell it what to try next."
+          : "",
       ]
         .filter(Boolean)
         .join("\n");
