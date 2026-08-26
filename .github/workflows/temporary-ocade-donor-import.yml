@@ -1,0 +1,95 @@
+name: Temporary OCADE donor import
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: temporary-ocade-donor-import-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  import-donor:
+    if: github.head_ref == 'import/ocade-primary-logic-20260826'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout donor branch
+        uses: actions/checkout@v4
+        with:
+          ref: import/ocade-primary-logic-20260826
+          fetch-depth: 0
+
+      - name: Locate and verify exact uploaded ZIP
+        id: archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f imports/ocade-primary-logic/IMPORT_RECEIPT.json ] && [ -d imports/ocade-primary-logic/source/src ]; then
+            echo 'skip=true' >> "$GITHUB_OUTPUT"
+            echo 'Donor source is already extracted and receipted.'
+            exit 0
+          fi
+
+          mapfile -t archives < <(find .incoming -maxdepth 1 -type f -name '*.zip' -print | sort)
+          if [ "${#archives[@]}" -ne 1 ]; then
+            echo "Expected exactly one ZIP in .incoming; found ${#archives[@]}" >&2
+            printf '%s\n' "${archives[@]:-}" >&2
+            exit 1
+          fi
+
+          archive="${archives[0]}"
+          expected='4b9590a17222ba460c26905daba7273076d0bb42163f5a8e6d9cda9076de2e49'
+          actual="$(sha256sum "$archive" | awk '{print $1}')"
+          if [ "$actual" != "$expected" ]; then
+            echo "Archive SHA-256 mismatch" >&2
+            echo "Expected: $expected" >&2
+            echo "Actual:   $actual" >&2
+            exit 1
+          fi
+
+          echo 'skip=false' >> "$GITHUB_OUTPUT"
+          echo "path=$archive" >> "$GITHUB_OUTPUT"
+          echo "Verified $archive ($actual)"
+
+      - name: Install importer dependencies
+        if: steps.archive.outputs.skip != 'true'
+        run: npm ci --ignore-scripts
+
+      - name: Extract, classify and inventory donor
+        if: steps.archive.outputs.skip != 'true'
+        shell: bash
+        run: node scripts/import-ocade-primary-logic.mjs '${{ steps.archive.outputs.path }}' --replace
+
+      - name: Verify exact extraction
+        if: steps.archive.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d imports/ocade-primary-logic/source/src
+          test -f imports/ocade-primary-logic/IMPORT_RECEIPT.json
+          test -f imports/ocade-primary-logic/SOURCE_INVENTORY.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const receipt = JSON.parse(fs.readFileSync('imports/ocade-primary-logic/IMPORT_RECEIPT.json', 'utf8'));
+          if (receipt.archiveSha256 !== '4b9590a17222ba460c26905daba7273076d0bb42163f5a8e6d9cda9076de2e49') throw new Error('receipt SHA mismatch');
+          if (receipt.extractedFileCount !== 2124) throw new Error(`expected 2124 imported files, got ${receipt.extractedFileCount}`);
+          console.log(receipt);
+          NODE
+
+      - name: Remove transfer ZIP and commit extracted staging tree
+        if: steps.archive.outputs.skip != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f '${{ steps.archive.outputs.path }}'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add imports/ocade-primary-logic .incoming
+          git commit -m 'Stage extracted OCADE primary logic source'
+          git push origin HEAD:import/ocade-primary-logic-20260826
