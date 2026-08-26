@@ -95,6 +95,8 @@ import {
 } from "@/lib/chat/local-conversations";
 import { improvePromptLocally } from "@/lib/chat/improve-prompt";
 import { useOcadeRuntime, type RuntimeApproval } from "@/lib/runtime/use-ocade-runtime";
+import { OcadeOrb } from "@/components/ocade/OcadeOrb";
+import { orbStateFor } from "@/lib/orb/state";
 import { describe as describeOutcome } from "@/lib/agent/loop";
 import { MessageList } from "@/components/ocade/chat/MessageList";
 import { ChatSidebar } from "@/components/ocade/chat/ChatSidebar";
@@ -3467,9 +3469,33 @@ function ChatSurface(props: {
                   ))}
                 </ul>
               ) : null}
-              {streaming && !streamText && toolSteps.length === 0 ? (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> OCADE is thinking…
+              {/*
+                THE ORB, WHERE THE SPINNER USED TO BE.
+
+                A spinner says "something is happening" and nothing else — the
+                same three dots whether OCADE is deciding, reading a page, or
+                changing a file on the machine. The orb says which, in colour,
+                motion and size at once, and reads the same here as it does in
+                Work, because it is the same component driven by the same
+                states.
+              */}
+              {streaming || toolApproval ? (
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <OcadeOrb
+                    size={34}
+                    decorative
+                    state={orbStateFor({
+                      phase: toolSteps.length > 0 ? "controlling" : "thinking",
+                      awaitingApproval: toolApproval !== null,
+                    })}
+                  />
+                  <span role="status" aria-live="polite">
+                    {toolApproval
+                      ? "Waiting for you"
+                      : toolSteps.length > 0
+                        ? "Working"
+                        : "OCADE is thinking…"}
+                  </span>
                 </div>
               ) : null}
             </div>

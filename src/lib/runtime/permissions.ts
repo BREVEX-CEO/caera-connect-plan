@@ -41,6 +41,9 @@ import {
   CROSS_PLATFORM_CODE_EXEC,
 } from "@/primary-logic/permissions/dangerousPatterns";
 import { getDestructiveCommandWarning } from "@/primary-logic/commands/destructiveCommandWarning";
+import { getDestructiveCommandWarning as getPowerShellWarning } from "@/primary-logic/commands/powershellDestructiveWarning";
+import { getParserModule } from "@/primary-logic/commands/bashParser";
+import { analyzeCommand } from "@/primary-logic/commands/treeSitterAnalysis";
 import {
   createDenialTrackingState,
   recordDenial,
@@ -174,6 +177,81 @@ function commandOf(call: ToolCallLike): string | null {
   return null;
 }
 
+/**
+ * A command, broken into the commands it actually runs.
+ *
+ * THE HOLE THIS CLOSES, WHICH WAS REAL AND NOT THEORETICAL.
+ *
+ * Rules were matched against the whole command string. A person who wrote the
+ * entirely reasonable rule `Bash(git:*)` — "you may run git without asking me"
+ * — had also, without knowing it, allowed:
+ *
+ *     git status; rm -rf ~
+ *
+ * because the prefix matcher only looks at the start. Every shell operator was
+ * a way past every prefix rule in the product.
+ *
+ * The imported parser is a pure-TypeScript shell parser with a 50ms wall-clock
+ * cap and a node budget, which is why it can run on a keystroke path in a
+ * browser tab. Each segment is now matched on its own, and the strictest answer
+ * across them governs.
+ *
+ * An unparseable command is asked about, never allowed. "I could not read this"
+ * is a reason to check.
+ */
+interface CommandShape {
+  segments: string[];
+  /** True when the command hides work from rule matching: $(…), <(…), heredoc. */
+  opaque: boolean;
+  /** True when the parser could not read it at all. */
+  unreadable: boolean;
+}
+
+export function shapeOf(command: string): CommandShape {
+  const root = getParserModule()?.parse(command);
+  if (!root) return { segments: [command], opaque: false, unreadable: true };
+  try {
+    const analysis = analyzeCommand(root, command);
+    const segments = analysis.compoundStructure.segments
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+    const dangerous = analysis.dangerousPatterns;
+    /*
+     * WHETHER THE SEGMENTS ACTUALLY ACCOUNT FOR THE COMMAND.
+     *
+     * The parser is lenient by design — it does not refuse malformed input, it
+     * returns what it could make of it. So `((((((((((` comes back as a single
+     * segment `((`, and `a && (b` comes back as `a` and `(`, silently dropping
+     * the subshell's contents. Rule matching against those segments would be
+     * matching against something that is not the command.
+     *
+     * Comparing the characters recovered against the characters supplied is a
+     * blunt check and a reliable one: operators and whitespace go missing
+     * legitimately, whole commands do not. Below two thirds, OCADE has not read
+     * it, and says so instead of guessing.
+     */
+    const supplied = command.replace(/\s/g, "").length;
+    const recovered = segments.join("").replace(/\s/g, "").length;
+    const coverage = supplied === 0 ? 1 : recovered / supplied;
+
+    return {
+      segments: segments.length > 0 ? segments : [command.trim()],
+      /*
+       * Command substitution is opaque on purpose. `echo $(rm -rf /)` matches
+       * an `echo` rule and runs an `rm`; nothing a matcher does to the outer
+       * string can see that, so the honest answer is to stop guessing and ask.
+       */
+      opaque:
+        dangerous.hasCommandSubstitution ||
+        dangerous.hasProcessSubstitution ||
+        dangerous.hasHeredoc,
+      unreadable: coverage < 0.66,
+    };
+  } catch {
+    return { segments: [command], opaque: false, unreadable: true };
+  }
+}
+
 function ruleMatches(parsed: ShellPermissionRule, subject: string): boolean {
   switch (parsed.type) {
     case "exact":
@@ -190,22 +268,42 @@ interface RuleHit {
   rule: string;
 }
 
+/**
+ * Whether a rule of this behaviour covers the call.
+ *
+ * For an ALLOW rule, "covers" means every segment of the command is matched —
+ * one unmatched segment is an unallowed command, however many of its siblings
+ * were fine. For DENY and ASK it is the opposite: one matching segment is
+ * enough, because the strictest answer across a compound command governs.
+ */
 function findRule(
   call: ToolCallLike,
   rules: readonly StoredRule[],
   behavior: PermissionBehavior,
 ): RuleHit | null {
   const subject = subjectOf(call);
+  const command = commandOf(call);
+  const segments = command ? shapeOf(command).segments : null;
+
   for (const entry of rules) {
     if (entry.behavior !== behavior) continue;
     const value = permissionRuleValueFromString(entry.rule);
     if (value.toolName !== call.name) continue;
     // A rule with no content is tool-wide and matches every call to that tool.
     if (!value.ruleContent) return { behavior, rule: entry.rule };
-    if (subject === null) continue;
-    if (ruleMatches(parsePermissionRule(value.ruleContent), subject)) {
-      return { behavior, rule: entry.rule };
+    const parsed = parsePermissionRule(value.ruleContent);
+
+    if (segments) {
+      const matched =
+        behavior === "allow"
+          ? segments.every((segment) => ruleMatches(parsed, segment))
+          : segments.some((segment) => ruleMatches(parsed, segment));
+      if (matched) return { behavior, rule: entry.rule };
+      continue;
     }
+
+    if (subject === null) continue;
+    if (ruleMatches(parsed, subject)) return { behavior, rule: entry.rule };
   }
   return null;
 }
@@ -225,6 +323,34 @@ function looksDangerous(command: string): boolean {
 }
 
 /**
+ * The destructive-command note for a command, on either shell.
+ *
+ * BOTH TABLES ARE ASKED, ALWAYS, AND THAT IS DELIBERATE.
+ *
+ * OCADE's companion runs on Windows as well as on macOS and Linux, and the
+ * shell a command is meant for is not reliably knowable from the string:
+ * `Remove-Item -Recurse -Force` is a PowerShell command and arrives through
+ * exactly the same tool call as `rm -rf`. Choosing a table by guessing the
+ * platform would mean guessing wrong sometimes, and guessing wrong here means
+ * a warning that does not appear.
+ *
+ * Running both costs two regex passes and cannot produce a false alarm the
+ * other table would have avoided — `Remove-Item` is not valid bash and `rm -rf`
+ * is not valid PowerShell, so a hit from either is a hit.
+ *
+ * Checked per segment as well as whole: `echo starting && git reset --hard`
+ * carries no warning as one string under some patterns and plainly does as two.
+ */
+function destructiveWarningFor(command: string, shape: CommandShape | null): string | null {
+  const candidates = [command, ...(shape?.segments ?? [])];
+  for (const candidate of candidates) {
+    const warning = getDestructiveCommandWarning(candidate) ?? getPowerShellWarning(candidate);
+    if (warning) return warning;
+  }
+  return null;
+}
+
+/**
  * Decide what happens to one tool call.
  *
  * Order matters and is not arbitrary: deny beats everything, then plan mode
@@ -238,7 +364,12 @@ export function decide(
   context: PermissionContext,
 ): PermissionDecision {
   const command = commandOf(call);
-  const warning = command ? getDestructiveCommandWarning(command) : null;
+  const shape = command ? shapeOf(command) : null;
+  /*
+   * Checked per segment as well as whole. `echo hi; git reset --hard` carries
+   * no warning as one string under some patterns and plainly does as two.
+   */
+  const warning = command ? destructiveWarningFor(command, shape) : null;
 
   const denied = findRule(call, context.rules, "deny");
   if (denied) {
@@ -266,6 +397,26 @@ export function decide(
     return {
       outcome: "deny",
       reason: "Nothing runs while you are reviewing the plan.",
+      warning,
+      matchedRule: null,
+    };
+  }
+
+  /*
+   * A command OCADE could not fully read is asked about before any ALLOW rule
+   * is consulted, and that ordering is the whole point.
+   *
+   * `echo $(rm -rf /)` matches an `echo` allow-rule perfectly, and the rule is
+   * matching a string that does not describe what will run. An allow rule
+   * cannot cover work nobody can see, so the unreadable case has to win over
+   * it. Deny and plan mode still come first, because both are stricter.
+   */
+  if (shape && (shape.opaque || shape.unreadable)) {
+    return {
+      outcome: "ask",
+      reason: shape.unreadable
+        ? "OCADE could not read this command well enough to check it."
+        : "This command runs another command inside it, so OCADE is checking with you.",
       warning,
       matchedRule: null,
     };
@@ -310,7 +461,7 @@ export function decide(
    * only the first table let `git reset --hard` run silently under `trusted`,
    * which is precisely the loss the tables exist to prevent.
    */
-  if (command && (looksDangerous(command) || warning)) {
+  if (command && (looksDangerous(command) || shape?.segments.some(looksDangerous) || warning)) {
     return {
       outcome: "ask",
       reason: warning ?? "This command can do damage that cannot be undone.",

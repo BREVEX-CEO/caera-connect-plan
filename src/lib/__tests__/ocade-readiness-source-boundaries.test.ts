@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { MODULE_CONTEXT } from "@/lib/shell-nav";
 
 function source(path: string) {
   return readFileSync(resolve(process.cwd(), path), "utf8");
@@ -151,25 +152,39 @@ describe("OCADE 77 — proof for formerly source-inspected boundaries", () => {
   });
 
   it("#42 provides explicit five-destination mobile navigation", () => {
+    /*
+     * Devices left the phone rail and Search took its place. Pairing a computer
+     * is something a person does once, from the machine being paired; searching
+     * their own work is something they do from wherever they are standing.
+     * Devices is still one tap away under More.
+     */
     expectAll("src/components/shell/OcadeMobileBottomNav.tsx", [
       /label: "Chat"/,
       /label: "Projects"/,
+      /label: "Search"/,
       /label: "Tasks"/,
-      /label: "Devices"/,
       /label: "More"/,
       /md:hidden/,
     ]);
   });
 
   it("#43 keeps the primary OCADE sidebar compressed around core work", () => {
+    /*
+     * "Compressed" got a number. The rail held twelve destinations, which is a
+     * sitemap rather than a place to work; it holds seven, ending in the door
+     * to everything else. Code moved to More with five others and is asserted
+     * reachable by code-workspace-render.test.tsx.
+     */
     const nav = expectAll("src/lib/shell-nav.ts", [
       /label: "Chat"/,
+      /label: "Work"/,
       /label: "Projects"/,
-      /label: "Control \+ Work"/,
-      /label: "Code"/,
-      /to: "\/ocade\/system", label: "System"/,
+      /label: "Search"/,
+      /label: "Tasks"/,
+      /to: "\/ocade\/system", label: "More"/,
     ]);
-    expect(nav.match(/to: "\/ocade\/system", label: "System"/g) ?? []).toHaveLength(1);
+    expect(nav.match(/to: "\/ocade\/system", label: "More"/g) ?? []).toHaveLength(1);
+    expect(MODULE_CONTEXT.ocade).toHaveLength(7);
   });
 
   it("#44 separates user-facing Studio from engineering/research Lab", () => {

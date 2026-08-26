@@ -1,3 +1,4 @@
+import { memoryAge, memoryFreshnessText } from "@/primary-logic/memory/memoryAge";
 import type { OcadeMemoryRow } from "./ocade-projects.functions";
 import type { ArtifactOutcome } from "./artifacts/store";
 
@@ -213,8 +214,29 @@ export function localMemoryContext(
     .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.updated_at.localeCompare(a.updated_at))
     .slice(0, 20);
   if (rows.length === 0) return { ok: true, data: null, evidence: "No applicable memories." };
+  /*
+   * EVERY MEMORY CARRIES ITS AGE, AND OLD ONES CARRY A CAVEAT.
+   *
+   * Memories were handed to the model as bare sentences with no timestamp, and
+   * a model has no way to tell a fact stated this morning from one stated in
+   * March. The failure that produces is specific and was reported against the
+   * donor product: a memory recording a file's contents, or a person's job, or
+   * a project's state, gets restated months later as current fact — and the
+   * more precise the memory, the more authoritative the stale claim sounds.
+   *
+   * `memoryAge` renders "47 days ago" rather than an ISO timestamp because
+   * models reason badly about date arithmetic and well about elapsed time.
+   * `memoryFreshnessText` adds the caveat only past a day old, since warning
+   * about something written yesterday is noise that teaches the model to
+   * discount the warning where it matters.
+   */
   const content = rows
-    .map((row, index) => `M${index + 1}: ${row.content}`)
+    .map((row, index) => {
+      const written = Date.parse(row.updated_at);
+      if (!Number.isFinite(written)) return `M${index + 1}: ${row.content}`;
+      const caveat = memoryFreshnessText(written);
+      return `M${index + 1} (${memoryAge(written)}): ${row.content}${caveat ? `\n   ${caveat}` : ""}`;
+    })
     .join("\n")
     .slice(0, 12_000);
   return {

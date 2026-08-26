@@ -1,12 +1,18 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { FolderOpen, ListChecks, MessageSquare, Monitor, SlidersHorizontal } from "lucide-react";
+import { FolderOpen, ListChecks, MessageSquare, Search, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/*
+ * Five of the desktop rail's seven, chosen for the thumb rather than truncated
+ * from the top: Work is the one a phone is least likely to drive (it operates a
+ * computer the phone is not), and Devices is where you go once, to pair. Both
+ * stay one tap away under More.
+ */
 const ITEMS = [
   { to: "/ocade", label: "Chat", icon: MessageSquare, exact: true },
   { to: "/ocade/projects", label: "Projects", icon: FolderOpen },
+  { to: "/ocade/search", label: "Search", icon: Search },
   { to: "/ocade/tasks", label: "Tasks", icon: ListChecks },
-  { to: "/ocade/devices", label: "Devices", icon: Monitor },
   { to: "/ocade/system", label: "More", icon: SlidersHorizontal },
 ] as const;
 

@@ -8,11 +8,18 @@ const html = () => renderToStaticMarkup(<CodeWorkspacePanel />);
 const source = (path: string) => readFileSync(path, "utf8");
 
 describe("the Code workspace is a reachable product surface", () => {
-  it("has a real OCADE navigation entry and route", () => {
-    const entry = MODULE_CONTEXT.ocade.find((item) => item.to === "/ocade/code");
-    expect(entry).toBeDefined();
-    expect(entry?.label).toBe("Code");
-    expect(entry?.planned).toBeUndefined();
+  it("is reachable from OCADE, on the rail or under More", () => {
+    /*
+     * THIS USED TO REQUIRE A SIDEBAR ENTRY. The rail went from twelve
+     * destinations to seven, which is the point of the change: a list of twelve
+     * rooms is a sitemap, not a place to work. What must stay true is that the
+     * screen has a route a person can follow — the rail, the More page, or the
+     * command palette.
+     */
+    const onRail = MODULE_CONTEXT.ocade.some((item) => item.to === "/ocade/code");
+    const underMore = readFileSync("src/routes/_authenticated/ocade.system.tsx", "utf8").includes('"/ocade/code"');
+    const inPalette = readFileSync("src/components/shell/CommandPalette.tsx", "utf8").includes('"/ocade/code"');
+    expect(onRail || underMore || inPalette).toBe(true);
     expect(source("src/routes/_authenticated/ocade.code.tsx")).toContain("<CodeWorkspacePanel />");
   });
 

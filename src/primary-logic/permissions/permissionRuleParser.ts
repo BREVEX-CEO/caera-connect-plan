@@ -1,31 +1,28 @@
-import { feature } from '../shims/featureFlags'
-import { AGENT_TOOL_NAME } from '../tools/constants/agentTool'
-import { TASK_OUTPUT_TOOL_NAME } from '../tasks/taskOutputConstants'
-import { TASK_STOP_TOOL_NAME } from '../tasks/taskStopPrompt'
 import type { PermissionRuleValue } from './PermissionRule'
 
-// Dead code elimination: CARCC CADANE-only tool names are conditionally required so
-// their strings don't leak into external builds. Static imports always bundle.
-/* eslint-disable @typescript-eslint/no-require-imports */
-const BRIEF_TOOL_NAME: string | null =
-  feature('KAIROS') || feature('KAIROS_BRIEF')
-    ? (
-        require('../../tools/BriefTool/prompt.js') as typeof import('../tools/prompts/brief')
-      ).BRIEF_TOOL_NAME
-    : null
-/* eslint-enable @typescript-eslint/no-require-imports */
+/*
+ * WHAT WAS HERE, AND WHY IT IS NOT.
+ *
+ * The donor built its legacy-alias table by importing four tool-name constants
+ * (AgentTool, TaskOutputTool, TaskStopTool, BriefTool) and a bundler feature
+ * macro. Those constants named the donor's own tools, and OCADE's registry
+ * names its tools differently — so the table mapped names OCADE never emits
+ * onto names OCADE does not have, while pulling four modules of donor tool
+ * prompt text into the bundle to do it.
+ *
+ * The MECHANISM is worth keeping: a rule a person wrote a year ago must keep
+ * working after a tool is renamed, or their permission settings silently stop
+ * matching. So the table stays and its contents become OCADE's, seeded with the
+ * one rename OCADE has actually made. Add a row here when a tool is renamed.
+ */
 
 // Maps legacy tool names to their current canonical names.
 // When a tool is renamed, add old → new here so permission rules,
 // hooks, and persisted wire names resolve to the canonical name.
 const LEGACY_TOOL_NAME_ALIASES: Record<string, string> = {
-  Task: AGENT_TOOL_NAME,
-  KillShell: TASK_STOP_TOOL_NAME,
-  AgentOutputTool: TASK_OUTPUT_TOOL_NAME,
-  BashOutputTool: TASK_OUTPUT_TOOL_NAME,
-  ...((feature('KAIROS') || feature('KAIROS_BRIEF')) && BRIEF_TOOL_NAME
-    ? { Brief: BRIEF_TOOL_NAME }
-    : {}),
+  // Cowork's sidebar entry was renamed from "Control + Work" to "Work"; a rule
+  // written against the old tool name still resolves.
+  control_work: 'work',
 }
 
 export function normalizeLegacyToolName(name: string): string {

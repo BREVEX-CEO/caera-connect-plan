@@ -5,13 +5,19 @@ import {
   Boxes,
   Brain,
   Cable,
+  FileCode2,
   FlaskConical,
   HeartPulse,
+  Inbox,
   LayoutTemplate,
   Monitor,
+  Package,
+  Palette,
+  Radar,
   Settings,
   Share2,
   ShieldCheck,
+  Workflow,
 } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 
@@ -21,6 +27,49 @@ export const Route = createFileRoute("/_authenticated/ocade/system")({
 });
 
 const ENTRIES = [
+  /*
+   * The six that left the sidebar.
+   *
+   * They are first here, not appended, because these are the ones a person
+   * will come looking for: somebody who used Automations yesterday and cannot
+   * find it today needs it above the fold, not below Health.
+   */
+  {
+    to: "/ocade/code",
+    label: "Code",
+    icon: FileCode2,
+    detail: "Read, write and run code with OCADE, on this device.",
+  },
+  {
+    to: "/ocade/automations",
+    label: "Automations",
+    icon: Workflow,
+    detail: "Work that runs on a schedule or on a trigger, without you.",
+  },
+  {
+    to: "/ocade/artifacts",
+    label: "Files",
+    icon: Package,
+    detail: "Everything OCADE has produced or been given.",
+  },
+  {
+    to: "/ocade/inbox",
+    label: "Inbox",
+    icon: Inbox,
+    detail: "What needs your answer before OCADE can carry on.",
+  },
+  {
+    to: "/ocade/monitors",
+    label: "Monitors",
+    icon: Radar,
+    detail: "Pages and sources OCADE watches for change.",
+  },
+  {
+    to: "/ocade/studio",
+    label: "Studio",
+    icon: Palette,
+    detail: "Images, audio and video work.",
+  },
   {
     to: "/ocade/models",
     label: "Models",
@@ -100,8 +149,8 @@ function SystemPage() {
     <>
       <PageHeader
         eyebrow="OCADE"
-        title="System"
-        description="Advanced controls live here so Chat and the primary tool navigation stay focused."
+        title="More"
+        description="Everything OCADE can do that is not on the sidebar. All of it is also reachable with Cmd/Ctrl+K, and most of it by asking in Chat."
       />
       <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {ENTRIES.map((entry) => {

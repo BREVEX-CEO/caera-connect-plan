@@ -21,6 +21,7 @@ import type { ControlLauncher } from "@/lib/work/control-capabilities";
 import { useVoicePrefs } from "@/lib/use-voice-prefs";
 import { useDictation } from "@/lib/voice/use-dictation";
 import { cn } from "@/lib/utils";
+import { orbStateFor } from "@/lib/orb/state";
 import { useMission, type MissionBrain, type TimelineEntry } from "@/lib/work/use-mission";
 import { directControl } from "@/lib/work/fast-router";
 import { OcadeCompanion } from "@/components/ocade/OcadeCompanion";
@@ -177,12 +178,22 @@ export function ControlWorkPanel({
       >
         <ControlSolarScene state={sceneState} className="absolute inset-0 h-full w-full" />
 
+        {/*
+          Buddy reports the same state the scene behind it is animating, in the
+          one place a person's eye already goes to check the connection. It is a
+          status light, not a second voice: it says nothing the panel is not
+          already saying, in words, elsewhere on this screen.
+        */}
         <OcadeCompanion
           compact
+          state={orbStateFor({
+            phase: sceneState,
+            awaitingApproval: mission.approval !== null,
+          })}
           label={
             connected
               ? "OCADE is connected to this device"
-              : "OCADE is waiting for the native bridge"
+              : "OCADE is waiting for the companion on this computer"
           }
           className="absolute bottom-4 left-4 z-20"
         />
