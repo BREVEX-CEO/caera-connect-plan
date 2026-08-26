@@ -1,15 +1,73 @@
-name: Desktop Packaging (disabled for free launch)
+name: Temporary OCADE donor extraction
 
-# Desktop distribution is intentionally withdrawn for the current launch. Keep
-# the workflow source so signing/packaging can be re-enabled deliberately later,
-# but do not build or publish an EXE from tags while the product has no verified
-# updater/signing/notarization release channel.
 on:
+  push:
+    branches:
+      - import/ocade-primary-logic-20260826
+    paths:
+      - '.github/workflows/release.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  desktop-release-disabled:
-    if: ${{ false }}
-    runs-on: windows-latest
+  extract-donor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - run: echo "Desktop installer publishing is disabled for the current free launch."
+      - name: Checkout import branch
+        uses: actions/checkout@v4
+        with:
+          ref: import/ocade-primary-logic-20260826
+          fetch-depth: 0
+
+      - name: Verify exact uploaded ZIP
+        id: archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t archives < <(find .incoming -maxdepth 1 -type f -name '*.zip' -print | sort)
+          if [ "${#archives[@]}" -ne 1 ]; then
+            echo "Expected exactly one ZIP, found ${#archives[@]}" >&2
+            exit 1
+          fi
+          archive="${archives[0]}"
+          expected='4b9590a17222ba460c26905daba7273076d0bb42163f5a8e6d9cda9076de2e49'
+          actual="$(sha256sum "$archive" | awk '{print $1}')"
+          test "$actual" = "$expected" || { echo "SHA-256 mismatch: $actual" >&2; exit 1; }
+          echo "path=$archive" >> "$GITHUB_OUTPUT"
+          echo "Verified $archive ($actual)"
+
+      - name: Install importer dependency
+        run: npm ci --ignore-scripts
+
+      - name: Extract and classify donor source
+        shell: bash
+        run: node scripts/import-ocade-primary-logic.mjs '${{ steps.archive.outputs.path }}' --replace
+
+      - name: Verify extraction receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d imports/ocade-primary-logic/source/src
+          test -f imports/ocade-primary-logic/IMPORT_RECEIPT.json
+          test -f imports/ocade-primary-logic/SOURCE_INVENTORY.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const receipt = JSON.parse(fs.readFileSync('imports/ocade-primary-logic/IMPORT_RECEIPT.json','utf8'));
+          if (receipt.archiveSha256 !== '4b9590a17222ba460c26905daba7273076d0bb42163f5a8e6d9cda9076de2e49') throw new Error('receipt SHA mismatch');
+          if (receipt.extractedFileCount !== 2124) throw new Error(`expected 2124 files, got ${receipt.extractedFileCount}`);
+          console.log(receipt);
+          NODE
+
+      - name: Remove transfer ZIP and commit staged source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f '${{ steps.archive.outputs.path }}'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add imports/ocade-primary-logic .incoming
+          git commit -m 'Stage extracted OCADE primary logic source'
+          git push origin HEAD:import/ocade-primary-logic-20260826
