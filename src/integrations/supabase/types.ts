@@ -1809,6 +1809,33 @@ export type Database = {
         }
         Relationships: []
       }
+      legal_consent_receipts: {
+        Row: {
+          accepted_at: string
+          id: string
+          privacy_version: string
+          source: string
+          terms_version: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          id?: string
+          privacy_version: string
+          source?: string
+          terms_version: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          id?: string
+          privacy_version?: string
+          source?: string
+          terms_version?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       madee_resume_projects: {
         Row: {
           archived: boolean
@@ -3381,6 +3408,7 @@ export type Database = {
           paddle_subscription_id: string
           price_id: string
           product_id: string
+          provider_event_at: string | null
           status: string
           updated_at: string | null
           user_id: string
@@ -3396,6 +3424,7 @@ export type Database = {
           paddle_subscription_id: string
           price_id: string
           product_id: string
+          provider_event_at?: string | null
           status?: string
           updated_at?: string | null
           user_id: string
@@ -3411,6 +3440,7 @@ export type Database = {
           paddle_subscription_id?: string
           price_id?: string
           product_id?: string
+          provider_event_at?: string | null
           status?: string
           updated_at?: string | null
           user_id?: string
