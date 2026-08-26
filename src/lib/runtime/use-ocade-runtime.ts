@@ -67,6 +67,8 @@ import {
 import { currentPermissionContext } from "./permission-settings";
 import { consume } from "@/lib/limits/use-limits";
 import { memoryPolicyPrompt } from "@/lib/memory/quality";
+import { considerSessionMemory, noteWork } from "@/lib/memory/session-memory";
+import { addLocalMemory, inspectLocalMemory } from "@/lib/local-memory";
 
 export interface RuntimeApproval {
   call: QueryToolCall;
@@ -173,6 +175,53 @@ export function useOcadeRuntime(options: RuntimeOptions) {
   );
 
   /**
+   * Keep what this conversation taught OCADE about the person having it.
+   *
+   * The policy decides whether the moment has come; this supplies the three
+   * things it cannot know — how to ask the engine, what is already remembered,
+   * and how to save. Every failure path is silent on purpose: note-taking that
+   * interrupts is worse than note-taking that occasionally misses.
+   */
+  const learn = useCallback(
+    async (history: readonly QueryMessage[], result: QueryResult) => {
+      const surface = optionsRef.current.surface;
+      noteWork(surface, result.toolResults.length);
+
+      const transcript = [...history, ...result.messages].map((message) => ({
+        role: message.role,
+        content:
+          typeof message.content === "string" ? message.content : JSON.stringify(message.content),
+      }));
+
+      await considerSessionMemory(surface, {
+        tokenCount: estimateTranscriptTokens(transcript),
+        transcript,
+        deps: {
+          complete: async (prompt) => {
+            let text = "";
+            const reply = await engine.send({
+              messages: [{ role: "user", content: prompt }],
+              onToken: (chunk) => {
+                text += chunk;
+              },
+            });
+            return reply.ok ? text : null;
+          },
+          existing: () => {
+            const held = inspectLocalMemory();
+            return held.ok ? held.data.rows.map((row) => row.content) : [];
+          },
+          // `source: "imported"` because OCADE inferred it rather than being
+          // told it. The distinction is visible in Privacy settings, where a
+          // person deciding what to delete deserves to know which is which.
+          save: (content) => addLocalMemory({ content, source: "imported" }).ok,
+        },
+      });
+    },
+    [engine],
+  );
+
+  /**
    * Run a request that may need tools.
    *
    * Returns `used: false` without touching the engine when the request is
@@ -227,9 +276,10 @@ export function useOcadeRuntime(options: RuntimeOptions) {
       }
 
       const memory = optionsRef.current.memoryContext?.() ?? null;
+      const history = [...(opts.history ?? []), { role: "user" as const, content: request }];
       const result = await runQuery(
         {
-          messages: [...(opts.history ?? []), { role: "user", content: request }],
+          messages: history,
           systemPrompt: systemPromptWith(optionsRef.current.surface, memory),
           tools,
           deps,
@@ -244,9 +294,18 @@ export function useOcadeRuntime(options: RuntimeOptions) {
         },
         (event) => optionsRef.current.onEvent?.(event),
       );
+      /*
+       * LEARN SOMETHING FROM THE CONVERSATION, IF THERE IS ANYTHING TO LEARN.
+       *
+       * Not awaited. This is a second model call on the same device as the one
+       * the user is waiting on, and making them wait for OCADE to take notes
+       * would be a strange thing to charge them for. It runs at most once every
+       * few thousand tokens — see the thresholds in the imported policy.
+       */
+      void learn(history, result);
       return { used: true, result };
     },
-    [deps, runner],
+    [deps, runner, learn],
   );
 
   return useMemo(

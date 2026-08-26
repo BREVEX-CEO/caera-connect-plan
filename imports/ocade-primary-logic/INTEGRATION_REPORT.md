@@ -18,7 +18,7 @@ A directory of imported code nothing imports is not integration, which is why
 
 | Archive files | Dispositioned | Ported modules | Reached from production |
 |---:|---:|---:|---:|
-| 2126 | 2126 (100%) | 26 | 26 |
+| 2126 | 2126 (100%) | 27 | 27 |
 
 ## By disposition
 
@@ -57,6 +57,7 @@ A directory of imported code nothing imports is not integration, which is why
 - `src/primary-logic/commands/treeSitterAnalysis.ts`
 - `src/primary-logic/memory/memoryAge.ts`
 - `src/primary-logic/memory/memoryTypes.ts`
+- `src/primary-logic/memory/sessionMemoryPolicy.ts`
 - `src/primary-logic/permissions/PermissionMode.ts`
 - `src/primary-logic/permissions/PermissionRule.ts`
 - `src/primary-logic/permissions/PermissionUpdateSchema.ts`
