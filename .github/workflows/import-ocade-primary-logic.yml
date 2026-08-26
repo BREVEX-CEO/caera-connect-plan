@@ -5,7 +5,7 @@ on:
     branches:
       - import/ocade-primary-logic-20260826
     paths:
-      - '.incoming/OCADE_PRIMARY_LOGIC_RENAMED.zip'
+      - '.incoming/*.zip'
   workflow_dispatch:
 
 permissions:
@@ -26,12 +26,20 @@ jobs:
           fetch-depth: 0
           ref: import/ocade-primary-logic-20260826
 
-      - name: Verify archive is present
+      - name: Locate and verify archive
+        id: archive
         shell: bash
         run: |
           set -euo pipefail
-          test -f '.incoming/OCADE_PRIMARY_LOGIC_RENAMED.zip'
-          sha256sum '.incoming/OCADE_PRIMARY_LOGIC_RENAMED.zip'
+          mapfile -t archives < <(find .incoming -maxdepth 1 -type f -name '*.zip' -print | sort)
+          if [ "${#archives[@]}" -ne 1 ]; then
+            echo "Expected exactly one .zip in .incoming; found ${#archives[@]}" >&2
+            printf '%s\n' "${archives[@]:-}" >&2
+            exit 1
+          fi
+          archive="${archives[0]}"
+          echo "path=$archive" >> "$GITHUB_OUTPUT"
+          sha256sum "$archive"
 
       - name: Install dependencies
         shell: bash
@@ -41,7 +49,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/import-ocade-primary-logic.mjs '.incoming/OCADE_PRIMARY_LOGIC_RENAMED.zip' --replace
+          node scripts/import-ocade-primary-logic.mjs '${{ steps.archive.outputs.path }}' --replace
 
       - name: Verify staged source
         shell: bash
@@ -54,7 +62,7 @@ jobs:
 
       - name: Remove transfer archive
         shell: bash
-        run: rm -f '.incoming/OCADE_PRIMARY_LOGIC_RENAMED.zip'
+        run: rm -f '${{ steps.archive.outputs.path }}'
 
       - name: Commit extracted staging tree
         shell: bash
@@ -62,7 +70,7 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add imports/ocade-primary-logic .incoming/OCADE_PRIMARY_LOGIC_RENAMED.zip
+          git add imports/ocade-primary-logic .incoming
           if git diff --cached --quiet; then
             echo 'No staged import changes.'
             exit 0
