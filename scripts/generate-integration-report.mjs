@@ -36,6 +36,160 @@ const OUT_MD = "imports/ocade-primary-logic/INTEGRATION_REPORT.md";
 const OUT_JSON = "imports/ocade-primary-logic/INTEGRATION_REPORT.json";
 const PORTED_ROOT = "src/primary-logic";
 
+/**
+ * WHERE EACH DONOR FAMILY ENDED UP, AND WHO WON WHERE BOTH SIDES HAD ONE.
+ *
+ * The per-file table below says what happened to 2,126 files. It does not say
+ * WHY, and "why" is the only part a person reading this later actually needs:
+ * when the archive and OCADE both had a version of something, which one is now
+ * the authority, and what made that the right call.
+ *
+ * `authority` is a real path and is checked to exist when this runs, so a
+ * family whose authority is deleted or moved fails the report rather than
+ * quietly describing a file that is gone.
+ */
+const FAMILIES = [
+  {
+    family: "Query engine, deps, transitions, token budget, stop hooks",
+    outcome: "Ported — donor is the authority",
+    authority: "src/lib/runtime/use-ocade-runtime.ts",
+    reason:
+      "The donor's loop handles the four things OCADE's did not: output-token recovery, reactive compaction, an explicit token budget, and a closed terminal set. Both rooms now run it, with local inference injected through callModel.",
+  },
+  {
+    family: "Permissions, shell rule matching, dangerous patterns, denial tracking",
+    outcome: "Ported — donor is the authority",
+    authority: "src/lib/runtime/permissions.ts",
+    reason:
+      "Cowork's approvalPolicy and Chat had separate ideas about risk. The donor's rule model is stronger and now decides for both, with OCADE's opaque-command gate added on top.",
+  },
+  {
+    family: "Bash parser, heredocs, quoting, destructive-command warnings",
+    outcome: "Ported — donor is the authority",
+    authority: "src/lib/runtime/permissions.ts",
+    reason:
+      "A real parser is what closes the compound-command hole: an approval for one command must not carry the rest of the line. Ported in pure TypeScript, without the donor's native grammar binary.",
+  },
+  {
+    family: "Task lifecycle, stop, background tasks, status labels",
+    outcome: "Ported — donor is the authority",
+    authority: "src/lib/tasks/runs.ts",
+    reason:
+      "OCADE had a to-do board and no runtime task state at all. The donor's status machine, id scheme, pause accounting and stop error taxonomy now back Stop, Pause, Resume and Take over.",
+  },
+  {
+    family: "Session memory extraction thresholds",
+    outcome: "Ported — donor is the authority",
+    authority: "src/lib/memory/session-memory.ts",
+    reason:
+      "OCADE remembered only what the model chose to record. The donor's thresholds decide when a conversation is worth summarising without re-summarising it every turn.",
+  },
+  {
+    family: "Memory record shapes and the age/relevance model",
+    outcome: "Ported — donor is the authority",
+    authority: "src/lib/memory/quality.ts",
+    reason: "Freshness decay and memory typing were absent on the OCADE side.",
+  },
+  {
+    family: "Unicode sanitisation and hidden-character handling",
+    outcome: "Ported — donor replaced a weaker OCADE version",
+    authority: "src/lib/ocade-injection-guard.ts",
+    reason:
+      "OCADE's stripper missed the Unicode Tag block, so instructions could be smuggled into text that looked clean. The donor's sanitiser covers it; the old regex is gone.",
+  },
+  {
+    family: "Message protocol: content blocks, tool use, tool results",
+    outcome: "Ported — donor is the authority",
+    authority: "src/lib/runtime/call-model.ts",
+    reason: "One shape for the transcript, converted once at the engine boundary.",
+  },
+  {
+    family: "Tool search and deferred tool loading",
+    outcome: "Not ported — OCADE keeps its own",
+    authority: "src/lib/agent/tool-registry.ts",
+    reason:
+      "The donor's tool search depends on the hosted API's tool_reference beta blocks, which no on-device runtime accepts. OCADE defers by domain and caps each turn at a measured twelve tools, which is the same problem solved for a local model.",
+  },
+  {
+    family: "Agents, subagents, teams, coordinator",
+    outcome: "Not ported — OCADE's is stronger here",
+    authority: "src/lib/agent/planner.ts",
+    reason:
+      "OCADE already decomposes a goal once and runs each step as a sub-agent with only that step's tools, returning one line to the main transcript. The donor's version assumes concurrent hosted sessions, which one local model cannot serve.",
+  },
+  {
+    family: "Plugins, skills, tool servers",
+    outcome: "Not ported — OCADE keeps one authority",
+    authority: "src/lib/skills/pack-registry.ts",
+    reason:
+      "The donor loads plugins from the user's filesystem at startup and trusts what it finds. OCADE's registry validates and trusts packs explicitly, which is the model a browser product can actually honour.",
+  },
+  {
+    family: "Bridge, remote sessions, websocket transport",
+    outcome: "Removed — replaced by local transport",
+    authority: "src/lib/native/extension-bridge.ts",
+    reason:
+      "The donor bridge speaks to a hosted relay. OCADE's browser work goes through the extension and machine work through the paired companion; neither needs a server in the middle.",
+  },
+  {
+    family: "PTY, terminal emulator, Ink renderer",
+    outcome: "Removed",
+    authority: "src/lib/runtime/execute.ts",
+    reason:
+      "A tab has no pseudo-terminal, and shipping one would mean shipping a second renderer. Shell work belongs to the companion, behind the permission layer.",
+  },
+  {
+    family: "Hosted inference, provider table, OAuth to the model vendor",
+    outcome: "Removed",
+    authority: "src/lib/runtime/call-model.ts",
+    reason:
+      "OCADE answers on the device. There is no hosted-AI fallback anywhere in the path, and the audit that proves it runs in CI.",
+  },
+  {
+    family: "Analytics and telemetry sinks",
+    outcome: "Removed",
+    authority: "src/lib/telemetry",
+    reason:
+      "The donor logged events on nearly every decision. Nothing about how someone uses OCADE leaves their device.",
+  },
+  {
+    family: "Sessions, history, resume, rewind",
+    outcome: "Not ported — OCADE keeps its own",
+    authority: "src/lib/session.ts",
+    reason:
+      "The donor's session history is a paginated read against a hosted events API. OCADE's sessions are local first and mirrored to the account, which is the opposite direction.",
+  },
+  {
+    family: "Cron and scheduled tasks",
+    outcome: "Not ported — OCADE keeps its own",
+    authority: "src/lib/ocade-scheduler.ts",
+    reason:
+      "OCADE's scheduler already reports why each automation did not run — paused, not due, backing off, awaiting approval — which is the part users ask about.",
+  },
+  {
+    family: "Voice",
+    outcome: "Not ported — OCADE keeps its own",
+    authority: "src/lib/ocade-voice.ts",
+    reason:
+      "The donor's voice layer is terminal command plumbing. OCADE's speaks through the device's own speech services and stays on the same runtime as the rest of the session.",
+  },
+  {
+    family: "Git, worktrees, LSP, IDE",
+    outcome: "Not ported — kept behind the local boundary",
+    authority: "src/lib/code/workspace.ts",
+    reason:
+      "Repository work needs a filesystem, so it lives with the companion rather than in the tab. OCADE exposes it through the same tool runtime instead of shipping a second coding product.",
+  },
+  {
+    family: "Payments and webhooks",
+    outcome: "Kept and locked",
+    authority: "src/lib/payments",
+    reason:
+      "Launch is free. The code is intact and hardened — signature checks, idempotency, replay refusal — and every purchase action is behind a gate nobody can get through.",
+  },
+];
+
+
 function parseCsv(text) {
   const rows = [];
   let row = [];
@@ -183,8 +337,38 @@ const totals = {
   reachedModules: portedFiles.filter((f) => reached.has(f.replace(/\.ts$/, ""))).length,
 };
 
+/**
+ * Who calls each ported module, from outside the imported tree.
+ *
+ * "Reached" already proves a path exists. This names it, because a reviewer
+ * checking whether a module is genuinely wired should not have to grep for it.
+ */
+function callersOf(module) {
+  const spec = `@/${module.replace(/^src\//, "").replace(/\.ts$/, "")}`;
+  const callers = [];
+  for (const [file, specs] of graph) {
+    if (file.startsWith(PORTED_ROOT)) continue;
+    if (file.includes("__tests__")) continue;
+    if (specs.includes(spec)) callers.push(file);
+  }
+  return callers.sort();
+}
+
+const moduleCallers = new Map(portedFiles.map((f) => [f, callersOf(f)]));
+
+for (const entry of FAMILIES) {
+  if (!existsSync(join(ROOT, entry.authority))) {
+    console.error(
+      `Family "${entry.family}" names an authority that does not exist: ${entry.authority}`,
+    );
+    process.exit(1);
+  }
+}
+
 const report = {
   generatedAt: new Date().toISOString().slice(0, 10),
+  families: FAMILIES,
+  moduleCallers: Object.fromEntries(moduleCallers),
   totals,
   byAction,
   dispositions,
@@ -221,14 +405,27 @@ const md = [
     .sort((a, b) => b[1].total - a[1].total)
     .map(([action, c]) => `| \`${action}\` | ${c.total} | ${c.ported} | ${c.reached} |`),
   "",
-  "## Modules present in this tree",
+  "## By family — what happened, and who is the authority",
   "",
-  ...portedFiles
-    .sort()
-    .map(
-      (f) =>
-        `- \`${f}\`${reached.has(f.replace(/\.ts$/, "")) ? "" : " — present, not yet reached"}`,
-    ),
+  "| Donor family | Outcome | OCADE authority | Why |",
+  "|---|---|---|---|",
+  ...FAMILIES.map(
+    (f) => `| ${f.family} | ${f.outcome} | \`${f.authority}\` | ${f.reason} |`,
+  ),
+  "",
+  "## Modules present in this tree, and what reaches them",
+  "",
+  "| Module | Reached by |",
+  "|---|---|",
+  ...portedFiles.sort().map((f) => {
+    const callers = moduleCallers.get(f) ?? [];
+    if (callers.length > 0) {
+      return `| \`${f}\` | ${callers.map((c) => `\`${c}\``).join(", ")} |`;
+    }
+    return reached.has(f.replace(/\.ts$/, ""))
+      ? `| \`${f}\` | via another imported module |`
+      : `| \`${f}\` | *nothing — present, not yet reached* |`;
+  }),
   "",
 ].join("\n");
 
