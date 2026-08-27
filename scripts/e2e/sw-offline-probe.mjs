@@ -70,10 +70,33 @@ try {
     waitUntil: "domcontentloaded",
     timeout: 30000,
   });
+  /*
+   * WAIT FOR IT TO BE READABLE, NOT MERELY PARSED.
+   *
+   * The worker serves the cached application shell for an address it has never
+   * seen, which is correct for a single-page app: the client router then
+   * renders that path itself. But the shell's body is filled by hydration, and
+   * `domcontentloaded` fires before that — so reading `innerText` immediately
+   * returned an empty string whenever hydration had not finished yet, and this
+   * probe passed or failed on how busy the machine was.
+   *
+   * Polling for content, with a bound, is what the assertion actually meant:
+   * offline, does this become a page a person can read? Ten seconds is far
+   * longer than hydration takes and short enough that a genuinely blank page
+   * still fails.
+   */
+  let body = "";
+  const deadline = Date.now() + 10_000;
+  while (Date.now() < deadline) {
+    body = (await page.locator("body").innerText()).replace(/\s+/g, " ").trim();
+    if (body.length > 0) break;
+    await page.waitForTimeout(250);
+  }
   offlineNavigation = {
     status: response?.status() ?? null,
     title: await page.title(),
-    body: (await page.locator("body").innerText()).replace(/\s+/g, " ").slice(0, 160),
+    body: body.slice(0, 160),
+    renderedWithin: `${10_000 - (deadline - Date.now())}ms`,
   };
 } catch (error) {
   offlineNavigation = { error: String(error).slice(0, 160) };
