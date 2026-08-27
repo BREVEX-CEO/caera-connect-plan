@@ -18,7 +18,7 @@ A directory of imported code nothing imports is not integration, which is why
 
 | Archive files | Dispositioned | Ported modules | Reached from production |
 |---:|---:|---:|---:|
-| 2126 | 2126 (100%) | 36 | 36 |
+| 2126 | 2126 (100%) | 37 | 37 |
 
 ## By disposition
 
@@ -58,11 +58,11 @@ can reach its logic, and every rejection carries the map's own reason for it.
 | Outcome | Files | Share | What it means |
 |---|---:|---:|---|
 | `USED_DIRECTLY` | 49 | 2.3% | The donor file's logic is in src/primary-logic and production reaches it. |
-| `MERGED` | 275 | 12.9% | The donor logic won this area and was folded into the OCADE authority named. |
+| `MERGED` | 276 | 13.0% | The donor logic won this area and was folded into the OCADE authority named. |
 | `REPLACED` | 326 | 15.3% | OCADE already had a stronger version for this product; the donor's was not brought across. |
 | `ROUTED_BOUNDARY` | 85 | 4.0% | The capability exists, behind the MV3 extension, the paired companion or Cloudflare. |
 | `RETAINED_NATIVE_DEV` | 170 | 8.0% | Kept as-is: native and dev tooling, vendored third-party code, legal notices. |
-| `REJECTED` | 1221 | 57.4% | Not brought across. Every file carries the map's own reason. |
+| `REJECTED` | 1220 | 57.4% | Not brought across. Every file carries the map's own reason. |
 | **Total** | **2126** | **100%** | Asserted equal to the archive's file count when this runs. |
 
 ## By family — what happened, and who is the authority
@@ -110,7 +110,8 @@ whether the donor's logic was ported into it or superseded by it.
 | Constants, shims and platform detection | 29 | `MERGED` — Partly ported | `src/primary-logic/shims/featureFlags.ts` | The four boundaries where the donor assumed a terminal, a Node process, a bundler macro or a telemetry sink are shimmed. The rest were constants for products OCADE does not ship. |
 | Build scripts, Docker, packaging and repository config | 21 | `RETAINED_NATIVE_DEV` — Removed | `package.json` | The donor's toolchain bundles a CLI into an npm package. OCADE builds a Cloudflare Worker with Vite. Nothing here transfers, and mixing the two would break both. |
 | Licences, notices and provenance | 8 | `RETAINED_NATIVE_DEV` — Preserved | `src/primary-logic/LICENSE.md` | The licence, the notices and the archive's own manifests are kept verbatim beside the ported code, with a recorded hash of the archive they came from. Legal notices are never removed as dead weight. |
-| Everything else under utils | 358 | `REJECTED` — Case by case — mostly removed | `src/lib` | The donor's utility drawer: terminal drawing, its own file formats, its hosted API client, and small helpers OCADE already has. What was genuinely logic was ported into the families above; the remainder had no OCADE-side caller and was not brought across. |
+| SSRF guard: IPv4 addresses written as IPv6 | 1 | `MERGED` — Ported — closed a hole in OCADE's own guard | `src/lib/research/public-network.server.ts` | OCADE recognised a mapped address only when it was written in dotted form, so `0:0:0:0:0:ffff:a9fe:a9fe` — the cloud metadata endpoint, written out in full — was answered PUBLIC. Two of five spellings of that one address got through. The archive's normaliser expands any representation and hands back the embedded IPv4 address, so the v4 rules decide every time. Its DNS half is not here: it is Node's dns.lookup wired into axios, and OCADE already resolves every answer for a hostname immediately before fetching it. |
+| Everything else under utils | 357 | `REJECTED` — Case by case — mostly removed | `src/lib` | The donor's utility drawer: terminal drawing, its own file formats, its hosted API client, and small helpers OCADE already has. What was genuinely logic was ported into the families above; the remainder had no OCADE-side caller and was not brought across. |
 
 ## Modules present in this tree, and what reaches them
 
@@ -124,6 +125,7 @@ whether the donor's logic was ported into it or superseded by it.
 | `src/primary-logic/memory/memoryAge.ts` | `src/lib/local-memory.ts` |
 | `src/primary-logic/memory/memoryTypes.ts` | `src/lib/memory/quality.ts` |
 | `src/primary-logic/memory/sessionMemoryPolicy.ts` | `src/lib/memory/session-memory.ts` |
+| `src/primary-logic/net/mappedAddress.ts` | `src/lib/research/public-network.server.ts` |
 | `src/primary-logic/permissions/PermissionMode.ts` | via another imported module |
 | `src/primary-logic/permissions/PermissionRule.ts` | via another imported module |
 | `src/primary-logic/permissions/PermissionUpdateSchema.ts` | via another imported module |

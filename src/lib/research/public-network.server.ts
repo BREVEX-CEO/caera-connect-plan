@@ -1,5 +1,6 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import { mappedIPv4 } from "@/primary-logic/net/mappedAddress";
 
 function privateIpv4(address: string): boolean {
   const parts = address.split(".");
@@ -29,7 +30,24 @@ export function isPublicIpAddress(address: string): boolean {
   if (version === 4) return !privateIpv4(address);
   if (version !== 6) return false;
   const value = address.toLowerCase().split("%", 1)[0];
-  if (value.startsWith("::ffff:")) return isPublicIpAddress(value.slice(7));
+  /*
+   * AN IPv4 ADDRESS IN IPv6 CLOTHING IS STILL AN IPv4 ADDRESS.
+   *
+   * This used to be a `startsWith("::ffff:")` and a string slice, which reads
+   * one spelling of a mapped address and misses the rest.
+   * `0:0:0:0:0:ffff:a9fe:a9fe` is the metadata endpoint written out in full;
+   * it starts with `0:`, so it fell past every check below and was answered
+   * PUBLIC. The allowlist in front of this made that unreachable in practice,
+   * which is exactly the kind of reasoning that stops being true the day
+   * somebody adds a second caller.
+   *
+   * The archive's normaliser expands any representation — compressed, hex,
+   * dotted, fully written out — and hands back the embedded IPv4 address, so
+   * the v4 rules decide, which are the rules that actually know what is
+   * private.
+   */
+  const embedded = mappedIPv4(value);
+  if (embedded) return !privateIpv4(embedded);
   return !(
     value === "::" ||
     value === "::1" ||

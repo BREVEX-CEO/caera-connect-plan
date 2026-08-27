@@ -411,6 +411,15 @@ const FAMILIES = [
       "The licence, the notices and the archive's own manifests are kept verbatim beside the ported code, with a recorded hash of the archive they came from. Legal notices are never removed as dead weight.",
   },
   {
+    family: "SSRF guard: IPv4 addresses written as IPv6",
+    category: "MERGED",
+    match: new RegExp("^src/utils/hooks/ssrfGuard[.]ts$"),
+    outcome: "Ported — closed a hole in OCADE's own guard",
+    authority: "src/lib/research/public-network.server.ts",
+    reason:
+      "OCADE recognised a mapped address only when it was written in dotted form, so `0:0:0:0:0:ffff:a9fe:a9fe` — the cloud metadata endpoint, written out in full — was answered PUBLIC. Two of five spellings of that one address got through. The archive's normaliser expands any representation and hands back the embedded IPv4 address, so the v4 rules decide every time. Its DNS half is not here: it is Node's dns.lookup wired into axios, and OCADE already resolves every answer for a hostname immediately before fetching it.",
+  },
+  {
     family: "Everything else under utils",
     category: "REJECTED",
     match: new RegExp("^src/utils/"),

@@ -29,7 +29,7 @@
       ]
     },
     "MERGED": {
-      "files": 275,
+      "files": 276,
       "meaning": "The donor logic won this area and was folded into the OCADE authority named.",
       "families": [
         "Abort composition and cancellation",
@@ -48,6 +48,7 @@
         "PowerShell code-execution cmdlets",
         "Query engine, deps, transitions, token budget, stop hooks",
         "Run re-entrancy: one query at a time",
+        "SSRF guard: IPv4 addresses written as IPv6",
         "Session memory extraction thresholds",
         "Task lifecycle, stop, background tasks, status labels",
         "Unicode sanitisation and hidden-character handling"
@@ -89,7 +90,7 @@
       ]
     },
     "REJECTED": {
-      "files": 1221,
+      "files": 1220,
       "meaning": "Not brought across. Every file carries the map's own reason.",
       "families": [
         "Analytics and telemetry sinks",
@@ -437,12 +438,21 @@
       "portedModules": 0
     },
     {
+      "family": "SSRF guard: IPv4 addresses written as IPv6",
+      "category": "MERGED",
+      "outcome": "Ported — closed a hole in OCADE's own guard",
+      "authority": "src/lib/research/public-network.server.ts",
+      "reason": "OCADE recognised a mapped address only when it was written in dotted form, so `0:0:0:0:0:ffff:a9fe:a9fe` — the cloud metadata endpoint, written out in full — was answered PUBLIC. Two of five spellings of that one address got through. The archive's normaliser expands any representation and hands back the embedded IPv4 address, so the v4 rules decide every time. Its DNS half is not here: it is Node's dns.lookup wired into axios, and OCADE already resolves every answer for a hostname immediately before fetching it.",
+      "files": 1,
+      "portedModules": 0
+    },
+    {
       "family": "Everything else under utils",
       "category": "REJECTED",
       "outcome": "Case by case — mostly removed",
       "authority": "src/lib",
       "reason": "The donor's utility drawer: terminal drawing, its own file formats, its hosted API client, and small helpers OCADE already has. What was genuinely logic was ported into the families above; the remainder had no OCADE-side caller and was not brought across.",
-      "files": 358,
+      "files": 357,
       "portedModules": 7
     }
   ],
@@ -470,6 +480,9 @@
     ],
     "src/primary-logic/memory/sessionMemoryPolicy.ts": [
       "src/lib/memory/session-memory.ts"
+    ],
+    "src/primary-logic/net/mappedAddress.ts": [
+      "src/lib/research/public-network.server.ts"
     ],
     "src/primary-logic/permissions/PermissionMode.ts": [],
     "src/primary-logic/permissions/PermissionRule.ts": [],
@@ -549,8 +562,8 @@
   "totals": {
     "archiveFiles": 2126,
     "dispositioned": 2126,
-    "portedModules": 36,
-    "reachedModules": 36
+    "portedModules": 37,
+    "reachedModules": 37
   },
   "byAction": {
     "DEVOPS_MERGE": {
@@ -18438,8 +18451,8 @@
       "file": "src/utils/hooks/ssrfGuard.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "SSRF guard: IPv4 addresses written as IPv6",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,
