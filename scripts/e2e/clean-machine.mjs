@@ -212,3 +212,61 @@ writeFileSync(
 );
 console.log(JSON.stringify(report, null, 2));
 await browser.close();
+
+/*
+ * AND NOW DECIDE, WHICH THIS NEVER DID.
+ *
+ * The file above gathers a careful report and then exited zero no matter what
+ * was in it. It sat inside a gate that could not fail: a hosted-inference leak,
+ * a blank offline reload, a raw error on the auth screen — every one of them
+ * would have been printed and passed.
+ *
+ * The claims in this file's own header are the assertions. Anything else stays
+ * a reported number rather than a threshold, because a proof that fails for
+ * reasons nobody chose is a proof people learn to ignore.
+ */
+const failures = [];
+
+function require(condition, why) {
+  if (!condition) failures.push(why);
+}
+
+require(results.load_home?.status === 200, `the site did not load: ${results.load_home?.status}`);
+require((results.load_home?.bodyChars ?? 0) >
+  200, `the first visit rendered ${results.load_home?.bodyChars} characters`);
+
+// The whole promise. Not "few" leaks — none.
+require(leaks.length ===
+  0, `reached a hosted inference provider: ${leaks.map((l) => l.url ?? l).join(", ")}`);
+
+/*
+ * The weights host is not an inference provider: fetching a model to run it
+ * here is the opposite of sending a prompt somewhere else. Any OTHER external
+ * host on a clean first visit is worth knowing about.
+ */
+const WEIGHTS_HOSTS = ["huggingface.co", "cdn-lfs.huggingface.co", "cas-bridge.xethub.hf.co"];
+const unexpected = externalHosts.filter((host) => !WEIGHTS_HOSTS.includes(host));
+require(unexpected.length === 0, `unexpected external hosts on a clean visit: ${unexpected}`);
+
+require(results.storage_state_after_first_visit?.serviceWorker ===
+  true, "no service worker registered on the first visit");
+require((results.storage_state_after_first_visit?.caches ?? []).length >
+  0, "the first visit cached nothing, so a second visit offline has no shell");
+
+require(results.auth_route_renders?.status === 200, "the auth route did not render");
+require(results.auth_route_renders?.hasRawError === false, "the auth route rendered a raw error");
+
+/*
+ * The one that matters most on this machine, and the one that was silently
+ * broken: reload with the network off and get the application, not a blank
+ * document with the right title.
+ */
+require(results.offline_reload_uses_cached_shell?.offlineOk === true, "the offline reload failed");
+require((results.offline_reload_uses_cached_shell?.offlineChars ?? 0) >
+  200, `the offline reload rendered ${results.offline_reload_uses_cached_shell?.offlineChars} characters`);
+
+if (failures.length) {
+  console.error(`\nCLEAN MACHINE FAILED:\n- ${failures.join("\n- ")}`);
+  process.exit(1);
+}
+console.log("\nclean machine: nothing reached a hosted provider, and it works offline");

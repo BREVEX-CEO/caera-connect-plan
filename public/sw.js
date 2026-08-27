@@ -23,7 +23,7 @@
  */
 
 const SHELL_CACHE_PREFIX = "ocade-shell-v";
-const VERSION = `${SHELL_CACHE_PREFIX}9`;
+const VERSION = `${SHELL_CACHE_PREFIX}10`;
 const OFFLINE_URL = "/offline.html";
 
 /**
@@ -35,31 +35,6 @@ const OFFLINE_URL = "/offline.html";
  * below once they have been fetched successfully at least once.
  */
 const REQUIRED_PRECACHE = ["/", OFFLINE_URL, "/manifest.webmanifest"];
-
-/**
- * The build's own first-paint chunks, named by a file the build writes.
- *
- * The comment above is right that a hard-coded list of content-hashed bundles
- * goes stale immediately. What it missed is what happened instead: the runtime
- * cache below only sees an asset AFTER it has been fetched through this worker,
- * and on a first visit the page's scripts are already in flight while this
- * worker is still installing. So they were never cached at all, and anybody who
- * visited once and then went offline was served the shell document with none of
- * its JavaScript — right title, right favicon, empty body.
- *
- * `scripts/generate-sw-precache.mjs` writes `/sw-precache.js` after every build
- * by walking the entry chunk's static import graph. Kept as a separate file so
- * this one stays auditable source rather than something a build rewrites, and
- * wrapped in a try so a build that skips the step degrades to the old behaviour
- * instead of failing to install a worker at all.
- */
-let BUILD_PRECACHE = [];
-try {
-  importScripts("/sw-precache.js");
-  BUILD_PRECACHE = Array.isArray(self.__OCADE_PRECACHE) ? self.__OCADE_PRECACHE : [];
-} catch {
-  BUILD_PRECACHE = [];
-}
 
 const OPTIONAL_PRECACHE = [
   "/favicon.ico",
@@ -84,6 +59,45 @@ const OPTIONAL_PRECACHE = [
   "/demo/control",
 ];
 
+/**
+ * Find the build's own first-paint chunks by reading the shell it just cached.
+ *
+ * The comment above is right that a hard-coded list of content-hashed bundles
+ * goes stale immediately. What it missed is what happened instead: the runtime
+ * cache below only sees an asset AFTER it has been fetched through this worker,
+ * and on a first visit the page's scripts are already in flight while this
+ * worker is still installing. So they were never cached at all, and anybody who
+ * visited once and then went offline was served the shell document with none of
+ * its JavaScript — right title, right favicon, empty body.
+ *
+ * A generated manifest file was the obvious answer and it does not work here:
+ * Nitro builds its public-asset table during the bundle, so a file written
+ * afterwards is not in it and the request falls through to the SSR handler.
+ * `importScripts` then received an HTML document and threw.
+ *
+ * So the worker reads the shell instead. `/` is precached above, and being a
+ * server-rendered document it carries `<script src="/assets/…">` and the
+ * `<link rel="modulepreload">` tags for everything the entry statically
+ * imports — which is exactly the set a visitor waits for before first paint.
+ * No build step, no extra route, and it is correct on every deploy without
+ * anybody remembering to regenerate anything.
+ */
+async function firstPaintAssets(cache) {
+  try {
+    const shell = await cache.match("/");
+    if (!shell) return [];
+    const html = await shell.text();
+    const found = new Set();
+    for (const match of html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+\.(?:js|mjs|css))"/g)) {
+      found.add(match[1]);
+    }
+    return [...found];
+  } catch {
+    // A shell that cannot be read is not a reason to fail the install.
+    return [];
+  }
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
@@ -97,8 +111,11 @@ self.addEventListener("install", (event) => {
          * not block an otherwise usable upgrade.
          */
         await cache.addAll(REQUIRED_PRECACHE);
+        // Read the shell only after it is in the cache — that is where the
+        // asset URLs come from.
+        const firstPaint = await firstPaintAssets(cache);
         await Promise.allSettled(
-          [...OPTIONAL_PRECACHE, ...BUILD_PRECACHE].map((url) => cache.addAll([url])),
+          [...OPTIONAL_PRECACHE, ...firstPaint].map((url) => cache.addAll([url])),
         );
         await self.skipWaiting();
       })
