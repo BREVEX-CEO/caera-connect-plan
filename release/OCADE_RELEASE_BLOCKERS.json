@@ -131,6 +131,23 @@
         "Signed clean-machine desktop distribution and supported browser/mobile device matrix"
       ],
       "detail": "release/OCADE_MODEL_DISTRIBUTION_PROOF.json"
+    },
+    {
+      "id": "github-actions-cannot-obtain-a-runner",
+      "area": "ci",
+      "status": "externally_blocked",
+      "achievedEvidence": [
+        "runner-probe.yml is a control experiment: one job, one echo, no checkout, no actions, no secrets, permissions: {}",
+        "It failed identically on main (33092018720), on the branch by push (33092025277, 33094692496) and by workflow_dispatch (33096294556): created_at equals started_at, completed two to five seconds later, steps null, zero steps recorded, HTTP 404 on every log download",
+        "All six workflow files parse cleanly, and the same shape appears on ubuntu, windows and macOS across CI and OCADE 77 Readiness, so it is neither YAML nor product code: a job that never ran a step cannot have been failed by what the step would have done",
+        "The repository reports disabled: false, so Actions is not switched off for the repository",
+        "The repository is private (visibility: private) and owned by a personal user account, which is the configuration in which every Actions minute is metered rather than free"
+      ],
+      "requiredEvidence": [
+        "Owner action at https://github.com/settings/billing: confirm whether the included Actions minutes for the current cycle are exhausted",
+        "If they are, either raise the Actions spending limit above zero with a valid payment method at https://github.com/settings/billing/spending_limit, or make the repository public so Actions minutes are unmetered, or register a self-hosted runner under repository Settings then Actions then Runners",
+        "After that, a green Runner probe run is the proof; CI, OCADE 77 Readiness and CodeQL follow from it"
+      ]
     }
   ]
 }

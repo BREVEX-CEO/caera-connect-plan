@@ -27,7 +27,7 @@ const BOOT = ROOT.slice(ROOT.indexOf("const THEME_BOOT"), ROOT.indexOf("function
 
 describe("the first frame is already the right colour", () => {
   it("paints <html> even with no stylesheet and no script", () => {
-    expect(ROOT).toMatch(/<html lang="en" style=\{\{ background: "#0a0a09" \}\}>/);
+    expect(ROOT).toMatch(/<html lang="en" style=\{\{ background: "#0a0a09" \}\}/);
   });
 
   it("runs the theme boot synchronously, in head, before HeadContent", () => {
@@ -79,5 +79,44 @@ describe("the first frame is already the right colour", () => {
   it("defaults to the dark background when it knows nothing", () => {
     expect(BOOT).toMatch(/var t="dark"/);
     expect(BOOT).toContain("#0a0a09");
+  });
+});
+
+/*
+ * THE SUPPRESSION IS LOAD-BEARING.
+ *
+ * The boot script exists to change <html> before React sees it, so the server
+ * markup and the live DOM disagree on that element by design. React 19 reads
+ * that as a failed hydration and throws the server HTML away to re-render the
+ * whole tree on the client.
+ *
+ * Online that is an invisible cost. Offline it is a blank page: a full client
+ * render has to rebuild everything from cache, and the service-worker probe
+ * found the document still empty — no title, no body — ten seconds after
+ * navigation. One missing prop turned a working offline shell into a white
+ * rectangle, so it gets its own test rather than living as a comment.
+ */
+describe("the boot script and React agree to disagree about <html>", () => {
+  it("suppresses hydration warnings on the element the script mutates", () => {
+    expect(ROOT).toMatch(/<html lang="en"[^>]*suppressHydrationWarning/);
+  });
+
+  it("suppresses it on <html> and nowhere else in the shell", () => {
+    // One level deep by design: a genuine mismatch inside the app must still
+    // fail loudly, so this must not spread to <body> or to children. Counted
+    // as JSX attributes rather than as text, because the rationale above the
+    // element names the prop too.
+    const shell = ROOT.slice(ROOT.indexOf("function RootShell"));
+    const attributes = shell.match(/suppressHydrationWarning[\s/>=]/g) ?? [];
+    expect(attributes).toHaveLength(1);
+    expect(shell).not.toMatch(/<body[^>]*suppressHydrationWarning/);
+  });
+
+  it("mutates exactly what the suppression covers: className and style", () => {
+    // If the script ever starts writing something else onto <html>, the
+    // suppression still covers it, but the reason above stops being accurate.
+    expect(BOOT).toMatch(/d\.classList\.add/);
+    expect(BOOT).toMatch(/d\.style\./);
+    expect(BOOT).not.toMatch(/document\.body/);
   });
 });

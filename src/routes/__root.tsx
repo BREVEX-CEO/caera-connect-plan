@@ -201,8 +201,22 @@ function RootShell({ children }: { children: ReactNode }) {
      * The inline background on <html> is the floor under everything above: if
      * the script is blocked by a strict CSP and the stylesheet is still in
      * flight, the canvas is still not white.
+     *
+     * `suppressHydrationWarning` is not cosmetic here, and it is not optional.
+     * The boot script's whole job is to change this element before React sees
+     * it, so the server HTML and the live DOM disagree on <html> BY DESIGN.
+     * React 19 treats a mismatch on the root element as a failed hydration and
+     * throws the server markup away to re-render the entire tree on the
+     * client. That is how this was found: offline, where a full client render
+     * has to redo everything from cache, the document sat blank for ten
+     * seconds and the service-worker probe read an empty title and an empty
+     * body. Online it merely cost a full re-render nobody had measured.
+     *
+     * The suppression is one level deep — it covers this element's own
+     * attributes, not its children — so a genuine mismatch inside the app
+     * still fails loudly.
      */
-    <html lang="en" style={{ background: "#0a0a09" }}>
+    <html lang="en" style={{ background: "#0a0a09" }} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
         <HeadContent />
