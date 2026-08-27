@@ -134,6 +134,25 @@ export async function startServedWorker({
     await rm(".output", { recursive: true, force: true });
   }
 
+  /*
+   * LOOPBACK MUST NOT GO THROUGH THE OUTBOUND PROXY.
+   *
+   * `wrangler dev` warns "Proxy environment variables detected. We'll use your
+   * proxy for fetch requests", and it means all of them — including the
+   * loopback calls between its own proxy worker and workerd. On a machine whose
+   * egress is a proxy, that turns an internal message into an external request,
+   * and the run died mid-stage inside wrangler's ProxyController with an empty
+   * error three minutes in.
+   *
+   * This narrows the exemption to loopback only. Nothing about outbound
+   * verification changes: the proxy is still used for every real host.
+   */
+  const workerEnv = {
+    ...env,
+    NO_PROXY: "127.0.0.1,localhost,::1",
+    no_proxy: "127.0.0.1,localhost,::1",
+  };
+
   const server = spawnTracked(
     npmExecPath ? process.execPath : "npx",
     npmExecPath
@@ -192,7 +211,7 @@ export async function startServedWorker({
           "--var",
           "SUPABASE_PUBLISHABLE_KEY:sb_publishable_ocade_local_audit_key",
         ],
-    env,
+    workerEnv,
   );
   server.stderr.on("data", (d) => process.stderr.write(String(d)));
   server.on("exit", (code) => {

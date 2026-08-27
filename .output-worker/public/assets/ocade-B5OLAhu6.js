@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-CX2mWblQ.js";import{kr as t}from"./index-D9R_AG0q.js";import{t as n}from"./AppShell-BhM7Bo9r.js";var r=e();function i(){return(0,r.jsx)(n,{children:(0,r.jsx)(t,{})})}export{i as component};
