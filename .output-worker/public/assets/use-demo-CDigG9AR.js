@@ -1,0 +1,1 @@
+import{o as e}from"./rolldown-runtime-DAXXjFlN.js";import{i as t}from"./vendor-react-CX2mWblQ.js";var n=e(t(),1),r=(0,n.createContext)(null);function i(){let e=(0,n.useContext)(r);if(!e)throw Error(`useDemo must be used inside DemoProvider (route under /demo/*).`);return e}export{i as n,r as t};

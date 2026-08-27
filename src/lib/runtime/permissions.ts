@@ -35,6 +35,7 @@ import {
   parsePermissionRule,
   type ShellPermissionRule,
 } from "@/primary-logic/permissions/shellRuleMatching";
+import { containsPathTraversal, dangerousPath } from "@/primary-logic/permissions/pathSafety";
 import { permissionRuleValueFromString } from "@/primary-logic/permissions/permissionRuleParser";
 import {
   DANGEROUS_BASH_PATTERNS,
@@ -101,6 +102,21 @@ export interface PermissionContext {
   mode: PermissionMode;
   rules: readonly StoredRule[];
   denials: DenialTrackingState;
+  /**
+   * The paired computer's home directory, when something knows it.
+   *
+   * Nothing supplies it today: the browser is deciding about a machine it
+   * cannot inspect, and no layer between here and the companion reports the
+   * path. It is accepted anyway so that a caller which does learn it can pass
+   * it without another change here.
+   *
+   * Absent costs almost nothing. `~` is recognised as the home folder by its
+   * literal form, and every other rule — filesystem roots, whole drives,
+   * system folders at the top of a disk, traversal — is a fact about the
+   * string. The only case this leaves is an ABSOLUTE path that happens to be
+   * the home directory, written out in full.
+   */
+  home?: string | null;
 }
 
 export type PermissionOutcome = "allow" | "ask" | "deny";
@@ -122,8 +138,9 @@ export interface PermissionDecision {
 export function createPermissionContext(
   mode: PermissionMode = "guarded",
   rules: readonly StoredRule[] = [],
+  home: string | null = null,
 ): PermissionContext {
-  return { mode, rules, denials: createDenialTrackingState() };
+  return { mode, rules, denials: createDenialTrackingState(), home };
 }
 
 /** Record that the user refused a call; repeated refusals re-enable prompting. */
@@ -173,6 +190,73 @@ function commandOf(call: ToolCallLike): string | null {
   for (const key of ["command", "script", "shell"]) {
     const value = args[key];
     if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+/**
+ * Every path this call would act on.
+ *
+ * The names are the ones the file and folder tools actually use. A tool that
+ * grows a new path argument and is not listed here is not silently exempt: it
+ * is simply not yet checked, which is why the test file asserts this list
+ * against the registry rather than trusting it.
+ */
+export const PATH_ARGUMENT_KEYS = [
+  "path",
+  "paths",
+  "folder",
+  "directory",
+  "source",
+  "destination",
+  "target",
+  "file",
+  /*
+   * Leaf names, not paths — and included anyway.
+   *
+   * `folder_create({ folder: "downloads", name: "../../etc" })` is a path
+   * argument wearing a name's clothes: the far end joins the two, and the
+   * traversal check below is the only thing that notices. An application or
+   * contact name trips neither rule, so covering these costs nothing.
+   */
+  "name",
+  "item",
+] as const;
+
+function pathsOf(call: ToolCallLike): string[] {
+  const args = call.arguments ?? {};
+  const found: string[] = [];
+  for (const key of PATH_ARGUMENT_KEYS) {
+    const value = args[key];
+    if (typeof value === "string" && value.trim()) found.push(value.trim());
+    else if (Array.isArray(value)) {
+      for (const item of value) {
+        if (typeof item === "string" && item.trim()) found.push(item.trim());
+      }
+    }
+  }
+  return found;
+}
+
+/**
+ * The path objection for this call, if there is one.
+ *
+ * Only for tools that CHANGE something. Reading `/etc` is how a person finds
+ * out what is on their machine; emptying it is not, and a rule that refused
+ * both would be turned off within a day.
+ */
+function pathObjectionFor(
+  call: ToolCallLike,
+  tool: ToolDefinition | null,
+  home: string | null,
+): string | null {
+  if (!tool?.mutating) return null;
+  for (const path of pathsOf(call)) {
+    if (containsPathTraversal(path)) {
+      return "that path climbs out of the folder it starts in";
+    }
+    const risk = dangerousPath(path, home);
+    if (risk.dangerous) return risk.reason;
   }
   return null;
 }
@@ -370,6 +454,13 @@ export function decide(
    * no warning as one string under some patterns and plainly does as two.
    */
   const warning = command ? destructiveWarningFor(command, shape) : null;
+  /*
+   * The path objection, computed alongside the command warning and for the
+   * same reason: a change to somewhere irreplaceable has to be recognised
+   * before any allow rule is consulted, because a rule was written about a
+   * TOOL and not about the whole disk.
+   */
+  const pathObjection = pathObjectionFor(call, tool, context.home ?? null);
 
   const denied = findRule(call, context.rules, "deny");
   if (denied) {
@@ -417,6 +508,28 @@ export function decide(
       reason: shape.unreadable
         ? "OCADE could not read this command well enough to check it."
         : "This command runs another command inside it, so OCADE is checking with you.",
+      warning,
+      matchedRule: null,
+    };
+  }
+
+  /*
+   * A CHANGE TO SOMEWHERE IRREPLACEABLE IS ALWAYS ASKED ABOUT.
+   *
+   * Placed here, above the allow rules, for exactly the reason the unreadable
+   * gate is: `Folder(empty)` is a rule about a TOOL, and the user who wrote it
+   * was thinking of a downloads folder, not of their home directory. The
+   * companion checks its own approved folders at the far end, and it is right
+   * to — but that is one check, in another process, after the request has
+   * already been sent. This is the one that happens before it leaves.
+   *
+   * Imported from the archive's path-validation rules, which is where the list
+   * of what counts as irreplaceable comes from.
+   */
+  if (pathObjection) {
+    return {
+      outcome: "ask",
+      reason: `OCADE is checking first: ${pathObjection}.`,
       warning,
       matchedRule: null,
     };

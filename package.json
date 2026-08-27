@@ -100,7 +100,8 @@
     "audit:routes:prod": "node scripts/e2e/run-route-qa.mjs",
     "audit:offline:prod": "node scripts/e2e/run-offline.mjs",
     "integration:report": "node scripts/generate-integration-report.mjs",
-    "integration:check": "node scripts/generate-integration-report.mjs --check"
+    "integration:check": "node scripts/generate-integration-report.mjs --check",
+    "audit:worker": "node scripts/e2e/run-worker-smoke.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",

@@ -1,0 +1,1 @@
+import{t as e}from"./vendor-react-CX2mWblQ.js";import{t}from"./TasksWorkspace-CJfXJF0W.js";var n=e(),r=()=>(0,n.jsx)(t,{backTo:`/settings`,backLabel:`Back to Settings`});export{r as component};

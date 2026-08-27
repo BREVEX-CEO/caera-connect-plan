@@ -7,9 +7,10 @@ import {
   noteDenied,
   shapeOf,
   subjectOf,
+  PATH_ARGUMENT_KEYS,
   type PermissionContext,
 } from "../permissions";
-import { findTool, type ToolDefinition } from "@/lib/agent/tool-registry";
+import { allToolNames, findTool, type ToolDefinition } from "@/lib/agent/tool-registry";
 
 const readTool: ToolDefinition = {
   name: "screen_observe",
@@ -360,5 +361,167 @@ describe("Windows commands are checked too", () => {
         createPermissionContext("trusted"),
       ).warning,
     ).toBeNull();
+  });
+});
+
+/**
+ * A rule is written about a tool. The disk is not a tool.
+ *
+ * Somebody who allows `file_trash` is thinking of a downloads folder. They are
+ * not, in that moment, deciding that OCADE may empty their home directory —
+ * and the permission layer is the only thing standing between those two
+ * readings of the same rule.
+ */
+describe("paths that are not a tool's to change", () => {
+  const trashTool: ToolDefinition = {
+    name: "file_trash",
+    domain: "files",
+    description: "",
+    parameters: { type: "object", properties: {} },
+    mutating: true,
+    risk: "medium",
+  };
+
+  it("asks before changing the home folder, even in trusted mode", () => {
+    const decision = decide(
+      call("file_trash", { path: "~" }),
+      trashTool,
+      createPermissionContext("trusted", [], "/home/ada"),
+    );
+    expect(decision.outcome).toBe("ask");
+    expect(decision.reason).toMatch(/whole home folder/);
+  });
+
+  it("asks even when a rule allows the tool outright", () => {
+    const decision = decide(
+      call("file_trash", { path: "/" }),
+      trashTool,
+      createPermissionContext("trusted", [{ rule: "file_trash", behavior: "allow" }], "/home/ada"),
+    );
+    expect(decision.outcome).toBe("ask");
+    expect(decision.reason).toMatch(/root of the filesystem/);
+  });
+
+  it("still lets a deny rule win, because deny is stricter", () => {
+    const decision = decide(
+      call("file_trash", { path: "/" }),
+      trashTool,
+      createPermissionContext("trusted", [{ rule: "file_trash", behavior: "deny" }], "/home/ada"),
+    );
+    expect(decision.outcome).toBe("deny");
+  });
+
+  it("checks every path argument, not only the first", () => {
+    const moveTool: ToolDefinition = { ...trashTool, name: "file_move" };
+    const decision = decide(
+      call("file_move", { source: "/home/ada/notes.txt", destination: "/etc" }),
+      moveTool,
+      createPermissionContext("trusted", [], "/home/ada"),
+    );
+    expect(decision.outcome).toBe("ask");
+  });
+
+  it("refuses to be walked out of an approved folder", () => {
+    const decision = decide(
+      call("file_trash", { path: "Downloads/../../../etc/passwd" }),
+      trashTool,
+      createPermissionContext("trusted", [], "/home/ada"),
+    );
+    expect(decision.outcome).toBe("ask");
+    expect(decision.reason).toMatch(/climbs out/);
+  });
+
+  it("does not interfere with ordinary file work", () => {
+    const decision = decide(
+      call("file_trash", { path: "/home/ada/Downloads/old.zip" }),
+      trashTool,
+      createPermissionContext("trusted", [], "/home/ada"),
+    );
+    expect(decision.outcome).toBe("allow");
+  });
+
+  it("says nothing about a path it is only reading", () => {
+    const listTool: ToolDefinition = {
+      name: "file_list",
+      domain: "files",
+      description: "",
+      parameters: { type: "object", properties: {} },
+      mutating: false,
+      risk: "read",
+    };
+    const decision = decide(
+      call("file_list", { path: "/etc" }),
+      listTool,
+      createPermissionContext("guarded", [], "/home/ada"),
+    );
+    expect(decision.outcome).toBe("allow");
+  });
+});
+
+describe("the list of path arguments", () => {
+  it("covers every path-shaped argument the registry actually declares", () => {
+    /*
+     * The claim in `permissions.ts` is that a tool growing a new path argument
+     * is not silently exempt. That is only true if something checks — this is
+     * that something. A new argument called `destinationFolder` on a mutating
+     * tool fails here until it is either covered or deliberately excluded.
+     */
+    const covered = new Set<string>(PATH_ARGUMENT_KEYS);
+    const missed: string[] = [];
+
+    for (const name of allToolNames()) {
+      const tool = findTool(name);
+      if (!tool?.mutating) continue;
+      for (const [argument, schema] of Object.entries(tool.parameters.properties)) {
+        if (covered.has(argument)) continue;
+        const describes = `${argument} ${schema.description}`.toLowerCase();
+        // A path argument names itself: "folder", "path", "directory".
+        if (/\b(path|folder|directory)\b/.test(describes)) {
+          missed.push(`${name}.${argument}`);
+        }
+      }
+    }
+
+    expect(
+      missed,
+      "these mutating arguments look like paths but are not checked before the call leaves",
+    ).toEqual([]);
+  });
+});
+
+describe("a leaf name that is really a path", () => {
+  it("will not let a folder name climb out of the folder it is created in", () => {
+    const createTool: ToolDefinition = {
+      name: "folder_create",
+      domain: "files",
+      description: "",
+      parameters: { type: "object", properties: {} },
+      mutating: true,
+      risk: "low",
+    };
+    const decision = decide(
+      call("folder_create", { folder: "downloads", name: "../../etc" }),
+      createTool,
+      createPermissionContext("trusted", [], "/home/ada"),
+    );
+    expect(decision.outcome).toBe("ask");
+    expect(decision.reason).toMatch(/climbs out/);
+  });
+
+  it("leaves an ordinary application name alone", () => {
+    const openTool: ToolDefinition = {
+      name: "app_open",
+      domain: "os_app",
+      description: "",
+      parameters: { type: "object", properties: {} },
+      mutating: true,
+      risk: "low",
+    };
+    const decision = decide(
+      call("app_open", { name: "chrome" }),
+      openTool,
+      createPermissionContext("trusted", [], "/home/ada"),
+    );
+    expect(decision.outcome).toBe("allow");
   });
 });
