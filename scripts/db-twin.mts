@@ -214,7 +214,18 @@ export class DatabaseTwin {
     } catch (e) {
       return { rows: [], error: (e as Error).message?.slice(0, 300) };
     } finally {
+      /*
+       * CLEAR THE CLAIM, NOT JUST THE ROLE.
+       *
+       * `set_config(..., false)` is session-scoped, so the JWT claim outlived
+       * `reset role` and the NEXT superuser query still saw the last tenant's
+       * `auth.uid()`. PostgREST sets these per transaction; leaving one behind
+       * makes a superuser probe quietly answer as whoever ran last, which is
+       * the opposite of what a superuser probe is for.
+       */
       await this.db.exec(`reset role;`);
+      await this.db.query(`select set_config('request.jwt.claim.sub', '', false)`);
+      await this.db.query(`select set_config('request.jwt.claim.role', '', false)`);
     }
   }
 
