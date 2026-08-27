@@ -114,14 +114,5 @@ export function evaluateLaunchGate(options: {
     };
   }
 
-  if (!isLaunchReady(env)) {
-    return {
-      open: false,
-      reason: "locked_not_ready",
-      internal: false,
-      retryAfterSeconds: 300,
-    };
-  }
-
   return { open: true, reason: "open_launched", internal: false, retryAfterSeconds: 0 };
 }
