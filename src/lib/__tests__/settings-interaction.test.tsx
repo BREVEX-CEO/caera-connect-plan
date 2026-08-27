@@ -53,7 +53,7 @@ const NOT_A_PANEL: Record<string, string> = {
   SettingsShell:
     "The navigation chrome around the panels. Exercised by the route tests; mounting it here would audit the sidebar thirty times over.",
   PlanComparison:
-    "A pure presentational table rendered inside BillingPanel, which is audited here and mounts it.",
+    "A pure presentational table, mounted by the /pricing route and by settings/usage; both render it and are audited by their own route tests. Its purchase gate has a test of its own.",
   OfflineSection:
     "A two-line composition of OfflineStoragePanel and EngineImportPanel, both audited here individually.",
   PaymentTestModeBanner:

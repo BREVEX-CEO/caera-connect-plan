@@ -63,6 +63,24 @@ describe("nobody can be charged", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("does not even let the billing screen open while launch is free", () => {
+    /*
+     * A third gate, found while removing a dead billing panel: the route
+     * itself redirects away before any of its controls render. So the order is
+     * — the screen does not open, the button is not pressable, and the handler
+     * refuses. Any one of the three would do; all three is why this is safe to
+     * ship on a day nobody is watching.
+     */
+    const route = readFileSync(join(SRC, "routes/_authenticated/settings.billing.tsx"), "utf8");
+    expect(route).toMatch(/if \(FREE_LAUNCH_MODE\) throw redirect\(/);
+  });
+
+  it("refuses in the checkout hook itself, whoever calls it", () => {
+    const hook = readFileSync(join(SRC, "hooks/usePaddleCheckout.ts"), "utf8");
+    expect(hook).toMatch(/if \(!billingEnabled\(\)\) \{/);
+    expect(hook).toMatch(/Checkout is disabled and no payment was started/);
+  });
+
   it("puts the plan gate ahead of the button, not only inside the handler", () => {
     /*
      * Two gates were deliberate: one stops a purchase, the other stops the

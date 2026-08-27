@@ -284,13 +284,13 @@ describe("rendering scales to the device, and reduced motion always wins", () =>
 
 describe("the landing page keeps its promises to a keyboard and a screen reader", () => {
   const LANDING = readFileSync("src/components/landing/LandingUniverse.tsx", "utf8");
-  const CANVAS = readFileSync("src/components/landing/UniverseCanvas.tsx", "utf8");
+  const SCENE = readFileSync("src/components/landing/SolarSystem.tsx", "utf8");
   const PARTICLES = readFileSync("src/components/landing/ParticleLogoIntro.tsx", "utf8");
 
   it("hides the canvas from assistive technology and offers real buttons instead", () => {
     // A canvas that announces nothing adds noise, not access. The legend is
     // the accessible half and is why the canvas can be hidden.
-    expect(CANVAS).toMatch(/aria-hidden/);
+    expect(SCENE).toMatch(/setAttribute\("aria-hidden", "true"\)/);
     expect(LANDING).toMatch(/aria-describedby=\{`planet-benefit-\$\{planet\.id\}`\}/);
   });
 
@@ -338,11 +338,21 @@ describe("the landing page keeps its promises to a keyboard and a screen reader"
     expect(LANDING).not.toMatch(/tells you\s*\n?\s*plainly about the times it cannot/);
   });
 
-  it("does not swallow the scroll wheel", () => {
-    // A canvas that prevents default on wheel traps a visitor trying to read
-    // what is below it.
-    const wheelHandler = /onWheel=\{\(event\) => \{[\s\S]*?\}\}/.exec(CANVAS)?.[0] ?? "";
-    expect(wheelHandler).not.toMatch(/preventDefault/);
+  it("gives the wheel back to the page once it has no zoom left", () => {
+    /*
+     * RE-POINTED, AND THE RULE IS SHARPER THAN IT WAS.
+     *
+     * This read the old canvas the landing no longer renders, and asserted the
+     * blunt version: never prevent default. The live scene does better — it
+     * keeps the gesture only while the zoom is still using it, and hands the
+     * wheel back once pulled all the way out, so "scroll down to sign in" is
+     * obeyable while the hero still zooms.
+     */
+    expect(SCENE).toMatch(/const used = scene\.zoom\(event\.deltaY\);/);
+    expect(SCENE).toMatch(/if \(used !== DECLINED\) event\.preventDefault\(\);/);
+    // And it must be able to prevent default at all, which a passive listener
+    // cannot: a passive wheel listener makes the zoom silently non-functional.
+    expect(SCENE).toMatch(/addEventListener\("wheel", onWheel, \{ passive: false \}\)/);
   });
 
   it("offers a replay rather than repeating itself", () => {
