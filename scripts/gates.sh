@@ -67,6 +67,7 @@ for gate in "${GATES[@]}"; do
   fi
 
   log="$LOG_DIR/$name.log"
+  results="$LOG_DIR/results.txt"
   started=$SECONDS
   printf '\n========== %s (limit %ss) ==========\n' "$name" "$limit"
   # `timeout` sends TERM then KILL, so a wedged child cannot outlive its gate.
@@ -75,23 +76,33 @@ for gate in "${GATES[@]}"; do
   status=${PIPESTATUS[0]}
   took=$((SECONDS - started))
 
+  # RECORD THE VERDICT WHERE NOTHING CAN ERASE IT.
+  #
+  # Three gates start a server whose shutdown message ends with the terminal's
+  # erase-line escape, and that wiped the PASS line printed immediately after
+  # it. The exit codes were counted correctly and the transcript showed a gate
+  # that apparently produced no verdict at all — which reads exactly like a
+  # gate that died. Results now also go to a plain file that no escape sequence
+  # can rewrite.
   if ((status == 0)); then
-    printf 'PASS %s (%ss)\n' "$name" "$took"
+    verdict="PASS $name (${took}s)"
     passed+=("$name")
   elif ((status == 124 || status == 137)); then
     # 124 is timeout's own signal; 137 is the KILL that follows it.
-    printf 'TIMEOUT %s after %ss — see %s\n' "$name" "$took" "$log"
+    verdict="TIMEOUT $name after ${took}s — see $log"
     timedout+=("$name")
   else
-    printf 'FAIL %s (exit %s, %ss) — see %s\n' "$name" "$status" "$took" "$log"
+    verdict="FAIL $name (exit $status, ${took}s) — see $log"
     failed+=("$name")
   fi
+  printf '\n%s\n' "$verdict"
+  printf '%s\n' "$verdict" >>"$results"
 done
 
 printf '\n================ SUMMARY ================\n'
 printf 'passed:   %s\n' "${passed[*]:-none}"
 printf 'failed:   %s\n' "${failed[*]:-none}"
 printf 'timedout: %s\n' "${timedout[*]:-none}"
-printf 'logs in %s\n' "$LOG_DIR"
+printf 'logs in %s, verdicts in %s/results.txt\n' "$LOG_DIR" "$LOG_DIR"
 
 ((${#failed[@]} + ${#timedout[@]} == 0))
