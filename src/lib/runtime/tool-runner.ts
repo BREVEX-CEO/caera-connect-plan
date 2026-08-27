@@ -178,6 +178,8 @@ export function createToolRunner(options: ToolRunnerOptions): ToolRunner {
         outcome = await executeToolCall(call, {
           ...options.executeContext(),
           confirmed: decision.outcome === "ask" || tool?.risk === "high",
+          // So Stop takes effect DURING a call, not only between calls.
+          ...(signal ? { signal } : {}),
         });
       } catch (error) {
         outcome = {

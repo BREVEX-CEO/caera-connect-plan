@@ -27,9 +27,10 @@
       ]
     },
     "MERGED": {
-      "files": 203,
+      "files": 208,
       "meaning": "The donor logic won this area and was folded into the OCADE authority named.",
       "families": [
+        "Abort composition and cancellation",
         "Argument coercion at the tool boundary",
         "Bash parser, heredocs, quoting, destructive-command warnings",
         "Constants, shims and platform detection",
@@ -81,7 +82,7 @@
       ]
     },
     "REJECTED": {
-      "files": 1299,
+      "files": 1294,
       "meaning": "Not brought across. Every file carries the map's own reason.",
       "families": [
         "Analytics and telemetry sinks",
@@ -139,6 +140,15 @@
       "reason": "OCADE had a to-do board and no runtime task state at all. The donor's status machine, id scheme, pause accounting and stop error taxonomy now back Stop, Pause, Resume and Take over.",
       "files": 49,
       "portedModules": 4
+    },
+    {
+      "family": "Abort composition and cancellation",
+      "category": "MERGED",
+      "outcome": "Ported — closed a gap OCADE had",
+      "authority": "src/lib/runtime/execute.ts",
+      "reason": "Stop was checked between tool calls but not during one, so pressing it while a long screen read was in flight did nothing until that read finished by itself. The archive's signal composition now releases the person immediately and says plainly what may still be running on their computer.",
+      "files": 5,
+      "portedModules": 0
     },
     {
       "family": "Conversation recovery and resume repair",
@@ -380,7 +390,7 @@
       "outcome": "Case by case — mostly removed",
       "authority": "src/lib",
       "reason": "The donor's utility drawer: terminal drawing, its own file formats, its hosted API client, and small helpers OCADE already has. What was genuinely logic was ported into the families above; the remainder had no OCADE-side caller and was not brought across.",
-      "files": 380,
+      "files": 375,
       "portedModules": 7
     }
   ],
@@ -429,6 +439,9 @@
       "src/lib/runtime/permissions.ts"
     ],
     "src/primary-logic/protocol/modelProtocol.ts": [],
+    "src/primary-logic/query/abortSignals.ts": [
+      "src/lib/runtime/execute.ts"
+    ],
     "src/primary-logic/query/budgetText.ts": [
       "src/lib/runtime/use-ocade-runtime.ts"
     ],
@@ -473,8 +486,8 @@
   "totals": {
     "archiveFiles": 2126,
     "dispositioned": 2126,
-    "portedModules": 31,
-    "reachedModules": 31
+    "portedModules": 32,
+    "reachedModules": 32
   },
   "byAction": {
     "DEVOPS_MERGE": {
@@ -16167,8 +16180,8 @@
       "file": "src/utils/abortController.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Abort composition and cancellation",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,
@@ -16875,8 +16888,8 @@
       "file": "src/utils/cleanupRegistry.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Abort composition and cancellation",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,
@@ -16963,8 +16976,8 @@
       "file": "src/utils/combinedAbortSignal.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Abort composition and cancellation",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,
@@ -18096,8 +18109,8 @@
       "file": "src/utils/gracefulShutdown.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Abort composition and cancellation",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,
@@ -18448,8 +18461,8 @@
       "file": "src/utils/idleTimeout.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Abort composition and cancellation",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,

@@ -99,6 +99,15 @@ const FAMILIES = [
       "OCADE had a to-do board and no runtime task state at all. The donor's status machine, id scheme, pause accounting and stop error taxonomy now back Stop, Pause, Resume and Take over.",
   },
   {
+    family: "Abort composition and cancellation",
+    match: new RegExp("^src/utils/(combinedAbortSignal|abortController|idleTimeout|gracefulShutdown|cleanupRegistry)"),
+    category: "MERGED",
+    outcome: "Ported — closed a gap OCADE had",
+    authority: "src/lib/runtime/execute.ts",
+    reason:
+      "Stop was checked between tool calls but not during one, so pressing it while a long screen read was in flight did nothing until that read finished by itself. The archive's signal composition now releases the person immediately and says plainly what may still be running on their computer.",
+  },
+  {
     family: "Conversation recovery and resume repair",
     match: new RegExp("^src/utils/(conversationRecovery|messages|messagePredicates|crossProjectResume)"),
     category: "MERGED",
