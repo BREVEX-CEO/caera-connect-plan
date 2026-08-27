@@ -12,7 +12,7 @@ publish = false
 caera-companion-safety = { path = "../safety", features = ["serde"] }
 # OS CSPRNG for minting session keys host-side. The web page never chooses key
 # material, so a compromised page cannot pre-compute a valid MAC.
-getrandom = "0.2"
+getrandom = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Already in the lock file via tauri-plugin-updater; naming it directly costs no
