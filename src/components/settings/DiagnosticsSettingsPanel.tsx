@@ -8,6 +8,7 @@ import { useLocalEngine } from "@/lib/use-local-engine";
 import { useDevicePolicy } from "@/lib/use-device-policy";
 import { useOnline } from "@/lib/use-online";
 import { routeTask, PerfLedger } from "@/lib/local/router-policy";
+import { ErrorJournalPanel } from "./ErrorJournalPanel";
 
 /**
  * Advanced diagnostics.
@@ -57,6 +58,13 @@ export function DiagnosticsSettingsPanel() {
       />
 
       <div className="grid gap-5 pb-16">
+        {/*
+          FIRST, because it is what people arrive with. The routing receipt
+          below answers "why did it choose that engine"; this answers "what
+          went wrong yesterday", which is the question that brings somebody to
+          a diagnostics screen in the first place.
+        */}
+        <ErrorJournalPanel />
         <GlassPanel className="p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">

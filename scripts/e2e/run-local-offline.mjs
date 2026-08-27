@@ -12,6 +12,8 @@
  *   manifest          the installable manifest and its icons resolve
  *   tab ownership     three tabs elect ONE model owner, and another takes
  *                     over when it closes
+ *   diagnosis         a real unhandled rejection is findable afterwards on
+ *                     the diagnostics screen, with no secret surviving into it
  *   consent           the legal gate cannot be walked past
  *
  * WHAT IS NOT HERE, AND WHY. Downloading the real engine needs about a
@@ -35,6 +37,7 @@ const stages = [
   ["THE SERVICE WORKER SERVES OFFLINE", "scripts/e2e/sw-offline-probe.mjs"],
   ["THE INSTALLABLE MANIFEST RESOLVES", "scripts/e2e/manifest-probe.mjs"],
   ["THREE TABS, ONE MODEL OWNER", "scripts/e2e/multi-tab-ownership.mjs"],
+  ["A BROKEN PATH IS DIAGNOSABLE", "scripts/e2e/break-and-diagnose.mjs"],
   ["THE CONSENT GATE HOLDS", "scripts/e2e/legal-consent.mjs"],
   ["SIGNUP CANNOT SKIP CONSENT", "scripts/e2e/signup-consent.mjs"],
 ];
