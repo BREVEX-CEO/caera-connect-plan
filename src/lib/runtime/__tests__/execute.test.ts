@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { combineAbortSignals, raceAbort } from "@/primary-logic/query/abortSignals";
 
 const runBrowserToolViaExtension = vi.fn();
 const runControlActionFn = vi.fn();
@@ -97,5 +98,71 @@ describe("one executor, two destinations", () => {
     });
     const outcome = await executeToolCall(call("screen_observe"), { missionId: "m1" });
     expect(outcome).not.toHaveProperty("observation");
+  });
+});
+
+/**
+ * Stop, during a call rather than between calls.
+ *
+ * The loop checked the signal before and after each tool call, so pressing Stop
+ * while a long screen read was in flight did nothing until that read finished
+ * on its own — a wait of up to a couple of minutes, with a button that looked
+ * like it had been ignored.
+ */
+describe("stopping while a tool is running", () => {
+  it("releases the person immediately and says what was left running", async () => {
+    const controller = new AbortController();
+    const never = new Promise<never>(() => {});
+
+    const raced = raceAbort(never, controller.signal, () => "abandoned");
+    controller.abort();
+
+    expect(await raced).toBe("abandoned");
+  });
+
+  it("does not wait at all when it is already stopped", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    let started = false;
+    const work = (async () => {
+      started = true;
+      return "finished";
+    })();
+    expect(await raceAbort(work, controller.signal, () => "abandoned")).toBe("abandoned");
+    // The work was created by the caller either way; what matters is that the
+    // answer did not wait for it.
+    expect(started).toBe(true);
+  });
+
+  it("returns the real answer when nothing stopped it", async () => {
+    const controller = new AbortController();
+    expect(await raceAbort(Promise.resolve("finished"), controller.signal, () => "abandoned")).toBe(
+      "finished",
+    );
+  });
+
+  it("treats a failure as the abandoned case rather than throwing into the loop", async () => {
+    const controller = new AbortController();
+    const failing = Promise.reject(new Error("the companion went away"));
+    expect(await raceAbort(failing, controller.signal, () => "abandoned")).toBe("abandoned");
+  });
+
+  it("combines two reasons to stop into one signal, and unhooks itself", () => {
+    const user = new AbortController();
+    const run = new AbortController();
+    const combined = combineAbortSignals(user.signal, { other: run.signal });
+
+    expect(combined.signal.aborted).toBe(false);
+    run.abort();
+    expect(combined.signal.aborted).toBe(true);
+    // Cleanup after the fact must not throw; it is called in a finally.
+    expect(() => combined.cleanup()).not.toThrow();
+  });
+
+  it("reports an already-stopped signal without arming a deadline", () => {
+    const already = new AbortController();
+    already.abort();
+    const combined = combineAbortSignals(already.signal, { timeoutMs: 60_000 });
+    expect(combined.signal.aborted).toBe(true);
   });
 });

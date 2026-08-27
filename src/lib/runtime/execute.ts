@@ -28,9 +28,20 @@ import { runControlActionFn } from "@/lib/control-work.functions";
 import { findTool } from "@/lib/agent/tool-registry";
 import type { ToolOutcome } from "@/lib/agent/outcomes";
 import type { ToolCallLike } from "./permissions";
+import { raceAbort } from "@/primary-logic/query/abortSignals";
 import { isTaskTool, runTaskTool } from "@/lib/tasks/task-tools";
 
 export interface ExecuteContext {
+  /**
+   * The run's stop signal, when the caller has one.
+   *
+   * Without it, "Stop" only took effect BETWEEN tool calls: a person who
+   * pressed it during a long screen read watched the spinner until that read
+   * finished on its own. The call itself cannot always be recalled — a request
+   * already with the companion is with the companion — but the person waiting
+   * is released immediately and told the truth about what was left running.
+   */
+  signal?: AbortSignal;
   /**
    * The live control session on this device, when there is one.
    *
@@ -87,14 +98,26 @@ export async function executeToolCall(
     };
   }
 
-  const result = await runControlActionFn({
-    data: {
-      missionId: context.missionId,
-      tool: call.name,
-      args: (call.arguments ?? {}) as Record<string, unknown>,
-      confirmed: context.confirmed === true,
-    },
-  });
+  const result = await raceAbort(
+    runControlActionFn({
+      data: {
+        missionId: context.missionId,
+        tool: call.name,
+        args: (call.arguments ?? {}) as Record<string, unknown>,
+        confirmed: context.confirmed === true,
+      },
+    }),
+    context.signal,
+    () => ({
+      ok: false,
+      kind: "cancelled" as const,
+      detail:
+        "You stopped this. If the action had already started on your computer it may have finished there.",
+      verified: undefined,
+      observation: null,
+      elapsedMs: undefined,
+    }),
+  );
 
   /*
    * The server function answers in its own shape, which carries an `ok` the

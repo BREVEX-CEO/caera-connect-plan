@@ -1,1 +1,0 @@
-(function(){let e=()=>{throw Error(`OCADE WebLLM is available only inside a user's browser.`)},t=new class{constructor(){e()}};self.onmessage=e=>{t.onmessage(e)}})();

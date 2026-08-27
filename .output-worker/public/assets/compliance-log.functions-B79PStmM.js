@@ -1,1 +1,0 @@
-import{Pr as e,Tr as t}from"./index-CPNFD7rA.js";import{t as n}from"./auth-middleware-HKwZBzfs.js";var r=t({method:`POST`}).middleware([n]).handler(e(`55893207ac96e264df7065d1ac9d876b96101e5f05cabbe7dbe52e13808ee8cd`));export{r as writeComplianceLog};

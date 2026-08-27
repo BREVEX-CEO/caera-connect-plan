@@ -1,1 +1,0 @@
-import{o as e}from"./rolldown-runtime-DAXXjFlN.js";import{i as t}from"./vendor-react-CX2mWblQ.js";var n=e(t(),1),r=(0,n.createContext)({canEdit:!1,reason:`Sign in to change this setting.`});function i(){return(0,n.useContext)(r)}export{i as n,r as t};

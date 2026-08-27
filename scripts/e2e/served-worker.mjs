@@ -153,89 +153,123 @@ export async function startServedWorker({
     no_proxy: "127.0.0.1,localhost,::1",
   };
 
-  const server = spawnTracked(
-    npmExecPath ? process.execPath : "npx",
-    npmExecPath
-      ? [
-          npmExecPath,
-          "exec",
-          "--",
-          "wrangler",
-          "dev",
-          "--config",
-          `${outDir}/server/wrangler.json`,
-          "--ip",
-          "127.0.0.1",
-          "--port",
-          String(port),
-          "--local",
-          // THE LAUNCH GATE IS REAL, AND IT IS WHY THIS FLAG IS HERE.
-          //
-          // The first run of this harness came back with every public path
-          // serving the pre-launch holding page, because launch is still in the
-          // future and the worker gate does exactly what it was built to do.
-          // That is the product being correct, not the harness being broken --
-          // and `OCADE_LAUNCH_PREVIEW` is the switch the gate already provides
-          // for looking at the app before the window opens. Wrangler does not
-          // pass the shell environment through to the worker, so it is given
-          // here, explicitly, for this harness only.
-          "--var",
-          "OCADE_LAUNCH_PREVIEW:true",
-          // The worker reads Supabase from its own bindings, not from the
-          // shell. The VITE_* pair is inlined at build time and the server pair
-          // is not, which is why the first run of this harness came back with
-          // "Missing Supabase environment variable(s)" from inside workerd.
-          "--var",
-          `SUPABASE_URL:${supabase.url}`,
-          "--var",
-          "SUPABASE_PUBLISHABLE_KEY:sb_publishable_ocade_local_audit_key",
-        ]
-      : [
-          "wrangler",
-          "dev",
-          "--config",
-          `${outDir}/server/wrangler.json`,
-          "--ip",
-          "127.0.0.1",
-          "--port",
-          String(port),
-          "--local",
-          "--var",
-          "OCADE_LAUNCH_PREVIEW:true",
-          // The worker reads Supabase from its own bindings, not from the
-          // shell. The VITE_* pair is inlined at build time and the server pair
-          // is not, which is why the first run of this harness came back with
-          // "Missing Supabase environment variable(s)" from inside workerd.
-          "--var",
-          `SUPABASE_URL:${supabase.url}`,
-          "--var",
-          "SUPABASE_PUBLISHABLE_KEY:sb_publishable_ocade_local_audit_key",
-        ],
-    workerEnv,
-  );
-  server.stderr.on("data", (d) => process.stderr.write(String(d)));
-  server.on("exit", (code) => {
-    if (stopping) return;
-    serverDied = true;
-    console.error(`\nTHE WORKER EXITED (code ${code}) — failures after this are not the product.`);
-  });
-
-  let ready = false;
-  for (let i = 0; i < 90 && !ready; i += 1) {
-    await sleep(1000);
-    try {
-      const response = await fetch(base, { signal: AbortSignal.timeout(3000) });
-      ready = response.ok;
-    } catch {
-      /* not up yet */
+  /**
+   * Start (or restart) the worker.
+   *
+   * Restartable because `wrangler dev` dies on a broken pipe — a client that
+   * disconnects mid-response, which is ordinary traffic when a browser
+   * navigates away. workerd raises it, wrangler's proxy controller treats it as
+   * fatal, and the process exits. Nothing about the WORKER is wrong when that
+   * happens, so a harness that reports it as a product failure is a harness
+   * that lies. It is restarted instead, once per stage, and the stage is run
+   * again.
+   */
+  let server = null;
+  const startWorker = () => {
+    server = spawnTracked(
+      npmExecPath ? process.execPath : "npx",
+      npmExecPath
+        ? [
+            npmExecPath,
+            "exec",
+            "--",
+            "wrangler",
+            "dev",
+            "--config",
+            `${outDir}/server/wrangler.json`,
+            "--ip",
+            "127.0.0.1",
+            "--port",
+            String(port),
+            "--local",
+            // THE LAUNCH GATE IS REAL, AND IT IS WHY THIS FLAG IS HERE.
+            //
+            // The first run of this harness came back with every public path
+            // serving the pre-launch holding page, because launch is still in the
+            // future and the worker gate does exactly what it was built to do.
+            // That is the product being correct, not the harness being broken --
+            // and `OCADE_LAUNCH_PREVIEW` is the switch the gate already provides
+            // for looking at the app before the window opens. Wrangler does not
+            // pass the shell environment through to the worker, so it is given
+            // here, explicitly, for this harness only.
+            "--var",
+            "OCADE_LAUNCH_PREVIEW:true",
+            // The worker reads Supabase from its own bindings, not from the
+            // shell. The VITE_* pair is inlined at build time and the server pair
+            // is not, which is why the first run of this harness came back with
+            // "Missing Supabase environment variable(s)" from inside workerd.
+            "--var",
+            `SUPABASE_URL:${supabase.url}`,
+            "--var",
+            "SUPABASE_PUBLISHABLE_KEY:sb_publishable_ocade_local_audit_key",
+          ]
+        : [
+            "wrangler",
+            "dev",
+            "--config",
+            `${outDir}/server/wrangler.json`,
+            "--ip",
+            "127.0.0.1",
+            "--port",
+            String(port),
+            "--local",
+            "--var",
+            "OCADE_LAUNCH_PREVIEW:true",
+            // The worker reads Supabase from its own bindings, not from the
+            // shell. The VITE_* pair is inlined at build time and the server pair
+            // is not, which is why the first run of this harness came back with
+            // "Missing Supabase environment variable(s)" from inside workerd.
+            "--var",
+            `SUPABASE_URL:${supabase.url}`,
+            "--var",
+            "SUPABASE_PUBLISHABLE_KEY:sb_publishable_ocade_local_audit_key",
+          ],
+      workerEnv,
+    );
+    server.stderr.on("data", (d) => process.stderr.write(String(d)));
+    server.on("exit", (code) => {
+      if (stopping) return;
+      serverDied = true;
+      console.error(
+        `\nTHE WORKER EXITED (code ${code}) — failures after this are not the product.`,
+      );
+    });
+  };
+  const waitUntilServing = async () => {
+    for (let i = 0; i < 90; i += 1) {
+      await sleep(1000);
+      try {
+        const response = await fetch(base, { signal: AbortSignal.timeout(3000) });
+        if (response.ok) return true;
+      } catch {
+        /* not up yet */
+      }
     }
-  }
-  if (!ready) {
+    return false;
+  };
+
+  startWorker();
+  if (!(await waitUntilServing())) {
     stopAll();
     await supabase.close?.();
     throw new Error(`the worker never answered on ${base}`);
   }
   console.log(`worker serving on ${base}\n`);
+
+  /** Bring the worker back after wrangler has fallen over. */
+  const restartWorker = async () => {
+    console.log("\nthe worker died on a client disconnect — restarting it");
+    try {
+      if (server?.pid) process.kill(-server.pid, "SIGKILL");
+    } catch {
+      /* already gone */
+    }
+    serverDied = false;
+    startWorker();
+    const back = await waitUntilServing();
+    if (!back) console.error("the worker did not come back");
+    return back;
+  };
 
   return {
     base,
@@ -243,6 +277,7 @@ export async function startServedWorker({
     get serverDied() {
       return serverDied;
     },
+    restart: restartWorker,
     async stop() {
       stopAll();
       await supabase.close?.();

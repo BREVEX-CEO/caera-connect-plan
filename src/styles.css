@@ -5,6 +5,54 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
+ * TYPOGRAPHY, SELF-HOSTED, BECAUSE THE PRODUCT HAS TO WORK WITH NO NETWORK.
+ *
+ * The design references name Inter for text and Instrument Serif for display,
+ * and reach them through Google Fonts. OCADE does not: a font request to a
+ * third party is a request the offline product cannot make, a host the app's
+ * own Content-Security-Policy does not allow, and a record of every visitor
+ * held by somebody else. The same two families are served from this origin
+ * instead — latin subsets only, 91 KB for all three files — so they render on
+ * a plane and leave no trace anywhere.
+ *
+ * `swap` on purpose: text appears immediately in the fallback and is replaced
+ * when the face arrives. A blank page waiting on a font is a worse first
+ * impression than a moment of the wrong one.
+ */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("/fonts/inter-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Instrument Serif";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/instrument-serif-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Instrument Serif";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/instrument-serif-italic-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/*
  * CARCC CADANE design system: BLACK, SILVER, AUBERGINE, GOLD.
  *
  * Black occupies the field, silver carries content, gold identifies an action
@@ -25,6 +73,25 @@
  */
 
 @theme inline {
+  /*
+   * Every stack ends in system fonts, so a face that fails to load — a blocked
+   * request, a full cache, a browser that refuses woff2 — degrades to
+   * something readable rather than to a default nobody chose.
+   */
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    sans-serif;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
+  /*
+   * And make it the page's default, not merely an available utility.
+   *
+   * Tailwind's base layer sets `html { font-family: var(--default-font-family, …) }`.
+   * Declaring `--font-sans` alone only creates the `font-sans` class, so the
+   * document itself carried on rendering in the system stack and the typeface
+   * appeared exactly where somebody had remembered to ask for it.
+   */
+  --default-font-family: var(--font-sans);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

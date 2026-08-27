@@ -29,6 +29,7 @@
  */
 
 import type { QueryMessage } from './deps.js'
+import { analyseTranscript } from './contextAnalysis.js'
 
 /** What replaces a cleared body. Deliberately says what happened. */
 export const CLEARED_MARKER = '[Earlier tool output cleared to save room.]'
@@ -81,7 +82,18 @@ export function microCompact(
     if (isToolResult(message)) resultIndexes.push(index)
   })
 
-  const clearable = resultIndexes.slice(0, Math.max(0, resultIndexes.length - keepIntact))
+  /*
+   * SUPERSEDED COPIES GO FIRST, WHATEVER THEIR AGE.
+   *
+   * The same file read three times is three copies of one fact, and only the
+   * last is worth anything. Clearing the earlier ones costs nothing at all --
+   * unlike clearing an old unique observation, which costs a little. So they
+   * are cleared even when they fall inside the recent window that age alone
+   * would protect.
+   */
+  const superseded = new Set(analyseTranscript(messages).supersededResults)
+  const byAge = resultIndexes.slice(0, Math.max(0, resultIndexes.length - keepIntact))
+  const clearable = [...new Set([...superseded, ...byAge])].sort((a, b) => a - b)
   if (clearable.length === 0) return null
 
   const toClear = new Set(
