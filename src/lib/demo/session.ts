@@ -14,6 +14,15 @@
  * user never spent. Every read recomputes from `Date.now()`, so closing the lid
  * for an hour ends the session, which is the truthful outcome.
  *
+ * AN ABSOLUTE DEADLINE IS ONLY HONEST IN ONE DIRECTION. Reading `Date.now()`
+ * means a clock moved FORWARD ends the session, which is right — a laptop that
+ * slept for an hour really did spend that hour. It also means a clock moved
+ * BACKWARD extends it, and unlike sleeping, that is something a person can do
+ * on purpose: set the system clock back twenty minutes and the demo restarts
+ * itself, indefinitely, for free. `observeNow` closes that by remembering the
+ * furthest forward this browser has ever seen the clock and refusing to accept
+ * anything earlier. Time can still pass; it can no longer un-pass.
+ *
  * Pure and injectable: `now` is a parameter everywhere, so expiry, the warning
  * threshold and the boundary between them are all reachable from a test without
  * waiting 28 minutes.
@@ -42,6 +51,8 @@ export const DEMO_WARNING_MS = 3 * 60 * 1000;
 
 const STORAGE_KEY = "caera:demo:session:v2";
 const NEXT_ELIGIBLE_KEY = "caera:demo:next-eligible:v1";
+/** The furthest forward this browser has ever seen the clock. */
+const HIGH_WATER_KEY = "caera:demo:seen-at:v1";
 
 export type DemoPhase =
   /** No session has been started in this browser. */
@@ -89,6 +100,46 @@ export function readNextEligibleAt(storage?: Pick<Storage, "getItem">): number |
   } catch {
     return null;
   }
+}
+
+/**
+ * The current time, as far as this browser is willing to believe it.
+ *
+ * Returns the greater of the clock and the highest value previously seen, and
+ * records the result. So:
+ *
+ *   - Ordinary use: `now` always advances, the high-water mark follows it, and
+ *     this returns `now`. No behaviour changes at all.
+ *   - Clock set backwards: `now` is below the mark, the mark is returned, and
+ *     the deadline the session was given still arrives on time.
+ *   - Clock set forwards: accepted, and permanently. That is the same outcome
+ *     as leaving the laptop shut, which is the truthful one — and a visitor
+ *     who jumps their clock forward to skip the demo has only ended it sooner.
+ *
+ * With no durable storage there is nothing to compare against, so the clock is
+ * used as given. That case already fails closed in `startSession`, which
+ * refuses to begin a session it cannot bound.
+ */
+export function observeNow(now: number, storage?: Pick<Storage, "getItem" | "setItem">): number {
+  const store = storage ?? safeLocal();
+  if (!store) return now;
+  let seen = 0;
+  try {
+    const raw = store.getItem(HIGH_WATER_KEY);
+    const value = Number(raw);
+    if (Number.isFinite(value) && value > 0) seen = value;
+  } catch {
+    return now;
+  }
+  const effective = Math.max(now, seen);
+  if (effective > seen) {
+    try {
+      store.setItem(HIGH_WATER_KEY, String(effective));
+    } catch {
+      /* Nothing to remember with. The clock is used as given. */
+    }
+  }
+  return effective;
 }
 
 /**

@@ -3291,6 +3291,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          demo_consumed_at: string | null
           avatar_url: string | null
           country: string | null
           created_at: string
@@ -3310,6 +3311,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          demo_consumed_at?: string | null
           avatar_url?: string | null
           country?: string | null
           created_at?: string
@@ -3329,6 +3331,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          demo_consumed_at?: string | null
           avatar_url?: string | null
           country?: string | null
           created_at?: string

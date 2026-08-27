@@ -21,6 +21,7 @@ import {
   formatResetRemaining,
   formatRemaining,
   warningMessage,
+  observeNow,
 } from "../demo/session";
 
 /* ------------------------------------------------------------------ pricing */
@@ -268,5 +269,91 @@ describe("the 28-minute demo session", () => {
     expect(formatResetRemaining(T0 + DEMO_RESET_MS, T0)).toBe("28 hours");
     expect(formatResetRemaining(T0 + 65 * 60_000, T0)).toBe("1 hour 5 minutes");
     expect(formatResetRemaining(T0, T0)).toBe("now");
+  });
+});
+
+/*
+ * WINDING THE CLOCK BACK IS THE ONE ATTACK A WALL-CLOCK DEADLINE INVITES.
+ *
+ * Reading `Date.now()` makes a clock moved FORWARD end the session, which is
+ * right — a laptop that slept for an hour really did spend it. It also makes a
+ * clock moved BACKWARD extend the session, and unlike sleeping that is
+ * something somebody can do on purpose: set the system clock back twenty
+ * minutes, reload, and the demo restarts itself for free, indefinitely.
+ */
+describe("a clock that moves backwards", () => {
+  function memoryStorage() {
+    const map = new Map<string, string>();
+    return {
+      getItem: (k: string) => map.get(k) ?? null,
+      setItem: (k: string, v: string) => void map.set(k, v),
+      removeItem: (k: string) => void map.delete(k),
+    };
+  }
+
+  it("passes an honest clock straight through", () => {
+    const store = memoryStorage();
+    expect(observeNow(1_000, store)).toBe(1_000);
+    expect(observeNow(2_000, store)).toBe(2_000);
+    expect(observeNow(3_000, store)).toBe(3_000);
+  });
+
+  it("refuses to un-spend time already seen", () => {
+    const store = memoryStorage();
+    observeNow(10_000_000, store);
+    // The visitor sets their clock back twenty minutes.
+    expect(observeNow(10_000_000 - 20 * 60_000, store)).toBe(10_000_000);
+  });
+
+  it("does not hand back a fresh session when the clock is rewound", () => {
+    const store = memoryStorage();
+    const start = 1_800_000_000_000;
+    const deadline = startSession(observeNow(start, store), store)!;
+    expect(deadline).toBe(start + DEMO_SESSION_MS);
+
+    // Twenty-seven minutes in, still running.
+    const nearEnd = start + 27 * 60_000;
+    expect(sessionState(deadline, observeNow(nearEnd, store)).phase).toBe("ending");
+
+    // Now wind the clock back to the very beginning and read again.
+    const rewound = observeNow(start, store);
+    expect(rewound).toBe(nearEnd);
+    expect(sessionState(deadline, rewound).phase).toBe("ending");
+
+    // And past the deadline it is over, however far back the clock is set.
+    observeNow(start + DEMO_SESSION_MS + 1, store);
+    expect(sessionState(deadline, observeNow(start, store)).phase).toBe("expired");
+  });
+
+  it("still refuses a second demo inside the reset window after a rewind", () => {
+    const store = memoryStorage();
+    const start = 1_800_000_000_000;
+    startSession(observeNow(start, store), store);
+    observeNow(start + DEMO_SESSION_MS + 1, store);
+    endSession(store);
+    // Clock wound back to before the first demo even started.
+    expect(startSession(observeNow(start - 60_000, store), store)).toBeNull();
+  });
+
+  it("accepts a clock jumped forward, which only ends the demo sooner", () => {
+    const store = memoryStorage();
+    const start = 1_800_000_000_000;
+    const deadline = startSession(observeNow(start, store), store)!;
+    const jumped = observeNow(start + 60 * 60_000, store);
+    expect(jumped).toBe(start + 60 * 60_000);
+    expect(sessionState(deadline, jumped).phase).toBe("expired");
+  });
+
+  it("uses the clock as given when there is nothing durable to compare against", () => {
+    // startSession already fails closed in this case; observeNow must not throw.
+    const hostile = {
+      getItem: () => {
+        throw new Error("private browsing");
+      },
+      setItem: () => {
+        throw new Error("private browsing");
+      },
+    };
+    expect(observeNow(5_000, hostile)).toBe(5_000);
   });
 });

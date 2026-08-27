@@ -6,6 +6,7 @@ import {
   readNextEligibleAt,
   sessionState,
   startSession,
+  observeNow,
   type DemoSessionState,
 } from "./session";
 
@@ -32,7 +33,7 @@ export function useDemoSession(options: {
 }): { session: DemoSessionState; blockedUntil: number | null; end: () => void } {
   const { autoStart, onWarn, onExpire, onBlocked } = options;
   const [session, setSession] = useState<DemoSessionState>(() =>
-    sessionState(typeof window === "undefined" ? null : readDeadline(), Date.now()),
+    sessionState(typeof window === "undefined" ? null : readDeadline(), observeNow(Date.now())),
   );
   const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
   const warnedRef = useRef(false);
@@ -49,9 +50,9 @@ export function useDemoSession(options: {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const deadline = autoStart ? startSession(Date.now()) : readDeadline();
+    const deadline = autoStart ? startSession(observeNow(Date.now())) : readDeadline();
     if (deadline === null) {
-      setSession(sessionState(null, Date.now()));
+      setSession(sessionState(null, observeNow(Date.now())));
       const nextEligibleAt = readNextEligibleAt();
       setBlockedUntil(nextEligibleAt);
       if (autoStart) blockedRef.current?.(nextEligibleAt);
@@ -62,7 +63,7 @@ export function useDemoSession(options: {
     let timer: ReturnType<typeof setTimeout>;
 
     const tick = () => {
-      const next = sessionState(deadline, Date.now());
+      const next = sessionState(deadline, observeNow(Date.now()));
       setSession(next);
 
       if (next.phase === "ending" && !warnedRef.current) {
@@ -90,7 +91,7 @@ export function useDemoSession(options: {
   const end = useCallback(() => {
     expiredRef.current = true;
     endSession();
-    setSession(sessionState(null, Date.now()));
+    setSession(sessionState(null, observeNow(Date.now())));
   }, []);
 
   return { session, blockedUntil, end };
