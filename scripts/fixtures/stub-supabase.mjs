@@ -22,7 +22,73 @@ import { randomUUID, createHash } from "node:crypto";
 const USER_ID = "00000000-0000-4000-8000-000000000001";
 const EMAIL = "audit@ocade.test";
 
-function makeToken(userId) {
+/*
+ * ONE ACCOUNT PER ADDRESS, NOT ONE ACCOUNT FULL STOP.
+ *
+ * This server used to answer every sign-in with the same user id and the same
+ * seeded rows, whatever address was typed. That is fine for auditing one
+ * screen and quietly wrong for auditing a journey: the second run of any
+ * end-to-end script signed in as the FIRST run's user, inherited whatever it
+ * left behind, and — because that user's profile already said onboarding was
+ * finished — skipped straight past onboarding. A signup proof silently became
+ * a sign-in proof, and it looked like a pass.
+ *
+ * The id is derived from the address rather than random so the same address
+ * is the same account across a restart, which is what a person signing back in
+ * expects. Any address that is not the original audit account gets its own
+ * blank tables, seeded exactly as a new signup would be.
+ */
+function idForEmail(address) {
+  if (!address || address === EMAIL) return USER_ID;
+  const digest = createHash("sha256").update(address.toLowerCase()).digest("hex");
+  // Shaped as a v4 UUID so anything that validates the format keeps working.
+  return [
+    digest.slice(0, 8),
+    digest.slice(8, 12),
+    `4${digest.slice(13, 16)}`,
+    `8${digest.slice(17, 20)}`,
+    digest.slice(20, 32),
+  ].join("-");
+}
+
+/** The address on the request, from the body or from `?email=`. */
+function emailFrom(body, url) {
+  try {
+    const parsed = JSON.parse(body || "{}");
+    if (typeof parsed.email === "string" && parsed.email) return parsed.email;
+  } catch {
+    /* Not JSON — fall through to the query string. */
+  }
+  return url.searchParams.get("email") ?? EMAIL;
+}
+
+/**
+ * Who the bearer token says this is.
+ *
+ * `GET /auth/v1/user` carries no body and no query — the caller is identified
+ * ENTIRELY by the token, which is how the server-rendered half of the app asks
+ * "who am I" before deciding whether to send someone to onboarding. Falling
+ * back to the default address there answered every such question as the
+ * original audit account, so the route gate read one user's profile while the
+ * page wrote another's, and onboarding could never complete: the app set
+ * `onboarding_completed` on the real account and the gate kept checking a
+ * different one.
+ */
+function identityFromToken(req) {
+  const header = String(req.headers.authorization ?? "");
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  const payload = token.split(".")[1];
+  if (!payload) return null;
+  try {
+    const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    if (typeof claims.sub !== "string" || !claims.sub) return null;
+    return { id: claims.sub, email: typeof claims.email === "string" ? claims.email : EMAIL };
+  } catch {
+    return null;
+  }
+}
+
+function makeToken(userId, address = EMAIL) {
   // Shaped like a JWT so anything that splits on "." keeps working. Not signed,
   // and nothing here verifies it: this server trusts its own sandbox.
   const header = Buffer.from(JSON.stringify({ alg: "none", typ: "JWT" })).toString("base64url");
@@ -30,20 +96,20 @@ function makeToken(userId) {
     JSON.stringify({
       sub: userId,
       role: "authenticated",
-      email: EMAIL,
+      email: address,
       exp: Math.floor(Date.now() / 1000) + 3600,
     }),
   ).toString("base64url");
   return `${header}.${body}.${createHash("sha256").update(userId).digest("base64url")}`;
 }
 
-function user(id = USER_ID) {
+function user(id = USER_ID, address = EMAIL) {
   const now = new Date().toISOString();
   return {
     id,
     aud: "authenticated",
     role: "authenticated",
-    email: EMAIL,
+    email: address,
     email_confirmed_at: now,
     phone: "",
     confirmed_at: now,
@@ -56,25 +122,54 @@ function user(id = USER_ID) {
   };
 }
 
-function session(id = USER_ID) {
+function session(id = USER_ID, address = EMAIL) {
   return {
-    access_token: makeToken(id),
+    access_token: makeToken(id, address),
     token_type: "bearer",
     expires_in: 3600,
     expires_at: Math.floor(Date.now() / 1000) + 3600,
     refresh_token: randomUUID(),
-    user: user(id),
+    user: user(id, address),
   };
 }
 
-/** table -> array of rows. Seeded with the row a new account would have. */
+/** table -> array of rows. Seeded with the rows a new account would have. */
 function freshTables() {
-  return {
-    user_settings: [{ user_id: USER_ID, created_at: new Date().toISOString() }],
-    profiles: [{ id: USER_ID, display_name: "Audit Tester", email: EMAIL, phone: null }],
-    user_roles: [{ user_id: USER_ID, role: "user" }],
-  };
+  return seedAccount({}, USER_ID, EMAIL);
 }
+
+/**
+ * Add the rows Supabase's own signup trigger would have created.
+ *
+ * Deliberately does NOT set `onboarding_completed`: a new account has not
+ * onboarded, and the app's gate reads exactly that column to decide.
+ */
+function seedAccount(tables, id, address) {
+  (tables.user_settings ??= []).push({ user_id: id, created_at: new Date().toISOString() });
+  (tables.profiles ??= []).push({
+    id,
+    display_name: address === EMAIL ? "Audit Tester" : address.split("@")[0],
+    email: address,
+    phone: null,
+  });
+  (tables.user_roles ??= []).push({ user_id: id, role: "user" });
+  return tables;
+}
+
+/**
+ * Columns the real schema defaults and this server otherwise would not.
+ *
+ * PostgREST inserts get whatever `DEFAULT` the column declares; an in-memory
+ * array gets `undefined`. That difference is invisible until some code reads
+ * the column and rejects a non-number — which is how unlocking the vault came
+ * to fail here with "The vault lock timeout is invalid" while working against
+ * real PostgreSQL. Anything with a NOT NULL DEFAULT that code actually reads
+ * belongs in this table.
+ */
+const COLUMN_DEFAULTS = {
+  // supabase/migrations/…_0b16767c: NOT NULL DEFAULT 900 CHECK (60..86400)
+  vault_config: { lock_timeout_seconds: 900 },
+};
 
 /** `user_id=eq.<uuid>` and friends. Only the operators the client sends. */
 function matches(row, params) {
@@ -142,9 +237,22 @@ export function startStubSupabase({ port = 0 } = {}) {
     if (req.method === "OPTIONS") return send(204);
 
     /* ---------------------------------------------------------- auth ---- */
-    if (url.pathname === "/auth/v1/token") return send(200, session());
-    if (url.pathname === "/auth/v1/signup") return send(200, session());
-    if (url.pathname === "/auth/v1/user") return send(200, user());
+    if (
+      url.pathname === "/auth/v1/token" ||
+      url.pathname === "/auth/v1/signup" ||
+      url.pathname === "/auth/v1/user"
+    ) {
+      // A bearer token wins: it is the only thing `GET /auth/v1/user` carries.
+      const identity = identityFromToken(req);
+      const address = identity?.email ?? emailFrom(body, url);
+      const id = identity?.id ?? idForEmail(address);
+      // First sight of an address is its signup, whichever endpoint reached us.
+      if (!(tables.profiles ?? []).some((row) => String(row.id) === id)) {
+        seedAccount(tables, id, address);
+      }
+      if (url.pathname === "/auth/v1/user") return send(200, user(id, address));
+      return send(200, session(id, address));
+    }
     if (url.pathname === "/auth/v1/logout") return send(204);
     if (url.pathname === "/auth/v1/settings")
       return send(200, {
@@ -193,6 +301,7 @@ export function startStubSupabase({ port = 0 } = {}) {
             const row = {
               id: item.id ?? randomUUID(),
               created_at: new Date().toISOString(),
+              ...COLUMN_DEFAULTS[name],
               ...item,
             };
             rows.push(row);

@@ -1,0 +1,205 @@
+//#region node_modules/.nitro/vite/services/ssr/assets/generated-sandbox-Baqi4BRc.js
+var HARD_LIMITS = {
+	wallTimeMs: 12e4,
+	cpuTimeMs: 12e4,
+	memoryMb: 512,
+	storageBytes: 5e7,
+	outputBytes: 2e6
+};
+var SECRET_LABEL = "[REDACTED]";
+function normalizeRelativePath(value) {
+	const path = value.trim().replace(/\\/g, "/");
+	if (!path || path.includes("\0") || path.startsWith("/") || path.startsWith("//") || /^[A-Za-z]:\//.test(path)) return null;
+	const parts = path.split("/").filter((part) => part !== "" && part !== ".");
+	if (parts.length === 0 || parts.some((part) => part === "..")) return null;
+	return parts.join("/");
+}
+function redact(value, sensitiveValues = []) {
+	return sensitiveValues.filter((secret) => secret.length >= 4).sort((left, right) => right.length - left.length).reduce((text, secret) => text.split(secret).join(SECRET_LABEL), value);
+}
+function importedModules(language, script) {
+	const modules = /* @__PURE__ */ new Set();
+	const patterns = language === "python" ? [/^\s*import\s+([A-Za-z0-9_., ]+)/gm, /^\s*from\s+([A-Za-z0-9_.]+)\s+import\s+/gm] : [
+		/\bimport\s+(?:[^"'`]+?\s+from\s+)?["']([^"']+)["']/g,
+		/\brequire\s*\(\s*["']([^"']+)["']\s*\)/g,
+		/\bimport\s*\(\s*["']([^"']+)["']\s*\)/g
+	];
+	for (const pattern of patterns) for (const match of script.matchAll(pattern)) for (const value of match[1].split(",").map((item) => item.trim().split(/[ .]/)[0])) if (value) modules.add(value);
+	return [...modules].sort();
+}
+function validateGeneratedSandboxRequest(request) {
+	if (!request.taskId.trim()) return {
+		ok: false,
+		reason: "A sandbox run needs a task id."
+	};
+	if (!request.script.trim()) return {
+		ok: false,
+		reason: "A sandbox run needs source code."
+	};
+	if (request.script.length > 1e6) return {
+		ok: false,
+		reason: "Generated source exceeds the 1,000,000-character limit."
+	};
+	if (request.network === "approved" && !request.approvalId?.trim()) return {
+		ok: false,
+		reason: "Network access needs an explicit approval id."
+	};
+	if (request.network !== "disabled" && request.network !== "approved") return {
+		ok: false,
+		reason: "The network policy is invalid."
+	};
+	for (const key of Object.keys(HARD_LIMITS)) {
+		const value = request.limits[key];
+		if (!Number.isInteger(value) || value <= 0 || value > HARD_LIMITS[key]) return {
+			ok: false,
+			reason: `${key} must be a positive integer no greater than ${HARD_LIMITS[key]}.`
+		};
+	}
+	if (request.limits.cpuTimeMs > request.limits.wallTimeMs) return {
+		ok: false,
+		reason: "CPU time cannot exceed the wall-time budget."
+	};
+	if (request.limits.outputBytes > request.limits.storageBytes) return {
+		ok: false,
+		reason: "Output bytes cannot exceed sandbox storage."
+	};
+	const seen = /* @__PURE__ */ new Set();
+	for (const entry of [...request.inputs, ...request.outputs]) {
+		const path = normalizeRelativePath(entry.path);
+		if (!path) return {
+			ok: false,
+			reason: `Sandbox path ${JSON.stringify(entry.path)} escapes its scope.`
+		};
+		if (seen.has(path)) return {
+			ok: false,
+			reason: `Sandbox path ${path} is declared more than once.`
+		};
+		seen.add(path);
+	}
+	for (const output of request.outputs) {
+		if (!Number.isInteger(output.maxBytes) || output.maxBytes <= 0 || output.maxBytes > request.limits.outputBytes) return {
+			ok: false,
+			reason: `${output.path} has an invalid output size limit.`
+		};
+		if (!output.mediaType.trim()) return {
+			ok: false,
+			reason: `${output.path} needs an expected media type.`
+		};
+	}
+	const allowed = new Set(request.allowedImports.map((item) => item.trim()).filter(Boolean));
+	const denied = importedModules(request.language, request.script).filter((item) => !allowed.has(item));
+	if (denied.length > 0) return {
+		ok: false,
+		reason: `Generated code imports modules outside its allowlist: ${denied.join(", ")}.`
+	};
+	return {
+		ok: true,
+		data: request
+	};
+}
+async function sha256(value) {
+	const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+	return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+function validObservationShape(observation) {
+	return Number.isInteger(observation.exitCode) && Number.isFinite(Date.parse(observation.startedAt)) && Number.isFinite(Date.parse(observation.finishedAt)) && Date.parse(observation.finishedAt) >= Date.parse(observation.startedAt) && Array.isArray(observation.outputs) && Array.isArray(observation.inputHashesAfter);
+}
+async function runGeneratedSandbox(request, host, signal) {
+	const admitted = validateGeneratedSandboxRequest(request);
+	if (!admitted.ok) return {
+		ok: false,
+		reason: admitted.reason
+	};
+	if (host.kind === "unavailable") return {
+		ok: false,
+		reason: host.unavailableReason || "No generated-code sandbox host is connected."
+	};
+	if (!host.supportedLanguages.includes(request.language)) return {
+		ok: false,
+		reason: `${host.id} does not provide a secure ${request.language} isolation boundary.`
+	};
+	if (signal?.aborted) return {
+		ok: false,
+		reason: "Sandbox run was cancelled before dispatch."
+	};
+	let observation;
+	try {
+		observation = await host.run(request, signal);
+	} catch (cause) {
+		return {
+			ok: false,
+			reason: `Sandbox host failed without complete cleanup evidence: ${cause instanceof Error ? cause.message : "unknown host error"}.`
+		};
+	}
+	if (!validObservationShape(observation)) return {
+		ok: false,
+		reason: "Sandbox host returned malformed evidence."
+	};
+	if (!(observation.hostId === host.id && observation.language === request.language && observation.networkDenied && observation.childProcessesDenied && observation.readScopeEnforced && observation.writeScopeEnforced && observation.processExitObserved && observation.processTreeTerminated && observation.temporaryRootRemoved)) return {
+		ok: false,
+		reason: "Sandbox isolation, process termination, or temporary-directory cleanup was not proven. No result was accepted."
+	};
+	const inputHashes = new Map(observation.inputHashesAfter.map((entry) => [entry.path, entry.sha256]));
+	for (const input of request.inputs) {
+		const before = input.sha256 ?? await sha256(input.content);
+		if (inputHashes.get(normalizeRelativePath(input.path)) !== before) return {
+			ok: false,
+			reason: `Read-only input ${input.path} changed during execution.`
+		};
+	}
+	const rules = new Map(request.outputs.map((rule) => [normalizeRelativePath(rule.path), rule]));
+	const diffs = [];
+	let observedBytes = 0;
+	for (const output of observation.outputs) {
+		const rule = rules.get(output.path);
+		if (!rule) return {
+			ok: false,
+			reason: `Sandbox produced undeclared output ${output.path}.`
+		};
+		const actualBytes = new TextEncoder().encode(output.content).byteLength;
+		const actualHash = await sha256(output.content);
+		if (output.bytes !== actualBytes || output.sha256 !== actualHash || output.mediaType !== rule.mediaType || output.bytes > rule.maxBytes) return {
+			ok: false,
+			reason: `Sandbox output ${output.path} failed validation.`
+		};
+		observedBytes += output.bytes;
+		diffs.push({
+			path: output.path,
+			before: rule.existingContent ?? "",
+			after: output.content,
+			changed: (rule.existingContent ?? "") !== output.content
+		});
+	}
+	if (observedBytes > request.limits.outputBytes) return {
+		ok: false,
+		reason: "Sandbox outputs exceed the aggregate output limit."
+	};
+	const status = observation.cancelled ? "cancelled" : observation.exitCode === 0 && !observation.timedOut && !observation.limitExceeded ? "verified" : "failed";
+	const sensitive = request.sensitiveValues ?? [];
+	return {
+		ok: true,
+		data: {
+			status,
+			observation: {
+				...observation,
+				stdout: redact(observation.stdout, sensitive),
+				stderr: redact(observation.stderr, sensitive),
+				outputs: observation.outputs.map((output) => ({
+					...output,
+					content: redact(output.content, sensitive)
+				}))
+			},
+			diffs,
+			receipt: {
+				appId: `ocade.generated-sandbox:${host.id}`,
+				capabilityId: `code.generated.${request.language}`,
+				method: "cli",
+				at: observation.finishedAt,
+				verified: status === "verified",
+				evidence: status === "verified" ? `${request.language} exited 0 in an isolated disposable host; scopes, termination, outputs and cleanup were independently validated.` : `NOT CONFIRMED: ${request.language} ${status}; exit ${observation.exitCode}, cleanup and termination were observed.`
+			}
+		}
+	};
+}
+//#endregion
+export { validateGeneratedSandboxRequest as n, runGeneratedSandbox as t };

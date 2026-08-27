@@ -1,0 +1,1 @@
+import{Tr as e}from"./index-DBgyHqMP.js";var t=e({type:`function`});export{t};

@@ -1,0 +1,1 @@
+import{t as e}from"./vendor-react-CX2mWblQ.js";import{t}from"./WorkspaceShell-P4YRwniM.js";var n=e();function r({children:e}){return(0,n.jsx)(t,{variant:`app`,children:e})}export{r as t};

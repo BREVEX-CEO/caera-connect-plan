@@ -28,7 +28,7 @@ import {
   sha256,
   webauthnPrfSupported,
 } from "./vault-crypto";
-import { lock, setLockTimeout, unlockWith } from "./vault-session";
+import { applyStoredLockTimeout, lock, setLockTimeout, unlockWith } from "./vault-session";
 
 type VaultRow = {
   user_id: string;
@@ -173,7 +173,7 @@ export async function unlockWithPassphrase(userId: string, passphrase: string): 
   const dek = await unwrapDek(kek, cfg.wrapped_dek, cfg.wrapped_dek_iv).catch(() => {
     throw new Error("Wrong passphrase.");
   });
-  setLockTimeout(cfg.lock_timeout_seconds);
+  applyStoredLockTimeout(cfg.lock_timeout_seconds);
   unlockWith(dek);
   await supabase
     .from("vault_config")
@@ -198,7 +198,7 @@ export async function unlockWithWebAuthn(userId: string): Promise<void> {
   const dek = await unwrapDek(kek, cfg.wrapped_dek, cfg.wrapped_dek_iv).catch(() => {
     throw new Error("Authenticator did not unlock this vault.");
   });
-  setLockTimeout(cfg.lock_timeout_seconds);
+  applyStoredLockTimeout(cfg.lock_timeout_seconds);
   unlockWith(dek);
   await supabase
     .from("vault_config")
@@ -223,7 +223,7 @@ export async function unlockWithRecoveryKit(userId: string, kit: string): Promis
     throw new Error("Recovery kit does not match.");
   const kek = await keyFromMaterial(raw, b64decode(cfg.recovery_salt));
   const dek = await unwrapDek(kek, cfg.recovery_wrapped_dek, cfg.recovery_wrapped_dek_iv);
-  setLockTimeout(cfg.lock_timeout_seconds);
+  applyStoredLockTimeout(cfg.lock_timeout_seconds);
   unlockWith(dek);
 }
 

@@ -1,0 +1,1 @@
+import{Er as e,Fr as t}from"./index-DBgyHqMP.js";import{t as n}from"./auth-middleware-gdlvwY2z.js";var r=e({method:`GET`}).middleware([n]).handler(t(`1d03547fcf93634f0edcf90fe58d3b374a85ffb4ce8fed857d1d642e0e6fd632`));export{r as t};

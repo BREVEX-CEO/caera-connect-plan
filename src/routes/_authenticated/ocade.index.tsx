@@ -201,6 +201,7 @@ import {
   type VoiceGender,
 } from "@/lib/ocade-voice";
 import { redactForSpeech, redactSpokenSecrets } from "@/lib/voice/transcript-redaction";
+import { useDictation } from "@/lib/voice/use-dictation";
 import { useVoicePrefs } from "@/lib/use-voice-prefs";
 import { saveChatOutput } from "@/lib/artifacts/chat-output-flow";
 import { listProjectFiles, saveProjectFile, type ProjectFile } from "@/lib/project-files";
@@ -1062,6 +1063,28 @@ function HomeSurface(props: {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [busy, setBusy] = useState(false);
 
+  /*
+   * THE MICROPHONE BELONGS ON THE FIRST SCREEN TOO.
+   *
+   * This surface is what every new account sees, and it was the one composer
+   * in the product with no voice control at all — the conversation view had
+   * one, Control + Work had one, the demo had one, and the screen a person
+   * actually starts on did not. Someone who signed up to dictate found the
+   * feature only by typing a message first, which is the opposite of the
+   * order they would try it in.
+   *
+   * `useDictation` rather than a second copy of the recogniser wiring: it
+   * already names every failure separately (denied, no microphone, recogniser
+   * unreachable), keeps interim text flowing so the button never looks stuck,
+   * and deliberately does not auto-send.
+   */
+  const dictation = useDictation({
+    lang: "en-US",
+    onTranscript: (text, isFinal) => {
+      if (isFinal) setDraft((current) => `${current} ${text}`.trim());
+    },
+  });
+
   async function submit() {
     const text = draft.trim();
     if (!text && attachments.length === 0) return;
@@ -1111,6 +1134,8 @@ function HomeSurface(props: {
           model={model}
           setModel={setModel}
           chatsMode={chatsMode}
+          onToggleVoice={dictation.toggle}
+          listening={dictation.state === "listening" || dictation.state === "hearing"}
           floating
         />
 

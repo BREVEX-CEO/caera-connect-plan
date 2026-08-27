@@ -20,6 +20,7 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { SetupRequiredState } from "@/components/shell/SetupRequiredState";
+import { VaultUnlockCard } from "@/components/storage/VaultUnlockCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -529,21 +530,40 @@ function ProjectsPage() {
       </p>
 
       {unavailable ? (
-        <SetupRequiredState
-          title="Projects couldn't open the browser vault"
-          description="Projects and outputs are written to this device first. Unlock the vault or retry; a database connection is not required."
-          detail={unavailable}
-          status="failed"
-          action={
-            <button
-              type="button"
-              onClick={() => void refreshProjects()}
-              className="rounded-md border border-border/60 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent/30"
-            >
-              Try again
-            </button>
-          }
-        />
+        /*
+          A LOCKED VAULT IS NOT A SETUP FAILURE, AND IT IS NOT FIXED BY RETRYING.
+          It has one answer — the key — so that answer is offered here rather
+          than named. Everything else that can stop a read (a browser refusing
+          IndexedDB, a corrupt store) still gets the panel it had, because for
+          those a retry genuinely is the next thing to try.
+        */
+        /Unlock it in Settings/i.test(unavailable) ? (
+          <VaultUnlockCard what="Projects and saved outputs" onUnlocked={refreshProjects} />
+        ) : (
+          <SetupRequiredState
+            title="Projects couldn't open the browser vault"
+            description="Projects and outputs are written to this device first. Unlock the vault or retry; a database connection is not required."
+            detail={unavailable}
+            status="failed"
+            action={
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  to="/settings/vault"
+                  className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:opacity-90"
+                >
+                  Open vault settings
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => void refreshProjects()}
+                  className="rounded-md border border-border/60 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent/30"
+                >
+                  Try again
+                </button>
+              </div>
+            }
+          />
+        )
       ) : projects === null ? (
         <GlassPanel className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading projects…

@@ -4,6 +4,7 @@ import { Check, Loader2 } from "lucide-react";
 import { OnboardingShell } from "@/components/shell/OnboardingShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
+import { isVaultConfigured } from "@/lib/storage/vault";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
@@ -105,7 +106,35 @@ function OnboardingPage() {
       return;
     }
 
-    navigate({ to: "/home", replace: true });
+    /*
+     * SETUP IS NOT FINISHED UNTIL THERE IS SOMEWHERE TO PUT THINGS.
+     *
+     * Both privacy modes write to this device first — Private Sync included,
+     * which uploads in the background but keeps the authoritative copy in the
+     * browser vault. That vault is encrypted under a key nothing here creates,
+     * and until it exists every surface backed by storage refuses to open.
+     *
+     * Onboarding used to send people straight to the workspace anyway. What
+     * they met there was a Projects page that could not list, a Files panel
+     * that could not read, and a Settings screen they had no reason to visit
+     * holding the one control that would fix it. Choosing a privacy mode and
+     * then not being given the means to use it is not a choice, it is a
+     * dead end.
+     *
+     * A vault that is already configured — a second device, a returning
+     * account — skips this and goes where it always did.
+     */
+    let vaultReady = true;
+    try {
+      vaultReady = await isVaultConfigured(user.id);
+    } catch {
+      /*
+       * Could not tell. Do not trap somebody in setup over a failed read:
+       * the workspace states the locked case honestly on its own.
+       */
+      vaultReady = true;
+    }
+    navigate({ to: vaultReady ? "/home" : "/settings/vault", replace: true });
   }
 
   return (

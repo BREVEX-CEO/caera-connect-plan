@@ -1,0 +1,1 @@
+import{Er as e,Fr as t}from"./index-DBgyHqMP.js";import{t as n}from"./auth-middleware-gdlvwY2z.js";var r=e({method:`POST`}).middleware([n]).handler(t(`55893207ac96e264df7065d1ac9d876b96101e5f05cabbe7dbe52e13808ee8cd`));export{r as writeComplianceLog};

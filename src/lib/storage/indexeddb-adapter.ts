@@ -7,7 +7,12 @@
  * opaque ciphertext.
  */
 
-import type { DataClass, StorageAdapter, StoredRecord } from "./types";
+import {
+  StorageLockedError,
+  type DataClass,
+  type StorageAdapter,
+  type StoredRecord,
+} from "./types";
 import {
   aesGcmDecrypt,
   aesGcmEncrypt,
@@ -16,7 +21,7 @@ import {
   bytesToJson,
   jsonToBytes,
 } from "./vault-crypto";
-import { requireKey } from "./vault-session";
+import { isUnlocked, requireKey } from "./vault-session";
 
 const DB_NAME = "caera-browser-vault";
 const DB_VERSION = 1;
@@ -108,6 +113,26 @@ export const indexedDbAdapter: StorageAdapter = {
   },
 
   async list<T>(dataClass: DataClass) {
+    /*
+     * AN EMPTY LOCKED VAULT IS NOT AN EMPTY VAULT.
+     *
+     * The loop below decrypts row by row, so `requireKey` only ever ran when
+     * there was at least one row — and a store with none returned `[]` without
+     * touching the key. A locked vault was therefore indistinguishable from an
+     * unlocked empty one, which is precisely the state every brand-new account
+     * is in.
+     *
+     * The result was a workspace that lied to its newest users: Projects
+     * rendered "No projects yet", a factual-sounding sentence that was not
+     * true, above a Create button that failed on every press with a toast that
+     * scrolled away. The page has an honest locked state — `SetupRequiredState`
+     * with a retry — and it could not reach it, because reading never failed.
+     *
+     * "I cannot read this store" is true whether or not the store happens to
+     * be empty, so it is said either way. Callers that already handle a
+     * storage failure now get the locked state for free.
+     */
+    if (!isUnlocked()) throw new StorageLockedError();
     const db = await openDb();
     const store = tx(db, "readonly");
     const idx = store.index("by_class");
