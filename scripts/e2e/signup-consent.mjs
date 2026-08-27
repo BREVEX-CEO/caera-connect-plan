@@ -1,10 +1,19 @@
 /**
- * The consent gate and the in-site legal dialog, driven for real.
+ * THE SIGN-UP PATH, AFTER THE CONSENT GATE.
  *
- * Asserted here rather than in a render test because the properties that
- * matter are behavioural: that Create account is genuinely unreachable until
- * both boxes are ticked, and that opening the terms does NOT cost the person
- * what they typed — which is precisely what the old `<Link>` did.
+ * `legal-consent.mjs` proves the gate itself: two boxes, both required, the
+ * legal text readable without losing a tick, and no way past it. This proves
+ * the half that comes after — that having accepted, a NEW visitor can actually
+ * reach account creation, and that the create control is the one for signing
+ * up rather than the one for signing in.
+ *
+ * WHY THIS WAS REWRITTEN. The previous version went straight to /auth and
+ * looked for a "Create account" button with consent checkboxes beside it. That
+ * screen no longer exists: consent is a modal shown before the form, and the
+ * form starts on "I have an account". So the probe typed into fields behind a
+ * dialog, found the dialog's own checkboxes, and reported a product failure
+ * that was entirely its own. A probe written against a screen that has been
+ * replaced does not fail loudly — it fails plausibly, which is worse.
  */
 import { chromium } from "playwright-core";
 import { mkdtempSync } from "node:fs";
@@ -12,85 +21,114 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 const BASE = process.env.BASE ?? "http://127.0.0.1:4173";
+
 const ctx = await chromium.launchPersistentContext(mkdtempSync(join(tmpdir(), "ocade-signup-")), {
-  executablePath: "/opt/pw-browsers/chromium",
+  executablePath: process.env.OCADE_BROWSER_PATH ?? "/opt/pw-browsers/chromium",
   headless: true,
   args: ["--no-sandbox"],
 });
 const page = await ctx.newPage();
 const r = {};
 
-await page.goto(BASE + "/auth", { waitUntil: "domcontentloaded", timeout: 60000 });
-await page.waitForTimeout(1200);
+await page.goto(`${BASE}/auth`, { waitUntil: "domcontentloaded", timeout: 60000 });
+await page.waitForTimeout(1500);
 
-// Type an email and password so the create-account path appears.
-const email = page.locator('input[type="email"]').first();
-await email.fill("proof@example.test");
-const pw = page.locator('input[type="password"]').first();
-r.passwordFieldFound = (await pw.count()) > 0;
-if (r.passwordFieldFound) await pw.fill("a-real-password-123");
-await page.waitForTimeout(600);
+/* ---------------------------------------------------- the gate is there -- */
+const dialog = page.locator("[role=dialog], [role=alertdialog]").first();
+r.consentGateShown = await dialog.isVisible().catch(() => false);
 
-const createBtn = page.getByRole("button", { name: /create account/i }).first();
-r.createButtonVisible = await createBtn.isVisible().catch(() => false);
-r.createDisabledBeforeConsent = await createBtn.isDisabled().catch(() => null);
+const boxes = dialog.locator('input[type="checkbox"], [role=checkbox]');
+r.consentBoxes = await boxes.count();
 
-const boxes = page.locator('input[type="checkbox"]');
-r.checkboxCount = await boxes.count();
-r.checkboxesStartUnticked =
-  (await boxes
-    .nth(0)
-    .isChecked()
-    .catch(() => true)) === false &&
-  (await boxes
-    .nth(1)
-    .isChecked()
-    .catch(() => true)) === false;
+const accept = dialog.getByRole("button", { name: /accept and continue/i }).first();
+r.acceptDisabledBeforeConsent = await accept.isDisabled().catch(() => null);
 
-// Tick only one — still blocked.
-await boxes.nth(0).check();
-await page.waitForTimeout(250);
-r.stillDisabledWithOneTicked = await createBtn.isDisabled().catch(() => null);
+for (let i = 0; i < r.consentBoxes; i += 1) {
+  await boxes
+    .nth(i)
+    .click({ timeout: 5000 })
+    .catch(() => {});
+}
+await page.waitForTimeout(300);
+r.acceptEnabledAfterConsent = (await accept.isDisabled().catch(() => true)) === false;
+await accept.click({ timeout: 8000 }).catch(() => {});
+await page.waitForTimeout(1000);
+r.gateCleared = !(await dialog.isVisible().catch(() => false));
 
-// Open the terms from inside the form and confirm nothing typed is lost.
-await page
-  .getByRole("button", { name: /^terms of service$/i })
-  .first()
-  .click();
-await page.waitForTimeout(900);
-const dialog = page.locator('[role="dialog"]').first();
-r.dialogOpened = await dialog.isVisible().catch(() => false);
-r.dialogHasTitle = (await dialog.innerText().catch(() => "")).includes("Terms of service");
-r.dialogScrollableRegion = await page
-  .locator('[role="region"][aria-label*="content"]')
-  .count()
-  .catch(() => 0);
+/* ------------------------------------------- and then signing up works -- */
+/*
+ * `role="radio"`, not a button. The two intent controls are a radiogroup on
+ * purpose — they are a choice, not an action — so asking for a button by that
+ * name finds nothing and the probe carries on in the wrong mode.
+ */
+const newHere = page.getByRole("radio", { name: /i am new here/i }).first();
+r.signupChoiceOffered = await newHere.isVisible().catch(() => false);
+if (r.signupChoiceOffered) await newHere.click({ timeout: 8000 });
+await page.waitForTimeout(500);
+
+const emailChoice = page.locator("button", { hasText: /^Email$/ }).first();
+if (await emailChoice.isVisible().catch(() => false)) {
+  await emailChoice.click({ timeout: 8000 });
+  await page.waitForTimeout(400);
+}
+
+const email = page.locator("#email");
+const password = page.locator("#password");
+r.emailFieldReachable = await email.isVisible().catch(() => false);
+r.passwordFieldReachable = await password.isVisible().catch(() => false);
+if (r.emailFieldReachable) await email.fill("proof@example.test");
+if (r.passwordFieldReachable) await password.fill("a-real-password-123");
+await page.waitForTimeout(400);
+
+/*
+ * The label is what tells the visitor which thing they are about to do, and
+ * choosing "I am new here" has to change it. A screen that says "Sign in"
+ * after somebody said they have no account is how people end up believing
+ * they already have one.
+ */
+const createButton = page.getByRole("button", { name: /^create account$/i }).first();
+r.createAccountOffered = await createButton.isVisible().catch(() => false);
+r.createAccountEnabled = (await createButton.isDisabled().catch(() => true)) === false;
+
+/*
+ * A DISABLED PRIMARY ACTION MUST SAY WHY.
+ *
+ * Account creation is gated on verified production mail delivery — a real
+ * dependency this environment does not have, and refusing rather than sending
+ * a confirmation nobody receives is the right behaviour. What would NOT be
+ * right is a dimmed button and no explanation, which reads as a broken page.
+ * So the assertion is: enabled, or disabled with a visible reason.
+ */
+const status = await page
+  .locator("[role=status]")
+  .allTextContents()
+  .catch(() => []);
+r.disabledReasonShown = status.some((text) => /mail delivery|new email accounts/i.test(text));
+r.createAccountUsableOrExplained = r.createAccountEnabled || r.disabledReasonShown;
+/*
+ * The submit control, not the intent control — the intent one is a radio and
+ * keeps its own label. There must be no button still offering to sign in.
+ */
+r.signInButtonAbsent =
+  (await page.getByRole("button", { name: /^sign in$/i }).count()) === 0;
 r.stayedOnAuthRoute = new URL(page.url()).pathname === "/auth";
-
-// Escape closes it.
-await page.keyboard.press("Escape");
-await page.waitForTimeout(600);
-r.escapeClosesDialog = !(await dialog.isVisible().catch(() => false));
-
-// The typed values survived, which is the whole point.
-r.emailPreserved = (await email.inputValue()) === "proof@example.test";
-r.passwordPreserved = (await pw.inputValue()) === "a-real-password-123";
-r.consentPreserved = await boxes.nth(0).isChecked();
-
-// Tick the second — now enabled.
-await boxes.nth(1).check();
-await page.waitForTimeout(250);
-r.enabledWithBothTicked = (await createBtn.isDisabled().catch(() => true)) === false;
 
 console.log(JSON.stringify(r, null, 2));
 await ctx.close();
+
 const ok =
-  r.createDisabledBeforeConsent === true &&
-  r.checkboxesStartUnticked &&
-  r.stillDisabledWithOneTicked === true &&
-  r.dialogOpened &&
-  r.escapeClosesDialog &&
-  r.emailPreserved &&
-  r.passwordPreserved &&
-  r.enabledWithBothTicked;
+  r.consentGateShown &&
+  r.consentBoxes >= 2 &&
+  r.acceptDisabledBeforeConsent === true &&
+  r.acceptEnabledAfterConsent &&
+  r.gateCleared &&
+  r.signupChoiceOffered &&
+  r.emailFieldReachable &&
+  r.passwordFieldReachable &&
+  r.createAccountOffered &&
+  r.createAccountUsableOrExplained &&
+  r.signInButtonAbsent &&
+  r.stayedOnAuthRoute;
+
+if (!ok) console.error("SIGN-UP AFTER CONSENT FAILED");
 process.exit(ok ? 0 : 1);

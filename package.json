@@ -9,7 +9,7 @@
     "routes:generate": "node scripts/generate-routes.mjs",
     "ocade:77-check": "node scripts/check-ocade-77-readiness.mjs && node scripts/check-phase5-production-wiring.mjs",
     "ocade:phase5-check": "node scripts/check-phase5-production-wiring.mjs",
-    "build": "npm run routes:generate && vite build",
+    "build": "npm run routes:generate && vite build && node scripts/generate-sw-precache.mjs",
     "build:dev": "npm run routes:generate && vite build --mode development",
     "performance:budget": "node scripts/check-asset-budgets.mjs",
     "stage2:baseline-check": "node scripts/check-stage2-baseline.mjs",
@@ -103,7 +103,9 @@
     "integration:check": "node scripts/generate-integration-report.mjs --check",
     "audit:worker": "node scripts/e2e/run-worker-smoke.mjs",
     "audit:journey": "node scripts/e2e/run-customer-journey.mjs",
-    "audit:secrets": "node scripts/scan-bundle-secrets.mjs"
+    "audit:secrets": "node scripts/scan-bundle-secrets.mjs",
+    "audit:download": "vite-node scripts/e2e/download-resilience.mjs",
+    "audit:local-offline": "node scripts/e2e/run-local-offline.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",

@@ -35,6 +35,8 @@ GATES=(
   "build:900:npm run build"
   "secrets:120:npm run audit:secrets"
   "integration:180:npm run integration:check"
+  "download:300:npm run audit:download"
+  "local-offline:1500:npm run audit:local-offline"
   "journey:900:npm run audit:journey"
   "routes:1200:npm run audit:routes:prod"
   "offline:900:npm run audit:offline:prod"

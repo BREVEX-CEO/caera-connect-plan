@@ -23,7 +23,7 @@
  */
 
 const SHELL_CACHE_PREFIX = "ocade-shell-v";
-const VERSION = `${SHELL_CACHE_PREFIX}8`;
+const VERSION = `${SHELL_CACHE_PREFIX}9`;
 const OFFLINE_URL = "/offline.html";
 
 /**
@@ -35,6 +35,31 @@ const OFFLINE_URL = "/offline.html";
  * below once they have been fetched successfully at least once.
  */
 const REQUIRED_PRECACHE = ["/", OFFLINE_URL, "/manifest.webmanifest"];
+
+/**
+ * The build's own first-paint chunks, named by a file the build writes.
+ *
+ * The comment above is right that a hard-coded list of content-hashed bundles
+ * goes stale immediately. What it missed is what happened instead: the runtime
+ * cache below only sees an asset AFTER it has been fetched through this worker,
+ * and on a first visit the page's scripts are already in flight while this
+ * worker is still installing. So they were never cached at all, and anybody who
+ * visited once and then went offline was served the shell document with none of
+ * its JavaScript — right title, right favicon, empty body.
+ *
+ * `scripts/generate-sw-precache.mjs` writes `/sw-precache.js` after every build
+ * by walking the entry chunk's static import graph. Kept as a separate file so
+ * this one stays auditable source rather than something a build rewrites, and
+ * wrapped in a try so a build that skips the step degrades to the old behaviour
+ * instead of failing to install a worker at all.
+ */
+let BUILD_PRECACHE = [];
+try {
+  importScripts("/sw-precache.js");
+  BUILD_PRECACHE = Array.isArray(self.__OCADE_PRECACHE) ? self.__OCADE_PRECACHE : [];
+} catch {
+  BUILD_PRECACHE = [];
+}
 
 const OPTIONAL_PRECACHE = [
   "/favicon.ico",
@@ -72,7 +97,9 @@ self.addEventListener("install", (event) => {
          * not block an otherwise usable upgrade.
          */
         await cache.addAll(REQUIRED_PRECACHE);
-        await Promise.allSettled(OPTIONAL_PRECACHE.map((url) => cache.addAll([url])));
+        await Promise.allSettled(
+          [...OPTIONAL_PRECACHE, ...BUILD_PRECACHE].map((url) => cache.addAll([url])),
+        );
         await self.skipWaiting();
       })
       .catch(async (error) => {
