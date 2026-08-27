@@ -7,8 +7,8 @@ name: Cloudflare preview
 # anybody for a look. Turning either on would give the production script a
 # second public address, which is the opposite of what those settings are for.
 #
-# So this deploys a DIFFERENT Worker — `ocade-web-preview`, from
-# `wrangler.preview.json` — with no routes at all. Nothing addressed to
+# So this deploys a DIFFERENT Worker — `ocade-web-preview`, derived from the
+# build's own generated config — with no routes at all. Nothing addressed to
 # ocade.in or www.ocade.in can reach it whatever is deployed, because no route
 # points at it. Production is untouched by construction rather than by care.
 #
@@ -57,23 +57,22 @@ jobs:
         run: npm run build
 
       - name: Refuse to publish if this config carries a production route
-        # Belt and braces. The file has no routes today; this fails the run if
-        # somebody adds one rather than discovering it from live traffic.
+        # Belt and braces. The generator refuses on its own, but a workflow
+        # that trusts a script to guard itself has one check, not two.
         run: |
-          if grep -q '"routes"' wrangler.preview.json; then
-            echo "wrangler.preview.json declares routes — a preview must have none." >&2
+          node scripts/preview-config.mjs
+          CONFIG=.output/server/wrangler.preview.json
+          if grep -q '"routes"' "$CONFIG"; then
+            echo "preview config declares routes — a preview must have none." >&2
             exit 1
           fi
-          if grep -q '"name": "ocade-web"' wrangler.preview.json; then
-            echo "wrangler.preview.json uses the production Worker name." >&2
+          if grep -q '"name": "ocade-web"' "$CONFIG"; then
+            echo "preview config uses the production Worker name." >&2
             exit 1
           fi
 
-      - name: Publish the preview Worker
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx wrangler deploy --config wrangler.preview.json
+      - name: Deploy the preview Worker
+        run: npx wrangler deploy --config .output/server/wrangler.preview.json
 
       - name: Say where it is
         run: |
