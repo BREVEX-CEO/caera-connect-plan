@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "//": "A SEPARATE WORKER, SO A PREVIEW CANNOT REACH PRODUCTION TRAFFIC.",
+  "//name": "Different script name from ocade-web on purpose. Deploying this can never overwrite the production Worker, and rolling it back is deleting something nothing points at.",
+  "name": "ocade-web-preview",
+  "compatibility_date": "2026-08-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "keep_vars": true,
+  "//workers_dev": "TRUE here and FALSE in wrangler.json. This is the whole point: the preview needs a reachable URL and production must never have one outside its own domain.",
+  "workers_dev": true,
+  "//routes": "Deliberately absent. No route means no request for ocade.in or www.ocade.in can ever arrive here, whatever is deployed.",
+  "assets": {
+    "run_worker_first": true,
+    "html_handling": "none"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "version_metadata": {
+    "binding": "CF_VERSION_METADATA"
+  }
+}
