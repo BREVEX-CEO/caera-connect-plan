@@ -33,6 +33,7 @@ GATES=(
   "lint:600:npm run lint"
   "tests:900:npx vitest run --reporter=dot"
   "build:900:npm run build"
+  "secrets:120:npm run audit:secrets"
   "integration:180:npm run integration:check"
   "journey:900:npm run audit:journey"
   "routes:1200:npm run audit:routes:prod"

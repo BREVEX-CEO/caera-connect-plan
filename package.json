@@ -102,7 +102,8 @@
     "integration:report": "node scripts/generate-integration-report.mjs",
     "integration:check": "node scripts/generate-integration-report.mjs --check",
     "audit:worker": "node scripts/e2e/run-worker-smoke.mjs",
-    "audit:journey": "node scripts/e2e/run-customer-journey.mjs"
+    "audit:journey": "node scripts/e2e/run-customer-journey.mjs",
+    "audit:secrets": "node scripts/scan-bundle-secrets.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.2",

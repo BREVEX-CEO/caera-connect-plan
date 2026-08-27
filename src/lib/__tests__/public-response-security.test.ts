@@ -16,6 +16,39 @@ describe("public response security headers", () => {
     expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
   });
 
+  it("tells the browser to refuse plain HTTP to this host in future", () => {
+    const response = withPublicSecurityHeaders(new Response(null));
+    const hsts = response.headers.get("strict-transport-security");
+    expect(hsts).toMatch(/max-age=\d+/);
+    // A year. Shorter and a returning visitor is exposed again too soon.
+    expect(Number(/max-age=(\d+)/.exec(hsts ?? "")?.[1] ?? 0)).toBeGreaterThanOrEqual(31_536_000);
+    /*
+     * Deliberately absent, and this is the test that keeps them absent:
+     * `includeSubDomains` is a promise about hosts this repository cannot see,
+     * and `preload` is a submission to a list compiled into browser binaries.
+     * Both are close to irreversible on the timescale of a mistake.
+     */
+    expect(hsts).not.toContain("includeSubDomains");
+    expect(hsts).not.toContain("preload");
+  });
+
+  it("names every header it sets, so the list cannot drift from the test", () => {
+    const response = withPublicSecurityHeaders(new Response(null));
+    for (const header of [
+      "content-security-policy",
+      "strict-transport-security",
+      "cross-origin-opener-policy",
+      "cross-origin-resource-policy",
+      "origin-agent-cluster",
+      "permissions-policy",
+      "referrer-policy",
+      "x-content-type-options",
+      "x-frame-options",
+    ]) {
+      expect(response.headers.get(header), `${header} was not set`).toBeTruthy();
+    }
+  });
+
   it("preserves a stricter route-specific content security policy", () => {
     const response = withPublicSecurityHeaders(
       new Response(null, { headers: { "content-security-policy": "default-src 'none'" } }),

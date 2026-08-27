@@ -50,6 +50,25 @@ const APP_CSP = [
 
 const DEFAULT_SECURITY_HEADERS: Readonly<Record<string, string>> = {
   "content-security-policy": APP_CSP,
+  /*
+   * HTTPS ONLY, REMEMBERED BY THE BROWSER.
+   *
+   * `upgrade-insecure-requests` in the policy above rewrites subresources; it
+   * does nothing about the FIRST request, which is the one an attacker on a
+   * café network wants. HSTS closes that window for every visit after the
+   * first: the browser refuses plain HTTP to this host for a year without
+   * asking anybody.
+   *
+   * A year, and no `includeSubDomains`. Subdomains are a commitment about
+   * hosts this code cannot see — one of them serving plain HTTP would become
+   * unreachable, and undoing it means waiting out the max-age on every visitor
+   * who ever received the header. No `preload` either: that is a submission to
+   * a list baked into browser binaries, and it is close to irreversible.
+   *
+   * Ignored entirely over plain HTTP and on localhost, by specification, so it
+   * costs development nothing.
+   */
+  "strict-transport-security": "max-age=31536000",
   "cross-origin-opener-policy": "same-origin-allow-popups",
   "cross-origin-resource-policy": "same-origin",
   "origin-agent-cluster": "?1",
