@@ -141,3 +141,115 @@ describe("has_role, which every policy depends on", () => {
     expect(row?.ok).toBe(true);
   });
 });
+
+/*
+ * READING `auth.uid()` IN THE BODY IS NOT THE SAME AS OBEYING IT.
+ *
+ * The assertion above proves each elevated function MENTIONS the caller. It
+ * cannot prove where: `auth.uid()` in an INSERT column list satisfies a grep
+ * and guards nothing. Every one of these functions takes a run id as its first
+ * argument, and a run id is a uuid somebody else's browser has — which is the
+ * exact shape of a broken-object-level-authorisation bug. Supabase's advisor
+ * flags all fifteen and can say nothing about this, because from outside a
+ * guarded function and an open door look identical.
+ *
+ * So: plant a run owned by Bob, hand its id to Alice, and check that every
+ * verb she can reach either refuses or does nothing. The run is re-read after
+ * each call — "returned an error" and "changed no row" are different claims,
+ * and only the second one is the security property.
+ */
+describe("a run id belonging to somebody else", () => {
+  const BOB_AUTOMATION = "cccccccc-3333-4333-8333-cccccccccccc";
+  const BOB_RUN = "dddddddd-4444-4444-8444-dddddddddddd";
+
+  beforeAll(async () => {
+    await twin.execSuperuser(`
+      insert into public.ocade_automations (id, user_id, name)
+      values ('${BOB_AUTOMATION}', '${BOB}', 'bob nightly')
+      on conflict (id) do nothing;
+      insert into public.ocade_automation_runs
+        (id, user_id, automation_id, status, claim_token, worker_id)
+      values ('${BOB_RUN}', '${BOB}', '${BOB_AUTOMATION}', 'running',
+              '11111111-5555-4555-8555-111111111111', 'bob-worker')
+      on conflict (id) do nothing;
+    `);
+  });
+
+  /** The fields any of these verbs could plausibly move. */
+  async function snapshot(): Promise<string> {
+    const rows = await twin.asSuperuser<Record<string, unknown>>(`
+      select status, worker_id, claim_token, cancel_requested_at, pause_requested_at,
+             cancelled_at, finished_at, error, approval_decision, approved_at,
+             attempt, next_step_index, execution_steps
+        from public.ocade_automation_runs where id = '${BOB_RUN}'`);
+    expect(rows).toHaveLength(1);
+    return JSON.stringify(rows[0]);
+  }
+
+  const ATTEMPTS: { name: string; call: string }[] = [
+    { name: "cancel", call: `select public.ocade_request_automation_cancel('${BOB_RUN}')` },
+    { name: "pause", call: `select public.ocade_request_automation_pause('${BOB_RUN}')` },
+    { name: "resume", call: `select public.ocade_resume_automation_run('${BOB_RUN}')` },
+    {
+      name: "approve",
+      call: `select public.ocade_decide_automation_run('${BOB_RUN}', 'approved', null)`,
+    },
+    {
+      name: "claim",
+      call: `select public.ocade_claim_automation_run('${BOB_RUN}', 'alice-worker')`,
+    },
+  ];
+
+  it.each(ATTEMPTS)("cannot be $name-ed by another signed-in user", async ({ call }) => {
+    const before = await snapshot();
+    await twin.asTenant(ALICE, call);
+    expect(await snapshot()).toBe(before);
+  });
+
+  it("cannot be completed by guessing the claim token argument", async () => {
+    // The claim token is the worker's proof it holds the lease. Passing a
+    // wrong one must fail even for the owner, and passing the RIGHT one must
+    // still fail for a stranger — ownership is checked before the token.
+    const before = await snapshot();
+    await twin.asTenant(
+      ALICE,
+      `select public.ocade_complete_automation_run('${BOB_RUN}',
+         '11111111-5555-4555-8555-111111111111', 'succeeded', null, now())`,
+    );
+    expect(await snapshot()).toBe(before);
+  });
+
+  it("cannot have a receipt appended to its history by a stranger", async () => {
+    const before = await twin.asSuperuser<{ n: string }>(
+      `select count(*)::text as n from public.ocade_automation_step_receipts where run_id = '${BOB_RUN}'`,
+    );
+    await twin.asTenant(
+      ALICE,
+      `select public.ocade_append_automation_receipt('${BOB_RUN}',
+         '11111111-5555-4555-8555-111111111111', 0, 'execute', 'op', 'kind',
+         'succeeded', true, true, 'forged', now(), now())`,
+    );
+    const after = await twin.asSuperuser<{ n: string }>(
+      `select count(*)::text as n from public.ocade_automation_step_receipts where run_id = '${BOB_RUN}'`,
+    );
+    expect(after[0]?.n).toBe(before[0]?.n);
+  });
+
+  it("is still fully controllable by the person who owns it", async () => {
+    // The negative tests above would also pass if these functions did nothing
+    // at all for anybody. This is the control that says they work.
+    await twin.asTenant(BOB, `select public.ocade_request_automation_pause('${BOB_RUN}')`);
+    const rows = await twin.asSuperuser<{ pause_requested_at: string | null }>(
+      `select pause_requested_at from public.ocade_automation_runs where id = '${BOB_RUN}'`,
+    );
+    expect(rows[0]?.pause_requested_at).not.toBeNull();
+  });
+
+  it("is invisible to a stranger reading the table directly", async () => {
+    const { rows } = await twin.asTenant(
+      ALICE,
+      `select id from public.ocade_automation_runs where id = '${BOB_RUN}'`,
+    );
+    expect(rows).toHaveLength(0);
+  });
+});
