@@ -35,7 +35,7 @@
  */
 
 import type { QueryToolCall, QueryToolResult } from "@/primary-logic/query/deps";
-import { findTool } from "@/lib/agent/tool-registry";
+import { findTool, type ToolDefinition } from "@/lib/agent/tool-registry";
 import {
   MAX_ATTEMPTS_PER_CALL,
   isTerminal,
@@ -44,6 +44,7 @@ import {
 } from "@/lib/agent/outcomes";
 import { describe as describeOutcome } from "@/lib/agent/loop";
 import { executeToolCall, type ExecuteContext } from "./execute";
+import { coerceArguments } from "@/primary-logic/text/semanticValues";
 import { decide, type PermissionContext, type PermissionDecision } from "./permissions";
 
 export interface ToolRunnerOptions {
@@ -73,6 +74,15 @@ export interface ToolRunner {
   reset: () => void;
 }
 
+/** What each argument is declared to be, from the tool's own schema. */
+function declaredTypes(tool: ToolDefinition): Record<string, string | undefined> {
+  const types: Record<string, string | undefined> = {};
+  for (const [name, schema] of Object.entries(tool.parameters.properties)) {
+    types[name] = schema.type;
+  }
+  return types;
+}
+
 export function createToolRunner(options: ToolRunnerOptions): ToolRunner {
   const attempts = new Map<string, number>();
   let stuck: string | null = null;
@@ -85,10 +95,32 @@ export function createToolRunner(options: ToolRunnerOptions): ToolRunner {
   ): Promise<QueryToolResult[]> => {
     const results: QueryToolResult[] = [];
 
-    for (const call of calls) {
+    for (const rawCall of calls) {
       if (signal?.aborted) break;
 
-      const tool = findTool(call.name);
+      const tool = findTool(rawCall.name);
+      /*
+       * READ THE ARGUMENTS THE WAY THE MODEL MEANT THEM, ONCE, HERE.
+       *
+       * A model quoting a value — `"allowOcr": "false"`, `"limit": "30"` — is
+       * ordinary, and every naive read of it goes wrong in the same direction:
+       * `!== false` is true for the string, `=== true` is false for it, and
+       * `Number("")` is zero. Adapters were each learning this separately, one
+       * argument at a time, which is how `allowVision` ended up unreachable
+       * from the loop for a while.
+       *
+       * The coercion is schema-driven: only an argument the tool DECLARES as a
+       * boolean or a number is touched, so a search term that happens to be the
+       * word "false" stays a search term. It happens before the permission
+       * layer as well as before the adapter, so both judge the same call.
+       */
+      const call =
+        tool === null
+          ? rawCall
+          : {
+              ...rawCall,
+              arguments: coerceArguments(rawCall.arguments ?? {}, declaredTypes(tool)),
+            };
       const decision = decide(call, tool, options.permissions());
       emit({ kind: "permission", call, decision });
 

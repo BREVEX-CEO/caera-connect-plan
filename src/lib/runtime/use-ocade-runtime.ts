@@ -68,6 +68,7 @@ import { currentPermissionContext } from "./permission-settings";
 import { consume } from "@/lib/limits/use-limits";
 import { memoryPolicyPrompt } from "@/lib/memory/quality";
 import { considerSessionMemory, noteWork } from "@/lib/memory/session-memory";
+import { repairForResume } from "@/primary-logic/query/resume";
 import { addLocalMemory, inspectLocalMemory } from "@/lib/local-memory";
 
 export interface RuntimeApproval {
@@ -283,7 +284,18 @@ export function useOcadeRuntime(options: RuntimeOptions) {
       }
 
       const memory = optionsRef.current.memoryContext?.() ?? null;
-      const history = [...(opts.history ?? []), { role: "user" as const, content: request }];
+      /*
+       * REPAIR THE HISTORY BEFORE THE MODEL SEES IT.
+       *
+       * A conversation reopened from storage can carry artefacts of how the
+       * last run ended — an empty assistant turn left by a stopped stream, or
+       * tool results whose request was compacted away. Neither is a bug while
+       * the run is alive; both become one when a model reads them as its own
+       * past behaviour. The imported repair drops exactly those two and leaves
+       * everything else alone.
+       */
+      const repaired = repairForResume(opts.history ?? []);
+      const history = [...repaired.messages, { role: "user" as const, content: request }];
       const result = await runQuery(
         {
           messages: history,
