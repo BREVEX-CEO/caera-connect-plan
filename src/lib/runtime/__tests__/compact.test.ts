@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 
 import { compactTranscript } from "../compact";
 import { CLEARED_MARKER, isToolResult, microCompact } from "@/primary-logic/query/microCompact";
+import { analyseTranscript } from "@/primary-logic/query/contextAnalysis";
 import type { QueryMessage } from "@/primary-logic/query/deps";
 
 const user = (content: string): QueryMessage => ({ role: "user", content });
@@ -157,5 +158,59 @@ describe("micro-compaction", () => {
     const compacted = await compactTranscript(messages);
     expect(compacted).not.toBeNull();
     expect(compacted!.length).toBeLessThan(messages.length);
+  });
+});
+
+/**
+ * The same fact, several times over.
+ *
+ * The largest single waste in a long run is not that observations are big — it
+ * is that the same one is present three times because the model re-read a file
+ * it had already read. Every copy costs what the first did and only the last
+ * one is worth anything, so clearing the earlier copies is a saving with no
+ * loss at all.
+ */
+describe("superseded observations", () => {
+  it("clears an older identical result even when it is recent", () => {
+    const messages: QueryMessage[] = [];
+    const body = `Result of file_read: ${"y".repeat(2_000)}`;
+    for (let index = 0; index < 3; index += 1) {
+      messages.push(user(`Check it again (${index})`));
+      messages.push(assistant("Reading."));
+      messages.push({ role: "user", content: body });
+    }
+
+    const trimmed = microCompact(messages, 12)!;
+    expect(trimmed).not.toBeNull();
+
+    const survivingCopies = trimmed.filter((m) => m.content === body);
+    // Exactly one full copy left: the most recent.
+    expect(survivingCopies).toHaveLength(1);
+    expect(trimmed[trimmed.length - 1]!.content).toBe(body);
+    expect(trimmed.filter((m) => String(m.content).includes(CLEARED_MARKER))).toHaveLength(2);
+  });
+
+  it("counts where the room went, by tool", () => {
+    const analysis = analyseTranscript([
+      user("Do it"),
+      assistant("On it."),
+      { role: "user", content: "Result of file_read: aaaa" },
+      { role: "user", content: "Result of web_search: bbbbbb" },
+    ]);
+    expect(Object.keys(analysis.byTool).sort()).toEqual(["file_read", "web_search"]);
+    expect(analysis.user).toBe("Do it".length);
+    expect(analysis.assistant).toBe("On it.".length);
+  });
+
+  it("never marks the newest copy as superseded", () => {
+    const body = { role: "user" as const, content: "Result of file_read: same" };
+    const analysis = analyseTranscript([body, body, body]);
+    expect(analysis.supersededResults).toEqual([0, 1]);
+  });
+
+  it("treats prose that merely mentions a tool as prose", () => {
+    const analysis = analyseTranscript([assistant("I will use file_read next.")]);
+    expect(analysis.byTool).toEqual({});
+    expect(analysis.assistant).toBeGreaterThan(0);
   });
 });

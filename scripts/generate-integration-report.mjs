@@ -99,6 +99,15 @@ const FAMILIES = [
       "OCADE had a to-do board and no runtime task state at all. The donor's status machine, id scheme, pause accounting and stop error taxonomy now back Stop, Pause, Resume and Take over.",
   },
   {
+    family: "Context analysis: where the room went",
+    match: new RegExp("^src/utils/(contextAnalysis|contextSuggestions|doctorContextWarnings|groupToolUses)"),
+    category: "MERGED",
+    outcome: "Ported — drives compaction",
+    authority: "src/primary-logic/query/microCompact.ts",
+    reason:
+      "The archive breaks a transcript down by what is filling it, including the same observation read more than once. Compaction now clears those superseded copies first: three reads of one file are three copies of one fact, and only the last is worth anything, so clearing the others costs nothing.",
+  },
+  {
     family: "Abort composition and cancellation",
     match: new RegExp("^src/utils/(combinedAbortSignal|abortController|idleTimeout|gracefulShutdown|cleanupRegistry)"),
     category: "MERGED",
@@ -444,10 +453,20 @@ function reachablePorted(graph) {
   const queue = [...reached];
   while (queue.length) {
     const current = queue.pop();
-    const candidates = [current, `${current}.ts`, `${current}/index.ts`];
+    /*
+     * A ported module importing `./contextAnalysis.js` is importing the
+     * TypeScript file next to it: the donor writes ESM specifiers with the
+     * emitted extension, and the tree keeps that convention. Without stripping
+     * it, every intra-tree import resolved to nothing and the module it pointed
+     * at was reported unreached — which is how a module used by compaction on
+     * every long conversation showed up as dead code.
+     */
+    const base = current.endsWith(".js") ? current.slice(0, -3) : current;
+    const candidates = [base, `${base}.ts`, `${base}/index.ts`];
     const file = candidates.find((c) => existsSync(join(ROOT, c)));
     if (!file) continue;
     reached.add(file.replace(/\.ts$/, ""));
+    if (base !== current) reached.add(base);
     for (const spec of graph.get(file) ?? []) {
       if (!spec.startsWith(".")) continue;
       const resolved = join(file, "..", spec).replace(/\\/g, "/");

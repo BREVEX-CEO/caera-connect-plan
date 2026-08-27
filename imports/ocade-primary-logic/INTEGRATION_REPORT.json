@@ -2,12 +2,13 @@
   "generatedAt": "2026-08-27",
   "categories": {
     "USED_DIRECTLY": {
-      "files": 48,
+      "files": 49,
       "meaning": "The donor file's logic is in src/primary-logic and production reaches it.",
       "families": [
         "Agents, subagents, teams, coordinator",
         "Bash parser, heredocs, quoting, destructive-command warnings",
         "Bridge, remote sessions, websocket transport",
+        "Context analysis: where the room went",
         "Everything else under utils",
         "Hosted inference, provider table, OAuth to the model vendor",
         "Memory record shapes and the age/relevance model",
@@ -27,13 +28,14 @@
       ]
     },
     "MERGED": {
-      "files": 208,
+      "files": 211,
       "meaning": "The donor logic won this area and was folded into the OCADE authority named.",
       "families": [
         "Abort composition and cancellation",
         "Argument coercion at the tool boundary",
         "Bash parser, heredocs, quoting, destructive-command warnings",
         "Constants, shims and platform detection",
+        "Context analysis: where the room went",
         "Conversation recovery and resume repair",
         "Memory record shapes and the age/relevance model",
         "Message protocol: content blocks, tool use, tool results",
@@ -82,7 +84,7 @@
       ]
     },
     "REJECTED": {
-      "files": 1294,
+      "files": 1290,
       "meaning": "Not brought across. Every file carries the map's own reason.",
       "families": [
         "Analytics and telemetry sinks",
@@ -140,6 +142,15 @@
       "reason": "OCADE had a to-do board and no runtime task state at all. The donor's status machine, id scheme, pause accounting and stop error taxonomy now back Stop, Pause, Resume and Take over.",
       "files": 49,
       "portedModules": 4
+    },
+    {
+      "family": "Context analysis: where the room went",
+      "category": "MERGED",
+      "outcome": "Ported — drives compaction",
+      "authority": "src/primary-logic/query/microCompact.ts",
+      "reason": "The archive breaks a transcript down by what is filling it, including the same observation read more than once. Compaction now clears those superseded copies first: three reads of one file are three copies of one fact, and only the last is worth anything, so clearing the others costs nothing.",
+      "files": 4,
+      "portedModules": 1
     },
     {
       "family": "Abort composition and cancellation",
@@ -390,7 +401,7 @@
       "outcome": "Case by case — mostly removed",
       "authority": "src/lib",
       "reason": "The donor's utility drawer: terminal drawing, its own file formats, its hosted API client, and small helpers OCADE already has. What was genuinely logic was ported into the families above; the remainder had no OCADE-side caller and was not brought across.",
-      "files": 375,
+      "files": 371,
       "portedModules": 7
     }
   ],
@@ -445,6 +456,7 @@
     "src/primary-logic/query/budgetText.ts": [
       "src/lib/runtime/use-ocade-runtime.ts"
     ],
+    "src/primary-logic/query/contextAnalysis.ts": [],
     "src/primary-logic/query/deps.ts": [
       "src/lib/agent/loop.ts",
       "src/lib/runtime/call-model.ts",
@@ -486,8 +498,8 @@
   "totals": {
     "archiveFiles": 2126,
     "dispositioned": 2126,
-    "portedModules": 32,
-    "reachedModules": 32
+    "portedModules": 33,
+    "reachedModules": 33
   },
   "byAction": {
     "DEVOPS_MERGE": {
@@ -522,8 +534,8 @@
     },
     "MERGE_REPLACE": {
       "total": 850,
-      "ported": 11,
-      "reached": 11
+      "ported": 12,
+      "reached": 12
     },
     "BOUNDARY_NATIVE": {
       "total": 149,
@@ -17240,19 +17252,21 @@
       "file": "src/utils/contextAnalysis.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Context analysis: where the room went",
+      "category": "USED_DIRECTLY",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
-      "ported": false,
-      "reached": false,
-      "portedAs": []
+      "ported": true,
+      "reached": true,
+      "portedAs": [
+        "src/primary-logic/query/contextAnalysis.ts"
+      ]
     },
     {
       "file": "src/utils/contextSuggestions.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Context analysis: where the room went",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,
@@ -17526,8 +17540,8 @@
       "file": "src/utils/doctorContextWarnings.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Context analysis: where the room went",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,
@@ -18120,8 +18134,8 @@
       "file": "src/utils/groupToolUses.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Context analysis: where the room went",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,
