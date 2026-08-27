@@ -18,7 +18,15 @@ describe("public plan comparison", () => {
 
   it("compares plans without exposing a purchase control during free launch", () => {
     const html = renderToStaticMarkup(<PlanComparison deploymentDetails={false} />);
-    expect(html).toContain("Checkout opens after payment-provider verification");
+    /*
+     * The grey paragraph this used to assert has become a real, permanently
+     * disabled control reading "Coming soon". The property under test is
+     * unchanged and is what matters: the plan is fully described, fully priced,
+     * and there is no way from this card to a payment.
+     */
+    expect(html).toContain("Coming soon");
+    expect(html).toContain("disabled");
+    expect(html).toContain("aria-disabled");
     expect(html).not.toContain("Choose Standard");
     expect(html).not.toContain("Start checkout");
   });

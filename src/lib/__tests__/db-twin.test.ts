@@ -44,15 +44,14 @@ describe("every migration applies in the declared order", () => {
    * two parity tests at the bottom of this file then force the paired
    * verification and rollback scripts to arrive with it.
    *
-   * Last raised for the atomic payment-webhook and entitlement-invoker
-   * migrations, which close the crash gap between event claiming and access
-   * changes and stop cross-account entitlement probes.
-   * Loosening
-   * this to a range would defeat the point: an exact count is what catches a
-   * migration going missing.
+   * Last raised for the RLS-policy consolidation, the automation-enqueue
+   * ambiguity fix, the messenger storage bucket, the restored
+   * has_role/authenticated grant and the support-ticket category expansion.
+   * Loosening this to a range would defeat the point: an exact count is what
+   * catches a migration going missing.
    */
-  it("finds all 54 migrations", () => {
-    expect(DatabaseTwin.migrationFiles()).toHaveLength(54);
+  it("finds all 57 migrations", () => {
+    expect(DatabaseTwin.migrationFiles()).toHaveLength(57);
   });
 
   /**
@@ -86,7 +85,7 @@ describe("every migration applies in the declared order", () => {
       failed.map((f) => `${f.file}: ${f.error}`),
       "a migration failed against real PostgreSQL",
     ).toEqual([]);
-    expect(applied).toHaveLength(54);
+    expect(applied).toHaveLength(57);
   });
 
   it("rebuilds the whole schema from zero, including the tables defined after the old break", async () => {

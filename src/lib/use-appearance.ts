@@ -10,8 +10,16 @@ import { createContext, useContext } from "react";
  */
 
 export type ThemeMode = "dark" | "light" | "real";
+/**
+ * The pointer OCADE draws.
+ *
+ * `custom` used to be here, backed by a `cursorCustom` data URL that no screen
+ * could ever set — there was no uploader anywhere in the product, so the branch
+ * was unreachable and the stored field always null. A preference nobody can
+ * change is not a preference.
+ */
 export type CursorKind =
-  "system" | "caera_black" | "caera_white" | "auto_contrast" | "custom" | "accessibility";
+  "system" | "caera_black" | "caera_white" | "auto_contrast" | "accessibility";
 
 export interface AppearancePrefs {
   theme: ThemeMode;
@@ -19,9 +27,15 @@ export interface AppearancePrefs {
   highContrast: boolean;
   lowPerformance: boolean; // user override; auto-detector may also flip it on
   cursor: CursorKind;
-  cursorCustom: string | null; // data URL for uploaded PNG/SVG
-  cursorSize: number; // 16..64
-  cursorTrail: boolean;
+  /**
+   * Pointer size in CSS pixels, 16 to 64.
+   *
+   * This is a real accessibility control, and for a while it was not: the value
+   * was stored, synced to the account and written to a `--cursor-size` custom
+   * property that no rule read, while the cursor itself was a fixed 24px file.
+   * The pointer is now generated at this size, hotspot included.
+   */
+  cursorSize: number;
   /**
    * Whether surfaces sit at real depths in the perspective scene.
    *

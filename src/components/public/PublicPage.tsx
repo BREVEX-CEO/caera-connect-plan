@@ -6,20 +6,25 @@ import { SiteFooterLinks, TAP_LINK } from "@/components/shell/SiteFooter";
 const MUX_PLAYBACK_ID = "Aa02T7oM1wH5Mk5EEVDYhbZ1ChcdhRsS2m1NYyx4Ua1g";
 const MUX_HLS = `https://stream.mux.com/${MUX_PLAYBACK_ID}.m3u8`;
 const MUX_MP4 = `https://stream.mux.com/${MUX_PLAYBACK_ID}/high.mp4`;
-const HLS_SCRIPT = "https://cdn.jsdelivr.net/npm/hls.js@1.5.20/dist/hls.min.js";
-
-type HlsInstance = {
-  loadSource(source: string): void;
-  attachMedia(media: HTMLMediaElement): void;
-  destroy(): void;
-};
-
-type HlsConstructor = {
-  new (): HlsInstance;
-  isSupported(): boolean;
-};
-
-type WindowWithHls = Window & { Hls?: HlsConstructor };
+/*
+ * NO THIRD-PARTY SCRIPT, AND THE PROOF THAT ONE WAS POINTLESS HERE.
+ *
+ * Every public page used to append a <script> tag for hls.js from a public CDN.
+ * The application's own Content-Security-Policy allows scripts from this origin
+ * and nowhere else, so the browser refused the request — on every page, for
+ * every visitor, in production. The route sweep is what finally said so out
+ * loud: sixty-seven pages, each with one failing request to a host we do not
+ * permit.
+ *
+ * It was never doing anything either. The load handler that would have used the
+ * library never ran; the error handler did, and fell back to the MP4. So the
+ * fallback below is not a downgrade — it is what has actually been playing all
+ * along, minus a blocked request, a console error, and a third party watching
+ * everyone who reads the pricing page.
+ *
+ * Safari and iOS play the adaptive stream natively, which is where adaptive
+ * bitrate matters most; everything else gets the progressive file.
+ */
 
 export function PublicPage({
   eyebrow,
@@ -41,57 +46,20 @@ export function PublicPage({
     const video = videoRef.current;
     if (!video) return;
 
-    let hls: HlsInstance | null = null;
-    let cancelled = false;
-
     const playQuietly = () => {
       void video.play().catch(() => undefined);
     };
 
-    const useMp4Fallback = () => {
-      if (cancelled) return;
-      video.src = MUX_MP4;
-      playQuietly();
-    };
-
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = MUX_HLS;
-      playQuietly();
-    } else {
-      const startHls = () => {
-        const Hls = (window as WindowWithHls).Hls;
-        if (!Hls?.isSupported()) {
-          useMp4Fallback();
-          return;
-        }
-        hls = new Hls();
-        hls.loadSource(MUX_HLS);
-        hls.attachMedia(video);
-        playQuietly();
-      };
-
-      if ((window as WindowWithHls).Hls) {
-        startHls();
-      } else {
-        const existing = document.querySelector<HTMLScriptElement>(`script[src="${HLS_SCRIPT}"]`);
-        if (existing) {
-          existing.addEventListener("load", startHls, { once: true });
-          existing.addEventListener("error", useMp4Fallback, { once: true });
-        } else {
-          const script = document.createElement("script");
-          script.src = HLS_SCRIPT;
-          script.async = true;
-          script.crossOrigin = "anonymous";
-          script.addEventListener("load", startHls, { once: true });
-          script.addEventListener("error", useMp4Fallback, { once: true });
-          document.head.appendChild(script);
-        }
-      }
-    }
+    video.src = video.canPlayType("application/vnd.apple.mpegurl") ? MUX_HLS : MUX_MP4;
+    playQuietly();
 
     return () => {
-      cancelled = true;
-      hls?.destroy();
+      // Stop the download when the page goes away. Without this, navigating
+      // between public pages leaves the previous page's video still pulling
+      // bytes until the browser gets round to collecting it.
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
     };
   }, []);
 
@@ -164,7 +132,10 @@ export function PublicPage({
         @media (prefers-reduced-motion: reduce) { [data-public-tilt] { transition:none; } }
       `}</style>
 
-      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#050505]">
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#050505]"
+      >
         <video
           ref={videoRef}
           muted
@@ -200,11 +171,17 @@ export function PublicPage({
             <span className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-white/15 bg-black shadow-[0_0_26px_rgba(104,57,132,.26)] transition-transform duration-300 group-hover:scale-110">
               <span className="absolute inset-[-1px] rounded-full bg-[conic-gradient(from_215deg,#d6d6da,#5b286f,#c8a24c,#d6d6da)] opacity-70" />
               <span className="relative grid h-[32px] w-[32px] place-items-center overflow-hidden rounded-full bg-black">
-                <img src="/brand/ocade-carcc-mark.png" alt="" className="h-full w-full object-contain" />
+                <img
+                  src="/brand/ocade-carcc-mark.png"
+                  alt=""
+                  className="h-full w-full object-contain"
+                />
               </span>
             </span>
             <span className="hidden pr-1 text-left sm:block">
-              <span className="block text-[10px] font-semibold tracking-[0.22em] text-white">OCADE</span>
+              <span className="block text-[10px] font-semibold tracking-[0.22em] text-white">
+                OCADE
+              </span>
               <span className="block text-[8px] tracking-[0.16em] text-white/45">CARCC CADANE</span>
             </span>
           </Link>
@@ -242,7 +219,9 @@ export function PublicPage({
                 to="/about"
                 className="group relative inline-flex min-h-11 items-center justify-center overflow-hidden rounded-full bg-white px-6 text-[13px] font-medium text-black transition-transform duration-300 hover:scale-[1.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 motion-reduce:transform-none"
               >
-                <span className="relative z-10 flex items-center gap-2">About CARCC CADANE <ArrowUpRight className="h-3.5 w-3.5" aria-hidden /></span>
+                <span className="relative z-10 flex items-center gap-2">
+                  About CARCC CADANE <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
+                </span>
               </Link>
               <Link
                 to="/support"
@@ -253,7 +232,10 @@ export function PublicPage({
             </div>
           </div>
 
-          <div aria-hidden className="absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.28em] text-white/35">
+          <div
+            aria-hidden
+            className="absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.28em] text-white/35"
+          >
             Scroll
             <span className="relative h-9 w-px overflow-hidden bg-white/12">
               <span className="absolute inset-x-0 h-4 bg-gradient-to-b from-transparent via-white/80 to-transparent motion-safe:animate-[public-scroll-line_1.6s_ease-in-out_infinite]" />
@@ -264,36 +246,63 @@ export function PublicPage({
         <section className="relative mx-auto max-w-5xl px-5 pb-24 pt-6 sm:pb-32">
           <div className="mb-8 flex items-end justify-between gap-6 border-b border-white/[0.08] pb-6">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-white/36">Official information</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-white sm:text-3xl">Read the details</h2>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-white/36">
+                Official information
+              </p>
+              <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-white sm:text-3xl">
+                Read the details
+              </h2>
             </div>
-            <span className="hidden max-w-xs text-right text-xs leading-5 text-white/34 sm:block">Clear, current documentation for OCADE and CARCC CADANE.</span>
+            <span className="hidden max-w-xs text-right text-xs leading-5 text-white/34 sm:block">
+              Clear, current documentation for OCADE and CARCC CADANE.
+            </span>
           </div>
           <div className="space-y-5 text-sm leading-7 sm:text-[15px] sm:leading-8">{children}</div>
         </section>
       </main>
 
       <footer className="relative z-10 overflow-hidden border-t border-white/[0.075] bg-black/35 px-5 py-12 backdrop-blur-xl">
-        <div aria-hidden className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(69,35,86,.12))]" />
+        <div
+          aria-hidden
+          className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(69,35,86,.12))]"
+        />
         <div className="relative mx-auto grid max-w-6xl gap-8 sm:grid-cols-[1fr_auto] sm:items-end">
           <div>
             <div className="flex items-center gap-3">
-              <img src="/brand/ocade-carcc-mark.png" alt="" className="h-10 w-10 rounded-full object-contain" />
+              <img
+                src="/brand/ocade-carcc-mark.png"
+                alt=""
+                className="h-10 w-10 rounded-full object-contain"
+              />
               <div>
                 <p className="text-sm font-semibold tracking-[0.16em] text-white">OCADE</p>
                 <p className="text-[10px] tracking-[0.17em] text-white/38">BY CARCC CADANE</p>
               </div>
             </div>
-            <p className="mt-5 max-w-md text-xs leading-6 text-white/42">Command the Next Era. Private intelligence, user control and permissioned action.</p>
-            <p className="mt-4 text-[11px] text-white/30">© {new Date().getFullYear()} CARCC CADANE.</p>
+            <p className="mt-5 max-w-md text-xs leading-6 text-white/42">
+              Command the Next Era. Private intelligence, user control and permissioned action.
+            </p>
+            <p className="mt-4 text-[11px] text-white/30">
+              © {new Date().getFullYear()} CARCC CADANE.
+            </p>
           </div>
           <div className="flex max-w-md flex-wrap gap-x-4 gap-y-3 text-xs text-white/48 sm:justify-end">
             <SiteFooterLinks />
-            <Link to="/about" className={TAP_LINK}>About</Link>
-            <Link to="/support" className={TAP_LINK}>Contact</Link>
-            <Link to="/privacy" className={TAP_LINK}>Privacy</Link>
-            <Link to="/terms" className={TAP_LINK}>Terms</Link>
-            <Link to="/data-rights" className={TAP_LINK}>Data rights</Link>
+            <Link to="/about" className={TAP_LINK}>
+              About
+            </Link>
+            <Link to="/support" className={TAP_LINK}>
+              Contact
+            </Link>
+            <Link to="/privacy" className={TAP_LINK}>
+              Privacy
+            </Link>
+            <Link to="/terms" className={TAP_LINK}>
+              Terms
+            </Link>
+            <Link to="/data-rights" className={TAP_LINK}>
+              Data rights
+            </Link>
           </div>
         </div>
       </footer>
@@ -301,7 +310,21 @@ export function PublicPage({
   );
 }
 
-function NavLink({ to, label }: { to: "/" | "/about" | "/products/ocade" | "/company" | "/founder/haans-antoni" | "/support" | "/privacy" | "/terms"; label: string }) {
+function NavLink({
+  to,
+  label,
+}: {
+  to:
+    | "/"
+    | "/about"
+    | "/products/ocade"
+    | "/company"
+    | "/founder/haans-antoni"
+    | "/support"
+    | "/privacy"
+    | "/terms";
+  label: string;
+}) {
   return (
     <Link
       to={to}
@@ -318,9 +341,17 @@ export function PublicSection({ title, children }: { title: string; children: Re
       data-public-tilt
       className="group relative overflow-hidden rounded-[28px] border border-white/[0.085] bg-[linear-gradient(145deg,rgba(19,18,22,.80),rgba(8,8,10,.72))] p-5 shadow-[0_28px_90px_rgba(0,0,0,.22),inset_0_1px_0_rgba(255,255,255,.045)] backdrop-blur-2xl hover:border-white/[0.15] hover:shadow-[0_32px_110px_rgba(0,0,0,.32),0_0_50px_rgba(83,45,105,.10)] sm:p-7"
     >
-      <div aria-hidden className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-[#caa84f]/50 to-transparent opacity-35 transition-opacity group-hover:opacity-90" />
-      <div aria-hidden className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(102,57,128,.16),transparent_70%)] blur-2xl" />
-      <h2 className="relative z-10 text-xl font-semibold tracking-[-0.025em] text-white sm:text-[23px]">{title}</h2>
+      <div
+        aria-hidden
+        className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-[#caa84f]/50 to-transparent opacity-35 transition-opacity group-hover:opacity-90"
+      />
+      <div
+        aria-hidden
+        className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(102,57,128,.16),transparent_70%)] blur-2xl"
+      />
+      <h2 className="relative z-10 text-xl font-semibold tracking-[-0.025em] text-white sm:text-[23px]">
+        {title}
+      </h2>
       <div className="relative z-10 mt-4 space-y-3.5 text-white/55 marker:text-white/34 [&_a]:text-white/82 [&_a]:underline-offset-4 [&_a:hover]:text-white [&_strong]:text-white/85">
         {children}
       </div>
@@ -328,11 +359,28 @@ export function PublicSection({ title, children }: { title: string; children: Re
   );
 }
 
-export function DraftNotice({ children }: { children?: ReactNode }) {
+/**
+ * A note on a public page about what is and is not available yet.
+ *
+ * WHAT THIS USED TO BE. `DraftNotice`, headed "Draft notice — legal review
+ * required", telling visitors that the text they were reading "must be
+ * approved before public launch". The pages below it went on to explain that
+ * prices were "founder-approved" and that an installer might trigger a
+ * SmartScreen warning. That is a team's internal checklist printed on the
+ * storefront: it tells a customer nothing they can act on and quite a lot they
+ * should never have to think about.
+ *
+ * It also painted itself in Tailwind's amber, the one colour family the palette
+ * does not contain, so every public page carried an off-brand block. It is gold
+ * now, which is the palette's own attention colour.
+ *
+ * What survives is the honest part: when something is not available yet, say
+ * so, in a sentence about the reader rather than about the team.
+ */
+export function Notice({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-amber-300/20 bg-amber-300/[0.06] p-4 text-amber-100/80 backdrop-blur-xl">
-      <strong className="text-amber-50">Draft notice — legal review required.</strong>{" "}
-      {children ?? "This text is not final legal advice and must be approved before public launch."}
+    <div className="rounded-2xl border border-primary/25 bg-primary/[0.06] p-4 text-foreground/80 backdrop-blur-xl">
+      {children}
     </div>
   );
 }

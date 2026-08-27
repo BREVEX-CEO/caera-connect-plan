@@ -3,6 +3,7 @@ import { Check, Infinity as InfinityIcon, Monitor, AlertTriangle } from "lucide-
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { FREE_LAUNCH_MODE } from "@/lib/launch-mode";
 import {
   PLANS,
   describePrice,
@@ -27,9 +28,17 @@ import {
  * breaks the pricing rule rather than falling back to showing it, so an invalid
  * price fails loudly in development instead of quietly in front of a customer.
  *
- * WHAT THIS DOES NOT DO: take money. Checkout needs product ids and provider
- * credentials that live in the environment, and when they are absent the panel
- * says so plainly instead of offering a button that would fail.
+ * WHAT THIS DOES NOT DO: take money.
+ *
+ * OCADE is free while it launches, and `FREE_LAUNCH_MODE` is checked HERE as
+ * well as inside the checkout hook. Two gates rather than one is deliberate:
+ * the hook's gate stops a purchase, and this one stops the button from ever
+ * being offered. A disabled-looking control that would have worked if clicked
+ * is the shape of a bug that charges someone by accident, and the cost of the
+ * duplicate check is one boolean.
+ *
+ * Plans stay fully visible and fully priced. Hiding them would answer "what
+ * will this cost?" with silence, which is the question the page exists for.
  */
 export function PlanComparison({
   currentPlan,
@@ -62,7 +71,14 @@ export function PlanComparison({
     () => missingProductIds(import.meta.env as unknown as Record<string, string | undefined>),
     [],
   );
-  const checkoutConfigured = missing.length === 0 && typeof onChoose === "function";
+  /*
+   * Checkout is offered only when the deployment is configured AND the launch
+   * is past its free period. The order matters for the message below: during
+   * the free launch the reason is "not yet", not "misconfigured", and telling a
+   * customer their deployment is broken when it is not is its own defect.
+   */
+  const comingSoon = FREE_LAUNCH_MODE;
+  const checkoutConfigured = !comingSoon && missing.length === 0 && typeof onChoose === "function";
 
   const paid = PLANS.filter((plan) => plan.publiclyAvailable);
   return (
@@ -138,6 +154,25 @@ export function PlanComparison({
                 >
                   {isCurrent ? "Your plan" : `Choose ${plan.name}`}
                 </Button>
+              ) : comingSoon ? (
+                /*
+                 * The gate. A real button shape so the card keeps its
+                 * composition, permanently disabled and labelled for what it
+                 * is. `aria-disabled` alongside `disabled` because a screen
+                 * reader should hear "coming soon", not skip the control
+                 * entirely and leave the plan looking unattainable.
+                 */
+                <Button
+                  variant="outline"
+                  className="mt-auto w-full cursor-default border-primary/25 bg-primary/[0.06] text-foreground/70 hover:bg-primary/[0.06]"
+                  disabled
+                  aria-disabled="true"
+                  tabIndex={-1}
+                  title={`${plan.name} is not on sale yet. OCADE is free while it launches, so nothing here can charge you.`}
+                  aria-label={`${plan.name} — coming soon. OCADE is free while it launches.`}
+                >
+                  Coming soon
+                </Button>
               ) : deploymentDetails ? (
                 <p
                   className="mt-auto rounded-md border border-border/60 bg-secondary/30 px-2.5 py-2 text-[11.5px] text-muted-foreground"
@@ -155,7 +190,15 @@ export function PlanComparison({
         })}
       </div>
 
-      {deploymentDetails && !checkoutConfigured && missing.length > 0 ? (
+      {comingSoon ? (
+        <p className="rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-[12px] leading-relaxed text-foreground/80">
+          OCADE is free while it launches. These plans are here so you can see what is coming —
+          nothing on this page can charge you, and no card details are collected anywhere in the
+          product today.
+        </p>
+      ) : null}
+
+      {!comingSoon && deploymentDetails && !checkoutConfigured && missing.length > 0 ? (
         <p className="flex items-start gap-2 rounded-lg border border-[color:var(--state-warning)]/30 bg-[color:var(--state-warning)]/5 px-3 py-2 text-[12px] text-muted-foreground">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
           <span>

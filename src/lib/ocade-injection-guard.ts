@@ -11,6 +11,8 @@
  * neutralised/labelled, but legitimate text is never silently discarded.
  */
 
+import { partiallySanitizeUnicode } from "@/primary-logic/text/sanitization";
+
 export type InjectionRisk = "none" | "low" | "high";
 
 export interface InjectionFinding {
@@ -32,7 +34,6 @@ export interface InjectionScan {
  * U+200B-200F zero-width/marks, U+202A-202E bidi overrides,
  * U+2060-2064 word-joiner/invisible operators, U+FEFF BOM.
  */
-const HIDDEN_CHARS = new RegExp("[​-‏‪-‮⁠-⁤﻿]", "g");
 const CREDENTIAL_VALUE =
   /\b(token|authorization|api[_ -]?key|password|secret(?: key)?|credentials?|private key)\s*[:=]\s*[^\s,;]+/gi;
 const QUOTE_DELIMITER = /---\s*(?:BEGIN|END)\s+UNTRUSTED CONTENT(?:\s*\([^)]*\))?\s*---/gi;
@@ -108,16 +109,50 @@ function safeSourceLabel(source: string): string {
   return (clean || "unknown source").slice(0, 200);
 }
 
-/** Remove invisible characters used to smuggle hidden instructions. */
+/**
+ * Remove invisible characters used to smuggle hidden instructions.
+ *
+ * WHAT THIS USED TO MISS, MEASURED
+ * --------------------------------
+ * It was a fixed list of literal characters — zero-width spaces, bidi
+ * overrides, word joiners. Real, and incomplete in one specific and important
+ * way: it did not cover the Unicode Tag block (U+E0000–U+E007F), which is the
+ * ASCII-smuggling vector. Every printable ASCII character has a Tag twin that
+ * renders as nothing at all, so an attacker can write a full sentence of
+ * instructions that a person cannot see and a model reads perfectly.
+ *
+ * Verified before this change: "Delete everything" with sixteen Tag characters
+ * appended came out of the old function forty-nine characters long, with every
+ * hidden instruction intact.
+ *
+ * The imported sanitizer covers it, and covers more besides: NFKC
+ * normalisation first (so a composed sequence cannot reassemble into something
+ * dangerous after stripping), then the Unicode format, private-use and
+ * unassigned categories, then explicit ranges for engines whose regex support
+ * lacks property classes — repeated to a fixed point, because one pass can
+ * expose characters the next pass has to remove.
+ */
 export function stripHiddenCharacters(text: string): string {
-  return text.replace(HIDDEN_CHARS, "");
+  return partiallySanitizeUnicode(text);
 }
 
 /** Scan untrusted content for injection attempts. Pure. */
 export function scanUntrustedContent(text: string): InjectionScan {
-  const hadHiddenCharacters = HIDDEN_CHARS.test(text);
-  HIDDEN_CHARS.lastIndex = 0;
+  /*
+   * DETECTED BY COMPARISON, NOT BY A SECOND LIST.
+   *
+   * This asked a separate `HIDDEN_CHARS` regex whether anything was hidden,
+   * while the stripping was done elsewhere. Two lists that must agree do not
+   * stay agreed: when the stripper was upgraded to cover the Unicode Tag block,
+   * this kept reporting `hadHiddenCharacters: false` for exactly the attack the
+   * upgrade was for — the characters were removed and the caller was told
+   * nothing had been.
+   *
+   * Comparing the sanitizer's output to its input cannot drift, because there
+   * is only one definition of "hidden" and this is downstream of it.
+   */
   const cleaned = stripHiddenCharacters(text);
+  const hadHiddenCharacters = cleaned !== text.normalize("NFKC");
 
   const findings: InjectionFinding[] = [];
   let risk: InjectionRisk = "none";

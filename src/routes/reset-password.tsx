@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { KeyRound, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { friendlyOtpError } from "@/lib/auth/otp";
 import { AuthShell } from "@/components/shell/AuthShell";
 import { opensResetForm, readRecoveryEvidence } from "@/lib/auth/recovery-link";
 
@@ -109,7 +110,19 @@ function ResetPasswordPage() {
     const { error: err } = await supabase.auth.updateUser({ password });
     setBusy(false);
     if (err) {
-      setError(err.message);
+      /*
+       * The provider's own words used to land here verbatim, naming the
+       * service and occasionally an internal endpoint. This is a person
+       * halfway through recovering their account; what they need is a sentence
+       * about what to do next.
+       */
+      setError(
+        /same.*password|should be different/i.test(err.message)
+          ? "That is the password you already had. Choose a different one."
+          : /expired|invalid|token/i.test(err.message)
+            ? "This reset link has expired. Ask for a new one from the sign-in page."
+            : friendlyOtpError(err.message),
+      );
       return;
     }
     setDone(true);
@@ -166,7 +179,7 @@ function ResetPasswordPage() {
           <label htmlFor="new-password" className="text-xs font-medium text-muted-foreground">
             New password
           </label>
-          <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/50 px-3 focus-within:ring-2 focus-within:ring-ring">
+          <div className="flex items-center gap-2 border-b border-border/70 bg-transparent px-0.5 transition-colors focus-within:border-foreground/70">
             <KeyRound className="h-4 w-4 text-muted-foreground" aria-hidden />
             <input
               id="new-password"
@@ -181,7 +194,7 @@ function ResetPasswordPage() {
           <label htmlFor="confirm-password" className="text-xs font-medium text-muted-foreground">
             Confirm new password
           </label>
-          <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-background/50 px-3 focus-within:ring-2 focus-within:ring-ring">
+          <div className="flex items-center gap-2 border-b border-border/70 bg-transparent px-0.5 transition-colors focus-within:border-foreground/70">
             <KeyRound className="h-4 w-4 text-muted-foreground" aria-hidden />
             <input
               id="confirm-password"
@@ -203,7 +216,7 @@ function ResetPasswordPage() {
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
+            className="inline-flex items-center justify-center gap-2 rounded-none bg-primary px-4 py-3 text-[13px] font-medium uppercase tracking-[0.18em] text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
           >
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Update password

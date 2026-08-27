@@ -18,6 +18,7 @@ import {
 import { getEntitlement } from "@/lib/ocade-usage.functions";
 import { PlanComparison } from "@/components/settings/PlanComparison";
 import { BillingHistory } from "@/components/settings/BillingHistory";
+import { ActivityAllowance } from "@/components/settings/ActivityAllowance";
 
 export const Route = createFileRoute("/_authenticated/settings/usage")({
   head: () => ({
@@ -74,6 +75,8 @@ function UsagePage() {
 
       <div className="flex flex-col gap-5">
         {/* Customer-visible plans and verified billing evidence only. */}
+        <ActivityAllowance />
+
         <PlanComparison currentPlan={entitlement?.planId ?? null} />
         <BillingHistory />
 

@@ -63,9 +63,9 @@ function OcadeModelsPage() {
             <div className="text-sm text-fg-muted">
               <p className="font-medium text-fg">Where your words go</p>
               <p className="mt-1">
-                OCADE generates every reply on this device. Your messages, drafts, attachments and
-                the reasoning behind an answer are not sent to OpenAI, Google, Anthropic or any
-                other AI service — there is no code left in OCADE that can reach one.
+                OCADE generates every reply on this device. Your messages, drafts, attachments
+                and the reasoning behind an answer are not sent to any AI company — not to a
+                third party, and not to us. There is no code left in OCADE that could reach one.
               </p>
               <p className="mt-2">
                 OCADE still uses the internet for ordinary things: downloading its own engine the

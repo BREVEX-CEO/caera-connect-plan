@@ -69,3 +69,32 @@ describe("local memory is opt-in, scoped and fail-closed", () => {
     expect(storage.get("ocade.memory.local.v1")).toBe("{broken");
   });
 });
+
+describe("memories carry their age", () => {
+  it("renders elapsed time rather than a timestamp, and warns only about old ones", async () => {
+    const { memoryAge, memoryFreshnessText } = await import("@/primary-logic/memory/memoryAge");
+    const day = 86_400_000;
+    expect(memoryAge(Date.now())).toBe("today");
+    expect(memoryAge(Date.now() - day)).toBe("yesterday");
+    expect(memoryAge(Date.now() - 47 * day)).toBe("47 days ago");
+
+    /*
+     * The caveat exists because a precise stale memory sounds MORE
+     * authoritative, not less: "the file has 412 lines" restated three months
+     * later reads as a checked fact. It is withheld for anything a day old or
+     * newer, because a warning that fires when nothing is stale is one people
+     * learn to skip.
+     */
+    expect(memoryFreshnessText(Date.now())).toBe("");
+    expect(memoryFreshnessText(Date.now() - day)).toBe("");
+    expect(memoryFreshnessText(Date.now() - 47 * day)).toMatch(/47 days old/);
+    expect(memoryFreshnessText(Date.now() - 47 * day)).toMatch(/Verify against current code/);
+  });
+
+  it("clamps a memory written in the future rather than reporting a negative age", () => {
+    // A clock that moved backwards, or a row synced from a device set ahead.
+    return import("@/primary-logic/memory/memoryAge").then(({ memoryAge }) => {
+      expect(memoryAge(Date.now() + 86_400_000)).toBe("today");
+    });
+  });
+});

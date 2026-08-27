@@ -3396,6 +3396,78 @@ export type Database = {
           },
         ]
       }
+      payment_webhook_events: {
+        Row: {
+          entity_id: string | null
+          environment: string
+          event_id: string
+          event_type: string
+          occurred_at: string
+          outcome: string
+          reason: string | null
+          received_at: string
+          user_id: string | null
+        }
+        Insert: {
+          entity_id?: string | null
+          environment: string
+          event_id: string
+          event_type: string
+          occurred_at: string
+          outcome: string
+          reason?: string | null
+          received_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          entity_id?: string | null
+          environment?: string
+          event_id?: string
+          event_type?: string
+          occurred_at?: string
+          outcome?: string
+          reason?: string | null
+          received_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      storage_tombstones: {
+        Row: {
+          attempts: number
+          bucket: string
+          id: string
+          last_error: string | null
+          owner_id: string | null
+          purged_at: string | null
+          requested_at: string
+          source: string
+          storage_path: string
+        }
+        Insert: {
+          attempts?: number
+          bucket: string
+          id?: string
+          last_error?: string | null
+          owner_id?: string | null
+          purged_at?: string | null
+          requested_at?: string
+          source?: string
+          storage_path: string
+        }
+        Update: {
+          attempts?: number
+          bucket?: string
+          id?: string
+          last_error?: string | null
+          owner_id?: string | null
+          purged_at?: string | null
+          requested_at?: string
+          source?: string
+          storage_path?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null

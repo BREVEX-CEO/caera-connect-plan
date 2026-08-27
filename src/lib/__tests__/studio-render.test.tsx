@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ResearchPanel } from "@/components/ocade/ResearchPanel";
@@ -22,12 +23,23 @@ const research = () => renderToStaticMarkup(<ResearchPanel />);
 const scene = () => renderToStaticMarkup(<ScenePanel />);
 
 describe("the Studio route is reachable, not orphaned", () => {
-  it("appears in OCADE's navigation", () => {
-    const entry = MODULE_CONTEXT.ocade.find((i) => i.to === "/ocade/studio");
-    expect(entry).toBeDefined();
-    expect(entry!.label).toBe("Studio");
-    // A nav entry marked `planned` would render disabled — this one is real.
-    expect(entry!.planned).toBeUndefined();
+  it("is reachable from OCADE, on the rail or under More", () => {
+    /*
+     * THIS USED TO REQUIRE A SIDEBAR ENTRY. The rail went from twelve
+     * destinations to seven, which is the point of the change: a list of twelve
+     * rooms is a sitemap, not a place to work. What must stay true is that the
+     * screen has a route to it, and that is what is checked now — the rail, the
+     * More page, or the command palette, any of which a person can actually
+     * follow.
+     */
+    const onRail = MODULE_CONTEXT.ocade.some((item) => item.to === "/ocade/studio");
+    const underMore = readFileSync("src/routes/_authenticated/ocade.system.tsx", "utf8").includes(
+      '"/ocade/studio"',
+    );
+    const inPalette = readFileSync("src/components/shell/CommandPalette.tsx", "utf8").includes(
+      '"/ocade/studio"',
+    );
+    expect(onRail || underMore || inPalette).toBe(true);
   });
 });
 

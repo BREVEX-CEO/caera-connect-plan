@@ -94,6 +94,10 @@ import {
   type LocalConversation,
 } from "@/lib/chat/local-conversations";
 import { improvePromptLocally } from "@/lib/chat/improve-prompt";
+import { useOcadeRuntime, type RuntimeApproval } from "@/lib/runtime/use-ocade-runtime";
+import { OcadeOrb } from "@/components/ocade/OcadeOrb";
+import { orbStateFor } from "@/lib/orb/state";
+import { describe as describeOutcome } from "@/lib/agent/loop";
 import { MessageList } from "@/components/ocade/chat/MessageList";
 import { ChatSidebar } from "@/components/ocade/chat/ChatSidebar";
 import { EngineBadge } from "@/components/ocade/chat/EngineBadge";
@@ -211,6 +215,27 @@ import {
   removeConversationCitations,
   saveChatCitations,
 } from "@/lib/chat-citation-store";
+
+/**
+ * What a person chooses, in their words.
+ *
+ * Not model names, not runtimes, not "automatic". Two of these are the same
+ * question anybody actually has — sooner or better — and the third is a
+ * different promise: nothing leaves this device, including a web lookup.
+ */
+const MODES: { id: "fast" | "thinking" | "local"; label: string; hint: string }[] = [
+  { id: "fast", label: "Fast", hint: "Answers as quickly as this device can." },
+  {
+    id: "thinking",
+    label: "Thinking",
+    hint: "Takes longer and reasons before answering. Better for hard questions.",
+  },
+  {
+    id: "local",
+    label: "Local Intelligence",
+    hint: "Stays entirely on this device. No lookups, no sync — nothing leaves.",
+  },
+];
 
 export const Route = createFileRoute("/_authenticated/ocade/")({
   head: () => ({
@@ -1156,6 +1181,18 @@ function ChatSurface(props: {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [reactions, setReactions] = useState<ChatReactionMap>({});
   const [streaming, setStreaming] = useState(false);
+  /*
+   * TOOLS IN CHAT.
+   *
+   * Chat could describe how to open a file and could not open one; Cowork could
+   * open one and could not hold a conversation about it. The runtime below is
+   * the same engine, registry, permission layer and loop Cowork runs, so a
+   * request that needs an action gets one here — and a request that does not
+   * never loads a tool schema, so ordinary chat is exactly as fast as it was.
+   */
+  const [toolApproval, setToolApproval] = useState<RuntimeApproval | null>(null);
+  const toolApprovalResolve = useRef<((allowed: boolean) => void) | null>(null);
+  const [toolSteps, setToolSteps] = useState<string[]>([]);
   const [streamText, setStreamTextState] = useState("");
   /*
    * Streaming used to call setState for every chunk. Both stream paths hand
@@ -1209,12 +1246,58 @@ function ChatSurface(props: {
    * answer on this hardware, and excluded an installed vision model that works.
    */
   const devicePolicy = useDevicePolicy();
-  const { prefs: chatPrefs } = useChatPrefs();
+  const { prefs: chatPrefs, update: setChatPrefs } = useChatPrefs();
   /** A local engine that is genuinely serving, not merely installed. */
   const localEngineReady = localEngine.status === "ready" && localEngine.models.length > 0;
   const navigate = useNavigate();
   /** Engine selection and honest refusals across every device mode. */
   const brain = useBrain();
+
+  /**
+   * The shared runtime, in its chat configuration.
+   *
+   * `onApprovalNeeded` is supplied, so the permission layer can ask. Without it
+   * the runtime refuses everything it wanted to check rather than allowing it —
+   * a surface that forgets its approval UI fails closed.
+   *
+   * `missionId` returns null here on purpose. Chat holds no companion session,
+   * so a call that needs the machine is refused with a sentence pointing at
+   * Devices rather than half-executed. Web, research and continuity tools need
+   * no companion and work in a plain browser tab.
+   */
+  const runtime = useOcadeRuntime({
+    surface: "chat",
+    missionId: () => null,
+    memoryContext: () => {
+      // Scoped to the project this conversation belongs to, exactly as the
+      // ordinary chat path scopes it. Memory that is off, empty or unreadable
+      // returns null, and the prompt is then what it was before.
+      const memory = localMemoryContext(conversation.project_id ?? null);
+      return memory.ok ? memory.data : null;
+    },
+    onApprovalNeeded: (approval) =>
+      new Promise<boolean>((resolve) => {
+        toolApprovalResolve.current = resolve;
+        setToolApproval(approval);
+      }),
+    onEvent: (event) => {
+      if (event.kind === "started") {
+        setToolSteps((current) => [...current, `Working — ${event.call.name.replace(/_/g, " ")}`]);
+      }
+      if (event.kind === "finished") {
+        setToolSteps((current) => [...current.slice(0, -1), describeOutcome(event.outcome)]);
+      }
+      if (event.kind === "refused") {
+        setToolSteps((current) => [...current.slice(0, -1), event.reason]);
+      }
+      if (event.kind === "compacted") {
+        // Said out loud rather than hidden: the person is watching a long run,
+        // and a silent context drop is how a later answer stops making sense
+        // without anybody knowing why.
+        setToolSteps((current) => [...current, "Condensing earlier context…"]);
+      }
+    },
+  });
   /*
    * The user's chosen starting engine, from Settings › Chat. Read once as the
    * initial value so switching engine inside a conversation is not overwritten
@@ -1705,7 +1788,104 @@ function ChatSurface(props: {
      * unreachable, and unreachable code that knows how to reach a public AI
      * provider is exactly the code that comes back.
      */
+    /*
+     * A request that asks OCADE to DO something goes through the runtime first.
+     *
+     * `run` returns `used: false` without touching the engine when the request
+     * is plainly conversation, so the common case pays nothing. When it does
+     * run, its answer is the answer — no second generation pass, because asking
+     * the model to describe what it just did produces a different account of it
+     * than the receipts do.
+     */
+    if (!hasImage && atts.length === 0) {
+      const acted = await sendViaTools(text);
+      if (acted) return;
+    }
+
     await sendViaLocal(text, atts, hasImage);
+  }
+
+  /**
+   * Run a request through the shared runtime, and persist what it did.
+   *
+   * Returns false when the runtime declined to act, in which case the caller
+   * falls through to the ordinary on-device answer. Returns false ALSO when the
+   * runtime ran and did nothing useful — a loop that stopped without a single
+   * step has no better answer than the chat path would give, and showing its
+   * "I could not do that" instead of a real reply would be a regression
+   * disguised as a feature.
+   */
+  async function sendViaTools(text: string): Promise<boolean> {
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setToolSteps([]);
+    setStreaming(true);
+    setStreamText("");
+    let streamed = "";
+    try {
+      const run = await runtime.run(text, { signal: controller.signal });
+      if (!run.used || !run.result) return false;
+      const { result } = run;
+      if (result.toolResults.length === 0) return false;
+
+      streamed = result.text;
+      /*
+       * Said out loud rather than buried. A step that reported success and
+       * could not be verified is the one case where "Done" would be a lie,
+       * and the user is the person who can go and look.
+       */
+      const unverified = result.toolResults.some((step) => step.verified === false);
+      const transcript = [
+        result.text.trim(),
+        "",
+        ...result.toolResults.map((step) => `- ${step.content.split("\n")[0]}`),
+        unverified ? "\nOCADE could not confirm every step. Worth a look." : "",
+        result.terminal.reason === "max_turns"
+          ? "\nOCADE stopped after several rounds without finishing. Tell it what to try next."
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      await persistChatMessage({
+        userId,
+        chatsMode,
+        conversationId: conversation.id,
+        role: "user",
+        content: text,
+      });
+      await persistChatMessage({
+        userId,
+        chatsMode,
+        conversationId: conversation.id,
+        role: "assistant",
+        content: transcript,
+        modelId: OCADE_DEFAULT_MODEL_ID,
+        providerId: "ocade-local",
+      });
+      await refreshAfterLocal();
+      setDraft("");
+      clearDraft(conversation.id);
+      return true;
+    } catch (error) {
+      /*
+       * A stop is the user's choice, not a failure, and the partial work is
+       * still theirs. Anything else is reported and the caller falls back to
+       * the ordinary answer rather than leaving the person with nothing.
+       */
+      if (controller.signal.aborted) {
+        if (streamed) toast.info("Stopped.");
+        return true;
+      }
+      toast.error(error instanceof Error ? error.message : "OCADE could not carry that out.");
+      return false;
+    } finally {
+      setStreaming(false);
+      setToolSteps([]);
+      setToolApproval(null);
+      toolApprovalResolve.current = null;
+      abortRef.current = null;
+    }
   }
 
   /**
@@ -3295,9 +3475,58 @@ function ChatSurface(props: {
                   </ul>
                 </div>
               ) : null}
-              {streaming && !streamText ? (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> OCADE is thinking…
+              {/*
+                What OCADE is DOING, while it does it.
+                
+                A spinner reading "thinking" while the product opens a window is
+                not a lie so much as a missed opportunity: the person can only
+                interrupt something they can see. Each line is a step, replaced
+                by its outcome as it completes.
+              */}
+              {toolSteps.length > 0 ? (
+                <ul className="space-y-1 text-xs text-muted-foreground">
+                  {toolSteps.map((step, index) => (
+                    <li key={`${step}-${index}`} className="flex items-center gap-2">
+                      {index === toolSteps.length - 1 && streaming ? (
+                        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+                      ) : (
+                        <span
+                          className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary/70"
+                          aria-hidden
+                        />
+                      )}
+                      {step}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {/*
+                THE ORB, WHERE THE SPINNER USED TO BE.
+
+                A spinner says "something is happening" and nothing else — the
+                same three dots whether OCADE is deciding, reading a page, or
+                changing a file on the machine. The orb says which, in colour,
+                motion and size at once, and reads the same here as it does in
+                Work, because it is the same component driven by the same
+                states.
+              */}
+              {streaming || toolApproval ? (
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <OcadeOrb
+                    size={34}
+                    decorative
+                    state={orbStateFor({
+                      phase: toolSteps.length > 0 ? "controlling" : "thinking",
+                      awaitingApproval: toolApproval !== null,
+                    })}
+                  />
+                  <span role="status" aria-live="polite">
+                    {toolApproval
+                      ? "Waiting for you"
+                      : toolSteps.length > 0
+                        ? "Working"
+                        : "OCADE is thinking…"}
+                  </span>
                 </div>
               ) : null}
             </div>
@@ -3393,33 +3622,52 @@ function ChatSurface(props: {
             </div>
           ) : null}
           <PreparationStatus />
+          {/*
+            THREE CHOICES, NAMED FOR WHAT THEY GIVE THE PERSON.
+
+            This row said "Engine: OCADE Automatic / OCADE On this device", which
+            is two ways of saying the same thing — both run on the device — and
+            neither answers the question somebody actually has, which is whether
+            they want the answer sooner or better.
+
+            Fast and Thinking are that question. Local Intelligence is the third
+            because it is a genuinely different promise: never leave this device
+            for anything, including looking something up. It is the privacy
+            choice, not a speed choice, which is why it sits alongside rather
+            than inside them.
+          */}
           <div className="mb-1.5 flex items-center gap-1 text-[11px]">
-            <span className="text-muted-foreground">Engine</span>
-            {(["auto", "local"] as const).map((t) => {
-              const lbl = t === "auto" ? "Automatic" : "On this device";
-              const disabled = t === "local" && localEngine.status !== "ready";
+            <span className="text-muted-foreground">Mode</span>
+            {MODES.map((mode) => {
+              const active =
+                mode.id === "local"
+                  ? engineTier === "local"
+                  : engineTier === "auto" && chatPrefs.thinking === (mode.id === "thinking");
+              const disabled = mode.id === "local" && localEngine.status !== "ready";
               return (
                 <button
-                  key={t}
+                  key={mode.id}
                   type="button"
+                  aria-pressed={active}
                   disabled={disabled}
-                  onClick={() => setEngineTier(t)}
-                  title={
-                    disabled
-                      ? "OCADE is still preparing its on-device intelligence"
-                      : t === "local"
-                        ? "Always run on this device — unlimited and private"
-                        : "Let OCADE choose. Either way it runs on this device."
-                  }
+                  onClick={() => {
+                    if (mode.id === "local") {
+                      setEngineTier("local");
+                      return;
+                    }
+                    setEngineTier("auto");
+                    setChatPrefs({ thinking: mode.id === "thinking" });
+                  }}
+                  title={disabled ? "OCADE is still getting ready on this device." : mode.hint}
                   className={cn(
                     "rounded px-2 py-0.5 transition-colors",
-                    engineTier === t
+                    active
                       ? "bg-sidebar-accent text-foreground"
                       : "text-muted-foreground hover:text-foreground",
                     disabled && "cursor-not-allowed opacity-40",
                   )}
                 >
-                  OCADE {lbl}
+                  {mode.label}
                 </button>
               );
             })}
@@ -3478,6 +3726,58 @@ function ChatSurface(props: {
           />
         </div>
       </div>
+
+      {/*
+        The approval card.
+
+        It names the ACTION and, when the permission layer found one, the
+        specific reason it stopped — "may discard uncommitted changes" is what
+        makes the difference between a question a person answers and one they
+        dismiss. Closing it without choosing is a refusal, because a dialog
+        that treats silence as yes is not asking anything.
+      */}
+      <Dialog
+        open={toolApproval !== null}
+        onOpenChange={(next) => {
+          if (next) return;
+          toolApprovalResolve.current?.(false);
+          toolApprovalResolve.current = null;
+          setToolApproval(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{toolApproval?.question ?? "Go ahead?"}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{toolApproval?.decision.reason}</p>
+          {toolApproval?.decision.warning ? (
+            <p className="rounded-lg border border-primary/25 bg-primary/[0.06] p-3 text-sm text-foreground/85">
+              {toolApproval.decision.warning}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                toolApprovalResolve.current?.(false);
+                toolApprovalResolve.current = null;
+                setToolApproval(null);
+              }}
+            >
+              Not now
+            </Button>
+            <Button
+              onClick={() => {
+                toolApprovalResolve.current?.(true);
+                toolApprovalResolve.current = null;
+                setToolApproval(null);
+              }}
+            >
+              Go ahead
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

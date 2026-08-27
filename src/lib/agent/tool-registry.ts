@@ -2100,6 +2100,54 @@ const CONTINUITY: ToolDefinition[] = [
     mutating: true,
     risk: "low",
   },
+  /*
+   * TASKS — the three actions OCADE takes on its own work.
+   *
+   * They live in `conversation` because they need nothing from the machine:
+   * a user with no companion paired can still ask what OCADE is working on and
+   * tell it to stop. Their adapter is local (`@/lib/tasks/task-tools`), which
+   * is why the executor checks for them before it routes anywhere else.
+   */
+  {
+    name: "task_list",
+    domain: "conversation",
+    description:
+      "List what OCADE is working on right now and what is waiting. Use this whenever the user asks what is running, what you are doing, or what is left.",
+    parameters: NO_ARGS,
+    mutating: false,
+    risk: "read",
+  },
+  {
+    name: "task_stop",
+    domain: "conversation",
+    description:
+      "Stop a task that is running. Takes the task's id, which comes from task_list. This genuinely ends the work — it is not a note.",
+    parameters: object({ id: { type: "string", description: "The id of the task to stop." } }, [
+      "id",
+    ]),
+    mutating: true,
+    /*
+     * High, and not negotiable. Stopping work in progress can leave a half-done
+     * change on someone's computer, and "which task did you mean" is exactly
+     * the kind of thing a small model gets wrong.
+     */
+    risk: "high",
+  },
+  {
+    name: "task_create",
+    domain: "conversation",
+    description:
+      "Write a task down for later. This records it — it does not start it. Use it when the user asks you to remember a piece of work rather than do it now.",
+    parameters: object(
+      {
+        title: { type: "string", description: "A short title, in the user's own words." },
+        detail: { type: "string", description: "Optional. What the task involves." },
+      },
+      ["title"],
+    ),
+    mutating: true,
+    risk: "low",
+  },
 ];
 
 const REGISTRY: Record<Domain, ToolDefinition[]> = {

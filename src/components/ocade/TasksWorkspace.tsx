@@ -16,6 +16,7 @@ import {
   pauseAutomationRun,
   resumeAutomationRun,
 } from "@/lib/ocade-automations.functions";
+import { describeStaleness, fetchWithMirror } from "@/lib/offline/mirror";
 
 /**
  * The tasks surface, shared by `/ocade/tasks` and `/settings/tasks`.
@@ -45,16 +46,41 @@ export function TasksWorkspace({ backTo, backLabel }: { backTo: string; backLabe
   const pause = useServerFn(pauseAutomationRun);
   const resume = useServerFn(resumeAutomationRun);
 
+  /*
+   * MIRRORED, SO THIS SCREEN STILL ANSWERS WITH NO NETWORK.
+   *
+   * Automations run on the server, so nothing here can start one offline — but
+   * "what am I scheduled to do at nine" is a question a person asks on a train,
+   * and answering it with an error from a product that promises to work offline
+   * is the disagreement between the claim and the behaviour.
+   *
+   * The server is still asked first, every time. The mirror answers only when
+   * that fails, and when it does the banner below says so with the time it was
+   * taken — a stale schedule presented as current is worse than none.
+   */
+  const [staleAt, setStaleAt] = useState<number | null>(null);
+
   const automations = useQuery({
     queryKey: ["settings-tasks", "automations", user?.id],
     enabled: !!user?.id,
-    queryFn: () => fetchAutomations(),
+    queryFn: async () => {
+      const result = await fetchWithMirror("automations", user?.id ?? null, () =>
+        fetchAutomations(),
+      );
+      setStaleAt(result.stale ? result.takenAt : null);
+      return result.items;
+    },
   });
 
   const runs = useQuery({
     queryKey: ["settings-tasks", "runs", user?.id],
     enabled: !!user?.id,
-    queryFn: () => fetchRuns({ data: {} }),
+    queryFn: async () => {
+      const result = await fetchWithMirror("automation_runs", user?.id ?? null, () =>
+        fetchRuns({ data: {} }),
+      );
+      return result.items;
+    },
     refetchInterval: 10_000,
   });
 
@@ -62,8 +88,26 @@ export function TasksWorkspace({ backTo, backLabel }: { backTo: string; backLabe
     void qc.invalidateQueries({ queryKey: ["settings-tasks"] });
   };
 
+  /*
+   * A CHANGE THAT CANNOT HAPPEN IS REFUSED, NOT QUEUED SILENTLY.
+   *
+   * Pausing an automation offline pauses nothing: the thing that would run it
+   * is not on this device. Showing the switch move and letting the run fire
+   * anyway is the worst of the three options. Saying so is the honest one.
+   */
+  const requireNetwork = () => {
+    if (staleAt === null) return true;
+    setError(
+      "OCADE is showing what it last saw. Changes to a schedule need a connection, because the schedule runs in the cloud rather than on this device.",
+    );
+    return false;
+  };
+
   const toggle = useMutation({
-    mutationFn: (v: { id: string; enabled?: boolean; paused?: boolean }) => patch({ data: v }),
+    mutationFn: (v: { id: string; enabled?: boolean; paused?: boolean }) => {
+      if (!requireNetwork()) throw new Error("Offline");
+      return patch({ data: v });
+    },
     onError: (e) => setError(e instanceof Error ? e.message : String(e)),
     onSuccess: () => {
       setError(null);
@@ -73,6 +117,7 @@ export function TasksWorkspace({ backTo, backLabel }: { backTo: string; backLabe
 
   const runAction = useMutation({
     mutationFn: async (v: { runId: string; kind: "cancel" | "pause" | "resume" }) => {
+      if (!requireNetwork()) throw new Error("Offline");
       if (v.kind === "cancel") return cancel({ data: { runId: v.runId } });
       if (v.kind === "pause") return pause({ data: { runId: v.runId } });
       return resume({ data: { runId: v.runId } });
@@ -102,6 +147,21 @@ export function TasksWorkspace({ backTo, backLabel }: { backTo: string; backLabe
           </Link>
         }
       />
+
+      {/*
+        Named, with a time. "Offline" alone leaves a person guessing whether
+        what they are reading is an hour old or a week old, and the difference
+        decides whether they act on it.
+      */}
+      {staleAt !== null ? (
+        <div
+          role="status"
+          className="mt-4 rounded-md border border-primary/25 bg-primary/[0.06] px-3 py-2 text-xs text-foreground/80"
+        >
+          OCADE cannot reach your schedule right now, so this is what it last saw{" "}
+          {describeStaleness(staleAt)}. Anything that has run since is not shown here.
+        </div>
+      ) : null}
 
       {error ? (
         <div

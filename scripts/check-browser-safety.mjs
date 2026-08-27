@@ -59,12 +59,28 @@ function walk(dir, out = []) {
 /** Blank comments and strings without moving line numbers. */
 function stripNoise(source) {
   const keep = (t) => t.replace(/[^\n]/g, " ");
-  return source
-    .replace(/\/\*[\s\S]*?\*\//g, keep)
-    .replace(/(^|[^:])\/\/[^\n]*/g, (m, p1) => p1 + keep(m.slice(p1.length)))
-    .replace(/`(?:[^`\\]|\\.)*`/g, keep)
-    .replace(/"(?:[^"\\\n]|\\.)*"/g, keep)
-    .replace(/'(?:[^'\\\n]|\\.)*'/g, keep);
+  return (
+    source
+      .replace(/\/\*[\s\S]*?\*\//g, keep)
+      .replace(/(^|[^:])\/\/[^\n]*/g, (m, p1) => p1 + keep(m.slice(p1.length)))
+      .replace(/`(?:[^`\\]|\\.)*`/g, keep)
+      .replace(/"(?:[^"\\\n]|\\.)*"/g, keep)
+      .replace(/'(?:[^'\\\n]|\\.)*'/g, keep)
+      /*
+       * JSX TEXT IS PROSE, NOT CODE.
+       *
+       * This audit reported `src/routes/company.tsx:94` as a Node `process`
+       * reference. Line 94 reads "...for the current investor-enquiry process."
+       * — an English sentence between two tags. The word is not the global and
+       * never was.
+       *
+       * A safety check that fires on prose is one people learn to scroll past,
+       * which is exactly how a real finding gets missed. Text between `>` and
+       * `<` with no braces in it cannot be an expression, so it is blanked along
+       * with the comments and the string literals.
+       */
+      .replace(/>[^<>{}]+</g, (t) => `>${keep(t.slice(1, -1))}<`)
+  );
 }
 
 const GLOBALS = [

@@ -21,8 +21,17 @@ describe("anonymous demo navigation", () => {
     const faq = readFileSync("src/routes/faq.tsx", "utf8");
     expect(footer).toContain('{ to: "/support", label: "Support" }');
     expect(faq).toContain('to="/support"');
-    expect(readFileSync("src/routes/support.tsx", "utf8")).toContain(
-      'href="mailto:support@ocade.in"',
-    );
+    /*
+     * THIS USED TO REQUIRE `mailto:support@ocade.in` ON THE PAGE.
+     *
+     * That mailbox is not active, and a support page that prints an address
+     * nobody reads is worse than one that does not: the person writes, waits,
+     * and hears nothing. Support runs on tickets, so the page links to tickets
+     * — and this asserts the absence of the dead address as well as the
+     * presence of the route that works.
+     */
+    const support = readFileSync("src/routes/support.tsx", "utf8");
+    expect(support).toContain('to="/settings/support"');
+    expect(support).not.toMatch(/mailto:/);
   });
 });

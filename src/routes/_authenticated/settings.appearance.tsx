@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Check, Contrast, Palette, Sparkles } from "lucide-react";
+import { Check, Contrast, MousePointer2, Palette, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { PerformanceFallbackNotice } from "@/components/settings/PerformanceFallbackNotice";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { type ThemeMode } from "@/lib/theme-provider";
+import type { CursorKind } from "@/lib/use-appearance";
 import { useAppearance } from "@/lib/use-appearance";
 import { recordAction } from "@/lib/actions";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,20 @@ const THEMES: { id: ThemeMode; label: string; description: string }[] = [
 ];
 
 type ExperienceMode = "calm" | "balanced" | "immersive";
+
+/**
+ * Pointer choices, named for what the person sees rather than for the asset.
+ *
+ * "OCADE light" and "OCADE dark" describe the pointer's own colour, which is
+ * the thing being chosen. `auto_contrast` is offered as "Match the theme"
+ * because that is what it does, and it is the default worth reaching for.
+ */
+const CURSORS: { id: CursorKind; label: string }[] = [
+  { id: "system", label: "System pointer" },
+  { id: "auto_contrast", label: "Match the theme" },
+  { id: "caera_white", label: "OCADE light" },
+  { id: "caera_black", label: "OCADE dark" },
+];
 
 const EXPERIENCE: {
   id: ExperienceMode;
@@ -199,6 +214,64 @@ function AppearancePage() {
                 )}
               />
             </button>
+          </label>
+        </GlassPanel>
+
+        <GlassPanel className="p-5">
+          <div className="mb-4 flex items-center gap-2">
+            <MousePointer2 className="h-4 w-4 text-primary" aria-hidden />
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Pointer</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                A larger pointer is easier to follow on a big or high-resolution screen.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-4">
+            {CURSORS.map((option) => {
+              const active = appearance.cursor === option.id;
+              return (
+                <button
+                  type="button"
+                  key={option.id}
+                  aria-pressed={active}
+                  onClick={() => void appearance.update({ cursor: option.id })}
+                  className={cn(
+                    "rounded-xl border p-3 text-left text-sm transition-colors",
+                    active
+                      ? "border-primary/60 bg-primary/10 text-foreground"
+                      : "border-border/60 bg-background/40 text-muted-foreground hover:bg-accent/40",
+                  )}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <label className="mt-5 block">
+            <span className="text-sm font-medium text-foreground">
+              Pointer size — {appearance.cursorSize}px
+            </span>
+            <input
+              aria-label="Cursor size"
+              type="range"
+              min={16}
+              max={64}
+              step={4}
+              value={appearance.cursorSize}
+              disabled={appearance.cursor === "system" || appearance.cursor === "accessibility"}
+              onChange={(event) =>
+                void appearance.update({ cursorSize: Number(event.target.value) })
+              }
+              className="mt-2 w-full accent-primary disabled:opacity-40"
+            />
+            <span className="mt-1 block text-xs text-muted-foreground">
+              {appearance.cursor === "system" || appearance.cursor === "accessibility"
+                ? "Your operating system is drawing the pointer, so it sets the size."
+                : "Applies everywhere in OCADE."}
+            </span>
           </label>
         </GlassPanel>
       </div>

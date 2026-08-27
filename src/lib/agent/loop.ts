@@ -41,6 +41,9 @@ import {
   type ToolOutcome,
 } from "./outcomes";
 import { findTool, schemasFor, type WireTool } from "./tool-registry";
+import { estimateTranscriptTokens, runQuery } from "@/primary-logic/query/query";
+import type { QueryDeps } from "@/primary-logic/query/deps";
+import { compactTranscript } from "@/lib/runtime/compact";
 import { ocadeCorePolicy } from "./ocade-core-policy";
 
 export interface ToolCall {
@@ -218,18 +221,25 @@ export async function runAgentTask(
   const emit = (event: AgentEvent) => deps.onEvent?.(event);
 
   /*
-   * THE FAST PATH LIVES AT THE SURFACE, NOT HERE.
+   * THIS FUNCTION USED TO BE THE LOOP. IT IS NOW AN ADAPTER OVER ONE.
    *
-   * This loop briefly had its own deterministic router. That made two of them —
-   * `work/fast-router.ts` was already wired to Control + Work — and the two
-   * disagreed: on "open Notepad and write an essay" this one correctly declined
-   * while the wired one swallowed the whole sentence into an app name. Shipping
-   * two answers to one question is how the worse one reaches users.
+   * OCADE had this loop and the imported source had `query.ts`, and each was
+   * better at a different half of the job. This one had the governance:
+   * classification, a change-of-plan taken at a step boundary, spoken barge-in,
+   * a retry policy written against a closed set of outcome kinds, repeat
+   * detection, and the verification rules below that refuse to call a run
+   * "verified" when its own steps do not support the claim. The imported one
+   * had the recovery paths — truncated output, an over-long prompt, compaction,
+   * token budgets — and a dependency boundary that made them testable.
    *
-   * `routeDirect` in `work/fast-router.ts` is now the only router, and it is
-   * called by the surface BEFORE this loop runs, which is also where it belongs:
-   * the point of the fast path is not entering the loop at all.
+   * Keeping both would have been two answers to "what happens next", and the
+   * worse answer reaches users the moment somebody edits only one of them. So
+   * the imported loop is the body, and every piece of governance above is
+   * supplied to it through the dependencies it already takes. Nothing that this
+   * function guaranteed to its callers has been dropped; `AgentResult` is
+   * unchanged, and the tests that assert those guarantees still run.
    */
+
   const classification: Classification =
     input.domains && input.domains.length > 0
       ? { domains: input.domains, basis: "caller" }
@@ -237,94 +247,84 @@ export async function runAgentTask(
   const domains: Domain[] = classification.domains;
   // The request is passed so the catalogue can be narrowed to what it is about.
   // Sixty schemas took this model past its deadline; see MAX_TOOLS_PER_TURN.
-  const tools = schemasFor(domains, input.request);
-  emit({ kind: "classified", classification, tools: tools.map((t) => t.function.name) });
-
-  const messages: AgentMessage[] = [
-    { role: "system", content: systemPromptWith(input.memoryContext) },
-    ...(input.history ?? []),
-    { role: "user", content: input.request },
-  ];
+  const wireTools = schemasFor(domains, input.request);
+  emit({ kind: "classified", classification, tools: wireTools.map((t) => t.function.name) });
 
   const steps: AgentResult["steps"] = [];
   const seenFailures = new Map<string, number>();
   let text = "";
-  let stop: AgentStopReason = "answered";
+  /**
+   * Set when governance ends the run for a reason the loop cannot see.
+   *
+   * Written inside the dependency closures and read after `runQuery` returns.
+   * Typed through a holder rather than a bare `let` because TypeScript's
+   * control-flow analysis cannot see the assignments across the closure
+   * boundary and narrows the variable to `never` at the read.
+   */
+  const governance: { stop: { reason: AgentStopReason; text: string } | null } = { stop: null };
 
-  for (let step = 0; step < MAX_STEPS_PER_TASK; step += 1) {
-    if (input.signal?.aborted) {
-      stop = "cancelled";
-      break;
-    }
+  /*
+   * A change of plan and a spoken stop are both taken at a TURN boundary, never
+   * mid-action: half an action is worse than a whole one, and the boundary is
+   * the only point where the world is in a state both branches agree about.
+   * `callModel` runs exactly once per turn, so it is that boundary.
+   */
+  const pending: AgentMessage[] = [];
 
-    /*
-     * SPOKEN BARGE-IN, CHECKED WHERE A REVISION IS CHECKED.
-     *
-     * The engine has already gone quiet and let go of the mouse by the time
-     * this runs — that happens on its own thread within milliseconds of the
-     * word, because a stop that waits for a network hop is not a stop. What
-     * this poll decides is whether the TASK continues, and the step boundary is
-     * the right place to decide it for the same reason a revision is taken
-     * here: it is the only point where the world is in a state both branches
-     * agree about.
-     */
+  const callModel: QueryDeps["callModel"] = async (modelInput) => {
     const interrupted = await deps.stopRequested?.();
     if (interrupted?.stopped) {
-      text = interrupted.heard
-        ? `Stopped — I heard “${interrupted.heard}”.`
-        : "Stopped at your request.";
-      stop = "cancelled";
-      break;
+      governance.stop = {
+        reason: "cancelled",
+        text: interrupted.heard
+          ? `Stopped — I heard \u201c${interrupted.heard}\u201d.`
+          : "Stopped at your request.",
+      };
+      return { text: "", toolCalls: [], stopReason: "end_turn" };
     }
 
-    /*
-     * A change of mind is taken at the top of a step, never mid-action. Half an
-     * action is worse than a whole one, and the boundary between steps is the
-     * only point where the world is in a state both branches agree about.
-     */
     const revised = input.revision?.take();
     if (revised) {
-      messages.push({
+      pending.push({
         role: "user",
         content: `Change of plan, starting now: ${revised}\nKeep everything already completed. Do not repeat steps you have already finished.`,
       });
       emit({ kind: "revised", instruction: revised });
     }
 
-    let turn: ModelTurn;
-    try {
-      turn = await deps.turn(messages, tools, { onToken: input.onToken, signal: input.signal });
-    } catch (error) {
-      if (input.signal?.aborted) {
-        stop = "cancelled";
-        break;
-      }
-      text = `OCADE could not reach its engine: ${error instanceof Error ? error.message : String(error)}`;
-      stop = "blocked";
-      break;
-    }
+    const messages: AgentMessage[] = [
+      ...modelInput.messages.map((message) => ({
+        role: message.role,
+        content:
+          typeof message.content === "string" ? message.content : JSON.stringify(message.content),
+      })),
+      ...pending.splice(0, pending.length),
+    ];
 
+    const turn = await deps.turn(messages, wireTools, {
+      ...(input.onToken ? { onToken: input.onToken } : {}),
+      ...(input.signal ? { signal: input.signal } : {}),
+    });
     if (turn.text) {
       text = turn.text;
       emit({ kind: "thinking", text: turn.text });
     }
+    return {
+      text: turn.text,
+      toolCalls: turn.toolCalls.map((call, index) => ({
+        id: call.id ?? `${call.name}-${index}`,
+        name: call.name,
+        arguments: call.arguments,
+      })),
+      stopReason: turn.toolCalls.length > 0 ? "tool_use" : "end_turn",
+    };
+  };
 
-    if (turn.toolCalls.length === 0) {
-      // No tool wanted: the model has answered. That is a legitimate ending for
-      // a conversational request and for the final turn of a task.
-      stop = steps.length > 0 ? "verified" : "answered";
-      break;
-    }
-
-    messages.push({ role: "assistant", content: turn.text, toolCalls: turn.toolCalls });
-
-    let halted = false;
-    for (const call of turn.toolCalls) {
-      if (input.signal?.aborted) {
-        stop = "cancelled";
-        halted = true;
-        break;
-      }
+  const runTools: QueryDeps["runTools"] = async (calls, signal) => {
+    const results = [];
+    for (const call of calls) {
+      if (signal?.aborted) break;
+      const toolCall: ToolCall = { name: call.name, arguments: call.arguments, id: call.id };
 
       const definition = findTool(call.name);
       if (!definition) {
@@ -335,62 +335,129 @@ export async function runAgentTask(
           kind: "unsupported",
           detail: `There is no tool called ${call.name}.`,
         };
-        steps.push({ call, outcome });
-        messages.push({ role: "tool", toolName: call.name, content: describe(outcome) });
-        emit({ kind: "tool_end", call, outcome });
+        steps.push({ call: toolCall, outcome });
+        emit({ kind: "tool_end", call: toolCall, outcome });
+        results.push({ id: call.id, name: call.name, content: describe(outcome), isError: true });
         continue;
       }
 
       if (definition.mutating) {
-        const permitted = await deps.permit(call, definition.risk);
+        const permitted = await deps.permit(toolCall, definition.risk);
         if (!permitted) {
           const outcome: ToolOutcome = {
             kind: "permission_required",
             detail: "The user did not approve this action, so it was not carried out.",
           };
-          steps.push({ call, outcome });
-          messages.push({ role: "tool", toolName: call.name, content: describe(outcome) });
-          emit({ kind: "refused", call, reason: outcome.detail });
-          stop = "blocked";
-          halted = true;
+          steps.push({ call: toolCall, outcome });
+          emit({ kind: "refused", call: toolCall, reason: outcome.detail });
+          governance.stop = { reason: "blocked", text: outcome.detail };
+          results.push({ id: call.id, name: call.name, content: describe(outcome), isError: true });
           break;
         }
       }
 
-      emit({ kind: "tool_start", call, risk: definition.risk });
-      let outcome = await deps.execute(call, input.signal);
+      emit({ kind: "tool_start", call: toolCall, risk: definition.risk });
+      let outcome = await deps.execute(toolCall, input.signal);
 
       // One retry, and only for the kinds where repeating could genuinely
       // differ. A blocked call is not retried at all.
       if (isRetryable(outcome.kind) && MAX_ATTEMPTS_PER_CALL > 1 && !input.signal?.aborted) {
-        outcome = await deps.execute(call, input.signal);
+        outcome = await deps.execute(toolCall, input.signal);
       }
 
-      steps.push({ call, outcome });
-      emit({ kind: "tool_end", call, outcome });
-      messages.push({ role: "tool", toolName: call.name, content: describe(outcome) });
+      steps.push({ call: toolCall, outcome });
+      emit({ kind: "tool_end", call: toolCall, outcome });
+      results.push({
+        id: call.id,
+        name: call.name,
+        content: describe(outcome),
+        isError: outcome.kind !== "success",
+        ...(outcome.verified === undefined ? {} : { verified: outcome.verified }),
+      });
 
       if (outcome.kind !== "success") {
         const signature = signatureOf(call.name, call.arguments, outcome.kind);
         const count = (seenFailures.get(signature) ?? 0) + 1;
         seenFailures.set(signature, count);
         if (count >= 2) {
-          text = `OCADE stopped because the same step kept failing the same way: ${outcome.detail}`;
-          stop = "repeating";
-          halted = true;
+          governance.stop = {
+            reason: "repeating",
+            text: `OCADE stopped because the same step kept failing the same way: ${outcome.detail}`,
+          };
           break;
         }
         if (isTerminal(outcome.kind)) {
-          text = outcome.detail;
-          stop = outcome.kind === "cancelled" ? "cancelled" : "blocked";
-          halted = true;
+          governance.stop = {
+            reason: outcome.kind === "cancelled" ? "cancelled" : "blocked",
+            text: outcome.detail,
+          };
           break;
         }
       }
     }
+    return results;
+  };
 
-    if (halted) break;
-    if (step === MAX_STEPS_PER_TASK - 1) stop = "step_limit";
+  const result = await runQuery({
+    messages: [
+      ...(input.history ?? []).map((message) => ({
+        role: message.role === "tool" ? ("user" as const) : message.role,
+        content:
+          message.role === "tool"
+            ? `Result of ${message.toolName ?? "the action"}: ${message.content}`
+            : message.content,
+      })),
+      { role: "user", content: input.request },
+    ],
+    systemPrompt: systemPromptWith(input.memoryContext),
+    tools: wireTools.map((tool) => ({
+      name: tool.function.name,
+      description: tool.function.description,
+      input_schema: tool.function.parameters,
+    })),
+    deps: {
+      callModel,
+      runTools,
+      compact: compactTranscript,
+      countTokens: estimateTranscriptTokens,
+      shouldStop: () => governance.stop?.text ?? null,
+      uuid: () => `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    },
+    ...(input.signal ? { signal: input.signal } : {}),
+    maxTurns: MAX_STEPS_PER_TASK,
+  });
+
+  const governedStop = governance.stop;
+  if (governedStop) {
+    text = governedStop.text || text;
+  } else if (result.text) {
+    text = result.text;
+  }
+
+  /*
+   * The imported loop's terminal reasons, mapped onto the endings this
+   * function's callers already handle. Governance wins where it fired, because
+   * it knows something the loop does not — a refused permission is `blocked`,
+   * not `completed`.
+   */
+  let stop: AgentStopReason = governedStop
+    ? governedStop.reason
+    : result.terminal.reason === "max_turns"
+      ? "step_limit"
+      : result.terminal.reason === "aborted_streaming" || result.terminal.reason === "aborted_tools"
+        ? "cancelled"
+        : result.terminal.reason === "model_error" || result.terminal.reason === "prompt_too_long"
+          ? "blocked"
+          : steps.length > 0
+            ? "verified"
+            : "answered";
+
+  if (
+    !governedStop &&
+    (result.terminal.reason === "model_error" || result.terminal.reason === "prompt_too_long")
+  ) {
+    const cause = result.terminal.error;
+    text = `OCADE could not reach its engine: ${cause instanceof Error ? cause.message : String(cause)}`;
   }
 
   /*

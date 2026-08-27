@@ -8,7 +8,14 @@ import {
 } from "@/lib/agent/loop";
 import { looksMultiStep, runPlannedTask } from "@/lib/agent/planner";
 import { findTool, schemasFor, toolsFor, type ToolDefinition } from "@/lib/agent/tool-registry";
-import { runBrowserToolViaExtension } from "@/lib/native/extension-adapter";
+import {
+  decide,
+  noteApproved,
+  noteDenied,
+  type PermissionContext,
+} from "@/lib/runtime/permissions";
+import { currentPermissionContext } from "@/lib/runtime/permission-settings";
+import { executeToolCall } from "@/lib/runtime/execute";
 import type { Domain } from "@/lib/agent/domains";
 import type { ToolOutcome } from "@/lib/agent/outcomes";
 import {
@@ -23,11 +30,11 @@ import {
   missionMicFn,
   missionSpeakFn,
   refreshMemoryFn,
-  runControlActionFn,
   startMissionFn,
   stopMissionFn,
   type MissionStart,
 } from "@/lib/control-work.functions";
+import { finishRun, pauseRun, resumeRun, startRun, stopRun, updateRun } from "@/lib/tasks/runs";
 import type { BrainMessage } from "@/lib/brain/adapter";
 import type { ControlState } from "./control-solar";
 import { routeDirect } from "./fast-router";
@@ -73,7 +80,7 @@ import { TaskLedger, checkCall } from "./tool-contract";
  * The pieces stay exactly where they already were. `runAgentTask` is the same
  * loop the server used, unchanged. The tool registry is the same registry. The
  * adapters are the same adapters — reached one action at a time through
- * `runControlActionFn`, with the sidecars held open server-side for the life of
+ * `executeToolCall`, with the sidecars held open server-side for the life of
  * the mission so a browser session survives between clicks.
  *
  * THREE BANDS, AND THE MIDDLE ONE IS THE INTERESTING ONE
@@ -146,39 +153,18 @@ export type MissionMode = "prompt" | "voice";
  *             reason to be more careful, not less. Voice mode speaks the
  *             question; it does not skip it.
  */
-/**
- * AUTONOMOUS BY DEFAULT. The approval card was the last thing standing between
- * "in wordpad type about cars" and it actually happening: the text was written,
- * the window was found, and the run stopped on a Yes/No nobody wanted.
+/*
+ * THE APPROVAL POLICY THAT USED TO LIVE HERE IS GONE.
  *
- * Everything OCADE does on this machine is now done without asking, because
- * every one of those actions is one the user just requested in words and can
- * see happen: opening an application, typing into a window, writing a file.
- * Asking permission to do the thing you were told to do is friction, not
- * safety — and a prompt shown on every action is a prompt people learn to
- * dismiss without reading.
+ * It read a risk band and a mode, discarded both with `void`, and returned
+ * "auto" for everything except one hard-coded tool name. That is not a
+ * permission model; it is a single exception with a permission model's shape.
  *
- * WHAT IS STILL ASKED, AND WHY IT IS EXACTLY ONE THING.
- * `message_send` puts words in front of ANOTHER PERSON under the user's name,
- * and it cannot be undone. Every other action here affects only this computer
- * and can be looked at, corrected or reversed. That asymmetry is the whole
- * reason the exception exists; it is not a general timidity about automation.
- * Set OCADE_AUTONOMY_SENDS_MESSAGES to true to remove it as well.
+ * Cowork now asks the same layer Chat asks — `@/lib/runtime/permissions` —
+ * which carries modes, rules, the dangerous-command tables and denial
+ * tracking from the imported primary logic. There is one answer to "may this
+ * run", and both surfaces get it from the same place.
  */
-const ALWAYS_ASK = new Set<string>(["message_send"]);
-
-export const OCADE_AUTONOMY_SENDS_MESSAGES = false;
-
-export function approvalPolicy(
-  risk: ToolDefinition["risk"],
-  mode: MissionMode,
-  toolName?: string,
-): "auto" | "announce" | "ask" {
-  if (toolName && ALWAYS_ASK.has(toolName) && !OCADE_AUTONOMY_SENDS_MESSAGES) return "ask";
-  void risk;
-  void mode;
-  return "auto";
-}
 
 export interface AudioInput {
   id: number;
@@ -605,7 +591,7 @@ export function useMission(brain: MissionBrain) {
    * Re-read the memory context after something wrote to it.
    *
    * ITS OWN SERVER FUNCTION RATHER THAN A TOOL CALL, and the first attempt got
-   * this wrong: it went through `runControlActionFn` with the name
+   * this wrong: it went through the control action path with the name
    * `memory_context_refresh`, which is not in the registry — and the server
    * refuses any tool it cannot look up, correctly. Registering one to get
    * around that would have advertised it to the model, which must never call
@@ -646,6 +632,13 @@ export function useMission(brain: MissionBrain) {
   // Approvals granted for one exact action within one task. Reset per task, so
   // consent never survives into the next instruction.
   const grantedRef = useRef<Set<string>>(new Set());
+  /*
+   * The permission context, refreshed at the start of every mission so a policy
+   * the user changed between turns takes effect on the next one. Denial
+   * tracking accumulates across the session, which is what lets a run of
+   * refusals turn a permissive mode back into a careful one.
+   */
+  const permissionRef = useRef<PermissionContext>(currentPermissionContext());
   // Sticky until the next instruction, so a Stop stays visible on the scene
   // through the reconnect that follows it.
   const stoppedRef = useRef(false);
@@ -699,6 +692,22 @@ export function useMission(brain: MissionBrain) {
   // be held.
   useEffect(() => () => void release(), [release]);
 
+  /*
+   * LEAVING THE ROOM BACKGROUNDS THE RUN.
+   *
+   * A task the user is watching is not a "background task" — the panel in front
+   * of them already says what it is doing, and a second badge saying the same
+   * thing is noise. The moment they navigate away it becomes one, which is when
+   * the status pill elsewhere in the product should start reporting it.
+   */
+  useEffect(
+    () => () => {
+      const runId = runIdRef.current;
+      if (runId) updateRun(runId, { isBackgrounded: true });
+    },
+    [],
+  );
+
   /**
    * Stop, and stay visibly stopped.
    *
@@ -709,17 +718,105 @@ export function useMission(brain: MissionBrain) {
    * moment the interface must not be ambiguous, so the stopped state is sticky
    * until the user actually asks for something else.
    */
-  const stop = useCallback(() => {
-    stoppedRef.current = true;
+  /**
+   * The live run this mission is tracking, if any.
+   *
+   * Registered with the task registry so that "what is OCADE doing" and "stop
+   * it" are answerable from anywhere — the Cowork panel, the task list, a tool
+   * call in Chat — instead of only from the button inside this hook.
+   */
+  const runIdRef = useRef<string | null>(null);
+
+  /**
+   * Everything stopping actually does to the machine: drop the loop, refuse any
+   * question still on screen, let go of the keyboard and mouse, then reconnect
+   * so the next instruction has a mission to run in.
+   *
+   * Separated from `stop` because it is also what the registry's killer calls.
+   * A stop issued from the task list has to do the same work as the button.
+   */
+  /**
+   * True while the user has taken the computer back.
+   *
+   * A ref as well as state because `teardown` runs from a killer that may fire
+   * long after the render that set it, and it has to read the CURRENT answer to
+   * "should OCADE reconnect".
+   */
+  const handOverRef = useRef(false);
+  const [handedOver, setHandedOver] = useState(false);
+
+  const teardown = useCallback(async () => {
     abortRef.current?.abort();
     abortRef.current = null;
     approvalRefResolve.current?.(false);
     approvalRefResolve.current = null;
     setApproval(null);
     setPaused(false);
-    setPhase("stopped");
-    void release().then(() => void connect());
+    await release();
+    /*
+     * Stop reconnects; Take over does not. That difference IS the difference
+     * between the two controls: after Stop, OCADE is standing by with the
+     * machine still available to it; after Take over, the keyboard and mouse
+     * are the user's and OCADE holds nothing until they ask for something.
+     */
+    if (!handOverRef.current) void connect();
   }, [release, connect]);
+
+  const stop = useCallback(() => {
+    stoppedRef.current = true;
+    handOverRef.current = false;
+    setHandedOver(false);
+    setPhase("stopped");
+    const runId = runIdRef.current;
+    runIdRef.current = null;
+    /*
+     * Through the registry when there is a run, so the stop is recorded once
+     * and the task list agrees with the panel. Directly when there is not —
+     * pressing Stop while idle still has to release the machine.
+     */
+    if (runId) {
+      void stopRun(runId, "You stopped it.").catch(() => void teardown());
+    } else {
+      void teardown();
+    }
+  }, [teardown]);
+
+  /**
+   * Pause and resume, banked against the run so elapsed time stays honest.
+   *
+   * The registry subtracts paused time, which is why a task the user left
+   * paused overnight does not report as having worked for nine hours.
+   */
+  const changePaused = useCallback((next: boolean) => {
+    setPaused(next);
+    const runId = runIdRef.current;
+    if (!runId) return;
+    if (next) pauseRun(runId);
+    else resumeRun(runId);
+  }, []);
+
+  /**
+   * Hand the computer back to the user.
+   *
+   * This used to call `stop` — two buttons doing one thing, which is the kind
+   * of control the specification calls fake. It now does the thing its label
+   * promises: the run is stopped, the machine is released, and OCADE does NOT
+   * take it again. The next instruction reconnects, because asking OCADE for
+   * something is how the user gives it back.
+   */
+  const takeOver = useCallback(() => {
+    stoppedRef.current = true;
+    handOverRef.current = true;
+    setHandedOver(true);
+    setPhase("stopped");
+    const runId = runIdRef.current;
+    runIdRef.current = null;
+    if (runId) {
+      void stopRun(runId, "You took over.").catch(() => void teardown());
+    } else {
+      void teardown();
+    }
+  }, [teardown]);
 
   const approvalRefResolve = useRef<((allowed: boolean) => void) | null>(null);
 
@@ -848,32 +945,34 @@ export function useMission(brain: MissionBrain) {
       ledgerRef.current.note(checked.call);
       setPhase(tool?.mutating ? "controlling" : "observing");
 
-      // Same rule on the fast path: the browser executes browser work. Two
-      // routes that disagreed about who runs a click would be two products.
-      const viaExtension = await runBrowserToolViaExtension(checked.call);
-      if (viaExtension) {
-        return {
-          ok: viaExtension.kind === "success",
-          detail: viaExtension.detail,
-          verified: viaExtension.verified,
-        };
-      }
-
-      const outcome = await runControlActionFn({
-        data: {
-          missionId,
-          tool: checked.call.name,
-          args: (checked.call.arguments ?? {}) as Record<string, unknown>,
-          confirmed: tool?.risk === "high",
-        },
+      // Same executor on the fast path. Two routes that disagreed about who
+      // runs a click would be two products.
+      const outcome = await executeToolCall(checked.call, {
+        missionId,
+        confirmed: tool?.risk === "high",
       });
-      return { ok: outcome.kind === "success", detail: outcome.detail, verified: outcome.verified };
+      return {
+        ok: outcome.kind === "success",
+        detail: outcome.detail,
+        ...(outcome.verified === undefined ? {} : { verified: outcome.verified }),
+      };
     },
     [],
   );
 
   const send = useCallback(
     async (request: string) => {
+      /*
+       * The user took the machine back, and is now asking for something. That
+       * is the handover in the other direction, and it needs a fresh mission —
+       * the old one released its sidecars when control was handed over.
+       */
+      if (handOverRef.current) {
+        handOverRef.current = false;
+        setHandedOver(false);
+        stoppedRef.current = false;
+        await connect();
+      }
       const missionId = missionRef.current;
       if (!missionId) {
         setError("OCADE is not connected to this computer.");
@@ -890,6 +989,16 @@ export function useMission(brain: MissionBrain) {
       // Consent never carries from one instruction to the next, and neither
       // does a stop: asking for something new is what clears both.
       grantedRef.current = new Set();
+      /*
+       * Re-read the policy, keep the denial history. A user who changed their
+       * mind about how much OCADE may do meant it to apply now; a user who has
+       * refused six things in a row has not stopped meaning that just because
+       * they typed something else.
+       */
+      permissionRef.current = {
+        ...currentPermissionContext(),
+        denials: permissionRef.current.denials,
+      };
       stoppedRef.current = false;
       ledgerRef.current.reset();
       setPhase("thinking");
@@ -898,6 +1007,34 @@ export function useMission(brain: MissionBrain) {
       abortRef.current = controller;
       const revision = new Revision();
       revisionRef.current = revision;
+      /*
+       * REGISTER THE RUN BEFORE ANY WORK STARTS.
+       *
+       * Everything after this point can be stopped from outside this hook, can
+       * be seen in the task list while it runs, and leaves a durable record if
+       * the tab closes mid-task. The killer is `teardown` — the same work the
+       * Stop button does — so there is exactly one way a mission ends.
+       */
+      const run = startRun({
+        kind: "mission",
+        description: request,
+        kill: () => teardown(),
+      });
+      runIdRef.current = run.id;
+      let runFailed = false;
+      /**
+       * Close the run exactly once, whichever way the instruction ended.
+       *
+       * A run the user stopped is already terminal by the time this runs, and
+       * the registry leaves it alone — "you stopped it" must not be overwritten
+       * by "it finished".
+       */
+      let runReceipt: string | undefined;
+      const settleRun = (failed: boolean) => {
+        const runId = runIdRef.current;
+        runIdRef.current = null;
+        if (runId) finishRun(runId, failed ? "failed" : "completed", runReceipt);
+      };
       const entries: TimelineEntry[] = [];
       const push = (entry: TimelineEntry) => {
         entries.push(entry);
@@ -917,42 +1054,60 @@ export function useMission(brain: MissionBrain) {
         if (controller.signal.aborted) return false;
         const tool = findTool(call.name);
         if (!tool) return false;
-        if (risk === "low") return true;
 
         const signatureKey = `${call.name}:${JSON.stringify(call.arguments ?? {})}`;
-        if (risk === "medium" && grantedRef.current.has(signatureKey)) return true;
-
-        const question = approvalQuestion(call, tool);
 
         /*
-         * VOICE MODE: medium risk proceeds, high risk still stops.
+         * ONE LAYER DECIDES, FOR BOTH SURFACES.
          *
-         * The user is hands-free. A card with two buttons is unanswerable from
-         * across the room, so asking for every medium action would either
-         * deadlock the task or train them to say yes to everything — and the
-         * second is worse than not asking.
-         *
-         * What happened is still SAID and still written to the timeline, so the
-         * action is visible and interruptible ("stop" cuts it mid-flight). That
-         * is the trade: medium-risk work is announced rather than gated.
+         * The context is re-read per call rather than captured when the mission
+         * started: a user who tightens their policy mid-task means it to apply
+         * to the rest of the task, not to the next one.
          */
-        const policy = approvalPolicy(tool.risk, modeRef.current, call.name);
-        if (policy === "auto") {
-          // Announced in the timeline so it is visible, never blocking.
-          grantedRef.current.add(signatureKey);
-          return true;
-        }
-        if (policy === "announce") {
+        const decision = decide(call, tool, permissionRef.current);
+        const question = approvalQuestion(call, tool);
+
+        if (decision.outcome === "deny") {
           push({
-            id: `v${Date.now()}${entries.length}`,
-            kind: "acting",
+            id: `d${Date.now()}${entries.length}`,
+            kind: "refused",
             label: question.replace(/\?$/, ""),
-            detail: "Hands-free — say “stop” to interrupt.",
+            detail: decision.reason,
           });
-          void speak(question.replace(/\?$/, "."));
+          if (modeRef.current === "voice") void speak(decision.reason);
+          return false;
+        }
+
+        if (decision.outcome === "allow") {
           grantedRef.current.add(signatureKey);
+          /*
+           * An allowed action that CHANGES something is still announced —
+           * visibly in the timeline, and aloud when the user is hands-free.
+           * "Not asked" must never mean "not seen": the whole reason a
+           * permissive mode is safe to offer is that the user can watch it
+           * work and say "stop" mid-flight.
+           */
+          if (tool.mutating) {
+            push({
+              id: `v${Date.now()}${entries.length}`,
+              kind: "acting",
+              label: question.replace(/\?$/, ""),
+              detail: modeRef.current === "voice" ? "Say “stop” to interrupt." : decision.reason,
+            });
+            if (modeRef.current === "voice") void speak(question.replace(/\?$/, "."));
+          }
           return true;
         }
+
+        /*
+         * An approval already granted for this exact call in this mission is not
+         * asked twice — but only for calls the layer merely wanted checked, never
+         * for one it flagged as irreversible or destructive. Those ask every time,
+         * because "you said yes to this a minute ago" is not consent to do it
+         * again.
+         */
+        const repeatable = tool.risk !== "high" && !decision.warning;
+        if (repeatable && grantedRef.current.has(signatureKey)) return true;
 
         setPhase("paused");
         /*
@@ -971,7 +1126,7 @@ export function useMission(brain: MissionBrain) {
             call,
             tool,
             question,
-            risk: risk === "high" ? "high" : "medium",
+            risk: tool.risk === "high" || decision.warning ? "high" : "medium",
             resolve,
             spoken,
           });
@@ -984,7 +1139,10 @@ export function useMission(brain: MissionBrain) {
           label: question,
           detail: allowed ? "You allowed it." : "You said no.",
         });
-        if (allowed && risk === "medium") grantedRef.current.add(signatureKey);
+        permissionRef.current = allowed
+          ? noteApproved(permissionRef.current)
+          : noteDenied(permissionRef.current);
+        if (allowed && repeatable) grantedRef.current.add(signatureKey);
         return allowed;
       };
 
@@ -1281,6 +1439,7 @@ export function useMission(brain: MissionBrain) {
             },
           ]);
         } catch (cause) {
+          runFailed = true;
           const message = cause instanceof Error ? cause.message : "OCADE could not write that.";
           setTurns((current) => [
             ...current,
@@ -1298,6 +1457,7 @@ export function useMission(brain: MissionBrain) {
           abortRef.current = null;
           revisionRef.current = null;
           setLive([]);
+          settleRun(runFailed);
           setPhase((current) => (current === "stopped" || current === "error" ? current : "idle"));
         }
         return;
@@ -1531,38 +1691,22 @@ export function useMission(brain: MissionBrain) {
              *
              * OCADE is browser-first: the executor for anything that touches a
              * web page is the MV3 extension running in the person's own
-             * browser, reached from here without a server round trip and
-             * without a desktop sidecar. This used to fall through to
-             * `runControlActionFn`, which drives Playwright over CDP from a
-             * Node host — so browser Cowork silently required a companion
-             * install that browser-first is meant to remove.
+             * browser, reached without a server round trip and without a
+             * desktop sidecar. Machine work goes to the companion. That
+             * routing used to be written out twice inside this file and a
+             * third time would have been written for Chat; it now lives once,
+             * in `@/lib/runtime/execute`, and both rooms call it.
              *
-             * `null` means this was not a browser tool, and everything else
-             * carries on to the server path below, which still owns the
-             * PC-control tools.
+             * The `confirmed` flag is passed for a high-risk tool because such
+             * a call only reaches here after `permit` returned true. The server
+             * still checks that claim against the tool's own band rather than
+             * trusting the client on its own.
              */
-            const viaExtension = await runBrowserToolViaExtension(checked.call);
-            if (viaExtension) return viaExtension;
-
             try {
-              const outcome = await runControlActionFn({
-                data: {
-                  missionId,
-                  tool: checked.call.name,
-                  args: (checked.call.arguments ?? {}) as Record<string, unknown>,
-                  // A `high` action only reaches here after `permit` returned
-                  // true, and the server checks that claim against the tool's
-                  // own band rather than trusting this flag on its own.
-                  confirmed: tool?.risk === "high",
-                },
+              return await executeToolCall(checked.call, {
+                missionId,
+                confirmed: tool?.risk === "high",
               });
-              return {
-                kind: outcome.kind as ToolOutcome["kind"],
-                detail: outcome.detail,
-                verified: outcome.verified,
-                observation: outcome.observation,
-                elapsedMs: outcome.elapsedMs,
-              };
             } catch (cause) {
               return {
                 kind: "retryable_failure",
@@ -1707,6 +1851,23 @@ export function useMission(brain: MissionBrain) {
             verified: result.allVerified,
           },
         ]);
+        /*
+         * WHAT THE TASK LIST WILL SAY LATER.
+         *
+         * The transcript above is for the person watching. This is for the
+         * person coming back tomorrow, and it carries the one thing the
+         * transcript makes them scroll for: how much was done, and whether
+         * OCADE could confirm it. "Not all confirmed" is said plainly rather
+         * than rounded up to "done".
+         */
+        const stepCount = result.steps.length;
+        runReceipt =
+          stepCount === 0
+            ? ending.slice(0, 160)
+            : `${stepCount} step${stepCount === 1 ? "" : "s"} — ${
+                result.allVerified ? "all confirmed" : "not all confirmed"
+              }.`;
+
         if (result.reason === "repeating" || result.reason === "step_limit") {
           setPhase("error");
         }
@@ -1725,6 +1886,7 @@ export function useMission(brain: MissionBrain) {
          * Both now happen. The banner turns red because `error` is set, and the
          * phase holds at "error" so the panel does not quietly return to idle.
          */
+        runFailed = true;
         const message =
           cause instanceof Error
             ? cause.message
@@ -1745,6 +1907,7 @@ export function useMission(brain: MissionBrain) {
         abortRef.current = null;
         revisionRef.current = null;
         setLive([]);
+        settleRun(runFailed);
         // A held state — stopped, or a failure the user has not seen yet —
         // survives the cleanup. Only a normal finish returns to idle.
         setPhase((current) => (current === "stopped" || current === "error" ? current : "idle"));
@@ -1753,7 +1916,7 @@ export function useMission(brain: MissionBrain) {
     // `speak` and `refreshMemory` are stable `useCallback([])`s, so listing
     // them changes nothing at runtime — but suppressing the rule here would
     // hide the next dependency that is not stable.
-    [brain, runOneCall, speak, refreshMemory],
+    [brain, runOneCall, speak, refreshMemory, teardown, connect],
   );
 
   const busy = phase === "thinking" || phase === "observing" || phase === "controlling";
@@ -1768,7 +1931,7 @@ export function useMission(brain: MissionBrain) {
     phase,
     busy,
     paused,
-    setPaused,
+    setPaused: changePaused,
     turns,
     live,
     approval,
@@ -1776,6 +1939,10 @@ export function useMission(brain: MissionBrain) {
     revise,
     send,
     stop,
+    /** Hand the keyboard and mouse back. OCADE holds nothing until asked. */
+    takeOver,
+    /** True while the user has control and OCADE is deliberately holding off. */
+    handedOver,
     error,
     /** Prompt (typing) or voice (hands-free). Changes approvals, not powers. */
     mode,

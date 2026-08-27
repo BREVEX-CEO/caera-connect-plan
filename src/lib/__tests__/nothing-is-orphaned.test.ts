@@ -117,14 +117,20 @@ describe("every engine command can be reached", () => {
   });
 });
 
+/*
+ * "EVERY REGISTERED TOOL HAS AN ADAPTER" USED TO BE ASSERTED HERE TOO.
+ *
+ * It is now asserted once, in `tool-surface-honesty.test.ts`, which does the
+ * same job more precisely: it reads the `dispatch()` switch rather than the
+ * whole adapter file, checks the other direction as well, and knows about the
+ * tools the executor answers locally instead of routing to the companion. Two
+ * copies of one invariant is one copy that will be wrong after the next change
+ * — which is exactly what happened when the task tools were added.
+ *
+ * What stays here is what only this file checks: bridge handlers nothing can
+ * reach, and a tool defined twice.
+ */
 describe("every tool the model can see actually runs", () => {
-  it("has an adapter case for every registered tool", () => {
-    const names = [...REGISTRY.matchAll(/name:\s*"(\w+)"/g)].map((m) => m[1]);
-    expect(names.length).toBeGreaterThan(50);
-    const missing = names.filter((name) => !ADAPTERS.includes(`case "${name}":`));
-    expect(missing, `offered to the model but not implemented: ${missing.join(", ")}`).toEqual([]);
-  });
-
   it("registers every tool exactly once", () => {
     // A duplicate definition silently shadows one of the two, and which one
     // wins depends on iteration order. Caught while wiring file_read, which

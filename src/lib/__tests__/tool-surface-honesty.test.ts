@@ -22,8 +22,20 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { allToolNames, findTool, toolsFor } from "../agent/tool-registry";
+import { TASK_TOOL_NAMES } from "../tasks/task-tools";
 
 const ADAPTERS = fileURLToPath(new URL("../agent/adapters.node.ts", import.meta.url));
+const EXECUTOR = fileURLToPath(new URL("../runtime/execute.ts", import.meta.url));
+
+/**
+ * Tools the executor answers locally, before it routes anywhere.
+ *
+ * These are OCADE's own task state, which lives in the tab rather than on the
+ * companion — so the companion's dispatch switch is the wrong place to look for
+ * them. They are excused from that check and held to this one instead: the
+ * executor must genuinely route them, which is asserted below.
+ */
+const LOCALLY_EXECUTED = new Set<string>(TASK_TOOL_NAMES);
 
 /** Every `case "x":` label in the adapter's dispatch switch. */
 function dispatchedToolNames(): Set<string> {
@@ -45,13 +57,32 @@ function dispatchedToolNames(): Set<string> {
 describe("the advertised tool surface", () => {
   it("dispatches every tool it registers", () => {
     const dispatched = dispatchedToolNames();
-    const undispatched = allToolNames().filter((name) => !dispatched.has(name));
+    const undispatched = allToolNames().filter(
+      (name) => !dispatched.has(name) && !LOCALLY_EXECUTED.has(name),
+    );
 
     expect(
       undispatched,
       "These are advertised to the model but fall through to 'not connected'. " +
         "Implement them or take them out of the registry — do not leave them advertised.",
     ).toEqual([]);
+  });
+
+  it("routes the locally executed tools before anything else", () => {
+    const source = readFileSync(EXECUTOR, "utf8");
+    /*
+     * The excuse above is only honest if the executor really does handle them.
+     * The check is deliberately structural: the local branch must come BEFORE
+     * the extension hand-off, because a task tool that reaches the extension is
+     * a task tool that answers "not connected".
+     */
+    const local = source.indexOf("isTaskTool(");
+    const extension = source.indexOf("runBrowserToolViaExtension(call)");
+    expect(local, "execute.ts should route task tools locally").toBeGreaterThan(-1);
+    expect(local).toBeLessThan(extension);
+    for (const name of LOCALLY_EXECUTED) {
+      expect(findTool(name), `${name} should be registered`).not.toBeNull();
+    }
   });
 
   it("registers every tool it dispatches", () => {

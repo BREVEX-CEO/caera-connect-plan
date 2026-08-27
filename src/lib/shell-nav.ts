@@ -8,15 +8,9 @@ import {
   Monitor,
   MonitorCog,
   FolderOpen,
-  Workflow,
-  Package,
-  Radar,
-  FileCode2,
   ListChecks,
-  Inbox,
   Search,
   SlidersHorizontal,
-  Palette,
   type LucideIcon,
 } from "lucide-react";
 
@@ -69,28 +63,34 @@ export function activeModule(pathname: string): ModuleId {
 }
 
 /**
- * Keep OCADE's default sidebar short enough to remain a work surface rather
- * than a sitemap. Primary destinations come first, then tools; every advanced
- * control lives behind one System entry and remains directly addressable from
- * Cmd/Ctrl+K. This is the compact advanced/system layer requested for launch.
+ * SEVEN DESTINATIONS, AND WHY IT IS SEVEN.
+ *
+ * The sidebar held twelve: Chat, Projects, Control + Work, Code, Automations,
+ * Files, Tasks, Inbox, Search, Monitors, Studio, System. Every one of them is a
+ * real screen, and together they read as a sitemap rather than a place to work
+ * — a person opening OCADE for the first time had to decide, before typing
+ * anything, which of twelve rooms their question belonged in. That is a
+ * decision the product should be making for them.
+ *
+ * What is left is the set somebody uses in a normal week, in the order they
+ * reach for it. Everything removed from the rail is still there, still routed,
+ * and reachable three ways: from More, from Cmd/Ctrl+K, and — increasingly —
+ * by asking for it in Chat, which now has the tools to do the thing rather than
+ * point at the screen that does it.
+ *
+ * Code, Studio, Monitors, Automations, Files and Inbox are the six that moved.
+ * None of them is minor; all six are places a person goes deliberately, having
+ * already decided. The rail is for the ones you reach for without deciding.
  */
 export const MODULE_CONTEXT: Record<ModuleId, NavItem[]> = {
   ocade: [
-    // Primary
     { to: "/ocade", label: "Chat", icon: MessageSquare, exact: true },
+    { to: "/ocade/work", label: "Work", icon: MonitorCog },
     { to: "/ocade/projects", label: "Projects", icon: FolderOpen },
-    { to: "/ocade/work", label: "Control + Work", icon: MonitorCog },
-    { to: "/ocade/code", label: "Code", icon: FileCode2 },
-    // Tools
-    { to: "/ocade/automations", label: "Automations", icon: Workflow },
-    { to: "/ocade/artifacts", label: "Files", icon: Package },
-    { to: "/ocade/tasks", label: "Tasks", icon: ListChecks },
-    { to: "/ocade/inbox", label: "Inbox", icon: Inbox },
     { to: "/ocade/search", label: "Search", icon: Search },
-    { to: "/ocade/monitors", label: "Monitors", icon: Radar },
-    { to: "/ocade/studio", label: "Studio", icon: Palette },
-    // Compact advanced/system entry.
-    { to: "/ocade/system", label: "System", icon: SlidersHorizontal },
+    { to: "/ocade/tasks", label: "Tasks", icon: ListChecks },
+    { to: "/ocade/devices", label: "Devices", icon: Monitor },
+    { to: "/ocade/system", label: "More", icon: SlidersHorizontal },
   ],
   ficia: [],
   madee: [],
