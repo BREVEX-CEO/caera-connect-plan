@@ -166,10 +166,45 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: ErrorComponent,
 });
 
+/*
+ * THE FIRST PAINT IS A THEME DECISION, AND REACT IS TOO LATE TO MAKE IT.
+ *
+ * `ThemeProvider` puts `light`/`real` on <html> in an effect, so until React
+ * hydrates the document has no theme class at all. That leaves two seams. The
+ * browser paints its own canvas — white — before the stylesheet parses, and a
+ * reader on the light theme then gets white, black, light, in that order. On a
+ * black product the white frame is the one people notice; it reads as the page
+ * having failed and reloaded.
+ *
+ * This is the standard fix and it has to be exactly this shape: synchronous,
+ * inline, in <head>, before anything renders. A module cannot do it — modules
+ * are deferred by definition. The inline background is what covers the gap
+ * before the stylesheet lands; the class is what stops the second flip.
+ *
+ * It reads the same key and the same shape as `readLocal()` in
+ * theme-provider.tsx, and if anything at all goes wrong it does nothing and
+ * leaves the default black in place. Storage can be blocked, the value can be
+ * garbage, and neither is worth a blank page.
+ */
+const THEME_BOOT = `(function(){try{
+var d=document.documentElement;var t="dark";
+try{var r=localStorage.getItem("caera:appearance:v1");
+if(r){var p=JSON.parse(r);if(p&&(p.theme==="light"||p.theme==="real"))t=p.theme;}}catch(e){}
+d.classList.add("theme-"+t);if(t!=="dark")d.classList.add(t);
+var bg=t==="light"?"#f2f1ee":"#0a0a09";
+d.style.background=bg;d.style.colorScheme=t==="light"?"light":"dark";
+}catch(e){}})();`;
+
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    /*
+     * The inline background on <html> is the floor under everything above: if
+     * the script is blocked by a strict CSP and the stylesheet is still in
+     * flight, the canvas is still not white.
+     */
+    <html lang="en" style={{ background: "#0a0a09" }}>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
         <HeadContent />
       </head>
       <body>
