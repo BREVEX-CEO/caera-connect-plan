@@ -1,1 +1,0 @@
-import{Pr as e,Tr as t}from"./index-TYMouZs4.js";import{t as n}from"./auth-middleware-D5rfmlD_.js";var r=t({method:`GET`}).middleware([n]).handler(e(`1d03547fcf93634f0edcf90fe58d3b374a85ffb4ce8fed857d1d642e0e6fd632`));export{r as t};

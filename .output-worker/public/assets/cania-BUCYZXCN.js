@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-CX2mWblQ.js";import{Sn as t}from"./vendor-ui-hJYNWcoA.js";import{t as n}from"./ComingLater-DAiYMEBu.js";var r=e(),i=()=>(0,r.jsx)(n,{name:`CANIA`,icon:t,wasGoingToBe:`a country and market intelligence board`});export{i as component};

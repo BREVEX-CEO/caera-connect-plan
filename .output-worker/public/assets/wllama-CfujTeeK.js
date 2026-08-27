@@ -1,1 +1,0 @@
-var e=`/assets/wllama-m-NqGU8W.wasm`;export{e as default};

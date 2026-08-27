@@ -1,1 +1,0 @@
-var e=()=>{throw Error(`OCADE WebLLM is available only inside a user's browser.`)},t={model_list:[]},n=e,r=class{constructor(){e()}};export{n as CreateWebWorkerMLCEngine,r as WebWorkerMLCEngineHandler,t as prebuiltAppConfig};

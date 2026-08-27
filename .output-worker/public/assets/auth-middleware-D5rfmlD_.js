@@ -1,1 +1,0 @@
-import{wr as e}from"./index-TYMouZs4.js";var t=e({type:`function`});export{t};

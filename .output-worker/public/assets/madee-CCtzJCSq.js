@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-CX2mWblQ.js";import{L as t}from"./vendor-ui-hJYNWcoA.js";import{t as n}from"./ComingLater-DAiYMEBu.js";var r=e(),i=()=>(0,r.jsx)(n,{name:`MADEE`,icon:t,wasGoingToBe:`a document and resume builder`});export{i as component};
