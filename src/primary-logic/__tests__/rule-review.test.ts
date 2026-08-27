@@ -23,7 +23,12 @@ const deny = (rule: string): ReviewableRule => ({ rule, behavior: "deny" });
 
 describe("rules that would never match", () => {
   it("accepts the ordinary shapes", () => {
-    for (const rule of ["Bash", "Bash(git status)", "Bash(npm run:*)", "file_trash(~/Downloads/*)"]) {
+    for (const rule of [
+      "Bash",
+      "Bash(git status)",
+      "Bash(npm run:*)",
+      "file_trash(~/Downloads/*)",
+    ]) {
       expect(validateRule(rule), rule).toBeNull();
     }
   });
@@ -47,8 +52,12 @@ describe("rules that would never match", () => {
   });
 
   it("catches invisible characters that survive a paste", () => {
-    // A zero-width space between the words. The field looks correct.
-    const pasted = `Bash(git​status)`;
+    /*
+     * A zero-width space between the words, written as an escape rather than
+     * pasted: in the source it would be as invisible as it is in the input
+     * field, which is the whole problem being tested.
+     */
+    const pasted = `Bash(git\u200bstatus)`;
     expect(validateRule(pasted)?.reason).toMatch(/cannot be seen/);
   });
 
