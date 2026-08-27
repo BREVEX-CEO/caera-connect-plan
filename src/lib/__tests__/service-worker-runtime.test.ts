@@ -337,6 +337,64 @@ describe("navigation is network-first, and falls back rather than failing", () =
     expect(served.body).toBe("precached:/");
   });
 
+  /*
+   * NAVIGATION PRELOAD, WHICH FAILS BY RESOLVING RATHER THAN REJECTING.
+   *
+   * Preload starts its request before this handler runs, so when the network
+   * drops it does not reliably reject — depending on how far it got, it can
+   * hand back an error response instead. The handler used to write
+   * `preloaded ?? fetch(request)`, which accepts anything that is not
+   * null-ish, and then returned that error straight to the page: a blank
+   * document, delivered instead of the cached shell, with the offline
+   * fallback never reached.
+   *
+   * It was intermittent for exactly that reason, and intermittent is why it
+   * survived: the same probe read an empty title and an empty body on some
+   * runs and the real shell in 104ms on others, from identical code and an
+   * identical cache. These three pin the shapes a failed preload can take.
+   */
+  it("ignores a preload that resolved with an error response", async () => {
+    await h.fire("install", {});
+    h.network.fail = true;
+    const event = {
+      request: { url: "https://app.example.com/home", method: "GET", mode: "navigate" },
+      preloadResponse: Promise.resolve(new FakeResponse("", { status: 0, type: "error" })),
+    };
+    await h.fire("fetch", event);
+    const served = await (event as unknown as { _responses: Array<Promise<FakeResponse>> })
+      ._responses[0];
+    expect(served.body).toBe("precached:/");
+  });
+
+  it("ignores a preload that resolved with a response that is not ok", async () => {
+    await h.fire("install", {});
+    h.network.fail = true;
+    const event = {
+      request: { url: "https://app.example.com/home", method: "GET", mode: "navigate" },
+      preloadResponse: Promise.resolve(new FakeResponse("", { status: 503, type: "basic" })),
+    };
+    await h.fire("fetch", event);
+    const served = await (event as unknown as { _responses: Array<Promise<FakeResponse>> })
+      ._responses[0];
+    expect(served.body).toBe("precached:/");
+  });
+
+  it("still uses a preload that actually worked", async () => {
+    // The whole reason preload is enabled: it removes the worker startup round
+    // trip. The fix must not throw that away on the online path.
+    await h.fire("install", {});
+    const event = {
+      request: { url: "https://app.example.com/home", method: "GET", mode: "navigate" },
+      preloadResponse: Promise.resolve(
+        new FakeResponse("from preload", { status: 200, type: "basic" }),
+      ),
+    };
+    await h.fire("fetch", event);
+    const served = await (event as unknown as { _responses: Array<Promise<FakeResponse>> })
+      ._responses[0];
+    expect(served.body).toBe("from preload");
+  });
+
   it("prefers the exact page over the generic offline shell", async () => {
     // Showing a different page's markup would put the user somewhere they are
     // not.

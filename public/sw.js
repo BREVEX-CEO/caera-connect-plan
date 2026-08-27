@@ -208,7 +208,28 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     const navigation = Promise.resolve(event.preloadResponse)
-      .then((preloaded) => preloaded ?? fetch(request))
+      /*
+       * A PRELOAD THAT FAILED IS NOT A RESPONSE, IT ONLY LOOKS LIKE ONE.
+       *
+       * `preloaded ?? fetch(request)` was wrong in the one case that matters.
+       * Navigation preload starts its request before this handler runs, so
+       * when the network drops the preload does not always reject — depending
+       * on how far it got, it can RESOLVE with an error response instead. That
+       * response is not ok, so the caching branch below skips it, and then the
+       * old code returned it to the page anyway: a blank document, delivered
+       * instead of the cached shell, with the offline fallback never reached.
+       *
+       * It failed intermittently for exactly that reason. The service-worker
+       * probe read an empty title and an empty body on some runs and the real
+       * shell in 104ms on others, from identical code and an identical cache.
+       *
+       * So a preload is used only if it is genuinely usable. Anything else —
+       * absent, errored, or not ok — falls through to `fetch`, which fails
+       * honestly offline and lands in the catch below where the shell is.
+       */
+      .then((preloaded) =>
+        preloaded && preloaded.ok && preloaded.type !== "error" ? preloaded : fetch(request),
+      )
       .then(async (response) => {
         const cacheControl = response.headers.get("cache-control") ?? "";
         const contentType = response.headers.get("content-type") ?? "";
