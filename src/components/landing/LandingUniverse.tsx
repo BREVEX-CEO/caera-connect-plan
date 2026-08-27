@@ -354,7 +354,12 @@ export function LandingUniverse() {
           Try it first
         </p>
         <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-[44px]">
-          Twenty-eight minutes.
+          {/*
+            One phrase in the display serif, per the design reference: the
+            emphasis is a change of voice, not a change of size, and it falls
+            on the number because the number is the offer.
+          */}
+          <em className="ocade-accent">Twenty-eight</em> minutes.
           <br />
           No account.
         </h2>
@@ -371,7 +376,7 @@ export function LandingUniverse() {
       {/* ------------------------------------------------------ sign in -- */}
       <Panel>
         <h2 className="text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-[40px]">
-          Keep your work.
+          Keep <em className="ocade-accent">your</em> work.
         </h2>
         <div className="mt-9 flex flex-wrap items-center gap-3">
           <Link

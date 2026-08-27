@@ -25,9 +25,9 @@
   font-weight: 300 700;
   font-display: swap;
   src: url("/fonts/inter-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
-    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
-    U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
@@ -36,9 +36,9 @@
   font-weight: 400;
   font-display: swap;
   src: url("/fonts/instrument-serif-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
-    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
-    U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 @font-face {
@@ -47,9 +47,30 @@
   font-weight: 400;
   font-display: swap;
   src: url("/fonts/instrument-serif-italic-latin.woff2") format("woff2");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
-    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
-    U+2212, U+2215, U+FEFF, U+FFFD;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/*
+ * The mono face is a real one, not whatever the machine happens to have.
+ *
+ * `font-mono` appears 52 times across this codebase — command output, tool
+ * arguments, hashes, model ids, code blocks — and every one of them was
+ * resolving to `ui-monospace`, which is Menlo on a Mac, Consolas on Windows
+ * and DejaVu Sans Mono on most Linux. Column widths, and therefore the
+ * alignment of anything rendered as a table of text, differed per operating
+ * system. Self-hosted like the other two, latin subset, 40 KB.
+ */
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 300 600;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
 /*
@@ -82,6 +103,9 @@
     "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
     sans-serif;
   --font-serif: "Instrument Serif", ui-serif, Georgia, "Times New Roman", serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono",
+    monospace;
   /*
    * And make it the page's default, not merely an available utility.
    *
@@ -91,6 +115,18 @@
    * appeared exactly where somebody had remembered to ask for it.
    */
   --default-font-family: var(--font-sans);
+
+  /*
+   * ONE EASING CURVE FOR ANYTHING THAT ENTERS.
+   *
+   * All three design references name the same curve — cubic-bezier(0.16, 1,
+   * 0.3, 1) — and call it the premium ease. It overshoots nothing and decays
+   * almost to a stop well before the duration ends, which is why a long
+   * transition on it still feels quick. Declared here so it is `ease-premium`
+   * in markup rather than four different hand-copied bezier literals that
+   * drift apart the first time one of them is edited.
+   */
+  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -559,6 +595,29 @@
   backdrop-filter: blur(var(--blur-glass)) saturate(140%);
 }
 
+/*
+ * THE ONE SERIF IN THE PRODUCT.
+ *
+ * The OCADE design reference is unusually specific about this: the display
+ * face is used for a single emphasised phrase inside a heading — "*Only* the
+ * H1 words" — never for the whole heading, never for body copy, and in the
+ * muted grey rather than white, so the phrase reads as a change of voice
+ * instead of a shout. Everything else on the page stays in the sans.
+ *
+ * Instrument Serif was already being downloaded on every page load and
+ * rendered on none: `font-serif` had zero occurrences in the codebase, so 43 KB
+ * of typeface shipped to every visitor to be used nowhere. This is the face
+ * doing the job it was subset and self-hosted for.
+ */
+@utility ocade-accent {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.08em;
+  letter-spacing: -0.03em;
+  color: var(--muted-foreground);
+}
+
 @utility ocade-scroll {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in oklch, var(--border) 70%, transparent) transparent;
@@ -591,8 +650,8 @@
 
 .ocade-reveal {
   transition:
-    opacity 420ms cubic-bezier(0.22, 0.61, 0.36, 1) var(--reveal-delay, 0ms),
-    transform 420ms cubic-bezier(0.22, 0.61, 0.36, 1) var(--reveal-delay, 0ms);
+    opacity 420ms var(--ease-premium) var(--reveal-delay, 0ms),
+    transform 420ms var(--ease-premium) var(--reveal-delay, 0ms);
 }
 
 .ocade-reveal-hidden {
@@ -787,9 +846,7 @@
 .ocade-depth-centered {
   --depth-z: calc(var(--depth-level, 96px) + var(--depth-boost, 0px));
   perspective: var(--scene-perspective, 1400px);
-  transform: translateZ(
-    calc(var(--depth-z) * var(--depth-active, 0) * var(--depth-strength, 1))
-  );
+  transform: translateZ(calc(var(--depth-z) * var(--depth-active, 0) * var(--depth-strength, 1)));
   transform-style: preserve-3d;
 }
 
@@ -987,7 +1044,6 @@
     --pointer-x: 0 !important;
     --pointer-y: 0 !important;
   }
-
 
   .ocade-depth {
     transition: none !important;

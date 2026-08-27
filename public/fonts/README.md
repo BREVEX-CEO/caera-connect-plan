@@ -1,8 +1,8 @@
 # Typefaces, served from this origin
 
-Inter and Instrument Serif — the two families the OCADE design references name.
-They are here, rather than linked from a font host, for three reasons that all
-matter to this product:
+Inter, Instrument Serif and JetBrains Mono — the families the OCADE design
+references name. They are here, rather than linked from a font host, for three
+reasons that all matter to this product:
 
 - **The product works with no network.** A font fetched from a third party is a
   font an offline user does not get.
@@ -12,19 +12,20 @@ matter to this product:
 - **A font request is a record of a visitor**, held by somebody else, on every
   page including the legal ones.
 
-Latin subsets only: 91 KB for all three files.
+Latin subsets only: 131 KB for all four files.
 
 ## Licences
 
-Both families are licensed under the SIL Open Font License, Version 1.1, which
+All three families are licensed under the SIL Open Font License, Version 1.1, which
 permits redistribution and web embedding. The licence text ships beside the
 fonts, as the licence requires:
 
-| File | Family | Licence | Copyright |
-|---|---|---|---|
-| `inter-latin.woff2` | Inter | `OFL-Inter.txt` | The Inter Project Authors |
-| `instrument-serif-latin.woff2` | Instrument Serif | `OFL-InstrumentSerif.txt` | The Instrument Serif Project Authors |
+| File                                  | Family                  | Licence                   | Copyright                            |
+| ------------------------------------- | ----------------------- | ------------------------- | ------------------------------------ |
+| `inter-latin.woff2`                   | Inter                   | `OFL-Inter.txt`           | The Inter Project Authors            |
+| `instrument-serif-latin.woff2`        | Instrument Serif        | `OFL-InstrumentSerif.txt` | The Instrument Serif Project Authors |
 | `instrument-serif-italic-latin.woff2` | Instrument Serif Italic | `OFL-InstrumentSerif.txt` | The Instrument Serif Project Authors |
+| `jetbrains-mono-latin.woff2`          | JetBrains Mono          | `OFL-JetBrainsMono.txt`   | The JetBrains Mono Project Authors   |
 
-Neither family has been renamed or modified, so the Reserved Font Name clause is
+No family has been renamed or modified, so the Reserved Font Name clause is
 satisfied by leaving them exactly as published.
