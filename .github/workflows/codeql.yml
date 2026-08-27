@@ -1,0 +1,53 @@
+name: CodeQL
+
+# Static security analysis, which this repository did not have.
+#
+# It is deliberately NOT part of ci.yml: CodeQL takes minutes and its findings
+# are advisory rather than a build gate, and putting it in the same workflow
+# would mean a security query timing out blocks a typecheck. Its own workflow,
+# its own schedule, its own failure.
+#
+# `javascript-typescript` only. The Rust and Python under native/ are built by
+# toolchains this workflow does not set up, and a CodeQL run that silently
+# analyses nothing is worse than one that was never configured — it produces a
+# green badge for coverage that does not exist.
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    # Weekly, offset from the hour so it does not join the stampede at :00.
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyse JavaScript and TypeScript
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      # The three CodeQL needs and nothing else.
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialise CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+
+      # No build step: this is an interpreted-language analysis, and letting
+      # CodeQL autobuild a Vite app wastes minutes to produce the same result.
+      - name: Analyse
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:javascript-typescript

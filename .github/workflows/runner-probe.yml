@@ -1,0 +1,37 @@
+name: Runner probe
+
+# THE SMALLEST POSSIBLE WORKFLOW, AND IT EXISTS TO ANSWER ONE QUESTION.
+#
+# Every job in CI and in OCADE 77 Readiness has been failing in two to four
+# seconds with no steps recorded and no log content at all — HTTP 404 on every
+# log download, on ubuntu, windows and macOS alike, across every workflow, for
+# many commits. That is not a shape product code can produce, and the YAML
+# parses cleanly.
+#
+# So this is the control experiment: one job, one runner, one `echo`, no
+# checkout, no actions, no secrets, no permissions beyond the default. If THIS
+# fails in two seconds with no logs, nothing in this repository can fix it and
+# the cause is the account's ability to obtain a runner — an Actions spending
+# limit, a billing hold, or a disabled-Actions setting. If it passes, the cause
+# is inside the workflows and this file says which half to look in.
+#
+# Keep it. A five-second canary that tells you whether CI is even capable of
+# running is worth more than a green badge on a run that never started.
+
+on:
+  push:
+    branches: ["main", "claude/**"]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  can-a-runner-start:
+    name: Can a runner start at all
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Say something from inside a runner
+        run: |
+          echo "A runner started, executed a step, and produced this log line."
+          echo "runner=$RUNNER_OS  arch=$RUNNER_ARCH"

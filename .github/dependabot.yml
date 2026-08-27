@@ -1,0 +1,50 @@
+# Dependency updates.
+#
+# The repository had no Dependabot configuration at all, which is why the only
+# update runs that appeared were GitHub's own inferred ones. Declared here so
+# the ecosystems, the schedule and the grouping are the repository's decision
+# rather than a default nobody chose.
+#
+# Grouped on purpose: fourteen separate pull requests for one week of patch
+# bumps is how dependency updates stop being reviewed and start being merged
+# unread. One grouped PR per ecosystem per week is a thing a person can read.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      # Patch and minor together: these are the ones that should be boring.
+      routine:
+        update-types: ["minor", "patch"]
+    # A major bump gets its own pull request, because it deserves reading.
+    labels: ["dependencies"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        update-types: ["minor", "patch"]
+    labels: ["dependencies", "ci"]
+
+  - package-ecosystem: cargo
+    directory: /native/companion/tauri
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels: ["dependencies", "native"]
+
+  - package-ecosystem: pip
+    directory: /native/python-host
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels: ["dependencies", "native"]
