@@ -24,7 +24,7 @@ import { PreparationStatus } from "@/components/ocade/chat/PreparationStatus";
 import { DemoSessionBadge } from "@/components/ocade/demo/DemoSessionBadge";
 import { DemoControlNav, DemoSidebarNav } from "@/components/ocade/demo/DemoSidebarNav";
 import { useDemoSession } from "@/lib/demo/use-demo-session";
-import { formatResetRemaining, warningMessage } from "@/lib/demo/session";
+import { warningMessage } from "@/lib/demo/session";
 import { useLocalChatEngine } from "@/lib/chat/use-local-chat-engine";
 import { useDictation } from "@/lib/voice/use-dictation";
 import { LANGUAGE_CANDIDATES, languageInstruction } from "@/lib/voice/speech-capabilities";
@@ -241,16 +241,15 @@ function DemoOcade() {
     treeRef.current = emptyTree();
     setCosts([]);
     setLedgerVersion((v) => v + 1);
-    toast.info("Your 28-minute demo has ended. Nothing was saved.", {
-      description: "Sign in with Google, phone OTP or email OTP to continue and keep your work.",
-      duration: 8000,
-    });
+    /*
+     * `reason` rather than `message`: the handoff is a screen, not a sentence.
+     * /auth reads this and re-titles itself "Continue with OCADE", explains
+     * what an account keeps, and hides its own invitation to start a demo that
+     * this browser can no longer start.
+     */
     void navigate({
       to: "/auth",
-      search: {
-        next: "/home",
-        message: "Your 28-minute demo ended. Sign in to continue.",
-      },
+      search: { next: "/home", reason: "demo-expired" as const },
       replace: true,
     });
   }, [engine, navigate]);
@@ -261,13 +260,10 @@ function DemoOcade() {
       toast.warning(warningMessage(state.remainingMs), { duration: 10_000 });
     },
     onExpire: handleExpire,
-    onBlocked: (nextEligibleAt) => {
+    onBlocked: () => {
       void navigate({
         to: "/auth",
-        search: {
-          next: "/home",
-          message: `This browser's demo resets in ${formatResetRemaining(nextEligibleAt, Date.now())}. Sign in to continue now.`,
-        },
+        search: { next: "/home", reason: "demo-expired" as const },
         replace: true,
       });
     },

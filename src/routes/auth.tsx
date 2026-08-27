@@ -20,10 +20,12 @@ import { safeNext } from "@/lib/auth/safe-next";
 import { cn } from "@/lib/utils";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
 import { authProviderAvailability } from "@/lib/auth/provider-availability";
+import { formatResetRemaining, observeNow, readNextEligibleAt } from "@/lib/demo/session";
 
 const searchSchema = z.object({
   next: z.string().optional(),
   message: z.string().optional(),
+  reason: z.enum(["demo-expired"]).optional(),
   error: z.string().optional(),
   error_description: z.string().optional(),
   provider: z.string().optional(),
@@ -83,6 +85,31 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState<string | null>(search.message ?? null);
   const authConfigured = getSupabaseBrowserConfiguration().configured;
+
+  /*
+   * A demo that has just expired hands its visitor to this page. Two things
+   * change when it does.
+   *
+   * First the page stops introducing itself. Somebody who has spent
+   * twenty-eight minutes inside OCADE does not need "Welcome to" — they need
+   * to know their demo ended and what the account gets them.
+   *
+   * Second the demo invitation below has to go. Offering "try the demo" to
+   * the one person in the world who provably cannot start another one is the
+   * kind of small cruelty that reads as a broken product. `readNextEligibleAt`
+   * is the same clock the demo gate itself consults, and `observeNow` is the
+   * monotonic reading, so winding the system clock back does not turn the
+   * invitation back on.
+   */
+  const fromExpiredDemo = search.reason === "demo-expired";
+  const [demoResetsIn, setDemoResetsIn] = useState<string | null>(null);
+  useEffect(() => {
+    const nextEligibleAt = readNextEligibleAt();
+    if (nextEligibleAt === null) return;
+    const now = observeNow(Date.now());
+    if (nextEligibleAt <= now) return;
+    setDemoResetsIn(formatResetRemaining(nextEligibleAt, now));
+  }, []);
 
   useEffect(() => {
     setError(null);
@@ -444,8 +471,12 @@ function AuthPage() {
 
   return (
     <AuthShell
-      title="Welcome to CARCC CADANE"
-      subtitle="One account for OCADE."
+      title={fromExpiredDemo ? "Continue with OCADE" : "Welcome to CARCC CADANE"}
+      subtitle={
+        fromExpiredDemo
+          ? "Your 28-minute demo has ended. An account keeps the next one."
+          : "One account for OCADE."
+      }
       footer={
         <>
           {/*
@@ -501,19 +532,37 @@ function AuthPage() {
             sent to another service.
           </div>
         ) : null}
-        {notice ? (
+        {fromExpiredDemo ? (
+          <div
+            role="status"
+            className="rounded-lg border border-primary/30 bg-primary/[0.07] px-4 py-3"
+          >
+            <p className="text-sm font-medium text-foreground">Your demo has ended</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              The demo runs for 28 minutes and saves nothing. Everything you tried is gone, which
+              is the point of a demo. An account keeps your conversations, projects and tasks on
+              your own device, and syncs them only if you ask it to.
+            </p>
+          </div>
+        ) : notice ? (
           <div className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
             {notice}
           </div>
         ) : null}
 
-        <Link
-          to="/demo"
-          className="flex items-center justify-between rounded-md border border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 px-3 py-2 text-xs text-[color:var(--state-warning)] hover:bg-[color:var(--state-warning)]/20"
-        >
-          <span>Just looking? Try the demo — no sign-in, sample data only.</span>
-          <span className="font-semibold uppercase tracking-wider">Demo →</span>
-        </Link>
+        {demoResetsIn ? (
+          <p className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+            The demo is available again in {demoResetsIn}. An account has no such limit.
+          </p>
+        ) : (
+          <Link
+            to="/demo"
+            className="flex items-center justify-between rounded-md border border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 px-3 py-2 text-xs text-[color:var(--state-warning)] hover:bg-[color:var(--state-warning)]/20"
+          >
+            <span>Just looking? Try the demo — no sign-in, sample data only.</span>
+            <span className="font-semibold uppercase tracking-wider">Demo →</span>
+          </Link>
+        )}
 
         <Link
           to="/blog/$slug"
