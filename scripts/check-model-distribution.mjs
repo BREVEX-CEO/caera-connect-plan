@@ -75,8 +75,7 @@ requireSource(
   "every browser GGUF has a pinned publisher digest and exact size",
 );
 requireSource(
-  browser.entries?.length === 1 &&
-    browser.entries[0]?.id === "wasm-qwen2.5-1.5b-instruct-q4_k_m",
+  browser.entries?.length === 1 && browser.entries[0]?.id === "wasm-qwen2.5-1.5b-instruct-q4_k_m",
   "the failed 0.5B browser model is absent and the quality-qualified 1.5B tier is authoritative",
 );
 requireSource(

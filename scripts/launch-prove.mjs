@@ -65,9 +65,7 @@ function gitOutput(args) {
 export function runLaunchProof() {
   const results = [];
   const testedCommit = gitOutput(["rev-parse", "HEAD"]);
-  const startingChanges = gitOutput(["status", "--short"])
-    .split(/\r?\n/)
-    .filter(Boolean);
+  const startingChanges = gitOutput(["status", "--short"]).split(/\r?\n/).filter(Boolean);
   console.log("OCADE launch proof (local execution plus external authority)\n");
 
   for (const gate of gates) {
@@ -146,7 +144,7 @@ export function runLaunchProof() {
         ? "LAUNCH-CRITICAL PROOF GREEN"
         : deferredGates.length > 0
           ? "SOURCE-FIXED AND EXECUTED; WINDOWS DEFERRED / NOT FINAL-PROVEN; LAUNCH EXTERNALLY BLOCKED"
-        : "SOURCE-FIXED AND EXECUTED; LAUNCH EXTERNALLY BLOCKED";
+          : "SOURCE-FIXED AND EXECUTED; LAUNCH EXTERNALLY BLOCKED";
 
   const report = {
     schemaVersion: 1,
@@ -191,7 +189,10 @@ export function runLaunchProof() {
   return report;
 }
 
-if (process.argv[1] && new URL(import.meta.url).pathname.endsWith(process.argv[1].replaceAll("\\", "/"))) {
+if (
+  process.argv[1] &&
+  new URL(import.meta.url).pathname.endsWith(process.argv[1].replaceAll("\\", "/"))
+) {
   const report = runLaunchProof();
   // The explicit deferral command is the owner-authorized source-merge gate.
   // The ordinary launch proof remains fail-closed until launch itself is ready.

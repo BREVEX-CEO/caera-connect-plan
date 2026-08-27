@@ -17,9 +17,24 @@ export function taskAnalytics(tasks: UnifiedTask[], range: TaskAnalyticsRange, n
     column,
     count: current.filter((task) => taskBoardColumn(task) === column).length,
   }));
-  const bySource = [...new Set(current.map((task) => task.source))].sort().map((source) => ({ source, count: current.filter((task) => task.source === source).length }));
+  const bySource = [...new Set(current.map((task) => task.source))]
+    .sort()
+    .map((source) => ({ source, count: current.filter((task) => task.source === source).length }));
   const completed = current.filter((task) => task.status === "COMPLETED").length;
-  return { total: current.length, completed, completionRate: current.length ? Math.round((completed / current.length) * 100) : 0, priorTotal: prior.length, difference: current.length - prior.length, byStatus, bySource, lastUpdated: current.map((task) => task.updatedAt).sort().at(-1) ?? null };
+  return {
+    total: current.length,
+    completed,
+    completionRate: current.length ? Math.round((completed / current.length) * 100) : 0,
+    priorTotal: prior.length,
+    difference: current.length - prior.length,
+    byStatus,
+    bySource,
+    lastUpdated:
+      current
+        .map((task) => task.updatedAt)
+        .sort()
+        .at(-1) ?? null,
+  };
 }
 
 export function timelineDays(anchor: Date, count = 7) {
@@ -33,7 +48,11 @@ export function timelineDays(anchor: Date, count = 7) {
   });
 }
 
-export function scheduleTask(task: UnifiedTask, day: Date, at = new Date().toISOString()): UnifiedTask {
+export function scheduleTask(
+  task: UnifiedTask,
+  day: Date,
+  at = new Date().toISOString(),
+): UnifiedTask {
   const date = new Date(day);
   date.setHours(9, 0, 0, 0);
   return { ...task, scheduledFor: date.toISOString(), updatedAt: at };

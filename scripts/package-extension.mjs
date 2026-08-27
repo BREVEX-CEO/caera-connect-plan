@@ -57,7 +57,10 @@ const sourceFiles = required.map((name) => discoveredByName.get(name));
 
 const archiveInput = {};
 for (let index = 0; index < sourceFiles.length; index += 1) {
-  archiveInput[fileNames[index]] = [new Uint8Array(await readFile(sourceFiles[index])), { mtime: FIXED_MTIME }];
+  archiveInput[fileNames[index]] = [
+    new Uint8Array(await readFile(sourceFiles[index])),
+    { mtime: FIXED_MTIME },
+  ];
 }
 
 const zipBytes = zipSync(archiveInput, { level: 9 });

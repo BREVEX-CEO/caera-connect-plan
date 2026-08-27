@@ -23,9 +23,7 @@ export function oauthTransportForHostname(
     normalized === "lovable.dev" ||
     normalized.endsWith(".lovable.app") ||
     normalized.endsWith(".lovableproject.com");
-  return !lovableHosted && (provider === "google" || provider === "apple")
-    ? "supabase"
-    : "lovable";
+  return !lovableHosted && (provider === "google" || provider === "apple") ? "supabase" : "lovable";
 }
 
 export const lovable = {

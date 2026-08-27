@@ -6,12 +6,7 @@ import { Input } from "@/components/ui/input";
 import { TaskComments } from "@/components/ocade/TaskComments";
 import { TaskAnalytics } from "@/components/ocade/TaskAnalytics";
 import { TaskTimeline } from "@/components/ocade/TaskTimeline";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   createUnifiedTask,
   listLocalTasks,
@@ -175,12 +170,18 @@ export function TaskBoard() {
   }
 
   return (
-    <section aria-labelledby="task-board-title" className="mt-6 rounded-2xl border border-border/60 bg-card/35 p-4">
+    <section
+      aria-labelledby="task-board-title"
+      className="mt-6 rounded-2xl border border-border/60 bg-card/35 p-4"
+    >
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 id="task-board-title" className="text-sm font-semibold text-foreground">Task board</h2>
+          <h2 id="task-board-title" className="text-sm font-semibold text-foreground">
+            Task board
+          </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            On-device tasks only. Closing an unfinished card cancels it; it never fabricates completion.
+            On-device tasks only. Closing an unfinished card cancels it; it never fabricates
+            completion.
           </p>
         </div>
         <form
@@ -190,46 +191,188 @@ export function TaskBoard() {
             void addTask();
           }}
         >
-          <Input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Quick add a task" aria-label="Quick add a task" />
-          <Button type="submit" disabled={!draft.trim()}><Plus className="mr-1 h-4 w-4" />Add</Button>
+          <Input
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder="Quick add a task"
+            aria-label="Quick add a task"
+          />
+          <Button type="submit" disabled={!draft.trim()}>
+            <Plus className="mr-1 h-4 w-4" />
+            Add
+          </Button>
         </form>
       </div>
 
       <div className="mt-4 flex items-center gap-2" role="group" aria-label="Task view">
-        <button type="button" aria-pressed={view === "board"} onClick={() => setView("board")} className="min-h-9 rounded-md border border-border/60 px-3 text-xs">Board</button>
-        <button type="button" aria-pressed={view === "feed"} onClick={() => setView("feed")} className="min-h-9 rounded-md border border-border/60 px-3 text-xs">Activity feed{newCount ? ` · ${newCount} new` : ""}</button>
-        <button type="button" aria-pressed={view === "analytics"} onClick={() => setView("analytics")} className="min-h-9 rounded-md border border-border/60 px-3 text-xs">Analytics</button>
-        <button type="button" aria-pressed={view === "timeline"} onClick={() => setView("timeline")} className="min-h-9 rounded-md border border-border/60 px-3 text-xs">Timeline</button>
+        <button
+          type="button"
+          aria-pressed={view === "board"}
+          onClick={() => setView("board")}
+          className="min-h-9 rounded-md border border-border/60 px-3 text-xs"
+        >
+          Board
+        </button>
+        <button
+          type="button"
+          aria-pressed={view === "feed"}
+          onClick={() => setView("feed")}
+          className="min-h-9 rounded-md border border-border/60 px-3 text-xs"
+        >
+          Activity feed{newCount ? ` · ${newCount} new` : ""}
+        </button>
+        <button
+          type="button"
+          aria-pressed={view === "analytics"}
+          onClick={() => setView("analytics")}
+          className="min-h-9 rounded-md border border-border/60 px-3 text-xs"
+        >
+          Analytics
+        </button>
+        <button
+          type="button"
+          aria-pressed={view === "timeline"}
+          onClick={() => setView("timeline")}
+          className="min-h-9 rounded-md border border-border/60 px-3 text-xs"
+        >
+          Timeline
+        </button>
       </div>
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="text-xs text-muted-foreground">Filter tasks<Input type="search" value={query} onChange={(event) => setQuery(event.target.value)} className="mt-1" /></label>
-        <label className="text-xs text-muted-foreground">Source<select value={source} onChange={(event) => setSource(event.target.value as UnifiedTaskSource | "all")} className="mt-1 block min-h-10 w-full rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">{SOURCES.map((value) => <option key={value} value={value}>{value === "all" ? "All sources" : value}</option>)}</select></label>
-        <label className="text-xs text-muted-foreground">Sort<select value={sort} onChange={(event) => setSort(event.target.value as TaskBoardSort)} className="mt-1 block min-h-10 w-full rounded-md border border-border/60 bg-background px-3 text-sm text-foreground"><option value="updated">Recently updated</option><option value="oldest">Oldest first</option><option value="title">Title</option></select></label>
-        <label className="text-xs text-muted-foreground">Group tasks by<select value={group} onChange={(event) => setGroup(event.target.value as TaskBoardGroup)} className="mt-1 block min-h-10 w-full rounded-md border border-border/60 bg-background px-3 text-sm text-foreground"><option value="status">Status</option><option value="source">Source</option></select></label>
+        <label className="text-xs text-muted-foreground">
+          Filter tasks
+          <Input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            className="mt-1"
+          />
+        </label>
+        <label className="text-xs text-muted-foreground">
+          Source
+          <select
+            value={source}
+            onChange={(event) => setSource(event.target.value as UnifiedTaskSource | "all")}
+            className="mt-1 block min-h-10 w-full rounded-md border border-border/60 bg-background px-3 text-sm text-foreground"
+          >
+            {SOURCES.map((value) => (
+              <option key={value} value={value}>
+                {value === "all" ? "All sources" : value}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs text-muted-foreground">
+          Sort
+          <select
+            value={sort}
+            onChange={(event) => setSort(event.target.value as TaskBoardSort)}
+            className="mt-1 block min-h-10 w-full rounded-md border border-border/60 bg-background px-3 text-sm text-foreground"
+          >
+            <option value="updated">Recently updated</option>
+            <option value="oldest">Oldest first</option>
+            <option value="title">Title</option>
+          </select>
+        </label>
+        <label className="text-xs text-muted-foreground">
+          Group tasks by
+          <select
+            value={group}
+            onChange={(event) => setGroup(event.target.value as TaskBoardGroup)}
+            className="mt-1 block min-h-10 w-full rounded-md border border-border/60 bg-background px-3 text-sm text-foreground"
+          >
+            <option value="status">Status</option>
+            <option value="source">Source</option>
+          </select>
+        </label>
       </div>
 
-      {loading ? <p className="mt-4 text-sm text-muted-foreground">Reading on-device tasks…</p> : view === "analytics" ? (
+      {loading ? (
+        <p className="mt-4 text-sm text-muted-foreground">Reading on-device tasks…</p>
+      ) : view === "analytics" ? (
         <TaskAnalytics tasks={visible} />
       ) : view === "timeline" ? (
         <TaskTimeline tasks={visible} onChange={(task) => void saveTask(task)} />
       ) : view === "feed" ? (
         <section aria-labelledby="task-feed-title" className="mt-4">
           <div className="flex items-center justify-between gap-3">
-            <div><h3 id="task-feed-title" className="text-sm font-medium">Device activity</h3><p aria-live="polite" className="text-xs text-muted-foreground">{newCount ? `${newCount} task updates since this feed was last opened.` : "No new task updates."}</p></div>
-            <span className="text-xs text-muted-foreground">Page {feed.page} of {feed.pages}</span>
+            <div>
+              <h3 id="task-feed-title" className="text-sm font-medium">
+                Device activity
+              </h3>
+              <p aria-live="polite" className="text-xs text-muted-foreground">
+                {newCount
+                  ? `${newCount} task updates since this feed was last opened.`
+                  : "No new task updates."}
+              </p>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              Page {feed.page} of {feed.pages}
+            </span>
           </div>
           <div className="mt-3 space-y-2">
             {feed.items.map((task) => (
-              <article key={task.id} className="rounded-xl border border-border/60 bg-background/35 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="text-xs text-muted-foreground">{taskFeedAuthor(task)}</p><h4 className="mt-1 text-sm font-medium">{task.title}</h4></div><time dateTime={task.updatedAt} className="text-xs text-muted-foreground">{new Date(task.updatedAt).toLocaleString()}</time></div>
-                <p className="mt-2 text-xs text-muted-foreground">{task.currentStep || task.request || `Status changed to ${task.status.replaceAll("_", " ").toLowerCase()}.`}</p>
-                <div className="mt-3 flex gap-2"><button type="button" onClick={() => setSelected(task)} className="min-h-8 rounded-md border border-border/60 px-3 text-xs">Open details</button><button type="button" onClick={() => void navigator.clipboard?.writeText(task.id)} className="min-h-8 rounded-md border border-border/60 px-3 text-xs">Copy task reference</button></div>
+              <article
+                key={task.id}
+                className="rounded-xl border border-border/60 bg-background/35 p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs text-muted-foreground">{taskFeedAuthor(task)}</p>
+                    <h4 className="mt-1 text-sm font-medium">{task.title}</h4>
+                  </div>
+                  <time dateTime={task.updatedAt} className="text-xs text-muted-foreground">
+                    {new Date(task.updatedAt).toLocaleString()}
+                  </time>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {task.currentStep ||
+                    task.request ||
+                    `Status changed to ${task.status.replaceAll("_", " ").toLowerCase()}.`}
+                </p>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelected(task)}
+                    className="min-h-8 rounded-md border border-border/60 px-3 text-xs"
+                  >
+                    Open details
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void navigator.clipboard?.writeText(task.id)}
+                    className="min-h-8 rounded-md border border-border/60 px-3 text-xs"
+                  >
+                    Copy task reference
+                  </button>
+                </div>
               </article>
             ))}
-            {!feed.items.length ? <p className="rounded-xl border border-dashed border-border/50 p-4 text-sm text-muted-foreground">No task activity matches these filters. Add a task or clear a filter.</p> : null}
+            {!feed.items.length ? (
+              <p className="rounded-xl border border-dashed border-border/50 p-4 text-sm text-muted-foreground">
+                No task activity matches these filters. Add a task or clear a filter.
+              </p>
+            ) : null}
           </div>
-          <nav aria-label="Task activity pages" className="mt-4 flex justify-between"><Button type="button" variant="ghost" disabled={feed.page <= 1} onClick={() => setFeedPage((page) => Math.max(1, page - 1))}>Previous</Button><Button type="button" variant="ghost" disabled={feed.page >= feed.pages} onClick={() => setFeedPage((page) => Math.min(feed.pages, page + 1))}>Next</Button></nav>
+          <nav aria-label="Task activity pages" className="mt-4 flex justify-between">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={feed.page <= 1}
+              onClick={() => setFeedPage((page) => Math.max(1, page - 1))}
+            >
+              Previous
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={feed.page >= feed.pages}
+              onClick={() => setFeedPage((page) => Math.min(feed.pages, page + 1))}
+            >
+              Next
+            </Button>
+          </nav>
         </section>
       ) : group === "status" ? (
         <div className="mt-4 grid gap-3 xl:grid-cols-4">
@@ -248,25 +391,112 @@ export function TaskBoard() {
                 className="min-h-44 rounded-xl border border-border/50 bg-background/25 p-3"
               >
                 <div className="mb-3 flex items-start justify-between gap-2">
-                  <div><h3 className="text-sm font-medium">{column.label}</h3><p className="text-[11px] text-muted-foreground">{column.description}</p></div>
-                  <span aria-label={`${columnTasks.length} tasks`} className="rounded-full bg-muted px-2 py-0.5 text-xs">{columnTasks.length}</span>
+                  <div>
+                    <h3 className="text-sm font-medium">{column.label}</h3>
+                    <p className="text-[11px] text-muted-foreground">{column.description}</p>
+                  </div>
+                  <span
+                    aria-label={`${columnTasks.length} tasks`}
+                    className="rounded-full bg-muted px-2 py-0.5 text-xs"
+                  >
+                    {columnTasks.length}
+                  </span>
                 </div>
-                <div className="space-y-2">{columnTasks.map(card)}{!columnTasks.length ? <p className="rounded-lg border border-dashed border-border/50 p-3 text-xs text-muted-foreground">No tasks in this column.</p> : null}</div>
+                <div className="space-y-2">
+                  {columnTasks.map(card)}
+                  {!columnTasks.length ? (
+                    <p className="rounded-lg border border-dashed border-border/50 p-3 text-xs text-muted-foreground">
+                      No tasks in this column.
+                    </p>
+                  ) : null}
+                </div>
               </section>
             );
           })}
         </div>
       ) : (
         <div className="mt-4 grid gap-3 xl:grid-cols-3">
-          {taskSourceGroups(visible).map(([name, items]) => <section key={name} aria-label={`${name}, ${items.length} tasks`} className="rounded-xl border border-border/50 bg-background/25 p-3"><div className="mb-3 flex justify-between"><h3 className="text-sm font-medium capitalize">{name}</h3><span className="rounded-full bg-muted px-2 py-0.5 text-xs">{items.length}</span></div><div className="space-y-2">{items.map(card)}</div></section>)}
-          {!visible.length ? <p className="rounded-xl border border-dashed border-border/50 p-4 text-sm text-muted-foreground">No task matches these filters.</p> : null}
+          {taskSourceGroups(visible).map(([name, items]) => (
+            <section
+              key={name}
+              aria-label={`${name}, ${items.length} tasks`}
+              className="rounded-xl border border-border/50 bg-background/25 p-3"
+            >
+              <div className="mb-3 flex justify-between">
+                <h3 className="text-sm font-medium capitalize">{name}</h3>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs">{items.length}</span>
+              </div>
+              <div className="space-y-2">{items.map(card)}</div>
+            </section>
+          ))}
+          {!visible.length ? (
+            <p className="rounded-xl border border-dashed border-border/50 p-4 text-sm text-muted-foreground">
+              No task matches these filters.
+            </p>
+          ) : null}
         </div>
       )}
 
       <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{selected?.title}</DialogTitle></DialogHeader>
-          {selected ? <div className="space-y-3 text-sm"><nav aria-label="Task location" className="text-xs text-muted-foreground">Task board / <span className="text-foreground">{selected.title}</span></nav><dl className="grid grid-cols-[7rem_1fr] gap-2"><dt className="text-muted-foreground">Source</dt><dd>{selected.source}</dd><dt className="text-muted-foreground">Status</dt><dd>{selected.status.replaceAll("_", " ")}</dd><dt className="text-muted-foreground">Updated</dt><dd>{new Date(selected.updatedAt).toLocaleString()}</dd><dt className="text-muted-foreground">Request</dt><dd>{selected.request || "No task description."}</dd><dt className="text-muted-foreground">Receipts</dt><dd>{selected.receipts?.length ? selected.receipts.join("; ") : "No receipts recorded."}</dd></dl><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void editSelectedTitle()} className="min-h-9 rounded-md border border-border/60 px-3 text-xs">Edit title</button><button type="button" onClick={() => void deleteSelected()} className="min-h-9 rounded-md border border-destructive/40 px-3 text-xs text-destructive">Delete task</button></div><label className="block text-xs text-muted-foreground">Move task<select aria-label="Move task" value={taskBoardColumn(selected)} onChange={(event) => void move(selected, event.target.value as TaskBoardColumn)} className="mt-1 block min-h-10 w-full rounded-md border border-border/60 bg-background px-3 text-sm text-foreground">{TASK_BOARD_COLUMNS.map((column) => <option key={column.id} value={column.id}>{column.label}</option>)}</select></label><TaskComments key={selected.id} taskId={selected.id} /></div> : null}
+          <DialogHeader>
+            <DialogTitle>{selected?.title}</DialogTitle>
+          </DialogHeader>
+          {selected ? (
+            <div className="space-y-3 text-sm">
+              <nav aria-label="Task location" className="text-xs text-muted-foreground">
+                Task board / <span className="text-foreground">{selected.title}</span>
+              </nav>
+              <dl className="grid grid-cols-[7rem_1fr] gap-2">
+                <dt className="text-muted-foreground">Source</dt>
+                <dd>{selected.source}</dd>
+                <dt className="text-muted-foreground">Status</dt>
+                <dd>{selected.status.replaceAll("_", " ")}</dd>
+                <dt className="text-muted-foreground">Updated</dt>
+                <dd>{new Date(selected.updatedAt).toLocaleString()}</dd>
+                <dt className="text-muted-foreground">Request</dt>
+                <dd>{selected.request || "No task description."}</dd>
+                <dt className="text-muted-foreground">Receipts</dt>
+                <dd>
+                  {selected.receipts?.length
+                    ? selected.receipts.join("; ")
+                    : "No receipts recorded."}
+                </dd>
+              </dl>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => void editSelectedTitle()}
+                  className="min-h-9 rounded-md border border-border/60 px-3 text-xs"
+                >
+                  Edit title
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void deleteSelected()}
+                  className="min-h-9 rounded-md border border-destructive/40 px-3 text-xs text-destructive"
+                >
+                  Delete task
+                </button>
+              </div>
+              <label className="block text-xs text-muted-foreground">
+                Move task
+                <select
+                  aria-label="Move task"
+                  value={taskBoardColumn(selected)}
+                  onChange={(event) => void move(selected, event.target.value as TaskBoardColumn)}
+                  className="mt-1 block min-h-10 w-full rounded-md border border-border/60 bg-background px-3 text-sm text-foreground"
+                >
+                  {TASK_BOARD_COLUMNS.map((column) => (
+                    <option key={column.id} value={column.id}>
+                      {column.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <TaskComments key={selected.id} taskId={selected.id} />
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </section>

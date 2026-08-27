@@ -33,10 +33,17 @@ describe("OCADE task board", () => {
     const research = task("Read policy", "research");
     const failed = transitionTask(research, "FAILED", { lastError: "offline" }, AT);
     expect(filterAndSortTasks([work, failed], "policy", "all", "title")).toEqual([failed]);
-    expect(taskSourceGroups([work, failed]).map(([source]) => source)).toEqual(["research", "work"]);
+    expect(taskSourceGroups([work, failed]).map(([source]) => source)).toEqual([
+      "research",
+      "work",
+    ]);
     expect(moveTaskToColumn(failed, "queued", "2026-08-23T18:04:00.000Z").status).toBe("PLANNING");
     expect(taskFeedAuthor(work)).toBe("You on this device");
     expect(taskFeedAuthor({ ...failed, agent: "OCADE Research" })).toBe("OCADE Research");
-    expect(paginateTaskFeed([work, failed], 2, 1)).toMatchObject({ page: 2, pages: 2, items: [failed] });
+    expect(paginateTaskFeed([work, failed], 2, 1)).toMatchObject({
+      page: 2,
+      pages: 2,
+      items: [failed],
+    });
   });
 });

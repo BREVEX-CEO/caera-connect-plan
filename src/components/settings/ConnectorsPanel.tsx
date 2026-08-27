@@ -92,7 +92,8 @@ export function ConnectorsPanel() {
       {
         id: "models",
         label: "Local model engines",
-        description: "On-device routing, health checks and model setup without public-cloud inference.",
+        description:
+          "On-device routing, health checks and model setup without public-cloud inference.",
         available: true,
         detail: "The model control centre reports the health of local runtimes on this device.",
         to: "/ocade/models",

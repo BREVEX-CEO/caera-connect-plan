@@ -41,8 +41,8 @@ function FounderPage() {
 
       <PublicSection title="Role">
         <p>
-          Haans Antoni leads CARCC CADANE and directs the product vision for OCADE, the local-first AI
-          workspace whose formal public-launch date is recorded as 28 August 2026. Product access
+          Haans Antoni leads CARCC CADANE and directs the product vision for OCADE, the local-first
+          AI workspace whose formal public-launch date is recorded as 28 August 2026. Product access
           remains controlled by the production launch gate until final readiness approval is given.
         </p>
       </PublicSection>
@@ -75,10 +75,19 @@ function FounderPage() {
 
       <PublicSection title="Official references">
         <p>
-          Read the <Link to="/company" className="text-foreground underline">CARCC CADANE profile</Link>, the{" "}
-          <Link to="/about" className="text-foreground underline">About page</Link> and the{" "}
-          <Link to="/products/ocade" className="text-foreground underline">OCADE product profile</Link>.
-          Search engines decide independently how and when this information appears.
+          Read the{" "}
+          <Link to="/company" className="text-foreground underline">
+            CARCC CADANE profile
+          </Link>
+          , the{" "}
+          <Link to="/about" className="text-foreground underline">
+            About page
+          </Link>{" "}
+          and the{" "}
+          <Link to="/products/ocade" className="text-foreground underline">
+            OCADE product profile
+          </Link>
+          . Search engines decide independently how and when this information appears.
         </p>
       </PublicSection>
     </PublicPage>

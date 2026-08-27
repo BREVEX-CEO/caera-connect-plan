@@ -13,7 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import { hardenDesktopShell } from "@/lib/security/shell-hardening";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
+import { reportRuntimeError } from "../lib/runtime-error-reporting";
 import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supabase/client";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
@@ -73,7 +73,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    reportRuntimeError(error, { boundary: "tanstack_root_error_component" });
   }, [error]);
 
   return (
@@ -253,12 +253,12 @@ function RootComponent() {
   useEffect(() => {
     const onRejection = (e: PromiseRejectionEvent) => {
       const reason = e.reason;
-      reportLovableError(reason instanceof Error ? reason : new Error(String(reason)), {
+      reportRuntimeError(reason instanceof Error ? reason : new Error(String(reason)), {
         boundary: "unhandled_rejection",
       });
     };
     const onError = (e: ErrorEvent) => {
-      reportLovableError(e.error instanceof Error ? e.error : new Error(e.message), {
+      reportRuntimeError(e.error instanceof Error ? e.error : new Error(e.message), {
         boundary: "window_error",
       });
     };

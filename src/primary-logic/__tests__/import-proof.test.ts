@@ -11,7 +11,10 @@ import {
   permissionRuleValueToString,
   normalizeLegacyToolName,
 } from "../permissions/permissionRuleParser";
-import { DANGEROUS_BASH_PATTERNS, CROSS_PLATFORM_CODE_EXEC } from "../permissions/dangerousPatterns";
+import {
+  DANGEROUS_BASH_PATTERNS,
+  CROSS_PLATFORM_CODE_EXEC,
+} from "../permissions/dangerousPatterns";
 import {
   createDenialTrackingState,
   recordDenial,

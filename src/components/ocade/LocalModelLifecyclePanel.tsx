@@ -79,7 +79,11 @@ export function LocalModelLifecyclePanel({
       toast.error(verified.reason);
       return;
     }
-    say(verified.digestVerified ? "Installed and verified." : "Installed. Integrity proof is unavailable from this runtime.");
+    say(
+      verified.digestVerified
+        ? "Installed and verified."
+        : "Installed. Integrity proof is unavailable from this runtime.",
+    );
 
     setPhase("activating");
     say("Testing OCADE Local Intelligence…");
@@ -141,7 +145,8 @@ export function LocalModelLifecyclePanel({
     <section className="rounded-lg border border-border p-4" data-testid="local-model-lifecycle">
       <h3 className="text-sm font-medium">OCADE Local Intelligence</h3>
       <p className="mt-1 text-xs text-muted-foreground">
-        Choose the level you want. OCADE handles the underlying runtime and keeps generation on this device.
+        Choose the level you want. OCADE handles the underlying runtime and keeps generation on this
+        device.
       </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">

@@ -49,8 +49,7 @@ describe("no state is distinguished by colour alone", () => {
         if (a === b) continue;
         const one = ORB_APPEARANCE[a];
         const two = ORB_APPEARANCE[b];
-        const sameColour =
-          one.core.join() === two.core.join() && one.rim.join() === two.rim.join();
+        const sameColour = one.core.join() === two.core.join() && one.rim.join() === two.rim.join();
         if (!sameColour) continue;
         const energyGap = Math.abs(one.energy - two.energy);
         const scaleGap = Math.abs(one.scale - two.scale);
@@ -151,9 +150,9 @@ describe("fallbacks", () => {
   });
 
   it("prefers the person's preference over every hardware signal", () => {
-    expect(qualityFor(env({ reducedMotion: true, webglAvailable: true, lowEndDevice: false }))).toBe(
-      "still",
-    );
+    expect(
+      qualityFor(env({ reducedMotion: true, webglAvailable: true, lowEndDevice: false })),
+    ).toBe("still");
   });
 
   it("a still orb rests, rather than freezing mid-breath", () => {
@@ -185,9 +184,9 @@ describe("mapping the runtime onto the orb", () => {
 
   it("takeover outranks the phase but not an approval", () => {
     expect(orbStateFor({ phase: "controlling", userHasControl: true })).toBe("takeover");
-    expect(orbStateFor({ phase: "controlling", userHasControl: true, awaitingApproval: true })).toBe(
-      "approval",
-    );
+    expect(
+      orbStateFor({ phase: "controlling", userHasControl: true, awaitingApproval: true }),
+    ).toBe("approval");
   });
 
   it("does not colour observation as action", () => {

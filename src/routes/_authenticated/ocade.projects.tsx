@@ -524,8 +524,8 @@ function ProjectsPage() {
         {projectsStayLocal === null
           ? "Checking this browser's project storage mode…"
           : projectsStayLocal
-          ? "Projects and saved outputs stay in this browser. Nothing here is uploaded."
-          : "Projects and saved outputs are synchronised to your private account storage."}
+            ? "Projects and saved outputs stay in this browser. Nothing here is uploaded."
+            : "Projects and saved outputs are synchronised to your private account storage."}
       </p>
 
       {unavailable ? (

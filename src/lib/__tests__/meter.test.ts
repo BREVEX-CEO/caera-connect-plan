@@ -61,19 +61,13 @@ describe("local work is measured, not metered", () => {
 
 describe("totals add up across a conversation", () => {
   it("adds local runs", () => {
-    const totals = total([
-      measureRun({ durationMs: 5_000 }),
-      measureRun({ durationMs: 5_000 }),
-    ]);
+    const totals = total([measureRun({ durationMs: 5_000 }), measureRun({ durationMs: 5_000 })]);
     expect(totals.runs).toBe(2);
     expect(totals.local).toBe(2);
   });
 
   it("reports what this device did, with no allowance to compare against", () => {
-    const totals = total([
-      measureRun({ durationMs: 5_000 }),
-      measureRun({ durationMs: 5_000 }),
-    ]);
+    const totals = total([measureRun({ durationMs: 5_000 }), measureRun({ durationMs: 5_000 })]);
     const text = describeTotals(totals);
     expect(text).toMatch(/2 answers ran on your own hardware/i);
     expect(text).toMatch(/nothing was metered and nothing left this device/i);

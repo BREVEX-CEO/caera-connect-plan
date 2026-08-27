@@ -44,9 +44,10 @@ describe("what Cowork asks about", () => {
   it("stops asking about routine work once the user says so", () => {
     const tool = findTool("app_open");
     expect(tool).not.toBeNull();
-    expect(decide(call("app_open", { name: "Notepad" }), tool, createPermissionContext("trusted")).outcome).toBe(
-      "allow",
-    );
+    expect(
+      decide(call("app_open", { name: "Notepad" }), tool, createPermissionContext("trusted"))
+        .outcome,
+    ).toBe("allow");
   });
 
   it("still asks before sending a message to another person, however trusting the mode", () => {

@@ -349,109 +349,69 @@ describe("every planet stays on screen", () => {
 });
 
 describe("the universe answers the mouse on every tier", () => {
-  const CANVAS = readFileSync("src/components/landing/UniverseCanvas.tsx", "utf8");
-
   /**
-   * DEFECT LP-02, FIXED.
+   * RE-POINTED AT THE COMPONENT THAT ACTUALLY SHIPS.
    *
-   * The draw loop ended with `if (localTier === "static") return;` — a plain
-   * `return` that killed the loop permanently. On every device that got the
-   * still tier, which is every machine with `prefers-reduced-motion` and every
-   * low-powered one, the scene painted once and then ignored the mouse: a drag
-   * rotated the camera in memory while the canvas never redrew, and hover
-   * hit-testing stopped with it. It looked like a static image with broken
-   * controls, shown to exactly the users least likely to realise it was meant
-   * to move.
+   * These assertions used to read `UniverseCanvas.tsx`, which the landing page
+   * stopped rendering when `SolarSystem` replaced it. So the suite was guarding
+   * a file nothing imports: it would have passed for ever, whatever the live
+   * scene did, which is worse than having no test at all — a green check that
+   * covers nothing reads exactly like one that covers something.
    *
-   * Reduced motion means "do not move on your own", not "do not respond".
+   * The guarantee is unchanged and is the one DEFECT LP-02 was about: reduced
+   * motion means "do not move on your own", never "do not respond". A drag or a
+   * zoom must still repaint for someone who asked for less motion, or they are
+   * handed a picture they cannot turn.
    *
-   * Verified against the live component in a browser, with the still tier
-   * active: idle produced no repaint, while drag, wheel and double-click each
-   * changed the painted pixels, and double-click restored the opening frame
-   * byte for byte.
+   * The live scene keeps that promise by a different and better mechanism than
+   * the dead one did. Rather than ending the loop and asking for repaints on
+   * demand, it keeps the animation frame running and sets the time delta to
+   * zero: nothing moves by itself, and every deliberate act still paints.
    */
-  it("repaints on demand rather than ending the loop", () => {
-    expect(CANVAS).toMatch(/const requestRepaint = \(\) => \{/);
-    expect(CANVAS).toMatch(/repaintRef\.current = requestRepaint/);
+  const SCENE = readFileSync("src/components/landing/SolarSystem.tsx", "utf8");
+
+  it("does not end the loop when motion is held still", () => {
+    // The plain `return` that ended the loop is what LP-02 was.
+    expect(SCENE).toMatch(/const dt = holdStill \? 0 : elapsed;/);
+    expect(SCENE).toMatch(/frame = requestAnimationFrame\(loop\);/);
   });
 
-  it("asks for a repaint after every camera change", () => {
-    // A camera change with no repaint is a control that silently does nothing.
-    const handlers = ["onPointerMove", "onWheel", "onDoubleClick"];
-    for (const handler of handlers) {
-      const start = CANVAS.indexOf(handler);
-      expect(start, `${handler} is missing`).toBeGreaterThan(0);
-      expect(
-        CANVAS.slice(start, start + 900),
-        `${handler} changes the camera without repainting`,
-      ).toMatch(/repaintRef\.current\?\.\(\)/);
+  it("stops the clock rather than the loop, so nothing moves on its own", () => {
+    // If the scene clock advanced while held still, a drag after ten seconds
+    // would snap the planets ten seconds forward — motion nobody asked for.
+    expect(SCENE).toMatch(/scene\.frame\(dt\)/);
+    expect(SCENE).toMatch(/if \(!holdStill && now - lastInteraction > IDLE_RETURN_MS\)/);
+  });
+
+  it("still answers the pointer and the wheel", () => {
+    for (const handler of ["pointermove", "wheel"]) {
+      expect(SCENE.toLowerCase(), `${handler} is missing`).toContain(handler);
     }
   });
 
-  it("does not stack duplicate frames", () => {
-    // Without the guard, a fast drag queues one frame per pointermove and the
-    // still tier becomes busier than the animating one.
-    expect(CANVAS).toMatch(/if \(!running \|\| frame !== 0\) return;/);
-  });
-
-  it("freezes the clock on the still tier instead of jumping on repaint", () => {
+  it("labels a still frame, by ticking on real time rather than scene time", () => {
     /*
-     * If `elapsed` kept accumulating, a drag after ten seconds of stillness
-     * would snap the planets ten seconds forward — motion, delivered to a user
-     * who asked for none.
+     * The label pass is driven by `elapsed`, not by `dt`. Held still, `dt` is
+     * always zero — a label pass waiting on it would never run, and the opening
+     * frame would be an unlabelled picture for exactly the people who asked for
+     * less motion.
      */
-    expect(CANVAS).toMatch(
-      /if \(!paused && localTier !== "static"\) elapsedRef\.current \+= delta;/,
-    );
+    expect(SCENE).toMatch(/labelTick \+= elapsed;/);
   });
 
-  it("keeps the clock outside the effect, so a hover cannot rewind the system", () => {
-    /*
-     * `elapsed` used to be a local inside the draw effect, and the effect
-     * depended on `activePlanetId`. Every hover tore the loop down and rebuilt
-     * it with the clock back at zero, snapping all eight planets to their t=0
-     * positions — so running the pointer along the legend made the system jump
-     * backwards eight times. Every geometry test still passed, because the
-     * scene was correct at each instant and only the CONTINUITY was broken.
-     */
-    expect(CANVAS, "the clock is back inside the effect").toMatch(/const elapsedRef = useRef\(0\)/);
-    const deps = /\}, \[tier, notifyHover\]\);/;
-    expect(CANVAS, "the draw loop restarts on hover or pause again").toMatch(deps);
+  it("takes the quality tier from the appearance setting, not from the media query", () => {
+    // Reading `prefers-reduced-motion` directly ignored the in-product choice.
+    expect(SCENE).toMatch(/const \{ reducedMotion, osReducedMotion \} = useAppearance\(\);/);
+    expect(SCENE).toMatch(/const holdStill = reducedMotion \|\| osReducedMotion;/);
   });
 
-  it("repaints after a resize, or the still tier shows an empty rectangle", () => {
-    /*
-     * DEFECT LP-03. Assigning `canvas.width` wipes every pixel and every
-     * context setting. `ResizeObserver` delivers its first callback AFTER the
-     * animation-frame callbacks of the same frame and before compositing, so
-     * the order on load was: paint the scene, blank it, show the blank one.
-     *
-     * Animating tiers repainted on the next frame and nobody saw it. The still
-     * tier has no next frame, so everyone with `prefers-reduced-motion` — and
-     * everyone on a low-powered device — got an empty rectangle where the
-     * product's opening image belongs, permanently.
-     */
-    const start = CANVAS.indexOf("const resize = () =>");
-    expect(start, "the resize handler is missing").toBeGreaterThan(0);
-    const body = CANVAS.slice(start, CANVAS.indexOf("observer.observe"));
-    expect(body, "canvas.width is assigned without reapplying the transform").toMatch(
-      /context\.setTransform/,
-    );
-    expect(body, "a resize blanks the canvas and never repaints it").toMatch(
-      /repaintRef\.current\?\.\(\)/,
-    );
+  it("gives weak devices a smaller scene rather than the full one", () => {
+    expect(SCENE).toMatch(/cores <= 2 \|\| memory <= 2 \|\| window\.innerWidth < 640/);
   });
 
-  it("offers a way back to the designed framing", () => {
-    expect(CANVAS).toMatch(/onDoubleClick/);
-    // Written to the TARGET, not to the live camera: the view has to sail back
-    // to the designed framing rather than cut to it.
-    expect(CANVAS).toMatch(/target: \{ \.\.\.DEFAULT_CAMERA \}/);
-  });
-
-  it("clears the repaint handle on unmount", () => {
-    // A retained closure would keep a dead canvas alive through the ref.
-    expect(CANVAS).toMatch(/repaintRef\.current = null/);
+  it("cancels the frame on unmount, so a dead canvas is not kept alive", () => {
+    expect(SCENE).toMatch(/cancelAnimationFrame\(frame\)/);
+    expect(SCENE).toMatch(/running = false/);
   });
 
   it("rotating the camera genuinely changes what is drawn", () => {

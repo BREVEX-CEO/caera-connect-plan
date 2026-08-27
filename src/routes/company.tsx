@@ -26,9 +26,9 @@ function CompanyPage() {
     >
       <PublicSection title="What CARCC CADANE is">
         <p>
-          CARCC CADANE is the technology enterprise, product venture and brand identity behind OCADE.
-          It develops software, AI systems and related technology under the CARCC CADANE name. The
-          official tagline is “Command the Next Era.”
+          CARCC CADANE is the technology enterprise, product venture and brand identity behind
+          OCADE. It develops software, AI systems and related technology under the CARCC CADANE
+          name. The official tagline is “Command the Next Era.”
         </p>
         <p>
           Public references use the CARCC CADANE enterprise and brand identity. A specific corporate
@@ -40,8 +40,9 @@ function CompanyPage() {
       <PublicSection title="Formal founding and OCADE launch">
         <p>
           CARCC CADANE records <strong className="text-foreground">28 August 2026</strong> as its
-          formal founding date and the public-launch date for OCADE. Legal, privacy, support, identity
-          and verification pages can be public earlier so users and external services can review them.
+          formal founding date and the public-launch date for OCADE. Legal, privacy, support,
+          identity and verification pages can be public earlier so users and external services can
+          review them.
         </p>
         <p>
           Authenticated product access remains controlled by the production launch gate until both
@@ -89,9 +90,15 @@ function CompanyPage() {
           shareholding will be offered.
         </p>
         <p>
-          Use the <Link to="/about" className="text-foreground underline">About page</Link> and{" "}
-          <Link to="/support" className="text-foreground underline">Support page</Link> for the
-          current investor-enquiry process.
+          Use the{" "}
+          <Link to="/about" className="text-foreground underline">
+            About page
+          </Link>{" "}
+          and{" "}
+          <Link to="/support" className="text-foreground underline">
+            Support page
+          </Link>{" "}
+          for the current investor-enquiry process.
         </p>
       </PublicSection>
     </PublicPage>

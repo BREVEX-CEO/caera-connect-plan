@@ -41,7 +41,8 @@ mkdirSync(SOURCE, { recursive: true });
 mkdirSync(PROVENANCE, { recursive: true });
 
 function assertSafeRelativePath(input) {
-  if (!input || input.includes("\0")) throw new Error(`Unsafe empty/NUL path: ${JSON.stringify(input)}`);
+  if (!input || input.includes("\0"))
+    throw new Error(`Unsafe empty/NUL path: ${JSON.stringify(input)}`);
   const unix = input.replaceAll("\\", "/");
   if (unix.startsWith("/") || /^[A-Za-z]:\//.test(unix)) {
     throw new Error(`Absolute archive path rejected: ${input}`);
@@ -59,7 +60,10 @@ function walkDirectory(root, current = root, output = []) {
     if (entry.isDirectory()) {
       walkDirectory(root, absolute, output);
     } else if (entry.isFile()) {
-      output.push({ path: assertSafeRelativePath(relative(root, absolute)), data: readFileSync(absolute) });
+      output.push({
+        path: assertSafeRelativePath(relative(root, absolute)),
+        data: readFileSync(absolute),
+      });
     }
   }
   return output;
@@ -68,11 +72,16 @@ function walkDirectory(root, current = root, output = []) {
 function stripSingleCommonRoot(entries) {
   const useful = entries.filter((entry) => entry.path && !entry.path.endsWith("/"));
   if (!useful.length) return useful;
-  const firstSegments = new Set(useful.map((entry) => entry.path.replaceAll("\\", "/").split("/")[0]));
+  const firstSegments = new Set(
+    useful.map((entry) => entry.path.replaceAll("\\", "/").split("/")[0]),
+  );
   if (firstSegments.size !== 1) return useful;
   const [root] = [...firstSegments];
   if (useful.some((entry) => !entry.path.replaceAll("\\", "/").includes("/"))) return useful;
-  return useful.map((entry) => ({ ...entry, path: entry.path.replaceAll("\\", "/").slice(root.length + 1) }));
+  return useful.map((entry) => ({
+    ...entry,
+    path: entry.path.replaceAll("\\", "/").slice(root.length + 1),
+  }));
 }
 
 function loadInput(inputPath) {
@@ -107,7 +116,10 @@ function loadInput(inputPath) {
   const entries = stripSingleCommonRoot(
     Object.entries(files)
       .filter(([rawName]) => rawName && !rawName.endsWith("/"))
-      .map(([rawName, data]) => ({ path: assertSafeRelativePath(rawName), data: Buffer.from(data) })),
+      .map(([rawName, data]) => ({
+        path: assertSafeRelativePath(rawName),
+        data: Buffer.from(data),
+      })),
   );
 
   return {
@@ -120,25 +132,45 @@ function loadInput(inputPath) {
 }
 
 function categoryFor(path) {
-  if (path === "src/QueryEngine.ts" || path === "src/Task.ts" || path === "src/Tool.ts" || path === "src/tools.ts") {
+  if (
+    path === "src/QueryEngine.ts" ||
+    path === "src/Task.ts" ||
+    path === "src/Tool.ts" ||
+    path === "src/tools.ts"
+  ) {
     return "core-agent";
   }
   if (path.startsWith("src/tools/")) return "tools";
   if (path.startsWith("src/commands/")) return "commands";
-  if (path.startsWith("src/components/") || path.startsWith("src/ink/") || path.startsWith("src/screens/")) {
+  if (
+    path.startsWith("src/components/") ||
+    path.startsWith("src/ink/") ||
+    path.startsWith("src/screens/")
+  ) {
     return "terminal-ui";
   }
-  if (path.startsWith("src/tasks/") || path.startsWith("src/coordinator/")) return "tasks-multi-agent";
-  if (path.startsWith("src/bridge/") || path.startsWith("src/remote/") || path.startsWith("src/server/")) {
+  if (path.startsWith("src/tasks/") || path.startsWith("src/coordinator/"))
+    return "tasks-multi-agent";
+  if (
+    path.startsWith("src/bridge/") ||
+    path.startsWith("src/remote/") ||
+    path.startsWith("src/server/")
+  ) {
     return "remote-server";
   }
   if (path.startsWith("src/services/")) return "services";
-  if (path.startsWith("src/hooks/") || path.startsWith("src/state/") || path.startsWith("src/context/")) {
+  if (
+    path.startsWith("src/hooks/") ||
+    path.startsWith("src/state/") ||
+    path.startsWith("src/context/")
+  ) {
     return "state-hooks";
   }
-  if (path.startsWith("src/memdir/") || /session|history|memory/i.test(path)) return "session-memory";
+  if (path.startsWith("src/memdir/") || /session|history|memory/i.test(path))
+    return "session-memory";
   if (path.startsWith("web/")) return "next-web-reference";
-  if (path.startsWith("docker/") || path.startsWith("scripts/") || path === "Dockerfile") return "build-dev";
+  if (path.startsWith("docker/") || path.startsWith("scripts/") || path === "Dockerfile")
+    return "build-dev";
   return "supporting-source";
 }
 
@@ -158,7 +190,12 @@ function dispositionFor(path, category) {
   if (/BashTool|PowerShellTool|node-pty|native-ts/i.test(path)) return "LOCAL_COMPANION_ONLY";
   if (category === "terminal-ui") return "REFERENCE_ONLY";
   if (category === "tasks-multi-agent") return "ADAPT_LATER";
-  if (category === "core-agent" || category === "tools" || category === "state-hooks" || category === "session-memory") {
+  if (
+    category === "core-agent" ||
+    category === "tools" ||
+    category === "state-hooks" ||
+    category === "session-memory"
+  ) {
     return "ADAPT_SELECTIVELY";
   }
   return "REVIEW";
@@ -205,7 +242,10 @@ const countsByCategory = Object.fromEntries(
 const countsByDisposition = Object.fromEntries(
   [...new Set(inventory.map((item) => item.disposition))]
     .sort()
-    .map((disposition) => [disposition, inventory.filter((item) => item.disposition === disposition).length]),
+    .map((disposition) => [
+      disposition,
+      inventory.filter((item) => item.disposition === disposition).length,
+    ]),
 );
 
 const receipt = {

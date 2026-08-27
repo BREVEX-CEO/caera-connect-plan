@@ -26,7 +26,10 @@ await page.waitForTimeout(3000);
 
 const cacheState = await page.evaluate(async () => {
   const names = await caches.keys();
-  const shell = names.filter((name) => name.startsWith("ocade-shell-v")).sort().at(-1);
+  const shell = names
+    .filter((name) => name.startsWith("ocade-shell-v"))
+    .sort()
+    .at(-1);
   if (!shell) return { shell: null, keys: [] };
   const cache = await caches.open(shell);
   return {

@@ -41,7 +41,10 @@ function SupportPage() {
         </PublicSection>
 
         <PublicSection title="Service status">
-          <p>Check availability, incidents, maintenance and update notices where the status page is available.</p>
+          <p>
+            Check availability, incidents, maintenance and update notices where the status page is
+            available.
+          </p>
           <Link to="/status" className={ACTION_LINK}>
             <Signal className="h-4 w-4" aria-hidden /> View OCADE status
           </Link>
@@ -56,9 +59,9 @@ function SupportPage() {
         </p>
         <p>
           Before authenticated account access opens, this public page is the authoritative contact
-          status: no dedicated support, legal, privacy, security or investor email address is claimed
-          to be active. Those addresses may be added later after their mailboxes and delivery are
-          verified.
+          status: no dedicated support, legal, privacy, security or investor email address is
+          claimed to be active. Those addresses may be added later after their mailboxes and
+          delivery are verified.
         </p>
         <Link to="/settings/support" className={ACTION_LINK}>
           <MessageSquarePlus className="h-4 w-4" aria-hidden /> Open signed-in support
@@ -85,8 +88,8 @@ function SupportPage() {
       <PublicSection title="Investor and partnership enquiries">
         <p>
           Prospective investors and strategic partners may use the Investor or Partnership ticket
-          category when account intake is available. An enquiry starts a private discussion only;
-          it is not an offer of securities, a solicitation to invest or a promise that equity or
+          category when account intake is available. An enquiry starts a private discussion only; it
+          is not an offer of securities, a solicitation to invest or a promise that equity or
           shareholding will be offered.
         </p>
         <Link to="/about" className={ACTION_LINK}>

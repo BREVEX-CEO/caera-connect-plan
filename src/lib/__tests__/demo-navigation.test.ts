@@ -11,7 +11,7 @@ describe("anonymous demo navigation", () => {
 
   it("does not initialize account session state inside the demo workspace shell", () => {
     const source = readFileSync("src/components/shell/WorkspaceShell.tsx", "utf8");
-    expect(source).toContain('<WorkspaceShellInner {...props} user={null} />');
+    expect(source).toContain("<WorkspaceShellInner {...props} user={null} />");
     expect(source).toContain("function AccountWorkspaceShell");
     expect(source).toContain("{isDemo ? null : <WelcomeTour />}");
   });

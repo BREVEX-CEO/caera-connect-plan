@@ -13,15 +13,26 @@ import {
 const memory = new Map<string, string>();
 Object.defineProperty(globalThis, "localStorage", {
   configurable: true,
-  value: { getItem: (key: string) => memory.get(key) ?? null, setItem: (key: string, value: string) => memory.set(key, value) },
+  value: {
+    getItem: (key: string) => memory.get(key) ?? null,
+    setItem: (key: string, value: string) => memory.set(key, value),
+  },
 });
 
 describe("local task comments", () => {
   beforeEach(() => memory.clear());
 
   it("anchors threads, mentions, reactions, edits and resolution to one task", () => {
-    const root = createTaskComment({ taskId: "task-1", body: "Ask @OCADE to verify" }, "2026-08-23T18:00:00Z", "c1");
-    createTaskComment({ taskId: "task-1", parentId: root.id, body: "Reply" }, "2026-08-23T18:01:00Z", "c2");
+    const root = createTaskComment(
+      { taskId: "task-1", body: "Ask @OCADE to verify" },
+      "2026-08-23T18:00:00Z",
+      "c1",
+    );
+    createTaskComment(
+      { taskId: "task-1", parentId: root.id, body: "Reply" },
+      "2026-08-23T18:01:00Z",
+      "c2",
+    );
     createTaskComment({ taskId: "task-2", body: "Separate" }, "2026-08-23T18:02:00Z", "c3");
     expect(listTaskComments("task-1")).toHaveLength(2);
     expect(mentionsInComment(root.body)).toEqual(["@OCADE"]);

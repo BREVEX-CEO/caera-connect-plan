@@ -165,17 +165,15 @@ describe("the palette stayed black, silver, aubergine and gold", () => {
           continue;
         }
         const inGold = colour.h >= GOLD_BAND[0] && colour.h <= GOLD_BAND[1];
-        const inAubergine =
-          colour.h >= AUBERGINE_BAND[0] && colour.h <= AUBERGINE_BAND[1];
+        const inAubergine = colour.h >= AUBERGINE_BAND[0] && colour.h <= AUBERGINE_BAND[1];
         const inRed = colour.h >= RED_BAND[0] && colour.h <= RED_BAND[1];
         if (!inGold && !inAubergine && !inRed) {
           strays.push(`${name}: hue ${colour.h}, chroma ${colour.c}`);
         }
       }
-      expect(
-        strays,
-        `colours outside the gold/aubergine/red bands: ${strays.join("; ")}`,
-      ).toEqual([]);
+      expect(strays, `colours outside the gold/aubergine/red bands: ${strays.join("; ")}`).toEqual(
+        [],
+      );
     });
   }
 

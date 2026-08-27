@@ -80,6 +80,19 @@ function stripNoise(source) {
        * with the comments and the string literals.
        */
       .replace(/>[^<>{}]+</g, (t) => `>${keep(t.slice(1, -1))}<`)
+      /*
+       * AND TEXT THAT FOLLOWS AN EXPRESSION, WHICH THE RULE ABOVE MISSES.
+       *
+       * The same sentence came back, from the same file, one line further down:
+       *
+       *     for the current investor-enquiry process.
+       *     </p>
+       *
+       * It sits between a `{" "}` spacer and the closing tag, so it begins
+       * after a `}` rather than after a `>` and the first rule never saw it.
+       * Prose does not stop being prose because a JSX space precedes it.
+       */
+      .replace(/\}[^<>{}]+</g, (t) => `}${keep(t.slice(1, -1))}<`)
   );
 }
 

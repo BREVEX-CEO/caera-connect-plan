@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { mayUseCachedSession, cachedSessionIsCurrent } from "@/lib/auth/session-failure";
 
 import { registerDeviceForCurrentSession } from "@/lib/devices";
-import { reportLovableError } from "@/lib/lovable-error-reporting";
+import { reportRuntimeError } from "@/lib/runtime-error-reporting";
 import { FirstRunEngineSetup } from "@/components/ocade/FirstRunEngineSetup";
 import { startSyncLoop } from "@/lib/storage/sync-queue";
 import { SettingsAccessProvider } from "@/components/settings/SettingsGate";
@@ -130,7 +130,7 @@ function AuthedLayout() {
     // row against no account and fail on every signed-out settings view.
     if (!signedIn) return;
     registerDeviceForCurrentSession().catch((e) =>
-      reportLovableError(e, { boundary: "device_registration" }),
+      reportRuntimeError(e, { boundary: "device_registration" }),
     );
   }, [signedIn]);
 
@@ -165,7 +165,7 @@ function AuthedLayout() {
 function AuthedError({ error, reset }: { error: Error; reset: () => void }) {
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "authenticated_route" });
+    reportRuntimeError(error, { boundary: "authenticated_route" });
   }, [error]);
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">

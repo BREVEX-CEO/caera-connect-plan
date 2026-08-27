@@ -71,10 +71,7 @@ function findExtensionTestBrowser() {
   if (explicit && existsSync(explicit)) return explicit;
 
   const candidates = [
-    join(
-      process.env.LOCALAPPDATA ?? "",
-      "Google/Chrome for Testing/Application/chrome.exe",
-    ),
+    join(process.env.LOCALAPPDATA ?? "", "Google/Chrome for Testing/Application/chrome.exe"),
     join(process.env["ProgramFiles"] ?? "", "Google/Chrome for Testing/Application/chrome.exe"),
   ];
 
@@ -205,18 +202,33 @@ if (extensionTestBrowser) {
   const withTestBrowser = {
     env: { ...process.env, OCADE_BROWSER_PATH: extensionTestBrowser },
   };
-  stage("extension manifest and safety gate", process.execPath, [npmCli, "run", "extension:check"], {
-    ...withTestBrowser,
-  });
-  stage("COWORK extension against Chrome for Testing", process.execPath, [npmCli, "run", "extension:e2e"], {
-    ...withTestBrowser,
-  });
+  stage(
+    "extension manifest and safety gate",
+    process.execPath,
+    [npmCli, "run", "extension:check"],
+    {
+      ...withTestBrowser,
+    },
+  );
+  stage(
+    "COWORK extension against Chrome for Testing",
+    process.execPath,
+    [npmCli, "run", "extension:e2e"],
+    {
+      ...withTestBrowser,
+    },
+  );
 }
 if (chrome) {
   const withChrome = { env: { ...process.env, OCADE_BROWSER_PATH: chrome } };
-  stage("Chrome and Edge parity through the managed host", process.execPath, [npmCli, "run", "browser:cdp-parity"], {
-    ...withChrome,
-  });
+  stage(
+    "Chrome and Edge parity through the managed host",
+    process.execPath,
+    [npmCli, "run", "browser:cdp-parity"],
+    {
+      ...withChrome,
+    },
+  );
 }
 
 // ---- Evidence ---------------------------------------------------------------
