@@ -204,6 +204,13 @@ export function useOcadeRuntime(options: RuntimeOptions) {
               onToken: (chunk) => {
                 text += chunk;
               },
+              /*
+               * OCADE asking on its own behalf. It must not cancel the user's
+               * next message, and it must not announce itself in the engine
+               * status — note-taking that interrupts is worse than note-taking
+               * that occasionally misses.
+               */
+              background: true,
             });
             return reply.ok ? text : null;
           },

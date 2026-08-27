@@ -81,6 +81,24 @@ export interface SendOptions {
    */
   tools?: readonly unknown[];
   onToolCall?: (call: { id?: string; name: string; arguments: Record<string, unknown> }) => void;
+  /**
+   * OCADE asking the engine something on its own behalf, not the user's.
+   *
+   * Session-memory extraction is the case this exists for, and it has two
+   * hazards that a normal send does not:
+   *
+   *  - It must never CANCEL the user. Every ordinary send aborts whatever was
+   *    in flight, which is right when a person types over their own request
+   *    and catastrophic when housekeeping does it to them. A background send
+   *    holds its own controller and leaves the shared one alone.
+   *  - It must never SPEAK. The engine status drives visible chrome; a
+   *    "Checking…" that nobody asked for reads as the product doing something
+   *    to the conversation on screen, which it is not.
+   *
+   * A background send is still cancelled by the next ordinary one, because
+   * that one aborts what it finds — and the user winning is the whole point.
+   */
+  background?: boolean;
 }
 
 export interface SendResult {
@@ -135,6 +153,14 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
   const brain = useBrain();
   const [state, setState] = useState<EngineState>(INITIAL);
   const abortRef = useRef<AbortController | null>(null);
+  /**
+   * The background request, held separately from the user's.
+   *
+   * Two refs rather than one because the two directions are not symmetric: a
+   * background send must never cancel the person, and the person must always
+   * cancel the background send. One shared ref can only express the first half.
+   */
+  const backgroundRef = useRef<AbortController | null>(null);
   /*
    * Guards every setState after an await. Without it, a probe that resolves
    * after the visitor has navigated away sets state on an unmounted component,
@@ -147,6 +173,7 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
     return () => {
       liveRef.current = false;
       abortRef.current?.abort();
+      backgroundRef.current?.abort();
     };
   }, []);
 
@@ -229,19 +256,39 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
   }, [apply, decide, contextVision]);
 
   const send = useCallback(
-    async ({ messages, onToken, tools, onToolCall }: SendOptions): Promise<SendResult> => {
+    async ({
+      messages,
+      onToken,
+      tools,
+      onToolCall,
+      background = false,
+    }: SendOptions): Promise<SendResult> => {
       // Install cancellation before adapter discovery/model preparation. STOP
       // must work while the first-run engine is still being selected, not only
       // after token generation has begun.
       const controller = new AbortController();
-      abortRef.current?.abort();
-      abortRef.current = controller;
-      apply({ status: "checking", reason: null, remedies: [] });
+      /*
+       * A background send neither claims the shared controller nor reports
+       * status. See `SendOptions.background`: housekeeping must not be able to
+       * cancel the person, or to narrate itself on their screen.
+       */
+      const report = background ? () => {} : apply;
+      const claim = (next: AbortController | null) => {
+        if (background) backgroundRef.current = next;
+        else abortRef.current = next;
+      };
+      // Housekeeping always yields to the person: an ordinary send ends any
+      // background work first, and a background send touches nothing of theirs.
+      backgroundRef.current?.abort();
+      backgroundRef.current = null;
+      if (!background) abortRef.current?.abort();
+      claim(controller);
+      report({ status: "checking", reason: null, remedies: [] });
       const { outcome, decision } = await decide(contextVision);
       if (!liveRef.current) return { ok: false, cancelled: true };
       if (controller.signal.aborted) {
-        abortRef.current = null;
-        apply({ status: "ready", progress: null });
+        claim(null);
+        report({ status: "ready", progress: null });
         return { ok: false, cancelled: true, reason: "Stopped by the user." };
       }
 
@@ -253,18 +300,18 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
       if (!decision.ok || decision.target?.kind !== "local" || !outcome.ok) {
         const reason =
           decision.reason ?? (outcome.ok ? "No on-device engine can serve this." : outcome.reason);
-        apply({
+        report({
           status: "unavailable",
           label: null,
           reason,
           remedies:
             decision.remedies.length > 0 ? decision.remedies : outcome.ok ? [] : outcome.remedies,
         });
-        abortRef.current = null;
+        claim(null);
         return { ok: false, reason };
       }
 
-      apply({
+      report({
         status: "generating",
         label: outcome.availability.label,
         reason: null,
@@ -303,7 +350,7 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
       const wanted = thinkingFor(contextSurface, contextThinking);
       const engineAllows = outcome.availability.thinkingSuitable !== false;
       const deliberate = wanted && engineAllows;
-      apply({ thinkingDegraded: wanted && !engineAllows });
+      report({ thinkingDegraded: wanted && !engineAllows });
       const withDeliberation = messages.map((message, index) =>
         index === 0 && message.role === "system"
           ? { ...message, content: `${message.content}${deliberationClause(deliberate)}` }
@@ -327,26 +374,26 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
            */
           if (!sawToken) {
             sawToken = true;
-            apply({ status: "generating" });
+            report({ status: "generating" });
           }
           onToken(chunk);
         },
       });
 
-      abortRef.current = null;
+      claim(null);
       if (!liveRef.current) return { ok: false, cancelled: true };
 
       if (result.ok) {
-        apply({ status: "ready", progress: null });
+        report({ status: "ready", progress: null });
         return { ok: true };
       }
       if (result.failure === "cancelled") {
         // A stop the user asked for is not an error and must not be dressed as
         // one; the partial answer stays on screen.
-        apply({ status: "ready", progress: null });
+        report({ status: "ready", progress: null });
         return { ok: false, cancelled: true, reason: result.reason };
       }
-      apply({
+      report({
         status: "unavailable",
         reason: result.reason,
         remedies: [],
@@ -364,6 +411,8 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
   const stop = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
+    backgroundRef.current?.abort();
+    backgroundRef.current = null;
     apply({ status: "ready", progress: null });
   }, [apply]);
 
