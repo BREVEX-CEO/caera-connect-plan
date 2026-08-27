@@ -51,6 +51,9 @@ const PORTED_ROOT = "src/primary-logic";
 const FAMILIES = [
   {
     family: "Query engine, deps, transitions, token budget, stop hooks",
+    match: new RegExp(
+      "^src/(query|services/query)/|^src/QueryEngine[.]ts$|^src/(ocade|query|history|commands|context|setup)[.]ts$|^src/utils/(tokens|analyzeContext|context)[.]ts$|^src/services/tokenEstimation",
+    ),
     outcome: "Ported — donor is the authority",
     authority: "src/lib/runtime/use-ocade-runtime.ts",
     reason:
@@ -58,6 +61,7 @@ const FAMILIES = [
   },
   {
     family: "Permissions, shell rule matching, dangerous patterns, denial tracking",
+    match: new RegExp("^src/utils/permissions/|^src/utils/shell/"),
     outcome: "Ported — donor is the authority",
     authority: "src/lib/runtime/permissions.ts",
     reason:
@@ -65,6 +69,7 @@ const FAMILIES = [
   },
   {
     family: "Bash parser, heredocs, quoting, destructive-command warnings",
+    match: new RegExp("^src/utils/(bashParser|commandParser|treeSitter)|^src/tools/BashTool/"),
     outcome: "Ported — donor is the authority",
     authority: "src/lib/runtime/permissions.ts",
     reason:
@@ -72,6 +77,7 @@ const FAMILIES = [
   },
   {
     family: "Path safety and sandbox rules",
+    match: new RegExp("^src/utils/(path|fsOperations|sandbox)|^src/utils/sandbox/"),
     outcome: "Ported — closed a gap OCADE had",
     authority: "src/lib/runtime/permissions.ts",
     reason:
@@ -79,6 +85,9 @@ const FAMILIES = [
   },
   {
     family: "Task lifecycle, stop, background tasks, status labels",
+    match: new RegExp(
+      "^src/tasks/|^src/Task.ts$|^src/tasks.ts$|^src/utils/task/|^src/utils/tasks.ts$|^src/components/tasks/|^src/tools/Task",
+    ),
     outcome: "Ported — donor is the authority",
     authority: "src/lib/tasks/runs.ts",
     reason:
@@ -86,6 +95,7 @@ const FAMILIES = [
   },
   {
     family: "Micro-compaction of old tool output",
+    match: new RegExp("^src/services/compact/"),
     outcome: "Ported — donor is the authority",
     authority: "src/lib/runtime/compact.ts",
     reason:
@@ -93,6 +103,7 @@ const FAMILIES = [
   },
   {
     family: "Session memory extraction thresholds",
+    match: new RegExp("^src/services/SessionMemory/|^src/services/extractMemories/"),
     outcome: "Ported — donor is the authority",
     authority: "src/lib/memory/session-memory.ts",
     reason:
@@ -100,12 +111,14 @@ const FAMILIES = [
   },
   {
     family: "Memory record shapes and the age/relevance model",
+    match: new RegExp("^src/memdir/|^src/utils/memory|^src/services/memory|^src/tools/Memory"),
     outcome: "Ported — donor is the authority",
     authority: "src/lib/memory/quality.ts",
     reason: "Freshness decay and memory typing were absent on the OCADE side.",
   },
   {
     family: "Unicode sanitisation and hidden-character handling",
+    match: new RegExp("^src/utils/(sanitiz|unicode|string|text)"),
     outcome: "Ported — donor replaced a weaker OCADE version",
     authority: "src/lib/ocade-injection-guard.ts",
     reason:
@@ -113,12 +126,16 @@ const FAMILIES = [
   },
   {
     family: "Message protocol: content blocks, tool use, tool results",
+    match: new RegExp("^src/types/|^src/utils/messages|^src/entrypoints/"),
     outcome: "Ported — donor is the authority",
     authority: "src/lib/runtime/call-model.ts",
     reason: "One shape for the transcript, converted once at the engine boundary.",
   },
   {
-    family: "Tool search and deferred tool loading",
+    family: "Tool implementations, tool contracts and tool search",
+    match: new RegExp(
+      "^src/tools[./]|^src/Tool[.]ts$|^src/services/tools/|^src/services/toolUseSummary|^src/utils/tool",
+    ),
     outcome: "Not ported — OCADE keeps its own",
     authority: "src/lib/agent/tool-registry.ts",
     reason:
@@ -126,6 +143,9 @@ const FAMILIES = [
   },
   {
     family: "Agents, subagents, teams, coordinator",
+    match: new RegExp(
+      "^src/utils/agent|^src/utils/forkedAgent|^src/utils/standaloneAgent|^src/services/(AgentSummary|teamMemorySync|autoDream|PromptSuggestion|awaySummary)|^src/coordinator/|^src/utils/teams?/",
+    ),
     outcome: "Not ported — OCADE's is stronger here",
     authority: "src/lib/agent/planner.ts",
     reason:
@@ -133,6 +153,9 @@ const FAMILIES = [
   },
   {
     family: "Plugins, skills, tool servers",
+    match: new RegExp(
+      "^src/plugins/|^src/skills/|^src/services/plugins/|^src/utils/plugins/|^src/services/ocadeTools/",
+    ),
     outcome: "Not ported — OCADE keeps one authority",
     authority: "src/lib/skills/pack-registry.ts",
     reason:
@@ -140,6 +163,7 @@ const FAMILIES = [
   },
   {
     family: "Bridge, remote sessions, websocket transport",
+    match: new RegExp("^src/bridge/|^src/remote/|^src/upstreamproxy/|^src/utils/teleport/"),
     outcome: "Removed — replaced by local transport",
     authority: "src/lib/native/extension-bridge.ts",
     reason:
@@ -147,6 +171,9 @@ const FAMILIES = [
   },
   {
     family: "PTY, terminal emulator, Ink renderer",
+    match: new RegExp(
+      "^src/ink|^src/screens/|^src/vim/|^src/keybindings/|^src/components/|^src/native-ts/|^src/buddy/|^src/(dialogLaunchers|interactiveHelpers|main|replLauncher)|^src/outputStyles/|^src/moreright/|^src/services/(tips|notifier|preventSleep|MagicDocs|ocadeToolsServerApproval)",
+    ),
     outcome: "Removed",
     authority: "src/lib/runtime/execute.ts",
     reason:
@@ -154,6 +181,9 @@ const FAMILIES = [
   },
   {
     family: "Hosted inference, provider table, OAuth to the model vendor",
+    match: new RegExp(
+      "^src/utils/model/|^src/services/(api|oauth|ocadeAiLimits|rateLimit|mockRateLimits|policyLimits)|^src/utils/(oauth|auth)|^src/constants/oauth",
+    ),
     outcome: "Removed",
     authority: "src/lib/runtime/call-model.ts",
     reason:
@@ -161,6 +191,9 @@ const FAMILIES = [
   },
   {
     family: "Analytics and telemetry sinks",
+    match: new RegExp(
+      "^src/services/(analytics|diagnosticTracking|internalLogging|vcr)|^src/utils/telemetry/",
+    ),
     outcome: "Removed",
     authority: "src/lib/telemetry",
     reason:
@@ -168,6 +201,9 @@ const FAMILIES = [
   },
   {
     family: "Sessions, history, resume, rewind",
+    match: new RegExp(
+      "^src/utils/session|^src/assistant/|^src/context/|^src/state/|^src/migrations/|^src/services/(settingsSync|remoteManagedSettings)|^src/projectOnboardingState|^src/bootstrap/|^src/schemas/",
+    ),
     outcome: "Not ported — OCADE keeps its own",
     authority: "src/lib/session.ts",
     reason:
@@ -175,6 +211,7 @@ const FAMILIES = [
   },
   {
     family: "Cron and scheduled tasks",
+    match: new RegExp("^src/utils/cron"),
     outcome: "Not ported — OCADE keeps its own",
     authority: "src/lib/ocade-scheduler.ts",
     reason:
@@ -182,6 +219,7 @@ const FAMILIES = [
   },
   {
     family: "Voice",
+    match: new RegExp("^src/utils/voice|^src/services/voice|^src/voice/"),
     outcome: "Not ported — OCADE keeps its own",
     authority: "src/lib/ocade-voice.ts",
     reason:
@@ -189,6 +227,7 @@ const FAMILIES = [
   },
   {
     family: "Git, worktrees, LSP, IDE",
+    match: new RegExp("^src/utils/(git|worktree|lsp|ide)|^src/services/(lsp|ide)"),
     outcome: "Not ported — kept behind the local boundary",
     authority: "src/lib/code/workspace.ts",
     reason:
@@ -196,13 +235,81 @@ const FAMILIES = [
   },
   {
     family: "Payments and webhooks",
+    match: new RegExp(
+      "^src/utils/(billing|payment|x402)|^src/services/(billing|x402)|^src/cost(-tracker|Hook)[.]ts$",
+    ),
     outcome: "Kept and locked",
     authority: "src/lib/payments",
     reason:
       "Launch is free. The code is intact and hardened — signature checks, idempotency, replay refusal — and every purchase action is behind a gate nobody can get through.",
   },
+  {
+    family: "The CLI itself: commands, slash commands, entry points",
+    match: new RegExp("^src/(commands|cli)/"),
+    outcome: "Removed",
+    authority: "src/routes/_authenticated/ocade.index.tsx",
+    reason:
+      "Files implementing a terminal command language. OCADE's equivalent is the product's own surfaces, which a person uses without learning a command vocabulary first.",
+  },
+  {
+    family: "React hooks for the terminal UI",
+    match: new RegExp("^src/hooks/"),
+    outcome: "Removed",
+    authority: "src/lib/runtime/use-ocade-runtime.ts",
+    reason:
+      "Hooks bound to the Ink renderer and its input handling. The behaviour worth keeping — the agent loop, task state, permissions — was ported as logic; the hooks around it belonged to a terminal.",
+  },
+  {
+    family: "The donor's own web client",
+    match: new RegExp("^web/"),
+    outcome: "Removed — a second router and a second UI",
+    authority: "src/routes",
+    reason:
+      "A complete second front end, with its own router, components and pages. Keeping it would have meant shipping two products in one repository, which the specification forbids outright.",
+  },
+  {
+    family: "Server-only entry points and local HTTP host",
+    match: new RegExp("^src/server/"),
+    outcome: "Removed",
+    authority: "src/server.ts",
+    reason:
+      "The donor served its own web terminal from a local process. OCADE's server is a Cloudflare Worker, and machine access goes through the paired companion rather than a listening port.",
+  },
+  {
+    family: "Constants, shims and platform detection",
+    match: new RegExp("^src/(constants|shims)/|^src/utils/(platform|env|feature)"),
+    outcome: "Partly ported",
+    authority: "src/primary-logic/shims/featureFlags.ts",
+    reason:
+      "The four boundaries where the donor assumed a terminal, a Node process, a bundler macro or a telemetry sink are shimmed. The rest were constants for products OCADE does not ship.",
+  },
+  {
+    family: "Build scripts, Docker, packaging and repository config",
+    match: new RegExp(
+      "^(scripts|docker|Dockerfile|package[.]json|biome|bunfig|gitpretty|tsconfig|[.])",
+    ),
+    outcome: "Removed",
+    authority: "package.json",
+    reason:
+      "The donor's toolchain bundles a CLI into an npm package. OCADE builds a Cloudflare Worker with Vite. Nothing here transfers, and mixing the two would break both.",
+  },
+  {
+    family: "Licences, notices and provenance",
+    match: new RegExp("^(LICENSE|NOTICE|README|OCADE_AGENT|OCADE_SKILL|agent[.]md|OCADE_IMPORT)"),
+    outcome: "Preserved",
+    authority: "src/primary-logic/LICENSE.md",
+    reason:
+      "The licence, the notices and the archive's own manifests are kept verbatim beside the ported code, with a recorded hash of the archive they came from. Legal notices are never removed as dead weight.",
+  },
+  {
+    family: "Everything else under utils",
+    match: new RegExp("^src/utils/"),
+    outcome: "Case by case — mostly removed",
+    authority: "src/lib",
+    reason:
+      "The donor's utility drawer: terminal drawing, its own file formats, its hosted API client, and small helpers OCADE already has. What was genuinely logic was ported into the families above; the remainder had no OCADE-side caller and was not brought across.",
+  },
 ];
-
 
 function parseCsv(text) {
   const rows = [];
@@ -326,10 +433,18 @@ for (const row of rows) {
   const matches = portedByBase.get(base) ?? [];
   const ported = matches.length > 0;
   const isReached = matches.some((m) => reached.has(m.replace(/\.ts$/, "")));
+  /*
+   * Every file belongs to exactly one family, first match wins, and the last
+   * family matches everything. "Accounted for" then means something stronger
+   * than "the map has a row for it": it means the file belongs to a group whose
+   * outcome, OCADE authority and reason are all written down.
+   */
+  const family = FAMILIES.find((entry) => entry.match?.test(row.file));
   dispositions.push({
     file: row.file,
     action: row.action,
     target: row.target,
+    family: family?.family ?? null,
     ported,
     reached: isReached,
     portedAs: matches,
@@ -370,6 +485,27 @@ function callersOf(module) {
 
 const moduleCallers = new Map(portedFiles.map((f) => [f, callersOf(f)]));
 
+const byFamily = {};
+for (const d of dispositions) {
+  const key = d.family ?? "(unassigned)";
+  byFamily[key] ??= { files: 0, ported: 0 };
+  byFamily[key].files += 1;
+  if (d.ported) byFamily[key].ported += 1;
+}
+
+const unassigned = dispositions.filter((d) => d.family === null);
+if (unassigned.length > 0) {
+  console.error(
+    `${unassigned.length} donor file(s) belong to no family. There is deliberately no ` +
+      `catch-all: every file must land in a family whose outcome and reason are written down.\n  ` +
+      unassigned
+        .slice(0, 10)
+        .map((d) => d.file)
+        .join("\n  "),
+  );
+  process.exit(1);
+}
+
 for (const entry of FAMILIES) {
   if (!existsSync(join(ROOT, entry.authority))) {
     console.error(
@@ -381,7 +517,11 @@ for (const entry of FAMILIES) {
 
 const report = {
   generatedAt: new Date().toISOString().slice(0, 10),
-  families: FAMILIES,
+  families: FAMILIES.map(({ match, ...rest }) => ({
+    ...rest,
+    files: byFamily[rest.family]?.files ?? 0,
+    portedModules: byFamily[rest.family]?.ported ?? 0,
+  })),
   moduleCallers: Object.fromEntries(moduleCallers),
   totals,
   byAction,
@@ -421,10 +561,15 @@ const md = [
   "",
   "## By family — what happened, and who is the authority",
   "",
-  "| Donor family | Outcome | OCADE authority | Why |",
-  "|---|---|---|---|",
+  "Every one of the 2,126 archive files belongs to exactly one row below. The",
+  "count is what that family covers; the authority is what OCADE runs instead,",
+  "whether the donor's logic was ported into it or superseded by it.",
+  "",
+  "| Donor family | Files | Outcome | OCADE authority | Why |",
+  "|---|---:|---|---|---|",
   ...FAMILIES.map(
-    (f) => `| ${f.family} | ${f.outcome} | \`${f.authority}\` | ${f.reason} |`,
+    (f) =>
+      `| ${f.family} | ${byFamily[f.family]?.files ?? 0} | ${f.outcome} | \`${f.authority}\` | ${f.reason} |`,
   ),
   "",
   "## Modules present in this tree, and what reaches them",
