@@ -458,6 +458,47 @@ await stage("approval and permissions are reachable and editable", async () => {
 
 /* ----------------------------------------------------------------- 12 -- */
 await stage("offline: the work made online is still readable", async () => {
+  /*
+   * WAIT FOR THE WORKER TO ACTUALLY OWN THE PAGE BEFORE CUTTING THE NETWORK.
+   *
+   * This stage used to go offline after a flat 1200ms and hope. When the
+   * service worker had not yet claimed the client, the navigation below failed
+   * in the browser rather than in the product: Chromium's own error page,
+   * which is 113 characters of nothing on an opaque origin — so the NEXT stage
+   * then died too, with "Failed to read the localStorage property: Access is
+   * denied for this document", because an error page has no origin to read
+   * storage from. Two failures, one cause, neither of them the product.
+   *
+   * `navigator.serviceWorker.controller` is the actual precondition the stage
+   * depends on, so it is waited for and asserted rather than approximated by a
+   * sleep. A worker that never takes control still fails this stage — loudly,
+   * and with the right reason written down.
+   */
+  const controlled = await page
+    .waitForFunction(() => Boolean(navigator.serviceWorker?.controller), null, { timeout: 20000 })
+    .then(() => true)
+    .catch(() => false);
+  assert(controlled, "the service worker never took control, so offline was never actually tested");
+
+  // The shell has to be IN the cache, not merely on its way there. Without it
+  // the fallback below has nothing to serve.
+  const shellCached = await page
+    .waitForFunction(
+      async () => {
+        const keys = await caches.keys();
+        for (const key of keys) {
+          const cache = await caches.open(key);
+          if (await cache.match("/")) return true;
+        }
+        return false;
+      },
+      null,
+      { timeout: 20000 },
+    )
+    .then(() => true)
+    .catch(() => false);
+  assert(shellCached, "the application shell was never cached, so offline had nothing to serve");
+
   await context.setOffline(true);
   await page.waitForTimeout(1200);
   let unlockedOffline = false;
