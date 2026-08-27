@@ -1,6 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle, RotateCcw } from "lucide-react";
-import { reportLovableError } from "@/lib/lovable-error-reporting";
+import { reportRuntimeError } from "@/lib/runtime-error-reporting";
 
 /**
  * Panel-level error boundary (Plan §39).
@@ -67,7 +67,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     // Report for diagnostics; never surfaces protected data to the user.
-    reportLovableError(error, {
+    reportRuntimeError(error, {
       boundary: this.props.label ?? "panel",
       componentStack: info.componentStack ?? undefined,
     });

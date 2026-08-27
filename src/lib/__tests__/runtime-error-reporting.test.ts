@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { reportLovableError } from "../lovable-error-reporting";
+import { reportRuntimeError } from "../runtime-error-reporting";
 
 /**
  * Editor error reporting.
@@ -48,7 +48,7 @@ afterEach(() => {
 describe("server safety", () => {
   it("does nothing when there is no window (SSR)", () => {
     vi.stubGlobal("window", undefined);
-    expect(() => reportLovableError(new Error("boom"))).not.toThrow();
+    expect(() => reportRuntimeError(new Error("boom"))).not.toThrow();
     expect(captured).toHaveLength(0);
   });
 });
@@ -58,7 +58,7 @@ describe("reporting through the editor hooks", () => {
 
   it("forwards the error with route and source context", () => {
     const boom = new Error("boom");
-    reportLovableError(boom);
+    reportRuntimeError(boom);
 
     expect(captured).toHaveLength(1);
     expect(captured[0].error).toBe(boom);
@@ -69,7 +69,7 @@ describe("reporting through the editor hooks", () => {
   });
 
   it("marks the error as unhandled at error severity", () => {
-    reportLovableError(new Error("boom"));
+    reportRuntimeError(new Error("boom"));
     expect(captured[0].options).toMatchObject({
       mechanism: "react_error_boundary",
       handled: false,
@@ -78,7 +78,7 @@ describe("reporting through the editor hooks", () => {
   });
 
   it("lets the caller add context without losing the defaults", () => {
-    reportLovableError(new Error("boom"), { conversationId: "c1" });
+    reportRuntimeError(new Error("boom"), { conversationId: "c1" });
     expect(captured[0].context).toMatchObject({
       source: "react_error_boundary",
       route: "/ocade/studio",
@@ -87,7 +87,7 @@ describe("reporting through the editor hooks", () => {
   });
 
   it("allows the caller to override a default context field", () => {
-    reportLovableError(new Error("boom"), { source: "manual" });
+    reportRuntimeError(new Error("boom"), { source: "manual" });
     expect(captured[0].context?.source).toBe("manual");
   });
 });
@@ -99,7 +99,7 @@ describe("message extraction never reports an opaque value", () => {
     const response = new Response("nope", { status: 503 });
     Object.defineProperty(response, "url", { value: "https://example.test/api" });
 
-    reportLovableError(response);
+    reportRuntimeError(response);
 
     expect(runtimeReports).toHaveLength(1);
     expect(runtimeReports[0].message).toBe("Response 503 at https://example.test/api");
@@ -107,25 +107,25 @@ describe("message extraction never reports an opaque value", () => {
   });
 
   it("describes a Response with no url by status alone", () => {
-    reportLovableError(new Response("nope", { status: 500 }));
+    reportRuntimeError(new Response("nope", { status: 500 }));
     expect(runtimeReports[0].message).toBe("Response 500");
   });
 
   it("uses the message and stack of a real Error", () => {
     const boom = new Error("kaboom");
-    reportLovableError(boom);
+    reportRuntimeError(boom);
     expect(runtimeReports[0].message).toBe("kaboom");
     expect(runtimeReports[0].stack).toBe(boom.stack);
   });
 
   it("stringifies a non-Error throw and sends no stack", () => {
-    reportLovableError("just a string");
+    reportRuntimeError("just a string");
     expect(runtimeReports[0].message).toBe("just a string");
     expect(runtimeReports[0].stack).toBeUndefined();
   });
 
   it("records the route as the filename", () => {
-    reportLovableError(new Error("boom"));
+    reportRuntimeError(new Error("boom"));
     expect(runtimeReports[0].filename).toBe("/ocade/studio");
   });
 });
@@ -134,12 +134,12 @@ describe("missing editor hooks", () => {
   beforeEach(() => installWindow({ withHooks: false }));
 
   it("does not throw when the editor hooks are absent (production)", () => {
-    expect(() => reportLovableError(new Error("boom"))).not.toThrow();
+    expect(() => reportRuntimeError(new Error("boom"))).not.toThrow();
     expect(captured).toHaveLength(0);
     expect(runtimeReports).toHaveLength(0);
   });
 
   it("does not throw for a Response either", () => {
-    expect(() => reportLovableError(new Response("x", { status: 500 }))).not.toThrow();
+    expect(() => reportRuntimeError(new Response("x", { status: 500 }))).not.toThrow();
   });
 });
