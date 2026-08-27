@@ -49,11 +49,23 @@ export type SettingsGroup = {
  * Customer-facing settings are intentionally grouped by intent, not by
  * implementation subsystem. The app may have dozens of underlying controls;
  * a normal user should not have to learn that architecture to change one.
+ *
+ * EIGHT GROUPS, AND THE LIST IS CLOSED.
+ *
+ * General, Account & Security, Appearance, Chat & Voice, Privacy & Data,
+ * Devices & Control, Plan, Advanced. A ninth group is how a settings screen
+ * becomes a control panel: each new subsystem asks for a heading of its own,
+ * every heading is defensible on its own, and the reader ends up scanning
+ * fourteen of them to find the one switch they came for. New controls go
+ * INSIDE one of these eight, or into Advanced, which is the group that exists
+ * precisely so the other seven can stay short.
+ *
+ * `settings-groups.test.ts` holds the list to eight and to these names.
  */
 export const SETTINGS_GROUPS: SettingsGroup[] = [
   {
-    id: "account",
-    label: "Account",
+    id: "general",
+    label: "General",
     items: [
       {
         slug: "",
@@ -63,6 +75,12 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         description: "Your identity, language and personal OCADE instructions.",
         keywords: ["general", "profile", "language", "timezone", "instructions"],
       },
+    ],
+  },
+  {
+    id: "account",
+    label: "Account & Security",
+    items: [
       {
         slug: "account",
         label: "Account",
@@ -82,8 +100,8 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     ],
   },
   {
-    id: "personalization",
-    label: "Personalization",
+    id: "appearance",
+    label: "Appearance",
     items: [
       {
         slug: "appearance",
@@ -93,19 +111,11 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         description: "Visual style, motion and 3D depth.",
         keywords: ["appearance", "theme", "motion", "3d", "depth", "contrast"],
       },
-      {
-        slug: "memory",
-        label: "Memory",
-        icon: Brain,
-        status: "active",
-        description: "What OCADE remembers between conversations.",
-        keywords: ["memory", "remember", "forget", "context"],
-      },
     ],
   },
   {
     id: "ai-voice",
-    label: "AI & Voice",
+    label: "Chat & Voice",
     items: [
       {
         slug: "chat",
@@ -122,6 +132,14 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         status: "active",
         description: "Speaking to OCADE and hearing it back.",
         keywords: ["voice", "speech", "dictation", "microphone", "read aloud"],
+      },
+      {
+        slug: "memory",
+        label: "Memory",
+        icon: Brain,
+        status: "active",
+        description: "What OCADE remembers between conversations.",
+        keywords: ["memory", "remember", "forget", "context"],
       },
     ],
   },
