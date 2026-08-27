@@ -17,9 +17,9 @@ export const COMPANY_FACTS = {
   founderRoles: "CEO, Chairman and Founder",
   foundingDateIso: "2026-08-28",
   foundingDateLabel: "28 August 2026",
-  launchAtIso: "2026-08-28T02:58:00Z",
+  launchAtIso: "2026-08-27T22:58:00Z",
   location: "Bengaluru, Karnataka, India",
-  status: "pre-launch",
+  status: "launched",
 } as const;
 
 export type CompanyFacts = typeof COMPANY_FACTS;
