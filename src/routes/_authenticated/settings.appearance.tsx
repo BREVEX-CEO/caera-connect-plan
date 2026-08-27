@@ -8,6 +8,7 @@ import type { CursorKind } from "@/lib/use-appearance";
 import { useAppearance } from "@/lib/use-appearance";
 import { recordAction } from "@/lib/actions";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/settings/appearance")({
   head: () => ({
@@ -83,16 +84,36 @@ function AppearancePage() {
   const appearance = useAppearance();
   const experience = currentExperience(appearance);
 
+  /*
+   * A SETTING THAT DID NOT SAVE MUST NOT LOOK SAVED.
+   *
+   * `appearance.update` writes through to the account, so it can fail on a
+   * dropped connection or a signed-out session. Unhandled, the rejection went
+   * nowhere: the control moved, the theme changed for this tab, and the next
+   * device never saw it — a preference that silently un-set itself.
+   */
   async function selectTheme(theme: ThemeMode) {
-    await appearance.update({ theme });
-    await recordAction({ actionId: "settings.theme.change", metadata: { theme } });
+    try {
+      await appearance.update({ theme });
+      await recordAction({ actionId: "settings.theme.change", metadata: { theme } });
+    } catch (cause) {
+      toast.error(
+        cause instanceof Error ? cause.message : "That theme could not be saved to your account.",
+      );
+    }
   }
 
   async function selectExperience(id: ExperienceMode) {
     const mode = EXPERIENCE.find((item) => item.id === id);
     if (!mode) return;
-    await appearance.update(mode.patch);
-    await recordAction({ actionId: "settings.appearance.change", metadata: { experience: id } });
+    try {
+      await appearance.update(mode.patch);
+      await recordAction({ actionId: "settings.appearance.change", metadata: { experience: id } });
+    } catch (cause) {
+      toast.error(
+        cause instanceof Error ? cause.message : "That choice could not be saved to your account.",
+      );
+    }
   }
 
   return (

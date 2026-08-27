@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
 type OAuthNamespace = {
   getAuthorizationDetails: (
@@ -45,6 +46,25 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
     return data;
   },
   component: Consent,
+  /*
+   * A BLANK SCREEN IS THE WORST THING TO SHOW DURING AN AUTHORISATION.
+   *
+   * The loader is a network round trip to fetch the authorisation details.
+   * Without a pending state the route renders nothing at all while it runs, so
+   * on a slow connection somebody who has just been redirected here from
+   * another product sees an empty page and no reason to believe the redirect
+   * worked. That is the moment they close the tab.
+   */
+  pendingComponent: () => (
+    <main
+      role="status"
+      aria-live="polite"
+      className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-3 p-8"
+    >
+      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden />
+      <p className="text-sm text-muted-foreground">Checking this authorization request…</p>
+    </main>
+  ),
   errorComponent: ({ error }) => (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-3 p-8">
       <h1 className="text-lg font-medium">Authorization request unavailable</h1>

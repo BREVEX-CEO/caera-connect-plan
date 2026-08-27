@@ -32,10 +32,28 @@ function DataRightsPage() {
     [account, details, requestType],
   );
 
+  /*
+   * A CLIPBOARD WRITE IS A PERMISSION, NOT A CERTAINTY.
+   *
+   * `writeText` rejects when the document is not focused, when the browser has
+   * not granted clipboard-write, and in most browsers when it is called
+   * anywhere other than from a real user gesture. The unhandled version turned
+   * "Copied" on regardless, so somebody would go and paste an empty clipboard
+   * into an email to a regulator. Saying it failed, and leaving the text on
+   * screen to select by hand, is the difference.
+   */
+  const [copyFailed, setCopyFailed] = useState(false);
+
   async function copyRequest() {
-    await navigator.clipboard.writeText(requestText);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 2500);
+    try {
+      await navigator.clipboard.writeText(requestText);
+      setCopyFailed(false);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2500);
+    } catch {
+      setCopied(false);
+      setCopyFailed(true);
+    }
   }
 
   return (
@@ -90,6 +108,12 @@ function DataRightsPage() {
           >
             {copied ? "Copied" : "Copy request text"}
           </button>
+          {copyFailed ? (
+            <p role="alert" className="text-sm text-[color:var(--state-danger)]">
+              This browser would not let the page write to your clipboard. Select the text above and
+              copy it yourself — nothing has been lost.
+            </p>
+          ) : null}
         </div>
       </PublicSection>
       <PublicSection title="Before sending">
