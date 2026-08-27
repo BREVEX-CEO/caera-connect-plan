@@ -33,7 +33,7 @@ mss==10.1.0
 
 # Frame handling and the perceptual fingerprint used to verify that a window
 # actually changed after an action.
-opencv-python==4.12.0.88
+opencv-python==5.0.0.93
 numpy==2.2.6
 
 # Windows Runtime bindings. Two jobs: the OCR engine already present in Windows,
