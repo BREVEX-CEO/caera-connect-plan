@@ -18,7 +18,7 @@ A directory of imported code nothing imports is not integration, which is why
 
 | Archive files | Dispositioned | Ported modules | Reached from production |
 |---:|---:|---:|---:|
-| 2126 | 2126 (100%) | 27 | 27 |
+| 2126 | 2126 (100%) | 28 | 28 |
 
 ## By disposition
 
@@ -56,6 +56,7 @@ A directory of imported code nothing imports is not integration, which is why
 | Query engine, deps, transitions, token budget, stop hooks | Ported — donor is the authority | `src/lib/runtime/use-ocade-runtime.ts` | The donor's loop handles the four things OCADE's did not: output-token recovery, reactive compaction, an explicit token budget, and a closed terminal set. Both rooms now run it, with local inference injected through callModel. |
 | Permissions, shell rule matching, dangerous patterns, denial tracking | Ported — donor is the authority | `src/lib/runtime/permissions.ts` | Cowork's approvalPolicy and Chat had separate ideas about risk. The donor's rule model is stronger and now decides for both, with OCADE's opaque-command gate added on top. |
 | Bash parser, heredocs, quoting, destructive-command warnings | Ported — donor is the authority | `src/lib/runtime/permissions.ts` | A real parser is what closes the compound-command hole: an approval for one command must not carry the rest of the line. Ported in pure TypeScript, without the donor's native grammar binary. |
+| Path safety and sandbox rules | Ported — closed a gap OCADE had | `src/lib/runtime/permissions.ts` | OCADE checked paths only on the companion, one process and one network hop away. The archive's rules for what must never be changed on a model's say-so — roots, whole drives, system folders, the home directory, traversal — now run in the browser before the call leaves. |
 | Task lifecycle, stop, background tasks, status labels | Ported — donor is the authority | `src/lib/tasks/runs.ts` | OCADE had a to-do board and no runtime task state at all. The donor's status machine, id scheme, pause accounting and stop error taxonomy now back Stop, Pause, Resume and Take over. |
 | Session memory extraction thresholds | Ported — donor is the authority | `src/lib/memory/session-memory.ts` | OCADE remembered only what the model chose to record. The donor's thresholds decide when a conversation is worth summarising without re-summarising it every turn. |
 | Memory record shapes and the age/relevance model | Ported — donor is the authority | `src/lib/memory/quality.ts` | Freshness decay and memory typing were absent on the OCADE side. |
@@ -90,6 +91,7 @@ A directory of imported code nothing imports is not integration, which is why
 | `src/primary-logic/permissions/PermissionUpdateSchema.ts` | via another imported module |
 | `src/primary-logic/permissions/dangerousPatterns.ts` | `src/lib/runtime/permissions.ts` |
 | `src/primary-logic/permissions/denialTracking.ts` | `src/lib/runtime/permissions.ts` |
+| `src/primary-logic/permissions/pathSafety.ts` | `src/lib/runtime/permissions.ts` |
 | `src/primary-logic/permissions/permissionRuleParser.ts` | `src/lib/runtime/permissions.ts` |
 | `src/primary-logic/permissions/shellRuleMatching.ts` | `src/lib/runtime/permissions.ts` |
 | `src/primary-logic/permissions/types.ts` | `src/lib/runtime/permission-settings.ts`, `src/lib/runtime/permissions.ts` |

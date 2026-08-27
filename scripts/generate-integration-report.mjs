@@ -71,6 +71,13 @@ const FAMILIES = [
       "A real parser is what closes the compound-command hole: an approval for one command must not carry the rest of the line. Ported in pure TypeScript, without the donor's native grammar binary.",
   },
   {
+    family: "Path safety and sandbox rules",
+    outcome: "Ported — closed a gap OCADE had",
+    authority: "src/lib/runtime/permissions.ts",
+    reason:
+      "OCADE checked paths only on the companion, one process and one network hop away. The archive's rules for what must never be changed on a model's say-so — roots, whole drives, system folders, the home directory, traversal — now run in the browser before the call leaves.",
+  },
+  {
     family: "Task lifecycle, stop, background tasks, status labels",
     outcome: "Ported — donor is the authority",
     authority: "src/lib/tasks/runs.ts",
