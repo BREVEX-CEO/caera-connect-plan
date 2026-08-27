@@ -170,12 +170,38 @@ launch completion or incorporated founding date until independently verified.
 Search engines and third-party directories decide their own indexing and cannot
 be guaranteed to display any specific result.
 
+## Imported primary logic
+
+Part of what OCADE runs on came from a supplied source archive, licensed for
+direct integration by its rights holder. What was taken is the part that is
+genuinely logic — the permission and risk model, a complete shell parser and
+its destructive-command tables, the query loop with its transitions and token
+budgets, the task lifecycle, compaction, transcript repair and the memory
+model. It lives under `src/primary-logic`, keeps the donor's formatting, and
+records the archive's verified hash and byte count in `provenance.json`
+alongside the licence that permitted the import.
+
+What was deliberately not taken is the rest of it: a terminal renderer, a
+command-line vocabulary, a second web client, hosted inference and analytics.
+
+`imports/ocade-primary-logic/INTEGRATION_REPORT.md` accounts for every one of
+the archive's 2,126 files under one of six outcomes, with the OCADE authority
+that won each area and the reason. It is generated rather than written — a
+report about provenance that cannot be regenerated is a claim — and
+`npm run integration:check` fails the build when it drifts from the tree.
+
 ## Licence
 
 The repository is proprietary. Copyright © 2026 Haans Antoni, operating under
 the CARCC CADANE brand. See [LICENSE](LICENSE). Third-party packages, models and
 assets remain under their own terms; notices are recorded in
 [release/THIRD_PARTY_NOTICES.md](release/THIRD_PARTY_NOTICES.md).
+
+The imported primary logic is covered by the licence in
+[src/primary-logic/LICENSE.md](src/primary-logic/LICENSE.md), with attribution
+in `src/primary-logic/NOTICE.md`. The two typefaces the product ships —
+Inter and Instrument Serif — are under the SIL Open Font License, whose text
+ships beside them in `public/fonts`.
 
 ## Audit status
 
