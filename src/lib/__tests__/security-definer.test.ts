@@ -253,3 +253,60 @@ describe("a run id belonging to somebody else", () => {
     expect(rows).toHaveLength(0);
   });
 });
+
+/*
+ * A BARE auth.uid() IN A POLICY IS A PER-ROW FUNCTION CALL.
+ *
+ * Postgres cannot hoist `auth.uid()` out of a policy expression, so it is
+ * evaluated once for every row examined — the cost scales with the size of the
+ * table rather than the size of the answer. Wrapped in a scalar subquery,
+ * `(select auth.uid())`, it becomes an InitPlan evaluated once per statement.
+ *
+ * The two forms are indistinguishable in behaviour and nearly indistinguishable
+ * on the page, which is exactly why one crept back in: 160 policies used the
+ * fast form and two on `legal_consent_receipts` — the table written on every
+ * signup — used the slow one. Supabase's advisor found them on production; this
+ * finds them before they get there.
+ */
+describe("row-level security is written the fast way", () => {
+  it("never re-evaluates auth.uid() per row", async () => {
+    const slow = await twin.asSuperuser<{ tablename: string; policyname: string }>(`
+      select tablename, policyname
+        from pg_policies
+       where schemaname = 'public'
+         and (coalesce(qual, '') ~ 'auth\\.uid\\(\\)'
+              or coalesce(with_check, '') ~ 'auth\\.uid\\(\\)')
+         and not (coalesce(qual, '') ~ 'SELECT auth\\.uid\\(\\)'
+                  or coalesce(with_check, '') ~ 'SELECT auth\\.uid\\(\\)')
+       order by tablename, policyname`);
+    const named = slow.map((row) => `${row.tablename}.${row.policyname}`);
+    expect(named, "wrap these in (select auth.uid())").toEqual([]);
+  });
+
+  it("does not evaluate two permissive policies where one would do", async () => {
+    // Two policies for the same role and command are both evaluated on every
+    // statement. Duplicates cost that on every write and buy nothing.
+    const duplicated = await twin.asSuperuser<{ tablename: string; cmd: string; n: string }>(`
+      select tablename, cmd, count(*)::text as n
+        from pg_policies
+       where schemaname = 'public' and permissive = 'PERMISSIVE'
+         and roles::text like '%authenticated%'
+       group by tablename, cmd
+      having count(*) > 1
+       order by count(*) desc, tablename`);
+    // Several tables legitimately split one command across policies with
+    // different subjects; what must not happen is a table carrying more than
+    // one policy that says the SAME thing. The consent table had two identical
+    // INSERT policies, which is the case this pins.
+    const consent = duplicated.filter((row) => row.tablename === "legal_consent_receipts");
+    expect(consent).toEqual([]);
+  });
+
+  it("keeps one index where two were identical", async () => {
+    const covering = await twin.asSuperuser<{ indexname: string }>(`
+      select indexname from pg_indexes
+       where schemaname = 'public' and tablename = 'legal_consent_receipts'
+         and indexdef like '%(user_id, accepted_at DESC)%'`);
+    expect(covering).toHaveLength(1);
+  });
+});
