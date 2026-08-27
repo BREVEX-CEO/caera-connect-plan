@@ -85,6 +85,13 @@ const FAMILIES = [
       "OCADE had a to-do board and no runtime task state at all. The donor's status machine, id scheme, pause accounting and stop error taxonomy now back Stop, Pause, Resume and Take over.",
   },
   {
+    family: "Micro-compaction of old tool output",
+    outcome: "Ported — donor is the authority",
+    authority: "src/lib/runtime/compact.ts",
+    reason:
+      "OCADE compacted all-or-nothing: it dropped whole turns, losing which tools ran and whether they worked. The archive empties the BODY of old tool results first and keeps the headline, which saves the most tokens for the least meaning. The structural pass now runs only when that was not enough.",
+  },
+  {
     family: "Session memory extraction thresholds",
     outcome: "Ported — donor is the authority",
     authority: "src/lib/memory/session-memory.ts",

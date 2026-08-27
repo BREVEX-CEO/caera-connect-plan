@@ -10,6 +10,7 @@
 import { describe, expect, it } from "vitest";
 
 import { compactTranscript } from "../compact";
+import { CLEARED_MARKER, isToolResult, microCompact } from "@/primary-logic/query/microCompact";
 import type { QueryMessage } from "@/primary-logic/query/deps";
 
 const user = (content: string): QueryMessage => ({ role: "user", content });
@@ -17,6 +18,11 @@ const assistant = (content: string): QueryMessage => ({ role: "assistant", conte
 const result = (content: string): QueryMessage => ({
   role: "user",
   content: `Result of ${content}`,
+});
+/** A tool result with a body big enough to be worth clearing. */
+const bigResult = (name: string): QueryMessage => ({
+  role: "user",
+  content: `Result of ${name}\n${"x".repeat(4_000)}`,
 });
 
 /** A conversation of `rounds` exchanges, each with two tool results. */
@@ -75,6 +81,78 @@ describe("compaction", () => {
     for (let index = 0; index < 40; index += 1) {
       messages.push(assistant(`step ${index}`));
       messages.push(result(`step ${index} finished with a reasonably long observation`));
+    }
+    const compacted = await compactTranscript(messages);
+    expect(compacted).not.toBeNull();
+    expect(compacted!.length).toBeLessThan(messages.length);
+  });
+});
+
+/**
+ * Emptying old observations before forgetting whole turns.
+ *
+ * The cheaper pass keeps the shape of what happened — which tools ran, and
+ * whether they worked — and drops only the output nobody will read again. It
+ * has to be tried first, and it has to leave the recent observations alone,
+ * because those are what the next decision is made from.
+ */
+describe("micro-compaction", () => {
+  function withBigResults(rounds: number): QueryMessage[] {
+    const messages: QueryMessage[] = [];
+    for (let index = 0; index < rounds; index += 1) {
+      messages.push(user(`Ask number ${index}`));
+      messages.push(assistant(`Working on ${index}`));
+      messages.push(bigResult(`step ${index}`));
+    }
+    return messages;
+  }
+
+  it("clears old tool bodies rather than dropping the turns", async () => {
+    const messages = withBigResults(10);
+    const compacted = await compactTranscript(messages);
+
+    expect(compacted).not.toBeNull();
+    // Nothing was dropped: the saving came from emptying, not forgetting.
+    expect(compacted).toHaveLength(messages.length);
+    expect(compacted!.some((m) => String(m.content).includes(CLEARED_MARKER))).toBe(true);
+  });
+
+  it("keeps the headline, so a later turn still knows what ran", async () => {
+    const compacted = await compactTranscript(withBigResults(10));
+    const cleared = compacted!.find((m) => String(m.content).includes(CLEARED_MARKER))!;
+    expect(String(cleared.content)).toMatch(/^Result of step \d/);
+  });
+
+  it("leaves the most recent observations intact", async () => {
+    const messages = withBigResults(10);
+    const compacted = await compactTranscript(messages);
+    const lastResult = [...compacted!].reverse().find((m) => isToolResult(m))!;
+    expect(String(lastResult.content)).not.toContain(CLEARED_MARKER);
+    expect(String(lastResult.content).length).toBeGreaterThan(3_000);
+  });
+
+  it("does nothing when there is nothing old enough to clear", () => {
+    expect(microCompact(withBigResults(2))).toBeNull();
+  });
+
+  it("does not bother with a body too small to be worth a marker", () => {
+    const messages: QueryMessage[] = [];
+    for (let index = 0; index < 10; index += 1) {
+      messages.push(user(`Ask ${index}`));
+      messages.push(result(`step ${index}`));
+    }
+    expect(microCompact(messages)).toBeNull();
+  });
+
+  it("falls through to dropping turns when emptying was not enough", async () => {
+    /*
+     * Long prose from the assistant, nothing to empty. The structural pass is
+     * what has to save this transcript, and it still does.
+     */
+    const messages: QueryMessage[] = [];
+    for (let index = 0; index < 12; index += 1) {
+      messages.push(user(`Ask ${index}`));
+      messages.push(assistant("Reasoning at length. ".repeat(120)));
     }
     const compacted = await compactTranscript(messages);
     expect(compacted).not.toBeNull();

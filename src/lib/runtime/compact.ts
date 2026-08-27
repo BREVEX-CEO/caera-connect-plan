@@ -34,6 +34,7 @@
 
 import type { QueryMessage } from "@/primary-logic/query/deps";
 import { estimateTranscriptTokens } from "@/primary-logic/query/query";
+import { microCompact } from "@/primary-logic/query/microCompact";
 
 /**
  * How many recent messages survive intact.
@@ -88,15 +89,39 @@ function roundBoundary(messages: readonly QueryMessage[], cut: number): number {
   return cut;
 }
 
+/** Whether a candidate saved enough to be worth the disruption. */
+function savesEnough(
+  candidate: readonly QueryMessage[],
+  original: readonly QueryMessage[],
+): boolean {
+  return estimateTranscriptTokens(candidate) < estimateTranscriptTokens(original) * 0.9;
+}
+
 export async function compactTranscript(
   messages: readonly QueryMessage[],
 ): Promise<QueryMessage[] | null> {
   if (messages.length < MIN_MESSAGES_TO_COMPACT) return null;
 
-  const first = messages.find((message) => message.role === "user");
-  const cut = roundBoundary(messages, messages.length - KEEP_RECENT);
-  const recent = messages.slice(cut);
-  const middle = messages.slice(0, cut).filter((message) => message !== first);
+  /*
+   * EMPTY THE OLD OBSERVATIONS BEFORE FORGETTING THE TURNS.
+   *
+   * Clearing the body of a tool result from six steps ago keeps the shape of
+   * what happened — which tools ran, in what order, whether they worked — and
+   * throws away only the twelve thousand characters nobody is going to read
+   * again. Dropping whole messages loses both. So the cheaper, less lossy pass
+   * runs first, and the structural one only when it was not enough.
+   *
+   * The archive does this for a cache optimisation on hosted inference. Here
+   * the saving is the point.
+   */
+  const trimmed = microCompact(messages);
+  if (trimmed && savesEnough(trimmed, messages)) return trimmed;
+  const working = trimmed ?? messages;
+
+  const first = working.find((message) => message.role === "user");
+  const cut = roundBoundary(working, working.length - KEEP_RECENT);
+  const recent = working.slice(cut);
+  const middle = working.slice(0, cut).filter((message) => message !== first);
   if (middle.length === 0) return null;
 
   /*
@@ -123,8 +148,6 @@ export async function compactTranscript(
    * would leave the loop compacting on every iteration, which is a busy loop
    * that also loses history.
    */
-  if (estimateTranscriptTokens(compacted) >= estimateTranscriptTokens(messages) * 0.9) {
-    return null;
-  }
+  if (!savesEnough(compacted, messages)) return null;
   return compacted;
 }

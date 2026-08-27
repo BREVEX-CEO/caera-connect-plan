@@ -18,7 +18,7 @@ A directory of imported code nothing imports is not integration, which is why
 
 | Archive files | Dispositioned | Ported modules | Reached from production |
 |---:|---:|---:|---:|
-| 2126 | 2126 (100%) | 28 | 28 |
+| 2126 | 2126 (100%) | 29 | 29 |
 
 ## By disposition
 
@@ -26,7 +26,7 @@ A directory of imported code nothing imports is not integration, which is why
 |---|---:|---:|---:|
 | `MERGE_REPLACE` | 850 | 10 | 10 |
 | `UI_PORT` | 423 | 3 | 3 |
-| `PRIMARY_WIRE` | 406 | 21 | 21 |
+| `PRIMARY_WIRE` | 406 | 22 | 22 |
 | `BOUNDARY_NATIVE` | 149 | 6 | 6 |
 | `NATIVE_DEV_KEEP` | 138 | 3 | 3 |
 | `TRANSPORT_REPLACE_LOCAL` | 22 | 0 | 0 |
@@ -58,6 +58,7 @@ A directory of imported code nothing imports is not integration, which is why
 | Bash parser, heredocs, quoting, destructive-command warnings | Ported — donor is the authority | `src/lib/runtime/permissions.ts` | A real parser is what closes the compound-command hole: an approval for one command must not carry the rest of the line. Ported in pure TypeScript, without the donor's native grammar binary. |
 | Path safety and sandbox rules | Ported — closed a gap OCADE had | `src/lib/runtime/permissions.ts` | OCADE checked paths only on the companion, one process and one network hop away. The archive's rules for what must never be changed on a model's say-so — roots, whole drives, system folders, the home directory, traversal — now run in the browser before the call leaves. |
 | Task lifecycle, stop, background tasks, status labels | Ported — donor is the authority | `src/lib/tasks/runs.ts` | OCADE had a to-do board and no runtime task state at all. The donor's status machine, id scheme, pause accounting and stop error taxonomy now back Stop, Pause, Resume and Take over. |
+| Micro-compaction of old tool output | Ported — donor is the authority | `src/lib/runtime/compact.ts` | OCADE compacted all-or-nothing: it dropped whole turns, losing which tools ran and whether they worked. The archive empties the BODY of old tool results first and keeps the headline, which saves the most tokens for the least meaning. The structural pass now runs only when that was not enough. |
 | Session memory extraction thresholds | Ported — donor is the authority | `src/lib/memory/session-memory.ts` | OCADE remembered only what the model chose to record. The donor's thresholds decide when a conversation is worth summarising without re-summarising it every turn. |
 | Memory record shapes and the age/relevance model | Ported — donor is the authority | `src/lib/memory/quality.ts` | Freshness decay and memory typing were absent on the OCADE side. |
 | Unicode sanitisation and hidden-character handling | Ported — donor replaced a weaker OCADE version | `src/lib/ocade-injection-guard.ts` | OCADE's stripper missed the Unicode Tag block, so instructions could be smuggled into text that looked clean. The donor's sanitiser covers it; the old regex is gone. |
@@ -98,6 +99,7 @@ A directory of imported code nothing imports is not integration, which is why
 | `src/primary-logic/protocol/modelProtocol.ts` | via another imported module |
 | `src/primary-logic/query/budgetText.ts` | `src/lib/runtime/use-ocade-runtime.ts` |
 | `src/primary-logic/query/deps.ts` | `src/lib/agent/loop.ts`, `src/lib/runtime/call-model.ts`, `src/lib/runtime/compact.ts`, `src/lib/runtime/tool-runner.ts`, `src/lib/runtime/use-ocade-runtime.ts` |
+| `src/primary-logic/query/microCompact.ts` | `src/lib/runtime/compact.ts` |
 | `src/primary-logic/query/query.ts` | `src/lib/agent/loop.ts`, `src/lib/runtime/compact.ts`, `src/lib/runtime/use-ocade-runtime.ts` |
 | `src/primary-logic/query/tokenBudget.ts` | via another imported module |
 | `src/primary-logic/query/transitions.ts` | via another imported module |
