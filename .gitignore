@@ -100,3 +100,4 @@ windows-proof-evidence.json
 public/models/*.gguf
 
 release/launch-proof-logs/
+.gate-logs

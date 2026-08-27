@@ -5,6 +5,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { LIST_CAP, readAllPages } from "@/lib/supabase/read-all";
+import type { Json } from "@/integrations/supabase/types";
 
 const uuid = z.string().uuid();
 
@@ -13,13 +15,20 @@ const uuid = z.string().uuid();
 export const listConversations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    /*
+     * Bounded, and bounded by US rather than by PostgREST's own ceiling — which
+     * truncates silently at 1,000 and tells nobody. A sidebar does not need an
+     * unbounded list; the most recent few hundred, pinned first, is the list.
+     * Anything older is reached through Search, which reads the same rows.
+     */
     const { data, error } = await context.supabase
       .from("ocade_conversations")
       .select(
         "id, title, pinned, archived, model_id, privacy_mode, project_id, updated_at, created_at",
       )
       .order("pinned", { ascending: false })
-      .order("updated_at", { ascending: false });
+      .order("updated_at", { ascending: false })
+      .limit(LIST_CAP);
     if (error) throw new Response(error.message, { status: 500 });
     return data ?? [];
   });
@@ -87,13 +96,31 @@ export const listMessages = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .validator((i) => z.object({ conversationId: uuid }).parse(i))
   .handler(async ({ data, context }) => {
-    const { data: rows, error } = await context.supabase
-      .from("ocade_messages")
-      .select("id, role, content, attachments, model_id, provider_id, created_at")
-      .eq("conversation_id", data.conversationId)
-      .order("created_at", { ascending: true });
-    if (error) throw new Response(error.message, { status: 500 });
-    return rows ?? [];
+    /*
+     * A TRANSCRIPT HAS TO BE WHOLE. Capping this would silently delete the
+     * beginning of any conversation past the row ceiling — the reader would
+     * see a coherent-looking chat that simply starts in the middle, and the
+     * model asked to continue it would be reasoning from a truncated history.
+     */
+    const rows = await readAllPages<{
+      id: string;
+      role: string;
+      content: string;
+      attachments: Json;
+      model_id: string | null;
+      provider_id: string | null;
+      created_at: string;
+    }>((from, to) =>
+      context.supabase
+        .from("ocade_messages")
+        .select("id, role, content, attachments, model_id, provider_id, created_at")
+        .eq("conversation_id", data.conversationId)
+        .order("created_at", { ascending: true })
+        .range(from, to),
+    ).catch((cause: Error) => {
+      throw new Response(cause.message, { status: 500 });
+    });
+    return rows;
   });
 
 export const deleteMessage = createServerFn({ method: "POST" })
@@ -184,11 +211,23 @@ export const exportConversation = createServerFn({ method: "GET" })
         .select("id, title, model_id, created_at, updated_at")
         .eq("id", data.conversationId)
         .maybeSingle(),
-      context.supabase
-        .from("ocade_messages")
-        .select("role, content, attachments, model_id, provider_id, created_at")
-        .eq("conversation_id", data.conversationId)
-        .order("created_at", { ascending: true }),
+      // An export that stops at the row ceiling is a corrupt export, so this
+      // one pages until it genuinely runs out.
+      readAllPages<{
+        role: string;
+        content: string;
+        attachments: Json;
+        model_id: string | null;
+        provider_id: string | null;
+        created_at: string;
+      }>((from, to) =>
+        context.supabase
+          .from("ocade_messages")
+          .select("role, content, attachments, model_id, provider_id, created_at")
+          .eq("conversation_id", data.conversationId)
+          .order("created_at", { ascending: true })
+          .range(from, to),
+      ).then((rows) => ({ data: rows })),
     ]);
     if (!conv) throw new Response("Conversation not found", { status: 404 });
     return {

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { preflight } from "@/lib/edge/preflight";
 import { cn } from "@/lib/utils";
+import { LIST_CAP } from "@/lib/supabase/read-all";
 
 type Ticket = {
   id: string;
@@ -56,7 +57,8 @@ function SupportPage() {
       const { data, error } = await supabase
         .from("ocade_support_tickets")
         .select("id, subject, category, priority, status, last_message_at")
-        .order("last_message_at", { ascending: false });
+        .order("last_message_at", { ascending: false })
+        .limit(LIST_CAP);
       if (error) throw error;
       return (data ?? []) as Ticket[];
     },
@@ -70,7 +72,8 @@ function SupportPage() {
         .from("ocade_support_messages")
         .select("id, author_role, body, created_at")
         .eq("ticket_id", selectedId!)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true })
+        .limit(LIST_CAP);
       if (error) throw error;
       return (data ?? []) as SupportMessage[];
     },

@@ -28,6 +28,7 @@ import {
   type RunStatus,
 } from "@/lib/ocade-automations";
 import { redactForAudit, type CompanionAction } from "@/lib/native/companion-bridge";
+import { LIST_CAP } from "@/lib/supabase/read-all";
 
 const uuid = z.string().uuid();
 
@@ -125,7 +126,8 @@ export const listAutomations = createServerFn({ method: "GET" })
         "id, name, enabled, paused, trigger, actions, requires_approval, dry_run, max_attempts, next_run_at, last_run_at, updated_at",
       )
       .eq("user_id", context.userId)
-      .order("updated_at", { ascending: false });
+      .order("updated_at", { ascending: false })
+      .limit(LIST_CAP);
     if (error) throw new Response(error.message, { status: 500 });
     return (data ?? []) as AutomationRow[];
   });

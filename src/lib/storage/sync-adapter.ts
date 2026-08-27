@@ -62,6 +62,78 @@ function toRecord<T>(r: Row): StoredRecord<T> {
   };
 }
 
+/**
+ * How many rows to ask for at once.
+ *
+ * Well under PostgREST's own ceiling so the page size is OURS rather than the
+ * server's, and small enough that one request is a reasonable thing to retry.
+ */
+const PAGE_ROWS = 500;
+
+/**
+ * Refuses to loop forever if the server keeps answering with full pages.
+ * 400 pages is 200,000 records — far past any real account, and a bounded
+ * mistake instead of a browser tab that grows until it is killed.
+ */
+const MAX_PAGES = 400;
+
+/**
+ * EVERY row of a data class, in pages, because "all of them" was a lie.
+ *
+ * This used to be one `.select("*")` with no bound at all. Two things were
+ * wrong with that, and the second is a data-loss bug rather than a slow query:
+ *
+ *   1. It transferred every record and its whole JSON body in a single
+ *      response — the entire chat history of an account, each time anything
+ *      asked for a list.
+ *   2. PostgREST caps how many rows it will return (`db-max-rows`, 1,000 by
+ *      default on Supabase) and it does so SILENTLY: the response is a
+ *      well-formed array of the first N rows with no error and no marker. An
+ *      account with more than N records in a class therefore synchronised the
+ *      first N and quietly never saw the rest. Nothing failed, so nothing
+ *      reported anything, and the missing records looked like records the user
+ *      had never written.
+ *
+ * Paging by the primary key rather than by offset: the key is
+ * (user_id, data_class, id), so ordering by `id` inside a fixed user and class
+ * walks that index directly, and a row inserted mid-walk cannot shift the
+ * window the way an OFFSET can. A short page means the end, which is the one
+ * signal a capped response cannot fake.
+ */
+async function listEveryPage<T>(userId: string, dataClass: DataClass): Promise<StoredRecord<T>[]> {
+  const out: StoredRecord<T>[] = [];
+  let after: string | null = null;
+
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    let request = supabase
+      .from("user_private_records")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("data_class", dataClass)
+      .order("id", { ascending: true })
+      .limit(PAGE_ROWS);
+    if (after !== null) request = request.gt("id", after);
+
+    const { data, error } = await request;
+    if (error) throw error;
+    const rows = (data ?? []) as Row[];
+    for (const row of rows) out.push(toRecord<T>(row));
+    // A page shorter than we asked for is the end. A full page might be the
+    // end too, so the next request settles it rather than a guess.
+    if (rows.length < PAGE_ROWS) return out;
+    after = rows[rows.length - 1]!.id;
+  }
+
+  /*
+   * Ran out of pages. Returning what we have beats throwing: a partial list is
+   * still a useful answer, and the device's own copy is unioned over it.
+   */
+  console.warn(
+    `[sync] stopped after ${MAX_PAGES} pages of ${dataClass}; some records were not read`,
+  );
+  return out;
+}
+
 export const syncAdapter: StorageAdapter = {
   mode: "private_sync",
 
@@ -107,13 +179,7 @@ export const syncAdapter: StorageAdapter = {
     let remote: StoredRecord<T>[] = [];
     try {
       const user_id = await uid();
-      const { data, error } = await supabase
-        .from("user_private_records")
-        .select("*")
-        .eq("user_id", user_id)
-        .eq("data_class", dataClass);
-      if (error) throw error;
-      remote = ((data ?? []) as Row[]).map((r) => toRecord<T>(r));
+      remote = await listEveryPage<T>(user_id, dataClass);
     } catch {
       /*
        * Offline, or Supabase down. The device's own records are a complete

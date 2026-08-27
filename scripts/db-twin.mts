@@ -253,4 +253,256 @@ export class DatabaseTwin {
   async close(): Promise<void> {
     await this.db.close();
   }
+
+  /* ------------------------------------------------------------ planting -- */
+  /*
+   * SEEDING A ROW IN AN ARBITRARY TABLE, WITHOUT A FIXTURE PER TABLE.
+   *
+   * An isolation test that skips the tables it could not seed proves nothing
+   * about them while looking like it does — and the tables hardest to seed are
+   * the interesting ones: messages, vault configuration, invoices, payment
+   * events. Each of them refused a naive insert for one of four reasons, and
+   * each reason has an answer the schema itself supplies:
+   *
+   *   a CHECK constraint listing allowed literals  -> read the constraint
+   *   an enum type                                 -> read pg_enum
+   *   a foreign key                                -> plant the parent first
+   *   a row the signup trigger already created     -> use the one that exists
+   *
+   * So this reads the catalogue instead of guessing, and a table that still
+   * cannot be planted is REPORTED rather than skipped quietly.
+   */
+
+  private plantCache = new Map<string, Record<string, unknown> | null>();
+
+  /**
+   * Literals a CHECK constraint will accept for this column.
+   *
+   * ONLY the `= ANY (ARRAY[…])` shape, which is what a choice column compiles
+   * to. Reading literals out of any constraint that merely mentions the column
+   * produced nonsense: `currency ~ '^[A-Z]{3}$'` yielded the regex itself as a
+   * "permitted value", and the insert then failed the constraint it was
+   * supposed to satisfy.
+   */
+  private async allowedLiterals(table: string, column: string): Promise<string[]> {
+    const rows = await this.asSuperuser<{ def: string }>(
+      `select pg_get_constraintdef(oid) as def
+         from pg_constraint
+        where contype = 'c'
+          and conrelid = 'public.${table}'::regclass`,
+    );
+    const out: string[] = [];
+    const shape = new RegExp(
+      `\\(?\\b${column}\\b\\)?\\s*=\\s*ANY\\s*\\(\\s*\\(?ARRAY\\[([^\\]]*)\\]`,
+      "i",
+    );
+    for (const { def } of rows) {
+      const match = shape.exec(def);
+      if (!match) continue;
+      for (const literal of match[1].matchAll(/'([^']*)'/g)) out.push(literal[1]);
+    }
+    return out;
+  }
+
+  /**
+   * A string that satisfies a simple regex CHECK, when the column has one.
+   *
+   * Three of the billing tables constrain a currency column with
+   * `~ '^[A-Z]{3}$'`, which no generic filler will ever hit by accident. Only
+   * anchored character-class-with-length patterns are handled: anything more
+   * involved returns null and the table is reported as unplanted rather than
+   * seeded with something that quietly fails a different constraint.
+   */
+  private async regexSample(table: string, column: string): Promise<string | null> {
+    const rows = await this.asSuperuser<{ def: string }>(
+      `select pg_get_constraintdef(oid) as def
+         from pg_constraint
+        where contype = 'c' and conrelid = 'public.${table}'::regclass`,
+    );
+    const shape = new RegExp(`\\b${column}\\b\\s*~\\s*'([^']+)'`, "i");
+    for (const { def } of rows) {
+      const match = shape.exec(def);
+      if (!match) continue;
+      const pattern = /^\^\[([^\]]+)\]\{(\d+)(?:,\d+)?\}\$$/.exec(match[1]);
+      if (!pattern) return null;
+      const set = pattern[1];
+      const length = Number(pattern[2]);
+      // First literal character of the class, or the first of a range.
+      const sample = /A-Z/.test(set) ? "A" : /a-z/.test(set) ? "a" : /0-9/.test(set) ? "0" : set[0];
+      return sample.repeat(length);
+    }
+    return null;
+  }
+
+  /** Values an enum type accepts. */
+  private async enumValues(typeName: string): Promise<string[]> {
+    const rows = await this.asSuperuser<{ enumlabel: string }>(
+      `select e.enumlabel from pg_enum e
+         join pg_type t on t.oid = e.enumtypid
+        where t.typname = '${typeName}' order by e.enumsortorder`,
+    );
+    return rows.map((r) => r.enumlabel);
+  }
+
+  /**
+   * Plant one row owned by `ownerId`, or return the one already there.
+   * `depth` bounds foreign-key recursion so a cycle cannot hang the run.
+   */
+  async plantRow(
+    table: string,
+    ownerId: string,
+    depth = 0,
+  ): Promise<Record<string, unknown> | null> {
+    const key = `${table}:${ownerId}`;
+    if (this.plantCache.has(key)) return this.plantCache.get(key) ?? null;
+    if (depth > 4) return null;
+
+    const columns = await this.asSuperuser<{
+      column_name: string;
+      data_type: string;
+      udt_name: string;
+      is_nullable: string;
+      has_default: boolean;
+    }>(
+      `select column_name, data_type, udt_name, is_nullable,
+              (column_default is not null) as has_default
+         from information_schema.columns
+        where table_schema = 'public' and table_name = '${table}'
+        order by ordinal_position`,
+    );
+    const names = columns.map((c) => c.column_name);
+    const owner = names.includes("user_id") ? "user_id" : "id";
+
+    // The signup trigger creates profiles and settings rows; use those.
+    const existing = await this.asSuperuser<Record<string, unknown>>(
+      `select * from public.${table} where ${owner} = '${ownerId}' limit 1`,
+    );
+    if (existing[0]) {
+      this.plantCache.set(key, existing[0]);
+      return existing[0];
+    }
+
+    const foreignKeys = await this.asSuperuser<{ col: string; ref: string }>(
+      `select att.attname as col, cl.relname as ref
+         from pg_constraint c
+         join pg_class cl on cl.oid = c.confrelid
+         join unnest(c.conkey) as k(attnum) on true
+         join pg_attribute att on att.attrelid = c.conrelid and att.attnum = k.attnum
+        where c.contype = 'f' and c.conrelid = 'public.${table}'::regclass`,
+    );
+    const fkFor = new Map(foreignKeys.map((f) => [f.col, f.ref]));
+
+    const insertCols: string[] = [owner];
+    const insertVals: string[] = [`'${ownerId}'`];
+    /*
+     * Several tables constrain one timestamp to be after another
+     * (`expires_at > started_at`, `finished_at >= started_at`). Giving every
+     * timestamp `now()` fails those. Staggering by column order satisfies them,
+     * because in every such table the earlier instant is declared first.
+     */
+    let timestampsUsed = 0;
+
+    for (const column of columns) {
+      if (column.column_name === owner) continue;
+      if (column.is_nullable === "YES" || column.has_default) continue;
+
+      const referenced = fkFor.get(column.column_name);
+      if (referenced && referenced !== "users") {
+        const parent = await this.plantRow(referenced, ownerId, depth + 1);
+        if (!parent) {
+          this.plantCache.set(key, null);
+          return null;
+        }
+        insertCols.push(column.column_name);
+        insertVals.push(`'${String(parent.id ?? parent[owner])}'`);
+        continue;
+      }
+      if (referenced === "users") {
+        insertCols.push(column.column_name);
+        insertVals.push(`'${ownerId}'`);
+        continue;
+      }
+
+      const allowed = await this.allowedLiterals(table, column.column_name);
+      if (allowed.length) {
+        /*
+         * The LAST permitted value, not the first. Several tables carry a
+         * second constraint of the form `status <> 'succeeded' OR (…)`, where
+         * the first listed value is the one with extra obligations attached.
+         * The last is the ordinary case in every choice list here.
+         */
+        insertCols.push(column.column_name);
+        insertVals.push(`'${allowed[allowed.length - 1]}'`);
+        continue;
+      }
+      const sample = await this.regexSample(table, column.column_name);
+      if (sample !== null) {
+        insertCols.push(column.column_name);
+        insertVals.push(`'${sample}'`);
+        continue;
+      }
+      if (column.data_type === "USER-DEFINED") {
+        const values = await this.enumValues(column.udt_name);
+        if (!values.length) {
+          this.plantCache.set(key, null);
+          return null;
+        }
+        insertCols.push(column.column_name);
+        insertVals.push(`'${values[0]}'::public.${column.udt_name}`);
+        continue;
+      }
+
+      insertCols.push(column.column_name);
+      insertVals.push(DatabaseTwin.filler(column.data_type, ownerId, timestampsUsed));
+      if (column.data_type.startsWith("timestamp")) timestampsUsed += 1;
+    }
+
+    try {
+      const inserted = await this.asSuperuser<Record<string, unknown>>(
+        `insert into public.${table} (${insertCols.join(", ")})
+         values (${insertVals.join(", ")}) returning *`,
+      );
+      this.plantCache.set(key, inserted[0] ?? null);
+      return inserted[0] ?? null;
+    } catch {
+      this.plantCache.set(key, null);
+      return null;
+    }
+  }
+
+  /** A value Postgres accepts for a column the caller does not care about. */
+  private static filler(dataType: string, ownerId: string, nthTimestamp = 0): string {
+    switch (dataType) {
+      case "uuid":
+        return "extensions.gen_random_uuid()";
+      case "text":
+      case "character varying":
+        return "'isolation probe'";
+      case "boolean":
+        return "false";
+      case "integer":
+      case "bigint":
+      case "smallint":
+      case "numeric":
+      case "double precision":
+        return "0";
+      case "jsonb":
+      case "json":
+        return `'{}'::jsonb`;
+      case "timestamp with time zone":
+      case "timestamp without time zone":
+        // Never `now()` exactly: a column defaulted to now() is often the
+        // earlier side of a `later > earlier` check, and an equal instant
+        // fails a strict comparison.
+        return `now() + interval '${nthTimestamp + 1} day'`;
+      case "date":
+        return "current_date";
+      case "ARRAY":
+        return "'{}'";
+      case "bytea":
+        return `'\\x00'::bytea`;
+      default:
+        return `'${ownerId}'`;
+    }
+  }
 }

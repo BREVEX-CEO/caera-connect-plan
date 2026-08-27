@@ -14,6 +14,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
+import { LIST_CAP, readAllPages } from "@/lib/supabase/read-all";
+import type { Json } from "@/integrations/supabase/types";
 
 const uuid = z.string().uuid();
 
@@ -87,7 +89,9 @@ export const listProjects = createServerFn({ method: "GET" })
       .select("id, name, instructions, archived, created_at, updated_at")
       .eq("user_id", context.userId);
     if (!data.includeArchived) q = q.eq("archived", false);
-    const { data: rows, error } = await q.order("updated_at", { ascending: false });
+    // Bounded here rather than by PostgREST's silent ceiling. Beyond this many
+    // projects the answer is Search, not a longer list.
+    const { data: rows, error } = await q.order("updated_at", { ascending: false }).limit(LIST_CAP);
     if (error) throw new Response(error.message, { status: 500 });
     return (rows ?? []) as OcadeProject[];
   });
@@ -288,6 +292,19 @@ export interface ProjectConversation {
   updated_at: string;
 }
 
+/**
+ * The shape a message takes when history is replayed into a new conversation.
+ * Named because two call sites read it and an inline literal in both drifts.
+ */
+type BranchedMessage = {
+  role: string;
+  content: string;
+  attachments: Json;
+  model_id: string | null;
+  provider_id: string | null;
+  created_at: string;
+};
+
 /** Conversations filed under a project (or unfiled when projectId is null). */
 export const listProjectConversations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -363,12 +380,19 @@ export const branchConversation = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!pivot) throw new Response("Message not found", { status: 404 });
 
-    const { data: msgs } = await context.supabase
-      .from("ocade_messages")
-      .select("role, content, attachments, model_id, provider_id, created_at")
-      .eq("conversation_id", data.conversationId)
-      .lte("created_at", pivot.created_at)
-      .order("created_at", { ascending: true });
+    /*
+     * The branch IS this history. Truncating it at the row ceiling would cut
+     * the beginning off the new conversation without saying so.
+     */
+    const msgs = await readAllPages<BranchedMessage>((from, to) =>
+      context.supabase
+        .from("ocade_messages")
+        .select("role, content, attachments, model_id, provider_id, created_at")
+        .eq("conversation_id", data.conversationId)
+        .lte("created_at", pivot.created_at)
+        .order("created_at", { ascending: true })
+        .range(from, to),
+    );
 
     const { data: created, error: cErr } = await context.supabase
       .from("ocade_conversations")
@@ -416,12 +440,16 @@ export const forkConversationBeforeMessage = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!source) throw new Response("Conversation not found", { status: 404 });
 
-    const { data: messages, error: messagesError } = await context.supabase
-      .from("ocade_messages")
-      .select("id, role, content, attachments, model_id, provider_id, created_at")
-      .eq("conversation_id", data.conversationId)
-      .order("created_at", { ascending: true });
-    if (messagesError) throw new Response(messagesError.message, { status: 500 });
+    // Edit-and-retry finds a pivot inside this list; a truncated list means the
+    // pivot is "not found" for anybody with a long conversation.
+    const messages = await readAllPages<BranchedMessage & { id: string }>((from, to) =>
+      context.supabase
+        .from("ocade_messages")
+        .select("id, role, content, attachments, model_id, provider_id, created_at")
+        .eq("conversation_id", data.conversationId)
+        .order("created_at", { ascending: true })
+        .range(from, to),
+    );
 
     const pivot = (messages ?? []).findIndex((message) => message.id === data.fromMessageId);
     if (pivot < 0) throw new Response("Message not found", { status: 404 });

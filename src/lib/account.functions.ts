@@ -35,26 +35,32 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
     const userId = context.userId;
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Support conversation first: messages reference their ticket.
-    const { data: tickets } = await supabaseAdmin
-      .from("ocade_support_tickets")
-      .select("id")
-      .eq("user_id", userId);
-    const ticketIds = (tickets ?? []).map((t) => t.id);
-    if (ticketIds.length > 0) {
-      await supabaseAdmin.from("ocade_support_messages").delete().in("ticket_id", ticketIds);
-    }
+    /*
+     * DELETE THE PARENT AND LET THE CONSTRAINT DO THE REST.
+     *
+     * This used to read every ticket id and every conversation id, then delete
+     * the children with `.in(ids)`. Both halves of that were unsafe at size and
+     * neither was necessary:
+     *
+     *   - The read was unbounded, and PostgREST silently returns only the first
+     *     `db-max-rows` (1,000 by default). An account past that had the rest of
+     *     its ids simply not appear, so those children were never named.
+     *   - The delete put every id into the request URL. A few thousand UUIDs is
+     *     tens of kilobytes of query string, which proxies and PostgREST refuse
+     *     long before the account is unusual.
+     *
+     * And it was redundant: `ocade_messages.conversation_id` and
+     * `ocade_support_messages.ticket_id` are both declared ON DELETE CASCADE,
+     * so removing the parent removes them, completely, in one statement, with
+     * no list to truncate.
+     *
+     * Support messages get one extra pass. `ocade_support_messages.author_id`
+     * references `auth.users` ON DELETE RESTRICT, so a message this person
+     * wrote on a ticket they do not own would block the identity deletion at
+     * the very last step, after everything else was already gone.
+     */
     await supabaseAdmin.from("ocade_support_tickets").delete().eq("user_id", userId);
-
-    // Chat history: messages reference their conversation.
-    const { data: conversations } = await supabaseAdmin
-      .from("ocade_conversations")
-      .select("id")
-      .eq("user_id", userId);
-    const conversationIds = (conversations ?? []).map((c) => c.id);
-    if (conversationIds.length > 0) {
-      await supabaseAdmin.from("ocade_messages").delete().in("conversation_id", conversationIds);
-    }
+    await supabaseAdmin.from("ocade_support_messages").delete().eq("author_id", userId);
     await supabaseAdmin.from("ocade_conversations").delete().eq("user_id", userId);
 
     // Account-scoped records. Anything with an ON DELETE CASCADE to auth.users
