@@ -14,8 +14,22 @@ import { spawn, type ChildProcess } from "node:child_process";
  * appear or a message could be silently copied.
  */
 
-const PORT = 8791; // distinct from the default so a local instance cannot collide
-const BASE = `http://127.0.0.1:${PORT}`;
+/*
+ * A PORT NOBODY ELSE CHOSE.
+ *
+ * This was 8791, with a comment explaining that the number was picked to avoid
+ * a local instance. It is also the port `scripts/e2e/run-worker-smoke.mjs`
+ * defaults to, so the two collided by construction rather than by chance: run
+ * the worker smoke and this suite at the same time — which the gate runner
+ * does — and this one fails with "relay did not become healthy", against a
+ * relay that is perfectly healthy and simply could not bind.
+ *
+ * Asking the operating system for a free port removes the coordination problem
+ * instead of moving it to a different number for somebody to collide with
+ * later.
+ */
+let PORT = 0;
+let BASE = "";
 
 let relay: ChildProcess;
 
@@ -107,7 +121,23 @@ const post = (room: string, body: unknown, clientId?: string) =>
 
 const settle = () => new Promise((r) => setTimeout(r, 120));
 
+/** A port the operating system says is free right now. */
+async function freePort(): Promise<number> {
+  const { createServer } = await import("node:net");
+  return new Promise((resolve, reject) => {
+    const probe = createServer();
+    probe.on("error", reject);
+    probe.listen(0, "127.0.0.1", () => {
+      const address = probe.address();
+      const port = typeof address === "object" && address ? address.port : 0;
+      probe.close(() => (port ? resolve(port) : reject(new Error("no free port"))));
+    });
+  });
+}
+
 beforeAll(async () => {
+  PORT = await freePort();
+  BASE = `http://127.0.0.1:${PORT}`;
   relay = spawn(process.execPath, ["relay/server.mjs"], {
     env: { ...process.env, PORT: String(PORT), HOST: "127.0.0.1" },
     stdio: "ignore",

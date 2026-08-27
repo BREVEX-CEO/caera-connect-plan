@@ -1,8 +1,8 @@
 # OCADE Checklist Master Acceptance Ledger
 
-Generated: 2026-08-23T18:52:49.789Z
+Generated: 2026-08-24T10:26:36.919Z
 Branch: codex/ocade-production-completion-20260823-continuation
-Evidence base commit: 7e0283af9a4823c0d40fc6f6e49a9d474fdb7c80
+Evidence base commit: 60ab0bc49848c043099bc7e5344dfd78fe2aa748
 
 All 781 requirements are retained. Only ordinary physical-product cart commerce is excluded. Software pricing, billing, checkout, cancellation, refunds, and receipts remain applicable but policy-gated during FREE LAUNCH.
 

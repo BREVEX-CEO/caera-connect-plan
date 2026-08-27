@@ -14,7 +14,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Database } from "@/integrations/supabase/types";
-import { LIST_CAP, readAllPages } from "@/lib/supabase/read-all";
+import { readAllPages } from "@/lib/supabase/read-all";
 import type { Json } from "@/integrations/supabase/types";
 
 const uuid = z.string().uuid();
@@ -79,38 +79,6 @@ export interface OcadeMemoryRow {
 }
 
 /* ----------------------------------------------------------- projects ---- */
-
-export const listProjects = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .validator((i) => z.object({ includeArchived: z.boolean().optional() }).parse(i ?? {}))
-  .handler(async ({ data, context }) => {
-    let q = context.supabase
-      .from("ocade_projects")
-      .select("id, name, instructions, archived, created_at, updated_at")
-      .eq("user_id", context.userId);
-    if (!data.includeArchived) q = q.eq("archived", false);
-    // Bounded here rather than by PostgREST's silent ceiling. Beyond this many
-    // projects the answer is Search, not a longer list.
-    const { data: rows, error } = await q.order("updated_at", { ascending: false }).limit(LIST_CAP);
-    if (error) throw new Response(error.message, { status: 500 });
-    return (rows ?? []) as OcadeProject[];
-  });
-
-export const getProject = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .validator((input) => z.object({ id: uuid }).parse(input))
-  .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
-      .from("ocade_projects")
-      .select("id, name, instructions, archived, created_at, updated_at")
-      .eq("id", data.id)
-      .eq("user_id", context.userId)
-      .maybeSingle();
-    if (error) throw new Response(error.message, { status: 500 });
-    if (!row) throw new Response("Project not found", { status: 404 });
-    return row as OcadeProject;
-  });
-
 export const createProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((i) => createProjectInput.parse(i))
@@ -157,23 +125,6 @@ export const updateProject = createServerFn({ method: "POST" })
     if (!row) throw new Response("Project not found", { status: 404 });
     return { ok: true as const };
   });
-
-export const deleteProject = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((i) => z.object({ id: uuid }).parse(i))
-  .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
-      .from("ocade_projects")
-      .delete()
-      .eq("id", data.id)
-      .eq("user_id", context.userId)
-      .select("id")
-      .maybeSingle();
-    if (error) throw new Response(error.message, { status: 500 });
-    if (!row) throw new Response("Project not found", { status: 404 });
-    return { ok: true as const };
-  });
-
 /* ------------------------------------------------------------ outputs ---- */
 
 export const createOutputInput = z.object({
@@ -193,94 +144,6 @@ async function sha256Text(content: string): Promise<string> {
   const digest = await subtle.digest("SHA-256", new TextEncoder().encode(content));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
-
-export const listOutputs = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .validator((i) => z.object({ projectId: uuid.nullable().optional() }).parse(i ?? {}))
-  .handler(async ({ data, context }) => {
-    let q = context.supabase
-      .from("ocade_outputs")
-      .select(
-        "id, project_id, conversation_id, kind, title, mime, size_bytes, lineage_id, version, content_sha256, expires_at, created_at",
-      )
-      .eq("user_id", context.userId);
-    if (data.projectId) q = q.eq("project_id", data.projectId);
-    const { data: rows, error } = await q.order("created_at", { ascending: false }).limit(200);
-    if (error) throw new Response(error.message, { status: 500 });
-    return rows ?? [];
-  });
-
-export const createOutput = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((i) => createOutputInput.parse(i))
-  .handler(async ({ data, context }) => {
-    let lineageId: string | undefined;
-    let version = 1;
-    let projectId = data.projectId ?? null;
-    let conversationId = data.conversationId ?? null;
-    if (data.parentOutputId) {
-      const { data: parent, error: parentError } = await context.supabase
-        .from("ocade_outputs")
-        .select("id, lineage_id, project_id, conversation_id, kind, title")
-        .eq("id", data.parentOutputId)
-        .eq("user_id", context.userId)
-        .maybeSingle();
-      if (parentError) throw new Response(parentError.message, { status: 500 });
-      if (!parent) throw new Response("Parent output not found", { status: 404 });
-      if (
-        (data.projectId !== undefined && data.projectId !== parent.project_id) ||
-        (data.conversationId !== undefined && data.conversationId !== parent.conversation_id) ||
-        data.kind !== parent.kind ||
-        data.title !== parent.title
-      ) {
-        throw new Response(
-          "A new version must keep its parent output's project, conversation, kind and title.",
-          { status: 409 },
-        );
-      }
-      projectId = parent.project_id;
-      conversationId = parent.conversation_id;
-      lineageId = parent.lineage_id;
-      const { data: latest, error: versionError } = await context.supabase
-        .from("ocade_outputs")
-        .select("version")
-        .eq("user_id", context.userId)
-        .eq("lineage_id", lineageId)
-        .order("version", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (versionError) throw new Response(versionError.message, { status: 500 });
-      version = Number(latest?.version ?? 0) + 1;
-    }
-    const content = data.content ?? null;
-    const contentSha256 = content === null ? null : await sha256Text(content);
-    const expiresAt =
-      data.retentionDays == null
-        ? null
-        : new Date(Date.now() + data.retentionDays * 24 * 60 * 60 * 1000).toISOString();
-    const { data: row, error } = await context.supabase
-      .from("ocade_outputs")
-      .insert({
-        user_id: context.userId,
-        project_id: projectId,
-        conversation_id: conversationId,
-        kind: data.kind,
-        title: data.title,
-        content,
-        mime: data.mime ?? null,
-        size_bytes: content ? new TextEncoder().encode(content).length : 0,
-        ...(lineageId ? { lineage_id: lineageId } : {}),
-        version,
-        parent_output_id: data.parentOutputId ?? null,
-        content_sha256: contentSha256,
-        expires_at: expiresAt,
-      })
-      .select("id, kind, title, lineage_id, version, content_sha256, expires_at, created_at")
-      .single();
-    if (error) throw new Response(error.message, { status: 500 });
-    return row;
-  });
-
 /* ------------------------------------- conversations <-> projects -------- */
 
 export interface ProjectConversation {
@@ -305,57 +168,6 @@ type BranchedMessage = {
   created_at: string;
 };
 
-/** Conversations filed under a project (or unfiled when projectId is null). */
-export const listProjectConversations = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .validator((i) => z.object({ projectId: uuid.nullable() }).parse(i))
-  .handler(async ({ data, context }) => {
-    let q = context.supabase
-      .from("ocade_conversations")
-      .select("id, title, pinned, archived, project_id, updated_at")
-      .eq("user_id", context.userId);
-    q = data.projectId === null ? q.is("project_id", null) : q.eq("project_id", data.projectId);
-    const { data: rows, error } = await q.order("updated_at", { ascending: false }).limit(500);
-    if (error) throw new Response(error.message, { status: 500 });
-    return (rows ?? []) as ProjectConversation[];
-  });
-
-/** File, move between projects, or unfile (projectId null) a conversation. */
-export const setConversationProject = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((i) => setConversationProjectInput.parse(i))
-  .handler(async ({ data, context }) => {
-    // Filing into a project must prove the project is YOURS. RLS scopes the
-    // conversation update, but not the project_id being written into it, so
-    // without this check a conversation could be filed under someone else's
-    // project id.
-    if (data.projectId !== null) {
-      const { data: project } = await context.supabase
-        .from("ocade_projects")
-        .select("id")
-        .eq("id", data.projectId)
-        .eq("user_id", context.userId)
-        .maybeSingle();
-      if (!project) throw new Response("Project not found", { status: 404 });
-    }
-
-    const { data: row, error } = await context.supabase
-      .from("ocade_conversations")
-      .update({ project_id: data.projectId })
-      .eq("id", data.conversationId)
-      .eq("user_id", context.userId)
-      .select("id")
-      .maybeSingle();
-    if (error) throw new Response(error.message, { status: 500 });
-    if (!row) throw new Response("Conversation not found", { status: 404 });
-    return { ok: true as const };
-  });
-
-/**
- * Branch a conversation: copy every message up to and including `fromMessageId`
- * into a new conversation, so the user can explore an alternative without
- * losing the original thread.
- */
 export const branchConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((i) => branchConversationInput.parse(i))
@@ -490,54 +302,6 @@ export const forkConversationBeforeMessage = createServerFn({ method: "POST" })
   });
 
 /* ------------------------------------------------------ output detail ---- */
-
-export const getOutput = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .validator((i) => z.object({ id: uuid }).parse(i))
-  .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
-      .from("ocade_outputs")
-      .select(
-        "id, project_id, conversation_id, kind, title, content, mime, size_bytes, lineage_id, version, parent_output_id, content_sha256, expires_at, created_at",
-      )
-      .eq("id", data.id)
-      .eq("user_id", context.userId)
-      .maybeSingle();
-    if (error) throw new Response(error.message, { status: 500 });
-    if (!row) throw new Response("Output not found", { status: 404 });
-    return row;
-  });
-
-export const deleteOutput = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .validator((i) => z.object({ id: uuid }).parse(i))
-  .handler(async ({ data, context }) => {
-    const { data: row, error } = await context.supabase
-      .from("ocade_outputs")
-      .delete()
-      .eq("id", data.id)
-      .eq("user_id", context.userId)
-      .select("id")
-      .maybeSingle();
-    if (error) throw new Response(error.message, { status: 500 });
-    if (!row) throw new Response("Output not found", { status: 404 });
-    return { ok: true as const };
-  });
-
-/** Enforce user-selected output retention without touching unexpired/keep rows. */
-export const purgeExpiredOutputs = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("ocade_outputs")
-      .delete()
-      .eq("user_id", context.userId)
-      .lt("expires_at", new Date().toISOString())
-      .select("id");
-    if (error) throw new Response(error.message, { status: 500 });
-    return { removed: (data ?? []).length };
-  });
-
 /* ------------------------------------------------------------- memory ---- */
 
 /** Memory is opt-in; this reports and flips the user's setting. */
