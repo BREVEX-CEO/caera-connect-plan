@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { Clock, Lock, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
+import { PermissionRules } from "@/components/settings/PermissionRules";
 import {
   loadComputerUseSettings,
   normalizeComputerUseSettings,
@@ -161,6 +162,7 @@ export function PermissionsPanel() {
           </Link>
         </div>
       </GlassPanel>
+      <PermissionRules />
     </>
   );
 }

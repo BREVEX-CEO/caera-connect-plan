@@ -83,15 +83,35 @@ export function loadRules(
   }
 }
 
+/**
+ * Whether the rules reached the device.
+ *
+ * It used to return nothing and swallow the failure, which was right for a
+ * background write and wrong the moment a person could see the result: a full
+ * or blocked store would discard a safety rule and show them a saved one.
+ * It still never throws — a settings write must not break the turn somebody is
+ * in — but now it says what happened.
+ */
+export type SaveRulesResult = { ok: true } | { ok: false; error: string };
+
 export function saveRules(
   rules: readonly StoredRule[],
   storage: StorageWriter | null = typeof window === "undefined" ? null : window.localStorage,
-): void {
-  if (!storage) return;
+): SaveRulesResult {
+  if (!storage) {
+    return { ok: false, error: "This browser will not let OCADE store settings on this device." };
+  }
   try {
     storage.setItem(PERMISSION_RULES_KEY, JSON.stringify(normalizeRules(rules)));
-  } catch {
-    /* A full or blocked store must not stop the turn the user is in. */
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error && /quota/i.test(error.message)
+          ? "There is no room left on this device to store the rule."
+          : "The rule could not be stored on this device.",
+    };
   }
 }
 

@@ -79,6 +79,15 @@ const FAMILIES = [
       "A real parser is what closes the compound-command hole: an approval for one command must not carry the rest of the line. Ported in pure TypeScript, without the donor's native grammar binary.",
   },
   {
+    family: "Permission rule review: validation and shadow detection",
+    match: new RegExp("^src/utils/settings/(permissionValidation|validation|validationTips)|^src/utils/permissions/shadowedRuleDetection|^src/components/permissions/"),
+    category: "MERGED",
+    outcome: "Ported — and made the rule engine reachable at all",
+    authority: "src/components/settings/PermissionRules.tsx",
+    reason:
+      "The rule engine decided every permission in the product and `saveRules` had no caller anywhere, so nobody could write a rule and the engine only ever saw an empty list. There is now an editor in Advanced, backed by the archive's validation and its shadowed-rule detection, so a rule that cannot match or can never be reached says so instead of disappointing somebody silently.",
+  },
+  {
     family: "PowerShell code-execution cmdlets",
     match: new RegExp("^src/utils/powershell/"),
     category: "MERGED",
