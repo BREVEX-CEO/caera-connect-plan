@@ -36,13 +36,16 @@
         "Email confirmation is required; Apple, phone and custom SMTP remain disabled",
         "Production Google OAuth is enabled and executed from localhost through Google, the Supabase callback, an OCADE session, logout and a same-account repeat login",
         "The localhost OAuth transport was corrected to use direct Supabase OAuth outside Lovable preview hosts",
-        "Production UI now fails closed for every unconfigured provider and for unavailable email delivery"
+        "Production UI now fails closed for every unconfigured provider and for unavailable email delivery",
+        "Google is a working provider on the production project: auth.identities holds two google identities with a successful sign-in, so the Supabase-side OAuth client, callback URL and site URL are configured and no Google Console action remains",
+        "Every one of the fifteen SECURITY DEFINER functions callable by authenticated was proven at runtime to refuse another tenant's run id, changing no row, while the same verbs still work for the owner"
       ],
       "requiredEvidence": [
         "Repair and execute signed-in profile reads: production currently returns HTTP 403 because authenticated cannot execute public.has_role even though profiles RLS invokes it",
         "Custom SMTP credentials and real signup confirmation login logout and recovery delivery proof to a non-team address",
         "Real signed-in Storage API upload download and deletion proof",
-        "Production-domain email-template verification; redirect configuration itself is already observed"
+        "Production-domain email-template verification; redirect configuration itself is already observed",
+        "Enable leaked-password protection for the email provider in the Supabase dashboard; it is an auth configuration toggle with no repository representation"
       ],
       "detail": "release/OCADE_SUPABASE_AUTH_LIVE_PROOF_2026-08-24.json"
     },
