@@ -96,6 +96,7 @@ windows-proof-evidence.json
 .output-offline
 .output-e2e
 .output-worker
+.output-journey
 public/models/*.gguf
 
 release/launch-proof-logs/

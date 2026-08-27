@@ -403,11 +403,13 @@ await stage("a task is created and persists", async () => {
 /* ------------------------------------------------------------------ 9 -- */
 await stage("search finds what earlier stages made", async () => {
   await goto("/ocade/search");
-  await unlockIfLocked();
   const box = page.locator('input[type=search], input[placeholder*="Search"]').first();
   await box.waitFor({ timeout: 20000 });
   await box.fill(MARK);
-  await page.waitForTimeout(3500);
+  await page.waitForTimeout(2500);
+  // The lock only shows once a search has actually tried to read the store.
+  await unlockIfLocked();
+  await page.waitForTimeout(3000);
   const text = await bodyText();
   /*
    * THE CHAINING PROOF. Nothing seeded this. If search can see the run mark,
@@ -458,11 +460,21 @@ await stage("approval and permissions are reachable and editable", async () => {
 await stage("offline: the work made online is still readable", async () => {
   await context.setOffline(true);
   await page.waitForTimeout(1200);
+  let unlockedOffline = false;
   for (const path of ["/ocade", "/ocade/projects", "/ocade/tasks"]) {
     await page
       .goto(`${BASE}${path}`, { waitUntil: "domcontentloaded", timeout: 45000 })
       .catch(() => {});
     await page.waitForTimeout(2500);
+    /*
+     * The unlock itself has to work with the network down. The key is derived
+     * on this device from something the person knows, and the row describing
+     * how to unwrap it is cached here — if either needed a server, "offline"
+     * would mean "locked out of your own encrypted data", which is the
+     * opposite of the promise.
+     */
+    if (await unlockIfLocked()) unlockedOffline = true;
+    await page.waitForTimeout(1500);
     const text = await bodyText();
     assert(text.length > 400, `${path} rendered almost nothing offline (${text.length} chars)`);
     assert(
@@ -470,12 +482,14 @@ await stage("offline: the work made online is still readable", async () => {
       `${path} showed the browser error page`,
     );
   }
-  const projects = await page
-    .goto(`${BASE}/ocade/projects`)
-    .then(() => page.waitForTimeout(2500))
-    .then(bodyText);
-  assert(projects.includes(MARK), "the project was not readable offline");
-  return "chat, projects and tasks all rendered with the network down";
+  await page.goto(`${BASE}/ocade/projects`).catch(() => {});
+  await page.waitForTimeout(2500);
+  if (await unlockIfLocked()) unlockedOffline = true;
+  await page.waitForTimeout(2000);
+  assert((await bodyText()).includes(MARK), "the project was not readable offline");
+  return unlockedOffline
+    ? "chat, projects and tasks rendered, and the vault unlocked, with the network down"
+    : "chat, projects and tasks all rendered with the network down";
 });
 
 /* ----------------------------------------------------------------- 13 -- */
@@ -510,26 +524,46 @@ await stage("reconnect: the product comes back without a reload", async () => {
 /* ----------------------------------------------------------------- 15 -- */
 await stage("voice offers a control and states a reason", async () => {
   await goto("/ocade");
+  await unlockIfLocked();
   const mic = page
     .locator(
       'button[aria-label="Dictate a message"], button[aria-label="Stop dictating"], button[title*="talk"]',
     )
     .first();
   assert((await mic.count()) > 0, "no voice control on the composer");
-  await mic.click({ timeout: 10000 }).catch(() => {});
-  await page.waitForTimeout(2000);
-  const text = await bodyText();
+
+  /*
+   * A DISABLED CONTROL IS ONLY HONEST IF IT SAYS WHY WITHOUT A MOUSE.
+   * The reason may live in the title, which is a hover — fine on a desktop,
+   * invisible on a phone — so the accessible name has to carry it too.
+   */
+  if (await mic.isDisabled()) {
+    const reason = `${(await mic.getAttribute("title")) ?? ""} ${(await mic.getAttribute("aria-label")) ?? ""}`;
+    assert(reason.trim().length > 12, "the voice control is disabled and unlabelled");
+    return `unavailable, and labelled: ${reason.trim().slice(0, 60)}`;
+  }
+
+  await mic.click({ timeout: 10000 });
+  await page.waitForTimeout(2500);
   const listening = await page
     .locator('button[aria-label="Stop dictating"], button[title*="Release to stop"]')
     .count();
+  if (listening) return "listening";
+
   /*
-   * Either it is listening, or it said why not. A mic button that does
-   * nothing at all when pressed is the failure — the user cannot tell a
-   * broken product from a denied permission.
+   * It stopped. Every reason it can stop for — a denied microphone, no
+   * microphone, a recogniser it could not reach — is a different problem with
+   * a different fix, and the one thing it must never do is go out in silence.
    */
-  const explained = /voice|microphone|speech|isn.t available|not supported|permission/i.test(text);
-  assert(listening > 0 || explained, "the voice control did nothing and said nothing");
-  return listening > 0 ? "listening" : "unavailable here, and it says so";
+  const said = await page
+    .locator("[data-sonner-toast], [role=alert], [role=status]")
+    .allTextContents();
+  const spoken = said.join(" ");
+  assert(
+    /microphone|speech|dictation|voice|permission|connection/i.test(spoken),
+    "the voice control started, stopped, and said nothing about why",
+  );
+  return `stopped, and said: ${spoken.trim().slice(0, 70)}`;
 });
 
 /* ----------------------------------------------------------------- 16 -- */

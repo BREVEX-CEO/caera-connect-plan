@@ -22,14 +22,32 @@ export function useSession(): AuthState {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    /*
+     * RESOLVE EVEN WHEN THIS FAILS, BECAUSE OFFLINE IT CAN.
+     *
+     * `getSession` reads the stored token, and when that token is near its
+     * expiry it tries to refresh it — over the network. With no network the
+     * promise rejected, this `.then` never ran, and `loading` stayed true
+     * forever with `user` null. Nothing downstream can tell that state apart
+     * from "still checking", so every screen that waits for a user id waited
+     * for one that was never coming: Projects sat on "Loading projects…" while
+     * the projects themselves were on the same machine.
+     *
+     * A failed refresh does not invalidate the token already in storage, so
+     * the session it carries is still the right answer. Falling back to it
+     * keeps the signed-in half of the product usable on a train, and a token
+     * that really has expired is rejected by the next request that uses it —
+     * which is where that belongs, rather than in a hook that cannot tell.
+     */
+    const settle = (session: Session | null) => {
       if (!mounted) return;
-      setState({
-        user: data.session?.user ?? null,
-        session: data.session,
-        loading: false,
-      });
-    });
+      setState({ user: session?.user ?? null, session, loading: false });
+    };
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => settle(data.session))
+      .catch(() => settle(null));
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;

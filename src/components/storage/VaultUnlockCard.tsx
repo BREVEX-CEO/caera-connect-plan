@@ -38,8 +38,11 @@ type Cfg = Awaited<ReturnType<typeof loadVaultConfig>>;
  * difference is that using it does not cost the page you were on.
  */
 export function VaultUnlockCard({
-  /** What was being opened, so the reason reads as this screen's problem. */
-  what = "Your work",
+  /**
+   * What was being opened, so the reason reads as this screen's problem.
+   * Written as a plural subject — it starts the sentence.
+   */
+  what = "Your saved records",
   onUnlocked,
 }: {
   what?: string;
@@ -120,8 +123,8 @@ export function VaultUnlockCard({
       <GlassPanel className="p-4">
         <h3 className="text-sm font-semibold text-foreground">This browser has no vault yet</h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          This device encrypts {what.toLowerCase()} before anything else happens to it, and that
-          needs a key. Setting one up hands you a recovery kit to keep.
+          {what} never leave this device unencrypted, and that needs a key this browser does not
+          have yet. Setting one up hands you a recovery kit to keep.
         </p>
         <Link
           to="/settings/vault"
@@ -139,8 +142,8 @@ export function VaultUnlockCard({
         <Unlock className="h-4 w-4" aria-hidden /> Unlock this browser's vault
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
-        This device encrypts {what.toLowerCase()} before anything else happens to it. The key is
-        never written down, so it is asked for again after every page load.
+        {what} never leave this device unencrypted, and the key that opens them is never written
+        down — so it is asked for again after every page load.
       </p>
 
       {cfg.credential_kind === "webauthn_prf" ? (

@@ -5,6 +5,8 @@ import { OnboardingShell } from "@/components/shell/OnboardingShell";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { isVaultConfigured } from "@/lib/storage/vault";
+import { setModeFor } from "@/lib/storage/resolver";
+import { DATA_CLASSES } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
@@ -102,6 +104,38 @@ function OnboardingPage() {
     );
     if (settingsErr) {
       setError(settingsErr.message);
+      setBusy(false);
+      return;
+    }
+
+    /*
+     * WRITE THE PRIVACY CHOICE WHERE THE PRODUCT ACTUALLY READS IT.
+     *
+     * The columns above are `user_settings.privacy_*`. Nothing routes storage
+     * by them. `resolveAdapter` — the function that decides, for every chat,
+     * file and image, whether it stays on this device or is uploaded — reads
+     * `data_class_privacy`, and the only screen that had ever written that
+     * table was Settings › Privacy.
+     *
+     * So this step asked people to choose, recorded the answer, and then
+     * ignored it: whoever picked "Device only" at signup had their chats,
+     * files and images routed by the built-in default instead, which is
+     * Private Sync. A privacy setting that is stored and not honoured is worse
+     * than one that was never offered.
+     *
+     * Written per data class because that is the grain the resolver reads at,
+     * and settled together so a partial failure is visible rather than leaving
+     * half the classes on the default.
+     */
+    const storageMode = privacy === "device_only" ? "browser_only" : "private_sync";
+    const routed = await Promise.allSettled(
+      DATA_CLASSES.map((dataClass) => setModeFor(user.id, dataClass, storageMode)),
+    );
+    const refused = routed.filter((outcome) => outcome.status === "rejected");
+    if (refused.length) {
+      setError(
+        `Your privacy choice could not be saved for ${refused.length} of ${DATA_CLASSES.length} kinds of data. Set it in Settings › Privacy before adding anything you care about.`,
+      );
       setBusy(false);
       return;
     }

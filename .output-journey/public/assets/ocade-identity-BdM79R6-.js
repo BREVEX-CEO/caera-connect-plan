@@ -1,1 +1,0 @@
-var e={displayName:`OCADE`,vendor:`CARCC CADANE`,fullName:`OCADE by CARCC CADANE`,tagline:`Your CARCC CADANE assistant`};function t(){return`I am OCADE, developed and created by ${e.vendor}.`}function n(){return`I'm ${e.fullName}.`}function r(e){return`${t()} For this request I'm using ${e}. Exact technical details are in advanced settings.`}export{r as n,n as r,e as t};

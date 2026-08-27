@@ -58,8 +58,17 @@ interface RecognitionLike {
   onstart: (() => void) | null;
 }
 
-/** Turn the recogniser's error codes into something a person can act on. */
-function describeError(code: string): string {
+/**
+ * Turn the recogniser's error codes into something a person can act on.
+ *
+ * Exported because the chat composer has its own recogniser — one that adds
+ * secret redaction, live captions and the wake phrase — and its `onerror`
+ * handler used to reset the button and say nothing at all. Pressing the
+ * microphone and having it quietly go out is the worst version of this: a
+ * denied permission, an absent microphone and an unreachable recogniser look
+ * identical, and none of them look like anything.
+ */
+export function describeRecognitionError(code: string): string {
   switch (code) {
     case "not-allowed":
     case "service-not-allowed":
@@ -172,7 +181,7 @@ export function useDictation(options: {
       // `aborted` is what `stop()` produces; surfacing it as an error would
       // make every deliberate stop look like a failure.
       if (event.error === "aborted") return;
-      setError(describeError(event.error));
+      setError(describeRecognitionError(event.error));
       setState("error");
       recognitionRef.current = null;
     };

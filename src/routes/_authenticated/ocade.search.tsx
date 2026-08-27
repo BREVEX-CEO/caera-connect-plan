@@ -15,6 +15,8 @@ import {
   type LocalSearchResult,
 } from "@/lib/search/local-search";
 import { getModeFor } from "@/lib/storage/resolver";
+import { StorageLockedError } from "@/lib/storage/types";
+import { VaultUnlockCard } from "@/components/storage/VaultUnlockCard";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/_authenticated/ocade/search")({
@@ -193,6 +195,14 @@ function SearchPage() {
       }
     },
     staleTime: 10_000,
+    /*
+     * A LOCKED VAULT IS AN ANSWER, NOT A FLAKE.
+     *
+     * Retrying it three times with backoff means the page sits on "Searching
+     * your workspace…" for several seconds and then prints the exception text
+     * at the reader. Nothing about waiting improves a missing key.
+     */
+    retry: (attempt, error) => !(error instanceof StorageLockedError) && attempt < 2,
   });
 
   return (
@@ -223,6 +233,19 @@ function SearchPage() {
           <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Searching your workspace…
           </p>
+        ) : results.error instanceof StorageLockedError ? (
+          /*
+            Search reads the same encrypted store everything else does, so it
+            meets the same lock — and the same answer belongs here rather than
+            the exception text, which named a Settings page and left the reader
+            to go and find it.
+          */
+          <div className="mt-4">
+            <VaultUnlockCard
+              what="Your conversations, projects and saved outputs"
+              onUnlocked={() => void results.refetch()}
+            />
+          </div>
         ) : results.isError ? (
           <div
             role="alert"

@@ -47,14 +47,86 @@ type VaultRow = {
   lock_timeout_seconds: number;
 };
 
+/*
+ * THE VAULT'S OWN CONFIGURATION HAS TO BE READABLE OFFLINE.
+ *
+ * Everything else about this vault is local: the ciphertext is in IndexedDB on
+ * this machine, the key is derived on this machine, and the whole promise is
+ * that the data is yours and here. The one piece that lived only in Supabase
+ * was the row describing how to unwrap it — salt, iteration count, wrapped
+ * DEK. So with the network down you could not unlock your own local data. The
+ * product said "works offline" and meant "works offline, once you have been
+ * online to ask permission".
+ *
+ * WHAT CACHING IT COSTS, STATED PLAINLY. This row is the material an offline
+ * attacker would want: someone who takes the disk can now attempt passphrases
+ * against the wrapped DEK without also holding an account session. That is a
+ * real reduction, and it is the reduction the KDF exists to absorb — PBKDF2-
+ * SHA256 at 600,000 iterations is chosen for exactly this threat, and the
+ * recovery kit is a high-entropy random key rather than anything guessable.
+ * It is also the bargain every offline-capable encrypted store makes; the
+ * alternative on offer was not "safer", it was "unusable on a train".
+ *
+ * The cache is per user and is dropped when the vault is reconfigured, so a
+ * rotated passphrase cannot be defeated by an older copy: `rotatePassphrase`
+ * writes the new row through this same function.
+ */
+const CONFIG_CACHE = "ocade.vault.config.v1";
+
+function cacheKey(userId: string) {
+  return `${CONFIG_CACHE}:${userId}`;
+}
+
+function cachedConfig(userId: string): VaultRow | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(cacheKey(userId));
+    return raw ? (JSON.parse(raw) as VaultRow) : null;
+  } catch {
+    return null;
+  }
+}
+
+function cacheConfig(userId: string, row: VaultRow | null) {
+  if (typeof localStorage === "undefined") return;
+  try {
+    if (row) localStorage.setItem(cacheKey(userId), JSON.stringify(row));
+    else localStorage.removeItem(cacheKey(userId));
+  } catch {
+    /* Private browsing or a full quota: the online path still works. */
+  }
+}
+
 export async function loadVaultConfig(userId: string): Promise<VaultRow | null> {
-  const { data, error } = await supabase
-    .from("vault_config")
-    .select("*")
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) throw error;
-  return (data as VaultRow | null) ?? null;
+  /*
+   * Known to be offline and there is a copy here: use it rather than waiting
+   * for a request that cannot succeed. A stale row is not a risk — a rotated
+   * passphrase rewrites this cache at the moment it rotates.
+   */
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    const offline = cachedConfig(userId);
+    if (offline) return offline;
+  }
+  try {
+    const { data, error } = await supabase
+      .from("vault_config")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw error;
+    const row = (data as VaultRow | null) ?? null;
+    /*
+     * Only remember a positive answer. "No row" from an unreachable server is
+     * indistinguishable from "no vault", and writing that down would delete
+     * somebody's ability to unlock while they are on a train.
+     */
+    if (row) cacheConfig(userId, row);
+    return row;
+  } catch (cause) {
+    const offline = cachedConfig(userId);
+    if (offline) return offline;
+    throw cause;
+  }
 }
 
 export async function isVaultConfigured(userId: string): Promise<boolean> {
@@ -158,6 +230,27 @@ async function buildRecoveryWrap(dekRaw: Uint8Array) {
   };
 }
 
+/**
+ * Record that the vault was opened. Deliberately not awaited by the unlock.
+ *
+ * This is a timestamp for the user's own security log, and it used to sit
+ * behind an `await` at the end of every unlock path. The key was already in
+ * memory by then and the data already readable, so a failed or hanging write
+ * could not undo the unlock — it could only make a successful unlock look like
+ * a failure, which is exactly what happened with no network: the vault opened
+ * and the panel said it had not.
+ */
+function touchLastUnlocked(userId: string) {
+  return Promise.resolve(
+    supabase
+      .from("vault_config")
+      .update({ last_unlocked_at: new Date().toISOString() })
+      .eq("user_id", userId),
+  ).catch(() => {
+    /* Offline, or the row is gone. Neither changes that the vault is open. */
+  });
+}
+
 // ---------- Unlock ----------
 
 export async function unlockWithPassphrase(userId: string, passphrase: string): Promise<void> {
@@ -175,10 +268,7 @@ export async function unlockWithPassphrase(userId: string, passphrase: string): 
   });
   applyStoredLockTimeout(cfg.lock_timeout_seconds);
   unlockWith(dek);
-  await supabase
-    .from("vault_config")
-    .update({ last_unlocked_at: new Date().toISOString() })
-    .eq("user_id", userId);
+  void touchLastUnlocked(userId);
 }
 
 export async function unlockWithWebAuthn(userId: string): Promise<void> {
@@ -200,10 +290,7 @@ export async function unlockWithWebAuthn(userId: string): Promise<void> {
   });
   applyStoredLockTimeout(cfg.lock_timeout_seconds);
   unlockWith(dek);
-  await supabase
-    .from("vault_config")
-    .update({ last_unlocked_at: new Date().toISOString() })
-    .eq("user_id", userId);
+  void touchLastUnlocked(userId);
 }
 
 export async function unlockWithRecoveryKit(userId: string, kit: string): Promise<void> {
@@ -254,6 +341,16 @@ export async function rotatePassphrase(userId: string, next: string): Promise<vo
     })
     .eq("user_id", userId);
   if (error) throw error;
+  // The cached copy describes how to unwrap, and it no longer does.
+  cacheConfig(userId, {
+    ...cfg,
+    credential_kind: "passphrase",
+    kdf_algo: "PBKDF2-SHA256",
+    kdf_salt: b64encode(salt),
+    kdf_iterations: iterations,
+    wrapped_dek: wrap.wrapped,
+    wrapped_dek_iv: wrap.iv,
+  });
 }
 
 export async function updateLockTimeout(userId: string, seconds: number) {

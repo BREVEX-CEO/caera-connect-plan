@@ -201,7 +201,7 @@ import {
   type VoiceGender,
 } from "@/lib/ocade-voice";
 import { redactForSpeech, redactSpokenSecrets } from "@/lib/voice/transcript-redaction";
-import { useDictation } from "@/lib/voice/use-dictation";
+import { describeRecognitionError, useDictation } from "@/lib/voice/use-dictation";
 import { useVoicePrefs } from "@/lib/use-voice-prefs";
 import { saveChatOutput } from "@/lib/artifacts/chat-output-flow";
 import { listProjectFiles, saveProjectFile, type ProjectFile } from "@/lib/project-files";
@@ -1084,6 +1084,24 @@ function HomeSurface(props: {
       if (isFinal) setDraft((current) => `${current} ${text}`.trim());
     },
   });
+
+  /*
+   * SAY WHAT WENT WRONG, RATHER THAN RETURNING IT TO NOBODY.
+   *
+   * `useDictation` names every failure separately — a denied microphone, no
+   * microphone at all, a recogniser it could not reach — and hands the sentence
+   * back as `error`. The button that usually renders it is `DictateButton`,
+   * which puts it in a tooltip; this composer draws its own microphone and had
+   * nowhere to put it. So the hook did the hard part and the result was
+   * discarded: pressing the microphone lit it for an instant and it went out,
+   * with nothing to read anywhere on the page.
+   */
+  const lastVoiceError = useRef<string | null>(null);
+  useEffect(() => {
+    if (!dictation.error || dictation.error === lastVoiceError.current) return;
+    lastVoiceError.current = dictation.error;
+    toast.error(dictation.error);
+  }, [dictation.error]);
 
   async function submit() {
     const text = draft.trim();
@@ -2979,10 +2997,25 @@ function ChatSurface(props: {
       setListening(false);
       setCaption("");
     };
-    rec.onerror = () => {
+    rec.onerror = (event: unknown) => {
       listeningRef.current = false;
       setListening(false);
       setCaption("");
+      /*
+       * SAY WHY. This handler used to reset the button and stop there, so a
+       * denied microphone, an absent microphone and a recogniser that could
+       * not be reached all looked the same: the microphone lights up for an
+       * instant and goes out, with nothing to read and nothing to fix.
+       *
+       * `aborted` is what our own stop() produces, so it stays quiet —
+       * reporting a deliberate stop as a failure is its own kind of noise.
+       */
+      const code =
+        typeof event === "object" && event !== null && "error" in event
+          ? String((event as { error?: unknown }).error ?? "")
+          : "";
+      if (code === "aborted") return;
+      toast.error(describeRecognitionError(code));
     };
     recogRef.current = rec;
     try {
@@ -3890,6 +3923,8 @@ function Composer(props: {
   // React may not rerender between pointer-down and pointer-up on a short
   // press, so remember whether this gesture started recognition.
   const voiceHoldStartedRef = useRef(false);
+  // And when it started, so a click can be told from a hold.
+  const voicePressStartedAtRef = useRef(0);
   const [dragging, setDragging] = useState(false);
   /*
    * dragenter/dragleave fire for every child element the pointer crosses, so a
@@ -4178,15 +4213,25 @@ function Composer(props: {
         />
         {onToggleVoice ? (
           /*
-           * Push-to-talk AND click-to-toggle.
+           * Push-to-talk AND click-to-toggle — which it did not actually do.
            *
            * Hold is the privacy-safer default: the microphone stops the moment
            * you let go, so walking away can never leave it live. A plain toggle
-           * on its own has exactly that failure mode.
+           * on its own has exactly that failure mode. That part was right.
            *
-           * `onPointerDown`/`onPointerUp` covers mouse, touch and pen. Releasing
-           * outside the button (pointerleave / pointercancel) still stops it —
-           * otherwise dragging off would strand the mic on.
+           * What was wrong is that there was no threshold between the two.
+           * `pointerdown` started recognition and `pointerup` stopped it, so a
+           * CLICK — press and release inside a few milliseconds — started the
+           * microphone and stopped it again before a word could be said. The
+           * tooltip promised "click to toggle" and clicking could never toggle;
+           * the only path that did was `onClick` with `detail === 0`, which is
+           * keyboard activation. On a touch screen, where every interaction is
+           * a tap, the control was therefore inert, and inert in the way that
+           * looks broken rather than unavailable.
+           *
+           * A release inside HOLD_TO_TALK_MS is a click: recognition stays on.
+           * A release after it is the end of a hold: recognition stops. Both
+           * sentences in the tooltip are now true, on every input device.
            */
           <ComposerIcon
             title={
@@ -4195,18 +4240,25 @@ function Composer(props: {
                 : "Hold to talk, or click to toggle"
             }
             onPointerDown={() => {
-              if (!listening) {
-                voiceHoldStartedRef.current = true;
-                onToggleVoice();
-              }
+              voicePressStartedAtRef.current = Date.now();
+              voiceHoldStartedRef.current = !listening;
+              if (!listening) onToggleVoice();
             }}
             onPointerUp={() => {
+              const held = Date.now() - voicePressStartedAtRef.current;
               if (voiceHoldStartedRef.current) {
                 voiceHoldStartedRef.current = false;
-                onToggleVoice();
+                // Long enough to be a hold: releasing ends it. Short enough to
+                // be a click: leave it listening for the next press to stop.
+                if (held >= HOLD_TO_TALK_MS) onToggleVoice();
+                return;
               }
+              // The microphone was already open when this press began, so this
+              // press is the one that closes it.
+              if (listening) onToggleVoice();
             }}
             onPointerLeave={() => {
+              // Dragging off mid-hold must not strand the microphone open.
               if (voiceHoldStartedRef.current) {
                 voiceHoldStartedRef.current = false;
                 onToggleVoice();
@@ -4325,6 +4377,15 @@ function Composer(props: {
     </div>
   );
 }
+
+/**
+ * How long a press has to last before releasing it counts as ending a hold.
+ *
+ * Below this it is a click, and a click toggles. Chosen well above a fast tap
+ * (~80-150ms) and well below the point where somebody holding to speak would
+ * have finished a word.
+ */
+const HOLD_TO_TALK_MS = 400;
 
 function ComposerIcon({
   children,
