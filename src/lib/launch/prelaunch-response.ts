@@ -23,6 +23,17 @@ export const PRELAUNCH_PUBLIC_PATHS = new Set([
 export const PRELAUNCH_PUBLIC_ASSET_PATHS = new Set([
   "/brand/ocade-carcc-mark.png",
   "/brand/ocade-carcc-wordmark.png",
+  /*
+   * The typefaces, because the holding page now serves its own.
+   *
+   * Everything not in this set is refused while the gate is closed, which is
+   * correct for the application's bundles and wrong for the three font files
+   * the page in front of the gate actually renders with. Without them it falls
+   * back to system fonts and looks like a different company's holding page.
+   */
+  "/fonts/inter-latin.woff2",
+  "/fonts/instrument-serif-latin.woff2",
+  "/fonts/instrument-serif-italic-latin.woff2",
 ]);
 
 export const PRELAUNCH_ALLOWED_PATHS = new Set([
@@ -56,7 +67,7 @@ function publicHeaders(contentType: string): Record<string, string> {
     "content-type": contentType,
     "cache-control": "public, max-age=300",
     "content-security-policy":
-      `default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline' ${CLOUDFLARE_WEB_ANALYTICS}; connect-src 'self' https://stream.mux.com; media-src https://stream.mux.com blob:; worker-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+      `default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; font-src 'self'; script-src 'unsafe-inline' ${CLOUDFLARE_WEB_ANALYTICS}; connect-src 'self' https://stream.mux.com; media-src https://stream.mux.com blob:; worker-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
     "cross-origin-resource-policy": "same-origin",
     "referrer-policy": "strict-origin-when-cross-origin",
     "x-robots-tag": "index, follow, max-image-preview:large",
@@ -595,10 +606,13 @@ export function renderPrelaunchPublicPage(pathname: string): string | null {
 <meta property="og:type" content="website" /><meta property="og:site_name" content="CARCC CADANE" />
 <meta property="og:title" content="${escapeHtml(document.title)}" /><meta property="og:description" content="${escapeHtml(document.description)}" />
 <meta property="og:image" content="https://ocade.in/brand/ocade-carcc-wordmark.png" /><meta name="twitter:card" content="summary_large_image" />
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <script type="application/ld+json">${structuredData}</script>
 <style>
+/* Self-hosted, so the holding page needs no third party and works from cache. */
+@font-face{font-family:"Inter";font-style:normal;font-weight:300 700;font-display:swap;src:url("/fonts/inter-latin.woff2") format("woff2")}
+@font-face{font-family:"Instrument Serif";font-style:normal;font-weight:400;font-display:swap;src:url("/fonts/instrument-serif-latin.woff2") format("woff2")}
+@font-face{font-family:"Instrument Serif";font-style:italic;font-weight:400;font-display:swap;src:url("/fonts/instrument-serif-italic-latin.woff2") format("woff2")}
 :root{color-scheme:dark;--bg:#0a0a0b;--surface:#101013;--surface2:#151519;--text:#f5f5f7;--muted:#8d8d98;--stroke:#26262c;--silver:#c9ccd4;--gold:#c89d4c;--aub:#4f2d63;--crimson:#5c1f31;--mx:50vw;--my:20vh}
 *{box-sizing:border-box}html{scroll-behavior:smooth;background:var(--bg)}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font:400 15px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:hidden}
 body:before{content:"";position:fixed;inset:0;z-index:-3;pointer-events:none;background:radial-gradient(700px circle at var(--mx) var(--my),rgba(105,72,132,.13),transparent 46%),radial-gradient(500px circle at 90% 60%,rgba(178,130,58,.07),transparent 50%),#080809}
