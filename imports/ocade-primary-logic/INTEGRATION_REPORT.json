@@ -8,6 +8,7 @@
         "Agents, subagents, teams, coordinator",
         "Bash parser, heredocs, quoting, destructive-command warnings",
         "Bridge, remote sessions, websocket transport",
+        "Buddy: the status and approval companion",
         "Context analysis: where the room went",
         "Everything else under utils",
         "Hosted inference, provider table, OAuth to the model vendor",
@@ -28,7 +29,7 @@
       ]
     },
     "MERGED": {
-      "files": 211,
+      "files": 214,
       "meaning": "The donor logic won this area and was folded into the OCADE authority named.",
       "families": [
         "Abort composition and cancellation",
@@ -43,6 +44,7 @@
         "Path safety and sandbox rules",
         "Payments and webhooks",
         "Permissions, shell rule matching, dangerous patterns, denial tracking",
+        "PowerShell code-execution cmdlets",
         "Query engine, deps, transitions, token budget, stop hooks",
         "Session memory extraction thresholds",
         "Task lifecycle, stop, background tasks, status labels",
@@ -50,10 +52,11 @@
       ]
     },
     "REPLACED": {
-      "files": 321,
+      "files": 326,
       "meaning": "OCADE already had a stronger version for this product; the donor's was not brought across.",
       "families": [
         "Agents, subagents, teams, coordinator",
+        "Buddy: the status and approval companion",
         "Cron and scheduled tasks",
         "Plugins, skills, tool servers",
         "Sessions, history, resume, rewind",
@@ -84,7 +87,7 @@
       ]
     },
     "REJECTED": {
-      "files": 1290,
+      "files": 1282,
       "meaning": "Not brought across. Every file carries the map's own reason.",
       "families": [
         "Analytics and telemetry sinks",
@@ -124,6 +127,15 @@
       "reason": "A real parser is what closes the compound-command hole: an approval for one command must not carry the rest of the line. Ported in pure TypeScript, without the donor's native grammar binary.",
       "files": 18,
       "portedModules": 1
+    },
+    {
+      "family": "PowerShell code-execution cmdlets",
+      "category": "MERGED",
+      "outcome": "Ported — closed a hole at the shell boundary",
+      "authority": "src/lib/runtime/permissions.ts",
+      "reason": "The bash parser sees `powershell -c \"iex (irm …)\"` as one command called powershell, so the reasonable rule Bash(powershell:*) covered a download-and-run. The archive's cmdlet tables recognise PowerShell's own ways of executing something the text does not describe, and those are now unreadable in the same sense `$(...)` is.",
+      "files": 3,
+      "portedModules": 0
     },
     {
       "family": "Path safety and sandbox rules",
@@ -261,13 +273,22 @@
       "portedModules": 1
     },
     {
+      "family": "Buddy: the status and approval companion",
+      "category": "REPLACED",
+      "outcome": "Not ported — OCADE has its own",
+      "authority": "src/components/ocade/OcadeCompanion.tsx",
+      "reason": "The archive's companion is a terminal sprite. OCADE's does the job the map asked for — it reports the runtime's real state, shows when approval is waiting, and says when the user has taken the machine back — as a status light rather than a second assistant.",
+      "files": 6,
+      "portedModules": 1
+    },
+    {
       "family": "PTY, terminal emulator, Ink renderer",
       "category": "REJECTED",
       "outcome": "Removed",
       "authority": "src/lib/runtime/execute.ts",
       "reason": "A tab has no pseudo-terminal, and shipping one would mean shipping a second renderer. Shell work belongs to the companion, behind the permission layer.",
-      "files": 520,
-      "portedModules": 5
+      "files": 514,
+      "portedModules": 4
     },
     {
       "family": "Hosted inference, provider table, OAuth to the model vendor",
@@ -401,7 +422,7 @@
       "outcome": "Case by case — mostly removed",
       "authority": "src/lib",
       "reason": "The donor's utility drawer: terminal drawing, its own file formats, its hosted API client, and small helpers OCADE already has. What was genuinely logic was ported into the families above; the remainder had no OCADE-side caller and was not brought across.",
-      "files": 371,
+      "files": 368,
       "portedModules": 7
     }
   ],
@@ -410,6 +431,9 @@
       "src/lib/runtime/permissions.ts"
     ],
     "src/primary-logic/commands/destructiveCommandWarning.ts": [
+      "src/lib/runtime/permissions.ts"
+    ],
+    "src/primary-logic/commands/powershellCodeExecution.ts": [
       "src/lib/runtime/permissions.ts"
     ],
     "src/primary-logic/commands/powershellDestructiveWarning.ts": [
@@ -498,8 +522,8 @@
   "totals": {
     "archiveFiles": 2126,
     "dispositioned": 2126,
-    "portedModules": 33,
-    "reachedModules": 33
+    "portedModules": 34,
+    "reachedModules": 34
   },
   "byAction": {
     "DEVOPS_MERGE": {
@@ -1345,8 +1369,8 @@
       "file": "src/buddy/CompanionSprite.tsx",
       "action": "UI_RUNTIME_WIRE",
       "target": "Buddy runtime companion",
-      "family": "PTY, terminal emulator, Ink renderer",
-      "category": "REJECTED",
+      "family": "Buddy: the status and approval companion",
+      "category": "REPLACED",
       "reason": "Use notification/state/sprite logic as subtle runtime companion; connect to real agent/approval/task states, not a second chatbot.",
       "ported": false,
       "reached": false,
@@ -1356,8 +1380,8 @@
       "file": "src/buddy/companion.ts",
       "action": "UI_RUNTIME_WIRE",
       "target": "Buddy runtime companion",
-      "family": "PTY, terminal emulator, Ink renderer",
-      "category": "REJECTED",
+      "family": "Buddy: the status and approval companion",
+      "category": "REPLACED",
       "reason": "Use notification/state/sprite logic as subtle runtime companion; connect to real agent/approval/task states, not a second chatbot.",
       "ported": false,
       "reached": false,
@@ -1367,8 +1391,8 @@
       "file": "src/buddy/prompt.ts",
       "action": "UI_RUNTIME_WIRE",
       "target": "Buddy runtime companion",
-      "family": "PTY, terminal emulator, Ink renderer",
-      "category": "REJECTED",
+      "family": "Buddy: the status and approval companion",
+      "category": "REPLACED",
       "reason": "Use notification/state/sprite logic as subtle runtime companion; connect to real agent/approval/task states, not a second chatbot.",
       "ported": false,
       "reached": false,
@@ -1378,8 +1402,8 @@
       "file": "src/buddy/sprites.ts",
       "action": "UI_RUNTIME_WIRE",
       "target": "Buddy runtime companion",
-      "family": "PTY, terminal emulator, Ink renderer",
-      "category": "REJECTED",
+      "family": "Buddy: the status and approval companion",
+      "category": "REPLACED",
       "reason": "Use notification/state/sprite logic as subtle runtime companion; connect to real agent/approval/task states, not a second chatbot.",
       "ported": false,
       "reached": false,
@@ -1389,7 +1413,7 @@
       "file": "src/buddy/types.ts",
       "action": "UI_RUNTIME_WIRE",
       "target": "Buddy runtime companion",
-      "family": "PTY, terminal emulator, Ink renderer",
+      "family": "Buddy: the status and approval companion",
       "category": "USED_DIRECTLY",
       "reason": "Use notification/state/sprite logic as subtle runtime companion; connect to real agent/approval/task states, not a second chatbot.",
       "ported": true,
@@ -1402,8 +1426,8 @@
       "file": "src/buddy/useBuddyNotification.tsx",
       "action": "UI_RUNTIME_WIRE",
       "target": "Buddy runtime companion",
-      "family": "PTY, terminal emulator, Ink renderer",
-      "category": "REJECTED",
+      "family": "Buddy: the status and approval companion",
+      "category": "REPLACED",
       "reason": "Use notification/state/sprite logic as subtle runtime companion; connect to real agent/approval/task states, not a second chatbot.",
       "ported": false,
       "reached": false,
@@ -20143,8 +20167,8 @@
       "file": "src/utils/powershell/dangerousCmdlets.ts",
       "action": "BOUNDARY_NATIVE",
       "target": "native command/sandbox security",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "PowerShell code-execution cmdlets",
+      "category": "MERGED",
       "reason": "Use parsers/guards/classifiers around native shell execution; never execute raw shell in browser/Worker.",
       "ported": false,
       "reached": false,
@@ -20154,8 +20178,8 @@
       "file": "src/utils/powershell/parser.ts",
       "action": "BOUNDARY_NATIVE",
       "target": "native command/sandbox security",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "PowerShell code-execution cmdlets",
+      "category": "MERGED",
       "reason": "Use parsers/guards/classifiers around native shell execution; never execute raw shell in browser/Worker.",
       "ported": false,
       "reached": false,
@@ -20165,8 +20189,8 @@
       "file": "src/utils/powershell/staticPrefix.ts",
       "action": "BOUNDARY_NATIVE",
       "target": "native command/sandbox security",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "PowerShell code-execution cmdlets",
+      "category": "MERGED",
       "reason": "Use parsers/guards/classifiers around native shell execution; never execute raw shell in browser/Worker.",
       "ported": false,
       "reached": false,

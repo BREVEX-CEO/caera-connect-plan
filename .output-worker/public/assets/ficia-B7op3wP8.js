@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-CX2mWblQ.js";import{ir as t}from"./vendor-ui-BJL8vlL-.js";import{t as n}from"./ComingLater-CEyRkEHT.js";var r=e(),i=()=>(0,r.jsx)(n,{name:`FICIA`,icon:t,wasGoingToBe:`a workforce and company directory`});export{i as component};

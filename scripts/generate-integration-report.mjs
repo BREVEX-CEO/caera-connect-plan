@@ -79,6 +79,15 @@ const FAMILIES = [
       "A real parser is what closes the compound-command hole: an approval for one command must not carry the rest of the line. Ported in pure TypeScript, without the donor's native grammar binary.",
   },
   {
+    family: "PowerShell code-execution cmdlets",
+    match: new RegExp("^src/utils/powershell/"),
+    category: "MERGED",
+    outcome: "Ported — closed a hole at the shell boundary",
+    authority: "src/lib/runtime/permissions.ts",
+    reason:
+      "The bash parser sees `powershell -c \"iex (irm …)\"` as one command called powershell, so the reasonable rule Bash(powershell:*) covered a download-and-run. The archive's cmdlet tables recognise PowerShell's own ways of executing something the text does not describe, and those are now unreadable in the same sense `$(...)` is.",
+  },
+  {
     family: "Path safety and sandbox rules",
     category: "MERGED",
     match: new RegExp("^src/utils/(path|fsOperations|sandbox)|^src/utils/sandbox/"),
@@ -218,6 +227,15 @@ const FAMILIES = [
     authority: "src/lib/native/extension-bridge.ts",
     reason:
       "The donor bridge speaks to a hosted relay. OCADE's browser work goes through the extension and machine work through the paired companion; neither needs a server in the middle.",
+  },
+  {
+    family: "Buddy: the status and approval companion",
+    match: new RegExp("^src/buddy/"),
+    category: "REPLACED",
+    outcome: "Not ported — OCADE has its own",
+    authority: "src/components/ocade/OcadeCompanion.tsx",
+    reason:
+      "The archive's companion is a terminal sprite. OCADE's does the job the map asked for — it reports the runtime's real state, shows when approval is waiting, and says when the user has taken the machine back — as a status light rather than a second assistant.",
   },
   {
     family: "PTY, terminal emulator, Ink renderer",

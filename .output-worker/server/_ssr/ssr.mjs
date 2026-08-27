@@ -329,7 +329,13 @@ var PRELAUNCH_PUBLIC_PATHS = /* @__PURE__ */ new Set([
 	"/founder/haans-antoni",
 	"/products/ocade"
 ]);
-var PRELAUNCH_PUBLIC_ASSET_PATHS = /* @__PURE__ */ new Set(["/brand/ocade-carcc-mark.png", "/brand/ocade-carcc-wordmark.png"]);
+var PRELAUNCH_PUBLIC_ASSET_PATHS = /* @__PURE__ */ new Set([
+	"/brand/ocade-carcc-mark.png",
+	"/brand/ocade-carcc-wordmark.png",
+	"/fonts/inter-latin.woff2",
+	"/fonts/instrument-serif-latin.woff2",
+	"/fonts/instrument-serif-italic-latin.woff2"
+]);
 [...PRELAUNCH_PUBLIC_PATHS];
 var NOINDEX = "noindex, nofollow, noarchive";
 var CLOUDFLARE_WEB_ANALYTICS = "https://static.cloudflareinsights.com/beacon.min.js https://static.cloudflareinsights.com/beacon.min.js/";
@@ -350,7 +356,7 @@ function publicHeaders(contentType) {
 	return {
 		"content-type": contentType,
 		"cache-control": "public, max-age=300",
-		"content-security-policy": `default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline' ${CLOUDFLARE_WEB_ANALYTICS}; connect-src 'self' https://stream.mux.com; media-src https://stream.mux.com blob:; worker-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+		"content-security-policy": `default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; font-src 'self'; script-src 'unsafe-inline' ${CLOUDFLARE_WEB_ANALYTICS}; connect-src 'self' https://stream.mux.com; media-src https://stream.mux.com blob:; worker-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
 		"cross-origin-resource-policy": "same-origin",
 		"referrer-policy": "strict-origin-when-cross-origin",
 		"x-robots-tag": "index, follow, max-image-preview:large",
@@ -688,10 +694,13 @@ function renderPrelaunchPublicPage(pathname) {
 <meta property="og:type" content="website" /><meta property="og:site_name" content="CARCC CADANE" />
 <meta property="og:title" content="${escapeHtml(document.title)}" /><meta property="og:description" content="${escapeHtml(document.description)}" />
 <meta property="og:image" content="https://ocade.in/brand/ocade-carcc-wordmark.png" /><meta name="twitter:card" content="summary_large_image" />
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <script type="application/ld+json">${structuredData}<\/script>
 <style>
+/* Self-hosted, so the holding page needs no third party and works from cache. */
+@font-face{font-family:"Inter";font-style:normal;font-weight:300 700;font-display:swap;src:url("/fonts/inter-latin.woff2") format("woff2")}
+@font-face{font-family:"Instrument Serif";font-style:normal;font-weight:400;font-display:swap;src:url("/fonts/instrument-serif-latin.woff2") format("woff2")}
+@font-face{font-family:"Instrument Serif";font-style:italic;font-weight:400;font-display:swap;src:url("/fonts/instrument-serif-italic-latin.woff2") format("woff2")}
 :root{color-scheme:dark;--bg:#0a0a0b;--surface:#101013;--surface2:#151519;--text:#f5f5f7;--muted:#8d8d98;--stroke:#26262c;--silver:#c9ccd4;--gold:#c89d4c;--aub:#4f2d63;--crimson:#5c1f31;--mx:50vw;--my:20vh}
 *{box-sizing:border-box}html{scroll-behavior:smooth;background:var(--bg)}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font:400 15px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:hidden}
 body:before{content:"";position:fixed;inset:0;z-index:-3;pointer-events:none;background:radial-gradient(700px circle at var(--mx) var(--my),rgba(105,72,132,.13),transparent 46%),radial-gradient(500px circle at 90% 60%,rgba(178,130,58,.07),transparent 50%),#080809}
@@ -840,7 +849,7 @@ function withPublicSecurityHeaders(response) {
 var offline_default = "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    <title>OCADE Local Mode</title>\n    <meta name=\"theme-color\" content=\"#0a0a09\" />\n    <style>\n      :root {\n        color-scheme: dark;\n      }\n      body {\n        margin: 0;\n        min-height: 100vh;\n        display: grid;\n        place-items: center;\n        background: #0a0a09;\n        color: #e8e8e6;\n        font-family:\n          ui-sans-serif,\n          system-ui,\n          -apple-system,\n          \"Segoe UI\",\n          sans-serif;\n        padding: 1.5rem;\n      }\n      main {\n        max-width: 30rem;\n        text-align: center;\n      }\n      h1 {\n        font-size: 1.125rem;\n        font-weight: 600;\n        margin: 0 0 0.75rem;\n      }\n      p {\n        font-size: 0.875rem;\n        line-height: 1.6;\n        color: #a3a3a0;\n        margin: 0 0 0.75rem;\n      }\n      .actions {\n        display: flex;\n        flex-wrap: wrap;\n        justify-content: center;\n        gap: 0.65rem;\n        margin-top: 1rem;\n      }\n      button,\n      a {\n        margin-top: 0.5rem;\n        padding: 0.5rem 1rem;\n        font: inherit;\n        font-size: 0.875rem;\n        color: #e8e8e6;\n        background: transparent;\n        border: 1px solid #33332f;\n        border-radius: 0.5rem;\n        cursor: pointer;\n        text-decoration: none;\n      }\n      button:hover,\n      a:hover {\n        background: #171715;\n      }\n    </style>\n  </head>\n  <body>\n    <main>\n      <h1>OCADE local mode</h1>\n      <!--\n        Says what is and is not available, rather than \"no internet connection\".\n        A local-first product that stores conversations in the browser vault and\n        can run an engine on the device genuinely does keep working here — but\n        only the parts that never needed the network, and the user is entitled\n        to know which those are before they start typing.\n      -->\n      <p>Network services are unavailable right now; OCADE is keeping your device-only work available.</p>\n      <p>\n        Conversations kept in Browser Only or PC Vault storage remain here. A local answer also\n        needs an engine that was prepared on this device while connected.\n      </p>\n      <div class=\"actions\">\n        <a href=\"/demo/ocade\">Open device-only demo</a>\n        <button type=\"button\" onclick=\"location.reload()\">Reconnect</button>\n      </div>\n      <script>\n        addEventListener(\"online\", () => location.reload(), { once: true });\n      <\/script>\n    </main>\n  </body>\n</html>\n";
 var serverEntryPromise;
 async function getServerEntry() {
-	if (!serverEntryPromise) serverEntryPromise = import("./server-D2ZkrQCB.mjs").then((m) => m.default ?? m);
+	if (!serverEntryPromise) serverEntryPromise = import("./server-Bxuz-QNR.mjs").then((m) => m.default ?? m);
 	return serverEntryPromise;
 }
 async function normalizeCatastrophicSsrResponse(response) {

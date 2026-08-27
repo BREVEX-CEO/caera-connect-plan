@@ -1,1 +1,0 @@
-import{wr as e}from"./index-CPNFD7rA.js";var t=e({type:`function`});export{t};

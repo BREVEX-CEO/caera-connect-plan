@@ -18,7 +18,7 @@ A directory of imported code nothing imports is not integration, which is why
 
 | Archive files | Dispositioned | Ported modules | Reached from production |
 |---:|---:|---:|---:|
-| 2126 | 2126 (100%) | 33 | 33 |
+| 2126 | 2126 (100%) | 34 | 34 |
 
 ## By disposition
 
@@ -58,11 +58,11 @@ can reach its logic, and every rejection carries the map's own reason for it.
 | Outcome | Files | Share | What it means |
 |---|---:|---:|---|
 | `USED_DIRECTLY` | 49 | 2.3% | The donor file's logic is in src/primary-logic and production reaches it. |
-| `MERGED` | 211 | 9.9% | The donor logic won this area and was folded into the OCADE authority named. |
-| `REPLACED` | 321 | 15.1% | OCADE already had a stronger version for this product; the donor's was not brought across. |
+| `MERGED` | 214 | 10.1% | The donor logic won this area and was folded into the OCADE authority named. |
+| `REPLACED` | 326 | 15.3% | OCADE already had a stronger version for this product; the donor's was not brought across. |
 | `ROUTED_BOUNDARY` | 85 | 4.0% | The capability exists, behind the MV3 extension, the paired companion or Cloudflare. |
 | `RETAINED_NATIVE_DEV` | 170 | 8.0% | Kept as-is: native and dev tooling, vendored third-party code, legal notices. |
-| `REJECTED` | 1290 | 60.7% | Not brought across. Every file carries the map's own reason. |
+| `REJECTED` | 1282 | 60.3% | Not brought across. Every file carries the map's own reason. |
 | **Total** | **2126** | **100%** | Asserted equal to the archive's file count when this runs. |
 
 ## By family — what happened, and who is the authority
@@ -76,6 +76,7 @@ whether the donor's logic was ported into it or superseded by it.
 | Query engine, deps, transitions, token budget, stop hooks | 15 | `MERGED` — Ported — donor is the authority | `src/lib/runtime/use-ocade-runtime.ts` | The donor's loop handles the four things OCADE's did not: output-token recovery, reactive compaction, an explicit token budget, and a closed terminal set. Both rooms now run it, with local inference injected through callModel. |
 | Permissions, shell rule matching, dangerous patterns, denial tracking | 34 | `MERGED` — Ported — donor is the authority | `src/lib/runtime/permissions.ts` | Cowork's approvalPolicy and Chat had separate ideas about risk. The donor's rule model is stronger and now decides for both, with OCADE's opaque-command gate added on top. |
 | Bash parser, heredocs, quoting, destructive-command warnings | 18 | `MERGED` — Ported — donor is the authority | `src/lib/runtime/permissions.ts` | A real parser is what closes the compound-command hole: an approval for one command must not carry the rest of the line. Ported in pure TypeScript, without the donor's native grammar binary. |
+| PowerShell code-execution cmdlets | 3 | `MERGED` — Ported — closed a hole at the shell boundary | `src/lib/runtime/permissions.ts` | The bash parser sees `powershell -c "iex (irm …)"` as one command called powershell, so the reasonable rule Bash(powershell:*) covered a download-and-run. The archive's cmdlet tables recognise PowerShell's own ways of executing something the text does not describe, and those are now unreadable in the same sense `$(...)` is. |
 | Path safety and sandbox rules | 4 | `MERGED` — Ported — closed a gap OCADE had | `src/lib/runtime/permissions.ts` | OCADE checked paths only on the companion, one process and one network hop away. The archive's rules for what must never be changed on a model's say-so — roots, whole drives, system folders, the home directory, traversal — now run in the browser before the call leaves. |
 | Task lifecycle, stop, background tasks, status labels | 49 | `MERGED` — Ported — donor is the authority | `src/lib/tasks/runs.ts` | OCADE had a to-do board and no runtime task state at all. The donor's status machine, id scheme, pause accounting and stop error taxonomy now back Stop, Pause, Resume and Take over. |
 | Context analysis: where the room went | 4 | `MERGED` — Ported — drives compaction | `src/primary-logic/query/microCompact.ts` | The archive breaks a transcript down by what is filling it, including the same observation read more than once. Compaction now clears those superseded copies first: three reads of one file are three copies of one fact, and only the last is worth anything, so clearing the others costs nothing. |
@@ -91,7 +92,8 @@ whether the donor's logic was ported into it or superseded by it.
 | Agents, subagents, teams, coordinator | 20 | `REPLACED` — Not ported — OCADE's is stronger here | `src/lib/agent/planner.ts` | OCADE already decomposes a goal once and runs each step as a sub-agent with only that step's tools, returning one line to the main transcript. The donor's version assumes concurrent hosted sessions, which one local model cannot serve. |
 | Plugins, skills, tool servers | 92 | `REPLACED` — Not ported — OCADE keeps one authority | `src/lib/skills/pack-registry.ts` | The donor loads plugins from the user's filesystem at startup and trusts what it finds. OCADE's registry validates and trusts packs explicitly, which is the model a browser product can actually honour. |
 | Bridge, remote sessions, websocket transport | 42 | `ROUTED_BOUNDARY` — Removed — replaced by local transport | `src/lib/native/extension-bridge.ts` | The donor bridge speaks to a hosted relay. OCADE's browser work goes through the extension and machine work through the paired companion; neither needs a server in the middle. |
-| PTY, terminal emulator, Ink renderer | 520 | `REJECTED` — Removed | `src/lib/runtime/execute.ts` | A tab has no pseudo-terminal, and shipping one would mean shipping a second renderer. Shell work belongs to the companion, behind the permission layer. |
+| Buddy: the status and approval companion | 6 | `REPLACED` — Not ported — OCADE has its own | `src/components/ocade/OcadeCompanion.tsx` | The archive's companion is a terminal sprite. OCADE's does the job the map asked for — it reports the runtime's real state, shows when approval is waiting, and says when the user has taken the machine back — as a status light rather than a second assistant. |
+| PTY, terminal emulator, Ink renderer | 514 | `REJECTED` — Removed | `src/lib/runtime/execute.ts` | A tab has no pseudo-terminal, and shipping one would mean shipping a second renderer. Shell work belongs to the companion, behind the permission layer. |
 | Hosted inference, provider table, OAuth to the model vendor | 52 | `REJECTED` — Removed | `src/lib/runtime/call-model.ts` | OCADE answers on the device. There is no hosted-AI fallback anywhere in the path, and the audit that proves it runs in CI. |
 | Analytics and telemetry sinks | 21 | `REJECTED` — Removed | `src/lib/telemetry` | The donor logged events on nearly every decision. Nothing about how someone uses OCADE leaves their device. |
 | Sessions, history, resume, rewind | 49 | `REPLACED` — Not ported — OCADE keeps its own | `src/lib/session.ts` | The donor's session history is a paginated read against a hosted events API. OCADE's sessions are local first and mirrored to the account, which is the opposite direction. |
@@ -106,7 +108,7 @@ whether the donor's logic was ported into it or superseded by it.
 | Constants, shims and platform detection | 29 | `MERGED` — Partly ported | `src/primary-logic/shims/featureFlags.ts` | The four boundaries where the donor assumed a terminal, a Node process, a bundler macro or a telemetry sink are shimmed. The rest were constants for products OCADE does not ship. |
 | Build scripts, Docker, packaging and repository config | 21 | `RETAINED_NATIVE_DEV` — Removed | `package.json` | The donor's toolchain bundles a CLI into an npm package. OCADE builds a Cloudflare Worker with Vite. Nothing here transfers, and mixing the two would break both. |
 | Licences, notices and provenance | 8 | `RETAINED_NATIVE_DEV` — Preserved | `src/primary-logic/LICENSE.md` | The licence, the notices and the archive's own manifests are kept verbatim beside the ported code, with a recorded hash of the archive they came from. Legal notices are never removed as dead weight. |
-| Everything else under utils | 371 | `REJECTED` — Case by case — mostly removed | `src/lib` | The donor's utility drawer: terminal drawing, its own file formats, its hosted API client, and small helpers OCADE already has. What was genuinely logic was ported into the families above; the remainder had no OCADE-side caller and was not brought across. |
+| Everything else under utils | 368 | `REJECTED` — Case by case — mostly removed | `src/lib` | The donor's utility drawer: terminal drawing, its own file formats, its hosted API client, and small helpers OCADE already has. What was genuinely logic was ported into the families above; the remainder had no OCADE-side caller and was not brought across. |
 
 ## Modules present in this tree, and what reaches them
 
@@ -114,6 +116,7 @@ whether the donor's logic was ported into it or superseded by it.
 |---|---|
 | `src/primary-logic/commands/bashParser.ts` | `src/lib/runtime/permissions.ts` |
 | `src/primary-logic/commands/destructiveCommandWarning.ts` | `src/lib/runtime/permissions.ts` |
+| `src/primary-logic/commands/powershellCodeExecution.ts` | `src/lib/runtime/permissions.ts` |
 | `src/primary-logic/commands/powershellDestructiveWarning.ts` | `src/lib/runtime/permissions.ts` |
 | `src/primary-logic/commands/treeSitterAnalysis.ts` | `src/lib/runtime/permissions.ts` |
 | `src/primary-logic/memory/memoryAge.ts` | `src/lib/local-memory.ts` |
