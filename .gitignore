@@ -102,3 +102,4 @@ public/models/*.gguf
 release/launch-proof-logs/
 .gate-logs
 .output-local
+.output-serve
