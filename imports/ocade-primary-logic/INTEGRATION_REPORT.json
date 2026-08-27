@@ -29,7 +29,7 @@
       ]
     },
     "MERGED": {
-      "files": 214,
+      "files": 221,
       "meaning": "The donor logic won this area and was folded into the OCADE authority named.",
       "families": [
         "Abort composition and cancellation",
@@ -46,6 +46,7 @@
         "Permissions, shell rule matching, dangerous patterns, denial tracking",
         "PowerShell code-execution cmdlets",
         "Query engine, deps, transitions, token budget, stop hooks",
+        "Run re-entrancy: one query at a time",
         "Session memory extraction thresholds",
         "Task lifecycle, stop, background tasks, status labels",
         "Unicode sanitisation and hidden-character handling"
@@ -87,7 +88,7 @@
       ]
     },
     "REJECTED": {
-      "files": 1282,
+      "files": 1275,
       "meaning": "Not brought across. Every file carries the map's own reason.",
       "families": [
         "Analytics and telemetry sinks",
@@ -154,6 +155,15 @@
       "reason": "OCADE had a to-do board and no runtime task state at all. The donor's status machine, id scheme, pause accounting and stop error taxonomy now back Stop, Pause, Resume and Take over.",
       "files": 49,
       "portedModules": 4
+    },
+    {
+      "family": "Run re-entrancy: one query at a time",
+      "category": "MERGED",
+      "outcome": "Ported — closed a race OCADE had",
+      "authority": "src/lib/runtime/use-ocade-runtime.ts",
+      "reason": "Starting a run is not instant, and a second request arriving inside that gap called runner.reset() while the first was still inside a tool call — erasing the repeat-detection protecting it, silently. The archive's three-state guard answers 'has something claimed this?' during the gap, which two states cannot.",
+      "files": 7,
+      "portedModules": 0
     },
     {
       "family": "Context analysis: where the room went",
@@ -422,7 +432,7 @@
       "outcome": "Case by case — mostly removed",
       "authority": "src/lib",
       "reason": "The donor's utility drawer: terminal drawing, its own file formats, its hosted API client, and small helpers OCADE already has. What was genuinely logic was ported into the families above; the remainder had no OCADE-side caller and was not brought across.",
-      "files": 368,
+      "files": 361,
       "portedModules": 7
     }
   ],
@@ -496,6 +506,9 @@
       "src/lib/runtime/compact.ts",
       "src/lib/runtime/use-ocade-runtime.ts"
     ],
+    "src/primary-logic/query/queryGuard.ts": [
+      "src/lib/runtime/use-ocade-runtime.ts"
+    ],
     "src/primary-logic/query/resume.ts": [
       "src/lib/runtime/use-ocade-runtime.ts"
     ],
@@ -522,8 +535,8 @@
   "totals": {
     "archiveFiles": 2126,
     "dispositioned": 2126,
-    "portedModules": 34,
-    "reachedModules": 34
+    "portedModules": 35,
+    "reachedModules": 35
   },
   "byAction": {
     "DEVOPS_MERGE": {
@@ -16183,8 +16196,8 @@
       "file": "src/utils/QueryGuard.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Run re-entrancy: one query at a time",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,
@@ -18710,8 +18723,8 @@
       "file": "src/utils/mailbox.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Run re-entrancy: one query at a time",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,
@@ -18822,8 +18835,8 @@
       "file": "src/utils/messageQueueManager.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Run re-entrancy: one query at a time",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,
@@ -20332,8 +20345,8 @@
       "file": "src/utils/queryContext.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Run re-entrancy: one query at a time",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,
@@ -20343,8 +20356,8 @@
       "file": "src/utils/queryHelpers.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Run re-entrancy: one query at a time",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,
@@ -20365,8 +20378,8 @@
       "file": "src/utils/queueProcessor.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Run re-entrancy: one query at a time",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,
@@ -20587,8 +20600,8 @@
       "file": "src/utils/sequential.ts",
       "action": "MERGE_REPLACE",
       "target": "shared utility/runtime support",
-      "family": "Everything else under utils",
-      "category": "REJECTED",
+      "family": "Run re-entrancy: one query at a time",
+      "category": "MERGED",
       "reason": "Use utility where referenced by adopted subsystems; consolidate duplicates and keep environment-specific logic behind correct boundary.",
       "ported": false,
       "reached": false,

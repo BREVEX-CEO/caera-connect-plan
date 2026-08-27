@@ -108,6 +108,15 @@ const FAMILIES = [
       "OCADE had a to-do board and no runtime task state at all. The donor's status machine, id scheme, pause accounting and stop error taxonomy now back Stop, Pause, Resume and Take over.",
   },
   {
+    family: "Run re-entrancy: one query at a time",
+    match: new RegExp("^src/utils/(QueryGuard|queryContext|queryHelpers|queueProcessor|messageQueueManager|mailbox|sequential)"),
+    category: "MERGED",
+    outcome: "Ported — closed a race OCADE had",
+    authority: "src/lib/runtime/use-ocade-runtime.ts",
+    reason:
+      "Starting a run is not instant, and a second request arriving inside that gap called runner.reset() while the first was still inside a tool call — erasing the repeat-detection protecting it, silently. The archive's three-state guard answers 'has something claimed this?' during the gap, which two states cannot.",
+  },
+  {
     family: "Context analysis: where the room went",
     match: new RegExp("^src/utils/(contextAnalysis|contextSuggestions|doctorContextWarnings|groupToolUses)"),
     category: "MERGED",

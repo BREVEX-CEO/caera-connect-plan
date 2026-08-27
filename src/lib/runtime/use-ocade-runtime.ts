@@ -69,6 +69,7 @@ import { consume } from "@/lib/limits/use-limits";
 import { memoryPolicyPrompt } from "@/lib/memory/quality";
 import { considerSessionMemory, noteWork } from "@/lib/memory/session-memory";
 import { repairForResume } from "@/primary-logic/query/resume";
+import { QueryGuard } from "@/primary-logic/query/queryGuard";
 import { addLocalMemory, inspectLocalMemory } from "@/lib/local-memory";
 
 export interface RuntimeApproval {
@@ -128,7 +129,29 @@ export function toolsForRequest(request: string, domains: readonly Domain[]): Qu
   }));
 }
 
+/** How long a new request waits for the previous one to let go. */
+const SUPERSEDE_WAIT_MS = 2_000;
+
+/** Resolves true once the guard is free. */
+function waitUntilIdle(guard: QueryGuard): Promise<boolean> {
+  if (!guard.isActive()) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const unsubscribe = guard.subscribe(() => {
+      if (guard.isActive()) return;
+      unsubscribe();
+      resolve(true);
+    });
+  });
+}
+
 export function useOcadeRuntime(options: RuntimeOptions) {
+  /*
+   * One run at a time, across both rooms that share this hook. A ref rather
+   * than state: nothing renders from it, and it must survive re-renders that
+   * happen while a run is in flight.
+   */
+  const guardRef = useRef(new QueryGuard());
+  const guard = guardRef.current;
   const engine = useLocalChatEngine({ surface: options.surface });
   const permissionRef = useRef<PermissionContext>(currentPermissionContext());
   const optionsRef = useRef(options);
@@ -247,84 +270,115 @@ export function useOcadeRuntime(options: RuntimeOptions) {
     ): Promise<RuntimeRun> => {
       if (plainlyConversational(request)) return { used: false };
 
-      // Re-read the policy per request; keep the denial history for the session.
-      permissionRef.current = {
-        ...currentPermissionContext(),
-        denials: permissionRef.current.denials,
-      };
-      runner.reset();
-
-      const domains = opts.domains ?? classifyDeterministic(request) ?? ["conversation"];
-      const tools = toolsForRequest(request, domains);
-      if (tools.length === 0) return { used: false };
-
       /*
-       * THE RESOURCE GOVERNOR, ASKED ONCE PER REQUEST RATHER THAN PER TURN.
+       * ONE RUN AT A TIME, INCLUDING DURING THE GAP BEFORE ONE STARTS.
        *
-       * A single request can spend a dozen model turns, and charging each one
-       * would make a legitimate multi-step task look like abuse. What the limit
-       * is protecting against is a loop that got away, and a runaway shows up
-       * as many REQUESTS, not as one thorough one.
+       * `runner.reset()` below clears the repeat-detection and stuck-reason
+       * protecting whatever is currently inside a tool call. Two requests a
+       * second apart meant the first run losing the state that stops it
+       * looping — silently, with nothing in any log.
        *
-       * A rejection is returned rather than thrown, and carries the engine's own
-       * sentence, so every surface says the same thing about the same limit.
+       * The newer request wins, as it already does at the engine, which aborts
+       * the call in flight. This waits for the older run to let go first so the
+       * two never share the runner, and gives up waiting after a moment rather
+       * than hanging on an engine that never returns.
        */
-      const allowance = consume("inference");
-      if (allowance.outcome === "rejected") {
-        return {
-          used: true,
-          result: {
-            terminal: { reason: "blocking_limit", error: allowance.message },
-            text: allowance.message ?? "OCADE needs a moment before it can do that again.",
-            messages: [],
-            toolResults: [],
-            turns: 0,
-          },
-        };
+      if (guard.isActive()) {
+        const releasedInTime = await Promise.race([
+          waitUntilIdle(guard),
+          new Promise<boolean>((resolve) => setTimeout(() => resolve(false), SUPERSEDE_WAIT_MS)),
+        ]);
+        // The older run did not let go. Take the guard anyway: a request the
+        // person is waiting on must not be held hostage by an engine that
+        // never returned.
+        if (!releasedInTime) guard.forceEnd();
       }
+      const generation = guard.tryStart();
 
-      const memory = optionsRef.current.memoryContext?.() ?? null;
-      /*
-       * REPAIR THE HISTORY BEFORE THE MODEL SEES IT.
-       *
-       * A conversation reopened from storage can carry artefacts of how the
-       * last run ended — an empty assistant turn left by a stopped stream, or
-       * tool results whose request was compacted away. Neither is a bug while
-       * the run is alive; both become one when a model reads them as its own
-       * past behaviour. The imported repair drops exactly those two and leaves
-       * everything else alone.
-       */
-      const repaired = repairForResume(opts.history ?? []);
-      const history = [...repaired.messages, { role: "user" as const, content: request }];
-      const result = await runQuery(
-        {
-          messages: history,
-          systemPrompt: systemPromptWith(optionsRef.current.surface, memory),
-          tools,
-          deps,
-          ...(opts.signal ? { signal: opts.signal } : {}),
-          ...(opts.onToken ? { onToken: opts.onToken } : {}),
-          /*
-           * A budget only exists when the person wrote one. "+500k" in a
-           * request is an explicit instruction to keep working past the point
-           * a model would normally stop and offer to continue.
-           */
-          tokenBudget: parseTokenBudget(request),
-        },
-        (event) => optionsRef.current.onEvent?.(event),
-      );
-      /*
-       * LEARN SOMETHING FROM THE CONVERSATION, IF THERE IS ANYTHING TO LEARN.
-       *
-       * Not awaited. This is a second model call on the same device as the one
-       * the user is waiting on, and making them wait for OCADE to take notes
-       * would be a strange thing to charge them for. It runs at most once every
-       * few thousand tokens — see the thresholds in the imported policy.
-       */
-      void learn(history, result);
-      return { used: true, result };
+      try {
+        // Re-read the policy per request; keep the denial history for the session.
+        permissionRef.current = {
+          ...currentPermissionContext(),
+          denials: permissionRef.current.denials,
+        };
+        runner.reset();
+
+        const domains = opts.domains ?? classifyDeterministic(request) ?? ["conversation"];
+        const tools = toolsForRequest(request, domains);
+        if (tools.length === 0) return { used: false };
+
+        /*
+         * THE RESOURCE GOVERNOR, ASKED ONCE PER REQUEST RATHER THAN PER TURN.
+         *
+         * A single request can spend a dozen model turns, and charging each one
+         * would make a legitimate multi-step task look like abuse. What the limit
+         * is protecting against is a loop that got away, and a runaway shows up
+         * as many REQUESTS, not as one thorough one.
+         *
+         * A rejection is returned rather than thrown, and carries the engine's own
+         * sentence, so every surface says the same thing about the same limit.
+         */
+        const allowance = consume("inference");
+        if (allowance.outcome === "rejected") {
+          return {
+            used: true,
+            result: {
+              terminal: { reason: "blocking_limit", error: allowance.message },
+              text: allowance.message ?? "OCADE needs a moment before it can do that again.",
+              messages: [],
+              toolResults: [],
+              turns: 0,
+            },
+          };
+        }
+
+        const memory = optionsRef.current.memoryContext?.() ?? null;
+        /*
+         * REPAIR THE HISTORY BEFORE THE MODEL SEES IT.
+         *
+         * A conversation reopened from storage can carry artefacts of how the
+         * last run ended — an empty assistant turn left by a stopped stream, or
+         * tool results whose request was compacted away. Neither is a bug while
+         * the run is alive; both become one when a model reads them as its own
+         * past behaviour. The imported repair drops exactly those two and leaves
+         * everything else alone.
+         */
+        const repaired = repairForResume(opts.history ?? []);
+        const history = [...repaired.messages, { role: "user" as const, content: request }];
+        const result = await runQuery(
+          {
+            messages: history,
+            systemPrompt: systemPromptWith(optionsRef.current.surface, memory),
+            tools,
+            deps,
+            ...(opts.signal ? { signal: opts.signal } : {}),
+            ...(opts.onToken ? { onToken: opts.onToken } : {}),
+            /*
+             * A budget only exists when the person wrote one. "+500k" in a
+             * request is an explicit instruction to keep working past the point
+             * a model would normally stop and offer to continue.
+             */
+            tokenBudget: parseTokenBudget(request),
+          },
+          (event) => optionsRef.current.onEvent?.(event),
+        );
+        /*
+         * LEARN SOMETHING FROM THE CONVERSATION, IF THERE IS ANYTHING TO LEARN.
+         *
+         * Not awaited. This is a second model call on the same device as the one
+         * the user is waiting on, and making them wait for OCADE to take notes
+         * would be a strange thing to charge them for. It runs at most once every
+         * few thousand tokens — see the thresholds in the imported policy.
+         */
+        void learn(history, result);
+        return { used: true, result };
+      } finally {
+        // Release only if this run is still the one holding it: a superseded
+        // run finishing late must not free the guard a newer run now holds.
+        if (generation !== null) guard.end(generation);
+      }
     },
-    [deps, runner, learn],
+    [deps, runner, learn, guard],
   );
 
   return useMemo(
