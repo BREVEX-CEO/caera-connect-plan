@@ -51,8 +51,7 @@ function lockedHeaders(decision: LaunchGateDecision, contentType: string): Heade
   return {
     "content-type": contentType,
     "cache-control": "no-store",
-    "content-security-policy":
-      `default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src ${CLOUDFLARE_WEB_ANALYTICS}; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+    "content-security-policy": `default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; script-src ${CLOUDFLARE_WEB_ANALYTICS}; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
     "cross-origin-resource-policy": "same-origin",
     "referrer-policy": "no-referrer",
     "x-robots-tag": NOINDEX,
@@ -66,8 +65,7 @@ function publicHeaders(contentType: string): Record<string, string> {
   return {
     "content-type": contentType,
     "cache-control": "public, max-age=300",
-    "content-security-policy":
-      `default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; font-src 'self'; script-src 'unsafe-inline' ${CLOUDFLARE_WEB_ANALYTICS}; connect-src 'self' https://stream.mux.com; media-src https://stream.mux.com blob:; worker-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+    "content-security-policy": `default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; font-src 'self'; script-src 'unsafe-inline' ${CLOUDFLARE_WEB_ANALYTICS}; connect-src 'self' https://stream.mux.com; media-src https://stream.mux.com blob:; worker-src blob:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
     "cross-origin-resource-policy": "same-origin",
     "referrer-policy": "strict-origin-when-cross-origin",
     "x-robots-tag": "index, follow, max-image-preview:large",
@@ -160,8 +158,7 @@ function publicDocument(pathname: string): PublicDocument | null {
       description,
       eyebrow: "Official CARCC CADANE information",
       heading: "Building the next era of private AI",
-      lead:
-        "CARCC CADANE is an independent technology enterprise, business brand and venture building OCADE — a local-first AI workspace designed around private intelligence, user control and permissioned action.",
+      lead: "CARCC CADANE is an independent technology enterprise, business brand and venture building OCADE — a local-first AI workspace designed around private intelligence, user control and permissioned action.",
       sections: [
         {
           heading: "CARCC CADANE",
@@ -219,8 +216,7 @@ function publicDocument(pathname: string): PublicDocument | null {
       description,
       eyebrow: "Effective and last updated 25 August 2026",
       heading: "Privacy notice",
-      lead:
-        "This notice explains how CARCC CADANE handles or intends to handle information for the OCADE website, authentication, local-first AI, Private Sync, support and other user-requested services.",
+      lead: "This notice explains how CARCC CADANE handles or intends to handle information for the OCADE website, authentication, local-first AI, Private Sync, support and other user-requested services.",
       sections: [
         {
           heading: "Who is responsible",
@@ -293,8 +289,7 @@ function publicDocument(pathname: string): PublicDocument | null {
       description,
       eyebrow: "Effective and last updated 25 August 2026",
       heading: "Terms of service",
-      lead:
-        `These Terms apply now to the OCADE public website and to OCADE services as they become available. CARCC CADANE records ${LAUNCH_PUBLIC_DATE_LABEL} as the formal founding and scheduled public-launch date for OCADE.`,
+      lead: `These Terms apply now to the OCADE public website and to OCADE services as they become available. CARCC CADANE records ${LAUNCH_PUBLIC_DATE_LABEL} as the formal founding and scheduled public-launch date for OCADE.`,
       sections: [
         {
           heading: "1. Agreement and CARCC CADANE",
@@ -446,8 +441,7 @@ function publicDocument(pathname: string): PublicDocument | null {
       description,
       eyebrow: "Support and contact",
       heading: "OCADE support",
-      lead:
-        "OCADE uses a ticket-based support queue and administrative review workspace. Dedicated domain email addresses will be published only after they are activated and verified.",
+      lead: "OCADE uses a ticket-based support queue and administrative review workspace. Dedicated domain email addresses will be published only after they are activated and verified.",
       sections: [
         {
           heading: "Ticket categories",

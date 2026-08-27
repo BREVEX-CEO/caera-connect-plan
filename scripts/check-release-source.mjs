@@ -223,9 +223,9 @@ check(
 );
 
 check(
-  authAvailability.includes('const developmentFallback = !production') &&
-    authAvailability.includes('environment.VITE_AUTH_GOOGLE_ENABLED') &&
-    authAvailability.includes('environment.VITE_AUTH_EMAIL_DELIVERY_READY'),
+  authAvailability.includes("const developmentFallback = !production") &&
+    authAvailability.includes("environment.VITE_AUTH_GOOGLE_ENABLED") &&
+    authAvailability.includes("environment.VITE_AUTH_EMAIL_DELIVERY_READY"),
   "production auth provider availability does not fail closed",
 );
 check(
@@ -234,9 +234,7 @@ check(
     "VITE_AUTH_APPLE_ENABLED",
     "VITE_AUTH_PHONE_ENABLED",
     "VITE_AUTH_EMAIL_DELIVERY_READY",
-  ].every((name) =>
-    cloudflareWorkflow.includes(`${name}: \${{ vars.${name} || 'false' }}`),
-  ),
+  ].every((name) => cloudflareWorkflow.includes(`${name}: \${{ vars.${name} || 'false' }}`)),
   "Cloudflare deployment does not default unverified auth providers to false",
 );
 check(

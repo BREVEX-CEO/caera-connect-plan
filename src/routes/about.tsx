@@ -15,7 +15,8 @@ export const Route = createFileRoute("/about")({
       { property: "og:title", content: "About CARCC CADANE and OCADE" },
       {
         property: "og:description",
-        content: "CARCC CADANE is the technology enterprise and venture behind OCADE — Command the Next Era.",
+        content:
+          "CARCC CADANE is the technology enterprise and venture behind OCADE — Command the Next Era.",
       },
     ],
   }),
@@ -34,10 +35,18 @@ function AboutPage() {
       structuredData={organizationStructuredData()}
     >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className={PILL}><Orbit className="h-3.5 w-3.5" aria-hidden /> OCADE</div>
-        <div className={PILL}><Cpu className="h-3.5 w-3.5" aria-hidden /> Local-first AI</div>
-        <div className={PILL}><ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Permissioned control</div>
-        <div className={PILL}><Sparkles className="h-3.5 w-3.5" aria-hidden /> Command the Next Era.</div>
+        <div className={PILL}>
+          <Orbit className="h-3.5 w-3.5" aria-hidden /> OCADE
+        </div>
+        <div className={PILL}>
+          <Cpu className="h-3.5 w-3.5" aria-hidden /> Local-first AI
+        </div>
+        <div className={PILL}>
+          <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Permissioned control
+        </div>
+        <div className={PILL}>
+          <Sparkles className="h-3.5 w-3.5" aria-hidden /> Command the Next Era.
+        </div>
       </div>
 
       <PublicSection title="CARCC CADANE">
@@ -47,7 +56,8 @@ function AboutPage() {
           label. OCADE is the active AI product within that identity.
         </p>
         <p>
-          The official CARCC CADANE tagline is <strong className="text-foreground">“Command the Next Era.”</strong>
+          The official CARCC CADANE tagline is{" "}
+          <strong className="text-foreground">“Command the Next Era.”</strong>
           Public materials use the CARCC CADANE brand name consistently and do not publish an
           unverified corporate form or registration category.
         </p>
@@ -64,7 +74,10 @@ function AboutPage() {
           and user-requested network services are separated from normal local AI generation. Feature
           availability varies by device, hardware, platform and release readiness.
         </p>
-        <Link to="/products/ocade" className="inline-flex items-center gap-1 text-foreground underline">
+        <Link
+          to="/products/ocade"
+          className="inline-flex items-center gap-1 text-foreground underline"
+        >
           View the OCADE product page <ArrowUpRight className="h-3.5 w-3.5" aria-hidden />
         </Link>
       </PublicSection>
@@ -88,8 +101,8 @@ function AboutPage() {
         </p>
         <p>
           Product release remains controlled by the OCADE launch gate. The date alone does not open
-          an unfinished build: the production readiness flag must also be approved after final coding,
-          verification and release checks.
+          an unfinished build: the production readiness flag must also be approved after final
+          coding, verification and release checks.
         </p>
       </PublicSection>
 
@@ -102,8 +115,8 @@ function AboutPage() {
         <p>
           No outside investor or shareholder is publicly announced by this page today. Nothing on
           this website is an offer to sell securities, an investment prospectus, a solicitation to
-          invest, a promise of allocation, valuation, dividend, return, future listing or a guarantee
-          that equity or shareholding will be offered.
+          invest, a promise of allocation, valuation, dividend, return, future listing or a
+          guarantee that equity or shareholding will be offered.
         </p>
         <p>
           Any future investment, ownership or shareholder arrangement requires a separate private
@@ -125,19 +138,28 @@ function AboutPage() {
           the mailboxes are activated and verified.
         </p>
         <p>
-          Visit the <Link to="/support" className="text-foreground underline">Support page</Link> for
-          the current contact status. Do not send passwords, one-time codes, PINs, recovery codes,
-          private keys or payment secrets through support.
+          Visit the{" "}
+          <Link to="/support" className="text-foreground underline">
+            Support page
+          </Link>{" "}
+          for the current contact status. Do not send passwords, one-time codes, PINs, recovery
+          codes, private keys or payment secrets through support.
         </p>
       </PublicSection>
 
       <PublicSection title="Legal and privacy">
         <p>
-          The <Link to="/terms" className="text-foreground underline">Terms of service</Link> explain
-          AI limitations, computer-control risk, payments, refunds, liability, acceptable use,
-          investor enquiries and disputes. The{" "}
-          <Link to="/privacy" className="text-foreground underline">Privacy notice</Link> explains
-          Google Sign-In, local processing, Private Sync and user-requested network services.
+          The{" "}
+          <Link to="/terms" className="text-foreground underline">
+            Terms of service
+          </Link>{" "}
+          explain AI limitations, computer-control risk, payments, refunds, liability, acceptable
+          use, investor enquiries and disputes. The{" "}
+          <Link to="/privacy" className="text-foreground underline">
+            Privacy notice
+          </Link>{" "}
+          explains Google Sign-In, local processing, Private Sync and user-requested network
+          services.
         </p>
       </PublicSection>
     </PublicPage>

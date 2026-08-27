@@ -128,7 +128,10 @@ try {
       .goto(`${BASE}${SETTINGS_ROUTE}`, { waitUntil: "domcontentloaded", timeout: 30000 })
       .catch(() => {});
   } else {
-    await page.getByRole("link", { name: "Settings" }).click({ timeout: 10000 }).catch(() => {});
+    await page
+      .getByRole("link", { name: "Settings" })
+      .click({ timeout: 10000 })
+      .catch(() => {});
   }
   await page.waitForTimeout(1200);
   await clearModals();

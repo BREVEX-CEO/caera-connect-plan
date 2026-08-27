@@ -109,7 +109,9 @@ const FAMILIES = [
   },
   {
     family: "Run re-entrancy: one query at a time",
-    match: new RegExp("^src/utils/(QueryGuard|queryContext|queryHelpers|queueProcessor|messageQueueManager|mailbox|sequential)"),
+    match: new RegExp(
+      "^src/utils/(QueryGuard|queryContext|queryHelpers|queueProcessor|messageQueueManager|mailbox|sequential)",
+    ),
     category: "MERGED",
     outcome: "Ported — closed a race OCADE had",
     authority: "src/lib/runtime/use-ocade-runtime.ts",
@@ -118,7 +120,9 @@ const FAMILIES = [
   },
   {
     family: "Context analysis: where the room went",
-    match: new RegExp("^src/utils/(contextAnalysis|contextSuggestions|doctorContextWarnings|groupToolUses)"),
+    match: new RegExp(
+      "^src/utils/(contextAnalysis|contextSuggestions|doctorContextWarnings|groupToolUses)",
+    ),
     category: "MERGED",
     outcome: "Ported — drives compaction",
     authority: "src/primary-logic/query/microCompact.ts",
@@ -127,7 +131,9 @@ const FAMILIES = [
   },
   {
     family: "Abort composition and cancellation",
-    match: new RegExp("^src/utils/(combinedAbortSignal|abortController|idleTimeout|gracefulShutdown|cleanupRegistry)"),
+    match: new RegExp(
+      "^src/utils/(combinedAbortSignal|abortController|idleTimeout|gracefulShutdown|cleanupRegistry)",
+    ),
     category: "MERGED",
     outcome: "Ported — closed a gap OCADE had",
     authority: "src/lib/runtime/execute.ts",
@@ -136,7 +142,9 @@ const FAMILIES = [
   },
   {
     family: "Conversation recovery and resume repair",
-    match: new RegExp("^src/utils/(conversationRecovery|messages|messagePredicates|crossProjectResume)"),
+    match: new RegExp(
+      "^src/utils/(conversationRecovery|messages|messagePredicates|crossProjectResume)",
+    ),
     category: "MERGED",
     outcome: "Ported — closed a gap OCADE had",
     authority: "src/lib/runtime/use-ocade-runtime.ts",
@@ -150,7 +158,7 @@ const FAMILIES = [
     outcome: "Ported — replaced ad-hoc per-adapter reads",
     authority: "src/lib/runtime/tool-runner.ts",
     reason:
-      "A model quoting a value turned its own instruction into the opposite: `allowOcr: \"false\"` left OCR on, `wait: \"true\"` never waited. Adapters were learning this one argument at a time. The archive's rules now run once, schema-driven, before permission and before the adapter.",
+      'A model quoting a value turned its own instruction into the opposite: `allowOcr: "false"` left OCR on, `wait: "true"` never waited. Adapters were learning this one argument at a time. The archive\'s rules now run once, schema-driven, before permission and before the adapter.',
   },
   {
     family: "Micro-compaction of old tool output",
@@ -633,9 +641,18 @@ for (const d of dispositions) {
 const CATEGORIES = [
   ["USED_DIRECTLY", "The donor file's logic is in src/primary-logic and production reaches it."],
   ["MERGED", "The donor logic won this area and was folded into the OCADE authority named."],
-  ["REPLACED", "OCADE already had a stronger version for this product; the donor's was not brought across."],
-  ["ROUTED_BOUNDARY", "The capability exists, behind the MV3 extension, the paired companion or Cloudflare."],
-  ["RETAINED_NATIVE_DEV", "Kept as-is: native and dev tooling, vendored third-party code, legal notices."],
+  [
+    "REPLACED",
+    "OCADE already had a stronger version for this product; the donor's was not brought across.",
+  ],
+  [
+    "ROUTED_BOUNDARY",
+    "The capability exists, behind the MV3 extension, the paired companion or Cloudflare.",
+  ],
+  [
+    "RETAINED_NATIVE_DEV",
+    "Kept as-is: native and dev tooling, vendored third-party code, legal notices.",
+  ],
   ["REJECTED", "Not brought across. Every file carries the map's own reason."],
 ];
 

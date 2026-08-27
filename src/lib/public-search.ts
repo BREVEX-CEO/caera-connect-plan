@@ -85,7 +85,8 @@ export const PUBLIC_SEARCH_INDEX: readonly PublicSearchEntry[] = [
   {
     id: "compare",
     title: "Compare OCADE",
-    summary: "A factual category comparison of OCADE, typical cloud AI workspaces and standalone local runners.",
+    summary:
+      "A factual category comparison of OCADE, typical cloud AI workspaces and standalone local runners.",
     category: "Product",
     href: "/compare",
     keywords: ["compare", "features", "differences", "local", "cloud"],
@@ -168,10 +169,13 @@ export function searchPublicPages(
       const haystack =
         `${entry.title} ${entry.summary} ${entry.keywords.join(" ")}`.toLocaleLowerCase();
       if (terms.some((term) => !haystack.includes(term))) return null;
-      const score = (entry.priority ?? 0) + terms.reduce(
-        (total, term) => total + (title.includes(term) ? 4 : 0) + countOccurrences(haystack, term),
-        0,
-      );
+      const score =
+        (entry.priority ?? 0) +
+        terms.reduce(
+          (total, term) =>
+            total + (title.includes(term) ? 4 : 0) + countOccurrences(haystack, term),
+          0,
+        );
       return { entry, score };
     })
     .filter((value): value is { entry: PublicSearchEntry; score: number } => value !== null);

@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  prelaunchResponse,
-  renderPrelaunchPublicPage,
-} from "../launch/prelaunch-response";
+import { prelaunchResponse, renderPrelaunchPublicPage } from "../launch/prelaunch-response";
 import type { LaunchGateDecision } from "../launch/launch-window";
 
 const lockedDecision: LaunchGateDecision = {
@@ -33,9 +30,7 @@ describe("pre-launch public verification pages", () => {
       const response = prelaunchResponse(pathname, lockedDecision);
       expect(response.status).toBe(200);
       expect(response.headers.get("x-robots-tag")).toContain("index");
-      expect(response.headers.get("x-ocade-launch-state")).toBe(
-        "prelaunch-public-information",
-      );
+      expect(response.headers.get("x-ocade-launch-state")).toBe("prelaunch-public-information");
       expect(await response.text()).toContain("CARCC CADANE");
     }
   });

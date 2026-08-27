@@ -72,7 +72,8 @@ export const PLANETS: Planet[] = [
   {
     id: "chat",
     name: "Chat",
-    benefit: "Ask anything. OCADE generates replies on this device, subject to local engine support.",
+    benefit:
+      "Ask anything. OCADE generates replies on this device, subject to local engine support.",
     orbit: 1.9,
     speed: 0.132,
     phase: 0,

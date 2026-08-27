@@ -40,10 +40,10 @@ export function TermsContent() {
           and the scheduled public launch date for OCADE.
         </p>
         <p>
-          Public legal, identity, verification, support and information pages can be available before
-          the authenticated product opens. A public page does not promise that every OCADE feature,
-          native app, browser extension, payment method, model, integration or platform build is
-          already available. Release readiness remains a separate technical decision.
+          Public legal, identity, verification, support and information pages can be available
+          before the authenticated product opens. A public page does not promise that every OCADE
+          feature, native app, browser extension, payment method, model, integration or platform
+          build is already available. Release readiness remains a separate technical decision.
         </p>
       </PublicSection>
 
@@ -65,9 +65,9 @@ export function TermsContent() {
       <PublicSection title="4. OCADE service and local-first architecture">
         <p>
           OCADE combines local software with optional online authentication, Private Sync,
-          current-information retrieval, support, payments and permissioned computer or remote-device
-          features. Supported chat generation is designed to run on the user's device rather than
-          through a public-cloud AI inference provider.
+          current-information retrieval, support, payments and permissioned computer or
+          remote-device features. Supported chat generation is designed to run on the user's device
+          rather than through a public-cloud AI inference provider.
         </p>
         <p>
           Optional Google authentication, Supabase, Cloudflare, Private Sync, current-information
@@ -83,9 +83,10 @@ export function TermsContent() {
 
       <PublicSection title="5. Accounts, devices and security">
         <p>
-          You are responsible for safeguarding your device, account, recovery methods and credentials
-          used with third-party services. Never give OCADE Support your password, one-time code, PIN,
-          recovery code, private key, full card number, CVV or other payment secret.
+          You are responsible for safeguarding your device, account, recovery methods and
+          credentials used with third-party services. Never give OCADE Support your password,
+          one-time code, PIN, recovery code, private key, full card number, CVV or other payment
+          secret.
         </p>
         <p>
           You are responsible for activity performed through your account or device except to the
@@ -121,10 +122,10 @@ export function TermsContent() {
       <PublicSection title="8. Computer control and authorized actions">
         <p>
           Permissioned computer-control features may open applications, read visible screens, type,
-          click, navigate websites, create or edit files, move or delete files, interact with accounts
-          and perform other actions that you authorize. AI can choose the wrong control, open the
-          wrong app, modify or delete the wrong file, submit incorrect information, make a purchase
-          attempt or send content to an unintended destination.
+          click, navigate websites, create or edit files, move or delete files, interact with
+          accounts and perform other actions that you authorize. AI can choose the wrong control,
+          open the wrong app, modify or delete the wrong file, submit incorrect information, make a
+          purchase attempt or send content to an unintended destination.
         </p>
         <p>
           You may use these features only on systems, accounts and content you are authorized to
@@ -142,11 +143,11 @@ export function TermsContent() {
           permissions needed for content, accounts and systems you provide or direct OCADE to use.
         </p>
         <p>
-          Subject to applicable law, third-party rights and any separately disclosed licence, you may
-          use OCADE-generated output for personal or commercial purposes, including posts, reels,
-          videos, documents, presentations, software and business work. AI output is not guaranteed
-          to be unique, copyrightable, accurate or free of third-party rights, and other users may
-          receive similar output.
+          Subject to applicable law, third-party rights and any separately disclosed licence, you
+          may use OCADE-generated output for personal or commercial purposes, including posts,
+          reels, videos, documents, presentations, software and business work. AI output is not
+          guaranteed to be unique, copyrightable, accurate or free of third-party rights, and other
+          users may receive similar output.
         </p>
       </PublicSection>
 
@@ -154,9 +155,9 @@ export function TermsContent() {
         <p>
           CARCC CADANE and its applicable rights holders retain their rights in OCADE software,
           original code, interfaces, designs, systems, proprietary technology, brand materials,
-          logos, product identity and the tagline “Command the Next Era.” Third-party and open-source
-          software, model weights and other third-party materials remain governed by their own
-          licences and rights.
+          logos, product identity and the tagline “Command the Next Era.” Third-party and
+          open-source software, model weights and other third-party materials remain governed by
+          their own licences and rights.
         </p>
         <p>
           Using OCADE does not transfer ownership of the platform or CARCC CADANE brand to a user,
@@ -172,8 +173,8 @@ export function TermsContent() {
           others unlawfully or repeatedly violate these Terms.
         </p>
         <p>
-          Restrictions on reverse engineering, interoperability or security testing apply only to the
-          extent permitted by mandatory law and do not override rights granted by applicable
+          Restrictions on reverse engineering, interoperability or security testing apply only to
+          the extent permitted by mandatory law and do not override rights granted by applicable
           open-source licences.
         </p>
       </PublicSection>
@@ -181,13 +182,14 @@ export function TermsContent() {
       <PublicSection title="12. Suspension, termination and feature changes">
         <p>
           CARCC CADANE may limit, suspend or terminate online access for illegal activity, hacking,
-          malware, fraud, abuse, security-bypass attempts, attacks, non-payment, material or repeated
-          Terms violations, security emergencies, misuse of third-party services or legal
+          malware, fraud, abuse, security-bypass attempts, attacks, non-payment, material or
+          repeated Terms violations, security emergencies, misuse of third-party services or legal
           requirements. Notice may be provided where practicable or required.
         </p>
         <p>
-          CARCC CADANE may modify, replace, restrict or discontinue a feature or service, including a
-          free feature, subject to rights that applicable law does not permit these Terms to waive.
+          CARCC CADANE may modify, replace, restrict or discontinue a feature or service, including
+          a free feature, subject to rights that applicable law does not permit these Terms to
+          waive.
         </p>
       </PublicSection>
 
@@ -208,7 +210,8 @@ export function TermsContent() {
         <p>
           Except where applicable law requires otherwise, a paid digital service is not eligible for
           a voluntary refund after the purchased service has been activated, accessed or used.
-          Changing your mind after activation or use does not create a contractual right to a refund.
+          Changing your mind after activation or use does not create a contractual right to a
+          refund.
         </p>
         <p>
           A refund, reversal, credit or other remedy may still be required for a duplicate charge,
@@ -285,8 +288,8 @@ export function TermsContent() {
 
       <PublicSection title="19. No investment, shareholder or return promise">
         <p>
-          Public references to investors, future ownership, equity or shareholding are invitations to
-          begin a private discussion only. They are not an offer of securities, investment
+          Public references to investors, future ownership, equity or shareholding are invitations
+          to begin a private discussion only. They are not an offer of securities, investment
           prospectus, solicitation to invest, crowdfunding offer, promise of allocation, valuation,
           dividend, liquidity event, return or future listing.
         </p>
@@ -305,13 +308,13 @@ export function TermsContent() {
           resolve a dispute through the OCADE support process and direct negotiation.
         </p>
         <p>
-          If an eligible dispute is not resolved informally, the parties may use mediation and, where
-          the dispute is legally capable of arbitration, arbitration under the Arbitration and
+          If an eligible dispute is not resolved informally, the parties may use mediation and,
+          where the dispute is legally capable of arbitration, arbitration under the Arbitration and
           Conciliation Act, 1996, in English, by a mutually appointed sole arbitrator or another
-          lawful appointment method. These Terms do not create an exclusive court-jurisdiction clause
-          and do not block access to a consumer commission, regulator, non-arbitrable statutory
-          forum, urgent interim relief or another forum that applicable law makes available and does
-          not permit the parties to exclude.
+          lawful appointment method. These Terms do not create an exclusive court-jurisdiction
+          clause and do not block access to a consumer commission, regulator, non-arbitrable
+          statutory forum, urgent interim relief or another forum that applicable law makes
+          available and does not permit the parties to exclude.
         </p>
       </PublicSection>
 
@@ -327,8 +330,8 @@ export function TermsContent() {
         <p>
           CARCC CADANE may update these Terms as OCADE changes. Material changes will be identified
           through an appropriate notice before or when they take effect where required. If a change
-          legally requires fresh consent, OCADE will request that consent rather than relying only on
-          continued use.
+          legally requires fresh consent, OCADE will request that consent rather than relying only
+          on continued use.
         </p>
       </PublicSection>
 
@@ -344,16 +347,16 @@ export function TermsContent() {
       <PublicSection title="24. General terms">
         <p>
           If part of these Terms is unenforceable, the remainder continues to the extent permitted
-          by law. A delay in enforcing a term is not automatically a waiver. Provisions that by their
-          nature should survive termination—including intellectual-property, payment, liability,
-          investor and dispute provisions—continue to the extent legally applicable.
+          by law. A delay in enforcing a term is not automatically a waiver. Provisions that by
+          their nature should survive termination—including intellectual-property, payment,
+          liability, investor and dispute provisions—continue to the extent legally applicable.
         </p>
       </PublicSection>
 
       <PublicSection title="25. Support, privacy, legal, security and investor enquiries">
         <p>
-          OCADE uses a ticket-based support system rather than publishing unverified email addresses.
-          Signed-in requests can be stored in the OCADE support queue and reviewed in the
+          OCADE uses a ticket-based support system rather than publishing unverified email
+          addresses. Signed-in requests can be stored in the OCADE support queue and reviewed in the
           administrative support workspace. Supported categories include Account, Billing,
           Technical, Privacy, Security, Feedback, Legal, Investor and Partnership.
         </p>
@@ -386,8 +389,8 @@ export function PrivacyContent() {
         <p>
           CARCC CADANE is the independent technology enterprise, business brand and venture behind
           OCADE and is responsible for the OCADE service operations described in this notice. This
-          notice uses the public CARCC CADANE brand identity and does not publish an unverified legal
-          form, registration category, address or corporate status.
+          notice uses the public CARCC CADANE brand identity and does not publish an unverified
+          legal form, registration category, address or corporate status.
         </p>
       </PublicSection>
 
@@ -397,9 +400,17 @@ export function PrivacyContent() {
           <li>Basic profile, settings and device registrations.</li>
           <li>Conversations, messages and files under the storage mode you choose.</li>
           <li>Support tickets, support messages and information you choose to include in them.</li>
-          <li>Security, abuse-prevention and failure records designed to minimize raw user content.</li>
-          <li>Payment status, provider references, invoice totals and receipt links if payments are enabled.</li>
-          <li>Feature-specific information needed for a user-requested connector, retrieval or device action.</li>
+          <li>
+            Security, abuse-prevention and failure records designed to minimize raw user content.
+          </li>
+          <li>
+            Payment status, provider references, invoice totals and receipt links if payments are
+            enabled.
+          </li>
+          <li>
+            Feature-specific information needed for a user-requested connector, retrieval or device
+            action.
+          </li>
         </ul>
       </PublicSection>
 
@@ -523,9 +534,9 @@ export function PrivacyContent() {
           requires it.
         </p>
         <p>
-          Privacy, security and grievance requests use the OCADE ticket system while dedicated domain
-          email channels are being established. Dedicated email addresses will be published only
-          after they are activated and verified. Visit the{" "}
+          Privacy, security and grievance requests use the OCADE ticket system while dedicated
+          domain email channels are being established. Dedicated email addresses will be published
+          only after they are activated and verified. Visit the{" "}
           <Link to="/support" className="text-foreground underline">
             Support page
           </Link>{" "}

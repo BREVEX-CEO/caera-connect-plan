@@ -42,9 +42,7 @@ export function needsLegalConsent(pathname: string): boolean {
 
 export function usesAccountConsentReceipt(pathname: string): boolean {
   return (
-    needsLegalConsent(pathname) &&
-    !pathname.startsWith("/demo") &&
-    !pathname.startsWith("/auth")
+    needsLegalConsent(pathname) && !pathname.startsWith("/demo") && !pathname.startsWith("/auth")
   );
 }
 

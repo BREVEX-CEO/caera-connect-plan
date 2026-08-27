@@ -107,8 +107,7 @@ export default {
     const isGetOrHead = request.method === "GET" || request.method === "HEAD";
 
     if (env.ASSETS && isPublicAssetURL(url.pathname)) {
-      const mayReadPublicAsset =
-        isGetOrHead && PRELAUNCH_PUBLIC_ASSET_PATHS.has(url.pathname);
+      const mayReadPublicAsset = isGetOrHead && PRELAUNCH_PUBLIC_ASSET_PATHS.has(url.pathname);
 
       if (!gate.open && !mayReadPublicAsset) {
         return lockedAssetResponse(url.pathname, gate);

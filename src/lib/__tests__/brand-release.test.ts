@@ -9,7 +9,9 @@ import { COMPANY_FACTS } from "@/config/company-facts";
 const root = process.cwd();
 
 function sha256(path: string): string {
-  return createHash("sha256").update(readFileSync(resolve(root, path))).digest("hex");
+  return createHash("sha256")
+    .update(readFileSync(resolve(root, path)))
+    .digest("hex");
 }
 
 function pngDimensions(path: string): { width: number; height: number } {
@@ -99,9 +101,9 @@ describe("CARCC CADANE release brand authority", () => {
       expect(pngDimensions(path), path).toEqual({ width, height });
     }
     expect(readFileSync(resolve(root, "public/favicon.ico")).readUInt16LE(2)).toBe(1);
-    expect(readFileSync(resolve(root, "native/companion/tauri/icons/icon.ico")).readUInt16LE(2)).toBe(
-      1,
-    );
+    expect(
+      readFileSync(resolve(root, "native/companion/tauri/icons/icon.ico")).readUInt16LE(2),
+    ).toBe(1);
   });
 
   it("does not leak the retired public brand through active product surfaces", () => {

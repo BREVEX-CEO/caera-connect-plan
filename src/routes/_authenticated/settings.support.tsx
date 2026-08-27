@@ -218,7 +218,9 @@ function SupportPage() {
               </button>
             ))}
             {!tickets.isLoading && tickets.data?.length === 0 ? (
-              <p className="py-6 text-center text-xs text-muted-foreground">No support cases yet.</p>
+              <p className="py-6 text-center text-xs text-muted-foreground">
+                No support cases yet.
+              </p>
             ) : null}
           </div>
         </GlassPanel>

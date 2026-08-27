@@ -8,7 +8,7 @@ describe("offline shell delivery", () => {
     const server = readFileSync(resolve("src/server.ts"), "utf8");
     expect(server).toContain('import offlineShellHtml from "../public/offline.html?raw"');
     expect(server).toContain('url.pathname === "/offline.html"');
-    expect(server).toContain("request.method === \"HEAD\" ? null : offlineShellHtml");
+    expect(server).toContain('request.method === "HEAD" ? null : offlineShellHtml');
     expect(server.indexOf('url.pathname === "/offline.html"')).toBeLessThan(
       server.indexOf("const handler = await getServerEntry()"),
     );
@@ -17,7 +17,9 @@ describe("offline shell delivery", () => {
   it("keeps that path in the service worker's atomic required precache", () => {
     const worker = readFileSync(resolve("public/sw.js"), "utf8");
     expect(worker).toContain('const OFFLINE_URL = "/offline.html"');
-    expect(worker).toContain('const REQUIRED_PRECACHE = ["/", OFFLINE_URL, "/manifest.webmanifest"]');
+    expect(worker).toContain(
+      'const REQUIRED_PRECACHE = ["/", OFFLINE_URL, "/manifest.webmanifest"]',
+    );
   });
 
   it("disables Cloudflare's automatic .html redirect for the offline asset", () => {

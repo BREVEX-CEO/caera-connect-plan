@@ -6,12 +6,23 @@ import { scheduleTask, taskAnalytics, timelineDays } from "@/lib/tasks/task-insi
 describe("task analytics and timeline", () => {
   it("calculates range metrics, period comparison, statuses and source segments", () => {
     const recent = createUnifiedTask({ title: "Recent", source: "work" }, "2026-08-23T10:00:00Z");
-    const started = transitionTask(createUnifiedTask({ title: "Done", source: "research" }, "2026-08-22T10:00:00Z"), "EXECUTING", {}, "2026-08-22T11:00:00Z");
+    const started = transitionTask(
+      createUnifiedTask({ title: "Done", source: "research" }, "2026-08-22T10:00:00Z"),
+      "EXECUTING",
+      {},
+      "2026-08-22T11:00:00Z",
+    );
     const verifying = transitionTask(started, "VERIFYING", {}, "2026-08-23T10:30:00Z");
     const done = transitionTask(verifying, "COMPLETED", {}, "2026-08-23T11:00:00Z");
     const prior = createUnifiedTask({ title: "Prior", source: "work" }, "2026-08-01T10:00:00Z");
     const data = taskAnalytics([recent, done, prior], "7", new Date("2026-08-24T00:00:00Z"));
-    expect(data).toMatchObject({ total: 2, completed: 1, completionRate: 50, priorTotal: 0, difference: 2 });
+    expect(data).toMatchObject({
+      total: 2,
+      completed: 1,
+      completionRate: 50,
+      priorTotal: 0,
+      difference: 2,
+    });
     expect(data.bySource.map((item) => item.source)).toEqual(["research", "work"]);
   });
 
@@ -28,8 +39,17 @@ describe("task analytics and timeline", () => {
     const board = readFileSync("src/components/ocade/TaskBoard.tsx", "utf8");
     const analytics = readFileSync("src/components/ocade/TaskAnalytics.tsx", "utf8");
     const timeline = readFileSync("src/components/ocade/TaskTimeline.tsx", "utf8");
-    for (const value of ["Edit title", "Delete task", "Task board /", "TaskComments"]) expect(board).toContain(value);
-    for (const value of ["Date range", "Completion rate", "Tasks by status", "Segment breakdown", "Last updated"]) expect(analytics).toContain(value);
-    for (const value of ["Today", "Depends on", "Drag a task bar", "Reschedule", "Work area"]) expect(timeline).toContain(value);
+    for (const value of ["Edit title", "Delete task", "Task board /", "TaskComments"])
+      expect(board).toContain(value);
+    for (const value of [
+      "Date range",
+      "Completion rate",
+      "Tasks by status",
+      "Segment breakdown",
+      "Last updated",
+    ])
+      expect(analytics).toContain(value);
+    for (const value of ["Today", "Depends on", "Drag a task bar", "Reschedule", "Work area"])
+      expect(timeline).toContain(value);
   });
 });

@@ -1,8 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const migration = (name: string) =>
-  readFileSync(`supabase/migrations/${name}`, "utf8");
+const migration = (name: string) => readFileSync(`supabase/migrations/${name}`, "utf8");
 
 describe("live Supabase hardening migrations", () => {
   it("removes anonymous access and moves RLS-only definer helpers out of public", () => {
@@ -22,12 +21,12 @@ describe("live Supabase hardening migrations", () => {
   it("caches auth helpers and creates only missing foreign-key indexes", () => {
     const sql = migration("20260824112646_rls_and_foreign_key_performance.sql");
 
-    expect(sql).toContain("ALTER FUNCTION public.revoke_device_for_current_user(UUID) SECURITY INVOKER");
+    expect(sql).toContain(
+      "ALTER FUNCTION public.revoke_device_for_current_user(UUID) SECURITY INVOKER",
+    );
     expect(sql).toContain("'auth.uid()', '(select auth.uid())'");
     expect(sql).toContain("index_row.indisvalid");
-    expect(sql).toContain(
-      "index_key.ordinality <= cardinality(constraint_row.conkey)",
-    );
+    expect(sql).toContain("index_key.ordinality <= cardinality(constraint_row.conkey)");
   });
 
   it("consolidates permissive policies without discarding any original predicate", () => {

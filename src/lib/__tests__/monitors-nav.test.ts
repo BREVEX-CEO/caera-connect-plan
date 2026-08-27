@@ -16,8 +16,12 @@ describe("the Monitors route is wired into navigation", () => {
      * command palette.
      */
     const onRail = MODULE_CONTEXT.ocade.some((item) => item.to === "/ocade/monitors");
-    const underMore = readFileSync("src/routes/_authenticated/ocade.system.tsx", "utf8").includes('"/ocade/monitors"');
-    const inPalette = readFileSync("src/components/shell/CommandPalette.tsx", "utf8").includes('"/ocade/monitors"');
+    const underMore = readFileSync("src/routes/_authenticated/ocade.system.tsx", "utf8").includes(
+      '"/ocade/monitors"',
+    );
+    const inPalette = readFileSync("src/components/shell/CommandPalette.tsx", "utf8").includes(
+      '"/ocade/monitors"',
+    );
     expect(onRail || underMore || inPalette).toBe(true);
   });
 

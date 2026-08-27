@@ -130,9 +130,7 @@ describe("OCADE production launch gate", () => {
       const response = prelaunchResponse(path, decision);
       expect(response.status).toBe(200);
       expect(response.headers.get("x-robots-tag")).toContain("index");
-      expect(response.headers.get("x-ocade-launch-state")).toBe(
-        "prelaunch-public-information",
-      );
+      expect(response.headers.get("x-ocade-launch-state")).toBe("prelaunch-public-information");
       expect(response.headers.get("content-security-policy")).toContain(
         "https://static.cloudflareinsights.com/beacon.min.js",
       );
@@ -152,9 +150,7 @@ describe("OCADE production launch gate", () => {
     expect(response.status).toBe(308);
     expect(response.headers.get("location")).toBe("/products/ocade");
     expect(response.headers.get("x-robots-tag")).toContain("index");
-    expect(response.headers.get("x-ocade-launch-state")).toBe(
-      "prelaunch-public-information",
-    );
+    expect(response.headers.get("x-ocade-launch-state")).toBe("prelaunch-public-information");
   });
 
   it("serves a restrictive robots directive with the factual allowlist and sitemap", async () => {

@@ -17,8 +17,12 @@ describe("the Code workspace is a reachable product surface", () => {
      * command palette.
      */
     const onRail = MODULE_CONTEXT.ocade.some((item) => item.to === "/ocade/code");
-    const underMore = readFileSync("src/routes/_authenticated/ocade.system.tsx", "utf8").includes('"/ocade/code"');
-    const inPalette = readFileSync("src/components/shell/CommandPalette.tsx", "utf8").includes('"/ocade/code"');
+    const underMore = readFileSync("src/routes/_authenticated/ocade.system.tsx", "utf8").includes(
+      '"/ocade/code"',
+    );
+    const inPalette = readFileSync("src/components/shell/CommandPalette.tsx", "utf8").includes(
+      '"/ocade/code"',
+    );
     expect(onRail || underMore || inPalette).toBe(true);
     expect(source("src/routes/_authenticated/ocade.code.tsx")).toContain("<CodeWorkspacePanel />");
   });

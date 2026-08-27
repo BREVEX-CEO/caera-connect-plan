@@ -92,7 +92,8 @@ describe("the guarded call list is complete", () => {
      * new one added later fails here rather than shipping unguarded.
      */
     const attemptPaths = [...found].filter(
-      (name) => !["updateUser", "getSession", "onAuthStateChange", "signOut", "getUser"].includes(name),
+      (name) =>
+        !["updateUser", "getSession", "onAuthStateChange", "signOut", "getUser"].includes(name),
     );
     for (const name of attemptPaths) {
       expect(GUARDED_CALLS, `${name} is a new attempt path with no backoff`).toContain(name);

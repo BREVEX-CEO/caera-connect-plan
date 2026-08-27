@@ -2,9 +2,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 function installedPlaywrightBrowsers() {
-  const root = process.env.LOCALAPPDATA
-    ? join(process.env.LOCALAPPDATA, "ms-playwright")
-    : "";
+  const root = process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, "ms-playwright") : "";
   if (!root || !existsSync(root)) return [];
 
   return readdirSync(root, { withFileTypes: true })

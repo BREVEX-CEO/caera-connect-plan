@@ -181,15 +181,24 @@ function GeneralPage() {
       />
 
       {error ? (
-        <div role="alert" className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        <div
+          role="alert"
+          className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+        >
           {error}
         </div>
       ) : null}
 
       {loadError ? (
-        <div role="alert" className="mb-4 flex items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+        <div
+          role="alert"
+          className="mb-4 flex items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+        >
           <span>Could not load your profile.</span>
-          <button onClick={() => setReloadKey((key) => key + 1)} className="underline underline-offset-2">
+          <button
+            onClick={() => setReloadKey((key) => key + 1)}
+            className="underline underline-offset-2"
+          >
             Retry
           </button>
         </div>
@@ -204,16 +213,37 @@ function GeneralPage() {
       <GlassPanel className="p-5">
         <SectionHeading icon={UserIcon} title="You" />
         <div className="mt-4 flex items-start gap-4">
-          <DeviceAvatarEditor storageKey={`ocade:device-avatar:${user?.id ?? "anonymous"}`} initials={initials} />
+          <DeviceAvatarEditor
+            storageKey={`ocade:device-avatar:${user?.id ?? "anonymous"}`}
+            initials={initials}
+          />
           <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
             <Field label="Full name">
-              <input aria-label="Full name" type="text" value={view?.full_name ?? ""} onChange={(event) => update("full_name", event.target.value)} className={inputCls} />
+              <input
+                aria-label="Full name"
+                type="text"
+                value={view?.full_name ?? ""}
+                onChange={(event) => update("full_name", event.target.value)}
+                className={inputCls}
+              />
             </Field>
             <Field label="Preferred name">
-              <input aria-label="Preferred name" type="text" value={view?.preferred_name ?? ""} onChange={(event) => update("preferred_name", event.target.value)} className={inputCls} />
+              <input
+                aria-label="Preferred name"
+                type="text"
+                value={view?.preferred_name ?? ""}
+                onChange={(event) => update("preferred_name", event.target.value)}
+                className={inputCls}
+              />
             </Field>
             <Field label="Occupation or role" className="sm:col-span-2">
-              <input aria-label="Occupation or role" type="text" value={view?.occupation ?? ""} onChange={(event) => update("occupation", event.target.value)} className={inputCls} />
+              <input
+                aria-label="Occupation or role"
+                type="text"
+                value={view?.occupation ?? ""}
+                onChange={(event) => update("occupation", event.target.value)}
+                className={inputCls}
+              />
             </Field>
           </div>
         </div>
@@ -236,16 +266,30 @@ function GeneralPage() {
         <SectionHeading title="Language & region" />
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Field label="Language">
-            <select aria-label="Language" value={view?.locale ?? "en-US"} onChange={(event) => update("locale", event.target.value)} className={inputCls}>
+            <select
+              aria-label="Language"
+              value={view?.locale ?? "en-US"}
+              onChange={(event) => update("locale", event.target.value)}
+              className={inputCls}
+            >
               {LOCALES.map((locale) => (
-                <option key={locale.value} value={locale.value}>{locale.label}</option>
+                <option key={locale.value} value={locale.value}>
+                  {locale.label}
+                </option>
               ))}
             </select>
           </Field>
           <Field label="Time zone">
-            <select aria-label="Time zone" value={view?.timezone ?? "UTC"} onChange={(event) => update("timezone", event.target.value)} className={inputCls}>
+            <select
+              aria-label="Time zone"
+              value={view?.timezone ?? "UTC"}
+              onChange={(event) => update("timezone", event.target.value)}
+              className={inputCls}
+            >
               {tzList.map((timezone) => (
-                <option key={timezone} value={timezone}>{timezone}</option>
+                <option key={timezone} value={timezone}>
+                  {timezone}
+                </option>
               ))}
             </select>
           </Field>
@@ -255,9 +299,14 @@ function GeneralPage() {
       <GlassPanel className="mt-4 flex items-center justify-between gap-4 p-5">
         <div className="min-w-0">
           <SectionHeading icon={Palette} title="Appearance" />
-          <p className="mt-1 text-xs text-muted-foreground">Visual style and 3D motion are managed in one place.</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Visual style and 3D motion are managed in one place.
+          </p>
         </div>
-        <Link to="/settings/appearance" className="rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-xs text-foreground hover:bg-accent">
+        <Link
+          to="/settings/appearance"
+          className="rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-xs text-foreground hover:bg-accent"
+        >
           Open appearance
         </Link>
       </GlassPanel>
@@ -265,22 +314,34 @@ function GeneralPage() {
       <div className="sticky bottom-3 mt-4 flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-background/90 px-4 py-2.5 backdrop-blur">
         <span className="text-xs text-muted-foreground">
           {saving ? (
-            <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3 w-3 animate-spin" /> Saving…</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Loader2 className="h-3 w-3 animate-spin" /> Saving…
+            </span>
           ) : hasChanges ? (
             "Unsaved changes"
           ) : savedAt ? (
-            <span className="inline-flex items-center gap-1.5"><Check className="h-3 w-3 text-primary" /> Saved</span>
+            <span className="inline-flex items-center gap-1.5">
+              <Check className="h-3 w-3 text-primary" /> Saved
+            </span>
           ) : (
             "All changes saved"
           )}
         </span>
         <div className="flex items-center gap-2">
           {hasChanges ? (
-            <button onClick={() => setDirty({})} disabled={saving} className="rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50">
+            <button
+              onClick={() => setDirty({})}
+              disabled={saving}
+              className="rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50"
+            >
               Discard
             </button>
           ) : null}
-          <button onClick={() => void save()} disabled={saving || !hasChanges} className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50">
+          <button
+            onClick={() => void save()}
+            disabled={saving || !hasChanges}
+            className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          >
             Save
           </button>
         </div>
@@ -291,7 +352,11 @@ function GeneralPage() {
           <div className="text-sm font-medium text-foreground">Sign out</div>
           <div className="text-xs text-muted-foreground">Ends this browser session only.</div>
         </div>
-        <button onClick={() => void signOut()} disabled={signingOut} className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-xs text-foreground hover:bg-accent disabled:opacity-50">
+        <button
+          onClick={() => void signOut()}
+          disabled={signingOut}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-xs text-foreground hover:bg-accent disabled:opacity-50"
+        >
           <LogOut className="h-3.5 w-3.5" aria-hidden /> Sign out
         </button>
       </GlassPanel>
@@ -299,12 +364,23 @@ function GeneralPage() {
   );
 }
 
-const inputCls = "h-9 w-full rounded-md border border-border/60 bg-background/60 px-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40";
+const inputCls =
+  "h-9 w-full rounded-md border border-border/60 bg-background/60 px-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40";
 
-function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+function Field({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1 block text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
+      <span className="mb-1 block text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+        {label}
+      </span>
       {children}
     </label>
   );

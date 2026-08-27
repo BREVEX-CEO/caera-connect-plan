@@ -14,11 +14,7 @@ import { cn } from "@/lib/utils";
  * person is waiting, without exposing model filenames or runtime jargon.
  */
 export function PreparationStatus({ className }: { className?: string }) {
-  const state = useSyncExternalStore(
-    subscribeToPreparation,
-    preparationState,
-    preparationState,
-  );
+  const state = useSyncExternalStore(subscribeToPreparation, preparationState, preparationState);
 
   if (state.stage === "idle" || state.stage === "ready") return null;
 

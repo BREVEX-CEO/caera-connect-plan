@@ -90,13 +90,15 @@ for (const item of matrix) {
     require(item.supabasePublic === true, `${item.host} lacks Supabase attestation`);
   } else if (["/company", "/founder/haans-antoni", "/products/ocade"].includes(item.path)) {
     require(item.status === 200, `${item.host}${item.path} is not public`);
-    require(
-      item.launchState === "prelaunch-public-information" && item.robots?.includes("index"),
-      `${item.host}${item.path} lacks public-information headers`,
-    );
+    require(item.launchState === "prelaunch-public-information" &&
+      item.robots?.includes("index"), `${item.host}${item.path} lacks public-information headers`);
   } else if (item.path === "/products/ocade/") {
-    require(item.status === 308 && item.location === "/products/ocade", "canonical redirect differs");
-  } else if (item.path.startsWith("/brand/") || ["/robots.txt", "/sitemap.xml"].includes(item.path)) {
+    require(item.status === 308 &&
+      item.location === "/products/ocade", "canonical redirect differs");
+  } else if (
+    item.path.startsWith("/brand/") ||
+    ["/robots.txt", "/sitemap.xml"].includes(item.path)
+  ) {
     require(item.status === 200, `${item.host}${item.path} is not readable`);
   } else {
     require(item.status === 503, `${item.host}${item.path} bypassed prelaunch lock`);

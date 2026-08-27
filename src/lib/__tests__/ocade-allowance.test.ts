@@ -18,8 +18,8 @@ describe("entitlements", () => {
   it.each(["trial_2d", "std_8d", "month_1m", "year_1y"] as const)(
     "%s grants the common device limits",
     (id) => {
-    expect(PLANS[id].desktopDevices).toBe(2);
-    expect(PLANS[id].mobileDevices).toBe(2);
+      expect(PLANS[id].desktopDevices).toBe(2);
+      expect(PLANS[id].mobileDevices).toBe(2);
     },
   );
 

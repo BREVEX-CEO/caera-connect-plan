@@ -36,7 +36,9 @@ function BlogPage() {
       <div className="grid gap-5 lg:grid-cols-[1fr_16rem]">
         <section aria-labelledby="posts-title">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 id="posts-title" className="text-xl font-semibold">Latest posts</h2>
+            <h2 id="posts-title" className="text-xl font-semibold">
+              Latest posts
+            </h2>
             <label className="text-xs text-muted-foreground">
               Search posts
               <input
@@ -49,11 +51,22 @@ function BlogPage() {
           </div>
           <div className="mt-4 space-y-4">
             {articles.map((article) => (
-              <article key={article.slug} className="overflow-hidden rounded-2xl border border-white/7 bg-white/[0.018]">
-                <img src={article.thumbnail} alt="" width={2172} height={724} className="aspect-[3/1] w-full object-cover" />
+              <article
+                key={article.slug}
+                className="overflow-hidden rounded-2xl border border-white/7 bg-white/[0.018]"
+              >
+                <img
+                  src={article.thumbnail}
+                  alt=""
+                  width={2172}
+                  height={724}
+                  className="aspect-[3/1] w-full object-cover"
+                />
                 <div className="p-5">
                   <div className="flex flex-wrap gap-2 text-[11px] text-primary">
-                    {article.tags.map((item) => <span key={item}>{item}</span>)}
+                    {article.tags.map((item) => (
+                      <span key={item}>{item}</span>
+                    ))}
                   </div>
                   <h3 className="mt-2 text-lg font-semibold">
                     {/*
@@ -72,19 +85,38 @@ function BlogPage() {
                   <p className="mt-1 text-sm text-muted-foreground">{article.description}</p>
                   <p className="mt-3 text-xs text-muted-foreground">
                     {article.author} ·{" "}
-                    {new Intl.DateTimeFormat("en-IN", { dateStyle: "long", timeZone: "UTC" }).format(new Date(`${article.published}T00:00:00Z`))}
+                    {new Intl.DateTimeFormat("en-IN", {
+                      dateStyle: "long",
+                      timeZone: "UTC",
+                    }).format(new Date(`${article.published}T00:00:00Z`))}
                   </p>
                 </div>
               </article>
             ))}
             {!articles.length ? (
-              <p className="rounded-xl border border-dashed border-border/70 p-5 text-sm text-muted-foreground">No published post matches those filters.</p>
+              <p className="rounded-xl border border-dashed border-border/70 p-5 text-sm text-muted-foreground">
+                No published post matches those filters.
+              </p>
             ) : null}
           </div>
           <nav aria-label="Journal pages" className="mt-5 flex justify-between">
-            <button type="button" disabled aria-label="Previous page unavailable; there is only one page" className="min-h-9 rounded-md border border-border/70 px-3 text-xs disabled:opacity-40">Previous</button>
+            <button
+              type="button"
+              disabled
+              aria-label="Previous page unavailable; there is only one page"
+              className="min-h-9 rounded-md border border-border/70 px-3 text-xs disabled:opacity-40"
+            >
+              Previous
+            </button>
             <span className="text-xs text-muted-foreground">Page 1 of 1</span>
-            <button type="button" disabled aria-label="Next page unavailable; there is only one page" className="min-h-9 rounded-md border border-border/70 px-3 text-xs disabled:opacity-40">Next</button>
+            <button
+              type="button"
+              disabled
+              aria-label="Next page unavailable; there is only one page"
+              className="min-h-9 rounded-md border border-border/70 px-3 text-xs disabled:opacity-40"
+            >
+              Next
+            </button>
           </nav>
         </section>
         <PrelaunchSubscription />

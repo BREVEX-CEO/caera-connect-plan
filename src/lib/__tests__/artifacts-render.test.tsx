@@ -32,8 +32,12 @@ describe("Artifacts is its own destination, not an alias of Projects", () => {
      * command palette.
      */
     const onRail = MODULE_CONTEXT.ocade.some((item) => item.to === "/ocade/artifacts");
-    const underMore = readFileSync("src/routes/_authenticated/ocade.system.tsx", "utf8").includes('"/ocade/artifacts"');
-    const inPalette = readFileSync("src/components/shell/CommandPalette.tsx", "utf8").includes('"/ocade/artifacts"');
+    const underMore = readFileSync("src/routes/_authenticated/ocade.system.tsx", "utf8").includes(
+      '"/ocade/artifacts"',
+    );
+    const inPalette = readFileSync("src/components/shell/CommandPalette.tsx", "utf8").includes(
+      '"/ocade/artifacts"',
+    );
     expect(onRail || underMore || inPalette).toBe(true);
     // The defect the plan calls out: a label pointing at another page's URL.
     const projects = MODULE_CONTEXT.ocade.find((item) => item.label === "Projects");

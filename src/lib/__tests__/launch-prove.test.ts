@@ -56,7 +56,13 @@ describe("launch:prove", () => {
   });
 
   it("does not call a deploy, publish, signing, charging or live migration command", () => {
-    for (const forbidden of ["deploy:web", "deploy:rollback", "supabase db push", "paddle", "git merge"])
+    for (const forbidden of [
+      "deploy:web",
+      "deploy:rollback",
+      "supabase db push",
+      "paddle",
+      "git merge",
+    ])
       expect(script).not.toContain(`"${forbidden}"`);
   });
 });

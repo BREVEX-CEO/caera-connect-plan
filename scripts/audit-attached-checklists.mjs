@@ -312,23 +312,18 @@ function classify(group, section, item) {
   ) {
     return STATUS.blocked;
   }
-  if (
-    group === "website" &&
-    (["Blog", "Blog Post"].includes(section) || section === "Careers")
-  ) {
+  if (group === "website" && (["Blog", "Blog Post"].includes(section) || section === "Careers")) {
     return base;
   }
-  if (
-    group === "website" &&
-    ["Login", "Sign up"].includes(section) &&
-    /blog post/i.test(item)
-  ) {
+  if (group === "website" && ["Login", "Sign up"].includes(section) && /blog post/i.test(item)) {
     return STATUS.tested;
   }
   if (
     group === "webapp" &&
     section === "Public Profile" &&
-    /avatar and display name|role or title|bio or description|activity or contributions|joined date/i.test(item)
+    /avatar and display name|role or title|bio or description|activity or contributions|joined date/i.test(
+      item,
+    )
   ) {
     return STATUS.tested;
   }
@@ -503,10 +498,7 @@ function evidenceForItem(status, group, section, item) {
       Table: "src/components/ui/ocade-data-table.tsx",
       Avatar: "src/components/settings/DeviceAvatarEditor.tsx",
     };
-    return [
-      components[section],
-      "src/lib/__tests__/design-components.test.tsx",
-    ];
+    return [components[section], "src/lib/__tests__/design-components.test.tsx"];
   }
   if (status === STATUS.tested && group === "design" && section === "Accordion") {
     return ["src/routes/faq.tsx", "src/lib/__tests__/faq-directory.test.tsx"];
@@ -560,11 +552,7 @@ function evidenceForItem(status, group, section, item) {
       Analytics: "src/components/ocade/TaskAnalytics.tsx",
       "Timeline / Gantt View": "src/components/ocade/TaskTimeline.tsx",
     }[section];
-    return [
-      component,
-      "src/lib/tasks/task-insights.ts",
-      "src/lib/__tests__/task-insights.test.ts",
-    ];
+    return [component, "src/lib/tasks/task-insights.ts", "src/lib/__tests__/task-insights.test.ts"];
   }
   if (status === STATUS.tested && group === "website" && section === "Careers") {
     return ["src/routes/careers.tsx", "src/lib/__tests__/public-content.test.tsx"];
