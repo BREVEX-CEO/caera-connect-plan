@@ -120,7 +120,16 @@ describe("the wiring that makes it true", () => {
   it("shows a setup screen rather than a chat with a dead composer", () => {
     const body = withoutComments(ROUTE);
     expect(body).toMatch(/<SetupExperience/);
-    expect(body).toMatch(/if \(!installation\.ready && installation\.preparing\)/);
+    /*
+     * READINESS ALONE IS THE CONDITION, and the `&& preparing` this originally
+     * asserted was wrong. The browser harness proved it: a device with too
+     * small a storage quota refuses before fetching anything, `preparing` goes
+     * false, and the visitor landed on a chat whose refusal offers no way out.
+     * The setup screen is the surface carrying the remedies, so everything that
+     * is not ready has to arrive there.
+     */
+    expect(body).toMatch(/if \(!installation\.ready\)/);
+    expect(body).not.toMatch(/!installation\.ready && installation\.preparing/);
   });
 
   it("still derives the deadline from a wall clock, so sleeping cannot be gamed", () => {

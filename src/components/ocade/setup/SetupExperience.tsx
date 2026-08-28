@@ -96,7 +96,7 @@ export function SetupExperience({
   leaveLabel = "Back",
   className,
 }: SetupExperienceProps) {
-  const { state, preparing, ready, retry, uninstall, remedies } = useInstallation();
+  const { state, preparing, ready, retry, reinstall, uninstall, remedies } = useInstallation();
   const [removing, setRemoving] = useState(false);
   const [showStorageHelp, setShowStorageHelp] = useState(false);
 
@@ -114,6 +114,26 @@ export function SetupExperience({
       onReady?.();
     }
   }, [ready, onReady]);
+
+  /*
+   * NOTHING IS RUNNING AND THE USER IS LOOKING AT A SETUP SCREEN: START.
+   *
+   * `idle` reaches this screen in one real situation — the person removed OCADE
+   * Intelligence, which suppresses the AUTOMATIC preparation on later visits so
+   * that the removal means something. Navigating to the demo is not automatic;
+   * it is somebody asking for OCADE. Honouring that is the difference between a
+   * respected choice and a screen that sits still forever.
+   *
+   * `reinstall` rather than `retry`: it clears the removal, which is exactly
+   * what the request implies.
+   */
+  const asked = useRef(false);
+  useEffect(() => {
+    if (state.stage === "idle" && !asked.current) {
+      asked.current = true;
+      reinstall();
+    }
+  }, [state.stage, reinstall]);
 
   const headline = narrativeFor(state.stage);
   const percent = state.fraction === null ? null : Math.round(state.fraction * 100);

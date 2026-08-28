@@ -109,8 +109,44 @@ export function LocalIntelligenceControl({
 
   if (variant === "compact") {
     return (
-      <div className={cn("text-xs text-muted-foreground", className)}>
-        {hasSomething ? (
+      <div
+        className={cn("text-xs text-muted-foreground", className)}
+        data-testid="local-intelligence-control"
+        /*
+         * The install stage, reflected onto the element.
+         *
+         * It is how a support conversation and an end-to-end test can both see
+         * WHICH of several outcomes a device reached, without any of them being
+         * spelled out to an ordinary visitor. "Not installed on this device"
+         * reads the same whether nothing has started or the device turned out to
+         * be too full, and those need completely different help.
+         */
+        data-stage={state.stage}
+      >
+        {state.problem && !hasSomething ? (
+          /*
+           * A FULL DEVICE IS NOT AN UNSUPPORTED ONE, AND THIS IS THE SURFACE
+           * WHERE THAT MATTERS MOST.
+           *
+           * The compact control sits on the public landing page, so it is what
+           * a visitor whose device turned out to be too full actually reads.
+           * It said "not installed on this device" -- true, useless, and the
+           * same sentence somebody sees when nothing has happened yet. The
+           * authority's own wording names storage and points at something that
+           * would change the outcome.
+           */
+          <>
+            <span>{line} </span>
+            <button
+              type="button"
+              onClick={reinstall}
+              disabled={busy || preparing}
+              className="underline underline-offset-2 hover:text-foreground disabled:opacity-60"
+            >
+              {preparing ? "Preparing…" : "Try again"}
+            </button>
+          </>
+        ) : hasSomething ? (
           <>
             <span>OCADE keeps its intelligence on this device. </span>
             <button
@@ -150,13 +186,23 @@ export function LocalIntelligenceControl({
     <div
       className={cn("rounded-xl border border-border/60 bg-secondary/25 p-4", className)}
       data-testid="local-intelligence-control"
+      data-stage={state.stage}
     >
       <p className="text-sm font-medium text-foreground">OCADE Intelligence on this device</p>
       <p className="mt-1 text-[13px] leading-6 text-muted-foreground">
         {ready
           ? "Ready. OCADE answers on this device, and works with no connection."
-          : preparing
-            ? line
+          : preparing || state.problem
+            ? /*
+               * A DEVICE THAT IS FULL IS NOT A DEVICE THAT IS UNSUPPORTED.
+               *
+               * Both used to collapse into "not installed", which is the same
+               * sentence for two situations needing opposite help: one is
+               * "nothing has happened yet", the other is "make some room and it
+               * will work". `line` carries the authority's own wording for the
+               * second, which names storage rather than the device.
+               */
+              line
             : "Not installed on this device."}
         {installedBytes !== null && installedBytes > 0
           ? ` Using ${formatBytes(installedBytes)} of local storage.`

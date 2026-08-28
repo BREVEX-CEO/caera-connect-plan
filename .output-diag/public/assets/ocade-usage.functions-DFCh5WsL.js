@@ -1,0 +1,1 @@
+import{Hr as e,Nr as t}from"./index-D2dPCofE.js";import{t as n}from"./auth-middleware-CSx9bJfn.js";var r=t({method:`GET`}).middleware([n]).handler(e(`1d03547fcf93634f0edcf90fe58d3b374a85ffb4ce8fed857d1d642e0e6fd632`));export{r as t};

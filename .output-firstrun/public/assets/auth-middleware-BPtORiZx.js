@@ -1,0 +1,1 @@
+import{Mr as e}from"./index-CC4mhrgd.js";var t=e({type:`function`});export{t};

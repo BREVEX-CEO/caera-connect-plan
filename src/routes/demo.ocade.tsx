@@ -607,19 +607,23 @@ function DemoOcade() {
   /*
    * SETUP IS A DIFFERENT SCREEN, NOT A DISABLED VERSION OF THIS ONE.
    *
-   * While the engine is being prepared there is no session, no deadline and
-   * nothing that can answer a question, so rendering the chat with its composer
-   * greyed out would be offering an action OCADE cannot honour and would put a
-   * dead room in front of somebody's first impression. The setup experience
-   * takes the whole screen instead, and the demo begins -- with its full 28
-   * minutes -- the moment it hands over.
+   * Until OCADE is ready there is no session, no deadline and nothing that can
+   * answer a question. Rendering the chat with its composer greyed out would be
+   * offering an action OCADE cannot honour, and would put a dead room in front
+   * of somebody's first impression. The setup experience takes the whole screen
+   * instead, and the demo begins -- with its full 28 minutes -- the moment it
+   * hands over.
    *
-   * A device that genuinely cannot run anything falls through to the chat
-   * screen, which already refuses honestly and names the remedies. That is the
-   * one case where the composer being visible and explained beats a setup
-   * screen that would never finish.
+   * IT COVERS THE FAILURES TOO, and that is a correction. This first read
+   * `!ready && preparing`, so a device that had STOPPED preparing fell through
+   * to the chat. Proven wrong in the browser harness: a device with too small a
+   * storage quota refuses before fetching anything, `preparing` goes false, and
+   * the visitor landed on a chat whose refusal offers no way out. The setup
+   * screen is the surface that carries the remedies -- free storage, remove,
+   * try again -- so a solvable problem has to arrive there rather than at a
+   * composer that will decline.
    */
-  if (!installation.ready && installation.preparing) {
+  if (!installation.ready) {
     return (
       <SetupExperience onLeave={() => void navigate({ to: "/" })} leaveLabel="Back to ocade.in" />
     );
