@@ -55,7 +55,7 @@ export default {
     // Health stays available for deployment verification in every state. It
     // reports only service name, version and liveness — never the launch time.
     const health = releaseHealthResponse(request, runtimeEnv);
-    if (health) return withPublicSecurityHeaders(health);
+    if (health) return withPublicSecurityHeaders(health, new URL(request.url).pathname);
 
     // The launch gate runs before the application is even imported, so no
     // route, API or static application asset can be served while locked. The
@@ -82,7 +82,7 @@ export default {
       (request.method === "GET" || request.method === "HEAD") &&
       PRELAUNCH_PUBLIC_ASSET_PATHS.has(url.pathname);
     if (!gate.open && !isPaymentWebhook && !isPublicPrelaunchAsset) {
-      return withPublicSecurityHeaders(prelaunchResponse(url.pathname, gate));
+      return withPublicSecurityHeaders(prelaunchResponse(url.pathname, gate), url.pathname);
     }
 
     /*
@@ -107,13 +107,17 @@ export default {
             "cache-control": "public, max-age=3600",
           },
         }),
+        url.pathname,
       );
     }
 
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return withPublicSecurityHeaders(await normalizeCatastrophicSsrResponse(response));
+      return withPublicSecurityHeaders(
+        await normalizeCatastrophicSsrResponse(response),
+        url.pathname,
+      );
     } catch (error) {
       console.error(error);
       return withPublicSecurityHeaders(
@@ -121,6 +125,7 @@ export default {
           status: 500,
           headers: { "content-type": "text/html; charset=utf-8" },
         }),
+        url.pathname,
       );
     }
   },

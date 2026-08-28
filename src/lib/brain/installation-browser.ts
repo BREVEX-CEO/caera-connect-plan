@@ -29,6 +29,7 @@ import {
 import { modelVault } from "./model-vault";
 import { ModelStore, modelStore } from "./model-store";
 import { sourceLadder } from "./download-plan";
+import { planThreads, readThreadSignals } from "./wasm-threads";
 import { sha256OfBlobStreaming } from "./streaming-digest";
 import { onBackgroundFetchStaged } from "./background-fetch";
 import {
@@ -115,36 +116,6 @@ async function probeWebGpu(): Promise<{ ok: boolean; bytes: number | null; why: 
 }
 
 /**
- * Can this page run multithreaded WebAssembly?
- *
- * IT ASKS THE PLATFORM RATHER THAN ASSUMING. `crossOriginIsolated` is the only
- * honest answer: `SharedArrayBuffer` can exist and still be unusable by the
- * threaded build without isolation, and isolation depends on response headers
- * this code cannot see from here.
- *
- * WHY THE APP IS NOT ISOLATED BY DEFAULT, AND WHAT CHANGED. The note in
- * `browser-wasm.ts` said cross-origin isolation was avoided because COOP
- * `same-origin` severs `window.opener` and would break the sign-in popups. That
- * reasoning no longer describes this application: `auth.tsx` signs in through a
- * FULL-PAGE REDIRECT to `/auth/callback`, not a popup, and COOP does not affect
- * a redirect. So the blocker is COEP rather than COOP, and COEP is a real
- * constraint — every cross-origin subresource would need CORP or CORS — which
- * is a deployment-wide change that has to be proven against the live site
- * rather than assumed here.
- *
- * The honest position, therefore: the threaded rung is offered the moment the
- * platform says isolation is in force, and the single-threaded rung is always
- * there underneath. Nothing claims threads it does not have.
- */
-function threadsAvailable(): boolean {
-  return (
-    typeof SharedArrayBuffer === "function" &&
-    typeof globalThis.crossOriginIsolated === "boolean" &&
-    globalThis.crossOriginIsolated
-  );
-}
-
-/**
  * Every way this device might run OCADE, strongest first.
  *
  * THE POINT OF A LADDER IS THAT ONE FAILURE IS NOT A REFUSAL. A device that
@@ -194,27 +165,23 @@ export async function probeBrowserCapabilities(): Promise<CapabilityRung[]> {
     : "this browser cannot run OCADE's engine on the processor";
 
   /*
-   * THE THREADED RUNG IS OFFERED ONLY WHEN BOTH HALVES ARE REAL.
+   * THE THREADED RUNG IS A HEADERS QUESTION, AND NOTHING ELSE.
    *
-   * Isolation alone is not enough — the installed library ships only the
-   * single-threaded binary, and its multi-thread build is expected from a CDN
-   * that a local-first product will not fetch its engine from. So the rung
-   * exists exactly when this page is isolated AND the deployment self-hosts the
-   * threaded build. Anything less and the single-threaded rung below is the
-   * honest answer rather than a faster one that would not start.
+   * This used to require a self-hosted `multi-thread/wllama.wasm` as well as
+   * isolation, because the code believed the installed library shipped only a
+   * single-threaded binary. It ships ONE unified binary that runs on one core
+   * or several depending on `n_threads` and on whether `SharedArrayBuffer` is
+   * usable — so the file was never missing and the rung was refused for a
+   * reason that had stopped being the reason.
+   *
+   * `crossOriginIsolated` is the whole of the test now, and it is a fact the
+   * platform reports rather than something this code can talk itself into.
    */
-  const { selfHostedMultiThreadWasm } = await import("./adapters/browser-wasm");
-  const threadedBuild = wasmOk && threadsAvailable() ? await selfHostedMultiThreadWasm() : null;
+  const threadPlan = planThreads(readThreadSignals());
   rungs.push({
     path: "wasm_threaded",
-    available: wasmOk && threadedBuild !== null,
-    why: !wasmOk
-      ? wasmWhy
-      : !threadsAvailable()
-        ? "this page is not isolated, so it can only use one processor core"
-        : threadedBuild === null
-          ? "this deployment does not host the multi-core engine build"
-          : "this page can use several processor cores",
+    available: wasmOk && threadPlan.multithreaded,
+    why: wasmOk ? threadPlan.because : wasmWhy,
   });
   rungs.push({ path: "wasm_single", available: wasmOk, why: wasmWhy });
 

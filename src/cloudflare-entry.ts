@@ -56,7 +56,7 @@ function augmentRequest(
   runtimeRequest.waitUntil = context.waitUntil.bind(context);
 }
 
-function publicAssetResponse(response: Response): Response {
+function publicAssetResponse(response: Response, pathname: string): Response {
   const headers = new Headers(response.headers);
   headers.set("x-robots-tag", "index, follow, max-image-preview:large");
   headers.set("x-ocade-launch-state", "prelaunch-public-information");
@@ -66,6 +66,7 @@ function publicAssetResponse(response: Response): Response {
       statusText: response.statusText,
       headers,
     }),
+    pathname,
   );
 }
 
@@ -82,6 +83,7 @@ function lockedAssetResponse(
       statusText: response.statusText,
       headers,
     }),
+    pathname,
   );
 }
 
@@ -149,8 +151,8 @@ export default {
 
       const response = await env.ASSETS.fetch(request);
       return gate.open
-        ? withPublicSecurityHeaders(withModelArtifactHeaders(url.pathname, response))
-        : publicAssetResponse(response);
+        ? withPublicSecurityHeaders(withModelArtifactHeaders(url.pathname, response), url.pathname)
+        : publicAssetResponse(response, url.pathname);
     }
 
     if (!gate.open) {
@@ -161,7 +163,7 @@ export default {
 
       // Public Home/Privacy/Terms/company/founder/product/robots/sitemap are
       // answered by prelaunchResponse; every other route receives 503.
-      return withPublicSecurityHeaders(prelaunchResponse(url.pathname, gate));
+      return withPublicSecurityHeaders(prelaunchResponse(url.pathname, gate), url.pathname);
     }
 
     return nitroApp.fetch(request);

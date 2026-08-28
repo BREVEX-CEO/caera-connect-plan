@@ -19,6 +19,12 @@ import {
 import { modelStore, ModelStore } from "../model-store";
 import { downloadModel, preferredWeightsUrl } from "../model-download";
 import { loadBenchmark, recordBenchmark, recordTierFailure } from "../tier-benchmark-store";
+import {
+  planThreads,
+  readThreadSignals,
+  readThreadOutcome,
+  type ThreadOutcome,
+} from "../wasm-threads";
 
 /**
  * OCADE in the browser on the processor, via wllama (llama.cpp compiled to
@@ -30,15 +36,27 @@ import { loadBenchmark, recordBenchmark, recordTierFailure } from "../tier-bench
  * offered — a larger one here produces a first token slowly enough that people
  * assume the page has hung.
  *
- * ON THREADS, AND A TRADE-OFF WORTH STATING
+ * ON THREADS, AND WHAT THE OLD NOTE HERE GOT WRONG
  *
- * wllama runs much faster multi-threaded, which needs `SharedArrayBuffer`,
- * which needs cross-origin isolation (COOP `same-origin` + COEP). OCADE does
- * NOT enable that, because COOP `same-origin` severs `window.opener` and would
- * break the Google and Apple sign-in popups this product depends on. Sign-in
- * that works beats a fallback engine that is twice as fast, so this runs
- * single-threaded and says so. `wllama` selects that automatically when
- * `SharedArrayBuffer` is absent.
+ * This used to say OCADE could not enable cross-origin isolation because COOP
+ * `same-origin` severs `window.opener` and would break the sign-in popups "this
+ * product depends on". Two things about that were false by the time it was
+ * read:
+ *
+ *  - Sign-in does not use a popup on the deployed site. The auth SDK takes a
+ *    popup only when OCADE is inside an IFRAME, and production sends
+ *    `frame-ancestors 'none'` and `X-Frame-Options: DENY`, so it cannot be. The
+ *    live path is a full-page redirect to `/auth/callback`, which COOP does not
+ *    touch.
+ *  - The binary was never the constraint either. wllama 3.x ships ONE unified
+ *    `wllama.wasm`; multi-thread mode is a runtime decision that needs
+ *    `SharedArrayBuffer`. The library's own multithreaded example server
+ *    differs from its single-threaded one only by two response headers.
+ *
+ * So threads are a HEADERS problem, and `security/isolation.ts` solves it by
+ * isolating the routes that run inference while leaving auth and the landing
+ * page alone. This adapter asks for the cores that policy permits and reports
+ * what it actually got; the single-threaded path is always underneath.
  */
 
 type WllamaModule = typeof import("@wllama/wllama");
@@ -47,51 +65,6 @@ type WllamaInstance = InstanceType<WllamaModule["Wllama"]>;
 export interface WasmProgress {
   fraction: number | null;
   text: string;
-}
-
-/**
- * Where a deployment may put the multi-threaded engine binary.
- *
- * Same idea as `public/models/` for weights: an operator drops the file in and
- * the product uses it, with no external request either way. Probed rather than
- * assumed, so a deployment that has not vendored it is simply single-threaded
- * instead of broken.
- */
-export const MULTI_THREAD_WASM_PATH = "/wasm/multi-thread/wllama.wasm";
-
-/** Cached, because a HEAD per engine load would be a request on every start. */
-let multiThreadProbe: Promise<string | null> | null = null;
-
-export function resetMultiThreadProbeForTests(): void {
-  multiThreadProbe = null;
-}
-
-/**
- * Is a self-hosted multi-threaded build present AND usable?
- *
- * Both halves matter. Isolation without the binary means threads that cannot
- * run; the binary without isolation means a build that cannot use
- * `SharedArrayBuffer`. Only the pair is a threaded engine, and anything else
- * falls back to the single-threaded one, which always works.
- */
-export async function selfHostedMultiThreadWasm(): Promise<string | null> {
-  if (typeof SharedArrayBuffer !== "function" || globalThis.crossOriginIsolated !== true) {
-    return null;
-  }
-  if (typeof fetch !== "function") return null;
-  multiThreadProbe ??= (async () => {
-    try {
-      const probe = await fetch(MULTI_THREAD_WASM_PATH, { method: "HEAD" });
-      // A 404 is the normal answer on a deployment that has not vendored it,
-      // and an SSR fallback can answer 200 with HTML, which is not a binary.
-      const type = probe.headers.get("content-type") ?? "";
-      if (probe.ok && !type.includes("text/html")) return MULTI_THREAD_WASM_PATH;
-    } catch {
-      /* Not self-hosted, or unreachable. Single-threaded it is. */
-    }
-    return null;
-  })();
-  return multiThreadProbe;
 }
 
 export class BrowserWasmAdapter implements BrainAdapter {
@@ -104,6 +77,8 @@ export class BrowserWasmAdapter implements BrainAdapter {
   private readonly onProgress?: (p: WasmProgress) => void;
   private readonly weightsProvider?: () => Promise<Blob | null>;
   private readonly preferThreads: boolean;
+  /** What the runtime actually did, once a model is loaded. */
+  private threadOutcome: ThreadOutcome = { multithreaded: false, threads: 1 };
 
   constructor(options?: {
     onProgress?: (p: WasmProgress) => void;
@@ -122,7 +97,17 @@ export class BrowserWasmAdapter implements BrainAdapter {
      * is held to exactly the same digest.
      */
     weightsProvider?: () => Promise<Blob | null>;
-    /** Use the multi-threaded build when the page is cross-origin isolated. */
+    /**
+     * Ask for several processor cores when the platform genuinely allows it.
+     *
+     * NOT a different binary. wllama 3.x ships ONE `wllama.wasm` that runs
+     * single-threaded or multi-threaded depending on `n_threads` and on whether
+     * `SharedArrayBuffer` is usable, which needs cross-origin isolation. The
+     * previous code here probed for a `multi-thread/wllama.wasm` that this
+     * version does not ship and cannot ship, and reported "no multi-core
+     * engine" for a reason that had stopped being the reason years ago. The
+     * headers were always the constraint.
+     */
     preferThreads?: boolean;
   }) {
     this.onProgress = options?.onProgress;
@@ -183,7 +168,13 @@ export class BrowserWasmAdapter implements BrainAdapter {
     return {
       tier: this.cachedTier,
       downloadLabel: formatSize(this.cachedTier.downloadBytes),
-      multiThreaded: typeof SharedArrayBuffer !== "undefined",
+      /*
+       * The real decision, not merely "SharedArrayBuffer exists". It can exist
+       * on a page that is not isolated, where the threaded build cannot use it
+       * — reporting that as multithreaded was true of the symbol and false of
+       * the engine.
+       */
+      multiThreaded: this.loadParams().n_threads > 1,
     };
   }
 
@@ -231,6 +222,48 @@ export class BrowserWasmAdapter implements BrainAdapter {
     await this.ensureLoaded(chosen.tier);
   }
 
+  /**
+   * The load parameters, and the only place a thread count is decided.
+   *
+   * `n_threads` is passed EXPLICITLY rather than left to the library's default
+   * of `floor(hardwareConcurrency / 2)`. The default is a reasonable guess about
+   * a desktop and a poor one about a phone, where `hardwareConcurrency` counts
+   * efficiency cores that are much slower than the performance ones — and it
+   * knows nothing about how much memory the device has to give each thread.
+   * `planThreads` weighs all three.
+   *
+   * Passing 1 is not "multithreaded with one thread": wllama hands 0 to its
+   * worker at that point, which disables pthreads outright.
+   */
+  private loadParams(): { n_threads: number } {
+    const plan = planThreads({
+      ...readThreadSignals(),
+      // The ladder decides whether this rung is the threaded one at all; asking
+      // for cores on the single-threaded rung would contradict the choice the
+      // installation authority already made.
+      isolated: this.preferThreads ? readThreadSignals().isolated : false,
+    });
+    return { n_threads: plan.threads };
+  }
+
+  /**
+   * Record what the runtime DID, which is not necessarily what was asked.
+   *
+   * An isolated page whose browser still fails wllama's own WebAssembly threads
+   * probe gets one thread however many were requested. Reporting the request as
+   * though it were the outcome is how a diagnostics screen comes to claim four
+   * threads on a device running one, so the runtime is asked and its answer is
+   * what gets stored.
+   */
+  private recordThreads(instance: WllamaInstance): void {
+    this.threadOutcome = readThreadOutcome(instance);
+  }
+
+  /** What the loaded engine is actually running on. Diagnostics only. */
+  threads(): ThreadOutcome {
+    return this.threadOutcome;
+  }
+
   private async ensureLoaded(tier: BrowserModelTier): Promise<WllamaInstance> {
     const key = storageKeyFor(tier);
     if (this.instance && this.loadedRepo === key) return this.instance;
@@ -244,7 +277,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
      * party every time it starts is not local-first, and an offline user would
      * find the fallback broken exactly when they needed it.
      */
-    const singleThreadWasm = (await import("@wllama/wllama/esm/wasm/wllama.wasm?url")).default;
+    const unifiedWasm = (await import("@wllama/wllama/esm/wasm/wllama.wasm?url")).default;
 
     /*
      * THE MULTI-THREADED BUILD, WHEN THE PLATFORM ACTUALLY ALLOWS IT.
@@ -267,34 +300,24 @@ export class BrowserWasmAdapter implements BrainAdapter {
      * The single-threaded path is always underneath, so nothing here can leave
      * a device without an engine.
      */
-    const builds: {
-      default: string;
-      "single-thread/wllama.wasm": string;
-      "multi-thread/wllama.wasm"?: string;
-    } = {
-      default: singleThreadWasm,
-      "single-thread/wllama.wasm": singleThreadWasm,
-    };
-
     /*
-     * WHAT SHIPS IN THE PACKAGE, AND WHAT DOES NOT.
+     * ONE BINARY, AND `default` IS THE ONE THAT MATTERS.
      *
-     * `@wllama/wllama@3.5.1` installs exactly one binary — `wllama.wasm`,
-     * the single-threaded build. Its `AssetsPathConfig` accepts a
-     * `multi-thread/wllama.wasm`, but that file is NOT in the package; the
-     * library's own multi-thread path expects it from a CDN, which a
-     * local-first product will not fetch its engine from.
+     * wllama 3.x ships a single unified `wllama.wasm` that runs on one core or
+     * several, selected at runtime from `n_threads` and from whether
+     * `SharedArrayBuffer` is usable. The `single-thread/` and `multi-thread/`
+     * keys survive in `AssetsPathConfig` as optional backwards compatibility;
+     * `default` is the required one and the only one this build has a file for.
      *
-     * So the threaded engine is offered only when a deployment SELF-HOSTS the
-     * binary, exactly as `public/models/` works for weights. That keeps the
-     * claim honest in both directions: a deployment that has vendored the build
-     * gets real threads, and one that has not is never told it has them.
-     * `crossOriginIsolated` is checked as well, because without isolation the
-     * threaded build cannot use `SharedArrayBuffer` no matter where it came
-     * from.
+     * It is bundled from `node_modules` and served by this deployment. Nothing
+     * here is ever fetched from a third-party CDN: an engine that reaches out
+     * to somebody else's host every time it starts is not local-first, and an
+     * offline user would find it broken exactly when they needed it.
      */
-    const multiThreadUrl = this.preferThreads ? await selfHostedMultiThreadWasm() : null;
-    if (multiThreadUrl) builds["multi-thread/wllama.wasm"] = multiThreadUrl;
+    const builds: { default: string; "single-thread/wllama.wasm": string } = {
+      default: unifiedWasm,
+      "single-thread/wllama.wasm": unifiedWasm,
+    };
 
     const instance = new wllama.Wllama(builds, { allowOffline: true });
 
@@ -326,7 +349,8 @@ export class BrowserWasmAdapter implements BrainAdapter {
       if (!blob) {
         throw new Error("OCADE's prepared engine could not be read back from this device.");
       }
-      await instance.loadModel([blob]);
+      await instance.loadModel([blob], this.loadParams());
+      this.recordThreads(instance);
       this.instance = instance;
       this.loadedRepo = key;
       return instance;
@@ -364,7 +388,8 @@ export class BrowserWasmAdapter implements BrainAdapter {
 
       const blob = await modelStore.readBlob(key);
       if (!blob) throw new Error("The engine was downloaded but could not be read back.");
-      await instance.loadModel([blob]);
+      await instance.loadModel([blob], this.loadParams());
+      this.recordThreads(instance);
     } else {
       // No OPFS: fall back to the library's own fetch so the engine still
       // works, accepting that it cannot be managed from Settings.
@@ -373,6 +398,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
       await instance.loadModelFromHF(
         { repo: entry.repo, file: entry.path },
         {
+          ...this.loadParams(),
           useCache: true,
           progressCallback: ({ loaded, total }: { loaded: number; total: number }) => {
             this.onProgress?.({
@@ -383,6 +409,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
         },
       );
     }
+    this.recordThreads(instance);
 
     this.instance = instance;
     this.loadedRepo = key;

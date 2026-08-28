@@ -25,6 +25,7 @@ import { clearApprovals } from "@/lib/mobile/approval-store";
 import { registerOfflineShellFromBrowser } from "@/lib/local/web-supervisor";
 import { primeOfflineRuntimeFromBrowser } from "@/lib/offline/prime-runtime";
 import { useInstallationBootstrap } from "@/lib/brain/use-installation";
+import { upgradeIsolationInBrowser } from "@/lib/security/isolation-upgrade";
 import { closeActiveCompanionSession } from "@/lib/native/tauri-companion";
 import { LegalConsentGate } from "@/components/legal/LegalConsentGate";
 // Side-effect import: registers Foundation Alpha features on module load.
@@ -304,6 +305,33 @@ function RootComponent() {
    * There is exactly one of these in the application. Every other surface
    * WATCHES the same authority and none of them can start a second install.
    */
+  /*
+   * ISOLATION BEFORE PREPARATION, and the order is the whole point.
+   *
+   * Cross-origin isolation is decided when a document is created. A visitor who
+   * client-side-navigates from the landing page into an inference route keeps
+   * the landing page's document, which is deliberately NOT isolated, so
+   * `SharedArrayBuffer` is absent and the engine quietly runs on one core.
+   *
+   * This performs at most ONE full navigation to fix that, remembered in
+   * sessionStorage — a browser that does not implement `credentialless` reports
+   * false forever, and an unguarded retry would reload endlessly on exactly the
+   * browsers least able to afford it. Failing to upgrade costs threads, not
+   * correctness: the capability ladder already has a single-threaded rung.
+   */
+  useEffect(() => {
+    upgradeIsolationInBrowser();
+    /*
+     * KEYED ON THE PATH, NOT MOUNTED ONCE.
+     *
+     * The first version of this ran on `[]`, and the browser harness caught it:
+     * a client-side transition into an inference route does not remount the
+     * root, so the guard never re-evaluated and the page stayed un-isolated on
+     * exactly the journey the guard was written for — landing page, click
+     * through to the demo, silently one core.
+     */
+  }, [pathname]);
+
   useInstallationBootstrap();
 
   /*

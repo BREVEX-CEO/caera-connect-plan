@@ -50,6 +50,7 @@
     "model:install-proof": "vite-node scripts/e2e/model-install-production-proof.mts -- --write",
     "model:install-proof:quick": "vite-node scripts/e2e/model-install-production-proof.mts -- --quick",
     "model:first-run-browser": "node scripts/e2e/first-run-browser.mjs",
+    "model:isolation-proof": "node scripts/e2e/isolation-and-threads.mjs",
     "untracked:classify": "node scripts/classify-untracked.mjs",
     "worktree:ownership": "node scripts/audit-worktree-ownership.mjs",
     "setup:check": "node scripts/check-setup.mjs",

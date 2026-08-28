@@ -1,3 +1,5 @@
+import { isolationHeadersFor } from "./isolation";
+
 /**
  * Browser-facing response hardening shared by the launch gate and application.
  *
@@ -79,12 +81,32 @@ const DEFAULT_SECURITY_HEADERS: Readonly<Record<string, string>> = {
   "x-frame-options": "DENY",
 };
 
-/** Preserve a response's status/body and add only headers it has not set. */
-export function withPublicSecurityHeaders(response: Response): Response {
+/**
+ * Preserve a response's status/body and add only headers it has not set.
+ *
+ * `pathname` decides cross-origin isolation, and it is the ONE header pair here
+ * that overrides rather than defers. Everything else uses "set it if nobody
+ * else did", which is right for a default; isolation is a routing decision, and
+ * a handler that happened to emit its own COOP would otherwise silently leave
+ * an inference route without threads — or, worse, leave the sign-in route with
+ * them.
+ *
+ * Omitting `pathname` yields the non-isolated defaults, which is the safe
+ * direction: a caller that forgets costs a single-threaded engine, never a
+ * severed `window.opener` under a popup.
+ */
+export function withPublicSecurityHeaders(response: Response, pathname?: string): Response {
   const headers = new Headers(response.headers);
   for (const [name, value] of Object.entries(DEFAULT_SECURITY_HEADERS)) {
     if (!headers.has(name)) headers.set(name, value);
   }
+
+  const isolation = isolationHeadersFor(pathname ?? "/");
+  headers.set("cross-origin-opener-policy", isolation["cross-origin-opener-policy"]);
+  const coep = isolation["cross-origin-embedder-policy"];
+  if (coep) headers.set("cross-origin-embedder-policy", coep);
+  else headers.delete("cross-origin-embedder-policy");
+
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
