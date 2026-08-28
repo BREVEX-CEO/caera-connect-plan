@@ -13,12 +13,14 @@ DNS, builds, caches and app-store review are not exact-time systems.
 
 The gate lives in the Cloudflare Worker (`src/server.ts`), before the application
 is imported and before static application assets can be served
-(`assets.run_worker_first = true`). It opens only when both conditions hold:
+(`assets.run_worker_first = true`).
 
-1. Server/edge time is at or after `LAUNCH_AT_ISO` in
-   `src/lib/launch/launch-window.ts`.
-2. The Cloudflare Worker variable `OCADE_LAUNCH_READY` is exactly `true`, set by
-   a named operator after the real checks below pass.
+OCADE has launched, so the gate now opens whenever server/edge time is at or
+after `LAUNCH_AT_ISO` in `src/lib/launch/launch-window.ts`. The Cloudflare
+Worker variable `OCADE_LAUNCH_READY` no longer arms it — it can only CLOSE it,
+and only when set to exactly `false`. A variable that is missing, empty or
+misspelt leaves a live product serving, which is the only safe direction for a
+flag to fail in once people are using the thing.
 
 While locked, public requests get a minimal 503 prelaunch page saying only
 "Planned launch 28 August 2026", with `Cache-Control: no-store`, `Retry-After`
@@ -59,22 +61,19 @@ unready release stays locked rather than launching broken.
 - Payment receipt/refund and entitlement reconciliation verified if live.
 - Final visible copy still says "planned"; the prelaunch response is no-index and
   no indexed page says "launched."
-- Set Cloudflare Worker variable `OCADE_LAUNCH_READY=true` only when every
-  required check is green. Keep it `false` otherwise.
+- Leave `OCADE_LAUNCH_READY` unset or `true`. Set it to exactly `false` only to
+  re-lock a launched product.
 
-## Readiness gate
+## Emergency re-lock
 
-Set `OCADE_LAUNCH_READY=true` on the production Worker only if all required
-checks are independently green. Setting it before the launch instant is safe:
-the edge gate still refuses to open until the server clock reaches the target.
-After it opens, release only verified download/payment links and submit prepared
-directory posts. Record exact operator, time, commit/deployment ID and
-screenshots. If a required gate is red, leave the readiness flag false, keep the
-product locked behind planned copy, announce a factual delay, and do not
-backdate the launch later.
+`OCADE_LAUNCH_READY` is a re-lock, not an arming switch. Set it to exactly
+`false` on the production Worker and the gate closes on the next request with no
+code deploy; remove it or set any other value and the product serves again.
 
-Emergency re-lock: set `OCADE_LAUNCH_READY=false` on the Worker. The gate closes
-on the next request without a code deploy.
+Nothing else closes a launched gate, and nothing else needs to: the clock has
+already passed the launch instant and cannot un-pass it. Record exact operator,
+time, commit/deployment ID and reason for every re-lock, and lift it the same
+way once the cause is fixed.
 
 ## After launch
 

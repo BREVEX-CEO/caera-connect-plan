@@ -116,12 +116,12 @@ unavailable rather than simulating success.
 
 ## Edge delivery and launch gate
 
-Cloudflare Worker time owns the release decision. Production opens only when:
-
-1. server time is at or after 2026-08-28T02:58:00Z; and
-2. OCADE_LAUNCH_READY is exactly true after the real preflight.
-
-The clock alone cannot launch an unhealthy build. Before release, /, /auth,
+Cloudflare Worker time owns the release decision. Production opens once server
+time is at or after the launch instant, which `src/lib/launch/launch-window.ts`
+owns and no other file restates. OCADE_LAUNCH_READY is an emergency re-lock:
+exactly `false` closes a launched gate on the next request, and any other value
+— including absent — leaves it open, so a misconfigured variable can never take
+a live product down. Before release, /, /auth,
 and product routes remain 503 with noindex. Three factual pages
 (/company, /founder/haans-antoni, /products/ocade) plus their exact brand
 assets, restrictive robots file, and sitemap may remain crawlable. These pages do

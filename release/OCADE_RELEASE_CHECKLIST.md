@@ -29,12 +29,12 @@ device. The web application remains closed behind the production launch gate.
   authentication, OCADE Chat, Projects, Usage, and error pages. A zero
   deployment exit without both immutable-version health observations is not
   success.
-- Launch gate: the production Worker must deploy with `OCADE_LAUNCH_READY`
-  absent or `false`. Confirm the public origin returns the 503 pre-launch page,
-  `/robots.txt` disallows everything, no application bundle is reachable, and
-  `/api/health` still answers 200. Set `OCADE_LAUNCH_READY=true` only after the
-  runbook readiness gate passes; the edge clock then opens the product at the
-  target instant with no further deploy.
+- Launch gate: OCADE has launched, so the production Worker must deploy with
+  `OCADE_LAUNCH_READY` absent or any value other than `false`. Confirm the
+  public origin serves the product, `/robots.txt` and the sitemap are the
+  launched ones, and `/api/health` answers 200. `OCADE_LAUNCH_READY=false` is
+  the emergency re-lock only, and closes the gate on the next request with no
+  deploy — see `docs/launch/LAUNCH_RUNBOOK.md`.
 - Supabase: follow `supabase/APPLY_ORDER.md`, run every verification file, test
   cross-tenant denial, and regenerate database types.
 - Desktop: build on each target OS, sign/notarize, test clean install, updater

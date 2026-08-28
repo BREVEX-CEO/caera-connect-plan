@@ -16,44 +16,83 @@ import {
   renderPrelaunchPublicPage,
 } from "../launch/prelaunch-response";
 import { releaseHealthResponse } from "../release-health";
+import { COMPANY_FACTS } from "@/config/company-facts";
 
 const PRODUCTION_HOST = "ocade.example";
-const READY = { OCADE_LAUNCH_READY: "true" };
+const RELOCKED = { OCADE_LAUNCH_READY: "false" };
 
 function gate(now: number, env: Record<string, unknown> = {}) {
   return evaluateLaunchGate({ now, hostname: PRODUCTION_HOST, env });
 }
 
 describe("OCADE production launch gate", () => {
-  it("pins the launch instant and the public date label", () => {
-    expect(LAUNCH_AT_ISO).toBe("2026-08-28T02:58:00Z");
-    expect(LAUNCH_PUBLIC_DATE_LABEL).toBe("28 August 2026");
+  /*
+   * The instant is read from the single source that owns it rather than
+   * retyped here. This assertion used to carry its own copy of the timestamp,
+   * and when the launch was brought forward it failed as though the product
+   * were broken — a test reporting that a deliberate decision was a defect.
+   * What matters is that one module owns the instant and that the public label
+   * agrees with it, and both are checkable without duplicating the value.
+   */
+  it("takes the launch instant from the one module that owns it", () => {
+    expect(LAUNCH_AT_ISO).toBe(COMPANY_FACTS.launchAtIso);
+    expect(LAUNCH_PUBLIC_DATE_LABEL).toBe(COMPANY_FACTS.foundingDateLabel);
+    expect(Number.isFinite(LAUNCH_AT_MS)).toBe(true);
+
+    // The public label must name the day the instant actually falls on where
+    // the launch was announced (IST, UTC+5:30) — not the UTC day, which is a
+    // different date for any launch instant before 05:30Z.
+    const ist = new Date(LAUNCH_AT_MS + 5.5 * 60 * 60 * 1000);
+    const label = `${ist.getUTCDate()} ${
+      [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December",
+      ][ist.getUTCMonth()]
+    } ${ist.getUTCFullYear()}`;
+    expect(LAUNCH_PUBLIC_DATE_LABEL).toBe(label);
   });
 
   it("stays locked one millisecond before the target", () => {
-    const decision = gate(LAUNCH_AT_MS - 1, READY);
+    const decision = gate(LAUNCH_AT_MS - 1);
     expect(decision.open).toBe(false);
     expect(decision.reason).toBe("locked_before_launch");
   });
 
-  it("opens exactly at the target only when readiness is set", () => {
-    expect(gate(LAUNCH_AT_MS, READY).open).toBe(true);
-    expect(gate(LAUNCH_AT_MS).open).toBe(false);
-    expect(gate(LAUNCH_AT_MS).reason).toBe("locked_not_ready");
+  it("opens at the target without needing any variable to be set", () => {
+    expect(gate(LAUNCH_AT_MS).open).toBe(true);
+    expect(gate(LAUNCH_AT_MS).reason).toBe("open_launched");
   });
 
-  it("stays locked after the target when readiness is missing or false", () => {
+  /*
+   * THE EMERGENCY RE-LOCK, WHICH THE RUNBOOK PROMISES AND WHICH WAS ABSENT.
+   *
+   * Opening the gate at launch removed the code that read this variable, so
+   * "set OCADE_LAUNCH_READY=false and the gate closes on the next request"
+   * silently stopped being true while every document still said it. It is read
+   * again — but only in the closing direction, so a missing or malformed value
+   * can never take a live product down.
+   */
+  it("closes again when an operator sets the re-lock to exactly false", () => {
+    const later = LAUNCH_AT_MS + 86_400_000;
+    const decision = gate(later, RELOCKED);
+    expect(decision.open).toBe(false);
+    expect(decision.reason).toBe("locked_not_ready");
+    expect(decision.retryAfterSeconds).toBeGreaterThan(0);
+  });
+
+  it("stays open for every value that is not exactly false", () => {
     const later = LAUNCH_AT_MS + 86_400_000;
     for (const env of [
       {},
-      { OCADE_LAUNCH_READY: "false" },
+      { OCADE_LAUNCH_READY: "true" },
       { OCADE_LAUNCH_READY: "1" },
-      { OCADE_LAUNCH_READY: "TRUE" },
-      { OCADE_LAUNCH_READY: " true " },
+      { OCADE_LAUNCH_READY: "FALSE" },
+      { OCADE_LAUNCH_READY: " false " },
+      { OCADE_LAUNCH_READY: "" },
     ]) {
       const decision = gate(later, env);
-      expect(decision.open).toBe(false);
-      expect(decision.reason).toBe("locked_not_ready");
+      expect(decision.open).toBe(true);
+      expect(decision.reason).toBe("open_launched");
     }
   });
 

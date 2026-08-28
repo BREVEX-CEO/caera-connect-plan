@@ -5,15 +5,28 @@
  * sitemap, runbook checks and tests — reads it from here so the date can never
  * drift between the worker and the documentation.
  *
- * Two independent conditions must both hold before the production product is
- * reachable:
+ * OCADE HAS LAUNCHED, AND THE FLAG CHANGED DIRECTION WHEN IT DID.
  *
- *   1. Server/edge time is at or after `LAUNCH_AT_ISO`.
- *   2. An explicit server-side readiness flag (`OCADE_LAUNCH_READY=true`) is set
- *      by a human after the real pre-launch checks passed.
+ * Before launch this gate required two things: the clock past `LAUNCH_AT_ISO`,
+ * AND `OCADE_LAUNCH_READY=true` set by a named operator. That second condition
+ * was an ARMING switch — the clock alone could not open an unready release.
  *
- * The clock alone never launches anything: an unready release stays locked
- * rather than opening broken. The browser clock is never consulted.
+ * Launching removed the arming switch, and the commit that removed it took the
+ * runbook's emergency re-lock with it: `OCADE_LAUNCH_READY=false` was
+ * documented to close the gate on the next request without a deploy, and after
+ * that change nothing read the variable at all. Every document describing the
+ * control survived; the control did not.
+ *
+ * So the flag is read again, in the only direction that is safe on a product
+ * that is already serving people. It cannot arm and it is not required:
+ *
+ *   - Absent, `true`, or anything else — the gate opens once the clock passes
+ *     `LAUNCH_AT_ISO`. A misconfigured or unset variable can never take a live
+ *     product down, which an arming switch restored after launch would do.
+ *   - Exactly `false` — the gate closes on the next request. That is the
+ *     emergency re-lock, and it now exists again.
+ *
+ * The browser clock is never consulted; the decision is the edge's.
  */
 
 import { COMPANY_FACTS } from "@/config/company-facts";
@@ -30,7 +43,9 @@ export const LAUNCH_AT_MS = Date.parse(LAUNCH_AT_ISO);
  */
 export const LAUNCH_PUBLIC_DATE_LABEL = COMPANY_FACTS.foundingDateLabel;
 
-/** Environment variable that carries the human-set production readiness flag. */
+/**
+ * The operator's emergency re-lock. Exactly `"false"` closes a launched gate.
+ */
 export const LAUNCH_READY_ENV_KEY = "OCADE_LAUNCH_READY";
 
 /** Environment variable that marks a non-production (internal) deployment. */
@@ -81,8 +96,16 @@ export function isInternalHost(hostname: string): boolean {
   return false;
 }
 
-export function isLaunchReady(env: LaunchEnvLike): boolean {
-  return isTrue(readEnv(env, LAUNCH_READY_ENV_KEY));
+/**
+ * Whether the operator has pulled the emergency re-lock.
+ *
+ * Only the exact string `"false"` counts, and that strictness is the point: a
+ * variable that is missing, empty, misspelt or set by a half-finished deploy
+ * must not close a product that people are using. Re-locking is a deliberate
+ * act, so it takes a deliberate value.
+ */
+export function isLaunchRelocked(env: LaunchEnvLike): boolean {
+  return readEnv(env, LAUNCH_READY_ENV_KEY) === "false";
 }
 
 /**
@@ -111,6 +134,18 @@ export function evaluateLaunchGate(options: {
       internal: false,
       // Capped so the response never discloses the exact launch instant.
       retryAfterSeconds: Math.min(Math.max(remaining, 60), 3600),
+    };
+  }
+
+  if (isLaunchRelocked(env)) {
+    return {
+      open: false,
+      reason: "locked_not_ready",
+      internal: false,
+      // A re-lock is held until an operator lifts it, so there is nothing
+      // useful to promise about when to come back. Sixty seconds keeps clients
+      // polling politely without implying a schedule.
+      retryAfterSeconds: 60,
     };
   }
 

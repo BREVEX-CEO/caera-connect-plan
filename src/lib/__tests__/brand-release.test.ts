@@ -53,14 +53,23 @@ function activeTextFiles(start: string): string[] {
 }
 
 describe("CARCC CADANE release brand authority", () => {
-  it("pins the exact official identity and launch instant", () => {
+  /*
+   * The launch INSTANT is deliberately not pinned here any more.
+   *
+   * It was, and when the launch was brought forward this test failed as though
+   * a decision the owner had made were a defect. Identity is what this file is
+   * about: the names, the statement and the public date label, none of which a
+   * schedule change may alter. `launch-gate.test.ts` owns the instant and
+   * checks the label against it, so a real inconsistency is still caught — by
+   * the file that can say what it means.
+   */
+  it("pins the exact official identity", () => {
     expect(COMPANY_FACTS).toMatchObject({
       companyName: "CARCC CADANE",
       productFormalName: "OCADE BY CARCC CADANE",
       tagline: "Command the Next Era.",
       founderLeadershipStatement: "HAANS ANTONI — CEO, Chairman and Founder",
       foundingDateLabel: "28 August 2026",
-      launchAtIso: "2026-08-28T02:58:00Z",
     });
   });
 
