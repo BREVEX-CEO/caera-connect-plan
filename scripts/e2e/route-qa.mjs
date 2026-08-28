@@ -136,7 +136,29 @@ try {
 
       let landed = "";
       try {
-        await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 30000 });
+        try {
+          await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 30000 });
+        } catch (error) {
+          /*
+           * A ROUTE THAT REDIRECTS IS NOT A ROUTE THAT FAILED.
+           *
+           * `/auth/callback` exists to send a signed-in visitor onward, so the
+           * moment it mounts it navigates — and Playwright reports the `goto`
+           * that was still in flight as "interrupted by another navigation".
+           * The old code let that throw, which failed the redirecting route AND
+           * every route after it in the same page, because each subsequent
+           * `goto` was interrupted by the redirect still settling. One correct
+           * product behaviour was turning into fifty red lines whose number
+           * depended on timing.
+           *
+           * So an interruption is waited out rather than recorded: whatever the
+           * browser settled on is the page a person would be looking at, and
+           * every assertion below runs against that. Any other navigation
+           * failure is still a real one and still rethrows.
+           */
+          if (!/interrupted by another navigation/i.test(String(error))) throw error;
+          await page.waitForLoadState("domcontentloaded", { timeout: 30000 }).catch(() => {});
+        }
         /*
          * WAIT FOR CONTENT, NOT FOR A CLOCK.
          *
@@ -197,16 +219,26 @@ try {
         }));
 
       let body = await measure().catch(() => null);
-      if (!body || (body.text.trim().length === 0 && body.controls === 0)) {
-        await page.waitForTimeout(1500);
-        body = (await measure().catch(() => null)) ?? {
-          text: "",
-          scrollWidth: 0,
-          clientWidth: 1,
-          headings: 0,
-          controls: 0,
-        };
+      /*
+       * One retry was not enough, and the route it caught moved between runs —
+       * /auth/verify on one, /auth/callback on the next, /ocade/search on a
+       * third. That wandering is what a race looks like. These routes exist to
+       * send a signed-in visitor onward, so the window in which the document is
+       * empty lasts as long as the destination takes to compile, which on a
+       * loaded dev server is longer than a second and a half.
+       *
+       * The loop still ends, so a page that is genuinely blank is still blank
+       * when it does.
+       */
+      const readyBy = Date.now() + 12_000;
+      while (
+        (!body || (body.text.trim().length === 0 && body.controls === 0)) &&
+        Date.now() < readyBy
+      ) {
+        await page.waitForTimeout(500);
+        body = await measure().catch(() => null);
       }
+      body ??= { text: "", scrollWidth: 0, clientWidth: 1, headings: 0, controls: 0 };
 
       check(
         `${where} renders something a person can use`,
@@ -435,8 +467,22 @@ try {
         const readBody = () =>
           page.evaluate(() => document.body?.innerText ?? "").catch(() => "navigated away");
         let after = await readBody();
-        if (after.trim().length === 0) {
-          await page.waitForTimeout(1500);
+        /*
+         * Wait for content, on the same reasoning the FIRST measurement gives.
+         *
+         * A single 1.5s retry was not enough on a loaded dev server: a control
+         * that navigates somewhere not yet compiled leaves a genuinely empty
+         * body while Vite builds the route, and the harness recorded "0 chars
+         * left" about a page that painted a moment later. Which route it caught
+         * moved from run to run, which is the signature of a race rather than
+         * of a defect.
+         *
+         * The wait still ENDS, so a page that really never comes back still
+         * fails — what changes is that the failure means what it says.
+         */
+        const settleBy = Date.now() + 12_000;
+        while (after.trim().length === 0 && Date.now() < settleBy) {
+          await page.waitForTimeout(500);
           after = await readBody();
         }
         const brokeAfterClicks = DEV_LEAK_SOURCE.find((p) => new RegExp(p, "i").test(after));

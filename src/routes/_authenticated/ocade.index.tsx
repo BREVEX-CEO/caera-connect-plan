@@ -419,8 +419,36 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
    * are gone".
    */
   const refreshList = useCallback(async () => {
+    let local: LocalConversation[];
     try {
-      const local = await listConversationsLocally(userId);
+      local = await listConversationsLocally(userId);
+    } catch {
+      /*
+       * A LOCKED VAULT IS A STATE, NOT A CRASH — AND NOT AN ALERT EITHER.
+       *
+       * Reading the list out of a Browser Only vault that has not been
+       * unlocked throws `StorageLockedError`, and this `try` had no `catch`, so
+       * the rejection escaped the callback and surfaced as an unhandled promise
+       * rejection with a stack trace in it. The route audit catches exactly
+       * that and calls it a developer error, which is what it was.
+       *
+       * Handled SILENTLY, though, and that is deliberate. This runs from an
+       * effect on mount, not from anything the user did: they locked the vault,
+       * they know it is locked, and a notification fired by a background
+       * refresh tells them something they already chose while covering the page
+       * they were trying to read. The paths that toast are the ones where a
+       * person asked for something and did not get it — opening a conversation,
+       * deleting one — and they already do.
+       *
+       * The list is deliberately NOT emptied. "Your chats are gone" and "this
+       * device cannot read them until you unlock it" are different claims, and
+       * only one of them is true.
+       */
+      setLoadingList(false);
+      return;
+    }
+
+    try {
       setConversations(local as unknown as Conversation[]);
       setLoadingList(false);
 
