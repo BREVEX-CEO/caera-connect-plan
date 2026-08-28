@@ -625,7 +625,28 @@ function DemoOcade() {
    */
   if (!installation.ready) {
     return (
-      <SetupExperience onLeave={() => void navigate({ to: "/" })} leaveLabel="Back to ocade.in" />
+      <SetupExperience
+        onLeave={() => void navigate({ to: "/" })}
+        leaveLabel="Back to ocade.in"
+        /*
+         * Settings stays reachable, and only Settings.
+         *
+         * It needs no engine -- appearance, accessibility and preferences work
+         * exactly as well on a device that is still preparing -- so blocking it
+         * would cost somebody the controls they may need in order to read this
+         * screen, and buy nothing in return. Chat, Control and the composer stay
+         * unreachable, because those are the ones that would offer an action
+         * OCADE cannot yet honour.
+         */
+        secondaryActions={
+          <Link
+            to="/demo/settings"
+            className="inline-flex min-h-9 items-center rounded-md px-3 text-sm text-muted-foreground hover:text-foreground"
+          >
+            Settings
+          </Link>
+        }
+      />
     );
   }
 

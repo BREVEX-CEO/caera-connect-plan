@@ -86,6 +86,18 @@ export interface SetupExperienceProps {
   /** Rendered as a quiet escape. Setup continues in the background. */
   onLeave?: () => void;
   leaveLabel?: string;
+  /**
+   * Other places a person may still go from here.
+   *
+   * DELIBERATELY NOT "anywhere". Nothing offered here may lead to a chat, a
+   * composer, or anything that could start a second model operation — that is
+   * the whole reason setup owns the screen. What it may lead to is a room that
+   * needs no engine at all, and Settings is exactly that: appearance,
+   * accessibility and preferences work perfectly well on a device that is still
+   * preparing, and blocking them buys nothing while costing somebody the
+   * controls they may specifically need in order to read this screen.
+   */
+  secondaryActions?: React.ReactNode;
   className?: string;
 }
 
@@ -94,6 +106,7 @@ export function SetupExperience({
   onReady,
   onLeave,
   leaveLabel = "Back",
+  secondaryActions,
   className,
 }: SetupExperienceProps) {
   const { state, preparing, ready, retry, reinstall, uninstall, remedies } = useInstallation();
@@ -239,6 +252,7 @@ export function SetupExperience({
               {leaveLabel}
             </Button>
           ) : null}
+          {secondaryActions}
         </div>
 
         {showStorageHelp ? <StorageHelp /> : null}

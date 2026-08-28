@@ -25,6 +25,23 @@ import { useInstallation } from "@/lib/brain/use-installation";
  * those controls rather than pretending to operate them.
  */
 
+/**
+ * The quiet inline control on the landing page.
+ *
+ * `inline-flex` with a 24px minimum, and NOT just an underlined span.
+ *
+ * The first version was styled as a plain text link and measured 93x16 on a
+ * phone — under the 24x24 minimum a finger can reliably hit, which the route
+ * audit caught on both the signed-out and signed-in passes. A destructive
+ * control that is hard to tap is worse than one that is merely ugly: the near
+ * misses land on whatever is next to it.
+ *
+ * The negative margin keeps the visual rhythm of the footer line while the hit
+ * area grows past it, so it still reads as a quiet inline link.
+ */
+const QUIET_LINK =
+  "-my-1 inline-flex min-h-6 items-center underline underline-offset-2 hover:text-foreground disabled:opacity-60";
+
 function formatBytes(bytes: number): string {
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
   if (bytes >= 1024 ** 2) return `${Math.round(bytes / 1024 ** 2)} MB`;
@@ -141,7 +158,7 @@ export function LocalIntelligenceControl({
               type="button"
               onClick={reinstall}
               disabled={busy || preparing}
-              className="underline underline-offset-2 hover:text-foreground disabled:opacity-60"
+              className={QUIET_LINK}
             >
               {preparing ? "Preparing…" : "Try again"}
             </button>
@@ -149,11 +166,7 @@ export function LocalIntelligenceControl({
         ) : hasSomething ? (
           <>
             <span>OCADE keeps its intelligence on this device. </span>
-            <button
-              type="button"
-              onClick={() => setConfirming(true)}
-              className="underline underline-offset-2 hover:text-foreground"
-            >
+            <button type="button" onClick={() => setConfirming(true)} className={QUIET_LINK}>
               Uninstall OCADE Intelligence
             </button>
             {confirming ? (
@@ -172,7 +185,7 @@ export function LocalIntelligenceControl({
               type="button"
               onClick={reinstall}
               disabled={busy || preparing}
-              className="underline underline-offset-2 hover:text-foreground disabled:opacity-60"
+              className={QUIET_LINK}
             >
               {preparing ? "Preparing…" : "Reinstall OCADE"}
             </button>
