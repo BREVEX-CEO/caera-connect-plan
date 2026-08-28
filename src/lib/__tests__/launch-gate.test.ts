@@ -45,8 +45,18 @@ describe("OCADE production launch gate", () => {
     const ist = new Date(LAUNCH_AT_MS + 5.5 * 60 * 60 * 1000);
     const label = `${ist.getUTCDate()} ${
       [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
       ][ist.getUTCMonth()]
     } ${ist.getUTCFullYear()}`;
     expect(LAUNCH_PUBLIC_DATE_LABEL).toBe(label);

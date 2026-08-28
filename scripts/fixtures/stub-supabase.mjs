@@ -22,6 +22,12 @@ import { randomUUID, createHash } from "node:crypto";
 const USER_ID = "00000000-0000-4000-8000-000000000001";
 const EMAIL = "audit@ocade.test";
 
+/** The address the modelled provider hands back when nothing else is asked for. */
+const OAUTH_EMAIL = "oauth@ocade.test";
+
+/** Authorisation codes issued by `/authorize`, redeemable exactly once. */
+const oauthCodes = new Map();
+
 /*
  * ONE ACCOUNT PER ADDRESS, NOT ONE ACCOUNT FULL STOP.
  *
@@ -236,7 +242,89 @@ export function startStubSupabase({ port = 0 } = {}) {
 
     if (req.method === "OPTIONS") return send(204);
 
+    /* -------------------------------------------------- oauth redirect ---- */
+    /*
+     * A REDIRECT-BASED PROVIDER, BECAUSE THAT IS THE ONE THING THE PRODUCT
+     * DEPENDS ON.
+     *
+     * Cross-origin isolation is why this exists. COOP `same-origin` severs
+     * `window.opener`, so a popup sign-in would break — and the whole argument
+     * for isolating the inference routes rests on the claim that this product
+     * signs in by navigating the whole document instead. A claim like that has
+     * to be exercised, not asserted, so this models the two hops a real
+     * provider makes: `/authorize` sends the browser away, and the browser
+     * comes back to the application's own callback with a code.
+     *
+     * The code is opaque and single-use. Nothing here authenticates anybody —
+     * it is the SHAPE of the journey that is under test, not an identity
+     * check, and `stub-supabase` never claims otherwise.
+     */
+    if (url.pathname === "/auth/v1/authorize") {
+      const address = url.searchParams.get("login_hint") ?? OAUTH_EMAIL;
+      const back = url.searchParams.get("redirect_to");
+      if (!back) return send(400, { message: "authorize needs redirect_to" });
+      const target = new URL(back);
+
+      /*
+       * WHICH FLOW, DECIDED THE WAY THE REAL SERVICE DECIDES IT.
+       *
+       * A client running PKCE sends a `code_challenge` and expects an
+       * authorisation code back in the query string, to be exchanged for a
+       * session. A client running the implicit flow — which is supabase-js's
+       * DEFAULT, and therefore what this application actually does — sends no
+       * challenge and expects the tokens themselves in the URL fragment.
+       *
+       * Modelling only the code branch is how this fixture first "worked" and
+       * proved nothing: the application ignored the `?code=` it was never
+       * configured to look for, the callback waited for a session that could
+       * not arrive, and the journey ended on a spinner. Branching on the
+       * challenge means the harness exercises whichever flow the client is
+       * built with rather than the one the fixture assumed.
+       */
+      if (url.searchParams.get("code_challenge")) {
+        const code = randomUUID();
+        oauthCodes.set(code, { email: address, at: Date.now() });
+        target.searchParams.set("code", code);
+      } else {
+        const id = idForEmail(address);
+        if (!(tables.profiles ?? []).some((row) => String(row.id) === id)) {
+          seedAccount(tables, id, address);
+        }
+        const issued = session(id, address);
+        target.hash = new URLSearchParams({
+          access_token: issued.access_token,
+          refresh_token: issued.refresh_token,
+          expires_in: String(issued.expires_in),
+          expires_at: String(issued.expires_at),
+          token_type: "bearer",
+          provider_token: randomUUID(),
+        }).toString();
+      }
+
+      res.writeHead(302, { location: target.toString(), "cache-control": "no-store" });
+      return res.end();
+    }
+
     /* ---------------------------------------------------------- auth ---- */
+    if (url.pathname === "/auth/v1/token" && url.searchParams.get("grant_type") === "pkce") {
+      /*
+       * Single-use, and that is the assertion the harness cares about: a
+       * journey that exchanged the same code twice would be a journey with two
+       * sign-ins in it, which is exactly the sort of duplicate this work is
+       * meant to rule out.
+       */
+      const code = body?.auth_code;
+      const issued = code ? oauthCodes.get(code) : undefined;
+      if (!issued)
+        return send(400, { error: "invalid_grant", message: "unknown authorisation code" });
+      oauthCodes.delete(code);
+      const id = idForEmail(issued.email);
+      if (!(tables.profiles ?? []).some((row) => String(row.id) === id)) {
+        seedAccount(tables, id, issued.email);
+      }
+      return send(200, session(id, issued.email));
+    }
+
     if (
       url.pathname === "/auth/v1/token" ||
       url.pathname === "/auth/v1/signup" ||
@@ -256,7 +344,7 @@ export function startStubSupabase({ port = 0 } = {}) {
     if (url.pathname === "/auth/v1/logout") return send(204);
     if (url.pathname === "/auth/v1/settings")
       return send(200, {
-        external: { email: true },
+        external: { email: true, google: true },
         disable_signup: false,
         mailer_autoconfirm: true,
       });

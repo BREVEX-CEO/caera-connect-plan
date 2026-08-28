@@ -237,7 +237,9 @@ async function runGraphicsPath(browser, base) {
   try {
     outcome = await page.evaluate(async (bundleUrl) => {
       const gpu = navigator.gpu;
-      const adapter = gpu ? await gpu.requestAdapter({ powerPreference: "high-performance" }) : null;
+      const adapter = gpu
+        ? await gpu.requestAdapter({ powerPreference: "high-performance" })
+        : null;
       const device = adapter ? await adapter.requestDevice() : null;
 
       /*
@@ -258,12 +260,24 @@ async function runGraphicsPath(browser, base) {
             }`,
         });
         const bytes = new Float32Array(input).byteLength;
-        const src = device.createBuffer({ size: bytes, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST });
-        const dst = device.createBuffer({ size: bytes, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC });
-        const read = device.createBuffer({ size: bytes, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+        const src = device.createBuffer({
+          size: bytes,
+          usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        });
+        const dst = device.createBuffer({
+          size: bytes,
+          usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+        });
+        const read = device.createBuffer({
+          size: bytes,
+          usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+        });
         device.queue.writeBuffer(src, 0, new Float32Array(input));
 
-        const pipeline = device.createComputePipeline({ layout: "auto", compute: { module, entryPoint: "main" } });
+        const pipeline = device.createComputePipeline({
+          layout: "auto",
+          compute: { module, entryPoint: "main" },
+        });
         const bindGroup = device.createBindGroup({
           layout: pipeline.getBindGroupLayout(0),
           entries: [
@@ -305,7 +319,9 @@ async function runGraphicsPath(browser, base) {
 
       return {
         adapter: !!adapter,
-        adapterInfo: adapter?.info?.vendor ? `${adapter.info.vendor} ${adapter.info.architecture ?? ""}`.trim() : "adapter granted",
+        adapterInfo: adapter?.info?.vendor
+          ? `${adapter.info.vendor} ${adapter.info.architecture ?? ""}`.trim()
+          : "adapter granted",
         device: !!device,
         computed,
         expected,
@@ -361,7 +377,14 @@ async function main() {
   );
   execFileSync(
     "node_modules/.bin/esbuild",
-    [ENTRY, "--bundle", "--format=esm", "--platform=browser", "--loader:.wasm=file", `--outfile=${BUNDLE}`],
+    [
+      ENTRY,
+      "--bundle",
+      "--format=esm",
+      "--platform=browser",
+      "--loader:.wasm=file",
+      `--outfile=${BUNDLE}`,
+    ],
     { stdio: "pipe" },
   );
   rmSync(ENTRY, { force: true });
@@ -389,7 +412,11 @@ async function main() {
     if (mt) {
       check(mt.crossOriginIsolated, "the page is cross-origin isolated");
       check(mt.sharedArrayBuffer, "SharedArrayBuffer is available");
-      check(mt.multithreaded === true, "the runtime reports MULTI-THREADED", String(mt.multithreaded));
+      check(
+        mt.multithreaded === true,
+        "the runtime reports MULTI-THREADED",
+        String(mt.multithreaded),
+      );
       check(mt.threads > 1, "on more than one thread", `${mt.threads} threads`);
       check(mt.loadMs > 0, "the model loaded", `${mt.loadMs}ms`);
       for (const c of mt.completions) {
@@ -475,7 +502,11 @@ async function main() {
        * trusted to say which engine served the answer.
        */
       for (const c of asked.completions) {
-        check(c.got === c.expected, `and answers correctly regardless`, `got ${JSON.stringify(c.got)}`);
+        check(
+          c.got === c.expected,
+          `and answers correctly regardless`,
+          `got ${JSON.stringify(c.got)}`,
+        );
       }
     }
 
@@ -515,7 +546,6 @@ async function main() {
         gpu.probeSummary,
       );
     }
-
   } finally {
     await browser.close();
     server.close();

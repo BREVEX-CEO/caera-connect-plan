@@ -60,6 +60,14 @@ export async function startServedBuild({
     VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_ocade_local_audit_key",
     SUPABASE_URL: supabase.url,
     SUPABASE_PUBLISHABLE_KEY: "sb_publishable_ocade_local_audit_key",
+    /*
+     * Provider readiness is a PUBLIC build flag, not a credential — it decides
+     * whether a sign-in button is offered, and production is fail-closed so
+     * nobody is sent into a provider the live project would reject. The
+     * loopback fixture does model a redirect-based provider, so the flag is
+     * true here; no secret is involved and none is needed.
+     */
+    VITE_AUTH_GOOGLE_ENABLED: "true",
   };
 
   const stopAll = () => {
