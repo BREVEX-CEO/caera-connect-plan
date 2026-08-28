@@ -58,6 +58,151 @@ interface ModelMeta {
   sha256?: string;
 }
 
+/**
+ * A file kept open across a whole transfer, made durable at chosen moments.
+ *
+ * WHY THIS REPLACED open/write/close PER FLUSH. The previous `append()` did
+ * exactly that, every four megabytes: `createWritable()` opens an OPFS swap
+ * file, `close()` commits it. Across one install of a gigabyte-class engine
+ * that is roughly 270 open-and-commit cycles, each of which asks the browser to
+ * reconcile a swap file against a growing original, all on the main thread and
+ * all while an animation is supposed to be running.
+ *
+ * Here the handle is opened once. `flush()` is the DURABILITY CHECKPOINT and
+ * the caller chooses when to take one, because only the caller knows when it
+ * has reached a point worth resuming from — a completed chunk whose digest
+ * checkpoint has also been recorded. Writing continuously and committing
+ * deliberately is the whole difference.
+ *
+ * `append()` is kept for the small number of callers that write once, and for
+ * the tests that were written against it.
+ */
+export interface ModelFileWriter {
+  write(chunk: Uint8Array, at: number): Promise<boolean>;
+  flush(): Promise<boolean>;
+  close(): Promise<void>;
+}
+
+/**
+ * A writer over `createWritable`, batching commits into checkpoints.
+ *
+ * `keepExistingData: true` is what makes a resume possible: without it the
+ * swap file starts empty and committing would truncate everything already
+ * downloaded. Positioned writes mean chunks may arrive in any order, which is
+ * exactly what a parallel ranged transfer produces.
+ */
+class WritableFileWriter implements ModelFileWriter {
+  private writable: FileSystemWritableFileStream | null = null;
+  private dirty = false;
+
+  constructor(private readonly handle: FileSystemFileHandle) {}
+
+  private async open(): Promise<FileSystemWritableFileStream | null> {
+    if (this.writable) return this.writable;
+    try {
+      this.writable = await this.handle.createWritable({ keepExistingData: true });
+      return this.writable;
+    } catch {
+      return null;
+    }
+  }
+
+  async write(chunk: Uint8Array, at: number): Promise<boolean> {
+    const writable = await this.open();
+    if (!writable) return false;
+    try {
+      await writable.write({ type: "write", position: at, data: chunk });
+      this.dirty = true;
+      return true;
+    } catch {
+      /*
+       * A failed write is usually a full quota. The handle is dropped rather
+       * than reused: continuing to write into a stream the browser has already
+       * rejected is how a file ends up with a hole in the middle that no digest
+       * check will explain.
+       */
+      await this.discard();
+      return false;
+    }
+  }
+
+  async flush(): Promise<boolean> {
+    if (!this.writable || !this.dirty) return true;
+    const writable = this.writable;
+    this.writable = null;
+    this.dirty = false;
+    try {
+      await writable.close();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async close(): Promise<void> {
+    await this.flush();
+  }
+
+  private async discard(): Promise<void> {
+    const writable = this.writable;
+    this.writable = null;
+    this.dirty = false;
+    try {
+      await writable?.abort();
+    } catch {
+      /* Already gone. */
+    }
+  }
+}
+
+/**
+ * A writer over `FileSystemSyncAccessHandle`, which is the fast path.
+ *
+ * Sync access handles write IN PLACE — no swap file, no commit-on-close — and
+ * expose an explicit `flush()`. That is precisely the shape this transfer
+ * wants, and it is the reason the installer runs inside a worker: the API is
+ * only available there.
+ *
+ * The handle is exclusive for as long as it is held, which is also why exactly
+ * one tab may install at a time. That constraint is enforced a level up by the
+ * installation authority's cross-tab lock rather than discovered here as a
+ * thrown exception.
+ */
+class SyncAccessWriter implements ModelFileWriter {
+  constructor(private readonly handle: FileSystemSyncAccessHandle) {}
+
+  async write(chunk: Uint8Array, at: number): Promise<boolean> {
+    try {
+      this.handle.write(chunk as unknown as BufferSource, { at });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async flush(): Promise<boolean> {
+    try {
+      this.handle.flush();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async close(): Promise<void> {
+    try {
+      this.handle.flush();
+    } catch {
+      /* A handle that cannot flush still has to be released. */
+    }
+    try {
+      this.handle.close();
+    } catch {
+      /* Already closed. */
+    }
+  }
+}
+
 export class ModelStore {
   static isSupported(): boolean {
     return opfsAvailable();
@@ -139,6 +284,99 @@ export class ModelStore {
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Open a file for continuous writing.
+   *
+   * Prefers a sync access handle — in place, explicitly flushable, and only
+   * available inside a worker — and falls back to a checkpointed writable
+   * everywhere else. Returns null when there is no storage to write to, which
+   * the caller reports rather than working around.
+   */
+  async openWriter(key: string): Promise<ModelFileWriter | null> {
+    const handle = await this.fileHandle(key, true);
+    if (!handle) return null;
+
+    const createSync = (
+      handle as FileSystemFileHandle & {
+        createSyncAccessHandle?: () => Promise<FileSystemSyncAccessHandle>;
+      }
+    ).createSyncAccessHandle;
+    if (typeof createSync === "function") {
+      try {
+        return new SyncAccessWriter(await createSync.call(handle));
+      } catch {
+        /*
+         * Unavailable on this thread, or another context holds it. The
+         * writable path below is correct everywhere, just slower — a busy
+         * handle must not turn into a failed install.
+         */
+      }
+    }
+    return new WritableFileWriter(handle);
+  }
+
+  /**
+   * Move a file to a different key, without reading it into memory.
+   *
+   * `FileSystemFileHandle.move()` where the browser has it — a metadata
+   * operation on a gigabyte — and a streamed copy where it does not. The copy
+   * reads and writes in bounded pieces for the reason everything else here
+   * does: a whole-file `arrayBuffer()` on a phone kills the tab.
+   *
+   * The source is removed only after the destination is complete, so an
+   * interruption leaves the original in place rather than nothing at all.
+   */
+  async movePath(from: string, to: string): Promise<boolean> {
+    const source = await this.fileHandle(from, false);
+    if (!source) return false;
+
+    const movable = source as FileSystemFileHandle & {
+      move?: (parent: FileSystemDirectoryHandle, name?: string) => Promise<void>;
+    };
+    const parts = to.split("/").filter(Boolean);
+    const name = parts.pop();
+    if (!name) return false;
+
+    if (typeof movable.move === "function") {
+      try {
+        const root = await this.root();
+        if (root) {
+          let dir = root;
+          for (const part of parts) dir = await dir.getDirectoryHandle(part, { create: true });
+          await movable.move(dir, name);
+          return true;
+        }
+      } catch {
+        /* Fall through to the copy, which works on every engine. */
+      }
+    }
+
+    const writer = await this.openWriter(to);
+    if (!writer) return false;
+    try {
+      const file = await source.getFile();
+      const reader = file.stream().getReader();
+      let at = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (!(await writer.write(value, at))) {
+          await writer.close();
+          await this.remove(to);
+          return false;
+        }
+        at += value.length;
+      }
+      await writer.close();
+    } catch {
+      await writer.close();
+      await this.remove(to);
+      return false;
+    }
+    await this.remove(from);
+    return true;
   }
 
   /** Read the whole model back, for handing to an engine. */
