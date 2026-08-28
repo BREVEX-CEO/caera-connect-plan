@@ -12,7 +12,7 @@ import struct
 from array import array
 
 # GGUF metadata value types.
-U32, I32, F32_T, STR, ARR, U64 = 4, 5, 6, 8, 9, 10
+U32, I32, F32_T, BOOL, STR, ARR, U64 = 4, 5, 6, 7, 8, 9, 10
 GGML_F32 = 0
 ALIGNMENT = 32
 
@@ -42,32 +42,67 @@ def string(key: str, value: str) -> bytes:
     return kv(key, STR, s(value))
 
 
-def byte_fallback_vocabulary() -> tuple[list[str], list[float], list[int]]:
-    """
-    SentencePiece-shaped: three specials, then every byte as a fallback piece.
+def bool_kv(key: str, value: bool) -> bytes:
+    return kv(key, BOOL, struct.pack("<?", value))
 
-    The bytes are not optional decoration. llama.cpp resolves the newline
-    through `byte_to_token('\\n')` while building an SPM vocabulary, and a
-    vocabulary without <0x0A> aborts the load with `_Map_base::at`.
 
-    token_type: 2 = UNKNOWN, 3 = CONTROL, 6 = BYTE.
+def byte_level_vocabulary() -> tuple[list[str], list[int]]:
     """
-    tokens = ["<unk>", "<s>", "</s>"] + [f"<0x{b:02X}>" for b in range(256)]
-    scores = [0.0] * len(tokens)
-    types = [2, 3, 3] + [6] * 256
-    return tokens, scores, types
+    Three specials, then every byte, in GPT-2's byte-to-unicode encoding.
+
+    WHY BYTE-LEVEL AND NOT SENTENCEPIECE, WHICH THIS USED TO BE. The fixtures
+    exist so a runtime's OUTPUT can be checked, and that only works if the
+    prompt a test writes is the token sequence the model was trained on. A
+    SentencePiece vocabulary breaks that: llama.cpp escapes every space to
+    U+2581 and prepends one more before tokenising, so "capital of france is "
+    arrived as three byte tokens per space and the trained model was being
+    asked a question it had never seen. Feeding hand-built ids around the
+    tokenizer hid the problem in one harness and was impossible in another —
+    wllama's completion API takes text and nothing else.
+
+    Byte-level BPE has no such rewriting. Every byte is its own piece, so
+    token id 3 + b is byte b for every b, and text tokenises to exactly its
+    bytes with no merges to apply. It is also the family the production model
+    uses, so the fixtures exercise the same tokenizer shape the product does.
+
+    The mapping is GPT-2's: printable ASCII and two Latin-1 runs keep their
+    own code points, and the remaining 68 bytes are lifted into U+0100 and
+    upwards so that no piece is whitespace or a control character.
+    """
+    printable = list(range(0x21, 0x7F)) + list(range(0xA1, 0xAD)) + list(range(0xAE, 0x100))
+    codes = printable[:]
+    spare = 0
+    for byte in range(256):
+        if byte not in printable:
+            printable.append(byte)
+            codes.append(0x100 + spare)
+            spare += 1
+    encoding = {byte: chr(code) for byte, code in zip(printable, codes)}
+
+    tokens = ["<unk>", "<s>", "</s>"] + [encoding[b] for b in range(256)]
+    # token_type: 2 = UNKNOWN, 3 = CONTROL, 1 = NORMAL.
+    types = [2, 3, 3] + [1] * 256
+    return tokens, types
 
 
 def tokenizer_metadata() -> list[bytes]:
-    tokens, scores, types = byte_fallback_vocabulary()
+    tokens, types = byte_level_vocabulary()
     return [
-        string("tokenizer.ggml.model", "llama"),
+        string("tokenizer.ggml.model", "gpt2"),
+        string("tokenizer.ggml.pre", "default"),
         kv("tokenizer.ggml.tokens", ARR, arr(STR, [s(t) for t in tokens])),
-        kv("tokenizer.ggml.scores", ARR, arr(F32_T, [struct.pack("<f", x) for x in scores])),
         kv("tokenizer.ggml.token_type", ARR, arr(I32, [struct.pack("<i", x) for x in types])),
+        # Deliberately empty. Merges are what turn byte pieces into longer
+        # ones; with none, every piece stays a single byte, which is the
+        # property the fixtures rely on.
+        kv("tokenizer.ggml.merges", ARR, arr(STR, [])),
         u32("tokenizer.ggml.bos_token_id", 1),
         u32("tokenizer.ggml.eos_token_id", 2),
         u32("tokenizer.ggml.unknown_token_id", 0),
+        # No sentinel is prepended: the fixtures were trained on bare bytes,
+        # and a BOS the training never saw would change the first prediction.
+        bool_kv("tokenizer.ggml.add_bos_token", False),
+        bool_kv("tokenizer.ggml.add_eos_token", False),
     ]
 
 

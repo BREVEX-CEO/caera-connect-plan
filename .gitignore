@@ -112,3 +112,7 @@ public/models/*.gguf
 
 release/launch-proof-logs/
 .gate-logs
+
+# The browser-engine harness compiles product code into a bundle and removes
+# it again; a crashed run must not leave one to be committed.
+scripts/.engine-probe.*

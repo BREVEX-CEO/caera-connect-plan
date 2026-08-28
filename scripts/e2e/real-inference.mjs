@@ -13,7 +13,7 @@
  * through the proxy), and a test that needs a several-hundred-megabyte download
  * is a test that will be deleted the first time CI is slow. So the weights are
  * constructed — scripts/fixtures/make-tiny-gguf.py writes a correct GGUF v3
- * holding a one-layer llama with a byte-fallback vocabulary.
+ * holding a one-layer llama over a byte-level vocabulary.
  *
  * TWO MODELS, TWO DIFFERENT QUESTIONS.
  *
@@ -160,20 +160,36 @@ try {
   await model.dispose();
 
   // ---- 6. Correctness, against a model that was trained -------------------
-  // Token ids are built by hand rather than through `model.tokenize`. The
-  // vocabulary is three specials followed by all 256 bytes, so byte b is id
-  // 3 + b, and going direct keeps SentencePiece's whitespace handling out of
-  // an assertion that is about the RUNTIME, not about the tokenizer.
-  const BYTE_OFFSET = 3;
-  const encode = (text) => [...Buffer.from(text, "utf8")].map((b) => b + BYTE_OFFSET);
-  const decode = (ids) => Buffer.from(ids.map((t) => t - BYTE_OFFSET)).toString("utf8");
-
   const trainedPath = "scripts/fixtures/tiny-llama-trained.gguf";
   check("the trained fixture is committed to the repo", existsSync(trainedPath), trainedPath);
 
   const trained = await llama.loadModel({ modelPath: trainedPath });
   const trainedContext = await trained.createContext({ contextSize: trained.trainContextSize });
   const trainedSequence = trainedContext.getSequence();
+
+  /*
+   * THE MODEL'S OWN TOKENIZER, NOT A HAND-BUILT ID LIST.
+   *
+   * This used to encode prompts by adding 3 to each byte, on the grounds that
+   * the vocabulary is three specials followed by all 256 bytes and that going
+   * direct kept SentencePiece's whitespace rules out of a runtime assertion.
+   * It also kept a real defect out of sight: under that vocabulary llama.cpp
+   * rewrote every space to U+2581 before tokenising, so any caller who passed
+   * TEXT — which is all the browser runtime's completion API accepts — asked
+   * the model a question it had never been trained on and got a wrong answer.
+   *
+   * The fixture is byte-level now, so text tokenises to exactly its bytes and
+   * the shortcut is unnecessary. The identity it relied on is asserted here
+   * instead of assumed, and every consumer prompts the way the product does.
+   */
+  const BYTE_OFFSET = 3;
+  const identity = [...Buffer.from("capital of france is ", "utf8")].map((b) => b + BYTE_OFFSET);
+  const tokenised = [...trained.tokenize("capital of france is ")];
+  check(
+    "text tokenises to exactly its bytes, with no prefix and no escaping",
+    JSON.stringify(tokenised) === JSON.stringify(identity),
+    `${tokenised.length} tokens`,
+  );
 
   for (const [prompt, expected] of [
     ["capital of france is ", "paris\n"],
@@ -182,11 +198,13 @@ try {
   ]) {
     await trainedSequence.clearHistory();
     const produced = [];
-    for await (const token of trainedSequence.evaluate(encode(prompt), { temperature: 0 })) {
+    for await (const token of trainedSequence.evaluate([...trained.tokenize(prompt)], {
+      temperature: 0,
+    })) {
       produced.push(token);
       if (produced.length >= expected.length) break;
     }
-    const got = decode(produced);
+    const got = trained.detokenize(produced);
     check(
       `the trained model completes ${JSON.stringify(prompt)} correctly`,
       got === expected,

@@ -235,7 +235,7 @@ export class BrowserWasmAdapter implements BrainAdapter {
    * Passing 1 is not "multithreaded with one thread": wllama hands 0 to its
    * worker at that point, which disables pthreads outright.
    */
-  private loadParams(): { n_threads: number } {
+  private loadParams(): { n_threads: number; n_gpu_layers: number } {
     const plan = planThreads({
       ...readThreadSignals(),
       // The ladder decides whether this rung is the threaded one at all; asking
@@ -243,7 +243,30 @@ export class BrowserWasmAdapter implements BrainAdapter {
       // installation authority already made.
       isolated: this.preferThreads ? readThreadSignals().isolated : false,
     });
-    return { n_threads: plan.threads };
+    return {
+      n_threads: plan.threads,
+      /*
+       * ZERO, EXPLICITLY, AND IT IS NOT REDUNDANT.
+       *
+       * wllama defaults `n_gpu_layers` to 99999 — every layer on the graphics
+       * card. It happens to be inert today: `scripts/e2e/browser-engine-modes.mjs`
+       * asks this exact binary for 99 layers on a machine whose browser grants
+       * a working WebGPU device, and llama.cpp reports one registered backend
+       * and assigns every layer to the processor. The unified build this
+       * deployment bundles is processor-only, whatever it is asked for.
+       *
+       * Leaving the default in place would make that an accident rather than a
+       * decision. A future binary that did register a graphics backend would
+       * silently start offloading here — on the rung the authority chose
+       * PRECISELY BECAUSE the graphics rung was refused or had failed, and
+       * alongside the graphics engine when it had not. Two engines competing
+       * for one card is the defect `shared-browser-engine.ts` exists to
+       * prevent, arrived at through a library default nobody set.
+       *
+       * This rung is the compatibility engine. It runs on the processor.
+       */
+      n_gpu_layers: 0,
+    };
   }
 
   /**
