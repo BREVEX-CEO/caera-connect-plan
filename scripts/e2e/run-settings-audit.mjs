@@ -8,8 +8,41 @@
  * that have nothing to do with what it tests.
  */
 import { spawn } from "node:child_process";
+import { createServer } from "node:http";
 import { setTimeout as sleep } from "node:timers/promises";
 import { startStubSupabase } from "../fixtures/stub-supabase.mjs";
+
+/**
+ * Refuse to start on top of somebody else's server.
+ *
+ * WHY THIS IS WORTH A PRE-FLIGHT CHECK. Another harness already holding 8080
+ * does not stop this one: the dev server fails to bind, and every stage below
+ * then drives whatever IS listening — or nothing. That produced a run reporting
+ * a hundred route failures and one settings section rendering no controls, none
+ * of which were true, and all of which read exactly like a regression.
+ *
+ * A test suite that can report a confident wrong answer is worse than one that
+ * refuses to run, so this refuses to run.
+ */
+async function requireFreePort(port, what) {
+  const free = await new Promise((resolve) => {
+    const probe = createServer();
+    probe.once("error", () => resolve(false));
+    probe.once("listening", () => probe.close(() => resolve(true)));
+    probe.listen(port, "127.0.0.1");
+  });
+  if (!free) {
+    console.error(
+      `port ${port} is already in use, and this audit needs it for ${what}.\n` +
+        "Another harness is probably still running. Stop it and try again — " +
+        "auditing against a server this run did not start proves nothing.",
+    );
+    process.exit(1);
+  }
+}
+
+await requireFreePort(8080, "the dev server");
+await requireFreePort(54321, "the Supabase fixture");
 
 const children = [];
 function run(command, args, env = {}) {
