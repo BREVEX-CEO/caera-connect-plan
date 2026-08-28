@@ -2,9 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { installationAuthority } from "@/lib/brain/installation-browser";
 import { useInstallation } from "@/lib/brain/use-installation";
-import { modelVault } from "@/lib/brain/model-vault";
 
 /**
  * Remove — or put back — the intelligence OCADE stores on this device.
@@ -60,6 +58,13 @@ export function LocalIntelligenceControl({
    */
   const refresh = useCallback(async () => {
     try {
+      /*
+       * Imported here rather than at the top of the file. This control sits in
+       * the landing page's footer, and a static import would pull the vault,
+       * the storage layer and the model catalogue into the entry bundle for
+       * every visitor -- to render one line of text most of them will not read.
+       */
+      const { modelVault } = await import("@/lib/brain/model-vault");
       const versions = await modelVault.listVersions();
       setInstalledBytes(versions.reduce((total, version) => total + version.bytes, 0));
     } catch {
@@ -74,6 +79,7 @@ export function LocalIntelligenceControl({
   const remove = useCallback(async () => {
     setBusy(true);
     try {
+      const { installationAuthority } = await import("@/lib/brain/installation-browser");
       const result = await installationAuthority().uninstall();
       await refresh();
       setConfirming(false);
@@ -91,6 +97,7 @@ export function LocalIntelligenceControl({
   const reinstall = useCallback(async () => {
     setBusy(true);
     try {
+      const { installationAuthority } = await import("@/lib/brain/installation-browser");
       void installationAuthority().reinstall();
       toast.info("Preparing OCADE on this device…");
     } finally {

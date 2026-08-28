@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useInstallation } from "@/lib/brain/use-installation";
-import { isErrorStage, type InstallRemedy } from "@/lib/brain/installation-authority";
+import { isErrorStage } from "@/lib/brain/installation-state";
+import type { InstallRemedy } from "@/lib/brain/installation-authority";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

@@ -6,7 +6,6 @@ import { StatusBadge } from "@/components/shell/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { modelStore, type StorageReport } from "@/lib/brain/model-store";
 import { clearBenchmarks } from "@/lib/brain/tier-benchmark-store";
-import { installationAuthority } from "@/lib/brain/installation-browser";
 
 /**
  * What OCADE is keeping in this browser, and the controls to change it.
@@ -92,6 +91,7 @@ export function BrowserStoragePanel() {
        * pointers together, and records that the removal was deliberate so the
        * automatic preparation on the next visit does not quietly undo it.
        */
+      const { installationAuthority } = await import("@/lib/brain/installation-browser");
       const { removed } = await installationAuthority().uninstall();
       // Measurements describe engines that are no longer here, so they go too.
       clearBenchmarks();

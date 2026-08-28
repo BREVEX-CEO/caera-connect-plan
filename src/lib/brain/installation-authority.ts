@@ -62,6 +62,7 @@ import {
 } from "./model-transfer";
 import { ModelVault, type ModelFileWriter, type VersionMeta } from "./model-vault";
 import { recordInstallEvent, type InstallTelemetry } from "./install-telemetry";
+import { publishInstallState } from "./installation-state";
 
 /**
  * Every state the installation can be in.
@@ -320,6 +321,13 @@ export class ModelInstallationAuthority {
     }
     this.state = next;
     for (const listener of this.listeners) listener(next);
+    /*
+     * Also into the light state module, which is the only thing components
+     * import synchronously. Publishing to both keeps `subscribe()` usable by
+     * anything holding an authority reference while first paint stays free of
+     * the transfer engine, the digest and the catalogue.
+     */
+    publishInstallState(next);
     this.deps.broadcast?.(next);
   }
 
@@ -1005,73 +1013,4 @@ export function checkpointFrom(
     chunkBytes: meta.chunkBytes,
     totalBytes,
   };
-}
-
-/**
- * One short sentence for a person, derived from the state.
- *
- * PRODUCT LANGUAGE ONLY. Never a model name, a vendor, a file name, a
- * quantisation, a parameter count, a download size, or the words WebGPU or
- * WebAssembly. Somebody meeting OCADE for the first time is not debugging a
- * runtime, and a first-run screen that names a third party's model is telling
- * the user something about OCADE that OCADE does not want to say.
- */
-export function describeInstall(state: InstallState): string {
-  if (state.problem && isErrorStage(state.stage)) return state.problem;
-  switch (state.stage) {
-    case "idle":
-      return "Starting OCADE…";
-    case "checking_device":
-      return "Preparing this device…";
-    case "checking_storage":
-      return "Preparing this device…";
-    case "preparing_runtime":
-      return "Optimising for this device…";
-    case "waiting_for_source":
-      return "Preparing OCADE…";
-    case "downloading": {
-      const pct = state.fraction === null ? null : Math.round(state.fraction * 100);
-      return pct === null ? "Preparing OCADE…" : `Preparing OCADE — ${pct}%`;
-    }
-    case "paused":
-      return state.detail ?? "Preparation paused.";
-    case "retrying":
-      return "Reconnecting — OCADE will carry on from where it stopped…";
-    case "verifying":
-      return "Securing local intelligence…";
-    case "loading":
-      return "Starting OCADE…";
-    case "warming":
-      return "Almost ready…";
-    case "ready":
-      return "OCADE is ready.";
-    case "repairing":
-      return "Checking this device…";
-    case "insufficient_storage":
-      return "OCADE needs more local storage on this device.";
-    case "recoverable_error":
-      return state.problem ?? "OCADE could not finish preparing this device.";
-    case "fatal_error":
-      return state.problem ?? "OCADE cannot run its intelligence on this device.";
-  }
-}
-
-export function isErrorStage(stage: InstallStage): boolean {
-  return stage === "insufficient_storage" || stage === "recoverable_error" || stage === "fatal_error";
-}
-
-/** True while setup is genuinely in progress — the setup screen's condition. */
-export function isPreparing(stage: InstallStage): boolean {
-  return (
-    stage === "checking_device" ||
-    stage === "checking_storage" ||
-    stage === "preparing_runtime" ||
-    stage === "waiting_for_source" ||
-    stage === "downloading" ||
-    stage === "retrying" ||
-    stage === "verifying" ||
-    stage === "loading" ||
-    stage === "warming" ||
-    stage === "repairing"
-  );
 }

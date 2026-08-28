@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describeInstall, isPreparing } from "../installation-state";
 import {
   ModelInstallationAuthority,
-  describeInstall,
-  isPreparing,
   checkpointFrom,
   type AuthorityDeps,
   type CapabilityRung,

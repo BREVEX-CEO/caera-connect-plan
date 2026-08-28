@@ -3,9 +3,9 @@
  *
  * TWO HOOKS, AND THE SPLIT IS DELIBERATE.
  *
- * `useInstallationState` only WATCHES. Any number of components may use it,
- * on any route, and none of them causes anything to happen. That is what makes
- * it safe to put a progress line beside a composer, a badge in a header and a
+ * `useInstallationState` only WATCHES. Any number of components may use it, on
+ * any route, and none of them causes anything to happen. That is what makes it
+ * safe to put a progress line beside a composer, a badge in a header and a
  * full-screen setup experience on a route all at once.
  *
  * `useInstallationBootstrap` STARTS the install, and is mounted in exactly one
@@ -17,46 +17,56 @@
  * composer's first keystroke called `warm()`. That made the moment a person
  * started typing the moment a gigabyte started moving — the worst possible
  * time, because they are now waiting mid-sentence for something that could have
- * begun while they read the landing page. Watching and starting are different
- * responsibilities and only one of them belongs on a screen.
+ * begun while they read the landing page.
+ *
+ * NOTHING HERE IMPORTS THE INSTALLER STATICALLY. Watching reads
+ * `installation-state.ts`, which has no dependencies; the machinery — transfer
+ * engine, streaming digest, vault, capability probes, catalogue — is loaded on
+ * an idle callback. Statically importing it put 50 KiB of installer into the
+ * entry bundle and the production budget gate refused the build, which was the
+ * right answer: first paint is a landing page and none of that is needed to
+ * draw one.
  */
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
-import { installationAuthority } from "./installation-browser";
 import {
+  IDLE_INSTALL_STATE,
   describeInstall,
+  installState,
   isPreparing,
-  type InstallRemedy,
-  type InstallState,
+  subscribeToInstallState,
+} from "./installation-state";
+/*
+ * TYPES ONLY. A value import here would pull the authority -- and with it the
+ * transfer engine, the digest, the vault and the catalogue -- into the entry
+ * bundle, which is what the split above exists to prevent. Types are erased, so
+ * this costs nothing at runtime.
+ */
+import type {
+  InstallRemedy,
+  InstallState,
+  ModelInstallationAuthority,
 } from "./installation-authority";
 
-/** Watch the installation. Causes nothing to happen. */
+/** The authority, loaded on demand. Resolved once and shared thereafter. */
+function authority(): Promise<ModelInstallationAuthority> {
+  return import("./installation-browser").then((module) => module.installationAuthority());
+}
+
+/** Watch the installation. Causes nothing to happen, and loads nothing. */
 export function useInstallationState(): InstallState {
-  const authority = installationAuthority();
   return useSyncExternalStore(
-    useCallback((listener) => authority.subscribe(listener), [authority]),
-    () => authority.snapshot(),
+    subscribeToInstallState,
+    installState,
     /*
      * The server snapshot. Rendered on the server there is no browser, no
      * storage and no engine, so the honest answer is "nothing has started" —
-     * and it must be a STABLE reference, because returning a fresh object here
-     * makes React re-render forever.
+     * and it must be a STABLE reference, because a fresh object here makes
+     * React re-render forever.
      */
-    () => SERVER_STATE,
+    () => IDLE_INSTALL_STATE,
   );
 }
-
-const SERVER_STATE: InstallState = {
-  stage: "idle",
-  fraction: null,
-  etaSeconds: null,
-  detail: null,
-  problem: null,
-  remedies: [],
-  observing: false,
-  retries: 0,
-  path: null,
-};
 
 export interface InstallationControls {
   state: InstallState;
@@ -70,6 +80,8 @@ export interface InstallationControls {
   pause: () => void;
   /** Remove OCADE's local intelligence from this device. */
   uninstall: () => Promise<void>;
+  /** Put it back, because the user asked. */
+  reinstall: () => void;
   /** Re-check what is on disk and repair it. */
   repair: () => void;
   remedies: InstallRemedy[];
@@ -77,7 +89,6 @@ export interface InstallationControls {
 
 /** Watch, plus the controls a setup or settings screen needs. */
 export function useInstallation(): InstallationControls {
-  const authority = installationAuthority();
   const state = useInstallationState();
 
   return {
@@ -85,12 +96,13 @@ export function useInstallation(): InstallationControls {
     line: describeInstall(state),
     preparing: isPreparing(state.stage),
     ready: state.stage === "ready",
-    retry: useCallback(() => void authority.retry(), [authority]),
-    pause: useCallback(() => authority.pause(), [authority]),
+    retry: useCallback(() => void authority().then((a) => a.retry()), []),
+    pause: useCallback(() => void authority().then((a) => a.pause()), []),
     uninstall: useCallback(async () => {
-      await authority.uninstall();
-    }, [authority]),
-    repair: useCallback(() => void authority.repair(), [authority]),
+      await (await authority()).uninstall();
+    }, []),
+    reinstall: useCallback(() => void authority().then((a) => a.reinstall()), []),
+    repair: useCallback(() => void authority().then((a) => a.repair()), []),
     remedies: state.remedies,
   };
 }
@@ -103,9 +115,11 @@ export function useInstallation(): InstallationControls {
  * minutes later should find the engine already there.
  *
  * DEFERRED BY ONE IDLE CALLBACK, and only one. First paint must not compete
- * with a capability probe that touches WebGPU and storage; after that, the
+ * with loading an installer and probing WebGPU and storage; after that, the
  * transfer is network and disk work that has no business waiting for anything.
- * The deferral is milliseconds, not a policy.
+ * The deferral is milliseconds, not a policy — and the timeout matters, because
+ * on a busy page idle may never arrive and "as early as technically possible"
+ * cannot mean "eventually, maybe".
  *
  * IT DOES NOT WAIT FOR WI-FI. Cellular is allowed, deliberately: the local
  * engine is what makes OCADE work offline later, so postponing it on a mobile
@@ -125,7 +139,9 @@ export function useInstallationBootstrap(options?: { enabled?: boolean }): void 
       if (cancelled) return;
       // Fire and forget. A failed install is a state on the authority, never a
       // rejected promise nobody is holding.
-      void installationAuthority().install({ reason: "app_bootstrap" });
+      void authority().then((a) => {
+        if (!cancelled) void a.install({ reason: "app_bootstrap" });
+      });
     };
 
     const idle = (
@@ -135,11 +151,8 @@ export function useInstallationBootstrap(options?: { enabled?: boolean }): void 
       }
     ).requestIdleCallback;
 
-    let handle: number;
     if (typeof idle === "function") {
-      // The timeout matters: on a busy page idle may never come, and "as early
-      // as technically possible" cannot mean "eventually, maybe".
-      handle = idle(start, { timeout: 1500 });
+      const handle = idle(start, { timeout: 1500 });
       return () => {
         cancelled = true;
         (window as Window & { cancelIdleCallback?: (h: number) => void }).cancelIdleCallback?.(
@@ -147,7 +160,7 @@ export function useInstallationBootstrap(options?: { enabled?: boolean }): void 
         );
       };
     }
-    handle = window.setTimeout(start, 200);
+    const handle = window.setTimeout(start, 200);
     return () => {
       cancelled = true;
       window.clearTimeout(handle);
@@ -167,10 +180,11 @@ export function useInstallationBootstrap(options?: { enabled?: boolean }): void 
     if (typeof window === "undefined") return;
 
     const resume = () => {
-      const authority = installationAuthority();
-      if (authority.isReady()) return;
+      if (installState().stage === "ready") return;
       if (typeof navigator !== "undefined" && navigator.onLine === false) return;
-      void authority.install({ reason: "resumed" });
+      void authority().then((a) => {
+        if (!a.isReady()) void a.install({ reason: "resumed" });
+      });
     };
 
     const onVisibility = () => {

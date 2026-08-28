@@ -93,6 +93,40 @@ function lockedAssetResponse(
  * escape the lock. No authenticated route, application HTML or hashed bundle
  * may fall through to Nitro before launch.
  */
+
+/**
+ * Cache headers for a self-hosted model artifact.
+ *
+ * WHY THIS IS WORTH A SPECIAL CASE. These files are the largest thing OCADE
+ * ever serves and the one a first run waits on, so every re-fetch of one is a
+ * visitor waiting again for bytes they already paid for. They are also the
+ * safest possible thing to cache forever: the path carries the version, the
+ * bytes are content-addressed by a committed digest, and a different engine is
+ * a different path by construction. So `immutable` here is not optimism — a
+ * cached copy CANNOT be stale, because a change produces a new URL.
+ *
+ * `accept-ranges` is asserted because resumability depends on it. The chunked
+ * transfer asks for ranges and falls back to a whole-file stream when a server
+ * will not honour them; that fallback works, and it throws away an interrupted
+ * transfer's progress, so a deployment serving its own weights should never be
+ * the reason it is taken.
+ *
+ * Only GET and HEAD responses that actually succeeded are touched. A 404 or a
+ * redirect cached for a year would be considerably worse than no caching.
+ */
+function withModelArtifactHeaders(pathname: string, response: Response): Response {
+  if (!pathname.startsWith("/models/")) return response;
+  if (response.status !== 200 && response.status !== 206) return response;
+  const headers = new Headers(response.headers);
+  headers.set("cache-control", "public, max-age=31536000, immutable");
+  if (!headers.has("accept-ranges")) headers.set("accept-ranges", "bytes");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request: Request, env: CloudflareEnvironment, context: WaitUntilContext) {
     setGlobalEnvironment(env);
@@ -114,7 +148,9 @@ export default {
       }
 
       const response = await env.ASSETS.fetch(request);
-      return gate.open ? withPublicSecurityHeaders(response) : publicAssetResponse(response);
+      return gate.open
+        ? withPublicSecurityHeaders(withModelArtifactHeaders(url.pathname, response))
+        : publicAssetResponse(response);
     }
 
     if (!gate.open) {
