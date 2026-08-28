@@ -43,6 +43,7 @@
     "engine:manifest-write": "node scripts/resolve-model-manifest.mjs --write",
     "model:distribution-check": "node scripts/check-model-distribution.mjs",
     "model:distribution-proof": "node scripts/check-model-distribution.mjs --write",
+    "model:cdn-verify": "node scripts/verify-model-cdn.mjs",
     "engine:cold-start-evidence": "node --experimental-strip-types scripts/local-runtime-evidence.mts --write",
     "chat:runtime-evidence": "vite-node scripts/ocade-chat-runtime-evidence.mts -- --write",
     "chat:capability-evidence": "vite-node scripts/ocade-chat-capability-evidence.mts -- --write",
