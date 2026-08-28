@@ -1,1 +1,0 @@
-import{Mr as e}from"./index-D2dPCofE.js";var t=e({type:`function`});export{t};

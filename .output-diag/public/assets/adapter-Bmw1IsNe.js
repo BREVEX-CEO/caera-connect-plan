@@ -1,1 +1,0 @@
-function e(e,t,n=[]){return{available:!1,code:e,reason:t,remedies:n}}var t={install_ocade:`Install OCADE`,pair_a_computer:`Pair a computer`,download_model:`Download the engine`,start_engine:`Start the engine`,free_storage:`Free up storage`,enable_in_settings:`Enable in settings`};export{e as n,t};

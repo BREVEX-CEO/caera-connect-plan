@@ -92,14 +92,23 @@ native/python-host/**/__pycache__/
 # Licence signing key material — never commit
 ocade-licence.*
 windows-proof-evidence.json
-.output-routeqa
-.output-offline
-.output-e2e
-.output-worker
-.output-journey
+# ONE PATTERN, NOT A LIST THAT HAS TO BE REMEMBERED.
+#
+# These were enumerated individually, so every new end-to-end harness that
+# picked its own build directory was untracked only until somebody added it
+# here -- and until then `git add -A` committed a whole production build. That
+# is exactly what happened: .output-diag and .output-firstrun, 1,148 build
+# artifacts, went in on a commit that was about something else entirely.
+#
+# A harness choosing a new output directory is normal and should not require a
+# corresponding edit here.
+#
+# (And these are `#` comments, because .gitignore has no block comments. The
+# first attempt used /* ... */, which git would have read as patterns -- with
+# `/*` meaning "ignore everything in the repository root".)
+.output-*
+.proof
 public/models/*.gguf
 
 release/launch-proof-logs/
 .gate-logs
-.output-local
-.output-serve

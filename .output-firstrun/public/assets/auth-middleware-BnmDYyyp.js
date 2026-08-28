@@ -1,1 +1,0 @@
-import{Mr as e}from"./index-D8m23cn6.js";var t=e({type:`function`});export{t};
