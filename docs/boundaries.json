@@ -62,12 +62,7 @@
       "id": "RB-01",
       "runtime": "browser",
       "entry": "src/router.tsx",
-      "mayNotImport": [
-        "node:fs",
-        "node:child_process",
-        "node:net",
-        "node:os"
-      ],
+      "mayNotImport": ["node:fs", "node:child_process", "node:net", "node:os"],
       "check": "browser_code_imports_no_node_builtins",
       "why": "The client bundle runs in a browser and on Cloudflare Workers. A Node built-in resolves at build time and fails at runtime, on the edge, in front of users."
     },
@@ -75,9 +70,7 @@
       "id": "RB-02",
       "runtime": "cloudflare-worker",
       "entry": "src/server.ts",
-      "mayNotImport": [
-        "node:child_process"
-      ],
+      "mayNotImport": ["node:child_process"],
       "check": "worker_code_spawns_no_process",
       "why": "Workers cannot spawn processes. The engine supervisor is companion-only for this reason."
     },
@@ -331,10 +324,7 @@
     }
   ],
   "compatibility": {
-    "supportedNode": [
-      20,
-      22
-    ],
+    "supportedNode": [20, 22],
     "targetVersion": "0.1.0",
     "sharedTypeSurfaces": [
       "src/integrations/supabase/types.ts",

@@ -26,11 +26,11 @@ changes where bytes come from and never whether they are checked, so a
 misconfigured or hostile mirror cannot promote itself into the active model. It
 can only fail.
 
-| Order | Source | When it exists |
-| --- | --- | --- |
-| 1 | `ocade_cdn` | `VITE_OCADE_MODEL_CDN` is set |
-| 2 | `same_origin` | the operator dropped the file into `public/models/` |
-| 3 | `publisher` | always — this is what keeps a plain deployment working |
+| Order | Source        | When it exists                                         |
+| ----- | ------------- | ------------------------------------------------------ |
+| 1     | `ocade_cdn`   | `VITE_OCADE_MODEL_CDN` is set                          |
+| 2     | `same_origin` | the operator dropped the file into `public/models/`    |
+| 3     | `publisher`   | always — this is what keeps a plain deployment working |
 
 A deployment that configures nothing still works. That is deliberate: the CDN is
 an optimisation, not a dependency, and a configuration mistake must not be able
@@ -71,12 +71,12 @@ committed catalogue and fails if they have drifted.
 
 ### Required response headers
 
-| Header | Value | Why |
-| --- | --- | --- |
-| `cache-control` | `public, max-age=31536000, immutable` | The path carries the version, so a cached copy cannot be stale. A change produces a new URL. |
-| `accept-ranges` | `bytes` | Resumability. Without it the transfer falls back to a whole-file stream, which works and loses an interrupted transfer's progress. |
-| `access-control-allow-origin` | the site origin, or `*` | The transfer is a cross-origin `fetch`. |
-| `access-control-expose-headers` | `content-range, content-length, accept-ranges` | The transfer reads `content-range` to discover the total size. |
+| Header                          | Value                                          | Why                                                                                                                                |
+| ------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `cache-control`                 | `public, max-age=31536000, immutable`          | The path carries the version, so a cached copy cannot be stale. A change produces a new URL.                                       |
+| `accept-ranges`                 | `bytes`                                        | Resumability. Without it the transfer falls back to a whole-file stream, which works and loses an interrupted transfer's progress. |
+| `access-control-allow-origin`   | the site origin, or `*`                        | The transfer is a cross-origin `fetch`.                                                                                            |
+| `access-control-expose-headers` | `content-range, content-length, accept-ranges` | The transfer reads `content-range` to discover the total size.                                                                     |
 
 `etag` and `content-encoding` are best left alone. The artifact is already
 compressed; re-encoding it costs CPU at the edge and changes nothing on the

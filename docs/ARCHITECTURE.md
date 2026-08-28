@@ -130,35 +130,35 @@ occurred.
 
 ## Security boundaries
 
-| Boundary | Enforced outcome |
-|---|---|
-| Service-role database credential | Constructed server-side only; never in the browser graph |
-| Untrusted file/page content | Wrapped as evidence; cannot override the system prompt |
-| Local runtime | Loopback only |
-| Browser action | Approved origin, site permission, preview, confirmation, STOP |
-| Protected input | Never read, stored, inferred, or typed |
-| Offline cache | No auth/API/server-function response caching |
-| Private Sync | User-scoped access under real RLS |
-| Hosted-model dependencies | Source gate rejects public-cloud inference paths |
+| Boundary                         | Enforced outcome                                              |
+| -------------------------------- | ------------------------------------------------------------- |
+| Service-role database credential | Constructed server-side only; never in the browser graph      |
+| Untrusted file/page content      | Wrapped as evidence; cannot override the system prompt        |
+| Local runtime                    | Loopback only                                                 |
+| Browser action                   | Approved origin, site permission, preview, confirmation, STOP |
+| Protected input                  | Never read, stored, inferred, or typed                        |
+| Offline cache                    | No auth/API/server-function response caching                  |
+| Private Sync                     | User-scoped access under real RLS                             |
+| Hosted-model dependencies        | Source gate rejects public-cloud inference paths              |
 
 ## Platform truth table
 
-| Surface | Source path | What source can establish | What still needs separate live evidence |
-|---|---|---|---|
-| Web Chat | React/TanStack plus WebGPU/WASM | Local inference routing, UI, offline rules | Real model CDN/licence/digest and production generation |
-| Web Cowork | MV3 extension bridge | Permission and safety contracts | Built-extension run and store publication |
-| Windows | Tauri plus Rust plus Python host | Safety code, build configuration, Windows tests | Signing, installer lifecycle, final physical-PC proof |
-| macOS | Tauri source | Config and compile-target intent | macOS build, signing, notarization, physical Mac |
-| Android | Capacitor source | Mobile UI/package configuration | Signed AAB and real Android hardware |
-| iOS | Capacitor/Xcode source | iOS project and assets | Mac toolchain, signing, TestFlight, real iPhone/iPad |
-| Supabase | migrations/types/tests | Intended schema, RLS, auth flows | Real project apply and adversarial live RLS |
-| Cloudflare | Worker config/build | Gate and deploy configuration | Authorized deployment ID/hash and production smoke |
+| Surface    | Source path                      | What source can establish                       | What still needs separate live evidence                 |
+| ---------- | -------------------------------- | ----------------------------------------------- | ------------------------------------------------------- |
+| Web Chat   | React/TanStack plus WebGPU/WASM  | Local inference routing, UI, offline rules      | Real model CDN/licence/digest and production generation |
+| Web Cowork | MV3 extension bridge             | Permission and safety contracts                 | Built-extension run and store publication               |
+| Windows    | Tauri plus Rust plus Python host | Safety code, build configuration, Windows tests | Signing, installer lifecycle, final physical-PC proof   |
+| macOS      | Tauri source                     | Config and compile-target intent                | macOS build, signing, notarization, physical Mac        |
+| Android    | Capacitor source                 | Mobile UI/package configuration                 | Signed AAB and real Android hardware                    |
+| iOS        | Capacitor/Xcode source           | iOS project and assets                          | Mac toolchain, signing, TestFlight, real iPhone/iPad    |
+| Supabase   | migrations/types/tests           | Intended schema, RLS, auth flows                | Real project apply and adversarial live RLS             |
+| Cloudflare | Worker config/build              | Gate and deploy configuration                   | Authorized deployment ID/hash and production smoke      |
 
 ## Ownership and compatibility
 
 docs/boundaries.json maps every src/lib area to an owner, declares external
 hosts, and records browser/Worker/native runtime restrictions. Its assertions run
-in src/lib/__tests__/governance-artefacts.test.ts.
+in src/lib/**tests**/governance-artefacts.test.ts.
 
 Shared schema and protocol surfaces are versioned and fail closed on mismatch.
 Stable storage keys and compatibility identifiers are changed only with an

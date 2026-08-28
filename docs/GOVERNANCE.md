@@ -11,15 +11,15 @@ AZ-447 architecture review · AZ-448 safety review · AZ-449 migration · AZ-450
 Every change reaches `main` through a pull request, and the pull request is gated by
 `.github/workflows/ci.yml`. Nothing here is advisory; the workflow is the process.
 
-| Stage | Enforced by |
-|---|---|
-| Typecheck, lint, tests, build on Linux, Windows, macOS × Node 20/22 | `build` job |
-| Migration set rebuilds an empty database; RLS attacks; type parity | `database` job |
-| Rust safety core linked and executed on all three desktop platforms | `rust` job |
-| 22 evidence and honesty gates | `gates` job |
-| Extension manifest and package contents | `extension` job |
+| Stage                                                                | Enforced by         |
+| -------------------------------------------------------------------- | ------------------- |
+| Typecheck, lint, tests, build on Linux, Windows, macOS × Node 20/22  | `build` job         |
+| Migration set rebuilds an empty database; RLS attacks; type parity   | `database` job      |
+| Rust safety core linked and executed on all three desktop platforms  | `rust` job          |
+| 22 evidence and honesty gates                                        | `gates` job         |
+| Extension manifest and package contents                              | `extension` job     |
 | Worker bundle present; deploy controller refuses without credentials | `worker-bundle` job |
-| Production dependency advisories | `audit` job |
+| Production dependency advisories                                     | `audit` job         |
 
 **Rules that hold regardless of urgency:**
 
@@ -120,16 +120,16 @@ test asserts the navigation offers no path to them.
 
 A requirement's status is its acceptance criterion, and the weights are not negotiable:
 
-| Status | Weight | Means |
-|---|---:|---|
-| NOT STARTED | 0 | Nothing exists |
-| PARTIAL SOURCE | 0.2 | Some code, incomplete |
-| SOURCE COMPLETE | 0.4 | Written, no executing test |
-| EXTERNALLY BLOCKED | 0.4 | Complete as far as this repository can take it |
-| UNIT TESTED | 0.5 | Executing tests over the owning modules |
-| INTEGRATION TESTED | 0.6 | Executed across a real seam |
-| SIMULATED RUNTIME VERIFIED | 0.7 | Executed against a faithful simulation |
-| REAL TARGET RUNTIME VERIFIED | 1.0 | **Observed working on the real target** |
+| Status                       | Weight | Means                                          |
+| ---------------------------- | -----: | ---------------------------------------------- |
+| NOT STARTED                  |      0 | Nothing exists                                 |
+| PARTIAL SOURCE               |    0.2 | Some code, incomplete                          |
+| SOURCE COMPLETE              |    0.4 | Written, no executing test                     |
+| EXTERNALLY BLOCKED           |    0.4 | Complete as far as this repository can take it |
+| UNIT TESTED                  |    0.5 | Executing tests over the owning modules        |
+| INTEGRATION TESTED           |    0.6 | Executed across a real seam                    |
+| SIMULATED RUNTIME VERIFIED   |    0.7 | Executed against a faithful simulation         |
+| REAL TARGET RUNTIME VERIFIED |    1.0 | **Observed working on the real target**        |
 
 Enforced by `scripts/check-evidence-integrity.mjs`:
 
@@ -150,7 +150,7 @@ Dependencies are structural rather than a hand-maintained graph, which cannot go
 - **Evidence tier ordering.** A row cannot claim a tier above what its evidence supports.
 - **Blocker records.** An externally blocked row names its exit condition and its owner
   (`ownerKind: "external"`), and the gate fails if either is missing.
-- **Gate ordering in CI.** Evidence integrity runs *before* readiness, because scoring
+- **Gate ordering in CI.** Evidence integrity runs _before_ readiness, because scoring
   dishonest rows accurately is not much use.
 - **Build ordering.** Gates reading `.output/` run after the production build.
 
@@ -159,22 +159,17 @@ Dependencies are structural rather than a hand-maintained graph, which cannot go
 Ordered by what unblocks the most, not by size.
 
 **Now — no external dependency**
+
 1. Consolidate the six overlapping engine-selection layers into one tested decision path.
 2. Break up the oversized screens (`ocade.tsx` is 3,936 lines).
 3. Raise `SOURCE COMPLETE` rows to executed evidence where a test is possible.
 
-**Next — needs credentials or infrastructure**
-4. Apply the Supabase migrations to the hosted project and regenerate types from the live
-   schema.
-5. Observe a green hosted CI run across all three platforms.
-6. Staging deployment, so rows can move from unit-tested to integration-tested.
+**Next — needs credentials or infrastructure** 4. Apply the Supabase migrations to the hosted project and regenerate types from the live
+schema. 5. Observe a green hosted CI run across all three platforms. 6. Staging deployment, so rows can move from unit-tested to integration-tested.
 
-**Later — needs hardware, accounts or people**
-7. Signed desktop companion → unblocks process control, window control, clean-machine
-   install (≈30 rows).
-8. Mobile store accounts and devices → unblocks the mobile and pairing rows.
-9. Consented stakeholder research → the only route for those rows, whose evidence
-   contract explicitly excludes synthetic fixtures.
+**Later — needs hardware, accounts or people** 7. Signed desktop companion → unblocks process control, window control, clean-machine
+install (≈30 rows). 8. Mobile store accounts and devices → unblocks the mobile and pairing rows. 9. Consented stakeholder research → the only route for those rows, whose evidence
+contract explicitly excludes synthetic fixtures.
 
 ## 10. Portfolio management (AZ-450)
 

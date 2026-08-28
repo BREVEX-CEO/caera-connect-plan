@@ -13,12 +13,12 @@ and not.
 Measured on the reference machine (16 GB RAM, integrated graphics, no dedicated GPU),
 from the engine's own counters:
 
-| | |
-|---|---|
-| Document | 20,000 characters |
-| Tokens | 5,654 |
+|                   |                   |
+| ----------------- | ----------------- |
+| Document          | 20,000 characters |
+| Tokens            | 5,654             |
 | Prompt evaluation | **458.4 seconds** |
-| Answer generation | 3.8 seconds |
+| Answer generation | 3.8 seconds       |
 
 Eight minutes of waiting for a machine to re-read a document it will use four lines of.
 

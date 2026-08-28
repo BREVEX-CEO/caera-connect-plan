@@ -532,6 +532,100 @@ describe("pausing and resuming", () => {
   });
 });
 
+describe("a native companion takes the work, and takes it EXCLUSIVELY", () => {
+  /*
+   * The rule the whole handoff rests on: one owner per job. A browser that
+   * hands off and then transfers anyway is two processes writing the same
+   * gigabyte, competing for the same connection and the same disk.
+   */
+  it("does NOT download when the companion took the job", async () => {
+    const h = harness({
+      handOff: async () => ({ handedOff: true, platform: "android", verified: false }),
+    });
+    const state = await h.authority.install();
+    expect(h.net.requests).toBe(0);
+    // And it says so rather than reporting a failure the user should act on.
+    expect(state.stage).toBe("downloading");
+  });
+
+  it("activates only after the AUTHORITY has confirmed the digest", async () => {
+    // `verified: true` here means this codebase compared the companion's
+    // reported version and digest against the catalogue — not that the
+    // companion asserted it was fine.
+    const h = harness({
+      handOff: async () => ({ handedOff: true, platform: "macos", verified: true }),
+    });
+    const state = await h.authority.install();
+    expect(state.stage).toBe("ready");
+    expect(h.vault.activeVersion()).toBe(h.version);
+    expect(h.net.requests).toBe(0);
+  });
+
+  it("does not activate anything while the companion is still working", async () => {
+    const h = harness({
+      handOff: async () => ({ handedOff: true, platform: "ios", verified: false }),
+    });
+    await h.authority.install();
+    expect(h.vault.activeVersion()).toBeNull();
+  });
+
+  it("downloads normally when there is no companion, which is most devices", async () => {
+    const h = harness({ handOff: async () => ({ handedOff: false }) });
+    const state = await h.authority.install();
+    expect(state.stage).toBe("ready");
+    expect(h.net.requests).toBeGreaterThan(0);
+  });
+
+  it("falls through to the browser when the companion refuses the job", async () => {
+    const h = harness({ handOff: async () => ({ handedOff: false }) });
+    expect((await h.authority.install()).stage).toBe("ready");
+  });
+
+  it("relays the companion's progress as the one install state", async () => {
+    const seen: (number | null)[] = [];
+    const h = harness({
+      handOff: async (_target, report) => {
+        report({ stage: "downloading", fraction: 0.4 });
+        return { handedOff: true, platform: "android", verified: false };
+      },
+    });
+    h.authority.subscribe((state) => seen.push(state.fraction));
+    await h.authority.install();
+    // Not a second progress story beside the browser's — the same one.
+    expect(seen).toContain(0.4);
+  });
+});
+
+describe("uninstall reaches a native companion", () => {
+  it("asks the companion to delete what it holds", async () => {
+    let asked = false;
+    const h = harness({
+      uninstallNative: async () => {
+        asked = true;
+        return true;
+      },
+    });
+    await h.authority.install();
+    await h.authority.uninstall();
+    expect(asked).toBe(true);
+  });
+
+  it("still removes the browser copy when the companion cannot be reached", async () => {
+    /*
+     * "Removed" over a full native disk would be a lie, and it is recorded as
+     * a failure — but the bytes this side controls still go, because leaving
+     * them too would be strictly worse.
+     */
+    const h = harness({ uninstallNative: async () => false });
+    await h.authority.install();
+    await h.authority.uninstall();
+    expect(h.vault.activeVersion()).toBeNull();
+    expect(await h.vault.listVersions()).toEqual([]);
+    const kinds = h.telemetry as { kind: string; stage?: string }[];
+    expect(kinds.some((e) => e.kind === "failed" && e.stage === "uninstall")).toBe(true);
+  });
+});
+
 describe("uninstall and reinstall", () => {
   it("removes the engine and reports not-installed", async () => {
     const h = harness();

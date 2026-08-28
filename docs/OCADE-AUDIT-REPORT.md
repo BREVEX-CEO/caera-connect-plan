@@ -13,29 +13,29 @@ credential, device, distribution identity or independently controlled target.
 
 ## 1. Final gate
 
-| Gate                                               | Result                                                                   |
-| -------------------------------------------------- | ------------------------------------------------------------------------ |
+| Gate                                               | Result                                                                                |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------- |
 | `npm run launch:prove:defer-windows`               | **Windows UI explicitly deferred; all other local gates form the source-merge proof** |
-| Typecheck                                          | clean                                                                    |
-| Lint                                               | 0 errors (pre-existing prettier warnings only)                           |
-| Full + shuffled test corpora                       | **356 files pass, 2 skip; 6,017 tests pass, 8 skip in both orders**      |
-| Production build                                   | succeeds                                                                 |
-| Asset budget                                       | largest JS 538.9/585.9 KiB; on-device engines 7,768/20,508 KiB, all lazy |
-| `npm run launch:prove`                             | **23 passed, 0 launch-critical failures, 5 externally unavailable**      |
-| Test isolation (shuffled order)                    | passes                                                                   |
-| Every route, both viewports, signed out            | **68 routes, 750/750 checks, 482 controls pressed**                      |
-| Every route, both viewports, signed in             | **68 routes, 750/750 checks, 533 controls pressed**                      |
-| Online -> offline -> online, production build      | **13/13**                                                                |
-| Cowork extension E2E, real Chromium                | **69/69 scenarios** (measured by re-running the suite)                   |
-| Chat prompts, shipped pipeline                     | **7/7**                                                                  |
-| Real llama.cpp inference (FIXTURES ONLY — see §7)   | **15/15 checks**                                                         |
-| One model across three tabs + failover             | **8/8**                                                                  |
-| WebGPU / WASM availability                         | **8/8**                                                                  |
-| Flow-wave render                                   | **5/5**                                                                  |
-| Settings signed-out / visual / signed-in / offline | **16 + 7 + 20 + 13 = 56**                                                |
-| Python sidecar / real Windows UI                   | **DEFERRED / NOT FINAL-PROVEN; last retained Windows matrix was 8/10**    |
-| Python control engine                              | **30 passed**                                                            |
-| Chrome + Edge CDP parity                           | `ok: true`, both browsers                                                |
+| Typecheck                                          | clean                                                                                 |
+| Lint                                               | 0 errors (pre-existing prettier warnings only)                                        |
+| Full + shuffled test corpora                       | **356 files pass, 2 skip; 6,017 tests pass, 8 skip in both orders**                   |
+| Production build                                   | succeeds                                                                              |
+| Asset budget                                       | largest JS 538.9/585.9 KiB; on-device engines 7,768/20,508 KiB, all lazy              |
+| `npm run launch:prove`                             | **23 passed, 0 launch-critical failures, 5 externally unavailable**                   |
+| Test isolation (shuffled order)                    | passes                                                                                |
+| Every route, both viewports, signed out            | **68 routes, 750/750 checks, 482 controls pressed**                                   |
+| Every route, both viewports, signed in             | **68 routes, 750/750 checks, 533 controls pressed**                                   |
+| Online -> offline -> online, production build      | **13/13**                                                                             |
+| Cowork extension E2E, real Chromium                | **69/69 scenarios** (measured by re-running the suite)                                |
+| Chat prompts, shipped pipeline                     | **7/7**                                                                               |
+| Real llama.cpp inference (FIXTURES ONLY — see §7)  | **15/15 checks**                                                                      |
+| One model across three tabs + failover             | **8/8**                                                                               |
+| WebGPU / WASM availability                         | **8/8**                                                                               |
+| Flow-wave render                                   | **5/5**                                                                               |
+| Settings signed-out / visual / signed-in / offline | **16 + 7 + 20 + 13 = 56**                                                             |
+| Python sidecar / real Windows UI                   | **DEFERRED / NOT FINAL-PROVEN; last retained Windows matrix was 8/10**                |
+| Python control engine                              | **30 passed**                                                                         |
+| Chrome + Edge CDP parity                           | `ok: true`, both browsers                                                             |
 
 The executable top-level receipt is `release/OCADE_LAUNCH_PROOF.json`. It keeps
 source-merge readiness separate from production-launch authority. For this run,
@@ -205,7 +205,6 @@ adapter reads that field — WebLLM has no such parameter and wllama has no such
 parameter — so the real Chat page produced byte-for-byte the same request in
 both positions. It saved, it drew correctly, and the dead-controls scan passed
 it, because that scan proves a control is wired and not that it has an effect.
-
 
 ### Two the route audit found, once it could run
 

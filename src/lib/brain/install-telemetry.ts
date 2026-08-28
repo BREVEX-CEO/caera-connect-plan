@@ -42,6 +42,7 @@ export type InstallTelemetry =
       bytesPerSecond: number | null;
     }
   | { kind: "digest_mismatch"; version: string }
+  | { kind: "handed_off"; version: string; to: string }
   | { kind: "loaded"; path: string; ms: number }
   | { kind: "ready"; path: string; msFromStart: number | null }
   | { kind: "path_failed"; path: string; reason: string }

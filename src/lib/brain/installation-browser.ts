@@ -33,6 +33,14 @@ import { planThreads, readThreadSignals } from "./wasm-threads";
 import { sha256OfBlobStreaming } from "./streaming-digest";
 import { onBackgroundFetchStaged } from "./background-fetch";
 import {
+  discoverCompanion,
+  shouldHandOff,
+  handOffToCompanion,
+  readCompanionProgress,
+  companionResultMatchesTarget,
+  uninstallFromCompanion,
+} from "./background-bridge";
+import {
   WASM_TIERS,
   WEBGPU_TIERS,
   resolvedFor,
@@ -295,6 +303,122 @@ function createBus(onState: (state: InstallState) => void): (state: InstallState
   };
 }
 
+/* ----------------------------------------------------- the native bridge -- */
+
+/**
+ * The credential sent to a local companion, which is deliberately none.
+ *
+ * The obvious move was to reuse the desktop pairing secret. It is wrong:
+ * `paired-credentials.ts` states plainly that the secret "is used only to SIGN
+ * — it is never sent anywhere, which is what makes storing it defensible at
+ * all". Putting it in a request header to a process this code has not yet
+ * authenticated would break that invariant to protect against a threat it does
+ * not actually address, since a hostile local listener would simply receive it.
+ *
+ * So companion trust rests on what it can rest on honestly: loopback, which no
+ * remote attacker can bind; a product and protocol identity the companion must
+ * answer with; and the fact that the artifact is held to its PUBLISHED DIGEST
+ * on return, so a companion that lies about what it prepared is caught by the
+ * same check a CDN is. The protocol carries a credential field for a dedicated
+ * companion token when one exists; it is not this one.
+ */
+function companionSecret(): string | null {
+  return null;
+}
+
+/**
+ * The companion this device has, discovered once and remembered.
+ *
+ * Discovery costs a loopback request with a short timeout; doing it on every
+ * install attempt would put that on the path to first paint repeatedly for the
+ * overwhelming majority of devices that have no companion at all.
+ */
+let companionProbe: Promise<Awaited<ReturnType<typeof discoverCompanion>>> | null = null;
+
+function companion() {
+  companionProbe ??= discoverCompanion({
+    fetchImpl: ((input: RequestInfo | URL, init?: RequestInit) =>
+      globalThis.fetch(input, init)) as typeof fetch,
+    secret: companionSecret(),
+  }).catch(() => null);
+  return companionProbe;
+}
+
+/**
+ * Offer this artifact to a native companion, and report whether it took it.
+ *
+ * RETURNS `handedOff: false` FOR EVERY AMBIGUOUS CASE. No companion, a
+ * companion that cannot transfer in the background, a browser that can already
+ * do it, a refusal, an unreachable process — all of them fall through to the
+ * browser's own transfer, which is correct and is what nearly every device
+ * does. Handing off is the exception that must earn itself.
+ */
+async function offerToCompanion(
+  target: InstallTarget,
+  report: (progress: {
+    stage: "downloading" | "verifying";
+    fraction: number | null;
+    detail?: string | null;
+  }) => void,
+): Promise<{ handedOff: false } | { handedOff: true; platform: string; verified: boolean }> {
+  const found = await companion();
+  if (!found) return { handedOff: false };
+
+  const { canContinueInBackground } = await import("./background-fetch");
+  const browserCanContinue = await canContinueInBackground().catch(() => false);
+
+  if (
+    !shouldHandOff({
+      companion: found,
+      browserCanContinueInBackground: browserCanContinue,
+      alreadyInstalled: modelVault.readMeta(target.version)?.verified === true,
+    })
+  ) {
+    return { handedOff: false };
+  }
+
+  const deps = {
+    fetchImpl: ((input: RequestInfo | URL, init?: RequestInit) =>
+      globalThis.fetch(input, init)) as typeof fetch,
+    secret: companionSecret(),
+  };
+
+  const started = await handOffToCompanion(found, target, deps);
+  if (!started.ok) return { handedOff: false };
+
+  const progress = await readCompanionProgress(found, started.jobId, deps);
+  if (progress) {
+    report({
+      stage: progress.phase === "verifying" ? "verifying" : "downloading",
+      fraction:
+        progress.totalBytes && progress.totalBytes > 0
+          ? Math.min(1, progress.receivedBytes / progress.totalBytes)
+          : null,
+      detail: "OCADE is preparing this device in the background.",
+    });
+  }
+
+  /*
+   * `verified` here means the AUTHORITY checked, not that the companion said
+   * so. `companionResultMatchesTarget` compares the reported version, size and
+   * digest against the catalogue's; a companion that finished something else is
+   * not a companion that finished this.
+   */
+  const verified = progress !== null && companionResultMatchesTarget(progress, target);
+  return { handedOff: true, platform: found.identity.platform, verified };
+}
+
+/** Remove what a native companion holds. Reports failure rather than hiding it. */
+async function uninstallFromNativeCompanion(): Promise<boolean> {
+  const found = await companion();
+  if (!found) return true;
+  return uninstallFromCompanion(found, {
+    fetchImpl: ((input: RequestInfo | URL, init?: RequestInit) =>
+      globalThis.fetch(input, init)) as typeof fetch,
+    secret: companionSecret(),
+  });
+}
+
 /* ---------------------------------------------------------------- the one -- */
 
 let authority: ModelInstallationAuthority | null = null;
@@ -330,6 +454,8 @@ export function installationAuthority(): ModelInstallationAuthority {
     },
     requestPersistence: () => modelStore.requestPersistence(),
     hashBlob: (blob, signal) => sha256OfBlobStreaming(blob, { signal }),
+    handOff: (target, report) => offerToCompanion(target, report),
+    uninstallNative: () => uninstallFromNativeCompanion(),
     acquireLock: acquireInstallLock,
     broadcast: (state) => bus(state),
   });

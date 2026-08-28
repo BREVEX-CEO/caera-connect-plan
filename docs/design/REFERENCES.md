@@ -7,11 +7,11 @@ with it, and — where the answer is "nothing" — the reason, with the evidence
 It exists because "we read the design files" is not a claim anybody can check.
 A list of decisions is.
 
-| Reference | Names OCADE? | Role here |
-|---|---|---|
-| `OPERATIONAL AI INFRASTRUCTURE GUI.txt` | **Yes** — "Recreate this exact single-viewport landing page for **OCADE**" | The governing document. Typography, tokens, motion and button language come from this one. |
-| `ECHOID.txt` | No — a different brand ("Your voice ID to the E network") | Structural donor for the signed-out shell: gutters, the one-column-pinned-to-an-edge composition, the mono eyebrow over a light display weight, the hairline legal footer. |
-| `Terranova — Signals from the Deep Green GUI.txt` | No — a third brand | Technique donor: the SVG refraction filter, the chamfered outline button, the staggered slide-in menu. |
+| Reference                                         | Names OCADE?                                                               | Role here                                                                                                                                                                  |
+| ------------------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `OPERATIONAL AI INFRASTRUCTURE GUI.txt`           | **Yes** — "Recreate this exact single-viewport landing page for **OCADE**" | The governing document. Typography, tokens, motion and button language come from this one.                                                                                 |
+| `ECHOID.txt`                                      | No — a different brand ("Your voice ID to the E network")                  | Structural donor for the signed-out shell: gutters, the one-column-pinned-to-an-edge composition, the mono eyebrow over a light display weight, the hairline legal footer. |
+| `Terranova — Signals from the Deep Green GUI.txt` | No — a third brand                                                         | Technique donor: the SVG refraction filter, the chamfered outline button, the staggered slide-in menu.                                                                     |
 
 Where two references disagree, the one that names OCADE wins. That single rule
 decides most of what follows.
@@ -49,12 +49,12 @@ That leaves three options and rules out all three:
   again, with a poster frame that also fails.
 - **Substitute a different video.** The references are exact about which asset;
   a different one is not the design, and inventing a CloudFront URL is
-  something the OCADE file explicitly forbids: *"Do not invent a CloudFront
-  URL."*
+  something the OCADE file explicitly forbids: _"Do not invent a CloudFront
+  URL."_
 
 **What the product does instead.** The OCADE reference is the one that matters
-here, and it is also the one that says: *"Do not add a video, WebGL, Three.js,
-or Lottie."* Its hero is a still photograph with a scrim. OCADE's landing hero
+here, and it is also the one that says: _"Do not add a video, WebGL, Three.js,
+or Lottie."_ Its hero is a still photograph with a scrim. OCADE's landing hero
 is a rendered scene rather than a photograph — that predates these files and is
 the product's own identity — but the principle it shares is the one the file
 states: the background is **one** element, unlayered, and nothing floats over
@@ -74,7 +74,7 @@ Reachable — Google Fonts answers `200` — and deliberately not taken. ECHOID
 uses Sora 200 for its display type; the OCADE reference uses Inter 500 with an
 Instrument Serif italic accent. Two sans families in one product is not a
 design, and the file that names OCADE decides. What ECHOID's display type
-contributes is its *weight and scale*, which the auth heading uses: extralight,
+contributes is its _weight and scale_, which the auth heading uses: extralight,
 `clamp(2rem, 4.2vw, 3.25rem)`, `line-height: 1.05`.
 
 ---
@@ -83,12 +83,12 @@ contributes is its *weight and scale*, which the auth heading uses: extralight,
 
 ### Typography — from the OCADE reference, plus ECHOID's mono
 
-| Face | Role | Source | Size |
-|---|---|---|---|
-| Inter 300–700 | Everything: UI, headings, body | OCADE reference | 48 KB |
+| Face                        | Role                                                 | Source          | Size  |
+| --------------------------- | ---------------------------------------------------- | --------------- | ----- |
+| Inter 300–700               | Everything: UI, headings, body                       | OCADE reference | 48 KB |
 | Instrument Serif italic 400 | One emphasised phrase per heading, in the muted grey | OCADE reference | 22 KB |
-| Instrument Serif roman 400 | Serif stack fallback | — | 21 KB |
-| JetBrains Mono 300–600 | Code, command output, hashes, ids | ECHOID | 40 KB |
+| Instrument Serif roman 400  | Serif stack fallback                                 | —               | 21 KB |
+| JetBrains Mono 300–600      | Code, command output, hashes, ids                    | ECHOID          | 40 KB |
 
 All four are self-hosted latin subsets, 131 KB total. Not because it is
 cheaper — because a font fetched from a third party is a font an offline user
@@ -97,8 +97,8 @@ record of a visitor held by somebody else on every page including the legal
 ones. `src/lib/__tests__/typography-assets.test.ts` holds the whole set to that
 budget and to being actually used.
 
-The reference is unusually precise about the serif: *"**Only** the H1 words
-`AI agents`"*, at `1.08em`, `letter-spacing: -0.03em`, and in `#9a9a9a` rather
+The reference is unusually precise about the serif: _"**Only** the H1 words
+`AI agents`"_, at `1.08em`, `letter-spacing: -0.03em`, and in `#9a9a9a` rather
 than white. That is the `ocade-accent` utility, and it is the only place a
 serif appears in the product.
 
@@ -108,7 +108,7 @@ serif appears in the product.
   and now the product's single entrance curve.
 - The reference palettes are pure `#000000`/`#ffffff` with translucent white
   rules. OCADE's own palette (black, silver, aubergine, gold, in oklch) is
-  older than these files and stays; what carried over is the *structure* — a
+  older than these files and stays; what carried over is the _structure_ — a
   hairline border token, a muted text token, a ghost fill and a solid fill,
   rather than per-component colours.
 
@@ -116,15 +116,15 @@ serif appears in the product.
 
 The signed-out shell is ECHOID's structure with OCADE's content:
 
-| ECHOID | `AuthShell.tsx` |
-|---|---|
-| `grid-template-rows: auto 1fr auto` — navbar, body, legal | same |
-| `--gutter: clamp(20px, 5vw, 100px)` | `clamp(1.25rem, 5vw, 4.5rem)` |
-| Body right-aligned on desktop, full-width on phone | `lg:justify-end`, full width below |
-| Mono chip above a large light display word | mono `OCADE` eyebrow above an extralight heading |
-| Legal footer on a hairline, safe-area padded | same, `pb-[max(1rem,env(safe-area-inset-bottom))]` |
-| Sharp rectangles, no pills, no glow, no cards | no card — the negative space is the container |
-| Focus-visible outline on every interactive element | `focus-visible:ring-2 focus-visible:ring-ring` |
+| ECHOID                                                    | `AuthShell.tsx`                                    |
+| --------------------------------------------------------- | -------------------------------------------------- |
+| `grid-template-rows: auto 1fr auto` — navbar, body, legal | same                                               |
+| `--gutter: clamp(20px, 5vw, 100px)`                       | `clamp(1.25rem, 5vw, 4.5rem)`                      |
+| Body right-aligned on desktop, full-width on phone        | `lg:justify-end`, full width below                 |
+| Mono chip above a large light display word                | mono `OCADE` eyebrow above an extralight heading   |
+| Legal footer on a hairline, safe-area padded              | same, `pb-[max(1rem,env(safe-area-inset-bottom))]` |
+| Sharp rectangles, no pills, no glow, no cards             | no card — the negative space is the container      |
+| Focus-visible outline on every interactive element        | `focus-visible:ring-2 focus-visible:ring-ring`     |
 
 Its copy, its brand, its links and its media are not used. It is a sign-in page
 for a different product.
@@ -132,8 +132,8 @@ for a different product.
 ### Motion
 
 The OCADE reference's most valuable instruction is not a keyframe, it is a
-failure mode: *"`.appear` resting opacity is **1** (so the page is never blank
-if animations fail)"*, with a `requestAnimationFrame` fallback that marks
+failure mode: _"`.appear` resting opacity is **1** (so the page is never blank
+if animations fail)"_, with a `requestAnimationFrame` fallback that marks
 everything visible if no animation is actually running.
 
 This codebase reached the same rule independently and it is written into
