@@ -20,6 +20,9 @@
  * Run: node scripts/e2e/first-run-browser.mjs
  */
 import { chromium } from "playwright-core";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { startServedBuild } from "./served-build.mjs";
 
 const PORT = Number(process.env.OCADE_PREVIEW_PORT ?? 8106);
@@ -45,14 +48,28 @@ const FORBIDDEN =
 
 async function main() {
   const served = await startServedBuild({ port: PORT, outDir: ".output-firstrun" });
-  const browser = await chromium.launch({ executablePath: EXECUTABLE, args: ["--no-sandbox"] });
+
+  /*
+   * A REAL BROWSER PROFILE ON DISK, AND IT CHANGES WHAT THIS PROVES.
+   *
+   * Chromium gives an ephemeral context a fixed ~0.93 GB storage quota, which
+   * is less than this engine needs. Against one, OCADE correctly refuses to
+   * prepare and says the device is out of room — so this harness used to take
+   * its "the device is full" branch every single run and never once exercised
+   * the path an ordinary visitor is on. A profile on disk gets the quota a real
+   * visitor's browser gets, so the transfer branch below is the one that runs.
+   */
+  const profile = mkdtempSync(join(tmpdir(), "ocade-firstrun-"));
+  const context = await chromium.launchPersistentContext(profile, {
+    executablePath: EXECUTABLE,
+    args: ["--no-sandbox"],
+  });
 
   try {
     /* ---------------------------------------------------- the landing page */
 
     console.log("\n1. The shell paints, and preparation starts on its own");
-    const context = await browser.newContext();
-    const page = await context.newPage();
+    const page = context.pages()[0] ?? (await context.newPage());
 
     /*
      * WATCH WHAT THE PAGE ASKS FOR, and specifically whether an installer runs
@@ -347,10 +364,9 @@ async function main() {
       "no unexpected console errors on the first-run path",
       realErrors.slice(0, 2).join(" | "),
     );
-
-    await context.close();
   } finally {
-    await browser.close();
+    await context.close();
+    rmSync(profile, { recursive: true, force: true });
     await served.stop();
   }
 
