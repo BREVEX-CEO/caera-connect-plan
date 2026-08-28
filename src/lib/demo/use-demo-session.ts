@@ -31,6 +31,23 @@ export function useDemoSession(options: {
   onExpire?: () => void;
   onBlocked?: (nextEligibleAt: number | null) => void;
 }): { session: DemoSessionState; blockedUntil: number | null; end: () => void } {
+  /*
+   * THE CLOCK DOES NOT EXIST UNTIL OCADE IS READY.
+   *
+   * `autoStart` used to be a literal `true` on the demo route, so the deadline
+   * was written into storage the moment the page mounted — while the engine was
+   * still being prepared. A visitor on a slow connection therefore spent a
+   * large part of their 28 minutes watching a progress bar, and there was no
+   * way to give it back: the deadline is absolute wall-clock time, deliberately,
+   * so that closing a laptop cannot buy free minutes.
+   *
+   * The fix is NOT to freeze the display while an absolute deadline ticks
+   * underneath, which would be the same theft with a nicer face. It is that no
+   * session is created at all. `autoStart` now means "the engine has proven
+   * itself ready", `startSession` is never called before that, and the first
+   * time it is called it writes `now + 28 minutes`. Setup taking twenty minutes
+   * and setup taking two seconds both end with a full 28:00.
+   */
   const { autoStart, onWarn, onExpire, onBlocked } = options;
   const [session, setSession] = useState<DemoSessionState>(() =>
     sessionState(typeof window === "undefined" ? null : readDeadline(), observeNow(Date.now())),

@@ -24,6 +24,8 @@ import { PreparationStatus } from "@/components/ocade/chat/PreparationStatus";
 import { DemoSessionBadge } from "@/components/ocade/demo/DemoSessionBadge";
 import { DemoControlNav, DemoSidebarNav } from "@/components/ocade/demo/DemoSidebarNav";
 import { useDemoSession } from "@/lib/demo/use-demo-session";
+import { SetupExperience } from "@/components/ocade/setup/SetupExperience";
+import { useInstallation } from "@/lib/brain/use-installation";
 import { warningMessage } from "@/lib/demo/session";
 import { useLocalChatEngine } from "@/lib/chat/use-local-chat-engine";
 import { useDictation } from "@/lib/voice/use-dictation";
@@ -254,8 +256,26 @@ function DemoOcade() {
     });
   }, [engine, navigate]);
 
+  /*
+   * THE 28 MINUTES DO NOT EXIST UNTIL THE ENGINE DOES.
+   *
+   * `autoStart` was a literal `true`, so the deadline was written the moment
+   * this route mounted -- while OCADE was still preparing. On a slow connection
+   * a visitor spent a large part of their session watching a progress bar, and
+   * the deadline is absolute wall-clock time (deliberately, so a closed laptop
+   * cannot buy free minutes), which means those minutes could not be given
+   * back.
+   *
+   * Now the readiness of the installation authority is the condition. Below,
+   * `installation.ready` false renders the setup experience instead of this
+   * screen and NO session is created; the first render after it becomes true is
+   * the one that writes `now + 28 minutes`. Setup taking twenty minutes and
+   * setup taking two seconds both end with a full 28:00.
+   */
+  const installation = useInstallation();
+
   const { session } = useDemoSession({
-    autoStart: true,
+    autoStart: installation.ready,
     onWarn: (state) => {
       toast.warning(warningMessage(state.remainingMs), { duration: 10_000 });
     },
@@ -584,6 +604,30 @@ function DemoOcade() {
     (turn) => turn.role === "assistant" && turn.content.trim().length > 0,
   );
 
+  /*
+   * SETUP IS A DIFFERENT SCREEN, NOT A DISABLED VERSION OF THIS ONE.
+   *
+   * While the engine is being prepared there is no session, no deadline and
+   * nothing that can answer a question, so rendering the chat with its composer
+   * greyed out would be offering an action OCADE cannot honour and would put a
+   * dead room in front of somebody's first impression. The setup experience
+   * takes the whole screen instead, and the demo begins -- with its full 28
+   * minutes -- the moment it hands over.
+   *
+   * A device that genuinely cannot run anything falls through to the chat
+   * screen, which already refuses honestly and names the remedies. That is the
+   * one case where the composer being visible and explained beats a setup
+   * screen that would never finish.
+   */
+  if (!installation.ready && installation.preparing) {
+    return (
+      <SetupExperience
+        onLeave={() => void navigate({ to: "/" })}
+        leaveLabel="Back to ocade.in"
+      />
+    );
+  }
+
   return (
     <ChatShell
       sidebar={
@@ -725,6 +769,16 @@ function DemoOcade() {
               toggle: dictation.toggle,
               languageLabel: language.nativeLabel,
             }}
+            /*
+             * NOT `engine.warm`, and that is the point of this change.
+             *
+             * The first keystroke used to be what STARTED a multi-hundred-
+             * megabyte download -- the worst possible moment, because the
+             * visitor is now waiting mid-sentence for something that could have
+             * begun while they read the landing page. Preparation starts at app
+             * bootstrap instead. Typing may still observe or join it, and it
+             * can no longer create it.
+             */
             onTypingStarted={engine.warm}
             streaming={streaming}
             disabled={unavailable}

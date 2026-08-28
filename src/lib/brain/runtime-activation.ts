@@ -211,6 +211,73 @@ async function startPairedDevice(
   return { ok: true };
 }
 
+/**
+ * An adapter that is whatever the authority has actually started.
+ *
+ * WHY ROUTING CANNOT JUST BUILD ITS OWN. `use-brain` used to construct a
+ * `BrowserWebGpuAdapter` and a `BrowserWasmAdapter` inside a `useMemo` and hand
+ * them to the router. The authority now constructs the one it actually starts.
+ * Leaving both in place would mean two adapter instances per tab — and on the
+ * WebGPU path that is two copies of the weights resident on the graphics card,
+ * which is the exact defect `shared-browser-engine.ts` was written to fix
+ * across tabs, reintroduced within a single one.
+ *
+ * So routing gets this instead: a thin delegate holding no engine of its own.
+ * When the authority has a live runtime it forwards to it; when it does not, it
+ * reports unavailable with the reason the authority would give. There is
+ * exactly one browser engine in a tab, and it is the one the authority chose.
+ */
+export function authorityBackedAdapter(id: "browser_webgpu" | "browser_wasm"): BrainAdapter {
+  const matches = (path: CapabilityPath): boolean =>
+    id === "browser_webgpu"
+      ? path === "webgpu" || path === "webgpu_reduced"
+      : path === "wasm_threaded" || path === "wasm_single";
+
+  const current = (): BrainAdapter | null => {
+    const running = activeRuntime();
+    return running && matches(running.path) ? running.adapter : null;
+  };
+
+  return {
+    id,
+    displayName: id === "browser_webgpu" ? "OCADE Browser" : "OCADE Browser (compatibility)",
+    async probe() {
+      const adapter = current();
+      if (adapter) return adapter.probe();
+      return {
+        available: false as const,
+        code: "no_model" as const,
+        /*
+         * Deliberately the language of preparation rather than of failure. The
+         * engine is not missing; it has not finished being prepared, and the
+         * setup surface is already saying so with a percentage.
+         */
+        reason: "OCADE is still preparing this device.",
+        remedies: [],
+      };
+    },
+    async preload() {
+      // Preparation belongs to the authority. A preload here would be the
+      // second installer this whole design exists to remove.
+      await current()?.preload?.();
+    },
+    async stream(messages, handlers) {
+      const adapter = current();
+      if (!adapter) {
+        return {
+          ok: false as const,
+          failure: "unavailable" as const,
+          reason: "OCADE is still preparing this device.",
+        };
+      }
+      return adapter.stream(messages, handlers);
+    },
+    async dispose() {
+      await disposeRuntime();
+    },
+  };
+}
+
 /** Tear the running engine down. Used by uninstall and by tests. */
 export async function disposeRuntime(): Promise<void> {
   const current = live;

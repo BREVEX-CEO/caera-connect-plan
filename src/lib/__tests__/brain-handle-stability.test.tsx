@@ -59,17 +59,44 @@ describe("useBrain hands back a stable handle", () => {
     expect(memo![1]).toContain("route");
   });
 
-  it("warms the preferred desktop engine before starting a browser preload", () => {
-    const body = code(SOURCE);
-    const warm = body.slice(body.indexOf("const warm = useCallback"));
-    const bridgeProbe = warm.indexOf("await bridge.probe()");
-    const browserCandidate = warm.indexOf('registry.get("browser_webgpu")');
+  /*
+   * WHAT THIS ASSERTION USED TO BE, AND WHY IT CHANGED.
+   *
+   * It pinned the ORDER of a preparation ladder that lived inside `warm`:
+   * probe the bridge, else probe WebGPU, else probe WebAssembly, publishing
+   * progress as it went. That ladder was one of five independent things that
+   * could each start downloading the same model, and it is where a "retrying"
+   * label was published by a catch block that then did nothing.
+   *
+   * The property the old test was protecting -- do not speculatively prepare
+   * every candidate at once -- is now structural rather than a matter of the
+   * order of statements: there is one installation authority, `install()` joins
+   * whatever is already running, and `warm` cannot create anything. That is a
+   * stronger guarantee, so these assert it directly.
+   */
+  it("joins the one installation authority instead of preparing engines itself", () => {
+    const warm = code(SOURCE).slice(code(SOURCE).indexOf("const warm = useCallback"));
+    expect(warm).toMatch(/installationAuthority\(\)\.install\(/);
+  });
 
+  it("still prefers an already-installed local bridge, which needs no download", () => {
+    const warm = code(SOURCE).slice(code(SOURCE).indexOf("const warm = useCallback"));
+    const bridgeProbe = warm.indexOf("await bridge.probe()");
+    const join = warm.indexOf("installationAuthority().install(");
     expect(bridgeProbe).toBeGreaterThan(-1);
-    expect(browserCandidate).toBeGreaterThan(bridgeProbe);
-    expect(warm).toMatch(
-      /if \(availability\.available\) \{\s*await bridge\.preload\(pending\);\s*publishPreparation\(\{ stage: "ready", fraction: 1 \}\);\s*return;/,
-    );
+    // The bridge is already on the machine, so warming it is pure latency
+    // saved; only when it is absent does this fall through to the authority.
+    expect(join).toBeGreaterThan(bridgeProbe);
+  });
+
+  it("CANNOT start a download of its own", () => {
+    const body = code(SOURCE);
+    // No adapter construction, no preload of a browser engine, no downloader.
+    // Every one of these was a way for a keystroke to begin a transfer.
+    expect(body).not.toMatch(/new BrowserWebGpuAdapter/);
+    expect(body).not.toMatch(/new BrowserWasmAdapter/);
+    expect(body).not.toMatch(/downloadModel\(/);
+    expect(body).not.toMatch(/publishPreparation\(/);
   });
 });
 

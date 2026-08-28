@@ -1,14 +1,11 @@
 import { useCallback, useMemo, useRef } from "react";
 import { DesktopBridgeAdapter } from "./adapters/desktop-bridge";
-import { BrowserWebGpuAdapter } from "./adapters/browser-webgpu";
-import { shareAcrossTabs } from "./adapters/shared-browser-engine";
-import { BrowserWasmAdapter } from "./adapters/browser-wasm";
 import { PairedDesktopAdapter } from "./adapters/paired-desktop";
 import { pairedCredentials, hasPairing } from "./paired-credentials";
 import { detectDeviceSignals, resolveDeviceMode, type DeviceMode } from "./device-mode";
 import { routeBrain, type RouteOutcome } from "./router";
-import { publishPreparation } from "./preparation";
-import { modelStore } from "./model-store";
+import { installationAuthority } from "./installation-browser";
+import { authorityBackedAdapter } from "./runtime-activation";
 import {
   REMEDY_LABELS,
   type AdapterId,
@@ -70,53 +67,24 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
     const map = new Map<AdapterId, BrainAdapter>();
     map.set("desktop_bridge", new DesktopBridgeAdapter({ policy: () => policyRef.current }));
     /*
-     * Both browser engines are registered unconditionally. Their `probe()`
-     * decides availability from the real environment — WebGPU presence, the
-     * adapter's memory limit, storage quota — so registering them costs
-     * nothing on a device that cannot run them, and neither library is loaded
-     * until one is actually routed to.
-     */
-    /*
-     * Shared across tabs. Without this every open tab loaded its own copy of
-     * the weights onto the graphics card; three tabs meant three copies.
-     */
-    /*
-     * BOTH BROWSER ADAPTERS PUBLISH THEIR PROGRESS, AND UNTIL NOW NEITHER DID.
+     * THE BROWSER ENGINES ARE NOT CONSTRUCTED HERE ANY MORE.
      *
-     * Each has always accepted an `onProgress` callback. Both were constructed
-     * here with no options, so the reports were emitted into nothing:
-     * `EngineState.progress` was typed `number | null` and no code path ever
-     * assigned it, and a first visit downloading several hundred megabytes
-     * showed a spinner with no percentage, no size and no way to tell a slow
-     * download from a hung one.
+     * This used to build a `BrowserWebGpuAdapter` and a `BrowserWasmAdapter`
+     * inside this `useMemo`, each with its own `onProgress` publishing into a
+     * separate preparation store. The installation authority now constructs the
+     * one engine it actually starts, so building them here too would leave two
+     * adapter instances in one tab -- and on the graphics path that is two
+     * copies of the weights resident at once, which is precisely the defect
+     * `shared-browser-engine.ts` exists to prevent across tabs, reintroduced
+     * inside a single one.
      *
-     * The runtimes' own wording is deliberately NOT forwarded. WebLLM's
-     * `report.text` names shards and quantisation formats; a person preparing
-     * OCADE for the first time is not debugging a runtime, so the stage and
-     * the numbers travel and the vocabulary does not.
+     * `authorityBackedAdapter` holds no engine. It forwards to whatever the
+     * authority has running and otherwise reports, in preparation language,
+     * that the device is still being prepared. So there is one engine per tab,
+     * one progress story, and no path from routing back into a download.
      */
-    map.set(
-      "browser_webgpu",
-      shareAcrossTabs(
-        new BrowserWebGpuAdapter({
-          onProgress: (p) =>
-            publishPreparation({
-              stage: p.fraction !== null && p.fraction >= 1 ? "loading" : "downloading",
-              fraction: p.fraction,
-            }),
-        }),
-      ),
-    );
-    map.set(
-      "browser_wasm",
-      new BrowserWasmAdapter({
-        onProgress: (p) =>
-          publishPreparation({
-            stage: p.fraction !== null && p.fraction >= 1 ? "loading" : "downloading",
-            fraction: p.fraction,
-          }),
-      }),
-    );
+    map.set("browser_webgpu", authorityBackedAdapter("browser_webgpu"));
+    map.set("browser_wasm", authorityBackedAdapter("browser_wasm"));
     map.set("paired_desktop", new PairedDesktopAdapter({ credentials: pairedCredentials }));
     return map;
   }, []);
@@ -151,26 +119,36 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
   const warm = useCallback(
     (pending?: BrainMessage[]) => {
       /*
-       * WARM THE SAME ENGINE ORDER THAT ROUTING USES.
+       * WARMING IS NOW A REQUEST TO JOIN, NOT A SECOND INSTALLER.
        *
-       * Starting every candidate in parallel looked harmless until the desktop
-       * bridge answered a turn while the speculative browser preload remained
-       * at 0%. The conversation then truthfully said "response complete" and,
-       * at the same time, falsely looked stuck on "Preparing OCADE
-       * Intelligence". It also spent bandwidth preparing an engine that the
-       * router had already decided not to use.
+       * What used to live here was a whole parallel preparation path: probe the
+       * bridge, else probe WebGPU, else probe WebAssembly, ask for persistent
+       * storage, call `preload()` on whichever answered, and publish its own
+       * progress. It ran on the composer's first keystroke, and it was one of
+       * the five independent things that could each begin downloading the same
+       * model. It is also where "retrying" was published from a catch block
+       * that then did nothing at all, which is why that label never corresponded
+       * to a retry.
        *
-       * Probe the preferred local bridge first. If it is genuinely available,
-       * warm it and stop. Only a missing or failed bridge falls through to the
-       * browser engines. The whole chain stays fire-and-forget: a failed warm
-       * must never become an error for a message that has not been sent.
+       * The installation authority owns every one of those steps now, and
+       * `install()` joins whatever is already in flight instead of starting
+       * anything. So typing can still ASK for the engine -- which is the useful
+       * half of what this did -- and can no longer CREATE a download, which was
+       * the harmful half.
        *
-       * WASM IS WARMED TOO, AND THAT IS THE FALLBACK THAT MATTERS. A browser
-       * with no usable WebGPU adapter got a `preload` that probed, found
-       * nothing and returned -- so the ONE engine that device could actually
-       * run was never prepared, and the download it needed started on the
-       * user's first message instead. The fallback is only a fallback if it is
-       * made ready like the primary.
+       * `pending` is deliberately unused. It existed so the runtime could be
+       * warmed at the context window the next message would need; the authority
+       * decides the window from the tier and the device now, and re-warming at a
+       * different one per keystroke was work the user paid for twice.
+       */
+      void pending;
+
+      /*
+       * The desktop bridge stays a special case, and it is the honest one: it
+       * is a local engine that is already installed, so there is nothing to
+       * download and preloading it is pure latency saved. The authority routes
+       * to it as the strongest rung anyway; this only means a bridge-backed
+       * machine does not wait for an idle callback to start warming.
        */
       void (async () => {
         const bridge = registry.get("desktop_bridge");
@@ -179,64 +157,14 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
             const availability = await bridge.probe();
             if (availability.available) {
               await bridge.preload(pending);
-              publishPreparation({ stage: "ready", fraction: 1 });
               return;
             }
           } catch {
             // A bridge that disappears during probing simply yields to the
-            // browser fallback, exactly as a normal route would.
+            // authority, exactly as a normal route would.
           }
         }
-
-        const webgpu = registry.get("browser_webgpu");
-        if (!webgpu?.preload) return;
-
-        publishPreparation({ stage: "checking", fraction: null });
-        try {
-          const availability = await webgpu.probe();
-          /*
-           * Persistent storage is asked for BEFORE the bytes arrive.
-           *
-           * A browser that has not granted it may evict several hundred
-           * megabytes of weights under disk pressure, and the user then
-           * re-downloads them over whatever connection they are on. Asking
-           * first costs one permission check; asking afterwards is asking
-           * about something already at risk.
-           */
-          await modelStore.requestPersistence();
-          if (availability.available) {
-            await webgpu.preload();
-            publishPreparation({ stage: "ready", fraction: 1 });
-            return;
-          }
-          const wasm = registry.get("browser_wasm");
-          if (wasm?.preload) {
-            const fallback = await wasm.probe();
-            if (fallback.available) {
-              await wasm.preload();
-              publishPreparation({ stage: "ready", fraction: 1 });
-              return;
-            }
-            publishPreparation({
-              stage: "unsupported",
-              detail: fallback.reason,
-              fraction: null,
-            });
-            return;
-          }
-          publishPreparation({
-            stage: "unsupported",
-            detail: availability.reason,
-            fraction: null,
-          });
-        } catch {
-          /*
-           * An ordinary network interruption is NOT a dead end here: the
-           * downloader keeps the bytes it already wrote and resumes from
-           * them, so the honest state is "will carry on", not "failed".
-           */
-          publishPreparation({ stage: "retrying" });
-        }
+        await installationAuthority().install({ reason: "warm" });
       })();
     },
     [registry],

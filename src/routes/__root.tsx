@@ -24,6 +24,7 @@ import { clearDevices } from "@/lib/mobile/device-store";
 import { clearApprovals } from "@/lib/mobile/approval-store";
 import { registerOfflineShellFromBrowser } from "@/lib/local/web-supervisor";
 import { primeOfflineRuntimeFromBrowser } from "@/lib/offline/prime-runtime";
+import { useInstallationBootstrap } from "@/lib/brain/use-installation";
 import { closeActiveCompanionSession } from "@/lib/native/tauri-companion";
 import { LegalConsentGate } from "@/components/legal/LegalConsentGate";
 // Side-effect import: registers Foundation Alpha features on module load.
@@ -285,6 +286,25 @@ function RootComponent() {
       if (registration.ok) void primeOfflineRuntimeFromBrowser();
     });
   }, []);
+
+  /*
+   * PREPARATION STARTS HERE, AND HERE ONLY.
+   *
+   * The root is the earliest point at which trusted client code runs, and it is
+   * mounted for every route -- the landing page, /auth, the demo, the signed-in
+   * product. So a visitor who arrives at ocade.in and signs in four minutes
+   * later finds the engine already prepared, and the OAuth redirect passes
+   * through without restarting anything: the transfer's checkpoint is durable
+   * and the hook resumes from it on `pageshow`.
+   *
+   * It replaces `onTypingStarted={engine.warm}`, which made the first keystroke
+   * the thing that began a multi-hundred-megabyte download -- the one moment
+   * the user is least able to wait.
+   *
+   * There is exactly one of these in the application. Every other surface
+   * WATCHES the same authority and none of them can start a second install.
+   */
+  useInstallationBootstrap();
 
   /*
    * Desktop shell polish: no context menu, no devtools shortcuts, no stray
