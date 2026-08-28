@@ -165,12 +165,7 @@ export function LocalIntelligenceControl({
 
       <div className="mt-3 flex flex-wrap gap-2">
         {hasSomething ? (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setConfirming(true)}
-            disabled={busy}
-          >
+          <Button size="sm" variant="outline" onClick={() => setConfirming(true)} disabled={busy}>
             Remove OCADE Intelligence
           </Button>
         ) : (
@@ -198,10 +193,10 @@ export function LocalIntelligenceControl({
         than a button that appears to do it and quietly does not.
       */}
       <p className="mt-3 text-[11.5px] leading-5 text-muted-foreground">
-        You can also clear OCADE&apos;s site data from your browser or device settings. OCADE
-        cannot reach another site&apos;s storage or your device&apos;s own controls, so that part
-        is yours to do. Removing OCADE Intelligence here never touches your conversations, your
-        account, or anything else on this device.
+        You can also clear OCADE&apos;s site data from your browser or device settings. OCADE cannot
+        reach another site&apos;s storage or your device&apos;s own controls, so that part is yours
+        to do. Removing OCADE Intelligence here never touches your conversations, your account, or
+        anything else on this device.
       </p>
     </div>
   );

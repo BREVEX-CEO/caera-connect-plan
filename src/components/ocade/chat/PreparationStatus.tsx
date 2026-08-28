@@ -40,9 +40,7 @@ export function PreparationStatus({ className }: { className?: string }) {
     >
       <span className="block text-foreground">{line}</span>
       {state.observing ? (
-        <span className="mt-0.5 block text-[11px]">
-          Being prepared in another OCADE window.
-        </span>
+        <span className="mt-0.5 block text-[11px]">Being prepared in another OCADE window.</span>
       ) : null}
       {state.fraction !== null ? (
         <progress

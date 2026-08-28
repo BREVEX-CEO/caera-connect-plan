@@ -115,7 +115,9 @@ export function describeInstall(state: InstallState): string {
 }
 
 export function isErrorStage(stage: InstallStage): boolean {
-  return stage === "insufficient_storage" || stage === "recoverable_error" || stage === "fatal_error";
+  return (
+    stage === "insufficient_storage" || stage === "recoverable_error" || stage === "fatal_error"
+  );
 }
 
 /** True while setup is genuinely in progress — the setup screen's condition. */

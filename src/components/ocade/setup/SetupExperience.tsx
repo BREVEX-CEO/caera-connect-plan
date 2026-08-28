@@ -41,7 +41,10 @@ import { cn } from "@/lib/utils";
 
 /** The stages, as a person experiences them rather than as the machine does. */
 const NARRATIVE: { match: (stage: string) => boolean; line: string }[] = [
-  { match: (s) => s === "checking_device" || s === "checking_storage", line: "Preparing this device" },
+  {
+    match: (s) => s === "checking_device" || s === "checking_storage",
+    line: "Preparing this device",
+  },
   { match: (s) => s === "preparing_runtime" || s === "waiting_for_source", line: "Starting OCADE" },
   { match: (s) => s === "downloading" || s === "retrying", line: "Preparing OCADE" },
   { match: (s) => s === "verifying", line: "Securing local intelligence" },
@@ -124,7 +127,8 @@ export function SetupExperience({
    */
   const circumference = 2 * Math.PI * 54;
   const dash = useMemo(
-    () => (state.fraction === null ? null : circumference * Math.min(1, Math.max(0, state.fraction))),
+    () =>
+      state.fraction === null ? null : circumference * Math.min(1, Math.max(0, state.fraction)),
     [state.fraction, circumference],
   );
 
@@ -175,8 +179,7 @@ export function SetupExperience({
 
           {percent !== null && preparing && !failed ? (
             <p className="mt-4 text-[13px] tabular-nums text-foreground/80">
-              {percent}%
-              {eta ? <span className="text-muted-foreground"> · {eta}</span> : null}
+              {percent}%{eta ? <span className="text-muted-foreground"> · {eta}</span> : null}
             </p>
           ) : null}
         </div>
@@ -259,14 +262,7 @@ function SetupOrb({
           active && dash === null ? "ocade-setup-sweep" : null,
         )}
       >
-        <circle
-          cx="68"
-          cy="68"
-          r="54"
-          fill="none"
-          strokeWidth="2"
-          className="stroke-border/60"
-        />
+        <circle cx="68" cy="68" r="54" fill="none" strokeWidth="2" className="stroke-border/60" />
         <circle
           cx="68"
           cy="68"
@@ -431,13 +427,7 @@ function StorageHelp() {
  * the fallback, so keyboard users are excluded from the disabled region too
  * rather than being the only people who can still reach it.
  */
-export function SetupLock({
-  locked,
-  children,
-}: {
-  locked: boolean;
-  children: React.ReactNode;
-}) {
+export function SetupLock({ locked, children }: { locked: boolean; children: React.ReactNode }) {
   return (
     <div
       // React 19 passes `inert` through as a real attribute.

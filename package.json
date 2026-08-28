@@ -47,6 +47,8 @@
     "chat:runtime-evidence": "vite-node scripts/ocade-chat-runtime-evidence.mts -- --write",
     "chat:capability-evidence": "vite-node scripts/ocade-chat-capability-evidence.mts -- --write",
     "engine:model-install-evidence": "vite-node scripts/ocade-model-pull-evidence.mts --",
+    "model:install-proof": "vite-node scripts/e2e/model-install-production-proof.mts -- --write",
+    "model:install-proof:quick": "vite-node scripts/e2e/model-install-production-proof.mts -- --quick",
     "untracked:classify": "node scripts/classify-untracked.mjs",
     "worktree:ownership": "node scripts/audit-worktree-ownership.mjs",
     "setup:check": "node scripts/check-setup.mjs",

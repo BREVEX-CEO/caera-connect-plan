@@ -88,7 +88,7 @@ export function cdnUrlFor(tier: BrowserModelTier): string | null {
  * a tier that certainly will not fit, never to justify one.
  */
 async function probeWebGpu(): Promise<{ ok: boolean; bytes: number | null; why: string }> {
-  const gpu = (globalThis.navigator as Navigator & { gpu?: GPU } | undefined)?.gpu;
+  const gpu = (globalThis.navigator as (Navigator & { gpu?: GPU }) | undefined)?.gpu;
   if (!gpu) {
     return { ok: false, bytes: null, why: "this browser cannot use the graphics card" };
   }

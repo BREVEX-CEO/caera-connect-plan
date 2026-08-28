@@ -1,12 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
-import {
-  DEMO_SESSION_MS,
-  readDeadline,
-  sessionState,
-  startSession,
-  endSession,
-} from "../session";
+import { DEMO_SESSION_MS, readDeadline, sessionState, startSession, endSession } from "../session";
 
 /**
  * THE 28 MINUTES BELONG TO THE USER, NOT TO THE SETUP.

@@ -308,7 +308,9 @@ self.addEventListener("backgroundfetchsuccess", (event) => {
       // `updateUI` is what the browser shows in its own download surface. The
       // product language rule applies there too: no model name, no size.
       try {
-        await event.updateUI({ title: stored ? "OCADE is ready to finish setting up" : "OCADE setup needs another try" });
+        await event.updateUI({
+          title: stored ? "OCADE is ready to finish setting up" : "OCADE setup needs another try",
+        });
       } catch {
         /* Some engines only allow one updateUI call; failing it is harmless. */
       }
@@ -327,9 +329,7 @@ self.addEventListener("backgroundfetchfail", (event) => {
 });
 
 self.addEventListener("backgroundfetchabort", (event) => {
-  event.waitUntil(
-    notifyClients({ type: "ocade:model-aborted", id: event.registration.id }),
-  );
+  event.waitUntil(notifyClients({ type: "ocade:model-aborted", id: event.registration.id }));
 });
 
 /** Tapping the browser's own progress notification opens OCADE. */

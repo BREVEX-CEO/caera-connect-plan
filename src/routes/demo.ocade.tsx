@@ -621,10 +621,7 @@ function DemoOcade() {
    */
   if (!installation.ready && installation.preparing) {
     return (
-      <SetupExperience
-        onLeave={() => void navigate({ to: "/" })}
-        leaveLabel="Back to ocade.in"
-      />
+      <SetupExperience onLeave={() => void navigate({ to: "/" })} leaveLabel="Back to ocade.in" />
     );
   }
 

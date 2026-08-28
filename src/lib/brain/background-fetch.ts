@@ -45,7 +45,11 @@ interface BackgroundFetchManagerLike {
   fetch: (
     id: string,
     requests: string[],
-    options?: { title?: string; icons?: { src: string; sizes?: string; type?: string }[]; downloadTotal?: number },
+    options?: {
+      title?: string;
+      icons?: { src: string; sizes?: string; type?: string }[];
+      downloadTotal?: number;
+    },
   ) => Promise<BackgroundFetchRegistrationLike>;
   get: (id: string) => Promise<BackgroundFetchRegistrationLike | undefined>;
   getIds: () => Promise<string[]>;
@@ -54,9 +58,13 @@ interface BackgroundFetchManagerLike {
 function manager(
   registration: ServiceWorkerRegistration | null,
 ): BackgroundFetchManagerLike | null {
-  const candidate = (registration as ServiceWorkerRegistration & {
-    backgroundFetch?: BackgroundFetchManagerLike;
-  } | null)?.backgroundFetch;
+  const candidate = (
+    registration as
+      | (ServiceWorkerRegistration & {
+          backgroundFetch?: BackgroundFetchManagerLike;
+        })
+      | null
+  )?.backgroundFetch;
   return candidate && typeof candidate.fetch === "function" ? candidate : null;
 }
 

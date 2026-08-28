@@ -128,9 +128,7 @@ describe("checkpoints make a resume free instead of merely possible", () => {
 
     let saved: DigestCheckpoint | null = null;
     for (let at = 0; at < bytes.length; at += step) {
-      const hasher: StreamingSha256 = saved
-        ? StreamingSha256.resume(saved)
-        : new StreamingSha256();
+      const hasher: StreamingSha256 = saved ? StreamingSha256.resume(saved) : new StreamingSha256();
       hasher.update(bytes.subarray(at, at + step));
       saved = hasher.checkpoint();
       expect(saved).not.toBeNull();

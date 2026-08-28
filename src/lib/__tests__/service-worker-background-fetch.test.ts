@@ -36,9 +36,9 @@ function extract(name: string, arg: string): (value: unknown) => unknown {
   if (!constants.includes("MODEL_FETCH_PREFIX")) {
     throw new Error("MODEL_FETCH_PREFIX not found in public/sw.js");
   }
-  const factory = new Function(
-    `${constants}\n${match[0]}; return ${name};`,
-  ) as () => (value: unknown) => unknown;
+  const factory = new Function(`${constants}\n${match[0]}; return ${name};`) as () => (
+    value: unknown,
+  ) => unknown;
   return factory();
 }
 

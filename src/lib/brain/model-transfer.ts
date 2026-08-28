@@ -156,6 +156,16 @@ const DEFAULT_ATTEMPTS = 5;
 /** How often throughput is measured and concurrency reconsidered. */
 const SAMPLE_WINDOW_MS = 2500;
 
+/**
+ * How much newly contiguous data may accumulate before it is written down.
+ *
+ * A checkpoint costs a flush, so it is not taken per chunk; this bounds what an
+ * interruption can cost. Sixteen megabytes is a few seconds on any connection
+ * worth planning for, and the failure and cancellation paths take one on the
+ * way out regardless, so this only governs the steady state.
+ */
+const CHECKPOINT_INTERVAL_BYTES = 16 * 1024 * 1024;
+
 export async function transferModel(
   request: TransferRequest,
   deps: TransferDeps,
@@ -320,7 +330,9 @@ export async function transferModel(
        * nothing rather than something invented.
        */
       etaSeconds:
-        bytesPerSecond !== null && bytesPerSecond > 0 ? Math.round(remaining / bytesPerSecond) : null,
+        bytesPerSecond !== null && bytesPerSecond > 0
+          ? Math.round(remaining / bytesPerSecond)
+          : null,
     });
   };
 
@@ -412,7 +424,7 @@ export async function transferModel(
       const before = nextToHash;
       if (!(await drainOnce())) return false;
       sinceCheckpointBytes += (nextToHash - before) * chunkBytes;
-      if (sinceCheckpointBytes >= 32 * 1024 * 1024 || nextToHash >= chunks.length) {
+      if (sinceCheckpointBytes >= CHECKPOINT_INTERVAL_BYTES || nextToHash >= chunks.length) {
         sinceCheckpointBytes = 0;
         if (!(await persist())) return false;
       }
@@ -599,12 +611,7 @@ export async function transferModel(
     await drain();
   }
 
-  if (
-    !failure &&
-    !sequentialFallback &&
-    !request.signal?.aborted &&
-    nextToHash < chunks.length
-  ) {
+  if (!failure && !sequentialFallback && !request.signal?.aborted && nextToHash < chunks.length) {
     // Every worker returned and the frontier is short: something did not
     // arrive. Reported rather than spun on.
     failure = {
@@ -646,12 +653,15 @@ export async function transferModel(
 
   if (request.signal?.aborted) {
     await deps.writer.flush();
+    // Same reasoning as the failure path below: the frontier is durable, so it
+    // is recorded rather than left for the periodic checkpoint that will not
+    // come. Stopping is not discarding.
+    await request.onCheckpoint?.(checkpointNow());
     return finish({
       ok: false,
       failure: "cancelled",
       reason: "Preparation stopped.",
       retriable: true,
-      // Bytes already received are kept: stopping is not discarding.
       checkpoint: checkpointNow(),
       metrics,
     });
@@ -659,6 +669,21 @@ export async function transferModel(
 
   if (failure) {
     await deps.writer.flush();
+    /*
+     * PERSIST THE FRONTIER ON THE WAY OUT, NOT ONLY AT THE 32 MB CADENCE.
+     *
+     * Measured in the production-weight harness: a break partway through left a
+     * checkpoint covering fewer chunks than were actually complete on disk,
+     * because the last periodic checkpoint had been taken some way back and the
+     * work since then was never written down. The bytes were there and the next
+     * attempt re-fetched them anyway -- which is precisely the "never silently
+     * lose valid downloaded progress" rule, broken in the one situation the
+     * rule exists for.
+     *
+     * The flush above has already made those bytes durable, so telling the
+     * caller about them costs nothing and is simply true.
+     */
+    await request.onCheckpoint?.(checkpointNow());
     return finish({ ...failure, ok: false, checkpoint: checkpointNow(), metrics });
   }
 
@@ -702,8 +727,7 @@ export async function transferModel(
         return {
           ok: false,
           failure: "digest_mismatch",
-          reason:
-            "What arrived did not match its published fingerprint, so OCADE will not run it.",
+          reason: "What arrived did not match its published fingerprint, so OCADE will not run it.",
           // Worth another attempt from a different source; the caller decides
           // whether the bytes on disk are salvageable.
           retriable: true,
@@ -751,7 +775,8 @@ async function transferSequentially(input: {
   persist: () => Promise<boolean>;
   now: () => number;
 }): Promise<
-  { ok: true } | { ok: false; error: { failure: TransferFailure; reason: string; retriable: boolean } }
+  | { ok: true }
+  | { ok: false; error: { failure: TransferFailure; reason: string; retriable: boolean } }
 > {
   const { request, deps, chunks, hasher } = input;
   try {

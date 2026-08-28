@@ -37,7 +37,10 @@ function fakeDisk(options?: { failAfterBytes?: number; failFlush?: boolean }) {
 
   const writer: ModelFileWriter = {
     async write(chunk, at) {
-      if (options?.failAfterBytes !== undefined && accepted + chunk.length > options.failAfterBytes) {
+      if (
+        options?.failAfterBytes !== undefined &&
+        accepted + chunk.length > options.failAfterBytes
+      ) {
         return false;
       }
       accepted += chunk.length;

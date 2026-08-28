@@ -75,9 +75,7 @@ export function installEvents(): readonly TimedInstallEvent[] {
   return ring;
 }
 
-export function subscribeToInstallEvents(
-  listener: (event: TimedInstallEvent) => void,
-): () => void {
+export function subscribeToInstallEvents(listener: (event: TimedInstallEvent) => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
@@ -109,9 +107,7 @@ export interface InstallSummary {
   failures: number;
 }
 
-export function summariseInstall(
-  events: readonly TimedInstallEvent[] = ring,
-): InstallSummary {
+export function summariseInstall(events: readonly TimedInstallEvent[] = ring): InstallSummary {
   const summary: InstallSummary = {
     deviceCheckMs: null,
     downloadMs: null,

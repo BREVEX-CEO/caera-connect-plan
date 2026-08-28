@@ -244,12 +244,7 @@ const MAX_AUTOMATIC_ATTEMPTS = 3;
 
 /** Who asked. It decides whether a recent uninstall is respected. */
 export type InstallReason =
-  | "app_bootstrap"
-  | "warm"
-  | "resumed"
-  | "user_retry"
-  | "reinstall"
-  | "repair";
+  "app_bootstrap" | "warm" | "resumed" | "user_retry" | "reinstall" | "repair";
 
 /** Triggers nobody pressed. These defer to a deliberate removal. */
 const AUTOMATIC_REASONS = new Set<InstallReason>(["app_bootstrap", "warm", "resumed"]);
@@ -418,7 +413,12 @@ export class ModelInstallationAuthority {
   /** A real retry: a new attempt, not a change of label. */
   async retry(): Promise<InstallState> {
     if (this.running) return this.running;
-    this.publish({ stage: "retrying", problem: null, remedies: [], retries: this.state.retries + 1 });
+    this.publish({
+      stage: "retrying",
+      problem: null,
+      remedies: [],
+      retries: this.state.retries + 1,
+    });
     return this.install({ reason: "user_retry" });
   }
 
@@ -686,7 +686,8 @@ export class ModelInstallationAuthority {
 
       if (result.ok) break;
 
-      if (result.failure === "cancelled") return { ok: false, reason: "Paused.", stop: true, remedies: [] };
+      if (result.failure === "cancelled")
+        return { ok: false, reason: "Paused.", stop: true, remedies: [] };
 
       if (result.failure === "insufficient_storage") {
         return {
@@ -739,7 +740,12 @@ export class ModelInstallationAuthority {
     }
 
     if (!result?.ok) {
-      return { ok: false, reason: "Preparation did not complete.", stop: true, remedies: ["retry"] };
+      return {
+        ok: false,
+        reason: "Preparation did not complete.",
+        stop: true,
+        remedies: ["retry"],
+      };
     }
 
     /* 5. Verify, then activate. In that order, always. */

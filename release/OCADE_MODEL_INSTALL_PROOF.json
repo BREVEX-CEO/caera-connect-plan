@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-28T01:05:56.907Z",
+  "generatedBy": "scripts/e2e/model-install-production-proof.mts",
+  "artifactBytes": 1117320736,
+  "artifactSha256": "ad332b82e96d26909ef661ceecd764e6b23ab1b92d6b0b64dc8297ba631db460",
+  "plan": {
+    "chunkBytes": 8388608,
+    "concurrency": 6,
+    "because": "a capable device on a fast connection"
+  },
+  "passed": true,
+  "failures": [],
+  "measurements": [
+    {
+      "step": "generate artifact",
+      "ms": 11313,
+      "detail": {
+        "sha256": "ad332b82e96d2690"
+      }
+    },
+    {
+      "step": "interrupted transfer",
+      "ms": 7714,
+      "detail": {
+        "resumableBytes": 352321536,
+        "fraction": "31.5%"
+      }
+    },
+    {
+      "step": "resume to complete",
+      "ms": 14892,
+      "detail": {
+        "transferred": 764999200,
+        "throughput": "49.0 MiB/s",
+        "retries": 0,
+        "ranged": true,
+        "concurrency": 3
+      }
+    },
+    {
+      "step": "independent verification",
+      "ms": 9520,
+      "detail": {
+        "throughput": "111.9 MiB/s"
+      }
+    },
+    {
+      "step": "reload to ready",
+      "ms": 1
+    },
+    {
+      "step": "uninstall",
+      "ms": 37
+    },
+    {
+      "step": "reinstall (full)",
+      "ms": 18703,
+      "detail": {
+        "throughput": "57.0 MiB/s"
+      }
+    }
+  ]
+}
