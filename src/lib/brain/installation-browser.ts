@@ -29,6 +29,8 @@ import {
 import { modelVault } from "./model-vault";
 import { ModelStore, modelStore } from "./model-store";
 import { sourceLadder } from "./download-plan";
+import { sha256OfBlobStreaming } from "./streaming-digest";
+import { onBackgroundFetchStaged } from "./background-fetch";
 import {
   WASM_TIERS,
   WEBGPU_TIERS,
@@ -360,11 +362,27 @@ export function installationAuthority(): ModelInstallationAuthority {
       }
     },
     requestPersistence: () => modelStore.requestPersistence(),
+    hashBlob: (blob, signal) => sha256OfBlobStreaming(blob, { signal }),
     acquireLock: acquireInstallLock,
     broadcast: (state) => bus(state),
   });
 
   const bus = createBus((state) => created.observe(state));
+
+  /*
+   * A COMPLETED BACKGROUND TRANSFER IS A REASON TO LOOK, NOT A REASON TO TRUST.
+   *
+   * The service worker writes the bytes and says so. It does not hash them and
+   * records nothing about them, so what arrives here is only "there is a file
+   * where you expected one". `install()` then finds a complete artifact with no
+   * proof beside it and streams a digest over it before anything is activated
+   * -- the same check a foreground download gets, in the same place.
+   */
+  onBackgroundFetchStaged((ok) => {
+    if (!ok) return;
+    void created.install({ reason: "resumed" });
+  });
+
   authority = created;
   return created;
 }

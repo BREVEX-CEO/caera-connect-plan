@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteFooterLinks } from "@/components/shell/SiteFooter";
+import { LocalIntelligenceControl } from "@/components/ocade/setup/LocalIntelligenceControl";
 import { LandingUniverse } from "@/components/landing/LandingUniverse";
 import { WEBSITE_STRUCTURED_DATA } from "@/lib/public-identity";
 
@@ -63,6 +64,20 @@ function LandingPage() {
               { to: "/auth", label: "Sign in" },
             ]}
           />
+        </div>
+        {/*
+          THE UNINSTALL CONTROL, ON THE PUBLIC PAGE.
+
+          OCADE starts preparing its intelligence as soon as a visitor arrives,
+          which is what makes the product fast -- and it means a visitor who has
+          not signed in has something of theirs on their device. The control to
+          remove it therefore has to be reachable WITHOUT an account, on the
+          page where the storing started. Quiet, near the bottom, and findable:
+          a removal control that only exists behind a sign-in is not a removal
+          control for the people most likely to want one.
+        */}
+        <div className="mx-auto mt-6 max-w-6xl px-4 text-center sm:text-left">
+          <LocalIntelligenceControl variant="compact" />
         </div>
       </footer>
     </div>

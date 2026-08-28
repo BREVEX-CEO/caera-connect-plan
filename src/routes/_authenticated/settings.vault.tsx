@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { BrowserStoragePanel } from "@/components/settings/BrowserStoragePanel";
+import { LocalIntelligenceControl } from "@/components/ocade/setup/LocalIntelligenceControl";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { useSession } from "@/lib/session";
 import { recordAction } from "@/lib/actions";
@@ -169,6 +170,17 @@ function VaultPage() {
         it?" — and someone hunting for hundreds of megabytes of model weights
         should not have to know they are a different subsystem.
       */}
+      {/*
+        The engine's own remove/reinstall control sits ABOVE the raw storage
+        listing, because it is the one people are looking for. The panel below
+        shows every file; this decides whether OCADE keeps an engine here at
+        all, and it is deliberately distinct from deleting an account or
+        clearing conversations.
+      */}
+      <div className="mt-4">
+        <LocalIntelligenceControl />
+      </div>
+
       <div className="mt-4">
         <BrowserStoragePanel />
       </div>

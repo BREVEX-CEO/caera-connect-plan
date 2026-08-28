@@ -187,6 +187,8 @@ function harness(
     },
     storageHeadroom: async () => 10 * 1024 * 1024 * 1024,
     requestPersistence: async () => true,
+    // The real one streams; here the whole test artifact fits comfortably.
+    hashBlob: async (blob) => sha256OfBytes(new Uint8Array(await blob.arrayBuffer())),
     telemetry: (event) => telemetry.push(event),
     plan: { chunkBytes: 4 * KIB, concurrency: 3, because: "test" },
     ...overrides,
@@ -269,8 +271,8 @@ describe("THE OBSERVED FAILURES", () => {
   it("joins an install already in flight instead of starting another", async () => {
     const h = harness({ plan: { chunkBytes: 4 * KIB, concurrency: 1, because: "test" } });
     const warm = h.authority.install({ reason: "warm" });
-    const send = h.authority.install({ reason: "send" });
-    const composer = h.authority.install({ reason: "typing" });
+    const send = h.authority.install({ reason: "warm" });
+    const composer = h.authority.install({ reason: "warm" });
     expect(send).toBe(warm);
     expect(composer).toBe(warm);
     await warm;
@@ -282,8 +284,8 @@ describe("THE OBSERVED FAILURES", () => {
     const h = harness();
     await h.authority.install();
     const before = h.net.requests;
-    await h.authority.install({ reason: "typing" });
-    await h.authority.install({ reason: "second tab" });
+    await h.authority.install({ reason: "warm" });
+    await h.authority.install({ reason: "app_bootstrap" });
     expect(h.net.requests).toBe(before);
   });
 
@@ -557,6 +559,77 @@ describe("uninstall and reinstall", () => {
     expect(h.storage.getItem("caera:conversations")).toBe("a conversation");
     expect(h.storage.getItem("caera:demo:session:v2")).toBe("12345");
     expect(h.storage.getItem("theme")).toBe("dark");
+  });
+
+  /*
+   * AN UNINSTALL THE USER JUST ASKED FOR HAS TO MEAN SOMETHING.
+   *
+   * Preparation starts automatically on every visit, which is what makes the
+   * product fast -- and without a cooldown it would also mean that pressing
+   * "Remove OCADE Intelligence" freed a gigabyte and immediately began
+   * downloading it again on the same screen. That is not a product removing
+   * something; that is a product arguing with the person using it.
+   */
+  it("does not quietly reinstall behind the user after a removal", async () => {
+    let intent: number | null = null;
+    const h = harness({
+      readIntent: () => intent,
+      writeIntent: (at) => {
+        intent = at;
+      },
+    });
+    await h.authority.install();
+    await h.authority.uninstall();
+    const requestsAfterRemoval = h.net.requests;
+
+    // Everything that fires without anybody pressing anything.
+    await h.authority.install({ reason: "app_bootstrap" });
+    await h.authority.install({ reason: "warm" });
+    await h.authority.install({ reason: "resumed" });
+
+    expect(h.net.requests).toBe(requestsAfterRemoval);
+    expect(h.vault.activeVersion()).toBeNull();
+    expect(h.authority.snapshot().stage).toBe("idle");
+  });
+
+  it("installs at once when the user explicitly asks for it back", async () => {
+    let intent: number | null = null;
+    const h = harness({
+      readIntent: () => intent,
+      writeIntent: (at) => {
+        intent = at;
+      },
+    });
+    await h.authority.install();
+    await h.authority.uninstall();
+    expect(intent).not.toBeNull();
+
+    const state = await h.authority.reinstall();
+    expect(state.stage).toBe("ready");
+    expect(h.vault.activeVersion()).toBe(h.version);
+    // Asking for it back clears the removal, so ordinary visits prepare again.
+    expect(intent).toBeNull();
+  });
+
+  it("lets the cooldown lapse rather than opting the device out forever", async () => {
+    const day = 24 * 60 * 60 * 1000;
+    let clock = 1_000_000;
+    let intent: number | null = null;
+    const h = harness({
+      now: () => clock,
+      readIntent: () => intent,
+      writeIntent: (at) => {
+        intent = at;
+      },
+    });
+    await h.authority.install();
+    await h.authority.uninstall();
+    expect(h.authority.uninstallIntentActive()).toBe(true);
+
+    clock += day + 1000;
+    expect(h.authority.uninstallIntentActive()).toBe(false);
+    const state = await h.authority.install({ reason: "app_bootstrap" });
+    expect(state.stage).toBe("ready");
   });
 
   it("can install again after an uninstall", async () => {

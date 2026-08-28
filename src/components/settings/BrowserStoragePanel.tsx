@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/shell/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { modelStore, type StorageReport } from "@/lib/brain/model-store";
 import { clearBenchmarks } from "@/lib/brain/tier-benchmark-store";
+import { installationAuthority } from "@/lib/brain/installation-browser";
 
 /**
  * What OCADE is keeping in this browser, and the controls to change it.
@@ -77,7 +78,21 @@ export function BrowserStoragePanel() {
   const removeAll = useCallback(async () => {
     setBusy("all");
     try {
-      const removed = await modelStore.clear();
+      /*
+       * THROUGH THE AUTHORITY, NOT STRAIGHT AT THE STORE.
+       *
+       * `modelStore.clear()` deletes files and knows nothing about the pointer
+       * that says which version is active, the per-version metadata, or the
+       * engine currently loaded in this tab. Clearing files underneath all
+       * three left a product that believed it had a verified engine over an
+       * empty directory -- and would then load nothing and fail at the first
+       * question.
+       *
+       * The authority's uninstall removes the artifacts, the metadata and the
+       * pointers together, and records that the removal was deliberate so the
+       * automatic preparation on the next visit does not quietly undo it.
+       */
+      const { removed } = await installationAuthority().uninstall();
       // Measurements describe engines that are no longer here, so they go too.
       clearBenchmarks();
       toast.success(

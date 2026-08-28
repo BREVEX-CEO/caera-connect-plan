@@ -195,12 +195,24 @@ export interface AuthorityDeps {
   storageHeadroom: () => Promise<number | null>;
   /** Ask the browser not to evict the weights. */
   requestPersistence: () => Promise<boolean>;
+  /**
+   * Digest an artifact already on disk, without materialising it.
+   *
+   * Injected so the verification cost is measurable and the path is reachable
+   * from a test with no Blob streaming; the real one is
+   * `sha256OfBlobStreaming`. Returns null when it could not be computed, which
+   * is NOT a passing check.
+   */
+  hashBlob: (blob: Blob, signal?: AbortSignal) => Promise<string | null>;
   /** Cross-tab ownership. Resolves when this tab holds the install lock. */
   acquireLock?: (run: () => Promise<void>) => Promise<boolean>;
   /** Publish state to other tabs and receive theirs. */
   broadcast?: (state: InstallState) => void;
   telemetry?: (event: InstallTelemetry) => void;
   now?: () => number;
+  /** Injected so the uninstall cooldown is reachable without a browser. */
+  readIntent?: () => number | null;
+  writeIntent?: (at: number | null) => void;
   deviceSignals?: () => ReturnType<typeof readDeviceSignals>;
   /** Transfer plan override, for tests and for a forced configuration. */
   plan?: TransferPlan;
@@ -228,6 +240,30 @@ const INITIAL: InstallState = {
  * needs to know about.
  */
 const MAX_AUTOMATIC_ATTEMPTS = 3;
+
+/** Who asked. It decides whether a recent uninstall is respected. */
+export type InstallReason =
+  | "app_bootstrap"
+  | "warm"
+  | "resumed"
+  | "user_retry"
+  | "reinstall"
+  | "repair";
+
+/** Triggers nobody pressed. These defer to a deliberate removal. */
+const AUTOMATIC_REASONS = new Set<InstallReason>(["app_bootstrap", "warm", "resumed"]);
+
+const UNINSTALL_INTENT_KEY = "ocade.model.uninstalled.at.v1";
+
+/**
+ * How long a deliberate removal suppresses automatic reinstallation.
+ *
+ * Long enough that the removal is real for the rest of the visit and the one
+ * after it; short enough that a device someone cleared months ago is not
+ * permanently opted out of a product feature they never disabled. A person who
+ * wants it back sooner presses Reinstall, which clears this instantly.
+ */
+export const UNINSTALL_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 export class ModelInstallationAuthority {
   private state: InstallState = INITIAL;
@@ -310,10 +346,38 @@ export class ModelInstallationAuthority {
    * keystroke, a route change, a second tab and a background warm-up all wait
    * on the SAME operation. There is no path by which a second download starts.
    */
-  install(options?: { reason?: string }): Promise<InstallState> {
-    void options;
+  install(options?: { reason?: InstallReason }): Promise<InstallState> {
     if (this.state.stage === "ready") return Promise.resolve(this.state);
     if (this.running) return this.running;
+
+    /*
+     * AN UNINSTALL THE USER JUST ASKED FOR MUST MEAN SOMETHING.
+     *
+     * Preparation starts automatically on every visit, which is right — and it
+     * would also mean that pressing "Remove OCADE Intelligence" freed a
+     * gigabyte and then immediately began downloading it again, behind the
+     * user's back, on the same screen. That is not a product removing
+     * something; that is a product arguing.
+     *
+     * So a deliberate removal records an intent, and the AUTOMATIC triggers
+     * respect it for a while. Anything the user explicitly asks for — Reinstall,
+     * Try again, Repair — clears it immediately, because their asking is the
+     * whole point.
+     */
+    if (AUTOMATIC_REASONS.has(options?.reason ?? "app_bootstrap")) {
+      if (this.uninstallIntentActive()) {
+        this.publish({
+          stage: "idle",
+          detail: "OCADE Intelligence is not installed on this device.",
+          problem: null,
+          remedies: [],
+          fraction: null,
+        });
+        return Promise.resolve(this.state);
+      }
+    } else {
+      this.clearUninstallIntent();
+    }
 
     this.controller = new AbortController();
     this.startedAt = this.now();
@@ -443,9 +507,50 @@ export class ModelInstallationAuthority {
 
     /* Already installed and verified? Then this is not a download at all. */
     const existing = this.deps.vault.readMeta(target.version);
-    if (existing?.verified && (await this.deps.vault.bytesOf(target.version)) > 0) {
+    const onDisk = await this.deps.vault.bytesOf(target.version);
+    if (existing?.verified && onDisk > 0) {
       await this.deps.vault.activate(target.version);
       return this.activate(path, target.version, signal);
+    }
+
+    /*
+     * A COMPLETE FILE WITH NO PROOF BESIDE IT: HASH IT, DO NOT RE-FETCH IT.
+     *
+     * Three real situations produce exactly this, and the naive response to all
+     * three is to download a gigabyte the device already has:
+     *
+     *  - the browser was closed after the last byte landed but before the
+     *    digest was recorded;
+     *  - metadata was lost while the file survived — private mode, a cleared
+     *    localStorage, a storage partition reset;
+     *  - the SERVICE WORKER fetched it in the background. Background Fetch
+     *    writes bytes and deliberately proves nothing about them, because
+     *    verification belongs in one place and this is that place.
+     *
+     * Streaming, so a gigabyte is never materialised. A mismatch removes the
+     * file for the reason it always does: weights that are almost right load
+     * happily and answer nonsense.
+     */
+    if (target.totalBytes !== null && onDisk === target.totalBytes && target.sha256) {
+      this.publish({ stage: "verifying", fraction: 1 });
+      const blob = await this.deps.vault.readArtifact(target.version);
+      const digest = blob ? await this.deps.hashBlob(blob, signal) : null;
+      if (digest !== null && digest.toLowerCase() === target.sha256.toLowerCase()) {
+        this.deps.vault.writeMeta(target.version, {
+          verified: true,
+          expectedBytes: onDisk,
+          sha256: target.sha256,
+        });
+        await this.deps.vault.activate(target.version);
+        this.emit({ kind: "adopted_existing", version: target.version });
+        return this.activate(path, target.version, signal);
+      }
+      if (digest !== null) {
+        await this.deps.vault.removeVersion(target.version);
+        this.emit({ kind: "digest_mismatch", version: target.version });
+      }
+      // A digest that could not be computed leaves the bytes alone and falls
+      // through to a normal transfer, which will resume over them.
     }
 
     /*
@@ -753,12 +858,38 @@ export class ModelInstallationAuthority {
     this.running = null;
     const result = await this.deps.vault.removeEverything();
     this.ladder = [];
+    // Recorded BEFORE the state is published, so nothing observing the change
+    // can race ahead and start an automatic install between the two.
+    this.recordUninstallIntent();
     this.publish({
       ...INITIAL,
       detail: "OCADE Intelligence has been removed from this device.",
     });
     this.emit({ kind: "uninstalled", removed: result.versionsRemoved + result.legacyRemoved });
     return { ok: true, removed: result.versionsRemoved + result.legacyRemoved };
+  }
+
+  /** Put it back, now, because the user asked for it. */
+  reinstall(): Promise<InstallState> {
+    this.clearUninstallIntent();
+    return this.install({ reason: "reinstall" });
+  }
+
+  /** True while a deliberate removal is still being honoured. */
+  uninstallIntentActive(now: number = this.now()): boolean {
+    const at = this.deps.readIntent?.() ?? readIntentFromLocalStorage();
+    return at !== null && now - at < UNINSTALL_COOLDOWN_MS;
+  }
+
+  private recordUninstallIntent(): void {
+    const at = this.now();
+    if (this.deps.writeIntent) this.deps.writeIntent(at);
+    else writeIntentToLocalStorage(at);
+  }
+
+  private clearUninstallIntent(): void {
+    if (this.deps.writeIntent) this.deps.writeIntent(null);
+    else writeIntentToLocalStorage(null);
   }
 
   /**
@@ -820,6 +951,37 @@ export class ModelInstallationAuthority {
 
   private emit(event: InstallTelemetry): void {
     (this.deps.telemetry ?? recordInstallEvent)(event);
+  }
+}
+
+/**
+ * The uninstall intent, in ordinary browser storage.
+ *
+ * localStorage rather than the vault, deliberately: it has to survive the vault
+ * being emptied, which is the exact event it records.
+ */
+function readIntentFromLocalStorage(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(UNINSTALL_INTENT_KEY);
+    const value = Number(raw);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeIntentToLocalStorage(at: number | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (at === null) window.localStorage.removeItem(UNINSTALL_INTENT_KEY);
+    else window.localStorage.setItem(UNINSTALL_INTENT_KEY, String(at));
+  } catch {
+    /*
+     * Without durable storage the removal cannot be remembered across a
+     * reload. That is a browser limitation rather than a reason to fail the
+     * uninstall itself -- the bytes are still gone.
+     */
   }
 }
 
