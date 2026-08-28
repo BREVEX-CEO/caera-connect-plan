@@ -211,6 +211,16 @@ export interface AuthorityDeps {
   broadcast?: (state: InstallState) => void;
   telemetry?: (event: InstallTelemetry) => void;
   now?: () => number;
+  /**
+   * Injected so retry backoff is reachable from a test without waiting it out.
+   *
+   * Real backoff is bounded but deliberately slow — up to thirty seconds, with
+   * jitter, so several chunks that failed together do not retry together. A
+   * suite that waited for that would either be minutes long or be tempted to
+   * shorten the production delays, and the delays are the point.
+   */
+  sleep?: (ms: number) => Promise<void>;
+  random?: () => number;
   /** Injected so the uninstall cooldown is reachable without a browser. */
   readIntent?: () => number | null;
   writeIntent?: (at: number | null) => void;
@@ -680,7 +690,12 @@ export class ModelInstallationAuthority {
             });
           },
         },
-        { fetchImpl: this.deps.fetchImpl, writer },
+        {
+          fetchImpl: this.deps.fetchImpl,
+          writer,
+          ...(this.deps.sleep ? { sleep: this.deps.sleep } : {}),
+          ...(this.deps.random ? { random: this.deps.random } : {}),
+        },
       );
       await writer.close();
 

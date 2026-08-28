@@ -6,12 +6,8 @@ import { activateModel } from "@/lib/local/model-lifecycle";
 import { discoverLocalModels, streamLocalChat, DEFAULT_LOCAL_BRIDGE_URL } from "@/lib/ocade-local";
 import { serverIsThisMachine } from "@/lib/hardware/detect.browser";
 import { useDevicePolicy } from "@/lib/use-device-policy";
-import { useBrain } from "@/lib/brain/use-brain";
-import {
-  subscribeToPreparation,
-  describePreparation,
-  type PreparationState,
-} from "@/lib/brain/preparation";
+import { useInstallation } from "@/lib/brain/use-installation";
+import { isErrorStage } from "@/lib/brain/installation-state";
 
 /**
  * First-run engine setup — silent, automatic, and out of the way.
@@ -117,9 +113,16 @@ function markAttempted() {
 
 export function FirstRunEngineSetup() {
   const device = useDevicePolicy();
-  const brain = useBrain();
-  const [preparation, setPreparation] = useState<PreparationState | null>(null);
-  useEffect(() => subscribeToPreparation(setPreparation), []);
+  /*
+   * READS THE ONE AUTHORITY, AND STARTS NOTHING.
+   *
+   * This used to call `brain.warm()` and subscribe to a separate preparation
+   * store that the adapters published into. Both are gone: preparation begins
+   * once at the application root, and there is a single state, so this pill and
+   * the setup screen and the composer's progress line cannot disagree about
+   * what is happening. Watching is free and safe from any number of surfaces.
+   */
+  const installation = useInstallation();
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState<PullProgress | null>(null);
   // Which engine is being installed. There is only ever one, so this is a
@@ -141,17 +144,14 @@ export function FirstRunEngineSetup() {
      * OCADE prepared nothing at all. First run on the product's own primary
      * platform did nothing.
      *
-     * `brain.warm()` asks for persistent storage, probes WebGPU, falls back to
-     * the WASM runtime when there is no usable GPU adapter, and downloads
-     * through the resumable, checksum-verified path in `model-download.ts`.
-     * Progress reaches this component through the preparation store rather
-     * than a callback, because the adapters are shared across tabs and the
-     * thing displaying progress is whichever screen happens to be mounted.
+     * That preparation is no longer started here. The installation authority
+     * begins it at the application root, before this screen exists, so a
+     * person who signed in four minutes ago finds it already under way. This
+     * component only reports it.
      *
      * No button is involved anywhere in this. The user opened OCADE; that is
      * the whole of the consent required to make OCADE work.
      */
-    brain.warm();
 
     // 1. Is a usable engine already here? Then there is nothing to do, and the
     //    user should never learn this check happened.
@@ -289,9 +289,11 @@ export function FirstRunEngineSetup() {
     clearFailures();
     markAttempted();
     setPhase("done");
-    // No dependencies: this decides nothing from the device any more. It
-    // checks whether the engine is present and, if not, installs THE engine.
-  }, [brain]);
+    // No dependencies, and now genuinely none: this decides nothing from the
+    // device, and the browser engine it used to warm is the installation
+    // authority's job. What is left here is the OPTIONAL local runtime -- it
+    // checks whether that engine is present and, if not, installs THE engine.
+  }, []);
 
   useEffect(() => {
     if (started.current) return;
@@ -325,27 +327,22 @@ export function FirstRunEngineSetup() {
    * run any on-device engine is not a spinner that will eventually finish, and
    * leaving the pill silent there would mean waiting forever for nothing.
    */
-  const browserBusy =
-    preparation?.stage === "checking" ||
-    preparation?.stage === "downloading" ||
-    preparation?.stage === "loading" ||
-    preparation?.stage === "retrying";
+  const browserBusy = installation.preparing;
+  const browserRefused = isErrorStage(installation.state.stage);
   const runtimeBusy = phase === "downloading" || phase === "starting";
-  if (!browserBusy && !runtimeBusy && preparation?.stage !== "unsupported") return null;
+  if (!browserBusy && !runtimeBusy && !browserRefused) return null;
 
-  const percent = browserBusy
-    ? preparation?.fraction === null || preparation?.fraction === undefined
-      ? null
-      : preparation.fraction * 100
-    : (progress?.percent ?? null);
+  const percent =
+    browserBusy && installation.state.fraction !== null
+      ? installation.state.fraction * 100
+      : (progress?.percent ?? null);
 
-  const label = browserBusy
-    ? describePreparation(preparation!)
-    : preparation?.stage === "unsupported"
-      ? describePreparation(preparation)
+  const label =
+    browserBusy || browserRefused
+      ? installation.line
       : percent === null
-        ? "Preparing OCADE Intelligence…"
-        : `Preparing OCADE Intelligence — ${Math.round(percent)}%`;
+        ? "Preparing OCADE…"
+        : `Preparing OCADE — ${Math.round(percent)}%`;
 
   return (
     <div
@@ -367,7 +364,7 @@ export function FirstRunEngineSetup() {
           </div>
         ) : null}
         <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
-          {preparation?.stage === "unsupported"
+          {browserRefused
             ? "You can still use everything else. Manage this in Settings › Local Engine."
             : selection || browserBusy
               ? "Runs privately on this device. Nothing to install, and you can keep working."

@@ -1,0 +1,1 @@
+import{t as e}from"./vendor-react-CX2mWblQ.js";import{t}from"./TasksWorkspace-D0Y3ud5W.js";var n=e(),r=()=>(0,n.jsx)(t,{backTo:`/ocade`,backLabel:`Back to OCADE`});export{r as component};

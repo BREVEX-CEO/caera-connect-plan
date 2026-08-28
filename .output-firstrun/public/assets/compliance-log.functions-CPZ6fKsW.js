@@ -1,0 +1,1 @@
+import{Hr as e,Nr as t}from"./index-CCNlAlZM.js";import{t as n}from"./auth-middleware-dKno57Y3.js";var r=t({method:`POST`}).middleware([n]).handler(e(`55893207ac96e264df7065d1ac9d876b96101e5f05cabbe7dbe52e13808ee8cd`));export{r as writeComplianceLog};

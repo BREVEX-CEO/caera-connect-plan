@@ -1,0 +1,1 @@
+import{Mr as e}from"./index-CCNlAlZM.js";var t=e({type:`function`});export{t};

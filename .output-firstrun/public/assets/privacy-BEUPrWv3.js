@@ -1,1 +1,0 @@
-import{t as e}from"./vendor-react-CX2mWblQ.js";import{A as t,F as n,j as r}from"./index-CC4mhrgd.js";var i=e();function a(){return(0,i.jsx)(n,{eyebrow:t.eyebrow,title:t.title,summary:t.summary,children:(0,i.jsx)(r,{})})}export{a as component};
