@@ -8,8 +8,12 @@ import {
   cancelCompanionJob,
   uninstallFromCompanion,
   COMPANION_PROTOCOL,
+  loopbackTransport,
+  nativeShellTransport,
   type CompanionIdentity,
   type CompanionProgress,
+  type DiscoveredCompanion,
+  type NativeBackgroundPlugin,
 } from "../background-bridge";
 import type { InstallTarget } from "../installation-authority";
 
@@ -66,6 +70,32 @@ function companionServer(
 }
 
 const ORIGINS = ["http://127.0.0.1:11801"] as const;
+
+/**
+ * A companion reached over loopback, the way discovery would have returned it.
+ *
+ * `DiscoveredCompanion` carries its transport now, because the same four calls
+ * have to work over a socket on a desktop and over the shell's own bridge on a
+ * phone. These tests are about the loopback half, so they build that half from
+ * the fixture server they already stand up.
+ */
+const reachable = (server: { fetchImpl: typeof fetch }): DiscoveredCompanion => ({
+  origin: ORIGINS[0],
+  identity: GOOD_IDENTITY,
+  transport: loopbackTransport(ORIGINS[0], { fetchImpl: server.fetchImpl }),
+});
+
+/** A companion for the tests that only weigh its identity, never call it. */
+const found = (identity: CompanionIdentity = GOOD_IDENTITY): DiscoveredCompanion => ({
+  origin: ORIGINS[0],
+  identity,
+  transport: {
+    label: ORIGINS[0],
+    request: async () => {
+      throw new Error("shouldHandOff must decide from the identity alone");
+    },
+  },
+});
 
 describe("a companion is only trusted when it proves it is one", () => {
   it("finds a companion that identifies itself correctly", async () => {
@@ -146,7 +176,7 @@ describe("RULE 1: never two downloads of the same model", () => {
      */
     expect(
       shouldHandOff({
-        companion: { origin: ORIGINS[0], identity: GOOD_IDENTITY },
+        companion: found(),
         browserCanContinueInBackground: true,
         alreadyInstalled: false,
       }),
@@ -156,7 +186,7 @@ describe("RULE 1: never two downloads of the same model", () => {
   it("does not hand off a model that is already installed", () => {
     expect(
       shouldHandOff({
-        companion: { origin: ORIGINS[0], identity: GOOD_IDENTITY },
+        companion: found(),
         browserCanContinueInBackground: false,
         alreadyInstalled: true,
       }),
@@ -166,7 +196,7 @@ describe("RULE 1: never two downloads of the same model", () => {
   it("hands off only when the companion is genuinely stronger", () => {
     expect(
       shouldHandOff({
-        companion: { origin: ORIGINS[0], identity: GOOD_IDENTITY },
+        companion: found(),
         browserCanContinueInBackground: false,
         alreadyInstalled: false,
       }),
@@ -178,10 +208,7 @@ describe("RULE 1: never two downloads of the same model", () => {
     // one denied battery exemption, is present and no better than the tab.
     expect(
       shouldHandOff({
-        companion: {
-          origin: ORIGINS[0],
-          identity: { ...GOOD_IDENTITY, backgroundTransfer: false },
-        },
+        companion: found({ ...GOOD_IDENTITY, backgroundTransfer: false }),
         browserCanContinueInBackground: false,
         alreadyInstalled: false,
       }),
@@ -202,11 +229,9 @@ describe("RULE 1: never two downloads of the same model", () => {
 describe("RULE 2: one canonical identity", () => {
   it("sends the exact version, digest and source ladder", async () => {
     const server = companionServer({ "/prepare": { body: { jobId: "job-1" } } });
-    const result = await handOffToCompanion(
-      { origin: ORIGINS[0], identity: GOOD_IDENTITY },
-      TARGET,
-      { fetchImpl: server.fetchImpl },
-    );
+    const result = await handOffToCompanion(reachable(server), TARGET, {
+      fetchImpl: server.fetchImpl,
+    });
     expect(result.ok).toBe(true);
 
     const request = server.seen.find((entry) => entry.url.includes("/prepare"));
@@ -232,7 +257,7 @@ describe("RULE 2: one canonical identity", () => {
      */
     const server = companionServer({ "/prepare": { body: { jobId: "job-1" } } });
     const result = await handOffToCompanion(
-      { origin: ORIGINS[0], identity: GOOD_IDENTITY },
+      reachable(server),
       { ...TARGET, sha256: undefined },
       { fetchImpl: server.fetchImpl },
     );
@@ -245,11 +270,9 @@ describe("RULE 2: one canonical identity", () => {
 
   it("reports a companion that refuses the job", async () => {
     const server = companionServer({ "/prepare": { status: 503 } });
-    const result = await handOffToCompanion(
-      { origin: ORIGINS[0], identity: GOOD_IDENTITY },
-      TARGET,
-      { fetchImpl: server.fetchImpl },
-    );
+    const result = await handOffToCompanion(reachable(server), TARGET, {
+      fetchImpl: server.fetchImpl,
+    });
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.retriable).toBe(true);
@@ -257,11 +280,9 @@ describe("RULE 2: one canonical identity", () => {
 
   it("reports a companion that accepts but starts nothing", async () => {
     const server = companionServer({ "/prepare": { body: {} } });
-    const result = await handOffToCompanion(
-      { origin: ORIGINS[0], identity: GOOD_IDENTITY },
-      TARGET,
-      { fetchImpl: server.fetchImpl },
-    );
+    const result = await handOffToCompanion(reachable(server), TARGET, {
+      fetchImpl: server.fetchImpl,
+    });
     expect(result.ok).toBe(false);
   });
 });
@@ -315,18 +336,16 @@ describe("RULE 3: verification still belongs to OCADE", () => {
         },
       },
     });
-    const progress = await readCompanionProgress(
-      { origin: ORIGINS[0], identity: GOOD_IDENTITY },
-      "job-1",
-      { fetchImpl: server.fetchImpl },
-    );
+    const progress = await readCompanionProgress(reachable(server), "job-1", {
+      fetchImpl: server.fetchImpl,
+    });
     expect(progress).toMatchObject({ phase: "downloading", receivedBytes: 400 });
   });
 
   it("returns null rather than inventing progress when the companion goes quiet", async () => {
     const server = companionServer({});
     expect(
-      await readCompanionProgress({ origin: ORIGINS[0], identity: GOOD_IDENTITY }, "job-1", {
+      await readCompanionProgress(reachable(server), "job-1", {
         fetchImpl: server.fetchImpl,
       }),
     ).toBeNull();
@@ -336,10 +355,9 @@ describe("RULE 3: verification still belongs to OCADE", () => {
 describe("RULE 4: uninstall reaches the companion", () => {
   it("asks the companion to delete what it holds", async () => {
     const server = companionServer({ "/uninstall": { body: { ok: true } } });
-    const removed = await uninstallFromCompanion(
-      { origin: ORIGINS[0], identity: GOOD_IDENTITY },
-      { fetchImpl: server.fetchImpl },
-    );
+    const removed = await uninstallFromCompanion(reachable(server), {
+      fetchImpl: server.fetchImpl,
+    });
     expect(removed).toBe(true);
     expect(server.seen.some((entry) => entry.url.includes("/uninstall"))).toBe(true);
   });
@@ -352,19 +370,16 @@ describe("RULE 4: uninstall reaches the companion", () => {
      */
     const server = companionServer({ "/uninstall": { status: 500 } });
     expect(
-      await uninstallFromCompanion(
-        { origin: ORIGINS[0], identity: GOOD_IDENTITY },
-        {
-          fetchImpl: server.fetchImpl,
-        },
-      ),
+      await uninstallFromCompanion(reachable(server), {
+        fetchImpl: server.fetchImpl,
+      }),
     ).toBe(false);
   });
 
   it("can take the work back by cancelling a running job", async () => {
     const server = companionServer({ "/cancel/": { body: { ok: true } } });
     expect(
-      await cancelCompanionJob({ origin: ORIGINS[0], identity: GOOD_IDENTITY }, "job-1", {
+      await cancelCompanionJob(reachable(server), "job-1", {
         fetchImpl: server.fetchImpl,
       }),
     ).toBe(true);
@@ -381,5 +396,173 @@ describe("only loopback is ever contacted", () => {
     for (const origin of ORIGINS) {
       expect(origin).toMatch(/^http:\/\/(127\.0\.0\.1|localhost):/);
     }
+  });
+});
+
+/**
+ * THE TRANSPORT THAT EXISTS BECAUSE LOOPBACK CANNOT REACH A PHONE.
+ *
+ * Android and iOS are the two platforms this whole module is for — they have
+ * real OS-level background transfer, which is the entire benefit of a handoff.
+ * They are also the two platforms where the loopback probe can never succeed:
+ * the shell serves the application over `https` with `cleartext: false` and
+ * `allowMixedContent: false`, so the WebView blocks a request to
+ * `http://127.0.0.1:11801` before anything can answer it.
+ *
+ * So the four calls have to work over the shell's own bridge as well, and they
+ * have to be held to exactly the same rules there. These tests drive that
+ * transport with a plugin double, which is what a device would present.
+ */
+describe("the native shell transport", () => {
+  const identity: CompanionIdentity = {
+    product: "ocade-companion",
+    protocol: COMPANION_PROTOCOL,
+    platform: "android",
+    backgroundTransfer: true,
+  };
+
+  const plugin = (over: Partial<NativeBackgroundPlugin> = {}): NativeBackgroundPlugin => ({
+    identity: async () => identity,
+    prepare: async () => ({ jobId: "job-1" }),
+    progress: async () => ({
+      phase: "complete",
+      version: TARGET.version,
+      receivedBytes: TARGET.totalBytes,
+      totalBytes: TARGET.totalBytes,
+      sha256: TARGET.sha256,
+    }),
+    cancel: async () => ({ ok: true }),
+    uninstall: async () => ({ ok: true }),
+    ...over,
+  });
+
+  it("discovers the companion through the shell without touching the network", async () => {
+    let networkCalls = 0;
+    const found = await discoverCompanion({
+      fetchImpl: (async () => {
+        networkCalls += 1;
+        throw new Error("the shell must not be probed over a socket");
+      }) as unknown as typeof fetch,
+      nativePlugin: plugin(),
+    });
+    expect(found?.identity.platform).toBe("android");
+    expect(found?.origin).toBe("native-shell");
+    expect(networkCalls).toBe(0);
+  });
+
+  it("refuses a shell speaking a protocol this build does not", async () => {
+    const found = await discoverCompanion({
+      fetchImpl: (async () => {
+        throw new Error("no listener");
+      }) as unknown as typeof fetch,
+      nativePlugin: plugin({
+        identity: async () => ({ ...identity, protocol: COMPANION_PROTOCOL + 1 }),
+      }),
+      origins: [],
+    });
+    expect(found).toBeNull();
+  });
+
+  it("hands the exact catalogue identity to the shell, not just 'the model'", async () => {
+    let seen: Record<string, unknown> | null = null;
+    const companion: DiscoveredCompanion = {
+      origin: "native-shell",
+      identity,
+      transport: nativeShellTransport(
+        plugin({
+          prepare: async (options) => {
+            seen = options;
+            return { jobId: "job-7" };
+          },
+        }),
+      ),
+    };
+    const result = await handOffToCompanion(companion, TARGET, {
+      fetchImpl: (async () => {
+        throw new Error("unused");
+      }) as unknown as typeof fetch,
+    });
+    expect(result.ok && result.jobId).toBe("job-7");
+    expect(seen).toMatchObject({
+      protocol: COMPANION_PROTOCOL,
+      version: TARGET.version,
+      sha256: TARGET.sha256,
+      totalBytes: TARGET.totalBytes,
+    });
+  });
+
+  it("still holds the shell's own result to the published digest", async () => {
+    const companion: DiscoveredCompanion = {
+      origin: "native-shell",
+      identity,
+      transport: nativeShellTransport(
+        plugin({
+          progress: async () => ({
+            phase: "complete",
+            version: TARGET.version,
+            receivedBytes: TARGET.totalBytes,
+            totalBytes: TARGET.totalBytes,
+            // The shell is part of the same application and is STILL not the
+            // judge of its own work.
+            sha256: "b".repeat(64),
+          }),
+        }),
+      ),
+    };
+    const progress = await readCompanionProgress(companion, "job-1", {
+      fetchImpl: (async () => {
+        throw new Error("unused");
+      }) as unknown as typeof fetch,
+    });
+    expect(progress).not.toBeNull();
+    expect(companionResultMatchesTarget(progress!, TARGET)).toBe(false);
+  });
+
+  it("reports a refused uninstall rather than claiming a removal", async () => {
+    const deps = {
+      fetchImpl: (async () => {
+        throw new Error("unused");
+      }) as unknown as typeof fetch,
+    };
+    const refusing: DiscoveredCompanion = {
+      origin: "native-shell",
+      identity,
+      transport: nativeShellTransport(plugin({ uninstall: async () => ({ ok: false }) })),
+    };
+    expect(await uninstallFromCompanion(refusing, deps)).toBe(false);
+
+    const throwing: DiscoveredCompanion = {
+      origin: "native-shell",
+      identity,
+      transport: nativeShellTransport(
+        plugin({
+          uninstall: async () => {
+            throw new Error("storage is busy");
+          },
+        }),
+      ),
+    };
+    expect(await uninstallFromCompanion(throwing, deps)).toBe(false);
+  });
+
+  it("cancels through the shell and reports a refusal honestly", async () => {
+    const deps = {
+      fetchImpl: (async () => {
+        throw new Error("unused");
+      }) as unknown as typeof fetch,
+    };
+    const ok: DiscoveredCompanion = {
+      origin: "native-shell",
+      identity,
+      transport: nativeShellTransport(plugin()),
+    };
+    expect(await cancelCompanionJob(ok, "job-1", deps)).toBe(true);
+
+    const refused: DiscoveredCompanion = {
+      origin: "native-shell",
+      identity,
+      transport: nativeShellTransport(plugin({ cancel: async () => ({ ok: false }) })),
+    };
+    expect(await cancelCompanionJob(refused, "job-1", deps)).toBe(false);
   });
 });

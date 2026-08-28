@@ -18,6 +18,10 @@ serde_json = "1"
 # Already in the lock file via tauri-plugin-updater; naming it directly costs no
 # new download and lets the integrity module depend on it explicitly.
 sha2 = "0.10"
+# A small blocking HTTP client for the companion's model transfers. Blocking on
+# purpose: the transfers run on their own threads and an async runtime would be
+# a large dependency for one download loop.
+ureq = { version = "2", features = ["tls"] }
 # Ed25519 verification for offline licences. Already in the lock via
 # tauri-plugin-updater, so naming it directly costs no new download.
 minisign-verify = "0.2"

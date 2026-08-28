@@ -10,6 +10,13 @@
 /// nonces and replay rejection for every inbound companion request.
 pub mod ipc;
 
+/// The background-model-transfer protocol the website hands preparation over
+/// with: routing, the job registry and the rules that keep a handoff safe.
+pub mod model_host;
+
+/// The loopback listener the desktop companion answers that protocol on.
+pub mod model_server;
+
 use std::collections::HashMap;
 use std::path::{Component, Path, PathBuf};
 use std::sync::{

@@ -129,16 +129,48 @@ OCADE Intelligence" and "delete my account" are different requests.
 
 ## Implementation status
 
-| Piece                                                                    | State                                                        |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------ |
-| Web-side protocol, discovery, handoff, progress, verification, uninstall | Implemented, `background-bridge.ts`                          |
-| Authority integration — exclusivity, activation only after digest match  | Implemented, `installation-authority.ts`                     |
-| Test coverage of all four rules                                          | Implemented, 27 + 8 tests                                    |
-| Android `WorkManager` companion                                          | **Not implemented.** Contract above is what it must satisfy. |
-| iOS background `URLSession` companion                                    | **Not implemented.**                                         |
-| Desktop companion endpoints in the Tauri build                           | **Not implemented.**                                         |
+| Piece                                                                    | State                                                                                       |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Web-side protocol, discovery, handoff, progress, verification, uninstall | Implemented, `background-bridge.ts`                                                         |
+| Authority integration — exclusivity, activation only after digest match  | Implemented, `installation-authority.ts`                                                    |
+| Web-side test coverage of all four rules, both transports                | Implemented, 33 tests in `background-bridge.test.ts`                                        |
+| Android companion                                                        | Implemented, `OcadeBackgroundPlugin.java` (`DownloadManager`)                               |
+| iOS companion                                                            | Implemented, `OcadeBackgroundPlugin.swift` + `OcadeBackgroundTransfers.swift`               |
+| Desktop companion                                                        | Implemented, `model_host.rs` + `model_server.rs`; 17 tests, one over a real loopback socket |
 
-The website behaves correctly on a device with no companion — which is every
-device today — by falling through to its own transfer. Nothing in the shipped
-product claims a native handoff is happening unless a companion actually
-answered.
+### Two transports, because loopback cannot reach a phone
+
+The endpoint table above is the desktop shape: a separate process, reached over
+`127.0.0.1`. Inside the mobile shell the companion **is** the app, and loopback
+is not merely unnecessary there — it is impossible. `capacitor.config.json`
+serves the application over `https` with `cleartext: false` and
+`allowMixedContent: false`, and iOS additionally sets
+`limitsNavigationsToAppBoundDomains`, so a request to `http://127.0.0.1:11801`
+is blocked by the web view before anything can answer it.
+
+Android and iOS are the two platforms this whole mechanism exists for — they
+are the ones with real OS-level background transfer — so the website reaches a
+companion through a **transport**: loopback HTTP where there is a separate
+process, and the shell's own bridge where there is not. The plugin is registered
+as `OcadeBackground` and its five methods are the five endpoints above, name for
+name, with the same bodies and the same rules. Nothing about the trust model
+changes: the shell is part of the same application and is still not the judge of
+its own work.
+
+### Where each rule is enforced
+
+| Rule                             | Web                            | Android                             | iOS                                | Desktop                            |
+| -------------------------------- | ------------------------------ | ----------------------------------- | ---------------------------------- | ---------------------------------- |
+| 1. Never two downloads           | `shouldHandOff`                | job registry in `SharedPreferences` | job registry in `UserDefaults`     | `JobRegistry::prepare`             |
+| 2. One canonical identity        | `handOffToCompanion`           | version + digest carried per job    | version + digest carried per job   | `PrepareRequest` validation        |
+| 3. Verification belongs to OCADE | `companionResultMatchesTarget` | digest computed only when whole     | digest computed only when whole    | digest stored only with `Complete` |
+| 4. Uninstall reaches it          | `uninstallFromCompanion`       | directory + registry, nothing else  | directory + registry, nothing else | directory + registry, nothing else |
+
+Both mobile registries are on disk rather than in memory on purpose: the process
+each lives in is exactly the process the operating system is free to terminate
+while a download continues, and a registry that died with it would let the next
+launch start the same gigabyte a second time.
+
+The website still behaves correctly on a device with no companion, and nothing
+in the shipped product claims a native handoff is happening unless a companion
+actually answered.

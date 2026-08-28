@@ -31,6 +31,22 @@
  * 4. **Uninstall reaches it.** Removing OCADE Intelligence has to remove what
  *    the companion holds too, or "removed" is a lie told over a full disk.
  *
+ * TWO WAYS TO REACH A COMPANION, BECAUSE ONE OF THEM CANNOT WORK EVERYWHERE.
+ *
+ * On a desktop the companion is a separate process, and loopback HTTP is how a
+ * page reaches it. Inside the mobile shell it is the SAME process — and
+ * loopback is not merely unnecessary there, it is impossible: the shell serves
+ * the application over `https`, `capacitor.config.json` sets `cleartext: false`
+ * and `allowMixedContent: false`, so a request to `http://127.0.0.1:11801` is
+ * blocked by the WebView before it reaches anything.
+ *
+ * That mattered more than it sounds. Android and iOS are the two platforms this
+ * whole file exists for — they are the ones with real OS-level background
+ * transfer — and loopback discovery could never have found a companion on
+ * either of them. So a companion is reached through a TRANSPORT: loopback HTTP
+ * where there is a separate process to talk to, and the native shell's own
+ * bridge where the companion is the app itself.
+ *
  * TRUST, AND WHY LOOPBACK ALONE IS NOT IT. The companion is reached on
  * loopback, which no remote attacker can bind — but any other application on
  * the same machine can. A listener that does not answer with the expected
@@ -99,12 +115,137 @@ export interface BridgeDeps {
   secret?: string | null;
   /** Origins to try. Injected so tests need no listener. */
   origins?: readonly string[];
+  /**
+   * The native shell's plugin, when there is one.
+   *
+   * Injected rather than only detected so the mobile path is testable without
+   * a device: `nativeBackgroundPlugin()` is the default and reads the real
+   * shell.
+   */
+  nativePlugin?: NativeBackgroundPlugin | null;
   timeoutMs?: number;
 }
 
+/**
+ * A reply, in the one shape both transports can produce.
+ *
+ * Modelled on `Response` because the loopback transport IS one; the native
+ * transport synthesises the two fields that are actually read. Anything richer
+ * would be a shape only one of them could fill.
+ */
+export interface CompanionReply {
+  ok: boolean;
+  status: number;
+  json(): Promise<unknown>;
+}
+
+/** How this build talks to a companion. */
+export interface CompanionTransport {
+  /** For diagnostics only. Never shown in ordinary UI. */
+  label: string;
+  request(
+    path: string,
+    init?: { method?: string; body?: unknown; timeoutMs?: number },
+  ): Promise<CompanionReply>;
+}
+
+/**
+ * The native shell's own bridge, when OCADE is running inside one.
+ *
+ * Capacitor exposes registered plugins on `window.Capacitor.Plugins`. Each
+ * method takes and returns plain JSON, which is why the protocol's paths map
+ * onto it without translation: `/ocade/companion/prepare` is `prepare`.
+ */
+export interface NativeBackgroundPlugin {
+  identity(): Promise<unknown>;
+  prepare(options: Record<string, unknown>): Promise<unknown>;
+  progress(options: { jobId: string }): Promise<unknown>;
+  cancel(options: { jobId: string }): Promise<unknown>;
+  uninstall(): Promise<unknown>;
+}
+
+/** The plugin this shell registered, or null when there is no shell. */
+export function nativeBackgroundPlugin(): NativeBackgroundPlugin | null {
+  const capacitor = (
+    globalThis as unknown as {
+      Capacitor?: {
+        isNativePlatform?: () => boolean;
+        Plugins?: Record<string, unknown>;
+      };
+    }
+  ).Capacitor;
+  if (!capacitor?.isNativePlatform?.()) return null;
+  const plugin = capacitor.Plugins?.["OcadeBackground"] as NativeBackgroundPlugin | undefined;
+  return plugin && typeof plugin.identity === "function" ? plugin : null;
+}
+
+/**
+ * Reach the companion through the shell rather than through a socket.
+ *
+ * A rejected plugin call becomes a non-ok reply rather than an exception, so
+ * every caller in this file keeps exactly one failure path whichever transport
+ * it is holding.
+ */
+export function nativeShellTransport(plugin: NativeBackgroundPlugin): CompanionTransport {
+  const reply = (ok: boolean, value: unknown): CompanionReply => ({
+    ok,
+    status: ok ? 200 : 503,
+    json: async () => value,
+  });
+
+  return {
+    label: "native-shell",
+    async request(path, init) {
+      const [, jobId] = /\/(?:progress|cancel)\/(.+)$/.exec(path) ?? [];
+      try {
+        if (path.endsWith("/identity")) return reply(true, await plugin.identity());
+        if (path.endsWith("/prepare")) {
+          return reply(true, await plugin.prepare((init?.body ?? {}) as Record<string, unknown>));
+        }
+        if (path.endsWith("/uninstall")) {
+          const result = (await plugin.uninstall()) as { ok?: boolean } | undefined;
+          return reply(result?.ok !== false, result);
+        }
+        if (jobId && path.includes("/progress/")) {
+          return reply(true, await plugin.progress({ jobId: decodeURIComponent(jobId) }));
+        }
+        if (jobId && path.includes("/cancel/")) {
+          const result = (await plugin.cancel({ jobId: decodeURIComponent(jobId) })) as
+            { ok?: boolean } | undefined;
+          return reply(result?.ok !== false, result);
+        }
+        return reply(false, null);
+      } catch {
+        return reply(false, null);
+      }
+    },
+  };
+}
+
+/** Reach a companion process listening on this machine. */
+export function loopbackTransport(origin: string, deps: BridgeDeps): CompanionTransport {
+  return {
+    label: origin,
+    async request(path, init) {
+      const headers: Record<string, string> = authHeaders(deps.secret);
+      if (init?.body !== undefined) headers["content-type"] = "application/json";
+      return withTimeout(
+        deps.fetchImpl(`${origin}${path}`, {
+          method: init?.method,
+          headers,
+          body: init?.body === undefined ? undefined : JSON.stringify(init.body),
+        }),
+        init?.timeoutMs ?? deps.timeoutMs ?? 3000,
+      );
+    },
+  };
+}
+
 export interface DiscoveredCompanion {
+  /** Loopback origin, or the shell's label. Diagnostics only. */
   origin: string;
   identity: CompanionIdentity;
+  transport: CompanionTransport;
 }
 
 /**
@@ -117,15 +258,26 @@ export interface DiscoveredCompanion {
  * of work and the user's expectation that it will finish.
  */
 export async function discoverCompanion(deps: BridgeDeps): Promise<DiscoveredCompanion | null> {
-  const origins = deps.origins ?? COMPANION_ORIGINS;
-  for (const origin of origins) {
+  /*
+   * THE SHELL FIRST, AND NOT AS A PREFERENCE.
+   *
+   * Inside the mobile shell the companion IS this app, so there is nothing to
+   * find on a socket and the loopback probe below would only spend the
+   * first-paint budget failing. Where there is no shell this returns null
+   * immediately and the loopback ladder runs exactly as before.
+   */
+  const plugin = deps.nativePlugin === undefined ? nativeBackgroundPlugin() : deps.nativePlugin;
+  const candidates: CompanionTransport[] = [];
+  if (plugin) candidates.push(nativeShellTransport(plugin));
+  for (const origin of deps.origins ?? COMPANION_ORIGINS) {
+    candidates.push(loopbackTransport(origin, deps));
+  }
+
+  for (const transport of candidates) {
     try {
-      const response = await withTimeout(
-        deps.fetchImpl(`${origin}/ocade/companion/identity`, {
-          headers: authHeaders(deps.secret),
-        }),
-        deps.timeoutMs ?? 1500,
-      );
+      const response = await transport.request("/ocade/companion/identity", {
+        timeoutMs: deps.timeoutMs ?? 1500,
+      });
       if (!response.ok) continue;
       const identity = (await response.json()) as CompanionIdentity;
 
@@ -139,7 +291,7 @@ export async function discoverCompanion(deps: BridgeDeps): Promise<DiscoveredCom
       if (identity.protocol !== COMPANION_PROTOCOL) continue;
       if (typeof identity.backgroundTransfer !== "boolean") continue;
 
-      return { origin, identity };
+      return { origin: transport.label, identity, transport };
     } catch {
       // Nothing there, or it refused. Either way this is not a companion.
     }
@@ -205,22 +357,19 @@ export async function handOffToCompanion(
   }
 
   try {
-    const response = await withTimeout(
-      deps.fetchImpl(`${companion.origin}/ocade/companion/prepare`, {
-        method: "POST",
-        headers: { ...authHeaders(deps.secret), "content-type": "application/json" },
-        body: JSON.stringify({
-          protocol: COMPANION_PROTOCOL,
-          version: target.version,
-          sha256: target.sha256,
-          totalBytes: target.totalBytes,
-          // The same ordered ladder the browser would have used, so the
-          // companion fails over identically rather than inventing its own.
-          sources: target.sources.map((source) => source.url),
-        }),
-      }),
-      deps.timeoutMs ?? 5000,
-    );
+    const response = await companion.transport.request("/ocade/companion/prepare", {
+      method: "POST",
+      timeoutMs: deps.timeoutMs ?? 5000,
+      body: {
+        protocol: COMPANION_PROTOCOL,
+        version: target.version,
+        sha256: target.sha256,
+        totalBytes: target.totalBytes,
+        // The same ordered ladder the browser would have used, so the
+        // companion fails over identically rather than inventing its own.
+        sources: target.sources.map((source) => source.url),
+      },
+    });
     if (!response.ok) {
       return { ok: false, reason: `The companion answered ${response.status}.`, retriable: true };
     }
@@ -245,11 +394,9 @@ export async function readCompanionProgress(
   deps: BridgeDeps,
 ): Promise<CompanionProgress | null> {
   try {
-    const response = await withTimeout(
-      deps.fetchImpl(`${companion.origin}/ocade/companion/progress/${encodeURIComponent(jobId)}`, {
-        headers: authHeaders(deps.secret),
-      }),
-      deps.timeoutMs ?? 3000,
+    const response = await companion.transport.request(
+      `/ocade/companion/progress/${encodeURIComponent(jobId)}`,
+      { timeoutMs: deps.timeoutMs ?? 3000 },
     );
     if (!response.ok) return null;
     return (await response.json()) as CompanionProgress;
@@ -286,12 +433,9 @@ export async function cancelCompanionJob(
   deps: BridgeDeps,
 ): Promise<boolean> {
   try {
-    const response = await withTimeout(
-      deps.fetchImpl(`${companion.origin}/ocade/companion/cancel/${encodeURIComponent(jobId)}`, {
-        method: "POST",
-        headers: authHeaders(deps.secret),
-      }),
-      deps.timeoutMs ?? 3000,
+    const response = await companion.transport.request(
+      `/ocade/companion/cancel/${encodeURIComponent(jobId)}`,
+      { method: "POST", timeoutMs: deps.timeoutMs ?? 3000 },
     );
     return response.ok;
   } catch {
@@ -316,13 +460,10 @@ export async function uninstallFromCompanion(
   deps: BridgeDeps,
 ): Promise<boolean> {
   try {
-    const response = await withTimeout(
-      deps.fetchImpl(`${companion.origin}/ocade/companion/uninstall`, {
-        method: "POST",
-        headers: authHeaders(deps.secret),
-      }),
-      deps.timeoutMs ?? 5000,
-    );
+    const response = await companion.transport.request("/ocade/companion/uninstall", {
+      method: "POST",
+      timeoutMs: deps.timeoutMs ?? 5000,
+    });
     return response.ok;
   } catch {
     return false;

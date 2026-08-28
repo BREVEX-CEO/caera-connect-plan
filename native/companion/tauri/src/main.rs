@@ -48,6 +48,7 @@ mod browser_host;
 mod gesture_host;
 mod integrity;
 mod licence;
+mod model_host;
 mod platform;
 
 /// Everything the companion needs at runtime, guarded for cross-thread access.
@@ -1323,6 +1324,17 @@ fn main() {
             app.state::<Companion>()
                 .gesture
                 .configure(gesture_host::locate_sidecar());
+            /*
+             * The background model host, so a transfer the website starts can
+             * be finished by a process that outlives the tab.
+             *
+             * Deliberately not fatal, and deliberately not awaited: a machine
+             * whose port 11801 is already taken is still a working desktop
+             * OCADE, and the website falls through to its own transfer exactly
+             * as it does on a machine with no companion at all.
+             */
+            model_host::start();
+
             let data_dir = app.path().app_data_dir()?;
 
             /*

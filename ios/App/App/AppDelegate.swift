@@ -11,6 +11,29 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return true
     }
 
+    /**
+     Let a relaunched app finish a download the system carried on with.
+
+     WITHOUT THIS THE iOS HALF OF THE COMPANION IS A LIE. A background
+     URLSession keeps transferring after the app is suspended or terminated, and
+     when it finishes iOS relaunches the app and calls exactly this method. An
+     app that does not implement it never reattaches to the session, so the
+     finished file is never moved into place and the website is told a transfer
+     is still running that has in fact already completed. The completion handler
+     must also be called back, or the system stops trusting this app with
+     background work at all.
+     */
+    func application(
+        _ application: UIApplication,
+        handleEventsForBackgroundURLSession identifier: String,
+        completionHandler: @escaping () -> Void
+    ) {
+        OcadeBackgroundTransfers.shared.attach(
+            sessionIdentifier: identifier,
+            completionHandler: completionHandler
+        )
+    }
+
     func applicationWillResignActive(_ application: UIApplication) {
         // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
         // Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
