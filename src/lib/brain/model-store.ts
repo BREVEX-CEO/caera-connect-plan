@@ -111,7 +111,11 @@ class WritableFileWriter implements ModelFileWriter {
     const writable = await this.open();
     if (!writable) return false;
     try {
-      await writable.write({ type: "write", position: at, data: chunk });
+      // Cast at the boundary: a Uint8Array's buffer is typed ArrayBufferLike,
+      // which includes SharedArrayBuffer, and the write API accepts only a
+      // plain ArrayBuffer view. Every chunk reaching here is over an ordinary
+      // ArrayBuffer -- the transfer builds them that way deliberately.
+      await writable.write({ type: "write", position: at, data: chunk as unknown as BufferSource });
       this.dirty = true;
       return true;
     } catch {
@@ -278,7 +282,11 @@ export class ModelStore {
     if (!handle) return false;
     try {
       const writable = await handle.createWritable({ keepExistingData: true });
-      await writable.write({ type: "write", position: at, data: chunk });
+      // Cast at the boundary: a Uint8Array's buffer is typed ArrayBufferLike,
+      // which includes SharedArrayBuffer, and the write API accepts only a
+      // plain ArrayBuffer view. Every chunk reaching here is over an ordinary
+      // ArrayBuffer -- the transfer builds them that way deliberately.
+      await writable.write({ type: "write", position: at, data: chunk as unknown as BufferSource });
       await writable.close();
       return true;
     } catch {

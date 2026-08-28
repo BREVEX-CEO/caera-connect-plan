@@ -56,9 +56,27 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
   private loadedModelId: string | null = null;
   private cachedTier: BrowserModelTier | null = null;
   private readonly onProgress?: (p: WebGpuProgress) => void;
+  private readonly contextTokensOverride?: number;
 
-  constructor(options?: { onProgress?: (p: WebGpuProgress) => void }) {
+  constructor(options?: {
+    onProgress?: (p: WebGpuProgress) => void;
+    /**
+     * Run this tier with a smaller context than the catalogue declares.
+     *
+     * THE REDUCED RUNG OF THE CAPABILITY LADDER, and a real one rather than a
+     * relabelled retry. The KV cache is the part of the working set that scales
+     * with context, so halving it is a genuinely smaller allocation - which is
+     * what a device that could not start at the standard size needs.
+     *
+     * It exists because the alternative was worse: refusing a device outright
+     * on one conservative `maxBufferSize` reading turns away machines that
+     * would have run perfectly well at a smaller window. A shorter conversation
+     * is a real cost, and it is the honest one to pay before saying no.
+     */
+    contextTokensOverride?: number;
+  }) {
     this.onProgress = options?.onProgress;
+    this.contextTokensOverride = options?.contextTokensOverride;
   }
 
   /**
@@ -237,7 +255,10 @@ export class BrowserWebGpuAdapter implements BrainAdapter {
             model: mirroredWeights.local ? webgpuMirrorWeightsUrl(tier)! : record.model,
             model_lib: mirroredLib.url,
             vram_required_MB: tier.requiredMemoryBytes / (1024 * 1024),
-            overrides: { ...record.overrides, context_window_size: tier.contextTokens },
+            overrides: {
+              ...record.overrides,
+              context_window_size: this.contextTokensOverride ?? tier.contextTokens,
+            },
           },
         ],
       },

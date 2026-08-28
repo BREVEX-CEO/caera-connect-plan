@@ -49,6 +49,51 @@ export interface WasmProgress {
   text: string;
 }
 
+/**
+ * Where a deployment may put the multi-threaded engine binary.
+ *
+ * Same idea as `public/models/` for weights: an operator drops the file in and
+ * the product uses it, with no external request either way. Probed rather than
+ * assumed, so a deployment that has not vendored it is simply single-threaded
+ * instead of broken.
+ */
+export const MULTI_THREAD_WASM_PATH = "/wasm/multi-thread/wllama.wasm";
+
+/** Cached, because a HEAD per engine load would be a request on every start. */
+let multiThreadProbe: Promise<string | null> | null = null;
+
+export function resetMultiThreadProbeForTests(): void {
+  multiThreadProbe = null;
+}
+
+/**
+ * Is a self-hosted multi-threaded build present AND usable?
+ *
+ * Both halves matter. Isolation without the binary means threads that cannot
+ * run; the binary without isolation means a build that cannot use
+ * `SharedArrayBuffer`. Only the pair is a threaded engine, and anything else
+ * falls back to the single-threaded one, which always works.
+ */
+export async function selfHostedMultiThreadWasm(): Promise<string | null> {
+  if (typeof SharedArrayBuffer !== "function" || globalThis.crossOriginIsolated !== true) {
+    return null;
+  }
+  if (typeof fetch !== "function") return null;
+  multiThreadProbe ??= (async () => {
+    try {
+      const probe = await fetch(MULTI_THREAD_WASM_PATH, { method: "HEAD" });
+      // A 404 is the normal answer on a deployment that has not vendored it,
+      // and an SSR fallback can answer 200 with HTML, which is not a binary.
+      const type = probe.headers.get("content-type") ?? "";
+      if (probe.ok && !type.includes("text/html")) return MULTI_THREAD_WASM_PATH;
+    } catch {
+      /* Not self-hosted, or unreachable. Single-threaded it is. */
+    }
+    return null;
+  })();
+  return multiThreadProbe;
+}
+
 export class BrowserWasmAdapter implements BrainAdapter {
   readonly id = "browser_wasm" as const;
   readonly displayName = "OCADE Browser (compatibility)";
@@ -57,9 +102,32 @@ export class BrowserWasmAdapter implements BrainAdapter {
   private loadedRepo: string | null = null;
   private cachedTier: BrowserModelTier | null = null;
   private readonly onProgress?: (p: WasmProgress) => void;
+  private readonly weightsProvider?: () => Promise<Blob | null>;
+  private readonly preferThreads: boolean;
 
-  constructor(options?: { onProgress?: (p: WasmProgress) => void }) {
+  constructor(options?: {
+    onProgress?: (p: WasmProgress) => void;
+    /**
+     * Hand the adapter its weights instead of letting it fetch them.
+     *
+     * THIS IS WHAT STOPS A SECOND DOWNLOAD EXISTING. When the installation
+     * authority is driving, it has already fetched, digest-checked and
+     * activated the artifact, and it passes the bytes in. The adapter then has
+     * no code path that can start a transfer of its own — which is the defect
+     * that let a keystroke, a send, and two other tabs each begin fetching the
+     * same gigabyte.
+     *
+     * The self-contained path below remains for callers that genuinely have no
+     * authority — the evidence harness and the offline-install scripts — and it
+     * is held to exactly the same digest.
+     */
+    weightsProvider?: () => Promise<Blob | null>;
+    /** Use the multi-threaded build when the page is cross-origin isolated. */
+    preferThreads?: boolean;
+  }) {
     this.onProgress = options?.onProgress;
+    this.weightsProvider = options?.weightsProvider;
+    this.preferThreads = options?.preferThreads ?? false;
   }
 
   async probe(): Promise<AdapterAvailability> {
@@ -145,6 +213,24 @@ export class BrowserWasmAdapter implements BrainAdapter {
     }
   }
 
+  /**
+   * Load now, and REPORT A FAILURE rather than swallowing it.
+   *
+   * The difference from `preload` is who is asking. `preload` is a speculative
+   * warm-up whose failure must never surface — it is a problem with a message
+   * the user has not sent. This is the installation authority asking "does this
+   * rung work on this device", and there the answer matters: a swallowed error
+   * would look like success and stop the ladder from falling through to the
+   * next rung.
+   */
+  async load(): Promise<void> {
+    const availability = await this.probe();
+    if (!availability.available) throw new Error(availability.reason);
+    const chosen = this.plan();
+    if (!chosen) throw new Error("No processor engine was selected for this device.");
+    await this.ensureLoaded(chosen.tier);
+  }
+
   private async ensureLoaded(tier: BrowserModelTier): Promise<WllamaInstance> {
     const key = storageKeyFor(tier);
     if (this.instance && this.loadedRepo === key) return this.instance;
@@ -160,10 +246,57 @@ export class BrowserWasmAdapter implements BrainAdapter {
      */
     const singleThreadWasm = (await import("@wllama/wllama/esm/wasm/wllama.wasm?url")).default;
 
-    const instance = new wllama.Wllama(
-      { default: singleThreadWasm, "single-thread/wllama.wasm": singleThreadWasm },
-      { allowOffline: true },
-    );
+    /*
+     * THE MULTI-THREADED BUILD, WHEN THE PLATFORM ACTUALLY ALLOWS IT.
+     *
+     * wllama runs materially faster across several cores, which needs
+     * `SharedArrayBuffer`, which needs cross-origin isolation. The note that
+     * used to sit here said isolation was avoided because COOP `same-origin`
+     * severs `window.opener` and would break the sign-in popups — and that is
+     * no longer what this application does: `auth.tsx` signs in through a
+     * full-page redirect to `/auth/callback`, which COOP does not touch.
+     *
+     * What remains true is that isolation also requires COEP, and that is a
+     * deployment-wide constraint on every cross-origin subresource. So this
+     * does not turn isolation on; it USES it the moment the platform reports it
+     * is in force — in an installed app shell, a Capacitor build, or a
+     * deployment that has set the headers and proven them. `crossOriginIsolated`
+     * is the only honest test, because `SharedArrayBuffer` can exist and still
+     * be unusable by the threaded build without it.
+     *
+     * The single-threaded path is always underneath, so nothing here can leave
+     * a device without an engine.
+     */
+    const builds: {
+      default: string;
+      "single-thread/wllama.wasm": string;
+      "multi-thread/wllama.wasm"?: string;
+    } = {
+      default: singleThreadWasm,
+      "single-thread/wllama.wasm": singleThreadWasm,
+    };
+
+    /*
+     * WHAT SHIPS IN THE PACKAGE, AND WHAT DOES NOT.
+     *
+     * `@wllama/wllama@3.5.1` installs exactly one binary — `wllama.wasm`,
+     * the single-threaded build. Its `AssetsPathConfig` accepts a
+     * `multi-thread/wllama.wasm`, but that file is NOT in the package; the
+     * library's own multi-thread path expects it from a CDN, which a
+     * local-first product will not fetch its engine from.
+     *
+     * So the threaded engine is offered only when a deployment SELF-HOSTS the
+     * binary, exactly as `public/models/` works for weights. That keeps the
+     * claim honest in both directions: a deployment that has vendored the build
+     * gets real threads, and one that has not is never told it has them.
+     * `crossOriginIsolated` is checked as well, because without isolation the
+     * threaded build cannot use `SharedArrayBuffer` no matter where it came
+     * from.
+     */
+    const multiThreadUrl = this.preferThreads ? await selfHostedMultiThreadWasm() : null;
+    if (multiThreadUrl) builds["multi-thread/wllama.wasm"] = multiThreadUrl;
+
+    const instance = new wllama.Wllama(builds, { allowOffline: true });
 
     /*
      * Weights come from OCADE'S OWN STORE, not the library's internal cache.
@@ -177,6 +310,26 @@ export class BrowserWasmAdapter implements BrainAdapter {
     const url = ggufUrl(tier);
     if (!key || !url) {
       throw new Error("This browser tier has no model file configured.");
+    }
+
+    /*
+     * THE AUTHORITY'S BYTES WIN, AND NOTHING ELSE RUNS.
+     *
+     * When a provider is supplied the artifact has already been fetched,
+     * digest-checked and activated by the installation authority, so this
+     * returns without touching the network at all. That is not an optimisation:
+     * it is the property that makes "one canonical installation" true. Every
+     * path below is only reachable when there is no authority driving.
+     */
+    if (this.weightsProvider) {
+      const blob = await this.weightsProvider();
+      if (!blob) {
+        throw new Error("OCADE's prepared engine could not be read back from this device.");
+      }
+      await instance.loadModel([blob]);
+      this.instance = instance;
+      this.loadedRepo = key;
+      return instance;
     }
 
     if (ModelStore.isSupported()) {

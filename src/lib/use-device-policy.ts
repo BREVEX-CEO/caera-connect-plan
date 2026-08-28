@@ -74,6 +74,26 @@ const EMPTY: DevicePolicy = {
 const toPolicy = (profile: HardwareProfile, precise: boolean): RoutePolicy =>
   routePolicyFor(profile, precise);
 
+/**
+ * The last policy this browser measured, readable without React.
+ *
+ * WHY IT HAS TO EXIST. The installation authority starts engines from outside
+ * the component tree — that is the point of it — and the desktop bridge needs a
+ * route policy to size its context window. Reading the hook there is not
+ * possible, and constructing a fresh empty policy would route on no hardware
+ * facts at all, which is the exact defect the module comment above describes
+ * for non-React callers.
+ *
+ * It is a cache of a measurement, never a second source of truth: the hook
+ * writes it, nothing else does, and before the first measurement lands it
+ * honestly reports the empty policy rather than a guess.
+ */
+let lastMeasuredPolicy: RoutePolicy = EMPTY.policy;
+
+export function devicePolicySnapshot(): RoutePolicy {
+  return lastMeasuredPolicy;
+}
+
 export function useDevicePolicy(): DevicePolicy {
   const [state, setState] = useState<DevicePolicy>(EMPTY);
 
@@ -90,6 +110,7 @@ export function useDevicePolicy(): DevicePolicy {
         try {
           const profile = await detectHardwareFn();
           if (!active) return;
+          lastMeasuredPolicy = toPolicy(profile, true);
           setState({
             policy: toPolicy(profile, true),
             profile,
@@ -115,6 +136,7 @@ export function useDevicePolicy(): DevicePolicy {
       try {
         const profile = await measureBrowserProfile();
         if (!active) return;
+        lastMeasuredPolicy = toPolicy(profile, false);
         setState({
           policy: toPolicy(profile, false),
           profile,
