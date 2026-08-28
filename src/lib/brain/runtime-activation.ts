@@ -23,6 +23,7 @@
 import type { CapabilityPath } from "./installation-authority";
 import type { BrainAdapter } from "./adapter";
 import { modelVault } from "./model-vault";
+import { recordInstallEvent } from "./install-telemetry";
 import { WASM_TIERS, WEBGPU_TIERS, type BrowserModelTier } from "./browser-catalogue";
 
 export interface RuntimeProgress {
@@ -169,6 +170,25 @@ async function startWasm(
   try {
     report({ stage: "loading", fraction: null });
     await adapter.load();
+
+    /*
+     * WHAT THE RUNTIME ACTUALLY DID, recorded once it can be asked.
+     *
+     * `planThreads` says what OCADE wanted; wllama's own feature detection
+     * decides what it got, and the two can legitimately disagree — an isolated
+     * page whose browser still fails the WebAssembly threads probe runs on one
+     * core however many were requested. Recording the request instead of the
+     * outcome is how a diagnostics surface starts claiming threads a device
+     * does not have.
+     */
+    const outcome = adapter.threads();
+    recordInstallEvent({
+      kind: "threads",
+      path,
+      multithreaded: outcome.multithreaded,
+      threads: outcome.threads,
+    });
+
     live = { path, adapter, version };
     return { ok: true };
   } catch (error) {

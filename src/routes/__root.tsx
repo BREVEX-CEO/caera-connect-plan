@@ -25,7 +25,6 @@ import { clearApprovals } from "@/lib/mobile/approval-store";
 import { registerOfflineShellFromBrowser } from "@/lib/local/web-supervisor";
 import { primeOfflineRuntimeFromBrowser } from "@/lib/offline/prime-runtime";
 import { useInstallationBootstrap } from "@/lib/brain/use-installation";
-import { upgradeIsolationInBrowser } from "@/lib/security/isolation-upgrade";
 import { closeActiveCompanionSession } from "@/lib/native/tauri-companion";
 import { LegalConsentGate } from "@/components/legal/LegalConsentGate";
 // Side-effect import: registers Foundation Alpha features on module load.
@@ -320,7 +319,15 @@ function RootComponent() {
    * correctness: the capability ladder already has a single-threaded rung.
    */
   useEffect(() => {
-    upgradeIsolationInBrowser();
+    /*
+     * Imported here rather than at the top of the file. It runs inside an
+     * effect regardless, so a static import only buys putting it in the entry
+     * bundle — which the production budget gate refused, by seven bytes. First
+     * paint is a landing page and this is not needed to draw one.
+     */
+    void import("@/lib/security/isolation-upgrade").then((module) =>
+      module.upgradeIsolationInBrowser(),
+    );
     /*
      * KEYED ON THE PATH, NOT MOUNTED ONCE.
      *

@@ -44,6 +44,7 @@ export type InstallTelemetry =
   | { kind: "digest_mismatch"; version: string }
   | { kind: "handed_off"; version: string; to: string }
   | { kind: "loaded"; path: string; ms: number }
+  | { kind: "threads"; path: string; multithreaded: boolean; threads: number }
   | { kind: "ready"; path: string; msFromStart: number | null }
   | { kind: "path_failed"; path: string; reason: string }
   | { kind: "failed"; stage: string; reason: string }
@@ -105,6 +106,9 @@ export interface InstallSummary {
   loadMs: number | null;
   timeToReadyMs: number | null;
   path: string | null;
+  /** What the engine actually ran on, not what was asked for. */
+  threads: number | null;
+  multithreaded: boolean | null;
   failures: number;
 }
 
@@ -122,6 +126,8 @@ export function summariseInstall(events: readonly TimedInstallEvent[] = ring): I
     loadMs: null,
     timeToReadyMs: null,
     path: null,
+    threads: null,
+    multithreaded: null,
     failures: 0,
   };
 
@@ -143,6 +149,10 @@ export function summariseInstall(events: readonly TimedInstallEvent[] = ring): I
       case "loaded":
         summary.loadMs = event.ms;
         summary.path = event.path;
+        break;
+      case "threads":
+        summary.threads = event.threads;
+        summary.multithreaded = event.multithreaded;
         break;
       case "ready":
         summary.timeToReadyMs = event.msFromStart;

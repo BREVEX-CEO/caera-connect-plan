@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-28T01:05:56.907Z",
+  "generatedAt": "2026-08-28T06:45:30.079Z",
   "generatedBy": "scripts/e2e/model-install-production-proof.mts",
   "artifactBytes": 1117320736,
   "artifactSha256": "ad332b82e96d26909ef661ceecd764e6b23ab1b92d6b0b64dc8297ba631db460",
@@ -14,14 +14,14 @@
   "measurements": [
     {
       "step": "generate artifact",
-      "ms": 11313,
+      "ms": 10511,
       "detail": {
         "sha256": "ad332b82e96d2690"
       }
     },
     {
       "step": "interrupted transfer",
-      "ms": 7714,
+      "ms": 7576,
       "detail": {
         "resumableBytes": 352321536,
         "fraction": "31.5%"
@@ -29,20 +29,20 @@
     },
     {
       "step": "resume to complete",
-      "ms": 14892,
+      "ms": 13938,
       "detail": {
         "transferred": 764999200,
-        "throughput": "49.0 MiB/s",
+        "throughput": "52.3 MiB/s",
         "retries": 0,
         "ranged": true,
-        "concurrency": 3
+        "concurrency": 6
       }
     },
     {
       "step": "independent verification",
-      "ms": 9520,
+      "ms": 9345,
       "detail": {
-        "throughput": "111.9 MiB/s"
+        "throughput": "114.0 MiB/s"
       }
     },
     {
@@ -51,13 +51,13 @@
     },
     {
       "step": "uninstall",
-      "ms": 37
+      "ms": 42
     },
     {
       "step": "reinstall (full)",
-      "ms": 18703,
+      "ms": 17995,
       "detail": {
-        "throughput": "57.0 MiB/s"
+        "throughput": "59.2 MiB/s"
       }
     }
   ]
