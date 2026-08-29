@@ -6,7 +6,7 @@ import { mayUseCachedSession, cachedSessionIsCurrent } from "@/lib/auth/session-
 import { registerDeviceForCurrentSession } from "@/lib/devices";
 import { reportRuntimeError } from "@/lib/runtime-error-reporting";
 import { FirstRunEngineSetup } from "@/components/ocade/FirstRunEngineSetup";
-import { startSyncLoop } from "@/lib/storage/sync-queue";
+import { FirstInstallationGate } from "@/components/ocade/setup/FirstInstallationGate";
 import { SettingsAccessProvider } from "@/components/settings/SettingsGate";
 import { OcadeMobileBottomNav } from "@/components/shell/OcadeMobileBottomNav";
 
@@ -145,7 +145,15 @@ function AuthedLayout() {
    */
   useEffect(() => {
     if (!signedIn) return;
-    return startSyncLoop();
+    let cancelled = false;
+    let stop: (() => void) | undefined;
+    void import("@/lib/storage/sync-queue").then(({ startSyncLoop }) => {
+      if (!cancelled) stop = startSyncLoop();
+    });
+    return () => {
+      cancelled = true;
+      stop?.();
+    };
   }, [signedIn]);
 
   return (
@@ -154,10 +162,12 @@ function AuthedLayout() {
           Renders nothing once a model exists — and nothing at all without an
           account, since there is no account to install it for. */}
       {signedIn ? <FirstRunEngineSetup /> : null}
-      <div className={signedIn ? "pb-16 md:pb-0" : undefined}>
-        <Outlet />
-      </div>
-      {signedIn ? <OcadeMobileBottomNav /> : null}
+      <FirstInstallationGate enabled={signedIn}>
+        <div className={signedIn ? "pb-16 md:pb-0" : undefined}>
+          <Outlet />
+        </div>
+        {signedIn ? <OcadeMobileBottomNav /> : null}
+      </FirstInstallationGate>
     </SettingsAccessProvider>
   );
 }

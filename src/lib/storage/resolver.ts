@@ -11,7 +11,7 @@ import type { DataClass, StorageAdapter, StorageMode } from "./types";
 import { DATA_CLASSES } from "./types";
 import { indexedDbAdapter } from "./indexeddb-adapter";
 import { pcVaultAdapter } from "./pc-vault-adapter";
-import { syncAdapter } from "./sync-adapter";
+import { syncAdapterFor } from "./sync-adapter";
 
 export const DEFAULT_MODE: Record<DataClass, StorageMode> = {
   chats: "private_sync",
@@ -72,14 +72,14 @@ function remember(key: string, mode: StorageMode) {
   }
 }
 
-function adapterFor(mode: StorageMode): StorageAdapter {
+function adapterFor(mode: StorageMode, userId: string): StorageAdapter {
   switch (mode) {
     case "browser_only":
       return indexedDbAdapter;
     case "pc_vault":
       return pcVaultAdapter;
     case "private_sync":
-      return syncAdapter;
+      return syncAdapterFor(userId);
   }
 }
 
@@ -145,7 +145,7 @@ export async function resolveAdapter(
   userId: string,
   dataClass: DataClass,
 ): Promise<StorageAdapter> {
-  return adapterFor(await getModeFor(userId, dataClass));
+  return adapterFor(await getModeFor(userId, dataClass), userId);
 }
 
 export function invalidateModeCache(userId?: string) {

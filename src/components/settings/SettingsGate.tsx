@@ -103,7 +103,13 @@ export function SettingsField({
  * Once at the top rather than repeated under every field, so a category with
  * twelve settings does not repeat one sentence twelve times.
  */
-export function ReadOnlyBanner({ className }: { className?: string }) {
+export function ReadOnlyBanner({
+  className,
+  linkToSignIn = true,
+}: {
+  className?: string;
+  linkToSignIn?: boolean;
+}) {
   const { canEdit } = useSettingsAccess();
   if (canEdit) return null;
   return (
@@ -118,10 +124,16 @@ export function ReadOnlyBanner({ className }: { className?: string }) {
         <span className="font-medium text-foreground">You are not signed in.</span> Every setting
         below is shown exactly as it ships, so you can see what OCADE does before creating an
         account. Changing one needs an account.{" "}
-        <Link to="/auth" className="text-primary underline underline-offset-4">
-          Create one
-        </Link>
-        .
+        {linkToSignIn ? (
+          <>
+            <Link to="/auth" className="text-primary underline underline-offset-4">
+              Create one
+            </Link>
+            .
+          </>
+        ) : (
+          " Sign in to change these settings."
+        )}
       </span>
     </div>
   );

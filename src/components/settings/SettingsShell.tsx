@@ -233,10 +233,11 @@ export function SettingsShell({ children }: { children: ReactNode }) {
       <section
         aria-label="Settings content"
         className={cn(
-          // Content sits BEHIND the navigation column, at the ordinary content
-          // plane. Equal depths would leave the two columns reading as one flat
-          // sheet, which is the state this pass exists to fix.
-          "ocade-depth depth-raised min-w-0 flex-1",
+          // Settings are a dense interactive form. Chromium can exclude controls
+          // inside nested preserve-3d surfaces from pointer hit testing even while
+          // painting them normally. Keep the raised shadow cue, but make this
+          // subtree a deliberately flat, reliable interaction plane.
+          "ocade-depth-cue ocade-interactive-plane depth-raised min-w-0 flex-1",
           onList ? "hidden md:block" : "block",
         )}
       >

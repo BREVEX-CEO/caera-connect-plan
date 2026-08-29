@@ -4,9 +4,12 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { useAppearance } from "@/lib/use-appearance";
 import { cn } from "@/lib/utils";
+import { ReadOnlyBanner } from "./SettingsGate";
+import { useSettingsAccess } from "./use-settings-access";
 
 export function AccessibilityPanel() {
   const appearance = useAppearance();
+  const { canEdit } = useSettingsAccess();
 
   return (
     <>
@@ -15,6 +18,8 @@ export function AccessibilityPanel() {
         title="Accessibility"
         description="Keyboard, screen-reader and focus semantics are always enabled. Visual and motion preferences apply immediately and sync through the existing appearance settings path."
       />
+
+      <ReadOnlyBanner className="mb-4" />
 
       <GlassPanel className="p-5">
         <h3 className="flex items-center gap-2 text-sm font-semibold">
@@ -44,13 +49,14 @@ export function AccessibilityPanel() {
               : "Disable nonessential transitions and animated decoration."
           }
           checked={appearance.reducedMotion || appearance.osReducedMotion}
-          disabled={appearance.osReducedMotion}
+          disabled={!canEdit || appearance.osReducedMotion}
           onChange={(reducedMotion) => void appearance.update({ reducedMotion })}
         />
         <ToggleRow
           label="High contrast"
           description="Increase structural contrast without changing the selected theme."
           checked={appearance.highContrast}
+          disabled={!canEdit}
           onChange={(highContrast) => void appearance.update({ highContrast })}
         />
       </GlassPanel>
@@ -66,6 +72,7 @@ export function AccessibilityPanel() {
         <button
           aria-pressed={appearance.cursor === "accessibility"}
           type="button"
+          disabled={!canEdit}
           onClick={() => void appearance.update({ cursor: "accessibility" })}
           className={cn(
             "mt-3 rounded-md border px-3 py-1.5 text-xs",

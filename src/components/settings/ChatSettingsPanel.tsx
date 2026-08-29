@@ -4,6 +4,8 @@ import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { ReadOnlyBanner } from "./SettingsGate";
+import { useSettingsAccess } from "./use-settings-access";
 import {
   useChatPrefs,
   type EngineTierPreference,
@@ -66,6 +68,7 @@ const DENSITY_CHOICES: { value: MessageDensity; label: string }[] = [
 
 export function ChatSettingsPanel() {
   const { prefs, update, reset, storageError } = useChatPrefs();
+  const { canEdit } = useSettingsAccess();
 
   return (
     <>
@@ -74,12 +77,14 @@ export function ChatSettingsPanel() {
         title="Chat"
         description="How OCADE Chat behaves on this device: which engine new chats start on, how messages are sent, and how the transcript is shown."
         actions={
-          <Button variant="outline" size="sm" onClick={reset}>
+          <Button variant="outline" size="sm" onClick={reset} disabled={!canEdit}>
             <RotateCcw className="mr-2 h-4 w-4" />
             Reset to defaults
           </Button>
         }
       />
+
+      <ReadOnlyBanner className="mb-5" linkToSignIn={false} />
 
       {storageError ? (
         <GlassPanel className="mb-5 flex gap-3 border-destructive/40 p-4 text-sm">
@@ -107,6 +112,7 @@ export function ChatSettingsPanel() {
               >
                 <input
                   type="radio"
+                  disabled={!canEdit}
                   name="ocade-default-engine"
                   className="mt-1"
                   value={choice.value}
@@ -151,6 +157,7 @@ export function ChatSettingsPanel() {
             </div>
             <Switch
               id="ocade-thinking"
+              disabled={!canEdit}
               checked={prefs.thinking}
               onCheckedChange={(v) => update({ thinking: v })}
             />
@@ -168,6 +175,7 @@ export function ChatSettingsPanel() {
               >
                 <input
                   type="radio"
+                  disabled={!canEdit}
                   name="ocade-send-key"
                   className="mt-1"
                   value={choice.value}
@@ -200,6 +208,7 @@ export function ChatSettingsPanel() {
               </div>
               <Switch
                 id="ocade-render-markdown"
+                disabled={!canEdit}
                 checked={prefs.renderMarkdown}
                 onCheckedChange={(v) => update({ renderMarkdown: v })}
               />
@@ -216,6 +225,7 @@ export function ChatSettingsPanel() {
               </div>
               <Switch
                 id="ocade-show-timestamps"
+                disabled={!canEdit}
                 checked={prefs.showTimestamps}
                 onCheckedChange={(v) => update({ showTimestamps: v })}
               />
@@ -233,6 +243,7 @@ export function ChatSettingsPanel() {
               </div>
               <Switch
                 id="ocade-keep-drafts"
+                disabled={!canEdit}
                 checked={prefs.keepDrafts}
                 onCheckedChange={(v) => update({ keepDrafts: v })}
               />
@@ -245,6 +256,7 @@ export function ChatSettingsPanel() {
                   <Button
                     key={choice.value}
                     type="button"
+                    disabled={!canEdit}
                     size="sm"
                     variant={prefs.density === choice.value ? "default" : "outline"}
                     onClick={() => update({ density: choice.value })}

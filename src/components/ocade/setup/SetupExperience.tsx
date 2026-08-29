@@ -47,9 +47,10 @@ const NARRATIVE: { match: (stage: string) => boolean; line: string }[] = [
   },
   { match: (s) => s === "preparing_runtime" || s === "waiting_for_source", line: "Starting OCADE" },
   { match: (s) => s === "downloading" || s === "retrying", line: "Preparing OCADE" },
-  { match: (s) => s === "verifying", line: "Securing local intelligence" },
-  { match: (s) => s === "loading", line: "Optimising for this device" },
-  { match: (s) => s === "warming", line: "Almost ready" },
+  {
+    match: (s) => s === "verifying" || s === "loading" || s === "warming",
+    line: "Almost ready",
+  },
   { match: (s) => s === "ready", line: "OCADE is ready" },
   { match: (s) => s === "repairing", line: "Checking this device" },
 ];

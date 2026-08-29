@@ -350,6 +350,45 @@ describe("THE OBSERVED FAILURES", () => {
     // A follower must not offer a button that would start a second download.
     expect(state.remedies).toEqual([]);
   });
+
+  it("keeps adopting owner progress while queued for the cross-tab lock", async () => {
+    let releaseLock!: () => void;
+    const lockAvailable = new Promise<void>((resolve) => {
+      releaseLock = resolve;
+    });
+    const broadcast = vi.fn();
+    const h = harness({
+      broadcast,
+      acquireLock: async (work) => {
+        await lockAvailable;
+        await work();
+        return true;
+      },
+    });
+
+    const install = h.authority.install();
+    h.authority.observe({
+      stage: "downloading",
+      fraction: 0.73,
+      etaSeconds: 12,
+      detail: null,
+      problem: null,
+      remedies: [],
+      observing: false,
+      retries: 0,
+      path: "webgpu",
+    });
+
+    expect(h.authority.snapshot()).toMatchObject({
+      stage: "downloading",
+      fraction: 0.73,
+      observing: true,
+    });
+    expect(broadcast).not.toHaveBeenCalled();
+
+    releaseLock();
+    await expect(install).resolves.toMatchObject({ stage: "ready", observing: false });
+  });
 });
 
 describe("a corrupt artifact never becomes the active engine", () => {
@@ -529,6 +568,21 @@ describe("pausing and resuming", () => {
     const state = await second.install();
     expect(state.stage).toBe("ready");
     expect(h.net.requests).toBe(before);
+  });
+
+  it("never moves measured setup progress backwards", async () => {
+    const h = harness();
+    const fractions: number[] = [];
+    h.authority.subscribe((state) => {
+      if (state.fraction !== null) fractions.push(state.fraction);
+    });
+
+    await h.authority.install();
+
+    expect(fractions.length).toBeGreaterThan(1);
+    for (let index = 1; index < fractions.length; index += 1) {
+      expect(fractions[index]).toBeGreaterThanOrEqual(fractions[index - 1]!);
+    }
   });
 });
 

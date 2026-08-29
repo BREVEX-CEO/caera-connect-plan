@@ -347,16 +347,34 @@ describe("leaving OCADE and coming back", () => {
     expect(offline.requests).toBe(0);
     expect(second.vault.activeVersion()).toBe(VERSION);
   });
+
+  it("a new application deployment makes zero model requests for the same digest", async () => {
+    const disk = persistentDisk();
+    const storage = memoryStorage();
+    const firstNetwork = network(DATA);
+    const first = session(disk, storage, firstNetwork.fetchImpl);
+    expect((await first.authority.install()).stage).toBe("ready");
+
+    // A deployment may replace every JavaScript asset and service worker. It
+    // must not become part of model identity; only VERSION and its digest do.
+    storage.setItem("ocade.application.deployment", "new-cloudflare-version");
+    const afterDeploymentNetwork = network(DATA, { offline: () => true });
+    const afterDeployment = session(disk, storage, afterDeploymentNetwork.fetchImpl);
+    const state = await afterDeployment.authority.install({ reason: "app_bootstrap" });
+
+    expect(state.stage).toBe("ready");
+    expect(afterDeploymentNetwork.requests).toBe(0);
+    expect(afterDeployment.vault.activeVersion()).toBe(VERSION);
+  });
 });
 
 describe("several tabs", () => {
   /**
    * The lock is what makes this one transfer instead of three.
    *
-   * Modelled as the real thing does it: one holder, everyone else a follower
-   * that watches. A follower that ran its own transfer would be competing for
-   * the same connection and the same disk as the owner, and would be slower
-   * than a single transfer for everybody.
+   * Modelled as the real Web Lock does it: one holder and a FIFO queue. A
+   * promoted follower verifies the durable artifact and activates its own
+   * runtime, but never starts a second transfer.
    */
   function tabs(
     count: number,
@@ -364,14 +382,18 @@ describe("several tabs", () => {
     storage: ReturnType<typeof memoryStorage>,
     fetchImpl: typeof fetch,
   ) {
-    let held = false;
+    let tail = Promise.resolve();
     const acquireLock = async (work: () => Promise<void>) => {
-      if (held) return false;
-      held = true;
+      const predecessor = tail;
+      let release!: () => void;
+      tail = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      await predecessor;
       try {
         await work();
       } finally {
-        held = false;
+        release();
       }
       return true;
     };
@@ -392,8 +414,7 @@ describe("several tabs", () => {
     const chunksTotal = Math.ceil(DATA.length / PLAN.chunkBytes);
     // One transfer's worth of requests, not two.
     expect(net.requests).toBeLessThanOrEqual(chunksTotal + 2);
-    expect(results.some((state) => state.stage === "ready")).toBe(true);
-    expect(results.some((state) => state.observing)).toBe(true);
+    expect(results.every((state) => state.stage === "ready")).toBe(true);
   });
 
   it("three tabs still produce one transfer", async () => {

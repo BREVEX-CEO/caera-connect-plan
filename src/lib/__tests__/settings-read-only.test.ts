@@ -81,12 +81,15 @@ describe("signed-out settings are not writable", () => {
 
 describe("every read-only category explains itself", () => {
   const PANELS = [
+    "src/components/settings/AccessibilityPanel.tsx",
+    "src/components/settings/ChatSettingsPanel.tsx",
     "src/components/settings/MotionPanel.tsx",
     "src/components/settings/OfflineStoragePanel.tsx",
+    "src/routes/_authenticated/settings.appearance.tsx",
   ];
 
   it.each(PANELS)("%s renders the read-only banner", (path) => {
-    expect(code(readFileSync(path, "utf8"))).toMatch(/<ReadOnlyBanner\s*\/>/);
+    expect(code(readFileSync(path, "utf8"))).toMatch(/<ReadOnlyBanner\b[^>]*\/>/);
   });
 });
 

@@ -283,9 +283,13 @@ function RootComponent() {
    */
   useEffect(() => {
     void registerOfflineShellFromBrowser().then((registration) => {
-      if (registration.ok) void primeOfflineRuntimeFromBrowser();
+      if (!registration.ok) return;
+      void primeOfflineRuntimeFromBrowser();
+      void import("@/lib/offline/prime-navigation").then((module) =>
+        module.primeOfflineNavigationFromBrowser(router),
+      );
     });
-  }, []);
+  }, [router]);
 
   /*
    * PREPARATION STARTS HERE, AND HERE ONLY.

@@ -23,7 +23,7 @@
  */
 
 const SHELL_CACHE_PREFIX = "ocade-shell-v";
-const VERSION = `${SHELL_CACHE_PREFIX}10`;
+const VERSION = `${SHELL_CACHE_PREFIX}11`;
 const OFFLINE_URL = "/offline.html";
 
 /**

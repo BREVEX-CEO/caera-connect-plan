@@ -68,8 +68,14 @@ const browser = await chromium.launch({
 const context = await browser.newContext(STATE ? { storageState: STATE } : {});
 const page = await context.newPage();
 
+async function openApp(path) {
+  await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded", timeout: 60000 });
+  await page.locator("body").waitFor({ state: "visible", timeout: 15000 });
+}
+
 async function clearModals() {
-  for (let i = 0; i < 6; i += 1) {
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
     const dialog = page.locator("[role=dialog], [role=alertdialog]");
     if ((await dialog.count()) === 0) return;
     const boxes = dialog.locator("input[type=checkbox], [role=checkbox]");
@@ -82,7 +88,14 @@ async function clearModals() {
     const button = dialog.getByRole("button", {
       name: /^(accept and continue|skip|done|finish|got it|close)$/i,
     });
-    if ((await button.count()) === 0) return;
+    if ((await button.count()) === 0) {
+      // The first-install gate has no dismiss button and may be completing
+      // while the once-per-account welcome tour waits underneath it. Returning
+      // here left that tour to intercept the later settings click. Give the
+      // non-dismissible gate time to resolve, then inspect the next dialog.
+      await page.waitForTimeout(500);
+      continue;
+    }
     await button
       .first()
       .click({ timeout: 6000 })
@@ -133,7 +146,7 @@ const FRAME_RATE = async (ms) =>
   );
 
 try {
-  await page.goto(`${BASE}/ocade/work`, { waitUntil: "networkidle", timeout: 60000 });
+  await openApp("/ocade/work");
   await page.waitForTimeout(2500);
   await clearModals();
   await page.waitForTimeout(1200);
@@ -154,7 +167,7 @@ try {
       JSON.stringify({ ...stored, reducedMotion: false, lowPerformance: false }),
     );
   });
-  await page.reload({ waitUntil: "networkidle", timeout: 60000 });
+  await page.reload({ waitUntil: "domcontentloaded", timeout: 60000 });
   await page.waitForTimeout(2200);
   await clearModals();
   await page.waitForTimeout(900);
@@ -207,19 +220,40 @@ try {
   );
 
   /* ------------------------------------------- reduce motion must hold ---- */
-  await page.goto(`${BASE}/settings/motion`, { waitUntil: "networkidle", timeout: 60000 });
+  await openApp("/settings/motion");
   await page.waitForTimeout(1500);
   await clearModals();
-  const reduceSwitch = page.locator("main [role=switch]").first();
+  // Let the signed-in preference row finish hydrating before changing it.
+  // Clicking while that read is still in flight creates a false failure: the
+  // older cloud snapshot lands after the click and correctly replaces the
+  // optimistic local value.
+  await page
+    .getByText(/saved to your account/i)
+    .first()
+    .waitFor({ state: "visible", timeout: 15000 });
+  const reduceSwitch = page.getByRole("switch", { name: "Reduce motion" }).first();
   const wasOn = (await reduceSwitch.getAttribute("aria-checked")) === "true";
   if (!wasOn) await reduceSwitch.click({ timeout: 8000 });
-  await page.waitForTimeout(700);
+  await page
+    .waitForFunction(
+      () =>
+        document
+          .querySelector('[role="switch"][aria-label="Reduce motion"]')
+          ?.getAttribute("aria-checked") === "true",
+      undefined,
+      { timeout: 10000 },
+    )
+    .catch(() => {});
+  const switchOn = (await reduceSwitch.getAttribute("aria-checked")) === "true";
   check(
     "reduce motion can be turned on",
-    (await page.locator("main [role=switch]").first().getAttribute("aria-checked")) === "true",
+    switchOn,
+    switchOn
+      ? "switch, document and saved preference changed together"
+      : "the semantic browser click did not turn the switch on",
   );
 
-  await page.goto(`${BASE}/ocade/work`, { waitUntil: "networkidle", timeout: 60000 });
+  await openApp("/ocade/work");
   await page.waitForTimeout(2200);
   await clearModals();
   await page.waitForTimeout(800);

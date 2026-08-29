@@ -142,6 +142,43 @@ describe("activation is a pointer, not a move", () => {
   });
 });
 
+describe("canonical installation view and cleanup", () => {
+  it("reports Ready only for the verified active artifact", async () => {
+    expect(await vault.installationView()).toEqual({ ready: false, stored: false });
+    await put("v1", 100, false);
+    expect(await vault.installationView()).toEqual({ ready: false, stored: false });
+
+    vault.writeMeta("v1", { verified: true, expectedBytes: 100, sha256: "digest-v1" });
+    await vault.activate("v1");
+    expect(await vault.installationView()).toEqual({ ready: true, stored: true });
+  });
+
+  it("removes legacy and partial artifacts but keeps active and rollback", async () => {
+    await put("v1", 100);
+    await vault.activate("v1");
+    await put("v2", 120);
+    await vault.activate("v2");
+
+    backing.files.set("wasm/legacy-engine.gguf", new Uint8Array(80));
+    backing.files.set(versionPath("v2", "stale.partial"), new Uint8Array(12));
+    backing.files.set(versionPath("orphan", "orphan.bin"), new Uint8Array(20));
+
+    const removed = await vault.cleanupAfterActivation("v2");
+
+    expect(removed).toEqual(
+      expect.arrayContaining([
+        "wasm/legacy-engine.gguf",
+        versionPath("v2", "stale.partial"),
+        versionPath("orphan", "orphan.bin"),
+      ]),
+    );
+    expect(await vault.bytesOf("v2")).toBe(120);
+    expect(await vault.bytesOf("v1")).toBe(100);
+    expect(vault.activeVersion()).toBe("v2");
+    expect(vault.previousVersion()).toBe("v1");
+  });
+});
+
 describe("a failed upgrade cannot destroy the working engine", () => {
   it("leaves the active version untouched while a candidate is staged", async () => {
     await put("v1", 100);

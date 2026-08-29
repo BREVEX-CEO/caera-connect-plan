@@ -263,9 +263,14 @@ export async function resolveInstallTarget(path: CapabilityPath): Promise<Instal
  * one waiter is promoted and there is no window in which two tabs both believe
  * they won.
  *
- * `ifAvailable` means a losing tab returns IMMEDIATELY as a follower rather
- * than queueing behind a transfer that may take minutes. It watches the owner's
- * progress instead, which is what a second tab should show.
+ * Waiters queue behind the owner while watching its BroadcastChannel progress.
+ * This matters when the owner navigates or closes at the exact moment a new
+ * document starts: an `ifAvailable` probe used to return immediately and leave
+ * the new document permanently showing "already preparing" if the owner never
+ * got a chance to broadcast one last state. Web Locks promotes the waiter when
+ * the owner finishes or disappears, and the promoted document verifies the
+ * durable artifact before activating it in its own JavaScript context. That is
+ * a zero-download reopen, not a second transfer.
  */
 async function acquireInstallLock(work: () => Promise<void>): Promise<boolean> {
   const locks = (globalThis.navigator as Navigator | undefined)?.locks;
@@ -274,7 +279,7 @@ async function acquireInstallLock(work: () => Promise<void>): Promise<boolean> {
     return true;
   }
   let won = false;
-  await locks.request(INSTALL_LOCK, { ifAvailable: true }, async (lock) => {
+  await locks.request(INSTALL_LOCK, async (lock) => {
     if (!lock) return;
     won = true;
     await work();

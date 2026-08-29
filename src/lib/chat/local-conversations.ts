@@ -18,7 +18,6 @@
  * afterwards. Every read prefers this device.
  */
 import { resolveAdapter } from "@/lib/storage/resolver";
-import { enqueue, drainNow } from "@/lib/storage/sync-queue";
 
 /** The shape the Chat screen renders. Mirrors the `ocade_conversations` row. */
 export interface LocalConversation {
@@ -112,15 +111,9 @@ export async function createConversationLocally(
   const adapter = await resolveAdapter(userId, "chats");
   await adapter.put("chats", keyFor(record.id), record);
 
-  /*
-   * Browser Only never queues. That is the whole guarantee of the mode, and
-   * making it structural here — rather than relying on every caller to check —
-   * is what keeps it true when somebody adds a caller later.
-   */
-  if (input.privacyMode === "private_sync") {
-    await enqueue({ dataClass: "chats", id: keyFor(record.id), value: record });
-    void drainNow();
-  }
+  // Private Sync queues inside its adapter. Browser Only never does. Keeping
+  // that distinction at the storage boundary prevents callers from uploading a
+  // Browser Only record because a conversation field was stale.
   return record;
 }
 
@@ -164,10 +157,6 @@ export async function updateConversationLocally(
   };
   const adapter = await resolveAdapter(userId, "chats");
   await adapter.put("chats", keyFor(id), next);
-  if (next.privacy_mode === "private_sync") {
-    await enqueue({ dataClass: "chats", id: keyFor(id), value: next });
-    void drainNow();
-  }
   return next;
 }
 
@@ -190,10 +179,6 @@ export async function deleteConversationLocally(userId: string, id: string): Pro
   };
   const adapter = await resolveAdapter(userId, "chats");
   await adapter.put("chats", keyFor(id), tombstone);
-  if (existing.privacy_mode === "private_sync") {
-    await enqueue({ dataClass: "chats", id: keyFor(id), value: tombstone });
-    void drainNow();
-  }
 }
 
 /**

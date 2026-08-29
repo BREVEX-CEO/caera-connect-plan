@@ -16,19 +16,31 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
 import type { DataClass } from "./types";
 import { drainOutbox, type OutboxEntry, type OutboxStore } from "./outbox";
-import { indexedDbAdapter } from "./indexeddb-adapter";
+import { privateSyncCacheAdapterFor } from "./private-sync-cache-adapter";
 
 const QUEUE_KEY = "ocade.sync.outbox.v1";
 
 interface MessagePayload {
+  userId: string;
   dataClass: DataClass;
   id: string;
   value: unknown;
 }
 
 interface QueuedRecordRef {
+  /** Missing only on an entry written by a pre-isolation build. */
+  userId?: string;
   dataClass: DataClass;
   id: string;
+}
+
+/** Fail closed unless the queue itself proves which account owns the entry. */
+export function queueOwnerMismatchReason(
+  payload: { userId?: string },
+  signedInUserId: string,
+): string | null {
+  if (payload.userId === signedInUserId) return null;
+  return payload.userId ? "signed in as another user" : "legacy entry has no verified owner";
 }
 
 /**
@@ -42,7 +54,11 @@ function metadataOnly(entry: OutboxEntry): OutboxEntry {
   if (!payload.dataClass || typeof payload.id !== "string") return entry;
   return {
     ...entry,
-    payload: { dataClass: payload.dataClass, id: payload.id } satisfies QueuedRecordRef,
+    payload: {
+      ...(typeof payload.userId === "string" ? { userId: payload.userId } : {}),
+      dataClass: payload.dataClass,
+      id: payload.id,
+    } satisfies QueuedRecordRef,
   };
 }
 
@@ -100,26 +116,37 @@ export const browserOutbox: OutboxStore = {
  */
 export async function enqueue(payload: MessagePayload): Promise<void> {
   await browserOutbox.put({
-    id: `put:${payload.dataClass}:${payload.id}`,
+    id: `put:${payload.userId}:${payload.dataClass}:${payload.id}`,
     kind: "message",
     conversationId: payload.id,
-    payload: { dataClass: payload.dataClass, id: payload.id } satisfies QueuedRecordRef,
+    payload: {
+      userId: payload.userId,
+      dataClass: payload.dataClass,
+      id: payload.id,
+    } satisfies QueuedRecordRef,
     queuedAt: new Date().toISOString(),
     attempts: 0,
     nextAttemptAt: 0,
   });
 }
 
-export async function enqueueDelete(payload: { dataClass: DataClass; id: string }): Promise<void> {
+export async function enqueueDelete(payload: {
+  userId: string;
+  dataClass: DataClass;
+  id: string;
+}): Promise<void> {
   /*
    * A delete supersedes a pending write of the same record. Leaving both
    * queued would upload the row and then remove it, which works but means a
    * deleted message briefly exists on the server and on any device that syncs
    * in between.
    */
+  await browserOutbox.remove(`put:${payload.userId}:${payload.dataClass}:${payload.id}`);
+  // A pre-isolation build did not include the owner in the id. Once this user
+  // deletes the referenced record, that legacy put must not race the tombstone.
   await browserOutbox.remove(`put:${payload.dataClass}:${payload.id}`);
   await browserOutbox.put({
-    id: `del:${payload.dataClass}:${payload.id}`,
+    id: `del:${payload.userId}:${payload.dataClass}:${payload.id}`,
     kind: "delete",
     conversationId: payload.id,
     payload,
@@ -148,7 +175,9 @@ async function deliver(
   if (!user_id) return { ok: false, reason: "signed out" };
 
   if (entry.kind === "delete") {
-    const payload = entry.payload as { dataClass: DataClass; id: string };
+    const payload = entry.payload as QueuedRecordRef;
+    const ownerMismatch = queueOwnerMismatchReason(payload, user_id);
+    if (ownerMismatch) return { ok: false, reason: ownerMismatch };
     const { error } = await supabase
       .from("user_private_records")
       .delete()
@@ -160,9 +189,13 @@ async function deliver(
   }
 
   const payload = entry.payload as QueuedRecordRef;
+  const ownerMismatch = queueOwnerMismatchReason(payload, user_id);
+  if (ownerMismatch) return { ok: false, reason: ownerMismatch };
+
+  const cache = privateSyncCacheAdapterFor(user_id);
   let local;
   try {
-    local = await indexedDbAdapter.get<unknown>(payload.dataClass, payload.id);
+    local = await cache.get<unknown>(payload.dataClass, payload.id);
   } catch (error) {
     return {
       ok: false,

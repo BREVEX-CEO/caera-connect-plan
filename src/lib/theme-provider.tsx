@@ -319,7 +319,22 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       return;
     }
     let cancelled = false;
+    let authEventSeen = false;
+    let loadEpoch = 0;
+    let loadingUserId: string | null = null;
+    let loadedUserId: string | null = null;
     async function load(userId: string) {
+      /*
+       * getSession() and onAuthStateChange(INITIAL_SESSION) can announce the
+       * same account almost together. Two cloud reads used to race: the first
+       * made Settings look ready, a person changed a switch, and the second
+       * stale snapshot landed afterwards and visibly switched it back. One
+       * account gets one initial hydration; a different account invalidates
+       * the older request before its response can touch this browser.
+       */
+      if (loadingUserId === userId || loadedUserId === userId) return;
+      const epoch = ++loadEpoch;
+      loadingUserId = userId;
       const { data, error } = await supabase
         .from("user_settings")
         .select(
@@ -327,7 +342,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         )
         .eq("user_id", userId)
         .maybeSingle();
-      if (cancelled) return;
+      if (cancelled || epoch !== loadEpoch || userIdRef.current !== userId) return;
+      loadingUserId = null;
+      loadedUserId = userId;
       if (error) {
         /*
          * The account's stored preferences could not be READ. What is on screen
@@ -390,21 +407,27 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
 
     supabase.auth.getSession().then(({ data }) => {
+      if (cancelled || authEventSeen) return;
       userIdRef.current = data.session?.user.id ?? null;
       if (userIdRef.current) void load(userIdRef.current);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      authEventSeen = true;
       const nextId = session?.user.id ?? null;
       userIdRef.current = nextId;
       if (nextId) {
         void load(nextId);
       } else {
+        loadEpoch += 1;
+        loadingUserId = null;
+        loadedUserId = null;
         // Signed out: only this browser can hold preferences again.
         setPersistence((p) => ({ ...p, scope: "local", loadedFromCloud: false, loadError: null }));
       }
     });
     return () => {
       cancelled = true;
+      loadEpoch += 1;
       sub.subscription.unsubscribe();
     };
   }, []);

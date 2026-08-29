@@ -885,6 +885,20 @@
 }
 
 /*
+ * A form must never trade pointer reachability for perspective. Chromium can
+ * paint nested preserve-3d descendants while returning their untransformed
+ * ancestor from `elementFromPoint`, leaving a visible control with no clickable
+ * pixels. Settings keeps the depth scale through shadows, while this boundary
+ * removes transforms and compositor promotion from every interactive panel.
+ */
+[data-depth-scene="full"] .ocade-interactive-plane .ocade-depth,
+[data-depth-scene="static"] .ocade-interactive-plane .ocade-depth {
+  transform: none;
+  transform-style: flat;
+  will-change: auto;
+}
+
+/*
  * Lifting on hover is the one depth change driven by intent rather than by the
  * pointer's position, so it is worth 8px of Z: it tells you a surface is
  * interactive before you commit to clicking it.

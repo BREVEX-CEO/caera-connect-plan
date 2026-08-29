@@ -192,7 +192,9 @@ describe("the endpoint refuses cheaply before it works expensively", () => {
             return "x";
           };
         }
-        const value = Reflect.get(target, prop, receiver);
+        // Request accessors carry private brand checks. Read them with the
+        // real Request as the receiver, then bind methods to that same object.
+        const value = Reflect.get(target, prop, target);
         return typeof value === "function" ? value.bind(target) : value;
       },
     });

@@ -80,7 +80,9 @@ const FAMILIES = [
   },
   {
     family: "Permission rule review: validation and shadow detection",
-    match: new RegExp("^src/utils/settings/(permissionValidation|validation|validationTips)|^src/utils/permissions/shadowedRuleDetection|^src/components/permissions/"),
+    match: new RegExp(
+      "^src/utils/settings/(permissionValidation|validation|validationTips)|^src/utils/permissions/shadowedRuleDetection|^src/components/permissions/",
+    ),
     category: "MERGED",
     outcome: "Ported — and made the rule engine reachable at all",
     authority: "src/components/settings/PermissionRules.tsx",
@@ -471,7 +473,10 @@ function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) walk(path, out);
-    else out.push(relative(ROOT, path));
+    // Report and graph paths are repository paths, not host paths. Keeping
+    // Windows separators here makes every forward-slash import look unrelated
+    // and falsely reports all ported modules as unreachable.
+    else out.push(relative(ROOT, path).replace(/\\/g, "/"));
   }
   return out;
 }

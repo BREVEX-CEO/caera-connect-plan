@@ -1,3 +1,4 @@
+import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /*
@@ -87,9 +88,15 @@ vi.mock("../sync-queue", () => ({
 const { syncAdapter } = await import("../sync-adapter");
 
 describe("reading every record when the server will not send them all at once", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     server.requests = 0;
     server.maxRowsSeen = 0;
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.deleteDatabase("ocade-private-sync-cache");
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+      request.onblocked = () => reject(new Error("Private Sync test database is still open."));
+    });
   });
 
   it("reads all 2,500 records past a 1,000-row server cap", async () => {

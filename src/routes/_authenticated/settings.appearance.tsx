@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Check, Contrast, MousePointer2, Palette, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { PerformanceFallbackNotice } from "@/components/settings/PerformanceFallbackNotice";
+import { ReadOnlyBanner } from "@/components/settings/SettingsGate";
+import { useSettingsAccess } from "@/components/settings/use-settings-access";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { type ThemeMode } from "@/lib/theme-provider";
 import type { CursorKind } from "@/lib/use-appearance";
@@ -82,6 +84,7 @@ function currentExperience(appearance: ReturnType<typeof useAppearance>): Experi
 
 function AppearancePage() {
   const appearance = useAppearance();
+  const { canEdit } = useSettingsAccess();
   const experience = currentExperience(appearance);
 
   /*
@@ -124,6 +127,8 @@ function AppearancePage() {
         description="Choose how OCADE looks and how much it moves. The rest is handled automatically."
       />
 
+      <ReadOnlyBanner className="mt-5" />
+
       <div className="mt-6 space-y-5">
         <GlassPanel className="p-5">
           <div className="mb-4 flex items-center gap-2">
@@ -142,6 +147,7 @@ function AppearancePage() {
                 <button
                   type="button"
                   aria-pressed={active}
+                  disabled={!canEdit}
                   key={theme.id}
                   onClick={() => void selectTheme(theme.id)}
                   className={cn(
@@ -183,7 +189,7 @@ function AppearancePage() {
                   type="button"
                   aria-pressed={active}
                   key={mode.id}
-                  disabled={unavailable}
+                  disabled={!canEdit || unavailable}
                   onClick={() => void selectExperience(mode.id)}
                   className={cn(
                     "rounded-xl border p-4 text-left transition-colors",
@@ -221,7 +227,9 @@ function AppearancePage() {
             <button
               type="button"
               role="switch"
+              aria-label="High contrast"
               aria-checked={appearance.highContrast}
+              disabled={!canEdit}
               onClick={() => void appearance.update({ highContrast: !appearance.highContrast })}
               className={cn(
                 "relative mt-1 h-6 w-11 shrink-0 rounded-full border border-border transition-colors",
@@ -257,6 +265,7 @@ function AppearancePage() {
                   type="button"
                   key={option.id}
                   aria-pressed={active}
+                  disabled={!canEdit}
                   onClick={() => void appearance.update({ cursor: option.id })}
                   className={cn(
                     "rounded-xl border p-3 text-left text-sm transition-colors",
@@ -282,7 +291,9 @@ function AppearancePage() {
               max={64}
               step={4}
               value={appearance.cursorSize}
-              disabled={appearance.cursor === "system" || appearance.cursor === "accessibility"}
+              disabled={
+                !canEdit || appearance.cursor === "system" || appearance.cursor === "accessibility"
+              }
               onChange={(event) =>
                 void appearance.update({ cursorSize: Number(event.target.value) })
               }

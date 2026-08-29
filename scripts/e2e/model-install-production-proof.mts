@@ -374,7 +374,20 @@ async function main() {
   /* -------- 1. First install, interrupted partway through ---------------- */
 
   log("\n1. First install, interrupted mid-transfer");
-  server.breakAfterBytes(Math.floor(ARTIFACT_BYTES * 0.35));
+  /*
+   * The quick artifact is only eight chunks. Breaking after 35% aggregate
+   * traffic can spread less than one chunk across each of six parallel
+   * requests, leaving no complete bytes that a truthful checkpoint may claim.
+   * Let one concurrent wave cross a chunk boundary, then interrupt before the
+   * artifact completes. The production-size proof still uses its natural 35%.
+   */
+  const checkpointableBreak = plan.concurrency * plan.chunkBytes + plan.chunkBytes / 2;
+  server.breakAfterBytes(
+    Math.min(
+      ARTIFACT_BYTES - plan.chunkBytes / 2,
+      Math.max(Math.floor(ARTIFACT_BYTES * 0.35), checkpointableBreak),
+    ),
+  );
   let writer = await vault.openWriter(version);
   t = performance.now();
   const interrupted = await transferModel(

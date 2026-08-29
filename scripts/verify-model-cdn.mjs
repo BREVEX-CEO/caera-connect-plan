@@ -258,7 +258,11 @@ async function main() {
     if (WRITE) {
       writeReport({ configured: false, base: null, checks: [] });
     }
-    process.exit(STRICT ? 1 : 0);
+    // Let Node's HTTP client close its sockets naturally. A forced exit while
+    // Undici is tearing down connections can terminate with 0xC0000409 on
+    // Windows even after every check has completed successfully.
+    process.exitCode = STRICT ? 1 : 0;
+    return;
   }
 
   console.log(`\nBase: ${base}`);
@@ -284,7 +288,7 @@ async function main() {
   console.log("=".repeat(70) + "\n");
 
   if (WRITE) writeReport({ configured: true, base, checks });
-  process.exit(failed.length === 0 ? 0 : 1);
+  process.exitCode = failed.length === 0 ? 0 : 1;
 }
 
 function writeReport(body) {
@@ -302,5 +306,5 @@ function writeReport(body) {
 
 void main().catch((error) => {
   console.error(error);
-  process.exit(1);
+  process.exitCode = 1;
 });

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-27",
+  "generatedAt": "2026-08-29",
   "categories": {
     "USED_DIRECTLY": {
       "files": 49,
@@ -484,9 +484,6 @@
     "src/primary-logic/net/mappedAddress.ts": [
       "src/lib/research/public-network.server.ts"
     ],
-    "src/primary-logic/permissions/PermissionMode.ts": [],
-    "src/primary-logic/permissions/PermissionRule.ts": [],
-    "src/primary-logic/permissions/PermissionUpdateSchema.ts": [],
     "src/primary-logic/permissions/dangerousPatterns.ts": [
       "src/lib/runtime/permissions.ts"
     ],
@@ -496,9 +493,12 @@
     "src/primary-logic/permissions/pathSafety.ts": [
       "src/lib/runtime/permissions.ts"
     ],
+    "src/primary-logic/permissions/PermissionMode.ts": [],
+    "src/primary-logic/permissions/PermissionRule.ts": [],
     "src/primary-logic/permissions/permissionRuleParser.ts": [
       "src/lib/runtime/permissions.ts"
     ],
+    "src/primary-logic/permissions/PermissionUpdateSchema.ts": [],
     "src/primary-logic/permissions/ruleReview.ts": [
       "src/components/settings/PermissionRules.tsx"
     ],

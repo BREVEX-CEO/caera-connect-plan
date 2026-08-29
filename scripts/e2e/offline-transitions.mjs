@@ -39,7 +39,8 @@ const context = await browser.newContext(STATE ? { storageState: STATE } : {});
 const page = await context.newPage();
 
 async function clearModals() {
-  for (let i = 0; i < 6; i += 1) {
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
     const dialog = page.locator("[role=dialog], [role=alertdialog]");
     if ((await dialog.count()) === 0) return;
     const boxes = dialog.locator("input[type=checkbox], [role=checkbox]");
@@ -52,7 +53,10 @@ async function clearModals() {
     const button = dialog.getByRole("button", {
       name: /^(accept and continue|skip|done|finish|got it|close)$/i,
     });
-    if ((await button.count()) === 0) return;
+    if ((await button.count()) === 0) {
+      await page.waitForTimeout(500);
+      continue;
+    }
     await button
       .first()
       .click({ timeout: 6000 })
@@ -90,7 +94,7 @@ const seenEvents = () => page.evaluate(() => JSON.parse(sessionStorage.getItem("
 
 try {
   await page.addInitScript(WATCHER);
-  await page.goto(`${BASE}${START_ROUTE}`, { waitUntil: "networkidle", timeout: 60000 });
+  await page.goto(`${BASE}${START_ROUTE}`, { waitUntil: "domcontentloaded", timeout: 60000 });
   await page.waitForTimeout(1800);
   await clearModals();
   await watchEvents();
@@ -125,7 +129,14 @@ try {
   // the service worker's fallback rather than the warm app router.
   if (STATE) {
     await page
-      .goto(`${BASE}${SETTINGS_ROUTE}`, { waitUntil: "domcontentloaded", timeout: 30000 })
+      .getByRole("link", { name: "Activity and notifications" })
+      .click({ timeout: 10000 })
+      .catch(() => {});
+    await page.waitForTimeout(800);
+    await page
+      .locator(`a[href="${SETTINGS_ROUTE}"]`)
+      .first()
+      .click({ timeout: 10000 })
       .catch(() => {});
   } else {
     await page
@@ -165,7 +176,7 @@ try {
     JSON.stringify(await seenEvents()),
   );
 
-  await page.goto(`${BASE}${START_ROUTE}`, { waitUntil: "networkidle", timeout: 60000 });
+  await page.goto(`${BASE}${START_ROUTE}`, { waitUntil: "domcontentloaded", timeout: 60000 });
   await page.waitForTimeout(1500);
   await clearModals();
   const backText = (await page.evaluate(() => document.body.innerText)).length;

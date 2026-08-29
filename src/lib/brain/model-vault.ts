@@ -82,6 +82,12 @@ export interface StoredVersion {
   active: boolean;
 }
 
+/** Product-safe truth from the canonical installation authority. */
+export interface InstallationView {
+  ready: boolean;
+  stored: boolean;
+}
+
 /**
  * A file being written continuously, with durability at chosen moments.
  *
@@ -264,6 +270,24 @@ export class ModelVault {
     return this.store.readBlob(versionPath(version, artifactName(meta, version)));
   }
 
+  /**
+   * The one answer Settings and first-run presentation may use.
+   *
+   * A raw OPFS listing cannot say whether an artifact is active, and
+   * ModelStore's sidecar metadata predates the versioned authority. Combining
+   * either with UI produced the observed contradiction: the active engine was
+   * verified in ModelVault while Settings labelled its file "not verified".
+   */
+  async installationView(): Promise<InstallationView> {
+    const active = this.activeVersion();
+    if (!active) return { ready: false, stored: false };
+    const bytes = await this.bytesOf(active);
+    return {
+      stored: bytes > 0,
+      ready: bytes > 0 && this.readMeta(active)?.verified === true,
+    };
+  }
+
   /** Delete one version's files and its metadata. */
   async removeVersion(version: string): Promise<boolean> {
     const meta = this.readMeta(version);
@@ -319,6 +343,52 @@ export class ModelVault {
       if (protectedVersions.has(stored.version)) continue;
       if (await this.removeVersion(stored.version)) removed.push(stored.version);
     }
+    return removed;
+  }
+
+  /**
+   * Leave exactly the active artifact and one verified rollback generation.
+   *
+   * Successful activation used to prune only version directories. A complete
+   * active file could therefore sit beside a legacy flat artifact or an extra
+   * staging filename forever, and the raw Settings list showed both. This
+   * cleanup walks the real store, protects canonical active/rollback paths, and
+   * removes everything else only after an active version is verified.
+   */
+  async cleanupAfterActivation(activeVersion: string): Promise<string[]> {
+    const activeMeta = this.readMeta(activeVersion);
+    if (!activeMeta?.verified || (await this.bytesOf(activeVersion, activeMeta)) <= 0) return [];
+
+    const previous = this.previousVersion();
+    const previousMeta = previous ? this.readMeta(previous) : null;
+    const protectedVersions = new Set<string>([activeVersion]);
+    if (previous && previousMeta?.verified && (await this.bytesOf(previous, previousMeta)) > 0) {
+      protectedVersions.add(previous);
+    }
+
+    const protectedPaths = new Set(
+      [...protectedVersions].map((version) =>
+        versionPath(version, artifactName(this.readMeta(version), version)),
+      ),
+    );
+    const removed: string[] = [];
+    const touchedVersions = new Set<string>();
+
+    for (const file of await this.store.list()) {
+      const parts = file.key.split("/");
+      if (protectedPaths.has(file.key)) continue;
+
+      // Any flat pre-versioning artifact is obsolete once the canonical active
+      // artifact exists. Within versioned storage, non-canonical filenames and
+      // unprotected versions are staging leftovers, not rollback material.
+      if (parts[0] === VERSIONS_DIRECTORY && parts[1]) touchedVersions.add(parts[1]);
+      if (await this.store.remove(file.key)) removed.push(file.key);
+    }
+
+    for (const version of touchedVersions) {
+      if (!protectedVersions.has(version)) this.writeMeta(version, null);
+    }
+    if (previous && !protectedVersions.has(previous)) this.clearPointer(PREVIOUS_POINTER_KEY);
     return removed;
   }
 

@@ -20,6 +20,7 @@ import { spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
 import { cp, rename, rm } from "node:fs/promises";
 import { startStubSupabase } from "../fixtures/stub-supabase.mjs";
+import { resolveBrowserPath } from "./browser-path.mjs";
 
 /**
  * @param {object} [options]
@@ -68,6 +69,7 @@ export async function startServedBuild({
      * true here; no secret is involved and none is needed.
      */
     VITE_AUTH_GOOGLE_ENABLED: "true",
+    OCADE_BROWSER_PATH: resolveBrowserPath(),
   };
 
   const stopAll = () => {

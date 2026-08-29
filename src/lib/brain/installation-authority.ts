@@ -298,6 +298,13 @@ export class ModelInstallationAuthority {
   private readonly now: () => number;
   private startedAt: number | null = null;
   private ladder: CapabilityRung[] = [];
+  /** Highest measured progress in this authority's current installation. */
+  private highestFraction = 0;
+  private persistenceRequest: Promise<boolean> | null = null;
+  /** True only while this document owns the cross-tab install lock. A tab
+   * waiting behind another owner still has `running`, but must continue to
+   * adopt the owner's progress broadcasts while it waits. */
+  private ownsInstallWork = false;
 
   constructor(deps: AuthorityDeps) {
     this.deps = deps;
@@ -326,8 +333,17 @@ export class ModelInstallationAuthority {
     return this.state.stage === "ready";
   }
 
-  private publish(patch: Partial<InstallState>): void {
-    const next = { ...this.state, ...patch };
+  private publish(patch: Partial<InstallState>, broadcast = true): void {
+    let fraction = patch.fraction;
+    if (typeof fraction === "number") {
+      this.highestFraction = Math.max(this.highestFraction, Math.min(1, Math.max(0, fraction)));
+      fraction = this.highestFraction;
+    }
+    const next = {
+      ...this.state,
+      ...patch,
+      ...(typeof fraction === "number" ? { fraction } : {}),
+    };
     if (
       next.stage === this.state.stage &&
       next.fraction === this.state.fraction &&
@@ -350,7 +366,7 @@ export class ModelInstallationAuthority {
      * the transfer engine, the digest and the catalogue.
      */
     publishInstallState(next);
-    this.deps.broadcast?.(next);
+    if (broadcast) this.deps.broadcast?.(next);
   }
 
   /**
@@ -362,8 +378,12 @@ export class ModelInstallationAuthority {
    * would start a second download.
    */
   observe(state: InstallState): void {
-    if (this.running) return; // This tab is the owner; its own state wins.
-    this.publish({ ...state, observing: true, remedies: [] });
+    if (this.ownsInstallWork) return; // The lock owner's own state wins.
+    // Observed state must not be echoed back onto the channel. Echoing made a
+    // follower's `observing: true` snapshot race the owner's final `ready`
+    // snapshot after a navigation and could leave every remaining tab waiting
+    // on work that had already finished.
+    this.publish({ ...state, observing: true, remedies: [] }, false);
   }
 
   /* ------------------------------------------------------------- install -- */
@@ -463,7 +483,12 @@ export class ModelInstallationAuthority {
     if (this.deps.acquireLock) {
       let outcome: InstallState = this.state;
       const won = await this.deps.acquireLock(async () => {
-        outcome = await this.runOwnedInstall(signal);
+        this.ownsInstallWork = true;
+        try {
+          outcome = await this.runOwnedInstall(signal);
+        } finally {
+          this.ownsInstallWork = false;
+        }
       });
       if (!won) {
         this.publish({
@@ -480,6 +505,11 @@ export class ModelInstallationAuthority {
 
   private async runOwnedInstall(signal: AbortSignal): Promise<InstallState> {
     const t0 = this.now();
+
+    // Ask as soon as trusted installation code owns the run. Capability probes,
+    // catalogue resolution and storage checks continue in parallel; none of
+    // them needs to delay the browser's decision to preserve this origin.
+    void this.requestPersistence();
 
     /* 1. What can this device actually run? */
     this.publish({ stage: "checking_device", observing: false, problem: null, remedies: [] });
@@ -545,6 +575,7 @@ export class ModelInstallationAuthority {
     const onDisk = await this.deps.vault.bytesOf(target.version);
     if (existing?.verified && onDisk > 0) {
       await this.deps.vault.activate(target.version);
+      await this.deps.vault.cleanupAfterActivation(target.version);
       return this.activate(path, target.version, signal);
     }
 
@@ -577,6 +608,7 @@ export class ModelInstallationAuthority {
           sha256: target.sha256,
         });
         await this.deps.vault.activate(target.version);
+        await this.deps.vault.cleanupAfterActivation(target.version);
         this.emit({ kind: "adopted_existing", version: target.version });
         return this.activate(path, target.version, signal);
       }
@@ -601,6 +633,7 @@ export class ModelInstallationAuthority {
         expectedBytes: target.totalBytes,
       });
       if (adopted) {
+        await this.deps.vault.cleanupAfterActivation(target.version);
         this.emit({ kind: "adopted_existing", version: target.version });
         return this.activate(path, target.version, signal);
       }
@@ -634,7 +667,7 @@ export class ModelInstallationAuthority {
      * about something already at risk. It runs alongside the transfer because
      * a browser that is slow to answer must not delay the start.
      */
-    const persistence = this.deps.requestPersistence().catch(() => false);
+    const persistence = this.requestPersistence();
 
     /*
      * 3b. HAND OFF TO A NATIVE COMPANION, WHEN ONE IS GENUINELY STRONGER.
@@ -673,6 +706,7 @@ export class ModelInstallationAuthority {
             sha256: target.sha256,
           });
           await this.deps.vault.activate(target.version);
+          await this.deps.vault.cleanupAfterActivation(target.version);
           return this.activate(path, target.version, signal);
         }
         /*
@@ -879,7 +913,7 @@ export class ModelInstallationAuthority {
      * Two copies of an engine is real disk; having nothing to fall back to when
      * an upgrade turns out to be bad is worse.
      */
-    await this.deps.vault.pruneTo([target.version]);
+    await this.deps.vault.cleanupAfterActivation(target.version);
 
     return this.activate(path, target.version, signal);
   }
@@ -970,6 +1004,7 @@ export class ModelInstallationAuthority {
       this.emit({ kind: "failed", stage: "uninstall", reason: "native copy could not be removed" });
     }
     this.ladder = [];
+    this.highestFraction = 0;
     // Recorded BEFORE the state is published, so nothing observing the change
     // can race ahead and start an automatic install between the two.
     this.recordUninstallIntent();
@@ -1013,6 +1048,10 @@ export class ModelInstallationAuthority {
    */
   async repair(): Promise<InstallState> {
     if (this.running) return this.running;
+    // Repair is a new user-requested operation. A prior ready state ended at
+    // 100%; carrying that high-water mark into a real redownload would pin the
+    // new progress bar at 100% from its first byte.
+    this.highestFraction = 0;
     this.publish({ stage: "repairing", problem: null, remedies: [] });
     for (const stored of await this.deps.vault.listVersions()) {
       const meta = stored.meta;
@@ -1032,6 +1071,13 @@ export class ModelInstallationAuthority {
       etaSeconds: progress.etaSeconds,
       detail: null,
     });
+  }
+
+  private requestPersistence(): Promise<boolean> {
+    if (!this.persistenceRequest) {
+      this.persistenceRequest = this.deps.requestPersistence().catch(() => false);
+    }
+    return this.persistenceRequest;
   }
 
   private paused(): InstallState {

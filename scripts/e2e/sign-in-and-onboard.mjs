@@ -25,7 +25,8 @@ const context = await browser.newContext();
 const page = await context.newPage();
 
 async function clearModals() {
-  for (let round = 0; round < 6; round += 1) {
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
     const dialog = page.locator("[role=dialog], [role=alertdialog]");
     if ((await dialog.count()) === 0) return;
     const boxes = dialog.locator("input[type=checkbox], [role=checkbox]");
@@ -38,7 +39,10 @@ async function clearModals() {
     const button = dialog.getByRole("button", {
       name: /^(accept and continue|skip|done|finish|got it|close)$/i,
     });
-    if ((await button.count()) === 0) return;
+    if ((await button.count()) === 0) {
+      await page.waitForTimeout(500);
+      continue;
+    }
     await button
       .first()
       .click({ timeout: 8000 })
@@ -47,7 +51,7 @@ async function clearModals() {
   }
 }
 
-await page.goto(`${BASE}/auth`, { waitUntil: "networkidle", timeout: 60000 });
+await page.goto(`${BASE}/auth`, { waitUntil: "domcontentloaded", timeout: 60000 });
 await page.waitForTimeout(1200);
 await clearModals();
 
@@ -107,6 +111,12 @@ if (landed === "/onboarding") {
   process.exit(1);
 }
 console.log(`onboarding complete, landed on ${landed}`);
+// Save the once-per-account welcome dismissal into the shared state. Without
+// this, every later audit context opens the tour again, and a setup dialog that
+// is still resolving can briefly prevent the ordinary Skip click from reaching
+// it.
+await page.waitForTimeout(500);
+await clearModals();
 await context.storageState({ path: OUT });
 console.log(`storage state written to ${OUT}`);
 await browser.close();

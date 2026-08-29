@@ -29,6 +29,8 @@
  */
 import { chromium } from "playwright-core";
 import { writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 const BASE = process.env.OCADE_BASE_URL ?? "http://127.0.0.1:8080";
 const STATE = process.env.OCADE_STORAGE_STATE;
@@ -114,7 +116,8 @@ const isLoopback = (url) => {
 
 /** Answer whatever modal is up, the way a person does. */
 async function clearModals() {
-  for (let round = 0; round < 6; round += 1) {
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
     const dialog = page.locator("[role=dialog], [role=alertdialog]");
     if ((await dialog.count()) === 0) return true;
     const boxes = dialog.locator("input[type=checkbox], [role=checkbox]");
@@ -127,7 +130,13 @@ async function clearModals() {
     const button = dialog.getByRole("button", {
       name: /^(accept and continue|skip|done|finish|got it|close)$/i,
     });
-    if ((await button.count()) === 0) return false;
+    if ((await button.count()) === 0) {
+      // A first installation is deliberately non-dismissible. Wait for the
+      // verified artifact and warm runtime instead of timing out after six
+      // seconds and clicking inert settings underneath the full-screen gate.
+      await page.waitForTimeout(500);
+      continue;
+    }
     await button
       .first()
       .click({ timeout: 8000 })
@@ -135,6 +144,27 @@ async function clearModals() {
     await page.waitForTimeout(600);
   }
   return (await page.locator("[role=dialog], [role=alertdialog]").count()) === 0;
+}
+
+async function clickRenderedControl(locator) {
+  const marker = `audit-${Date.now()}-${Math.random()}`;
+  await locator.evaluate((element, id) => {
+    window.__ocadeSettingsAuditClicks ??= {};
+    window.__ocadeSettingsAuditClicks[id] = 0;
+    element.addEventListener(
+      "click",
+      () => {
+        window.__ocadeSettingsAuditClicks[id] += 1;
+      },
+      { once: true },
+    );
+  }, marker);
+
+  await locator.click({ timeout: 8000 });
+  await page.waitForTimeout(80);
+  if (!(await page.evaluate((id) => (window.__ocadeSettingsAuditClicks?.[id] ?? 0) > 0, marker))) {
+    throw new Error("semantic browser input did not reach the rendered switch");
+  }
 }
 
 /** Controls in the settings panel itself, never the navigation chrome. */
@@ -181,7 +211,10 @@ const dependentDisables = [];
 const deadLinks = [];
 
 for (const section of SECTIONS) {
-  await page.goto(`${BASE}/settings/${section}`, { waitUntil: "networkidle", timeout: 60000 });
+  await page.goto(`${BASE}/settings/${section}`, {
+    waitUntil: "domcontentloaded",
+    timeout: 60000,
+  });
   await page.waitForTimeout(1500);
   await clearModals();
 
@@ -259,7 +292,18 @@ for (const section of SECTIONS) {
     const wasStorage = await rawStorage();
     const writesBefore = writes.length;
 
-    await sw.click({ timeout: 8000 }).catch(() => {});
+    try {
+      await clickRenderedControl(sw);
+    } catch (error) {
+      check(
+        `${section}: "${label}" is reachable by a real click`,
+        false,
+        (error instanceof Error ? error.message : String(error))
+          .slice(0, 700)
+          .replace(/\s*\n\s*/g, " | "),
+      );
+      continue;
+    }
     await page.waitForTimeout(800);
 
     const nowChecked = await sw.getAttribute("aria-checked");
@@ -286,7 +330,7 @@ for (const section of SECTIONS) {
       effect || "no class change, no stored change, no request sent",
     );
 
-    await page.reload({ waitUntil: "networkidle", timeout: 60000 });
+    await page.reload({ waitUntil: "domcontentloaded", timeout: 60000 });
     await page.waitForTimeout(1400);
     await clearModals();
     const survived = await page.locator("main [role=switch]").nth(i).getAttribute("aria-checked");
@@ -351,7 +395,7 @@ check(
 );
 
 writeFileSync(
-  SIGNED_IN ? "/tmp/settings-audit-signed-in.json" : "/tmp/settings-audit-signed-out.json",
+  join(tmpdir(), SIGNED_IN ? "settings-audit-signed-in.json" : "settings-audit-signed-out.json"),
   JSON.stringify(
     { sections, results, springBack, deadLinks, consoleErrors, failedRequests },
     null,
