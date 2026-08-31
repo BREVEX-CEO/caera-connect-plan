@@ -997,3 +997,576 @@ Remove:
 - Legacy public one-time cadence.
 - Legacy trial/demo UI.
 - Legacy public plan descriptions.
+
+Preserve historical records and map them to archived catalog versions.
+
+Customer flow:
+
+```text
+Choose plan
+  → server resolves market catalogue
+  → display exact amount, currency, cadence, tax and renewal terms
+  → customer explicitly confirms
+  → provider-hosted checkout
+  → provider sends signed webhook
+  → raw-body signature verification
+  → atomic idempotent event application
+  → authoritative entitlement
+  → plan becomes active
+  → commercial limits update
+  → all devices reconcile
+```
+
+A redirect or success URL never grants entitlement.
+
+Implement:
+
+- Free, Pro, Max.
+- Weekly/monthly paid subscriptions.
+- Upgrade.
+- Downgrade.
+- Renewal.
+- Cancellation.
+- Cancellation at period end.
+- Failed payment.
+- Explicitly versioned grace policy, if retained.
+- Expiry.
+- Full refund.
+- Partial refund with proportional/explicit entitlement policy.
+- Dispute and chargeback.
+- Reversal.
+- Plan change.
+- Provider-specific webhook verification using the provider’s real protocol and raw request body.
+- Do not treat the current generic HMAC test twin as proof of live-provider verification.
+- Persistent idempotency.
+- Replay protection.
+- Duplicate protection.
+- Out-of-order protection.
+- Atomic payment, subscription, entitlement, and usage update.
+- Correct account and organization attribution.
+- Sandbox/live isolation.
+- Server-controlled amount, currency, cadence, and plan.
+- No raw payment credentials.
+- Provider-hosted payment-method management.
+- Billing history.
+- Invoices and receipts.
+- Provider invoice downloads.
+- Next payment amount/date.
+- Tax/VAT display.
+- Billing contact.
+- Failed-payment recovery.
+- Cancellation confirmation and effective date.
+- Refund/help route.
+- Pending-webhook state.
+- Confirmation state.
+- Direct return into OCADE after authoritative activation.
+- Cross-device entitlement propagation.
+- Legal/checkout policy version and acceptance timestamp.
+
+Before payment disclose:
+
+- Plan.
+- Amount.
+- Currency.
+- Frequency.
+- Automatic renewal.
+- Cancellation terms.
+- Refund terms.
+- Known taxes.
+- Terms and Privacy.
+
+No dark patterns, fake discounts, preselected paid upgrade, hidden renewal, or misleading trial language.
+
+Do not enable live charging until:
+
+- Sandbox checkout passes.
+- Webhook matrix passes.
+- Provider configuration passes.
+- Price IDs match the committed catalogue.
+- Tax configuration is proven.
+- Legal entity and production credentials exist.
+- No-charge gates pass.
+- A controlled real low-value transaction, entitlement activation, cancellation, and refund are proven.
+
+Payment and plan changes never remove, modify, invalidate, reinstall, or redownload Offline Intelligence.
+
+## I. Mobile commercial completion
+
+Provide:
+
+- Current plan.
+- Cadence.
+- Renewal date.
+- Billing history.
+- Invoice/receipt access.
+- Failed-payment state.
+- Refund help.
+- Tax display.
+- Subscription-management link.
+- Cross-device entitlement refresh.
+- Store/provider purchase restoration where applicable.
+- Clear web-versus-store billing authority.
+- Server-side reconciliation.
+- No duplicate entitlement across provider channels.
+
+Do not expose native purchase controls until applicable platform/store requirements, products, receipts, server verification, and physical-device purchase tests pass.
+
+## J. Public Security surface
+
+Create canonical `/security`.
+
+Include:
+
+- Encryption in transit and at rest.
+- Device-local IndexedDB encryption.
+- OPFS model-storage explanation.
+- Local/online data-flow distinction.
+- Data storage and residency.
+- Access controls.
+- MFA.
+- Organization policy.
+- Permission and receipt architecture.
+- Browser/native security boundaries.
+- Responsible vulnerability-disclosure route.
+- Verified security contact.
+- Incident disclosure/history when real.
+- Subprocessor/provider information where required.
+- Penetration-test information only after a real assessment.
+- Certification logos only after certification.
+
+Never claim SOC 2, ISO, GDPR certification, HIPAA compliance, a penetration test, zero incidents, or security badges without evidence.
+
+Add `/security` to public navigation and sitemap only when its contact paths are genuine.
+
+## K. Real status system
+
+Replace hard-coded prelaunch rows with a status data authority.
+
+Implement:
+
+- Component catalogue.
+- Real probes.
+- Operational state.
+- Degraded and outage states.
+- Incident creation and updates.
+- Timestamped incident history.
+- Maintenance scheduling.
+- Uptime samples and calculated history.
+- Status-update subscriptions.
+- RSS/Atom or equivalent machine feed.
+- Public API/feed.
+- Administrator incident controls.
+- Subscriber notifications.
+- Independent status deployment/domain configuration.
+- Provider-neutral status backend.
+- No prompt or customer-data exposure.
+
+Do not invent historical uptime or incidents. Begin measurements from the first verified observation.
+
+Until independent hosting is configured, `/status` may show current OCADE-origin checks but must state that it is not independent. Independent-status claims and subscriptions remain hidden.
+
+Remove obsolete demo references and hard-coded launch dates from status copy.
+
+## L. Help Center completion
+
+Extend the existing FAQ/support authority.
+
+Canonical structure:
+
+- `/support` — Help Center home.
+- `/support/$slug` — article.
+- `/faq` — redirect or curated view backed by the same article authority.
+- Existing authenticated support-ticket flow remains the escalation authority.
+
+Add:
+
+- Searchable articles.
+- Search suggestions.
+- Categories.
+- Featured/popular articles based on real metrics or editorial selection.
+- Article pages.
+- Stable slugs.
+- Version applicability.
+- Platform applicability.
+- Last-updated date.
+- Related articles.
+- Helpful/not-helpful feedback.
+- Feedback abuse controls.
+- Support escalation with article context.
+- Locale support.
+- Search indexing.
+- Broken-link and stale-version checks.
+- Admin publishing workflow.
+- Draft/published state.
+- No duplicate FAQ database or support system.
+
+## M. OcadeDataTable completion
+
+Extend the existing component without replacing it.
+
+Add typed generic support and:
+
+- Sortable column headers.
+- Visible direction and accessible sort state.
+- Multi-type sorting.
+- Column show/hide.
+- Persisted column order and visibility per user/table.
+- Row selection.
+- Select-all for current page.
+- Authorized select-all for current result set.
+- Bulk actions.
+- Contextual row actions.
+- Filters.
+- Visible active-filter chips.
+- Clear filters.
+- Configurable rows per page.
+- Total and visible result range.
+- Server-side pagination/sort/filter mode.
+- Frozen identifying column for wide tables.
+- Responsive card/priority-column fallback where a table cannot fit.
+- CSV export of the current authorized result set.
+- Formula-injection-safe CSV encoding.
+- Loading skeletons.
+- Partial/error/retry states.
+- Empty state.
+- Keyboard navigation.
+- Screen-reader selection and sort announcements.
+
+Preserve existing search, sorting, pagination, and empty-state behavior while migrating current table consumers.
+
+Never export rows the current user cannot retrieve under server policy.
+
+## N. Accessibility runtime proof
+
+Static implementation is not final proof.
+
+Run and record:
+
+- NVDA with Chrome on Windows.
+- VoiceOver with Safari on macOS.
+- Keyboard-only flows.
+- 200% zoom.
+- High text scaling.
+- Focus order.
+- Modal/drawer focus trap and return.
+- Route-change focus.
+- Screen-reader announcements.
+- Tables and bulk selection.
+- MFA setup and challenge.
+- Checkout and cancellation.
+- Notifications permission and preferences.
+- Data deletion confirmations.
+- Admin member management.
+- Mobile touch targets.
+- Reduced motion.
+- Reduced transparency.
+- No color-only meaning.
+
+Fix every discovered problem and repeat the exact failed journey.
+
+## O. Data-rights, account deletion, and ownership safety
+
+Extend existing privacy/data-rights authorities:
+
+- Export local data.
+- Export synchronized account data.
+- Machine-readable export.
+- Delete one data class.
+- Delete the account.
+- Revoke sessions before destructive account completion.
+- Handle owned Storage objects before Auth deletion.
+- Bound remaining JWT validity and validate `session_id` for sensitive operations.
+- Preserve legal-consent receipts where legally required.
+- Remove or anonymize billing data according to retention requirements.
+- Transfer organization ownership before owner deletion.
+- Prevent deletion of the last organization owner.
+- Do not delete Offline Intelligence during account deletion.
+- Clear account-private local data without touching OPFS model storage.
+- Produce a deletion receipt without exposing deleted content.
+
+## P. Add-on checklist ledger
+
+Create:
+
+```text
+release/checklists/OCADE_REMAINING_PRODUCT_GAPS.json
+release/checklists/OCADE_REMAINING_PRODUCT_GAPS.md
+```
+
+The ledger contains only applicable gaps discovered from:
+
+- This add-on.
+- Fresh repository inspection.
+- Live Supabase inspection.
+- Real runtime testing.
+- Physical-device testing.
+- Provider configuration testing.
+
+Schema:
+
+```ts
+type GapStatus =
+  | "MISSING"
+  | "IMPLEMENTED"
+  | "TESTED"
+  | "RUNTIME-PROVEN"
+  | "EXTERNALLY-BLOCKED"
+  | "NOT-APPLICABLE";
+
+interface RemainingProductGap {
+  id: string;
+  area: string;
+  requirement: string;
+  discoveredFrom: string;
+  existingAuthority: string | null;
+  disposition: "FIX" | "COMPLETE" | "MERGE" | "REPLACE" | "REMOVE";
+  status: GapStatus;
+  implementationEvidence: string[];
+  testEvidence: string[];
+  runtimeEvidence: string[];
+  externalBlocker?: {
+    dependency: string;
+    exactReason: string;
+    repositoryWorkComplete: boolean;
+    unavailableUiVerified: boolean;
+  };
+  lastVerifiedAt: string;
+}
+```
+
+Status rules:
+
+- `MISSING`: applicable behavior is absent or materially incomplete.
+- `IMPLEMENTED`: connected implementation exists and focused source tests pass.
+- `TESTED`: focused and integration tests pass.
+- `RUNTIME-PROVEN`: real product behavior and postconditions were observed.
+- `EXTERNALLY-BLOCKED`: every repository-controlled part is complete, but a specifically named credential, provider, independent host, or physical platform is unavailable; affected UI is hidden or truthful.
+- `NOT-APPLICABLE`: the requirement genuinely does not apply, with a concrete reason.
+
+Do not mark `IMPLEMENTED` from file existence.
+
+Generate Markdown from JSON.
+
+Fail verification for:
+
+- Missing authority.
+- Missing reason.
+- Unsupported status transition.
+- Runtime claims without evidence.
+- External blocker without completed repository work.
+- External blocker whose UI still claims availability.
+- Duplicate gap.
+- Stale generated report.
+
+After the add-on is complete:
+
+1. Regenerate this remaining-gap ledger.
+2. Regenerate the original complete product checklist against the final tree.
+3. Require zero applicable `MISSING` items.
+4. Require every shipped capability to reach `RUNTIME-PROVEN`.
+5. Provider-dependent features may remain `EXTERNALLY-BLOCKED` only when hidden or truthfully unavailable.
+6. Do not conclude from source existence.
+
+## 28. Final verification matrix
+
+### Repository and donor
+
+- Fresh clone.
+- Two deterministic `npm ci` runs.
+- Lock consistency.
+- Typecheck.
+- Zero-warning lint.
+- Format.
+- Routes and generated reports.
+- Production build.
+- Clean worktree.
+- Secret/license scan.
+- SBOM.
+- No donor archive or extraction.
+- Exactly 2,126 donor dispositions.
+
+### Demo removal
+
+- No demo route, timer, entitlement, flag, UI, copy, fixture, or anonymous generation bypass.
+
+### Identity
+
+- OCADE identity across every backend and fallback.
+- No raw model/provider branding in normal UI.
+- Technical questions remain truthful.
+
+### Automatic preparation and storage isolation
+
+- Automatic authenticated preparation.
+- Persistent Pause/Cancel/Remove behavior.
+- Verified model activation with zero model requests.
+- IndexedDB chat deletion leaves OPFS model intact.
+- All-IndexedDB deletion leaves OPFS model intact.
+- Account deletion leaves OPFS model intact.
+- Sign-out leaves OPFS model intact.
+- Active model version survives local-data deletion.
+- Runtime cache rebuilds from OPFS without network.
+- Only Remove Offline Intelligence deletes model files.
+
+### Commercial usage and offline leases
+
+- Free 28.
+- Pro/Max session and weekly percentages.
+- Exact windows.
+- Every backend and surface.
+- Concurrency and idempotency.
+- Failure/cancellation rules.
+- Signed leases.
+- Clock rollback.
+- Multi-device reconciliation.
+- Lock/reset/upgrade without model redownload.
+
+### Product parity
+
+- Chat, Cowork, Code, Projects, Tasks, Artifacts, Search, Customize, Enterprise, extension, native, mobile, and remote-harness journeys.
+- No fake or dead controls.
+
+### Authentication and MFA
+
+- Sign-up, verification, login, OAuth, recovery, logout, and deletion.
+- TOTP enrollment, QR/manual key, verify, challenge, recovery codes, backup factor, regeneration, replay rejection, factor reset, session revocation, and AAL2 policies.
+- Session-specific revocation and high-risk reauthentication.
+- No account data before MFA completion.
+
+### Notifications and email
+
+- Preference categories and channels.
+- Quiet hours and mute.
+- In-app state/history.
+- Web Push.
+- FCM.
+- APNs.
+- Transactional email.
+- Permission decline/revocation.
+- Expired tokens.
+- Secure payloads.
+- Real device/browser/email receipts before availability claims.
+
+### Team and admin
+
+- Invitations, expiry, resend, revoke, acceptance.
+- Roles, groups, deactivation, removal, ownership transfer.
+- Cross-organization isolation.
+- Admin route/data denial.
+- Audit trails.
+- Typed danger-zone confirmations.
+
+### Payments
+
+- Canonical catalogue.
+- Weekly/monthly.
+- Real provider-specific signature validation.
+- Raw-body verification.
+- Replay, duplicate, and ordering.
+- Upgrade/downgrade/renewal/cancel/failure/grace/expiry/refund/dispute/reversal.
+- Atomic entitlement.
+- Cross-device activation.
+- Billing history/invoices.
+- No-charge proof.
+- No live checkout without complete configuration.
+- No model changes during billing events.
+
+### Public trust and support
+
+- `/security`.
+- Real status probes.
+- Incident and maintenance workflow.
+- Truthful independent-host state.
+- Help search, articles, feedback, related content, and escalation.
+- No fabricated security, incident, uptime, or certification claim.
+
+### Data tables
+
+- Sorting, direction, filters, persistence, selection, bulk actions, pagination, range, frozen column, CSV safety, loading, errors, keyboard, and screen reader.
+
+### Accessibility
+
+- NVDA/Chrome.
+- VoiceOver/Safari.
+- Keyboard.
+- 200% zoom.
+- Focus.
+- Announcements.
+- Touch.
+- Reduced motion/transparency.
+- No color-only meaning.
+
+### Supabase security
+
+- RLS and grants.
+- Invoker/private function boundaries.
+- MFA AAL policies.
+- Two-user and two-organization matrices.
+- Password protection.
+- Types current.
+- Advisors resolved.
+
+### Performance and CI
+
+- Bundle and Core Web Vitals budgets.
+- Zero unexpected console/network errors.
+- Full and shuffled tests.
+- No unexplained shipped-feature skip.
+- Local CI parity.
+- No false hosted-CI claim.
+
+## 28A. Final add-on checklist gate
+
+Before final integration:
+
+- `OCADE_REMAINING_PRODUCT_GAPS.json` has no applicable `MISSING`.
+- No shipped feature remains merely `IMPLEMENTED`.
+- Every shipped feature is `RUNTIME-PROVEN`.
+- Every `EXTERNALLY-BLOCKED` item names the exact unavailable provider, credential, independent host, or physical platform.
+- Every externally blocked control is hidden or truthfully unavailable.
+- Original complete checklist is regenerated against the final tree.
+- Original complete checklist has zero applicable missing items.
+- IndexedDB/OPFS separation proof passes in the production browser harness.
+- MFA recovery does not create a parallel auth system.
+- Push, live payment, independent status, and transactional email are not claimed without real receipts.
+- No duplicate auth, billing, notification, admin, storage, table, support, or design authority exists.
+
+## 29. Final integration
+
+Only after every final gate passes together:
+
+1. Confirm no implementation commit exists.
+2. Review every intended change and deletion.
+3. Confirm no secret, donor extraction, RAR, model chunk, browser profile, cache, log, screenshot, credential, or machine-specific artifact is staged.
+4. Fetch `origin/main`.
+5. If it advanced, safely reapply uncommitted work to the new base.
+6. Rerun the complete matrix.
+7. Create one final verified commit.
+8. Fetch `origin/main` again.
+9. If it advanced again, rebase the single commit and rerun everything.
+10. Fast-forward `main`.
+11. Push without force.
+12. Verify remote SHA and tested tree.
+13. Publish final evidence containing:
+    - Final SHA.
+    - Commands and results.
+    - Product parity ledger.
+    - Donor ledger.
+    - Remaining-gap ledger.
+    - Original regenerated checklist.
+    - IndexedDB/OPFS isolation proof.
+    - MFA and session proof.
+    - Notification and delivery proof.
+    - Team/admin proof.
+    - Payment/no-charge proof.
+    - Public Security and status proof.
+    - Help Center proof.
+    - Accessibility proof.
+    - Usage and offline-lease proof.
+    - Model selection and transfer proof.
+    - Supabase/RLS proof.
+    - Native/browser proof.
+    - Monochrome and performance proof.
+    - Genuine external blocker facts.
+
+No later cleanup, formatting, generated-files, CI-fix, payment-fix, or checklist-fix commit is allowed.
