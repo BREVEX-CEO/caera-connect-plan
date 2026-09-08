@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { MODULE_CONTEXT, UTILITY } from "@/lib/shell-nav";
+import { ROUTE_DISPOSITIONS } from "@/lib/release/route-dispositions";
 
 /**
  * The sidebar got shorter. Nothing got harder to find.
@@ -10,9 +11,14 @@ import { MODULE_CONTEXT, UTILITY } from "@/lib/shell-nav";
  * nobody notices until a customer asks where their automations went. So this
  * enumerates the OCADE routes that actually exist and insists each one is
  * reachable: from the rail, from More, or from the command palette.
+ *
+ * THE RAIL NOW LEADS WITH THE THREE PRIMARY MODES, which is what PLAN.md §4
+ * calls Chat, Cowork and Code. Two of them were not in it: Cowork was here
+ * under its old name and path, and Code was only in More — so a person who
+ * never opened More never learned that OCADE writes code.
  */
 
-const SYSTEM = readFileSync("src/routes/_authenticated/ocade.system.tsx", "utf8");
+const MORE = readFileSync("src/routes/_authenticated/ocade.customize.tsx", "utf8");
 const PALETTE = readFileSync("src/components/shell/CommandPalette.tsx", "utf8");
 const MOBILE = readFileSync("src/components/shell/OcadeMobileBottomNav.tsx", "utf8");
 
@@ -35,16 +41,27 @@ describe("the rail", () => {
     expect(RAIL).toHaveLength(7);
   });
 
-  it("is the set a person reaches for without deciding", () => {
+  it("leads with PLAN §4's three primary modes, then its secondary views", () => {
     expect(RAIL).toEqual([
       "/ocade",
-      "/ocade/work",
+      "/ocade/cowork",
+      "/ocade/code",
       "/ocade/projects",
-      "/ocade/search",
       "/ocade/tasks",
-      "/ocade/devices",
-      "/ocade/system",
+      "/ocade/artifacts",
+      "/ocade/customize",
     ]);
+  });
+
+  it("does not spend an entry on Search, which is an overlay", () => {
+    /*
+     * §4: "Search into a global overlay and contextual search." Cmd/Ctrl+K
+     * opens it from every screen, so a rail entry would be a second way to do
+     * the same thing, one keystroke slower — and it would cost the rail a slot
+     * that a primary mode needs.
+     */
+    expect(RAIL).not.toContain("/ocade/search");
+    expect(PALETTE.length).toBeGreaterThan(500);
   });
 
   it("ends in the door to everything else", () => {
@@ -54,37 +71,47 @@ describe("the rail", () => {
 
 describe("nothing became unreachable", () => {
   it("routes every OCADE screen from the rail, More, or the palette", () => {
+    /*
+     * A FORWARDING ADDRESS IS NOT A SCREEN. `/ocade/work` and `/ocade/system`
+     * are `MIGRATE` in the route ledger: they redirect in `beforeLoad` and
+     * never render, so a navigation entry pointing at one would send somebody
+     * through a redirect to reach a place the rail already lists directly.
+     *
+     * Read from the ledger rather than listed here, so a route that stops being
+     * a redirect immediately becomes something this test insists is reachable.
+     */
+    const redirects = new Set(
+      ROUTE_DISPOSITIONS.filter((entry) => entry.disposition === "MIGRATE").map(
+        (entry) => entry.path,
+      ),
+    );
     const unreachable = ocadeRoutes().filter(
       (route) =>
-        !RAIL.includes(route) && !SYSTEM.includes(`"${route}"`) && !PALETTE.includes(`"${route}"`),
+        !redirects.has(route) &&
+        !RAIL.includes(route) &&
+        !MORE.includes(`"${route}"`) &&
+        !PALETTE.includes(`"${route}"`),
     );
     expect(unreachable).toEqual([]);
   });
 
-  it("lists the six screens that left the rail at the top of More", () => {
+  it("lists the screens that left the rail at the top of More", () => {
     /*
      * Position matters here and is worth asserting. Somebody who used
      * Automations yesterday and cannot find it today needs it above the fold,
      * not below Health.
      */
-    const moved = [
-      "/ocade/code",
-      "/ocade/automations",
-      "/ocade/artifacts",
-      "/ocade/inbox",
-      "/ocade/monitors",
-      "/ocade/studio",
-    ];
-    const positions = moved.map((route) => SYSTEM.indexOf(`"${route}"`));
+    const moved = ["/ocade/automations", "/ocade/inbox", "/ocade/monitors", "/ocade/studio"];
+    const positions = moved.map((route) => MORE.indexOf(`"${route}"`));
     for (const position of positions) expect(position).toBeGreaterThan(-1);
-    expect(Math.max(...positions)).toBeLessThan(SYSTEM.indexOf('"/ocade/health"'));
+    expect(Math.max(...positions)).toBeLessThan(MORE.indexOf('"/ocade/health"'));
   });
 });
 
 describe("mobile", () => {
-  it("carries five of the seven, and keeps the rest one tap away", () => {
-    expect(MOBILE).toContain('to: "/ocade/system"');
-    for (const route of ["/ocade", "/ocade/projects", "/ocade/search", "/ocade/tasks"]) {
+  it("keeps the rest one tap away behind More", () => {
+    expect(MOBILE).toContain('to: "/ocade/customize"');
+    for (const route of ["/ocade", "/ocade/projects", "/ocade/tasks"]) {
       expect(MOBILE).toContain(`to: "${route}"`);
     }
   });

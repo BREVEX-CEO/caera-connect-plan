@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Inbox, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -7,7 +7,8 @@ import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
+import { requireAdminRole } from "@/lib/admin/route-gate";
 import { cn } from "@/lib/utils";
 import { LIST_CAP } from "@/lib/supabase/read-all";
 
@@ -26,25 +27,7 @@ export const Route = createFileRoute("/_authenticated/admin/support")({
   head: () => ({
     meta: [{ title: "Support Queue — CARCC CADANE Admin" }, { name: "robots", content: "noindex" }],
   }),
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/auth" });
-    const { data: role } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", data.user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!role) {
-      throw redirect({
-        to: "/access-denied",
-        search: {
-          area: "the customer support queue",
-          reason: "This area requires the admin role on your CARCC CADANE account.",
-        },
-      });
-    }
-  },
+  beforeLoad: () => requireAdminRole("the customer support queue"),
   component: AdminSupportPage,
 });
 
@@ -58,6 +41,7 @@ function AdminSupportPage() {
   const tickets = useQuery({
     queryKey: ["support-tickets", "admin"],
     queryFn: async () => {
+      const supabase = await loadSupabaseClient();
       const { data, error } = await supabase
         .from("ocade_support_tickets")
         .select("id, user_id, subject, category, priority, status, last_message_at")
@@ -82,6 +66,7 @@ function AdminSupportPage() {
     queryKey: ["support-messages", selectedId],
     enabled: Boolean(selectedId),
     queryFn: async () => {
+      const supabase = await loadSupabaseClient();
       const { data, error } = await supabase
         .from("ocade_support_messages")
         .select("id, author_role, body, created_at")
@@ -94,6 +79,7 @@ function AdminSupportPage() {
   });
 
   async function setStatus(status: string) {
+    const supabase = await loadSupabaseClient();
     if (!selectedId) return;
     setBusy(true);
     const { error } = await supabase
@@ -106,6 +92,7 @@ function AdminSupportPage() {
   }
 
   async function sendReply() {
+    const supabase = await loadSupabaseClient();
     if (!selectedId || reply.trim().length < 2) return;
     setBusy(true);
     try {

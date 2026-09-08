@@ -47,16 +47,36 @@ const ALLOWED_HOSTS = [
 ];
 
 const retrievedAt = new Date();
-const source = (id: string, url: string, title: string, kind: SourceRecord["kind"]): SourceRecord => {
+const source = (
+  id: string,
+  url: string,
+  title: string,
+  kind: SourceRecord["kind"],
+): SourceRecord => {
   const publisher = new URL(url).hostname.replace(/^www\./, "");
   return { id, title, url, publisher, kind, publishedAt: null, retrievedAt };
 };
 
 /** Live, public, allowlisted pages on genuinely independent publishers. */
 const CANDIDATES: SourceRecord[] = [
-  source("mdn-http-status", "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404", "MDN: 404 Not Found", "official"),
-  source("wikipedia-http404", "https://en.wikipedia.org/wiki/HTTP_404", "Wikipedia: HTTP 404", "unknown"),
-  source("python-http", "https://docs.python.org/3/library/http.html", "Python: http module", "official"),
+  source(
+    "mdn-http-status",
+    "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404",
+    "MDN: 404 Not Found",
+    "official",
+  ),
+  source(
+    "wikipedia-http404",
+    "https://en.wikipedia.org/wiki/HTTP_404",
+    "Wikipedia: HTTP 404",
+    "unknown",
+  ),
+  source(
+    "python-http",
+    "https://docs.python.org/3/library/http.html",
+    "Python: http module",
+    "official",
+  ),
 ];
 
 const QUERY = "What does the HTTP 404 status code mean?";
@@ -97,7 +117,9 @@ const citationChecks: Record<string, unknown>[] = [];
 if (run.ok) {
   for (const sub of run.data.subAnswers) {
     for (const cited of sub.sources) {
-      const match = CANDIDATES.find((c) => cited.includes(c.publisher) || cited.includes(c.title) || cited.includes(c.id));
+      const match = CANDIDATES.find(
+        (c) => cited.includes(c.publisher) || cited.includes(c.title) || cited.includes(c.id),
+      );
       if (!match) {
         citationChecks.push({ citation: cited, resolvedToCandidate: false, verified: false });
         failed = true;
@@ -111,7 +133,12 @@ if (run.ok) {
         body = (await response.text()).toLowerCase();
       } catch (error) {
         body = "";
-        citationChecks.push({ citation: cited, url: match.url, fetchError: String(error), verified: false });
+        citationChecks.push({
+          citation: cited,
+          url: match.url,
+          fetchError: String(error),
+          verified: false,
+        });
         failed = true;
         continue;
       }
@@ -149,7 +176,8 @@ results.citationVerification = {
   method:
     "Every cited URL is fetched again from scratch, outside the pipeline, and the claim's key terms must appear in the retrieved bytes. Reusing the pipeline's own retrieved text would only prove it agrees with itself.",
   checks: citationChecks,
-  allVerified: citationChecks.length > 0 && citationChecks.every((c) => c.supportsTheClaim === true),
+  allVerified:
+    citationChecks.length > 0 && citationChecks.every((c) => c.supportsTheClaim === true),
 };
 if (citationChecks.length === 0) failed = true;
 
@@ -188,7 +216,8 @@ async function cancelCase(label: string, abortAfterMs: number, topic: string) {
     threw = String(error);
   }
   const elapsedMs = Date.now() - t0;
-  const stoppedCleanly = threw === null && outcome?.ok === false && /cancel/i.test(outcome?.reason ?? "");
+  const stoppedCleanly =
+    threw === null && outcome?.ok === false && /cancel/i.test(outcome?.reason ?? "");
   return { label, abortAfterMs, elapsedMs, threw, outcome, stoppedCleanly };
 }
 
@@ -200,8 +229,7 @@ results.cancellation = {
   stoppedCleanly: cancelStoppedCleanly,
   // Compared against the uncancelled run so "stopped early" is measurable.
   uncancelledRunMs: runMs,
-  note:
-    "A clean stop means a refusal that names cancellation — not a thrown error, and not a partial result presented as an answer. Each case uses a query the cache has never seen, because an earlier version aborted after 150ms against a cached query that had already completed in 58ms and so cancelled nothing.",
+  note: "A clean stop means a refusal that names cancellation — not a thrown error, and not a partial result presented as an answer. Each case uses a query the cache has never seen, because an earlier version aborted after 150ms against a cached query that had already completed in 58ms and so cancelled nothing.",
 };
 if (!cancelStoppedCleanly) failed = true;
 
@@ -214,9 +242,24 @@ if (!cancelStoppedCleanly) failed = true;
  * treated as corroboration.
  */
 const brokenSources: SourceRecord[] = [
-  source("broken-404", "https://en.wikipedia.org/wiki/OCADE_This_Page_Does_Not_Exist_9781", "Deliberately missing page", "unknown"),
-  source("broken-offhost", "https://example.com/not-allowlisted", "Host not on the allowlist", "unknown"),
-  source("broken-dns", "https://docs.python.org.invalid-tld-9781/nothing", "Unresolvable host", "unknown"),
+  source(
+    "broken-404",
+    "https://en.wikipedia.org/wiki/OCADE_This_Page_Does_Not_Exist_9781",
+    "Deliberately missing page",
+    "unknown",
+  ),
+  source(
+    "broken-offhost",
+    "https://example.com/not-allowlisted",
+    "Host not on the allowlist",
+    "unknown",
+  ),
+  source(
+    "broken-dns",
+    "https://docs.python.org.invalid-tld-9781/nothing",
+    "Unresolvable host",
+    "unknown",
+  ),
 ];
 const brokenProbe = await Promise.all(
   brokenSources.map(async (s) => {
@@ -243,10 +286,11 @@ const brokenHandledGracefully =
 results.brokenSources = {
   perSourceOutcome: brokenProbe,
   runElapsedMs: brokenMs,
-  runOutcome: brokenRun.ok ? { ok: true, result: brokenRun.data } : { ok: false, reason: brokenRun.reason },
+  runOutcome: brokenRun.ok
+    ? { ok: true, result: brokenRun.data }
+    : { ok: false, reason: brokenRun.reason },
   handledGracefully: brokenHandledGracefully,
-  note:
-    "A missing page, an off-allowlist host and an unresolvable host are each classified as a failed acquisition rather than crashing the run or counting as support. The good source is included so a graceful degradation is distinguishable from a total failure.",
+  note: "A missing page, an off-allowlist host and an unresolvable host are each classified as a failed acquisition rather than crashing the run or counting as support. The good source is included so a graceful degradation is distinguishable from a total failure.",
 };
 if (!brokenHandledGracefully) failed = true;
 
@@ -269,15 +313,22 @@ if (run.ok) {
     console.log(`     sources  : ${sub.sources.join(" | ")}`);
   }
 }
-console.log(`citations      : ${citationChecks.length} checked, all verified=${results.citationVerification && (results.citationVerification as { allVerified: boolean }).allVerified}`);
+console.log(
+  `citations      : ${citationChecks.length} checked, all verified=${results.citationVerification && (results.citationVerification as { allVerified: boolean }).allVerified}`,
+);
 for (const c of citationChecks) {
-  console.log(`   ${c.supportsTheClaim ? "SUPPORTS" : "FAILS   "} ${c.url} (HTTP ${c.httpStatus}, terms ${JSON.stringify(c.termsFound)})`);
+  console.log(
+    `   ${c.supportsTheClaim ? "SUPPORTS" : "FAILS   "} ${c.url} (HTTP ${c.httpStatus}, terms ${JSON.stringify(c.termsFound)})`,
+  );
 }
 for (const c of [cancelImmediate, cancelMidFlight]) {
-  console.log(`cancellation   : ${c.label} (abort@${c.abortAfterMs}ms) -> ${c.elapsedMs}ms clean=${c.stoppedCleanly} reason=${JSON.stringify(c.outcome && c.outcome.reason)}`);
+  console.log(
+    `cancellation   : ${c.label} (abort@${c.abortAfterMs}ms) -> ${c.elapsedMs}ms clean=${c.stoppedCleanly} reason=${JSON.stringify(c.outcome && c.outcome.reason)}`,
+  );
 }
 console.log(`broken sources :`);
-for (const b of brokenProbe) console.log(`   ${b.result.padEnd(9)} ${b.url} -> ${String(b.error).slice(0, 70)}`);
+for (const b of brokenProbe)
+  console.log(`   ${b.result.padEnd(9)} ${b.url} -> ${String(b.error).slice(0, 70)}`);
 console.log(`               graceful=${brokenHandledGracefully}`);
 console.log(`L1: ${doc.verdict}`);
 

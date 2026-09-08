@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PublicPage } from "@/components/public/PublicPage";
-import { TermsContent, TERMS_META } from "@/components/legal/LegalContent";
+import { TermsContent } from "@/components/legal/LegalContent";
+import { TERMS_META } from "@/components/legal/legal-document-meta";
 
 export const Route = createFileRoute("/terms")({
   head: () => ({

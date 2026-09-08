@@ -97,7 +97,11 @@ export class FileAutomationStore implements AutomationWorkerStore {
     return run.claimToken === claim.claimToken ? run : null;
   }
 
-  async claim(input: { runId: string; workerId: string; now: string }): Promise<ClaimedAutomationRun | null> {
+  async claim(input: {
+    runId: string;
+    workerId: string;
+    now: string;
+  }): Promise<ClaimedAutomationRun | null> {
     const run = this.read();
     if (run.status === "succeeded" || run.status === "cancelled") return null;
     const claimToken = randomUUID();
@@ -160,7 +164,10 @@ export class FileAutomationStore implements AutomationWorkerStore {
     return true;
   }
 
-  async appendReceipt(claim: ClaimedAutomationRun, receipt: AutomationStepReceipt): Promise<boolean> {
+  async appendReceipt(
+    claim: ClaimedAutomationRun,
+    receipt: AutomationStepReceipt,
+  ): Promise<boolean> {
     const run = this.owns(claim);
     if (!run) return false;
     run.receipts.push(receipt);
@@ -177,7 +184,10 @@ export class FileAutomationStore implements AutomationWorkerStore {
     return true;
   }
 
-  async complete(claim: ClaimedAutomationRun, completion: AutomationRunCompletion): Promise<boolean> {
+  async complete(
+    claim: ClaimedAutomationRun,
+    completion: AutomationRunCompletion,
+  ): Promise<boolean> {
     const run = this.owns(claim);
     if (!run) return false;
     run.status = completion.status;
@@ -210,7 +220,10 @@ export class FileAutomationStore implements AutomationWorkerStore {
     return true;
   }
 
-  async awaitApproval(claim: ClaimedAutomationRun, wait: AutomationRunApprovalWait): Promise<boolean> {
+  async awaitApproval(
+    claim: ClaimedAutomationRun,
+    wait: AutomationRunApprovalWait,
+  ): Promise<boolean> {
     const run = this.owns(claim);
     if (!run) return false;
     run.status = "awaiting_approval";

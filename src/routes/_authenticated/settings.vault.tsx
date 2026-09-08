@@ -284,11 +284,11 @@ function VaultPage() {
 
 function RecoveryKitPanel({ kit, onClose }: { kit: string; onClose: () => void }) {
   return (
-    <GlassPanel className="mt-4 border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 p-5">
+    <GlassPanel className="mt-4 border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)] p-5">
       <div className="flex items-center gap-2 text-sm font-semibold text-[color:var(--state-warning)]">
         <KeyRound className="h-4 w-4" /> Recovery kit — save now, we cannot show it again
       </div>
-      <p className="mt-2 text-xs text-[color:var(--state-warning)]/80">
+      <p className="mt-2 text-xs text-[color:var(--state-warning)]">
         Store this in a password manager or print it. If you lose your passphrase or authenticator
         AND this recovery kit, all Browser Only data on this device becomes permanently unreadable.
       </p>

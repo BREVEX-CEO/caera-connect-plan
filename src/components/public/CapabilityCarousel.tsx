@@ -19,10 +19,7 @@ const CAPABILITIES = [
   },
 ] as const;
 
-export function wrapCarouselIndex(index: number, length: number): number {
-  if (length <= 0) return 0;
-  return ((index % length) + length) % length;
-}
+import { wrapCarouselIndex } from "@/components/public/carousel-index";
 
 export function CapabilityCarousel() {
   const [index, setIndex] = useState(0);

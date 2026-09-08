@@ -9,11 +9,8 @@
  */
 import { decideRetry, type RunStatus, type RunStep } from "./ocade-automations";
 import { checkDeadline, shouldStartStep, type DeadlineState } from "./skills/deadline";
-import {
-  redactForAudit,
-  type CompanionAction,
-  type ExecuteOptions,
-} from "./native/companion-bridge";
+import { type CompanionAction, type ExecuteOptions } from "./native/companion-bridge";
+import { redactForAudit } from "@/lib/security/protected-text";
 
 export interface AutomationStepReceipt {
   runId: string;

@@ -13,12 +13,12 @@ import {
 /**
  * The meter turns the product's central claim into arithmetic.
  *
- * "Unlimited local use" is a slogan. "This conversation cost 0.03p of
- * electricity and stayed on this device" is a fact the user can check against
+ * "This conversation cost 0.03p of electricity and stayed on this device" is
+ * a fact the user can check against
  * their own bill and the runtime receipt.
  */
 
-describe("local work is measured, not metered", () => {
+describe("local electricity is measured separately from commercial usage", () => {
   it("costs electricity and nothing else", () => {
     const run = measureRun({
       durationMs: 10_000,
@@ -66,18 +66,12 @@ describe("totals add up across a conversation", () => {
     expect(totals.local).toBe(2);
   });
 
-  it("reports what this device did, with no allowance to compare against", () => {
+  it("reports what this device did without contradicting the shared allowance", () => {
     const totals = total([measureRun({ durationMs: 5_000 }), measureRun({ durationMs: 5_000 })]);
     const text = describeTotals(totals);
     expect(text).toMatch(/2 answers ran on your own hardware/i);
-    expect(text).toMatch(/nothing was metered and nothing left this device/i);
-    /*
-     * These two assertions are inverted from what they were, deliberately.
-     * The line used to end "...and none of your cloud allowance" and
-     * "The same conversation on a cloud-only assistant would have used 2 of
-     * 28" — both describing a metered service OCADE no longer has, and the
-     * second being a claim about a competitor rather than about this machine.
-     */
+    expect(text).toMatch(/prompts stayed on this device/i);
+    expect(text).not.toMatch(/nothing was metered/i);
     expect(text).not.toMatch(/allowance/i);
     expect(text).not.toMatch(/would have used/i);
     expect(text).not.toMatch(/cloud/i);

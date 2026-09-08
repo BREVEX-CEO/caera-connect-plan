@@ -49,12 +49,7 @@
  * could break a cross-origin resource nobody remembered it had. An allowlist is
  * the direction that fails safely.
  */
-export const ISOLATED_PATH_PREFIXES = [
-  "/demo/ocade",
-  "/demo/control",
-  "/demo/settings",
-  "/ocade",
-] as const;
+export const ISOLATED_PATH_PREFIXES = ["/ocade"] as const;
 
 /**
  * Paths that must NEVER be isolated, checked first.

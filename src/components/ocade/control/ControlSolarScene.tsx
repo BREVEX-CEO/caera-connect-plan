@@ -8,16 +8,16 @@ const FAST_FRAME_MS = 6.5;
 
 type Quality = "full" | "balanced" | "minimal";
 
-const STATE_HUES: Record<ControlState, { blue: number; red: number; silver: number }> = {
-  idle: { blue: 0.58, red: 0.18, silver: 0.76 },
-  listening: { blue: 0.94, red: 0.28, silver: 0.82 },
-  thinking: { blue: 0.8, red: 0.45, silver: 0.9 },
-  observing: { blue: 1, red: 0.36, silver: 0.8 },
-  controlling: { blue: 0.96, red: 0.76, silver: 0.86 },
-  speaking: { blue: 0.88, red: 0.5, silver: 0.96 },
-  paused: { blue: 0.35, red: 0.32, silver: 0.66 },
-  stopped: { blue: 0.16, red: 0.5, silver: 0.55 },
-  error: { blue: 0.12, red: 1, silver: 0.45 },
+const STATE_LUMINANCE: Record<ControlState, { field: number; glow: number; silver: number }> = {
+  idle: { field: 0.58, glow: 0.18, silver: 0.76 },
+  listening: { field: 0.94, glow: 0.28, silver: 0.82 },
+  thinking: { field: 0.8, glow: 0.45, silver: 0.9 },
+  observing: { field: 1, glow: 0.36, silver: 0.8 },
+  controlling: { field: 0.96, glow: 0.76, silver: 0.86 },
+  speaking: { field: 0.88, glow: 0.5, silver: 0.96 },
+  paused: { field: 0.35, glow: 0.32, silver: 0.66 },
+  stopped: { field: 0.16, glow: 0.5, silver: 0.55 },
+  error: { field: 0.12, glow: 1, silver: 0.45 },
 };
 
 /**
@@ -168,7 +168,7 @@ export function ControlSolarScene({
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,transparent_0%,rgba(0,0,0,.18)_50%,rgba(0,0,0,.72)_100%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,transparent_0%,rgba(0, 0, 0,.18)_50%,rgba(0, 0, 0,.72)_100%)]"
       />
       <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 -translate-x-1/2 text-center">
         <p
@@ -203,13 +203,13 @@ function paintCommandConstellation(
   const cy = height * 0.46;
   const compact = width < 600 || height < 390;
   const radius = Math.min(width * 0.43, height * 0.54);
-  const palette = STATE_HUES[state];
+  const palette = STATE_LUMINANCE[state];
   context.clearRect(0, 0, width, height);
 
   const field = context.createRadialGradient(cx, cy, 0, cx, cy, radius * 1.3);
-  field.addColorStop(0, `rgba(20, 38, 70, ${0.18 * palette.blue})`);
-  field.addColorStop(0.52, "rgba(6, 9, 15, 0.34)");
-  field.addColorStop(1, "rgba(2, 3, 6, 0.94)");
+  field.addColorStop(0, `rgba(36, 36, 36, ${0.18 * palette.field})`);
+  field.addColorStop(0.52, "rgba(9, 9, 9, 0.34)");
+  field.addColorStop(1, "rgba(3, 3, 3, 0.94)");
   context.fillStyle = field;
   context.fillRect(0, 0, width, height);
 
@@ -228,7 +228,7 @@ function paintCommandConstellation(
     context.rotate(ring.tilt);
     context.beginPath();
     context.ellipse(0, 0, ring.radiusX, ring.radiusY, 0, 0, Math.PI * 2);
-    context.strokeStyle = `rgba(154, 183, 226, ${0.055 + ring.index * 0.008})`;
+    context.strokeStyle = `rgba(180, 180, 180, ${0.055 + ring.index * 0.008})`;
     context.lineWidth = ring.index % 2 === 0 ? 0.8 : 0.55;
     context.stroke();
     context.restore();
@@ -261,7 +261,7 @@ function paintCommandConstellation(
       context.beginPath();
       context.moveTo(cx, cy);
       context.lineTo(point.x, point.y);
-      context.strokeStyle = `rgba(85, 151, 255, ${0.018 + point.depth * 0.035})`;
+      context.strokeStyle = `rgba(144, 144, 144, ${0.018 + point.depth * 0.035})`;
       context.stroke();
     }
     context.restore();
@@ -270,12 +270,13 @@ function paintCommandConstellation(
   for (const point of points) {
     const active = (Math.floor(time * 0.7) + point.domainIndex) % 8 === point.domainIndex;
     const size = (compact ? 2.1 : 2.8) + point.depth * (compact ? 2.2 : 3.4);
-    const red = state === "error" || (state === "controlling" && point.globalIndex % 7 === 0);
-    const base = red
-      ? "238, 62, 74"
+    const emphasized =
+      state === "error" || (state === "controlling" && point.globalIndex % 7 === 0);
+    const base = emphasized
+      ? "204, 204, 204"
       : point.globalIndex % 5 === 0
-        ? "213, 220, 232"
-        : "69, 139, 255";
+        ? "222, 222, 222"
+        : "126, 126, 126";
     if (quality === "full") {
       const glow = context.createRadialGradient(point.x, point.y, 0, point.x, point.y, size * 4.5);
       glow.addColorStop(0, `rgba(${base}, ${0.42 + point.depth * 0.24})`);
@@ -292,7 +293,7 @@ function paintCommandConstellation(
     if (!compact && quality === "full" && point.depth > 0.82 && point.objectIndex === 0) {
       context.font = "500 9px ui-sans-serif, system-ui, sans-serif";
       context.textAlign = "center";
-      context.fillStyle = "rgba(214, 222, 236, 0.62)";
+      context.fillStyle = "rgba(221, 221, 221, 0.62)";
       context.fillText(point.label, point.x, point.y + size + 12);
     }
   }
@@ -300,10 +301,10 @@ function paintCommandConstellation(
   const pulse = Math.max(0, Math.min(1, input.pulse));
   const orbRadius = (compact ? 23 : 31) * (0.92 + pulse * 0.13);
   const glow = context.createRadialGradient(cx, cy, 0, cx, cy, orbRadius * 3.8);
-  glow.addColorStop(0, `rgba(228, 234, 244, ${0.76 * palette.silver})`);
-  glow.addColorStop(0.19, `rgba(64, 137, 255, ${0.55 * palette.blue})`);
-  glow.addColorStop(0.5, `rgba(235, 53, 68, ${0.17 * palette.red})`);
-  glow.addColorStop(1, "rgba(0,0,0,0)");
+  glow.addColorStop(0, `rgba(233, 233, 233, ${0.76 * palette.silver})`);
+  glow.addColorStop(0.19, `rgba(130, 130, 130, ${0.55 * palette.field})`);
+  glow.addColorStop(0.5, `rgba(93, 93, 93, ${0.17 * palette.glow})`);
+  glow.addColorStop(1, "rgba(0, 0, 0,0)");
   context.fillStyle = glow;
   context.beginPath();
   context.arc(cx, cy, orbRadius * 3.8, 0, Math.PI * 2);
@@ -315,23 +316,23 @@ function paintCommandConstellation(
     cx + orbRadius,
     cy + orbRadius,
   );
-  metal.addColorStop(0, "rgba(248,250,255,.96)");
-  metal.addColorStop(0.28, "rgba(85,96,116,.9)");
-  metal.addColorStop(0.52, "rgba(8,12,20,.98)");
-  metal.addColorStop(0.74, "rgba(60,128,238,.92)");
-  metal.addColorStop(1, state === "error" ? "rgba(246,49,64,.94)" : "rgba(199,207,220,.9)");
+  metal.addColorStop(0, "rgba(250, 250, 250,.96)");
+  metal.addColorStop(0.28, "rgba(95, 95, 95,.9)");
+  metal.addColorStop(0.52, "rgba(12, 12, 12,.98)");
+  metal.addColorStop(0.74, "rgba(121, 121, 121,.92)");
+  metal.addColorStop(1, state === "error" ? "rgba(92, 92, 92,.94)" : "rgba(206, 206, 206,.9)");
   context.fillStyle = metal;
   context.beginPath();
   context.arc(cx, cy, orbRadius, 0, Math.PI * 2);
   context.fill();
-  context.strokeStyle = state === "error" ? "rgba(255,70,82,.9)" : "rgba(119,171,255,.82)";
+  context.strokeStyle = state === "error" ? "rgba(110, 110, 110,.9)" : "rgba(166, 166, 166,.82)";
   context.lineWidth = 1.2;
   context.stroke();
 
   context.font = `600 ${compact ? 9 : 11}px ui-sans-serif, system-ui, sans-serif`;
   context.textAlign = "center";
   context.textBaseline = "middle";
-  context.fillStyle = "rgba(242,246,255,.9)";
+  context.fillStyle = "rgba(246, 246, 246,.9)";
   context.fillText("OCADE", cx, cy);
 
   if (input.scanAngle !== null) {
@@ -339,8 +340,8 @@ function paintCommandConstellation(
     context.translate(cx, cy);
     context.rotate(input.scanAngle);
     const sweep = context.createLinearGradient(0, 0, radius, 0);
-    sweep.addColorStop(0, "rgba(82,145,255,.52)");
-    sweep.addColorStop(1, "rgba(82,145,255,0)");
+    sweep.addColorStop(0, "rgba(140, 140, 140,.52)");
+    sweep.addColorStop(1, "rgba(140, 140, 140,0)");
     context.strokeStyle = sweep;
     context.lineWidth = 1;
     context.beginPath();

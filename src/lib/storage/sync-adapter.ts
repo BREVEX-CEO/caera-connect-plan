@@ -30,7 +30,13 @@
  * of the row quietly reappearing on the next sync.
  */
 
-import { supabase } from "@/integrations/supabase/client";
+/*
+ * ON DEMAND: this module is reachable from a route module the generated route
+ * tree imports statically, so a top-level import put the Supabase client on the
+ * entry chunk's graph. Every use is inside an async function already awaiting
+ * the network.
+ */
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import type { Json } from "@/integrations/supabase/types";
 import type { DataClass, StorageAdapter, StoredRecord } from "./types";
 
@@ -50,6 +56,7 @@ type Row = {
 };
 
 async function uid(expected?: string): Promise<string> {
+  const supabase = await loadSupabaseClient();
   const { data } = await supabase.auth.getUser();
   const id = data.user?.id;
   if (!id) throw new Error("Private Sync requires an authenticated session.");
@@ -112,6 +119,7 @@ async function listEveryPage<T>(userId: string, dataClass: DataClass): Promise<S
   let after: string | null = null;
 
   for (let page = 0; page < MAX_PAGES; page += 1) {
+    const supabase = await loadSupabaseClient();
     let request = supabase
       .from("user_private_records")
       .select("*")
@@ -189,6 +197,7 @@ export function syncAdapterFor(boundUserId?: string): StorageAdapter {
       const local = await cache.get<T>(dataClass, id);
       if (local) return local;
       const user_id = await uid(userId);
+      const supabase = await loadSupabaseClient();
       const { data, error } = await supabase
         .from("user_private_records")
         .select("*")

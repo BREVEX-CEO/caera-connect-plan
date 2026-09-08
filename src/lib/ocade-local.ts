@@ -2,10 +2,11 @@
  * OCADE local-first engine (Plan §14, decisions #10, #11, #17, #20).
  *
  * Talks to a local Ollama-compatible runtime through a bridge URL (default
- * http://localhost:11434). Local inference is UNLIMITED and stays on-device —
- * this module never sends prompts to any server. Raw model/runtime names are
+ * http://localhost:11434). Local inference stays on-device and this adapter
+ * never sends prompts to any server; the commercial gate above it still owns
+ * the shared account allowance. Raw model/runtime names are
  * used only internally for routing/diagnostics; every user-facing surface shows
- * the OCADE capability label (OCADE Local / Fast / Vision / Code), never the raw
+ * the OCADE capability label (Offline Intelligence / Fast / Vision / Code), never the raw
  * name (decision #18).
  *
  * Classification and planning are pure (unit-tested). Discovery/health/streaming

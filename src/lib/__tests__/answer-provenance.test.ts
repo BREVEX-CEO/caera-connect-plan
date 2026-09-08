@@ -548,24 +548,20 @@ describe("both chat surfaces carry a receipt, on the same terms", () => {
    * the one that matters: `leftDevice` is read from the measurement, never from
    * the fact that the code is sitting in the on-device branch.
    */
-  const DEMO = readFileSync("src/routes/demo.ocade.tsx", "utf8");
   const CHAT = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
 
   function code(text: string): string {
     return text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
   }
 
-  it.each([
-    ["demo", DEMO],
-    ["signed-in", CHAT],
-  ])("%s chat opens a witness around generation", (_label, source) => {
-    expect(code(source)).toMatch(/witness\.start\(\)|runGuarded\(/);
+  it("the signed-in chat opens a witness around generation", () => {
+    expect(code(CHAT)).toMatch(/witness\.start\(\)|runGuarded\(/);
   });
 
   it("the signed-in chat can still show the receipt, behind the diagnostics switch", () => {
     /*
-     * THIS USED TO REQUIRE THE RECEIPT UNDER EVERY ANSWER, ON BOTH SURFACES.
-     * It is now gated, and the demo does not render it at all.
+     * THIS USED TO REQUIRE THE RECEIPT UNDER EVERY ANSWER.
+     * It is now gated.
      *
      * The receipt is real and worth keeping — what it is not is something an
      * ordinary reader needs beneath each reply. Under every answer, a
@@ -581,14 +577,8 @@ describe("both chat surfaces carry a receipt, on the same terms", () => {
     const c = code(CHAT);
     expect(c).toMatch(/AnswerReceiptPanel/);
     expect(c, "the receipt is rendered unconditionally again").toMatch(
-      /showDiagnostics && receipts\[message\.id\]/,
+      /chatPrefs\.showDiagnostics && receipt \? \(\s*<AnswerReceiptPanel/,
     );
-  });
-
-  it("the demo shows no receipt at all", () => {
-    // The first surface anyone sees, reached without an account. It opened with
-    // a fingerprint under every answer and an integrity chain in the sidebar.
-    expect(code(DEMO)).not.toMatch(/AnswerReceiptPanel/);
   });
 
   it("the signed-in chat stops the witness before building the receipt", () => {
@@ -619,8 +609,29 @@ describe("both chat surfaces carry a receipt, on the same terms", () => {
   });
 
   it("does not fabricate a receipt for a message loaded from history", () => {
-    // Those were generated on another run, possibly another machine. A receipt
-    // for them would be precisely the unfounded claim this replaces.
-    expect(code(CHAT)).toMatch(/receipts\[message\.id\]\s*\?/);
+    /*
+     * Those were generated on another run, possibly another machine. A receipt
+     * for them would be precisely the unfounded claim this replaces.
+     *
+     * The footer looks the receipt up BY MESSAGE ID in a map this session
+     * filled, and renders nothing when there is no entry — so a message the
+     * session did not generate cannot acquire one.
+     */
+    const c = code(CHAT);
+    expect(c).toMatch(/const receipt = receipts\[message\.id\]/);
+    /*
+     * The footer now also carries side conversations, so the early return has
+     * a third term. What is asserted is the PROPERTY rather than the exact
+     * line: the receipt half of the condition still requires an entry in the
+     * map, so a message this session did not generate still cannot acquire
+     * one. Pinning the literal text would have made adding anything else to
+     * the footer look like a provenance regression.
+     */
+    expect(c).toMatch(
+      /if \(![\s\S]{0,80}!\(chatPrefs\.showDiagnostics && receipt\)\) return null;/,
+    );
+    // And the panel itself is still gated on the looked-up entry, not on the
+    // message being an assistant turn.
+    expect(c).toMatch(/chatPrefs\.showDiagnostics && receipt \? \(\s*<AnswerReceiptPanel/);
   });
 });

@@ -8,11 +8,11 @@
  * by somebody who has never read a word of documentation. That rules out
  * anything a legend would be needed for.
  *
- * So each state changes THREE things at once — colour, motion and shape — and
+ * So each state changes THREE things at once — luminance, motion and shape — and
  * changes them in the same direction. Nothing here is distinguished by hue
  * alone: a person with deuteranopia must be able to tell "acting" from
  * "listening", and the difference between those two is not only that one is
- * crimson, it is that one has doubled in energy and drawn itself tight.
+ * it has doubled in energy and drawn itself tight.
  *
  * WHY THIS MODULE HAS NO RENDERER IN IT
  * -------------------------------------
@@ -57,13 +57,12 @@ export const ORB_STATES: readonly OrbState[] = [
 ];
 
 /**
- * The palette, as the brand defines it.
+ * The palette, as the product defines it.
  *
- * Silver is the resting identity. Gold is attention wanted FROM the person.
- * Aubergine is OCADE working on its own. Crimson is the machine being changed,
- * and error. There is no green: "everything is fine" is what the orb says by
- * being calm, not by turning a colour, and a green light is a thing people
- * learn to stop seeing.
+ * Customer-facing OCADE is monochrome. States remain distinguishable through
+ * their luminance, motion, scale, turbulence and always-present text rather
+ * than a hue that would vanish for colour-blind users or in reduced-colour
+ * environments.
  */
 export interface OrbAppearance {
   /** Core colour, as `[r, g, b]` in 0–1. */
@@ -93,16 +92,20 @@ export interface OrbAppearance {
   label: string;
 }
 
-const SILVER = [0.82, 0.84, 0.88] as const;
-const GOLD = [0.87, 0.68, 0.31] as const;
-const AUBERGINE = [0.45, 0.25, 0.55] as const;
-const CRIMSON = [0.72, 0.19, 0.31] as const;
-const ASH = [0.38, 0.39, 0.42] as const;
+function neutral(lightness: number): readonly [number, number, number] {
+  return [lightness, lightness, lightness] as const;
+}
+
+const SILVER = neutral(0.86);
+const BRIGHT = neutral(0.72);
+const DEPTH = neutral(0.5);
+const EMPHASIS = neutral(0.66);
+const ASH = neutral(0.4);
 
 export const ORB_APPEARANCE: Record<OrbState, OrbAppearance> = {
   idle: {
     core: SILVER,
-    rim: AUBERGINE,
+    rim: DEPTH,
     energy: 0.18,
     pulseHz: 0.22,
     turbulence: 0.1,
@@ -116,7 +119,7 @@ export const ORB_APPEARANCE: Record<OrbState, OrbAppearance> = {
      * busy while somebody was mid-sentence would read as impatience.
      */
     core: SILVER,
-    rim: GOLD,
+    rim: BRIGHT,
     energy: 0.42,
     pulseHz: 0.5,
     turbulence: 0.16,
@@ -124,7 +127,7 @@ export const ORB_APPEARANCE: Record<OrbState, OrbAppearance> = {
     label: "Listening",
   },
   thinking: {
-    core: AUBERGINE,
+    core: DEPTH,
     rim: SILVER,
     energy: 0.6,
     pulseHz: 1.1,
@@ -134,7 +137,7 @@ export const ORB_APPEARANCE: Record<OrbState, OrbAppearance> = {
   },
   speaking: {
     core: SILVER,
-    rim: GOLD,
+    rim: BRIGHT,
     energy: 0.55,
     pulseHz: 1.6,
     turbulence: 0.22,
@@ -147,8 +150,8 @@ export const ORB_APPEARANCE: Record<OrbState, OrbAppearance> = {
      * that is the moment a person is most likely to want to interrupt — so it
      * is the state that most clearly is not any of the others.
      */
-    core: CRIMSON,
-    rim: GOLD,
+    core: EMPHASIS,
+    rim: BRIGHT,
     energy: 0.9,
     pulseHz: 2.1,
     turbulence: 0.55,
@@ -157,12 +160,12 @@ export const ORB_APPEARANCE: Record<OrbState, OrbAppearance> = {
   },
   approval: {
     /*
-     * Gold through and through, and slow. A question does not need urgency; it
+     * Bright through and through, and slow. A question does not need urgency; it
      * needs to be impossible to miss and comfortable to sit with while the
      * person reads what they are agreeing to.
      */
-    core: GOLD,
-    rim: GOLD,
+    core: BRIGHT,
+    rim: BRIGHT,
     energy: 0.5,
     pulseHz: 0.75,
     turbulence: 0.12,
@@ -181,11 +184,11 @@ export const ORB_APPEARANCE: Record<OrbState, OrbAppearance> = {
   takeover: {
     /*
      * Deliberately close to `paused` and deliberately not the same. The person
-     * has the controls; OCADE is present and not acting. Silver rim rather
-     * than ash says "still here" without saying "about to move".
+     * has the controls; OCADE is present and not acting. A brighter rim than
+     * ash says "still here" without saying "about to move".
      */
     core: ASH,
-    rim: AUBERGINE,
+    rim: DEPTH,
     energy: 0.2,
     pulseHz: 0.3,
     turbulence: 0.08,
@@ -202,8 +205,8 @@ export const ORB_APPEARANCE: Record<OrbState, OrbAppearance> = {
     label: "Stopped",
   },
   error: {
-    core: CRIMSON,
-    rim: CRIMSON,
+    core: EMPHASIS,
+    rim: EMPHASIS,
     energy: 0.35,
     pulseHz: 0.4,
     turbulence: 0.3,
@@ -321,8 +324,8 @@ function clamp01(value: number): number {
  *
  * Cowork reports nine internal phases and Chat reports its own; both map here
  * so the orb never has two vocabularies. `observing` becomes `thinking` rather
- * than `acting` on purpose: reading the screen changes nothing, and colouring
- * it crimson would spend the alarm on the safe half of the loop.
+ * than `acting` on purpose: reading the screen changes nothing, and the
+ * stronger motion treatment is reserved for the side-effecting half of the loop.
  */
 export function orbStateFor(input: {
   phase?: string | null;

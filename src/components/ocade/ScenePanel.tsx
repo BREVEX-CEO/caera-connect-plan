@@ -37,7 +37,7 @@ function demoScene(lit: boolean): Scene | null {
   if (!box.ok || !sphere.ok) return null;
 
   return {
-    name: "demo",
+    name: "sample-scene",
     objects: [
       { name: "Cube", mesh: box.data, material: "Plastic" },
       { name: "Ball", mesh: sphere.data, material: "Metal" },
@@ -110,8 +110,8 @@ export function ScenePanel() {
           className={cn(
             "mt-3 rounded-lg border p-3 text-xs",
             assessment.ok
-              ? "border-[color:var(--state-success)]/40 bg-[color:var(--state-success)]/10"
-              : "border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10",
+              ? "border-[color:var(--state-success-line-strong)] bg-[color:var(--state-success-surface)]"
+              : "border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)]",
           )}
         >
           <p className="flex items-center gap-1.5 font-medium text-foreground">
@@ -191,8 +191,8 @@ export function ScenePanel() {
           className={cn(
             "mt-3 rounded-lg border p-3 text-xs",
             footage.ok
-              ? "border-[color:var(--state-success)]/40 bg-[color:var(--state-success)]/10"
-              : "border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10",
+              ? "border-[color:var(--state-success-line-strong)] bg-[color:var(--state-success-surface)]"
+              : "border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)]",
           )}
         >
           <p className="flex items-center gap-1.5 font-medium text-foreground">

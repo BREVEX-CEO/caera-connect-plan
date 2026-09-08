@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FREE_LAUNCH_NOTICE } from "@/lib/launch-mode";
+import { FREE_PLAN_NOTICE } from "@/lib/payments/checkout-availability";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Gauge, HardDrive, MonitorSmartphone } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
@@ -19,6 +19,7 @@ import { getEntitlement } from "@/lib/ocade-usage.functions";
 import { PlanComparison } from "@/components/settings/PlanComparison";
 import { BillingHistory } from "@/components/settings/BillingHistory";
 import { ActivityAllowance } from "@/components/settings/ActivityAllowance";
+import { CommercialUsagePanel } from "@/components/settings/CommercialUsagePanel";
 
 export const Route = createFileRoute("/_authenticated/settings/usage")({
   head: () => ({
@@ -70,62 +71,46 @@ function UsagePage() {
       <PageHeader
         eyebrow="Settings"
         title="Usage and plan"
-        description="OCADE runs on this device. Nothing you ask it is metered."
+        description="One account-wide allowance covers successful AI work in Chat, Cowork and Code, wherever it runs."
       />
 
       <div className="flex flex-col gap-5">
-        {/* Customer-visible plans and verified billing evidence only. */}
-        <ActivityAllowance />
+        <CommercialUsagePanel />
 
+        {/* Customer-visible plans and verified billing evidence only. */}
         <PlanComparison currentPlan={entitlement?.planId ?? null} />
         <BillingHistory />
 
-        {/*
-          THE CLOUD ALLOWANCE PANEL STOOD HERE.
-          It showed a progress bar of "OCADE Cloud requests used", a reset
-          time, and an "allowance is used up" state offering to install a
-          local engine instead. None of it can happen: there is no cloud
-          engine, nothing consumes an allowance, and the bar could only ever
-          read zero. A meter that can only show zero, next to a plan that
-          implies you might buy more of it, is a promise of a product that
-          does not exist.
-        */}
-        {/* Local — always unlimited */}
+        {/* Model readiness is separate from the account-wide usage gate. */}
         <GlassPanel className="p-4">
           <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold">
-            <HardDrive className="h-4 w-4" aria-hidden /> OCADE Local
+            <HardDrive className="h-4 w-4" aria-hidden /> Offline Intelligence
           </h3>
           <p className="text-xs text-muted-foreground">
-            Unlimited and never metered.{" "}
             {local.status === "ready"
-              ? `${local.models.length} on-device engine${local.models.length === 1 ? "" : "s"} ready.`
-              : "No on-device engine detected yet."}
+              ? `${local.models.length} on-device engine${local.models.length === 1 ? " is" : "s are"} ready. Successful AI work uses the same account allowance as online work.`
+              : "Offline Intelligence is not ready yet. Preparing it does not use your AI allowance."}
           </p>
         </GlassPanel>
 
-        {/* Plan — withdrawn during free launch.
+        {/* Plan.
             A plan grid, an "expired" badge and a "paused until renewal" list
-            are all payment-gating surfaces. Nothing is for sale, so showing
-            them would describe a restriction that does not exist. */}
+            are all payment-gating surfaces. Until a checkout exists on this
+            deployment, showing them would describe a restriction that does not
+            apply to anybody using it. */}
         <GlassPanel className="p-4">
           <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold">
             <Gauge className="h-4 w-4" aria-hidden /> Plan
           </h3>
-          <p className="text-xs text-muted-foreground">{FREE_LAUNCH_NOTICE}</p>
-          {/*
-            THIS SENTENCE DESCRIBED SOMETHING THE PAGE HAD ALREADY REMOVED.
-
-            It said "the cloud allowance shown above is a rate limit on a
-            metered upstream service" — directly beneath a comment explaining
-            that the allowance panel was deleted because nothing can consume an
-            allowance. There is no allowance above, there is no metered
-            upstream service, and a reader had no way to know which of the two
-            statements to believe.
-          */}
+          <p className="text-xs text-muted-foreground">{FREE_PLAN_NOTICE}</p>
           <p className="mt-2 text-xs text-muted-foreground">
-            Chat generation stays on your device and is never counted or metered.
+            Generation stays on your device. It still counts towards your allowance: the allowance
+            is one pool across everything OCADE does, wherever it runs.
           </p>
         </GlassPanel>
+
+        {/* Device safety budgets are operational guards, not paid capacity. */}
+        <ActivityAllowance />
 
         {/* Devices + offline entitlement */}
         <GlassPanel className="p-4">

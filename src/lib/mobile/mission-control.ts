@@ -1,4 +1,4 @@
-import { isProtectedText } from "@/lib/native/companion-bridge";
+import { isProtectedText } from "@/lib/security/protected-text";
 
 export type MobileMissionCommandKind =
   | "task.create"

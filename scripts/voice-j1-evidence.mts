@@ -44,17 +44,25 @@ import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { matchesWakePhrase, normalizeTranscript, DEFAULT_WAKE_PHRASES } from "../src/lib/ocade-voice.ts";
+import {
+  matchesWakePhrase,
+  normalizeTranscript,
+  DEFAULT_WAKE_PHRASES,
+} from "../src/lib/ocade-voice.ts";
 
 const write = process.argv.includes("--write");
 const OUT = "release/OCADE_J1_MIC_STT_WAKE.json";
 const HOST = "scripts/voice/voice-host.ps1";
 
 const ps = (a: string[]): Record<string, unknown> => {
-  const out = execFileSync("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", HOST, ...a], {
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-  });
+  const out = execFileSync(
+    "powershell",
+    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", HOST, ...a],
+    {
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    },
+  );
   return JSON.parse((out.trim().split("\n").filter(Boolean).pop() ?? "{}").replace(/^﻿/, ""));
 };
 
@@ -82,7 +90,14 @@ if (permission.granted !== true) failed = true;
 // ---- 2. five real seconds from a real capture device
 const capturePath = join(tmpdir(), "ocade-j1-capture.wav");
 const capture = ps(["-Mode", "capture", "-Path", capturePath, "-Seconds", "5"]);
-const audio = capture.audio as { durationSec: number; rms: number; rmsDbfs: number; peak: number; channels: number; sampleRate: number };
+const audio = capture.audio as {
+  durationSec: number;
+  rms: number;
+  rmsDbfs: number;
+  peak: number;
+  channels: number;
+  sampleRate: number;
+};
 // A capture that came back as digital silence would be a failure dressed as a
 // success, so the signal itself has to be non-trivial.
 const capturedRealAudio = audio.durationSec >= 4.5 && audio.rms > 20 && audio.peak > 200;
@@ -125,11 +140,21 @@ const dictationMatchYes = matchesWakePhrase(triggerText);
 const dictationMatchNo = matchesWakePhrase(nonTriggerText);
 
 // ---- 5. the measured air gap, retained as the reason it is a gap
-const ambient = ps(["-Mode", "capture", "-Path", join(tmpdir(), "ocade-j1-ambient-ctl.wav"), "-Seconds", "4"]);
+const ambient = ps([
+  "-Mode",
+  "capture",
+  "-Path",
+  join(tmpdir(), "ocade-j1-ambient-ctl.wav"),
+  "-Seconds",
+  "4",
+]);
 const overAir = ps([
-  "-Mode", "speak-and-capture",
-  "-Text", SENTENCE,
-  "-Path", join(tmpdir(), "ocade-j1-overair.wav"),
+  "-Mode",
+  "speak-and-capture",
+  "-Text",
+  SENTENCE,
+  "-Path",
+  join(tmpdir(), "ocade-j1-overair.wav"),
 ]);
 const ambientRms = (ambient.audio as { rmsDbfs: number }).rmsDbfs;
 const overAirRms = (overAir.audio as { rmsDbfs: number }).rmsDbfs;
@@ -146,8 +171,7 @@ const doc = {
     requestedBeforeDeviceOpened: true,
     consentStoreValue: permission.globalValue,
     granted: permission.granted,
-    note:
-      "voice-host.ps1 reads the Windows CapabilityAccessManager ConsentStore and refuses to open the microphone unless it reads Allow. On a denied machine the recording would otherwise come back as digital silence, which looks exactly like a quiet room.",
+    note: "voice-host.ps1 reads the Windows CapabilityAccessManager ConsentStore and refuses to open the microphone unless it reads Allow. On a denied machine the recording would otherwise come back as digital silence, which looks exactly like a quiet room.",
   },
   devices,
   capture: {
@@ -205,13 +229,21 @@ const doc = {
 };
 
 console.log(`permission     : ${permission.globalValue} (granted=${permission.granted})`);
-console.log(`capture        : ${audio.durationSec}s ${audio.channels}ch ${audio.sampleRate}Hz rms=${audio.rmsDbfs}dBFS peak=${audio.peak} real=${capturedRealAudio}`);
+console.log(
+  `capture        : ${audio.durationSec}s ${audio.channels}ch ${audio.sampleRate}Hz rms=${audio.rmsDbfs}dBFS peak=${audio.peak} real=${capturedRealAudio}`,
+);
 console.log(`transcription  : ${JSON.stringify(heard)}`);
 console.log(`                 exact match to spoken sentence = ${transcribedCorrectly}`);
-console.log(`wake TRIGGER   : grammar heard ${JSON.stringify(wakeYes.recognizedPhrase)} conf=${wakeYes.confidence} -> triggered=${triggered}`);
+console.log(
+  `wake TRIGGER   : grammar heard ${JSON.stringify(wakeYes.recognizedPhrase)} conf=${wakeYes.confidence} -> triggered=${triggered}`,
+);
 console.log(`                 (dictation heard ${JSON.stringify(triggerText)})`);
-console.log(`wake NON-TRIG  : grammar heard ${JSON.stringify(wakeNo.recognizedPhrase)} conf=${wakeNo.confidence} -> triggered=${notTriggered}`);
-console.log(`air gap        : ambient ${ambientRms} dBFS vs speech-playing ${overAirRms} dBFS -> echo cancellation=${echoCancellationDetected}`);
+console.log(
+  `wake NON-TRIG  : grammar heard ${JSON.stringify(wakeNo.recognizedPhrase)} conf=${wakeNo.confidence} -> triggered=${notTriggered}`,
+);
+console.log(
+  `air gap        : ambient ${ambientRms} dBFS vs speech-playing ${overAirRms} dBFS -> echo cancellation=${echoCancellationDetected}`,
+);
 console.log(`J1: ${doc.verdict}`);
 
 if (write) {

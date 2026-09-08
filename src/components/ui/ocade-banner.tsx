@@ -17,8 +17,10 @@ export function OcadeBanner({
   if (!visible) return null;
   const tone = {
     info: "border-primary/35 bg-primary/8",
-    success: "border-[color:var(--state-success)]/40 bg-[color:var(--state-success)]/10",
-    warning: "border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10",
+    success:
+      "border-[color:var(--state-success-line-strong)] bg-[color:var(--state-success-surface)]",
+    warning:
+      "border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)]",
     error: "border-destructive/40 bg-destructive/10",
   }[kind];
   return (

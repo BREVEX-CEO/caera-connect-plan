@@ -23,6 +23,7 @@
  *   - ORDERING: providers do NOT guarantee order. An older event arriving after
  *     a newer one must not overwrite it.
  */
+import type { PlanId } from "./pricing";
 
 /**
  * Live payments are OFF and this is not a configuration toggle.
@@ -33,7 +34,14 @@
  */
 export const LIVE_PAYMENTS_ENABLED = false as const;
 
-export type PlanCode = "trial_2d" | "std_8d" | "month_1m" | "year_1y";
+/**
+ * The plan a payment event names.
+ *
+ * An ALIAS of the catalogue's own id type, never a second list. Two hand-kept
+ * lists of plan ids drift, and the drift shows up as an event that verifies,
+ * applies, and grants the wrong thing.
+ */
+export type PlanCode = PlanId;
 
 export type SubscriptionStatus =
   "none" | "active" | "past_due" | "grace" | "cancelled" | "refunded" | "disputed";

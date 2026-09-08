@@ -60,13 +60,13 @@ describe("native-to-browser billing handoff", () => {
       buildBillingHandoffUrl({
         origin: "https://ocade.in",
         source: "desktop",
-        plan: "std_8d",
+        plan: "pro_monthly",
       }),
     );
     expect(url.origin).toBe("https://ocade.in");
     expect(url.pathname).toBe("/pricing");
     expect(url.searchParams.get("source")).toBe("desktop");
-    expect(url.searchParams.get("plan")).toBe("std_8d");
+    expect(url.searchParams.get("plan")).toBe("pro_monthly");
     expect(url.searchParams.has("paid")).toBe(false);
     expect(url.searchParams.has("entitlement")).toBe(false);
   });

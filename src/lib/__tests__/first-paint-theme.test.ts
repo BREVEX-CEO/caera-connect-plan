@@ -27,7 +27,7 @@ const BOOT = ROOT.slice(ROOT.indexOf("const THEME_BOOT"), ROOT.indexOf("function
 
 describe("the first frame is already the right colour", () => {
   it("paints <html> even with no stylesheet and no script", () => {
-    expect(ROOT).toMatch(/<html lang="en" style=\{\{ background: "#0a0a09" \}\}/);
+    expect(ROOT).toMatch(/<html lang="en" style=\{\{ background: "#0a0a0a" \}\}/);
   });
 
   it("runs the theme boot synchronously, in head, before HeadContent", () => {
@@ -78,7 +78,7 @@ describe("the first frame is already the right colour", () => {
 
   it("defaults to the dark background when it knows nothing", () => {
     expect(BOOT).toMatch(/var t="dark"/);
-    expect(BOOT).toContain("#0a0a09");
+    expect(BOOT).toContain("#0a0a0a");
   });
 });
 

@@ -63,11 +63,9 @@ describe("the stylesheet and the module agree", () => {
    * a render test, and looks like a design mistake rather than a bug.
    */
   /*
-   * CRLF normalised before matching. This repository has `core.autocrlf=true`
-   * and no `.gitattributes`, so a fresh clone on Windows gets CRLF line
-   * endings — and the `\n`-based ordering check below would then find nothing
-   * and fail on a machine that had changed nothing. `check-final-readiness.mjs`
-   * documents the same trap costing a whole gate.
+   * CRLF normalised before matching. `.gitattributes` pins generated route
+   * source, but ordinary CSS still follows each contributor's checkout
+   * policy. The assertion is about rule ordering rather than newline bytes.
    */
   const css = readFileSync("src/styles.css", "utf8").replace(/\r\n/g, "\n");
 

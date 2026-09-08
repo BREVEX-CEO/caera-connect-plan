@@ -34,7 +34,23 @@ CREATE TABLE public.ocade_payment_events (
 
 CREATE INDEX ocade_payment_events_user_time_idx
   ON public.ocade_payment_events (user_id, occurred_at DESC);
-REVOKE ALL ON public.ocade_payment_events FROM PUBLIC, anon;
+/*
+ * `authenticated` IS NAMED HERE, AND LEAVING IT OUT WAS THE WHOLE BUG.
+ *
+ * A Supabase project grants ALL on every new table directly to `authenticated`
+ * through ALTER DEFAULT PRIVILEGES, and `REVOKE ... FROM PUBLIC, anon` does not
+ * touch a direct grant. So these four tables were created with INSERT, UPDATE,
+ * DELETE and TRUNCATE already held by every signed-in browser, and the GRANT
+ * lines below — written to say exactly what each role may do — added nothing
+ * and took nothing away. This migration's own verification script says
+ * "authenticated users can write server-owned billing evidence", and it was
+ * right; it only passed because the local twin had no default privileges to
+ * reproduce. The twin now does.
+ *
+ * Row-level security refused those writes throughout, so no evidence was ever
+ * writable in practice. This closes the other half of the lock.
+ */
+REVOKE ALL ON public.ocade_payment_events FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.ocade_payment_events TO authenticated;
 GRANT ALL ON public.ocade_payment_events TO service_role;
 ALTER TABLE public.ocade_payment_events ENABLE ROW LEVEL SECURITY;
@@ -57,7 +73,7 @@ CREATE TABLE public.ocade_invoices (
 );
 
 CREATE INDEX ocade_invoices_user_time_idx ON public.ocade_invoices (user_id, issued_at DESC);
-REVOKE ALL ON public.ocade_invoices FROM PUBLIC, anon;
+REVOKE ALL ON public.ocade_invoices FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.ocade_invoices TO authenticated;
 GRANT ALL ON public.ocade_invoices TO service_role;
 ALTER TABLE public.ocade_invoices ENABLE ROW LEVEL SECURITY;
@@ -81,7 +97,7 @@ CREATE INDEX ocade_support_tickets_user_time_idx
   ON public.ocade_support_tickets (user_id, last_message_at DESC);
 CREATE INDEX ocade_support_tickets_queue_idx
   ON public.ocade_support_tickets (status, priority, last_message_at);
-REVOKE ALL ON public.ocade_support_tickets FROM PUBLIC, anon;
+REVOKE ALL ON public.ocade_support_tickets FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT ON public.ocade_support_tickets TO authenticated;
 GRANT ALL ON public.ocade_support_tickets TO service_role;
 ALTER TABLE public.ocade_support_tickets ENABLE ROW LEVEL SECURITY;
@@ -107,7 +123,7 @@ CREATE TABLE public.ocade_support_messages (
 
 CREATE INDEX ocade_support_messages_ticket_time_idx
   ON public.ocade_support_messages (ticket_id, created_at);
-REVOKE ALL ON public.ocade_support_messages FROM PUBLIC, anon;
+REVOKE ALL ON public.ocade_support_messages FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT ON public.ocade_support_messages TO authenticated;
 GRANT ALL ON public.ocade_support_messages TO service_role;
 ALTER TABLE public.ocade_support_messages ENABLE ROW LEVEL SECURITY;

@@ -1,12 +1,33 @@
-import { createFileRoute, Outlet, redirect, useRouter, Link } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  isRedirect,
+  Outlet,
+  redirect,
+  useRouter,
+  Link,
+} from "@tanstack/react-router";
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+/*
+ * ON DEMAND, and this one module is why the whole public site was paying for
+ * Supabase.
+ *
+ * TanStack's route tree imports every route's DEFINITION eagerly — the loaders
+ * and `beforeLoad` guards, split apart from the components — so a static import
+ * here put 200 KiB of auth, PostgREST, realtime and storage in the entry
+ * bundle. A visitor reading `/about` parsed all of it before the page could
+ * answer a tap, to serve a gate that only runs when somebody navigates into the
+ * signed-in product.
+ *
+ * `beforeLoad` is already async and already does a network round trip, so
+ * resolving a module first costs nothing measurable — and by the time this
+ * gate runs a second time the module is in the registry.
+ */
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { mayUseCachedSession, cachedSessionIsCurrent } from "@/lib/auth/session-failure";
 
-import { registerDeviceForCurrentSession } from "@/lib/devices";
 import { reportRuntimeError } from "@/lib/runtime-error-reporting";
-import { FirstRunEngineSetup } from "@/components/ocade/FirstRunEngineSetup";
-import { FirstInstallationGate } from "@/components/ocade/setup/FirstInstallationGate";
+import { OfflineIntelligenceProgress } from "@/components/ocade/setup/OfflineIntelligenceProgress";
+import { OfflineUsageBridge } from "@/components/commercial/OfflineUsageBridge";
 import { SettingsAccessProvider } from "@/components/settings/SettingsGate";
 import { OcadeMobileBottomNav } from "@/components/shell/OcadeMobileBottomNav";
 
@@ -40,6 +61,7 @@ export const Route = createFileRoute("/_authenticated")({
      * asking anybody, because expiry is a timestamp and needs no network to
      * evaluate. Offline grace covers unreachability alone.
      */
+    const supabase = await loadSupabaseClient();
     const { data, error } = await supabase.auth.getUser();
     let user = error ? null : data.user;
     let offline = false;
@@ -87,6 +109,73 @@ export const Route = createFileRoute("/_authenticated")({
     }
     if (!signedIn) return { user: null };
 
+    /*
+     * SECOND-FACTOR GATE (PLAN §B: "login challenge before protected
+     * application access").
+     *
+     * An enrolled account whose session is only `aal1` has proved one factor
+     * and not the other. Supabase will happily leave it there — raising to
+     * `aal2` is the application's job, and an application that never asks has
+     * MFA as an ornament: the factor exists, and a stolen password still
+     * reaches every screen.
+     *
+     * ONLY WHEN A VERIFIED FACTOR EXISTS. `nextLevel` is `aal2` exactly when
+     * this session COULD complete a challenge, so accounts without a factor
+     * are untouched and cannot be trapped by a prompt they are unable to
+     * answer.
+     *
+     * NOT OFFLINE, for the same reason as the onboarding gate below: this is a
+     * network read, and somebody whose wifi dropped must not be locked out of
+     * a local-first product. The cached session was already checked for expiry
+     * and rejection above, and the gate re-asserts on the next online
+     * navigation.
+     *
+     * FAILS OPEN ON AN UNREADABLE ANSWER, deliberately. If the assurance call
+     * errors, the person is let through rather than held at a challenge they
+     * may be unable to pass — an outage must not become an account lockout.
+     * The server-side `requireAssurance` middleware is what actually protects
+     * the dangerous operations, and it fails CLOSED. This gate is the prompt,
+     * not the lock.
+     */
+    if (!offline && !location.pathname.startsWith("/challenge")) {
+      try {
+        /*
+         * Through the shared authority, not `supabase.auth.mfa` directly.
+         *
+         * `currentAssurance` passes the access token so the factor list is read
+         * from the account rather than from this browser's stored session —
+         * which is frozen at sign-in and would report "no factor" on every
+         * device except the one that enrolled. Calling the library here would
+         * quietly reintroduce exactly that.
+         */
+        const { currentAssurance } = await import("@/lib/security/mfa");
+        const level = await currentAssurance();
+        if (level.next === "aal2" && level.current !== "aal2") {
+          throw redirect({
+            to: "/challenge",
+            search: { next: location.pathname + location.searchStr },
+          });
+        }
+      } catch (error) {
+        /*
+         * THE REDIRECT MUST GET OUT OF HERE.
+         *
+         * TanStack signals a redirect by THROWING it, and this catch exists to
+         * fail open on an unreadable assurance answer — so without re-throwing,
+         * the gate silently never fires.
+         *
+         * `isRedirect` rather than a hand-rolled shape check. This was written
+         * as `"to" in error` first, which is false for every redirect: the
+         * thrown value is a `Response` carrying its navigation options under
+         * `.options`, with no `to` at the top level. The gate was swallowed,
+         * an enrolled account walked straight into the product, and the
+         * source-reading test passed because it asserted the same wrong shape.
+         * A browser run is what caught it.
+         */
+        if (isRedirect(error)) throw error;
+      }
+    }
+
     // Onboarding gate (G1). Everyone must finish onboarding before app routes.
     if (!location.pathname.startsWith("/onboarding")) {
       /*
@@ -125,15 +214,6 @@ function AuthedLayout() {
   const context = Route.useRouteContext() as { user?: unknown } | undefined;
   const signedIn = Boolean(context?.user);
 
-  useEffect(() => {
-    // Only for a real session. Registering a device for nobody would write a
-    // row against no account and fail on every signed-out settings view.
-    if (!signedIn) return;
-    registerDeviceForCurrentSession().catch((e) =>
-      reportRuntimeError(e, { boundary: "device_registration" }),
-    );
-  }, [signedIn]);
-
   /*
    * Drain whatever this device still owes the server.
    *
@@ -158,16 +238,21 @@ function AuthedLayout() {
 
   return (
     <SettingsAccessProvider canEdit={signedIn}>
-      {/* Detects the machine and installs the matching engine on first launch.
-          Renders nothing once a model exists — and nothing at all without an
-          account, since there is no account to install it for. */}
-      {signedIn ? <FirstRunEngineSetup /> : null}
-      <FirstInstallationGate enabled={signedIn}>
-        <div className={signedIn ? "pb-16 md:pb-0" : undefined}>
-          <Outlet />
-        </div>
-        {signedIn ? <OcadeMobileBottomNav /> : null}
-      </FirstInstallationGate>
+      <div className={signedIn ? "pb-16 md:pb-0" : undefined}>
+        <Outlet />
+      </div>
+      {signedIn ? <OcadeMobileBottomNav /> : null}
+      {signedIn ? <OfflineUsageBridge /> : null}
+      {/*
+        Preparation REPORTS from the lower-left corner; it does not take the
+        product away. This replaced a full-screen modal that covered the whole
+        signed-in application for the duration of the first install and stayed
+        there when the install failed — which trapped a new account on
+        /onboarding with a Continue button it could see and could not press.
+        See `PLAN.md` §17: automatic preparation, lower-left progress, no
+        confirmation screen.
+      */}
+      {signedIn ? <OfflineIntelligenceProgress /> : null}
     </SettingsAccessProvider>
   );
 }

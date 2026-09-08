@@ -98,9 +98,9 @@ export function GestureControlPanel() {
         <span
           className={`rounded-full border px-2.5 py-1 text-[11px] ${
             status.controlEnabled
-              ? "border-[color:var(--state-success)]/40 bg-[color:var(--state-success)]/10 text-[color:var(--state-success)]"
+              ? "border-[color:var(--state-success-line-strong)] bg-[color:var(--state-success-surface)] text-[color:var(--state-success)]"
               : status.running
-                ? "border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 text-[color:var(--state-warning)]"
+                ? "border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)] text-[color:var(--state-warning)]"
                 : "border-white/10 text-muted-foreground"
           }`}
         >
@@ -109,7 +109,7 @@ export function GestureControlPanel() {
       </div>
 
       {!status.available ? (
-        <div className="mt-4 rounded-lg border border-[color:var(--state-warning)]/25 bg-[color:var(--state-warning)]/[0.06] p-3 text-xs text-muted-foreground">
+        <div className="mt-4 rounded-lg border border-[color:var(--state-warning-line)] bg-[color:var(--state-warning-wash)] p-3 text-xs text-muted-foreground">
           <p className="font-medium text-foreground">Desktop app required</p>
           <p className="mt-1">
             {status.reason ?? "This build does not contain the gesture-control sidecar."}
@@ -152,7 +152,7 @@ export function GestureControlPanel() {
           </div>
 
           {confirming && !status.running ? (
-            <div className="mt-4 rounded-lg border border-[color:var(--state-warning)]/30 bg-[color:var(--state-warning)]/[0.06] p-4">
+            <div className="mt-4 rounded-lg border border-[color:var(--state-warning-line)] bg-[color:var(--state-warning-wash)] p-4">
               <div className="flex gap-2">
                 <ShieldCheck
                   className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--state-warning)]"

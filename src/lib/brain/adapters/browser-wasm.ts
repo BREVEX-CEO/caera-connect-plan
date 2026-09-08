@@ -6,6 +6,7 @@ import {
   type BrainStreamHandlers,
   type BrainStreamResult,
 } from "../adapter";
+import { BROWSER_SAMPLER } from "@/lib/brain/sampler-settings";
 import {
   chooseBrowserTier,
   formatSize,
@@ -483,11 +484,11 @@ export class BrowserWasmAdapter implements BrainAdapter {
       const stream = await instance.createChatCompletion({
         stream: true,
         abortSignal: handlers.signal,
-        // These are the same values the demo pins in its answer receipt. They
-        // must govern the real compatibility runtime too; otherwise a repeat
-        // claims fixed conditions that were never actually applied.
-        temperature: 0.2,
-        top_p: 0.9,
+        // The sampling values the answer receipt pins, read from the one
+        // place they are decided. A pin that names conditions the runtime
+        // never applied is worse than no pin at all.
+        temperature: BROWSER_SAMPLER.temperature,
+        top_p: BROWSER_SAMPLER.topP,
         messages: messages.map((m) => ({ role: m.role, content: m.content })),
       });
 

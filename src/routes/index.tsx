@@ -1,8 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { lazy, Suspense, useState } from "react";
 import { SiteFooterLinks } from "@/components/shell/SiteFooter";
-import { LocalIntelligenceControl } from "@/components/ocade/setup/LocalIntelligenceControl";
-import { LandingUniverse } from "@/components/landing/LandingUniverse";
+import { LandingFirstPaint } from "@/components/landing/LandingFirstPaint";
 import { WEBSITE_STRUCTURED_DATA } from "@/lib/public-identity";
+
+/* The interactive renderer is optional, customer-requested marketing code. */
+const LandingUniverse = lazy(() =>
+  import("@/components/landing/LandingUniverse").then((module) => ({
+    default: module.LandingUniverse,
+  })),
+);
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -33,6 +40,9 @@ export const Route = createFileRoute("/")({
  * pulling the full 3D engine into every public document.
  */
 function LandingPage() {
+  const [interactive, setInteractive] = useState(false);
+  const firstPaint = <LandingFirstPaint onExplore={() => setInteractive(true)} />;
+
   return (
     <div className="min-h-screen">
       <script
@@ -45,7 +55,13 @@ function LandingPage() {
         Skip to content
       </a>
       <main id="main-content" tabIndex={-1} className="focus:outline-none">
-        <LandingUniverse />
+        {interactive ? (
+          <Suspense fallback={firstPaint}>
+            <LandingUniverse />
+          </Suspense>
+        ) : (
+          firstPaint
+        )}
       </main>
       <footer className="relative z-10 border-t border-border/40 bg-background/55 py-8 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-[11.5px] text-muted-foreground/70 sm:flex-row">
@@ -64,20 +80,6 @@ function LandingPage() {
               { to: "/auth", label: "Sign in" },
             ]}
           />
-        </div>
-        {/*
-          THE UNINSTALL CONTROL, ON THE PUBLIC PAGE.
-
-          OCADE starts preparing its intelligence as soon as a visitor arrives,
-          which is what makes the product fast -- and it means a visitor who has
-          not signed in has something of theirs on their device. The control to
-          remove it therefore has to be reachable WITHOUT an account, on the
-          page where the storing started. Quiet, near the bottom, and findable:
-          a removal control that only exists behind a sign-in is not a removal
-          control for the people most likely to want one.
-        */}
-        <div className="mx-auto mt-6 max-w-6xl px-4 text-center sm:text-left">
-          <LocalIntelligenceControl variant="compact" />
         </div>
       </footer>
     </div>

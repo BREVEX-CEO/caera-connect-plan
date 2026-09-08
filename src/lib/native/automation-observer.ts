@@ -6,7 +6,8 @@
  * only privacy-safe hashes or bounded enums.
  */
 import { AutomationVerifierRegistry } from "../automation-supervisor";
-import { redactForAudit, type CompanionAction } from "./companion-bridge";
+import { type CompanionAction } from "./companion-bridge";
+import { redactForAudit } from "@/lib/security/protected-text";
 
 export const NATIVE_OBSERVATION_SOURCE = "native-os-observer-v1";
 

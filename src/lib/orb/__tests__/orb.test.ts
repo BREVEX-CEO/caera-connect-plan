@@ -60,6 +60,15 @@ describe("no state is distinguished by colour alone", () => {
       }
     }
   });
+
+  it("keeps every rendered colour neutral", () => {
+    for (const state of ORB_STATES) {
+      for (const colour of [ORB_APPEARANCE[state].core, ORB_APPEARANCE[state].rim]) {
+        expect(colour[0], `${state} red/green`).toBe(colour[1]);
+        expect(colour[1], `${state} green/blue`).toBe(colour[2]);
+      }
+    }
+  });
 });
 
 describe("the states mean what they say", () => {

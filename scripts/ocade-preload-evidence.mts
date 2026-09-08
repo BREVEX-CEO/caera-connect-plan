@@ -44,17 +44,12 @@ async function timeFirstToken(): Promise<{ firstTokenMs: number | null; reply: s
   const t0 = Date.now();
   let firstTokenMs: number | null = null;
   let reply = "";
-  await streamLocalChat(
-    BRIDGE,
-    MODEL,
-    [{ role: "user", content: PROMPT }],
-    {
-      onToken: (c) => {
-        if (firstTokenMs === null) firstTokenMs = Date.now() - t0;
-        reply += c;
-      },
+  await streamLocalChat(BRIDGE, MODEL, [{ role: "user", content: PROMPT }], {
+    onToken: (c) => {
+      if (firstTokenMs === null) firstTokenMs = Date.now() - t0;
+      reply += c;
     },
-  );
+  });
   return { firstTokenMs, reply: reply.trim() };
 }
 
@@ -63,7 +58,9 @@ console.log(`model ${MODEL} · ${(freemem() / 1024 ** 3).toFixed(2)} GiB free\n`
 // A — evicted, NO preload. This is what a first message costs today.
 await evict();
 const withoutPreload = await timeFirstToken();
-console.log(`no preload   first token ${withoutPreload.firstTokenMs} ms  "${withoutPreload.reply}"`);
+console.log(
+  `no preload   first token ${withoutPreload.firstTokenMs} ms  "${withoutPreload.reply}"`,
+);
 
 // B — evicted, preload first, then the same message.
 await evict();

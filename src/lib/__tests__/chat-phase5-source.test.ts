@@ -17,14 +17,30 @@ describe("Chat outputs and project navigation are real surfaces", () => {
   const chat = read("src/routes/_authenticated/ocade.index.tsx");
   const activity = read("src/routes/_authenticated/settings.activity.tsx");
   const projects = read("src/routes/_authenticated/ocade.projects.tsx");
+  const bubble = read("src/components/ocade/chat/MessageBubble.tsx");
   const memory = read("src/components/settings/MemoryPanel.tsx");
   const outputs = read("src/lib/ocade-projects.functions.ts");
   const localProjects = read("src/lib/projects/local-projects.ts");
 
   it("saves an exact assistant message through the hashed output flow", () => {
     expect(chat).toContain("saveChatOutput({");
-    expect(chat).toContain('title="Save to Artifacts and Activity"');
     expect(chat).toContain("producerVerified: false");
+    /*
+     * THE CONTROL IS ASSERTED WHERE IT IS RENDERED, which is not where this
+     * used to look. The string it matched — `title="Save to Artifacts and
+     * Activity"` — belonged to a `MessageRow` component in the chat route that
+     * NOTHING referenced: the transcript has rendered `MessageBubble` for a
+     * long time, so this assertion was passing against dead source while
+     * telling nobody whether the live surface had a save control at all. It
+     * would have gone on passing with the real button deleted.
+     *
+     * Both halves are checked because either alone is satisfiable without the
+     * other: the button exists in the transcript component, and the screen
+     * hands it a handler.
+     */
+    expect(bubble).toContain('<ActionButton label="Save this answer"');
+    expect(bubble).toContain("actions.onSave?.(message)");
+    expect(chat).toMatch(/onSave: \(m\) => \{/);
   });
 
   it("edit and retry fork before the user turn instead of duplicating it", () => {

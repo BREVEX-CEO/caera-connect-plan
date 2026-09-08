@@ -22,6 +22,8 @@ function memoryStorage() {
     getItem: (k: string) => map.get(k) ?? null,
     setItem: (k: string, v: string) => void map.set(k, v),
     removeItem: (k: string) => void map.delete(k),
+    /** Everything gone, as a browser clearing site data does it. */
+    clear: () => map.clear(),
     keys: () => [...map.keys()],
   };
 }
@@ -127,9 +129,90 @@ describe("activation is a pointer, not a move", () => {
     await put("v1", 100);
     const before = [...backing.files.keys()];
     await vault.activate("v1");
-    // Promotion touched no file at all: that is what makes it atomic rather
-    // than "atomic if the copy finishes".
-    expect([...backing.files.keys()]).toEqual(before);
+    /*
+     * Promotion moves no ARTIFACT at all: that is what makes it atomic rather
+     * than "atomic if the copy finishes".
+     *
+     * It does write one new file — the pointer sidecar — and that is the point
+     * of the sidecar rather than a violation of this rule: it records what the
+     * pointer now says, beside the bytes it describes, so a browser that clears
+     * local storage does not leave a verified model unusable. It never carries
+     * an artifact and never replaces one.
+     */
+    const artifactsAfter = [...backing.files.keys()].filter((key) => key.endsWith(".bin"));
+    expect(artifactsAfter).toEqual(before.filter((key) => key.endsWith(".bin")));
+    expect([...backing.files.keys()]).toContain("versions/pointers.json");
+  });
+
+  it("keeps the pointer where the model is, so a cleared browser can recover", async () => {
+    /*
+     * The failure this prevents, which actually happened: "sign out everywhere"
+     * called `localStorage.clear()`, and the verified model in OPFS became a
+     * gigabyte of unusable bytes because the record that it had been checked
+     * was somewhere else entirely.
+     */
+    await put("v1", 100);
+    await vault.activate("v1");
+    expect(vault.activeVersion()).toBe("v1");
+
+    // Everything local is gone; the model's own storage is untouched.
+    storage.clear();
+    expect(vault.activeVersion()).toBeNull();
+
+    const restored = await vault.restorePointers();
+    expect(restored.active).toBe("v1");
+    expect(vault.activeVersion()).toBe("v1");
+    expect(vault.readMeta("v1")?.verified).toBe(true);
+  });
+
+  it("never lets a stale sidecar overrule a pointer this browser already has", async () => {
+    await put("v1", 100);
+    await vault.activate("v1");
+    await put("v2", 120);
+    await vault.activate("v2");
+
+    // The sidecar now says v2. Local storage is deliberately left saying v2 too;
+    // a restore must be a no-op rather than a chance to change anything.
+    const before = vault.activeVersion();
+    const restored = await vault.restorePointers();
+    expect(restored.active).toBeNull();
+    expect(vault.activeVersion()).toBe(before);
+  });
+
+  it("refuses to restore a version the metadata does not justify", async () => {
+    /*
+     * The sidecar is the one input to this module that has genuinely been out of
+     * its hands — it survives a storage wipe. A pointer restored without a
+     * verification record would authorise a version this browser cannot justify.
+     */
+    await put("v1", 100);
+    await vault.activate("v1");
+    storage.clear();
+
+    const raw = await backing.store.readBlob("versions/pointers.json");
+    const payload = JSON.parse(await raw!.text()) as { meta: Record<string, unknown> };
+    payload.meta = { v1: { verified: false, expectedBytes: 100 } };
+    /*
+     * REMOVED BEFORE REWRITING, and the first version of this test did not do
+     * that. The writer overlays bytes at an offset and keeps whatever was
+     * longer, so a shorter replacement left a tail of the old payload behind
+     * and the file simply failed to parse. The test passed — for the wrong
+     * reason entirely, proving only that a corrupt sidecar is ignored, while
+     * the rule it claimed to check could be deleted without it noticing.
+     */
+    await backing.store.remove("versions/pointers.json");
+    const writer = await backing.store.openWriter("versions/pointers.json");
+    await writer!.write(new TextEncoder().encode(JSON.stringify(payload)), 0);
+    await writer!.close();
+
+    // The rewrite really took: otherwise this proves nothing about verification.
+    const rewritten = await backing.store.readBlob("versions/pointers.json");
+    expect(JSON.parse(await rewritten!.text())).toMatchObject({
+      meta: { v1: { verified: false } },
+    });
+
+    expect((await vault.restorePointers()).active).toBeNull();
+    expect(vault.activeVersion()).toBeNull();
   });
 
   it("remembers the outgoing version as the rollback target", async () => {

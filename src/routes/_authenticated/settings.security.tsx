@@ -13,10 +13,15 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { useSession } from "@/lib/session";
+import { deleteLocalData } from "@/lib/storage/local-data";
 import { executeAction, recordAction, ActionConfirmationError } from "@/lib/actions";
 import { listDevicesForCurrentUser } from "@/lib/devices";
+import { TwoFactorPanel } from "@/components/settings/TwoFactorPanel";
+import { AccountSessionsPanel } from "@/components/settings/AccountSessionsPanel";
+import { SignInMethodsPanel } from "@/components/settings/SignInMethodsPanel";
+import { proveIdentityWithPassword } from "@/lib/security/reauthentication";
 
 export const Route = createFileRoute("/_authenticated/settings/security")({
   head: () => ({
@@ -45,6 +50,15 @@ const SECURITY_ACTIONS = [
   "auth.sign_out",
   "security.password_change",
   "security.sign_out_all",
+  "security.session_revoked",
+  "security.sessions_revoked_others",
+  "security.email_change_requested",
+  "security.provider_unlinked",
+  "security.mfa_enrolled",
+  "security.mfa_removed",
+  "security.recovery_codes_issued",
+  "security.recovery_used",
+  "security.recovery_locked_out",
   "devices.register",
   "devices.revoke",
   "devices.rename",
@@ -80,6 +94,7 @@ function SecurityPage() {
     queryKey: ["security", "identities", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
+      const supabase = await loadSupabaseClient();
       const { data, error } = await supabase.auth.getUser();
       if (error) throw error;
       const u = data.user;
@@ -106,6 +121,7 @@ function SecurityPage() {
     queryKey: ["security", "events", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
+      const supabase = await loadSupabaseClient();
       const [op, comp] = await Promise.all([
         supabase
           .from("activity_log")
@@ -133,6 +149,7 @@ function SecurityPage() {
   });
 
   async function changePassword() {
+    const supabase = await loadSupabaseClient();
     setPwMsg(null);
     if (pw.length < 10) {
       setPwMsg({ kind: "error", text: "Use at least 10 characters." });
@@ -153,24 +170,18 @@ function SecurityPage() {
        * a passer-by with no secret at all — `/reset-password` had the same hole
        * from the other direction, and both are now closed.
        *
-       * Supabase has no "reauthenticate with password" call, so the check is a
-       * sign-in against the current password: it succeeds only for somebody who
-       * knows it, and it refreshes the same session rather than starting a new
-       * one, so nothing about the page changes when it passes.
+       * The mechanism is `proveIdentityWithPassword`, shared with the sign-in
+       * methods panel and the organization screen: Supabase has no
+       * "reauthenticate" call, so the check is a sign-in against the CURRENT
+       * password on the SAME session. It succeeds only for somebody who knows
+       * it, and nothing about the open page changes when it passes.
        */
-      const email = identities.data?.email;
-      if (!email) {
+      const proof = await proveIdentityWithPassword(identities.data?.email, currentPw);
+      if (!proof.proved) {
         throw new Error(
-          "OCADE cannot confirm this account's email address, so it will not change the password from here. Use the emailed reset link instead.",
-        );
-      }
-      const { error: reauth } = await supabase.auth.signInWithPassword({
-        email,
-        password: currentPw,
-      });
-      if (reauth) {
-        throw new Error(
-          "That current password did not match. If you have never set one — you sign in with Google, Apple or a one-time code — use “Email me a reset link” below instead.",
+          proof.reason === "no_email"
+            ? "OCADE cannot confirm this account's email address, so it will not change the password from here. Use the emailed reset link instead."
+            : "That current password did not match. If you have never set one — you sign in with Google, Apple or a one-time code — use “Email me a reset link” below instead.",
         );
       }
 
@@ -190,6 +201,7 @@ function SecurityPage() {
   }
 
   async function sendReset() {
+    const supabase = await loadSupabaseClient();
     const email = identities.data?.email;
     if (!email) return;
     setResetBusy(true);
@@ -208,6 +220,7 @@ function SecurityPage() {
   }
 
   async function signOutEverywhere() {
+    const supabase = await loadSupabaseClient();
     setGlobalBusy(true);
     setGlobalError(null);
     try {
@@ -215,15 +228,25 @@ function SecurityPage() {
         confirmed: true,
         metadata: { active_devices: devices.data?.length ?? null },
         run: async () => {
+          const supabase = await loadSupabaseClient();
           const { error } = await supabase.auth.signOut({ scope: "global" });
           if (error) throw error;
         },
       });
-      try {
-        window.localStorage.clear();
-      } catch {
-        /* storage may be blocked; the session is already revoked */
-      }
+      /*
+       * SCOPED, NOT `localStorage.clear()`.
+       *
+       * This used to wipe the whole origin. The model vault keeps its active
+       * pointer and its verified-digest metadata there, so signing out of a lost
+       * laptop also threw away the evidence that Offline Intelligence on THIS
+       * machine had been verified — the weights stayed in OPFS, unusable, and
+       * preparation started again from nothing. PLAN.md §A names that clear()
+       * as a defect and requires the model to survive every sign-out.
+       *
+       * The canonical deletion authority deletes account data and the device's
+       * own registration, and cannot touch a model-owned key even by accident.
+       */
+      deleteLocalData(["all_account_data", "device_lease"]);
       navigate({ to: "/auth", replace: true });
     } catch (e) {
       if (e instanceof ActionConfirmationError) setGlobalError("Confirmation was not accepted.");
@@ -282,6 +305,21 @@ function SecurityPage() {
           </dl>
         )}
       </GlassPanel>
+
+      {/*
+        HOW YOU SIGN IN, right below the read-only summary that lists it.
+        Changing the email or a provider changes what can BECOME this account,
+        so both live here with the second factor rather than in a general
+        account screen.
+      */}
+      <SignInMethodsPanel email={identities.data?.email ?? null} />
+
+      {/*
+        SECOND FACTOR ABOVE PASSWORD, deliberately. This is the change that
+        actually protects the account, and burying it under the password form
+        makes the weaker control the prominent one.
+      */}
+      <TwoFactorPanel />
 
       {/* Password */}
       <GlassPanel className="mt-4 p-5">
@@ -354,27 +392,24 @@ function SecurityPage() {
         {resetMsg ? <Msg kind={resetMsg.kind} text={resetMsg.text} /> : null}
       </GlassPanel>
 
-      {/* Sessions */}
+      {/*
+        REAL SESSIONS, not a device count.
+        This panel used to say "N approved devices", which is a different fact:
+        a device row survives a sign-out, so it answered a question nobody was
+        asking. What can read this account right now is the session list.
+      */}
+      <AccountSessionsPanel />
+
+      {/* Global sign-out */}
       <GlassPanel className="mt-4 p-5">
-        <Heading icon={Smartphone} title="Active sessions and devices" />
-        {devices.isPending ? (
-          <Loading label="Reading devices…" />
-        ) : devices.isError ? (
-          <ErrorRow
-            message={devices.error instanceof Error ? devices.error.message : "Could not load."}
-            onRetry={() => void devices.refetch()}
-          />
-        ) : (
-          <p className="mt-3 text-sm text-muted-foreground">
-            {devices.data.length} approved device{devices.data.length === 1 ? "" : "s"}.{" "}
-            <Link to="/settings/devices" className="text-foreground underline underline-offset-2">
-              Manage devices
-            </Link>
-          </p>
-        )}
+        <Heading icon={Smartphone} title="Sign out everywhere" />
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+          Ends every session, including this one, and signs this browser out. Use it when you do not
+          know which sign-in to trust — the list above is for ending one you can identify.
+        </p>
         {globalError ? <Msg kind="error" text={globalError} /> : null}
         {confirmGlobal ? (
-          <div className="mt-4 rounded-md border border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 p-3 text-xs text-foreground">
+          <div className="mt-4 rounded-md border border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)] p-3 text-xs text-foreground">
             This ends every session on every device, including this one. You will be signed out
             immediately.
             <div className="mt-3 flex gap-2">

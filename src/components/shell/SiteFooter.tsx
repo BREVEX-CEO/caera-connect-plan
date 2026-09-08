@@ -36,6 +36,7 @@ const FOOTER_LINKS = [
   { to: "/team", label: "Team" },
   { to: "/press", label: "Press" },
   { to: "/status", label: "Status" },
+  { to: "/security", label: "Security" },
   { to: "/faq", label: "FAQ" },
   { to: "/terms", label: "Terms" },
   { to: "/privacy", label: "Privacy" },

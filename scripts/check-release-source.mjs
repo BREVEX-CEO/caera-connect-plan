@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { resolve, isAbsolute } from "node:path";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { resolve, isAbsolute, relative } from "node:path";
 
 const root = process.cwd();
 const failures = [];
@@ -57,6 +57,36 @@ function isPlaceholderOrMinisignPublicKey(value) {
  */
 function committedMinisignSecretKey() {
   const header = ["untrusted", "comment:.*secret", "key"].join(" ");
+  if (!existsSync(resolve(root, ".git")) || process.env.OCADE_SOURCE_ARCHIVE === "1") {
+    /*
+     * A release source archive deliberately has no Git metadata. Scan its
+     * source files directly instead of reporting that the security check did
+     * not run. Generated dependencies/output are not part of that archive and
+     * are both enormous and irrelevant to a committed-secret assertion.
+     */
+    const pattern = /untrusted comment:.*secret key/i;
+    const excluded = new Set([".git", ".output", ".wrangler", "coverage", "node_modules"]);
+    const scan = (directory) => {
+      for (const entry of readdirSync(directory)) {
+        if (excluded.has(entry)) continue;
+        const path = resolve(directory, entry);
+        if (statSync(path).isDirectory()) {
+          if (scan(path)) return true;
+          continue;
+        }
+        if (relative(root, path).replace(/\\/g, "/") === "scripts/check-release-source.mjs") {
+          continue;
+        }
+        try {
+          if (pattern.test(readFileSync(path, "utf8"))) return true;
+        } catch {
+          // Binary source artifacts cannot contain the textual minisign header.
+        }
+      }
+      return false;
+    };
+    return scan(root);
+  }
   try {
     const hits = execFileSync(
       "git",
@@ -77,6 +107,10 @@ function committedMinisignSecretKey() {
 for (const path of [
   "wrangler.json",
   "nitro.config.ts",
+  ".node-version",
+  ".nvmrc",
+  ".github/workflows/ci.yml",
+  "scripts/verify-full.mjs",
   "src/cloudflare-entry.ts",
   "release/OCADE_RELEASE_BLOCKERS.json",
   "release/OCADE_CLOUDFLARE_LIVE_PROOF.json",
@@ -141,12 +175,56 @@ const nitro = read("nitro.config.ts");
 const cloudflareEntry = read("src/cloudflare-entry.ts");
 const authAvailability = read("src/lib/auth/provider-availability.ts");
 const cloudflareWorkflow = read(".github/workflows/cloudflare-production.yml");
+const ciWorkflow = read(".github/workflows/ci.yml");
+const parityScript = read("scripts/verify-full.mjs");
+const ciJobs = ciWorkflow.slice(ciWorkflow.indexOf("\njobs:") + "\njobs:".length);
 const webllmServer = read("src/lib/brain/adapters/webllm.server.ts");
 const capability = json("native/companion/tauri/capabilities/default.json");
 
 const version = pkg.version;
 check(pkg.name === "caera-cadane-ocade", "package name is not release-stable");
 check(version === "0.1.0", "unexpected release version");
+check(pkg.packageManager === "npm@10.9.8", "npm release authority is not pinned exactly");
+check(
+  pkg.engines?.node === ">=22.23.2 <25" && pkg.engines?.npm === ">=10.9.8 <12",
+  "supported Node/npm range is missing or unexpected",
+);
+check(
+  lock.packages?.[""]?.engines?.node === pkg.engines.node &&
+    lock.packages?.[""]?.engines?.npm === pkg.engines.npm,
+  "lockfile root engine metadata differs from package.json",
+);
+check(
+  pkg.dependencies?.["vite-tsconfig-paths"] === undefined &&
+    pkg.devDependencies?.["@lovable.dev/vite-tanstack-config"] === undefined,
+  "obsolete Vite path resolver/wrapper remains installed",
+);
+check(
+  pkg.scripts?.build?.includes("scripts/generate-wrangler-output.mjs") === true,
+  "build does not materialize the deterministic deploy configuration",
+);
+check(
+  read(".node-version").trim() === "22.23.2" && read(".nvmrc").trim() === "22.23.2",
+  "Node version files do not match the verified release runtime",
+);
+check(
+  pkg.scripts?.["verify:full"] === "node scripts/verify-full.mjs" &&
+    ciWorkflow.includes("npm run verify:full"),
+  "CI and local verification do not share one parity command",
+);
+check(
+  !/windows-latest|macos-latest|strategy:/.test(ciWorkflow) &&
+    JSON.stringify(
+      [...ciJobs.matchAll(/^ {2}([A-Za-z0-9_-]+):\s*$/gm)].map((match) => match[1]),
+    ) === JSON.stringify(["portable-core"]),
+  "ordinary CI is not the single portable Ubuntu job",
+);
+check(
+  parityScript.includes('"test:isolation"') &&
+    parityScript.includes('"build:stable"') &&
+    parityScript.includes('"browser-safety:check"'),
+  "portable parity command omits required deterministic or isolation gates",
+);
 check(
   pkg.dependencies?.["@capacitor/cli"] === undefined &&
     pkg.devDependencies?.["@capacitor/cli"] === "^8.4.2",

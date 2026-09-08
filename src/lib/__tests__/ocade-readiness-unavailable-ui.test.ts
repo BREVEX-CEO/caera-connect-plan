@@ -33,9 +33,15 @@ describe("OCADE 77 — unavailable UI boundaries", () => {
   });
 
   it("does not let a cold browser engine be sealed before its first completed answer", () => {
-    expectAll("src/routes/demo.ocade.tsx", [
-      /const canStartSeal = turns\.some/,
+    /*
+     * The seal stops the model download too, so sealing before the engine
+     * exists leaves a conversation that can neither answer nor fetch what it
+     * would take to answer. Unsealing stays available unconditionally.
+     */
+    expectAll("src/routes/_authenticated/ocade.index.tsx", [
+      /const canStartSeal =\s*\n?\s*localEngineReady \|\|/,
       /disabled=\{!sealed && !canStartSeal\}/,
+      /if \(!sealed && !canStartSeal\) return;/,
       /Send one message first so OCADE can finish preparing its local engine/,
     ]);
   });

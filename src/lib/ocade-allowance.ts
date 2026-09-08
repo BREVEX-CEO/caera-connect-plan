@@ -1,12 +1,14 @@
 /**
- * OCADE entitlements and device limits (Plan §33/§38).
+ * OCADE entitlements and device limits.
  *
  * Rules encoded here:
- *  - On-device processing is unlimited and never metered.
- *  - Every plan (2-day / 8-day / 1-month / 1-year) grants the same core
- *    entitlements and differs by DURATION (and price); 2 desktop + 2 mobile.
- *  - After expiry, local data and local inference remain available. A user is
- *    never locked out of their own local data.
+ *  - Free is an account plan, not a lapsed subscription: it does not expire.
+ *  - A paid plan differs from Free by CAPACITY and by device allowance; the
+ *    capacity itself is the commercial usage authority's business, not this
+ *    module's.
+ *  - After a paid period ends, local data and local inference remain
+ *    available. A user is never locked out of their own local data, and never
+ *    loses Offline Intelligence to a billing event.
  *
  * Pure and deterministic so it is fully unit-testable without a database.
  */
@@ -24,12 +26,13 @@ const HOUR_MS = 60 * 60 * 1000;
  * other. `payments/pricing.ts` is the single source; this module owns the
  * ALLOWANCE ARITHMETIC and nothing else.
  */
-export type PlanId = Exclude<PricingPlanId, "demo">;
+export type PlanId = PricingPlanId;
 
 export interface PlanDef {
   id: PlanId;
   label: string;
-  durationDays: number;
+  /** Null for a plan that does not expire. */
+  durationDays: number | null;
   desktopDevices: number;
   mobileDevices: number;
 }
@@ -37,12 +40,12 @@ export interface PlanDef {
 const DAY_MS = 24 * HOUR_MS;
 
 export const PLANS: Record<PlanId, PlanDef> = Object.fromEntries(
-  PRICING_PLANS.filter((plan) => plan.id !== "demo").map((plan) => [
+  PRICING_PLANS.map((plan) => [
     plan.id,
     {
-      id: plan.id as PlanId,
+      id: plan.id,
       label: plan.name,
-      durationDays: Math.round(plan.durationMs / DAY_MS),
+      durationDays: plan.periodMs === null ? null : Math.round(plan.periodMs / DAY_MS),
       desktopDevices: plan.desktopDevices,
       mobileDevices: plan.mobileDevices,
     },
@@ -60,7 +63,8 @@ export interface Entitlement {
 
 export interface EntitlementState {
   active: boolean;
-  expiresAt: Date;
+  /** Null when the plan does not expire. */
+  expiresAt: Date | null;
   /** Always true — local access survives expiry (decision #37). */
   localInferenceAvailable: boolean;
   localDataAvailable: boolean;
@@ -69,9 +73,17 @@ export interface EntitlementState {
   mobileDevices: number;
 }
 
-export function expiryOf(e: Entitlement): Date {
+/**
+ * When this entitlement ends.
+ *
+ * A plan with no period does not end, which is reported as `null` rather than
+ * as a date far in the future. A sentinel date would eventually arrive, and
+ * arriving is precisely what a free account must never do.
+ */
+export function expiryOf(e: Entitlement): Date | null {
   if (e.expiresAt) return e.expiresAt;
   const plan = PLANS[e.planId];
+  if (plan.durationDays === null) return null;
   return new Date(e.startedAt.getTime() + plan.durationDays * 24 * HOUR_MS);
 }
 
@@ -81,18 +93,24 @@ export function expiryOf(e: Entitlement): Date {
  */
 export function entitlementState(e: Entitlement | null, now: Date = new Date()): EntitlementState {
   if (!e) {
+    /*
+     * No subscription row. That is a Free account, not a lapsed one — so the
+     * device allowance comes from the Free plan rather than from a paid plan's
+     * numbers, which is what this used to hand out.
+     */
+    const free = PLANS.free;
     return {
-      active: false,
-      expiresAt: now,
+      active: true,
+      expiresAt: null,
       localInferenceAvailable: true,
       localDataAvailable: true,
       localExportAvailable: true,
-      desktopDevices: 2,
-      mobileDevices: 2,
+      desktopDevices: free.desktopDevices,
+      mobileDevices: free.mobileDevices,
     };
   }
   const expiresAt = expiryOf(e);
-  const active = now.getTime() < expiresAt.getTime();
+  const active = expiresAt === null || now.getTime() < expiresAt.getTime();
   const plan = PLANS[e.planId];
   return {
     active,

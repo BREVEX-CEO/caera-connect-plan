@@ -1,11 +1,11 @@
 /**
  * OCADE Identity Contract (Plan §12).
  *
- * The assistant is always presented as "OCADE by CARCC CADANE" in conversation
- * UI. Provider identity (OpenAI, Ollama, etc.) is NEVER falsified — it is
- * hidden from casual chat but visible in Model Settings, usage records, and
- * technical diagnostics, and OCADE truthfully names the selected model when
- * directly asked.
+ * The assistant is always presented as OCADE in normal product UI and in its
+ * own replies. A backend is an implementation detail, never OCADE's identity.
+ * Engineering diagnostics may disclose an implementation only when a person
+ * explicitly asks for technical detail; ordinary identity questions must not
+ * vary with whichever backend happened to answer the turn.
  *
  * This module is the single source of truth for identity strings. Every
  * assistant surface (chat header, voice intro, disclosure banner, model
@@ -16,7 +16,9 @@ export const OCADE_IDENTITY = {
   displayName: "OCADE",
   vendor: "CARCC CADANE",
   fullName: "OCADE by CARCC CADANE",
-  tagline: "Your CARCC CADANE assistant",
+  tagline: "AI workspace for Chat, Cowork and Code",
+  statement:
+    "I am OCADE, an AI workspace built for Chat, Cowork and Code. I was created by the founder of CARCC CADANE.",
 } as const;
 
 /**
@@ -24,7 +26,7 @@ export const OCADE_IDENTITY = {
  * never implies CARCC CADANE trained a third-party foundation model.
  */
 export function ocadeCreatorStatement(): string {
-  return `I am OCADE, developed and created by ${OCADE_IDENTITY.vendor}.`;
+  return OCADE_IDENTITY.statement;
 }
 
 /**
@@ -32,7 +34,43 @@ export function ocadeCreatorStatement(): string {
  * Must never leak provider identity.
  */
 export function ocadeIntro(): string {
-  return `I'm ${OCADE_IDENTITY.fullName}.`;
+  return ocadeCreatorStatement();
+}
+
+/**
+ * A deterministic product answer for direct identity questions.
+ *
+ * This is deliberately independent of a provider, model, runtime, or device.
+ * It is safe to return before inference starts, so an unavailable backend can
+ * never make OCADE forget who it is. Technical implementation questions use
+ * the separate disclosure path below and are not treated as product identity.
+ */
+export function ocadeIdentityAnswer(userMessage: string): string | null {
+  const text = userMessage.trim().toLowerCase().replace(/\s+/g, " ");
+  if (!text) return null;
+
+  if (/\b(how does|how do) ocade work\b/.test(text)) {
+    return `${ocadeCreatorStatement()} OCADE brings Chat, Cowork and Code into one workspace. It selects an available intelligence path, keeps tools behind permissions, and connects conversations with projects, tasks and artifacts. When a supported local or paired capability is available, OCADE can work with it; every action remains subject to the current permission and availability checks.`;
+  }
+
+  if (/\b(what is|tell me about|explain) ocade\b/.test(text)) {
+    return `${ocadeCreatorStatement()} OCADE is an AI workspace where you can talk through work in Chat, plan and carry out approved tasks in Cowork, and work with code in Code. Projects, tasks and artifacts keep that work connected.`;
+  }
+
+  if (
+    /\b(who are you|what are you|who created (?:you|ocade)|who made (?:you|ocade)|who built (?:you|ocade)|who is behind ocade)\b/.test(
+      text,
+    )
+  ) {
+    return ocadeCreatorStatement();
+  }
+
+  return null;
+}
+
+/** True only for the direct, backend-independent product questions above. */
+export function isDirectOcadeIdentityQuestion(userMessage: string): boolean {
+  return ocadeIdentityAnswer(userMessage) !== null;
 }
 
 /**

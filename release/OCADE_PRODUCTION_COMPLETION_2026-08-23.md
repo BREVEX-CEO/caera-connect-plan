@@ -15,31 +15,31 @@ The launch standard reached here is zero known fixable web-launch-critical sourc
 
 ## Recovery and Git state
 
-| Item | Evidence/result |
-| --- | --- |
-| Reported local branch | `codex/ocade-production-completion-20260823` |
-| Reported prefix recovered | Yes; `f54b404e` exists |
-| Recovered full SHA | `f54b404ecd8e225b83b5d8de60e43820716afa7a` |
-| Recovered commits relative to `origin/main` | 14 |
-| Recovery branch backed up | Yes; exact remote ref verified at the recovered SHA |
+| Item                                                             | Evidence/result                                                        |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Reported local branch                                            | `codex/ocade-production-completion-20260823`                           |
+| Reported prefix recovered                                        | Yes; `f54b404e` exists                                                 |
+| Recovered full SHA                                               | `f54b404ecd8e225b83b5d8de60e43820716afa7a`                             |
+| Recovered commits relative to `origin/main`                      | 14                                                                     |
+| Recovery branch backed up                                        | Yes; exact remote ref verified at the recovered SHA                    |
 | Additional commits after the recovered SHA at this report cutoff | 5: three implementation/proof commits plus two evidence/report commits |
-| Total continuation line relative to `origin/main` | 19 commits |
-| Current `origin/main` and merge base | `4a286cd1578c68870f65d5c9313dac8d34d98205` |
-| Main merge SHA | NOT EXECUTED — separate merge authority is required |
-| Deployed completion SHA | NOT EXECUTED |
+| Total continuation line relative to `origin/main`                | 19 commits                                                             |
+| Current `origin/main` and merge base                             | `4a286cd1578c68870f65d5c9313dac8d34d98205`                             |
+| Main merge SHA                                                   | NOT EXECUTED — separate merge authority is required                    |
+| Deployed completion SHA                                          | NOT EXECUTED                                                           |
 
 ## Attached checklist disposition
 
 Every one of the 781 attached requirements is mapped at item level in `docs/acceptance/OCADE_CHECKLIST_MASTER.md`; the machine receipt is `release/OCADE_CHECKLIST_AUDIT_2026-08-23.json`.
 
-| Checklist | Total | Done | Modified | Already Existing | Not Applicable | Failed | Externally Blocked |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Design checklist.txt | 172 | 2 | 27 | 121 | 17 | 0 | 5 |
-| flow checklist.txt | 66 | 0 | 0 | 47 | 19 | 0 | 0 |
-| mobile chcklist.txt | 171 | 0 | 6 | 105 | 50 | 0 | 10 |
-| webapp checklist.txt | 193 | 0 | 0 | 128 | 58 | 0 | 7 |
-| website checklist.txt | 179 | 0 | 11 | 56 | 110 | 0 | 2 |
-| **Total** | **781** | **2** | **44** | **457** | **254** | **0** | **24** |
+| Checklist             |   Total |  Done | Modified | Already Existing | Not Applicable | Failed | Externally Blocked |
+| --------------------- | ------: | ----: | -------: | ---------------: | -------------: | -----: | -----------------: |
+| Design checklist.txt  |     172 |     2 |       27 |              121 |             17 |      0 |                  5 |
+| flow checklist.txt    |      66 |     0 |        0 |               47 |             19 |      0 |                  0 |
+| mobile chcklist.txt   |     171 |     0 |        6 |              105 |             50 |      0 |                 10 |
+| webapp checklist.txt  |     193 |     0 |        0 |              128 |             58 |      0 |                  7 |
+| website checklist.txt |     179 |     0 |       11 |               56 |            110 |      0 |                  2 |
+| **Total**             | **781** | **2** |   **44** |          **457** |        **254** |  **0** |             **24** |
 
 Retail carts, physical inventory, shipping, delivery addresses, physical-order tracking, invented testimonials, invented press, invented investors, invented certifications, invented careers, and unsupported business programmes are truthfully Not Applicable rather than fabricated.
 
@@ -85,12 +85,12 @@ SOURCE-FIXED and tested:
 
 ## Local model distribution and licensing
 
-| Path | Exact model/version | Format/quantisation | Exact bytes | Integrity | Distribution/licence result |
-| --- | --- | --- | ---: | --- | --- |
-| Desktop/local runtime | `qwen2.5:3b` | GGUF, Q4_K_M, 3.1B | model layer 1,929,903,008; expected installed 1,929,911,945 | registry manifest `sha256:357c53fb659c5076de1d65ccb0b397446227b71a42be9d1603d46168015c9e4b`; layer `sha256:5ee4f07cdb9beadbbb293e85803c569b01bd37ed059d2715faa7bb405f31caa6` | Registry URL `https://registry.ollama.ai/v2/library/qwen2.5/manifests/3b`; fetched licence digest `sha256:b5c0e5cf74cf51af1ecbc4af597cfcd13fd9925611838884a681070838a14a50`, first line `Qwen RESEARCH LICENSE AGREEMENT`; redistribution review remains blocked |
-| Browser WebGPU base | `Qwen2.5-1.5B-Instruct-q4f16_1-MLC` | WebLLM/MLC q4f16_1 | declared 943,718,400 | library catalogue/runtime authority | The 0.5B tier was removed after a red-first 5/8 quality result; this is now the minimum browser tier. Same-origin immutable mirror path is implemented but not populated. |
-| Browser WebGPU plus | `Qwen2.5-3B-Instruct-q4f16_1-MLC` | WebLLM/MLC q4f16_1 | declared 1,887,436,800 | library catalogue/runtime authority | Offered only after measured promotion; same-origin mirror not populated |
-| Browser WASM compatibility | `Qwen2.5-1.5B-Instruct-GGUF` | GGUF, Q4_K_M | 1,117,320,736 | SHA-256 `6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e` | Publisher URL `https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf?download=true`; real production-weight gate passed 8/8; reviewed same-origin file is absent |
+| Path                       | Exact model/version                 | Format/quantisation |                                                 Exact bytes | Integrity                                                                                                                                                                    | Distribution/licence result                                                                                                                                                                                                                                      |
+| -------------------------- | ----------------------------------- | ------------------- | ----------------------------------------------------------: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Desktop/local runtime      | `qwen2.5:3b`                        | GGUF, Q4_K_M, 3.1B  | model layer 1,929,903,008; expected installed 1,929,911,945 | registry manifest `sha256:357c53fb659c5076de1d65ccb0b397446227b71a42be9d1603d46168015c9e4b`; layer `sha256:5ee4f07cdb9beadbbb293e85803c569b01bd37ed059d2715faa7bb405f31caa6` | Registry URL `https://registry.ollama.ai/v2/library/qwen2.5/manifests/3b`; fetched licence digest `sha256:b5c0e5cf74cf51af1ecbc4af597cfcd13fd9925611838884a681070838a14a50`, first line `Qwen RESEARCH LICENSE AGREEMENT`; redistribution review remains blocked |
+| Browser WebGPU base        | `Qwen2.5-1.5B-Instruct-q4f16_1-MLC` | WebLLM/MLC q4f16_1  |                                        declared 943,718,400 | library catalogue/runtime authority                                                                                                                                          | The 0.5B tier was removed after a red-first 5/8 quality result; this is now the minimum browser tier. Same-origin immutable mirror path is implemented but not populated.                                                                                        |
+| Browser WebGPU plus        | `Qwen2.5-3B-Instruct-q4f16_1-MLC`   | WebLLM/MLC q4f16_1  |                                      declared 1,887,436,800 | library catalogue/runtime authority                                                                                                                                          | Offered only after measured promotion; same-origin mirror not populated                                                                                                                                                                                          |
+| Browser WASM compatibility | `Qwen2.5-1.5B-Instruct-GGUF`        | GGUF, Q4_K_M        |                                               1,117,320,736 | SHA-256 `6a1a2eb6d15622bf3c96857206351ba97e1af16c30d7a74ee38970e434e9407e`                                                                                                   | Publisher URL `https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf?download=true`; real production-weight gate passed 8/8; reviewed same-origin file is absent                                                 |
 
 No weights were committed to Git. Download resume/range, digest verification, corruption rejection, OPFS promotion, quota, rollback, and versioned cache behavior are source-tested. The exact same-origin objects, cache headers, independent re-hash, and redistribution/provenance approvals are EXTERNALLY BLOCKED.
 
@@ -108,15 +108,15 @@ EXECUTED LIMIT: current tests and the offline browser probe ran now. The prior r
 
 ## Cowork, extension, and computer control
 
-| Capability | Browser extension | Managed Chrome/Edge path | Native Windows path |
-| --- | --- | --- | --- |
-| DOM/accessibility observe and verified click/type | EXECUTED, 69/69 scenarios | EXECUTED | Available through adapter boundary |
-| Site approval/scope | Extension popup only; zero standing host permissions | Protected-field and origin boundaries passed | Separate explicit native approval |
-| Password/OTP/CAPTCHA/CVV/PIN/recovery code | Refused and handed to user | Refused | Refused |
-| Pause/Resume/Take over/STOP | Persisted latches, worker-recycle proof | Immediate cancel and emergency stop passed | STOP latch and planted-failure proof passed |
-| Tabs/navigation/upload/download/media | Executed where applicable; second observation required | Chrome and Edge parity passed | File/OS operations use native adapter |
-| Remote code/eval | None | None | Native IPC/safety core boundary |
-| Store-installed upgrade/revocation | EXTERNALLY BLOCKED | EXTERNALLY BLOCKED | Not applicable to unpacked proof |
+| Capability                                        | Browser extension                                      | Managed Chrome/Edge path                     | Native Windows path                         |
+| ------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------- | ------------------------------------------- |
+| DOM/accessibility observe and verified click/type | EXECUTED, 69/69 scenarios                              | EXECUTED                                     | Available through adapter boundary          |
+| Site approval/scope                               | Extension popup only; zero standing host permissions   | Protected-field and origin boundaries passed | Separate explicit native approval           |
+| Password/OTP/CAPTCHA/CVV/PIN/recovery code        | Refused and handed to user                             | Refused                                      | Refused                                     |
+| Pause/Resume/Take over/STOP                       | Persisted latches, worker-recycle proof                | Immediate cancel and emergency stop passed   | STOP latch and planted-failure proof passed |
+| Tabs/navigation/upload/download/media             | Executed where applicable; second observation required | Chrome and Edge parity passed                | File/OS operations use native adapter       |
+| Remote code/eval                                  | None                                                   | None                                         | Native IPC/safety core boundary             |
+| Store-installed upgrade/revocation                | EXTERNALLY BLOCKED                                     | EXTERNALLY BLOCKED                           | Not applicable to unpacked proof            |
 
 Windows proof: 10/10 stages; sidecar protocol 23 passed/8 skipped; full sidecar 297 passed/17 capability skips; real PC control 14/14; control engine 30/30; extension 69/69; Chrome and Edge parity all passed. macOS/Linux builders, signed clean-machine installer/update, broad licensed-app matrix, physical mobile devices, and extension-store publication remain external release authorities.
 
@@ -170,15 +170,15 @@ GitHub Actions observation: PR #9 triggered CI run `32643337814` and OCADE 77 ru
 
 ## Platform readiness
 
-| Release authority | Status |
-| --- | --- |
-| Web source/build/local Worker | EXECUTED PASS |
-| Web public deployment of this completion | EXTERNALLY BLOCKED / NOT EXECUTED |
-| Windows native source/runtime | EXECUTED PASS; signing/update/clean-machine release blocked |
-| Android native source/assets | SOURCE-FIXED; SDK, keystore, push config, signed device proof blocked |
-| iOS native source/assets | SOURCE-FIXED; macOS/Xcode, provisioning, archive/device proof blocked |
-| Browser extension unpacked | EXECUTED PASS |
-| Browser extension store | EXTERNALLY BLOCKED |
+| Release authority                        | Status                                                                |
+| ---------------------------------------- | --------------------------------------------------------------------- |
+| Web source/build/local Worker            | EXECUTED PASS                                                         |
+| Web public deployment of this completion | EXTERNALLY BLOCKED / NOT EXECUTED                                     |
+| Windows native source/runtime            | EXECUTED PASS; signing/update/clean-machine release blocked           |
+| Android native source/assets             | SOURCE-FIXED; SDK, keystore, push config, signed device proof blocked |
+| iOS native source/assets                 | SOURCE-FIXED; macOS/Xcode, provisioning, archive/device proof blocked |
+| Browser extension unpacked               | EXECUTED PASS                                                         |
+| Browser extension store                  | EXTERNALLY BLOCKED                                                    |
 
 ## Actual public production observation
 

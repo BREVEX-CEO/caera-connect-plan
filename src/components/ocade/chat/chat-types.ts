@@ -75,9 +75,29 @@ export interface MessageActions {
   onCopy?: (message: ChatMessageView) => void;
   onEdit?: (message: ChatMessageView) => void;
   onRegenerate?: (message: ChatMessageView) => void;
+  /**
+   * Ask the same question again under the SAME pinned conditions and show what
+   * changed, keeping the original answer.
+   *
+   * Distinct from `onRegenerate`, which starts a fresh branch: this one is a
+   * reproducibility check, and its whole value is that the answer you already
+   * had is still there to compare against.
+   */
+  onRerun?: (message: ChatMessageView) => void;
   onContinue?: (message: ChatMessageView) => void;
   onRetry?: (message: ChatMessageView) => void;
   onBranch?: (message: ChatMessageView) => void;
+  /**
+   * PLAN.md §8's SIDE CONVERSATION: one short question about this message,
+   * answered beside the thread rather than in it.
+   *
+   * Deliberately not `onBranch`. A branch takes the conversation in another
+   * direction and produces a second conversation carrying a copy of everything
+   * before the fork; a side question produces nothing in the sidebar at all and
+   * is deleted with the message it hangs off. §8 lists both because they solve
+   * opposite problems.
+   */
+  onAside?: (message: ChatMessageView) => void;
   onSpeak?: (message: ChatMessageView) => void;
   onSave?: (message: ChatMessageView) => void;
   onDelete?: (message: ChatMessageView) => void;

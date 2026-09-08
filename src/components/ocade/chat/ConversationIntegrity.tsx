@@ -95,7 +95,7 @@ export function ConversationIntegrity({
         className={cn(
           "rounded-xl border p-3",
           verdict?.intact
-            ? "border-[color:var(--state-success)]/40 bg-[color:var(--state-success)]/5"
+            ? "border-[color:var(--state-success-line-strong)] bg-[color:var(--state-success-wash)]"
             : verdict
               ? "border-destructive/50 bg-destructive/5"
               : "border-border/60 bg-secondary/20",

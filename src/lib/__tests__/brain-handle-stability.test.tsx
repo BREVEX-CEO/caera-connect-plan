@@ -81,12 +81,19 @@ describe("useBrain hands back a stable handle", () => {
 
   it("still prefers an already-installed local bridge, which needs no download", () => {
     const warm = code(SOURCE).slice(code(SOURCE).indexOf("const warm = useCallback"));
+    expect(warm).toMatch(/effectiveMode === "desktop_app"/);
     const bridgeProbe = warm.indexOf("await bridge.probe()");
     const join = warm.indexOf("installationAuthority().install(");
     expect(bridgeProbe).toBeGreaterThan(-1);
     // The bridge is already on the machine, so warming it is pure latency
     // saved; only when it is absent does this fall through to the authority.
     expect(join).toBeGreaterThan(bridgeProbe);
+  });
+
+  it("does not turn an ordinary localhost browser into the desktop app", () => {
+    const body = code(SOURCE);
+    expect(body).not.toContain("serverIsThisMachine");
+    expect(body).toMatch(/const effectiveMode: DeviceMode = mode/);
   });
 
   it("CANNOT start a download of its own", () => {

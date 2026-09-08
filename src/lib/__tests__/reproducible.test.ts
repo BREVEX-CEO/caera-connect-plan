@@ -188,7 +188,7 @@ describe("differences are shown, not just counted", () => {
 });
 
 describe("the re-run is reachable and non-destructive", () => {
-  const DEMO = readFileSync("src/routes/demo.ocade.tsx", "utf8");
+  const CHAT = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
   const DIFF = readFileSync("src/components/ocade/chat/AnswerDiff.tsx", "utf8");
 
   function code(text: string): string {
@@ -198,7 +198,31 @@ describe("the re-run is reachable and non-destructive", () => {
   it("stores the pin when the answer is first produced", () => {
     // Without it, a later re-run has nothing to compare conditions against and
     // every difference becomes uninterpretable.
-    expect(code(DEMO)).toMatch(/pinned: outcome\.pinned/);
+    const c = code(CHAT);
+    expect(c).toMatch(/const pinned = await pinRun\(\{/);
+    expect(c).toMatch(
+      /setRunPins\(\(current\) => \(\{ \.\.\.current, \[assistant\.id\]: pinned \}\)\)/,
+    );
+  });
+
+  it("pins the sampling values the engine actually ran at", () => {
+    /*
+     * A pin naming conditions that were never applied is worse than no pin:
+     * it reports a controlled repeat that was not controlled. One authority
+     * supplies the numbers to both the adapters and the pin.
+     */
+    const c = code(CHAT);
+    expect(c).toMatch(/temperature: BROWSER_SAMPLER\.temperature/);
+    expect(c).toMatch(/topP: BROWSER_SAMPLER\.topP/);
+    for (const adapter of [
+      "src/lib/brain/adapters/browser-webgpu.ts",
+      "src/lib/brain/adapters/browser-wasm.ts",
+    ]) {
+      const source = code(readFileSync(adapter, "utf8"));
+      expect(source, adapter).toMatch(/temperature: BROWSER_SAMPLER\.temperature/);
+      expect(source, adapter).toMatch(/top_p: BROWSER_SAMPLER\.topP/);
+      expect(source, adapter).not.toMatch(/temperature: 0\.2/);
+    }
   });
 
   it("keeps the original answer beside the re-run", () => {
@@ -207,22 +231,47 @@ describe("the re-run is reachable and non-destructive", () => {
      * the answer you had. Here the original is the left-hand side of the
      * comparison — replacing it would destroy the thing being compared, and
      * "run it again" would become a way to lose work.
+     *
+     * The repeat is held in its OWN map, keyed by the original's id, and the
+     * diff reads `message.content` for the left-hand side. Neither the message
+     * list nor the stored conversation is written to, so there is no path by
+     * which a repeat can replace what it is being compared against.
      */
-    const c = code(DEMO);
-    expect(c).toMatch(/\.\.\.t, rerun: \{/);
-    // The turn is updated, never swapped for the new content.
-    expect(c).not.toMatch(/content: outcome\.answer/);
+    const c = code(CHAT);
+    expect(c).toMatch(/setReruns\(\(current\) => \(\{/);
+    expect(c).toMatch(/before=\{message\.content\}/);
+    expect(c).toMatch(/after=\{repeat\.answer\}/);
+    // The repeat never becomes the message.
+    expect(c).not.toMatch(/setMessages[\s\S]{0,80}repeated/);
   });
 
-  it("only offers a re-run on the newest answer", () => {
-    // Re-running from the middle of a thread would compare against a
-    // conversation state that no longer exists.
-    expect(code(DEMO)).toMatch(/turns\.at\(-1\)\?\.id/);
+  it("only offers a re-run on the newest answer, and only where it is meaningful", () => {
+    /*
+     * Re-running from the middle of a thread would compare against a
+     * conversation state that no longer exists. And an answer with no pin —
+     * one loaded from history, or produced by an online provider whose weights
+     * change without notice — has nothing interpretable to compare against, so
+     * the control is ABSENT rather than present and misleading.
+     */
+    const c = code(CHAT);
+    expect(c).toMatch(/messages\.at\(-1\)\?\.role === "assistant" &&/);
+    expect(c).toMatch(/runPins\[messages\.at\(-1\)!\.id\]/);
   });
 
   it("refuses to re-run while a generation is in flight", () => {
-    const fn = code(DEMO).slice(code(DEMO).indexOf("const rerun = useCallback"));
+    const fn = code(CHAT).slice(code(CHAT).indexOf("const rerunAnswer = useCallback"));
     expect(fn.slice(0, 300)).toMatch(/if \(streaming\) return;/);
+  });
+
+  it("replays the stored request rather than reassembling it", () => {
+    /*
+     * Rebuilding the context would quietly change the input — a document since
+     * detached, a freshness line with a newer timestamp — and the comparison
+     * would then be measuring OCADE's context builder rather than the engine.
+     */
+    const c = code(CHAT);
+    expect(c).toMatch(/const replay = replayRef\.current\[answerId\]/);
+    expect(c).toMatch(/messages: replay\.messages/);
   });
 
   it("leads with the conditions, not with the difference", () => {

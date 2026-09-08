@@ -7,6 +7,8 @@ name: Desktop Packaging (disabled for free launch)
 on:
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   desktop-release-disabled:
     if: ${{ false }}

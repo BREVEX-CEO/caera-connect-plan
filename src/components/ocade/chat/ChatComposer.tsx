@@ -149,7 +149,15 @@ export function ChatComposer({
       <div
         data-testid="composer-dropzone"
         className={cn(
+          /*
+           * `focus-within` because the textarea inside is transparent and
+           * borderless: this box IS the control as far as anybody looking at
+           * the screen is concerned, and a ring on the textarea would be drawn
+           * around something with no visible edge. The accessibility run found
+           * this stop showing no focus indicator at all.
+           */
           "relative rounded-2xl border bg-card/80 shadow-sm backdrop-blur transition",
+          "focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-ring",
           focused ? "border-[color:var(--accent-ocade)]/50 shadow-md" : "border-border/70",
           dragging && "border-primary/70",
         )}
@@ -263,6 +271,7 @@ export function ChatComposer({
               <input
                 ref={fileRef}
                 type="file"
+                tabIndex={-1}
                 multiple
                 className="sr-only"
                 aria-label="Attach files"
@@ -274,6 +283,7 @@ export function ChatComposer({
               <input
                 ref={imageRef}
                 type="file"
+                tabIndex={-1}
                 accept="image/*"
                 multiple
                 className="sr-only"

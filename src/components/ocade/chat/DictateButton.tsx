@@ -60,7 +60,7 @@ export function DictateButton({
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         !supported && "cursor-not-allowed text-muted-foreground/40",
         supported && !active && "text-muted-foreground hover:bg-accent hover:text-foreground",
-        active && "bg-[color:var(--state-danger)]/12 text-[color:var(--state-danger)]",
+        active && "bg-destructive/12 text-destructive",
         className,
       )}
     >
@@ -77,13 +77,13 @@ export function DictateButton({
           {/* Always drawn: the "we are recording" signal must not depend on
               motion being allowed. */}
           <span
-            className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-[color:var(--state-danger)]/60"
+            className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-destructive/60"
             aria-hidden
           />
           {/* The pulse is the part that is decorative, so it is the part that
               respects the preference. */}
           <span
-            className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-[color:var(--state-danger)]/40 motion-safe:animate-ping"
+            className="pointer-events-none absolute inset-0 rounded-xl ring-2 ring-destructive/40 motion-safe:animate-ping"
             aria-hidden
           />
         </>

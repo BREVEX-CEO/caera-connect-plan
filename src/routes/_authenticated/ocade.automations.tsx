@@ -67,7 +67,7 @@ import {
   type AutomationWorkerHostSupabase,
 } from "@/lib/automation-worker-host";
 import { AutomationWorkerCompanionSession } from "@/lib/automation-worker-session";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 
 export const Route = createFileRoute("/_authenticated/ocade/automations")({
   head: () => ({
@@ -220,37 +220,60 @@ function AutomationsPage() {
       setWorkerStatus(computerRefusal);
       return;
     }
-    const session = new AutomationWorkerCompanionSession({
-      bootstrap: () => bootstrapCompanion(),
-      getCompanion,
-      subscribe: subscribeCompanionAdapter,
-      createHost: (companion: NativeCompanionAdapter) => {
-        // Real native builds install observation-backed verifiers here. An
-        // empty registry is intentionally not enough to start a queue worker.
-        const verifiers = isNativeObservationAdapter(companion)
-          ? createNativeObservationVerifierRegistry(companion)
-          : new AutomationVerifierRegistry();
-        return new DesktopAutomationWorkerHost({
-          supabase: supabase as unknown as AutomationWorkerHostSupabase,
-          companion,
-          verifiers,
-          controllerOptions: { isOnline: () => navigator.onLine },
-          onStateChange: (state) => {
-            if (active) setWorkerStatus(describeAutomationWorkerHost(state));
+    /*
+     * THE CLIENT IS LOADED BEFORE THE SESSION IS BUILT.
+     *
+     * `createHost` is a synchronous callback that needs a Supabase client, and
+     * a static import here put the whole auth stack on the entry chunk's graph
+     * — this route is statically reachable from the route tree, like every
+     * route. Loading it once, up front, keeps the callback synchronous and the
+     * landing page free of it.
+     *
+     * A load failure leaves the worker unavailable with a reason, which is the
+     * same shape as every other refusal on this screen rather than a silent
+     * queue that never starts.
+     */
+    let session: AutomationWorkerCompanionSession | null = null;
+    void loadSupabaseClient()
+      .then((supabase) => {
+        if (!active) return;
+        session = new AutomationWorkerCompanionSession({
+          bootstrap: () => bootstrapCompanion(),
+          getCompanion,
+          subscribe: subscribeCompanionAdapter,
+          createHost: (companion: NativeCompanionAdapter) => {
+            // Real native builds install observation-backed verifiers here. An
+            // empty registry is intentionally not enough to start a queue worker.
+            const verifiers = isNativeObservationAdapter(companion)
+              ? createNativeObservationVerifierRegistry(companion)
+              : new AutomationVerifierRegistry();
+            return new DesktopAutomationWorkerHost({
+              supabase: supabase as unknown as AutomationWorkerHostSupabase,
+              companion,
+              verifiers,
+              controllerOptions: { isOnline: () => navigator.onLine },
+              onStateChange: (state) => {
+                if (active) setWorkerStatus(describeAutomationWorkerHost(state));
+              },
+            });
+          },
+          onBootstrapUnavailable: (reason) => {
+            if (active) setWorkerStatus(reason);
+          },
+          onError: (reason) => {
+            if (active) setWorkerStatus(reason);
           },
         });
-      },
-      onBootstrapUnavailable: (reason) => {
-        if (active) setWorkerStatus(reason);
-      },
-      onError: (reason) => {
-        if (active) setWorkerStatus(reason);
-      },
-    });
-    void session.start();
+        void session.start();
+      })
+      .catch(() => {
+        if (active) {
+          setWorkerStatus("The account connection could not be loaded, so no worker was started.");
+        }
+      });
     return () => {
       active = false;
-      void session.stop();
+      void session?.stop();
     };
   }, []);
 
@@ -963,11 +986,11 @@ function AutomationsPage() {
                           className={cn(
                             "rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide",
                             r.status === "succeeded" &&
-                              "bg-[color:var(--state-success)]/15 text-[color:var(--state-success)]",
+                              "bg-[color:var(--state-success-surface-strong)] text-[color:var(--state-success)]",
                             r.status === "failed" && "bg-destructive/15 text-destructive",
                             r.status === "blocked" && "bg-destructive/15 text-destructive",
                             r.status === "awaiting_approval" &&
-                              "bg-[color:var(--state-warning)]/15 text-[color:var(--state-warning)]",
+                              "bg-[color:var(--state-warning-surface-strong)] text-[color:var(--state-warning)]",
                             !["succeeded", "failed", "blocked", "awaiting_approval"].includes(
                               r.status,
                             ) && "bg-secondary text-muted-foreground",

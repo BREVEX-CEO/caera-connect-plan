@@ -86,20 +86,23 @@ describe("every table with an owner column", () => {
     expect(unprotected).toEqual([]);
   });
 
-  it("could be planted with a row to attack, or is named here", () => {
+  it("could be planted with a row to attack", () => {
     const unplanted = owned.map((o) => o.table).filter((t) => !bobsRows.has(t));
-    // Reported rather than asserted empty: some tables carry check constraints
-    // a generic filler cannot satisfy. What matters is that the list is
-    // visible, so nobody mistakes "not tested" for "tested and safe".
-    if (unplanted.length) {
-      console.warn(`[isolation] could not plant a probe row in: ${unplanted.join(", ")}`);
-    }
     /*
-     * Locked at what the planter actually reaches today. Raising it is the
-     * point of improving the planter; lowering it silently would let coverage
-     * rot back to where it started.
+     * A table without a row is a table none of the attacks below can exercise.
+     * The old threshold allowed three such holes while still passing. Requiring
+     * the exact discovered set makes every new owned table covered immediately.
+     *
+     * 34 -> 36 when the planter learned to satisfy a regex CHECK made of more
+     * than one character class. `ocade_organizations.slug` is
+     * `^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$`, which the old sampler could not
+     * build — so no organization could be planted, so no MEMBERSHIP could be
+     * either, and this suite skipped the two tables that decide whether one
+     * workspace can read another's people. It said so in a warning, which is
+     * how a coverage hole hides.
      */
-    expect(bobsRows.size).toBeGreaterThanOrEqual(34);
+    expect(unplanted).toEqual([]);
+    expect(bobsRows.size).toBe(owned.length);
   });
 });
 

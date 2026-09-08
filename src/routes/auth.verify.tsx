@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { AuthShell } from "@/components/shell/AuthShell";
 import {
   OTP_RESEND_COOLDOWN_SECONDS,
@@ -90,6 +90,7 @@ function VerifyPage() {
   const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/home";
 
   async function verify(e: React.FormEvent) {
+    const supabase = await loadSupabaseClient();
     e.preventDefault();
     const remaining = secondsUntilAllowed(throttle, Date.now());
     if (remaining > 0) {
@@ -137,6 +138,7 @@ function VerifyPage() {
   }
 
   async function resend() {
+    const supabase = await loadSupabaseClient();
     if (cooldown > 0 || resending) return;
     setError(null);
     setResent(false);
@@ -182,7 +184,7 @@ function VerifyPage() {
           autoComplete="one-time-code"
           value={code}
           onChange={(e) => setCode(e.target.value)}
-          className="border-b border-border/70 bg-transparent px-1 py-3 text-center font-mono text-2xl tracking-[0.5em] text-foreground outline-none transition-colors focus:border-foreground/70"
+          className="border-b border-border/70 bg-transparent px-1 py-3 text-center font-mono text-2xl tracking-[0.5em] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring transition-colors focus:border-foreground/70"
           placeholder="••••••"
           maxLength={8}
         />

@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { LegalDialog } from "./LegalDialog";
+
+const ConsentAccountBridge = lazy(() => import("./ConsentAccountBridge"));
 import { ShieldCheck } from "lucide-react";
 import {
   Dialog,
@@ -10,61 +12,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useSession } from "@/lib/session";
 import {
-  LEGAL_CONSENT_VERSION as CONSENT_VERSION,
+  type ConsentReceipt,
+  LEGAL_CONSENT_STORAGE_KEY,
+  LEGAL_CONSENT_VERSION,
+  needsLegalConsent,
+  usesAccountConsentReceipt,
   coversCurrentDocuments,
   latestServerReceipt,
+  readLegalConsent,
   recordServerConsent,
 } from "@/lib/legal/consent-receipts";
-
-/**
- * Re-exported rather than declared, so the local receipt and the server
- * receipt cannot disagree about which documents are in force. Two
- * hand-maintained version strings eventually diverge, and the divergence shows
- * up as somebody being re-asked on one device and not another.
- */
-export const LEGAL_CONSENT_VERSION = CONSENT_VERSION;
-export const LEGAL_CONSENT_STORAGE_KEY = "caera:legal-consent:v1";
-
-interface ConsentReceipt {
-  version: string;
-  acceptedAt: string;
-  terms: true;
-  privacy: true;
-}
-
-export function needsLegalConsent(pathname: string): boolean {
-  return ["/auth", "/demo", "/home", "/ocade", "/settings", "/ficia", "/madee", "/cania"].some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
-}
-
-export function usesAccountConsentReceipt(pathname: string): boolean {
-  return (
-    needsLegalConsent(pathname) && !pathname.startsWith("/demo") && !pathname.startsWith("/auth")
-  );
-}
-
-export function readLegalConsent(storage?: Pick<Storage, "getItem">): ConsentReceipt | null {
-  if (typeof window === "undefined" && !storage) return null;
-  try {
-    const raw = (storage ?? window.localStorage).getItem(LEGAL_CONSENT_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<ConsentReceipt>;
-    if (
-      parsed.version !== LEGAL_CONSENT_VERSION ||
-      parsed.terms !== true ||
-      parsed.privacy !== true ||
-      typeof parsed.acceptedAt !== "string"
-    ) {
-      return null;
-    }
-    return parsed as ConsentReceipt;
-  } catch {
-    return null;
-  }
-}
 
 export function LegalConsentGate({
   pathname,
@@ -118,13 +76,8 @@ export function LegalConsentGate({
 
   const open = required && !accepted;
   const canContinue = terms && privacy;
-  const explanation = useMemo(
-    () =>
-      pathname.startsWith("/demo")
-        ? "The demo can use local storage, an on-device model, microphone or device-control permissions only when you choose those features."
-        : "OCADE stores essential account, security and preference data needed to provide the workspace.",
-    [pathname],
-  );
+  const explanation =
+    "OCADE stores essential account, security and preference data needed to provide the workspace.";
 
   function accept() {
     if (!canContinue) return;
@@ -157,19 +110,29 @@ export function LegalConsentGate({
 
   return (
     <>
-      {usesAccountReceipt ? <ConsentAccountBridge onUserId={setUserId} /> : null}
+      {/*
+        Loaded only where an account receipt applies. It renders nothing, so the
+        `null` fallback is the finished state rather than a placeholder — and
+        keeping it out of this module keeps the Supabase client out of the entry
+        bundle every public page parses. See `ConsentAccountBridge.tsx`.
+      */}
+      {usesAccountReceipt ? (
+        <Suspense fallback={null}>
+          <ConsentAccountBridge onUserId={setUserId} />
+        </Suspense>
+      ) : null}
       {children}
       <Dialog open={open} onOpenChange={() => undefined}>
         <DialogContent
           showClose={false}
           onEscapeKeyDown={(event) => event.preventDefault()}
           onPointerDownOutside={(event) => event.preventDefault()}
-          className="max-h-[calc(100dvh-2rem)] max-w-xl overflow-y-auto border-white/15 bg-[oklch(0.09_0.012_255/0.97)] p-0 shadow-[0_28px_100px_rgba(0,0,0,0.72)]"
+          className="max-h-[calc(100dvh-2rem)] max-w-xl overflow-y-auto border-white/15 bg-[oklch(0.09_0_0/0.97)] p-0 shadow-[0_28px_100px_rgba(0, 0, 0,0.72)]"
         >
           <div className="relative p-6 sm:p-7">
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,oklch(0.65_0.18_255/0.16),transparent_34%),radial-gradient(circle_at_95%_100%,oklch(0.58_0.2_28/0.11),transparent_30%)]"
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,oklch(0.65_0_0/0.16),transparent_34%),radial-gradient(circle_at_95%_100%,oklch(0.58_0_0/0.11),transparent_30%)]"
             />
             <DialogHeader className="relative text-left">
               <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full border border-primary/35 bg-primary/10 text-primary">
@@ -253,18 +216,6 @@ export function LegalConsentGate({
       />
     </>
   );
-}
-
-/**
- * Keep account lookup out of anonymous routes. `useSession` intentionally
- * fails closed when Supabase is not configured, but the no-account demo must
- * remain usable with only local consent storage.
- */
-function ConsentAccountBridge({ onUserId }: { onUserId: (userId: string) => void }) {
-  const { user } = useSession();
-  const userId = user?.id ?? "";
-  useEffect(() => onUserId(userId), [onUserId, userId]);
-  return null;
 }
 
 function ConsentCheck({

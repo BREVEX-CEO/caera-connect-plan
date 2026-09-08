@@ -33,7 +33,9 @@ export function LocalModelLifecyclePanel({
 }: {
   bridgeUrl?: string;
 }) {
-  const engine = useLocalEngine(bridgeUrl);
+  // This is the explicit local-runtime management surface, so probing the
+  // user-selected loopback endpoint is intentional here rather than ambient.
+  const engine = useLocalEngine(bridgeUrl, true);
   const [phase, setPhase] = useState<Phase>("idle");
   const [target, setTarget] = useState<string>(SUGGESTED[0].id);
   const [progress, setProgress] = useState<PullProgress | null>(null);

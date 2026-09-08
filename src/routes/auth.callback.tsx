@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { AuthShell } from "@/components/shell/AuthShell";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
 import { safeNext } from "@/lib/auth/safe-next";
@@ -59,6 +59,7 @@ function CallbackPage() {
      * A failed read is not fatal — the gate re-asserts on the next navigation.
      */
     const resolveDestination = async (userId: string) => {
+      const supabase = await loadSupabaseClient();
       try {
         const { data, error: profileError } = await supabase
           .from("profiles")
@@ -73,6 +74,7 @@ function CallbackPage() {
     };
 
     const finish = async () => {
+      const supabase = await loadSupabaseClient();
       if (cancelled || done) return;
       // getUser() revalidates the token with the auth server, so a stale or
       // partially written session cannot send someone into the app.
@@ -86,6 +88,7 @@ function CallbackPage() {
     };
 
     const restore = async () => {
+      const supabase = await loadSupabaseClient();
       try {
         const { data } = await supabase.auth.getSession();
         if (cancelled) return;
@@ -115,17 +118,34 @@ function CallbackPage() {
 
     void restore();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (cancelled || done || !session) return;
-      void finish();
+    /*
+     * BOTH LISTENERS ATTACH ONCE THE CLIENT ARRIVES.
+     *
+     * The client is loaded on demand rather than imported: this route is
+     * statically reachable from the route tree, so a top-level import put the
+     * whole auth stack on the entry chunk's graph. The `restore()` above
+     * already awaits it, so by the time this resolves the module is in memory
+     * and the wait is a resolved promise.
+     */
+    let unsubscribe: (() => void) | undefined;
+    void loadSupabaseClient().then((supabase) => {
+      if (cancelled || done) return;
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (cancelled || done || !session) return;
+        void finish();
+      });
+      unsubscribe = () => sub.subscription.unsubscribe();
     });
 
     // Late safety net: poll in case the storage write landed without an event.
     const poll = window.setInterval(() => {
       if (cancelled || done) return;
-      void supabase.auth.getSession().then(({ data }) => {
-        if (data.session) void finish();
-      });
+      void loadSupabaseClient()
+        .then((supabase) => supabase.auth.getSession())
+        .then(({ data }) => {
+          if (data.session) void finish();
+        })
+        .catch(() => undefined);
     }, 1200);
 
     const timeout = window.setTimeout(() => {
@@ -137,7 +157,7 @@ function CallbackPage() {
 
     return () => {
       cancelled = true;
-      sub.subscription.unsubscribe();
+      unsubscribe?.();
       window.clearInterval(poll);
       window.clearTimeout(timeout);
     };

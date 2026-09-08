@@ -10,22 +10,37 @@ import {
 const at = (iso: string) => new Date(iso);
 
 describe("entitlements", () => {
-  it("derives expiry from plan duration", () => {
-    const e = { planId: "std_8d" as const, startedAt: at("2026-07-01T00:00:00Z") };
-    expect(expiryOf(e).toISOString()).toBe("2026-07-09T00:00:00.000Z");
+  it("derives a weekly period's expiry from the plan", () => {
+    const e = { planId: "pro_weekly" as const, startedAt: at("2026-07-01T00:00:00Z") };
+    expect(expiryOf(e)?.toISOString()).toBe("2026-07-08T00:00:00.000Z");
   });
 
-  it.each(["trial_2d", "std_8d", "month_1m", "year_1y"] as const)(
-    "%s grants the common device limits",
+  it("derives a monthly period's expiry from the plan", () => {
+    const e = { planId: "max_monthly" as const, startedAt: at("2026-07-01T00:00:00Z") };
+    expect(expiryOf(e)?.toISOString()).toBe("2026-07-31T00:00:00.000Z");
+  });
+
+  it("gives Free no expiry at all, rather than a distant one", () => {
+    /*
+     * Null, not a far-future date. A sentinel date eventually arrives, and
+     * arriving is exactly what a free account must never do.
+     */
+    const e = { planId: "free" as const, startedAt: at("2026-07-01T00:00:00Z") };
+    expect(expiryOf(e)).toBeNull();
+    expect(entitlementState(e, at("2099-01-01T00:00:00Z")).active).toBe(true);
+  });
+
+  it.each(["pro_weekly", "pro_monthly", "max_weekly", "max_monthly"] as const)(
+    "%s grants the common paid device limits",
     (id) => {
       expect(PLANS[id].desktopDevices).toBe(2);
       expect(PLANS[id].mobileDevices).toBe(2);
     },
   );
 
-  it("keeps local available after expiry and disables only cloud/premium", () => {
+  it("keeps local available after a paid period ends", () => {
     const s = entitlementState(
-      { planId: "trial_2d", startedAt: at("2026-07-01T00:00:00Z") },
+      { planId: "pro_weekly", startedAt: at("2026-07-01T00:00:00Z") },
       at("2026-07-20T00:00:00Z"),
     );
     expect(s.active).toBe(false);
@@ -35,15 +50,24 @@ describe("entitlements", () => {
     expect(s.localExportAvailable).toBe(true);
   });
 
-  it("treats no subscription as local-only, never as locked out", () => {
+  it("treats no subscription as a Free account, not as a lapsed one", () => {
+    /*
+     * This used to report `active: false` and hand out a PAID plan's device
+     * allowance to somebody with no subscription at all — free access on paid
+     * limits, and a screen that called a healthy account inactive.
+     */
     const s = entitlementState(null, at("2026-07-22T00:00:00Z"));
+    expect(s.active).toBe(true);
+    expect(s.expiresAt).toBeNull();
+    expect(s.desktopDevices).toBe(PLANS.free.desktopDevices);
+    expect(s.mobileDevices).toBe(PLANS.free.mobileDevices);
     expect(s.localInferenceAvailable).toBe(true);
     expect(s.localDataAvailable).toBe(true);
   });
 
   it("is active before expiry", () => {
     const s = entitlementState(
-      { planId: "year_1y", startedAt: at("2026-07-01T00:00:00Z") },
+      { planId: "pro_monthly", startedAt: at("2026-07-01T00:00:00Z") },
       at("2026-07-22T00:00:00Z"),
     );
     expect(s.active).toBe(true);
@@ -52,7 +76,7 @@ describe("entitlements", () => {
 
 describe("device limits", () => {
   const s = entitlementState(
-    { planId: "month_1m", startedAt: at("2026-07-20T00:00:00Z") },
+    { planId: "pro_monthly", startedAt: at("2026-07-20T00:00:00Z") },
     at("2026-07-22T00:00:00Z"),
   );
 

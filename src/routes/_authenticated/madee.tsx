@@ -1,12 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Sparkles } from "lucide-react";
-import { ComingLater } from "@/components/shell/ComingLater";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/madee")({
-  head: () => ({
-    meta: [{ title: "MADEE — CARCC CADANE" }, { name: "robots", content: "noindex" }],
-  }),
-  component: () => (
-    <ComingLater name="MADEE" icon={Sparkles} wasGoingToBe="a document and resume builder" />
-  ),
+  beforeLoad: () => {
+    throw redirect({ to: "/ocade", replace: true });
+  },
 });

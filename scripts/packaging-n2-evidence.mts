@@ -61,7 +61,9 @@ const keyPair = (await webcrypto.subtle.generateKey({ name: "Ed25519" }, true, [
 ])) as CryptoKeyPair;
 const publicKeyBase64 = b64(await webcrypto.subtle.exportKey("raw", keyPair.publicKey));
 const message = new TextEncoder().encode(artifactSha256);
-const signatureBase64 = b64(await webcrypto.subtle.sign({ name: "Ed25519" }, keyPair.privateKey, message));
+const signatureBase64 = b64(
+  await webcrypto.subtle.sign({ name: "Ed25519" }, keyPair.privateKey, message),
+);
 
 // A second, unrelated key: used to prove a signature from the wrong key fails.
 const otherPair = (await webcrypto.subtle.generateKey({ name: "Ed25519" }, true, [
@@ -153,7 +155,9 @@ const refusals = [
     verdict: await verifyUpdateSignature({
       publicKeyBase64,
       signatureBase64,
-      artifactSha256: createHash("sha256").update(Buffer.concat([artifactBytes, Buffer.from("x")])).digest("hex"),
+      artifactSha256: createHash("sha256")
+        .update(Buffer.concat([artifactBytes, Buffer.from("x")]))
+        .digest("hex"),
     }),
   },
   {
@@ -175,14 +179,30 @@ const refusals = [
 ].map((r) => ({ case: r.case, refused: r.verdict.ok !== true, verdict: r.verdict }));
 
 const planRefusals = [
-  { case: "unsigned manifest", decision: planUpdate({ ...manifest, signature: null }, { currentVersion: CURRENT }) },
-  { case: "manifest with no hash", decision: planUpdate({ ...manifest, sha256: null }, { currentVersion: CURRENT }) },
-  { case: "downgrade offered", decision: planUpdate({ ...manifest, version: "0.0.9" }, { currentVersion: CURRENT }) },
+  {
+    case: "unsigned manifest",
+    decision: planUpdate({ ...manifest, signature: null }, { currentVersion: CURRENT }),
+  },
+  {
+    case: "manifest with no hash",
+    decision: planUpdate({ ...manifest, sha256: null }, { currentVersion: CURRENT }),
+  },
+  {
+    case: "downgrade offered",
+    decision: planUpdate({ ...manifest, version: "0.0.9" }, { currentVersion: CURRENT }),
+  },
   {
     case: "below the upgrade floor",
-    decision: planUpdate({ ...manifest, minimumClientVersion: "0.5.0" }, { currentVersion: CURRENT }),
+    decision: planUpdate(
+      { ...manifest, minimumClientVersion: "0.5.0" },
+      { currentVersion: CURRENT },
+    ),
   },
-].map((r) => ({ case: r.case, refusedOrSkipped: r.decision.action !== "apply", decision: r.decision }));
+].map((r) => ({
+  case: r.case,
+  refusedOrSkipped: r.decision.action !== "apply",
+  decision: r.decision,
+}));
 
 const allRefusalsHeld =
   refusals.every((r) => r.refused) && planRefusals.every((r) => r.refusedOrSkipped);
@@ -200,7 +220,8 @@ const doc = {
     "A code-signing certificate. The key pair here is generated. As update-signature.ts says, a release certificate identifies the publisher, which is a separate concern from whether the signing pipeline works.",
     "Windows and macOS installers opening correctly — the other half of N2, untouched here.",
   ],
-  endpointShape: "/companion/{target}/{arch}/{current_version} — the exact path the Tauri updater is configured to call",
+  endpointShape:
+    "/companion/{target}/{arch}/{current_version} — the exact path the Tauri updater is configured to call",
   request: { method: "GET", url: endpoint, status: response.status },
   rawManifestResponse: rawResponse,
   verification: {
@@ -211,7 +232,11 @@ const doc = {
     hashMatchesDownloadedBytes: hashMatchesDownload,
     note: "The manifest's hash is checked against the bytes actually downloaded from the server, so a manifest advertising a hash it does not serve would fail here.",
   },
-  alreadyCurrent: { status: currentResponse.status, correct: noUpdateWhenCurrent, note: "204 No Content is what the updater expects when no update applies." },
+  alreadyCurrent: {
+    status: currentResponse.status,
+    correct: noUpdateWhenCurrent,
+    note: "204 No Content is what the updater expects when no update applies.",
+  },
   refusalPaths: { signature: refusals, policy: planRefusals, allHeld: allRefusalsHeld },
   serverRequestLog: requests,
 };
@@ -222,10 +247,15 @@ console.log(rawResponse);
 console.log(`\nsignature verify : ${JSON.stringify(signatureVerdict)}`);
 console.log(`update decision  : ${JSON.stringify(decision)}`);
 console.log(`hash matches download: ${hashMatchesDownload} (${downloadedSha.slice(0, 16)}…)`);
-console.log(`already-current  : HTTP ${currentResponse.status} (expected 204) -> ${noUpdateWhenCurrent}`);
+console.log(
+  `already-current  : HTTP ${currentResponse.status} (expected 204) -> ${noUpdateWhenCurrent}`,
+);
 console.log(`refusals:`);
 for (const r of refusals) console.log(`   ${r.refused ? "REFUSED" : "ACCEPTED"}  ${r.case}`);
-for (const r of planRefusals) console.log(`   ${r.refusedOrSkipped ? "REFUSED" : "ACCEPTED"}  ${r.case} -> ${JSON.stringify(r.decision)}`);
+for (const r of planRefusals)
+  console.log(
+    `   ${r.refusedOrSkipped ? "REFUSED" : "ACCEPTED"}  ${r.case} -> ${JSON.stringify(r.decision)}`,
+  );
 console.log(`N2 (update server): ${doc.verdict}`);
 
 if (write) {

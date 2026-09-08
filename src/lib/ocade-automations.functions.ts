@@ -27,7 +27,8 @@ import {
   type AutomationTrigger,
   type RunStatus,
 } from "@/lib/ocade-automations";
-import { redactForAudit, type CompanionAction } from "@/lib/native/companion-bridge";
+import { type CompanionAction } from "@/lib/native/companion-bridge";
+import { redactForAudit } from "@/lib/security/protected-text";
 import { LIST_CAP } from "@/lib/supabase/read-all";
 
 const uuid = z.string().uuid();

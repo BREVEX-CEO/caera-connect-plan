@@ -6,19 +6,43 @@
  * prefix rather than a separate flag, so the preview cannot claim to be live
  * and a published build cannot silently stay in test.
  *
- * FREE_LAUNCH_MODE is enforced here, below every checkout UI. That makes stale
- * links, admin surfaces and accidental callers fail closed rather than merely
- * hiding their buttons.
+ * Availability is enforced here, below every checkout UI, so stale links,
+ * admin surfaces and accidental callers fail closed rather than merely hiding
+ * their buttons. It is DERIVED from whether the deployment is configured, not
+ * from a flag somebody has to remember to set.
  */
-import { billingEnabled } from "@/lib/launch-mode";
+import { browserCheckoutConfigured } from "@/lib/payments/checkout-availability";
 import { resolvePaddlePrice } from "@/utils/payments.functions";
 
 const clientToken = import.meta.env["VITE_PAYMENTS_CLIENT_TOKEN"] as string | undefined;
 
+/**
+ * The provider script defines its own shape at runtime. Only the surface OCADE
+ * actually calls is declared here, so a typo in a call site is a build error
+ * rather than a checkout that fails in front of a paying customer.
+ */
+export interface PaddleCheckoutOpenOptions {
+  items: { priceId: string; quantity: number }[];
+  customer?: { email: string } | undefined;
+  customData?: Record<string, string>;
+  settings?: {
+    displayMode?: "overlay" | "inline";
+    variant?: "one-page" | "multi-page";
+    allowLogout?: boolean;
+    allowedPaymentMethods?: readonly string[];
+    successUrl?: string;
+  };
+}
+
+export interface PaddleGlobal {
+  Environment: { set(environment: "sandbox" | "production"): void };
+  Initialize(options: { token: string }): void;
+  Checkout: { open(options: PaddleCheckoutOpenOptions): void };
+}
+
 declare global {
   interface Window {
-    // The provider script defines its own shape at runtime.
-    Paddle: any;
+    Paddle: PaddleGlobal;
   }
 }
 
@@ -29,24 +53,23 @@ export function getPaddleEnvironment(): CheckoutEnvironment {
 }
 
 /**
- * True only when billing is intentionally enabled AND a provider token exists.
- * During free launch a token left in deployment configuration must not make
- * checkout reachable.
+ * True only when this build carries the public client token a checkout needs.
+ *
+ * The BROWSER half. The server half — API key, webhook secret and a product id
+ * per plan — is checked server-side, and a surface that opens a checkout on
+ * this alone is opening a window onto a payment the server cannot finish.
  */
 export function isCheckoutConfigured(): boolean {
-  return billingEnabled() && Boolean(clientToken);
+  return browserCheckoutConfigured({ VITE_PAYMENTS_CLIENT_TOKEN: clientToken });
 }
 
 let paddleInitialized = false;
 
 export async function initializePaddle(): Promise<void> {
-  if (!billingEnabled()) {
-    throw new Error("Checkout is disabled while OCADE is in free launch mode.");
-  }
-  if (paddleInitialized) return;
-  if (!clientToken) {
+  if (!isCheckoutConfigured()) {
     throw new Error("Checkout is not configured on this deployment.");
   }
+  if (paddleInitialized) return;
 
   await new Promise<void>((resolve, reject) => {
     const existing = document.querySelector<HTMLScriptElement>("script[data-paddle]");
@@ -64,7 +87,9 @@ export async function initializePaddle(): Promise<void> {
 
   // The provider script spells the live environment "production".
   window.Paddle.Environment.set(getPaddleEnvironment() === "sandbox" ? "sandbox" : "production");
-  window.Paddle.Initialize({ token: clientToken });
+  // Narrowed by `isCheckoutConfigured` above, which is the one place the
+  // token's presence is decided.
+  window.Paddle.Initialize({ token: clientToken! });
   paddleInitialized = true;
 }
 
@@ -75,8 +100,8 @@ export async function initializePaddle(): Promise<void> {
  * would make a test purchase indistinguishable from a real one.
  */
 export async function getPaddlePriceId(priceId: string): Promise<string> {
-  if (!billingEnabled()) {
-    throw new Error("Price resolution is disabled while OCADE is in free launch mode.");
+  if (!isCheckoutConfigured()) {
+    throw new Error("Checkout is not configured on this deployment.");
   }
   return resolvePaddlePrice({ data: { priceId, environment: getPaddleEnvironment() } });
 }

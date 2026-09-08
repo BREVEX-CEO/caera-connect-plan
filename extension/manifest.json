@@ -10,17 +10,9 @@
     "128": "icons/ocade-128.png"
   },
   "minimum_chrome_version": "116",
-  "permissions": [
-    "tabs",
-    "scripting",
-    "storage",
-    "activeTab"
-  ],
+  "permissions": ["tabs", "scripting", "storage", "activeTab"],
   "host_permissions": [],
-  "optional_host_permissions": [
-    "http://*/*",
-    "https://*/*"
-  ],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
   "background": {
     "service_worker": "src/background.js",
     "type": "module"

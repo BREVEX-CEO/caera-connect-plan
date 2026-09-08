@@ -139,7 +139,9 @@ out = await deliver({ ...completed, id: "evt_forged" }, ent, undefined, true);
 record(
   "S05",
   "a forged signature is refused and changes nothing",
-  !out.verdict.ok && out.verdict.refusal === "bad_signature" && out.entitlement.status === before.status
+  !out.verdict.ok &&
+    out.verdict.refusal === "bad_signature" &&
+    out.entitlement.status === before.status
     ? "observed"
     : "failed",
   { verdict: out.verdict },
@@ -250,7 +252,12 @@ if (!refundEvent) {
     "S14",
     "a refund revokes access immediately, with no grace",
     refundOk.ok && ent.status === "refunded" && !hasAccess(ent, clock) ? "observed" : "failed",
-    { refund: refundOk, status: ent.status, graceEndsAt: ent.graceEndsAt, access: hasAccess(ent, clock) },
+    {
+      refund: refundOk,
+      status: ent.status,
+      graceEndsAt: ent.graceEndsAt,
+      access: hasAccess(ent, clock),
+    },
   );
 }
 

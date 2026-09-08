@@ -18,7 +18,8 @@
  * three dependencies that cross a runtime boundary and therefore cannot live
  * inside it:
  *
- *   `callModel`  → OCADE's on-device engine. No hosted inference on any path.
+ *   `callModel`  → OCADE Intelligence, carrying the surface's one permit and
+ *                  current privacy/mode policy through every internal turn.
  *   `runTools`   → permission decision, then the correct executor, then
  *                  OCADE's outcome governance. The loop has no other way to
  *                  touch the world, so there is no route around the gate.
@@ -56,6 +57,10 @@ import {
 import { parseTokenBudget } from "@/primary-logic/query/budgetText";
 import type { QueryDeps, QueryMessage, QueryTool, QueryToolCall } from "@/primary-logic/query/deps";
 import { createCallModel } from "./call-model";
+import { createOcadeIntelligence } from "@/lib/intelligence/router";
+import { createOnlineIntelligenceTransport } from "@/lib/intelligence/online-client";
+import { createEngineIntelligenceTransport } from "@/lib/intelligence/engine-transport";
+import type { IntelligenceMode, IntelligencePrivacyPolicy } from "@/lib/intelligence/contract";
 import { createToolRunner, type ToolRunnerEvent } from "./tool-runner";
 import { compactTranscript } from "./compact";
 import {
@@ -68,9 +73,32 @@ import { currentPermissionContext } from "./permission-settings";
 import { consume } from "@/lib/limits/use-limits";
 import { memoryPolicyPrompt } from "@/lib/memory/quality";
 import { considerSessionMemory, noteWork } from "@/lib/memory/session-memory";
+import { mayRemember } from "@/lib/chat/incognito";
 import { repairForResume } from "@/primary-logic/query/resume";
 import { QueryGuard } from "@/primary-logic/query/queryGuard";
 import { addLocalMemory, inspectLocalMemory } from "@/lib/local-memory";
+import type { BilledRequest } from "@/lib/commercial/use-generation-permit";
+
+/**
+ * Runtime backstop for callers outside React's type system (generated clients,
+ * stale bundles and malicious direct calls). The commercial gate must run
+ * before classification or engine initialization, not merely before a surface
+ * happens to render its loading state.
+ */
+export function requireRuntimeGenerationPermit(
+  permit: BilledRequest["permit"] | null | undefined,
+): BilledRequest["permit"] {
+  if (
+    !permit?.id ||
+    !permit.generationId ||
+    !permit.idempotencyKey ||
+    !permit.surface ||
+    !["server", "offline_lease"].includes(permit.source)
+  ) {
+    throw new Error("A commercial generation permit is required before intelligence runs.");
+  }
+  return permit;
+}
 
 export interface RuntimeApproval {
   call: QueryToolCall;
@@ -99,6 +127,17 @@ export interface RuntimeOptions {
   memoryContext?: () => string | null;
   /** True while the person has pressed stop or pause. */
   shouldStop?: () => string | null;
+  /**
+   * True for a conversation OCADE must not learn from — PLAN.md §8.
+   *
+   * Read at the moment of learning rather than at mount, because a person can
+   * start an incognito conversation without remounting the runtime, and the
+   * value that mattered is the one in force when the turn ended.
+   */
+  incognito?: () => boolean;
+  /** Read at request time so privacy and mode changes need no remount. */
+  intelligenceMode?: () => IntelligenceMode;
+  intelligencePrivacy?: () => IntelligencePrivacyPolicy;
 }
 
 export interface RuntimeRun {
@@ -153,6 +192,14 @@ export function useOcadeRuntime(options: RuntimeOptions) {
   const guardRef = useRef(new QueryGuard());
   const guard = guardRef.current;
   const engine = useLocalChatEngine({ surface: options.surface });
+  const intelligence = useMemo(
+    () =>
+      createOcadeIntelligence({
+        online: createOnlineIntelligenceTransport(),
+        local: createEngineIntelligenceTransport(engine),
+      }),
+    [engine],
+  );
   const permissionRef = useRef<PermissionContext>(currentPermissionContext());
   const optionsRef = useRef(options);
   optionsRef.current = options;
@@ -177,27 +224,6 @@ export function useOcadeRuntime(options: RuntimeOptions) {
     [],
   );
 
-  const deps = useMemo<QueryDeps>(
-    () => ({
-      callModel: createCallModel(engine),
-      runTools: (calls, signal) => runner.run(calls, signal),
-      compact: compactTranscript,
-      countTokens: estimateTranscriptTokens,
-      /*
-       * Two independent reasons to stop, checked as one. The surface's own stop
-       * (a pressed button) and the runner's (the same call failing the same way
-       * twice) both mean "do not start another round", and the loop should not
-       * have to know which.
-       */
-      shouldStop: () => optionsRef.current.shouldStop?.() ?? runner.stuckReason(),
-      uuid: () =>
-        typeof crypto !== "undefined" && "randomUUID" in crypto
-          ? crypto.randomUUID()
-          : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    }),
-    [engine, runner],
-  );
-
   /**
    * Keep what this conversation taught OCADE about the person having it.
    *
@@ -207,8 +233,20 @@ export function useOcadeRuntime(options: RuntimeOptions) {
    * interrupts is worse than note-taking that occasionally misses.
    */
   const learn = useCallback(
-    async (history: readonly QueryMessage[], result: QueryResult) => {
+    async (
+      history: readonly QueryMessage[],
+      result: QueryResult,
+      permit: BilledRequest["permit"],
+    ) => {
       const surface = optionsRef.current.surface;
+      /*
+       * AN INCOGNITO CONVERSATION TEACHES OCADE NOTHING — PLAN.md §8.
+       *
+       * Before `noteWork`, not after: that counter is itself a record of the
+       * conversation having happened, and the whole promise is that there is
+       * none.
+       */
+      if (!mayRemember(optionsRef.current.incognito?.() ?? false)) return;
       noteWork(surface, result.toolResults.length);
 
       const transcript = [...history, ...result.messages].map((message) => ({
@@ -222,21 +260,29 @@ export function useOcadeRuntime(options: RuntimeOptions) {
         transcript,
         deps: {
           complete: async (prompt) => {
-            let text = "";
-            const reply = await engine.send({
+            const reply = await intelligence.generate({
+              permit,
+              generationId: permit.generationId,
+              idempotencyKey: permit.idempotencyKey,
+              surface: permit.surface,
+              mode: "local_only",
               messages: [{ role: "user", content: prompt }],
-              onToken: (chunk) => {
-                text += chunk;
+              tools: [],
+              attachments: [],
+              privacy: {
+                storageMode: "browser_only",
+                onlineInferenceConsented: false,
+                sealed: true,
               },
+              background: true,
               /*
                * OCADE asking on its own behalf. It must not cancel the user's
                * next message, and it must not announce itself in the engine
                * status — note-taking that interrupts is worse than note-taking
                * that occasionally misses.
                */
-              background: true,
             });
-            return reply.ok ? text : null;
+            return reply.ok ? reply.response.text : null;
           },
           existing: () => {
             const held = inspectLocalMemory();
@@ -249,7 +295,7 @@ export function useOcadeRuntime(options: RuntimeOptions) {
         },
       });
     },
-    [engine],
+    [intelligence],
   );
 
   /**
@@ -262,12 +308,15 @@ export function useOcadeRuntime(options: RuntimeOptions) {
     async (
       request: string,
       opts: {
+        /** Required proof that the surface acquired usage before this runtime. */
+        permit: BilledRequest["permit"];
         signal?: AbortSignal;
         domains?: readonly Domain[];
         history?: readonly QueryMessage[];
         onToken?: (chunk: string) => void;
-      } = {},
+      },
     ): Promise<RuntimeRun> => {
+      requireRuntimeGenerationPermit(opts.permit);
       if (plainlyConversational(request)) return { used: false };
 
       /*
@@ -345,6 +394,26 @@ export function useOcadeRuntime(options: RuntimeOptions) {
          */
         const repaired = repairForResume(opts.history ?? []);
         const history = [...repaired.messages, { role: "user" as const, content: request }];
+        const deps: QueryDeps = {
+          callModel: createCallModel({
+            intelligence,
+            permit: opts.permit,
+            mode: optionsRef.current.intelligenceMode?.() ?? "local_only",
+            privacy: optionsRef.current.intelligencePrivacy?.() ?? {
+              storageMode: "browser_only",
+              onlineInferenceConsented: false,
+              sealed: true,
+            },
+          }),
+          runTools: (calls, signal) => runner.run(calls, signal),
+          compact: compactTranscript,
+          countTokens: estimateTranscriptTokens,
+          shouldStop: () => optionsRef.current.shouldStop?.() ?? runner.stuckReason(),
+          uuid: () =>
+            typeof crypto !== "undefined" && "randomUUID" in crypto
+              ? crypto.randomUUID()
+              : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        };
         const result = await runQuery(
           {
             messages: history,
@@ -370,7 +439,7 @@ export function useOcadeRuntime(options: RuntimeOptions) {
          * would be a strange thing to charge them for. It runs at most once every
          * few thousand tokens — see the thresholds in the imported policy.
          */
-        void learn(history, result);
+        void learn(history, result, opts.permit);
         return { used: true, result };
       } finally {
         // Release only if this run is still the one holding it: a superseded
@@ -378,7 +447,7 @@ export function useOcadeRuntime(options: RuntimeOptions) {
         if (generation !== null) guard.end(generation);
       }
     },
-    [deps, runner, learn, guard],
+    [runner, intelligence, learn, guard],
   );
 
   return useMemo(

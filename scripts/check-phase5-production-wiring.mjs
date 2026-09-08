@@ -49,8 +49,10 @@ const REPLACED_HISTORICAL_MODULES = [
       {
         path: "src/routes/download.tsx",
         patterns: [
-          /FREE_LAUNCH_MODE/,
-          /release\.ready\s*&&\s*!FREE_LAUNCH_MODE/,
+          // The download is offered only once a release is genuinely ready.
+          // It used to also depend on the retired free-launch flag, which
+          // meant a signed, verified release would still have been withheld.
+          /release\.ready \? \(/,
           /Signing and clean-device test required/,
         ],
       },

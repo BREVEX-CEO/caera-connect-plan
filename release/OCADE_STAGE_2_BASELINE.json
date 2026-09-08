@@ -30,11 +30,11 @@
       "score": 20,
       "classification": "PARTIAL",
       "evidence": [
-        "src/lib/ocade-providers.functions.ts",
+        "src/lib/ocade-local.ts",
         "src/lib/use-local-engine.ts",
         "src/routes/_authenticated/ocade.models.tsx"
       ],
-      "gap": "LM Studio, llama.cpp, LocalAI, vLLM, Jan, KoboldCpp, generic discovery, circuit breakers and tested failover are missing."
+      "gap": "The former provider-preference server file was deliberately removed with the unsafe hosted-engine path. Current evidence is the local discovery authority, its shared probe hook and the model surface; the unified multi-backend intelligence router, circuit breakers and tested failover remain later mission work."
     },
     {
       "phase": 23,

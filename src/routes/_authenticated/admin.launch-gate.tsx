@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ShieldCheck, AlertTriangle, Loader2, ExternalLink, History, Lock } from "lucide-react";
@@ -6,7 +6,8 @@ import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { StatusBadge } from "@/components/shell/StatusBadge";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
+import { requireAdminRole } from "@/lib/admin/route-gate";
 import { executeAction, ActionConfirmationError } from "@/lib/actions";
 import { updateLaunchGateItem, upsertFeatureFlag } from "@/lib/launch-gate.functions";
 import { OcadeDatePicker } from "@/components/ui/ocade-date-picker";
@@ -62,25 +63,7 @@ export const Route = createFileRoute("/_authenticated/admin/launch-gate")({
   head: () => ({
     meta: [{ title: "Launch Gate — CARCC CADANE Admin" }, { name: "robots", content: "noindex" }],
   }),
-  beforeLoad: async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
-    if (!uid) throw redirect({ to: "/auth" });
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", uid)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!data)
-      throw redirect({
-        to: "/access-denied",
-        search: {
-          area: "the Launch Gate administration console",
-          reason: "This area requires the admin role on your CARCC CADANE account.",
-        },
-      });
-  },
+  beforeLoad: () => requireAdminRole("the Launch Gate administration console"),
   component: LaunchGatePage,
 });
 
@@ -100,6 +83,7 @@ function LaunchGatePage() {
   const items = useQuery({
     queryKey: ["launch_gate_items"],
     queryFn: async () => {
+      const supabase = await loadSupabaseClient();
       const { data, error } = await supabase
         .from("launch_gate_items")
         .select("*")
@@ -113,6 +97,7 @@ function LaunchGatePage() {
   const flags = useQuery({
     queryKey: ["feature_flags_admin"],
     queryFn: async () => {
+      const supabase = await loadSupabaseClient();
       const { data, error } = await supabase.from("feature_flags").select("*").order("id");
       if (error) throw error;
       return (data ?? []) as unknown as Flag[];
@@ -268,6 +253,7 @@ function ItemRow({ item, onSaved }: { item: Item; onSaved: () => void }) {
   >(null);
 
   async function loadHistory() {
+    const supabase = await loadSupabaseClient();
     const { data } = await supabase
       .from("launch_gate_history")
       .select("id, from_status, to_status, changed_at, note, evidence_url")

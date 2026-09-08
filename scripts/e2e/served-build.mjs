@@ -27,11 +27,16 @@ import { resolveBrowserPath } from "./browser-path.mjs";
  * @param {number} [options.port]        Port to serve on.
  * @param {string} [options.outDir]      Where to move the build to.
  * @param {number} [options.supabasePort]
+ * @param {(tables: Record<string, object[]>, userId: string) => void} [options.seedSupabase]
+ *   Rows the account should already have before the browser opens. Some
+ *   requirements cannot be reached otherwise — a side conversation hangs off an
+ *   ANSWER, and this sandbox has no engine to produce one.
  */
 export async function startServedBuild({
   port = 8099,
   outDir = ".output-e2e",
   supabasePort = 54321,
+  seedSupabase,
 } = {}) {
   const base = `http://127.0.0.1:${port}`;
   const children = [];
@@ -47,7 +52,7 @@ export async function startServedBuild({
     return child;
   };
 
-  const supabase = await startStubSupabase({ port: supabasePort });
+  const supabase = await startStubSupabase({ port: supabasePort, seed: seedSupabase });
   console.log(`stub supabase: ${supabase.url}`);
 
   /*
@@ -61,6 +66,27 @@ export async function startServedBuild({
     VITE_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_ocade_local_audit_key",
     SUPABASE_URL: supabase.url,
     SUPABASE_PUBLISHABLE_KEY: "sb_publishable_ocade_local_audit_key",
+    /*
+     * The SERVER key, for the paths that write as the service role: the
+     * compliance audit trail above all.
+     *
+     * Without it those writes throw, the console fills with configuration
+     * errors, and — worse — the audit path is never exercised by any browser
+     * run. A journey that reaches every screen while silently recording
+     * nothing is not the journey the product ships.
+     *
+     * Not a credential. The fixture is a loopback server in this sandbox that
+     * checks no keys at all; this is the shape the code expects, not a secret.
+     */
+    SUPABASE_SERVICE_ROLE_KEY: "sb_secret_ocade_local_audit_key",
+    /*
+     * The pepper that keys recovery-code hashes. Present so the recovery path
+     * is genuinely exercised rather than skipped as "unavailable" — the branch
+     * where OCADE refuses to issue codes it cannot check later is covered by
+     * `recovery-pepper.test.ts`, and it is not the branch a browser run should
+     * be measuring.
+     */
+    OCADE_MFA_RECOVERY_PEPPER: "ocade-local-audit-pepper-not-a-production-secret",
     /*
      * Provider readiness is a PUBLIC build flag, not a credential — it decides
      * whether a sign-in button is offered, and production is fail-closed so

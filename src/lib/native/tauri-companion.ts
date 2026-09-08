@@ -16,8 +16,6 @@ import {
   COMPANION_UNAVAILABLE_REASON,
   getCompanion,
   guardAction,
-  isProtectedText,
-  redactForAudit,
   UnavailableCompanion,
   type CompanionAction,
   type CompanionApplication,
@@ -30,6 +28,7 @@ import {
   type NativeCompanionAdapter,
   setCompanionAdapter,
 } from "./companion-bridge";
+import { isProtectedText, redactForAudit } from "@/lib/security/protected-text";
 import type { NativeObservationAdapter, NativeObservationRequest } from "./automation-observer";
 import { NativeCompanionRequiredError } from "../storage/types";
 import {

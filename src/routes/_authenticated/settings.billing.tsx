@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { redirect } from "@tanstack/react-router";
-import { FREE_LAUNCH_MODE } from "@/lib/launch-mode";
 import { createFileRoute } from "@tanstack/react-router";
 import { CreditCard, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
@@ -28,10 +27,14 @@ import {
 } from "@/utils/payments.functions";
 
 export const Route = createFileRoute("/_authenticated/settings/billing")({
-  /* Billing is disabled during free launch; usage remains visible. The page itself is kept, unreachable, so
-     re-enabling billing is a flag change rather than a rebuild. */
+  /*
+   * Nothing can be bought or managed on a deployment with no payment provider,
+   * so the page redirects to Usage rather than rendering a billing screen with
+   * every control inert. It becomes reachable by itself once the deployment is
+   * configured — there is no flag to remember.
+   */
   beforeLoad: () => {
-    if (FREE_LAUNCH_MODE) throw redirect({ to: "/settings/usage" });
+    if (!isCheckoutConfigured()) throw redirect({ to: "/settings/usage" });
   },
   head: () => ({
     meta: [
@@ -196,11 +199,16 @@ function BillingPage() {
       successUrl: `${window.location.origin}/checkout/success`,
     });
 
+  /*
+   * Every plan in the catalogue renews, so cancellation is offered on any live
+   * subscription. It was also gated on the plan not being one-time; that
+   * cadence was retired with the previous catalogue, and keeping the check
+   * would silently hide Cancel from anybody still on such a plan.
+   */
   const canCancel =
     subscription &&
     !subscription.cancelAtPeriodEnd &&
-    ["active", "trialing", "past_due", "paused"].includes(subscription.status) &&
-    currentPlan?.cadence !== "one-time";
+    ["active", "trialing", "past_due", "paused"].includes(subscription.status);
 
   return (
     <div className="space-y-4">

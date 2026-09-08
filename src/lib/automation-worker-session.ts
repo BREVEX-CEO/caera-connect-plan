@@ -1,5 +1,6 @@
 import type { DesktopAutomationWorkerHost } from "./automation-worker-host";
-import { redactForAudit, type NativeCompanionAdapter } from "./native/companion-bridge";
+import { type NativeCompanionAdapter } from "./native/companion-bridge";
+import { redactForAudit } from "@/lib/security/protected-text";
 import type { BootstrapResult } from "./native/tauri-companion";
 
 export interface AutomationWorkerSessionInput {

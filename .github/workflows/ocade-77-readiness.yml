@@ -1,13 +1,6 @@
 name: OCADE 77 Readiness
 
 on:
-  push:
-    branches:
-      - main
-      - agent/complete-77-ocade-hardening
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -23,8 +16,8 @@ jobs:
     name: 77-item source contract
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
       - name: Verify exactly 77 materially-resolved items and committed proof artifacts
@@ -36,8 +29,8 @@ jobs:
     name: 77 focused regressions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -67,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Post current-head proof result to the pull request
-        uses: actions/github-script@v7
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
             const marker = '<!-- ocade-77-readiness-result -->';

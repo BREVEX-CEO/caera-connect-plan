@@ -41,9 +41,17 @@ export const resolvePaddlePrice = createServerFn({ method: "GET" })
     return data;
   })
   .handler(async ({ data }) => {
-    const { billingEnabled } = await import("@/lib/launch-mode");
-    if (!billingEnabled()) {
-      throw new Error("Price resolution is disabled while OCADE is in free launch mode.");
+    /*
+     * The SERVER half of the availability check, and the authoritative one: a
+     * browser that reached this call with a token in its bundle still cannot
+     * resolve a price on a deployment whose server credentials and product ids
+     * are absent. Refused here rather than attempted, so the failure is a clear
+     * sentence instead of a provider error.
+     */
+    const { serverCheckoutConfigured } = await import("@/lib/payments/checkout-availability");
+    const missing = serverCheckoutConfigured(process.env as Record<string, string | undefined>);
+    if (missing.length > 0) {
+      throw new Error("Checkout is not configured on this deployment.");
     }
     const { gatewayFetch } = await import("@/lib/paddle.server");
     const response = await gatewayFetch(

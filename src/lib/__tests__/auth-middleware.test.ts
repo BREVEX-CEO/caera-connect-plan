@@ -55,19 +55,30 @@ async function expectRejection(pattern: RegExp) {
 
 describe("environment configuration fails closed", () => {
   it("refuses when SUPABASE_URL is missing", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     delete process.env.SUPABASE_URL;
     await expectRejection(/Missing Supabase environment variable/);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("SUPABASE_URL"));
+    error.mockRestore();
   });
 
   it("refuses when the publishable key is missing", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     delete process.env.SUPABASE_PUBLISHABLE_KEY;
     await expectRejection(/Missing Supabase environment variable/);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("SUPABASE_PUBLISHABLE_KEY"));
+    error.mockRestore();
   });
 
   it("names every missing variable so the operator can fix it", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
     delete process.env.SUPABASE_URL;
     delete process.env.SUPABASE_PUBLISHABLE_KEY;
     await expect(handler({ next })).rejects.toThrow(/SUPABASE_URL.*SUPABASE_PUBLISHABLE_KEY/);
+    expect(error).toHaveBeenCalledWith(
+      expect.stringMatching(/SUPABASE_URL.*SUPABASE_PUBLISHABLE_KEY/),
+    );
+    error.mockRestore();
   });
 });
 

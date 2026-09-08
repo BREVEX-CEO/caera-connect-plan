@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 
 const SETTINGS = readFileSync("src/components/settings/BrowserStoragePanel.tsx", "utf8");
 const RENDERED_SETTINGS = SETTINGS.replace(/\/\*[\s\S]*?\*\//g, "");
-const SETUP = readFileSync("src/components/ocade/setup/SetupExperience.tsx", "utf8");
-const FIRST_INSTALL_GATE = readFileSync(
-  "src/components/ocade/setup/FirstInstallationGate.tsx",
-  "utf8",
-);
+const PROGRESS = readFileSync("src/components/ocade/setup/OfflineIntelligenceProgress.tsx", "utf8");
+/*
+ * Comments stripped. The component's own documentation quotes the modal markup
+ * it replaced, which is the reason to keep that paragraph rather than a reason
+ * to fail — what matters is what it RENDERS.
+ */
+const PROGRESS_CODE = PROGRESS.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
 const AUTHENTICATED_LAYOUT = readFileSync("src/routes/_authenticated/route.tsx", "utf8");
 
 describe("ordinary OCADE Intelligence presentation", () => {
@@ -28,15 +30,63 @@ describe("ordinary OCADE Intelligence presentation", () => {
     expect(RENDERED_SETTINGS).not.toMatch(/\b(?:KB|MB|GB)\b/);
   });
 
-  it("blocks the first signed-in installation with one stable setup experience", () => {
-    expect(AUTHENTICATED_LAYOUT).toContain("<FirstInstallationGate enabled={signedIn}>");
-    expect(FIRST_INSTALL_GATE).toContain('role="dialog"');
-    expect(FIRST_INSTALL_GATE).toContain('aria-modal="true"');
-    expect(FIRST_INSTALL_GATE).toContain('import("./SetupExperience")');
-    expect(FIRST_INSTALL_GATE).toContain("const concealed = checking || locked");
-    expect(FIRST_INSTALL_GATE).toContain('"invisible pointer-events-none select-none"');
-    expect(SETUP).toMatch(
-      /s === "verifying" \|\| s === "loading" \|\| s === "warming"[\s\S]*line: "Almost ready"/,
+  it("reports preparation from the corner and never takes the product away", () => {
+    /*
+     * THE DEFECT THIS REPLACED, because it is the reason the rule is written
+     * this way rather than as a preference.
+     *
+     * Preparation used to mount `role="dialog" aria-modal="true"` over the
+     * whole signed-in application, and it stayed there when preparation
+     * FAILED. Reproduced in a browser: a new account signed in, landed on
+     * /onboarding, filled the form, and could not press Continue — the button
+     * was visible and enabled, and the modal above it swallowed every click.
+     * There was no way forward and no way out.
+     *
+     * `PLAN.md` §17 asks for automatic preparation with lower-left progress
+     * and "no confirmation screen or Prepare button".
+     */
+    expect(AUTHENTICATED_LAYOUT).toContain("<OfflineIntelligenceProgress />");
+    expect(AUTHENTICATED_LAYOUT).not.toMatch(/FirstInstallationGate|SetupExperience/);
+
+    // It reports. It does not demand.
+    expect(PROGRESS_CODE).toContain('role="status"');
+    expect(PROGRESS_CODE).toContain('aria-live="polite"');
+    expect(PROGRESS_CODE).not.toContain('role="dialog"');
+    expect(PROGRESS_CODE).not.toContain("aria-modal");
+
+    // Lower-left, and beneath dialogs so it can never cover one.
+    expect(PROGRESS_CODE).toMatch(/fixed bottom-4 left-4 z-40/);
+
+    /*
+     * Nothing is made inert or unclickable by preparation.
+     *
+     * The structural half is the stronger one: this component takes no
+     * `children`, so unlike the gate it replaced there is nothing it COULD
+     * wrap, conceal or disable. A future edit that gives it children is the
+     * edit that would bring the trap back.
+     */
+    expect(PROGRESS_CODE).not.toMatch(/\binert\b/);
+    expect(PROGRESS_CODE).not.toMatch(/pointer-events-none/);
+    expect(PROGRESS_CODE).not.toMatch(/children/);
+
+    // The dismiss control is a real touch target, not a bare glyph. It shipped
+    // at 20x18 and the route audit failed it at phone width on every route.
+    expect(PROGRESS_CODE).toMatch(/h-7 w-7/);
+  });
+
+  it("keeps the measured narrative and the remedies it used to carry", () => {
+    // Removing the blocking screen must not remove what it correctly told
+    // people: the stage in product language, and what to do when a device is
+    // too full to finish.
+    expect(PROGRESS).toMatch(
+      /s === "verifying" \|\| s === "loading" \|\| s === "warming".*line: "Almost ready"/,
     );
+    expect(PROGRESS).toContain("Preparing offline intelligence");
+    for (const remedy of ["Try again", "How to free up space", "Remove OCADE Intelligence"]) {
+      expect(PROGRESS, remedy).toContain(remedy);
+    }
+    // And it still never invents a number.
+    expect(PROGRESS).toContain("The percentage is measured");
+    expect(PROGRESS_CODE).toMatch(/state\.fraction === null \? null/);
   });
 });

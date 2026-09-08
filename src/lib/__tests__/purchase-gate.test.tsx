@@ -1,17 +1,21 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { billingEnabled, FREE_LAUNCH_MODE, paidEntitlementRequired } from "@/lib/launch-mode";
+import { checkoutAvailability } from "@/lib/payments/checkout-availability";
 
 /**
- * Nobody can be charged while OCADE is free.
+ * Nobody can be charged on a deployment that cannot take a payment.
  *
  * The plans stay visible and priced — hiding them would answer "what will this
  * cost?" with silence, which is the question the pricing page exists for. What
  * is removed is every path from looking at a plan to paying for one.
  *
- * Three independent gates are asserted, and the redundancy is the point: the
- * button is never offered, the checkout hook refuses, and the server function
- * refuses. Any one of them alone is a single edit away from taking money.
+ * THREE INDEPENDENT GATES, and the redundancy is the point: the button is never
+ * offered, the checkout hook refuses, and the server function refuses. Any one
+ * of them alone is a single edit away from taking money.
+ *
+ * They are no longer keyed on a hand-set flag. Each one asks whether the
+ * deployment is configured, so the gates cannot disagree with reality — or with
+ * each other — the way a constant and a credential can.
  */
 
 const PLAN_COMPARISON = readFileSync("src/components/settings/PlanComparison.tsx", "utf8");
@@ -19,63 +23,66 @@ const CHECKOUT_HOOK = readFileSync("src/hooks/usePaddleCheckout.ts", "utf8");
 const PAYMENT_FN = readFileSync("src/utils/payments.functions.ts", "utf8");
 const PADDLE = readFileSync("src/lib/paddle.ts", "utf8");
 
-describe("the launch position", () => {
-  it("is free, and every derived answer agrees", () => {
-    expect(FREE_LAUNCH_MODE).toBe(true);
-    expect(billingEnabled()).toBe(false);
-    expect(paidEntitlementRequired()).toBe(false);
+describe("the position this deployment is actually in", () => {
+  it("cannot take a payment, and every derived answer agrees", () => {
+    const availability = checkoutAvailability({}, undefined);
+    expect(availability.available).toBe(false);
+    expect(availability.missing.length).toBeGreaterThan(0);
   });
 });
 
 describe("the purchase button", () => {
-  it("is replaced by a coming-soon gate rather than left enabled", () => {
-    expect(PLAN_COMPARISON).toContain("Coming soon");
-    expect(PLAN_COMPARISON).toContain("const comingSoon = FREE_LAUNCH_MODE");
-  });
-
-  it("cannot be offered while the launch is free, whatever the deployment configures", () => {
+  it("is not offered unless the deployment is configured", () => {
     /*
-     * The check that matters. `checkoutConfigured` used to depend only on the
-     * environment, so a deployment with product ids set would have rendered a
-     * live Choose button that the hook then refused — a click that fails is a
-     * worse answer than a control that never invited the click.
+     * `checkoutConfigured` gates the Choose button. A deployment missing any
+     * product id renders an explanation instead — a click that fails is a worse
+     * answer than a control that never invited the click.
      */
     expect(PLAN_COMPARISON).toMatch(
-      /checkoutConfigured\s*=\s*\n?\s*!comingSoon\s*&&\s*missing\.length === 0/,
+      /checkoutConfigured\s*=\s*\n?\s*missing\.length === 0 && typeof onChoose === "function"/,
     );
+    expect(PLAN_COMPARISON).toContain("checkoutConfigured ? (");
+  });
+
+  it("says so plainly when there is nothing to buy", () => {
+    expect(PLAN_COMPARISON).toContain("CHECKOUT_UNAVAILABLE_NOTICE");
+  });
+
+  it("never offers a checkout for the free plan", () => {
+    // A "Choose Free" button would be a checkout for nothing.
+    expect(PLAN_COMPARISON).toMatch(/plan\.publiclyAvailable && plan\.tier !== "free"/);
   });
 
   it("still shows the price of every plan", () => {
     expect(PLAN_COMPARISON).toContain("describePrice(price)");
   });
 
-  it("does not tell a working deployment it is misconfigured", () => {
-    expect(PLAN_COMPARISON).toContain("!comingSoon && deploymentDetails");
+  it("names the missing configuration only to an operator", () => {
+    // The variable names help whoever can fix it; they are behind
+    // `deploymentDetails` rather than shown to every customer.
+    expect(PLAN_COMPARISON).toContain("deploymentDetails && !checkoutConfigured");
   });
 });
 
 describe("the gates below the button", () => {
   it("stops the checkout hook", () => {
-    expect(CHECKOUT_HOOK).toContain("billingEnabled()");
+    expect(CHECKOUT_HOOK).toContain("isCheckoutConfigured()");
   });
 
   it("stops the provider client, on both entry points", () => {
-    expect((PADDLE.match(/billingEnabled\(\)/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    // `initializePaddle` and `getPaddlePriceId`, plus the definition itself.
+    expect((PADDLE.match(/isCheckoutConfigured\(\)/g) ?? []).length).toBeGreaterThanOrEqual(3);
   });
 
   it("stops the server function, so a crafted request cannot start a purchase", () => {
-    expect(PAYMENT_FN).toContain("billingEnabled");
-  });
-});
-
-describe("the payment code itself is preserved", () => {
-  it("is inert, not deleted — re-enabling is a flag change, not a rebuild", () => {
     /*
-     * Payment history is a financial record and the provider implementation is
-     * months of work. Deleting either to express "we are free right now" would
-     * be destroying an asset to make a statement.
+     * The browser's gates protect an honest caller. This one protects against a
+     * request that skipped them — which is why it checks the SERVER's
+     * credentials rather than the browser's token.
      */
-    expect(PADDLE.length).toBeGreaterThan(500);
-    expect(PAYMENT_FN.length).toBeGreaterThan(500);
+    expect(PAYMENT_FN).toContain("serverCheckoutConfigured");
+    expect(PAYMENT_FN.indexOf("serverCheckoutConfigured")).toBeLessThan(
+      PAYMENT_FN.indexOf("gatewayFetch("),
+    );
   });
 });

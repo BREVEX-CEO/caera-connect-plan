@@ -11,7 +11,7 @@
  * reports honestly as unavailable.
  */
 import { OfflineQueue } from "@/lib/offline-queue";
-import { isProtectedText } from "@/lib/native/companion-bridge";
+import { isProtectedText } from "@/lib/security/protected-text";
 import {
   isTrusted,
   canEmergencyStop,

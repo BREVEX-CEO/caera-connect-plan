@@ -48,8 +48,14 @@ const ROWS = [
     "Core capability",
   ],
   [
-    "Pre-launch price",
-    "$4.28 / $28 / $128 planned; checkout locked",
+    /*
+     * The figures, not a description of them. This row said
+     * "$4.28 / $28 / $128 planned" — the prices of a catalogue that no longer
+     * exists — on a public comparison page, which made it a false statement
+     * about what OCADE costs rather than a stale label.
+     */
+    "Price",
+    "Free, or Pro from $8/week and Max from $28/week; checkout not open yet",
     "Provider-specific",
     "Software and hardware vary",
   ],
@@ -131,10 +137,10 @@ export function ComparePage() {
             Compare planned pricing
           </Link>
           <Link
-            to="/demo/ocade"
+            to="/auth"
             className="inline-flex min-h-10 items-center rounded-lg bg-primary px-4 font-medium text-primary-foreground"
           >
-            Try the local demo
+            Create a free account
           </Link>
         </div>
       </PublicSection>

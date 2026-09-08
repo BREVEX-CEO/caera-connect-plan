@@ -82,6 +82,14 @@ describe("every CI workflow is well-formed", () => {
       expect(/^\t/m.test(src), `${file} indents with a tab`).toBe(false);
     }
   });
+
+  it("pins every third-party action to an immutable commit", () => {
+    for (const [file, src] of sources) {
+      for (const match of src.matchAll(/uses:\s+([^\s#]+)@([^\s#]+)/g)) {
+        expect(match[2], `${file}: ${match[1]} is not commit-pinned`).toMatch(/^[0-9a-f]{40}$/);
+      }
+    }
+  });
 });
 
 describe("CI never calls a script that does not exist", () => {
@@ -112,11 +120,10 @@ describe("the platform workflows do not overstate themselves", () => {
     expect(src).toMatch(/NOT YET VERIFIED/i);
   });
 
-  it("runs the Rust safety tests in CI, where a linker exists", () => {
-    // These cannot run locally: MSVC is absent and GNU coreutils `link`
-    // shadows the linker. CI is the only place they can execute at all.
-    const src = sources.get("ci.yml")!;
+  it("keeps Rust and Windows proof in the explicit platform workflow", () => {
+    const src = sources.get("platforms.yml")!;
     expect(src).toMatch(/cargo test/);
     expect(src).toMatch(/windows-latest/);
+    expect(sources.get("ci.yml")!).not.toMatch(/windows-latest|macos-latest/);
   });
 });

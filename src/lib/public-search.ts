@@ -1,3 +1,5 @@
+import { PUBLISHED_ARTICLES } from "./support/articles";
+
 export type PublicSearchCategory = "Company" | "Product" | "Help" | "Legal";
 
 export type PublicSearchHref =
@@ -12,6 +14,22 @@ export type PublicSearchHref =
   | "/press"
   | "/status"
   | "/faq"
+  | "/security"
+  | "/support"
+  /*
+   * Every help article is its own destination.
+   *
+   * Site search used to offer `/faq` as a single result, so somebody searching
+   * "recovery code" was handed a page of twenty questions and left to scroll.
+   * The entries are DERIVED from the article authority rather than retyped
+   * here — a second copy of the answers in an index is the same duplicate the
+   * Help Center migration removed.
+   *
+   * The href is the ROUTE pattern with its parameter beside it, not an
+   * interpolated path, so the router keeps checking that the destination exists
+   * instead of taking a string on trust.
+   */
+  | "/support/$slug"
   | "/privacy"
   | "/terms"
   | "/settings/support";
@@ -22,11 +40,13 @@ export interface PublicSearchEntry {
   summary: string;
   category: PublicSearchCategory;
   href: PublicSearchHref;
+  /** Route parameters, for the entries whose href is a pattern. */
+  params?: { slug: string };
   keywords: readonly string[];
   priority?: number;
 }
 
-export const PUBLIC_SEARCH_INDEX: readonly PublicSearchEntry[] = [
+const PUBLIC_PAGE_ENTRIES: readonly PublicSearchEntry[] = [
   {
     id: "company",
     title: "CARCC CADANE company information",
@@ -125,6 +145,25 @@ export const PUBLIC_SEARCH_INDEX: readonly PublicSearchEntry[] = [
     keywords: ["help", "account", "sync", "billing", "privacy", "delete"],
   },
   {
+    id: "help-center",
+    title: "OCADE Help Center",
+    summary:
+      "Search every help article, with the platforms and product version each one applies to and the date its answer last changed.",
+    category: "Help",
+    href: "/support",
+    keywords: ["help", "support", "articles", "how do I", "guide"],
+    priority: 2,
+  },
+  {
+    id: "security-surface",
+    title: "OCADE security",
+    summary:
+      "What is encrypted, what stays on your device, who can reach your account, and how to report a vulnerability.",
+    category: "Help",
+    href: "/security",
+    keywords: ["security", "encryption", "vulnerability", "disclosure", "mfa"],
+  },
+  {
     id: "support",
     title: "Contact support",
     summary:
@@ -145,12 +184,37 @@ export const PUBLIC_SEARCH_INDEX: readonly PublicSearchEntry[] = [
   {
     id: "terms",
     title: "Terms of Service",
-    summary: "Read the current pre-launch terms, free-launch boundary and product-use conditions.",
+    summary: "Read the current pre-launch terms, payment boundary and product-use conditions.",
     category: "Legal",
     href: "/terms",
-    keywords: ["terms", "legal", "conditions", "free launch"],
+    keywords: ["terms", "legal", "conditions", "payment"],
   },
 ] as const;
+
+/**
+ * The help articles, as search destinations.
+ *
+ * Derived, never retyped: the title, summary and keywords come from the article
+ * itself, so an answer that is rewritten is searchable by its new words without
+ * anybody remembering to update an index.
+ */
+const HELP_ARTICLE_ENTRIES: readonly PublicSearchEntry[] = PUBLISHED_ARTICLES.map((article) => ({
+  id: `help-${article.slug}`,
+  title: article.question ?? article.title,
+  summary: article.summary,
+  category: "Help" as const,
+  href: "/support/$slug" as const,
+  params: { slug: article.slug },
+  keywords: article.keywords,
+}));
+
+/** Everything site search can return: the public pages and every help article. */
+export const PUBLIC_SEARCH_INDEX: readonly PublicSearchEntry[] = [
+  ...PUBLIC_PAGE_ENTRIES,
+  ...HELP_ARTICLE_ENTRIES,
+];
+
+const SEARCHABLE_ENTRIES = PUBLIC_SEARCH_INDEX;
 
 export type PublicSearchSort = "relevance" | "title";
 
@@ -161,7 +225,7 @@ export function searchPublicPages(
 ): PublicSearchEntry[] {
   const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
 
-  const scored = PUBLIC_SEARCH_INDEX.filter(
+  const scored = SEARCHABLE_ENTRIES.filter(
     (entry) => category === "All" || entry.category === category,
   )
     .map((entry) => {

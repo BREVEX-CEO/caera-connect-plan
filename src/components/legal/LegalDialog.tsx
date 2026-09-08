@@ -17,9 +17,24 @@
  * The words come from `LegalContent`, the same module the standalone routes
  * render, so the dialog cannot show a different version of the agreement from
  * the page a link would reach.
+ *
+ * THEY ARE LOADED WHEN THE DIALOG OPENS, NOT BEFORE. The two documents are
+ * about 27 KiB of prose, and the consent gate that renders this dialog is
+ * mounted on every route — so a statically imported `LegalContent` was 27 KiB
+ * of legal text on the first paint of the landing page, for a dialog almost
+ * nobody opens. The metadata stays static because the header renders
+ * immediately; only the body is deferred.
  */
+import { lazy, Suspense } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { TermsContent, PrivacyContent, TERMS_META, PRIVACY_META } from "./LegalContent";
+import { TERMS_META, PRIVACY_META } from "./legal-document-meta";
+
+const TermsContent = lazy(() =>
+  import("./LegalContent").then((module) => ({ default: module.TermsContent })),
+);
+const PrivacyContent = lazy(() =>
+  import("./LegalContent").then((module) => ({ default: module.PrivacyContent })),
+);
 
 export type LegalDocument = "terms" | "privacy";
 
@@ -63,7 +78,21 @@ export function LegalDialog({
           role="region"
           aria-label={`${meta.title} content`}
         >
-          {document === "terms" ? <TermsContent /> : <PrivacyContent />}
+          {/*
+            The fallback is a sentence, not a spinner: the document arrives in
+            a few milliseconds from the same origin, and a spinner that flashes
+            for one frame reads as a fault. `aria-live` so a screen reader is
+            told the document is coming rather than finding an empty region.
+          */}
+          <Suspense
+            fallback={
+              <p aria-live="polite" className="text-muted-foreground">
+                Loading {meta.title.toLowerCase()}…
+              </p>
+            }
+          >
+            {document === "terms" ? <TermsContent /> : <PrivacyContent />}
+          </Suspense>
         </div>
       </DialogContent>
     </Dialog>

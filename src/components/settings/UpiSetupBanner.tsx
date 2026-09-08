@@ -22,7 +22,7 @@ export function UpiSetupBanner({ readiness }: { readiness: UpiReadiness | null }
       data-state={readiness.state}
       className={
         operatorFault
-          ? "flex items-start gap-2 border-[color:var(--state-warning)]/40 p-3 text-xs"
+          ? "flex items-start gap-2 border-[color:var(--state-warning-line-strong)] p-3 text-xs"
           : "flex items-start gap-2 p-3 text-xs text-muted-foreground"
       }
     >

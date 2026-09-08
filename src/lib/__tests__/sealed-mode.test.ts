@@ -244,7 +244,7 @@ describe("the limits are stated rather than implied away", () => {
   });
 });
 
-describe("the signed-in chat gets the same guarantees as the demo", () => {
+describe("the signed-in chat seals a whole conversation", () => {
   /**
    * The demo proved these first because it was the easier surface. This is the
    * one where they matter: real documents, real privacy modes, and a user who
@@ -311,13 +311,13 @@ describe("the signed-in chat gets the same guarantees as the demo", () => {
    * and a cross-origin `sendBeacon` returned true. Both surfaces now install a
    * conversation-long barrier as well.
    */
-  it("installs a conversation-long seal on both chat surfaces", () => {
-    for (const [name, source] of [
-      ["signed-in chat", CHAT],
-      ["demo", readFileSync("src/routes/demo.ocade.tsx", "utf8")],
-    ] as const) {
-      expect(source, name).toMatch(/installConversationSeal\(/);
-    }
+  it("installs a conversation-long seal, not a per-message one", () => {
+    /*
+     * Per-message sealing leaves the gaps between messages open, which is
+     * precisely when a background request would fire. The barrier is installed
+     * for the conversation and lifted deliberately.
+     */
+    expect(CHAT).toMatch(/installConversationSeal\(/);
   });
 
   it("records both the question and the answer in the chain", () => {
@@ -334,8 +334,10 @@ describe("the signed-in chat gets the same guarantees as the demo", () => {
   it("clears the chain when the conversation changes", () => {
     /*
      * Otherwise the panel verifies the PREVIOUS conversation and reports it
-     * intact — a confident claim about something no longer on screen. The demo
-     * had this defect across three separate reset paths.
+     * intact — a confident claim about something no longer on screen. Keyed on
+     * the conversation id, so every way of changing conversation clears it and
+     * no control can be added later that clears the messages and forgets the
+     * chain.
      */
     const c = code(CHAT);
     const effect = c.slice(c.indexOf("ledgerRef.current = [];"));

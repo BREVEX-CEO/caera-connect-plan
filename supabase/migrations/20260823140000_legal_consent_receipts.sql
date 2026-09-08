@@ -68,3 +68,21 @@ create policy "Users record their own consent"
 
 comment on table public.legal_consent_receipts is
   'Append-only record of which document versions an account accepted, and when. No update or delete policy exists: a later acceptance is a new row, never an amendment to an earlier one.';
+
+/*
+ * THE POLICIES ABOVE ARE ONLY HALF OF "APPEND-ONLY".
+ *
+ * A Supabase project grants ALL on every new table directly to `authenticated`
+ * through ALTER DEFAULT PRIVILEGES, so this table was created with UPDATE and
+ * DELETE already held by every signed-in browser. Row-level security refused
+ * them — there is no UPDATE or DELETE policy, by design — but a grant that
+ * exists is a grant that becomes live the moment somebody adds a policy for one
+ * legitimate case. This migration's own verification script says "authenticated
+ * holds update or delete on consent receipts", and it was right the whole time;
+ * it passed only because the local twin had no default privileges to reproduce.
+ *
+ * Stated explicitly here so the table's privileges say what its comment says.
+ */
+REVOKE ALL ON TABLE public.legal_consent_receipts FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT ON TABLE public.legal_consent_receipts TO authenticated;
+GRANT ALL ON TABLE public.legal_consent_receipts TO service_role;

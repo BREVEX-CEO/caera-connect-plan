@@ -200,8 +200,8 @@ export function PreflightPanel() {
           className={cn(
             "mt-3 rounded-lg border p-3 text-xs",
             shadow.safe
-              ? "border-[color:var(--state-success)]/40 bg-[color:var(--state-success)]/10"
-              : "border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10",
+              ? "border-[color:var(--state-success-line-strong)] bg-[color:var(--state-success-surface)]"
+              : "border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)]",
           )}
         >
           <p className="flex items-center gap-1.5 font-medium text-foreground">

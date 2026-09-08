@@ -2,7 +2,7 @@
  * Getting an already-loaded document onto the isolated side of the boundary.
  *
  * Cross-origin isolation is decided when a DOCUMENT is created, from the
- * headers on that response. A client-side router transition into `/demo/ocade`
+ * headers on that response. A client-side router transition into `/ocade`
  * keeps the document it started from — the landing page, which is deliberately
  * not isolated — so `crossOriginIsolated` stays false and the engine silently
  * runs on one core. The route looks right and the threads are not there.

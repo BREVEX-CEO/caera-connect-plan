@@ -92,8 +92,25 @@ export function SettingsShell({ children }: { children: ReactNode }) {
   const isDetail = !onList;
 
   return (
-    <div className="flex min-h-[calc(100vh-3rem)] flex-col md:flex-row md:gap-0">
-      {/* Nav column: always visible on md+, on mobile only when on the list view */}
+    /*
+     * TWO NAVIGATION COLUMNS ONLY WHERE THERE IS ROOM FOR THEM, WHICH IS `lg`
+     * AND NOT `md`.
+     *
+     * This layout used to split at 768. It does not have 768 pixels to split:
+     * the workspace rail is 264 wide and appears at exactly the same
+     * breakpoint, so at a 768-wide tablet the two nav columns took 524 and left
+     * 244 for the settings form itself — measured, not estimated. A 256px input
+     * in that column pushed the document to 833px and the whole page scrolled
+     * sideways, which is the defect people report as "settings is broken on my
+     * iPad".
+     *
+     * At `lg` the sum is 264 + 260 = 524 out of 1024, leaving 500 for the form.
+     * Between 768 and 1024 the screen falls back to the list-then-detail
+     * pattern it already implements for phones — one column at a time, full
+     * width — which is the right answer at that size rather than a compromise.
+     */
+    <div className="flex min-h-[calc(100vh-3rem)] flex-col lg:flex-row lg:gap-0">
+      {/* Nav column: always visible on lg+, below it only when on the list view */}
       <aside
         className={cn(
           /*
@@ -104,8 +121,8 @@ export function SettingsShell({ children }: { children: ReactNode }) {
             sticky positioning: `position: sticky` is resolved before the
             transform, so the column still pins under the utility bar.
           */
-          "ocade-depth depth-floating flex w-full flex-col border-b border-border/60 bg-sidebar/40 md:sticky md:top-12 md:h-[calc(100vh-3rem)] md:w-[260px] md:shrink-0 md:border-b-0 md:border-r",
-          isDetail ? "hidden md:flex" : "flex",
+          "ocade-depth depth-floating flex w-full flex-col border-b border-border/60 bg-sidebar/40 lg:sticky lg:top-12 lg:h-[calc(100vh-3rem)] lg:w-[260px] lg:shrink-0 lg:border-b-0 lg:border-r",
+          isDetail ? "hidden lg:flex" : "flex",
         )}
       >
         <div className="border-b border-border/50 px-3 pb-3 pt-4">
@@ -238,11 +255,11 @@ export function SettingsShell({ children }: { children: ReactNode }) {
           // painting them normally. Keep the raised shadow cue, but make this
           // subtree a deliberately flat, reliable interaction plane.
           "ocade-depth-cue ocade-interactive-plane depth-raised min-w-0 flex-1",
-          onList ? "hidden md:block" : "block",
+          onList ? "hidden lg:block" : "block",
         )}
       >
         <div className="mx-auto w-full max-w-3xl px-5 py-6 sm:px-8">
-          <div className="mb-3 md:hidden">
+          <div className="mb-3 lg:hidden">
             <Link
               to="/settings"
               className="inline-flex min-h-[24px] items-center gap-1 px-1 py-1 text-xs text-muted-foreground hover:text-foreground"

@@ -53,7 +53,7 @@ async function runDemo(granted: boolean): Promise<GovernedRunResult | { error: s
     // When not granted, the scope covers a different capability, so planning
     // this step is refused and the run halts — honestly.
     scope: createTaskScope({
-      id: "demo",
+      id: "scope-refusal-example",
       summary: granted ? "Read the pasted data" : "Something else entirely",
       capabilities: granted ? ["file.open"] : ["clipboard.read"],
       paths: ["memory"],
@@ -128,8 +128,8 @@ export function GovernedRunPanel() {
           className={cn(
             "mt-3 rounded-lg border p-3 text-xs",
             fullyRecorded
-              ? "border-[color:var(--state-success)]/40 bg-[color:var(--state-success)]/10"
-              : "border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10",
+              ? "border-[color:var(--state-success-line-strong)] bg-[color:var(--state-success-surface)]"
+              : "border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)]",
           )}
         >
           <p className="flex items-center gap-1.5 font-medium text-foreground">

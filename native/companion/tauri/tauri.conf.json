@@ -42,16 +42,8 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "externalBin": [
-      "binaries/ocade-browser-host",
-      "binaries/ocade-gesture-host"
-    ],
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.ico"
-    ],
+    "externalBin": ["binaries/ocade-browser-host", "binaries/ocade-gesture-host"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
     "copyright": "CARCC CADANE",
     "category": "Productivity",
     "shortDescription": "OCADE desktop companion",
@@ -76,9 +68,7 @@
       "active": false,
       "dialog": true,
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ1RjJERDNCOTExM0ZERjEKUldUeC9ST1JPOTN5UlZMbG1jSWR6N2VLVlNkZmU1eWpyUDBHYUFwUUZMaGtlY2xzY05aYXE5cG0K",
-      "endpoints": [
-        "https://updates.ocade.in/companion/{{target}}/{{arch}}/{{current_version}}"
-      ]
+      "endpoints": ["https://updates.ocade.in/companion/{{target}}/{{arch}}/{{current_version}}"]
     }
   }
 }

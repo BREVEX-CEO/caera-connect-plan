@@ -32,10 +32,14 @@ const OUT = "release/OCADE_J2_CAPTIONS_REPLY_INTERRUPT.json";
 const HOST = "scripts/voice/voice-host.ps1";
 
 const ps = (a: string[]): Record<string, unknown> => {
-  const out = execFileSync("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", HOST, ...a], {
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-  });
+  const out = execFileSync(
+    "powershell",
+    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", HOST, ...a],
+    {
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    },
+  );
   return JSON.parse((out.trim().split("\n").filter(Boolean).pop() ?? "{}").replace(/^﻿/, ""));
 };
 
@@ -54,7 +58,14 @@ const fullMs = Number(full.elapsedMs);
 
 // ---- the real reply, with captions and metered output, interrupted partway
 const INTERRUPT_AT = 1500;
-const run = ps(["-Mode", "speak-metered", "-Text", REPLY, "-InterruptAfterMs", String(INTERRUPT_AT)]);
+const run = ps([
+  "-Mode",
+  "speak-metered",
+  "-Text",
+  REPLY,
+  "-InterruptAfterMs",
+  String(INTERRUPT_AT),
+]);
 
 type Sample = { ms: number; peak: number };
 type Caption = { ms: number; charPosition: number; word: string };
@@ -106,8 +117,7 @@ const doc = {
     uninterruptedDurationMs: fullMs,
     maxOutputPeak: maxPeak,
     produced: audioReplyProduced,
-    note:
-      "Measured with IAudioMeterInformation on the default render endpoint — the peak sample the audio engine is rendering. A run that played nothing would show a flat zero trace here.",
+    note: "Measured with IAudioMeterInformation on the default render endpoint — the peak sample the audio engine is rendering. A run that played nothing would show a flat zero trace here.",
   },
   captions: {
     eventCount: captionEvents.length,
@@ -115,8 +125,7 @@ const doc = {
     positionsAdvance: captionsAdvance,
     live: captionsAreLive,
     lines: captionLines,
-    note:
-      "Driven by SpeakProgress, which fires per word as the synthesiser reaches it, and windowed by captionSentenceAt from src/lib/ocade-voice.ts. Liveness is judged on the timestamps being spread across the reply and the character positions advancing, because a single caption emitted at the end would otherwise pass.",
+    note: "Driven by SpeakProgress, which fires per word as the synthesiser reaches it, and windowed by captionSentenceAt from src/lib/ocade-voice.ts. Liveness is judged on the timestamps being spread across the reply and the character positions advancing, because a single caption emitted at the end would otherwise pass.",
   },
   interruption: {
     requestedAtMs: INTERRUPT_AT,
@@ -128,18 +137,25 @@ const doc = {
     endedEarlyVersusBaseline: endedEarly,
     baselineMs: fullMs,
     outputTrace: trace,
-    note:
-      "The uninterrupted reply is timed first so the interrupted one has a baseline to be short against. Output peak is zero from the cut onward; the last audible sample precedes the cancel.",
+    note: "The uninterrupted reply is timed first so the interrupted one has a baseline to be short against. Output peak is zero from the cut onward; the last audible sample precedes the cancel.",
   },
 };
 
-console.log(`audio reply    : max output peak ${maxPeak} over ${trace.length} samples (produced=${audioReplyProduced})`);
-console.log(`captions       : ${captionEvents.length} events across ${captionSpanMs}ms, advancing=${captionsAdvance} live=${captionsAreLive}`);
+console.log(
+  `audio reply    : max output peak ${maxPeak} over ${trace.length} samples (produced=${audioReplyProduced})`,
+);
+console.log(
+  `captions       : ${captionEvents.length} events across ${captionSpanMs}ms, advancing=${captionsAdvance} live=${captionsAreLive}`,
+);
 for (const line of captionLines.slice(0, 6)) {
-  console.log(`   ${String(line.ms).padStart(5)}ms  char ${String(line.charPosition).padStart(3)}  "${line.caption}"`);
+  console.log(
+    `   ${String(line.ms).padStart(5)}ms  char ${String(line.charPosition).padStart(3)}  "${line.caption}"`,
+  );
 }
 console.log(`baseline reply : ${fullMs}ms uninterrupted`);
-console.log(`interrupted    : cancel at ${cancelAt}ms, last audible ${lastAudible}ms, peak after cut ${peakAfterCut}`);
+console.log(
+  `interrupted    : cancel at ${cancelAt}ms, last audible ${lastAudible}ms, peak after cut ${peakAfterCut}`,
+);
 console.log(`               : output stopped=${outputStopped} endedEarly=${endedEarly}`);
 console.log(`J2: ${doc.verdict}`);
 

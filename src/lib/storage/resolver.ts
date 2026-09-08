@@ -6,7 +6,12 @@
  * would bypass the user's privacy choice.
  */
 
-import { supabase } from "@/integrations/supabase/client";
+/*
+ * ON DEMAND: reached from the onboarding route, which the generated route tree
+ * imports statically, so a top-level import put the Supabase client on the
+ * entry chunk's graph.
+ */
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import type { DataClass, StorageAdapter, StorageMode } from "./types";
 import { DATA_CLASSES } from "./types";
 import { indexedDbAdapter } from "./indexeddb-adapter";
@@ -94,14 +99,15 @@ export async function getModeFor(userId: string, dataClass: DataClass): Promise<
    * Never seen on this device. Ask, but do not wait forever: whatever this
    * returns, the caller has a page to render.
    */
-  const lookup = Promise.resolve(
-    supabase
-      .from("data_class_privacy")
-      .select("mode")
-      .eq("user_id", userId)
-      .eq("data_class", dataClass)
-      .maybeSingle(),
-  )
+  const lookup = loadSupabaseClient()
+    .then((supabase) =>
+      supabase
+        .from("data_class_privacy")
+        .select("mode")
+        .eq("user_id", userId)
+        .eq("data_class", dataClass)
+        .maybeSingle(),
+    )
     .then(({ data }) => data?.mode as StorageMode | undefined)
     .catch(() => undefined);
   const offline = typeof navigator !== "undefined" && navigator.onLine === false;
@@ -121,6 +127,7 @@ export async function getModeFor(userId: string, dataClass: DataClass): Promise<
 }
 
 export async function setModeFor(userId: string, dataClass: DataClass, mode: StorageMode) {
+  const supabase = await loadSupabaseClient();
   const { error } = await supabase
     .from("data_class_privacy")
     .upsert({ user_id: userId, data_class: dataClass, mode }, { onConflict: "user_id,data_class" });
@@ -129,6 +136,7 @@ export async function setModeFor(userId: string, dataClass: DataClass, mode: Sto
 }
 
 export async function loadAllModes(userId: string): Promise<Record<DataClass, StorageMode>> {
+  const supabase = await loadSupabaseClient();
   const { data } = await supabase
     .from("data_class_privacy")
     .select("data_class, mode")

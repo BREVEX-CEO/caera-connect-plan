@@ -20,8 +20,10 @@ const control = ocadeCorePolicy("control");
 
 describe("what the policy always says", () => {
   it("names the product and its maker", () => {
-    expect(chat).toContain("You are OCADE, made by CARCC CADANE.");
-    expect(chat).toContain("OCADE BY CARCC CADANE");
+    expect(chat).toContain(
+      "I am OCADE, an AI workspace built for Chat, Cowork and Code. I was created by the founder of CARCC CADANE.",
+    );
+    expect(chat).toContain("canonical identity");
   });
 
   it("keeps the model out of the identity", () => {

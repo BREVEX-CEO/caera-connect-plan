@@ -147,6 +147,7 @@ function PublicSearchPage() {
               <li key={result.id}>
                 <Link
                   to={result.href}
+                  params={result.params}
                   className="block rounded-2xl border border-white/7 bg-white/[0.018] p-5 transition hover:border-primary/35 hover:bg-white/[0.035]"
                 >
                   <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">

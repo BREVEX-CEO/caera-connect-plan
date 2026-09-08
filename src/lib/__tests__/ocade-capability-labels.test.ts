@@ -45,12 +45,14 @@ describe("OCADE capability labels", () => {
 
 describe("chat identity disclosure", () => {
   it("uses the confirmed creator wording", () => {
-    expect(ocadeCreatorStatement()).toBe("I am OCADE, developed and created by CARCC CADANE.");
+    expect(ocadeCreatorStatement()).toBe(
+      "I am OCADE, an AI workspace built for Chat, Cowork and Code. I was created by the founder of CARCC CADANE.",
+    );
   });
 
   it("discloses the capability tier in chat without leaking a raw model", () => {
     const line = ocadeChatCapabilityDisclosure("OCADE Local");
-    expect(line).toContain("developed and created by CARCC CADANE");
+    expect(line).toContain("created by the founder of CARCC CADANE");
     expect(line).toContain("OCADE Local");
     expect(line).toContain("advanced settings");
     expect(leaksRawModelIdentity(line)).toBe(false);

@@ -47,11 +47,10 @@ const WINDOWS_SCRIPT = "scripts/perception/test-windows.ps1";
 const HANDLE_FILE = join(tmpdir(), "ocade-test-windows.json");
 
 const ps = (args: string[]): Record<string, unknown> => {
-  const out = execFileSync(
-    "powershell",
-    ["-NoProfile", "-ExecutionPolicy", "Bypass", ...args],
-    { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
-  );
+  const out = execFileSync("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", ...args], {
+    encoding: "utf8",
+    maxBuffer: 32 * 1024 * 1024,
+  });
   const line = out.trim().split("\n").filter(Boolean).pop() ?? "{}";
   return JSON.parse(line);
 };
@@ -119,7 +118,16 @@ function scoreOcr(text: string, expected: string[], forbidden: string[]) {
 async function runOnce(label: string, scalePercent: number | null) {
   const win = await launchWindows();
   const path = join(tmpdir(), `ocade-capture-${label}.png`);
-  const cap = ps(["-File", HOST, "-Mode", "capture", "-Hwnd", String(win.targetHwnd), "-Path", path]);
+  const cap = ps([
+    "-File",
+    HOST,
+    "-Mode",
+    "capture",
+    "-Hwnd",
+    String(win.targetHwnd),
+    "-Path",
+    path,
+  ]);
   const ocr = ps(["-File", HOST, "-Mode", "ocr", "-Path", path]);
   const score = scoreOcr(String(ocr.text ?? ""), win.targetLines, win.decoyLines);
 
@@ -140,8 +148,15 @@ async function runOnce(label: string, scalePercent: number | null) {
   let unaware: Record<string, unknown> = {};
   try {
     unaware = ps([
-      "-File", HOST, "-Mode", "capture",
-      "-Hwnd", String(win.targetHwnd), "-Path", unawarePath, "-DpiUnaware",
+      "-File",
+      HOST,
+      "-Mode",
+      "capture",
+      "-Hwnd",
+      String(win.targetHwnd),
+      "-Path",
+      unawarePath,
+      "-DpiUnaware",
     ]);
   } catch (error) {
     unaware = { ok: false, error: String(error).slice(0, 200) };
@@ -158,8 +173,15 @@ async function runOnce(label: string, scalePercent: number | null) {
   let naiveSized: Record<string, unknown> = {};
   try {
     naiveSized = ps([
-      "-File", HOST, "-Mode", "capture",
-      "-Hwnd", String(win.targetHwnd), "-Path", naivePath, "-NaiveSize",
+      "-File",
+      HOST,
+      "-Mode",
+      "capture",
+      "-Hwnd",
+      String(win.targetHwnd),
+      "-Path",
+      naivePath,
+      "-NaiveSize",
     ]);
   } catch (error) {
     naiveSized = { ok: false, error: String(error).slice(0, 200) };
@@ -179,7 +201,10 @@ async function runOnce(label: string, scalePercent: number | null) {
   const truth = aware.visibleRect;
   const naiveCropPercent =
     naive && truth.w > 0
-      ? Math.round((1 - (Math.min(naive.w, truth.w) * Math.min(naive.h, truth.h)) / (truth.w * truth.h)) * 100)
+      ? Math.round(
+          (1 - (Math.min(naive.w, truth.w) * Math.min(naive.h, truth.h)) / (truth.w * truth.h)) *
+            100,
+        )
       : null;
 
   return {
@@ -284,8 +309,7 @@ const scaledRun = runs.find(
   (r) => typeof r.displayScalePercent === "number" && r.displayScalePercent !== 100,
 );
 const ctl = scaledRun?.dpiControl as
-  | { getWindowRectIsVirtualised: boolean; dwmBoundsIdenticalAcrossAwareness: boolean }
-  | undefined;
+  { getWindowRectIsVirtualised: boolean; dwmBoundsIdenticalAcrossAwareness: boolean } | undefined;
 const dpiHazardDemonstrated = !!ctl && ctl.getWindowRectIsVirtualised;
 const dpiHazardNeutralised = !!ctl && ctl.dwmBoundsIdenticalAcrossAwareness;
 if (!dpiHazardDemonstrated || !dpiHazardNeutralised) failed = true;
@@ -321,8 +345,7 @@ const doc = {
 
 for (const run of runs) {
   const c = run.comparison as
-    | { allExpectedFound: boolean; scopedCorrectly: boolean; decoyLinesLeaked: string[] }
-    | undefined;
+    { allExpectedFound: boolean; scopedCorrectly: boolean; decoyLinesLeaked: string[] } | undefined;
   const u = run.dpiControl as
     | {
         getWindowRectIsVirtualised: boolean;
@@ -345,13 +368,18 @@ for (const run of runs) {
     `  captured            : ${img.width}x${img.height}  unpainted=${(capInfo.unpaintedFraction * 100).toFixed(1)}% fullyPainted=${capInfo.fullyPainted}`,
   );
   console.log(`  all known text OCR'd: ${c.allExpectedFound}`);
-  console.log(`  decoy leaked        : ${c.decoyLinesLeaked.length > 0 ? c.decoyLinesLeaked : "none"}`);
+  console.log(
+    `  decoy leaked        : ${c.decoyLinesLeaked.length > 0 ? c.decoyLinesLeaked : "none"}`,
+  );
   console.log(
     `  GetWindowRect virtualised: ${u?.getWindowRectIsVirtualised} (naive capture would crop ${u?.naiveCaptureWouldCropPercent}%)`,
   );
   console.log(`  DWM bounds unaffected    : ${u?.dwmBoundsIdenticalAcrossAwareness}`);
-  const n = run.naiveSizingControl as { unpaintedFraction: number; detectorCatchesIt: boolean } | undefined;
-  console.log(`  old sizing unpainted     : ${((n?.unpaintedFraction ?? 0) * 100).toFixed(1)}% detectorCatchesIt=${n?.detectorCatchesIt}`);
+  const n = run.naiveSizingControl as
+    { unpaintedFraction: number; detectorCatchesIt: boolean } | undefined;
+  console.log(
+    `  old sizing unpainted     : ${((n?.unpaintedFraction ?? 0) * 100).toFixed(1)}% detectorCatchesIt=${n?.detectorCatchesIt}`,
+  );
 }
 console.log(`display scale restored: ${restoredOk} (${restored.currentPercent}%)`);
 console.log(`I1: ${doc.verdict}`);

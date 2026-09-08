@@ -4,7 +4,7 @@ import { User, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { recordAction } from "@/lib/actions";
 import { useSettingsAccess } from "./use-settings-access";
 import { DeleteAccountCard } from "./DeleteAccountCard";
@@ -31,9 +31,24 @@ export function AccountPanel() {
 
   useEffect(() => {
     let cancelled = false;
-    void supabase.auth.getUser().then(({ data }) => {
-      if (!cancelled) setEmail(data.user?.email ?? null);
-    });
+    void loadSupabaseClient()
+      .then((supabase) => supabase.auth.getUser())
+      .then(({ data }) => {
+        if (!cancelled) setEmail(data.user?.email ?? null);
+      })
+      /*
+       * A DEPLOYMENT WITH NO SUPABASE BINDING IS "NO EMAIL", NOT A CRASH.
+       *
+       * The client throws on construction when the environment variables are
+       * missing — deliberately, so nothing silently reaches another project.
+       * That used to surface as a synchronous throw inside this effect; loading
+       * on demand turns it into a promise rejection, and an unhandled one is a
+       * console error on a page that is otherwise working. The panel already
+       * renders correctly with no address, which is the truthful state here.
+       */
+      .catch(() => {
+        if (!cancelled) setEmail(null);
+      });
     return () => {
       cancelled = true;
     };
@@ -44,6 +59,7 @@ export function AccountPanel() {
     // Audit first — recordAction resolves the user from the live session,
     // which signOut destroys.
     void recordAction({ actionId: "auth.sign_out" });
+    const supabase = await loadSupabaseClient();
     const { error } = await supabase.auth.signOut();
     setBusy(false);
     if (error) {

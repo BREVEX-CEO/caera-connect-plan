@@ -5,8 +5,10 @@ import {
   Check,
   Pencil,
   RefreshCw,
+  Repeat,
   CornerDownRight,
   GitBranch,
+  MessageSquareQuote,
   Volume2,
   Bookmark,
   Trash2,
@@ -134,14 +136,39 @@ export const MessageBubble = memo(function MessageBubble({
   showTimestamp,
   renderMarkdown = true,
   density = "comfortable",
+  isLatest = false,
 }: {
   message: ChatMessageView;
   actions: MessageActions;
   showTimestamp?: boolean;
   renderMarkdown?: boolean;
   density?: "comfortable" | "compact";
+  /**
+   * Whether this is the newest turn in the transcript.
+   *
+   * Needed because two controls are only meaningful there: regenerating an
+   * answer from the middle of a thread would silently discard everything after
+   * it, and the run comparison only has pinned conditions for the last answer.
+   * The transcript knows the order; a bubble on its own does not.
+   */
+  isLatest?: boolean;
 }) {
   const isUser = message.role === "user";
+  /*
+   * THE ROLE DECIDES WHICH CONTROLS EXIST, AND IT DECIDES IT HERE.
+   *
+   * Every one of these handlers already checked the role before doing anything
+   * — `onBranch`, `onSave` and `onAside` return without acting on a user turn,
+   * and `onEdit` returns without acting on an assistant one. But the ROW was
+   * drawn from the same `actions` object for both roles, so a user turn showed
+   * "Branch from here", "Save this answer" and "Ask about this", and clicking
+   * any of them did nothing at all. Four controls that looked available and
+   * were not.
+   *
+   * The check belongs on the render, not only in the handler: a control that
+   * cannot act must not be offered. The handlers keep their guards, because
+   * they are also the defence against a caller that passes the wrong thing.
+   */
   const time = showTimestamp ? formatTime(message.createdAt) : null;
   const [touchActionsOpen, setTouchActionsOpen] = useState(false);
   const gestureRef = useRef<{ x: number; y: number } | null>(null);
@@ -204,24 +231,37 @@ export const MessageBubble = memo(function MessageBubble({
           <Reply className="h-3.5 w-3.5" />
         </ActionButton>
       ) : null}
-      {actions.onEdit ? (
+      {isUser && actions.onEdit ? (
         <ActionButton label="Edit and resend" onClick={() => actions.onEdit?.(message)}>
           <Pencil className="h-3.5 w-3.5" />
         </ActionButton>
       ) : null}
-      {actions.onRegenerate ? (
+      {!isUser && isLatest && actions.onRegenerate ? (
         <ActionButton label="Regenerate answer" onClick={() => actions.onRegenerate?.(message)}>
           <RefreshCw className="h-3.5 w-3.5" />
         </ActionButton>
       ) : null}
-      {actions.onContinue ? (
+      {!isUser && isLatest && actions.onRerun ? (
+        <ActionButton label="Run again and compare" onClick={() => actions.onRerun?.(message)}>
+          <Repeat className="h-3.5 w-3.5" />
+        </ActionButton>
+      ) : null}
+      {!isUser && actions.onContinue ? (
         <ActionButton label="Continue this answer" onClick={() => actions.onContinue?.(message)}>
           <CornerDownRight className="h-3.5 w-3.5" />
         </ActionButton>
       ) : null}
-      {actions.onBranch ? (
+      {!isUser && actions.onBranch ? (
         <ActionButton label="Branch from here" onClick={() => actions.onBranch?.(message)}>
           <GitBranch className="h-3.5 w-3.5" />
+        </ActionButton>
+      ) : null}
+      {!isUser && actions.onAside ? (
+        <ActionButton
+          label="Ask about this — stays out of the thread"
+          onClick={() => actions.onAside?.(message)}
+        >
+          <MessageSquareQuote className="h-3.5 w-3.5" />
         </ActionButton>
       ) : null}
       {actions.onSpeak ? (
@@ -229,7 +269,7 @@ export const MessageBubble = memo(function MessageBubble({
           <Volume2 className="h-3.5 w-3.5" />
         </ActionButton>
       ) : null}
-      {actions.onSave ? (
+      {!isUser && actions.onSave ? (
         <ActionButton label="Save this answer" onClick={() => actions.onSave?.(message)}>
           <Bookmark className="h-3.5 w-3.5" />
         </ActionButton>

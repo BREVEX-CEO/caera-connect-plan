@@ -1,0 +1,17 @@
+/*
+ * OCADE's only customer-facing colour primitives.
+ *
+ * Equal RGB channels and zero OKLCH chroma are an invariant, not a theme
+ * preference. State is expressed through labels, icons, borders, patterns,
+ * opacity and motion; colour is never the only signal. Semantic tokens in
+ * styles.css may choose a lightness and alpha from these values, but may not
+ * introduce a hue.
+ */
+:root {
+  --ocade-black: oklch(0 0 0);
+  --ocade-ink: oklch(0.1 0 0);
+  --ocade-graphite: oklch(0.2 0 0);
+  --ocade-slate: oklch(0.42 0 0);
+  --ocade-silver: oklch(0.76 0 0);
+  --ocade-white: oklch(1 0 0);
+}

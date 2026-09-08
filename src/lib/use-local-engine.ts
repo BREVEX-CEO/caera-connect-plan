@@ -19,6 +19,19 @@ export interface LocalEngineState extends LocalDiscovery {
 }
 
 /**
+ * A raw loopback runtime is a packaged-desktop capability, not a fact inferred
+ * from a web page being served on localhost. Browser WebGPU/WASM preparation
+ * belongs to the installation authority; paired runtimes use the authenticated
+ * paired adapter. Explicit diagnostics/model-management screens may still pass
+ * `true` to inspect a user-requested loopback runtime.
+ */
+function packagedDesktopRuntime(): boolean {
+  if (typeof window === "undefined") return false;
+  const host = window as Window & { __TAURI__?: unknown; __OCADE_DESKTOP__?: unknown };
+  return Boolean(host.__TAURI__ || host.__OCADE_DESKTOP__);
+}
+
+/**
  * Detects and monitors the on-device OCADE Local engine (Ollama-compatible)
  * from the browser. Purely a read/health probe — no prompts are sent. Exposes
  * the discovered models (already classified into OCADE capability labels) and a
@@ -26,15 +39,16 @@ export interface LocalEngineState extends LocalDiscovery {
  */
 export function useLocalEngine(
   bridgeUrl: string = DEFAULT_LOCAL_BRIDGE_URL,
-  enabled = true,
+  enabled?: boolean,
 ): LocalEngineState {
+  const probeEnabled = enabled ?? packagedDesktopRuntime();
   const [state, setState] = useState<LocalDiscovery>({ ok: false, reachable: false, models: [] });
   const [status, setStatus] = useState<LocalEngineStatus>("idle");
   const active = useRef(true);
 
   const refresh = useCallback(
     (force = false) => {
-      if (!enabled) {
+      if (!probeEnabled) {
         setStatus("idle");
         return;
       }
@@ -81,7 +95,7 @@ export function useLocalEngine(
           setStatus("unavailable");
         });
     },
-    [bridgeUrl, enabled],
+    [bridgeUrl, probeEnabled],
   );
 
   useEffect(() => {

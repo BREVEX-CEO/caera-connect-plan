@@ -47,6 +47,7 @@ const EMAIL = process.env.OCADE_AUDIT_EMAIL ?? `${MARK}@ocade.test`;
 
 const results = [];
 let page;
+let deliberatelyOffline = false;
 
 /**
  * Run one stage. A stage that throws is a failed stage, not a dead run — the
@@ -172,9 +173,30 @@ const context = await browser.newContext({ permissions: [] });
 page = await context.newPage();
 
 const consoleErrors = [];
-page.on("console", (message) => {
-  if (message.type() === "error") consoleErrors.push(message.text().slice(0, 200));
-});
+const expectedOfflineConsoleErrors = [];
+const failedRequests = [];
+const failedResponses = [];
+function observePage(candidate) {
+  candidate.on("console", (message) => {
+    if (message.type() !== "error") return;
+    const target = deliberatelyOffline ? expectedOfflineConsoleErrors : consoleErrors;
+    const location = message.location();
+    const suffix = location.url ? ` (${location.url}:${location.lineNumber ?? 0})` : "";
+    target.push(`${message.text().slice(0, 200)}${suffix}`);
+  });
+  candidate.on("requestfailed", (request) => {
+    failedRequests.push({
+      url: request.url(),
+      reason: request.failure()?.errorText ?? "request failed",
+    });
+  });
+  candidate.on("response", (response) => {
+    if (response.status() >= 400) {
+      failedResponses.push({ status: response.status(), url: response.url() });
+    }
+  });
+}
+observePage(page);
 
 console.log(`\nTHE CUSTOMER JOURNEY — one profile, ${BASE}, mark ${MARK}\n`);
 
@@ -318,7 +340,10 @@ await stage("chat answers, or says why it cannot", async () => {
   await page.getByRole("button", { name: "Send", exact: true }).first().click({ timeout: 15000 });
   await page.waitForTimeout(6000);
   const text = await bodyText();
-  assert(text.includes(MARK), "the message never appeared in the transcript");
+  assert(
+    text.includes(MARK),
+    `the message never appeared in the transcript; visible state: ${text.replace(/\s+/g, " ").slice(0, 500)}`,
+  );
   /*
    * A CI container has no room for a multi-gigabyte engine, so a real answer
    * is not the assertion — an ANSWER OR A REASON is. Silence after pressing
@@ -334,6 +359,18 @@ await stage("chat answers, or says why it cannot", async () => {
   assert(answered > 0 || explained, "Send produced neither an answer nor a stated reason");
   return answered > 0 ? `${answered} assistant turns` : "no engine here, and the product says so";
 });
+
+if (process.env.OCADE_JOURNEY_STOP_AFTER_CHAT === "1") {
+  await browser.close();
+  const chat = results.at(-1);
+  if (failedResponses.length > 0) {
+    console.log("\nHTTP failures before the Chat checkpoint:");
+    for (const response of failedResponses.slice(-12)) {
+      console.log(`  ${response.status} ${response.url}`);
+    }
+  }
+  process.exit(chat?.ok ? 0 : 1);
+}
 
 /* ------------------------------------------------------------------ 5 -- */
 await stage("the tool surface is reachable from chat", async () => {
@@ -499,6 +536,7 @@ await stage("offline: the work made online is still readable", async () => {
     .catch(() => false);
   assert(shellCached, "the application shell was never cached, so offline had nothing to serve");
 
+  deliberatelyOffline = true;
   await context.setOffline(true);
   await page.waitForTimeout(1200);
   let unlockedOffline = false;
@@ -537,9 +575,7 @@ await stage("offline: the work made online is still readable", async () => {
 await stage("reopen offline: a new page keeps the session and the work", async () => {
   await page.close();
   page = await context.newPage();
-  page.on("console", (message) => {
-    if (message.type() === "error") consoleErrors.push(message.text().slice(0, 200));
-  });
+  observePage(page);
   await page
     .goto(`${BASE}/ocade/projects`, { waitUntil: "domcontentloaded", timeout: 45000 })
     .catch(() => {});
@@ -555,6 +591,7 @@ await stage("reopen offline: a new page keeps the session and the work", async (
 await stage("reconnect: the product comes back without a reload", async () => {
   await context.setOffline(false);
   await page.waitForTimeout(2500);
+  deliberatelyOffline = false;
   await goto("/ocade/projects");
   assert(await signedIn(), "the session was lost on reconnect");
   await unlockIfLocked();
@@ -671,11 +708,39 @@ await browser.close();
 const failed = results.filter((r) => !r.ok);
 console.log(`\n${results.length - failed.length}/${results.length} stages passed`);
 if (consoleErrors.length) {
-  console.log(`\n${consoleErrors.length} console errors, first three:`);
+  console.log(`\n${consoleErrors.length} unexpected console errors, first three:`);
   for (const error of consoleErrors.slice(0, 3)) console.log(`  ${error}`);
+}
+if (expectedOfflineConsoleErrors.length) {
+  console.log(
+    `\n${expectedOfflineConsoleErrors.length} expected browser network errors while deliberately offline`,
+  );
+}
+if (failedRequests.length) {
+  const counts = new Map();
+  for (const request of failedRequests) {
+    const key = `${request.reason} ${request.url}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  console.log(`\n${failedRequests.length} failed requests, most frequent:`);
+  for (const [request, count] of [...counts].sort((a, b) => b[1] - a[1]).slice(0, 8)) {
+    console.log(`  ${count}× ${request}`);
+  }
+}
+if (failedResponses.length) {
+  const counts = new Map();
+  for (const response of failedResponses) {
+    const key = `${response.status} ${response.url}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  console.log(`\n${failedResponses.length} HTTP error responses, most frequent:`);
+  for (const [response, count] of [...counts].sort((a, b) => b[1] - a[1]).slice(0, 8)) {
+    console.log(`  ${count}× ${response}`);
+  }
 }
 if (failed.length) {
   console.log("\nFAILED STAGES:");
   for (const r of failed) console.log(`  ${r.name}: ${r.detail}`);
   process.exitCode = 1;
 }
+if (consoleErrors.length) process.exitCode = 1;

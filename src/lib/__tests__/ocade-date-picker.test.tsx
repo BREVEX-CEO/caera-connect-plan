@@ -1,11 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import {
-  OcadeDatePicker,
-  calendarCells,
-  isoDate,
-  parseIsoDate,
-} from "@/components/ui/ocade-date-picker";
+import { OcadeDatePicker } from "@/components/ui/ocade-date-picker";
+import { calendarCells, isoDate, parseIsoDate } from "@/components/ui/calendar-grid";
 
 describe("OCADE date picker", () => {
   it("builds a stable six-week calendar grid and validates typed ISO dates", () => {

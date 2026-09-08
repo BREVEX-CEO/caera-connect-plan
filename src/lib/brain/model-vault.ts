@@ -151,6 +151,18 @@ function sanitiseSegment(value: string): string {
   return cleaned.length > 0 ? cleaned.slice(0, 128) : "unnamed";
 }
 
+/**
+ * The sidecar's shape, as READ. Every field is optional and unvalidated on
+ * purpose: this file survives a browser wiping local storage, so it is the one
+ * input to this module that has genuinely been out of its hands, and it is
+ * checked field by field rather than trusted to a cast.
+ */
+interface SidecarPayload {
+  active?: unknown;
+  previous?: unknown;
+  meta?: Record<string, unknown>;
+}
+
 export class ModelVault {
   private readonly store: ModelStore;
   private readonly storage: Pick<Storage, "getItem" | "setItem" | "removeItem"> | null;
@@ -195,6 +207,9 @@ export class ModelVault {
     // rollback target exists even if this process stops immediately after.
     if (current) this.writePointer(PREVIOUS_POINTER_KEY, current);
     this.writePointer(ACTIVE_POINTER_KEY, version);
+    // The durable copy follows the pointer, never leads it: the sidecar records
+    // what happened, and cannot cause it.
+    await this.persistPointers();
     return true;
   }
 
@@ -216,7 +231,123 @@ export class ModelVault {
     this.writePointer(ACTIVE_POINTER_KEY, previous);
     if (current) this.writePointer(PREVIOUS_POINTER_KEY, current);
     else this.clearPointer(PREVIOUS_POINTER_KEY);
+    await this.persistPointers();
     return previous;
+  }
+
+  /* ------------------------------------------------------- durable copy -- */
+
+  /**
+   * THE POINTERS AND METADATA, WRITTEN WHERE THE MODEL LIVES.
+   *
+   * PLAN.md §A: "Do not keep the ONLY authoritative active version in
+   * `localStorage`." The word that matters is "only". The pointer stays in
+   * `localStorage` because `activeVersion()` is synchronous and dozens of call
+   * sites depend on that — an async pointer would ripple through the whole
+   * engine surface for no safety gain. What was missing is a durable copy
+   * beside the bytes it describes.
+   *
+   * It matters because the two can be destroyed independently. A cleared
+   * `localStorage` — private mode, a browser tidying storage, or the
+   * `localStorage.clear()` this repository used to run on "sign out
+   * everywhere" — left a verified, complete, unusable model in OPFS: the
+   * weights were there and the evidence that they had been checked was not, so
+   * preparation started again from nothing and downloaded a gigabyte the
+   * machine already had.
+   *
+   * The sidecar lives in the model's own OPFS namespace, so it is removed by
+   * exactly the thing that removes the model and by nothing else.
+   */
+  private sidecarKey(): string {
+    return `${VERSIONS_DIRECTORY}/pointers.json`;
+  }
+
+  /**
+   * Write the sidecar. Failures are silent by design: a browser that will not
+   * give OCADE a file handle should not break an activation that has already
+   * been proven and recorded.
+   */
+  async persistPointers(): Promise<boolean> {
+    const active = this.activeVersion();
+    const previous = this.previousVersion();
+    const versions = new Set([active, previous].filter((v): v is string => Boolean(v)));
+    const payload = {
+      active,
+      previous,
+      meta: Object.fromEntries(
+        [...versions].map((version) => [version, this.readMeta(version)] as const),
+      ),
+      writtenAt: new Date().toISOString(),
+    };
+    const writer = await this.store.openWriter(this.sidecarKey());
+    if (!writer) return false;
+    try {
+      const bytes = new TextEncoder().encode(JSON.stringify(payload));
+      await writer.write(bytes, 0);
+      await writer.close();
+      return true;
+    } catch {
+      await writer.close().catch(() => undefined);
+      return false;
+    }
+  }
+
+  /**
+   * Put the pointers back when `localStorage` has lost them.
+   *
+   * ONLY FILLS GAPS. A pointer that is present locally is authoritative for
+   * this browser and is never overwritten from the sidecar: a stale sidecar
+   * must not be able to roll a working install back to an older version.
+   *
+   * Returns what it restored, so a caller can say so rather than guess.
+   */
+  async restorePointers(): Promise<{ active: string | null; previous: string | null }> {
+    const restored: { active: string | null; previous: string | null } = {
+      active: null,
+      previous: null,
+    };
+    if (!this.storage) return restored;
+
+    const blob = await this.store.readBlob(this.sidecarKey());
+    if (!blob) return restored;
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(await blob.text());
+    } catch {
+      // A corrupt sidecar is no evidence at all, and must not be treated as if
+      // it were an empty one that could clear something.
+      return restored;
+    }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return restored;
+    const payload = parsed as SidecarPayload;
+
+    /*
+     * Metadata first, then the pointer. `activate()` refuses a version whose
+     * metadata does not say verified, and a pointer restored ahead of its
+     * metadata would name a version this browser cannot yet justify using.
+     */
+    for (const [version, meta] of Object.entries(payload.meta ?? {})) {
+      if (!meta || typeof meta !== "object") continue;
+      if (this.readMeta(version)) continue;
+      const candidate = meta as VersionMeta;
+      if (typeof candidate.verified !== "boolean") continue;
+      this.writeMeta(version, candidate);
+    }
+
+    if (typeof payload.active === "string" && payload.active && !this.activeVersion()) {
+      // Restored only when the metadata now justifies it, so a sidecar cannot
+      // authorise a version this browser has no verification record for.
+      if (this.readMeta(payload.active)?.verified === true) {
+        this.writePointer(ACTIVE_POINTER_KEY, payload.active);
+        restored.active = payload.active;
+      }
+    }
+    if (typeof payload.previous === "string" && payload.previous && !this.previousVersion()) {
+      this.writePointer(PREVIOUS_POINTER_KEY, payload.previous);
+      restored.previous = payload.previous;
+    }
+    return restored;
   }
 
   /* ------------------------------------------------------------ metadata -- */
@@ -279,6 +410,19 @@ export class ModelVault {
    * verified in ModelVault while Settings labelled its file "not verified".
    */
   async installationView(): Promise<InstallationView> {
+    /*
+     * THE RECOVERY POINT, and the reason it is here rather than in a startup
+     * hook: this is the first thing anything asks about the install, on every
+     * surface that cares — the storage panel, the setup control, the runtime.
+     * A recovery that runs somewhere else runs only when that somewhere else
+     * does.
+     *
+     * It costs one OPFS read when the pointer is missing, and nothing at all
+     * when it is present: `restorePointers` only fills gaps, so on a browser
+     * that still has its pointer this is a read of a small file and no writes.
+     */
+    if (!this.activeVersion()) await this.restorePointers();
+
     const active = this.activeVersion();
     if (!active) return { ready: false, stored: false };
     const bytes = await this.bytesOf(active);

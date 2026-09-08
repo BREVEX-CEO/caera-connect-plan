@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { initializePaddle, getPaddlePriceId, isCheckoutConfigured } from "@/lib/paddle";
-import { billingEnabled } from "@/lib/launch-mode";
+import { CHECKOUT_UNAVAILABLE_NOTICE } from "@/lib/payments/checkout-availability";
 
 export interface OpenCheckoutOptions {
   /** Human-readable price id from the sellable-plan catalogue. */
@@ -46,12 +46,8 @@ export function usePaddleCheckout() {
   const openCheckout = useCallback(async (options: OpenCheckoutOptions) => {
     setError(null);
 
-    if (!billingEnabled()) {
-      setError("OCADE is free during launch. Checkout is disabled and no payment was started.");
-      return;
-    }
     if (!isCheckoutConfigured()) {
-      setError("Checkout is not configured on this deployment yet.");
+      setError(CHECKOUT_UNAVAILABLE_NOTICE);
       return;
     }
     if (!options.userId) {

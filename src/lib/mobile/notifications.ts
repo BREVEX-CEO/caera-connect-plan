@@ -14,7 +14,7 @@
  * Delivery itself is transport-agnostic (`NotificationTransport`), and with none
  * connected everything reports honestly as undelivered rather than pretending.
  */
-import { isProtectedText } from "@/lib/native/companion-bridge";
+import { isProtectedText } from "@/lib/security/protected-text";
 import type { ApprovalRequest } from "./pairing";
 
 export type NotificationKind =

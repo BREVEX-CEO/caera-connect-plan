@@ -59,7 +59,7 @@ describe("signed-out settings are not writable", () => {
   });
 
   it("does not install an engine for an account that does not exist", () => {
-    expect(ROUTE_CODE).toMatch(/signedIn\s*\?\s*<FirstRunEngineSetup\s*\/>\s*:\s*null/);
+    expect(ROUTE_CODE).toMatch(/signedIn\s*\?\s*<OfflineIntelligenceProgress\s*\/>\s*:\s*null/);
   });
 
   it("passes inert as a boolean, never as an empty string", () => {

@@ -12,6 +12,14 @@ const PUBLIC_PATHS = [
   "/team",
   "/press",
   "/status",
+  /*
+   * PLAN.md §J: `/security` goes into public navigation and the sitemap only
+   * once its contact paths are genuine. The route it offers — a Security
+   * ticket into the administrative support queue — actually reaches somebody,
+   * and `public-security-claims.test.ts` asserts that category still exists.
+   * No security mailbox is published, because none is verified.
+   */
+  "/security",
   "/faq",
   "/search",
   "/privacy",

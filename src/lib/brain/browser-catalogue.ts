@@ -297,10 +297,16 @@ export function ggufUrl(tier: BrowserModelTier): string | null {
  * anything from a third party on first run. Those are exactly the environments
  * where "download it once while online" is not a step anyone can take.
  *
- * An operator who drops the .gguf into `public/models/` therefore gets a
- * first run with no external request at all, and one who does not is
- * unaffected — this is probed, and a 404 simply means the catalogue URL is
+ * An operator who serves the .gguf from this origin at `/models/<file>`
+ * therefore gets a first run with no third-party request, and one who does not
+ * is unaffected — this is probed, and a 404 simply means the catalogue URL is
  * used as before. Nothing is assumed present.
+ *
+ * Do not implement that route by copying a model into `public/models/` for the
+ * Cloudflare Workers build. Workers rejects an individual static asset above
+ * 25 MiB, while every supported model is much larger. Use a separate approved,
+ * range-capable model origin; `check-asset-budgets.mjs` rejects an oversized
+ * copied public asset before a deployment can fail late.
  *
  * The digest is enforced identically either way: self-hosting changes where
  * the bytes come from, never whether they are checked.

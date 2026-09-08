@@ -19,16 +19,16 @@ these migrations is the only step that turns them on.
 
 Apply **in this exact order** — later migrations reference earlier tables.
 
-| #   | Migration                                          | Creates / alters                                                                                                                                                                               | Depends on                                                                            |
-| --- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| 1   | `20260722090000_ocade_projects_outputs_memory.sql` | `ocade_projects`, `ocade_project_items`, `ocade_outputs`, `ocade_memory`; adds `ocade_conversations.project_id`, `user_settings.ocade_memory_enabled`; hardens conversation/message parent RLS | existing `ocade_conversations`, `ocade_messages`, `user_settings`, `set_updated_at()` |
-| 2   | `20260722100000_ocade_subscriptions_usage.sql`     | `ocade_subscriptions`, `ocade_cloud_usage`, `ocade_consume_cloud_use()`                                                                                                                        | `set_updated_at()`                                                                    |
-| 3   | `20260722110000_ocade_automations.sql`             | `ocade_automations`, `ocade_automation_runs`                                                                                                                                                   | `set_updated_at()`                                                                    |
-| 4   | `20260724211500_ocade_automation_worker.sql`       | worker leases, cancellation/pause/deadline/approval state, append-only step receipts, 13 atomic lifecycle RPCs                                                                                 | migration 3                                                                           |
-| 5   | `20260730190000_ocade_controlled_rollout_gates.sql` | internal-alpha and controlled-beta evidence gates plus fail-closed feature-flag expansion triggers                                                                                           | existing `launch_gate_items`, `launch_gate_history`, `feature_flags`                  |
-| 6   | `20260815193752_harden_security_definer_execute.sql` | removes browser-role access to the service-only allowance RPC and direct trigger RPCs; preserves required RLS access                                                                          | migration 2; optional FICIA/message helpers are hardened only when present             |
-| 7   | `20260815213627_ocade_billing_support_ledger.sql` | payment-event and invoice evidence; customer/admin support tickets and messages; atomic ticket creation                                                                                         | `auth.users`, `user_roles`, `app_role`                                                 |
-| 8   | `20260815215000_ocade_billing_support_privilege_hardening.sql` | reasserts least-privilege ACLs after managed hosted-DDL hooks finish                                                                                                          | migration 7                                                                           |
+| #   | Migration                                                      | Creates / alters                                                                                                                                                                               | Depends on                                                                            |
+| --- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 1   | `20260722090000_ocade_projects_outputs_memory.sql`             | `ocade_projects`, `ocade_project_items`, `ocade_outputs`, `ocade_memory`; adds `ocade_conversations.project_id`, `user_settings.ocade_memory_enabled`; hardens conversation/message parent RLS | existing `ocade_conversations`, `ocade_messages`, `user_settings`, `set_updated_at()` |
+| 2   | `20260722100000_ocade_subscriptions_usage.sql`                 | `ocade_subscriptions`, `ocade_cloud_usage`, `ocade_consume_cloud_use()`                                                                                                                        | `set_updated_at()`                                                                    |
+| 3   | `20260722110000_ocade_automations.sql`                         | `ocade_automations`, `ocade_automation_runs`                                                                                                                                                   | `set_updated_at()`                                                                    |
+| 4   | `20260724211500_ocade_automation_worker.sql`                   | worker leases, cancellation/pause/deadline/approval state, append-only step receipts, 13 atomic lifecycle RPCs                                                                                 | migration 3                                                                           |
+| 5   | `20260730190000_ocade_controlled_rollout_gates.sql`            | internal-alpha and controlled-beta evidence gates plus fail-closed feature-flag expansion triggers                                                                                             | existing `launch_gate_items`, `launch_gate_history`, `feature_flags`                  |
+| 6   | `20260815193752_harden_security_definer_execute.sql`           | removes browser-role access to the service-only allowance RPC and direct trigger RPCs; preserves required RLS access                                                                           | migration 2; optional FICIA/message helpers are hardened only when present            |
+| 7   | `20260815213627_ocade_billing_support_ledger.sql`              | payment-event and invoice evidence; customer/admin support tickets and messages; atomic ticket creation                                                                                        | `auth.users`, `user_roles`, `app_role`                                                |
+| 8   | `20260815215000_ocade_billing_support_privilege_hardening.sql` | reasserts least-privilege ACLs after managed hosted-DDL hooks finish                                                                                                                           | migration 7                                                                           |
 
 Migration 3 must come after 1 only for consistency of review; it has no hard FK
 to projects. Migrations 1 and 2 are independent of each other. Migration 4 must
@@ -43,15 +43,15 @@ The repository now contains 41 paired migrations, rollbacks and verifications.
 Use the live migration-history reconciliation plus the clean database twin,
 not this historical paragraph, to decide what remains unapplied.
 
-| Migration                         | Rollback | Verification |
-| --------------------------------- | -------- | ------------ |
-| `…_ocade_projects_outputs_memory` | ✅       | ✅           |
-| `…_ocade_subscriptions_usage`     | ✅       | ✅           |
-| `…_ocade_automations`             | ✅       | ✅           |
-| `…_ocade_automation_worker`       | ✅       | ✅           |
-| `…_ocade_controlled_rollout_gates` | ✅       | ✅           |
-| `…_harden_security_definer_execute` | ✅       | ✅           |
-| `…_ocade_billing_support_ledger` | ✅       | ✅           |
+| Migration                                     | Rollback | Verification |
+| --------------------------------------------- | -------- | ------------ |
+| `…_ocade_projects_outputs_memory`             | ✅       | ✅           |
+| `…_ocade_subscriptions_usage`                 | ✅       | ✅           |
+| `…_ocade_automations`                         | ✅       | ✅           |
+| `…_ocade_automation_worker`                   | ✅       | ✅           |
+| `…_ocade_controlled_rollout_gates`            | ✅       | ✅           |
+| `…_harden_security_definer_execute`           | ✅       | ✅           |
+| `…_ocade_billing_support_ledger`              | ✅       | ✅           |
 | `…_ocade_billing_support_privilege_hardening` | ✅       | ✅           |
 
 ### Prerequisite check (run first)

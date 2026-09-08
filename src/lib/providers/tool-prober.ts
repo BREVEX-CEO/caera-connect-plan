@@ -106,20 +106,3 @@ function toProbeResult(tool: ToolDefinition, a: ToolAvailability): AppProbeResul
       throw new ProbeUnavailableError(a.reason);
   }
 }
-
-/**
- * Node/companion command runner.
- *
- * Deliberately not imported at module scope: `node:child_process` does not
- * exist in a browser bundle, and a static import would break the web build for
- * a capability the web build cannot use anyway.
- */
-export async function createNodeProbeRunner(): Promise<ProbeRunner> {
-  const { execFile } = await import("node:child_process");
-  return (command, args) =>
-    new Promise((resolve) => {
-      execFile(command, [...args], { timeout: 5_000, windowsHide: true }, (err, stdout, stderr) => {
-        resolve({ ok: !err, stdout: stdout ?? "", stderr: stderr ?? "" });
-      });
-    });
-}

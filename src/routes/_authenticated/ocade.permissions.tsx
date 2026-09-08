@@ -24,7 +24,7 @@ const POLICIES: Array<{
     label: "Computer control",
     description:
       "Native machine actions are permissioned and require a connected companion. Approval remains separate from connection status.",
-    to: "/ocade/work",
+    to: "/ocade/cowork",
     icon: MonitorUp,
   },
   {

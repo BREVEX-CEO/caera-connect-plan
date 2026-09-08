@@ -161,7 +161,17 @@ const ctx = await chromium.launchPersistentContext(profile, {
 });
 
 let worker = ctx.serviceWorkers()[0];
-if (!worker) worker = await ctx.waitForEvent("serviceworker", { timeout: 20000 });
+if (!worker) {
+  /*
+   * Starting an MV3 worker is scheduled by Chrome, not by Playwright. Under a
+   * saturated full-suite run Windows has taken slightly over twenty seconds
+   * to emit the first worker event even though the extension then completed
+   * every scenario. Give Chrome the same bounded startup budget as the later
+   * live-worker reacquisition path; this waits for readiness, it does not retry
+   * a failed command or turn a missing worker into a pass.
+   */
+  worker = await ctx.waitForEvent("serviceworker", { timeout: 60000 });
+}
 check("the extension loads and its service worker starts", Boolean(worker), worker?.url());
 
 const EXTENSION_ID = worker.url().split("/")[2];

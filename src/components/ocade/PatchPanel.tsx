@@ -129,7 +129,7 @@ export function PatchPanel() {
       {error ? (
         <div
           role="status"
-          className="mt-3 rounded-lg border border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 p-3 text-xs"
+          className="mt-3 rounded-lg border border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)] p-3 text-xs"
         >
           <p className="flex items-center gap-1.5 font-medium text-foreground">
             <AlertTriangle className="h-3.5 w-3.5" aria-hidden /> Not applied
@@ -145,7 +145,7 @@ export function PatchPanel() {
         <div
           role="status"
           className={cn(
-            "mt-3 rounded-lg border border-[color:var(--state-success)]/40 bg-[color:var(--state-success)]/10 p-3 text-xs",
+            "mt-3 rounded-lg border border-[color:var(--state-success-line-strong)] bg-[color:var(--state-success-surface)] p-3 text-xs",
           )}
         >
           <p className="flex items-center gap-1.5 font-medium text-foreground">

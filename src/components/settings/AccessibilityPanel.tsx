@@ -129,7 +129,7 @@ function FixedCapability({
         <div className="text-sm font-medium">{label}</div>
         <div className="mt-0.5 text-xs text-muted-foreground">{description}</div>
       </div>
-      <span className="rounded-full bg-[color:var(--state-success)]/10 px-2 py-0.5 text-[10px] font-medium text-[color:var(--state-success)]">
+      <span className="rounded-full bg-[color:var(--state-success-surface)] px-2 py-0.5 text-[10px] font-medium text-[color:var(--state-success)]">
         On
       </span>
     </div>

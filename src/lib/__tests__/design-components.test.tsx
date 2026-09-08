@@ -31,13 +31,25 @@ describe("OCADE reusable design components", () => {
     );
     for (const value of [
       "Search table",
-      "Sort by",
-      "Ascending",
+      "Rows per page",
+      "Columns",
       "Actions",
       "Page 1 of 1",
+      "Showing 1–1 of 1",
       "Details",
     ])
       expect(table).toContain(value);
+
+    /*
+     * Sorting is on the HEADER now, not on a `<select>` of column names beside
+     * an Ascending/Descending toggle. That older pair worked with a mouse and
+     * told a screen reader nothing: `aria-sort` lives on the header cell, and
+     * there were no sortable headers to put it on. Asserting the attribute is
+     * asserting the part that assistive technology actually reads.
+     */
+    expect(table).toContain('aria-sort="none"');
+    // And the live region that announces the change when one is pressed.
+    expect(table).toContain('aria-live="polite"');
   });
 
   it("provides a device-only editable avatar and a truncating breadcrumb trail", () => {

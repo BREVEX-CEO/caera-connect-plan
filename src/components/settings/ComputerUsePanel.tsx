@@ -119,7 +119,7 @@ export function ComputerUsePanel() {
             "mb-4 rounded-md border px-3 py-2 text-xs",
             message.tone === "error"
               ? "border-destructive/40 bg-destructive/10 text-destructive"
-              : "border-[color:var(--state-success)]/30 bg-[color:var(--state-success)]/10 text-[color:var(--state-success)]",
+              : "border-[color:var(--state-success-line)] bg-[color:var(--state-success-surface)] text-[color:var(--state-success)]",
           )}
         >
           {message.text}
@@ -266,7 +266,7 @@ export function ComputerUsePanel() {
           </p>
         )}
         {status.installGuidance && status.installGuidance.length > 0 ? (
-          <div className="mt-3 rounded border border-[color:var(--state-warning)]/30 bg-[color:var(--state-warning)]/5 p-3">
+          <div className="mt-3 rounded border border-[color:var(--state-warning-line)] bg-[color:var(--state-warning-wash)] p-3">
             <p className="text-xs font-medium">Setup needed</p>
             <ul className="mt-1 list-disc space-y-1 pl-4 text-[11px] text-muted-foreground">
               {status.installGuidance.map((guidance) => (

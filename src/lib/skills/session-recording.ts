@@ -16,7 +16,7 @@
  * displayed or replayed — not masked afterwards, not captured at all. Masking
  * after capture still means the value existed in a buffer.
  */
-import { isProtectedText } from "@/lib/native/companion-bridge";
+import { isProtectedText } from "@/lib/security/protected-text";
 
 export type RecordingMode = "video_on" | "video_off";
 

@@ -1,3 +1,7 @@
+import {
+  callerScopedFunctions,
+  TOKEN_AUTHORIZED_FUNCTIONS,
+} from "@/lib/security/caller-scoped-functions";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { DatabaseTwin } from "../../../scripts/db-twin.mts";
 
@@ -69,25 +73,93 @@ describe("elevated functions", () => {
 
   it("consult the caller whenever a signed-in user can call them", () => {
     /*
-     * `auth.uid()` directly, or one of the role helpers that consults it.
-     * A function a signed-in user can invoke, which bypasses RLS, and which
-     * never asks who is calling, is operating on whatever id it was handed.
+     * `auth.uid()` directly, or through a function that does. A function a
+     * signed-in user can invoke, which bypasses RLS, and which never asks who
+     * is calling, is operating on whatever id it was handed.
+     *
+     * THIS FOLLOWS INDIRECTION rather than reading one function's text, and it
+     * shares that definition with the schema gate in `db-twin.test.ts` — see
+     * `src/lib/security/caller-scoped-functions.ts` for why, and for the
+     * subsystem whose shared authorization helpers the text search could not
+     * see.
      */
+    const scoped = callerScopedFunctions(new Map(definers.map((d) => [d.name, d.body])));
     const blind = definers
       .filter((d) => d.authed)
-      .filter((d) => !/auth\.uid\(\)/.test(d.body))
-      .filter((d) => !/\b(has_role|has_tenant_role|is_tenant_member)\s*\(/.test(d.body))
+      .filter((d) => !scoped.has(d.name) && !TOKEN_AUTHORIZED_FUNCTIONS.has(d.name))
       .map((d) => `${d.name}(${d.args})`);
     expect(blind, "these bypass RLS and never ask who is calling").toEqual([]);
   });
 
-  it("are never callable by an anonymous visitor", async () => {
+  it("are never callable by an anonymous visitor unless a token is the authorization", async () => {
     const anon = await twin.asSuperuser<{ name: string }>(`
       select p.proname as name
         from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'public' and p.prosecdef
          and has_function_privilege('anon', p.oid, 'EXECUTE')`);
-    expect(anon.map((r) => r.name)).toEqual([]);
+    expect(anon.map((r) => r.name).filter((n) => !TOKEN_AUTHORIZED_FUNCTIONS.has(n))).toEqual([]);
+  });
+
+  it("keeps the token-authorized list honest", () => {
+    /*
+     * A name for a function that no longer exists is a claim about nothing, and
+     * it would quietly cover a FUTURE function that happened to take the same
+     * name.
+     */
+    const present = new Set(definers.map((d) => d.name));
+    const stale = [...TOKEN_AUTHORIZED_FUNCTIONS.keys()].filter((n) => !present.has(n));
+    expect(stale, "named as token-authorized but not a definer function").toEqual([]);
+  });
+});
+
+/*
+ * THE HARDER QUESTION, ASKED OF EVERY TOKEN-AUTHORIZED FUNCTION.
+ *
+ * These are the only functions in the schema a stranger on the internet can
+ * invoke, so "it checks a token" is not something to take on trust from a
+ * comment. Each property below is one way the capability model fails in
+ * practice: a function that ignores its token authorizes everybody, one that
+ * returns an account id turns a share link into a way to learn who shared it,
+ * and one that answers differently for a dead token than for an invented one
+ * confirms which links were once real.
+ */
+describe("a function a stranger can call", () => {
+  it("takes a token and filters on it", () => {
+    for (const name of TOKEN_AUTHORIZED_FUNCTIONS.keys()) {
+      const definer = definers.find((d) => d.name === name)!;
+      expect(definer, `${name} is not a SECURITY DEFINER function`).toBeDefined();
+      expect(definer.args, `${name} takes no token`).toMatch(/token/i);
+      const body = definer.body.slice(definer.body.indexOf("AS $"));
+      expect(body, `${name} does not filter on its token`).toMatch(/p_token/);
+    }
+  });
+
+  it("returns no account identifier", () => {
+    for (const name of TOKEN_AUTHORIZED_FUNCTIONS.keys()) {
+      const definer = definers.find((d) => d.name === name)!;
+      /*
+       * Read from the RETURNS clause rather than the body: what leaves the
+       * function is what the caller sees, and a body may legitimately mention a
+       * user id in a predicate it never returns.
+       */
+      const returns = definer.body.slice(
+        definer.body.indexOf("RETURNS"),
+        definer.body.indexOf("AS $"),
+      );
+      for (const forbidden of ["user_id", "owner_id", "created_by", "actor"]) {
+        expect(returns.toLowerCase(), `${name} returns ${forbidden}`).not.toContain(forbidden);
+      }
+    }
+  });
+
+  it("answers nothing for a token nobody issued", async () => {
+    for (const name of TOKEN_AUTHORIZED_FUNCTIONS.keys()) {
+      const attempt = await twin.asAnon(
+        `select * from public.${name}('this-token-was-never-issued')`,
+      );
+      expect(attempt.error, `${name} failed for an unknown token`).toBeUndefined();
+      expect(attempt.rows, `${name} answered an unknown token`).toEqual([]);
+    }
   });
 });
 

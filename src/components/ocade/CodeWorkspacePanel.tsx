@@ -552,6 +552,7 @@ export function CodeWorkspacePanel() {
                 if (node) node.setAttribute("webkitdirectory", "");
               }}
               type="file"
+              tabIndex={-1}
               multiple
               className="sr-only"
               onChange={(event) => void loadSelectedFiles(event.target.files)}

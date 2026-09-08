@@ -25,7 +25,10 @@ describe.runIf(existsSync(CHROMIUM))("the on-device engines report themselves ho
     const summary = stdout.match(/(\d+)\/(\d+) engine-availability checks passed/);
     expect(summary, `no summary in output:\n${stdout}`).not.toBeNull();
     expect(summary![1]).toBe(summary![2]);
-    expect(Number(summary![2])).toBeGreaterThanOrEqual(6);
+    // A usable WebGPU adapter needs five checks; the unavailable branch adds
+    // two diagnostics (reason and code). Count the exercised branch rather
+    // than assuming headless Chrome has no GPU on every machine.
+    expect(Number(summary![2])).toBeGreaterThanOrEqual(5);
     // An engine that cannot run must never come back "available".
     expect(stdout).toMatch(/environment: navigator\.gpu=/);
   }, 260_000);

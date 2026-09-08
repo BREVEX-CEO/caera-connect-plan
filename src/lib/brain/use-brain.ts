@@ -14,7 +14,6 @@ import {
   type RemedyAction,
 } from "./adapter";
 import { useDevicePolicy } from "../use-device-policy";
-import { serverIsThisMachine } from "../hardware/detect.browser";
 import type { RoutePolicy } from "../local/router-policy";
 
 /**
@@ -92,17 +91,17 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
   const mode = useMemo(() => resolveDeviceMode(detectDeviceSignals(paired)), [paired]);
 
   /*
-   * When the OCADE server IS this machine — the desktop build, and local
-   * development — the desktop bridge is a genuine on-device engine and should
-   * be preferred over a browser one, which is slower and needs its own
-   * download. Everywhere else the mode stands as measured, so a hosted browser
-   * routes to the browser engines exactly as the preference table says.
+   * A loopback URL does not make a browser the packaged desktop app.
    *
-   * This replaced a blanket "treat pc_web as desktop_app" override that made
-   * sense only while the bridge was the sole working adapter.
+   * Local development and the production browser harness both run on
+   * 127.0.0.1. Treating that hostname as a desktop signal made ordinary web
+   * Chat probe an absent native engine on every visit, producing browser
+   * network errors before the user had paired or installed anything. The
+   * packaged shell already supplies explicit __TAURI__/__OCADE_DESKTOP__
+   * signals through `detectDeviceSignals`; those are the only truthful reason
+   * to prefer the unauthenticated same-machine bridge.
    */
-  const effectiveMode: DeviceMode =
-    mode === "pc_web" && serverIsThisMachine() ? "desktop_app" : mode;
+  const effectiveMode: DeviceMode = mode;
 
   const route = useCallback(
     (opts?: { heavy?: boolean; visionRequired?: boolean }) =>
@@ -152,7 +151,7 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
        */
       void (async () => {
         const bridge = registry.get("desktop_bridge");
-        if (bridge instanceof DesktopBridgeAdapter) {
+        if (effectiveMode === "desktop_app" && bridge instanceof DesktopBridgeAdapter) {
           try {
             const availability = await bridge.probe();
             if (availability.available) {
@@ -167,7 +166,7 @@ export function useBrain(options?: { hasPairedDesktop?: boolean }): BrainHandle 
         await installationAuthority().install({ reason: "warm" });
       })();
     },
-    [registry],
+    [effectiveMode, registry],
   );
 
   /*

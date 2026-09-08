@@ -8,12 +8,10 @@ const root = process.cwd();
  * Read a source file with newlines normalised to "\n".
  *
  * Several assertions below match multi-line snippets written with "\n" — for
- * example `app.emit(\n        "ocade://action-progress"`. This repository has
- * `core.autocrlf=true` and no `.gitattributes`, so git hands a fresh checkout
- * CRLF copies and those assertions fail on any machine that did not write the
- * files itself. That made this suite pass locally and fail in CI, which is the
- * least useful combination a test can have. Normalising on read asserts on the
- * source's content rather than on how git happened to check it out.
+ * example `app.emit(\n        "ocade://action-progress"`. Native source is
+ * intentionally not forced to one worktree newline by `.gitattributes`, so
+ * normalising on read asserts on content rather than contributor checkout
+ * policy.
  */
 const readSource = (relativePath: string): string =>
   readFileSync(resolve(root, relativePath), "utf8").replace(/\r\n/g, "\n");

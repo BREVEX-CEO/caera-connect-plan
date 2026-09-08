@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, Shield, Activity as ActivityIcon, Trash2, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { useSession } from "@/lib/session";
 import { executeAction, getAction, ActionConfirmationError } from "@/lib/actions";
 import { cn } from "@/lib/utils";
@@ -69,6 +69,7 @@ function ActivityPage() {
     queryKey: ["activity", "operational", user?.id, from],
     enabled: !!user?.id && tab === "operational",
     queryFn: async () => {
+      const supabase = await loadSupabaseClient();
       let query = supabase
         .from("activity_log")
         .select("id, created_at, action, feature_id, tenant_id, metadata")
@@ -85,6 +86,7 @@ function ActivityPage() {
     queryKey: ["activity", "compliance", user?.id, from],
     enabled: !!user?.id && tab === "compliance",
     queryFn: async () => {
+      const supabase = await loadSupabaseClient();
       let query = supabase
         .from("compliance_audit_log")
         .select(
@@ -132,11 +134,13 @@ function ActivityPage() {
   }, []);
 
   async function clearOldOperational() {
+    const supabase = await loadSupabaseClient();
     try {
       await executeAction("activity.clear_operational", {
         confirmed: true,
         confirmPhrase: phrase,
         run: async () => {
+          const supabase = await loadSupabaseClient();
           const cutoff = new Date();
           cutoff.setDate(cutoff.getDate() - 30);
           const { error } = await supabase
@@ -283,7 +287,7 @@ function ActivityPage() {
           className={cn(
             "mt-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs",
             msg.kind === "success"
-              ? "border-[color:var(--state-success)]/30 bg-[color:var(--state-success)]/10 text-[color:var(--state-success)]"
+              ? "border-[color:var(--state-success-line)] bg-[color:var(--state-success-surface)] text-[color:var(--state-success)]"
               : "border-destructive/30 bg-destructive/10 text-destructive",
           )}
         >

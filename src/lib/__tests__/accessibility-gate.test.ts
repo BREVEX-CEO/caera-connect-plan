@@ -48,7 +48,8 @@ describe("the accessibility gate", () => {
   });
 
   it("is enforced by hosted CI", () => {
-    expect(readFileSync(".github/workflows/ci.yml", "utf8")).toContain("npm run a11y:check");
+    expect(readFileSync(".github/workflows/ci.yml", "utf8")).toContain("npm run verify:full");
+    expect(readFileSync("scripts/verify-full.mjs", "utf8")).toContain('"a11y:check"');
   });
 
   it("FAILS on a real unlabelled input regression", () => {
@@ -72,6 +73,65 @@ describe("the accessibility gate", () => {
     const r = runGate({ scanRoots: fixture });
     expect(r.ok).toBe(false);
     expect(r.out).toMatch(/pointer-only-control/);
+  });
+
+  /**
+   * THE LABEL RULE RECOGNISES THE ASSOCIATION THIS CODEBASE ACTUALLY WRITES,
+   * and still nothing else.
+   *
+   * It read only `<label htmlFor="literal">`. The product labels with Radix's
+   * `<Label>` — which renders a native `<label>` and forwards `htmlFor`
+   * unchanged — and gives repeated controls a computed id, so the gate called
+   * correctly-labelled selects unlabelled. Widening a rule is how a gate stops
+   * biting, so these three cases pin exactly how far it was widened: the
+   * component counts, an identical expression id counts, and a `htmlFor` that
+   * points somewhere else still does not.
+   */
+  it("accepts the project's <Label htmlFor> as the label it renders", () => {
+    const fixture = join(scratch, "component-label");
+    mkdirSync(fixture, { recursive: true });
+    writeFileSync(
+      join(fixture, "Labelled.tsx"),
+      `export const Labelled = () => (
+         <>
+           <Label htmlFor="picker">Organization</Label>
+           <select id="picker" />
+         </>
+       );`,
+    );
+    expect(runGate({ scanRoots: fixture }).ok).toBe(true);
+  });
+
+  it("accepts a computed id when the label carries the same expression", () => {
+    const fixture = join(scratch, "expression-label");
+    mkdirSync(fixture, { recursive: true });
+    writeFileSync(
+      join(fixture, "Labelled.tsx"),
+      "export const Labelled = ({ id }: { id: string }) => (\n" +
+        "  <>\n" +
+        "    <Label htmlFor={`role-${id}`}>Role</Label>\n" +
+        "    <select id={`role-${id}`} />\n" +
+        "  </>\n" +
+        ");",
+    );
+    expect(runGate({ scanRoots: fixture }).ok).toBe(true);
+  });
+
+  it("still FAILS when the label points at a different control", () => {
+    const fixture = join(scratch, "mismatched-label");
+    mkdirSync(fixture, { recursive: true });
+    writeFileSync(
+      join(fixture, "Broken.tsx"),
+      `export const Broken = () => (
+         <>
+           <Label htmlFor="somewhere-else">Organization</Label>
+           <select id="picker" />
+         </>
+       );`,
+    );
+    const r = runGate({ scanRoots: fixture });
+    expect(r.ok).toBe(false);
+    expect(r.out).toMatch(/unlabelled-input/);
   });
 
   it("records what it deliberately does NOT check", () => {

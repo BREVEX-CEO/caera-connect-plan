@@ -73,7 +73,7 @@ export function WelcomeTour() {
       aria-modal="true"
       aria-labelledby="welcome-tour-title"
     >
-      <div className="w-full max-w-md rounded-xl border border-border/70 bg-background/95 p-6 shadow-[0_28px_90px_rgba(0,0,0,0.45)]">
+      <div className="w-full max-w-md rounded-xl border border-border/70 bg-background/95 p-6 shadow-[0_28px_90px_rgba(0, 0, 0,0.45)]">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/70 bg-white/[0.04]">
           <Icon className="h-4 w-4 text-primary" aria-hidden />
         </div>

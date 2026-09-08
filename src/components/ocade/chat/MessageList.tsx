@@ -170,7 +170,7 @@ export function MessageList({
           density === "compact" ? "space-y-4" : "space-y-7",
         )}
       >
-        {visible.map((message) => (
+        {visible.map((message, index) => (
           <li key={message.id}>
             <MessageBubble
               message={message}
@@ -178,6 +178,13 @@ export function MessageList({
               showTimestamp={showTimestamps}
               renderMarkdown={renderMarkdown}
               density={density}
+              /*
+                Regenerate and "run again" only mean anything on the newest
+                turn. The transcript is the only thing that knows which one
+                that is — indexed within the WINDOW, which is why the window
+                is always a slice from the end.
+              */
+              isLatest={index === visible.length - 1}
             />
             {/*
               A render slot rather than a receipt-shaped prop. The transcript

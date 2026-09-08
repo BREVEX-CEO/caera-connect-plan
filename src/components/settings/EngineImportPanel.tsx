@@ -117,6 +117,7 @@ export function EngineImportPanel() {
         <input
           ref={inputRef}
           type="file"
+          tabIndex={-1}
           accept=".gguf"
           className="sr-only"
           aria-label="Engine file"

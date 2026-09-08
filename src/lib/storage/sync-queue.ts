@@ -12,7 +12,13 @@
  * PAYLOADS are the records themselves, which are already stored encrypted by
  * the vault — the queue references them rather than copying them.
  */
-import { supabase } from "@/integrations/supabase/client";
+/*
+ * ON DEMAND: this module is reachable from a route module the generated route
+ * tree imports statically, so a top-level import put the Supabase client on the
+ * entry chunk's graph. Every use is inside an async function already awaiting
+ * the network.
+ */
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import type { Json } from "@/integrations/supabase/types";
 import type { DataClass } from "./types";
 import { drainOutbox, type OutboxEntry, type OutboxStore } from "./outbox";
@@ -165,6 +171,7 @@ export function syncIsUnavailable(): boolean {
 async function deliver(
   entry: OutboxEntry,
 ): Promise<{ ok: boolean; permanent?: boolean; reason?: string }> {
+  const supabase = await loadSupabaseClient();
   const { data } = await supabase.auth.getUser();
   const user_id = data.user?.id;
   /*

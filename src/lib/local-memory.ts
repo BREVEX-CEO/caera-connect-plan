@@ -267,3 +267,133 @@ export function localMemoryContext(
     evidence: `${rows.length} applicable local memories prepared.`,
   };
 }
+
+/* ------------------------------------------------- taking it with you -- */
+
+/**
+ * WHAT OCADE REMEMBERS, AS A FILE — PLAN.md §8.
+ *
+ * §8 asks for memory review, edit, pause, reset, import, export and deletion.
+ * The first five were here; these are the last two, and they are the pair that
+ * makes the rest mean something: memory nobody can take out is memory somebody
+ * is locked into, and a person moving to a new machine, or leaving, should be
+ * able to carry it or verify it was carried.
+ *
+ * VERSIONED, because a file written today will be opened by a build that does
+ * not exist yet, and the honest answer to "this came from a version I do not
+ * understand" is to refuse rather than to guess at the shape.
+ */
+export const MEMORY_EXPORT_VERSION = 1;
+
+export interface LocalMemoryExport {
+  format: "ocade.memory";
+  version: number;
+  exportedAt: string;
+  rows: OcadeMemoryRow[];
+}
+
+/**
+ * Everything OCADE remembers on this device.
+ *
+ * The `enabled` flag is deliberately NOT exported. It is a setting about this
+ * device, not a memory, and carrying it would mean opening a file could turn
+ * memory on somewhere it had been deliberately turned off.
+ */
+export function exportLocalMemory(now: Date = new Date()): ArtifactOutcome<LocalMemoryExport> {
+  const current = read();
+  if (!current.ok) return current;
+  return {
+    ok: true,
+    data: {
+      format: "ocade.memory",
+      version: MEMORY_EXPORT_VERSION,
+      exportedAt: now.toISOString(),
+      rows: current.data.rows,
+    },
+    evidence: `Exported ${current.data.rows.length} memories from this device.`,
+  };
+}
+
+export interface MemoryImportSummary {
+  added: number;
+  alreadyKnown: number;
+  total: number;
+}
+
+/**
+ * Read memories back in.
+ *
+ * ALL OR NOTHING. A file with one malformed row is refused entirely rather than
+ * imported in part: a partial import leaves somebody with a memory set that is
+ * neither what they had nor what they were restoring, and no way to tell which
+ * rows are missing.
+ *
+ * `merge` keeps what is already here and adds what is new; `replace` is the
+ * restore case and is destructive, so the caller has to ask for it by name.
+ * Duplicates are decided by scope, project and content — the same sentence
+ * about the same thing is the same memory, whatever id it was given.
+ *
+ * EVERY IMPORTED ROW IS MARKED `imported`, whatever the file said. The source
+ * field answers "where did OCADE get this idea about me", and a file that
+ * claimed its rows were things the person had typed would make that answer a
+ * lie for anybody who looks.
+ */
+export function importLocalMemory(
+  bundle: unknown,
+  mode: "merge" | "replace" = "merge",
+  now: Date = new Date(),
+): ArtifactOutcome<MemoryImportSummary> {
+  const current = read();
+  if (!current.ok) return current;
+
+  if (!bundle || typeof bundle !== "object") {
+    return { ok: false, reason: "That file is not an OCADE memory export." };
+  }
+  const parsed = bundle as Partial<LocalMemoryExport>;
+  if (parsed.format !== "ocade.memory") {
+    return { ok: false, reason: "That file is not an OCADE memory export." };
+  }
+  if (parsed.version !== MEMORY_EXPORT_VERSION) {
+    return {
+      ok: false,
+      reason: `That export was written by a different version of OCADE (${String(parsed.version)}). Nothing was changed.`,
+    };
+  }
+  if (!Array.isArray(parsed.rows) || !parsed.rows.every(validRow)) {
+    return { ok: false, reason: "That export is damaged, so nothing was imported." };
+  }
+
+  const incoming = parsed.rows as OcadeMemoryRow[];
+  const kept = mode === "replace" ? [] : current.data.rows;
+  const seen = new Set(
+    kept.map((row) => `${row.scope}\u0000${row.project_id ?? ""}\u0000${row.content}`),
+  );
+
+  const added: OcadeMemoryRow[] = [];
+  for (const row of incoming) {
+    const key = `${row.scope}\u0000${row.project_id ?? ""}\u0000${row.content}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    added.push({ ...row, source: "imported", updated_at: now.toISOString() });
+  }
+
+  const rows = [...kept, ...added];
+  if (rows.length > MAX_ITEMS) {
+    return {
+      ok: false,
+      reason: `That would leave ${rows.length} memories, and this device keeps at most ${MAX_ITEMS}. Nothing was changed.`,
+    };
+  }
+
+  const saved = write({ ...current.data, rows });
+  if (!saved.ok) return saved;
+  return {
+    ok: true,
+    data: {
+      added: added.length,
+      alreadyKnown: incoming.length - added.length,
+      total: rows.length,
+    },
+    evidence: `Imported ${added.length} of ${incoming.length} memories.`,
+  };
+}

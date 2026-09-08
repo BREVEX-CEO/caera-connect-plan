@@ -22,7 +22,13 @@
  * the terms and getting on with their work, and a re-ask on the next device is
  * a far smaller harm than a gate that cannot be passed.
  */
-import { supabase } from "@/integrations/supabase/client";
+/*
+ * ON DEMAND, because this module is reached from the root through
+ * `LegalConsentGate` and a static import would put the whole Supabase client
+ * in the entry bundle — see `integrations/supabase/on-demand.ts`. Both
+ * functions below are already async and neither runs without an account id.
+ */
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 
 /**
  * The versions currently in force.
@@ -44,6 +50,51 @@ export const PRIVACY_VERSION = "ocade-prelaunch-2026-08-16";
  * one device and not another.
  */
 export const LEGAL_CONSENT_VERSION = `${TERMS_VERSION}|${PRIVACY_VERSION}`;
+
+/**
+ * Where the LOCAL receipt lives.
+ *
+ * One key, declared beside the version it is validated against, so the writer
+ * and the reader cannot drift apart.
+ */
+export const LEGAL_CONSENT_STORAGE_KEY = "caera:legal-consent:v1";
+
+export interface ConsentReceipt {
+  version: string;
+  acceptedAt: string;
+  terms: true;
+  privacy: true;
+}
+
+export function needsLegalConsent(pathname: string): boolean {
+  return ["/auth", "/home", "/ocade", "/settings", "/ficia", "/madee", "/cania"].some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
+export function usesAccountConsentReceipt(pathname: string): boolean {
+  return needsLegalConsent(pathname) && !pathname.startsWith("/auth");
+}
+
+export function readLegalConsent(storage?: Pick<Storage, "getItem">): ConsentReceipt | null {
+  if (typeof window === "undefined" && !storage) return null;
+  try {
+    const raw = (storage ?? window.localStorage).getItem(LEGAL_CONSENT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<ConsentReceipt>;
+    if (
+      parsed.version !== LEGAL_CONSENT_VERSION ||
+      parsed.terms !== true ||
+      parsed.privacy !== true ||
+      typeof parsed.acceptedAt !== "string"
+    ) {
+      return null;
+    }
+    return parsed as ConsentReceipt;
+  } catch {
+    return null;
+  }
+}
 
 export interface ConsentReceiptRow {
   termsVersion: string;
@@ -80,6 +131,7 @@ export function coversCurrentDocuments(
 export async function latestServerReceipt(userId: string): Promise<ConsentReceiptRow | null> {
   if (!userId) return null;
   try {
+    const supabase = await loadSupabaseClient();
     const { data, error } = await supabase
       .from("legal_consent_receipts")
       .select("terms_version, privacy_version, accepted_at")
@@ -116,6 +168,7 @@ export async function recordServerConsent(
 ): Promise<{ ok: boolean; reason?: string }> {
   if (!userId) return { ok: false, reason: "No account is signed in." };
   try {
+    const supabase = await loadSupabaseClient();
     const { error } = await supabase.from("legal_consent_receipts").insert({
       user_id: userId,
       terms_version: TERMS_VERSION,

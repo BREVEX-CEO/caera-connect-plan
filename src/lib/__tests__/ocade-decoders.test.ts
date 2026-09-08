@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
+import { watchConsole } from "./support/expected-console";
 import { deflateRawSync } from "node:zlib";
 import {
   decodeXlsx,
@@ -417,5 +418,21 @@ describe("cancelling a read", () => {
     const r = await decodeBinaryDocument("pdf", pdfBytes);
     // Whatever the outcome, it must not be reported as a cancellation.
     expect(r.status).not.toBe("cancelled");
+  });
+});
+
+/**
+ * Console output this audit legitimately causes, classified rather than muted.
+ *
+ * The shared list in `support/expected-console.ts` says why each message is
+ * correct behaviour. Anything NOT on it still reaches the console and fails the
+ * assertion below, so a new error cannot hide inside expected noise.
+ */
+const consoleWatch = watchConsole();
+afterAll(() => consoleWatch.restore());
+
+describe("the console during this audit", () => {
+  it("carries nothing this harness cannot account for", () => {
+    expect(consoleWatch.unexpected.slice(0, 5)).toEqual([]);
   });
 });

@@ -1,6 +1,27 @@
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+
+/**
+ * Every product source file, so a claim cannot survive by moving.
+ *
+ * Tests are excluded: this asserts what the PRODUCT says, and a test that
+ * quotes the forbidden phrase in order to forbid it is not a false claim.
+ */
+function productSources(root = "src"): string[] {
+  const found: string[] = [];
+  for (const entry of readdirSync(root, { withFileTypes: true })) {
+    const path = join(root, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === "__tests__") continue;
+      found.push(...productSources(path));
+    } else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) {
+      found.push(path);
+    }
+  }
+  return found;
+}
 
 /**
  * No-Dead-Button policy, enforced against the actual JSX.
@@ -70,61 +91,83 @@ describe("the composer never offers a Stop it cannot honour", () => {
 });
 
 describe("blocked controls explain themselves to assistive technology", () => {
-  it("Control + Work is its own screen and never bounces back to Chat", () => {
+  it("Cowork is its own screen and never bounces back to Chat", () => {
     /*
-     * This used to assert the OPPOSITE — that /ocade/work redirected to /ocade.
-     * A redirect made the two sections one place while the navigation offered
-     * them as two, so choosing "Control + Work" silently put the user in Chat.
-     * Chat answers and Control + Work acts on the machine; a control that
+     * This used to assert the OPPOSITE — that `/ocade/work` redirected to
+     * `/ocade`. A redirect made the two sections one place while the navigation
+     * offered them as two, so choosing "Control + Work" silently put the user
+     * in Chat. Chat answers and Cowork acts on the machine; a control that
      * quietly lands somewhere else is the dead control this file exists to
      * catch, whatever the destination.
+     *
+     * PLAN.md §4 has since moved the room to `/ocade/cowork` and made it one of
+     * the three primary modes. The rule is unchanged and now applies to the
+     * canonical path: the room renders itself. `/ocade/work` DOES redirect now,
+     * and that is a forwarding address rather than a bounce — it goes to the
+     * room, not away from it, which is asserted separately below.
      */
     const ocade = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
-    const work = readFileSync("src/routes/_authenticated/ocade.work.tsx", "utf8");
+    const cowork = readFileSync("src/routes/_authenticated/ocade.cowork.tsx", "utf8");
     expect(ocade).not.toMatch(/run-controls-setup-required/);
-    expect(work).not.toMatch(/redirect\(/);
-    expect(work).toMatch(/ControlWorkPanel/);
+    expect(cowork).not.toMatch(/redirect\(/);
+    expect(cowork).toMatch(/ControlWorkPanel/);
   });
 
-  it("demo-mode controls say WHY they are unavailable, not just that they are", () => {
+  it("the old Cowork address forwards to the room, not to Chat", () => {
+    // A migration that sends people somewhere OTHER than the thing they asked
+    // for is the same defect the test above exists to catch, wearing a
+    // migration's clothes.
+    const forwarding = readFileSync("src/routes/_authenticated/ocade.work.tsx", "utf8");
+    expect(forwarding).toMatch(/redirect\(\{ to: "\/ocade\/cowork"/);
+    expect(forwarding).not.toMatch(/to: "\/ocade"[,}]/);
+  });
+
+  it("a gated composer control says WHY it is unavailable, not just that it is", () => {
     /*
-     * This used to check the demo Files page, which was a separate top-level
-     * product inside a product that has one. Files are a tool inside a
-     * conversation now, so the control that is genuinely unavailable in the
-     * demo is attachment upload in the composer — and it carries a reason
-     * naming the fix rather than a bare disabled state.
+     * A capability limit and an account gate are different answers, and a bare
+     * disabled state gives neither. The menu carries a `disabledReason` for the
+     * capability case and routes the account case to sign-in instead of
+     * disabling — so no control is ever both dead and silent.
      */
-    const demo = readFileSync("src/routes/demo.ocade.tsx", "utf8");
-    expect(demo).toMatch(/imageDisabledReason=/);
-    expect(demo).toMatch(/create an account/i);
+    const menu = readFileSync("src/components/ocade/chat/ComposerMenu.tsx", "utf8");
+    expect(menu).toMatch(/disabledReason: signedIn \? \(imageDisabledReason \?\? null\) : null/);
+    expect(menu).toMatch(/requiresSignIn: !signedIn/);
   });
 
-  it("the demo no longer claims its replies are canned", () => {
-    // The demo runs the real on-device engine. Copy left over from when it did
-    // not would now be a false statement in the other direction.
-    const demo = readFileSync("src/routes/demo.ocade.tsx", "utf8");
-    const code = demo.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
-    expect(code).not.toMatch(/replies are canned/i);
-    expect(code).not.toMatch(/no model is running/i);
-    expect(code).not.toMatch(/sign in to talk to a real engine/i);
+  it("no reachable surface claims its replies are canned", () => {
+    /*
+     * OCADE runs a real engine on the device, or names an honest unavailable
+     * state. Copy left over from a fixed-string era would now be false in the
+     * other direction — a product understating itself is still a product
+     * describing something that is not happening.
+     */
+    for (const file of productSources()) {
+      const code = readFileSync(file, "utf8")
+        .replace(/\/\*[\s\S]*?\*\//g, " ")
+        .replace(/\/\/[^\n]*/g, " ");
+      expect(code, file).not.toMatch(/replies are canned/i);
+      expect(code, file).not.toMatch(/no model is running/i);
+      expect(code, file).not.toMatch(/sign in to talk to a real engine/i);
+    }
   });
 });
 
-describe("the retired products are placeholders, not half-built screens", () => {
+describe("the retired products are historical redirects, not half-built screens", () => {
   /*
-   * The failure this guards against is a placeholder that quietly grows back
-   * into a product: a link to a removed page, a data fetch, a table of sample
-   * employees. Each route must render one page and say the same sentence.
+   * The failure this guards against is a retired route quietly growing back
+   * into a product: a data fetch, a table of sample employees, or a decorative
+   * unavailable screen that looks actionable. Historic deep links must land in
+   * the supported OCADE workspace before any unavailable UI can render.
    */
   const RETIRED = ["ficia", "madee", "cania"] as const;
 
-  it("each retired route says exactly what it is", () => {
+  it("each retired route redirects before it renders an unavailable product", () => {
     for (const name of RETIRED) {
       const source = readFileSync(`src/routes/_authenticated/${name}.tsx`, "utf8");
-      expect(source).toMatch(/<ComingLater/);
+      expect(source).toMatch(/beforeLoad/);
+      expect(source).toMatch(/throw redirect\(\{ to: "\/ocade", replace: true \}\)/);
+      expect(source).not.toMatch(/ComingLater/);
     }
-    const placeholder = readFileSync("src/components/shell/ComingLater.tsx", "utf8");
-    expect(placeholder).toContain("Coming later — not an AI model.");
   });
 
   it("no retired route loads product data or unfinished screens", () => {
@@ -161,6 +204,8 @@ describe("the audit is wired in permanently", () => {
 
   it("runs in CI, so a new dead control fails the build", () => {
     const ci = readFileSync(".github/workflows/ci.yml", "utf8");
-    expect(ci).toContain("npm run controls:check");
+    const parity = readFileSync("scripts/verify-full.mjs", "utf8");
+    expect(ci).toContain("npm run verify:full");
+    expect(parity).toContain('"controls:check"');
   });
 });

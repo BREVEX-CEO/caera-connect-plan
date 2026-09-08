@@ -1,15 +1,13 @@
 /** Single source of truth for workspace navigation. */
 import {
   MessageSquare,
-  Building2,
-  Sparkles,
-  Globe2,
   Settings,
   Monitor,
   MonitorCog,
+  FileCode2,
   FolderOpen,
   ListChecks,
-  Search,
+  Package,
   SlidersHorizontal,
   type LucideIcon,
 } from "lucide-react";
@@ -35,10 +33,6 @@ export interface ModuleDef {
 
 export const MODULES: ModuleDef[] = [
   { id: "ocade", label: "OCADE", to: "/ocade", icon: MessageSquare, match: ["/ocade", "/home"] },
-  // Reserved future products stay reachable only as honest coming-later pages.
-  { id: "ficia", label: "FICIA", to: "/ficia", icon: Building2, match: ["/ficia"] },
-  { id: "madee", label: "MADEE", to: "/madee", icon: Sparkles, match: ["/madee"] },
-  { id: "cania", label: "CANIA", to: "/cania", icon: Globe2, match: ["/cania"] },
 ];
 
 export const UTILITY: ModuleDef[] = [
@@ -84,13 +78,28 @@ export function activeModule(pathname: string): ModuleId {
  */
 export const MODULE_CONTEXT: Record<ModuleId, NavItem[]> = {
   ocade: [
+    /*
+     * THE THREE PRIMARY MODES FIRST, BECAUSE PLAN.md §4 CALLS THEM THAT.
+     *
+     * Chat, Cowork and Code. Two of the three were not in this list: Cowork was
+     * here under its old name and its old path, and Code was not here at all —
+     * reachable only from the More directory, which is where things go when
+     * somebody has already decided they want them. A primary mode you have to
+     * go looking for is not primary, and a person who never opens More never
+     * learns that OCADE writes code.
+     *
+     * Then the secondary views §4 names, in the order somebody reaches for
+     * them, and More last. Search is deliberately absent: §4 moves it to a
+     * global overlay, which Cmd/Ctrl+K opens from every screen — a rail entry
+     * for it would be a second way to do the same thing, one keystroke slower.
+     */
     { to: "/ocade", label: "Chat", icon: MessageSquare, exact: true },
-    { to: "/ocade/work", label: "Work", icon: MonitorCog },
+    { to: "/ocade/cowork", label: "Cowork", icon: MonitorCog },
+    { to: "/ocade/code", label: "Code", icon: FileCode2 },
     { to: "/ocade/projects", label: "Projects", icon: FolderOpen },
-    { to: "/ocade/search", label: "Search", icon: Search },
     { to: "/ocade/tasks", label: "Tasks", icon: ListChecks },
-    { to: "/ocade/devices", label: "Devices", icon: Monitor },
-    { to: "/ocade/system", label: "More", icon: SlidersHorizontal },
+    { to: "/ocade/artifacts", label: "Artifacts", icon: Package },
+    { to: "/ocade/customize", label: "More", icon: SlidersHorizontal },
   ],
   ficia: [],
   madee: [],
@@ -107,7 +116,3 @@ export const MODULE_CONTEXT: Record<ModuleId, NavItem[]> = {
     { to: "/settings/appearance", label: "Appearance", icon: Settings },
   ],
 };
-
-export const DEMO_MODULES: ModuleDef[] = [
-  { id: "ocade", label: "OCADE", to: "/demo/ocade", icon: MessageSquare, match: ["/demo"] },
-];

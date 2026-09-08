@@ -251,14 +251,29 @@ export async function decodeDocx(buffer: ArrayBuffer, signal?: AbortSignal): Pro
     return fail("corrupt", "This document could not be read — the file may be damaged.");
   }
   try {
-    // Preflight the archive before Mammoth expands it. Mammoth has no native
-    // AbortSignal API, so cancellation races and discards its result; internal
-    // synchronous work already in progress cannot be forcibly interrupted.
-    parseZip(buffer, BINARY_LIMITS.docx);
-    const mammoth = await abortable(import("mammoth"), signal);
-    const result = await abortable(mammoth.extractRawText({ arrayBuffer: buffer }), signal);
-    assertNotCancelled(signal);
-    const text = (result.value ?? "").replace(/\n{3,}/g, "\n\n").trim();
+    /*
+     * READ AS A ZIP, WHICH IS WHAT A .docx IS.
+     *
+     * THIS REPLACED MAMMOTH, AND THE TRADE IS WORTH STATING. Mammoth is an
+     * excellent library for turning Word documents into styled HTML, and 487
+     * KiB of the shipped bundle went to it — for one call, `extractRawText`,
+     * whose entire job is to throw all of that away and return plain text.
+     * `PLAN.md` §26 caps total JavaScript at 4,200 KiB, and half a megabyte for
+     * a feature that discards its own output is where the budget was going.
+     *
+     * NOT A NEW AUTHORITY. The spreadsheet decoder below already opens an
+     * OOXML archive, reads an XML part and pulls text out of it using these
+     * exact helpers. A .docx is the same shape, so this is the existing pattern
+     * applied to the neighbouring format rather than a second way of doing it.
+     *
+     * WHAT CAME BACK IN THE BARGAIN: cancellation. Mammoth has no AbortSignal
+     * API, so a cancelled decode used to race it and discard the result while
+     * the work carried on. This yields to the signal between paragraphs, so a
+     * cancel actually stops.
+     */
+    const entries = parseZip(buffer, BINARY_LIMITS.docx);
+    const document = await readZipText(buffer, entries, "word/document.xml", signal);
+    const text = (await extractDocxText(document, signal)).replace(/\n{3,}/g, "\n\n").trim();
     if (text.length > BINARY_LIMITS.docx.outputChars) {
       throw new DocumentLimitError("the extracted text exceeds the safe output limit");
     }
@@ -565,6 +580,82 @@ function xmlTextNodes(xml: string): string {
     parts.push(decodeXml(match[1].replace(/<[^>]+>/g, "")));
   }
   return parts.join("");
+}
+
+/**
+ * The readable text of a Word document body, paragraph by paragraph.
+ *
+ * WHAT WORD ACTUALLY STORES. `word/document.xml` is a tree of `<w:p>`
+ * paragraphs; each holds runs whose visible characters live in `<w:t>`. Tables
+ * are made of paragraphs too, so walking paragraphs picks up table cells
+ * without needing to understand tables at all.
+ *
+ * THE PARTS THAT ARE DELIBERATELY SKIPPED, each because including it would put
+ * text on screen that the document does not show:
+ *
+ *   - `<w:instrText>` holds field CODES (`PAGE`, `HYPERLINK "..."`), not
+ *     results. Including them leaks raw URLs and merge syntax into what the
+ *     model reads as prose.
+ *   - `<w:delText>` is text somebody DELETED under tracked changes. Reading it
+ *     back would show a person deleted content as though it were still there.
+ *
+ * `<w:tab/>` and `<w:br/>` become real whitespace, because a tabbed list read
+ * as one run-on word is not the document either.
+ */
+async function extractDocxText(xml: string, signal?: AbortSignal): Promise<string> {
+  const body = /<w:body\b[^>]*>([\s\S]*?)<\/w:body>/i.exec(xml)?.[1] ?? xml;
+  const paragraphs: string[] = [];
+  /*
+   * LAZY, AND THAT IS NOT A STYLE CHOICE.
+   *
+   * Written greedily — `<w:p\b[^>]*(?:\/>|>…)` — the character class eats the
+   * self-closing slash of `<w:p/>`, the alternation then matches the bare `>`
+   * branch, and the "paragraph" runs on to the NEXT `</w:p>`, swallowing the
+   * paragraph after it. Word emits self-closing empty paragraphs for every
+   * blank line, so that silently merged text throughout real documents while
+   * every hand-written test case still passed.
+   */
+  const paragraphRe = /<w:p(?:\s[^>]*?)?(?:\/>|>([\s\S]*?)<\/w:p>)/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = paragraphRe.exec(body))) {
+    // Between paragraphs rather than between characters: often enough to make
+    // a cancel responsive, rarely enough not to dominate the work.
+    if (paragraphs.length % 64 === 0) await cancellationYield(signal);
+    assertNotCancelled(signal);
+
+    const inner = match[1] ?? "";
+    if (!inner) {
+      paragraphs.push("");
+      continue;
+    }
+
+    let line = "";
+    const runRe = /<w:(t|tab|br)\b([^>]*?)(?:\/>|>([\s\S]*?)<\/w:\1>)/gi;
+    let run: RegExpExecArray | null;
+    while ((run = runRe.exec(inner))) {
+      const kind = run[1]!.toLowerCase();
+      if (kind === "tab") {
+        line += "\t";
+      } else if (kind === "br") {
+        line += "\n";
+      } else {
+        /*
+         * `xml:space="preserve"` is how Word marks a run whose leading or
+         * trailing spaces are meaningful. Without honouring it, "Dear " and
+         * "Alex" arrive as "DearAlex".
+         */
+        line += decodeXml(run[3] ?? "");
+      }
+    }
+    paragraphs.push(line);
+
+    if (paragraphs.length > BINARY_LIMITS.docx.sections * 4) {
+      throw new DocumentLimitError("the document has more paragraphs than can be read safely");
+    }
+  }
+
+  return paragraphs.join("\n");
 }
 
 async function parseSharedStrings(xml: string, signal?: AbortSignal): Promise<string[]> {

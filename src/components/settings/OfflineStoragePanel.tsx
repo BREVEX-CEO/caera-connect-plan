@@ -88,7 +88,7 @@ export function OfflineStoragePanel() {
           className={cn(
             "rounded-lg border p-3",
             readiness.ready
-              ? "border-[color:var(--state-success)]/40 bg-[color:var(--state-success)]/5"
+              ? "border-[color:var(--state-success-line-strong)] bg-[color:var(--state-success-wash)]"
               : "border-border/60 bg-secondary/25",
           )}
         >

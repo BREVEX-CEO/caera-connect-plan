@@ -1,4 +1,7 @@
-import { FREE_LAUNCH_MODE } from "@/lib/launch-mode";
+import {
+  browserCheckoutConfigured,
+  CHECKOUT_UNAVAILABLE_NOTICE,
+} from "@/lib/payments/checkout-availability";
 import type { CapabilityId, CapabilityReport, CapabilityStatus } from "./types";
 
 /**
@@ -39,17 +42,17 @@ function localAI(s: CapabilitySignals): CapabilityReport {
   if (!probe) {
     return {
       id: "localAI",
-      label: "OCADE Local",
+      label: "Offline Intelligence",
       status: "NOT_CONFIGURED",
       detail: "No on-device engine has been detected on this machine.",
-      action: { label: "Set up the local engine", to: "/ocade/models" },
+      action: { label: "Open Intelligence settings", to: "/settings" },
       evidence: NOT_OBSERVED,
     };
   }
   if (probe.checking) {
     return {
       id: "localAI",
-      label: "OCADE Local",
+      label: "Offline Intelligence",
       status: "WORKING",
       detail: "Checking the on-device engine.",
       evidence: "Engine probe in flight.",
@@ -58,28 +61,28 @@ function localAI(s: CapabilitySignals): CapabilityReport {
   if (!probe.reachable) {
     return {
       id: "localAI",
-      label: "OCADE Local",
+      label: "Offline Intelligence",
       status: "NOT_CONFIGURED",
       detail: "The on-device engine is not running on this machine.",
-      action: { label: "Set up the local engine", to: "/ocade/models" },
+      action: { label: "Open Intelligence settings", to: "/settings" },
       evidence: "Loopback engine probe did not answer.",
     };
   }
   if (probe.modelCount === 0) {
     return {
       id: "localAI",
-      label: "OCADE Local",
+      label: "Offline Intelligence",
       status: "DEGRADED",
       detail: "The engine is running but has no models installed, so it cannot answer yet.",
-      action: { label: "Install a model", to: "/ocade/models" },
+      action: { label: "Open Intelligence settings", to: "/settings" },
       evidence: "Engine reachable, zero models.",
     };
   }
   return {
     id: "localAI",
-    label: "OCADE Local",
+    label: "Offline Intelligence",
     status: "READY",
-    detail: `${probe.modelCount} on-device engine${probe.modelCount === 1 ? "" : "s"} ready. Unlimited and never metered.`,
+    detail: `${probe.modelCount} on-device engine${probe.modelCount === 1 ? " is" : "s are"} ready. Successful work uses the account-wide allowance.`,
     evidence: "Engine reachable with installed models.",
   };
 }
@@ -154,7 +157,7 @@ function computerControl(s: CapabilitySignals): CapabilityReport {
       status: "NOT_CONFIGURED",
       detail:
         "The native companion is not connected, so OCADE cannot touch this computer. Nothing is simulated in its place.",
-      action: { label: "Control + Work", to: "/ocade/work" },
+      action: { label: "Cowork", to: "/ocade/cowork" },
       evidence: c ? "Companion bridge reported disconnected." : NOT_OBSERVED,
     };
   }
@@ -376,22 +379,29 @@ function monitors(s: CapabilitySignals): CapabilityReport {
 }
 
 function payments(): CapabilityReport {
-  if (FREE_LAUNCH_MODE) {
+  /*
+   * The BROWSER half only — this registry runs in the browser and must not
+   * claim to know whether the server's credentials are in place. So a
+   * configured client token reports "not configured yet" rather than "ready":
+   * checkout being reachable is a server fact, proven by a completed sandbox
+   * payment, not by a token being present in a bundle.
+   */
+  if (!browserCheckoutConfigured()) {
     return {
       id: "payments",
       label: "Payments",
       status: "UNAVAILABLE",
-      detail:
-        "Billing is switched off. OCADE is free for every signed-in account right now, so there is nothing to buy and no paid gate on any feature.",
-      evidence: "FREE_LAUNCH_MODE is on.",
+      detail: CHECKOUT_UNAVAILABLE_NOTICE,
+      evidence: "No payment client token is configured on this deployment.",
     };
   }
   return {
     id: "payments",
     label: "Payments",
     status: "NOT_CONFIGURED",
-    detail: "Billing is enabled in configuration but no checkout has been verified.",
-    evidence: "FREE_LAUNCH_MODE is off.",
+    detail: "A payment client token is present, but no checkout has been verified end to end.",
+    evidence:
+      "Client token configured; server credentials and a proven checkout are still required.",
   };
 }
 

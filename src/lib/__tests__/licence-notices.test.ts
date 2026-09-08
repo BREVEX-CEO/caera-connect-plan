@@ -107,6 +107,8 @@ describe("the notices cannot go stale", () => {
 
   it("is enforced in CI, so a dependency change without regeneration fails", () => {
     const ci = readFileSync(".github/workflows/ci.yml", "utf8");
-    expect(ci).toContain("npm run licences:check");
+    const parity = readFileSync("scripts/verify-full.mjs", "utf8");
+    expect(ci).toContain("npm run verify:full");
+    expect(parity).toContain('"licences:check"');
   });
 });

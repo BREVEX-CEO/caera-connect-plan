@@ -1,1 +1,4 @@
 project_id = "ubantxggjducfmwoydim"
+
+[functions.ocade-intelligence]
+verify_jwt = true

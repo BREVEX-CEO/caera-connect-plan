@@ -3,27 +3,38 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { ArrowDown, ArrowUpRight } from "lucide-react";
 import { SiteFooterLinks, TAP_LINK } from "@/components/shell/SiteFooter";
 
-const MUX_PLAYBACK_ID = "Aa02T7oM1wH5Mk5EEVDYhbZ1ChcdhRsS2m1NYyx4Ua1g";
-const MUX_HLS = `https://stream.mux.com/${MUX_PLAYBACK_ID}.m3u8`;
-const MUX_MP4 = `https://stream.mux.com/${MUX_PLAYBACK_ID}/high.mp4`;
 /*
- * NO THIRD-PARTY SCRIPT, AND THE PROOF THAT ONE WAS POINTLESS HERE.
+ * NO THIRD PARTY BEHIND THE PUBLIC PAGES, AND THE SECOND TIME THAT WAS TRUE.
  *
  * Every public page used to append a <script> tag for hls.js from a public CDN.
  * The application's own Content-Security-Policy allows scripts from this origin
  * and nowhere else, so the browser refused the request — on every page, for
  * every visitor, in production. The route sweep is what finally said so out
  * loud: sixty-seven pages, each with one failing request to a host we do not
- * permit.
+ * permit. It was removed rather than allowed.
  *
- * It was never doing anything either. The load handler that would have used the
- * library never ran; the error handler did, and fell back to the MP4. So the
- * fallback below is not a downgrade — it is what has actually been playing all
- * along, minus a blocked request, a console error, and a third party watching
- * everyone who reads the pricing page.
+ * The <video> it fed was the same story one layer down, and it took a browser
+ * journey to find. The element pulled a muted background clip from a media host
+ * that this application's policy does not permit either, so from the moment the
+ * launch gate opened it loaded nothing and logged
  *
- * Safari and iOS play the adaptive stream natively, which is where adaptive
- * bitrate matters most; everything else gets the progressive file.
+ *   Refused to load media from 'https://stream.mux.com/…' because it violates
+ *   the following Content Security Policy directive: "media-src …"
+ *
+ * on every public page, on every visit. No launched visitor has ever seen it.
+ *
+ * ALLOWING THE HOST WAS TRIED FIRST, AND MADE THINGS WORSE. With the policy
+ * widened the request actually left the browser, and on any network that cannot
+ * reach that host — including the one this repository's audits run on — twenty
+ * public routes began failing the "no failing request outside loopback" check
+ * instead. That is the real cost stated plainly: a decorative, aria-hidden layer
+ * at 24% opacity, sitting behind four gradients, was making every public page's
+ * health depend on a third party, and buying nothing anybody can see.
+ *
+ * So it is gone, and the backdrop is what it has always actually been: the
+ * gradients, the drifting glows, the grid and the pointer-tracked light below.
+ * Restoring a video here needs a self-hosted asset and a deliberate policy
+ * decision, not a re-added <video> tag.
  */
 
 export function PublicPage({
@@ -40,28 +51,6 @@ export function PublicPage({
   structuredData?: Record<string, unknown>;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const playQuietly = () => {
-      void video.play().catch(() => undefined);
-    };
-
-    video.src = video.canPlayType("application/vnd.apple.mpegurl") ? MUX_HLS : MUX_MP4;
-    playQuietly();
-
-    return () => {
-      // Stop the download when the page goes away. Without this, navigating
-      // between public pages leaves the previous page's video still pulling
-      // bytes until the browser gets round to collecting it.
-      video.pause();
-      video.removeAttribute("src");
-      video.load();
-    };
-  }, []);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -110,7 +99,7 @@ export function PublicPage({
   return (
     <div
       ref={rootRef}
-      className="relative min-h-screen overflow-x-hidden bg-[#050505] text-[#f5f5f7] [--mouse-x:50vw] [--mouse-y:25vh]"
+      className="relative min-h-screen overflow-x-hidden bg-[#050505] text-[#f5f5f5] [--mouse-x:50vw] [--mouse-y:25vh]"
     >
       {structuredData ? (
         <script
@@ -127,7 +116,7 @@ export function PublicPage({
         @keyframes public-float-b { 0%,100% { transform: translate3d(0,0,0); } 50% { transform: translate3d(-2vw,3vh,0); } }
         @keyframes public-gradient { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
         [data-public-tilt] { transform-style: preserve-3d; transition: transform .22s ease, border-color .25s ease, background-color .25s ease, box-shadow .25s ease; }
-        [data-public-tilt]::after { content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit; opacity:0; background:radial-gradient(420px circle at var(--tilt-x,50%) var(--tilt-y,50%),rgba(255,255,255,.105),transparent 42%); transition:opacity .25s ease; }
+        [data-public-tilt]::after { content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit; opacity:0; background:radial-gradient(420px circle at var(--tilt-x,50%) var(--tilt-y,50%),rgba(255, 255, 255,.105),transparent 42%); transition:opacity .25s ease; }
         [data-public-tilt]:hover::after { opacity:1; }
         @media (prefers-reduced-motion: reduce) { [data-public-tilt] { transition:none; } }
       `}</style>
@@ -136,22 +125,11 @@ export function PublicPage({
         aria-hidden
         className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-[#050505]"
       >
-        <video
-          ref={videoRef}
-          muted
-          loop
-          playsInline
-          autoPlay
-          preload="metadata"
-          tabIndex={-1}
-          className="absolute left-1/2 top-1/2 h-full min-h-full w-full min-w-full -translate-x-1/2 -translate-y-1/2 object-cover opacity-[0.24] saturate-[0.55] contrast-[1.12] brightness-[0.58]"
-          aria-hidden="true"
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,5,5,.30),rgba(5,5,5,.82)_64%,#050505_96%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_var(--mouse-x)_var(--mouse-y),rgba(121,82,153,.14),transparent_22rem)]" />
-        <div className="absolute -left-32 top-[20vh] h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgba(71,38,91,.22),transparent_66%)] blur-3xl motion-safe:animate-[public-float-a_14s_ease-in-out_infinite]" />
-        <div className="absolute -right-44 top-[52vh] h-[36rem] w-[36rem] rounded-full bg-[radial-gradient(circle,rgba(190,147,58,.09),transparent_65%)] blur-3xl motion-safe:animate-[public-float-b_17s_ease-in-out_infinite]" />
-        <div className="absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(255,255,255,.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.035)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5, 5, 5,.30),rgba(5, 5, 5,.82)_64%,#050505_96%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_var(--mouse-x)_var(--mouse-y),rgba(95, 95, 95,.14),transparent_22rem)]" />
+        <div className="absolute -left-32 top-[20vh] h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgba(49, 49, 49,.22),transparent_66%)] blur-3xl motion-safe:animate-[public-float-a_14s_ease-in-out_infinite]" />
+        <div className="absolute -right-44 top-[52vh] h-[36rem] w-[36rem] rounded-full bg-[radial-gradient(circle,rgba(150, 150, 150,.09),transparent_65%)] blur-3xl motion-safe:animate-[public-float-b_17s_ease-in-out_infinite]" />
+        <div className="absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(255, 255, 255,.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255, 255, 255,.035)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:linear-gradient(to_bottom,black,transparent_82%)]" />
       </div>
 
       <a href="#main-content" className="skip-link">
@@ -161,15 +139,15 @@ export function PublicPage({
       <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-5 sm:pt-5">
         <nav
           aria-label="Public information"
-          className="mx-auto flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-full border border-white/10 bg-[#0b0b0d]/76 p-1.5 shadow-[0_18px_65px_rgba(0,0,0,.42),inset_0_1px_0_rgba(255,255,255,.055)] backdrop-blur-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="mx-auto flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-full border border-white/10 bg-[#0b0b0b]/76 p-1.5 shadow-[0_18px_65px_rgba(0, 0, 0,.42),inset_0_1px_0_rgba(255, 255, 255,.055)] backdrop-blur-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           <Link
             to="/"
             aria-label="OCADE home"
             className="group mr-1 flex shrink-0 items-center gap-2 rounded-full px-1.5 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
-            <span className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-white/15 bg-black shadow-[0_0_26px_rgba(104,57,132,.26)] transition-transform duration-300 group-hover:scale-110">
-              <span className="absolute inset-[-1px] rounded-full bg-[conic-gradient(from_215deg,#d6d6da,#5b286f,#c8a24c,#d6d6da)] opacity-70" />
+            <span className="relative grid h-9 w-9 place-items-center overflow-hidden rounded-full border border-white/15 bg-black shadow-[0_0_26px_rgba(72, 72, 72,.26)] transition-transform duration-300 group-hover:scale-110">
+              <span className="absolute inset-[-1px] rounded-full bg-[conic-gradient(from_215deg,#d6d6d6,#383838,#a4a4a4,#d6d6d6)] opacity-70" />
               <span className="relative grid h-[32px] w-[32px] place-items-center overflow-hidden rounded-full bg-black">
                 <img
                   src="/brand/ocade-carcc-mark.png"
@@ -202,11 +180,11 @@ export function PublicPage({
         <section className="relative flex min-h-[78svh] items-center justify-center px-5 pb-16 pt-28 text-center sm:min-h-[84svh] sm:pt-32">
           <div className="mx-auto max-w-5xl">
             <div className="mx-auto mb-7 flex w-fit items-center gap-3 rounded-full border border-white/10 bg-black/28 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.28em] text-white/55 backdrop-blur-xl">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#caa84f] shadow-[0_0_15px_rgba(202,168,79,.75)]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#a9a9a9] shadow-[0_0_15px_rgba(169, 169, 169,.75)]" />
               {eyebrow}
             </div>
 
-            <h1 className="mx-auto max-w-5xl text-balance text-[clamp(3.3rem,10vw,8.5rem)] font-semibold leading-[0.86] tracking-[-0.065em] text-white drop-shadow-[0_28px_70px_rgba(0,0,0,.65)]">
+            <h1 className="mx-auto max-w-5xl text-balance text-[clamp(3.3rem,10vw,8.5rem)] font-semibold leading-[0.86] tracking-[-0.065em] text-white drop-shadow-[0_28px_70px_rgba(0, 0, 0,.65)]">
               {title}
             </h1>
 
@@ -257,14 +235,37 @@ export function PublicPage({
               Clear, current documentation for OCADE and CARCC CADANE.
             </span>
           </div>
-          <div className="space-y-5 text-sm leading-7 sm:text-[15px] sm:leading-8">{children}</div>
+          {/*
+            A MEASURED LINE LENGTH, NOT A TASTE.
+
+            At 1440 and above this column is 984px wide, and a paragraph set in
+            it ran to a hundred and sixty-four characters. Past roughly ninety
+            the eye stops reliably finding the start of the next line on the
+            return sweep, so the reader loses their place — on the widest and
+            most comfortable screens, which is the part that makes it a defect
+            rather than a preference.
+
+            `max-w-[70ch]` on the PARAGRAPHS and list items rather than on the
+            column: cards, grids, tables and the plan comparison keep the full
+            width they were designed for, and only running text is measured.
+            `ch` is resolved against each paragraph's own font size, so an
+            11px footnote and a 15px lead both come out at about seventy
+            characters instead of one bound serving neither.
+
+            A deliberately centred block (`/faq` has one) adds `[&_p]:mx-auto`
+            of its own; a max-width with no auto margin would quietly turn its
+            centred prose left-aligned.
+          */}
+          <div className="space-y-5 text-sm leading-7 [&_li]:max-w-[70ch] [&_p]:max-w-[70ch] sm:text-[15px] sm:leading-8">
+            {children}
+          </div>
         </section>
       </main>
 
       <footer className="relative z-10 overflow-hidden border-t border-white/[0.075] bg-black/35 px-5 py-12 backdrop-blur-xl">
         <div
           aria-hidden
-          className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(69,35,86,.12))]"
+          className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(46, 46, 46,.12))]"
         />
         <div className="relative mx-auto grid max-w-6xl gap-8 sm:grid-cols-[1fr_auto] sm:items-end">
           <div>
@@ -339,15 +340,15 @@ export function PublicSection({ title, children }: { title: string; children: Re
   return (
     <section
       data-public-tilt
-      className="group relative overflow-hidden rounded-[28px] border border-white/[0.085] bg-[linear-gradient(145deg,rgba(19,18,22,.80),rgba(8,8,10,.72))] p-5 shadow-[0_28px_90px_rgba(0,0,0,.22),inset_0_1px_0_rgba(255,255,255,.045)] backdrop-blur-2xl hover:border-white/[0.15] hover:shadow-[0_32px_110px_rgba(0,0,0,.32),0_0_50px_rgba(83,45,105,.10)] sm:p-7"
+      className="group relative overflow-hidden rounded-[28px] border border-white/[0.085] bg-[linear-gradient(145deg,rgba(19, 19, 19,.80),rgba(8, 8, 8,.72))] p-5 shadow-[0_28px_90px_rgba(0, 0, 0,.22),inset_0_1px_0_rgba(255, 255, 255,.045)] backdrop-blur-2xl hover:border-white/[0.15] hover:shadow-[0_32px_110px_rgba(0, 0, 0,.32),0_0_50px_rgba(57, 57, 57,.10)] sm:p-7"
     >
       <div
         aria-hidden
-        className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-[#caa84f]/50 to-transparent opacity-35 transition-opacity group-hover:opacity-90"
+        className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-[#a9a9a9]/50 to-transparent opacity-35 transition-opacity group-hover:opacity-90"
       />
       <div
         aria-hidden
-        className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(102,57,128,.16),transparent_70%)] blur-2xl"
+        className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(72, 72, 72,.16),transparent_70%)] blur-2xl"
       />
       <h2 className="relative z-10 text-xl font-semibold tracking-[-0.025em] text-white sm:text-[23px]">
         {title}

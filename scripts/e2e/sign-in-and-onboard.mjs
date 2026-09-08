@@ -11,6 +11,8 @@
  * for exactly what that does and does not prove.
  */
 import { chromium } from "playwright-core";
+import { completeOnboarding } from "./onboarding.mjs";
+import { clearModals } from "./sign-in.mjs";
 
 const BASE = process.env.OCADE_BASE_URL ?? "http://127.0.0.1:8080";
 const OUT = process.env.OCADE_STORAGE_STATE_OUT ?? "/tmp/ocade-onboarded-state.json";
@@ -24,36 +26,9 @@ const browser = await chromium.launch({
 const context = await browser.newContext();
 const page = await context.newPage();
 
-async function clearModals() {
-  const deadline = Date.now() + 90_000;
-  while (Date.now() < deadline) {
-    const dialog = page.locator("[role=dialog], [role=alertdialog]");
-    if ((await dialog.count()) === 0) return;
-    const boxes = dialog.locator("input[type=checkbox], [role=checkbox]");
-    for (let i = 0; i < (await boxes.count()); i += 1) {
-      await boxes
-        .nth(i)
-        .click({ timeout: 5000 })
-        .catch(() => {});
-    }
-    const button = dialog.getByRole("button", {
-      name: /^(accept and continue|skip|done|finish|got it|close)$/i,
-    });
-    if ((await button.count()) === 0) {
-      await page.waitForTimeout(500);
-      continue;
-    }
-    await button
-      .first()
-      .click({ timeout: 8000 })
-      .catch(() => {});
-    await page.waitForTimeout(600);
-  }
-}
-
 await page.goto(`${BASE}/auth`, { waitUntil: "domcontentloaded", timeout: 60000 });
 await page.waitForTimeout(1200);
-await clearModals();
+await clearModals(page);
 
 await page
   .locator("button", { hasText: /^Email$/ })
@@ -80,29 +55,7 @@ if (!signedIn) {
 console.log(`signed in, landed on ${new URL(page.url()).pathname}`);
 
 // Onboarding: five steps, each ending in Continue, the last in Enter workspace.
-for (let step = 1; step <= 8; step += 1) {
-  if (new URL(page.url()).pathname !== "/onboarding") break;
-  await page.evaluate(() => {
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
-    document
-      .querySelectorAll("input:not([type=checkbox]):not([type=radio]):not([disabled])")
-      .forEach((el) => {
-        if (el.value) return;
-        setter.call(el, el.type === "email" ? "audit@ocade.test" : "Audit Tester");
-        el.dispatchEvent(new Event("input", { bubbles: true }));
-        el.dispatchEvent(new Event("change", { bubbles: true }));
-      });
-  });
-  await page.waitForTimeout(400);
-  const next = page
-    .locator("button", { hasText: /^(Continue|Next|Finish|Enter workspace)$/i })
-    .first();
-  if ((await next.count()) === 0) break;
-  const label = (await next.textContent()).trim();
-  await next.click({ timeout: 12000 }).catch(() => {});
-  console.log(`  onboarding step ${step}: ${label}`);
-  await page.waitForTimeout(1600);
-}
+await completeOnboarding(page, { email: EMAIL });
 
 const landed = new URL(page.url()).pathname;
 if (landed === "/onboarding") {
@@ -116,7 +69,7 @@ console.log(`onboarding complete, landed on ${landed}`);
 // is still resolving can briefly prevent the ordinary Skip click from reaching
 // it.
 await page.waitForTimeout(500);
-await clearModals();
+await clearModals(page);
 await context.storageState({ path: OUT });
 console.log(`storage state written to ${OUT}`);
 await browser.close();

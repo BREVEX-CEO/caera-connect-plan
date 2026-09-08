@@ -74,26 +74,95 @@ describe("a message row offers only the actions it was given", () => {
     const html = renderToStaticMarkup(
       <MessageBubble
         message={message()}
+        isLatest
         actions={{
-          onEdit: () => {},
           onRegenerate: () => {},
           onContinue: () => {},
           onBranch: () => {},
+          onAside: () => {},
           onSpeak: () => {},
           onSave: () => {},
         }}
       />,
     );
     for (const label of [
-      "Edit and resend",
       "Regenerate answer",
       "Continue this answer",
       "Branch from here",
+      "Ask about this — stays out of the thread",
       "Read aloud",
       "Save this answer",
     ]) {
       expect(html.split(`aria-label="${label}"`)).toHaveLength(2);
     }
+  });
+
+  it("does not offer an assistant-only control on a user turn", () => {
+    /*
+     * THE DEFECT THIS CATCHES WAS SHIPPING.
+     *
+     * One `actions` object is drawn for every message in the transcript, so a
+     * user turn used to show "Branch from here", "Save this answer" and "Ask
+     * about this". Each handler checked the role and returned without acting,
+     * which meant three controls that looked available, were reachable by
+     * keyboard, and did nothing at all when pressed.
+     */
+    const html = renderToStaticMarkup(
+      <MessageBubble
+        message={message({ role: "user" })}
+        isLatest
+        actions={{
+          onEdit: () => {},
+          onBranch: () => {},
+          onSave: () => {},
+          onAside: () => {},
+          onRegenerate: () => {},
+          onReact: () => {},
+        }}
+      />,
+    );
+    for (const absent of [
+      "Branch from here",
+      "Save this answer",
+      "Ask about this",
+      "Regenerate answer",
+      "Helpful",
+    ]) {
+      expect(html).not.toContain(absent);
+    }
+    // The one control that IS the user's own turn stays.
+    expect(html).toContain("Edit and resend");
+  });
+
+  it("does not offer editing on an assistant turn", () => {
+    const html = renderToStaticMarkup(
+      <MessageBubble message={message()} actions={{ onEdit: () => {} }} />,
+    );
+    // "Edit and resend" resends the prompt. There is no prompt in an answer.
+    expect(html).not.toContain("Edit and resend");
+  });
+
+  it("offers regenerate and re-run only on the newest turn", () => {
+    const older = renderToStaticMarkup(
+      <MessageBubble message={message()} actions={{ onRegenerate: () => {}, onRerun: () => {} }} />,
+    );
+    /*
+     * Regenerating an answer from the middle of a thread would silently
+     * discard everything after it, and the run comparison has pinned
+     * conditions only for the last answer.
+     */
+    expect(older).not.toContain("Regenerate answer");
+    expect(older).not.toContain("Run again and compare");
+
+    const newest = renderToStaticMarkup(
+      <MessageBubble
+        message={message()}
+        isLatest
+        actions={{ onRegenerate: () => {}, onRerun: () => {} }}
+      />,
+    );
+    expect(newest).toContain("Regenerate answer");
+    expect(newest).toContain("Run again and compare");
   });
 
   it("keeps a failed answer's text and offers a real retry", () => {
@@ -111,7 +180,11 @@ describe("a message row offers only the actions it was given", () => {
 
   it("hides the action row while a reply is still arriving", () => {
     const html = renderToStaticMarkup(
-      <MessageBubble message={message({ streaming: true })} actions={{ onRegenerate: () => {} }} />,
+      <MessageBubble
+        message={message({ streaming: true })}
+        isLatest
+        actions={{ onRegenerate: () => {} }}
+      />,
     );
     // Regenerating a half-finished answer is meaningless, so it is not offered.
     expect(html).not.toContain("Regenerate answer");

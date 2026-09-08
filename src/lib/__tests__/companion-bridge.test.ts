@@ -1,9 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   riskOf,
-  isProtectedText,
   guardAction,
-  redactForAudit,
   UnavailableCompanion,
   setCompanionAdapter,
   subscribeCompanionAdapter,
@@ -13,6 +11,7 @@ import {
   type CompanionAction,
   type NativeCompanionAdapter,
 } from "../native/companion-bridge";
+import { isProtectedText, redactForAudit } from "../security/protected-text";
 import { NativeCompanionRequiredError } from "../storage/types";
 
 describe("risk tiers", () => {

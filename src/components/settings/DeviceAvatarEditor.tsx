@@ -70,13 +70,25 @@ export function DeviceAvatarEditor({
           type="file"
           accept={ACCEPT}
           onChange={(event) => choose(event.target.files?.[0])}
-          className="sr-only"
+          className="peer sr-only"
           id="device-avatar"
         />
         <div className="flex gap-2">
+          {/*
+           * THE INPUT STAYS IN THE TAB ORDER HERE, and the ring goes on the
+           * label instead.
+           *
+           * Elsewhere a hidden file input is a duplicate tab stop, because a
+           * visible BUTTON already opens the picker. This one is opened by a
+           * `<label htmlFor>`, and a label is not focusable — so the sr-only
+           * input is the only way to reach this control with a keyboard.
+           * Removing it from the tab order would make choosing an avatar
+           * impossible without a mouse; `peer-focus-visible` shows where the
+           * focus is on the thing a person can actually see.
+           */}
           <label
             htmlFor="device-avatar"
-            className="inline-flex min-h-9 cursor-pointer items-center rounded-md border border-border/70 px-3 text-xs"
+            className="inline-flex min-h-9 cursor-pointer items-center rounded-md border border-border/70 px-3 text-xs peer-focus-visible:border-primary/60 peer-focus-visible:ring-2 peer-focus-visible:ring-ring"
           >
             {image ? "Replace avatar" : "Select avatar"}
           </label>

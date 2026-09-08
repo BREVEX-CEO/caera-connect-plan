@@ -1,4 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import {
+  callerScopedFunctions,
+  TOKEN_AUTHORIZED_FUNCTIONS,
+} from "@/lib/security/caller-scoped-functions";
 import { DatabaseTwin } from "../../../scripts/db-twin.mts";
 
 /**
@@ -50,8 +54,8 @@ describe("every migration applies in the declared order", () => {
    * Loosening this to a range would defeat the point: an exact count is what
    * catches a migration going missing.
    */
-  it("finds all 60 migrations", () => {
-    expect(DatabaseTwin.migrationFiles()).toHaveLength(60);
+  it("finds all 78 migrations", () => {
+    expect(DatabaseTwin.migrationFiles()).toHaveLength(78);
   });
 
   /**
@@ -85,7 +89,7 @@ describe("every migration applies in the declared order", () => {
       failed.map((f) => `${f.file}: ${f.error}`),
       "a migration failed against real PostgreSQL",
     ).toEqual([]);
-    expect(applied).toHaveLength(60);
+    expect(applied).toHaveLength(78);
   });
 
   it("rebuilds the whole schema from zero, including the tables defined after the old break", async () => {
@@ -157,6 +161,128 @@ describe("row-level security is real, not declared", () => {
     );
     expect(tenant.error).toBeUndefined();
     expect(tenant.rows, "the tenant must see only its own row").toHaveLength(1);
+  });
+});
+
+describe("a SECURITY DEFINER function reachable from a browser binds its caller", () => {
+  /*
+   * WHY THIS IS THE DANGEROUS COMBINATION.
+   *
+   * `SECURITY DEFINER` runs as the function's owner, which means row-level
+   * security does not apply inside it. Granting EXECUTE on such a function to
+   * `authenticated` therefore hands every signed-in browser a door around RLS
+   * — and PostgREST exposes it at `/rest/v1/rpc/<name>`, so it is one fetch
+   * away from any page on the internet.
+   *
+   * That is FINE when the function scopes itself to the caller with
+   * `auth.uid()`. It is a cross-account hole when it does not: an id parameter
+   * naming somebody else's row is then simply obeyed.
+   *
+   * Supabase's own advisor flags the combination and stops there, because it
+   * cannot tell a correctly-scoped function from a dangerous one. This is the
+   * half it cannot check, and it is checked here rather than by reading fifteen
+   * function bodies once and hoping the sixteenth is written the same way.
+   *
+   * A function that genuinely must not be caller-scoped belongs in the
+   * exemption list below WITH ITS REASON, or — better — should not be granted
+   * to a browser role at all.
+   */
+  const NOT_CALLER_SCOPED: Record<string, string> = {
+    /*
+     * No entries. Every browser-reachable definer function in this schema is
+     * scoped to its caller, and the empty list is the claim: adding a name here
+     * is asserting that a signed-in stranger may reach rows that are not
+     * theirs, which needs a reason nobody has yet had.
+     */
+  };
+
+  it("finds the browser-reachable definer functions at all", async () => {
+    // A query that matches nothing would pass the assertion below for the
+    // worst possible reason.
+    const reachable = await twin.asSuperuser<{ proname: string }>(`
+      select p.proname
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.prosecdef
+        and (has_function_privilege('authenticated', p.oid, 'EXECUTE')
+             or has_function_privilege('anon', p.oid, 'EXECUTE'))
+    `);
+    expect(reachable.length).toBeGreaterThan(5);
+  });
+
+  it("scopes every one of them to auth.uid()", async () => {
+    const definitions = new Map(
+      (
+        await twin.asSuperuser<{ proname: string; definition: string }>(`
+          select p.proname, pg_get_functiondef(p.oid) as definition
+          from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+          where n.nspname = 'public' and p.prokind = 'f'
+        `)
+      ).map((row) => [row.proname, row.definition] as const),
+    );
+    const scoped = callerScopedFunctions(definitions);
+
+    const reachable = await twin.asSuperuser<{ proname: string }>(`
+      select p.proname
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.prosecdef
+        and (has_function_privilege('authenticated', p.oid, 'EXECUTE')
+             or has_function_privilege('anon', p.oid, 'EXECUTE'))
+      order by p.proname
+    `);
+    const offenders = reachable
+      .map((row) => row.proname)
+      .filter(
+        (name) =>
+          !scoped.has(name) &&
+          !(name in NOT_CALLER_SCOPED) &&
+          !TOKEN_AUTHORIZED_FUNCTIONS.has(name),
+      );
+
+    /*
+     * If this fails, a function that bypasses RLS became callable from a
+     * browser without binding the caller, directly or through a helper. The fix
+     * is to scope it or to revoke EXECUTE from `authenticated` and `anon` —
+     * NOT to add it to the exemption list, unless a stranger reaching those
+     * rows is genuinely intended.
+     */
+    expect(offenders, "browser-reachable definer functions that ignore the caller").toEqual([]);
+  });
+
+  it("exposes none of them to callers with no account at all", async () => {
+    /*
+     * `anon` is every visitor, signed in or not. A definer function reachable
+     * anonymously is reachable by the whole internet, and `auth.uid()` is NULL
+     * there — so even a correctly-scoped one is either useless or a leak.
+     *
+     * The one exception class is a function opened by a CAPABILITY rather than
+     * by identity: a shared conversation link is meant to work for somebody with
+     * no account, which is what sharing one means. Those are not waved through
+     * here — `security-definer.test.ts` asks them a harder set of questions
+     * (they must take a token, filter on it, return no account identifier, and
+     * answer nothing for a token nobody issued) — but the blanket "no anonymous
+     * definer function" rule cannot be the one that judges them.
+     */
+    const anonymous = await twin.asSuperuser<{ proname: string }>(`
+      select p.proname
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.prosecdef
+        and has_function_privilege('anon', p.oid, 'EXECUTE')
+      order by p.proname
+    `);
+    expect(
+      anonymous.map((row) => row.proname).filter((name) => !TOKEN_AUTHORIZED_FUNCTIONS.has(name)),
+    ).toEqual([]);
+  });
+
+  it("keeps the exemption list honest", async () => {
+    // An exemption for a function that no longer exists is dead weight that
+    // would silently cover a future function of the same name.
+    const existing = await twin.asSuperuser<{ proname: string }>(`
+      select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+    `);
+    const names = new Set(existing.map((row) => row.proname));
+    expect(Object.keys(NOT_CALLER_SCOPED).filter((name) => !names.has(name))).toEqual([]);
   });
 });
 

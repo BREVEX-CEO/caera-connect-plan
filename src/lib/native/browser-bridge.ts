@@ -14,7 +14,8 @@
  *    or read — OCADE pauses and the user completes them personally;
  *  - any submit that could be consequential requires explicit confirmation.
  */
-import { isProtectedText, type ActionRisk } from "./companion-bridge";
+import { type ActionRisk } from "./companion-bridge";
+import { isProtectedText } from "@/lib/security/protected-text";
 import {
   hasProtectedFields,
   screenshotRedaction,

@@ -2,11 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Check, Loader2 } from "lucide-react";
 import { OnboardingShell } from "@/components/shell/OnboardingShell";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { useSession } from "@/lib/session";
 import { isVaultConfigured } from "@/lib/storage/vault";
 import { setModeFor } from "@/lib/storage/resolver";
-import { recordDemoConsumed } from "@/lib/demo/record-consumed";
 import { DATA_CLASSES } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
 
@@ -61,6 +60,7 @@ function OnboardingPage() {
   }
 
   async function finish() {
+    const supabase = await loadSupabaseClient();
     if (!user) return;
     setBusy(true);
     setError(null);
@@ -159,15 +159,6 @@ function OnboardingPage() {
      * A vault that is already configured — a second device, a returning
      * account — skips this and goes where it always did.
      */
-    /*
-     * The demo, carried from the browser to the account.
-     *
-     * Not awaited for its result and never allowed to fail the step: a person
-     * finishing signup must not be stopped because a bookkeeping write did not
-     * land. The browser's own record still holds for this browser either way.
-     */
-    void recordDemoConsumed(user.id);
-
     let vaultReady = true;
     try {
       vaultReady = await isVaultConfigured(user.id);

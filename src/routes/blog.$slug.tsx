@@ -89,14 +89,14 @@ function ArticlePage() {
       <section className="rounded-2xl border border-primary/20 bg-primary/[0.06] p-5">
         <h2 className="text-lg font-semibold">Try the product boundary yourself</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The no-account demo uses a real local engine when this browser can run one and names the
+          A free account uses a real local engine when this browser can run one and names the
           failure when it cannot.
         </p>
         <Link
-          to="/demo/ocade"
+          to="/auth"
           className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground"
         >
-          Open the OCADE demo
+          Create a free account
         </Link>
       </section>
       <section aria-labelledby="related-title">

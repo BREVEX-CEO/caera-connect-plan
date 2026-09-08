@@ -27,7 +27,12 @@ import { streamLocalChat, DEFAULT_LOCAL_BRIDGE_URL } from "../src/lib/ocade-loca
 const BRIDGE = process.env.OCADE_LOCAL_BRIDGE_URL ?? DEFAULT_LOCAL_BRIDGE_URL;
 const MODEL = process.env.OCADE_TEST_MODEL ?? "smollm2:135m";
 
-type Step = { id: string; what: string; status: "observed" | "skipped" | "failed"; detail: unknown };
+type Step = {
+  id: string;
+  what: string;
+  status: "observed" | "skipped" | "failed";
+  detail: unknown;
+};
 const steps: Step[] = [];
 function record(id: string, what: string, status: Step["status"], detail: unknown) {
   steps.push({ id, what, status, detail });
@@ -49,9 +54,14 @@ async function main() {
   console.log(`\nOCADE model-lifecycle evidence — bridge ${BRIDGE}, model ${MODEL}\n`);
 
   const free = freeBytes();
-  record("L00", "free disk measured before any download", Number.isFinite(free) ? "observed" : "skipped", {
-    freeGb: Number.isFinite(free) ? +(free / 1e9).toFixed(1) : null,
-  });
+  record(
+    "L00",
+    "free disk measured before any download",
+    Number.isFinite(free) ? "observed" : "skipped",
+    {
+      freeGb: Number.isFinite(free) ? +(free / 1e9).toFixed(1) : null,
+    },
+  );
 
   // Pre-flight refusal must be real, not just unit-tested: ask for something
   // absurd and confirm the network is never touched.
@@ -90,14 +100,24 @@ async function main() {
       }
     },
   });
-  record("L03", `real download of ${MODEL} (resuming the cancelled attempt)`, pulled.ok ? "observed" : "failed", {
-    ...(pulled.ok ? { elapsedMs: pulled.elapsedMs, lastStatus: pulled.lastStatus } : pulled),
-    progressSamples: progress,
-  });
+  record(
+    "L03",
+    `real download of ${MODEL} (resuming the cancelled attempt)`,
+    pulled.ok ? "observed" : "failed",
+    {
+      ...(pulled.ok ? { elapsedMs: pulled.elapsedMs, lastStatus: pulled.lastStatus } : pulled),
+      progressSamples: progress,
+    },
+  );
 
   // Verify presence + digest.
   const verified = await verifyInstalled(BRIDGE, MODEL);
-  record("L04", "installation verified against the runtime's own model list", verified.ok ? "observed" : "failed", verified);
+  record(
+    "L04",
+    "installation verified against the runtime's own model list",
+    verified.ok ? "observed" : "failed",
+    verified,
+  );
 
   // Activation: downloaded is NOT ready.
   const activation = await activateModel(MODEL, {
@@ -158,7 +178,12 @@ async function main() {
 
   // Removal + storage cleanup — leave the machine as found.
   const removed = await removeModel(BRIDGE, MODEL);
-  record("L08", `removal of ${MODEL} (storage cleanup)`, removed.ok ? "observed" : "failed", removed);
+  record(
+    "L08",
+    `removal of ${MODEL} (storage cleanup)`,
+    removed.ok ? "observed" : "failed",
+    removed,
+  );
 
   const after = await verifyInstalled(BRIDGE, MODEL);
   record(
@@ -189,7 +214,12 @@ async function main() {
         model: MODEL,
         caveat:
           "Single host (Windows 10, i5-1135G7, 15.6GB RAM). Proves download, verification, activation, repair/rollback decisions and removal against a live runtime. It does NOT prove behaviour on other operating systems, other runtimes, or under network failure mid-transfer.",
-        host: { platform: process.platform, arch: process.arch, node: process.version, bridge: BRIDGE },
+        host: {
+          platform: process.platform,
+          arch: process.arch,
+          node: process.version,
+          bridge: BRIDGE,
+        },
         summary: { observed, failed, skipped, total: steps.length },
         steps,
       },

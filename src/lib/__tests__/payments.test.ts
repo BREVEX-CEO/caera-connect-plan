@@ -53,7 +53,7 @@ describe("checkout", () => {
   it("creates a checkout for a known plan", async () => {
     const r = await twin().createCheckout({
       customerId: CUST,
-      plan: "month_1m",
+      plan: "pro_monthly",
       idempotencyKey: "k1",
     });
     expect(r.ok).toBe(true);
@@ -75,12 +75,12 @@ describe("checkout", () => {
     const p = twin();
     const a = await p.createCheckout({
       customerId: CUST,
-      plan: "month_1m",
+      plan: "pro_monthly",
       idempotencyKey: "same",
     });
     const b = await p.createCheckout({
       customerId: CUST,
-      plan: "month_1m",
+      plan: "pro_monthly",
       idempotencyKey: "same",
     });
     expect(a.ok && b.ok && a.checkoutId === b.checkoutId).toBe(true);
@@ -88,7 +88,11 @@ describe("checkout", () => {
 
   it("reports a provider failure without charging", async () => {
     const p = new PaymentProviderTwin({ now: () => NOW, failCheckout: true });
-    const r = await p.createCheckout({ customerId: CUST, plan: "month_1m", idempotencyKey: "k" });
+    const r = await p.createCheckout({
+      customerId: CUST,
+      plan: "pro_monthly",
+      idempotencyKey: "k",
+    });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.reason).toMatch(/Nothing was charged/);
   });
@@ -99,7 +103,7 @@ describe("webhook verification", () => {
 
   it("accepts a correctly signed, fresh event", async () => {
     const p = twin();
-    const { header, payload } = await p.deliver(p.completeCheckout(CUST, "month_1m"));
+    const { header, payload } = await p.deliver(p.completeCheckout(CUST, "pro_monthly"));
     const v = await verifyWebhook({
       secret: p.webhookSecret,
       header,
@@ -112,7 +116,7 @@ describe("webhook verification", () => {
 
   it("REFUSES a forged signature", async () => {
     const p = twin();
-    const { payload } = await p.deliver(p.completeCheckout(CUST, "month_1m"));
+    const { payload } = await p.deliver(p.completeCheckout(CUST, "pro_monthly"));
     const forged = await signWebhook("attacker-secret", NOW, payload);
     const v = await verifyWebhook({
       secret: p.webhookSecret,
@@ -127,9 +131,9 @@ describe("webhook verification", () => {
 
   it("REFUSES a tampered payload even with a once-valid signature", async () => {
     const p = twin();
-    const ev = p.completeCheckout(CUST, "trial_2d");
+    const ev = p.completeCheckout(CUST, "pro_weekly");
     const { header } = await p.deliver(ev);
-    const tampered = JSON.stringify({ ...ev, plan: "year_1y" });
+    const tampered = JSON.stringify({ ...ev, plan: "max_monthly" });
     const v = await verifyWebhook({
       secret: p.webhookSecret,
       header,
@@ -143,7 +147,7 @@ describe("webhook verification", () => {
 
   it("REFUSES a replayed event captured yesterday", async () => {
     const p = twin();
-    const { header, payload } = await p.deliver(p.completeCheckout(CUST, "month_1m"));
+    const { header, payload } = await p.deliver(p.completeCheckout(CUST, "pro_monthly"));
     const v = await verifyWebhook({
       secret: p.webhookSecret,
       header,
@@ -157,7 +161,7 @@ describe("webhook verification", () => {
 
   it("REFUSES a future-dated webhook", async () => {
     const p = twin();
-    const { header, payload } = await p.deliver(p.completeCheckout(CUST, "month_1m"));
+    const { header, payload } = await p.deliver(p.completeCheckout(CUST, "pro_monthly"));
     const v = await verifyWebhook({
       secret: p.webhookSecret,
       header,
@@ -172,7 +176,7 @@ describe("webhook verification", () => {
   it("REFUSES a duplicate delivery of the same event", async () => {
     const p = twin();
     const s = seen();
-    const { header, payload } = await p.deliver(p.completeCheckout(CUST, "month_1m"));
+    const { header, payload } = await p.deliver(p.completeCheckout(CUST, "pro_monthly"));
     const first = await verifyWebhook({
       secret: p.webhookSecret,
       header,
@@ -196,7 +200,7 @@ describe("webhook verification", () => {
     // Signature is checked before parsing. Otherwise an unauthenticated caller
     // could pre-register a real event's id and block it from ever applying.
     const p = twin();
-    const real = p.completeCheckout(CUST, "month_1m");
+    const real = p.completeCheckout(CUST, "pro_monthly");
     const s = seen();
     await verifyWebhook({
       secret: p.webhookSecret,
@@ -246,7 +250,7 @@ describe("webhook verification", () => {
 describe("entitlement state machine", () => {
   it("grants access after checkout completes", () => {
     const p = twin();
-    const e = applyAll([p.completeCheckout(CUST, "month_1m")]);
+    const e = applyAll([p.completeCheckout(CUST, "pro_monthly")]);
     expect(e.status).toBe("active");
     expect(hasAccess(e, NOW)).toBe(true);
   });
@@ -255,7 +259,7 @@ describe("entitlement state machine", () => {
     // The bug this prevents: a renewal delivered late overwriting a later
     // cancellation, giving away access indefinitely.
     const p = twin();
-    const renewed = p.renew(CUST, "month_1m");
+    const renewed = p.renew(CUST, "pro_monthly");
     await p.cancelSubscription(CUST);
     const cancelled = p.emitted.at(-1)!;
 
@@ -276,7 +280,7 @@ describe("entitlement state machine", () => {
 
   it("refuses to apply the same event twice", () => {
     const p = twin();
-    const ev = p.completeCheckout(CUST, "month_1m");
+    const ev = p.completeCheckout(CUST, "pro_monthly");
     const once = applyEvent(emptyEntitlement(CUST), ev);
     const twice = applyEvent(once.entitlement, ev);
     expect(twice.applied).toBe(false);
@@ -285,14 +289,17 @@ describe("entitlement state machine", () => {
 
   it("refuses an event belonging to another customer", () => {
     const p = twin();
-    const ev = p.completeCheckout("cus_bob", "month_1m");
+    const ev = p.completeCheckout("cus_bob", "pro_monthly");
     const r = applyEvent(emptyEntitlement(CUST), ev);
     expect(r.applied).toBe(false);
   });
 
   it("keeps access during grace after a failed renewal, then lapses", () => {
     const p = twin();
-    const e = applyAll([p.completeCheckout(CUST, "month_1m"), p.failPayment(CUST, "month_1m")]);
+    const e = applyAll([
+      p.completeCheckout(CUST, "pro_monthly"),
+      p.failPayment(CUST, "pro_monthly"),
+    ]);
     expect(e.status).toBe("grace");
     expect(hasAccess(e, NOW + 86_400)).toBe(true);
     expect(hasAccess(e, NOW + (GRACE_DAYS + 1) * 86_400)).toBe(false);
@@ -301,11 +308,11 @@ describe("entitlement state machine", () => {
   it("does NOT extend grace on every retry", () => {
     // A permanently failing card must not buy permanent access.
     const p = new PaymentProviderTwin({ now: () => NOW });
-    let e = applyAll([p.completeCheckout(CUST, "month_1m"), p.failPayment(CUST, "month_1m")]);
+    let e = applyAll([p.completeCheckout(CUST, "pro_monthly"), p.failPayment(CUST, "pro_monthly")]);
     const firstGrace = e.graceEndsAt;
     const later = new PaymentProviderTwin({ now: () => NOW + 5 * 86_400 });
     // Reuse the sequence chain by applying a newer failure event.
-    const secondFailure = { ...later.failPayment(CUST, "month_1m"), sequence: 99 };
+    const secondFailure = { ...later.failPayment(CUST, "pro_monthly"), sequence: 99 };
     e = applyEvent(e, secondFailure).entitlement;
     expect(e.graceEndsAt).toBe(firstGrace);
   });
@@ -313,9 +320,9 @@ describe("entitlement state machine", () => {
   it("clears grace when a payment finally succeeds", () => {
     const p = twin();
     const e = applyAll([
-      p.completeCheckout(CUST, "month_1m"),
-      p.failPayment(CUST, "month_1m"),
-      p.renew(CUST, "month_1m"),
+      p.completeCheckout(CUST, "pro_monthly"),
+      p.failPayment(CUST, "pro_monthly"),
+      p.renew(CUST, "pro_monthly"),
     ]);
     expect(e.status).toBe("active");
     expect(e.graceEndsAt).toBeNull();
@@ -323,7 +330,7 @@ describe("entitlement state machine", () => {
 
   it("keeps paid time after cancellation, then ends", async () => {
     const p = twin();
-    let e = applyAll([p.completeCheckout(CUST, "month_1m")]);
+    let e = applyAll([p.completeCheckout(CUST, "pro_monthly")]);
     await p.cancelSubscription(CUST);
     e = applyEvent(e, p.emitted.at(-1)!).entitlement;
     expect(e.status).toBe("cancelled");
@@ -333,7 +340,7 @@ describe("entitlement state machine", () => {
 
   it("revokes immediately on refund — no grace", async () => {
     const p = twin();
-    const checkout = p.completeCheckout(CUST, "month_1m");
+    const checkout = p.completeCheckout(CUST, "pro_monthly");
     let e = applyAll([checkout]);
     await p.refund(CUST, checkout.id);
     e = applyEvent(e, p.emitted.at(-1)!).entitlement;
@@ -349,15 +356,15 @@ describe("entitlement state machine", () => {
 
   it("revokes on dispute and stays revoked until the dispute is won", () => {
     const p = twin();
-    let e = applyAll([p.completeCheckout(CUST, "month_1m"), p.openDispute(CUST, "month_1m")]);
+    let e = applyAll([p.completeCheckout(CUST, "pro_monthly"), p.openDispute(CUST, "pro_monthly")]);
     expect(hasAccess(e, NOW)).toBe(false);
 
     // A renewal must not quietly reactivate a disputed subscription.
-    const sneaky = applyEvent(e, p.renew(CUST, "month_1m"));
+    const sneaky = applyEvent(e, p.renew(CUST, "pro_monthly"));
     expect(sneaky.applied).toBe(false);
     expect(sneaky.reason).toMatch(/dispute/i);
 
-    e = applyEvent(e, p.resolveDispute(CUST, "month_1m", true)).entitlement;
+    e = applyEvent(e, p.resolveDispute(CUST, "pro_monthly", true)).entitlement;
     expect(e.status).toBe("active");
     expect(hasAccess(e, NOW)).toBe(true);
   });
@@ -366,8 +373,8 @@ describe("entitlement state machine", () => {
     // Chargeback results arrive long after the events they overturn; refusing
     // them on sequence would leave a lost dispute permanently unapplied.
     const p = twin();
-    const e = applyAll([p.completeCheckout(CUST, "month_1m")]);
-    const lost = { ...p.resolveDispute(CUST, "month_1m", false), sequence: 0 };
+    const e = applyAll([p.completeCheckout(CUST, "pro_monthly")]);
+    const lost = { ...p.resolveDispute(CUST, "pro_monthly", false), sequence: 0 };
     const r = applyEvent(e, lost);
     expect(r.applied).toBe(true);
     expect(r.entitlement.status).toBe("disputed");
@@ -377,7 +384,10 @@ describe("entitlement state machine", () => {
 describe("what the user is told", () => {
   it("explains grace in days, not status codes", () => {
     const p = twin();
-    const e = applyAll([p.completeCheckout(CUST, "month_1m"), p.failPayment(CUST, "month_1m")]);
+    const e = applyAll([
+      p.completeCheckout(CUST, "pro_monthly"),
+      p.failPayment(CUST, "pro_monthly"),
+    ]);
     const text = describeEntitlement(e, NOW);
     expect(text).toMatch(/Payment failed/);
     expect(text).toMatch(/\d+ more days?/);

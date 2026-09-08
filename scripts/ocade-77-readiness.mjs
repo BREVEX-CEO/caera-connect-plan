@@ -82,21 +82,27 @@ export const OCADE_77_READINESS = [
   },
   {
     id: 12,
-    requirement: "Free-launch mode is centralized",
+    requirement: "Checkout availability is centralized and derived from configuration",
     classification: "source+test",
-    evidence: ["src/lib/launch-mode.ts", "src/lib/__tests__/free-launch-payments.test.ts"],
+    evidence: [
+      "src/lib/payments/checkout-availability.ts",
+      "src/lib/__tests__/checkout-availability.test.ts",
+    ],
   },
   {
     id: 13,
-    requirement: "Paid entitlement gate is disabled during free launch",
+    requirement: "No checkout is offered on a deployment that cannot complete a payment",
     classification: "source+test",
-    evidence: ["src/lib/launch-mode.ts", "src/lib/__tests__/free-launch-payments.test.ts"],
+    evidence: [
+      "src/lib/payments/checkout-availability.ts",
+      "src/lib/__tests__/purchase-gate.test.tsx",
+    ],
   },
   {
     id: 14,
-    requirement: "Provider checkout bootstrap fails closed during free launch",
+    requirement: "Provider checkout bootstrap fails closed when unconfigured",
     classification: "source+test",
-    evidence: ["src/lib/paddle.ts", "src/lib/__tests__/free-launch-payments.test.ts"],
+    evidence: ["src/lib/paddle.ts", "src/lib/__tests__/checkout-availability.test.ts"],
   },
   {
     id: 15,

@@ -18,42 +18,47 @@ import { Route as CareersRouteImport } from './routes/careers'
 import { Route as CompanyRouteImport } from './routes/company'
 import { Route as CompareRouteImport } from './routes/compare'
 import { Route as DataRightsRouteImport } from './routes/data-rights'
-import { Route as DemoRouteImport } from './routes/demo'
 import { Route as DownloadRouteImport } from './routes/download'
 import { Route as FaqRouteImport } from './routes/faq'
+import { Route as InviteRouteImport } from './routes/invite'
 import { Route as PressRouteImport } from './routes/press'
 import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SearchRouteImport } from './routes/search'
+import { Route as SecurityRouteImport } from './routes/security'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as StatusRouteImport } from './routes/status'
-import { Route as SupportRouteImport } from './routes/support'
 import { Route as TeamRouteImport } from './routes/team'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AuthenticatedAccessDeniedRouteImport } from './routes/_authenticated/access-denied'
 import { Route as AuthenticatedCaniaRouteImport } from './routes/_authenticated/cania'
+import { Route as AuthenticatedChallengeRouteImport } from './routes/_authenticated/challenge'
 import { Route as AuthenticatedFiciaRouteImport } from './routes/_authenticated/ficia'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated/home'
 import { Route as AuthenticatedMadeeRouteImport } from './routes/_authenticated/madee'
 import { Route as AuthenticatedOcadeRouteImport } from './routes/_authenticated/ocade'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedOrganizationRouteImport } from './routes/_authenticated/organization'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as AuthVerifyRouteImport } from './routes/auth.verify'
 import { Route as BlogIndexRouteImport } from './routes/blog.index'
 import { Route as BlogSlugRouteImport } from './routes/blog.$slug'
 import { Route as CheckoutSuccessRouteImport } from './routes/checkout.success'
-import { Route as DemoIndexRouteImport } from './routes/demo.index'
-import { Route as DemoControlRouteImport } from './routes/demo.control'
-import { Route as DemoOcadeRouteImport } from './routes/demo.ocade'
-import { Route as DemoSettingsRouteImport } from './routes/demo.settings'
 import { Route as FounderHaansAntoniRouteImport } from './routes/founder.haans-antoni'
 import { Route as ProductsOcadeRouteImport } from './routes/products.ocade'
+import { Route as ShareTokenRouteImport } from './routes/share.$token'
+import { Route as SupportIndexRouteImport } from './routes/support.index'
+import { Route as SupportSlugRouteImport } from './routes/support.$slug'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
+import { Route as AuthenticatedAdminHelpRouteImport } from './routes/_authenticated/admin.help'
 import { Route as AuthenticatedAdminLaunchGateRouteImport } from './routes/_authenticated/admin.launch-gate'
+import { Route as AuthenticatedAdminOperationsRouteImport } from './routes/_authenticated/admin.operations'
 import { Route as AuthenticatedAdminPaymentsChecklistRouteImport } from './routes/_authenticated/admin.payments-checklist'
+import { Route as AuthenticatedAdminStatusRouteImport } from './routes/_authenticated/admin.status'
 import { Route as AuthenticatedAdminSupportRouteImport } from './routes/_authenticated/admin.support'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin.users'
 import { Route as AuthenticatedOcadeIndexRouteImport } from './routes/_authenticated/ocade.index'
@@ -62,6 +67,8 @@ import { Route as AuthenticatedOcadeArtifactsRouteImport } from './routes/_authe
 import { Route as AuthenticatedOcadeAutomationsRouteImport } from './routes/_authenticated/ocade.automations'
 import { Route as AuthenticatedOcadeCodeRouteImport } from './routes/_authenticated/ocade.code'
 import { Route as AuthenticatedOcadeConnectorsRouteImport } from './routes/_authenticated/ocade.connectors'
+import { Route as AuthenticatedOcadeCoworkRouteImport } from './routes/_authenticated/ocade.cowork'
+import { Route as AuthenticatedOcadeCustomizeRouteImport } from './routes/_authenticated/ocade.customize'
 import { Route as AuthenticatedOcadeDevicesRouteImport } from './routes/_authenticated/ocade.devices'
 import { Route as AuthenticatedOcadeHealthRouteImport } from './routes/_authenticated/ocade.health'
 import { Route as AuthenticatedOcadeInboxRouteImport } from './routes/_authenticated/ocade.inbox'
@@ -95,6 +102,7 @@ import { Route as AuthenticatedSettingsTasksRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsUsageRouteImport } from './routes/_authenticated/settings.usage'
 import { Route as AuthenticatedSettingsVaultRouteImport } from './routes/_authenticated/settings.vault'
 import { Route as AuthenticatedSettingsVoiceRouteImport } from './routes/_authenticated/settings.voice'
+import { Route as ApiPublicStatusRouteImport } from './routes/api/public/status'
 import { Route as ApiOcadeBridgeSplatRouteImport } from './routes/api/ocade.bridge.$'
 import { Route as ApiPublicPaymentsWebhookRouteImport } from './routes/api/public/payments/webhook'
 
@@ -142,11 +150,6 @@ const DataRightsRoute = DataRightsRouteImport.update({
   path: '/data-rights',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DemoRoute = DemoRouteImport.update({
-  id: '/demo',
-  path: '/demo',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const DownloadRoute = DownloadRouteImport.update({
   id: '/download',
   path: '/download',
@@ -155,6 +158,11 @@ const DownloadRoute = DownloadRouteImport.update({
 const FaqRoute = FaqRouteImport.update({
   id: '/faq',
   path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteRoute = InviteRouteImport.update({
+  id: '/invite',
+  path: '/invite',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PressRoute = PressRouteImport.update({
@@ -187,6 +195,11 @@ const SearchRoute = SearchRouteImport.update({
   path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SecurityRoute = SecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
@@ -195,11 +208,6 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const StatusRoute = StatusRouteImport.update({
   id: '/status',
   path: '/status',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SupportRoute = SupportRouteImport.update({
-  id: '/support',
-  path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TeamRoute = TeamRouteImport.update({
@@ -221,6 +229,11 @@ const AuthenticatedAccessDeniedRoute =
 const AuthenticatedCaniaRoute = AuthenticatedCaniaRouteImport.update({
   id: '/cania',
   path: '/cania',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedChallengeRoute = AuthenticatedChallengeRouteImport.update({
+  id: '/challenge',
+  path: '/challenge',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedFiciaRoute = AuthenticatedFiciaRouteImport.update({
@@ -248,6 +261,12 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOrganizationRoute =
+  AuthenticatedOrganizationRouteImport.update({
+    id: '/organization',
+    path: '/organization',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -278,26 +297,6 @@ const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
   path: '/checkout/success',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DemoIndexRoute = DemoIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => DemoRoute,
-} as any)
-const DemoControlRoute = DemoControlRouteImport.update({
-  id: '/control',
-  path: '/control',
-  getParentRoute: () => DemoRoute,
-} as any)
-const DemoOcadeRoute = DemoOcadeRouteImport.update({
-  id: '/ocade',
-  path: '/ocade',
-  getParentRoute: () => DemoRoute,
-} as any)
-const DemoSettingsRoute = DemoSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => DemoRoute,
-} as any)
 const FounderHaansAntoniRoute = FounderHaansAntoniRouteImport.update({
   id: '/founder/haans-antoni',
   path: '/founder/haans-antoni',
@@ -308,10 +307,35 @@ const ProductsOcadeRoute = ProductsOcadeRouteImport.update({
   path: '/products/ocade',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ShareTokenRoute = ShareTokenRouteImport.update({
+  id: '/share/$token',
+  path: '/share/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportIndexRoute = SupportIndexRouteImport.update({
+  id: '/support/',
+  path: '/support/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportSlugRoute = SupportSlugRouteImport.update({
+  id: '/support/$slug',
+  path: '/support/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   id: '/.lovable/oauth/consent',
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminHelpRoute = AuthenticatedAdminHelpRouteImport.update({
+  id: '/admin/help',
+  path: '/admin/help',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAdminLaunchGateRoute =
   AuthenticatedAdminLaunchGateRouteImport.update({
@@ -319,10 +343,22 @@ const AuthenticatedAdminLaunchGateRoute =
     path: '/admin/launch-gate',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminOperationsRoute =
+  AuthenticatedAdminOperationsRouteImport.update({
+    id: '/admin/operations',
+    path: '/admin/operations',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminPaymentsChecklistRoute =
   AuthenticatedAdminPaymentsChecklistRouteImport.update({
     id: '/admin/payments-checklist',
     path: '/admin/payments-checklist',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminStatusRoute =
+  AuthenticatedAdminStatusRouteImport.update({
+    id: '/admin/status',
+    path: '/admin/status',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminSupportRoute =
@@ -368,6 +404,18 @@ const AuthenticatedOcadeConnectorsRoute =
   AuthenticatedOcadeConnectorsRouteImport.update({
     id: '/connectors',
     path: '/connectors',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
+const AuthenticatedOcadeCoworkRoute =
+  AuthenticatedOcadeCoworkRouteImport.update({
+    id: '/cowork',
+    path: '/cowork',
+    getParentRoute: () => AuthenticatedOcadeRoute,
+  } as any)
+const AuthenticatedOcadeCustomizeRoute =
+  AuthenticatedOcadeCustomizeRouteImport.update({
+    id: '/customize',
+    path: '/customize',
     getParentRoute: () => AuthenticatedOcadeRoute,
   } as any)
 const AuthenticatedOcadeDevicesRoute =
@@ -564,6 +612,11 @@ const AuthenticatedSettingsVoiceRoute =
     path: '/voice',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const ApiPublicStatusRoute = ApiPublicStatusRouteImport.update({
+  id: '/api/public/status',
+  path: '/api/public/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiOcadeBridgeSplatRoute = ApiOcadeBridgeSplatRouteImport.update({
   id: '/api/ocade/bridge/$',
   path: '/api/ocade/bridge/$',
@@ -585,42 +638,46 @@ export interface FileRoutesByFullPath {
   '/company': typeof CompanyRoute
   '/compare': typeof CompareRoute
   '/data-rights': typeof DataRightsRoute
-  '/demo': typeof DemoRouteWithChildren
   '/download': typeof DownloadRoute
   '/faq': typeof FaqRoute
+  '/invite': typeof InviteRoute
   '/press': typeof PressRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/search': typeof SearchRoute
+  '/security': typeof SecurityRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/status': typeof StatusRoute
-  '/support': typeof SupportRoute
   '/team': typeof TeamRoute
   '/terms': typeof TermsRoute
   '/access-denied': typeof AuthenticatedAccessDeniedRoute
   '/cania': typeof AuthenticatedCaniaRoute
+  '/challenge': typeof AuthenticatedChallengeRoute
   '/ficia': typeof AuthenticatedFiciaRoute
   '/home': typeof AuthenticatedHomeRoute
   '/madee': typeof AuthenticatedMadeeRoute
   '/ocade': typeof AuthenticatedOcadeRouteWithChildren
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/organization': typeof AuthenticatedOrganizationRoute
   '/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/checkout/success': typeof CheckoutSuccessRoute
-  '/demo/control': typeof DemoControlRoute
-  '/demo/ocade': typeof DemoOcadeRoute
-  '/demo/settings': typeof DemoSettingsRoute
   '/founder/haans-antoni': typeof FounderHaansAntoniRoute
   '/products/ocade': typeof ProductsOcadeRoute
+  '/share/$token': typeof ShareTokenRoute
+  '/support/$slug': typeof SupportSlugRoute
   '/blog/': typeof BlogIndexRoute
-  '/demo/': typeof DemoIndexRoute
+  '/support/': typeof SupportIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/admin/help': typeof AuthenticatedAdminHelpRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
+  '/admin/operations': typeof AuthenticatedAdminOperationsRoute
   '/admin/payments-checklist': typeof AuthenticatedAdminPaymentsChecklistRoute
+  '/admin/status': typeof AuthenticatedAdminStatusRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/ocade/activity': typeof AuthenticatedOcadeActivityRoute
@@ -628,6 +685,8 @@ export interface FileRoutesByFullPath {
   '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/ocade/code': typeof AuthenticatedOcadeCodeRoute
   '/ocade/connectors': typeof AuthenticatedOcadeConnectorsRoute
+  '/ocade/cowork': typeof AuthenticatedOcadeCoworkRoute
+  '/ocade/customize': typeof AuthenticatedOcadeCustomizeRoute
   '/ocade/devices': typeof AuthenticatedOcadeDevicesRoute
   '/ocade/health': typeof AuthenticatedOcadeHealthRoute
   '/ocade/inbox': typeof AuthenticatedOcadeInboxRoute
@@ -660,6 +719,8 @@ export interface FileRoutesByFullPath {
   '/settings/usage': typeof AuthenticatedSettingsUsageRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/settings/voice': typeof AuthenticatedSettingsVoiceRoute
+  '/api/public/status': typeof ApiPublicStatusRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
   '/ocade/': typeof AuthenticatedOcadeIndexRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/api/ocade/bridge/$': typeof ApiOcadeBridgeSplatRoute
@@ -675,37 +736,42 @@ export interface FileRoutesByTo {
   '/data-rights': typeof DataRightsRoute
   '/download': typeof DownloadRoute
   '/faq': typeof FaqRoute
+  '/invite': typeof InviteRoute
   '/press': typeof PressRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/search': typeof SearchRoute
+  '/security': typeof SecurityRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/status': typeof StatusRoute
-  '/support': typeof SupportRoute
   '/team': typeof TeamRoute
   '/terms': typeof TermsRoute
   '/access-denied': typeof AuthenticatedAccessDeniedRoute
   '/cania': typeof AuthenticatedCaniaRoute
+  '/challenge': typeof AuthenticatedChallengeRoute
   '/ficia': typeof AuthenticatedFiciaRoute
   '/home': typeof AuthenticatedHomeRoute
   '/madee': typeof AuthenticatedMadeeRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/organization': typeof AuthenticatedOrganizationRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/checkout/success': typeof CheckoutSuccessRoute
-  '/demo/control': typeof DemoControlRoute
-  '/demo/ocade': typeof DemoOcadeRoute
-  '/demo/settings': typeof DemoSettingsRoute
   '/founder/haans-antoni': typeof FounderHaansAntoniRoute
   '/products/ocade': typeof ProductsOcadeRoute
+  '/share/$token': typeof ShareTokenRoute
+  '/support/$slug': typeof SupportSlugRoute
   '/blog': typeof BlogIndexRoute
-  '/demo': typeof DemoIndexRoute
+  '/support': typeof SupportIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/admin/help': typeof AuthenticatedAdminHelpRoute
   '/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
+  '/admin/operations': typeof AuthenticatedAdminOperationsRoute
   '/admin/payments-checklist': typeof AuthenticatedAdminPaymentsChecklistRoute
+  '/admin/status': typeof AuthenticatedAdminStatusRoute
   '/admin/support': typeof AuthenticatedAdminSupportRoute
   '/admin/users': typeof AuthenticatedAdminUsersRoute
   '/ocade/activity': typeof AuthenticatedOcadeActivityRoute
@@ -713,6 +779,8 @@ export interface FileRoutesByTo {
   '/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/ocade/code': typeof AuthenticatedOcadeCodeRoute
   '/ocade/connectors': typeof AuthenticatedOcadeConnectorsRoute
+  '/ocade/cowork': typeof AuthenticatedOcadeCoworkRoute
+  '/ocade/customize': typeof AuthenticatedOcadeCustomizeRoute
   '/ocade/devices': typeof AuthenticatedOcadeDevicesRoute
   '/ocade/health': typeof AuthenticatedOcadeHealthRoute
   '/ocade/inbox': typeof AuthenticatedOcadeInboxRoute
@@ -745,6 +813,8 @@ export interface FileRoutesByTo {
   '/settings/usage': typeof AuthenticatedSettingsUsageRoute
   '/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/settings/voice': typeof AuthenticatedSettingsVoiceRoute
+  '/api/public/status': typeof ApiPublicStatusRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
   '/ocade': typeof AuthenticatedOcadeIndexRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/api/ocade/bridge/$': typeof ApiOcadeBridgeSplatRoute
@@ -761,42 +831,46 @@ export interface FileRoutesById {
   '/company': typeof CompanyRoute
   '/compare': typeof CompareRoute
   '/data-rights': typeof DataRightsRoute
-  '/demo': typeof DemoRouteWithChildren
   '/download': typeof DownloadRoute
   '/faq': typeof FaqRoute
+  '/invite': typeof InviteRoute
   '/press': typeof PressRoute
   '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/search': typeof SearchRoute
+  '/security': typeof SecurityRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/status': typeof StatusRoute
-  '/support': typeof SupportRoute
   '/team': typeof TeamRoute
   '/terms': typeof TermsRoute
   '/_authenticated/access-denied': typeof AuthenticatedAccessDeniedRoute
   '/_authenticated/cania': typeof AuthenticatedCaniaRoute
+  '/_authenticated/challenge': typeof AuthenticatedChallengeRoute
   '/_authenticated/ficia': typeof AuthenticatedFiciaRoute
   '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/_authenticated/madee': typeof AuthenticatedMadeeRoute
   '/_authenticated/ocade': typeof AuthenticatedOcadeRouteWithChildren
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/organization': typeof AuthenticatedOrganizationRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/auth/verify': typeof AuthVerifyRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/checkout/success': typeof CheckoutSuccessRoute
-  '/demo/control': typeof DemoControlRoute
-  '/demo/ocade': typeof DemoOcadeRoute
-  '/demo/settings': typeof DemoSettingsRoute
   '/founder/haans-antoni': typeof FounderHaansAntoniRoute
   '/products/ocade': typeof ProductsOcadeRoute
+  '/share/$token': typeof ShareTokenRoute
+  '/support/$slug': typeof SupportSlugRoute
   '/blog/': typeof BlogIndexRoute
-  '/demo/': typeof DemoIndexRoute
+  '/support/': typeof SupportIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
+  '/_authenticated/admin/help': typeof AuthenticatedAdminHelpRoute
   '/_authenticated/admin/launch-gate': typeof AuthenticatedAdminLaunchGateRoute
+  '/_authenticated/admin/operations': typeof AuthenticatedAdminOperationsRoute
   '/_authenticated/admin/payments-checklist': typeof AuthenticatedAdminPaymentsChecklistRoute
+  '/_authenticated/admin/status': typeof AuthenticatedAdminStatusRoute
   '/_authenticated/admin/support': typeof AuthenticatedAdminSupportRoute
   '/_authenticated/admin/users': typeof AuthenticatedAdminUsersRoute
   '/_authenticated/ocade/activity': typeof AuthenticatedOcadeActivityRoute
@@ -804,6 +878,8 @@ export interface FileRoutesById {
   '/_authenticated/ocade/automations': typeof AuthenticatedOcadeAutomationsRoute
   '/_authenticated/ocade/code': typeof AuthenticatedOcadeCodeRoute
   '/_authenticated/ocade/connectors': typeof AuthenticatedOcadeConnectorsRoute
+  '/_authenticated/ocade/cowork': typeof AuthenticatedOcadeCoworkRoute
+  '/_authenticated/ocade/customize': typeof AuthenticatedOcadeCustomizeRoute
   '/_authenticated/ocade/devices': typeof AuthenticatedOcadeDevicesRoute
   '/_authenticated/ocade/health': typeof AuthenticatedOcadeHealthRoute
   '/_authenticated/ocade/inbox': typeof AuthenticatedOcadeInboxRoute
@@ -836,6 +912,8 @@ export interface FileRoutesById {
   '/_authenticated/settings/usage': typeof AuthenticatedSettingsUsageRoute
   '/_authenticated/settings/vault': typeof AuthenticatedSettingsVaultRoute
   '/_authenticated/settings/voice': typeof AuthenticatedSettingsVoiceRoute
+  '/api/public/status': typeof ApiPublicStatusRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/ocade/': typeof AuthenticatedOcadeIndexRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/api/ocade/bridge/$': typeof ApiOcadeBridgeSplatRoute
@@ -852,42 +930,46 @@ export interface FileRouteTypes {
     | '/company'
     | '/compare'
     | '/data-rights'
-    | '/demo'
     | '/download'
     | '/faq'
+    | '/invite'
     | '/press'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
     | '/robots.txt'
     | '/search'
+    | '/security'
     | '/sitemap.xml'
     | '/status'
-    | '/support'
     | '/team'
     | '/terms'
     | '/access-denied'
     | '/cania'
+    | '/challenge'
     | '/ficia'
     | '/home'
     | '/madee'
     | '/ocade'
     | '/onboarding'
+    | '/organization'
     | '/settings'
     | '/auth/callback'
     | '/auth/verify'
     | '/blog/$slug'
     | '/checkout/success'
-    | '/demo/control'
-    | '/demo/ocade'
-    | '/demo/settings'
     | '/founder/haans-antoni'
     | '/products/ocade'
+    | '/share/$token'
+    | '/support/$slug'
     | '/blog/'
-    | '/demo/'
+    | '/support/'
     | '/.lovable/oauth/consent'
+    | '/admin/help'
     | '/admin/launch-gate'
+    | '/admin/operations'
     | '/admin/payments-checklist'
+    | '/admin/status'
     | '/admin/support'
     | '/admin/users'
     | '/ocade/activity'
@@ -895,6 +977,8 @@ export interface FileRouteTypes {
     | '/ocade/automations'
     | '/ocade/code'
     | '/ocade/connectors'
+    | '/ocade/cowork'
+    | '/ocade/customize'
     | '/ocade/devices'
     | '/ocade/health'
     | '/ocade/inbox'
@@ -927,6 +1011,8 @@ export interface FileRouteTypes {
     | '/settings/usage'
     | '/settings/vault'
     | '/settings/voice'
+    | '/api/public/status'
+    | '/admin/'
     | '/ocade/'
     | '/settings/'
     | '/api/ocade/bridge/$'
@@ -942,37 +1028,42 @@ export interface FileRouteTypes {
     | '/data-rights'
     | '/download'
     | '/faq'
+    | '/invite'
     | '/press'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
     | '/robots.txt'
     | '/search'
+    | '/security'
     | '/sitemap.xml'
     | '/status'
-    | '/support'
     | '/team'
     | '/terms'
     | '/access-denied'
     | '/cania'
+    | '/challenge'
     | '/ficia'
     | '/home'
     | '/madee'
     | '/onboarding'
+    | '/organization'
     | '/auth/callback'
     | '/auth/verify'
     | '/blog/$slug'
     | '/checkout/success'
-    | '/demo/control'
-    | '/demo/ocade'
-    | '/demo/settings'
     | '/founder/haans-antoni'
     | '/products/ocade'
+    | '/share/$token'
+    | '/support/$slug'
     | '/blog'
-    | '/demo'
+    | '/support'
     | '/.lovable/oauth/consent'
+    | '/admin/help'
     | '/admin/launch-gate'
+    | '/admin/operations'
     | '/admin/payments-checklist'
+    | '/admin/status'
     | '/admin/support'
     | '/admin/users'
     | '/ocade/activity'
@@ -980,6 +1071,8 @@ export interface FileRouteTypes {
     | '/ocade/automations'
     | '/ocade/code'
     | '/ocade/connectors'
+    | '/ocade/cowork'
+    | '/ocade/customize'
     | '/ocade/devices'
     | '/ocade/health'
     | '/ocade/inbox'
@@ -1012,6 +1105,8 @@ export interface FileRouteTypes {
     | '/settings/usage'
     | '/settings/vault'
     | '/settings/voice'
+    | '/api/public/status'
+    | '/admin'
     | '/ocade'
     | '/settings'
     | '/api/ocade/bridge/$'
@@ -1027,42 +1122,46 @@ export interface FileRouteTypes {
     | '/company'
     | '/compare'
     | '/data-rights'
-    | '/demo'
     | '/download'
     | '/faq'
+    | '/invite'
     | '/press'
     | '/pricing'
     | '/privacy'
     | '/reset-password'
     | '/robots.txt'
     | '/search'
+    | '/security'
     | '/sitemap.xml'
     | '/status'
-    | '/support'
     | '/team'
     | '/terms'
     | '/_authenticated/access-denied'
     | '/_authenticated/cania'
+    | '/_authenticated/challenge'
     | '/_authenticated/ficia'
     | '/_authenticated/home'
     | '/_authenticated/madee'
     | '/_authenticated/ocade'
     | '/_authenticated/onboarding'
+    | '/_authenticated/organization'
     | '/_authenticated/settings'
     | '/auth/callback'
     | '/auth/verify'
     | '/blog/$slug'
     | '/checkout/success'
-    | '/demo/control'
-    | '/demo/ocade'
-    | '/demo/settings'
     | '/founder/haans-antoni'
     | '/products/ocade'
+    | '/share/$token'
+    | '/support/$slug'
     | '/blog/'
-    | '/demo/'
+    | '/support/'
     | '/.lovable/oauth/consent'
+    | '/_authenticated/admin/help'
     | '/_authenticated/admin/launch-gate'
+    | '/_authenticated/admin/operations'
     | '/_authenticated/admin/payments-checklist'
+    | '/_authenticated/admin/status'
     | '/_authenticated/admin/support'
     | '/_authenticated/admin/users'
     | '/_authenticated/ocade/activity'
@@ -1070,6 +1169,8 @@ export interface FileRouteTypes {
     | '/_authenticated/ocade/automations'
     | '/_authenticated/ocade/code'
     | '/_authenticated/ocade/connectors'
+    | '/_authenticated/ocade/cowork'
+    | '/_authenticated/ocade/customize'
     | '/_authenticated/ocade/devices'
     | '/_authenticated/ocade/health'
     | '/_authenticated/ocade/inbox'
@@ -1102,6 +1203,8 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/usage'
     | '/_authenticated/settings/vault'
     | '/_authenticated/settings/voice'
+    | '/api/public/status'
+    | '/_authenticated/admin/'
     | '/_authenticated/ocade/'
     | '/_authenticated/settings/'
     | '/api/ocade/bridge/$'
@@ -1118,24 +1221,28 @@ export interface RootRouteChildren {
   CompanyRoute: typeof CompanyRoute
   CompareRoute: typeof CompareRoute
   DataRightsRoute: typeof DataRightsRoute
-  DemoRoute: typeof DemoRouteWithChildren
   DownloadRoute: typeof DownloadRoute
   FaqRoute: typeof FaqRoute
+  InviteRoute: typeof InviteRoute
   PressRoute: typeof PressRoute
   PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SearchRoute: typeof SearchRoute
+  SecurityRoute: typeof SecurityRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   StatusRoute: typeof StatusRoute
-  SupportRoute: typeof SupportRoute
   TeamRoute: typeof TeamRoute
   TermsRoute: typeof TermsRoute
   CheckoutSuccessRoute: typeof CheckoutSuccessRoute
   FounderHaansAntoniRoute: typeof FounderHaansAntoniRoute
   ProductsOcadeRoute: typeof ProductsOcadeRoute
+  ShareTokenRoute: typeof ShareTokenRoute
+  SupportSlugRoute: typeof SupportSlugRoute
+  SupportIndexRoute: typeof SupportIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
+  ApiPublicStatusRoute: typeof ApiPublicStatusRoute
   ApiOcadeBridgeSplatRoute: typeof ApiOcadeBridgeSplatRoute
   ApiPublicPaymentsWebhookRoute: typeof ApiPublicPaymentsWebhookRoute
 }
@@ -1205,13 +1312,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DataRightsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/demo': {
-      id: '/demo'
-      path: '/demo'
-      fullPath: '/demo'
-      preLoaderRoute: typeof DemoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/download': {
       id: '/download'
       path: '/download'
@@ -1224,6 +1324,13 @@ declare module '@tanstack/react-router' {
       path: '/faq'
       fullPath: '/faq'
       preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite': {
+      id: '/invite'
+      path: '/invite'
+      fullPath: '/invite'
+      preLoaderRoute: typeof InviteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/press': {
@@ -1268,6 +1375,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/security': {
+      id: '/security'
+      path: '/security'
+      fullPath: '/security'
+      preLoaderRoute: typeof SecurityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
@@ -1280,13 +1394,6 @@ declare module '@tanstack/react-router' {
       path: '/status'
       fullPath: '/status'
       preLoaderRoute: typeof StatusRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/support': {
-      id: '/support'
-      path: '/support'
-      fullPath: '/support'
-      preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/team': {
@@ -1315,6 +1422,13 @@ declare module '@tanstack/react-router' {
       path: '/cania'
       fullPath: '/cania'
       preLoaderRoute: typeof AuthenticatedCaniaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/challenge': {
+      id: '/_authenticated/challenge'
+      path: '/challenge'
+      fullPath: '/challenge'
+      preLoaderRoute: typeof AuthenticatedChallengeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/ficia': {
@@ -1350,6 +1464,13 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/organization': {
+      id: '/_authenticated/organization'
+      path: '/organization'
+      fullPath: '/organization'
+      preLoaderRoute: typeof AuthenticatedOrganizationRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/settings': {
@@ -1394,34 +1515,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/demo/': {
-      id: '/demo/'
-      path: '/'
-      fullPath: '/demo/'
-      preLoaderRoute: typeof DemoIndexRouteImport
-      parentRoute: typeof DemoRoute
-    }
-    '/demo/control': {
-      id: '/demo/control'
-      path: '/control'
-      fullPath: '/demo/control'
-      preLoaderRoute: typeof DemoControlRouteImport
-      parentRoute: typeof DemoRoute
-    }
-    '/demo/ocade': {
-      id: '/demo/ocade'
-      path: '/ocade'
-      fullPath: '/demo/ocade'
-      preLoaderRoute: typeof DemoOcadeRouteImport
-      parentRoute: typeof DemoRoute
-    }
-    '/demo/settings': {
-      id: '/demo/settings'
-      path: '/settings'
-      fullPath: '/demo/settings'
-      preLoaderRoute: typeof DemoSettingsRouteImport
-      parentRoute: typeof DemoRoute
-    }
     '/founder/haans-antoni': {
       id: '/founder/haans-antoni'
       path: '/founder/haans-antoni'
@@ -1436,12 +1529,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsOcadeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/share/$token': {
+      id: '/share/$token'
+      path: '/share/$token'
+      fullPath: '/share/$token'
+      preLoaderRoute: typeof ShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support/': {
+      id: '/support/'
+      path: '/support'
+      fullPath: '/support/'
+      preLoaderRoute: typeof SupportIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support/$slug': {
+      id: '/support/$slug'
+      path: '/support/$slug'
+      fullPath: '/support/$slug'
+      preLoaderRoute: typeof SupportSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/.lovable/oauth/consent': {
       id: '/.lovable/oauth/consent'
       path: '/.lovable/oauth/consent'
       fullPath: '/.lovable/oauth/consent'
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/help': {
+      id: '/_authenticated/admin/help'
+      path: '/admin/help'
+      fullPath: '/admin/help'
+      preLoaderRoute: typeof AuthenticatedAdminHelpRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/launch-gate': {
       id: '/_authenticated/admin/launch-gate'
@@ -1450,11 +1578,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminLaunchGateRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/operations': {
+      id: '/_authenticated/admin/operations'
+      path: '/admin/operations'
+      fullPath: '/admin/operations'
+      preLoaderRoute: typeof AuthenticatedAdminOperationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/payments-checklist': {
       id: '/_authenticated/admin/payments-checklist'
       path: '/admin/payments-checklist'
       fullPath: '/admin/payments-checklist'
       preLoaderRoute: typeof AuthenticatedAdminPaymentsChecklistRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/status': {
+      id: '/_authenticated/admin/status'
+      path: '/admin/status'
+      fullPath: '/admin/status'
+      preLoaderRoute: typeof AuthenticatedAdminStatusRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/support': {
@@ -1511,6 +1653,20 @@ declare module '@tanstack/react-router' {
       path: '/connectors'
       fullPath: '/ocade/connectors'
       preLoaderRoute: typeof AuthenticatedOcadeConnectorsRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/cowork': {
+      id: '/_authenticated/ocade/cowork'
+      path: '/cowork'
+      fullPath: '/ocade/cowork'
+      preLoaderRoute: typeof AuthenticatedOcadeCoworkRouteImport
+      parentRoute: typeof AuthenticatedOcadeRoute
+    }
+    '/_authenticated/ocade/customize': {
+      id: '/_authenticated/ocade/customize'
+      path: '/customize'
+      fullPath: '/ocade/customize'
+      preLoaderRoute: typeof AuthenticatedOcadeCustomizeRouteImport
       parentRoute: typeof AuthenticatedOcadeRoute
     }
     '/_authenticated/ocade/devices': {
@@ -1744,6 +1900,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsVoiceRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/api/public/status': {
+      id: '/api/public/status'
+      path: '/api/public/status'
+      fullPath: '/api/public/status'
+      preLoaderRoute: typeof ApiPublicStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ocade/bridge/$': {
       id: '/api/ocade/bridge/$'
       path: '/api/ocade/bridge/$'
@@ -1767,6 +1930,8 @@ interface AuthenticatedOcadeRouteChildren {
   AuthenticatedOcadeAutomationsRoute: typeof AuthenticatedOcadeAutomationsRoute
   AuthenticatedOcadeCodeRoute: typeof AuthenticatedOcadeCodeRoute
   AuthenticatedOcadeConnectorsRoute: typeof AuthenticatedOcadeConnectorsRoute
+  AuthenticatedOcadeCoworkRoute: typeof AuthenticatedOcadeCoworkRoute
+  AuthenticatedOcadeCustomizeRoute: typeof AuthenticatedOcadeCustomizeRoute
   AuthenticatedOcadeDevicesRoute: typeof AuthenticatedOcadeDevicesRoute
   AuthenticatedOcadeHealthRoute: typeof AuthenticatedOcadeHealthRoute
   AuthenticatedOcadeInboxRoute: typeof AuthenticatedOcadeInboxRoute
@@ -1793,6 +1958,8 @@ const AuthenticatedOcadeRouteChildren: AuthenticatedOcadeRouteChildren = {
   AuthenticatedOcadeAutomationsRoute: AuthenticatedOcadeAutomationsRoute,
   AuthenticatedOcadeCodeRoute: AuthenticatedOcadeCodeRoute,
   AuthenticatedOcadeConnectorsRoute: AuthenticatedOcadeConnectorsRoute,
+  AuthenticatedOcadeCoworkRoute: AuthenticatedOcadeCoworkRoute,
+  AuthenticatedOcadeCustomizeRoute: AuthenticatedOcadeCustomizeRoute,
   AuthenticatedOcadeDevicesRoute: AuthenticatedOcadeDevicesRoute,
   AuthenticatedOcadeHealthRoute: AuthenticatedOcadeHealthRoute,
   AuthenticatedOcadeInboxRoute: AuthenticatedOcadeInboxRoute,
@@ -1862,32 +2029,44 @@ const AuthenticatedSettingsRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccessDeniedRoute: typeof AuthenticatedAccessDeniedRoute
   AuthenticatedCaniaRoute: typeof AuthenticatedCaniaRoute
+  AuthenticatedChallengeRoute: typeof AuthenticatedChallengeRoute
   AuthenticatedFiciaRoute: typeof AuthenticatedFiciaRoute
   AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
   AuthenticatedMadeeRoute: typeof AuthenticatedMadeeRoute
   AuthenticatedOcadeRoute: typeof AuthenticatedOcadeRouteWithChildren
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedOrganizationRoute: typeof AuthenticatedOrganizationRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRouteWithChildren
+  AuthenticatedAdminHelpRoute: typeof AuthenticatedAdminHelpRoute
   AuthenticatedAdminLaunchGateRoute: typeof AuthenticatedAdminLaunchGateRoute
+  AuthenticatedAdminOperationsRoute: typeof AuthenticatedAdminOperationsRoute
   AuthenticatedAdminPaymentsChecklistRoute: typeof AuthenticatedAdminPaymentsChecklistRoute
+  AuthenticatedAdminStatusRoute: typeof AuthenticatedAdminStatusRoute
   AuthenticatedAdminSupportRoute: typeof AuthenticatedAdminSupportRoute
   AuthenticatedAdminUsersRoute: typeof AuthenticatedAdminUsersRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccessDeniedRoute: AuthenticatedAccessDeniedRoute,
   AuthenticatedCaniaRoute: AuthenticatedCaniaRoute,
+  AuthenticatedChallengeRoute: AuthenticatedChallengeRoute,
   AuthenticatedFiciaRoute: AuthenticatedFiciaRoute,
   AuthenticatedHomeRoute: AuthenticatedHomeRoute,
   AuthenticatedMadeeRoute: AuthenticatedMadeeRoute,
   AuthenticatedOcadeRoute: AuthenticatedOcadeRouteWithChildren,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedOrganizationRoute: AuthenticatedOrganizationRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRouteWithChildren,
+  AuthenticatedAdminHelpRoute: AuthenticatedAdminHelpRoute,
   AuthenticatedAdminLaunchGateRoute: AuthenticatedAdminLaunchGateRoute,
+  AuthenticatedAdminOperationsRoute: AuthenticatedAdminOperationsRoute,
   AuthenticatedAdminPaymentsChecklistRoute:
     AuthenticatedAdminPaymentsChecklistRoute,
+  AuthenticatedAdminStatusRoute: AuthenticatedAdminStatusRoute,
   AuthenticatedAdminSupportRoute: AuthenticatedAdminSupportRoute,
   AuthenticatedAdminUsersRoute: AuthenticatedAdminUsersRoute,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -1917,22 +2096,6 @@ const BlogRouteChildren: BlogRouteChildren = {
 
 const BlogRouteWithChildren = BlogRoute._addFileChildren(BlogRouteChildren)
 
-interface DemoRouteChildren {
-  DemoControlRoute: typeof DemoControlRoute
-  DemoOcadeRoute: typeof DemoOcadeRoute
-  DemoSettingsRoute: typeof DemoSettingsRoute
-  DemoIndexRoute: typeof DemoIndexRoute
-}
-
-const DemoRouteChildren: DemoRouteChildren = {
-  DemoControlRoute: DemoControlRoute,
-  DemoOcadeRoute: DemoOcadeRoute,
-  DemoSettingsRoute: DemoSettingsRoute,
-  DemoIndexRoute: DemoIndexRoute,
-}
-
-const DemoRouteWithChildren = DemoRoute._addFileChildren(DemoRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
@@ -1943,24 +2106,28 @@ const rootRouteChildren: RootRouteChildren = {
   CompanyRoute: CompanyRoute,
   CompareRoute: CompareRoute,
   DataRightsRoute: DataRightsRoute,
-  DemoRoute: DemoRouteWithChildren,
   DownloadRoute: DownloadRoute,
   FaqRoute: FaqRoute,
+  InviteRoute: InviteRoute,
   PressRoute: PressRoute,
   PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SearchRoute: SearchRoute,
+  SecurityRoute: SecurityRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   StatusRoute: StatusRoute,
-  SupportRoute: SupportRoute,
   TeamRoute: TeamRoute,
   TermsRoute: TermsRoute,
   CheckoutSuccessRoute: CheckoutSuccessRoute,
   FounderHaansAntoniRoute: FounderHaansAntoniRoute,
   ProductsOcadeRoute: ProductsOcadeRoute,
+  ShareTokenRoute: ShareTokenRoute,
+  SupportSlugRoute: SupportSlugRoute,
+  SupportIndexRoute: SupportIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
+  ApiPublicStatusRoute: ApiPublicStatusRoute,
   ApiOcadeBridgeSplatRoute: ApiOcadeBridgeSplatRoute,
   ApiPublicPaymentsWebhookRoute: ApiPublicPaymentsWebhookRoute,
 }

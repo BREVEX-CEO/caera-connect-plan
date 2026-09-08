@@ -221,3 +221,40 @@ export function mergeRemoteConversations(
 
 /** Exported for the message store, which must skip conversation rows. */
 export { isConversationKey, keyFor as conversationKey };
+
+/**
+ * DELETE EVERY CONVERSATION ON THIS DEVICE — PLAN.md §8's "delete-all".
+ *
+ * TOMBSTONES, NOT REMOVALS, for exactly the reason one delete uses them: a row
+ * simply removed comes back on the next merge from a device that was offline
+ * when the delete happened. Deleting everything is the case where that matters
+ * most — somebody clearing their history and watching it reappear on their
+ * laptop has been told a lie by the product.
+ *
+ * ALREADY-DELETED ROWS ARE SKIPPED rather than re-stamped. Re-tombstoning a
+ * conversation deleted last week would move its `updated_at` forward and make
+ * a week-old deletion look like it happened just now in every audit and every
+ * merge.
+ *
+ * Returns what it actually did, so the screen can say a number rather than
+ * "done": somebody who presses this needs to know whether it found anything.
+ */
+export async function deleteAllConversationsLocally(userId: string): Promise<number> {
+  const adapter = await resolveAdapter(userId, "chats");
+  const rows = await adapter.list<LocalConversation>("chats");
+  const now = new Date().toISOString();
+
+  let deleted = 0;
+  for (const row of rows) {
+    if (!isConversationKey(row.id)) continue;
+    const conversation = row.value;
+    if (!conversation || conversation.deleted_at) continue;
+    await adapter.put("chats", row.id, {
+      ...conversation,
+      deleted_at: now,
+      updated_at: now,
+    });
+    deleted += 1;
+  }
+  return deleted;
+}

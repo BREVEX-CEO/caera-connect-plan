@@ -32,6 +32,24 @@ type RoutePreloader = {
   preloadRoute: (options: { to: string }) => Promise<unknown>;
 };
 
+/*
+ * These are the routes a signed-in person can reach from the operational rail
+ * or its notification affordance.  They are code-split, so the initial shell
+ * cannot make a later offline click work unless their chunks are fetched while
+ * the service worker is already controlling the page.  Route preloading uses
+ * the router's generated lazy references instead of guessing bundle names.
+ */
+const OFFLINE_NAVIGATION_ROUTES = [
+  "/ocade",
+  "/ocade/cowork",
+  "/ocade/code",
+  "/ocade/projects",
+  "/ocade/tasks",
+  "/ocade/artifacts",
+  "/settings",
+  "/ocade/notifications",
+] as const;
+
 /** Browser-only, best-effort route warm-up. Never throws. */
 export async function primeOfflineNavigationFromBrowser(router: RoutePreloader): Promise<boolean> {
   if (typeof window === "undefined" || typeof navigator === "undefined") return false;
@@ -44,10 +62,7 @@ export async function primeOfflineNavigationFromBrowser(router: RoutePreloader):
      * points at a separate `settings-*.js` chunk. Preloading through the live
      * router follows that generated reference and therefore asks the
      * controlling service worker for the exact assets a later click needs. */
-    await Promise.all([
-      router.preloadRoute({ to: "/settings/activity" }),
-      router.preloadRoute({ to: "/settings/appearance" }),
-    ]);
+    await Promise.all(OFFLINE_NAVIGATION_ROUTES.map((to) => router.preloadRoute({ to })));
     return true;
   } catch {
     return false;

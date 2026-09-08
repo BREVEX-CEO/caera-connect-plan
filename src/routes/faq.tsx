@@ -2,10 +2,24 @@ import { useMemo, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronDown, Search, X } from "lucide-react";
 import { PublicPage } from "@/components/public/PublicPage";
-import { FAQ_GROUPS, filterFaqGroups, type Faq } from "@/lib/public-faq";
+import { faqView, type SupportArticle } from "@/lib/support/articles";
+import { faqViewMatching } from "@/lib/support/search";
+import { useSupportCatalogue } from "@/lib/support/use-catalogue";
 
 /**
- * Public FAQ.
+ * Public FAQ — A VIEW OF THE HELP CENTER, NOT A SECOND SET OF ANSWERS.
+ *
+ * This page used to read `public-faq.ts`: twenty-odd question-and-answer pairs
+ * with no slugs, no dates and no applicability, sitting beside nothing else.
+ * PLAN.md §L asks for a Help Center and says plainly that there must be no
+ * duplicate FAQ database — so rather than building articles next to these
+ * answers, the answers BECAME the articles and this page became a view over
+ * them: every published article that answers a question, grouped by category.
+ *
+ * The reading experience is unchanged — the same search, topic navigation and
+ * accordion — with two things added that the old shape could not offer: each
+ * answer now has a permanent URL somebody can link to, and each one carries the
+ * date its answer last changed.
  *
  * Answers only describe behaviour that exists today. Where a capability is
  * still provider- or platform-dependent, the answer says so rather than
@@ -36,11 +50,11 @@ function FaqPage() {
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: FAQ_GROUPS.flatMap((group) =>
-      group.items.map((item) => ({
+    mainEntity: faqView().flatMap((group) =>
+      group.articles.map((article) => ({
         "@type": "Question",
-        name: item.q,
-        acceptedAnswer: { "@type": "Answer", text: item.a },
+        name: article.question,
+        acceptedAnswer: { "@type": "Answer", text: article.body.join(" ") },
       })),
     ),
   };
@@ -57,14 +71,15 @@ function FaqPage() {
       <section className="rounded-2xl border border-white/7 bg-white/[0.018] p-5">
         <h2 className="text-lg font-semibold tracking-tight">Still stuck?</h2>
         <p className="mt-2 text-muted-foreground">
-          Use the contact form. It reports whether your message was accepted instead of promising
-          delivery before the support service confirms it.
+          The Help Center has the full set of articles, with the platforms and product version each
+          one applies to. If none of them covers your case, a ticket from a signed-in account
+          reaches a person.
         </p>
         <Link
           to="/support"
           className="mt-4 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
         >
-          Contact support
+          Open the Help Center
         </Link>
       </section>
     </PublicPage>
@@ -80,7 +95,13 @@ function topicId(title: string): string {
 
 export function FaqDirectory() {
   const [query, setQuery] = useState("");
-  const groups = useMemo(() => filterFaqGroups(FAQ_GROUPS, query), [query]);
+  /*
+   * The FAQ is a VIEW of the Help Center, so it reads the same merged
+   * catalogue: an answer an editor changed must not be current on
+   * /support/$slug and stale here.
+   */
+  const articles = useSupportCatalogue();
+  const groups = useMemo(() => faqViewMatching(query, articles), [query, articles]);
 
   return (
     <div className="space-y-8">
@@ -120,11 +141,11 @@ export function FaqDirectory() {
           <div className="mt-2 flex flex-wrap gap-2">
             {groups.map((group) => (
               <a
-                key={group.title}
-                href={`#${topicId(group.title)}`}
+                key={group.category.id}
+                href={`#${topicId(group.category.title)}`}
                 className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-muted-foreground transition hover:border-primary/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {group.title} ({group.items.length})
+                {group.category.title} ({group.articles.length})
               </a>
             ))}
           </div>
@@ -132,7 +153,13 @@ export function FaqDirectory() {
       </section>
 
       {groups.length === 0 ? (
-        <section role="status" className="rounded-2xl border border-white/7 p-6 text-center">
+        // `[&_p]:mx-auto` keeps this centred: PublicPage measures every
+        // paragraph to 70ch, and a max-width without an auto margin would
+        // leave the text sitting against the left edge of a centred card.
+        <section
+          role="status"
+          className="rounded-2xl border border-white/7 p-6 text-center [&_p]:mx-auto"
+        >
           <h2 className="font-semibold text-foreground">No matching questions</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Try a shorter term or clear the search to browse every topic.
@@ -147,20 +174,20 @@ export function FaqDirectory() {
         </section>
       ) : (
         groups.map((group) => {
-          const id = topicId(group.title);
+          const id = topicId(group.category.title);
           return (
             <section
-              key={group.title}
+              key={group.category.id}
               id={id}
               className="scroll-mt-24"
               aria-labelledby={`${id}-title`}
             >
               <h2 id={`${id}-title`} className="text-xl font-semibold tracking-tight">
-                {group.title}
+                {group.category.title}
               </h2>
               <div className="mt-3 divide-y divide-white/7 overflow-hidden rounded-2xl border border-white/7 bg-white/[0.018]">
-                {group.items.map((item, index) => (
-                  <FaqRow key={item.q} item={item} id={`${id}-question-${index + 1}`} />
+                {group.articles.map((article, index) => (
+                  <FaqRow key={article.slug} article={article} id={`${id}-question-${index + 1}`} />
                 ))}
               </div>
             </section>
@@ -171,7 +198,7 @@ export function FaqDirectory() {
   );
 }
 
-function FaqRow({ item, id }: { item: Faq; id: string }) {
+function FaqRow({ article, id }: { article: SupportArticle; id: string }) {
   const [open, setOpen] = useState(false);
   const answerId = `${id}-answer`;
   return (
@@ -184,7 +211,7 @@ function FaqRow({ item, id }: { item: Faq; id: string }) {
           onClick={() => setOpen((v) => !v)}
           className="flex w-full items-center justify-between gap-4 px-4 py-3.5 text-left text-[14px] font-medium text-foreground transition-colors hover:bg-white/[0.03]"
         >
-          <span>{item.q}</span>
+          <span>{article.question ?? article.title}</span>
           <ChevronDown
             aria-hidden
             className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
@@ -192,9 +219,36 @@ function FaqRow({ item, id }: { item: Faq; id: string }) {
         </button>
       </h3>
       {open ? (
-        <p id={answerId} className="px-4 pb-4 text-muted-foreground">
-          {item.a}
-        </p>
+        <div id={answerId} className="px-4 pb-4 text-muted-foreground">
+          {article.body.map((paragraph) => (
+            <p key={paragraph.slice(0, 48)} className="mt-1 first:mt-0">
+              {paragraph}
+            </p>
+          ))}
+          {/*
+           * The permanent link. An answer nobody can link to is an answer
+           * support has to paste into every reply, and the pasted copy is the
+           * one that goes stale.
+           */}
+          <p className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            <Link
+              to="/support/$slug"
+              params={{ slug: article.slug }}
+              className="underline underline-offset-4"
+            >
+              Open this answer on its own page
+            </Link>
+            <span aria-hidden>·</span>
+            <span>
+              Answer last changed{" "}
+              <time dateTime={article.lastUpdated}>
+                {new Date(article.lastUpdated).toLocaleDateString(undefined, {
+                  dateStyle: "medium",
+                })}
+              </time>
+            </span>
+          </p>
+        </div>
       ) : null}
     </div>
   );

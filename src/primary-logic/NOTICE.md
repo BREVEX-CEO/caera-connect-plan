@@ -2,7 +2,7 @@
 
 **Product:** OCADE  
 **Rights Holder / Operator:** CARCC CADANE  
-**Effective Date:** 26 August 2026  
+**Effective Date:** 26 August 2026
 
 This source package is maintained for authorized development and integration into OCADE by CARCC CADANE.
 

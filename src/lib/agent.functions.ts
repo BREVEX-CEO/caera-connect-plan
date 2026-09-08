@@ -33,12 +33,23 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { AgentStopReason } from "@/lib/agent/loop";
+import { policyCeilingFor } from "@/lib/organizations/policy.server";
+import { assertActiveGenerationPermit } from "@/lib/commercial/usage.functions";
+
+const commercialPermitInput = z.object({
+  id: z.string().uuid(),
+  generationId: z.string().min(1).max(200),
+  idempotencyKey: z.string().min(1).max(200),
+  surface: z.enum(["chat", "cowork"]),
+  source: z.literal("server"),
+});
 
 const observeInput = z.object({
   /** What the user typed. Bounded: this becomes a model prompt. */
   request: z.string().min(1).max(4_000),
   /** Optional window hint, so "what's in Chrome?" does not need a tool round trip. */
   windowTitle: z.string().max(256).optional(),
+  permit: commercialPermitInput,
 });
 
 export interface AgentRunSummary {
@@ -61,7 +72,16 @@ export interface AgentRunSummary {
 export const observeComputerFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(observeInput)
-  .handler(async ({ data }): Promise<AgentRunSummary> => {
+  .handler(async ({ data, context }): Promise<AgentRunSummary> => {
+    if (data.permit.surface !== "chat") throw new Error("A Chat permit is required here.");
+    await assertActiveGenerationPermit({
+      userId: context.userId,
+      permitId: data.permit.id,
+      generationId: data.permit.generationId,
+      idempotencyKey: data.permit.idempotencyKey,
+      surface: data.permit.surface,
+      source: data.permit.source,
+    });
     const [{ runAgentTask }, { OcadeAdapters }, { resolveAdapterConfig }, engine] =
       await Promise.all([
         import("@/lib/agent/loop"),
@@ -96,6 +116,14 @@ export const observeComputerFn = createServerFn({ method: "POST" })
           request: data.windowTitle
             ? `${data.request}\n(The user is asking about the window titled "${data.windowTitle}".)`
             : data.request,
+          /*
+           * READ HERE, NOT SENT BY THE BROWSER — PLAN.md §21, §G.
+           *
+           * A ceiling the caller computed and posted would be advice a modified
+           * client could decline. This asks the database as the caller, so what
+           * comes back is what their own workspaces actually withhold.
+           */
+          withheldToolDomains: [...(await policyCeilingFor(context.supabase)).toolDomains],
         },
       );
       return {
@@ -229,6 +257,7 @@ export const nativePreflightFn = createServerFn({ method: "POST" })
 
 const controlInput = z.object({
   request: z.string().min(1).max(4_000),
+  permit: commercialPermitInput,
   /**
    * `observe` looks and answers. `act` allows the loop to change things.
    *
@@ -270,7 +299,16 @@ export interface ControlRunSummary extends AgentRunSummary {
 export const controlWorkTaskFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(controlInput)
-  .handler(async ({ data }): Promise<ControlRunSummary> => {
+  .handler(async ({ data, context }): Promise<ControlRunSummary> => {
+    if (data.permit.surface !== "cowork") throw new Error("A Cowork permit is required here.");
+    await assertActiveGenerationPermit({
+      userId: context.userId,
+      permitId: data.permit.id,
+      generationId: data.permit.generationId,
+      idempotencyKey: data.permit.idempotencyKey,
+      surface: data.permit.surface,
+      source: data.permit.source,
+    });
     const [{ runAgentTask }, { OcadeAdapters }, { resolveAdapterConfig }, engine, registry] =
       await Promise.all([
         import("@/lib/agent/loop"),
@@ -336,7 +374,12 @@ export const controlWorkTaskFn = createServerFn({ method: "POST" })
             }
           },
         },
-        { request: data.request },
+        {
+          request: data.request,
+          // As above: asked of the database as the caller, never accepted from
+          // the request body.
+          withheldToolDomains: [...(await policyCeilingFor(context.supabase)).toolDomains],
+        },
       );
 
       return {

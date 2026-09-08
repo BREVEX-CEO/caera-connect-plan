@@ -4,7 +4,7 @@ import { Activity, Loader2, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { TruthfulFailurePanel } from "@/components/ocade/TruthfulFailurePanel";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 
 export const Route = createFileRoute("/_authenticated/ocade/activity")({
   head: () => ({ meta: [{ title: "Activity — OCADE" }, { name: "robots", content: "noindex" }] }),
@@ -22,6 +22,7 @@ function ActivityPage() {
   const activity = useQuery<ActivityRow[]>({
     queryKey: ["ocade-activity"],
     queryFn: async () => {
+      const supabase = await loadSupabaseClient();
       const { data, error } = await supabase
         .from("activity_log")
         .select("id, created_at, action, feature_id")

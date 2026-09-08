@@ -17,6 +17,21 @@ import {
 
 const read = (p: string) => readFileSync(p, "utf8");
 
+/**
+ * The file with its prose removed.
+ *
+ * Needed because a comment EXPLAINING a safety property satisfies a test that
+ * only greps for the property's name — and that is not hypothetical: the
+ * password-change check below passed against a body where the call had been
+ * replaced by a constant, purely on the strength of the comment above it
+ * naming the function. A gate that a comment can satisfy is a gate that will
+ * eventually be satisfied by nothing else.
+ */
+const readCode = (p: string) =>
+  read(p)
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/.*$/gm, "$1");
+
 describe("a session is not a reset link", () => {
   it("refuses a bare visit to /reset-password", () => {
     const evidence = readRecoveryEvidence("https://ocade.test/reset-password");
@@ -75,16 +90,32 @@ describe("a session is not a reset link", () => {
 });
 
 describe("changing a password while signed in proves it is still you", () => {
-  it("re-authenticates before updateUser", () => {
-    const source = read("src/routes/_authenticated/settings.security.tsx");
+  it("proves identity before updateUser", () => {
+    /*
+     * The proof used to be an inline `signInWithPassword` here, and this test
+     * named it. It now goes through `proveIdentityWithPassword`, the one
+     * authority the sign-in-methods panel and the organization screen also use
+     * — the inline copies had already diverged on whether an `aal2` session
+     * counted as proof, which is how a passer-by at an unlocked laptop got to
+     * change how somebody signs in.
+     *
+     * So the ordering is asserted at the call site and the MECHANISM is
+     * asserted where it now lives. Checking only the call site would let the
+     * authority become a no-op; checking only the authority would let this
+     * screen stop calling it.
+     */
+    const source = readCode("src/routes/_authenticated/settings.security.tsx");
     const change = source.slice(
       source.indexOf("async function changePassword"),
       source.indexOf("async function sendReset"),
     );
-    expect(change).toContain("signInWithPassword");
-    expect(change.indexOf("signInWithPassword")).toBeLessThan(
+    expect(change).toContain("proveIdentityWithPassword");
+    expect(change.indexOf("proveIdentityWithPassword")).toBeLessThan(
       change.indexOf("updateUser({ password: pw })"),
     );
+
+    const authority = readCode("src/lib/security/reauthentication.ts");
+    expect(authority).toContain("signInWithPassword");
   });
 
   it("will not submit without the current password", () => {

@@ -5,7 +5,7 @@ import { FileOutput, FolderKanban, Loader2, MessageSquare, Search } from "lucide
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import {
   readLocalCorpus,
   searchLocalRecords,
@@ -48,6 +48,7 @@ function escapedLike(raw: string) {
  * escaped. The user's text stays data.
  */
 async function searchRemote(raw: string): Promise<SearchResult[]> {
+  const supabase = await loadSupabaseClient();
   const q = raw.trim();
   if (q.length < 2) return [];
   const pattern = `%${escapedLike(q)}%`;

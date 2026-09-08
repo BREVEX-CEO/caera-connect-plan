@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, afterAll } from "vitest";
+import { watchConsole } from "./support/expected-console";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CodeWorkspacePanel } from "@/components/ocade/CodeWorkspacePanel";
 import { MODULE_CONTEXT } from "../shell-nav";
@@ -65,5 +66,21 @@ describe("the Code source keeps host execution and artifacts explicit", () => {
   it("removes only the browser-selected directory root from repository-relative paths", () => {
     expect(panel).toContain("hasSharedSelectionRoot");
     expect(panel).toContain("slice(`${selectedRoot}/`.length)");
+  });
+});
+
+/**
+ * Console output this audit legitimately causes, classified rather than muted.
+ *
+ * The shared list in `support/expected-console.ts` says why each message is
+ * correct behaviour. Anything NOT on it still reaches the console and fails the
+ * assertion below, so a new error cannot hide inside expected noise.
+ */
+const consoleWatch = watchConsole();
+afterAll(() => consoleWatch.restore());
+
+describe("the console during this audit", () => {
+  it("carries nothing this harness cannot account for", () => {
+    expect(consoleWatch.unexpected.slice(0, 5)).toEqual([]);
   });
 });

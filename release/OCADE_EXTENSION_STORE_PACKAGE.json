@@ -1,10 +1,10 @@
 {
-  "schemaVersion": 1,
-  "generatedAt": "2026-08-24T11:07:12.909Z",
+  "schemaVersion": 2,
+  "reproducible": true,
   "status": "PACKAGED_AND_VERIFIED_STORE_SUBMISSION_EXTERNAL",
   "package": "release/packages/ocade-cowork-1.0.0.zip",
-  "bytes": 33061,
-  "sha256": "2eb65270454ebbfa7c4cd70d9d0448c2e652c79a99b09ec3575d108cbd24d60b",
+  "bytes": 32929,
+  "sha256": "6804b4a6179dd5b5476906dc1a3b47debb7341a3c3d6416404115a13a90df392",
   "manifestVersion": 3,
   "extensionVersion": "1.0.0",
   "permissions": [

@@ -22,22 +22,21 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { BrandMark } from "./BrandMark";
-import { DemoBadge } from "./DemoBadge";
 import { RunningTasksPill } from "@/components/ocade/RunningTasksPill";
 import { ShellProvider } from "./shell-context";
 import { useShell } from "./use-shell";
 import { cn } from "@/lib/utils";
+import { NotificationBell } from "./NotificationBell";
 import { CommandPalette } from "./CommandPalette";
 import { useAppearance } from "@/lib/use-appearance";
 import { useSession } from "@/lib/session";
 import { useHistoryReach } from "./use-history-reach";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { recordAction } from "@/lib/actions";
 import { closeActiveCompanionSession } from "@/lib/native/tauri-companion";
 import {
   MODULES,
   UTILITY,
-  DEMO_MODULES,
   MODULE_CONTEXT,
   activeModule,
   type ModuleDef,
@@ -48,10 +47,6 @@ const COLLAPSE_KEY = "caera:shell:collapsed";
 
 export interface WorkspaceShellProps {
   children: ReactNode;
-  variant?: "app" | "demo";
-  /** Demo-only controls. */
-  onDemoReset?: () => void;
-  onDemoExit?: () => void;
 }
 
 /**
@@ -65,11 +60,7 @@ export interface WorkspaceShellProps {
 export function WorkspaceShell(props: WorkspaceShellProps) {
   return (
     <ShellProvider>
-      {props.variant === "demo" ? (
-        <WorkspaceShellInner {...props} user={null} />
-      ) : (
-        <AccountWorkspaceShell {...props} />
-      )}
+      <AccountWorkspaceShell {...props} />
     </ShellProvider>
   );
 }
@@ -81,16 +72,12 @@ function AccountWorkspaceShell(props: WorkspaceShellProps) {
 
 function WorkspaceShellInner({
   children,
-  variant = "app",
-  onDemoReset,
-  onDemoExit,
   user,
 }: WorkspaceShellProps & { user: ReturnType<typeof useSession>["user"] }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { theme, update } = useAppearance();
   const shell = useShell();
-  const isDemo = variant === "demo";
   const reach = useHistoryReach();
 
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -159,9 +146,9 @@ function WorkspaceShellInner({
     if (drawerOpen) navigationRef.current?.focus();
   }, [drawerOpen]);
 
-  const modules: ModuleDef[] = isDemo ? DEMO_MODULES : MODULES;
+  const modules: ModuleDef[] = MODULES;
   const current = activeModule(pathname);
-  const contextItems: NavItem[] = isDemo ? [] : (MODULE_CONTEXT[current] ?? []);
+  const contextItems: NavItem[] = MODULE_CONTEXT[current] ?? [];
 
   function cycleTheme() {
     const next = theme === "dark" ? "light" : theme === "light" ? "real" : "dark";
@@ -215,6 +202,14 @@ function WorkspaceShellInner({
       );
     }
     try {
+      /*
+       * ON DEMAND, INSIDE THE HANDLER. This shell renders on the landing page,
+       * so a static import put the whole Supabase client on the entry chunk's
+       * import graph for the sake of one call that happens when somebody
+       * presses Sign out — by which point waiting for a same-origin module is
+       * unmeasurable next to the network round trip it precedes.
+       */
+      const supabase = await loadSupabaseClient();
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       await navigate({ to: "/auth", replace: true });
@@ -277,17 +272,13 @@ function WorkspaceShellInner({
         {/*
           NO ACCOUNT MEANS NO CHATS TO SEARCH.
 
-          This was keyed on `isDemo` alone, but the demo is not the only place
-          the shell renders without a session: settings is deliberately readable
-          signed out, and it renders `variant="app"`. So a signed-out visitor
-          got a live "Search chats" button that navigated to `/ocade`, which is
-          auth-gated — a hard redirect into the sign-in wall, from a screen the
-          product had just invited them to browse.
-
-          The honest placeholder the demo already used is the right answer for
-          both cases, so both now use it.
+          Settings is deliberately readable signed out, so the shell renders
+          without a session there. A live "Search chats" button in that state
+          navigated to `/ocade`, which is auth-gated — a hard redirect into the
+          sign-in wall, from a screen the product had just invited somebody to
+          browse. The honest placeholder says so instead.
         */}
-        {isDemo || !user ? (
+        {!user ? (
           <div className="ml-2 hidden h-8 max-w-md flex-1 items-center gap-2 rounded-md border border-border/70 bg-secondary/40 px-2.5 text-xs text-muted-foreground md:inline-flex">
             <Search className="h-3.5 w-3.5" aria-hidden />
             <span>Search — available after sign-in</span>
@@ -310,7 +301,6 @@ function WorkspaceShellInner({
             not carry a permanent empty slot.
           */}
           <RunningTasksPill />
-          {isDemo ? <DemoBadge /> : null}
           <button
             onClick={cycleTheme}
             aria-label={`Theme: ${theme}. Change theme.`}
@@ -318,7 +308,7 @@ function WorkspaceShellInner({
           >
             <ThemeIcon className="h-4 w-4" aria-hidden />
           </button>
-          {isDemo ? (
+          {!user ? (
             <Link
               to="/auth"
               className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90"
@@ -327,13 +317,7 @@ function WorkspaceShellInner({
             </Link>
           ) : (
             <>
-              <Link
-                to="/settings/activity"
-                aria-label="Activity and notifications"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-              >
-                <Bell className="h-4 w-4" aria-hidden />
-              </Link>
+              <NotificationBell signedIn={Boolean(user)} />
               {shell?.copilotContent ? (
                 <button
                   onClick={() => shell.setCopilotOpen(!shell.copilotOpen)}
@@ -383,11 +367,7 @@ function WorkspaceShellInner({
               collapsed ? "justify-center px-2" : "px-4",
             )}
           >
-            <Link
-              to={isDemo ? "/" : "/home"}
-              aria-label="CARCC CADANE home"
-              className="inline-flex"
-            >
+            <Link to="/home" aria-label="CARCC CADANE home" className="inline-flex">
               <BrandMark className={collapsed ? "[&_.flex-col]:hidden" : ""} />
             </Link>
           </div>
@@ -408,12 +388,8 @@ function WorkspaceShellInner({
               <div className="mt-3">{shell.contextualNav}</div>
             ) : null}
 
-            {!isDemo ? (
-              <>
-                <div className="my-4 border-t border-sidebar-border/70" />
-                <NavList items={UTILITY} pathname={pathname} collapsed={collapsed} />
-              </>
-            ) : null}
+            <div className="my-4 border-t border-sidebar-border/70" />
+            <NavList items={UTILITY} pathname={pathname} collapsed={collapsed} />
           </nav>
 
           {/* Account / session area, pinned */}
@@ -424,100 +400,81 @@ function WorkspaceShellInner({
               collapsed && "flex justify-center",
             )}
           >
-            {isDemo ? (
-              collapsed ? null : (
-                <div className="flex gap-1">
-                  <button
-                    onClick={onDemoReset}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border/60 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" aria-hidden /> Reset
-                  </button>
-                  <button
-                    onClick={onDemoExit}
-                    className="flex flex-1 items-center justify-center gap-1.5 rounded-md border border-border/60 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="h-3.5 w-3.5" aria-hidden /> Exit
-                  </button>
-                </div>
-              )
-            ) : (
-              <>
-                {accountOpen ? (
-                  <div
-                    role="menu"
-                    aria-label="Account menu"
-                    className={cn(
-                      "absolute bottom-[calc(100%+0.25rem)] z-50 w-56 rounded-lg border border-border bg-popover p-1.5 text-popover-foreground shadow-xl",
-                      collapsed ? "left-2" : "left-2 right-2",
-                    )}
-                  >
-                    <div className="border-b border-border/60 px-2 py-2">
-                      <div className="truncate text-xs font-medium">{initials}</div>
-                      <div className="truncate text-[10px] text-muted-foreground">
-                        {user?.email ?? user?.phone ?? "Signed-in account"}
-                      </div>
-                    </div>
-                    <Link
-                      role="menuitem"
-                      to="/settings"
-                      className="mt-1 flex h-8 items-center gap-2 rounded-md px-2 text-xs hover:bg-accent"
-                    >
-                      <Settings className="h-3.5 w-3.5" aria-hidden /> Settings
-                    </Link>
-                    <Link
-                      role="menuitem"
-                      to="/settings/devices"
-                      className="flex h-8 items-center gap-2 rounded-md px-2 text-xs hover:bg-accent"
-                    >
-                      <Monitor className="h-3.5 w-3.5" aria-hidden /> Devices
-                    </Link>
-                    <Link
-                      role="menuitem"
-                      to="/settings/activity"
-                      className="flex h-8 items-center gap-2 rounded-md px-2 text-xs hover:bg-accent"
-                    >
-                      <ScrollText className="h-3.5 w-3.5" aria-hidden /> Activity
-                    </Link>
-                    <button
-                      role="menuitem"
-                      type="button"
-                      onClick={() => void signOut()}
-                      className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-xs hover:bg-accent"
-                    >
-                      <LogOut className="h-3.5 w-3.5" aria-hidden /> Sign out
-                    </button>
-                    {accountError ? (
-                      <p role="alert" className="px-2 py-1 text-[10px] text-destructive">
-                        {accountError}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
-                <button
-                  type="button"
-                  title="Account menu"
+            <>
+              {accountOpen ? (
+                <div
+                  role="menu"
                   aria-label="Account menu"
-                  aria-haspopup="menu"
-                  aria-expanded={accountOpen}
-                  onClick={() => setAccountOpen((open) => !open)}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-md text-[13px] text-muted-foreground hover:bg-sidebar-accent/70 hover:text-foreground",
-                    collapsed ? "h-9 w-9 justify-center" : "h-10 w-full px-3",
+                    "absolute bottom-[calc(100%+0.25rem)] z-50 w-56 rounded-lg border border-border bg-popover p-1.5 text-popover-foreground shadow-xl",
+                    collapsed ? "left-2" : "left-2 right-2",
                   )}
                 >
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border/70 text-[10px] font-medium">
-                    {accountInitials}
-                  </span>
-                  {!collapsed ? (
-                    <>
-                      <span className="min-w-0 flex-1 truncate text-left">Account</span>
-                      <ChevronUp className="h-3.5 w-3.5" aria-hidden />
-                    </>
+                  <div className="border-b border-border/60 px-2 py-2">
+                    <div className="truncate text-xs font-medium">{initials}</div>
+                    <div className="truncate text-[10px] text-muted-foreground">
+                      {user?.email ?? user?.phone ?? "Signed-in account"}
+                    </div>
+                  </div>
+                  <Link
+                    role="menuitem"
+                    to="/settings"
+                    className="mt-1 flex h-8 items-center gap-2 rounded-md px-2 text-xs hover:bg-accent"
+                  >
+                    <Settings className="h-3.5 w-3.5" aria-hidden /> Settings
+                  </Link>
+                  <Link
+                    role="menuitem"
+                    to="/settings/devices"
+                    className="flex h-8 items-center gap-2 rounded-md px-2 text-xs hover:bg-accent"
+                  >
+                    <Monitor className="h-3.5 w-3.5" aria-hidden /> Devices
+                  </Link>
+                  <Link
+                    role="menuitem"
+                    to="/settings/activity"
+                    className="flex h-8 items-center gap-2 rounded-md px-2 text-xs hover:bg-accent"
+                  >
+                    <ScrollText className="h-3.5 w-3.5" aria-hidden /> Activity
+                  </Link>
+                  <button
+                    role="menuitem"
+                    type="button"
+                    onClick={() => void signOut()}
+                    className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-xs hover:bg-accent"
+                  >
+                    <LogOut className="h-3.5 w-3.5" aria-hidden /> Sign out
+                  </button>
+                  {accountError ? (
+                    <p role="alert" className="px-2 py-1 text-[10px] text-destructive">
+                      {accountError}
+                    </p>
                   ) : null}
-                </button>
-              </>
-            )}
+                </div>
+              ) : null}
+              <button
+                type="button"
+                title="Account menu"
+                aria-label="Account menu"
+                aria-haspopup="menu"
+                aria-expanded={accountOpen}
+                onClick={() => setAccountOpen((open) => !open)}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-md text-[13px] text-muted-foreground hover:bg-sidebar-accent/70 hover:text-foreground",
+                  collapsed ? "h-9 w-9 justify-center" : "h-10 w-full px-3",
+                )}
+              >
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border/70 text-[10px] font-medium">
+                  {accountInitials}
+                </span>
+                {!collapsed ? (
+                  <>
+                    <span className="min-w-0 flex-1 truncate text-left">Account</span>
+                    <ChevronUp className="h-3.5 w-3.5" aria-hidden />
+                  </>
+                ) : null}
+              </button>
+            </>
           </div>
         </aside>
 
@@ -535,7 +492,7 @@ function WorkspaceShellInner({
             <MotionScope>{children}</MotionScope>
           </div>
           {/* Three-step welcome, once per account. Renders nothing afterwards. */}
-          {isDemo ? null : <WelcomeTour />}
+          <WelcomeTour />
         </main>
 
         {/* Adaptive Copilot panel */}

@@ -13,7 +13,7 @@ export function PaymentTestModeBanner() {
   return (
     <div
       role="status"
-      className="rounded-lg border border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 px-3 py-2 text-xs text-[color:var(--state-warning)]"
+      className="rounded-lg border border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)] px-3 py-2 text-xs text-[color:var(--state-warning)]"
     >
       Test mode. Checkouts opened here use the payment provider&apos;s test environment: no card is
       charged and no real subscription is created.

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAppearance } from "@/lib/use-appearance";
-import { chooseRenderTier } from "@/lib/landing/universe";
+/*
+ * From `render-tier` and NOT from `landing/universe`: this component mounts on
+ * every route, and importing the tier decision from the solar-system module
+ * would put the planet table, the camera maths and the star fields on the first
+ * paint of every page in the product.
+ */
+import { chooseRenderTier } from "@/lib/landing/render-tier";
 import { depthMode, normalisePointer, type DepthMode } from "@/lib/motion/depth";
 import { DepthContext, type DepthContextValue } from "./depth-context";
 

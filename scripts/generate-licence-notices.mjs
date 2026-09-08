@@ -201,8 +201,9 @@ const output = lines.join("\n") + "\n";
  * Compare content, not line endings.
  *
  * `output` is always built with "\n", but this repository has
- * `core.autocrlf=true` and no `.gitattributes`, so git hands every fresh
- * checkout a CRLF copy of the committed file. A raw `!==` therefore reported
+ * `core.autocrlf=true`; only generated source is pinned by `.gitattributes`,
+ * so git may hand a fresh checkout a CRLF copy of this Markdown file. A raw
+ * `!==` therefore reported
  * the notices as stale on every machine except one that happened to have LF
  * on disk — 581,050 bytes here against 595,017 in a clean clone, identical
  * once newlines are normalised. That failed the `licences:check` step of the

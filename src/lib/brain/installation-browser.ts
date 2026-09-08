@@ -31,7 +31,7 @@ import { ModelStore, modelStore } from "./model-store";
 import { sourceLadder } from "./download-plan";
 import { planThreads, readThreadSignals } from "./wasm-threads";
 import { sha256OfBlobStreaming } from "./streaming-digest";
-import { onBackgroundFetchStaged } from "./background-fetch";
+import { canContinueInBackground, onBackgroundFetchStaged } from "./background-fetch";
 import {
   discoverCompanion,
   shouldHandOff,
@@ -369,7 +369,6 @@ async function offerToCompanion(
   const found = await companion();
   if (!found) return { handedOff: false };
 
-  const { canContinueInBackground } = await import("./background-fetch");
   const browserCanContinue = await canContinueInBackground().catch(() => false);
 
   if (

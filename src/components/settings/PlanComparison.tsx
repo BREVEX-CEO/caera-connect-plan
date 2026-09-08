@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Infinity as InfinityIcon, Monitor, AlertTriangle } from "lucide-react";
+import { Check, Monitor, AlertTriangle } from "lucide-react";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { FREE_LAUNCH_MODE } from "@/lib/launch-mode";
 import {
   PLANS,
   describePrice,
@@ -14,6 +13,7 @@ import {
   type CurrencyCode,
   type PlanId,
 } from "@/lib/payments/pricing";
+import { CHECKOUT_UNAVAILABLE_NOTICE } from "@/lib/payments/checkout-availability";
 
 /**
  * What OCADE costs, from the one configuration that owns the numbers.
@@ -30,12 +30,11 @@ import {
  *
  * WHAT THIS DOES NOT DO: take money.
  *
- * OCADE is free while it launches, and `FREE_LAUNCH_MODE` is checked HERE as
- * well as inside the checkout hook. Two gates rather than one is deliberate:
- * the hook's gate stops a purchase, and this one stops the button from ever
- * being offered. A disabled-looking control that would have worked if clicked
- * is the shape of a bug that charges someone by accident, and the cost of the
- * duplicate check is one boolean.
+ * Checkout availability is checked HERE as well as inside the checkout hook.
+ * Two gates rather than one is deliberate: the hook's gate stops a purchase,
+ * and this one stops the button from ever being offered. A control that looks
+ * live and would have charged someone if clicked is the shape of the worst bug
+ * this page could have.
  *
  * Plans stay fully visible and fully priced. Hiding them would answer "what
  * will this cost?" with silence, which is the question the page exists for.
@@ -72,24 +71,27 @@ export function PlanComparison({
     [],
   );
   /*
-   * Checkout is offered only when the deployment is configured AND the launch
-   * is past its free period. The order matters for the message below: during
-   * the free launch the reason is "not yet", not "misconfigured", and telling a
-   * customer their deployment is broken when it is not is its own defect.
+   * Checkout is offered only when the deployment is genuinely configured. The
+   * plans stay fully visible and fully priced either way: hiding them would
+   * answer "what will this cost?" with silence, which is the question this page
+   * exists for.
    */
-  const comingSoon = FREE_LAUNCH_MODE;
-  const checkoutConfigured = !comingSoon && missing.length === 0 && typeof onChoose === "function";
+  const checkoutConfigured = missing.length === 0 && typeof onChoose === "function";
 
-  const paid = PLANS.filter((plan) => plan.publiclyAvailable);
+  /*
+   * Free is shown, never offered for purchase: it is what an account already
+   * has, and a "Choose Free" button would be a checkout for nothing.
+   */
+  const paid = PLANS.filter((plan) => plan.publiclyAvailable && plan.tier !== "free");
+  const free = PLANS.find((plan) => plan.publiclyAvailable && plan.tier === "free");
   return (
     <section className="flex flex-col gap-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold text-foreground">Plans</h2>
           <p className="mt-1 max-w-prose text-[13px] text-muted-foreground">
-            OCADE is free during launch, and everything it does runs on your own device. Your
-            hardware is not something OCADE meters, so there is nothing here to use up. Plans below
-            are shown for reference only; nothing is charged today.
+            One allowance covers Chat, Cowork and Code across online and local engines. Paid plans
+            raise that shared capacity; they do not expose raw internal work units.
           </p>
         </div>
         <label className="flex items-center gap-2 text-[12px] text-muted-foreground">
@@ -107,7 +109,36 @@ export function PlanComparison({
         </label>
       </header>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      {/*
+        Free, described as fully as the paid plans and with no control on it.
+        Leaving it out would make the paid tiers look like the only way to use
+        OCADE, and a "Choose Free" button would be a checkout for nothing.
+      */}
+      {free ? (
+        <GlassPanel
+          className={cn(
+            "flex flex-col gap-2 p-4",
+            currentPlan === free.id && "ring-1 ring-primary/50",
+          )}
+        >
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="text-[15px] font-semibold text-foreground">{free.name}</h3>
+            <span className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">
+              {describePrice(priceFor(free, currency))}
+            </span>
+          </div>
+          <p className="text-[12.5px] leading-relaxed text-muted-foreground">{free.summary}</p>
+          <ul className="flex flex-col gap-1.5 text-[12px] text-muted-foreground sm:flex-row sm:flex-wrap sm:gap-x-4">
+            {free.benefits.map((benefit) => (
+              <Feature key={benefit} icon={Monitor}>
+                {benefit}
+              </Feature>
+            ))}
+          </ul>
+        </GlassPanel>
+      ) : null}
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {paid.map((plan) => {
           const price = priceFor(plan, currency);
           const isCurrent = currentPlan === plan.id;
@@ -137,7 +168,6 @@ export function PlanComparison({
               </p>
 
               <ul className="flex flex-col gap-1.5 text-[12px] text-muted-foreground">
-                <Feature icon={InfinityIcon}>Unlimited on-device processing</Feature>
                 {plan.benefits.map((benefit) => (
                   <Feature key={benefit} icon={Monitor}>
                     {benefit}
@@ -153,25 +183,6 @@ export function PlanComparison({
                   onClick={() => onChoose?.(plan.id)}
                 >
                   {isCurrent ? "Your plan" : `Choose ${plan.name}`}
-                </Button>
-              ) : comingSoon ? (
-                /*
-                 * The gate. A real button shape so the card keeps its
-                 * composition, permanently disabled and labelled for what it
-                 * is. `aria-disabled` alongside `disabled` because a screen
-                 * reader should hear "coming soon", not skip the control
-                 * entirely and leave the plan looking unattainable.
-                 */
-                <Button
-                  variant="outline"
-                  className="mt-auto w-full cursor-default border-primary/25 bg-primary/[0.06] text-foreground/70 hover:bg-primary/[0.06]"
-                  disabled
-                  aria-disabled="true"
-                  tabIndex={-1}
-                  title={`${plan.name} is not on sale yet. OCADE is free while it launches, so nothing here can charge you.`}
-                  aria-label={`${plan.name} — coming soon. OCADE is free while it launches.`}
-                >
-                  Coming soon
                 </Button>
               ) : deploymentDetails ? (
                 <p
@@ -190,16 +201,15 @@ export function PlanComparison({
         })}
       </div>
 
-      {comingSoon ? (
+      {!checkoutConfigured ? (
         <p className="rounded-lg border border-primary/25 bg-primary/[0.06] px-3 py-2 text-[12px] leading-relaxed text-foreground/80">
-          OCADE is free while it launches. These plans are here so you can see what is coming —
-          nothing on this page can charge you, and no card details are collected anywhere in the
-          product today.
+          {CHECKOUT_UNAVAILABLE_NOTICE} These plans are shown so you can see what each one costs; no
+          card details are collected anywhere in the product today.
         </p>
       ) : null}
 
-      {!comingSoon && deploymentDetails && !checkoutConfigured && missing.length > 0 ? (
-        <p className="flex items-start gap-2 rounded-lg border border-[color:var(--state-warning)]/30 bg-[color:var(--state-warning)]/5 px-3 py-2 text-[12px] text-muted-foreground">
+      {deploymentDetails && !checkoutConfigured && missing.length > 0 ? (
+        <p className="flex items-start gap-2 rounded-lg border border-[color:var(--state-warning-line)] bg-[color:var(--state-warning-wash)] px-3 py-2 text-[12px] text-muted-foreground">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
           <span>
             {/*
@@ -215,15 +225,10 @@ export function PlanComparison({
         </p>
       ) : null}
 
-      {/*
-        This said "Cloud allowance depends on the selected plan and applies
-        only to OCADE Cloud." There is no OCADE Cloud and no allowance, so the
-        sentence described a limit that cannot be reached on a service that
-        does not exist.
-      */}
       <p className="text-[12px] text-muted-foreground">
-        Work that runs on your device never counts against anything and never stops when a plan
-        ends. Taxes and any provider-supported currency conversion would be shown before payment.
+        Successful AI work counts against the same plan allowance wherever it runs. A usage lock or
+        plan change never removes Offline Intelligence or your local data. Taxes and any
+        provider-supported currency conversion are shown before payment.
       </p>
     </section>
   );

@@ -151,7 +151,7 @@ export function LivingIntelligenceBackdrop({
         "pointer-events-none absolute inset-0 -z-10 overflow-hidden",
         // A flat obsidian floor under the canvas so the scene never shows the
         // page background through its transparent regions.
-        "bg-[radial-gradient(120%_90%_at_50%_20%,rgba(10,12,24,0.9),rgba(3,4,9,0.96))]",
+        "bg-[radial-gradient(120%_90%_at_50%_20%,rgba(12, 12, 12,0.9),rgba(4, 4, 4,0.96))]",
         className,
       )}
     >

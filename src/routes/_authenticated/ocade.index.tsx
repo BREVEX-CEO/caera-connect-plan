@@ -16,9 +16,11 @@ import {
   Pencil,
   Pin,
   PinOff,
+  EyeOff,
   Plus,
   RefreshCcw,
   Search,
+  Share2,
   Save,
   Send,
   Sparkles,
@@ -26,6 +28,7 @@ import {
   Trash2,
   Volume2,
   GitBranch,
+  MessageSquareQuote,
   X,
   FolderOpen,
   FileOutput,
@@ -64,9 +67,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/lib/session";
-import { supabase } from "@/integrations/supabase/client";
+import { INCOGNITO_CLAIMS, INCOGNITO_SUMMARY, INCOGNITO_TITLE } from "@/lib/chat/incognito";
 import {
   createConversation,
+  deleteAllConversations,
   deleteConversation,
   exportConversation,
   appendOcadeMessage,
@@ -76,7 +80,7 @@ import {
 } from "@/lib/ocade.functions";
 import { getModeFor } from "@/lib/storage/resolver";
 import { OCADE_DEFAULT_MODEL_ID, OCADE_MODELS, getOcadeModel } from "@/lib/ocade-models";
-import { ocadeChatCapabilityDisclosure } from "@/lib/ocade-identity";
+import { ocadeChatCapabilityDisclosure, ocadeIdentityAnswer } from "@/lib/ocade-identity";
 import { capabilityLabelFor } from "@/lib/ocade-capability-labels";
 import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
@@ -91,9 +95,27 @@ import {
   updateConversationLocally,
   deleteConversationLocally,
   mergeRemoteConversations,
+  deleteAllConversationsLocally,
+  newConversationId,
   type LocalConversation,
 } from "@/lib/chat/local-conversations";
 import { improvePromptLocally } from "@/lib/chat/improve-prompt";
+import {
+  currentShareToken,
+  describeSnapshot,
+  readSharedConversation,
+  revokeConversationShare,
+  shareConversation,
+  shareLinkFor,
+  SHARE_REFUSAL_MESSAGE,
+} from "@/lib/chat/conversation-sharing";
+import {
+  appendSideMessage,
+  deleteSideThread,
+  loadSideThreads,
+  sideConversationPrompt,
+  type SideMessage,
+} from "@/lib/chat/side-conversations";
 import { useOcadeRuntime, type RuntimeApproval } from "@/lib/runtime/use-ocade-runtime";
 import { OcadeOrb } from "@/components/ocade/OcadeOrb";
 import { orbStateFor } from "@/lib/orb/state";
@@ -103,7 +125,15 @@ import { ChatSidebar } from "@/components/ocade/chat/ChatSidebar";
 import { EngineBadge } from "@/components/ocade/chat/EngineBadge";
 import { PreparationStatus } from "@/components/ocade/chat/PreparationStatus";
 import { useBrain } from "@/lib/brain/use-brain";
-import { resolveEngine } from "@/lib/engine/resolve";
+import type { RouteChosen } from "@/lib/brain/router";
+import {
+  createOcadeIntelligence,
+  createOnlineIntelligenceTransport,
+  type IntelligenceBackend,
+  type IntelligenceEvent,
+  type IntelligenceTransport,
+  type NormalizedMessage,
+} from "@/lib/intelligence";
 import { NetworkWitness, limits as networkLimits } from "@/lib/provenance/network-witness";
 import { buildReceipt, type AnswerReceipt, type SourceUse } from "@/lib/provenance/receipt";
 import { sha256OfText } from "@/lib/provenance/digest";
@@ -117,6 +147,11 @@ import { measureRun, total as totalCost, describeTotals, type RunCost } from "@/
 import { append as appendLedger, type LedgerEntry } from "@/lib/edge/ledger";
 import { emptyTree, type Tree } from "@/lib/edge/checkpoints";
 import { recordTurn } from "@/lib/edge/session";
+import { compareRuns, pinRun, type PinnedRun, type RepeatVerdict } from "@/lib/edge/reproducible";
+import { beginBilledRequest, type BilledRequest } from "@/lib/commercial/use-generation-permit";
+import { BROWSER_SAMPLER } from "@/lib/brain/sampler-settings";
+import { AnswerDiff } from "@/components/ocade/chat/AnswerDiff";
+import { SideThreadPanel } from "@/components/ocade/chat/SideThreadPanel";
 import type { BrainMessage } from "@/lib/brain/adapter";
 import type {
   ChatMessageView,
@@ -184,6 +219,7 @@ import { getLocalProject } from "@/lib/projects/local-projects";
 import {
   persistChatMessage,
   loadChatMessages,
+  deleteAllVaultMessages,
   deleteVaultConversation,
   describeStorageError,
 } from "@/lib/ocade-chat-store";
@@ -284,6 +320,16 @@ type Conversation = {
   privacy_mode: string;
   updated_at: string;
   project_id?: string | null;
+  /**
+   * PLAN.md §8's incognito conversation.
+   *
+   * Never loaded from anywhere, because nothing about an incognito
+   * conversation is ever written — storing "this was incognito" would itself
+   * be a record of it having happened. It exists in this component's state and
+   * ends with the tab, which is also the honest behaviour: there is nothing to
+   * come back to.
+   */
+  incognito?: boolean;
 };
 
 type Message = {
@@ -402,11 +448,31 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   const [chatsMode, setChatsMode] = useState<"browser_only" | "pc_vault" | "private_sync">(
     "private_sync",
   );
+  /*
+   * Whether the NEXT conversation is incognito — PLAN.md §8.
+   *
+   * A property of the conversation once started, so this is only the setting
+   * for what comes next; switching it does not retroactively unwrite anything,
+   * and a conversation cannot change its mind halfway through. Both of those
+   * would be worse than the restriction.
+   */
+  const [nextIsIncognito, setNextIsIncognito] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null);
   const [renameTarget, setRenameTarget] = useState<Conversation | null>(null);
   const [permission, setPermission] = useState<PermissionMode>("manual");
   const [pendingMessage, setPendingMessage] = useState<PendingChatMessage | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  /**
+   * The conversation whose Share dialog is open — PLAN.md §8.
+   *
+   * Opening the dialog PUBLISHES NOTHING. It reads whether a live link already
+   * exists and shows it; taking a snapshot is a separate, named action. A
+   * control that shared a conversation as a side effect of somebody checking
+   * whether it was shared would be the worst possible reading of "Share".
+   */
+  const [shareTarget, setShareTarget] = useState<Conversation | null>(null);
+  const [deletingAll, setDeletingAll] = useState(false);
   const [sidebarHidden, setSidebarHidden] = useState(false);
 
   /**
@@ -448,15 +514,29 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
       return;
     }
 
+    /*
+     * KEEP THE INCOGNITO ONES — PLAN.md §8.
+     *
+     * Nothing about an incognito conversation is written, so it is in no list
+     * this function reads, and replacing the state outright would make an
+     * open one VANISH mid-sentence on the next refresh. They live in this
+     * state and nowhere else, so this is the one place that has to remember
+     * them, and the ordering below keeps them where they were: newest first,
+     * above the stored ones.
+     */
+    const keepIncognito = (stored: Conversation[]) => {
+      setConversations((current) => [...current.filter((c) => c.incognito), ...stored]);
+    };
+
     try {
-      setConversations(local as unknown as Conversation[]);
+      keepIncognito(local as unknown as Conversation[]);
       setLoadingList(false);
 
       if (chatsMode !== "private_sync") return;
       try {
         const remote = (await listConversations()) as unknown as LocalConversation[];
         const merged = mergeRemoteConversations(local, remote ?? []);
-        setConversations(merged as unknown as Conversation[]);
+        keepIncognito(merged as unknown as Conversation[]);
       } catch {
         // Offline or Supabase unavailable. The local list is already shown.
       }
@@ -473,9 +553,30 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
     void refreshList();
   }, [refreshList]);
 
+  /*
+   * A boolean rather than the whole list, because this effect must not re-run
+   * on every refresh: re-reading a conversation's messages whenever the sidebar
+   * changed would reload the transcript underneath somebody mid-sentence.
+   */
+  const activeIsIncognito = useMemo(
+    () => Boolean(conversations.find((c) => c.id === activeId)?.incognito),
+    [conversations, activeId],
+  );
+
   useEffect(() => {
     if (!activeId) {
       setMessages([]);
+      return;
+    }
+    /*
+     * AN INCOGNITO CONVERSATION HAS NOWHERE TO BE READ FROM — PLAN.md §8.
+     *
+     * Its messages are in this component's state and in no vault, so asking
+     * storage for them would return an empty list and wipe the transcript the
+     * person is in the middle of. The state IS the conversation.
+     */
+    if (activeIsIncognito) {
+      setLoadingMessages(false);
       return;
     }
     setLoadingMessages(true);
@@ -487,7 +588,7 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
         setMessages([]);
       })
       .finally(() => setLoadingMessages(false));
-  }, [activeId, chatsMode, userId]);
+  }, [activeId, activeIsIncognito, chatsMode, userId]);
 
   const active = useMemo(
     () => conversations.find((c) => c.id === activeId) ?? null,
@@ -576,11 +677,70 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
    */
   async function ensureActive(): Promise<Conversation> {
     if (active) return active;
+
+    /*
+     * AN INCOGNITO CONVERSATION IS NOT CREATED ANYWHERE — PLAN.md §8.
+     *
+     * `createConversationLocally` writes a record to the vault and queues it
+     * for the server. A conversation row is a record of the conversation
+     * having happened, which is precisely what this must not leave behind, so
+     * the object is built here and lives only in React state.
+     *
+     * Its id is still a real time-ordered id: nothing downstream should have
+     * to care which kind of conversation it is holding, and the one place that
+     * does — `persistChatMessage` — is told explicitly.
+     */
+    if (nextIsIncognito) {
+      const now = new Date().toISOString();
+      const conv: Conversation = {
+        id: newConversationId(),
+        title: INCOGNITO_TITLE,
+        pinned: false,
+        archived: false,
+        model_id: model,
+        privacy_mode: chatsMode,
+        updated_at: now,
+        incognito: true,
+      };
+      setConversations((prev) => [conv, ...prev]);
+      setLoadingMessages(false);
+      setActiveId(conv.id);
+      return conv;
+    }
+
     const created = await createConversationLocally(userId, {
       modelId: model,
       privacyMode: chatsMode,
     });
     const conv = created as unknown as Conversation;
+
+    /*
+     * PRIVATE SYNC NEEDS ITS DOMAIN ROW BEFORE ITS FIRST MESSAGE.
+     *
+     * The generic sync adapter has already queued the encrypted local record,
+     * but `ocade_messages` belongs to `ocade_conversations` and the message RPC
+     * deliberately refuses an unknown parent. Previously the first two appends
+     * raced ahead and returned 404 while the local transcript appeared to work.
+     * Device creation remains first and offline still returns immediately; a
+     * connected private-sync conversation establishes its canonical parent
+     * before the composer can submit the pending turn.
+     */
+    if (chatsMode === "private_sync" && navigator.onLine !== false) {
+      try {
+        await createConversation({
+          data: {
+            id: created.id,
+            title: created.title,
+            modelId: created.model_id ?? undefined,
+            privacyMode: "private_sync",
+            projectId: created.project_id,
+          },
+        });
+      } catch {
+        // The device row and queued sync obligation already exist. Offline and
+        // transient server failures must not make a new local chat disappear.
+      }
+    }
     setConversations((prev) => [conv, ...prev]);
     setLoadingMessages(true);
     setActiveId(conv.id);
@@ -615,6 +775,23 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   async function handleDelete() {
     if (!deleteTarget) return;
     const target = deleteTarget;
+
+    /*
+     * AN INCOGNITO CONVERSATION HAS NOTHING TO DELETE — PLAN.md §8.
+     *
+     * Dropped from this component's state, which is the only place it exists.
+     * Running the ordinary path would write a TOMBSTONE for a conversation
+     * that was never recorded — a durable row saying "this conversation was
+     * deleted", which is a record of it having happened and precisely what the
+     * mode exists to avoid.
+     */
+    if (target.incognito) {
+      setConversations((current) => current.filter((c) => c.id !== target.id));
+      if (target.id === activeId) setActiveId(null);
+      setDeleteTarget(null);
+      toast.success("Closed. There was nothing stored to delete.");
+      return;
+    }
 
     /*
      * Delete the conversation record on this device first, as a TOMBSTONE.
@@ -664,7 +841,68 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
       );
     }
   }
+  /**
+   * DELETE EVERY CONVERSATION — PLAN.md §8's "delete-all".
+   *
+   * THE DEVICE FIRST, AND ALWAYS. Conversations are tombstoned so the deletion
+   * travels to this account's other machines, and message bodies are removed
+   * outright — a tombstone for a message body would be a record containing the
+   * text it claims to have deleted. The server is told afterwards and its
+   * failure is not fatal: the history is already gone from this machine, and
+   * telling somebody the deletion failed when it has happened locally is the
+   * wrong sentence.
+   *
+   * INCOGNITO CONVERSATIONS ARE DROPPED FROM STATE, NOT DELETED. They were
+   * never written, so there is nothing to tombstone, and writing one now would
+   * create the durable record that mode exists to avoid.
+   *
+   * WHAT THIS DOES NOT TOUCH, and it matters enough to say in the dialog:
+   * Offline Intelligence, memory, and projects are separate authorities with
+   * their own controls. Clearing a chat history that silently removed a
+   * multi-gigabyte model would be unforgivable.
+   */
+  async function handleDeleteAll() {
+    setDeletingAll(true);
+    try {
+      const [tombstoned, bodies] = await Promise.all([
+        deleteAllConversationsLocally(userId),
+        deleteAllVaultMessages(userId),
+      ]);
+
+      // Best effort, and deliberately after the device is already clear.
+      void deleteAllConversations().catch(() => {});
+
+      setConversations([]);
+      setActiveId(null);
+      setMessages([]);
+      setDeleteAllOpen(false);
+      toast.success(
+        tombstoned === 0 && bodies === 0
+          ? "There was nothing to delete."
+          : `Deleted ${tombstoned} ${tombstoned === 1 ? "conversation" : "conversations"} from this device and every other one you sign in on.`,
+      );
+      await refreshList();
+    } catch (e) {
+      toast.error(describeStorageError(e));
+    } finally {
+      setDeletingAll(false);
+    }
+  }
+
   async function handleExport(c: Conversation) {
+    /*
+     * Export reads the SERVER's copy, and an incognito conversation has none.
+     * Said rather than downloaded: a file containing nothing, named after the
+     * conversation, is a worse answer than a sentence — and writing the
+     * transcript out of React state would be OCADE creating the durable copy
+     * this mode promised not to.
+     */
+    if (c.incognito) {
+      toast.info("An incognito conversation cannot be exported.", {
+        description: "Nothing from it is stored, so there is nothing to put in a file.",
+      });
+      return;
+    }
     const bundle = await exportConversation({ data: { conversationId: c.id } });
     const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -713,12 +951,15 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
             onRename={(c) => setRenameTarget(c)}
             onDelete={(c) => setDeleteTarget(c)}
             onExport={handleExport}
+            onShare={(c) => setShareTarget(c)}
+            onDeleteAll={() => setDeleteAllOpen(true)}
             onShowShortcuts={() => setShortcutsOpen(true)}
           />
         )}
 
         {/* Main workspace canvas */}
         <div className="flex min-h-0 flex-1 flex-col">
+          {active?.incognito ? <IncognitoBanner /> : null}
           {active ? (
             <ChatSurface
               key={active.id}
@@ -755,6 +996,8 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
               chatsMode={chatsMode}
               permission={permission}
               setPermission={setPermission}
+              incognito={nextIsIncognito}
+              setIncognito={setNextIsIncognito}
               onSubmit={async (text, atts) => {
                 const conv = await ensureActive();
                 setPendingMessage({
@@ -780,8 +1023,84 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
       />
+      <DeleteAllDialog
+        open={deleteAllOpen}
+        busy={deletingAll}
+        count={conversations.filter((c) => !c.incognito).length}
+        onClose={() => setDeleteAllOpen(false)}
+        onConfirm={() => void handleDeleteAll()}
+      />
+      <ShareDialog
+        conversation={shareTarget}
+        /*
+          Known only for the conversation currently open, and that is honest:
+          the dialog says "N messages since you shared" when it can count them
+          and says nothing about it when it cannot, rather than guessing.
+        */
+        currentMessageCount={shareTarget && shareTarget.id === activeId ? messages.length : null}
+        onClose={() => setShareTarget(null)}
+      />
       <ShortcutsDialog open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </>
+  );
+}
+
+/**
+ * WHAT AN INCOGNITO CONVERSATION IS, WHILE YOU ARE IN ONE — PLAN.md §8.
+ *
+ * Above the transcript rather than tucked into a menu, because the whole value
+ * of the mode is that somebody KNOWS which one they are in. A privacy mode a
+ * person is not sure they are in is a privacy mode they will act as if they are
+ * not in.
+ *
+ * Both halves are shown. The four promises are what people came for; the three
+ * limits are the ones somebody might otherwise assume away, and the middle one
+ * — that the provider answering an online request keeps its own records — is
+ * the only sentence on this screen that could get somebody into trouble if it
+ * were left out.
+ */
+function IncognitoBanner() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div
+      className="border-b border-border/60 bg-muted/40 px-4 py-2.5 text-[13px]"
+      role="status"
+      aria-label="Incognito conversation"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <EyeOff className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="font-medium text-foreground">{INCOGNITO_TITLE}</span>
+        <span className="min-w-0 text-muted-foreground">{INCOGNITO_SUMMARY}</span>
+        <button
+          type="button"
+          className="ml-auto shrink-0 rounded px-1.5 py-0.5 text-xs text-foreground underline underline-offset-2 hover:bg-accent/40"
+          onClick={() => setOpen((current) => !current)}
+          aria-expanded={open}
+        >
+          {open ? "Hide the detail" : "What this does and does not do"}
+        </button>
+      </div>
+      {open ? (
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <div>
+            <p className="text-xs font-medium text-foreground">What OCADE does</p>
+            <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+              {INCOGNITO_CLAIMS.kept.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-foreground">What it does not do</p>
+            <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+              {INCOGNITO_CLAIMS.notKept.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -842,6 +1161,10 @@ function OcadeContextualSidebar(props: {
   onRename: (c: Conversation) => void;
   onDelete: (c: Conversation) => void;
   onExport: (c: Conversation) => void;
+  /** PLAN.md §8's share. Opens the dialog; nothing is published by opening it. */
+  onShare: (c: Conversation) => void;
+  /** PLAN.md §8's delete-all. Confirmed by typing, and it says what it spares. */
+  onDeleteAll: () => void;
   onShowShortcuts: () => void;
 }) {
   const {
@@ -860,6 +1183,8 @@ function OcadeContextualSidebar(props: {
     onRename,
     onDelete,
     onExport,
+    onShare,
+    onDeleteAll,
     onShowShortcuts,
   } = props;
 
@@ -907,6 +1232,9 @@ function OcadeContextualSidebar(props: {
               <IconMini title="Rename" onClick={() => onRename(c)}>
                 <Pencil className="h-3 w-3" />
               </IconMini>
+              <IconMini title="Share" onClick={() => onShare(c)}>
+                <Share2 className="h-3 w-3" />
+              </IconMini>
               <IconMini title="Export" onClick={() => onExport(c)}>
                 <Download className="h-3 w-3" />
               </IconMini>
@@ -925,7 +1253,7 @@ function OcadeContextualSidebar(props: {
         }}
         footer={
           <div className="space-y-0.5">
-            <SidebarLink icon={MonitorCog} label="OCADE Control + Work" to="/ocade/work" />
+            <SidebarLink icon={MonitorCog} label="Cowork" to="/ocade/cowork" />
             <SidebarLink icon={FileCode2} label="Code" to="/ocade/code" />
             <SidebarLink icon={FolderOpen} label="Projects" to="/ocade/projects" />
             <SidebarLink icon={FileOutput} label="Files" to="/ocade/artifacts" />
@@ -938,6 +1266,13 @@ function OcadeContextualSidebar(props: {
             {/* A visible way in. Shortcuts that can only be found by already
                 knowing the shortcut are shortcuts almost nobody finds. */}
             <StaticRow icon={Keyboard} label="Keyboard shortcuts" onClick={onShowShortcuts} />
+            {/*
+              PLAN.md §8's delete-all, in the sidebar because that is where the
+              history it clears is. Discoverable rather than buried in Settings:
+              somebody who wants their chat history gone should not have to
+              guess which of eleven settings pages owns it.
+            */}
+            <StaticRow icon={Trash2} label="Delete all chats" onClick={onDeleteAll} />
           </div>
         }
       />
@@ -960,7 +1295,8 @@ function SidebarLink({
 }: {
   icon: typeof FolderOpen;
   label: string;
-  to: "/ocade/work" | "/ocade/code" | "/ocade/projects" | "/ocade/artifacts" | "/ocade/automations";
+  to:
+    "/ocade/cowork" | "/ocade/code" | "/ocade/projects" | "/ocade/artifacts" | "/ocade/automations";
 }) {
   return (
     <Link
@@ -1083,9 +1419,22 @@ function HomeSurface(props: {
   chatsMode: "browser_only" | "pc_vault" | "private_sync";
   permission: PermissionMode;
   setPermission: (p: PermissionMode) => void;
+  /** Whether the conversation this composer starts will be incognito — §8. */
+  incognito: boolean;
+  setIncognito: (next: boolean) => void;
   onSubmit: (text: string, atts: Attachment[]) => Promise<void>;
 }) {
-  const { userLabel, model, setModel, chatsMode, permission, setPermission, onSubmit } = props;
+  const {
+    userLabel,
+    model,
+    setModel,
+    chatsMode,
+    permission,
+    setPermission,
+    incognito,
+    setIncognito,
+    onSubmit,
+  } = props;
   const modelInfo = getOcadeModel(model);
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -1185,6 +1534,33 @@ function HomeSurface(props: {
           floating
         />
 
+        {/*
+          PLAN.md §8's incognito conversation, offered where a conversation
+          starts — which is the only moment the choice can be made. A
+          conversation cannot change its mind halfway through without either
+          unwriting what came before or writing what did not, and both are
+          worse than the restriction.
+        */}
+        <div className="mt-3 flex justify-center">
+          <label
+            className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border/60 px-3 py-1.5 text-[13px] text-foreground"
+            htmlFor="start-incognito"
+          >
+            <input
+              id="start-incognito"
+              type="checkbox"
+              className="h-6 w-6 rounded border-input"
+              checked={incognito}
+              onChange={(event) => setIncognito(event.target.checked)}
+            />
+            <EyeOff className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+            Start this one incognito
+          </label>
+        </div>
+        {incognito ? (
+          <p className="mt-2 text-center text-xs text-muted-foreground">{INCOGNITO_SUMMARY}</p>
+        ) : null}
+
         <div className="mt-4 flex flex-wrap justify-center gap-1.5">
           {SUGGESTIONS.map((s) => (
             <button
@@ -1197,7 +1573,14 @@ function HomeSurface(props: {
           ))}
         </div>
 
-        <p className="mt-6 text-center text-[11px] text-muted-foreground/80">
+        {/*
+          Measured to 70ch and re-centred with it. This disclosure is the one
+          sentence on the empty chat screen that a person actually has to read,
+          and at 1440 it was set across 772px — a hundred and forty characters,
+          where the eye starts losing the return sweep. `mx-auto` because the
+          width bound would otherwise pull the centred line to the left.
+        */}
+        <p className="mx-auto mt-6 max-w-[70ch] text-center text-[11px] text-muted-foreground/80">
           {ocadeChatCapabilityDisclosure(capabilityLabelFor({ locality: modelInfo.locality }))}
         </p>
       </div>
@@ -1339,7 +1722,30 @@ function ChatSurface(props: {
   const runtime = useOcadeRuntime({
     surface: "chat",
     missionId: () => null,
+    intelligenceMode: () => (engineTier === "local" ? "local_only" : "automatic"),
+    intelligencePrivacy: () => ({
+      storageMode: chatsMode,
+      onlineInferenceConsented: chatsMode === "private_sync",
+      sealed,
+    }),
+    /*
+     * PLAN.md §8: an incognito conversation teaches OCADE nothing. Read at the
+     * moment of learning rather than at mount, because the conversation this
+     * surface is showing can change without the runtime remounting.
+     */
+    incognito: () => Boolean(conversation.incognito),
     memoryContext: () => {
+      /*
+       * NEITHER WRITTEN NOR READ, for an incognito conversation.
+       *
+       * §8 asks for exclusion from memory, and only excluding the WRITE would
+       * be the weaker half: somebody who goes incognito is saying "do not
+       * connect this to me", and a reply shaped by what OCADE remembers about
+       * them connects it. Both directions, or the word means less than the
+       * person reading it thinks.
+       */
+      if (conversation.incognito) return null;
+
       // Scoped to the project this conversation belongs to, exactly as the
       // ordinary chat path scopes it. Memory that is off, empty or unreadable
       // returns null, and the prompt is then what it was before.
@@ -1406,7 +1812,68 @@ function ChatSurface(props: {
    * generation on one device, and restoring it from a database on a different
    * machine would present a claim nothing here measured.
    */
+  /*
+   * PLAN.md §8's side conversations, keyed by the message each hangs off.
+   *
+   * Loaded once per conversation rather than per message: a transcript with
+   * forty turns would otherwise scan the same store forty times on every open.
+   */
+  const [sideThreads, setSideThreads] = useState<Map<string, SideMessage[]>>(new Map());
+  const [openAside, setOpenAside] = useState<string | null>(null);
+  const [asideBusy, setAsideBusy] = useState<string | null>(null);
+  /*
+   * The answer as it arrives. Kept out of `sideThreads` deliberately: a partial
+   * answer is not a turn, and writing one into the thread would leave a
+   * half-sentence behind if the tab were closed mid-stream.
+   */
+  const [asideStream, setAsideStream] = useState("");
   const [receipts, setReceipts] = useState<Record<string, AnswerReceipt>>({});
+
+  /**
+   * ASK IT AGAIN, AND KEEP WHAT YOU HAD.
+   *
+   * A mainstream assistant's "regenerate" overwrites the answer, so the thing
+   * you would compare against is destroyed by the act of comparing. Here the
+   * original stays and the repeat is shown beside it.
+   *
+   * The comparison is only meaningful because both runs name the same engine
+   * file and the same sampler settings. `pinRun` records those conditions when
+   * the answer is first produced; `compareRuns` reports the conditions BEFORE
+   * the difference, because a different answer under changed conditions is not
+   * a surprise and must not be presented as one.
+   *
+   * Local answers only. An online provider's weights change without notice, so
+   * a repeat there compares two unknowns and any difference is uninterpretable
+   * — there is no `onRerun` on those rows at all, rather than a button that
+   * produces a meaningless verdict.
+   */
+  const [runPins, setRunPins] = useState<Record<string, PinnedRun>>({});
+  const [reruns, setReruns] = useState<Record<string, { answer: string; verdict: RepeatVerdict }>>(
+    {},
+  );
+  /**
+   * Exactly what was sent, so a repeat replays it rather than reassembling it.
+   *
+   * Reassembling history would quietly change the input — a document that has
+   * since been detached, a freshness line with a newer timestamp — and the
+   * comparison would then be measuring OCADE's context builder rather than the
+   * engine. Held in a ref because replaying is not a render input.
+   */
+  const replayRef = useRef<
+    Record<
+      string,
+      {
+        messages: LocalChatMessage[];
+        modelId: string;
+        task: "general" | "vision";
+        prompt: string;
+        engineLabel: string;
+        adapterId: string;
+        temperature: number;
+        topP: number;
+      }
+    >
+  >({});
 
   /**
    * Sealed mode for this conversation.
@@ -1421,6 +1888,21 @@ function ChatSurface(props: {
    * have to keep switching off is a guarantee they stop trusting.
    */
   const [sealed, setSealed] = useState(false);
+  /**
+   * SEALING A COLD ENGINE WOULD BE A TRAP.
+   *
+   * The seal stops anything leaving the device — including the model download
+   * OCADE needs before it can answer at all. Sealed before the engine has ever
+   * completed an answer, the conversation cannot be answered AND cannot fetch
+   * what it would take to answer it, and the only way out is a control the
+   * person has just been told is protecting them.
+   *
+   * One completed local answer proves the engine is present, so the seal is
+   * offered from that point on. Unsealing is never blocked.
+   */
+  const canStartSeal =
+    localEngineReady ||
+    messages.some((message) => message.role === "assistant" && message.content.trim().length > 0);
 
   /**
    * Hold the seal for as long as the control says it is held.
@@ -1474,10 +1956,48 @@ function ChatSurface(props: {
     treeRef.current = emptyTree();
     setLedgerVersion((v) => v + 1);
     setReceipts({});
+    // A pin and its comparison describe ONE conversation's runs. Carrying them
+    // across would offer a repeat of an answer that is no longer on screen.
+    setRunPins({});
+    setReruns({});
+    replayRef.current = {};
     // The tally describes THIS conversation's runs. Carrying it across would
     // attribute one conversation's electricity to another.
     setCosts([]);
   }, [conversation.id]);
+
+  /*
+   * SIDE THREADS ARE READ WHEN THE CONVERSATION OPENS — PLAN.md §8.
+   *
+   * One pass over the data class for the whole conversation, not one per
+   * message: a forty-turn transcript would otherwise scan the same store forty
+   * times on every open. An incognito conversation is skipped entirely, because
+   * nothing of it was written down and asking storage would return an empty map
+   * anyway — the state IS the conversation.
+   *
+   * The `cancelled` flag matters: switching conversations quickly would
+   * otherwise let a slow read from the PREVIOUS one land and show its side
+   * threads against this one's messages.
+   */
+  useEffect(() => {
+    setSideThreads(new Map());
+    setOpenAside(null);
+    setAsideStream("");
+    if (conversation.incognito) return;
+    let cancelled = false;
+    void loadSideThreads({ userId, conversationId: conversation.id })
+      .then((threads) => {
+        if (!cancelled) setSideThreads(threads);
+      })
+      .catch(() => {
+        // A side thread that cannot be read is not worth interrupting the
+        // conversation for. The transcript is intact; the panel simply starts
+        // empty, and asking again writes a new thread.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [conversation.id, conversation.incognito, userId]);
   // Voice: shared preferences drive captions, wake phrase, device and output.
   const { prefs: voicePrefs, emergencyMute } = useVoicePrefs();
   const [caption, setCaption] = useState("");
@@ -1693,6 +2213,110 @@ function ChatSurface(props: {
     brain.warm(pending);
   }
 
+  /**
+   * Keep a refused request visible without pretending a model answered it.
+   *
+   * Preparation and engine availability are checked before the commercial
+   * permit because they generate nothing. That used to mean a send made while
+   * Offline Intelligence was preparing produced only a transient toast: the
+   * person's words stayed hidden inside the textarea and the transcript looked
+   * as though Send had done nothing. The turn is now recorded together with an
+   * explicit non-answer. It consumes no permit and names the real condition.
+   */
+  async function recordUnavailableTurn(text: string, atts: Attachment[], reason: string) {
+    try {
+      const userTurn = await persistChatMessage({
+        userId,
+        chatsMode,
+        incognito: conversation.incognito,
+        conversationId: conversation.id,
+        role: "user",
+        content: text,
+        attachments: atts.map((attachment) => ({
+          kind: attachment.kind,
+          name: attachment.name,
+          mime: attachment.mime,
+          sizeBytes: attachment.sizeBytes,
+        })),
+      });
+      const notice = await persistChatMessage({
+        userId,
+        chatsMode,
+        incognito: conversation.incognito,
+        conversationId: conversation.id,
+        role: "assistant",
+        content: `OCADE has not answered this request. ${reason}`,
+        modelId: null,
+        providerId: null,
+      });
+
+      if (userTurn.stored === "not_stored" || notice.stored === "not_stored") {
+        setMessages((current) => [
+          ...current,
+          userTurn.record as unknown as Message,
+          notice.record as unknown as Message,
+        ]);
+        setStreamText("");
+      } else {
+        await refreshAfterLocal();
+      }
+      setDraft("");
+      setAttachments([]);
+      clearDraft(conversation.id);
+      toast.error(reason);
+    } catch (error) {
+      toast.error(describeStorageError(error));
+    }
+  }
+
+  /**
+   * Persist a deterministic OCADE product answer without starting inference.
+   *
+   * Identity is application-owned, so asking who made OCADE cannot depend on
+   * a local model being installed, an online backend being reachable, or a
+   * commercial permit. Keeping it out of the generation path also prevents a
+   * backend swap from changing OCADE's answer about itself. Attachments are
+   * deliberately excluded by the caller: an attached file changes the request
+   * from an identity question into work that must use the normal path.
+   */
+  async function recordIdentityTurn(text: string, answer: string) {
+    try {
+      const userTurn = await persistChatMessage({
+        userId,
+        chatsMode,
+        incognito: conversation.incognito,
+        conversationId: conversation.id,
+        role: "user",
+        content: text,
+      });
+      const assistantTurn = await persistChatMessage({
+        userId,
+        chatsMode,
+        incognito: conversation.incognito,
+        conversationId: conversation.id,
+        role: "assistant",
+        content: answer,
+        modelId: null,
+        providerId: null,
+      });
+
+      if (userTurn.stored === "not_stored" || assistantTurn.stored === "not_stored") {
+        setMessages((current) => [
+          ...current,
+          userTurn.record as unknown as Message,
+          assistantTurn.record as unknown as Message,
+        ]);
+      } else {
+        await refreshAfterLocal();
+      }
+      setDraft("");
+      setAttachments([]);
+      clearDraft(conversation.id);
+    } catch (error) {
+      toast.error(describeStorageError(error));
+    }
+  }
+
   async function sendMessage(overrideText?: string, overrideAtts?: Attachment[]) {
     const text = (overrideText ?? draft).trim();
     const atts = overrideAtts ?? attachments;
@@ -1749,131 +2373,327 @@ function ChatSurface(props: {
       }
     }
 
-    // Local-first routing (P4c). On-device inference is unlimited and keeps the
-    // prompt on the machine — no cloud approval needed. "Automatic" prefers
-    // local when a suitable engine is ready, else falls through to cloud.
-    const localReady = localEngine.status === "ready" && localEngine.models.length > 0;
+    /*
+     * Product identity is deterministic application content, not an AI
+     * generation. It therefore needs neither a model download nor a permit
+     * and performs no inference/network request. This is the visible Chat
+     * route; the same identity text is also injected into every runtime prompt
+     * for requests that do require a backend.
+     */
+    const identityAnswer = atts.length === 0 ? ocadeIdentityAnswer(text) : null;
+    if (identityAnswer) {
+      await recordIdentityTurn(text, identityAnswer);
+      return;
+    }
+
     const hasImage = atts.some((a) => a.kind === "image");
     /*
-     * Hardware-aware, not just capability-aware. Selecting purely on capability
-     * picked the LARGEST installed model, which on a 16 GB machine holding an
-     * 18.6 GB model returned something that cannot load — the user saw a
-     * generic failure with no reason. Runtime evidence caught this; see
-     * release/OCADE_LOCAL_ENGINE_RUNTIME_EVIDENCE.json (E10–E12).
+     * THE COMMERCIAL GATE, ABOVE EVERY BACKEND.
+     *
+     * Acquired here rather than inside either branch below, and that placement
+     * is the requirement rather than a preference: the allowance is one pool
+     * across every surface and every backend, so a gate inside one branch would
+     * let an exhausted account fall through to the other and spend it twice.
+     *
+     * A refusal has already told the person when their allowance returns.
+     * Nothing is sent to intelligence and nothing is charged. The attempted
+     * turn is still recorded with an explicit non-answer: Send must never look
+     * broken merely because the commercial authority correctly failed closed.
      */
-    const localRoute = localReady
-      ? routeTask(
-          hasImage ? "vision" : "general",
-          localEngine.models,
-          localPerfLedger,
-          devicePolicy.policy,
-        )
-      : null;
-    const localPick = localRoute?.ok ? localRoute.model : null;
-
-    /*
-     * Is there an image-capable engine on this device, independent of whether
-     * THIS message needs one? `resolveEngine` wants the capability, not the
-     * outcome for one request, so it can tell "no engine at all" apart from
-     * "an engine that cannot read pictures" and refuse with the right words.
-     */
-    const localVisionRoute = localReady
-      ? routeTask("vision", localEngine.models, localPerfLedger, devicePolicy.policy)
-      : null;
-
-    /*
-     * ONE AUTHORITY DECIDES WHETHER THIS REQUEST MAY LEAVE THE DEVICE.
-     *
-     * This block used to make that decision itself, in three separate `if`s,
-     * including its own copy of the privacy rule:
-     *
-     *     if (chatsMode !== "private_sync" && !approvedForThisChat) { ask(); }
-     *
-     * That is the same rule `resolveEngine` already owns, written a second
-     * time. Both were correct, and the failure mode was drift: relax one of
-     * them — a new privacy mode, an added exemption, a flipped default — and a
-     * Browser-Only conversation starts reaching a server while the authority
-     * still says it must not. Nothing would fail; the product would just
-     * quietly stop keeping its central promise.
-     *
-     * The order below is the policy, and it now exists in exactly one place:
-     * privacy → local → cloud → a named refusal.
-     */
-    const decision = resolveEngine({
-      preference: engineTier === "local" ? "local_only" : "auto",
-      privacyMode: chatsMode,
-      deviceMode: brain.mode,
-      localAvailable: Boolean(localReady && localPick),
-      localLabel: localPick ? "OCADE Local" : null,
-      localVision: Boolean(localVisionRoute?.ok),
-      visionRequired: hasImage,
-      /*
-       * The SERVER is the authority on these three, and it refuses with a real
-       * message and a reset time when they fail — see the allowance handling
-       * further down. The client genuinely does not know them at send time, so
-       * it passes the permissive value rather than inventing a number and
-       * refusing on a guess. Privacy, which the client DOES know, is decided
-       * here and is never delegated.
-       */
-      online,
-    });
-
-    if (!decision.ok) {
-      /*
-       * When the obstacle is the local engine, ask the Brain router for the
-       * detail. It knows this device's mode and each adapter's own reason, so
-       * the message names the real obstacle and the actions that clear it —
-       * "Install OCADE", "Pair a computer", "Start the engine" — rather than a
-       * blanket sentence.
-       */
-      if (
-        decision.code === "local_only_and_no_local_engine" ||
-        decision.code === "vision_unavailable_locally"
-      ) {
-        const outcome = await brain.route({ visionRequired: hasImage });
-        if (!outcome.ok) {
-          const actions = outcome.remedies.map(brain.remedyLabel).join(" · ");
-          toast.error(outcome.reason, actions ? { description: actions } : undefined);
-          return;
-        }
-      }
-      const actions = decision.remedies.map(brain.remedyLabel).join(" · ");
-      toast.error(
-        decision.reason ?? "OCADE cannot answer this here.",
-        actions ? { description: actions } : undefined,
+    const billed = await beginBilledRequest({ surface: "chat" });
+    if (!billed) {
+      await recordUnavailableTurn(
+        text,
+        atts,
+        "OCADE Intelligence did not start because the usage gate did not issue a permit. Check Usage for the current allowance and exact reset time.",
       );
       return;
     }
 
-    /*
-     * EVERY ANSWER IS AN ON-DEVICE ANSWER.
-     *
-     * Three hundred lines used to live here: a fetch to a server chat
-     * endpoint, an
-     * SSE reader, cloud allowance handling for 428 and 429, and persistence
-     * with providerId "ocade-cloud". That path streamed the user's message to
-     * the Lovable AI Gateway and on to google/gemini-3.5-flash.
-     *
-     * It is gone rather than gated. `resolveEngine` can no longer return a
-     * remote target — `EngineTarget` has one variant — so this branch was
-     * unreachable, and unreachable code that knows how to reach a public AI
-     * provider is exactly the code that comes back.
-     */
-    /*
-     * A request that asks OCADE to DO something goes through the runtime first.
-     *
-     * `run` returns `used: false` without touching the engine when the request
-     * is plainly conversation, so the common case pays nothing. When it does
-     * run, its answer is the answer — no second generation pass, because asking
-     * the model to describe what it just did produces a different account of it
-     * than the receipts do.
-     */
-    if (!hasImage && atts.length === 0) {
-      const acted = await sendViaTools(text);
-      if (acted) return;
-    }
+    try {
+      /*
+       * A request that asks OCADE to DO something goes through the runtime
+       * first.
+       *
+       * `run` returns `used: false` without touching the engine when the
+       * request is plainly conversation, so the common case pays nothing. When
+       * it does run, its answer is the answer — no second generation pass,
+       * because asking the model to describe what it just did produces a
+       * different account of it than the receipts do.
+       */
+      if (!hasImage && atts.length === 0) {
+        const acted = await sendViaTools(text, billed);
+        if (acted) return;
+      }
 
-    await sendViaLocal(text, atts, hasImage);
+      await sendViaIntelligence(text, atts, hasImage, billed);
+    } finally {
+      /*
+       * EVERY WAY OUT PASSES THROUGH HERE — an answer, a failure, a thrown
+       * storage error, a stop. `settle` releases unless something was actually
+       * delivered, so the safe outcome is the default and no exit can leave a
+       * reservation held against somebody who received nothing.
+       */
+      await billed.settle();
+    }
+  }
+
+  /** Route one ordinary turn through the canonical permit-carrying authority. */
+  async function sendViaIntelligence(
+    text: string,
+    atts: Attachment[],
+    hasImage: boolean,
+    billed: BilledRequest,
+  ) {
+    let selectedLocal: RouteChosen | null = null;
+    let localFailureAlreadyShown = false;
+    const backendFor = (route: RouteChosen): IntelligenceBackend => {
+      switch (route.adapter.id) {
+        case "browser_webgpu":
+          return "webgpu_local";
+        case "browser_wasm":
+          return "wasm_local";
+        case "paired_desktop":
+          return "paired_local";
+        case "desktop_bridge":
+          return "ollama_local";
+        default:
+          return "native_local";
+      }
+    };
+
+    const local: IntelligenceTransport = {
+      get backend() {
+        return selectedLocal ? backendFor(selectedLocal) : "native_local";
+      },
+      async probe() {
+        const route = await brain.route({ visionRequired: hasImage });
+        if (!route.ok) {
+          return {
+            available: false,
+            state: "unavailable" as const,
+            reason: route.reason,
+            capabilities: { text: false, tools: false, vision: false },
+          };
+        }
+        selectedLocal = route;
+        return {
+          available: true,
+          state: "ready" as const,
+          capabilities: { ...route.availability.capabilities },
+        };
+      },
+      async *stream(): AsyncIterable<IntelligenceEvent> {
+        const route = selectedLocal ?? (await brain.route({ visionRequired: hasImage }));
+        if (!route.ok) {
+          yield {
+            type: "refusal",
+            code: "local_unavailable",
+            reason: route.reason,
+            retryable: false,
+          };
+          return;
+        }
+        selectedLocal = route;
+        const answer = await sendViaLocal(text, atts, hasImage, billed, route);
+        if (!answer?.trim()) {
+          // `sendViaLocal` restores the draft and explains the exact adapter
+          // failure. The outer router must not append a second generic failure.
+          localFailureAlreadyShown = true;
+          yield {
+            type: "refusal",
+            code: "local_unavailable",
+            reason: "Local Intelligence returned no response.",
+            retryable: false,
+          };
+          return;
+        }
+        yield {
+          type: "final",
+          response: {
+            text: answer,
+            toolCalls: [],
+            toolResults: [],
+            backend: backendFor(route),
+            stopReason: "end_turn",
+          },
+        };
+      },
+      cancel() {
+        abortRef.current?.abort();
+      },
+    };
+
+    const onlineBase = createOnlineIntelligenceTransport();
+    const onlineTransport: IntelligenceTransport = {
+      backend: onlineBase.backend,
+      probe: (signal) => onlineBase.probe(signal),
+      cancel: (generationId) => onlineBase.cancel?.(generationId),
+      async *stream(request): AsyncIterable<IntelligenceEvent> {
+        const optimistic: Message = {
+          id: `online-${Date.now()}`,
+          role: "user",
+          content: text,
+          attachments: atts,
+          model_id: null,
+          created_at: new Date().toISOString(),
+        };
+        setMessages((current) => [...current, optimistic]);
+        saveDraft(conversation.id, text);
+        setDraft("");
+        setAttachments([]);
+        setStreaming(true);
+        setStreamText("");
+        let answer = "";
+        let delivered = false;
+        try {
+          for await (const event of onlineBase.stream(request)) {
+            if (event.type === "token") {
+              answer += event.text;
+              pushStreamText(answer);
+            }
+            if (event.type === "final" && event.response.text.trim()) {
+              answer = event.response.text;
+              await persistOnlineTurn(text, atts, answer, request.messages, billed);
+              delivered = true;
+            }
+            if (event.type === "refusal" && answer.trim()) {
+              await persistOnlineTurn(
+                text,
+                atts,
+                `${answer}\n\n_[Online Intelligence stopped before finishing.]_`,
+                request.messages,
+                billed,
+              );
+              delivered = true;
+            }
+            yield event;
+          }
+        } finally {
+          setStreaming(false);
+          setStreamText("");
+          if (!delivered) {
+            setMessages((current) => current.filter((message) => message.id !== optimistic.id));
+            setDraft(text);
+            setAttachments(atts);
+          }
+        }
+      },
+    };
+
+    const context = buildRequestContext(atts, true, text);
+    if (!context.ok) {
+      toast.error(context.reason);
+      return;
+    }
+    const images = atts
+      .filter(
+        (attachment): attachment is Attachment & { dataUrl: string } =>
+          attachment.kind === "image" && typeof attachment.dataUrl === "string",
+      )
+      .map((attachment) => attachment.dataUrl.split(",", 2)[1])
+      .filter((payload): payload is string => Boolean(payload));
+    const system = assembleSystemPrompt({
+      now: new Date(),
+      surface: "chat",
+      mode: chatPrefs.thinking ? "thinking" : "fast",
+      engineLabel: "OCADE Intelligence",
+      local: engineTier === "local",
+      online,
+      privacyMode: chatsMode,
+      project: projectDetails
+        ? { name: projectDetails.name, instructions: projectDetails.instructions }
+        : undefined,
+    });
+    const normalized: NormalizedMessage[] = [
+      { role: "system", content: system },
+      ...messages
+        .filter((message) => message.role !== "system")
+        .map((message) => ({ role: message.role, content: message.content })),
+      ...(context.data
+        ? [
+            {
+              role: "user" as const,
+              content: `Context from files and memory selected for this turn:\n\n${context.data}`,
+            },
+          ]
+        : []),
+      { role: "user", content: text, ...(images.length ? { images } : {}) },
+    ];
+    const intelligence = createOcadeIntelligence({ online: onlineTransport, local });
+    const controller = new AbortController();
+    abortRef.current = controller;
+    try {
+      const result = await intelligence.generate({
+        permit: billed.permit,
+        generationId: billed.permit.generationId,
+        idempotencyKey: billed.permit.idempotencyKey,
+        surface: "chat",
+        mode: engineTier === "local" ? "local_only" : "automatic",
+        messages: normalized,
+        tools: [],
+        attachments: atts.map((attachment) => ({
+          name: attachment.name,
+          mime: attachment.mime,
+          sizeBytes: attachment.sizeBytes,
+          ...(attachment.extractedText ? { text: attachment.extractedText } : {}),
+        })),
+        privacy: {
+          storageMode: chatsMode,
+          onlineInferenceConsented: chatsMode === "private_sync",
+          sealed,
+        },
+        conversationId: conversation.id,
+        ...(conversation.project_id ? { projectId: conversation.project_id } : {}),
+        signal: controller.signal,
+      });
+      if (!result.ok && !controller.signal.aborted && !localFailureAlreadyShown) {
+        await recordUnavailableTurn(text, atts, result.reason);
+      }
+    } finally {
+      abortRef.current = null;
+    }
+  }
+
+  async function persistOnlineTurn(
+    text: string,
+    atts: Attachment[],
+    answer: string,
+    sentMessages: NormalizedMessage[],
+    billed: BilledRequest,
+  ) {
+    await persistChatMessage({
+      userId,
+      chatsMode,
+      incognito: conversation.incognito,
+      conversationId: conversation.id,
+      role: "user",
+      content: text,
+      attachments: atts.map((attachment) => ({
+        kind: attachment.kind,
+        name: attachment.name,
+        mime: attachment.mime,
+        sizeBytes: attachment.sizeBytes,
+      })),
+    });
+    await persistChatMessage({
+      userId,
+      chatsMode,
+      incognito: conversation.incognito,
+      conversationId: conversation.id,
+      role: "assistant",
+      content: answer,
+      modelId: null,
+      providerId: "ocade-online",
+    });
+    const rows = await refreshAfterLocal();
+    const assistant = [...rows].reverse().find((message) => message.role === "assistant");
+    recordCitations(answer, assistant?.id);
+    billed.recordDelivery({
+      prompt: sentMessages.map((message) => message.content).join("\n"),
+      answer,
+    });
+    clearDraft(conversation.id);
   }
 
   /**
@@ -1886,7 +2706,7 @@ function ChatSurface(props: {
    * "I could not do that" instead of a real reply would be a regression
    * disguised as a feature.
    */
-  async function sendViaTools(text: string): Promise<boolean> {
+  async function sendViaTools(text: string, billed: BilledRequest): Promise<boolean> {
     const controller = new AbortController();
     abortRef.current = controller;
     setToolSteps([]);
@@ -1894,12 +2714,33 @@ function ChatSurface(props: {
     setStreamText("");
     let streamed = "";
     try {
-      const run = await runtime.run(text, { signal: controller.signal });
+      const run = await runtime.run(text, { signal: controller.signal, permit: billed.permit });
       if (!run.used || !run.result) return false;
       const { result } = run;
       if (result.toolResults.length === 0) return false;
 
       streamed = result.text;
+      /*
+       * Delivered, with the work the tools genuinely did.
+       *
+       * `verified` is only set by an executor that went and LOOKED for the
+       * change it made, so it is exactly the read/side-effect distinction the
+       * weighting asks for: `true` is a verified change, absent is a read.
+       * `false` — attempted and not found — counts as neither. OCADE charges
+       * for what it can show it did, never for what it attempted.
+       *
+       * Reads are deduplicated by their content, because re-reading the same
+       * thing inside one request is one batch, not several.
+       */
+      const steps = result.toolResults.filter((step) => !step.isError);
+      billed.recordDelivery({
+        prompt: text,
+        answer: result.text,
+        readToolBatches: new Set(
+          steps.filter((step) => step.verified === undefined).map((step) => step.content),
+        ).size,
+        sideEffectActions: steps.filter((step) => step.verified === true).length,
+      });
       /*
        * Said out loud rather than buried. A step that reported success and
        * could not be verified is the one case where "Done" would be a lie,
@@ -1921,6 +2762,7 @@ function ChatSurface(props: {
       await persistChatMessage({
         userId,
         chatsMode,
+        incognito: conversation.incognito,
         conversationId: conversation.id,
         role: "user",
         content: text,
@@ -1928,6 +2770,7 @@ function ChatSurface(props: {
       await persistChatMessage({
         userId,
         chatsMode,
+        incognito: conversation.incognito,
         conversationId: conversation.id,
         role: "assistant",
         content: transcript,
@@ -1945,7 +2788,12 @@ function ChatSurface(props: {
        * the ordinary answer rather than leaving the person with nothing.
        */
       if (controller.signal.aborted) {
-        if (streamed) toast.info("Stopped.");
+        if (streamed) {
+          // Stopped WITH output: the person has part of an answer, so it is
+          // charged for what they received rather than released in full.
+          billed.recordDelivery({ prompt: text, answer: streamed });
+          toast.info("Stopped.");
+        }
         return true;
       }
       toast.error(error instanceof Error ? error.message : "OCADE could not carry that out.");
@@ -1998,7 +2846,13 @@ function ChatSurface(props: {
     );
   }
 
-  async function sendViaLocal(text: string, atts: Attachment[], hasImage: boolean) {
+  async function sendViaLocal(
+    text: string,
+    atts: Attachment[],
+    hasImage: boolean,
+    billed: BilledRequest,
+    preselected?: RouteChosen,
+  ): Promise<string | null> {
     /*
      * THE BROWSER IS THE ENGINE, AND THIS IS WHERE THAT BECAME TRUE.
      *
@@ -2020,11 +2874,11 @@ function ChatSurface(props: {
      * needs to be able to say "preparing" while it happens instead of looking
      * frozen inside what appears to be a synchronous send.
      */
-    const brainRoute = await brain.route({ visionRequired: hasImage });
+    const brainRoute = preselected ?? (await brain.route({ visionRequired: hasImage }));
     if (!brainRoute.ok) {
       const actions = brainRoute.remedies.map(brain.remedyLabel).join(" · ");
       toast.error(brainRoute.reason, actions ? { description: actions } : undefined);
-      return;
+      return null;
     }
     const localSteps = [
       { modelId: brainRoute.availability.modelId ?? brainRoute.adapter.id, label: "OCADE Local" },
@@ -2047,7 +2901,7 @@ function ChatSurface(props: {
     const requestContext = buildRequestContext(atts, true, text);
     if (!requestContext.ok) {
       toast.error(requestContext.reason);
-      return;
+      return null;
     }
 
     const optimistic: Message = {
@@ -2074,6 +2928,18 @@ function ChatSurface(props: {
     const failures: string[] = [];
     let currentInformation: CurrentInformationPacket | null = null;
     let currentInformationUnavailable: string | null = null;
+    /*
+     * A CURRENT-INFORMATION RETRIEVAL IS A VERIFIED READ BATCH.
+     *
+     * It is exactly what the weighting means by one: OCADE went out, fetched
+     * pages, and came back with evidence it can cite. Leaving it out charged
+     * a researched answer the same as one written from memory, which is the
+     * wrong way round — the researched one is the more expensive.
+     *
+     * One per request, not one per source: the person asked one question, and
+     * the batch is the retrieval.
+     */
+    let retrievalBatches = 0;
 
     try {
       const freshness = classifyFreshness(text);
@@ -2092,6 +2958,9 @@ function ChatSurface(props: {
           if (controller.signal.aborted) throw new DOMException("Stopped by user", "AbortError");
           if (retrieved.ok) {
             currentInformation = retrieved.packet;
+            // Counted only on success. A retrieval that found nothing gave the
+            // person nothing, and they do not pay for it.
+            retrievalBatches = 1;
             const webSources: IndexedSource[] = retrieved.packet.sources.map((source) => ({
               id: source.id,
               name: source.title,
@@ -2352,10 +3221,24 @@ function ChatSurface(props: {
         }
 
         if (result.reason === "cancelled") {
+          /*
+           * Stopped. Charged for what actually reached the person and nothing
+           * more: a stop before any output is a pre-output cancellation and
+           * settles to a release, while a stop part-way through is charged for
+           * the part they can read.
+           */
+          if (acc.trim()) {
+            billed.recordDelivery({
+              prompt: text,
+              answer: acc,
+              readToolBatches: retrievalBatches,
+            });
+          }
           completedUnsavedText = `${acc}\n\n_[stopped by you]_`;
           await persistChatMessage({
             userId,
             chatsMode,
+            incognito: conversation.incognito,
             conversationId: conversation.id,
             role: "user",
             content: text,
@@ -2370,6 +3253,7 @@ function ChatSurface(props: {
           await persistChatMessage({
             userId,
             chatsMode,
+            incognito: conversation.incognito,
             conversationId: conversation.id,
             role: "assistant",
             content: completedUnsavedText,
@@ -2380,7 +3264,7 @@ function ChatSurface(props: {
           const assistant = [...rows].reverse().find((message) => message.role === "assistant");
           recordCitations(acc, assistant?.id);
           clearDraft(conversation.id);
-          return;
+          return acc.trim() ? acc : null;
         }
 
         if (result.ok && acc.trim()) {
@@ -2388,6 +3272,7 @@ function ChatSurface(props: {
           await persistChatMessage({
             userId,
             chatsMode,
+            incognito: conversation.incognito,
             conversationId: conversation.id,
             role: "user",
             content: text,
@@ -2402,6 +3287,7 @@ function ChatSurface(props: {
           await persistChatMessage({
             userId,
             chatsMode,
+            incognito: conversation.incognito,
             conversationId: conversation.id,
             role: "assistant",
             content: acc,
@@ -2411,6 +3297,20 @@ function ChatSurface(props: {
           const rows = await refreshAfterLocal();
           const assistant = [...rows].reverse().find((message) => message.role === "assistant");
           recordCitations(acc, assistant?.id);
+
+          /*
+           * Delivered. Recorded here, after the answer is persisted and on
+           * screen, rather than when generation started — a request that
+           * produced nothing the person can read has delivered nothing.
+           *
+           * `localMessages` is what OCADE was actually given, so the input is
+           * measured from the request as sent rather than from the typed text.
+           */
+          billed.recordDelivery({
+            prompt: localMessages.map((message) => message.content).join("\n"),
+            answer: acc,
+            readToolBatches: retrievalBatches,
+          });
 
           /*
            * The receipt for this answer.
@@ -2449,6 +3349,39 @@ function ChatSurface(props: {
               durationMs: Date.now() - routeStarted,
             });
             setReceipts((current) => ({ ...current, [assistant.id]: receipt }));
+
+            /*
+             * The conditions this answer was produced under, so it can be
+             * asked again and the two compared.
+             *
+             * `modelSha256` is empty because the browser engines do not expose
+             * a digest of the weights they loaded. That is recorded honestly
+             * rather than filled with a placeholder: an equal-but-unknown
+             * field compares equal on a repeat, which is the truthful outcome
+             * while the same engine is loaded, and `modelKey` still catches a
+             * change of engine.
+             */
+            const pinned = await pinRun({
+              prompt: text,
+              answer: acc,
+              modelKey: step.modelId ?? brainRoute.adapter.id,
+              modelSha256: "",
+              temperature: BROWSER_SAMPLER.temperature,
+              topP: BROWSER_SAMPLER.topP,
+              backend: brainRoute.adapter.id,
+              at: new Date(routeStarted),
+            });
+            setRunPins((current) => ({ ...current, [assistant.id]: pinned }));
+            replayRef.current[assistant.id] = {
+              messages: localMessages,
+              modelId: step.modelId!,
+              task: hasImage ? "vision" : "general",
+              prompt: text,
+              engineLabel: label,
+              adapterId: brainRoute.adapter.id,
+              temperature: BROWSER_SAMPLER.temperature,
+              topP: BROWSER_SAMPLER.topP,
+            };
 
             /*
              * Generation always ran on-device. A receipt may report network use
@@ -2498,7 +3431,7 @@ function ChatSurface(props: {
           setLedgerVersion((v) => v + 1);
 
           clearDraft(conversation.id);
-          return;
+          return acc;
         }
 
         // The engine failed. There is no second one to try — record why.
@@ -2555,6 +3488,7 @@ function ChatSurface(props: {
       setStreamText("");
       abortRef.current = null;
     }
+    return null;
   }
 
   /**
@@ -2712,6 +3646,141 @@ function ChatSurface(props: {
    * original is never modified — every turn up to and including this one is
    * copied, so the user can explore an alternative without losing anything.
    */
+  /**
+   * ASK A SIDE QUESTION ABOUT ONE MESSAGE — PLAN.md §8.
+   *
+   * THE ENGINE IS SENT THE ANCHOR AND THE SIDE THREAD, NOT THE CONVERSATION.
+   * `sideConversationPrompt` decides that, and the reason is not only cost:
+   * sending the whole transcript would make a two-word clarification consume
+   * the same commercial allowance as a full turn, and answers to "what does
+   * this word mean" would start drifting back toward whatever the conversation
+   * was about.
+   *
+   * It goes through the same permit as any other generation. A side question
+   * is a real request to a real engine, and a surface that skipped the gate
+   * would be a way to spend an allowance nobody counted.
+   */
+  async function askAside(anchor: ChatMessageView, question: string) {
+    const text = question.trim();
+    if (!text || asideBusy) return;
+
+    /*
+     * ROUTED THROUGH THE SAME ENGINE CHAIN AS A MAIN TURN.
+     *
+     * `useBrain` returns `{ mode, route, warm, remedyLabel }` and has no
+     * `generate`: routing is a real hardware probe that can take seconds, so it
+     * is awaited here where the panel can say it is working, and the generation
+     * itself goes through the shared reasoning service like every other surface.
+     */
+    const route = await brain.route();
+    if (!route.ok) {
+      const remedies = route.remedies.map(brain.remedyLabel).join(" · ");
+      toast.error(route.reason, remedies ? { description: remedies } : undefined);
+      return;
+    }
+
+    /*
+     * Charged like any other generation. A side question is a real request to a
+     * real engine, and an ungated surface would be a way to spend an allowance
+     * nobody counted — the answer is shorter, not free.
+     */
+    const billed = await beginBilledRequest({ surface: "chat" });
+    if (!billed) return;
+
+    setAsideBusy(anchor.id);
+    const controller = new AbortController();
+    try {
+      const thread = sideThreads.get(anchor.id) ?? [];
+      const asked = await appendSideMessage({
+        userId,
+        conversationId: conversation.id,
+        anchorMessageId: anchor.id,
+        role: "user",
+        content: text,
+        incognito: conversation.incognito,
+      });
+      setSideThreads((current) => {
+        const next = new Map(current);
+        next.set(anchor.id, [...(next.get(anchor.id) ?? []), asked.record]);
+        return next;
+      });
+
+      let answer = "";
+      const outcome = await reason(
+        // Fast, deliberately: a side question is a short bounded clarification,
+        // and deliberating over it costs seconds on a machine without graphics
+        // acceleration while changing nothing about the answer.
+        brainReasonDeps(route, { think: false, ledger: sessionPerfLedger }),
+        {
+          messages: sideConversationPrompt({
+            anchorContent: anchor.content,
+            thread,
+            question: text,
+          }),
+          task: "general",
+          signal: controller.signal,
+          onToken: (chunk) => {
+            answer += chunk;
+            setAsideStream(answer);
+          },
+        },
+      );
+      if (!outcome.ok) {
+        if (outcome.failure !== "cancelled") toast.error(outcome.reason);
+        return;
+      }
+      const finalText = (answer || outcome.text).trim();
+      if (!finalText) {
+        toast.error("The engine returned nothing for that side question.");
+        return;
+      }
+      // Delivered: the answer is on screen in the side panel.
+      billed.recordDelivery({ prompt: text, answer: finalText });
+
+      const answered = await appendSideMessage({
+        userId,
+        conversationId: conversation.id,
+        anchorMessageId: anchor.id,
+        role: "assistant",
+        content: finalText,
+        incognito: conversation.incognito,
+      });
+      setSideThreads((current) => {
+        const next = new Map(current);
+        next.set(anchor.id, [...(next.get(anchor.id) ?? []), answered.record]);
+        return next;
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "That side question could not be answered.");
+    } finally {
+      setAsideStream("");
+      setAsideBusy(null);
+      await billed.settle();
+    }
+  }
+
+  /** Discard a side thread. The message it hangs off is untouched. */
+  async function discardAside(anchorId: string) {
+    try {
+      if (!conversation.incognito) {
+        await deleteSideThread({
+          userId,
+          conversationId: conversation.id,
+          anchorMessageId: anchorId,
+        });
+      }
+      setSideThreads((current) => {
+        const next = new Map(current);
+        next.delete(anchorId);
+        return next;
+      });
+      setOpenAside(null);
+      toast.success("Side question discarded. The conversation is unchanged.");
+    } catch (e) {
+      toast.error(describeStorageError(e));
+    }
+  }
+
   async function branchFrom(message: Message) {
     try {
       const created = (await branchConversation({
@@ -2728,6 +3797,22 @@ function ChatSurface(props: {
   }
 
   async function forkBeforeUser(message: Message, title: string) {
+    /*
+     * BRANCHING AN INCOGNITO CONVERSATION WOULD WRITE IT DOWN — PLAN.md §8.
+     *
+     * A branch is a new conversation with the earlier messages COPIED into it,
+     * so branching out of an incognito thread is the one gesture that would
+     * turn "nothing is saved" into a saved transcript. Refused with the reason
+     * rather than silently producing an empty branch: the source messages are
+     * not in any vault to copy, so the quiet version would hand somebody a
+     * conversation that had lost everything before the fork.
+     */
+    if (conversation.incognito) {
+      throw new Error(
+        "An incognito conversation cannot be branched. A branch copies the earlier messages into a new conversation, which would save what this one is keeping out of storage.",
+      );
+    }
+
     if (chatsMode === "private_sync") {
       return (await forkConversationBeforeMessage({
         data: {
@@ -2914,6 +3999,107 @@ function ChatSurface(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversation.id, initialMessage, loading, onInitialMessageHandled]);
 
+  /**
+   * Ask the same question again, under the same pinned conditions.
+   *
+   * NON-DESTRUCTIVE BY CONSTRUCTION. The original answer is not touched: the
+   * repeat is stored beside it and rendered as a comparison. "Run it again"
+   * must never be a way to lose the answer you already had, which is exactly
+   * what a regenerate that overwrites in place does.
+   *
+   * Replays the stored request rather than rebuilding it, so the comparison
+   * measures the ENGINE and not OCADE's context assembly — see `replayRef`.
+   *
+   * Offered only where a pin exists, which is only the on-device path. Nothing
+   * here can be reached for an answer that came from an online provider.
+   */
+  const rerunAnswer = useCallback(
+    async (answerId: string) => {
+      if (streaming) return;
+      const replay = replayRef.current[answerId];
+      const original = runPins[answerId];
+      if (!replay || !original) return;
+
+      const route = await brain.route({ visionRequired: replay.task === "vision" });
+      if (!route.ok) {
+        const actions = route.remedies.map(brain.remedyLabel).join(" · ");
+        toast.error(route.reason, actions ? { description: actions } : undefined);
+        return;
+      }
+
+      /*
+       * A re-run is a whole generation, so it is charged like one.
+       *
+       * Not charged as a correction or a discount: the engine does the same
+       * work the first answer took, and a reproducibility check that were free
+       * would be a way to spend an allowance without it counting.
+       */
+      const billed = await beginBilledRequest({ surface: "chat" });
+      if (!billed) return;
+
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setStreaming(true);
+      setStreamText("");
+      let repeated = "";
+      const startedAt = Date.now();
+      try {
+        const outcome = await reason(
+          brainReasonDeps(route, { think: false, ledger: sessionPerfLedger }),
+          {
+            messages: replay.messages,
+            task: replay.task,
+            modelId: replay.modelId,
+            signal: controller.signal,
+            onToken: (chunk) => {
+              repeated += chunk;
+              pushStreamText(repeated);
+            },
+          },
+        );
+        if (!outcome.ok || !repeated.trim()) {
+          if (outcome.ok === false && outcome.failure !== "cancelled") {
+            toast.error(outcome.reason);
+          }
+          return;
+        }
+
+        /*
+         * Pinned against the conditions the REPEAT actually ran under, not the
+         * ones it was asked to run under. If the engine changed between the
+         * two runs — a different adapter after a reload, another model tier —
+         * that shows up as a condition change, which is the honest report and
+         * the reason a difference in the text is not alarming.
+         */
+        const repeatPin = await pinRun({
+          prompt: replay.prompt,
+          answer: repeated,
+          modelKey: replay.modelId,
+          modelSha256: "",
+          temperature: replay.temperature,
+          topP: replay.topP,
+          backend: route.adapter.id,
+          at: new Date(startedAt),
+        });
+        setReruns((current) => ({
+          ...current,
+          [answerId]: { answer: repeated, verdict: compareRuns(original, repeatPin) },
+        }));
+        // Delivered: the comparison is on screen beside the original.
+        billed.recordDelivery({
+          prompt: replay.messages.map((message) => message.content).join("\n"),
+          answer: repeated,
+        });
+      } finally {
+        setStreaming(false);
+        setStreamText("");
+        abortRef.current = null;
+        await billed.settle();
+      }
+    },
+    [brain, pushStreamText, runPins, setStreamText, streaming],
+  );
+
   async function regenerate() {
     const idx = [...messages].reverse().findIndex((m) => m.role === "user");
     if (idx === -1) return;
@@ -2941,6 +4127,16 @@ function ChatSurface(props: {
    */
   async function handleImprove() {
     if (!draft.trim()) return;
+
+    /*
+     * Rewriting a prompt runs the engine, so it is gated like anything else
+     * that does. It is short and usually settles at the floor — but "small"
+     * is not "free", and an ungated path is a way to spend an allowance
+     * without it counting.
+     */
+    const billed = await beginBilledRequest({ surface: "chat" });
+    if (!billed) return;
+
     setImproving(true);
     try {
       const route = await brain.route();
@@ -2957,12 +4153,15 @@ function ChatSurface(props: {
       );
       if (outcome.ok && outcome.improved) {
         setDraft(outcome.improved);
+        // Delivered: the improved prompt is in the composer.
+        billed.recordDelivery({ prompt: draft, answer: outcome.improved });
         toast.success("Prompt improved on this device");
       } else {
         toast.error(outcome.reason ?? "OCADE could not improve that prompt here.");
       }
     } finally {
       setImproving(false);
+      await billed.settle();
     }
   }
 
@@ -3270,6 +4469,7 @@ function ChatSurface(props: {
           <button
             type="button"
             onClick={() => {
+              if (!sealed && !canStartSeal) return;
               setSealed((v) => !v);
               toast.info(
                 sealed
@@ -3283,11 +4483,18 @@ function ChatSurface(props: {
               );
             }}
             aria-pressed={sealed}
-            title={sealed ? "Sealed: nothing may leave this device" : "Seal this conversation"}
+            disabled={!sealed && !canStartSeal}
+            title={
+              sealed
+                ? "Sealed: nothing may leave this device"
+                : canStartSeal
+                  ? "Seal this conversation"
+                  : "Send one message first so OCADE can finish preparing its local engine"
+            }
             className={cn(
               "inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-[11.5px] transition",
               sealed
-                ? "border-[color:var(--state-success)]/50 bg-[color:var(--state-success)]/10 text-[color:var(--state-success)]"
+                ? "border-[color:var(--state-success-line-strong)] bg-[color:var(--state-success-surface)] text-[color:var(--state-success)]"
                 : "border-border/60 text-muted-foreground hover:bg-accent",
             )}
           >
@@ -3372,11 +4579,54 @@ function ChatSurface(props: {
                  * would be exactly the unfounded claim the receipt exists to
                  * replace.
                  */
-                renderFooter={(message) =>
-                  chatPrefs.showDiagnostics && receipts[message.id] ? (
-                    <AnswerReceiptPanel receipt={receipts[message.id]} className="pl-1" />
-                  ) : null
-                }
+                renderFooter={(message) => {
+                  const receipt = receipts[message.id];
+                  const repeat = reruns[message.id];
+                  const thread = sideThreads.get(message.id);
+                  const asideOpen = openAside === message.id;
+                  const hasAside = asideOpen || (thread?.length ?? 0) > 0;
+                  if (!hasAside && !repeat && !(chatPrefs.showDiagnostics && receipt)) return null;
+                  return (
+                    <>
+                      {/*
+                        PLAN.md §8's side conversation, rendered UNDER its
+                        anchor rather than inline. Inline would be the one
+                        thing it must not be: a side question that appeared in
+                        the transcript would be in the thread, which is what
+                        somebody asked it not to be.
+                      */}
+                      {hasAside ? (
+                        <SideThreadPanel
+                          thread={thread ?? []}
+                          open={asideOpen}
+                          busy={asideBusy === message.id}
+                          stream={asideBusy === message.id ? asideStream : ""}
+                          onAsk={(question) => void askAside(message, question)}
+                          onOpen={() => setOpenAside(message.id)}
+                          onClose={() => setOpenAside(null)}
+                          onDiscard={() => void discardAside(message.id)}
+                        />
+                      ) : null}
+                      {chatPrefs.showDiagnostics && receipt ? (
+                        <AnswerReceiptPanel receipt={receipt} className="pl-1" />
+                      ) : null}
+                      {/*
+                        The repeat, BESIDE the original rather than instead of
+                        it. Not behind the diagnostics switch: somebody who
+                        asked for the comparison is owed the result of what
+                        they just asked for.
+                      */}
+                      {repeat ? (
+                        <AnswerDiff
+                          before={message.content}
+                          after={repeat.answer}
+                          verdict={repeat.verdict}
+                          className="mt-2"
+                        />
+                      ) : null}
+                    </>
+                  );
+                }}
                 actions={{
                   onSpeak: (m) => readAloud(m.content),
                   onReply: (m) => {
@@ -3405,6 +4655,12 @@ function ChatSurface(props: {
                       void branchFrom(original);
                     }
                   },
+                  onAside: (m) => {
+                    // Offered on any assistant turn that exists, including one
+                    // loaded from history — "what does this mean" is asked
+                    // about old answers at least as often as new ones.
+                    if (m.role === "assistant") setOpenAside(m.id);
+                  },
                   // Offered only on the newest assistant turn: regenerating an
                   // answer from the middle of a thread would silently discard
                   // everything after it.
@@ -3412,6 +4668,21 @@ function ChatSurface(props: {
                     m.id === messages.at(-1)?.id && m.role === "assistant"
                       ? void regenerate()
                       : undefined,
+                  /*
+                   * Only where this session produced the answer on this device
+                   * and pinned the conditions. A message loaded from history,
+                   * or produced by an online provider, has nothing meaningful
+                   * to compare against — so the control is absent rather than
+                   * present and misleading.
+                   */
+                  ...(messages.at(-1)?.role === "assistant" &&
+                  runPins[messages.at(-1)!.id] &&
+                  !reruns[messages.at(-1)!.id]
+                    ? {
+                        onRerun: (m: ChatMessageView) =>
+                          m.id === messages.at(-1)?.id ? void rerunAnswer(m.id) : undefined,
+                      }
+                    : {}),
                 }}
               />
               {/* Visual response is OFFERED, never auto-rendered (decision #41). */}
@@ -3481,7 +4752,7 @@ function ChatSurface(props: {
                 </p>
               ) : null}
               {!streaming && citationError ? (
-                <div className="mt-3 rounded-lg border border-[color:var(--warning)]/40 bg-[color:var(--warning)]/5 p-3 text-xs text-muted-foreground">
+                <div className="mt-3 rounded-lg border border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-wash)] p-3 text-xs text-muted-foreground">
                   Citation evidence could not be restored or saved: {citationError}
                 </div>
               ) : null}
@@ -4451,167 +5722,6 @@ function ComposerIcon({
   );
 }
 
-/* ---------- Message row (minimal, no big card) ---------- */
-
-/**
- * Local time for a stored timestamp. An unparseable value yields nothing
- * rather than "Invalid Date" — a row with no time is better than a row that
- * looks broken.
- */
-function formatMessageTime(iso: string): string | null {
-  const ms = Date.parse(iso);
-  if (!Number.isFinite(ms)) return null;
-  return new Date(ms).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-function MessageRow({
-  message,
-  onCopy,
-  onSpeak,
-  onEdit,
-  onBranch,
-  onSave,
-  showTimestamp = false,
-  renderMarkdown = true,
-}: {
-  message: Message;
-  onCopy?: () => void;
-  onSpeak?: () => void;
-  onEdit?: () => void;
-  /** Fork the conversation from this point into a new thread. */
-  onBranch?: () => void;
-  /** Save this exact response as a hashed artifact and activity entry. */
-  onSave?: () => void;
-  /** Settings › Chat › Show message times. */
-  showTimestamp?: boolean;
-  /**
-   * Settings › Chat › Format replies. When off the model's literal output is
-   * shown, which is what someone debugging a prompt actually needs to see.
-   */
-  renderMarkdown?: boolean;
-}) {
-  const isAssistant = message.role === "assistant";
-  const timestamp = showTimestamp ? formatMessageTime(message.created_at) : null;
-
-  if (isAssistant) {
-    return (
-      <div className="group">
-        <div className="mb-1 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-[color:var(--accent-ocade)]">
-          OCADE
-          {timestamp ? (
-            <span className="font-normal normal-case tracking-normal text-muted-foreground">
-              {timestamp}
-            </span>
-          ) : null}
-        </div>
-        {message.attachments && message.attachments.length > 0 ? (
-          <AttachmentsInline atts={message.attachments} />
-        ) : null}
-        <div className="prose prose-sm prose-invert max-w-none text-[14px] leading-relaxed text-foreground whitespace-pre-wrap break-words [&_p]:my-1.5 [&_pre]:my-2 [&_code]:text-xs">
-          {renderMarkdown ? (
-            <ReactMarkdown>{message.content}</ReactMarkdown>
-          ) : (
-            <span className="font-mono text-[13px]">{message.content}</span>
-          )}
-        </div>
-        <div className="mt-1 flex gap-1 opacity-0 transition group-hover:opacity-100">
-          {onCopy ? (
-            <RowAction title="Copy" onClick={onCopy}>
-              <Copy className="h-3 w-3" />
-            </RowAction>
-          ) : null}
-          {onSpeak ? (
-            <RowAction title="Read aloud" onClick={onSpeak}>
-              <Volume2 className="h-3 w-3" />
-            </RowAction>
-          ) : null}
-          {onSave ? (
-            <RowAction title="Save to Artifacts and Activity" onClick={onSave}>
-              <FileOutput className="h-3 w-3" />
-            </RowAction>
-          ) : null}
-          {onBranch ? (
-            <RowAction
-              title="Branch from here — explore an alternative without losing this thread"
-              onClick={onBranch}
-            >
-              <GitBranch className="h-3 w-3" />
-            </RowAction>
-          ) : null}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="group flex flex-col items-end">
-      {timestamp ? <div className="mb-1 text-[10px] text-muted-foreground">{timestamp}</div> : null}
-      <div className="max-w-[85%] rounded-2xl bg-secondary/70 px-3.5 py-2 text-[14px] text-foreground">
-        {message.attachments && message.attachments.length > 0 ? (
-          <AttachmentsInline atts={message.attachments} />
-        ) : null}
-        <div className="whitespace-pre-wrap break-words">{message.content}</div>
-      </div>
-      <div className="mt-1 flex gap-1 opacity-0 transition group-hover:opacity-100">
-        {onCopy ? (
-          <RowAction title="Copy" onClick={onCopy}>
-            <Copy className="h-3 w-3" />
-          </RowAction>
-        ) : null}
-        {onEdit ? (
-          <RowAction title="Edit & resend" onClick={onEdit}>
-            <Pencil className="h-3 w-3" />
-          </RowAction>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function AttachmentsInline({ atts }: { atts: Attachment[] }) {
-  return (
-    <div className="mb-2 flex flex-wrap gap-2">
-      {atts.map((a, i) =>
-        a.kind === "image" && a.dataUrl ? (
-          <img
-            key={i}
-            src={a.dataUrl}
-            alt={a.name}
-            className="max-h-40 rounded-md border border-border/60"
-          />
-        ) : (
-          <div
-            key={i}
-            className="flex items-center gap-1.5 rounded-md border border-border/60 bg-background/40 px-2 py-1 text-[11px]"
-          >
-            <Paperclip className="h-3 w-3" /> {a.name}
-          </div>
-        ),
-      )}
-    </div>
-  );
-}
-
-function RowAction({
-  children,
-  title,
-  onClick,
-}: {
-  children: React.ReactNode;
-  title: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-    >
-      {children}
-    </button>
-  );
-}
-
 /* ---------- Dialogs ---------- */
 
 function RenameDialog({
@@ -4647,6 +5757,269 @@ function RenameDialog({
           </Button>
           <Button onClick={() => value.trim() && onSubmit(value.trim())} disabled={!value.trim()}>
             Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * CLEARING EVERYTHING, WITH THE BLAST RADIUS STATED — PLAN.md §8.
+ *
+ * A typed confirmation, like the single delete and like the organization danger
+ * zone, because the failure mode of a mis-click here is a person's entire chat
+ * history and there is no undo.
+ *
+ * IT SAYS WHAT IT DOES *NOT* TOUCH. Somebody clearing their conversations has
+ * no way to know from the words "delete all" whether their downloaded model,
+ * their memory or their projects go with it — and the honest answer is that
+ * they do not, each having its own control. Leaving that unsaid makes people
+ * either avoid the button or press it and lose something they did not intend
+ * to; saying it costs three lines.
+ *
+ * The count is stated so the confirmation is about a real quantity rather than
+ * an abstraction, and so that pressing it on an empty history is obviously a
+ * no-op before it is pressed.
+ */
+/**
+ * SHARE A CONVERSATION — PLAN.md §8.
+ *
+ * OPENING THIS PUBLISHES NOTHING. It reads whether a live link already exists
+ * and shows it. Taking a snapshot is the button, and the button says what it
+ * will copy before it copies it — a dialog that shared a conversation as a side
+ * effect of somebody checking whether it was shared would be the worst possible
+ * reading of the word.
+ *
+ * The two refusals a person can act on are stated with their remedy: a
+ * conversation stored only on the device has nothing on the server to share,
+ * and an incognito one was never written down at all. Both are refused HERE
+ * before any request, because both are knowable from what is already on screen
+ * and a round trip to be told so is a worse experience than a sentence.
+ */
+function ShareDialog({
+  conversation,
+  currentMessageCount,
+  onClose,
+}: {
+  conversation: Conversation | null;
+  currentMessageCount: number | null;
+  onClose: () => void;
+}) {
+  const [token, setToken] = useState<string | null>(null);
+  const [snapshot, setSnapshot] = useState<{ count: number; at: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const id = conversation?.id ?? null;
+  const shareable = Boolean(conversation) && !conversation!.incognito;
+
+  useEffect(() => {
+    setToken(null);
+    setSnapshot(null);
+    if (!id || !shareable) return;
+    let cancelled = false;
+    setLoading(true);
+    void currentShareToken(id)
+      .then(async (existing) => {
+        if (cancelled) return;
+        setToken(existing);
+        if (!existing) return;
+        // What the LINK currently shows, read back through the same public
+        // reader a visitor uses — so the dialog cannot describe a snapshot the
+        // link does not actually serve.
+        const shared = await readSharedConversation(existing);
+        if (!cancelled && shared) {
+          setSnapshot({ count: shared.messageCount, at: shared.snapshotAt });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, shareable]);
+
+  async function publish() {
+    if (!id) return;
+    setBusy(true);
+    try {
+      const outcome = await shareConversation({ conversationId: id });
+      if (!outcome.ok) {
+        toast.error(SHARE_REFUSAL_MESSAGE[outcome.refusal]);
+        return;
+      }
+      setToken(outcome.value);
+      const shared = await readSharedConversation(outcome.value);
+      if (shared) setSnapshot({ count: shared.messageCount, at: shared.snapshotAt });
+      toast.success("Link ready. Anyone with it can read this copy.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function stop() {
+    if (!id) return;
+    setBusy(true);
+    try {
+      const outcome = await revokeConversationShare(id);
+      if (!outcome.ok) {
+        toast.error(SHARE_REFUSAL_MESSAGE[outcome.refusal]);
+        return;
+      }
+      setToken(null);
+      setSnapshot(null);
+      toast.success(
+        outcome.value > 0
+          ? "The link no longer opens anything."
+          : "This conversation was not shared.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const link =
+    token && typeof window !== "undefined" ? shareLinkFor(window.location.origin, token) : null;
+
+  return (
+    <Dialog open={Boolean(conversation)} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Share “{conversation?.title ?? ""}”</DialogTitle>
+        </DialogHeader>
+
+        {conversation?.incognito ? (
+          <p className="text-sm text-muted-foreground">
+            An incognito conversation cannot be shared. Nothing from it is written down, so there is
+            nothing to copy into a link.
+          </p>
+        ) : (
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">
+              {snapshot
+                ? describeSnapshot({
+                    messageCount: snapshot.count,
+                    snapshotAt: snapshot.at,
+                    currentMessageCount: currentMessageCount ?? snapshot.count,
+                  })
+                : "Sharing copies this conversation as it is now. The copy does not update afterwards, and attachments are not included."}
+            </p>
+
+            {loading ? (
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                Checking whether this is already shared…
+              </p>
+            ) : null}
+
+            {link ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  readOnly
+                  value={link}
+                  aria-label="Share link"
+                  className="font-mono text-xs"
+                />
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(link);
+                    toast.success("Link copied.");
+                  }}
+                >
+                  Copy
+                </Button>
+              </div>
+            ) : null}
+
+            <p className="text-xs text-muted-foreground">
+              The link is unlisted and is not indexed by search engines. Anyone who has it can read
+              the copy until you stop sharing.
+            </p>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            Close
+          </Button>
+          {shareable ? (
+            <>
+              {token ? (
+                <Button variant="destructive" onClick={() => void stop()} disabled={busy}>
+                  Stop sharing
+                </Button>
+              ) : null}
+              <Button onClick={() => void publish()} disabled={busy || loading}>
+                {busy ? "Working…" : token ? "Update the copy" : "Create a link"}
+              </Button>
+            </>
+          ) : null}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DeleteAllDialog({
+  open,
+  busy,
+  count,
+  onClose,
+  onConfirm,
+}: {
+  open: boolean;
+  busy: boolean;
+  count: number;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const [phrase, setPhrase] = useState("");
+  useEffect(() => {
+    setPhrase("");
+  }, [open]);
+
+  return (
+    <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            Delete {count === 1 ? "your one conversation" : `all ${count} conversations`}?
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-2 text-sm">
+          <p className="text-muted-foreground">
+            This removes every conversation and every message from this device and from your
+            account, on every machine you sign in on. It cannot be undone.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            It does <span className="font-medium text-foreground">not</span> remove Offline
+            Intelligence, what OCADE remembers about you, or your projects. Each of those has its
+            own control in Settings.
+          </p>
+          <p className="text-xs">
+            Type <span className="font-mono font-semibold">delete everything</span> to confirm.
+          </p>
+          <Input
+            value={phrase}
+            onChange={(event) => setPhrase(event.target.value)}
+            placeholder="delete everything"
+            aria-label="Type delete everything to confirm"
+            autoComplete="off"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            disabled={busy || count === 0 || phrase !== "delete everything"}
+            onClick={onConfirm}
+          >
+            {busy ? "Deleting…" : "Delete everything"}
           </Button>
         </DialogFooter>
       </DialogContent>

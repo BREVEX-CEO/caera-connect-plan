@@ -16,6 +16,7 @@
  *  - cancellation and emergency stop are first-class.
  */
 import { NativeCompanionRequiredError } from "@/lib/storage/types";
+import { isProtectedText } from "@/lib/security/protected-text";
 
 export type ActionRisk = "read_only" | "low" | "confirm" | "high" | "prohibited";
 
@@ -34,21 +35,6 @@ export type CompanionAction =
   | { kind: "selection.read" }
   /** Replace the current selection — e.g. "rewrite this paragraph". */
   | { kind: "selection.replace"; text: string };
-
-/**
- * Patterns that indicate protected content OCADE must never type or read.
- * Deliberately broad — a false positive costs a pause, a false negative costs a
- * credential.
- */
-const PROTECTED_HINTS =
-  /(password|passcode|passphrase|\botp\b|one[- ]time code|verification code|2fa|mfa|captcha|cvv|cvc|card number|iban|sort code|routing number|ssn|social security|aadhaar|passport number|pin\b|recovery code|seed phrase|private key|biometric)/i;
-
-/** Long digit runs (card/OTP-like) are treated as protected. */
-const DIGIT_RUN = /\b\d{4,}\b/;
-
-export function isProtectedText(text: string): boolean {
-  return PROTECTED_HINTS.test(text) || DIGIT_RUN.test(text);
-}
 
 /**
  * Risk tier for an action. `text.type` escalates to `prohibited` when the
@@ -246,12 +232,6 @@ export function guardAction(action: CompanionAction, opts: { confirmed?: boolean
     return "This action needs your confirmation before OCADE can run it.";
   }
   return null;
-}
-
-/** Redact protected content from any string before it reaches logs/audit/replay. */
-export function redactForAudit(text: string): string {
-  if (!text) return text;
-  return text.replace(/\b\d{4,}\b/g, "[redacted]").replace(PROTECTED_HINTS, "[redacted]");
 }
 
 let activeAdapter: NativeCompanionAdapter = new UnavailableCompanion();

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.17"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -1037,69 +1037,6 @@ export type Database = {
           },
         ]
       }
-      ficia_projects: {
-        Row: {
-          billable_default: boolean
-          billing_rate_cents: number | null
-          client_name: string | null
-          code: string | null
-          created_at: string
-          created_by: string | null
-          currency: string | null
-          department_id: string | null
-          id: string
-          name: string
-          status: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          billable_default?: boolean
-          billing_rate_cents?: number | null
-          client_name?: string | null
-          code?: string | null
-          created_at?: string
-          created_by?: string | null
-          currency?: string | null
-          department_id?: string | null
-          id?: string
-          name: string
-          status?: string
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          billable_default?: boolean
-          billing_rate_cents?: number | null
-          client_name?: string | null
-          code?: string | null
-          created_at?: string
-          created_by?: string | null
-          currency?: string | null
-          department_id?: string | null
-          id?: string
-          name?: string
-          status?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ficia_projects_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "ficia_departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ficia_projects_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ficia_role_grants: {
         Row: {
           granted_at: string
@@ -1134,54 +1071,6 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ficia_role_grants_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ficia_tasks: {
-        Row: {
-          billable_default: boolean
-          created_at: string
-          id: string
-          name: string
-          project_id: string
-          status: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          billable_default?: boolean
-          created_at?: string
-          id?: string
-          name: string
-          project_id: string
-          status?: string
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          billable_default?: boolean
-          created_at?: string
-          id?: string
-          name?: string
-          project_id?: string
-          status?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ficia_tasks_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "ficia_projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ficia_tasks_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -1232,427 +1121,6 @@ export type Database = {
             foreignKeyName: "ficia_teams_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ficia_time_activity_samples: {
-        Row: {
-          at: string
-          created_at: string
-          entry_id: string | null
-          id: string
-          idle_seconds: number
-          state: Database["public"]["Enums"]["time_activity_state"]
-          tenant_id: string
-          user_id: string
-          window_focus: boolean | null
-        }
-        Insert: {
-          at?: string
-          created_at?: string
-          entry_id?: string | null
-          id?: string
-          idle_seconds?: number
-          state: Database["public"]["Enums"]["time_activity_state"]
-          tenant_id: string
-          user_id: string
-          window_focus?: boolean | null
-        }
-        Update: {
-          at?: string
-          created_at?: string
-          entry_id?: string | null
-          id?: string
-          idle_seconds?: number
-          state?: Database["public"]["Enums"]["time_activity_state"]
-          tenant_id?: string
-          user_id?: string
-          window_focus?: boolean | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ficia_time_activity_samples_entry_id_fkey"
-            columns: ["entry_id"]
-            isOneToOne: false
-            referencedRelation: "ficia_time_entries"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ficia_time_activity_samples_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ficia_time_consents: {
-        Row: {
-          accepted_at: string
-          accepted_terms: string
-          activity_monitoring: boolean
-          auto_pause: boolean
-          created_at: string
-          id: string
-          ip_at_accept: string | null
-          revoked_at: string | null
-          screen_recording_optin: boolean
-          tenant_id: string
-          updated_at: string
-          user_agent: string | null
-          user_id: string
-        }
-        Insert: {
-          accepted_at?: string
-          accepted_terms: string
-          activity_monitoring?: boolean
-          auto_pause?: boolean
-          created_at?: string
-          id?: string
-          ip_at_accept?: string | null
-          revoked_at?: string | null
-          screen_recording_optin?: boolean
-          tenant_id: string
-          updated_at?: string
-          user_agent?: string | null
-          user_id: string
-        }
-        Update: {
-          accepted_at?: string
-          accepted_terms?: string
-          activity_monitoring?: boolean
-          auto_pause?: boolean
-          created_at?: string
-          id?: string
-          ip_at_accept?: string | null
-          revoked_at?: string | null
-          screen_recording_optin?: boolean
-          tenant_id?: string
-          updated_at?: string
-          user_agent?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ficia_time_consents_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ficia_time_entries: {
-        Row: {
-          ai_time_split: Json
-          approved_at: string | null
-          approved_by: string | null
-          billable: boolean
-          billing_rate_cents: number | null
-          break_seconds: number
-          breaks: Json
-          correction_of: string | null
-          created_at: string
-          currency: string | null
-          department_id: string | null
-          description: string | null
-          duration_seconds: number | null
-          ended_at: string | null
-          entry_date: string
-          evidence: Json
-          id: string
-          idle_seconds: number
-          locked_period_id: string | null
-          project_id: string | null
-          rejected_reason: string | null
-          source: Database["public"]["Enums"]["time_entry_source"]
-          started_at: string
-          status: Database["public"]["Enums"]["time_entry_status"]
-          task_id: string | null
-          tenant_id: string
-          updated_at: string
-          user_id: string
-          work_mode: Database["public"]["Enums"]["time_work_mode"] | null
-        }
-        Insert: {
-          ai_time_split?: Json
-          approved_at?: string | null
-          approved_by?: string | null
-          billable?: boolean
-          billing_rate_cents?: number | null
-          break_seconds?: number
-          breaks?: Json
-          correction_of?: string | null
-          created_at?: string
-          currency?: string | null
-          department_id?: string | null
-          description?: string | null
-          duration_seconds?: number | null
-          ended_at?: string | null
-          entry_date: string
-          evidence?: Json
-          id?: string
-          idle_seconds?: number
-          locked_period_id?: string | null
-          project_id?: string | null
-          rejected_reason?: string | null
-          source?: Database["public"]["Enums"]["time_entry_source"]
-          started_at: string
-          status?: Database["public"]["Enums"]["time_entry_status"]
-          task_id?: string | null
-          tenant_id: string
-          updated_at?: string
-          user_id: string
-          work_mode?: Database["public"]["Enums"]["time_work_mode"] | null
-        }
-        Update: {
-          ai_time_split?: Json
-          approved_at?: string | null
-          approved_by?: string | null
-          billable?: boolean
-          billing_rate_cents?: number | null
-          break_seconds?: number
-          breaks?: Json
-          correction_of?: string | null
-          created_at?: string
-          currency?: string | null
-          department_id?: string | null
-          description?: string | null
-          duration_seconds?: number | null
-          ended_at?: string | null
-          entry_date?: string
-          evidence?: Json
-          id?: string
-          idle_seconds?: number
-          locked_period_id?: string | null
-          project_id?: string | null
-          rejected_reason?: string | null
-          source?: Database["public"]["Enums"]["time_entry_source"]
-          started_at?: string
-          status?: Database["public"]["Enums"]["time_entry_status"]
-          task_id?: string | null
-          tenant_id?: string
-          updated_at?: string
-          user_id?: string
-          work_mode?: Database["public"]["Enums"]["time_work_mode"] | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ficia_time_entries_correction_of_fkey"
-            columns: ["correction_of"]
-            isOneToOne: false
-            referencedRelation: "ficia_time_entries"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ficia_time_entries_department_id_fkey"
-            columns: ["department_id"]
-            isOneToOne: false
-            referencedRelation: "ficia_departments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ficia_time_entries_locked_period_id_fkey"
-            columns: ["locked_period_id"]
-            isOneToOne: false
-            referencedRelation: "ficia_time_periods"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ficia_time_entries_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "ficia_projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ficia_time_entries_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "ficia_tasks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ficia_time_entries_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ficia_time_events: {
-        Row: {
-          at: string
-          created_at: string
-          entry_id: string | null
-          id: string
-          kind: Database["public"]["Enums"]["time_event_kind"]
-          metadata: Json
-          tenant_id: string
-          user_id: string
-        }
-        Insert: {
-          at?: string
-          created_at?: string
-          entry_id?: string | null
-          id?: string
-          kind: Database["public"]["Enums"]["time_event_kind"]
-          metadata?: Json
-          tenant_id: string
-          user_id: string
-        }
-        Update: {
-          at?: string
-          created_at?: string
-          entry_id?: string | null
-          id?: string
-          kind?: Database["public"]["Enums"]["time_event_kind"]
-          metadata?: Json
-          tenant_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ficia_time_events_entry_id_fkey"
-            columns: ["entry_id"]
-            isOneToOne: false
-            referencedRelation: "ficia_time_entries"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ficia_time_events_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ficia_time_periods: {
-        Row: {
-          created_at: string
-          id: string
-          label: string | null
-          locked_at: string
-          locked_by: string
-          period_end: string
-          period_start: string
-          reason: string | null
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          label?: string | null
-          locked_at?: string
-          locked_by: string
-          period_end: string
-          period_start: string
-          reason?: string | null
-          tenant_id: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          label?: string | null
-          locked_at?: string
-          locked_by?: string
-          period_end?: string
-          period_start?: string
-          reason?: string | null
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ficia_time_periods_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ficia_time_policies: {
-        Row: {
-          allowed_work_modes: string[]
-          auto_pause_enabled: boolean
-          billable_default: boolean
-          break_minutes_paid: number
-          break_minutes_unpaid: number
-          created_at: string
-          daily_hours_target: number
-          holidays: Json
-          id: string
-          idle_threshold_minutes: number
-          overtime_rules: Json
-          screen_recording_available: boolean
-          shift_end: string
-          shift_start: string
-          tenant_id: string
-          timezone: string
-          updated_at: string
-          updated_by: string | null
-          weekly_hours_target: number
-          weekly_offs: number[]
-          workdays: number[]
-        }
-        Insert: {
-          allowed_work_modes?: string[]
-          auto_pause_enabled?: boolean
-          billable_default?: boolean
-          break_minutes_paid?: number
-          break_minutes_unpaid?: number
-          created_at?: string
-          daily_hours_target?: number
-          holidays?: Json
-          id?: string
-          idle_threshold_minutes?: number
-          overtime_rules?: Json
-          screen_recording_available?: boolean
-          shift_end?: string
-          shift_start?: string
-          tenant_id: string
-          timezone?: string
-          updated_at?: string
-          updated_by?: string | null
-          weekly_hours_target?: number
-          weekly_offs?: number[]
-          workdays?: number[]
-        }
-        Update: {
-          allowed_work_modes?: string[]
-          auto_pause_enabled?: boolean
-          billable_default?: boolean
-          break_minutes_paid?: number
-          break_minutes_unpaid?: number
-          created_at?: string
-          daily_hours_target?: number
-          holidays?: Json
-          id?: string
-          idle_threshold_minutes?: number
-          overtime_rules?: Json
-          screen_recording_available?: boolean
-          shift_end?: string
-          shift_start?: string
-          tenant_id?: string
-          timezone?: string
-          updated_at?: string
-          updated_by?: string | null
-          weekly_hours_target?: number
-          weekly_offs?: number[]
-          workdays?: number[]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ficia_time_policies_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -1812,6 +1280,7 @@ export type Database = {
       legal_consent_receipts: {
         Row: {
           accepted_at: string
+          created_at: string
           id: string
           privacy_version: string
           source: string
@@ -1820,6 +1289,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string
+          created_at?: string
           id?: string
           privacy_version: string
           source?: string
@@ -1828,6 +1298,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string
+          created_at?: string
           id?: string
           privacy_version?: string
           source?: string
@@ -2647,27 +2118,310 @@ export type Database = {
         }
         Relationships: []
       }
-      ocade_cloud_usage: {
+      ocade_commercial_usage: {
         Row: {
           id: string
           updated_at: string
-          used_count: number
+          used_hundredths: number
           user_id: string
+          window_kind: string
           window_start: string
         }
         Insert: {
           id?: string
           updated_at?: string
-          used_count?: number
+          used_hundredths?: number
           user_id: string
+          window_kind?: string
           window_start: string
         }
         Update: {
           id?: string
           updated_at?: string
-          used_count?: number
+          used_hundredths?: number
           user_id?: string
+          window_kind?: string
           window_start?: string
+        }
+        Relationships: []
+      }
+      ocade_offline_usage_allocations: {
+        Row: {
+          amount_hundredths: number
+          created_at: string
+          device_id: string
+          id: string
+          lease_id: string
+          request_key: string
+          user_id: string
+        }
+        Insert: {
+          amount_hundredths: number
+          created_at?: string
+          device_id: string
+          id?: string
+          lease_id: string
+          request_key: string
+          user_id: string
+        }
+        Update: {
+          amount_hundredths?: number
+          created_at?: string
+          device_id?: string
+          id?: string
+          lease_id?: string
+          request_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ocade_offline_usage_events: {
+        Row: {
+          cost_hundredths: number
+          device_id: string
+          device_signature: string
+          event_hash: string
+          generation_id: string
+          id: string
+          idempotency_key: string
+          lease_id: string
+          occurred_at: string
+          previous_hash: string
+          reconciled_at: string
+          sequence: number
+          status: string
+          surface: string
+          user_id: string
+        }
+        Insert: {
+          cost_hundredths: number
+          device_id: string
+          device_signature: string
+          event_hash: string
+          generation_id: string
+          id: string
+          idempotency_key: string
+          lease_id: string
+          occurred_at: string
+          previous_hash: string
+          reconciled_at?: string
+          sequence: number
+          status: string
+          surface: string
+          user_id: string
+        }
+        Update: {
+          cost_hundredths?: number
+          device_id?: string
+          device_signature?: string
+          event_hash?: string
+          generation_id?: string
+          id?: string
+          idempotency_key?: string
+          lease_id?: string
+          occurred_at?: string
+          previous_hash?: string
+          reconciled_at?: string
+          sequence?: number
+          status?: string
+          surface?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ocade_device_usage_keys: {
+        Row: {
+          algorithm: string
+          created_at: string
+          device_id: string
+          public_key_base64: string
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          algorithm?: string
+          created_at?: string
+          device_id: string
+          public_key_base64: string
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          algorithm?: string
+          created_at?: string
+          device_id?: string
+          public_key_base64?: string
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_device_usage_keys_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: true
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_device_usage_leases: {
+        Row: {
+          allocated_hundredths: number
+          consumed_hundredths: number
+          device_id: string
+          expires_at: string
+          id: string
+          issued_at: string
+          key_id: string | null
+          last_event_hash: string
+          last_sequence: number
+          lease_version: number
+          not_before: string
+          preissued: boolean
+          sequence_end: number
+          sequence_start: number
+          server_signature: string | null
+          session_reset_at: string
+          session_window_start: string
+          signed_payload: Json | null
+          status: string
+          tier: string
+          updated_at: string
+          user_id: string
+          week_reset_at: string
+          week_window_start: string
+        }
+        Insert: {
+          allocated_hundredths: number
+          consumed_hundredths?: number
+          device_id: string
+          expires_at: string
+          id?: string
+          issued_at?: string
+          key_id?: string | null
+          last_event_hash?: string
+          last_sequence?: number
+          lease_version?: number
+          not_before: string
+          preissued?: boolean
+          sequence_end?: number
+          sequence_start?: number
+          server_signature?: string | null
+          session_reset_at: string
+          session_window_start: string
+          signed_payload?: Json | null
+          status: string
+          tier: string
+          updated_at?: string
+          user_id: string
+          week_reset_at: string
+          week_window_start: string
+        }
+        Update: {
+          allocated_hundredths?: number
+          consumed_hundredths?: number
+          device_id?: string
+          expires_at?: string
+          id?: string
+          issued_at?: string
+          key_id?: string | null
+          last_event_hash?: string
+          last_sequence?: number
+          lease_version?: number
+          not_before?: string
+          preissued?: boolean
+          sequence_end?: number
+          sequence_start?: number
+          server_signature?: string | null
+          session_reset_at?: string
+          session_window_start?: string
+          signed_payload?: Json | null
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string
+          week_reset_at?: string
+          week_window_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_device_usage_leases_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_generation_permits: {
+        Row: {
+          charged_hundredths: number | null
+          expires_at: string
+          finalized_at: string | null
+          generation_id: string
+          id: string
+          idempotency_key: string
+          issued_at: string
+          release_reason: string | null
+          reserved_hundredths: number
+          session_limit_hundredths: number
+          session_reset_at: string
+          session_window_start: string
+          status: string
+          surface: string
+          tier: string
+          transport_claimed_at: string | null
+          updated_at: string
+          user_id: string
+          week_limit_hundredths: number | null
+          week_reset_at: string
+          week_window_start: string
+        }
+        Insert: {
+          charged_hundredths?: number | null
+          expires_at: string
+          finalized_at?: string | null
+          generation_id: string
+          id?: string
+          idempotency_key: string
+          issued_at?: string
+          release_reason?: string | null
+          reserved_hundredths: number
+          session_limit_hundredths: number
+          session_reset_at: string
+          session_window_start: string
+          status?: string
+          surface: string
+          tier: string
+          transport_claimed_at?: string | null
+          updated_at?: string
+          user_id: string
+          week_limit_hundredths?: number | null
+          week_reset_at: string
+          week_window_start: string
+        }
+        Update: {
+          charged_hundredths?: number | null
+          expires_at?: string
+          finalized_at?: string | null
+          generation_id?: string
+          id?: string
+          idempotency_key?: string
+          issued_at?: string
+          release_reason?: string | null
+          reserved_hundredths?: number
+          session_limit_hundredths?: number
+          session_reset_at?: string
+          session_window_start?: string
+          status?: string
+          surface?: string
+          tier?: string
+          transport_claimed_at?: string | null
+          updated_at?: string
+          user_id?: string
+          week_limit_hundredths?: number | null
+          week_reset_at?: string
+          week_window_start?: string
         }
         Relationships: []
       }
@@ -2724,6 +2478,7 @@ export type Database = {
       ocade_invoices: {
         Row: {
           amount_minor: number
+          catalogue_version: string
           created_at: string
           currency: string
           id: string
@@ -2738,6 +2493,7 @@ export type Database = {
         }
         Insert: {
           amount_minor: number
+          catalogue_version?: string
           created_at?: string
           currency: string
           id?: string
@@ -2752,6 +2508,7 @@ export type Database = {
         }
         Update: {
           amount_minor?: number
+          catalogue_version?: string
           created_at?: string
           currency?: string
           id?: string
@@ -2868,6 +2625,518 @@ export type Database = {
           },
         ]
       }
+      ocade_mfa_recovery_attempts: {
+        Row: {
+          failed_count: number
+          locked_until: string | null
+          user_id: string
+          window_started_at: string
+        }
+        Insert: {
+          failed_count?: number
+          locked_until?: string | null
+          user_id: string
+          window_started_at?: string
+        }
+        Update: {
+          failed_count?: number
+          locked_until?: string | null
+          user_id?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
+      ocade_mfa_recovery_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          generation: number
+          id: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          generation?: number
+          id?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          generation?: number
+          id?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ocade_notification_preferences: {
+        Row: {
+          categories: Json
+          mute_optional: boolean
+          quiet_hours: Json
+          revision: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          categories?: Json
+          mute_optional?: boolean
+          quiet_hours?: Json
+          revision?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          categories?: Json
+          mute_optional?: boolean
+          quiet_hours?: Json
+          revision?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ocade_notifications: {
+        Row: {
+          body: string
+          category: string
+          created_at: string
+          deep_link: string | null
+          delivery: Json
+          id: string
+          idempotency_key: string
+          read_at: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          category: string
+          created_at?: string
+          deep_link?: string | null
+          delivery?: Json
+          id?: string
+          idempotency_key: string
+          read_at?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          created_at?: string
+          deep_link?: string | null
+          delivery?: Json
+          id?: string
+          idempotency_key?: string
+          read_at?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ocade_organization_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          detail: Json
+          event: string
+          id: string
+          organization_id: string
+          subject_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event: string
+          id?: string
+          organization_id: string
+          subject_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          detail?: Json
+          event?: string
+          id?: string
+          organization_id?: string
+          subject_id?: string | null
+        }
+        Relationships: []
+      }
+      ocade_organization_group_members: {
+        Row: {
+          added_at: string
+          group_id: string
+          member_id: string
+        }
+        Insert: {
+          added_at?: string
+          group_id: string
+          member_id: string
+        }
+        Update: {
+          added_at?: string
+          group_id?: string
+          member_id?: string
+        }
+        Relationships: []
+      }
+      ocade_organization_groups: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+        }
+        Relationships: []
+      }
+      ocade_organization_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          organization_id: string
+          revoked_at: string | null
+          revoked_by: string | null
+          role: string
+          token_hash: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          invited_by: string
+          organization_id: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          role?: string
+          token_hash: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          organization_id?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          role?: string
+          token_hash?: string
+        }
+        Relationships: []
+      }
+      ocade_organization_members: {
+        Row: {
+          id: string
+          invited_by: string | null
+          joined_at: string
+          organization_id: string
+          role: string
+          state: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          organization_id: string
+          role?: string
+          state?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          organization_id?: string
+          role?: string
+          state?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ocade_support_articles: {
+        Row: {
+          body: string[]
+          category: string
+          keywords: string[]
+          slug: string
+          status: string
+          summary: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body: string[]
+          category: string
+          keywords?: string[]
+          slug: string
+          status: string
+          summary: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body?: string[]
+          category?: string
+          keywords?: string[]
+          slug?: string
+          status?: string
+          summary?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ocade_support_article_revisions: {
+        Row: {
+          body: string[]
+          category: string
+          created_at: string
+          created_by: string | null
+          id: string
+          keywords: string[]
+          note: string
+          slug: string
+          status: string
+          summary: string
+          title: string
+        }
+        Insert: {
+          body: string[]
+          category: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          keywords?: string[]
+          note?: string
+          slug: string
+          status: string
+          summary: string
+          title: string
+        }
+        Update: {
+          body?: string[]
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          keywords?: string[]
+          note?: string
+          slug?: string
+          status?: string
+          summary?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      ocade_conversation_shares: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          message_count: number
+          messages: Json
+          owner_id: string
+          revoked_at: string | null
+          snapshot_at: string
+          title: string
+          token: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          message_count?: number
+          messages?: Json
+          owner_id: string
+          revoked_at?: string | null
+          snapshot_at?: string
+          title: string
+          token?: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          message_count?: number
+          messages?: Json
+          owner_id?: string
+          revoked_at?: string | null
+          snapshot_at?: string
+          title?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_conversation_shares_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_status_incidents: {
+        Row: {
+          component_ids: string[]
+          created_at: string
+          created_by: string | null
+          id: string
+          impact: string
+          kind: string
+          resolved_at: string | null
+          scheduled_end: string | null
+          started_at: string
+          state: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          component_ids?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          impact: string
+          kind: string
+          resolved_at?: string | null
+          scheduled_end?: string | null
+          started_at?: string
+          state?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          component_ids?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          impact?: string
+          kind?: string
+          resolved_at?: string | null
+          scheduled_end?: string | null
+          started_at?: string
+          state?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ocade_status_incident_updates: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          incident_id: string
+          state: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          incident_id: string
+          state: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          incident_id?: string
+          state?: string
+        }
+        Relationships: []
+      }
+      ocade_organization_policies: {
+        Row: {
+          organization_id: string
+          updated_at: string
+          updated_by: string | null
+          withheld_capabilities: string[]
+          withheld_tool_domains: string[]
+        }
+        Insert: {
+          organization_id: string
+          updated_at?: string
+          updated_by?: string | null
+          withheld_capabilities?: string[]
+          withheld_tool_domains?: string[]
+        }
+        Update: {
+          organization_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          withheld_capabilities?: string[]
+          withheld_tool_domains?: string[]
+        }
+        Relationships: []
+      }
+      ocade_organizations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ocade_outputs: {
         Row: {
           content: string | null
@@ -2947,6 +3216,7 @@ export type Database = {
       ocade_payment_events: {
         Row: {
           amount_minor: number
+          catalogue_version: string
           created_at: string
           currency: string
           id: string
@@ -2961,6 +3231,7 @@ export type Database = {
         }
         Insert: {
           amount_minor: number
+          catalogue_version?: string
           created_at?: string
           currency: string
           id?: string
@@ -2975,6 +3246,7 @@ export type Database = {
         }
         Update: {
           amount_minor?: number
+          catalogue_version?: string
           created_at?: string
           currency?: string
           id?: string
@@ -3131,6 +3403,7 @@ export type Database = {
       }
       ocade_subscriptions: {
         Row: {
+          catalogue_version: string
           created_at: string
           expires_at: string
           id: string
@@ -3141,6 +3414,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          catalogue_version?: string
           created_at?: string
           expires_at: string
           id?: string
@@ -3151,6 +3425,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          catalogue_version?: string
           created_at?: string
           expires_at?: string
           id?: string
@@ -3289,9 +3564,44 @@ export type Database = {
           },
         ]
       }
+      payment_webhook_events: {
+        Row: {
+          entity_id: string | null
+          environment: string
+          event_id: string
+          event_type: string
+          occurred_at: string
+          outcome: string
+          reason: string | null
+          received_at: string
+          user_id: string | null
+        }
+        Insert: {
+          entity_id?: string | null
+          environment: string
+          event_id: string
+          event_type: string
+          occurred_at: string
+          outcome: string
+          reason?: string | null
+          received_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          entity_id?: string | null
+          environment?: string
+          event_id?: string
+          event_type?: string
+          occurred_at?: string
+          outcome?: string
+          reason?: string | null
+          received_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
-          demo_consumed_at: string | null
           avatar_url: string | null
           country: string | null
           created_at: string
@@ -3311,7 +3621,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          demo_consumed_at?: string | null
           avatar_url?: string | null
           country?: string | null
           created_at?: string
@@ -3331,7 +3640,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          demo_consumed_at?: string | null
           avatar_url?: string | null
           country?: string | null
           created_at?: string
@@ -3399,42 +3707,6 @@ export type Database = {
           },
         ]
       }
-      payment_webhook_events: {
-        Row: {
-          entity_id: string | null
-          environment: string
-          event_id: string
-          event_type: string
-          occurred_at: string
-          outcome: string
-          reason: string | null
-          received_at: string
-          user_id: string | null
-        }
-        Insert: {
-          entity_id?: string | null
-          environment: string
-          event_id: string
-          event_type: string
-          occurred_at: string
-          outcome: string
-          reason?: string | null
-          received_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          entity_id?: string | null
-          environment?: string
-          event_id?: string
-          event_type?: string
-          occurred_at?: string
-          outcome?: string
-          reason?: string | null
-          received_at?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       storage_tombstones: {
         Row: {
           attempts: number
@@ -3479,6 +3751,7 @@ export type Database = {
           current_period_start: string | null
           environment: string
           id: string
+          kind: string
           paddle_customer_id: string
           paddle_subscription_id: string
           price_id: string
@@ -3495,6 +3768,7 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
+          kind?: string
           paddle_customer_id: string
           paddle_subscription_id: string
           price_id: string
@@ -3511,6 +3785,7 @@ export type Database = {
           current_period_start?: string | null
           environment?: string
           id?: string
+          kind?: string
           paddle_customer_id?: string
           paddle_subscription_id?: string
           price_id?: string
@@ -3841,17 +4116,40 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_payment_webhook_event: {
+        Args: {
+          p_action: string
+          p_allow_terminal_reversal: boolean
+          p_cancel_at_period_end: boolean
+          p_current_period_end: string
+          p_current_period_start: string
+          p_entity_id: string
+          p_environment: string
+          p_event_id: string
+          p_event_type: string
+          p_kind: string
+          p_occurred_at: string
+          p_paddle_customer_id: string
+          p_paddle_subscription_id: string
+          p_price_id: string
+          p_product_id: string
+          p_reason: string
+          p_status: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      attachment_deletion_status: {
+        Args: never
+        Returns: {
+          oldest_pending: string
+          pending: number
+          purged: number
+        }[]
+      }
       create_company_with_owner: {
         Args: { _payload: Json; _uid: string }
         Returns: string
-      }
-      ficia_can_manage_worker: {
-        Args: { _caller_uid: string; _tenant_id: string; _worker_uid: string }
-        Returns: boolean
-      }
-      ficia_has_permission: {
-        Args: { _perm: string; _tenant: string; _uid: string }
-        Returns: boolean
       }
       find_conflicting_legal_id: {
         Args: {
@@ -3896,22 +4194,6 @@ export type Database = {
         Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
       }
-      is_tenant_owner_or_manager: {
-        Args: { _tenant: string; _uid: string }
-        Returns: boolean
-      }
-      msg_is_thread_admin: {
-        Args: { _thread_id: string; _user_id: string }
-        Returns: boolean
-      }
-      msg_is_thread_member: {
-        Args: { _thread_id: string; _user_id: string }
-        Returns: boolean
-      }
-      msg_thread_writable: {
-        Args: { _thread_id: string; _user_id: string }
-        Returns: boolean
-      }
       ocade_append_automation_receipt: {
         Args: {
           p_action_kind: string
@@ -3954,9 +4236,182 @@ export type Database = {
         }
         Returns: boolean
       }
-      ocade_consume_cloud_use: {
-        Args: { p_limit: number; p_user_id: string; p_window_start: string }
+      ocade_consume_commercial_work: {
+        Args: {
+          p_cost_hundredths: number
+          p_limit_hundredths: number
+          p_user_id: string
+          p_window_kind: string
+          p_window_start: string
+        }
         Returns: number
+      }
+      ocade_acquire_generation_permit: {
+        Args: {
+          p_generation_id: string
+          p_idempotency_key: string
+          p_reserved_hundredths: number
+          p_session_limit_hundredths: number
+          p_surface: string
+          p_tier: string
+          p_user_id: string
+          p_week_limit_hundredths: number | null
+        }
+        Returns: {
+          outcome: string
+          permit_id: string | null
+          reserved_hundredths: number
+          session_reset_at: string
+          week_reset_at: string
+        }[]
+      }
+      ocade_activate_offline_usage_lease: {
+        Args: {
+          p_key_id: string
+          p_lease_id: string
+          p_server_signature: string
+          p_signed_payload: Json
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      ocade_allocate_offline_usage: {
+        Args: {
+          p_amount_hundredths: number
+          p_browser_install_id: string
+          p_device_id: string
+          p_device_public_key: string
+          p_preissue?: boolean
+          p_request_key: string
+          p_session_limit_hundredths: number
+          p_tier: string
+          p_user_id: string
+          p_week_limit_hundredths: number | null
+        }
+        Returns: {
+          allocated_hundredths: number
+          consumed_hundredths: number
+          expires_at: string
+          issued_at: string
+          lease_id: string | null
+          not_before: string
+          outcome: string
+          preissued: boolean
+          sequence_end: number
+          sequence_start: number
+          session_reset_at: string
+          session_window_start: string
+          tier: string
+          week_reset_at: string
+          week_window_start: string
+        }[]
+      }
+      ocade_claim_generation_transport: {
+        Args: {
+          p_generation_id: string
+          p_idempotency_key: string
+          p_permit_id: string
+          p_surface: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      ocade_expire_commercial_permits: {
+        Args: { p_now?: string; p_user_id: string }
+        Returns: number
+      }
+      ocade_expire_offline_usage_leases: {
+        Args: { p_now?: string; p_user_id: string }
+        Returns: number
+      }
+      ocade_finalize_generation_permit: {
+        Args: {
+          p_cost_hundredths: number
+          p_idempotency_key: string
+          p_user_id: string
+        }
+        Returns: {
+          charged_hundredths: number
+          outcome: string
+        }[]
+      }
+      ocade_read_commercial_usage: {
+        Args: { p_user_id: string }
+        Returns: {
+          reserved_hundredths: number
+          reset_at: string
+          used_hundredths: number
+          window_kind: string
+          window_start: string
+        }[]
+      }
+      ocade_read_offline_usage: {
+        Args: { p_user_id: string }
+        Returns: {
+          allocated_hundredths: number
+          consumed_hundredths: number
+          device_id: string
+          device_name: string
+          device_public_key: string
+          expires_at: string
+          key_id: string | null
+          last_event_hash: string
+          last_sequence: number
+          lease_id: string
+          not_before: string
+          pending_hundredths: number
+          preissued: boolean
+          server_signature: string | null
+          session_reset_at: string
+          session_window_start: string
+          signed_payload: Json | null
+          status: string
+          tier: string
+          week_reset_at: string
+          week_window_start: string
+        }[]
+      }
+      ocade_reconcile_offline_usage: {
+        Args: {
+          p_consumed_hundredths: number
+          p_device_id: string
+          p_events: Json
+          p_last_event_hash: string
+          p_last_sequence: number
+          p_lease_id: string
+          p_user_id: string
+        }
+        Returns: number
+      }
+      ocade_release_generation_permit: {
+        Args: {
+          p_idempotency_key: string
+          p_reason: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      ocade_return_offline_usage: {
+        Args: { p_device_id: string; p_lease_id: string; p_user_id: string }
+        Returns: number
+      }
+      ocade_consume_mfa_recovery_code: {
+        Args: {
+          p_code_hash: string
+          p_lock_seconds?: number
+          p_max_failures?: number
+          p_user_id: string
+          p_window_seconds?: number
+        }
+        Returns: string
+      }
+      ocade_count_mfa_recovery_codes: {
+        Args: { p_user_id: string }
+        Returns: {
+          generated_at: string
+          remaining: number
+          total: number
+        }[]
       }
       ocade_create_support_ticket: {
         Args: { p_body: string; p_category: string; p_subject: string }
@@ -3997,10 +4452,210 @@ export type Database = {
         Args: { p_claim_token: string; p_run_id: string }
         Returns: boolean
       }
-      ocade_is_support_admin: { Args: never; Returns: boolean }
+      ocade_list_account_sessions: {
+        Args: { p_user_id: string }
+        Returns: {
+          assurance: string
+          created_at: string
+          expires_at: string
+          ip_address: string
+          last_seen_at: string
+          session_id: string
+          user_agent: string
+        }[]
+      }
+      ocade_mark_all_notifications_read: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      ocade_mark_notification_read: {
+        Args: { p_notification_id: string }
+        Returns: number
+      }
+      ocade_record_notification: {
+        Args: {
+          p_body: string
+          p_category: string
+          // Nullable in the database: `deep_link` is `text` with no NOT NULL,
+          // and its CHECK explicitly permits NULL. A notification that points
+          // nowhere in particular is the ordinary case.
+          p_deep_link: string | null
+          p_delivery?: Json
+          p_idempotency_key: string
+          p_title: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       ocade_recover_stale_automation_runs: {
         Args: { p_stale_before: string }
         Returns: Json
+      }
+      ocade_release_commercial_work: {
+        Args: {
+          p_cost_hundredths: number
+          p_user_id: string
+          p_window_kind: string
+          p_window_start: string
+        }
+        Returns: number
+      }
+      ocade_replace_mfa_recovery_codes: {
+        Args: { p_code_hashes: string[]; p_user_id: string }
+        Returns: number
+      }
+      ocade_accept_organization_invite: {
+        Args: { p_token_hash: string }
+        Returns: string
+      }
+      ocade_create_organization: {
+        Args: { p_name: string; p_slug: string }
+        Returns: string
+      }
+      ocade_create_organization_group: {
+        Args: { p_name: string; p_organization_id: string }
+        Returns: string
+      }
+      ocade_delete_organization: {
+        Args: { p_organization_id: string; p_typed_name: string }
+        Returns: number
+      }
+      ocade_delete_organization_group: {
+        Args: { p_group_id: string }
+        Returns: number
+      }
+      ocade_invite_to_organization: {
+        Args: {
+          p_email: string
+          p_expires_at: string
+          p_organization_id: string
+          p_role: string
+          p_token_hash: string
+        }
+        Returns: string
+      }
+      ocade_my_organizations_blocking_deletion: {
+        Args: Record<PropertyKey, never>
+        Returns: { name: string; organization_id: string; solo: boolean }[]
+      }
+      ocade_organizations_blocking_deletion: {
+        Args: { p_user_id: string }
+        Returns: { name: string; organization_id: string; solo: boolean }[]
+      }
+      ocade_org_active_owners: {
+        Args: { p_excluding: string | null; p_organization_id: string }
+        Returns: number
+      }
+      ocade_org_can_administer: {
+        Args: { p_organization_id: string }
+        Returns: boolean
+      }
+      ocade_org_is_owner: {
+        Args: { p_organization_id: string }
+        Returns: boolean
+      }
+      ocade_org_role: {
+        Args: { p_organization_id: string }
+        Returns: string
+      }
+      ocade_remove_organization_member: {
+        Args: { p_member_id: string }
+        Returns: number
+      }
+      ocade_rename_organization: {
+        Args: { p_name: string; p_organization_id: string }
+        Returns: number
+      }
+      ocade_resend_organization_invite: {
+        Args: { p_expires_at: string; p_invite_id: string; p_token_hash: string }
+        Returns: number
+      }
+      ocade_revoke_organization_invite: {
+        Args: { p_invite_id: string }
+        Returns: number
+      }
+      ocade_set_organization_group_membership: {
+        Args: { p_group_id: string; p_member_id: string; p_present: boolean }
+        Returns: number
+      }
+      ocade_set_organization_member_role: {
+        Args: { p_member_id: string; p_role: string }
+        Returns: number
+      }
+      ocade_set_organization_member_state: {
+        Args: { p_member_id: string; p_state: string }
+        Returns: number
+      }
+      ocade_admin_notification_delivery: {
+        Args: { p_since: string }
+        Returns: {
+          category: string
+          channel: string
+          state: string
+          occurrences: number
+        }[]
+      }
+      ocade_read_shared_conversation: {
+        Args: { p_token: string }
+        Returns: {
+          title: string
+          messages: Json
+          message_count: number
+          snapshot_at: string
+        }[]
+      }
+      ocade_revoke_conversation_share: {
+        Args: { p_conversation_id: string }
+        Returns: number
+      }
+      ocade_share_conversation: {
+        Args: { p_conversation_id: string; p_expires_at?: string | null }
+        Returns: string
+      }
+      ocade_open_status_incident: {
+        Args: {
+          p_kind: string
+          p_title: string
+          p_impact: string
+          p_component_ids: string[]
+          p_body: string
+          p_started_at?: string | null
+          p_scheduled_end?: string | null
+        }
+        Returns: string
+      }
+      ocade_post_status_incident_update: {
+        Args: { p_incident_id: string; p_state: string; p_body: string }
+        Returns: number
+      }
+      ocade_save_support_article: {
+        Args: {
+          p_slug: string
+          p_title: string
+          p_summary: string
+          p_category: string
+          p_body: string[]
+          p_keywords: string[]
+          p_status: string
+          p_note?: string
+        }
+        Returns: number
+      }
+      ocade_set_organization_policy: {
+        Args: {
+          p_organization_id: string
+          p_withheld_capabilities: string[]
+          p_withheld_tool_domains: string[]
+        }
+        Returns: number
+      }
+      ocade_transfer_organization_ownership: {
+        Args: { p_organization_id: string; p_to_user_id: string }
+        Returns: number
+      }
+      ocade_save_notification_preferences: {
+        Args: { p_categories: Json; p_mute_optional: boolean; p_quiet_hours: Json }
+        Returns: number
       }
       ocade_request_automation_cancel: {
         Args: { p_run_id: string }
@@ -4024,6 +4679,18 @@ export type Database = {
         Args: { p_run_id: string }
         Returns: string
       }
+      ocade_revoke_account_session: {
+        Args: { p_session_id: string; p_user_id: string }
+        Returns: number
+      }
+      ocade_revoke_other_account_sessions: {
+        Args: { p_keep_session_id?: string; p_user_id: string }
+        Returns: number
+      }
+      ocade_session_is_live: {
+        Args: { p_session_id: string; p_user_id: string }
+        Returns: boolean
+      }
       ocade_suspend_automation_run: {
         Args: {
           p_claim_token: string
@@ -4033,8 +4700,10 @@ export type Database = {
         }
         Returns: boolean
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
+      revoke_device_for_current_user: {
+        Args: { _device_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
@@ -4111,28 +4780,6 @@ export type Database = {
         | "auditor"
         | "consultant"
         | "advisor"
-      time_activity_state:
-        | "active"
-        | "idle"
-        | "minimized"
-        | "closed"
-        | "disconnected"
-      time_entry_source: "clock" | "manual" | "import"
-      time_entry_status:
-        | "draft"
-        | "submitted"
-        | "approved"
-        | "rejected"
-        | "locked"
-      time_event_kind:
-        | "clock_in"
-        | "clock_out"
-        | "break_start"
-        | "break_end"
-        | "auto_pause"
-        | "resume"
-        | "manual_edit"
-      time_work_mode: "office" | "remote" | "hybrid" | "field"
       worker_type:
         | "employee"
         | "contractor"
@@ -4154,12 +4801,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4183,11 +4830,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4208,11 +4855,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4233,11 +4880,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4250,11 +4897,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -4348,31 +4995,6 @@ export const Constants = {
         "consultant",
         "advisor",
       ],
-      time_activity_state: [
-        "active",
-        "idle",
-        "minimized",
-        "closed",
-        "disconnected",
-      ],
-      time_entry_source: ["clock", "manual", "import"],
-      time_entry_status: [
-        "draft",
-        "submitted",
-        "approved",
-        "rejected",
-        "locked",
-      ],
-      time_event_kind: [
-        "clock_in",
-        "clock_out",
-        "break_start",
-        "break_end",
-        "auto_pause",
-        "resume",
-        "manual_edit",
-      ],
-      time_work_mode: ["office", "remote", "hybrid", "field"],
       worker_type: [
         "employee",
         "contractor",

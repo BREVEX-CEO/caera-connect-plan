@@ -1,12 +1,14 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Check, LogOut, Loader2, Palette, User as UserIcon } from "lucide-react";
+import { Check, LogOut, Loader2, Palette, User as UserIcon, Users2 } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { DeviceAvatarEditor } from "@/components/settings/DeviceAvatarEditor";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { useSession } from "@/lib/session";
 import { recordAction } from "@/lib/actions";
+import { isSupportedLocale, SUPPORTED_LOCALES } from "@/lib/locale/supported-locales";
+import { writeStoredLocale } from "@/lib/locale/use-locale";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/settings/")({
@@ -25,16 +27,15 @@ type ProfileRow = {
   timezone: string;
 };
 
-const LOCALES = [
-  { value: "en-US", label: "English (United States)" },
-  { value: "en-GB", label: "English (United Kingdom)" },
-  { value: "en-IN", label: "English (India)" },
-  { value: "hi-IN", label: "हिन्दी (भारत)" },
-  { value: "de-DE", label: "Deutsch (Deutschland)" },
-  { value: "fr-FR", label: "Français (France)" },
-  { value: "es-ES", label: "Español (España)" },
-  { value: "ja-JP", label: "日本語" },
-];
+/*
+ * The list lives in `lib/locale/supported-locales.ts` now.
+ *
+ * It was written out here as well, and the two were already a duplicate
+ * authority in the making: this copy carried labels and nothing else, so it
+ * could not say which locales OCADE's interface text is actually translated
+ * into — and the screen would have kept offering eight languages as though they
+ * were equivalent.
+ */
 
 function guessTz(): string[] {
   const list = [
@@ -81,6 +82,7 @@ function GeneralPage() {
     setLoading(true);
     setLoadError(null);
     void (async () => {
+      const supabase = await loadSupabaseClient();
       const { data, error } = await supabase
         .from("profiles")
         .select("full_name, preferred_name, occupation, custom_instructions, locale, timezone")
@@ -127,6 +129,7 @@ function GeneralPage() {
   const hasChanges = Object.keys(dirty).length > 0;
 
   async function save() {
+    const supabase = await loadSupabaseClient();
     if (!user || !view || !hasChanges) return;
     setSaving(true);
     setError(null);
@@ -158,6 +161,7 @@ function GeneralPage() {
   }
 
   async function signOut() {
+    const supabase = await loadSupabaseClient();
     setSigningOut(true);
     await recordAction({ actionId: "auth.sign_out" });
     await supabase.auth.signOut();
@@ -212,12 +216,27 @@ function GeneralPage() {
 
       <GlassPanel className="p-5">
         <SectionHeading icon={UserIcon} title="You" />
-        <div className="mt-4 flex items-start gap-4">
+        {/*
+          THE FIELDS WRAP UNDER THE AVATAR RATHER THAN BEING CRUSHED BESIDE IT.
+
+          `flex items-start gap-4` with no wrap gave the avatar editor its
+          full 378px and left the field grid whatever remained — which, in the
+          settings column at 1024, was nothing at all: the grid measured
+          zero wide and its labels spilled 34px past the page, so the whole
+          document scrolled sideways. `min-w-0` alone cannot save a flex item
+          the row has no room for; it only lets it shrink to nothing more
+          politely.
+
+          `flex-wrap` with a 288px basis says what was actually meant: sit
+          beside the avatar when there is room for both, and drop to your own
+          full-width line when there is not.
+        */}
+        <div className="mt-4 flex flex-wrap items-start gap-4">
           <DeviceAvatarEditor
             storageKey={`ocade:device-avatar:${user?.id ?? "anonymous"}`}
             initials={initials}
           />
-          <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
+          <div className="grid min-w-0 flex-1 basis-72 gap-3 sm:grid-cols-2">
             <Field label="Full name">
               <input
                 aria-label="Full name"
@@ -269,12 +288,24 @@ function GeneralPage() {
             <select
               aria-label="Language"
               value={view?.locale ?? "en-US"}
-              onChange={(event) => update("locale", event.target.value)}
+              onChange={(event) => {
+                const next = event.target.value;
+                update("locale", next);
+                /*
+                 * Written locally as well as to the profile, and that is not a
+                 * second authority — it is the same choice, cached where the
+                 * rest of the product can read it synchronously and offline.
+                 * Dates and numbers are formatted on every screen; waiting for
+                 * a profile round trip to know how would mean formatting the
+                 * first paint wrong and correcting it, on every visit.
+                 */
+                if (isSupportedLocale(next)) writeStoredLocale(next);
+              }}
               className={inputCls}
             >
-              {LOCALES.map((locale) => (
-                <option key={locale.value} value={locale.value}>
-                  {locale.label}
+              {SUPPORTED_LOCALES.map((locale) => (
+                <option key={locale.tag} value={locale.tag}>
+                  {locale.label} — {locale.nativeLabel}
                 </option>
               ))}
             </select>
@@ -294,6 +325,23 @@ function GeneralPage() {
             </select>
           </Field>
         </div>
+        {/*
+         * SAID PLAINLY, BECAUSE OFFERING EIGHT LANGUAGES IMPLIES EIGHT
+         * TRANSLATIONS.
+         *
+         * OCADE formats dates, times, numbers and amounts in every locale here
+         * — which is not a consolation prize: a German reader shown 9/3/2026
+         * reads September the third as March the ninth. Its interface TEXT is
+         * English. Shipping machine translations for the rest would look like
+         * support and read like nonsense, and the person affected is the one
+         * least able to tell us it is wrong.
+         */}
+        <p className="mt-3 text-xs text-muted-foreground">
+          Dates, times and numbers follow the language you choose. OCADE&rsquo;s own wording is in
+          English for now — {SUPPORTED_LOCALES.filter((locale) => !locale.translated).length} of
+          these languages are not translated yet, and OCADE says so rather than showing you a
+          machine translation.
+        </p>
       </GlassPanel>
 
       <GlassPanel className="mt-4 flex items-center justify-between gap-4 p-5">
@@ -308,6 +356,27 @@ function GeneralPage() {
           className="rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-xs text-foreground hover:bg-accent"
         >
           Open appearance
+        </Link>
+      </GlassPanel>
+
+      {/*
+        Organization is a top-level route rather than a settings page, and this
+        is the link that makes it findable: somebody looking for "where do I add
+        a colleague" opens Settings, and a route nothing points at is a route
+        only its author knows about.
+      */}
+      <GlassPanel className="mt-4 flex items-center justify-between gap-4 p-5">
+        <div className="min-w-0">
+          <SectionHeading icon={Users2} title="Organization" />
+          <p className="mt-1 text-xs text-muted-foreground">
+            People, roles, invitations and groups for the workspaces you belong to.
+          </p>
+        </div>
+        <Link
+          to="/organization"
+          className="rounded-md border border-border/60 bg-background/40 px-3 py-1.5 text-xs text-foreground hover:bg-accent"
+        >
+          Open organization
         </Link>
       </GlassPanel>
 

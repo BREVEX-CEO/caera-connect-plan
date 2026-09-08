@@ -20,7 +20,15 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supabase/client";
+/*
+ * ON DEMAND. This provider wraps every route, so a static import would put the
+ * whole Supabase client — 200 KiB of auth, PostgREST, realtime and storage — in
+ * the entry bundle that a visitor to the public landing page parses before the
+ * page can answer a tap. Nothing here needs it to render: appearance comes from
+ * this device, and the account copy is a later reconciliation.
+ * See `integrations/supabase/on-demand.ts`.
+ */
+import { loadSupabaseClient, loadSupabaseConfiguration } from "@/integrations/supabase/on-demand";
 import {
   ThemeContext,
   type AppearanceContextValue,
@@ -34,6 +42,8 @@ import { FALLBACK_CHANGES, assessDevice, readDeviceSignals } from "./perf-fallba
 
 export type { AppearancePrefs, CursorKind, ThemeMode };
 
+import { clampCursorSize, clampDepthStrength } from "@/lib/appearance-ranges";
+
 const DEFAULT: AppearancePrefs = {
   theme: "dark",
   reducedMotion: false,
@@ -44,20 +54,6 @@ const DEFAULT: AppearancePrefs = {
   depth3d: true,
   depthStrength: 100,
 };
-
-/** Keep a stored or typed pointer size inside the range the artwork stays legible at. */
-export function clampCursorSize(value: unknown): number {
-  const n = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(n)) return 24;
-  return Math.max(16, Math.min(64, Math.round(n)));
-}
-
-/** Keep a stored or typed strength inside the range the geometry is tuned for. */
-export function clampDepthStrength(value: unknown): number {
-  const n = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(n)) return 100;
-  return Math.max(0, Math.min(200, Math.round(n)));
-}
 
 const LS_KEY = "caera:appearance:v1";
 /**
@@ -189,8 +185,8 @@ function applyToDocument(prefs: AppearancePrefs, osReducedMotion: boolean, autoL
 
 /** The pointer artwork, at a given size, as a `url()` value. */
 function pointerDataUri(fill: "black" | "white", size: number): string {
-  const body = fill === "white" ? "#f5f7fa" : "#0a0d12";
-  const edge = fill === "white" ? "#0a0d12" : "#f5f7fa";
+  const body = fill === "white" ? "#f7f7f7" : "#0d0d0d";
+  const edge = fill === "white" ? "#0d0d0d" : "#f7f7f7";
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24">` +
     `<path d="M3 2 L3 20 L8 15.5 L11 22 L14 20.5 L11 14 L18 14 Z" fill="${body}" ` +
@@ -312,12 +308,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   // Load from Supabase when a session is available.
   useEffect(() => {
-    if (!getSupabaseBrowserConfiguration().configured) {
-      // Local appearance preferences remain available on public/offline pages.
-      // Authenticated preference sync stays disabled until the intended
-      // Supabase project is explicitly configured.
-      return;
-    }
     let cancelled = false;
     let authEventSeen = false;
     let loadEpoch = 0;
@@ -335,6 +325,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (loadingUserId === userId || loadedUserId === userId) return;
       const epoch = ++loadEpoch;
       loadingUserId = userId;
+      const supabase = await loadSupabaseClient();
       const { data, error } = await supabase
         .from("user_settings")
         .select(
@@ -406,29 +397,57 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       }));
     }
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (cancelled || authEventSeen) return;
-      userIdRef.current = data.session?.user.id ?? null;
-      if (userIdRef.current) void load(userIdRef.current);
-    });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      authEventSeen = true;
-      const nextId = session?.user.id ?? null;
-      userIdRef.current = nextId;
-      if (nextId) {
-        void load(nextId);
-      } else {
-        loadEpoch += 1;
-        loadingUserId = null;
-        loadedUserId = null;
-        // Signed out: only this browser can hold preferences again.
-        setPersistence((p) => ({ ...p, scope: "local", loadedFromCloud: false, loadError: null }));
+    let unsubscribe: (() => void) | undefined;
+
+    void (async () => {
+      const configuration = await loadSupabaseConfiguration();
+      if (cancelled) return;
+      if (!configuration.configured) {
+        // Local appearance preferences remain available on public/offline
+        // pages. Authenticated preference sync stays disabled until the
+        // intended Supabase project is explicitly configured.
+        return;
       }
-    });
+      const supabase = await loadSupabaseClient();
+      if (cancelled) return;
+
+      void supabase.auth.getSession().then(({ data }) => {
+        if (cancelled || authEventSeen) return;
+        userIdRef.current = data.session?.user.id ?? null;
+        if (userIdRef.current) void load(userIdRef.current);
+      });
+      const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+        authEventSeen = true;
+        const nextId = session?.user.id ?? null;
+        userIdRef.current = nextId;
+        if (nextId) {
+          void load(nextId);
+        } else {
+          loadEpoch += 1;
+          loadingUserId = null;
+          loadedUserId = null;
+          // Signed out: only this browser can hold preferences again.
+          setPersistence((p) => ({
+            ...p,
+            scope: "local",
+            loadedFromCloud: false,
+            loadError: null,
+          }));
+        }
+      });
+      /*
+       * Unsubscribing after an unmount that raced the import: the cleanup below
+       * has already run and set `cancelled`, so the subscription this closure
+       * just created would otherwise outlive the provider.
+       */
+      if (cancelled) sub.subscription.unsubscribe();
+      else unsubscribe = () => sub.subscription.unsubscribe();
+    })();
+
     return () => {
       cancelled = true;
       loadEpoch += 1;
-      sub.subscription.unsubscribe();
+      unsubscribe?.();
     };
   }, []);
 
@@ -450,6 +469,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (!uid || Object.keys(row).length === 0) return;
     setPersistence((p) => ({ ...p, status: "saving" }));
     const payload = { user_id: uid, ...row };
+    const supabase = await loadSupabaseClient();
     const { error } = await supabase
       .from("user_settings")
       .upsert(payload as never, { onConflict: "user_id" });

@@ -13,13 +13,13 @@
  */
 import {
   guardAction,
-  redactForAudit,
   riskOf,
   type ActionRisk,
   type CompanionAction,
   type ExecuteOptions,
   type ExecuteResult,
 } from "./companion-bridge";
+import { redactForAudit } from "@/lib/security/protected-text";
 
 export type AdapterId = "browser" | "files" | "windows" | (string & {});
 

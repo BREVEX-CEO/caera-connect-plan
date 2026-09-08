@@ -20,9 +20,9 @@ import {
 } from "./automation-worker.supabase";
 import {
   COMPANION_UNAVAILABLE_REASON,
-  redactForAudit,
   type NativeCompanionAdapter,
 } from "./native/companion-bridge";
+import { redactForAudit } from "@/lib/security/protected-text";
 
 interface AuthUser {
   id: string;

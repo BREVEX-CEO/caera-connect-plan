@@ -7,7 +7,14 @@
  * - validateRegistry() fails when a non-viewOnly active feature has no action.
  */
 
-import { supabase } from "@/integrations/supabase/client";
+/*
+ * ON DEMAND: `recordAction` is called from screens all over the product, and
+ * this module is reached from route modules the generated route tree imports
+ * statically — so a top-level import put the Supabase client on the entry
+ * chunk's graph. Both uses are inside the try below, which is what makes this
+ * function never throw.
+ */
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { listFeatures, getFeature } from "./features";
 
 export type LogTarget = "compliance" | "operational";
@@ -82,6 +89,48 @@ const actions: Action[] = [
     category: "deletion",
     confirmation: "strong",
     confirmPhrase: "DELETE MY ACCOUNT",
+  },
+  /*
+   * The two data-rights actions PLAN.md §O asks for, and the reason each is
+   * logged the way it is.
+   *
+   * The export is `compliance` and `sensitive_export`, because that is what it
+   * is: one file containing every message, device and invoice on the account.
+   * An access request is a right somebody exercised, and the record of when it
+   * was answered is part of answering it. It carries no confirmation phrase —
+   * reading your own data is not destructive, and the second factor the server
+   * requires is the whole of the protection it needs.
+   *
+   * The per-class deletion is destructive and irreversible, so it is confirmed
+   * strongly. The phrase is the CLASS NAME rather than one fixed sentence,
+   * which the registry cannot express as a constant — so `confirmPhrase` names
+   * the rule and `clearAccountDataClass` enforces the actual comparison against
+   * the class the person chose. A single shared phrase would let somebody who
+   * had typed it once for Conversations clear Projects by muscle memory.
+   */
+  {
+    id: "account.data.export",
+    featureId: "settings.privacy",
+    title: "Export account data",
+    log: "compliance",
+    category: "sensitive_export",
+  },
+  {
+    id: "account.data.delete_class",
+    featureId: "settings.privacy",
+    title: "Clear one class of account data",
+    log: "compliance",
+    category: "deletion",
+    confirmation: "strong",
+    confirmPhrase: "THE NAME OF THE DATA CLASS",
+  },
+  {
+    id: "account.local_data.delete",
+    featureId: "settings.privacy",
+    title: "Clear selected data from this device",
+    log: "operational",
+    description:
+      "Local-only, and logged as operational rather than compliance: nothing left this browser, so there is no account record to erase and no regulator to answer to. The canonical local-data authority refuses to touch Offline Intelligence whatever is selected.",
   },
   {
     id: "onboarding.complete",
@@ -372,6 +421,42 @@ const actions: Action[] = [
     description: "Revokes every active session for this account, including the current one.",
     confirmation: "confirm",
   },
+  {
+    id: "security.mfa_enrolled",
+    featureId: "settings.security",
+    title: "Turn on two-step sign-in",
+    log: "compliance",
+    category: "role_change",
+    description:
+      "A verified authenticator app was added. Recorded when verification succeeds, never when enrollment merely starts — an unverified factor protects nothing.",
+  },
+  {
+    id: "security.email_change_requested",
+    featureId: "settings.security",
+    title: "Change the sign-in email",
+    log: "compliance",
+    category: "role_change",
+    description:
+      "A confirmation was sent to a new address. Recorded at the REQUEST, because that is the moment somebody acted; the login only changes when the link is followed.",
+  },
+  {
+    id: "security.provider_unlinked",
+    featureId: "settings.security",
+    title: "Remove a sign-in provider",
+    log: "compliance",
+    category: "role_change",
+    description:
+      "A way into this account was removed. Refused when it would be the last one, since that leaves an account nobody can ever reach.",
+  },
+  {
+    id: "security.mfa_removed",
+    featureId: "settings.security",
+    title: "Remove an authenticator app",
+    log: "compliance",
+    category: "role_change",
+    description:
+      "A second factor was removed, lowering what this account requires to sign in. Supabase requires a confirmed code for this, so the entry always follows a completed challenge.",
+  },
 ];
 
 for (const a of actions) registerAction(a);
@@ -384,18 +469,34 @@ interface RecordArgs {
   tenantId?: string | null;
 }
 
-/** Record an action against the correct log. Never throws to callers. */
+/**
+ * Record an action against the correct log. Never throws to callers.
+ *
+ * THE CONTRACT IS IN THE TRY BLOCK, NOT ONLY IN THIS SENTENCE. Every call site
+ * in the product writes `void recordAction(...)` — deliberately, because a
+ * failure to write an audit line must not fail the action it was recording.
+ * That makes an unhandled rejection out of anything this function throws.
+ *
+ * It did throw. `supabase.auth.getUser()` sat above the try, and on a
+ * deployment whose Supabase binding is missing the client's proxy raises on
+ * first use — a state the root shell explicitly keeps the public and legal
+ * pages alive for. So the one configuration OCADE is designed to survive
+ * produced an unhandled rejection from every audited control on the screen.
+ * Found by the settings interaction audit pressing an export button.
+ */
 export async function recordAction({ actionId, metadata, tenantId }: RecordArgs): Promise<void> {
   const a = registry.get(actionId);
   if (!a) {
     console.warn(`[ActionRegistry] unknown action id: ${actionId}`);
     return;
   }
-  const { data: userData } = await supabase.auth.getUser();
-  const uid = userData.user?.id;
-  if (!uid) return;
 
   try {
+    const supabase = await loadSupabaseClient();
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id;
+    if (!uid) return;
+
     const meta = (metadata ?? {}) as never;
     if (a.log === "operational") {
       await supabase.from("activity_log").insert({

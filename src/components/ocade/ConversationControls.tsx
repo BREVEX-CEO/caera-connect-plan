@@ -111,7 +111,7 @@ export function ConversationControls() {
                   "mt-0.5 shrink-0 rounded px-1 py-0.5 text-[9px] uppercase",
                   m.role === "user"
                     ? "bg-secondary text-muted-foreground"
-                    : "bg-[color:var(--state-success)]/15 text-[color:var(--state-success)]",
+                    : "bg-[color:var(--state-success-surface-strong)] text-[color:var(--state-success)]",
                 )}
               >
                 {m.role}

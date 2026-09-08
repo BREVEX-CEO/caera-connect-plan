@@ -9,23 +9,15 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
-import { hardenDesktopShell } from "@/lib/security/shell-hardening";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportRuntimeError } from "../lib/runtime-error-reporting";
-import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supabase/client";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { ErrorBoundary } from "@/components/shell/ErrorBoundary";
 import { SiteFooterLinks } from "@/components/shell/SiteFooter";
 import { DepthScene } from "@/components/motion/DepthScene";
-import { invalidateModeCache } from "@/lib/storage/resolver";
-import { clearDevices } from "@/lib/mobile/device-store";
-import { clearApprovals } from "@/lib/mobile/approval-store";
-import { registerOfflineShellFromBrowser } from "@/lib/local/web-supervisor";
-import { primeOfflineRuntimeFromBrowser } from "@/lib/offline/prime-runtime";
 import { useInstallationBootstrap } from "@/lib/brain/use-installation";
-import { closeActiveCompanionSession } from "@/lib/native/tauri-companion";
 import { LegalConsentGate } from "@/components/legal/LegalConsentGate";
 // Side-effect import: registers Foundation Alpha features on module load.
 import "@/lib/features";
@@ -38,7 +30,7 @@ function NotFoundComponent() {
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-1/3 h-[420px] w-[620px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[120px]"
       />
-      <div className="relative w-full max-w-lg rounded-xl border border-border/70 bg-background/70 p-8 text-center shadow-[0_28px_90px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+      <div className="relative w-full max-w-lg rounded-xl border border-border/70 bg-background/70 p-8 text-center shadow-[0_28px_90px_rgba(0, 0, 0,0.35)] backdrop-blur-xl">
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
           CARCC CADANE
         </p>
@@ -122,7 +114,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "author", content: "Haans Antoni" },
       // Matches --background in the default (black) theme, so the browser
       // chrome and the app do not meet at a visible seam on mobile.
-      { name: "theme-color", content: "#0a0a09" },
+      { name: "theme-color", content: "#0a0a0a" },
       { property: "og:title", content: "CARCC CADANE — Private AI workspace" },
       {
         property: "og:description",
@@ -187,13 +179,35 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
  * leaves the default black in place. Storage can be blocked, the value can be
  * garbage, and neither is worth a blank page.
  */
+/*
+ * Theme AND language, both applied before first paint.
+ *
+ * The language matters for the same reason the theme does, and for a different
+ * audience: a screen reader picks its pronunciation from the document's `lang`
+ * attribute, so a page announced in the wrong language is unintelligible rather
+ * than merely accented. Correcting it after hydration would mean the first
+ * thing read aloud is read wrong.
+ *
+ * The stored choice wins over the browser's, because somebody who picked a
+ * language has said something deliberate. An unrecognised stored value is
+ * ignored rather than trusted: this runs before any of the application's own
+ * validation exists, and the list is inlined here for the same reason the theme
+ * names are — a module import would defeat the point of running first.
+ * `supported-locales.ts` remains the authority, and
+ * `locale-boot-matches-authority.test.ts` asserts the two lists agree.
+ */
 const THEME_BOOT = `(function(){try{
 var d=document.documentElement;var t="dark";
 try{var r=localStorage.getItem("caera:appearance:v1");
 if(r){var p=JSON.parse(r);if(p&&(p.theme==="light"||p.theme==="real"))t=p.theme;}}catch(e){}
 d.classList.add("theme-"+t);if(t!=="dark")d.classList.add(t);
-var bg=t==="light"?"#f2f1ee":"#0a0a09";
+var bg=t==="light"?"#f1f1f1":"#0a0a0a";
 d.style.background=bg;d.style.colorScheme=t==="light"?"light":"dark";
+try{var L=["en-US","en-GB","en-IN","hi-IN","de-DE","fr-FR","es-ES","ja-JP"];
+var l=localStorage.getItem("ocade.locale.v1");
+if(l&&L.indexOf(l)!==-1){d.lang=l;}
+else{var n=(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language])||[];
+for(var i=0;i<n.length;i++){if(L.indexOf(n[i])!==-1){d.lang=n[i];break;}}}}catch(e){}
 }catch(e){}})();`;
 
 function RootShell({ children }: { children: ReactNode }) {
@@ -217,7 +231,7 @@ function RootShell({ children }: { children: ReactNode }) {
      * attributes, not its children — so a genuine mismatch inside the app
      * still fails loudly.
      */
-    <html lang="en" style={{ background: "#0a0a09" }} suppressHydrationWarning>
+    <html lang="en" style={{ background: "#0a0a0a" }} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
         <HeadContent />
@@ -234,124 +248,43 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
-
-  useEffect(() => {
-    if (!getSupabaseBrowserConfiguration().configured) {
-      // Keep public and legal pages available during a deployment binding
-      // incident. Authentication remains unavailable and therefore fails
-      // closed; no alternate project or insecure fallback is selected.
-      return;
-    }
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
-
-      // Privacy modes are cached in a module-level map for the life of the tab.
-      // Clearing it on sign-out means the next account starts from its own
-      // stored settings rather than inheriting whatever was resolved before.
-      if (event === "SIGNED_OUT") {
-        invalidateModeCache();
-        // Paired phones belong to the account that paired them. The store is
-        // device-local and not account-scoped, so leaving them would show the
-        // next person to sign in on this browser the previous account's trusted
-        // devices — and let them act through them.
-        clearDevices();
-        clearApprovals();
-        // A signed native session is account-scoped. Invalidate the in-memory
-        // signer immediately and let worker subscribers stop before this
-        // browser can be used by another account.
-        void closeActiveCompanionSession().catch(() => {
-          // Local invalidation already happened before host IPC. A transport
-          // failure must not resurrect or retain the closed signer.
-        });
-      }
-
-      router.invalidate();
-      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
-    });
-    return () => sub.subscription.unsubscribe();
-  }, [router, queryClient]);
-
-  /**
-   * Install the offline shell (HWE-35).
+  /*
+   * Whether anybody is signed in, used for one thing only: deciding whether
+   * Offline Intelligence may begin preparing itself.
    *
-   * Fire-and-forget on purpose: a browser that refuses a service worker —
-   * private browsing, an insecure origin, a locked-down enterprise profile — is
-   * an ordinary state, not an error, and `registerOfflineShell` never throws.
-   * The outcome is not surfaced here because nothing about THIS render changes;
-   * `supervisionCapability` is what screens read when they need to say what
-   * works offline.
+   * It is filled in by the subscription below rather than by `useSession`,
+   * and that is a bundle decision with a measurable price. A static import of
+   * the Supabase client puts 200 KiB of auth, PostgREST, realtime and storage
+   * into the ENTRY graph, which every visitor to a public marketing page then
+   * parses before first paint — on the landing route that parse is a large
+   * part of the Total Blocking Time PLAN.md §26 caps at 200 ms.
+   *
+   * Starting false is the safe direction: preparation waits for a session it
+   * can see rather than starting on an assumption.
    */
-  useEffect(() => {
-    void registerOfflineShellFromBrowser().then((registration) => {
-      if (!registration.ok) return;
-      void primeOfflineRuntimeFromBrowser();
-      void import("@/lib/offline/prime-navigation").then((module) =>
-        module.primeOfflineNavigationFromBrowser(router),
-      );
-    });
-  }, [router]);
+  const [signedIn, setSignedIn] = useState(false);
+  const [backgroundRuntimeReady, setBackgroundRuntimeReady] = useState(
+    () => !isPublicFirstPaintPath(pathname),
+  );
 
   /*
-   * PREPARATION STARTS HERE, AND HERE ONLY.
-   *
-   * The root is the earliest point at which trusted client code runs, and it is
-   * mounted for every route -- the landing page, /auth, the demo, the signed-in
-   * product. So a visitor who arrives at ocade.in and signs in four minutes
-   * later finds the engine already prepared, and the OAuth redirect passes
-   * through without restarting anything: the transfer's checkpoint is durable
-   * and the hook resumes from it on `pageshow`.
-   *
-   * It replaces `onTypingStarted={engine.warm}`, which made the first keystroke
-   * the thing that began a multi-hundred-megabyte download -- the one moment
-   * the user is least able to wait.
-   *
-   * There is exactly one of these in the application. Every other surface
-   * WATCHES the same authority and none of them can start a second install.
-   */
-  /*
-   * ISOLATION BEFORE PREPARATION, and the order is the whole point.
-   *
-   * Cross-origin isolation is decided when a document is created. A visitor who
-   * client-side-navigates from the landing page into an inference route keeps
-   * the landing page's document, which is deliberately NOT isolated, so
-   * `SharedArrayBuffer` is absent and the engine quietly runs on one core.
-   *
-   * This performs at most ONE full navigation to fix that, remembered in
-   * sessionStorage — a browser that does not implement `credentialless` reports
-   * false forever, and an unguarded retry would reload endlessly on exactly the
-   * browsers least able to afford it. Failing to upgrade costs threads, not
-   * correctness: the capability ladder already has a single-threaded rung.
+   * A public page must be usable before background account/session, service
+   * worker and device-maintenance work begins. Start as soon as the visitor
+   * asks to interact, or after the initial reading window. Product routes are
+   * ready immediately, so an authenticated redirect never delays preparation.
    */
   useEffect(() => {
-    /*
-     * Imported here rather than at the top of the file. It runs inside an
-     * effect regardless, so a static import only buys putting it in the entry
-     * bundle — which the production budget gate refused, by seven bytes. First
-     * paint is a landing page and this is not needed to draw one.
-     */
-    void import("@/lib/security/isolation-upgrade").then((module) =>
-      module.upgradeIsolationInBrowser(),
-    );
-    /*
-     * KEYED ON THE PATH, NOT MOUNTED ONCE.
-     *
-     * The first version of this ran on `[]`, and the browser harness caught it:
-     * a client-side transition into an inference route does not remount the
-     * root, so the guard never re-evaluated and the page stayed un-isolated on
-     * exactly the journey the guard was written for — landing page, click
-     * through to the demo, silently one core.
-     */
-  }, [pathname]);
-
-  useInstallationBootstrap();
-
-  /*
-   * Desktop shell polish: no context menu, no devtools shortcuts, no stray
-   * reload. A no-op on the web, where breaking right-click would cost people
-   * copy, open-in-new-tab and screen-reader actions to inconvenience somebody
-   * who can read the served source anyway.
-   */
-  useEffect(() => hardenDesktopShell(), []);
+    if (backgroundRuntimeReady) return;
+    const start = () => window.setTimeout(() => setBackgroundRuntimeReady(true), 0);
+    const timer = window.setTimeout(start, 4_000);
+    window.addEventListener("pointerdown", start, { once: true, passive: true });
+    window.addEventListener("keydown", start, { once: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pointerdown", start);
+      window.removeEventListener("keydown", start);
+    };
+  }, [backgroundRuntimeReady]);
 
   /**
    * Async failures never reach a React boundary — an unhandled rejection in a
@@ -381,6 +314,15 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
+        {backgroundRuntimeReady ? (
+          <BrowserRuntimeBootstrap
+            pathname={pathname}
+            queryClient={queryClient}
+            router={router}
+            onSignedInChange={setSignedIn}
+            signedIn={signedIn}
+          />
+        ) : null}
         {/*
           THE TOASTER. Without it, `toast()` is a no-op.
 
@@ -477,4 +419,96 @@ function RootComponent() {
       </ThemeProvider>
     </QueryClientProvider>
   );
+}
+
+function isPublicFirstPaintPath(pathname: string) {
+  return (
+    !pathname.startsWith("/ocade") &&
+    !pathname.startsWith("/settings") &&
+    !pathname.startsWith("/admin")
+  );
+}
+
+/** Non-visual device/session work, deliberately absent from public first paint. */
+function BrowserRuntimeBootstrap({
+  pathname,
+  queryClient,
+  router,
+  onSignedInChange,
+  signedIn,
+}: {
+  pathname: string;
+  queryClient: QueryClient;
+  router: ReturnType<typeof useRouter>;
+  onSignedInChange: (signedIn: boolean) => void;
+  signedIn: boolean;
+}) {
+  useInstallationBootstrap({ enabled: signedIn });
+
+  useEffect(() => {
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
+    void import("@/integrations/supabase/client").then(
+      ({ getSupabaseBrowserConfiguration, supabase }) => {
+        if (cancelled || !getSupabaseBrowserConfiguration().configured) return;
+        void supabase.auth.getSession().then(({ data }) => {
+          if (!cancelled) onSignedInChange(Boolean(data.session));
+        });
+        const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+          if (cancelled) return;
+          onSignedInChange(Boolean(session));
+          if (!["SIGNED_IN", "SIGNED_OUT", "USER_UPDATED"].includes(event)) return;
+          if (event === "SIGNED_OUT") {
+            void Promise.all([
+              import("@/lib/storage/resolver").then((module) => module.invalidateModeCache()),
+              import("@/lib/mobile/device-store").then((module) => module.clearDevices()),
+              import("@/lib/mobile/approval-store").then((module) => module.clearApprovals()),
+              import("@/lib/native/tauri-companion").then((module) =>
+                module.closeActiveCompanionSession(),
+              ),
+            ]).catch(() => {
+              /* Local cleanup is best effort for modules that may never have loaded. */
+            });
+          }
+          router.invalidate();
+          if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
+        });
+        unsubscribe = () => sub.subscription.unsubscribe();
+      },
+    );
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [onSignedInChange, queryClient, router]);
+
+  useEffect(() => {
+    void import("@/lib/local/web-supervisor").then(({ registerOfflineShellFromBrowser }) =>
+      registerOfflineShellFromBrowser().then((registration) => {
+        if (!registration.ok) return;
+        void import("@/lib/offline/prime-runtime").then((module) =>
+          module.primeOfflineRuntimeFromBrowser(),
+        );
+        void import("@/lib/offline/prime-navigation").then((module) =>
+          module.primeOfflineNavigationFromBrowser(router),
+        );
+      }),
+    );
+  }, [router]);
+
+  useEffect(() => {
+    void import("@/lib/security/isolation-upgrade").then((module) =>
+      module.upgradeIsolationInBrowser(),
+    );
+  }, [pathname]);
+
+  useEffect(() => {
+    let cleanup = () => {};
+    void import("@/lib/security/shell-hardening").then(({ hardenDesktopShell }) => {
+      cleanup = hardenDesktopShell();
+    });
+    return () => cleanup();
+  }, []);
+
+  return null;
 }

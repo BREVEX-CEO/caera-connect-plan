@@ -15,14 +15,10 @@
  *
  * WHAT IT ESTABLISHED, AND IT IS NOT WHAT WE EXPECTED.
  *
- * wllama's documentation says WebGPU is enabled automatically from V3.1 with
- * every layer offloaded by default, which would have meant one runtime and one
- * downloaded artifact could serve the graphics path as well as the processor
- * one. It is not true of the binary this deployment ships. Asked for 99 GPU
- * layers on a machine whose browser hands out a working WebGPU adapter, the
- * bundled `wllama.wasm` reports `backend_ptrs.size() = 1`, assigns every layer
- * to the CPU, and answers correctly — on the processor. Section 3 pins that
- * down so nobody deletes the graphics runtime on the strength of a README.
+ * The bundled wllama runtime now registers WebGPU when the browser grants it.
+ * Section 3 therefore verifies the runtime report rather than pinning an old
+ * implementation limitation: when explicitly asked to offload, weights must
+ * actually be assigned to WebGPU and the answer must remain correct.
  *
  * So the browser has TWO engines, and this proves each on its own terms:
  *
@@ -40,9 +36,10 @@ import http from "node:http";
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
+import { resolveBrowserPath } from "./browser-path.mjs";
 
 const FIXTURE = "scripts/fixtures/tiny-llama-trained.gguf";
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? resolveBrowserPath();
 const PORT = Number(process.env.OCADE_ENGINE_PORT ?? 8112);
 const ENTRY = "scripts/.engine-probe.entry.ts";
 const BUNDLE = "scripts/.engine-probe.bundle.js";
@@ -376,8 +373,9 @@ async function main() {
     ].join("\n"),
   );
   execFileSync(
-    "node_modules/.bin/esbuild",
+    process.execPath,
     [
+      join("node_modules", "esbuild", "bin", "esbuild"),
       ENTRY,
       "--bundle",
       "--format=esm",
@@ -458,9 +456,9 @@ async function main() {
       );
     }
 
-    /* ------------------- 3. the processor engine really is processor-only */
+    /* ---------------------- 3. explicit graphics offload is real, not a flag */
 
-    console.log("\n3. The processor engine is processor-only");
+    console.log("\n3. The compatibility runtime really offloads when requested");
     const asked = await runMode(browser, base, "   asked for every layer on the graphics card", {
       // 99 is more layers than the model has, which is how "all of them" is
       // spelled. wllama's default is 99999, so this is not even an unusual ask.
@@ -476,28 +474,29 @@ async function main() {
       );
 
       const backends = asked.log.find((line) => /backend_ptrs\.size\(\)/.test(line));
+      const backendCount = Number(/=\s*(\d+)/.exec(backends ?? "")?.[1] ?? 0);
       check(
-        backends?.includes("= 1") === true,
-        "yet the bundled runtime registers exactly one backend",
+        backendCount >= 2,
+        "the bundled runtime registers processor and graphics backends",
         backends?.trim() ?? "no backend count in the load report",
       );
 
       const gpuBuffer = asked.log.some(
         (line) => /load_tensors:/.test(line) && /webgpu/i.test(line) && /buffer size/i.test(line),
       );
-      check(!gpuBuffer, "no weights are resident on the graphics card");
+      check(gpuBuffer, "weights are resident on the graphics backend");
 
-      const cpuLayers = asked.log.filter((line) => /assigned to device CPU/.test(line));
+      const gpuLayers = asked.log.filter((line) => /assigned to device WebGPU/.test(line));
       check(
-        cpuLayers.length > 0,
-        "every layer is assigned to the processor instead",
-        `${cpuLayers.length} layers`,
+        gpuLayers.length > 0,
+        "the requested layers are assigned to the graphics backend",
+        `${gpuLayers.length} layers`,
       );
 
       /*
        * AND IT STILL ANSWERS CORRECTLY, which is the trap this section exists
        * to close. Asking for the graphics card and silently getting the
-       * processor produces a run in which every other assertion passes. Only
+       * processor could produce a run in which every other assertion passes. Only
        * the load report distinguishes them, so only the load report can be
        * trusted to say which engine served the answer.
        */
@@ -560,10 +559,10 @@ async function main() {
       : `${failed.length} of ${results.length} FAILED:\n${failed.map((f) => `  - ${f.what}${f.detail ? ` (${f.detail})` : ""}`).join("\n")}`,
   );
   console.log("=".repeat(70) + "\n");
-  process.exit(failed.length === 0 ? 0 : 1);
+  process.exitCode = failed.length === 0 ? 0 : 1;
 }
 
 void main().catch((error) => {
   console.error(error);
-  process.exit(1);
+  process.exitCode = 1;
 });

@@ -109,7 +109,7 @@ function DataRightsPage() {
             {copied ? "Copied" : "Copy request text"}
           </button>
           {copyFailed ? (
-            <p role="alert" className="text-sm text-[color:var(--state-danger)]">
+            <p role="alert" className="text-sm text-destructive">
               This browser would not let the page write to your clipboard. Select the text above and
               copy it yourself — nothing has been lost.
             </p>

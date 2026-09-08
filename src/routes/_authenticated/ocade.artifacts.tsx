@@ -200,8 +200,8 @@ function ArtifactsPage() {
                       className={cn(
                         "rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide",
                         a.provenance.verified
-                          ? "bg-[color:var(--state-success)]/15 text-[color:var(--state-success)]"
-                          : "bg-[color:var(--state-warning)]/15 text-[color:var(--state-warning)]",
+                          ? "bg-[color:var(--state-success-surface-strong)] text-[color:var(--state-success)]"
+                          : "bg-[color:var(--state-warning-surface-strong)] text-[color:var(--state-warning)]",
                       )}
                     >
                       {a.provenance.verified ? "verified" : "not confirmed"}

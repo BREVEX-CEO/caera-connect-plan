@@ -150,7 +150,7 @@ export function BrowserStoragePanel() {
       </div>
 
       {view?.ready && !view.persistent ? (
-        <div className="mt-4 rounded-md border border-[color:var(--state-warning)]/30 bg-[color:var(--state-warning)]/5 p-3">
+        <div className="mt-4 rounded-md border border-[color:var(--state-warning-line)] bg-[color:var(--state-warning-wash)] p-3">
           <p className="text-[13px] text-muted-foreground">
             This browser may clear OCADE Intelligence if the device runs low on space.
           </p>

@@ -190,22 +190,22 @@ function paintStatic(
 
   // Obsidian ground with a faint lift towards the throat.
   const ground = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
-  ground.addColorStop(0, "rgba(24, 30, 66, 0.85)");
-  ground.addColorStop(0.45, "rgba(12, 15, 34, 0.7)");
-  ground.addColorStop(1, "rgba(4, 5, 12, 0)");
+  ground.addColorStop(0, "rgba(31, 31, 31, 0.85)");
+  ground.addColorStop(0.45, "rgba(16, 16, 16, 0.7)");
+  ground.addColorStop(1, "rgba(5, 5, 5, 0)");
   ctx.fillStyle = ground;
   ctx.fillRect(0, 0, w, h);
 
   // Nebula orbs: mint and violet, well apart so neither sits under body text.
   const orbs: Array<[number, number, number, string]> = [
-    [cx - R * 0.55, cy - R * 0.3, R * 0.55, "rgba(110, 231, 183, 0.16)"],
-    [cx + R * 0.5, cy + R * 0.34, R * 0.62, "rgba(167, 139, 250, 0.16)"],
-    [cx + R * 0.15, cy - R * 0.5, R * 0.42, "rgba(34, 211, 238, 0.12)"],
+    [cx - R * 0.55, cy - R * 0.3, R * 0.55, "rgba(202, 202, 202, 0.16)"],
+    [cx + R * 0.5, cy + R * 0.34, R * 0.62, "rgba(153, 153, 153, 0.16)"],
+    [cx + R * 0.15, cy - R * 0.5, R * 0.42, "rgba(175, 175, 175, 0.12)"],
   ];
   for (const [ox, oy, orad, colour] of orbs) {
     const g = ctx.createRadialGradient(ox, oy, 0, ox, oy, orad);
     g.addColorStop(0, colour);
-    g.addColorStop(1, "rgba(0,0,0,0)");
+    g.addColorStop(1, "rgba(0, 0, 0,0)");
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.arc(ox, oy, orad, 0, TAU);
@@ -219,7 +219,7 @@ function paintStatic(
     nodes.push({ x: rand() * w, y: rand() * h });
   }
   ctx.lineWidth = 1;
-  ctx.strokeStyle = strong ? "rgba(148, 197, 255, 0.10)" : "rgba(148, 197, 255, 0.06)";
+  ctx.strokeStyle = strong ? "rgba(191, 191, 191, 0.10)" : "rgba(191, 191, 191, 0.06)";
   const linkDist = Math.min(w, h) * 0.22;
   for (let i = 0; i < nodes.length; i++) {
     for (let j = i + 1; j < nodes.length; j++) {
@@ -233,7 +233,7 @@ function paintStatic(
       }
     }
   }
-  ctx.fillStyle = strong ? "rgba(186, 230, 253, 0.20)" : "rgba(186, 230, 253, 0.12)";
+  ctx.fillStyle = strong ? "rgba(222, 222, 222, 0.20)" : "rgba(222, 222, 222, 0.12)";
   for (const n of nodes) {
     ctx.beginPath();
     ctx.arc(n.x, n.y, 1.2, 0, TAU);
@@ -254,14 +254,14 @@ function paintStatic(
       else ctx.lineTo(x, y);
     }
     ctx.lineWidth = strong ? 1.6 : 1.1;
-    ctx.strokeStyle = strong ? "rgba(99, 102, 241, 0.30)" : "rgba(99, 102, 241, 0.18)";
+    ctx.strokeStyle = strong ? "rgba(111, 111, 111, 0.30)" : "rgba(111, 111, 111, 0.18)";
     ctx.stroke();
   }
 
   // Throat glow, so the centre of the spiral reads as depth rather than a dot.
   const throat = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 0.22);
-  throat.addColorStop(0, strong ? "rgba(56, 189, 248, 0.28)" : "rgba(56, 189, 248, 0.14)");
-  throat.addColorStop(1, "rgba(0,0,0,0)");
+  throat.addColorStop(0, strong ? "rgba(165, 165, 165, 0.28)" : "rgba(165, 165, 165, 0.14)");
+  throat.addColorStop(1, "rgba(0, 0, 0,0)");
   ctx.fillStyle = throat;
   ctx.beginPath();
   ctx.arc(cx, cy, R * 0.22, 0, TAU);
@@ -392,7 +392,7 @@ export function createScene(canvas: HTMLCanvasElement, opts: SceneOptions): Scen
         }
         // Nearer bands are brighter and thicker; distance reads as haze.
         ctx.globalAlpha = tuning.opacity * (0.1 + depth * 0.22);
-        ctx.strokeStyle = depth > 0.6 ? "rgba(34, 211, 238, 0.95)" : "rgba(129, 140, 248, 0.95)";
+        ctx.strokeStyle = depth > 0.6 ? "rgba(175, 175, 175, 0.95)" : "rgba(145, 145, 145, 0.95)";
         ctx.lineWidth = (0.7 + depth * 1.4) * dpr;
         ctx.lineJoin = "round";
         ctx.stroke();
@@ -422,7 +422,7 @@ export function createScene(canvas: HTMLCanvasElement, opts: SceneOptions): Scen
       // Fade in at the rim and out at the throat so nothing pops.
       const fade = Math.sin(Math.min(1, Math.max(0, t)) * Math.PI);
       ctx.globalAlpha = tuning.opacity * fade * 0.75;
-      ctx.strokeStyle = p.hue > 0.7 ? "rgba(167, 139, 250, 0.9)" : "rgba(34, 211, 238, 0.9)";
+      ctx.strokeStyle = p.hue > 0.7 ? "rgba(153, 153, 153, 0.9)" : "rgba(175, 175, 175, 0.9)";
       ctx.lineWidth = p.size * dpr;
       ctx.lineCap = "round";
       ctx.beginPath();

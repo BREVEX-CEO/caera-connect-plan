@@ -215,7 +215,7 @@ function DevicesPage() {
                           aria-label="Device name"
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
-                          className="w-56 rounded-md border border-border/60 bg-background/50 px-2 py-1 text-sm text-foreground outline-none focus:border-primary/60"
+                          className="w-56 rounded-md border border-border/60 bg-background/50 px-2 py-1 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus:border-primary/60"
                         />
                         <button
                           onClick={() => void onRename(d)}
@@ -281,7 +281,7 @@ function DevicesPage() {
               </div>
 
               {confirmId === d.id ? (
-                <div className="mt-3 rounded-md border border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 p-3 text-xs text-foreground">
+                <div className="mt-3 rounded-md border border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)] p-3 text-xs text-foreground">
                   Revoking removes an approved access surface. The device stays revoked even if it
                   reconnects, so a lost or stolen device cannot let itself back in. Type{" "}
                   <strong>revoke</strong> to confirm.
@@ -290,7 +290,7 @@ function DevicesPage() {
                       aria-label="Type revoke to confirm"
                       value={phrase}
                       onChange={(e) => setPhrase(e.target.value)}
-                      className="w-40 rounded-md border border-border/60 bg-background/50 px-2 py-1 text-xs text-foreground outline-none focus:border-primary/60"
+                      className="w-40 rounded-md border border-border/60 bg-background/50 px-2 py-1 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring focus:border-primary/60"
                     />
                     <button
                       onClick={() => void onRevoke(d)}

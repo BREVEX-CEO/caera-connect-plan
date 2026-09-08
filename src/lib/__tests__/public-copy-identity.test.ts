@@ -61,8 +61,11 @@ function userVisibleStrings(source: string): string[] {
   const withoutComments = source.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
   const out: string[] = [];
   // Quoted strings of prose length — short ones are class names and keys.
-  for (const m of withoutComments.matchAll(/"([^"\\]{25,})"/g)) out.push(m[1]);
-  for (const m of withoutComments.matchAll(/`([^`\\$]{25,})`/g)) out.push(m[1]);
+  // A source line break terminates this lightweight literal scan. Allowing it
+  // to cross lines stitches the closing quote of one internal enum to the
+  // opening quote of another and invents UI copy that does not exist.
+  for (const m of withoutComments.matchAll(/"([^"\\\r\n]{25,})"/g)) out.push(m[1]);
+  for (const m of withoutComments.matchAll(/`([^`\\$\r\n]{25,})`/g)) out.push(m[1]);
   // Text between JSX tags.
   for (const m of withoutComments.matchAll(/>\s*([A-Z][^<>{}]{24,})</g)) out.push(m[1]);
   return out;

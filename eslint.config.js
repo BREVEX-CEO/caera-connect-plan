@@ -35,6 +35,9 @@ export default tseslint.config(
       ".output*",
       ".vinxi",
       ".browser-sidecar/**",
+      // Disposable archive/package inspection. It can contain third-party
+      // source with its own lint directives and is never OCADE product code.
+      ".work/**",
       "native/**/binaries/**",
       "native/**/gen/**",
       "native/**/target/**",

@@ -45,6 +45,21 @@ const APP_CSP = [
     "http://localhost:* http://127.0.0.1:* " +
     "ws://localhost:* ws://127.0.0.1:*",
   "worker-src 'self' blob:",
+  /*
+   * NOTHING OFF-ORIGIN, AND THAT IS NOW TRUE OF THE COMPONENT TOO.
+   *
+   * This directive briefly named a media host, to fix a console error every
+   * public page was logging: `PublicPage` requested a background video the
+   * policy did not permit. Widening the policy stopped the console error and
+   * started something worse — the request actually left the browser, and on any
+   * network that cannot reach that host twenty public routes began failing the
+   * audit's "no failing request outside loopback" check instead.
+   *
+   * The video is gone rather than the directive widened. A decorative layer must
+   * not make a public page's health depend on somebody else's server.
+   * `csp-agrees-with-prelaunch.test.ts` asserts the policy and the component
+   * agree about media hosts in BOTH directions, so neither can drift again.
+   */
   "media-src 'self' blob: data:",
   "manifest-src 'self'",
   "upgrade-insecure-requests",

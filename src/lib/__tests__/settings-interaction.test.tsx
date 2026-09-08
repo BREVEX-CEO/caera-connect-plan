@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeAll, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, afterEach, afterAll } from "vitest";
+import { watchConsole } from "./support/expected-console";
 import React from "react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -224,9 +225,24 @@ async function mount(Component: React.ComponentType) {
       </QueryClientProvider>,
     );
   });
-  await act(async () => {
-    await new Promise((r) => setTimeout(r, 0));
-  });
+  /*
+   * SETTLE ACROSS A DYNAMIC IMPORT, NOT JUST ONE TICK.
+   *
+   * `useSession` loads the Supabase client on demand — a top-level import put
+   * 203 KiB of auth stack on the landing page's first paint — so "am I signed
+   * in?" now resolves an import before it can answer, and the first render is
+   * legitimately a loading state. One macrotask was enough when the answer was
+   * synchronous; it is not enough to resolve a module.
+   *
+   * Several short turns rather than one long wait: the loop finishes as soon as
+   * the work does, and a page that never settles still fails rather than
+   * hanging the run.
+   */
+  for (let turn = 0; turn < 6; turn += 1) {
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+  }
 }
 
 describe("the settings surface offers panels to audit", () => {
@@ -360,4 +376,20 @@ describe("the audit as a whole is not inert", () => {
     }
     expect(total, "settings rendered almost no enabled controls at all").toBeGreaterThan(25);
   }, 60_000);
+});
+
+/**
+ * Console output this audit legitimately causes, classified rather than muted.
+ *
+ * The shared list in `support/expected-console.ts` says why each message is
+ * correct behaviour. Anything NOT on it still reaches the console and fails the
+ * assertion below, so a new error cannot hide inside expected noise.
+ */
+const consoleWatch = watchConsole();
+afterAll(() => consoleWatch.restore());
+
+describe("the console during this audit", () => {
+  it("carries nothing this harness cannot account for", () => {
+    expect(consoleWatch.unexpected.slice(0, 5)).toEqual([]);
+  });
 });

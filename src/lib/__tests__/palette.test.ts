@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
 
 /**
- * The black / silver / aubergine / gold palette, checked as colour rather than as text.
+ * The OCADE monochrome palette, checked as colour values rather than token names.
  *
  * This does not trust colour names in comments. It parses every
  * oklch token, converts it to sRGB the way a browser does, and computes real
@@ -12,10 +12,8 @@ import { describe, it, expect } from "vitest";
  * background in the dark theme, and this file computes the same number from
  * the same declarations.
  *
- * It also enforces that the palette stayed a palette. Any hue outside the
- * gold, aubergine or destructive-red bands is a failure unless it is the success
- * safety colour, which stops unrelated cyan/teal/blue accents from creeping back
- * at a time.
+ * It also enforces that every product token has zero chroma. State is conveyed
+ * through text, iconography, contrast, shape and motion rather than hue.
  */
 
 const CSS = readFileSync("src/styles.css", "utf8");
@@ -138,52 +136,24 @@ describe("every readable pair clears WCAG AA", () => {
   }
 });
 
-describe("the palette stayed black, silver, aubergine and gold", () => {
-  /*
-   * Gold carries action and focus, aubergine carries brand depth, and red is
-   * restricted to destructive safety roles.
-   */
-  const GOLD_BAND = [60, 95] as const;
-  const AUBERGINE_BAND = [285, 335] as const;
-  const RED_BAND = [0, 45] as const;
-  /** Below this, hue is meaningless — the colour is black, silver or white. */
-  const NEUTRAL_CHROMA = 0.025;
-  /**
-   * Success stays green because success and danger must differ by more than
-   * shade for accessible state recognition.
-   */
-  const SAFETY = new Map([["--state-success", 148]]);
-
+describe("the palette stays monochrome", () => {
   for (const [themeName, selector] of THEMES) {
-    it(`${themeName} contains no colour outside the palette`, () => {
-      const strays: string[] = [];
+    it(`${themeName} gives every token zero chroma`, () => {
+      const coloured: string[] = [];
       for (const [name, colour] of tokensIn(selector)) {
-        if (colour.c < NEUTRAL_CHROMA) continue; // black / silver
-        const safety = SAFETY.get(name);
-        if (safety !== undefined) {
-          expect(Math.abs(colour.h - safety), `${name} moved off its safety hue`).toBeLessThan(20);
-          continue;
-        }
-        const inGold = colour.h >= GOLD_BAND[0] && colour.h <= GOLD_BAND[1];
-        const inAubergine = colour.h >= AUBERGINE_BAND[0] && colour.h <= AUBERGINE_BAND[1];
-        const inRed = colour.h >= RED_BAND[0] && colour.h <= RED_BAND[1];
-        if (!inGold && !inAubergine && !inRed) {
-          strays.push(`${name}: hue ${colour.h}, chroma ${colour.c}`);
+        if (colour.c !== 0) {
+          coloured.push(`${name}: hue ${colour.h}, chroma ${colour.c}`);
         }
       }
-      expect(strays, `colours outside the gold/aubergine/red bands: ${strays.join("; ")}`).toEqual(
-        [],
-      );
+      expect(coloured, `coloured ${themeName} tokens: ${coloured.join("; ")}`).toEqual([]);
     });
   }
 
-  it("keeps only OCADE gold and CANIA aubergine as saturated module accents", () => {
+  it("keeps all module accents neutral", () => {
     const dark = tokensIn(":root {");
-    // FICIA and MADEE remain neutral future-product placeholders.
-    const saturated = ["--accent-ocade", "--accent-ficia", "--accent-madee", "--accent-cania"]
-      .map((name) => dark.get(name)!)
-      .filter((colour) => colour.c >= 0.1);
-    expect(saturated).toHaveLength(2);
+    for (const name of ["--accent-ocade", "--accent-ficia", "--accent-madee", "--accent-cania"]) {
+      expect(dark.get(name)?.c, name).toBe(0);
+    }
   });
 });
 

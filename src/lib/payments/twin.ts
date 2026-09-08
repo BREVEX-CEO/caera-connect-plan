@@ -22,13 +22,25 @@ import {
   type PaymentProvider,
   type PlanCode,
 } from "./provider";
+import { PLANS } from "./pricing";
 
-const PLAN_DAYS: Record<PlanCode, number> = {
-  trial_2d: 2,
-  std_8d: 8,
-  month_1m: 30,
-  year_1y: 365,
-};
+/**
+ * How long each purchasable plan's period runs, in days.
+ *
+ * DERIVED from the catalogue rather than restated. A twin that disagreed with
+ * the catalogue about period length would produce simulated events the real
+ * entitlement machine handles differently from the real ones — which would make
+ * every test that used it quietly meaningless.
+ *
+ * Free is absent by construction: it has no period, and it is never bought, so
+ * a checkout naming it is an unknown plan here and is refused as one.
+ */
+const PLAN_DAYS: Partial<Record<PlanCode, number>> = Object.fromEntries(
+  PLANS.filter((plan) => plan.periodMs !== null).map((plan) => [
+    plan.id,
+    Math.round(plan.periodMs! / 86_400_000),
+  ]),
+);
 
 export interface TwinOptions {
   /** Fixed clock, so periods and grace windows are reproducible. */
@@ -78,7 +90,7 @@ export class PaymentProviderTwin implements PaymentProvider {
   }
 
   async createCheckout(req: CheckoutRequest): Promise<CheckoutOutcome> {
-    if (!(req.plan in PLAN_DAYS)) {
+    if (PLAN_DAYS[req.plan] === undefined) {
       return { ok: false, code: "unknown_plan", reason: `There is no plan called "${req.plan}".` };
     }
     if (this.opts.failCheckout) {
@@ -110,13 +122,13 @@ export class PaymentProviderTwin implements PaymentProvider {
   /** Complete a checkout, as the provider would after the user pays. */
   completeCheckout(customerId: string, plan: PlanCode): PaymentEvent {
     return this.nextEvent("checkout.completed", customerId, plan, {
-      periodEndsAt: this.now() + PLAN_DAYS[plan] * 86_400,
+      periodEndsAt: this.now() + PLAN_DAYS[plan]! * 86_400,
     });
   }
 
   renew(customerId: string, plan: PlanCode): PaymentEvent {
     return this.nextEvent("subscription.renewed", customerId, plan, {
-      periodEndsAt: this.now() + PLAN_DAYS[plan] * 86_400,
+      periodEndsAt: this.now() + PLAN_DAYS[plan]! * 86_400,
     });
   }
 
@@ -130,7 +142,7 @@ export class PaymentProviderTwin implements PaymentProvider {
 
   resolveDispute(customerId: string, plan: PlanCode, won: boolean): PaymentEvent {
     return this.nextEvent(won ? "dispute.won" : "dispute.lost", customerId, plan, {
-      periodEndsAt: won ? this.now() + PLAN_DAYS[plan] * 86_400 : undefined,
+      periodEndsAt: won ? this.now() + PLAN_DAYS[plan]! * 86_400 : undefined,
     });
   }
 

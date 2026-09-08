@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CapabilityCarousel, wrapCarouselIndex } from "@/components/public/CapabilityCarousel";
+import { CapabilityCarousel } from "@/components/public/CapabilityCarousel";
+import { wrapCarouselIndex } from "@/components/public/carousel-index";
 
 describe("the public OCADE capability carousel", () => {
   it("wraps previous, next and direct navigation indexes", () => {

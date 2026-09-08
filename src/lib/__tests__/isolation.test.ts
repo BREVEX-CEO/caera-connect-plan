@@ -24,24 +24,14 @@ import {
  */
 
 describe("the routes that run inference are isolated", () => {
-  it.each([
-    "/demo/ocade",
-    "/demo/control",
-    "/demo/settings",
-    "/ocade",
-    "/ocade/chat",
-    "/ocade/work",
-    "/demo/ocade/",
-    "/demo/ocade?next=/home",
-    "/demo/ocade#section",
-  ])("%s is isolated", (path) => {
+  it.each(["/ocade", "/ocade/chat", "/ocade/work"])("%s is isolated", (path) => {
     expect(shouldIsolate(path)).toBe(true);
   });
 
   it("carries both headers, which is what the platform requires", () => {
     // Either one alone produces a document that is NOT isolated, and therefore
     // has no SharedArrayBuffer and no threads.
-    const headers = isolationHeadersFor("/demo/ocade");
+    const headers = isolationHeadersFor("/ocade");
     expect(headers["cross-origin-opener-policy"]).toBe(COOP_ISOLATED);
     expect(headers["cross-origin-embedder-policy"]).toBe(COEP_VALUE);
   });
@@ -96,7 +86,6 @@ describe("the landing page and marketing pages are left alone", () => {
     "/download",
     "/support",
     "/status",
-    "/demo",
   ])("%s is not isolated", (path) => {
     expect(shouldIsolate(path)).toBe(false);
   });
@@ -114,7 +103,7 @@ describe("crossing the boundary needs a real navigation", () => {
   it("is required entering an isolated route", () => {
     // A client-side transition keeps the current, un-isolated document, so
     // crossOriginIsolated stays false and threads never appear.
-    expect(needsFullNavigation("/", "/demo/ocade")).toBe(true);
+    expect(needsFullNavigation("/", "/ocade")).toBe(true);
   });
 
   it("is required LEAVING one, too", () => {
@@ -127,7 +116,7 @@ describe("crossing the boundary needs a real navigation", () => {
   });
 
   it("is not required between two isolated routes", () => {
-    expect(needsFullNavigation("/demo/ocade", "/demo/settings")).toBe(false);
+    expect(needsFullNavigation("/ocade", "/ocade/projects")).toBe(false);
   });
 
   it("is not required between two ordinary routes", () => {
@@ -138,13 +127,13 @@ describe("crossing the boundary needs a real navigation", () => {
 describe("the one-shot upgrade cannot loop", () => {
   it("asks for a navigation on an isolated route that is not isolated", () => {
     expect(
-      isolationUpgradeTarget({ pathname: "/demo/ocade", isolated: false, alreadyTried: false }),
-    ).toBe("/demo/ocade");
+      isolationUpgradeTarget({ pathname: "/ocade", isolated: false, alreadyTried: false }),
+    ).toBe("/ocade");
   });
 
   it("does nothing once isolation is in force", () => {
     expect(
-      isolationUpgradeTarget({ pathname: "/demo/ocade", isolated: true, alreadyTried: false }),
+      isolationUpgradeTarget({ pathname: "/ocade", isolated: true, alreadyTried: false }),
     ).toBeNull();
   });
 
@@ -155,7 +144,7 @@ describe("the one-shot upgrade cannot loop", () => {
      * again — an infinite loop on exactly the browsers least able to afford it.
      */
     expect(
-      isolationUpgradeTarget({ pathname: "/demo/ocade", isolated: false, alreadyTried: true }),
+      isolationUpgradeTarget({ pathname: "/ocade", isolated: false, alreadyTried: true }),
     ).toBeNull();
   });
 

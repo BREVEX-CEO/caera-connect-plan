@@ -33,14 +33,14 @@ describe("OCADE 77 — proof for formerly source-inspected boundaries", () => {
     expect(readme).toMatch(/Browser Only data never leaves/i);
   });
 
-  it("#16 keeps pricing visible but withdraws billing during free launch", () => {
+  it("#16 keeps pricing visible but withdraws billing until checkout is configured", () => {
     expectAll("src/routes/pricing.tsx", [
       /createFileRoute\("\/pricing"\)/,
       /deploymentDetails=\{false\}/,
     ]);
     expect(source("src/routes/pricing.tsx")).not.toMatch(/beforeLoad/);
     expectAll("src/routes/_authenticated/settings.billing.tsx", [
-      /FREE_LAUNCH_MODE/,
+      /!isCheckoutConfigured\(\)/,
       /redirect\(\{ to: "\/settings\/usage" \}\)/,
     ]);
   });
@@ -72,17 +72,22 @@ describe("OCADE 77 — proof for formerly source-inspected boundaries", () => {
     ]);
   });
 
-  it("uses the complete demo reset path from both New chat controls", () => {
-    const demo = source("src/routes/demo.ocade.tsx");
-    expect(demo.match(/onNewChat=\{resetConversation\}/g) ?? []).toHaveLength(2);
-  });
-
-  it("keeps browser sampling deterministic enough for the recorded demo receipt", () => {
+  it("keeps browser sampling deterministic enough for the recorded answer receipt", () => {
+    /*
+     * One authority supplies these to the adapters AND to the pin, so a
+     * receipt cannot claim conditions the runtime never applied. A literal
+     * reappearing in an adapter is the defect this guards.
+     */
+    expectAll("src/lib/brain/sampler-settings.ts", [/temperature: 0\.2/, /topP: 0\.9/]);
     for (const path of [
       "src/lib/brain/adapters/browser-webgpu.ts",
       "src/lib/brain/adapters/browser-wasm.ts",
     ]) {
-      expectAll(path, [/temperature: 0\.2/, /top_p: 0\.9/]);
+      expectAll(path, [
+        /temperature: BROWSER_SAMPLER\.temperature/,
+        /top_p: BROWSER_SAMPLER\.topP/,
+      ]);
+      expect(source(path), path).not.toMatch(/temperature: 0\.\d/);
     }
   });
 
@@ -140,8 +145,10 @@ describe("OCADE 77 — proof for formerly source-inspected boundaries", () => {
     ]);
   });
 
-  it("#40 exposes advanced controls through the System hub", () => {
-    expectAll("src/routes/_authenticated/ocade.system.tsx", [
+  it("#40 exposes advanced controls through the Customize hub", () => {
+    // Was the System hub; PLAN.md §4 moved it to /ocade/customize, which is
+    // the name §4's table gives this view. The list it holds is unchanged.
+    expectAll("src/routes/_authenticated/ocade.customize.tsx", [
       /to: "\/ocade\/models"/,
       /to: "\/ocade\/devices"/,
       /to: "\/ocade\/connectors"/,
@@ -172,18 +179,25 @@ describe("OCADE 77 — proof for formerly source-inspected boundaries", () => {
     /*
      * "Compressed" got a number. The rail held twelve destinations, which is a
      * sitemap rather than a place to work; it holds seven, ending in the door
-     * to everything else. Code moved to More with five others and is asserted
-     * reachable by code-workspace-render.test.tsx.
+     * to everything else.
+     *
+     * WHICH seven changed with PLAN.md §4. The three primary modes it names —
+     * Chat, Cowork, Code — now lead, and two of them were absent: Cowork was
+     * here under an old name and Code was only in More, so a person who never
+     * opened More never learned that OCADE writes code. Search left the rail
+     * because §4 makes it a global overlay, which Cmd/Ctrl+K already opens
+     * from every screen.
      */
     const nav = expectAll("src/lib/shell-nav.ts", [
       /label: "Chat"/,
-      /label: "Work"/,
+      /label: "Cowork"/,
+      /label: "Code"/,
       /label: "Projects"/,
-      /label: "Search"/,
       /label: "Tasks"/,
-      /to: "\/ocade\/system", label: "More"/,
+      /label: "Artifacts"/,
+      /to: "\/ocade\/customize", label: "More"/,
     ]);
-    expect(nav.match(/to: "\/ocade\/system", label: "More"/g) ?? []).toHaveLength(1);
+    expect(nav.match(/to: "\/ocade\/customize", label: "More"/g) ?? []).toHaveLength(1);
     expect(MODULE_CONTEXT.ocade).toHaveLength(7);
   });
 
@@ -222,11 +236,12 @@ describe("OCADE 77 — proof for formerly source-inspected boundaries", () => {
 
   it("#76 retains CI ownership for type, DB, platform, performance and accessibility gates", () => {
     const ci = source(".github/workflows/ci.yml");
-    expect(ci).toMatch(/typecheck/i);
-    expect(ci).toMatch(/migration/i);
-    expect(ci).toMatch(/RLS|row.level|database/i);
-    expect(ci).toMatch(/performance/i);
-    expect(ci).toMatch(/accessibility|a11y/i);
+    const parity = source("scripts/verify-full.mjs");
+    expect(ci).toMatch(/verify:full/i);
+    expect(parity).toMatch(/typecheck/i);
+    expect(parity).toMatch(/supabase:types-check/i);
+    expect(parity).toMatch(/performance/i);
+    expect(parity).toMatch(/a11y/i);
     expect(source(".github/workflows/platforms.yml")).toMatch(/windows|macos|ubuntu/i);
   });
 });

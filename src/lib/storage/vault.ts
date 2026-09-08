@@ -8,7 +8,13 @@
  * design.
  */
 
-import { supabase } from "@/integrations/supabase/client";
+/*
+ * ON DEMAND: this module is reached from the onboarding route, which the
+ * generated route tree imports statically — so a top-level import put the
+ * Supabase client on the entry chunk's graph. Every use below is inside an
+ * async function that is about to talk to the network.
+ */
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import {
   aesGcmDecrypt,
   aesGcmEncrypt,
@@ -108,7 +114,9 @@ export async function loadVaultConfig(userId: string): Promise<VaultRow | null> 
     if (offline) return offline;
   }
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (
+      await loadSupabaseClient()
+    )
       .from("vault_config")
       .select("*")
       .eq("user_id", userId)
@@ -162,7 +170,7 @@ export async function setupWithPassphrase(
   const wrap = await wrapDek(kek, dekRaw);
   const recovery = await buildRecoveryWrap(dekRaw);
 
-  const { error } = await supabase.from("vault_config").insert({
+  const { error } = await (await loadSupabaseClient()).from("vault_config").insert({
     user_id: userId,
     credential_kind: "passphrase",
     kdf_algo: "PBKDF2-SHA256",
@@ -194,7 +202,7 @@ export async function setupWithWebAuthn(userId: string, label: string): Promise<
   const wrap = await wrapDek(kek, dekRaw);
   const recovery = await buildRecoveryWrap(dekRaw);
 
-  const { error } = await supabase.from("vault_config").insert({
+  const { error } = await (await loadSupabaseClient()).from("vault_config").insert({
     user_id: userId,
     credential_kind: "webauthn_prf",
     kdf_algo: "HKDF-SHA256",
@@ -241,14 +249,18 @@ async function buildRecoveryWrap(dekRaw: Uint8Array) {
  * and the panel said it had not.
  */
 function touchLastUnlocked(userId: string) {
-  return Promise.resolve(
-    supabase
-      .from("vault_config")
-      .update({ last_unlocked_at: new Date().toISOString() })
-      .eq("user_id", userId),
-  ).catch(() => {
-    /* Offline, or the row is gone. Neither changes that the vault is open. */
-  });
+  // Deliberately NOT awaited by its callers — see above. The client load joins
+  // the same detached chain, so an unlock still does not wait for it.
+  return loadSupabaseClient()
+    .then((supabase) =>
+      supabase
+        .from("vault_config")
+        .update({ last_unlocked_at: new Date().toISOString() })
+        .eq("user_id", userId),
+    )
+    .catch(() => {
+      /* Offline, or the row is gone. Neither changes that the vault is open. */
+    });
 }
 
 // ---------- Unlock ----------
@@ -328,7 +340,9 @@ export async function rotatePassphrase(userId: string, next: string): Promise<vo
   const { requireKey } = await import("./vault-session");
   const dekRaw = await exportRawKey(requireKey());
   const wrap = await wrapDek(kek, dekRaw);
-  const { error } = await supabase
+  const { error } = await (
+    await loadSupabaseClient()
+  )
     .from("vault_config")
     .update({
       credential_kind: "passphrase",
@@ -356,7 +370,9 @@ export async function rotatePassphrase(userId: string, next: string): Promise<vo
 export async function updateLockTimeout(userId: string, seconds: number) {
   if (!Number.isFinite(seconds)) throw new Error("Choose a valid auto-lock timeout.");
   const clamped = Math.min(86400, Math.max(60, Math.round(seconds)));
-  const { error } = await supabase
+  const { error } = await (
+    await loadSupabaseClient()
+  )
     .from("vault_config")
     .update({ lock_timeout_seconds: clamped })
     .eq("user_id", userId);

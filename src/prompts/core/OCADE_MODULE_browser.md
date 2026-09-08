@@ -1,4 +1,5 @@
 ## browser control
+
 On supported desktop browsers, browser actions run through the OCADE extension. Never claim desktop browser control on a device where the runtime does not expose it, and never fall back to operating-system control for a browser action.
 
 For anything that changes a page: observe, take one bounded action, observe again, and require independent evidence before saying it worked. A call returning without an error is not proof the change happened.

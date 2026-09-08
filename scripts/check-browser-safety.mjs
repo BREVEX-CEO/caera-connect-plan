@@ -25,14 +25,20 @@
  *   - a reference guarded by `typeof X !== "undefined"` in the same file, which
  *     is the correct way to use one of these when a fallback exists.
  *
- * Usage: node scripts/check-browser-safety.mjs [--json]
+ * Usage: node scripts/check-browser-safety.mjs [--json] [--root=<source-directory>]
  * Exit:  0 when clean; 1 otherwise.
  */
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import { builtinModules } from "node:module";
 import { join } from "node:path";
+import ts from "typescript";
 
-const ROOTS = ["src"];
+const requestedRoots = process.argv
+  .filter((arg) => arg.startsWith("--root="))
+  .map((arg) => arg.slice("--root=".length))
+  .filter(Boolean);
+const ROOTS = requestedRoots.length > 0 ? requestedRoots : ["src"];
 const jsonOnly = process.argv.includes("--json");
 
 /** Server-only by convention, or never shipped. */
@@ -41,6 +47,15 @@ function isExempt(path) {
   return (
     // Both spellings are in use: `detect.node.ts` and `generated-sandbox-node.ts`.
     /[.-](node|server)\.[cm]?tsx?$/.test(p) ||
+    // TanStack Start extracts createServerFn handlers from these modules into
+    // the server graph. The suffix is an existing repository boundary, not a
+    // generic exemption: feature modules may call the exported functions but
+    // may not import their Node dependencies directly.
+    /\.functions\.[cm]?tsx?$/.test(p) ||
+    // Framework-owned server entries that predate the suffix convention.
+    /\/routes\/api\//.test(p) ||
+    /\/integrations\/supabase\/auth-middleware\.ts$/.test(p) ||
+    /\/lib\/commercial\/entitlement-resolver\.ts$/.test(p) ||
     /\/__tests__\//.test(p) ||
     /\.test\.[cm]?tsx?$/.test(p) ||
     /\/routeTree\.gen\./.test(p)
@@ -107,10 +122,64 @@ const GLOBALS = [
 
 const findings = [];
 const files = ROOTS.flatMap((root) => walk(root)).filter((f) => !isExempt(f));
+const builtins = new Set(
+  builtinModules.flatMap((name) => [
+    name,
+    name.replace(/^node:/, ""),
+    `node:${name.replace(/^node:/, "")}`,
+  ]),
+);
+
+function nodeBuiltinImports(raw, file) {
+  const kind = file.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const sourceFile = ts.createSourceFile(file, raw, ts.ScriptTarget.Latest, true, kind);
+  const imports = [];
+  const inspectSpecifier = (value, node, typeOnly = false) => {
+    const nodeBuiltin = builtins.has(value);
+    const serverBoundary =
+      !typeOnly &&
+      (/(?:^|\/)server(?:\/|$)/.test(value) ||
+        /(?:^|\/)[^/]+\.(?:node|server)(?:\.[cm]?[jt]sx?)?$/.test(value));
+    if (!nodeBuiltin && !serverBoundary) return;
+    const position = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
+    imports.push({
+      file: file.replace(/\\/g, "/"),
+      line: position.line + 1,
+      global: nodeBuiltin ? `Node import ${value}` : `Server-only import ${value}`,
+    });
+  };
+  const visit = (node) => {
+    if (
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteralLike(node.moduleSpecifier)
+    ) {
+      inspectSpecifier(
+        node.moduleSpecifier.text,
+        node.moduleSpecifier,
+        (ts.isImportDeclaration(node) && node.importClause?.isTypeOnly === true) ||
+          (ts.isExportDeclaration(node) && node.isTypeOnly),
+      );
+    } else if (
+      ts.isCallExpression(node) &&
+      node.arguments.length === 1 &&
+      ts.isStringLiteralLike(node.arguments[0]) &&
+      (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+        (ts.isIdentifier(node.expression) && node.expression.text === "require"))
+    ) {
+      inspectSpecifier(node.arguments[0].text, node.arguments[0]);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return imports;
+}
 
 for (const file of files) {
   const raw = readFileSync(file, "utf8");
   const source = stripNoise(raw);
+
+  findings.push(...nodeBuiltinImports(raw, file));
 
   for (const { name, pattern } of GLOBALS) {
     pattern.lastIndex = 0;

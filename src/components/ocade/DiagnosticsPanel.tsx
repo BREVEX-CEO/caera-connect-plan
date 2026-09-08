@@ -70,8 +70,8 @@ export function DiagnosticsPanel() {
           className={cn(
             "mt-3 rounded-lg border p-3 text-xs",
             result.confidence >= 0.5 && result.repairs.length > 0
-              ? "border-[color:var(--state-success)]/40 bg-[color:var(--state-success)]/10"
-              : "border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10",
+              ? "border-[color:var(--state-success-line-strong)] bg-[color:var(--state-success-surface)]"
+              : "border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)]",
           )}
         >
           <p className="flex items-center gap-1.5 font-medium text-foreground">
@@ -98,7 +98,7 @@ export function DiagnosticsPanel() {
                   <p className="text-[12px] font-medium text-foreground">
                     {i + 1}. {r.action}
                     {r.needsCheckpoint ? (
-                      <span className="ml-1 rounded bg-[color:var(--state-warning)]/15 px-1 py-0.5 text-[9px] uppercase text-[color:var(--state-warning)]">
+                      <span className="ml-1 rounded bg-[color:var(--state-warning-surface-strong)] px-1 py-0.5 text-[9px] uppercase text-[color:var(--state-warning)]">
                         checkpoint first
                       </span>
                     ) : null}

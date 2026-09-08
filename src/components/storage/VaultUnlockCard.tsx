@@ -213,7 +213,7 @@ export function VaultUnlockCard({
       ) : null}
 
       {error ? (
-        <p role="alert" className="mt-3 text-xs text-[color:var(--state-danger)]">
+        <p role="alert" className="mt-3 text-xs text-destructive">
           {error}
         </p>
       ) : null}

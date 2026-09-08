@@ -10,6 +10,8 @@ import { DATA_CLASSES, loadAllModes, setModeFor } from "@/lib/storage/resolver";
 import type { DataClass, StorageMode } from "@/lib/storage/types";
 import { isUnlocked, isVaultConfigured } from "@/lib/storage/vault";
 import { TelemetryPanel } from "@/components/settings/TelemetryPanel";
+import { AccountDataPanel } from "@/components/settings/AccountDataPanel";
+import { LocalDataPanel } from "@/components/settings/LocalDataPanel";
 
 export const Route = createFileRoute("/_authenticated/settings/privacy")({
   head: () => ({
@@ -89,6 +91,21 @@ function PrivacyPage() {
       <div className="mt-4">
         <TelemetryPanel />
       </div>
+
+      {/*
+        Access and erasure sit with the privacy MODES rather than on their own
+        screen, because the two answer one question between them: where each
+        kind of data is allowed to live, and what a person may do with the part
+        that reached OCADE.
+      */}
+      <AccountDataPanel />
+
+      {/*
+        The device half, below the account half and clearly separated: they are
+        different requests. Clearing a shared laptop is not exercising a data
+        right, and a person doing one should not accidentally do the other.
+      */}
+      <LocalDataPanel />
 
       <GlassPanel className="mt-4 flex items-start gap-3 p-4 text-xs text-muted-foreground">
         <Shield className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />

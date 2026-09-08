@@ -3,7 +3,8 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const assetsDirectory = join(repoRoot, ".output", "public", "assets");
+const publicDirectory = join(repoRoot, ".output", "public");
+const assetsDirectory = join(publicDirectory, "assets");
 
 /**
  * Budgets for THE APPLICATION.
@@ -15,7 +16,9 @@ const assetsDirectory = join(repoRoot, ".output", "public", "assets");
  * boundary and downloaded only by someone who opens the thing that needs it:
  *
  *   538.9 KiB  the landing hero's three.js scene   (lazy)
- *   485.6 KiB  mammoth, the DOCX reader            (lazy)
+ *   (mammoth was removed: 485.6 KiB of library for one `extractRawText`
+ *    call, replaced by the same OOXML reading the spreadsheet decoder
+ *    already does — see `extractDocxText` in `ocade-decoders.ts`.)
  *   417.7 KiB  pdfjs-dist                          (lazy)
  *
  * So the number that actually protects a first paint was never gated at all,
@@ -35,29 +38,33 @@ const assetsDirectory = join(repoRoot, ".output", "public", "assets");
 const budgets = Object.freeze({
   assetFiles: 250,
   /*
-   * RE-BASED, AND THIS IS THE ARGUMENT FOR IT.
+   * THESE ARE THE PLAN'S NUMBERS NOW, NOT MEASURED-PLUS-HEADROOM.
    *
-   * Previously 4,400,000 / 4,250,000 / 150,000, measured at 4,056 KiB total
-   * across 164 chunks. The tree has since taken on a permission engine, a shell
-   * parser, a query loop, a limits authority, an offline mirror and the orb —
-   * all reachable product code, none of it a library that lost its lazy
-   * boundary, which is the failure these numbers exist to catch.
+   * WHAT THEY WERE, AND WHY THAT WAS WRONG. These three had been re-based on
+   * measurement with roughly 3% headroom — 4,680,000 / 4,520,000 / 156,000 —
+   * with an argument that the tree had legitimately grown. The argument was
+   * reasonable and the effect was not: `PLAN.md` §26 requires total JavaScript
+   * at or under 4,200 KiB and CSS at or under 145 KiB, so a gate set above
+   * those numbers reported a passing build while the requirement was unmet.
+   * A budget that moves to wherever the bundle sits is a record of the bundle,
+   * not a limit on it.
    *
-   * Re-based on measurement rather than raised to fit: 4,534,240 total /
-   * 4,382,749 JavaScript / 151,491 CSS, plus roughly 3% headroom. The old
-   * numbers had already been failing before this growth — the branch inherited
-   * a 4,429,629-byte build against a 4,400,000 bound — so leaving them would
-   * have meant a check that is always red, which is a check nobody reads.
+   * The tree was brought under the plan rather than the plan brought up to the
+   * tree, and both moves are worth knowing because both recur:
    *
-   * THE TIGHT BOUND IS UNTOUCHED. `EAGER_BUDGETS` below is what actually
-   * protects a visitor, and it passes with room to spare: 887.2 KiB of a
-   * 976.6 KiB allowance. This aggregate is a growth bound, so a library landing
-   * in the tree is still noticed; it is not a first-paint guarantee and must
-   * never be treated as one.
+   *   - `mammoth` was removed. 485.6 KiB of library for a single
+   *     `extractRawText` call, whose whole job is to discard formatting and
+   *     return plain text. The spreadsheet decoder already read OOXML archives
+   *     with no dependency at all, so the DOCX reader now does the same thing
+   *     the same way. Total JavaScript fell from 4,520 KiB to 3,927 KiB.
+   *   - The stylesheet is minified with Lightning CSS rather than esbuild, and
+   *     Tailwind no longer scans the test directories — four hundred test files
+   *     quoting class names in assertions were generating real utilities that
+   *     shipped to every visitor. CSS fell from 150,669 to 147,986 bytes.
    */
-  totalBytes: 4_680_000,
-  javascriptBytes: 4_520_000,
-  cssBytes: 156_000,
+  totalBytes: 4_450_000,
+  javascriptBytes: 4_300_800,
+  cssBytes: 148_480,
   // Measured largest: the lazy three.js hero at 538.9 KiB.
   largestJavascriptBytes: 600_000,
 });
@@ -69,11 +76,30 @@ const budgets = Object.freeze({
  * landing on the first paint, which is precisely how a 1.2 MB document chunk
  * once ended up there.
  *
- * Measured: 828.4 KiB across 5 chunks, largest 440.6 KiB (the entry itself).
+ * THESE ARE THE PLAN'S NUMBERS, NOT MEASURED-PLUS-HEADROOM.
+ *
+ * The rest of this file is re-based on measurement, and says so. These two are
+ * not: `PLAN.md` §26 requires eager JavaScript ≤850 KiB and the largest eager
+ * chunk ≤450 KiB, so the gate enforces the requirement rather than wherever the
+ * tree happens to sit. Headroom on a first-paint budget is an invitation, and
+ * the previous 520 KiB allowance was taken up exactly that way — the entry
+ * chunk reached 508 KiB, 58 KiB past what the plan permits, without ever
+ * failing.
+ *
+ * Measured on the current tree: 832.5 KiB across 5 chunks, largest 444.7 KiB.
+ * It got there by moving four things off the static import graph, each of which
+ * is worth knowing about because each is a shape that recurs:
+ *
+ *   - the terms and privacy prose, behind the dialog that shows it;
+ *   - the solar-system module, which the shared depth scene was pulling in for
+ *     one small pure function (now `landing/render-tier.ts`);
+ *   - the companion stack and the storage resolver, both imported only for
+ *     sign-out cleanup, and both safe to defer because the state they clear
+ *     cannot exist unless the module is already in memory.
  */
 const EAGER_BUDGETS = Object.freeze({
-  bytes: 1_000_000,
-  largestBytes: 520_000,
+  bytes: 870_400,
+  largestBytes: 460_800,
 });
 
 /**
@@ -184,6 +210,50 @@ function check(label, actual, limit) {
   if (actual > limit) failures.push(`${label}: ${actual} exceeds ${limit}.`);
 }
 
+/*
+ * Cloudflare Workers rejects any individual static asset above 25 MiB. Vite's
+ * emitted chunks all live under `assets/`, but copied public files do not. A
+ * model placed in `public/models/`, for example, used to evade every size
+ * check here and fail only during a later deployment upload.
+ *
+ * Scan the complete built public tree. This remains a deployment-portability
+ * guard rather than a model-distribution authority: model weights belong on
+ * an approved range-capable origin, and the normal build must not contain one.
+ */
+const MAX_WORKERS_STATIC_ASSET_BYTES = 25 * 1024 * 1024;
+
+async function collectOversizedPublicFiles(directory, relative = "") {
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  const oversized = [];
+  for (const entry of entries) {
+    const path = join(directory, entry.name);
+    const shown = relative ? `${relative}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      oversized.push(...(await collectOversizedPublicFiles(path, shown)));
+    } else if (entry.isFile()) {
+      const details = await stat(path);
+      if (details.size > MAX_WORKERS_STATIC_ASSET_BYTES) {
+        oversized.push({ name: shown, bytes: details.size });
+      }
+    }
+  }
+  return oversized;
+}
+
+const oversizedPublicFiles = await collectOversizedPublicFiles(publicDirectory);
+for (const asset of oversizedPublicFiles) {
+  failures.push(
+    `${asset.name} is ${formatBytes(asset.bytes)}, over the 25 MiB Cloudflare Workers static-asset limit. ` +
+      "Keep model weights and other large files on an approved external origin, not in public/.",
+  );
+}
+
 check("Asset file count", assets.length, budgets.assetFiles);
 check("Total asset bytes", totalBytes, budgets.totalBytes);
 check("JavaScript bytes", javascriptBytes, budgets.javascriptBytes);
@@ -233,6 +303,70 @@ if (entryChunks.length === 0) {
   // Without an entry chunk the laziness check proves nothing, and a check that
   // cannot run must not be reported as one that passed.
   failures.push("No entry chunk was found, so engine laziness could not be verified.");
+}
+
+/*
+ * THE SUPABASE CLIENT MUST NOT BE ON THE FIRST-PAINT PATH.
+ *
+ * 203 KiB of auth stack, for a visitor who opened the landing page and never
+ * signed in. Every OCADE module that touches it loads it through
+ * `loadSupabaseClient`, and that was not enough on its own — twice.
+ *
+ * The first time, the chunk boundary was in the wrong place rather than
+ * missing: `auth-middleware` is registered globally by `src/start.ts`, so the
+ * entry imported the Supabase CHUNK to reach the middleware, which is the same
+ * 203 KiB by another route.
+ *
+ * The second time was worse, because the source graph was provably clean.
+ * `tslib` has no chunk group of its own, `@supabase/*` reached it first, and it
+ * was pulled into the Supabase chunk — so the entry carried a static import of
+ * that chunk to get three helper functions, and no amount of reading the source
+ * would have shown it. Only the built graph does.
+ *
+ * Which is why this is asserted HERE, against the emitted chunks, rather than
+ * as a source-scanning test.
+ */
+const supabaseChunks = javascript.filter((asset) => /^vendor-supabase-/.test(asset.name));
+const eagerSupabase = supabaseChunks.filter((asset) => staticallyReachable.has(asset.name));
+if (eagerSupabase.length > 0) {
+  failures.push(
+    `The Supabase client must load lazily; these are in the entry graph: ${eagerSupabase
+      .map((asset) => `${asset.name} (${(asset.bytes / 1024).toFixed(1)} KiB)`)
+      .join(", ")}.`,
+  );
+}
+if (supabaseChunks.length === 0) {
+  // The chunk not existing at all would satisfy the test above for the wrong
+  // reason — a renamed group, or a build that stopped splitting it.
+  failures.push("No vendor-supabase chunk was found, so its laziness could not be verified.");
+}
+
+/*
+ * THE HELP CENTER'S PROSE IS NOT FIRST-PAINT CONTENT, AND THE CHUNK GROUP ALONE
+ * DOES NOT KEEP IT THAT WAY.
+ *
+ * `help-articles` has had a group of its own since the answers became
+ * canonical, and it went eager anyway the day the Help Center gained a
+ * publishing workflow: `useQuery` had no home above the feature groups, so the
+ * help chunk adopted `@tanstack/react-query`, and the entry — which needs
+ * react-query on every screen — had to import the help chunk to reach it.
+ * Twenty-four kilobytes of help prose on the landing page, from one added
+ * import.
+ *
+ * Same assertion shape as the Supabase one above, and for the same reason: the
+ * group is the mechanism, and this is the property.
+ */
+const helpChunks = javascript.filter((asset) => /^help-articles-/.test(asset.name));
+const eagerHelp = helpChunks.filter((asset) => staticallyReachable.has(asset.name));
+if (eagerHelp.length > 0) {
+  failures.push(
+    `The Help Center's answers must load lazily; these are in the entry graph: ${eagerHelp
+      .map((asset) => `${asset.name} (${(asset.bytes / 1024).toFixed(1)} KiB)`)
+      .join(", ")}.`,
+  );
+}
+if (helpChunks.length === 0) {
+  failures.push("No help-articles chunk was found, so its laziness could not be verified.");
 }
 
 const pdfChunks = javascript.filter((asset) => /^pdf-[\w-]+\.js$/.test(asset.name));
@@ -289,6 +423,7 @@ if (sourceMaps.length > 0) {
 console.log(
   [
     `Performance budget: ${assets.length}/${budgets.assetFiles} assets`,
+    `oversized deployment assets ${oversizedPublicFiles.length} (must be 0)`,
     `source maps ${sourceMaps.length} (must be 0)`,
     `${formatBytes(totalBytes)}/${formatBytes(budgets.totalBytes)} total`,
     `${formatBytes(javascriptBytes)}/${formatBytes(budgets.javascriptBytes)} JavaScript`,

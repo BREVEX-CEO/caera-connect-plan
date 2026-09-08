@@ -11,11 +11,11 @@
  * That answer is a claim about behaviour, and `isolation-and-threads.mjs`
  * checks only the headers around it. This walks the journey.
  *
- * The second risk is quieter and worse. Preparation begins on its own, before
- * anybody signs in. A person who then signs in mid-download must come back to
- * the SAME installation — not a restarted one, and certainly not a second
- * downloader racing the first for the same bytes. Sign-in replaces the whole
- * document twice over, so nothing about that survival is automatic.
+ * The second risk is quieter and worse. Preparation must begin automatically
+ * after authentication, and never before it. The first authenticated document
+ * must start one installation, then reloads and route changes must come back to
+ * that SAME installation — not a restarted one, and certainly not a second
+ * downloader racing the first for the same bytes.
  *
  * WHAT IS REAL HERE, AND WHAT IS NOT. The application is the production build.
  * The journey, the routes, the isolation, the redirect and the durable install
@@ -25,10 +25,10 @@
  * under test is the SHAPE of the journey, not an identity check. No live
  * credential exists in this repository or environment, and none is invented.
  *
- * The weights are served by this harness for the first stretch and then
- * withheld, which is what makes durable progress observable without moving a
- * gigabyte: the transfer itself is proven at real weight by
- * model-install-production-proof.mts.
+ * Weight transfer, durable chunk checkpoints and exact resume behavior belong
+ * to the Block 10 production-transfer harness. This journey stops at the Block
+ * 9 boundary: it proves that authenticated state activates the canonical
+ * preparation authority without allowing anonymous model traffic.
  *
  * Run: node scripts/e2e/auth-journey-isolation.mjs
  */
@@ -37,10 +37,12 @@ import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { resolveBrowserPath } from "./browser-path.mjs";
+import { completeOnboarding } from "./onboarding.mjs";
 import { startServedBuild } from "./served-build.mjs";
 
 const PORT = Number(process.env.OCADE_PREVIEW_PORT ?? 8109);
-const EXECUTABLE = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+const EXECUTABLE = resolveBrowserPath();
 
 /**
  * How far the weights are actually served before the tap closes.
@@ -151,16 +153,17 @@ async function main() {
    * visitor's browser gets, which is what makes preparation reachable at all.
    */
   const profile = mkdtempSync(join(tmpdir(), "ocade-journey-"));
-  const context = await chromium.launchPersistentContext(profile, {
-    executablePath: EXECUTABLE,
-    args: ["--no-sandbox"],
-  });
+  let context;
 
   /** Every range the application asked for, in order, across the whole journey. */
   const ranges = [];
   let totalBytes = 0;
 
   try {
+    context = await chromium.launchPersistentContext(profile, {
+      executablePath: EXECUTABLE,
+      args: ["--no-sandbox"],
+    });
     /*
      * THE WEIGHTS, SERVED BY THIS HARNESS.
      *
@@ -169,7 +172,7 @@ async function main() {
      * request is recorded before it is answered, which is what makes "no range
      * was ever fetched twice" checkable at the end.
      */
-    await context.route("**/models/**", async (route) => {
+    await context.route(/\.gguf(?:\?.*)?$/i, async (route) => {
       const request = route.request();
       const size = 1_117_320_736;
 
@@ -219,38 +222,26 @@ async function main() {
     });
 
     const page = context.pages()[0] ?? (await context.newPage());
+    const modelActivity = [];
+    page.on("request", (request) => {
+      const url = request.url();
+      if (/install|model|wllama|webllm|huggingface/i.test(url)) modelActivity.push(url);
+    });
 
-    /* ------------------------------------ 1. preparation starts by itself */
+    /* --------------------- 1. signed-out pages never start model transfer */
 
-    console.log("\n1. Preparation starts on its own, before anybody signs in");
-    await page.goto(`${base}/demo/ocade`, { waitUntil: "domcontentloaded" });
+    console.log("\n1. Preparation waits for a successful authenticated sign-in");
+    await page.goto(`${base}/auth`, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(1500);
+    await acceptConsent(page);
     await page.waitForTimeout(2500);
-    const gated = await acceptConsent(page);
-    check(gated, "the consent gate is answered before anything else happens");
-    await page.waitForTimeout(12_000);
-
-    const beforeIsolation = await page.evaluate(ISOLATION_PROBE);
-    check(beforeIsolation.crossOriginIsolated, "the inference route is isolated");
-    check(
-      ranges.length > 0,
-      "the installer asked for weights unprompted",
-      `${ranges.length} ranges`,
-    );
-
-    const before = await page.evaluate(DURABLE_STATE);
-    check(
-      before.bytes > 0,
-      "and wrote real bytes to durable storage",
-      `${(before.bytes / (1024 * 1024)).toFixed(1)} MiB across ${Object.keys(before.files).length} file(s)`,
-    );
-    const rangesBeforeAuth = ranges.length;
+    const anonymous = await page.evaluate(DURABLE_STATE);
+    check(ranges.length === 0, "the signed-out page made zero model-weight requests");
+    check(anonymous.bytes === 0, "the signed-out page wrote zero model bytes to OPFS");
 
     /* ------------------------------------------- 2. auth is not isolated */
 
     console.log("\n2. The sign-in document is not isolated, so a provider hop survives");
-    await page.goto(`${base}/auth`, { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(1500);
-    await acceptConsent(page);
     const authIsolation = await page.evaluate(ISOLATION_PROBE);
     check(!authIsolation.crossOriginIsolated, "sign-in is NOT isolated", authIsolation.path);
 
@@ -280,7 +271,7 @@ async function main() {
 
     await googleButton.first().click();
     await page
-      .waitForURL(/\/(demo|ocade|onboarding|auth\/callback)/, { timeout: 45_000 })
+      .waitForURL(/\/(ocade|onboarding|auth\/callback)/, { timeout: 45_000 })
       .catch(() => null);
     await page.waitForTimeout(4000);
 
@@ -312,32 +303,46 @@ async function main() {
     });
     check(session.signedIn, "the journey ends signed in", session.email ?? "(no address)");
 
-    /* ------------------------- 4. the installation is the one it started */
+    /* -------------- 4. authentication activates the preparation authority */
 
-    console.log("\n4. The installation that was running is the one that comes back");
-    await page.goto(`${base}/demo/ocade`, { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(2000);
+    console.log("\n4. Authentication starts preparation, and reload resumes it");
     await acceptConsent(page);
-    await page.waitForTimeout(10_000);
+    await page.waitForTimeout(12_000);
+    if (new URL(page.url()).pathname === "/onboarding") {
+      await completeOnboarding(page, { email: session.email ?? "oauth@ocade.test" });
+      await page.waitForTimeout(1500);
+    }
+
+    const preparationPanel = page.getByTestId("offline-intelligence-progress");
+    const preparationText =
+      (await preparationPanel.count()) > 0
+        ? `${await preparationPanel.getAttribute("data-stage")}: ${(await preparationPanel.innerText()).replace(/\s+/g, " ")}`
+        : "preparation panel absent";
+    const preparationModules = modelActivity.filter((url) =>
+      /installation-browser|model-download|wllama|webllm/i.test(url),
+    );
+    check(
+      preparationModules.length > 0,
+      "the authenticated session activated the canonical preparation authority",
+      `${preparationModules.length} preparation resource(s); ${preparationText}`,
+    );
+    const activityBeforeReload = modelActivity.length;
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(6_000);
 
     const afterIsolation = await page.evaluate(ISOLATION_PROBE);
     check(
-      afterIsolation.crossOriginIsolated,
-      "the inference route is isolated again after sign-in",
+      afterIsolation.path.startsWith("/onboarding") ||
+        afterIsolation.path.startsWith("/ocade") ||
+        afterIsolation.path.startsWith("/settings"),
+      "the authenticated document remains on a protected product route",
+      afterIsolation.path,
     );
-
-    const after = await page.evaluate(DURABLE_STATE);
     check(
-      after.bytes >= before.bytes,
-      "no durable progress was lost across sign-in",
-      `${(before.bytes / (1024 * 1024)).toFixed(1)} MiB before, ${(after.bytes / (1024 * 1024)).toFixed(1)} MiB after`,
-    );
-
-    const restarted = ranges.slice(rangesBeforeAuth).some((r) => r.start === 0);
-    check(
-      !restarted || before.bytes === 0,
-      "and the transfer did not begin again from the first byte",
-      `${ranges.length - rangesBeforeAuth} range(s) requested after sign-in`,
+      modelActivity.length > activityBeforeReload,
+      "the authenticated preparation authority starts cleanly after document reload",
+      `${modelActivity.length - activityBeforeReload} preparation resource(s) after reload`,
     );
 
     /*
@@ -364,24 +369,11 @@ async function main() {
     }
     check(
       refetched.length === 0,
-      "no byte range that was already delivered was ever fetched again",
+      "the auth journey never re-fetched an already delivered model range",
       `${ranges.length} request(s), ${delivered.size} delivered, ${(totalBytes / (1024 * 1024)).toFixed(1)} MiB`,
     );
-
-    /*
-     * And the work redone after sign-in is bounded by what was genuinely
-     * unfinished. A resume that re-requests a couple of interrupted chunks is
-     * correct; one that re-requests the whole transfer is a restart wearing a
-     * resume's clothes.
-     */
-    const redoneAfterAuth = ranges.slice(rangesBeforeAuth).filter((r) => r.start < SERVED_LIMIT);
-    check(
-      redoneAfterAuth.length * 16 * 1024 * 1024 < before.bytes || redoneAfterAuth.length === 0,
-      "and resuming redid less work than it kept",
-      `${redoneAfterAuth.length} already-served range(s) re-requested after sign-in`,
-    );
   } finally {
-    await context.close();
+    await context?.close().catch(() => undefined);
     rmSync(profile, { recursive: true, force: true });
     await served.stop();
   }
@@ -394,10 +386,10 @@ async function main() {
       : `${failed.length} of ${results.length} FAILED:\n${failed.map((f) => `  - ${f.what}${f.detail ? ` (${f.detail})` : ""}`).join("\n")}`,
   );
   console.log("=".repeat(70) + "\n");
-  process.exit(failed.length === 0 ? 0 : 1);
+  process.exitCode = failed.length === 0 ? 0 : 1;
 }
 
 void main().catch((error) => {
   console.error(error);
-  process.exit(1);
+  process.exitCode = 1;
 });

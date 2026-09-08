@@ -127,7 +127,7 @@ export function DataWorkbench() {
       {scopeExpired ? (
         <div
           role="status"
-          className="mt-2 rounded-lg border border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 p-3 text-xs"
+          className="mt-2 rounded-lg border border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)] p-3 text-xs"
         >
           <p className="font-medium text-foreground">This session's approval has expired</p>
           <p className="mt-0.5 text-muted-foreground">
@@ -172,8 +172,8 @@ export function DataWorkbench() {
           className={cn(
             "mt-3 rounded-lg border p-3 text-xs",
             outcome.status === "done"
-              ? "border-[color:var(--state-success)]/40 bg-[color:var(--state-success)]/10"
-              : "border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10",
+              ? "border-[color:var(--state-success-line-strong)] bg-[color:var(--state-success-surface)]"
+              : "border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)]",
           )}
         >
           <p className="flex items-center gap-1.5 font-medium text-foreground">

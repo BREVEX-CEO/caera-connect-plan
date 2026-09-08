@@ -81,4 +81,8 @@ describe("initial engine state", () => {
     }
     expect(renderToStaticMarkup(<DisabledProbe />)).toContain('data-status="idle"');
   });
+
+  it("does not infer a raw desktop runtime from an ordinary web render", () => {
+    expect(render()).toContain('data-status="idle"');
+  });
 });

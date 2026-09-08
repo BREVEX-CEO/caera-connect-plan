@@ -97,7 +97,7 @@ export function AnswerDiff({
                 key={`${span.kind}-${index}`}
                 className={cn(
                   span.kind === "added" &&
-                    "rounded bg-[color:var(--state-success)]/15 text-[color:var(--state-success)]",
+                    "rounded bg-[color:var(--state-success-surface-strong)] text-[color:var(--state-success)]",
                   span.kind === "removed" &&
                     "rounded bg-destructive/15 text-destructive line-through decoration-1",
                 )}

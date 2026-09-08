@@ -31,7 +31,12 @@ import type { OcadeLocalProfile } from "../src/lib/ocade-capability-labels.ts";
 
 const BRIDGE = process.env.OCADE_LOCAL_BRIDGE_URL ?? DEFAULT_LOCAL_BRIDGE_URL;
 
-type Step = { id: string; what: string; status: "observed" | "skipped" | "failed"; detail: unknown };
+type Step = {
+  id: string;
+  what: string;
+  status: "observed" | "skipped" | "failed";
+  detail: unknown;
+};
 const steps: Step[] = [];
 function record(id: string, what: string, status: Step["status"], detail: unknown) {
   steps.push({ id, what, status, detail });
@@ -165,11 +170,16 @@ async function main() {
         /* left false */
       }
     }
-    record("E07", "structured (tool-shaped) output parses as JSON", jres.ok && parseOk ? "observed" : "failed", {
-      totalMs: Date.now() - t2,
-      parsed,
-      rawPreview: json.trim().slice(0, 200),
-    });
+    record(
+      "E07",
+      "structured (tool-shaped) output parses as JSON",
+      jres.ok && parseOk ? "observed" : "failed",
+      {
+        totalMs: Date.now() - t2,
+        parsed,
+        rawPreview: json.trim().slice(0, 200),
+      },
+    );
   }
 
   // Unreachable bridge — must report honestly, not throw or fabricate.
@@ -180,7 +190,12 @@ async function main() {
     offline.ok === false && offline.reachable === false && offline.models.length === 0
       ? "observed"
       : "failed",
-    { ok: offline.ok, reachable: offline.reachable, reason: offline.reason, models: offline.models.length },
+    {
+      ok: offline.ok,
+      reachable: offline.reachable,
+      reason: offline.reason,
+      models: offline.models.length,
+    },
   );
 
   // Honest refusal when there is no local engine and no cloud permission.

@@ -554,8 +554,8 @@ function MobilePage() {
                         d.revoked
                           ? "bg-destructive/15 text-destructive"
                           : trusted
-                            ? "bg-[color:var(--state-success)]/15 text-[color:var(--state-success)]"
-                            : "bg-[color:var(--state-warning)]/15 text-[color:var(--state-warning)]",
+                            ? "bg-[color:var(--state-success-surface-strong)] text-[color:var(--state-success)]"
+                            : "bg-[color:var(--state-warning-surface-strong)] text-[color:var(--state-warning)]",
                       )}
                     >
                       {d.revoked ? (

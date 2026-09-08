@@ -313,7 +313,7 @@ describe("the landing page keeps its promises to a keyboard and a screen reader"
      * hide. The actions live in ordinary sections below the hero, so no phase
      * conditional touches them, which is a stronger guarantee than the old one.
      */
-    for (const label of ["Open the demo", "Create account", "Sign in"]) {
+    for (const label of ["Create a free account", "Create account", "Sign in"]) {
       expect(LANDING, `${label} is missing`).toContain(label);
     }
     expect(LANDING, "an action is hidden behind an intro phase").not.toMatch(

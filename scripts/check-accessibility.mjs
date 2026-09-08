@@ -86,7 +86,8 @@ function attributesOf(src, start) {
 function wrappedInLabel(src, index) {
   const before = src.slice(0, index);
   let open = 0;
-  const re = /<(\/?)label\b/g;
+  // `<Label>` too: the project's label component renders a native <label>.
+  const re = /<(\/?)[Ll]abel\b/g;
   let m;
   while ((m = re.exec(before))) open += m[1] === "/" ? -1 : 1;
   return open > 0;
@@ -205,10 +206,30 @@ for (const file of files) {
   // --- inputs without an accessible name ---------------------------------
   for (const m of src.matchAll(/<(input|select|textarea)\b/g)) {
     const attrs = attributesOf(src, m.index);
+    /*
+     * THE ID MAY BE STATIC OR AN EXPRESSION, and both are real associations.
+     *
+     * The first version read only `id="literal"`. This codebase labels most
+     * repeated controls with a computed id — `id={`role-${member.id}`}` beside
+     * `htmlFor={`role-${member.id}`}` — because there is one per row, and the
+     * gate called every one of them unlabelled. The fix is not to loosen the
+     * rule: an expression id counts only when a label carries the BYTE-IDENTICAL
+     * expression, which is the same association a reader resolves at runtime.
+     */
     const staticId = /\bid=["']([^"']+)["']/.exec(attrs)?.[1];
-    const escapedId = staticId?.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const expressionId = /\bid=(\{(?:[^{}]|\{[^{}]*\})*\})/.exec(attrs)?.[1];
+    const escape = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    /*
+     * `<Label>` IS `<label>`. The project's label component is Radix's, which
+     * renders a native `<label>` and forwards `htmlFor` unchanged — so a gate
+     * that matched only the lowercase tag was blind to the association pattern
+     * the codebase actually uses, and would have pushed people toward redundant
+     * `aria-label`s that make screen readers announce a control twice.
+     */
+    const labelFor = (idPattern) => new RegExp(`<[Ll]abel\\b[^>]*htmlFor=${idPattern}`).test(src);
     const hasMatchingLabel =
-      escapedId !== undefined && new RegExp(`<label\\b[^>]*htmlFor=["']${escapedId}["']`).test(src);
+      (staticId !== undefined && labelFor(`["']${escape(staticId)}["']`)) ||
+      (expressionId !== undefined && labelFor(escape(expressionId)));
     const hidden =
       /type=\{?["']hidden/.test(attrs) ||
       /\bhidden(?:\s|$|=)/.test(attrs) ||

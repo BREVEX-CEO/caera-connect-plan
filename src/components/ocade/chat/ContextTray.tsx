@@ -66,7 +66,8 @@ export function ContextTray({
               key={entry.id}
               className={cn(
                 "flex items-start gap-2 rounded-lg border border-border/50 bg-background/50 px-2 py-1.5",
-                entry.treatment === "unreadable" && "border-[color:var(--state-warning)]/40",
+                entry.treatment === "unreadable" &&
+                  "border-[color:var(--state-warning-line-strong)]",
               )}
             >
               <Icon

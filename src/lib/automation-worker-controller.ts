@@ -7,7 +7,7 @@
  */
 import { mapWithConcurrency } from "./skills/concurrency";
 import type { AutomationSupervisorOutcome } from "./automation-supervisor";
-import { redactForAudit } from "./native/companion-bridge";
+import { redactForAudit } from "@/lib/security/protected-text";
 
 export interface AutomationQueueSource {
   listEligibleRunIds(input: { limit: number; now: string }): Promise<string[]>;

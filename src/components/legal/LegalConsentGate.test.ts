@@ -4,11 +4,10 @@ import {
   needsLegalConsent,
   readLegalConsent,
   usesAccountConsentReceipt,
-} from "./LegalConsentGate";
+} from "@/lib/legal/consent-receipts";
 
 describe("mandatory legal consent gate", () => {
-  it("gates product, demo, authentication and settings routes but not public legal pages", () => {
-    expect(needsLegalConsent("/demo/ocade")).toBe(true);
+  it("gates product, authentication and settings routes but not public legal pages", () => {
     expect(needsLegalConsent("/ocade/work")).toBe(true);
     expect(needsLegalConsent("/auth")).toBe(true);
     expect(needsLegalConsent("/settings/privacy")).toBe(true);
@@ -31,8 +30,6 @@ describe("mandatory legal consent gate", () => {
       "/faq",
       "/search",
       "/auth",
-      "/demo/ocade",
-      "/demo/control",
     ]) {
       expect(usesAccountConsentReceipt(pathname), pathname).toBe(false);
     }

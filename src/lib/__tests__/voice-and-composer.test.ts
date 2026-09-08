@@ -217,7 +217,7 @@ describe("the + menu does not cover the message being written", () => {
   it("answers a sign-in gate instead of greying the item out", () => {
     /*
      * THE DEAD CONTROL THIS REPLACES. Upload image, upload file and add link
-     * were rendered `disabled` for every demo visitor — three greyed rows that
+     * were rendered `disabled` for every signed-out visitor — three greyed rows that
      * could not be pressed and did not say why. A disabled control is the right
      * answer to a CAPABILITY limit ("this browser cannot read images") and the
      * wrong answer to an ACCOUNT one, because the second has a remedy and the
@@ -233,10 +233,17 @@ describe("the + menu does not cover the message being written", () => {
   });
 
   it("keeps text chat open when uploads are gated", () => {
-    // The 28-minute demo has to remain a usable chat, not a locked shell.
-    const DEMO = readFileSync("src/routes/demo.ocade.tsx", "utf8");
-    expect(DEMO).toMatch(/signedIn=\{false\}/);
-    expect(DEMO, "the composer itself was disabled").not.toMatch(/<ChatComposer[^>]*\sdisabled\b/);
+    /*
+     * A signed-out visitor gets a usable chat, not a locked shell: the account
+     * gate routes to sign-in from the menu row that needs it, and the composer
+     * itself is never disabled wholesale.
+     */
+    const MENU = readFileSync("src/components/ocade/chat/ComposerMenu.tsx", "utf8");
+    expect(MENU).toMatch(/requiresSignIn: !signedIn/);
+    const COMPOSER = readFileSync("src/components/ocade/chat/ChatComposer.tsx", "utf8");
+    expect(COMPOSER, "the composer itself was disabled").not.toMatch(
+      /<textarea[^>]*\sdisabled=\{!signedIn\}/,
+    );
   });
 });
 
@@ -247,7 +254,7 @@ describe("the microphone is unmistakable when it is open", () => {
      * is not: losing the "we are recording" indicator to an accessibility
      * preference would be a privacy failure wearing an accessibility badge.
      */
-    const ring = /ring-2 ring-\[color:var\(--state-danger\)\]\/60/;
+    const ring = /ring-2 ring-destructive\/60/;
     expect(DICTATE).toMatch(ring);
     const ringLine = DICTATE.split("\n").find((l) => ring.test(l)) ?? "";
     expect(ringLine).not.toMatch(/motion-safe/);

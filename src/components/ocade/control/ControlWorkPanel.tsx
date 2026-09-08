@@ -207,9 +207,9 @@ export function ControlWorkPanel({
           general.
         */}
         <div className="pointer-events-none absolute left-6 top-5 max-w-[70%]">
-          <p className="truncate text-[11.5px] text-[oklch(0.85_0.05_82)]/70">{machineLine}</p>
+          <p className="truncate text-[11.5px] text-[oklch(0.85_0_0)]/70">{machineLine}</p>
           {connected && mission.start?.voice ? (
-            <p className="mt-0.5 truncate text-[10.5px] text-[oklch(0.8_0.04_82)]/45">
+            <p className="mt-0.5 truncate text-[10.5px] text-[oklch(0.8_0_0)]/45">
               Voice: {mission.start.voice.voiceName}
               {mission.start.voice.cloudRequired ? "" : " · on this device"}
             </p>
@@ -349,7 +349,7 @@ export function ControlWorkPanel({
             <div key={turn.id}>
               {turn.role === "you" ? (
                 <div className="flex justify-end">
-                  <p className="max-w-[88%] rounded-2xl rounded-br-md bg-[oklch(0.72_0.13_82)]/15 px-3.5 py-2 text-[13px] leading-relaxed text-foreground">
+                  <p className="max-w-[88%] rounded-2xl rounded-br-md bg-[oklch(0.72_0_0)]/15 px-3.5 py-2 text-[13px] leading-relaxed text-foreground">
                     {turn.text}
                   </p>
                 </div>
@@ -380,7 +380,7 @@ export function ControlWorkPanel({
                 "rounded-xl border px-4 py-3",
                 mission.approval.risk === "high"
                   ? "border-destructive/45 bg-destructive/10"
-                  : "border-[oklch(0.72_0.13_82)]/40 bg-[oklch(0.72_0.13_82)]/10",
+                  : "border-[oklch(0.72_0_0)]/40 bg-[oklch(0.72_0_0)]/10",
               )}
             >
               <p className="text-[13px] font-medium text-foreground">{mission.approval.question}</p>
@@ -416,8 +416,8 @@ export function ControlWorkPanel({
         </div>
 
         {/* ----------------------------------------------------- the composer -- */}
-        <div className="border-t border-[oklch(0.28_0.02_80)]/50 p-3">
-          <div className="rounded-2xl border border-[oklch(0.3_0.02_80)]/60 bg-[oklch(0.155_0.008_75)] px-3 py-2.5">
+        <div className="border-t border-[oklch(0.28_0_0)]/50 p-3">
+          <div className="rounded-2xl border border-[oklch(0.3_0_0)]/60 bg-[oklch(0.155_0_0)] px-3 py-2.5">
             <textarea
               ref={composerRef}
               value={prompt}
@@ -431,7 +431,7 @@ export function ControlWorkPanel({
               rows={2}
               placeholder="Ask OCADE to control or work on this computer…"
               aria-label="Ask OCADE to control or work on this computer"
-              className="min-h-[40px] w-full resize-none bg-transparent text-[13px] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/50"
+              className="min-h-[40px] w-full resize-none bg-transparent text-[13px] leading-relaxed text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-muted-foreground/50"
             />
             <div className="mt-1.5 flex items-center gap-1.5">
               <Button
@@ -475,7 +475,7 @@ export function ControlWorkPanel({
               <div
                 role="radiogroup"
                 aria-label="Interaction mode"
-                className="ml-1 inline-flex items-center rounded-full border border-[oklch(0.3_0.02_80)]/70 p-0.5"
+                className="ml-1 inline-flex items-center rounded-full border border-[oklch(0.3_0_0)]/70 p-0.5"
               >
                 {(["prompt", "voice"] as const).map((option) => (
                   <button
@@ -487,7 +487,7 @@ export function ControlWorkPanel({
                     className={cn(
                       "rounded-full px-2.5 py-1 text-[10.5px] transition-colors",
                       mission.mode === option
-                        ? "bg-[oklch(0.72_0.13_82)]/20 text-foreground"
+                        ? "bg-[oklch(0.72_0_0)]/20 text-foreground"
                         : "text-muted-foreground/70 hover:text-foreground",
                     )}
                   >
@@ -535,7 +535,7 @@ export function ControlWorkPanel({
                           event.target.value === "" ? null : Number(event.target.value),
                         )
                       }
-                      className="h-7 max-w-[190px] rounded-full border border-[oklch(0.3_0.02_80)]/70 bg-transparent px-2.5 text-[10.5px] text-muted-foreground/90 outline-none"
+                      className="h-7 max-w-[190px] rounded-full border border-[oklch(0.3_0_0)]/70 bg-transparent px-2.5 text-[10.5px] text-muted-foreground/90 outline-none"
                     >
                       <option value="">System default</option>
                       {mission.mic.devices.map((device) => (
@@ -560,12 +560,12 @@ export function ControlWorkPanel({
                 </>
               ) : null}
 
-              <span className="ml-1 inline-flex items-center gap-1.5 rounded-full border border-[oklch(0.3_0.02_80)]/70 px-2.5 py-1 text-[10.5px] text-muted-foreground/80">
+              <span className="ml-1 inline-flex items-center gap-1.5 rounded-full border border-[oklch(0.3_0_0)]/70 px-2.5 py-1 text-[10.5px] text-muted-foreground/80">
                 <span
                   aria-hidden
                   className={cn(
                     "h-1.5 w-1.5 rounded-full",
-                    connected ? "bg-[oklch(0.72_0.16_145)]" : "bg-muted-foreground/50",
+                    connected ? "bg-[oklch(0.72_0_0)]" : "bg-muted-foreground/50",
                   )}
                 />
                 On this device
@@ -634,7 +634,7 @@ function SceneButton({
       size="sm"
       variant="ghost"
       onClick={onClick}
-      className="h-7 gap-1.5 rounded-full border border-[oklch(0.35_0.03_80)]/60 bg-background/50 px-3 text-[11.5px] backdrop-blur hover:bg-background/70"
+      className="h-7 gap-1.5 rounded-full border border-[oklch(0.35_0_0)]/60 bg-background/50 px-3 text-[11.5px] backdrop-blur hover:bg-background/70"
     >
       {icon}
       {label}
@@ -662,10 +662,10 @@ function Steps({ entries, live = false }: { entries: TimelineEntry[]; live?: boo
               entry.kind === "problem" || entry.kind === "refused"
                 ? "bg-destructive/70"
                 : entry.kind === "asked"
-                  ? "bg-[oklch(0.72_0.13_82)]"
+                  ? "bg-[oklch(0.72_0_0)]"
                   : entry.verified === false
                     ? "bg-muted-foreground/45"
-                    : "bg-[oklch(0.72_0.16_145)]/80",
+                    : "bg-[oklch(0.72_0_0)]/80",
               live && entry.kind === "acting" ? "animate-pulse" : "",
             )}
           />

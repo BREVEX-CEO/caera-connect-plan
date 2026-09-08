@@ -86,7 +86,7 @@ export function ControlCommandDeck({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search 56 controls"
-            className="h-8 w-full rounded-full border border-border/70 bg-black/25 pl-8 pr-3 text-[11.5px] text-foreground outline-none transition focus:border-[color:var(--accent-ocade)]/55"
+            className="h-8 w-full rounded-full border border-border/70 bg-black/25 pl-8 pr-3 text-[11.5px] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring transition focus:border-[color:var(--accent-ocade)]/55"
           />
         </label>
       </div>

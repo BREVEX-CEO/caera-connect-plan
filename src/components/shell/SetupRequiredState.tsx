@@ -29,7 +29,7 @@ export function SetupRequiredState({
   return (
     <GlassPanel className="flex flex-col items-start gap-3 p-6">
       <div className="flex items-center gap-3">
-        <div className="rounded-lg bg-[color:var(--state-warning)]/15 p-2 text-[color:var(--state-warning)]">
+        <div className="rounded-lg bg-[color:var(--state-warning-surface-strong)] p-2 text-[color:var(--state-warning)]">
           <AlertCircle className="h-5 w-5" aria-hidden />
         </div>
         <div>

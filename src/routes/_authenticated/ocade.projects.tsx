@@ -564,10 +564,6 @@ function ProjectsPage() {
             }
           />
         )
-      ) : projects === null ? (
-        <GlassPanel className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading projects…
-        </GlassPanel>
       ) : (
         /*
          * THE SHELL RENDERS WHILE THE LIST LOADS.
@@ -577,8 +573,16 @@ function ProjectsPage() {
          * network. Worse, the session resolves after first paint, so there is
          * always a moment where the whole page is a spinner, and if a person is
          * signed out the moment lasts forever: no header controls, nothing to
-         * press, nothing explaining why. The loading state now covers only the
-         * part that is actually loading.
+         * press, nothing explaining why.
+         *
+         * THAT COMMENT WAS TRUE OF THE COLUMN AND NOT OF THE PAGE. An outer
+         * `projects === null` branch still replaced the whole layout with the
+         * same spinner, so the intent described here was defeated three lines
+         * above it — and the list column below already has its own loading
+         * state, which is the one that belongs. It became visible when
+         * `useSession` started resolving a dynamic import: the shell had no
+         * controls at all until the list arrived, on a page whose create box
+         * never needed the network.
          */
         <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
           {/* Project list + create */}

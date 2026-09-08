@@ -2,7 +2,7 @@
 
 **Rights Holder / Owner:** CARCC CADANE  
 **Authorized Product:** OCADE  
-**Effective Date:** 26 August 2026  
+**Effective Date:** 26 August 2026
 
 CARCC CADANE represents and declares that it owns or otherwise lawfully controls all intellectual-property rights necessary to possess, use, modify, reproduce, compile, execute, test, debug, repair, refactor, reorganize, adapt, translate, rename, rebrand, combine, integrate, create derivative works from, commercially exploit, distribute, redistribute and sublicense the software source code, documentation, assets, modules, tools, interfaces, prompts, workflows, configurations and related materials contained in this licensed OCADE source package (collectively, the “Licensed Source”), except for any third-party or open-source components that are expressly identified in `NOTICE.md` or otherwise carry their own applicable licence terms.
 

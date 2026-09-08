@@ -21,7 +21,7 @@ describe("truthful public journal and careers content", () => {
       "Share this article",
       "Related articles",
       "Comments",
-      "Open the OCADE demo",
+      "Create a free account",
     ])
       expect(post).toContain(value);
     for (const value of [

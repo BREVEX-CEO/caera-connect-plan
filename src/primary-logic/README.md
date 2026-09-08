@@ -14,24 +14,24 @@ inference client, an analytics sink and a remote bridge, then required every one
 of them to be disabled. The licence explicitly permits removing what does not
 suit the target, so those layers were not imported at all.
 
-What was imported is the part of the archive that is genuinely *logic*: rules,
+What was imported is the part of the archive that is genuinely _logic_: rules,
 parsers, state machines and contracts that do not care what is drawing the
 screen. That code is stronger than what OCADE had, and it is now what OCADE
 runs on.
 
 ## Layout, by responsibility
 
-| Directory | What lives here |
-|---|---|
+| Directory      | What lives here                                                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `permissions/` | The permission and risk model: modes, rules, rule parsing and serialisation, shell-rule matching, the dangerous-pattern table, classifier shapes, denial tracking. |
-| `commands/` | Shell safety. A complete bash parser, heredoc handling, pipe splitting, quoting, and the destructive-command warnings for both bash and PowerShell. |
-| `agent/` | Agent-loop primitives: token budgeting, turn transitions, abort composition, a guarded async mailbox, sequential scheduling, tool limits. |
-| `tasks/` | Task and todo state: schemas, status transitions, and the tool-facing task contracts. |
-| `memory/` | Memory record shapes and the age/decay model used to decide what is still relevant. |
-| `tools/` | Tool-contract primitives: zod→JSON-schema conversion, schema caching, and the tool prompt/description text. |
-| `protocol/` | The message protocol the runtime speaks — content blocks, tool-use and tool-result shapes, stream events, session ids. |
-| `text/` | Leaf utilities the above depend on: string handling, XML, formatting, hashing, ids, sanitisation. |
-| `shims/` | The four boundaries where the donor assumed a terminal, a Node process, a bundler macro or a telemetry sink. See `shims/README.md`. |
+| `commands/`    | Shell safety. A complete bash parser, heredoc handling, pipe splitting, quoting, and the destructive-command warnings for both bash and PowerShell.                |
+| `agent/`       | Agent-loop primitives: token budgeting, turn transitions, abort composition, a guarded async mailbox, sequential scheduling, tool limits.                          |
+| `tasks/`       | Task and todo state: schemas, status transitions, and the tool-facing task contracts.                                                                              |
+| `memory/`      | Memory record shapes and the age/decay model used to decide what is still relevant.                                                                                |
+| `tools/`       | Tool-contract primitives: zod→JSON-schema conversion, schema caching, and the tool prompt/description text.                                                        |
+| `protocol/`    | The message protocol the runtime speaks — content blocks, tool-use and tool-result shapes, stream events, session ids.                                             |
+| `text/`        | Leaf utilities the above depend on: string handling, XML, formatting, hashing, ids, sanitisation.                                                                  |
+| `shims/`       | The four boundaries where the donor assumed a terminal, a Node process, a bundler macro or a telemetry sink. See `shims/README.md`.                                |
 
 ## What is deliberately absent
 

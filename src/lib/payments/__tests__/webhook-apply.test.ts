@@ -25,13 +25,21 @@ function envelope(over: Partial<VerifiedEventEnvelope> = {}): VerifiedEventEnvel
   };
 }
 
-const oneTimeItem = {
-  price: { import_meta: { external_id: "ocade_std_8d_once" } },
-  product: { import_meta: { external_id: "ocade_std_8d" } },
+/**
+ * Catalogue items as the provider sends them.
+ *
+ * Both cadences of one tier share a PRODUCT and differ by PRICE, which is why
+ * the handler resolves plans by price id — resolving by product would make a
+ * weekly purchase indistinguishable from a monthly one, and the amount charged
+ * is the difference.
+ */
+const weeklyItem = {
+  price: { import_meta: { external_id: "ocade_pro_weekly" } },
+  product: { import_meta: { external_id: "ocade_pro" } },
 };
 const monthlyItem = {
-  price: { import_meta: { external_id: "ocade_month_1m_monthly" } },
-  product: { import_meta: { external_id: "ocade_month_1m" } },
+  price: { import_meta: { external_id: "ocade_pro_monthly" } },
+  product: { import_meta: { external_id: "ocade_pro" } },
 };
 
 function completedTransaction(over: Record<string, unknown> = {}) {
@@ -41,65 +49,38 @@ function completedTransaction(over: Record<string, unknown> = {}) {
       id: "txn_abc",
       customer_id: "ctm_1",
       custom_data: { userId: "user-1" },
-      items: [oneTimeItem],
+      items: [monthlyItem],
       billed_at: T0,
       ...over,
     },
   });
 }
 
-describe("the one-time pass OCADE sells can actually be delivered", () => {
-  it("creates a time-limited entitlement from transaction.completed", () => {
-    const result = decide(completedTransaction(), null);
-    expect(result.action).toBe("upsert");
-    if (result.action !== "upsert") return;
-    expect(result.row.user_id).toBe("user-1");
-    expect(result.row.kind).toBe("one_time");
-    expect(result.row.status).toBe("active");
-    expect(result.row.price_id).toBe("ocade_std_8d_once");
-  });
-
-  it("ends the pass exactly eight days after it was billed, as the page promises", () => {
-    const result = decide(completedTransaction(), null);
-    if (result.action !== "upsert") throw new Error("expected an entitlement");
-    const start = new Date(result.row.current_period_start!).getTime();
-    const end = new Date(result.row.current_period_end!).getTime();
-    expect((end - start) / (24 * 60 * 60 * 1000)).toBe(8);
-  });
-
-  it("keys the row on the transaction, so a retry grants nothing extra", () => {
-    const first = decide(completedTransaction(), null);
-    const retry = decide(completedTransaction(), null);
-    if (first.action !== "upsert" || retry.action !== "upsert") throw new Error("no");
-    expect(retry.row.paddle_subscription_id).toBe(first.row.paddle_subscription_id);
-  });
-
-  it("gives a repeat purchase its own entitlement, because that is what buying again means", () => {
-    const again = decide(completedTransaction({ id: "txn_def", billed_at: T1 }), null);
-    if (again.action !== "upsert") throw new Error("no");
-    expect(again.row.paddle_subscription_id).toBe("txn_def");
-    expect(again.row.current_period_start).toBe(T1);
-  });
-
-  it("does not mistake a subscription renewal's transaction for a purchase", () => {
-    const renewal = completedTransaction({ subscription_id: "sub_1", items: [monthlyItem] });
-    expect(decide(renewal, null)).toEqual({
+describe("a completed transaction never grants an entitlement by itself", () => {
+  /*
+   * THE ONE-TIME PASS IS RETIRED. Every plan in the catalogue is a
+   * subscription, and a subscription grants its entitlement through the
+   * `subscription.*` events — which carry the period, the status and the
+   * cancellation state that a transaction does not.
+   *
+   * This matters beyond tidiness. Paddle fires `transaction.completed` for
+   * every renewal of every subscription, so a path that granted access here
+   * would write a second, overlapping entitlement each billing period. And a
+   * grant driven by a bare transaction is precisely the shape a forged or
+   * replayed purchase would take.
+   *
+   * So the case is explicit and refuses, rather than being deleted and falling
+   * through to a default: a future one-time plan has to be implemented
+   * deliberately instead of inherited.
+   */
+  it("ignores a renewal's transaction rather than granting a second period", () => {
+    expect(decide(completedTransaction({ items: [monthlyItem] }), null)).toEqual({
       action: "ignore",
       reason: "subscription_transaction",
     });
   });
 
-  it("ignores a completed transaction for a plan that is not one-time", () => {
-    const monthly = completedTransaction({ items: [monthlyItem] });
-    expect(decide(monthly, null)).toEqual({ action: "ignore", reason: "not_a_one_time_plan" });
-  });
-
-  it("refuses to invent a duration for a one-time plan that has none", () => {
-    /*
-     * The guard that keeps the original defect from returning in a new shape:
-     * adding a one-time plan to the catalogue without stating how long it lasts
-     * must record nothing rather than granting an arbitrary length.
-     */
+  it("ignores a transaction for an item the catalogue does not know", () => {
     const unknown = completedTransaction({
       items: [
         {
@@ -108,25 +89,71 @@ describe("the one-time pass OCADE sells can actually be delivered", () => {
         },
       ],
     });
-    expect(decide(unknown, null).action).toBe("ignore");
+    expect(decide(unknown, null)).toEqual({
+      action: "ignore",
+      reason: "unknown_catalogue_item",
+    });
   });
 
-  it("every one-time plan in the sellable catalogue can be delivered", () => {
-    for (const plan of SELLABLE_PLANS.filter((p) => p.cadence === "one-time")) {
+  it("ignores a transaction carrying no catalogue item at all", () => {
+    expect(decide(completedTransaction({ items: [] }), null)).toEqual({
+      action: "ignore",
+      reason: "unknown_catalogue_item",
+    });
+  });
+
+  it("never upserts from transaction.completed, whatever the payload says", () => {
+    /*
+     * The property, not the cases. Any transaction — a known plan, an unknown
+     * one, one carrying a user id, one carrying a subscription id — must end in
+     * `ignore`, so no payload shape can be found that opens a grant.
+     */
+    for (const over of [
+      {},
+      { items: [monthlyItem] },
+      { custom_data: {} },
+      { subscription_id: "sub_1" },
+      { items: [{ price: {}, product: {} }] },
+    ]) {
+      expect(decide(completedTransaction(over), null).action, JSON.stringify(over)).toBe("ignore");
+    }
+  });
+
+  it("tells the two cadences of one tier apart, because the price differs", () => {
+    /*
+     * Pro weekly and Pro monthly share a provider PRODUCT. If the handler ever
+     * resolves by product, both subscriptions record the same plan and one of
+     * the two prices is silently attributed to the wrong one.
+     */
+    const rows = [weeklyItem, monthlyItem].map((item) => {
       const result = decide(
-        completedTransaction({
-          items: [
-            {
-              price: { import_meta: { external_id: plan.priceId } },
-              product: { import_meta: { external_id: plan.productId } },
-            },
-          ],
+        envelope({
+          eventType: "subscription.created",
+          data: {
+            id: `sub_${item.price.import_meta.external_id}`,
+            customer_id: "ctm_1",
+            custom_data: { userId: "user-1" },
+            status: "active",
+            items: [item],
+          },
         }),
         null,
       );
-      expect(result.action, `${plan.planId} is for sale but produces no entitlement`).toBe(
-        "upsert",
-      );
+      if (result.action !== "upsert") throw new Error("expected an upsert");
+      return result.row;
+    });
+    expect(rows[0]!.price_id).toBe("ocade_pro_weekly");
+    expect(rows[1]!.price_id).toBe("ocade_pro_monthly");
+    expect(rows[0]!.product_id).toBe(rows[1]!.product_id);
+    expect(rows[0]!.price_id).not.toBe(rows[1]!.price_id);
+  });
+
+  it("sells no one-time plan at all", () => {
+    // The catalogue and the handler agree: if this ever fails, the handler
+    // above silently stopped delivering something that is on sale.
+    expect(SELLABLE_PLANS.filter((plan) => (plan.cadence as string) === "one-time")).toEqual([]);
+    for (const plan of SELLABLE_PLANS) {
+      expect(["weekly", "monthly"]).toContain(plan.cadence);
     }
   });
 });
@@ -325,11 +352,22 @@ describe("sandbox and live never touch each other", () => {
 });
 
 describe("an event OCADE cannot attribute is not applied", () => {
-  it("refuses a purchase with no user id, rather than guessing an owner", () => {
-    expect(decide(completedTransaction({ custom_data: {} }), null)).toEqual({
-      action: "ignore",
-      reason: "no_user_id",
-    });
+  it("refuses a subscription with no user id, rather than guessing an owner", () => {
+    expect(
+      decide(
+        envelope({
+          eventType: "subscription.created",
+          data: {
+            id: "sub_1",
+            customer_id: "ctm_1",
+            custom_data: {},
+            status: "active",
+            items: [monthlyItem],
+          },
+        }),
+        null,
+      ),
+    ).toEqual({ action: "ignore", reason: "no_user_id" });
   });
 
   it("stores catalogue ids only, never the provider's environment-specific ones", () => {
@@ -352,7 +390,7 @@ describe("an event OCADE cannot attribute is not applied", () => {
       null,
     );
     if (result.action !== "upsert") throw new Error("no");
-    expect(result.row.price_id).toBe("ocade_month_1m_monthly");
+    expect(result.row.price_id).toBe("ocade_pro_monthly");
     expect(JSON.stringify(result.row)).not.toContain("pri_live_internal");
   });
 

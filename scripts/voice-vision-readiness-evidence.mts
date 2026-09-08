@@ -65,7 +65,9 @@ const partial = perceptionRuntimeReadiness({
 record(
   "V03",
   "a partially-provisioned host is refused and names what is missing",
-  partial.liveReady === false && partial.missing.includes("screen-capture permission") ? "observed" : "failed",
+  partial.liveReady === false && partial.missing.includes("screen-capture permission")
+    ? "observed"
+    : "failed",
   { liveReady: partial.liveReady, missing: partial.missing },
 );
 
@@ -105,15 +107,24 @@ const evidence = {
     "That OCADE, executed against this host's real conditions, refuses to report live perception or listening capability and names exactly what is absent.",
   blockedBy: [
     { need: "signed native companion", blocker: "desktop-build-sign-update" },
-    { need: "screen-capture and accessibility permissions on a real desktop session", blocker: "desktop-build-sign-update" },
-    { need: "physical microphone and a real browser session for SpeechRecognition", blocker: "real-application-and-device-matrix" },
+    {
+      need: "screen-capture and accessibility permissions on a real desktop session",
+      blocker: "desktop-build-sign-update",
+    },
+    {
+      need: "physical microphone and a real browser session for SpeechRecognition",
+      blocker: "real-application-and-device-matrix",
+    },
   ],
   host: { platform: platform(), arch: arch(), node: process.version },
   summary: { observed, failed, total: steps.length },
   steps,
 };
 
-writeFileSync("release/OCADE_P14_VOICE_VISION_READINESS_EVIDENCE.json", JSON.stringify(evidence, null, 2));
+writeFileSync(
+  "release/OCADE_P14_VOICE_VISION_READINESS_EVIDENCE.json",
+  JSON.stringify(evidence, null, 2),
+);
 console.log(`\n${observed} observed, ${failed} failed of ${steps.length}.`);
 console.log("Wrote release/OCADE_P14_VOICE_VISION_READINESS_EVIDENCE.json");
 if (failed > 0) process.exitCode = 1;

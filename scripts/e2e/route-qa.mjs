@@ -22,8 +22,19 @@
  * an explanation is the correct behaviour, and the check is that SOMETHING
  * coherent rendered, not that the page was reached.
  */
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
+import { writeFile } from "node:fs/promises";
 import { chromium } from "playwright-core";
+
+/**
+ * Where a failing route's evidence is written.
+ *
+ * Beside the run rather than into the repository: this is diagnostic output for
+ * one run, not a tracked artefact, and a captured page can carry the fixture's
+ * session state.
+ */
+const EVIDENCE_DIRECTORY = process.env.OCADE_ROUTE_QA_EVIDENCE ?? ".route-qa-evidence";
+mkdirSync(EVIDENCE_DIRECTORY, { recursive: true });
 
 const BASE = process.env.OCADE_BASE_URL ?? "http://127.0.0.1:8080";
 const STATE = process.env.OCADE_STORAGE_STATE;
@@ -56,6 +67,21 @@ const ROUTES = [
   ...new Set(
     [...byFullPath[1].matchAll(/^\s*'([^']+)':/gm)]
       .map((m) => m[1])
+      /*
+       * NORMALISE THE TRAILING SLASH RATHER THAN DROPPING IT.
+       *
+       * This used to drop every path ending in "/", on the assumption that
+       * TanStack always lists an index route twice — once as "/x" and once as
+       * "/x/". That is true only while a plain "/x" route also exists. When
+       * `/support` became an index route with a sibling `$slug`, the tree
+       * stopped listing a bare "/support" at all, the filter silently removed
+       * it, and the Help Center home dropped out of the audit — 74 routes where
+       * the run before had 75, with nothing to say it had lost one.
+       *
+       * Collapsing the slash and letting the Set dedupe keeps the original
+       * intent (one entry per address) without the assumption.
+       */
+      .map((path) => (path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path))
       // Not pages: API endpoints, the MCP transport, well-known documents and
       // generated text files. "It rendered no heading" says nothing about JSON.
       .filter(
@@ -69,14 +95,34 @@ const ROUTES = [
           path !== "/sitemap.xml" &&
           // A bare $param cannot be visited without inventing a value, and the
           // concrete siblings above already cover the layout it renders.
-          !path.includes("$") &&
-          // TanStack lists both "/x" and "/x/" for an index route.
-          !(path.endsWith("/") && path.length > 1),
+          !path.includes("$"),
       ),
   ),
   // Deliberately not a route: a 404 must be a designed page, not a crash.
   "/this-route-does-not-exist",
 ];
+
+/*
+ * A FILTER, SO ONE ROUTE CAN BE INVESTIGATED WITHOUT WAITING FOR SEVENTY-THREE.
+ *
+ * Every false failure this harness has produced was diagnosed by re-running it,
+ * and re-running it costs a full pass. `OCADE_ROUTE_FILTER` is a substring — or
+ * a comma-separated list of them — matched against the route path, so a single
+ * suspect route can be re-measured in seconds. It narrows the run and nothing
+ * else: the checks, the waits and the thresholds are identical, so a route that
+ * passes under the filter passes in the full pass for the same reasons.
+ */
+const ROUTE_FILTER = (process.env.OCADE_ROUTE_FILTER ?? "")
+  .split(",")
+  .map((entry) => entry.trim())
+  .filter(Boolean);
+const SELECTED = ROUTE_FILTER.length
+  ? ROUTES.filter((route) => ROUTE_FILTER.some((needle) => route.includes(needle)))
+  : ROUTES;
+if (ROUTE_FILTER.length && !SELECTED.length) {
+  console.error(`no route matches ${ROUTE_FILTER.join(", ")}`);
+  process.exit(1);
+}
 
 const results = [];
 const check = (name, ok, detail = "") => {
@@ -129,7 +175,32 @@ try {
       failedRequests.push({ url: r.url(), reason: r.failure()?.errorText ?? "?" }),
     );
 
-    for (const route of ROUTES) {
+    /*
+     * WHOLE-DOCUMENT NAVIGATIONS, COUNTED.
+     *
+     * A click can replace the document rather than route within it, and OCADE
+     * does exactly that in one place on purpose: `isolation-upgrade.ts` calls
+     * `location.replace` once per session to obtain a cross-origin-isolated
+     * document, because isolation is decided when a document is CREATED and a
+     * client-side route change into an inference route would otherwise leave
+     * the engine on one core.
+     *
+     * That reload aborts every in-flight chunk and starts the heaviest route in
+     * the product from nothing. `/settings/devices` reported "0 chars left"
+     * because the settle budget was measured from the click, not from the
+     * document that click produced — the page was mid-reload when the fifteen
+     * seconds ran out, and the harness called a working upgrade a broken page.
+     *
+     * Counting the navigations lets the settle loop restart its budget for a
+     * document it has not yet waited for. Bounded, so a page reloading in a
+     * loop still fails rather than being waited on forever.
+     */
+    let documentLoads = 0;
+    page.on("framenavigated", (frame) => {
+      if (frame === page.mainFrame()) documentLoads += 1;
+    });
+
+    for (const route of SELECTED) {
       consoleErrors.length = 0;
       failedRequests.length = 0;
       const where = `${route} [${viewport.name}]`;
@@ -159,53 +230,15 @@ try {
           if (!/interrupted by another navigation/i.test(String(error))) throw error;
           await page.waitForLoadState("domcontentloaded", { timeout: 30000 }).catch(() => {});
         }
-        /*
-         * WAIT FOR CONTENT, NOT FOR A CLOCK.
-         *
-         * A fixed pause here reported five blank pages that were not blank. On
-         * a dev server each route module is compiled the first time it is
-         * asked for, and these routes are behind a sign-in — so the signed-out
-         * pass redirected away without ever compiling them, and the signed-in
-         * pass was their genuine cold build. The pause expired mid-compile and
-         * the harness recorded "0 chars, 0 headings, 0 controls" about a page
-         * that rendered perfectly a moment later.
-         *
-         * A blank page still fails, because the wait ENDS: what changes is that
-         * it fails after the page has actually had its chance, which is the
-         * difference between a defect report and a false one.
-         */
-        await page
-          .waitForFunction(
-            () => {
-              const text = document.body?.innerText?.trim() ?? "";
-              const controls = document.querySelectorAll("button, a[href], input").length;
-              return text.length > 40 || controls > 0;
-            },
-            undefined,
-            { timeout: 20000 },
-          )
-          .catch(() => undefined);
-        // Then a short settle so late-arriving content is measured too.
-        await page.waitForTimeout(400);
         landed = new URL(page.url()).pathname;
       } catch (error) {
         check(`${where} loads`, false, String(error).slice(0, 120));
         continue;
       }
 
-      /*
-       * READ TWICE IF THE FIRST READ IS EMPTY.
-       *
-       * A single sample can land in the middle of a navigation, where the
-       * document is briefly empty — /auth/verify and /auth/callback were
-       * reported as "0 chars, 0 headings, 0 controls" while rendering 964
-       * characters and 16 controls every time they were looked at directly.
-       *
-       * A page that is genuinely blank is still blank on the second read, so
-       * this removes the artefact without softening the check.
-       */
       const measure = () =>
         page.evaluate(() => ({
+          path: location.pathname,
           text: document.body?.innerText ?? "",
           // Horizontal overflow is measured against the DOCUMENT, not an
           // element: a single wide child is exactly the defect, and it only
@@ -218,27 +251,70 @@ try {
           ).length,
         }));
 
-      let body = await measure().catch(() => null);
       /*
-       * One retry was not enough, and the route it caught moved between runs —
-       * /auth/verify on one, /auth/callback on the next, /ocade/search on a
-       * third. That wandering is what a race looks like. These routes exist to
-       * send a signed-in visitor onward, so the window in which the document is
-       * empty lasts as long as the destination takes to compile, which on a
-       * loaded dev server is longer than a second and a half.
+       * WAIT FOR CONTENT, IN THE DOCUMENT THAT ACTUALLY ENDS UP IN FRONT OF THE
+       * PERSON — NOT FOR A CLOCK, AND NOT IN THE DOCUMENT THAT WAS THERE FIRST.
        *
-       * The loop still ends, so a page that is genuinely blank is still blank
-       * when it does.
+       * Three separate false failures came out of this one place, each fixed
+       * and each leaving the next one visible:
+       *
+       *   1. A fixed pause. On a cold route the pause expired mid-compile and
+       *      the harness reported "0 chars, 0 headings, 0 controls" about a
+       *      page that rendered perfectly a moment later.
+       *   2. One retry, then a twelve-second re-measuring loop. Better, and
+       *      still only ever a SAMPLE: it re-read the page without ever waiting
+       *      for it again.
+       *   3. The one this replaces. `waitForFunction` is evaluated inside the
+       *      current document, so a route whose whole job is to send a visitor
+       *      onward destroys the execution context the wait is running in. The
+       *      wait rejects, the rejection is swallowed by design, and the
+       *      measurement that follows lands in the brand-new empty document of
+       *      the destination. `/checkout/success` redirects to `/home`, which
+       *      redirects to `/ocade`; a direct probe showed 0 characters at 500ms
+       *      and 960 characters with 53 controls at 1.5s, and the harness
+       *      recorded the first number about a route that works.
+       *
+       * So the wait is re-entered in whatever document is current, until the
+       * page both HAS content and STOPS MOVING: a sample taken while the URL is
+       * changing under it is discarded rather than reported. A page that is
+       * genuinely blank is still blank when the budget runs out, so this
+       * removes the artefact without softening the check.
        */
-      const readyBy = Date.now() + 12_000;
-      while (
-        (!body || (body.text.trim().length === 0 && body.controls === 0)) &&
-        Date.now() < readyBy
-      ) {
-        await page.waitForTimeout(500);
-        body = await measure().catch(() => null);
+      const hasContent = () => {
+        const text = document.body?.innerText?.trim() ?? "";
+        const controls = document.querySelectorAll("button, a[href], input").length;
+        return text.length > 40 || controls > 0;
+      };
+      let body = null;
+      /*
+       * Fifteen seconds, against a production build whose slowest observed
+       * redirect chain settles in 1.5. It is generous rather than tight because
+       * the cost of being wrong in the tight direction is a false defect
+       * report, and the cost in the other direction is only time on a page that
+       * is genuinely blank.
+       */
+      const settleBy = Date.now() + 15_000;
+      while (Date.now() < settleBy) {
+        const remaining = settleBy - Date.now();
+        await page
+          .waitForFunction(hasContent, undefined, { timeout: Math.max(500, remaining) })
+          .catch(() => undefined);
+        // A short settle so late-arriving content is measured too, and so a
+        // redirect that is already in flight has landed before the reading.
+        await page.waitForTimeout(400);
+        const before = page.url();
+        const sample = await measure().catch(() => null);
+        const after = page.url();
+        if (!sample) continue;
+        body = sample;
+        const moved = before !== after || new URL(after).pathname !== sample.path;
+        const rendered = sample.text.trim().length > 0 || sample.controls > 0;
+        if (rendered && !moved) break;
       }
-      body ??= { text: "", scrollWidth: 0, clientWidth: 1, headings: 0, controls: 0 };
+      body ??= { path: landed, text: "", scrollWidth: 0, clientWidth: 1, headings: 0, controls: 0 };
+      // Where the person ended up, read after the page settled rather than
+      // before it: the summary's redirect column was reporting the first hop.
+      landed = body.path ?? landed;
 
       check(
         `${where} renders something a person can use`,
@@ -480,15 +556,104 @@ try {
          * The wait still ENDS, so a page that really never comes back still
          * fails — what changes is that the failure means what it says.
          */
-        const settleBy = Date.now() + 12_000;
-        while (after.trim().length === 0 && Date.now() < settleBy) {
-          await page.waitForTimeout(500);
+        /*
+         * RE-WAIT IN THE CURRENT DOCUMENT, NOT JUST RE-READ.
+         *
+         * This loop used to poll `innerText` and nothing else, which is the
+         * defect that was already fixed for the FIRST measurement further up
+         * and left in place here. Some of these controls navigate — the
+         * settings shell has a Close that goes home — and a poll cannot tell
+         * "this page is broken" from "the destination has not painted yet": it
+         * samples the new document's empty body twelve times and reports zero.
+         *
+         * So it now waits for content the same way the first measurement does,
+         * re-entering the wait in whatever document is current, and discards a
+         * sample taken while the URL is still changing under it. A page that is
+         * genuinely emptied by its own buttons is still empty when the budget
+         * runs out, so the check is not softened — only the race is removed.
+         */
+        let settleBy = Date.now() + 15_000;
+        /*
+         * At most two extensions: one for the isolation upgrade's reload, one
+         * for a redirect that follows it. A third would be a page that cannot
+         * settle, which is the thing this check exists to catch.
+         */
+        let extensionsLeft = 2;
+        let seenLoads = documentLoads;
+        while (Date.now() < settleBy) {
+          if (after !== "navigated away" && after.trim().length > 0) break;
+          const remaining = settleBy - Date.now();
+          await page
+            .waitForFunction(() => (document.body?.innerText?.trim().length ?? 0) > 0, undefined, {
+              timeout: Math.max(500, remaining),
+            })
+            .catch(() => undefined);
+          await page.waitForTimeout(400);
+          const before = page.url();
           after = await readBody();
+          if (page.url() !== before) {
+            // Read mid-navigation. Whatever it said is about a document that is
+            // already gone.
+            after = "";
+          }
+          if (documentLoads !== seenLoads) {
+            // A new document arrived. The budget so far measured the old one.
+            seenLoads = documentLoads;
+            if (extensionsLeft > 0) {
+              extensionsLeft -= 1;
+              settleBy = Date.now() + 15_000;
+            }
+          }
         }
         const brokeAfterClicks = DEV_LEAK_SOURCE.find((p) => new RegExp(p, "i").test(after));
+        const survivedClicks =
+          !brokeAfterClicks && (after.trim().length > 0 || after === "navigated away");
+
+        /*
+         * CAPTURE THE PAGE WHEN THIS FAILS, BECAUSE IT DOES NOT ALWAYS FAIL.
+         *
+         * `/settings/voice` reported "0 chars left" once in three full runs and
+         * then would not reproduce: a focused harness pressed every control on
+         * it six times against the same build and the body went from 2,497 to
+         * 18,173 characters every time. An intermittent failure whose evidence
+         * is a single number cannot be diagnosed, and re-running until it is
+         * green is how a real defect gets waved through.
+         *
+         * So the failure now writes down what it saw — the served HTML, the
+         * console, the failed requests, the URL — beside the run. The next
+         * occurrence is diagnosable from the artefact rather than from a guess.
+         */
+        if (!survivedClicks) {
+          const evidence = {
+            route,
+            viewport: viewport.name,
+            url: page.url(),
+            clicked: pressed.clicked,
+            clickFailures: pressed.failures,
+            textLength: after.trim().length,
+            textSample: after.slice(0, 400),
+            consoleErrors: [...consoleErrors],
+            failedRequests: [...failedRequests],
+            capturedAt: new Date().toISOString(),
+          };
+          const stem = `route-qa-failure-${route.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "root"}-${viewport.name}`;
+          try {
+            const html = await page.content();
+            await writeFile(`${EVIDENCE_DIRECTORY}/${stem}.html`, html, "utf8");
+            await writeFile(
+              `${EVIDENCE_DIRECTORY}/${stem}.json`,
+              JSON.stringify(evidence, null, 2),
+              "utf8",
+            );
+            console.log(`  captured evidence: ${EVIDENCE_DIRECTORY}/${stem}.{html,json}`);
+          } catch (error) {
+            console.log(`  could not capture evidence: ${String(error).slice(0, 120)}`);
+          }
+        }
+
         check(
           `${where} shows no developer error after being pressed — ${pressed.clicked} control(s)`,
-          !brokeAfterClicks && (after.trim().length > 0 || after === "navigated away"),
+          survivedClicks,
           brokeAfterClicks ? after.slice(0, 140) : `${after.trim().length} chars left`,
         );
       }
@@ -526,14 +691,23 @@ try {
   await browser.close();
 }
 
-// The 404 is a designed page, and proving it is a page rather than a crash is
-// the whole reason a nonsense address is in the list above.
-const notFound = summary.filter((s) => s.route === "/this-route-does-not-exist");
-check(
-  "an address that does not exist gets a real 404 page",
-  notFound.length > 0 && notFound.every((s) => s.chars > 40),
-  notFound.map((s) => `${s.viewport}:${s.chars} chars`).join(", "),
-);
+/*
+ * The 404 is a designed page, and proving it is a page rather than a crash is
+ * the whole reason a nonsense address is in the list above.
+ *
+ * Only asserted when that address was actually visited. Under a route filter it
+ * is not, and a check that fails because it was never run reports a broken 404
+ * page on a run that never looked at one — a false failure of exactly the kind
+ * the rest of this file exists to remove.
+ */
+if (SELECTED.includes("/this-route-does-not-exist")) {
+  const notFound = summary.filter((s) => s.route === "/this-route-does-not-exist");
+  check(
+    "an address that does not exist gets a real 404 page",
+    notFound.length > 0 && notFound.every((s) => s.chars > 40),
+    notFound.map((s) => `${s.viewport}:${s.chars} chars`).join(", "),
+  );
+}
 
 /*
  * Say how many controls were actually pressed.
@@ -544,14 +718,14 @@ check(
  */
 check(
   "the click pass actually pressed things",
-  totalPressed >= Math.floor(ROUTES.length / 2),
-  `${totalPressed} controls pressed across ${ROUTES.length} routes`,
+  totalPressed >= Math.floor(SELECTED.length / 2),
+  `${totalPressed} controls pressed across ${SELECTED.length} routes`,
 );
 
 const failed = results.filter((r) => !r.ok);
 
 console.log(
-  `\n${LABEL}: ${ROUTES.length} routes × ${VIEWPORTS.length} viewports, ` +
+  `\n${LABEL}: ${SELECTED.length} routes × ${VIEWPORTS.length} viewports, ` +
     `${results.length - failed.length}/${results.length} checks passed, ` +
     `${totalPressed} controls pressed`,
 );

@@ -37,7 +37,7 @@
  * It deliberately does not verify signatures — `verifyWebhook` owns that, and
  * nothing reaches here unverified.
  */
-import { sellablePlanByPriceId, sellablePlanByProductId } from "./paddle-plans";
+import { sellablePlanByPriceId } from "./paddle-plans";
 
 export type PaddleEnv = "sandbox" | "live";
 
@@ -74,6 +74,11 @@ export interface UpsertInstruction {
     cancel_at_period_end: boolean;
     environment: PaddleEnv;
     provider_event_at: string;
+    /*
+     * `one_time` is READ-ONLY history. The catalogue sold a one-time pass under
+     * an earlier version and rows recording those purchases still exist; every
+     * plan on sale now is a subscription, and nothing below writes `one_time`.
+     */
     kind: "subscription" | "one_time";
   };
 }
@@ -109,9 +114,6 @@ export function targetEntityIdOf(eventType: string, data: Record<string, unknown
   const id = pick(data, "id");
   return typeof id === "string" && id.length > 0 ? id : null;
 }
-
-/** How long a one-time pass lasts, by plan. Days. */
-const ONE_TIME_DAYS: Record<string, number> = { std_8d: 8 };
 
 function pick(data: Record<string, unknown>, ...keys: string[]): unknown {
   for (const key of keys) {
@@ -163,10 +165,6 @@ function catalogueIds(item: Record<string, unknown> | undefined): {
 function firstItem(data: Record<string, unknown>): Record<string, unknown> | undefined {
   const items = data["items"];
   return Array.isArray(items) ? asRecord(items[0]) : undefined;
-}
-
-function addDays(iso: string, days: number): string {
-  return new Date(new Date(iso).getTime() + days * 24 * 60 * 60 * 1000).toISOString();
 }
 
 /**
@@ -269,70 +267,27 @@ export function decide(
     }
 
     /*
-     * THE EVENT THE ONE-TIME PASS ACTUALLY ARRIVES ON.
+     * A COMPLETED TRANSACTION IS NOT A PURCHASE TO ACT ON.
      *
-     * Only for a plan the catalogue says is one-time. A `transaction.completed`
-     * also fires for each subscription renewal, and treating those as purchases
-     * would write a second, overlapping entitlement every month.
+     * Every plan in the current catalogue is a subscription, and a subscription
+     * grants its entitlement through the `subscription.*` events below. Paddle
+     * ALSO fires `transaction.completed` for each renewal of those
+     * subscriptions, so acting here would write a second, overlapping
+     * entitlement every billing period.
+     *
+     * The one-time pass this case used to serve was retired with the previous
+     * catalogue. Rather than leave a path that grants access from a transaction
+     * — which is the shape a forged or replayed purchase would take — the case
+     * is explicit and refuses, so a future one-time plan has to be implemented
+     * deliberately rather than inherited.
      */
     case "transaction.completed": {
-      const userId = userIdOf(data);
-      if (!userId) return { action: "ignore", reason: "no_user_id" };
-
-      const subscriptionId = pick(data, "subscriptionId", "subscription_id");
-      if (typeof subscriptionId === "string" && subscriptionId.length > 0) {
-        return { action: "ignore", reason: "subscription_transaction" };
-      }
-
       const item = firstItem(data);
-      const { priceId, productId } = catalogueIds(item);
-      if (!priceId || !productId) return { action: "ignore", reason: "no_catalogue_ids" };
-
-      const plan = sellablePlanByPriceId(priceId) ?? sellablePlanByProductId(productId);
-      if (!plan || plan.cadence !== "one-time") {
-        return { action: "ignore", reason: "not_a_one_time_plan" };
-      }
-      const days = ONE_TIME_DAYS[plan.planId];
-      if (!days) {
-        /*
-         * A one-time plan with no stated duration is a plan OCADE cannot
-         * honour. It refuses to record an entitlement rather than inventing a
-         * length — and `paddle-plans.test.ts` fails the build before such a
-         * plan can be listed for sale at all.
-         */
-        return { action: "ignore", reason: "no_configured_duration" };
-      }
-
-      const id = pick(data, "id");
-      const customerId = pick(data, "customerId", "customer_id");
-      if (typeof id !== "string" || typeof customerId !== "string") {
-        return { action: "ignore", reason: "no_entity_id" };
-      }
-
-      /*
-       * The transaction id is the row's key. It is unique per payment, so a
-       * retried delivery upserts the same row instead of granting a second
-       * pass, and a genuine repeat purchase is a new id and therefore a new
-       * entitlement — which is what "buy again to extend" means.
-       */
-      const billedAt =
-        (pick(data, "billedAt", "billed_at") as string | undefined) ?? envelope.occurredAt;
+      const { priceId } = catalogueIds(item);
+      const plan = priceId ? sellablePlanByPriceId(priceId) : undefined;
       return {
-        action: "upsert",
-        row: {
-          user_id: userId,
-          paddle_subscription_id: id,
-          paddle_customer_id: customerId,
-          product_id: productId,
-          price_id: priceId,
-          status: "active",
-          current_period_start: billedAt,
-          current_period_end: addDays(billedAt, days),
-          cancel_at_period_end: false,
-          environment: envelope.environment,
-          provider_event_at: envelope.occurredAt,
-          kind: "one_time",
-        },
+        action: "ignore",
+        reason: plan ? "subscription_transaction" : "unknown_catalogue_item",
       };
     }
 

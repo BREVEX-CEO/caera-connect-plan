@@ -29,10 +29,30 @@ const expectAll = (path: string, patterns: RegExp[]) => {
 
 describe("OCADE 77 — unavailable runtime boundaries", () => {
   it("#49 refuses to promise background push delivery", () => {
+    /*
+     * THE BADGE IS DERIVED, NOT WRITTEN DOWN, and this assertion changed to
+     * demand that.
+     *
+     * It used to require the literal `CapabilityBadge status="NOT_CONFIGURED"`,
+     * which was the right check while the page was a static statement. Once the
+     * page grew a real notification history it began reading
+     * `resolveChannels(deploymentChannelConfiguration())` — the same authority
+     * the settings screen and the sender use — so the badge tells the truth on a
+     * deployment that DOES configure a provider, which a hardcoded one never
+     * could. Requiring the literal would now be requiring a lie in waiting.
+     *
+     * What is asserted instead is stronger: the status comes from the channel
+     * authority, the unconfigured branch still says so in words, and each
+     * channel's own reason is shown rather than one blanket sentence.
+     */
     expectAll("src/routes/_authenticated/ocade.notifications.tsx", [
-      /CapabilityBadge status="NOT_CONFIGURED"/,
-      /No web-push, APNs, FCM, SMS or email notification channel is configured/,
+      /deploymentChannelConfiguration\(\)/,
+      /CapabilityBadge status=\{anyPush \? "READY" : "NOT_CONFIGURED"\}/,
+      /No web-push, APNs, FCM or email channel is configured by this build/,
       /does not promise an alert outside the open application/i,
+      // Each channel says why it is unavailable, so "not configured" is not the
+      // whole of what a person is told.
+      /channel\.unavailableReason/,
     ]);
   });
 
@@ -49,8 +69,10 @@ describe("OCADE 77 — unavailable runtime boundaries", () => {
     ]);
   });
 
-  it("#65 tells Work users file attachment is not configured", () => {
-    expectAll("src/routes/_authenticated/ocade.work.tsx", [
+  it("#65 tells Cowork users file attachment is not configured", () => {
+    // Was `/ocade/work`; PLAN.md §4 moved the room to `/ocade/cowork`. The
+    // disclosure it must carry is unchanged.
+    expectAll("src/routes/_authenticated/ocade.cowork.tsx", [
       /file attachment is not configured yet/i,
       /ControlWorkPanel/,
     ]);

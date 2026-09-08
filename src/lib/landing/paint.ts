@@ -120,9 +120,9 @@ export function paintUniverse(
     h * 0.5,
     Math.max(w, h) * 0.75,
   );
-  sky.addColorStop(0, "oklch(0.17 0.02 90 / 0.85)");
-  sky.addColorStop(0.55, "oklch(0.11 0.015 90 / 0.55)");
-  sky.addColorStop(1, "oklch(0.06 0.01 90 / 0)");
+  sky.addColorStop(0, "oklch(0.17 0 0 / 0.85)");
+  sky.addColorStop(0.55, "oklch(0.11 0 0 / 0.55)");
+  sky.addColorStop(1, "oklch(0.06 0 0 / 0)");
   context.fillStyle = sky;
   context.fillRect(0, 0, w, h);
 
@@ -130,7 +130,7 @@ export function paintUniverse(
     // Slow, out-of-phase twinkle. Uniform pulsing looks like a flicker bug.
     const twinkle = 0.6 + 0.4 * Math.sin(t * 0.7 + star.x * 40 + star.y * 25);
     context.globalAlpha = star.a * twinkle;
-    context.fillStyle = "oklch(0.95 0.02 90)";
+    context.fillStyle = "oklch(0.95 0 0)";
     context.beginPath();
     context.arc(star.x * w, star.y * h, star.r, 0, Math.PI * 2);
     context.fill();
@@ -152,9 +152,7 @@ export function paintUniverse(
         else context.lineTo(px, py);
       }
       const active = activePlanetId === planet.id;
-      context.strokeStyle = active
-        ? `oklch(0.85 0.12 ${planet.hue} / 0.4)`
-        : "oklch(0.85 0.02 90 / 0.09)";
+      context.strokeStyle = active ? `oklch(0.85 0 0 / 0.4)` : "oklch(0.85 0 0 / 0.09)";
       context.lineWidth = active ? 1.4 : 0.8;
       context.stroke();
     }
@@ -201,7 +199,7 @@ export function paintUniverse(
       const hue = (PLANETS[a].hue + PLANETS[b].hue) / 2;
 
       // The halo. Very wide, very faint — it must never read as a second line.
-      context.strokeStyle = `oklch(0.82 0.09 ${hue} / ${(0.05 + 0.045 * travel) * (0.35 + 0.65 * depth)})`;
+      context.strokeStyle = `oklch(0.82 0 0 / ${(0.05 + 0.045 * travel) * (0.35 + 0.65 * depth)})`;
       context.lineWidth = 2.6;
       context.beginPath();
       context.moveTo(x1, y1);
@@ -211,7 +209,7 @@ export function paintUniverse(
       // The wire itself. Sub-pixel on purpose: a 1px line at this opacity is
       // already the heaviest the composition will take without the ring
       // starting to compete with the planets it connects.
-      context.strokeStyle = `oklch(0.93 0.07 ${hue} / ${(0.1 + 0.1 * travel) * (0.4 + 0.6 * depth)})`;
+      context.strokeStyle = `oklch(0.93 0 0 / ${(0.1 + 0.1 * travel) * (0.4 + 0.6 * depth)})`;
       context.lineWidth = 0.6;
       context.beginPath();
       context.moveTo(x1, y1);
@@ -227,9 +225,9 @@ export function paintUniverse(
   const coreR = Math.min(w, h) * 0.055 * pulse;
 
   const halo = context.createRadialGradient(coreX, coreY, coreR * 0.3, coreX, coreY, coreR * 5);
-  halo.addColorStop(0, "oklch(0.86 0.13 88 / 0.5)");
-  halo.addColorStop(0.35, "oklch(0.8 0.12 88 / 0.13)");
-  halo.addColorStop(1, "oklch(0.8 0.1 88 / 0)");
+  halo.addColorStop(0, "oklch(0.86 0 0 / 0.5)");
+  halo.addColorStop(0.35, "oklch(0.8 0 0 / 0.13)");
+  halo.addColorStop(1, "oklch(0.8 0 0 / 0)");
   context.fillStyle = halo;
   context.beginPath();
   context.arc(coreX, coreY, coreR * 5, 0, Math.PI * 2);
@@ -243,9 +241,9 @@ export function paintUniverse(
     coreY,
     coreR,
   );
-  body.addColorStop(0, "oklch(0.97 0.05 92)");
-  body.addColorStop(0.6, "oklch(0.84 0.13 88)");
-  body.addColorStop(1, "oklch(0.6 0.11 80)");
+  body.addColorStop(0, "oklch(0.97 0 0)");
+  body.addColorStop(0.6, "oklch(0.84 0 0)");
+  body.addColorStop(1, "oklch(0.6 0 0)");
   context.fillStyle = body;
   context.beginPath();
   context.arc(coreX, coreY, coreR, 0, Math.PI * 2);
@@ -264,8 +262,8 @@ export function paintUniverse(
 
     if (active) {
       const glow = context.createRadialGradient(px, py, pr * 0.5, px, py, pr * 4);
-      glow.addColorStop(0, `oklch(0.85 0.14 ${planet.hue} / 0.42)`);
-      glow.addColorStop(1, `oklch(0.85 0.14 ${planet.hue} / 0)`);
+      glow.addColorStop(0, `oklch(0.85 0 0 / 0.42)`);
+      glow.addColorStop(1, `oklch(0.85 0 0 / 0)`);
       context.fillStyle = glow;
       context.beginPath();
       context.arc(px, py, pr * 4, 0, Math.PI * 2);
@@ -290,9 +288,9 @@ export function paintUniverse(
      */
     const airR = pr * (1.22 + planet.atmosphere * 0.85);
     const air = context.createRadialGradient(px, py, pr * 0.88, px, py, airR);
-    air.addColorStop(0, `oklch(0.86 0.11 ${planet.hue} / ${0.3 * planet.atmosphere * dim})`);
-    air.addColorStop(0.45, `oklch(0.82 0.12 ${planet.hue} / ${0.12 * planet.atmosphere * dim})`);
-    air.addColorStop(1, `oklch(0.8 0.1 ${planet.hue} / 0)`);
+    air.addColorStop(0, `oklch(0.86 0 0 / ${0.3 * planet.atmosphere * dim})`);
+    air.addColorStop(0.45, `oklch(0.82 0 0 / ${0.12 * planet.atmosphere * dim})`);
+    air.addColorStop(1, `oklch(0.8 0 0 / 0)`);
     context.fillStyle = air;
     context.beginPath();
     context.arc(px, py, airR, 0, Math.PI * 2);
@@ -306,9 +304,9 @@ export function paintUniverse(
       py,
       pr,
     );
-    lit.addColorStop(0, `oklch(0.93 0.1 ${planet.hue} / ${dim})`);
-    lit.addColorStop(0.65, `oklch(0.7 0.13 ${planet.hue} / ${dim})`);
-    lit.addColorStop(1, `oklch(0.42 0.09 ${planet.hue} / ${dim * 0.9})`);
+    lit.addColorStop(0, `oklch(0.93 0 0 / ${dim})`);
+    lit.addColorStop(0.65, `oklch(0.7 0 0 / ${dim})`);
+    lit.addColorStop(1, `oklch(0.42 0 0 / ${dim * 0.9})`);
     context.fillStyle = lit;
     context.beginPath();
     context.arc(px, py, pr, 0, Math.PI * 2);
@@ -343,7 +341,7 @@ export function paintUniverse(
         const facing = Math.cos(theta);
         if (facing <= 0) continue; // On the far side. Not visible.
         const bandY = py + Math.sin(planet.axialTilt + k * 1.3) * pr * 0.42;
-        context.fillStyle = `oklch(${0.58 + 0.12 * k * 0.5} 0.1 ${planet.hue} / ${0.2 * facing * dim})`;
+        context.fillStyle = `oklch(${0.58 + 0.12 * k * 0.5} 0 0 / ${0.2 * facing * dim})`;
         context.beginPath();
         context.ellipse(
           px + across * pr * 0.72,
@@ -372,9 +370,9 @@ export function paintUniverse(
         py - Math.sin(toCore) * pr * 0.55,
         pr * 1.9,
       );
-      night.addColorStop(0, "oklch(0.06 0.01 90 / 0.72)");
-      night.addColorStop(0.55, "oklch(0.06 0.01 90 / 0.3)");
-      night.addColorStop(1, "oklch(0.06 0.01 90 / 0)");
+      night.addColorStop(0, "oklch(0.06 0 0 / 0.72)");
+      night.addColorStop(0.55, "oklch(0.06 0 0 / 0.3)");
+      night.addColorStop(1, "oklch(0.06 0 0 / 0)");
       context.fillStyle = night;
       context.beginPath();
       context.arc(px, py, pr, 0, Math.PI * 2);
@@ -384,7 +382,7 @@ export function paintUniverse(
     }
 
     if (active) {
-      context.strokeStyle = `oklch(0.95 0.06 ${planet.hue} / 0.75)`;
+      context.strokeStyle = `oklch(0.95 0 0 / 0.75)`;
       context.lineWidth = 1.25;
       context.beginPath();
       context.arc(px, py, pr, 0, Math.PI * 2);

@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { Loader2 } from "lucide-react";
 
 type OAuthNamespace = {
@@ -21,7 +21,11 @@ type AuthorizationDetails = {
   redirect_to?: string;
 };
 
-function oauth(): OAuthNamespace {
+async function oauth(): Promise<OAuthNamespace> {
+  // The client is loaded on demand: this route is statically reachable from the
+  // route tree, so a top-level import put the whole auth stack on the entry
+  // chunk's graph for a consent screen almost nobody opens.
+  const supabase = await loadSupabaseClient();
   return (supabase.auth as unknown as { oauth: OAuthNamespace }).oauth;
 }
 
@@ -32,6 +36,7 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
     authorization_id: typeof s.authorization_id === "string" ? s.authorization_id : "",
   }),
   beforeLoad: async ({ search, location }) => {
+    const supabase = await loadSupabaseClient();
     if (!search.authorization_id) throw new Error("Missing authorization_id");
     const { data } = await supabase.auth.getSession();
     const next = location.pathname + location.searchStr;
@@ -39,7 +44,7 @@ export const Route = createFileRoute("/.lovable/oauth/consent")({
   },
   loader: async ({ location }) => {
     const authorizationId = new URLSearchParams(location.search).get("authorization_id")!;
-    const { data, error } = await oauth().getAuthorizationDetails(authorizationId);
+    const { data, error } = await (await oauth()).getAuthorizationDetails(authorizationId);
     if (error) throw error;
     const immediate = data?.redirect_url ?? data?.redirect_to;
     if (immediate && !data?.client) throw redirect({ href: immediate });
@@ -84,8 +89,8 @@ function Consent() {
     setBusy(true);
     setError(null);
     const { data, error: decisionError } = approve
-      ? await oauth().approveAuthorization(authorization_id)
-      : await oauth().denyAuthorization(authorization_id);
+      ? await (await oauth()).approveAuthorization(authorization_id)
+      : await (await oauth()).denyAuthorization(authorization_id);
     if (decisionError) {
       setBusy(false);
       setError(decisionError.message);

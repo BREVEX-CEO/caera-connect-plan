@@ -64,7 +64,12 @@ async function researchGroup(hasNetwork: boolean) {
     ["malformed", "not-a-url"],
   ] as const;
   const refusals = hostile.map(([label, url]) => {
-    const verdict = validateResearchUrl(url, [PUBLIC_HOST, "169.254.169.254", "localhost", "10.0.0.5"]);
+    const verdict = validateResearchUrl(url, [
+      PUBLIC_HOST,
+      "169.254.169.254",
+      "localhost",
+      "10.0.0.5",
+    ]);
     return { label, url, refused: !verdict.ok, reason: verdict.ok ? null : verdict.reason };
   });
   const allRefused = refusals.every((r) => r.refused);
@@ -77,10 +82,15 @@ async function researchGroup(hasNetwork: boolean) {
 
   // A02 — an allowlisted public HTTPS source is accepted.
   const accepted = validateResearchUrl(PUBLIC_URL, [PUBLIC_HOST]);
-  record("A02", "an allowlisted HTTPS source passes validation", accepted.ok ? "observed" : "failed", {
-    url: PUBLIC_URL,
-    ok: accepted.ok,
-  });
+  record(
+    "A02",
+    "an allowlisted HTTPS source passes validation",
+    accepted.ok ? "observed" : "failed",
+    {
+      url: PUBLIC_URL,
+      ok: accepted.ok,
+    },
+  );
 
   const source: SourceRecord = {
     id: "src-example",
@@ -108,7 +118,11 @@ async function researchGroup(hasNetwork: boolean) {
     "A03",
     "real HTTPS acquisition through the production fetcher",
     fetched.result === "ok" ? "observed" : "failed",
-    { result: fetched.result, error: fetched.error ?? null, findingsChars: fetched.findings?.length ?? 0 },
+    {
+      result: fetched.result,
+      error: fetched.error ?? null,
+      findingsChars: fetched.findings?.length ?? 0,
+    },
   );
 
   // A03b — a source outside the allowlist is refused before any socket opens.
@@ -138,7 +152,11 @@ async function researchGroup(hasNetwork: boolean) {
     ok: run.ok,
     reason: run.ok ? null : run.reason,
     subAnswers: run.ok
-      ? run.data.subAnswers.map((s) => ({ subquery: s.subquery, status: s.status, confidence: s.confidence }))
+      ? run.data.subAnswers.map((s) => ({
+          subquery: s.subquery,
+          status: s.status,
+          confidence: s.confidence,
+        }))
       : null,
     complete: run.ok ? run.data.complete : null,
     note: "One allowlisted source cannot reach the two-source independent-support bar, so an unconfirmed verdict here is the pipeline being honest, not a failure.",
@@ -184,13 +202,21 @@ async function sandboxGroup() {
   // B01 — real execution in a real spawned process, asserted on the value the
   // script actually produced rather than merely on exit code 0. An exit code
   // alone would pass for a script whose output was never captured at all.
-  const ran = await host.run(sandboxRequest({ script: "sandbox.log(JSON.stringify({ sum: 2 + 3 }));" }));
+  const ran = await host.run(
+    sandboxRequest({ script: "sandbox.log(JSON.stringify({ sum: 2 + 3 }));" }),
+  );
   const ranLogs = logsOf(ran.stdout);
   record(
     "B01",
     "a real child process executes and its output is captured",
     ran.exitCode === 0 && ranLogs.includes('{"sum":5}') ? "observed" : "failed",
-    { hostId: ran.hostId, isolation: ran.isolation, exitCode: ran.exitCode, logs: ranLogs, timedOut: ran.timedOut },
+    {
+      hostId: ran.hostId,
+      isolation: ran.isolation,
+      exitCode: ran.exitCode,
+      logs: ranLogs,
+      timedOut: ran.timedOut,
+    },
   );
 
   // B02 — network denial OBSERVED from inside the context, not read back from
@@ -226,11 +252,20 @@ async function sandboxGroup() {
     }),
   );
   const produced = withOutput.outputs.find((o) => o.path === "report.txt");
-  record("B03", "a declared output file is captured with its digest", produced ? "observed" : "failed", {
-    exitCode: withOutput.exitCode,
-    stderr: withOutput.stderr.slice(0, 200),
-    outputs: withOutput.outputs.map((o) => ({ path: o.path, bytes: o.bytes, sha256: o.sha256.slice(0, 16) + "…" })),
-  });
+  record(
+    "B03",
+    "a declared output file is captured with its digest",
+    produced ? "observed" : "failed",
+    {
+      exitCode: withOutput.exitCode,
+      stderr: withOutput.stderr.slice(0, 200),
+      outputs: withOutput.outputs.map((o) => ({
+        path: o.path,
+        bytes: o.bytes,
+        sha256: o.sha256.slice(0, 16) + "…",
+      })),
+    },
+  );
 
   // B04 — an undeclared output is REFUSED at the point of writing. The earlier
   // version of this step asserted only that no undeclared file came back, which
@@ -246,11 +281,16 @@ async function sandboxGroup() {
     undeclared.exitCode !== 0 &&
     /not declared/i.test(undeclared.stderr) &&
     !undeclared.outputs.some((o) => o.path === "secret.txt");
-  record("B04", "writing an undeclared output is refused", refusedUndeclared ? "observed" : "failed", {
-    exitCode: undeclared.exitCode,
-    stderr: undeclared.stderr.slice(0, 200),
-    returnedPaths: undeclared.outputs.map((o) => o.path),
-  });
+  record(
+    "B04",
+    "writing an undeclared output is refused",
+    refusedUndeclared ? "observed" : "failed",
+    {
+      exitCode: undeclared.exitCode,
+      stderr: undeclared.stderr.slice(0, 200),
+      returnedPaths: undeclared.outputs.map((o) => o.path),
+    },
+  );
 
   // B05 — a declared output cannot be used to escape the output directory.
   const escape = await host.run(
@@ -262,7 +302,9 @@ async function sandboxGroup() {
   record(
     "B05",
     "a traversal path is refused even when declared",
-    escape.exitCode !== 0 && /escapes its scope|not declared/i.test(escape.stderr) ? "observed" : "failed",
+    escape.exitCode !== 0 && /escapes its scope|not declared/i.test(escape.stderr)
+      ? "observed"
+      : "failed",
     { exitCode: escape.exitCode, stderr: escape.stderr.slice(0, 200) },
   );
 
@@ -270,15 +312,26 @@ async function sandboxGroup() {
   const runaway = await host.run(
     sandboxRequest({
       script: "while (true) {}",
-      limits: { wallTimeMs: 1_500, cpuTimeMs: 1_500, memoryMb: 128, storageBytes: 100_000, outputBytes: 10_000 },
+      limits: {
+        wallTimeMs: 1_500,
+        cpuTimeMs: 1_500,
+        memoryMb: 128,
+        storageBytes: 100_000,
+        outputBytes: 10_000,
+      },
     }),
   );
-  record("B06", "an infinite loop is stopped by the wall-time limit", runaway.timedOut ? "observed" : "failed", {
-    timedOut: runaway.timedOut,
-    exitCode: runaway.exitCode,
-    limitExceeded: runaway.limitExceeded ?? null,
-    processTreeTerminated: runaway.processTreeTerminated,
-  });
+  record(
+    "B06",
+    "an infinite loop is stopped by the wall-time limit",
+    runaway.timedOut ? "observed" : "failed",
+    {
+      timedOut: runaway.timedOut,
+      exitCode: runaway.exitCode,
+      limitExceeded: runaway.limitExceeded ?? null,
+      processTreeTerminated: runaway.processTreeTerminated,
+    },
+  );
 
   // B07 — the host refuses what it says it refuses.
   const refusals: Array<{ what: string; refused: boolean; message: string | null }> = [];
@@ -293,7 +346,12 @@ async function sandboxGroup() {
       refusals.push({ what, refused: true, message: (error as Error).message });
     }
   }
-  record("B07", "the host refuses non-JS and refuses approved network", refusals.every((r) => r.refused) ? "observed" : "failed", refusals);
+  record(
+    "B07",
+    "the host refuses non-JS and refuses approved network",
+    refusals.every((r) => r.refused) ? "observed" : "failed",
+    refusals,
+  );
 }
 
 // -------------------------------------------------------- C. code workspace
@@ -322,11 +380,16 @@ async function workspaceGroup() {
   if (!map.ok) return;
 
   const hit = findSymbol(map.data, "runResearch");
-  record("C02", "findSymbol locates a real exported symbol", hit.ok && hit.data.length > 0 ? "observed" : "failed", {
-    query: "runResearch",
-    hits: hit.ok ? hit.data.map((h) => ({ path: h.path, kind: h.kind })) : null,
-    reason: hit.ok ? null : hit.reason,
-  });
+  record(
+    "C02",
+    "findSymbol locates a real exported symbol",
+    hit.ok && hit.data.length > 0 ? "observed" : "failed",
+    {
+      query: "runResearch",
+      hits: hit.ok ? hit.data.map((h) => ({ path: h.path, kind: h.kind })) : null,
+      reason: hit.ok ? null : hit.reason,
+    },
+  );
 
   const importers = importersOf(map.data, "./source-ranking");
   record("C03", "importersOf resolves real import edges", importers.ok ? "observed" : "failed", {
@@ -356,7 +419,12 @@ const evidence = {
   tier: failed === 0 && skipped === 0 ? "REAL TARGET RUNTIME VERIFIED" : "PARTIAL",
   caveat:
     "Observed on ONE host. Research acquisition used example.com, an IANA-reserved documentation domain: it proves the guarded fetcher performs real HTTPS over a real socket, NOT that OCADE can research the open web at scale. The sandbox spawned real Node child processes on this platform only; other platforms are unproven.",
-  host: { platform: platform(), arch: arch(), node: process.version, network: hasNetwork ? "online" : "offline" },
+  host: {
+    platform: platform(),
+    arch: arch(),
+    node: process.version,
+    network: hasNetwork ? "online" : "offline",
+  },
   summary: { observed, failed, skipped, total: steps.length },
   steps,
 };

@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
  *
  * IT IS TEXT AS WELL AS A PICTURE, ALWAYS. The orb carries a live region with
  * the state's label, so a screen-reader user hears "Working on your computer"
- * at the moment a sighted user sees crimson. A status indicator that exists
+ * at the moment a sighted user sees the state transition. A status indicator that exists
  * only as colour and motion is not a status indicator for everybody.
  */
 const OcadeOrbCanvas = lazy(() =>
@@ -84,5 +84,7 @@ export function OcadeOrb({
 }
 
 function to255(colour: readonly [number, number, number]): string {
-  return colour.map((channel) => Math.round(Math.max(0, Math.min(1, channel)) * 255)).join(" ");
+  const lightness = colour.reduce((sum, channel) => sum + channel, 0) / colour.length;
+  const channel = Math.round(Math.max(0, Math.min(1, lightness)) * 255);
+  return `${channel} ${channel} ${channel}`;
 }

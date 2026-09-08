@@ -18,6 +18,7 @@ import { OfflineSection } from "@/components/settings/OfflineSection";
 import { AccountPanel } from "@/components/settings/AccountPanel";
 import { ImageSettingsPanel } from "@/components/settings/ImageSettingsPanel";
 import { AboutLicencesPanel } from "@/components/settings/AboutLicencesPanel";
+import { NotificationPreferencesPanel } from "@/components/settings/NotificationPreferencesPanel";
 import { DiagnosticsSettingsPanel } from "@/components/settings/DiagnosticsSettingsPanel";
 
 /**
@@ -36,6 +37,7 @@ const IMPLEMENTED_SECTIONS: Record<string, () => React.ReactElement> = {
   motion: () => <MotionPanel />,
   offline: () => <OfflineSection />,
   account: () => <AccountPanel />,
+  notifications: () => <NotificationPreferencesPanel />,
   images: () => <ImageSettingsPanel />,
   diagnostics: () => <DiagnosticsSettingsPanel />,
   about: () => <AboutLicencesPanel />,

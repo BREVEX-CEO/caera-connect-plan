@@ -1,15 +1,18 @@
 import { useCallback, useMemo } from "react";
 import { useLocalChatEngine } from "@/lib/chat/use-local-chat-engine";
+import { createEngineIntelligenceTransport } from "@/lib/intelligence/engine-transport";
+import { createOnlineIntelligenceTransport } from "@/lib/intelligence/online-client";
+import { createOcadeIntelligence } from "@/lib/intelligence/router";
 import type { MissionBrain } from "./use-mission";
 
 /**
  * The same engine Chat uses, shaped for the mission loop.
  *
  * ONE BRAIN, TWO ROOMS. Control + Work does not get its own model, its own
- * router or its own runtime — it gets the engine `useLocalChatEngine` already
- * resolves, which is the one the signed-in chat and the demo both run on. What
- * differs between the rooms is what the engine is allowed to reach afterwards,
- * and that lives in the mission, not here.
+ * router or its own runtime — the existing local engine is adapted behind the
+ * same `OcadeIntelligence` contract as Chat. What differs between the rooms is
+ * what the engine is allowed to reach afterwards, and that lives in the
+ * mission, not here.
  *
  * WHY THE TEXT IS ACCUMULATED RATHER THAN RETURNED. `send` streams tokens and
  * resolves with success or a reason; the reply itself only exists as the tokens
@@ -34,9 +37,20 @@ export function useMissionBrain(): {
    * watches their own mouse. `thinkingFor` owns the rule; this names the room.
    */
   const engine = useLocalChatEngine({ surface: "control" });
+  const intelligence = useMemo(
+    () =>
+      createOcadeIntelligence({
+        online: createOnlineIntelligenceTransport(),
+        local: createEngineIntelligenceTransport(engine),
+      }),
+    [engine],
+  );
 
   const brain = useCallback<MissionBrain>(
-    async (messages, onToken, signal, tools) => {
+    async (messages, onToken, signal, tools, permit) => {
+      if (!permit) {
+        throw new Error("Cowork requires a commercial generation permit before intelligence runs.");
+      }
       let text = "";
       /*
        * Structured actions when the engine can carry them.
@@ -48,36 +62,68 @@ export function useMissionBrain(): {
        * this list comes back empty.
        */
       const calls: { name: string; arguments: Record<string, unknown> }[] = [];
-      const result = await engine.send({
-        messages,
-        onToken: (chunk) => {
-          text += chunk;
-          onToken(chunk);
-        },
-        ...(tools?.length
-          ? {
-              tools,
-              onToolCall: (call) => calls.push({ name: call.name, arguments: call.arguments }),
-            }
-          : {}),
+      let refusal: string | null = null;
+      let finalText: string | null = null;
+      const normalizedTools = (tools ?? []).flatMap((value) => {
+        if (!value || typeof value !== "object") return [];
+        const fn = (value as { function?: unknown }).function;
+        if (!fn || typeof fn !== "object") return [];
+        const candidate = fn as {
+          name?: unknown;
+          description?: unknown;
+          parameters?: unknown;
+        };
+        if (typeof candidate.name !== "string") return [];
+        return [
+          {
+            name: candidate.name,
+            description: typeof candidate.description === "string" ? candidate.description : "",
+            inputSchema:
+              candidate.parameters && typeof candidate.parameters === "object"
+                ? (candidate.parameters as Record<string, unknown>)
+                : {},
+          },
+        ];
       });
+      for await (const event of intelligence.stream({
+        permit,
+        generationId: permit.generationId,
+        idempotencyKey: permit.idempotencyKey,
+        surface: "cowork",
+        mode: "local_only",
+        messages,
+        tools: normalizedTools,
+        attachments: [],
+        privacy: {
+          storageMode: "browser_only",
+          onlineInferenceConsented: false,
+          sealed: true,
+        },
+        ...(signal ? { signal } : {}),
+      })) {
+        if (event.type === "token") {
+          text += event.text;
+          onToken(event.text);
+        }
+        if (event.type === "tool_call") {
+          calls.push({ name: event.call.name, arguments: event.call.arguments });
+        }
+        if (event.type === "final") finalText = event.response.text;
+        if (event.type === "refusal") refusal = event.reason;
+      }
       if (signal?.aborted) {
         return { ok: false, text, reason: "The task was stopped." };
       }
-      if (!result.ok) {
+      if (refusal && !text.trim() && !finalText?.trim() && calls.length === 0) {
         return {
           ok: false,
           text,
-          reason:
-            result.reason ??
-            (result.cancelled
-              ? "The task was stopped."
-              : "OCADE's engine did not answer on this device."),
+          reason: refusal,
         };
       }
-      return { ok: true, text, calls };
+      return { ok: true, text: finalText ?? text, calls };
     },
-    [engine],
+    [intelligence],
   );
 
   return useMemo(

@@ -3,7 +3,6 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/lib/theme-provider";
-import { DemoProvider } from "@/lib/demo/context";
 
 /**
  * ROUTE EXECUTION (P20).
@@ -58,11 +57,7 @@ function renderRoute(Component: React.ComponentType): string {
     React.createElement(
       QueryClientProvider,
       { client: queryClient },
-      React.createElement(
-        ThemeProvider,
-        null,
-        React.createElement(DemoProvider, null, React.createElement(Component)),
-      ),
+      React.createElement(ThemeProvider, null, React.createElement(Component)),
     ),
   );
 }

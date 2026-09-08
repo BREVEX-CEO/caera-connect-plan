@@ -3,6 +3,7 @@ import { CreditCard, ShieldCheck, Smartphone } from "lucide-react";
 import { z } from "zod";
 import { PublicPage, PublicSection, Notice } from "@/components/public/PublicPage";
 import { PlanComparison } from "@/components/settings/PlanComparison";
+import { CHECKOUT_UNAVAILABLE_NOTICE } from "@/lib/payments/checkout-availability";
 import { PAYMENT_METHODS } from "@/lib/payments/methods";
 import { billingHandoffMessage } from "@/lib/payments/browser-handoff";
 
@@ -12,9 +13,10 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/pricing")({
-  /* Prices stay public during FREE LAUNCH so people can understand the future
-     product clearly. This route never receives an onChoose callback, while the
-     server-side billing authority remains disabled in launch-mode.ts. */
+  /* Prices are public so people can understand what each plan costs before
+     signing in. This route never receives an `onChoose` callback: buying
+     happens in Settings, against an authenticated account, so a purchase can be
+     attributed to somebody. */
   validateSearch: searchSchema,
   head: () => ({
     meta: [
@@ -22,7 +24,7 @@ export const Route = createFileRoute("/pricing")({
       {
         name: "description",
         content:
-          "Pre-launch OCADE plan pricing in INR and international currencies, with planned UPI, card and PayPal checkout.",
+          "OCADE Free, Pro and Max pricing in INR and international currencies, on weekly and monthly cadences.",
       },
     ],
   }),
@@ -35,14 +37,18 @@ function PricingPage() {
 
   return (
     <PublicPage
-      eyebrow="Pre-launch pricing"
-      title="Choose the time you need"
-      summary="Three fixed-duration OCADE plans. Your local data, exports and supported on-device features remain available when a paid term ends. Live checkout is not enabled yet."
+      eyebrow="Pricing"
+      title="Free to start. Pay only for more capacity."
+      summary="Free is a real account plan with a fixed allowance. Pro and Max raise that allowance and are charged weekly or monthly. Your local data, exports and on-device features remain available whichever plan you are on, and when a paid period ends."
     >
-      <Notice>
-        OCADE is free while it launches, and these plans are here so you can see what is coming.
-        Checkout is not open — nothing on this page can charge you.
-      </Notice>
+      {/*
+        The eyebrow said "Pre-launch pricing", the title offered "the time you
+        need" and the summary described "three fixed-duration plans" — all of
+        which described the retired catalogue of fixed-length passes. What is
+        sold now is capacity on a renewing cadence, and Free is a plan rather
+        than a countdown to one.
+      */}
+      <Notice>{CHECKOUT_UNAVAILABLE_NOTICE}</Notice>
 
       {handoff ? (
         <div

@@ -222,8 +222,8 @@ const runtimeEvidence = [
 const evidenceFor = {
   [STATUS.source]: ["src/routes", "src/components", "src/lib"],
   [STATUS.policy]: [
-    "src/lib/launch-mode.ts",
-    "src/lib/__tests__/free-launch-payments.test.ts",
+    "src/lib/payments/checkout-availability.ts",
+    "src/lib/__tests__/checkout-availability.test.ts",
     "src/routes/pricing.tsx",
   ],
   [STATUS.blocked]: [

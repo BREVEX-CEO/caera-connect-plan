@@ -14,16 +14,17 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useOnline } from "@/lib/use-online";
+import { beginBilledRequest } from "@/lib/commercial/use-generation-permit";
 import {
   getCompanion,
   guardAction,
   riskOf,
-  redactForAudit,
   classifyCompanionCompletion,
   COMPANION_UNAVAILABLE_REASON,
   type CompanionAction,
   type CompanionStatus,
 } from "@/lib/native/companion-bridge";
+import { redactForAudit } from "@/lib/security/protected-text";
 import {
   bootstrapCompanion,
   onCompanionEvent,
@@ -94,22 +95,59 @@ function ScreenUnderstanding() {
   const [problem, setProblem] = useState<string | null>(null);
 
   const read = useCallback(async () => {
+    /*
+     * THIS BUTTON RUNS THE AGENT LOOP, so it spends the allowance like every
+     * other AI surface.
+     *
+     * It is easy to read as free — one click, no composer, and it only looks
+     * at things. But behind it is the same observe → plan → verify loop the
+     * Control room runs, against the same model, and the allowance is one pool
+     * across every surface. A read-only loop that cost nothing would be the
+     * cheapest way to spend somebody else's compute without it counting.
+     */
+    const billed = await beginBilledRequest({ surface: "chat" });
+    // Refused, with the reason and the reset time already shown.
+    if (!billed) return;
+
     setBusy(true);
     setProblem(null);
     setAnswer(null);
     setDetail([]);
+    const request = "Look at my screen and tell me what you can see.";
     try {
+      if (billed.permit.source !== "server" || billed.permit.surface !== "chat") {
+        throw new Error("Reconnect before asking OCADE to read this computer.");
+      }
       const { observeComputerFn } = await import("@/lib/agent.functions");
       const result = await observeComputerFn({
-        data: { request: "Look at my screen and tell me what you can see." },
+        data: {
+          request,
+          permit: { ...billed.permit, source: "server", surface: "chat" },
+        },
       });
       setAnswer(result.text);
       setDetail(result.steps.map((s) => ({ tool: s.tool, outcome: s.outcome })));
       if (!result.ok && result.reason === "unavailable") setProblem(result.text);
+      /*
+       * Delivered only when the loop genuinely answered. `unavailable` means
+       * no sidecar was reachable — OCADE produced a sentence explaining that,
+       * not a reading of the person's screen, and they are not charged for it.
+       *
+       * Every step here is a read by construction: this entry point refuses
+       * every mutating tool, so there is nothing to count as a side effect.
+       */
+      if (result.ok && result.text.trim()) {
+        billed.recordDelivery({
+          prompt: request,
+          answer: result.text,
+          readToolBatches: new Set(result.steps.map((step) => step.detail)).size,
+        });
+      }
     } catch (error) {
       setProblem(error instanceof Error ? error.message : String(error));
     } finally {
       setBusy(false);
+      await billed.settle();
     }
   }, []);
 
@@ -518,7 +556,7 @@ export function CopilotPanel() {
 
       {/* Connectivity */}
       {!online ? (
-        <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-[color:var(--state-warning)]/10 p-3 text-xs">
+        <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-[color:var(--state-warning-surface)] p-3 text-xs">
           <WifiOff
             className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--state-warning)]"
             aria-hidden

@@ -17,13 +17,32 @@ import { resolveBrowserPath } from "./browser-path.mjs";
 
 const BASE = process.env.OCADE_BASE_URL ?? "http://127.0.0.1:8080";
 const STATE = process.env.OCADE_STORAGE_STATE;
-// Without authenticated storage, exercise the product's genuine no-account
-// surface. Visiting /ocade in that case only measures the auth/configuration
-// gate and used to misreport its concise, truthful failure page as an offline
-// rendering defect because it contained fewer than 200 characters.
-const START_ROUTE = STATE ? "/ocade" : "/demo/ocade";
-const SETTINGS_ROUTE = STATE ? "/settings/appearance" : "/demo/settings";
-const SURFACE = STATE ? "authenticated workspace" : "no-account demo";
+/*
+ * Without authenticated storage, exercise the product's genuine PUBLIC
+ * surface. Visiting /ocade in that case only measures the auth gate and used to
+ * misreport its concise, truthful failure page as an offline rendering defect
+ * because it contained fewer than 200 characters.
+ *
+ * These pointed at `/demo/ocade` and `/demo/settings` until the demo was
+ * removed. That did not fail the way a broken target usually does: the routes
+ * 404, the 404 page renders perfectly well offline, and eleven of the twelve
+ * checks went on passing against it. The audit was measuring OCADE's
+ * not-found page and reporting it as the product working offline — which is
+ * the exact shape of unearned proof this file's header warns about.
+ */
+const START_ROUTE = STATE ? "/ocade" : "/";
+/*
+ * The second page this journey routes to without a network.
+ *
+ * Signed in, it is the notification history — reached by pressing the bell,
+ * which is a real in-app link a person actually uses. It used to be
+ * `/settings/appearance`, reached by pressing the bell first to get somewhere
+ * that showed the settings rail; the bell then pointed at the activity log,
+ * because there was no notification history to point at yet. There is now, and
+ * one click is a better test of the warm router than two.
+ */
+const SETTINGS_ROUTE = STATE ? "/ocade/notifications" : "/pricing";
+const SURFACE = STATE ? "authenticated workspace" : "public site";
 
 const results = [];
 const check = (name, ok, detail = "") => {
@@ -128,19 +147,23 @@ try {
   // real link; page.goto() would perform a document navigation and test only
   // the service worker's fallback rather than the warm app router.
   if (STATE) {
-    await page
-      .getByRole("link", { name: "Activity and notifications" })
-      .click({ timeout: 10000 })
-      .catch(() => {});
-    await page.waitForTimeout(800);
+    // The bell, by href rather than by name: its accessible name carries the
+    // unread count, so matching on text would break the day somebody has one.
     await page
       .locator(`a[href="${SETTINGS_ROUTE}"]`)
       .first()
       .click({ timeout: 10000 })
       .catch(() => {});
   } else {
+    /*
+     * By href, not by accessible name. This clicked a link called "Settings",
+     * which existed in the removed demo shell and does not exist on the public
+     * site — so the click silently missed, the page never moved, and the check
+     * failed for a reason that had nothing to do with being offline.
+     */
     await page
-      .getByRole("link", { name: "Settings" })
+      .locator(`a[href="${SETTINGS_ROUTE}"]`)
+      .first()
       .click({ timeout: 10000 })
       .catch(() => {});
   }
@@ -150,7 +173,7 @@ try {
     .replace(/\s+/g, " ")
     .trim();
   check(
-    "settings is reachable offline from a warm page",
+    "a second page is reachable offline from a warm one, through the app router",
     page.url().endsWith(SETTINGS_ROUTE) && settingsBody.length > 200,
     `${page.url()} — ${settingsBody.length} characters: ${JSON.stringify(settingsBody.slice(0, 120))}`,
   );

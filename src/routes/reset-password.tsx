@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { KeyRound, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { friendlyOtpError } from "@/lib/auth/otp";
 import { AuthShell } from "@/components/shell/AuthShell";
 import { opensResetForm, readRecoveryEvidence } from "@/lib/auth/recovery-link";
@@ -51,14 +51,26 @@ function ResetPasswordPage() {
      * Somebody who is signed in and wants a new password is not stuck — they
      * are sent to Settings › Security, where the current password is required.
      */
-    const sub = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY" && !cancelled) {
-        setLinkValid(true);
-        setReady(true);
-      }
+    /*
+     * The listener attaches once the client arrives. Loaded on demand rather
+     * than imported: this route is statically reachable from the route tree, so
+     * a top-level import put the whole auth stack on the entry chunk's graph
+     * for a page somebody reaches from an email once.
+     */
+    let unsubscribe: (() => void) | undefined;
+    void loadSupabaseClient().then((supabase) => {
+      if (cancelled) return;
+      const sub = supabase.auth.onAuthStateChange((event) => {
+        if (event === "PASSWORD_RECOVERY" && !cancelled) {
+          setLinkValid(true);
+          setReady(true);
+        }
+      });
+      unsubscribe = () => sub.data.subscription.unsubscribe();
     });
 
     void (async () => {
+      const supabase = await loadSupabaseClient();
       const evidence = readRecoveryEvidence(window.location.href);
 
       if (evidence.kind === "error") {
@@ -91,11 +103,12 @@ function ResetPasswordPage() {
 
     return () => {
       cancelled = true;
-      sub.data.subscription.unsubscribe();
+      unsubscribe?.();
     };
   }, []);
 
   async function submit(e: React.FormEvent) {
+    const supabase = await loadSupabaseClient();
     e.preventDefault();
     setError(null);
     if (password.length < 8) {
@@ -188,7 +201,7 @@ function ResetPasswordPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="At least 8 characters"
-              className="flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              className="flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-muted-foreground"
             />
           </div>
           <label htmlFor="confirm-password" className="text-xs font-medium text-muted-foreground">
@@ -202,7 +215,7 @@ function ResetPasswordPage() {
               autoComplete="new-password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none"
+              className="flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
           </div>
           {error ? (

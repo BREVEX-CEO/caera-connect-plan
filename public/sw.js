@@ -55,8 +55,6 @@ const OPTIONAL_PRECACHE = [
   "/icons/ocade-512.png",
   "/brand/ocade-carcc-mark.png",
   "/brand/ocade-carcc-wordmark.png",
-  "/demo/ocade",
-  "/demo/control",
 ];
 
 /**

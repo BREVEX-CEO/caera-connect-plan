@@ -53,16 +53,72 @@ describe("a stalled engine cannot hang the panel", () => {
   });
 });
 
+/**
+ * Where one instruction is actually run.
+ *
+ * `send` is now a thin wrapper that holds the commercial permit and delegates;
+ * the run itself, with the error handling these tests are about, lives in
+ * `runMission`. Resolved once, and asserted to exist, because an anchor that
+ * silently misses turns every assertion below it into a slice of the whole
+ * file — which passes for the wrong reason.
+ */
+const RUN_ANCHOR = "const runMission = useCallback";
+const RUN = MISSION.slice(MISSION.indexOf(RUN_ANCHOR));
+
+/** Every `catch (cause) { … }` body in a stretch of source, brace-balanced. */
+function catchBodies(source: string): string[] {
+  const bodies: string[] = [];
+  const opener = /catch \(cause\) \{/g;
+  let match: RegExpExecArray | null;
+  while ((match = opener.exec(source)) !== null) {
+    let depth = 1;
+    let index = match.index + match[0].length;
+    const start = index;
+    while (index < source.length && depth > 0) {
+      const character = source[index];
+      if (character === "{") depth += 1;
+      else if (character === "}") depth -= 1;
+      index += 1;
+    }
+    if (depth === 0) bodies.push(source.slice(start, index - 1));
+  }
+  return bodies;
+}
+
 describe("a failure mid-run is visible, not silent", () => {
-  it("sets the error banner as well as writing a transcript line", () => {
-    // Anchored inside send(), not connect() — both have a `catch (cause)`, and
-    // connect()'s already set an error, which is what made the run-time one
-    // easy to miss.
-    const send = MISSION.slice(MISSION.indexOf("const send = useCallback"));
-    const caught = send.slice(send.indexOf("} catch (cause) {"));
-    const block = caught.slice(0, caught.indexOf("} finally {"));
-    expect(block).toContain("setError(message)");
-    expect(block).toContain('setPhase("error")');
+  it("still knows where the run lives", () => {
+    expect(MISSION).toContain(RUN_ANCHOR);
+  });
+
+  it("never writes a failure as ordinary transcript text without also raising the banner", () => {
+    /*
+     * THE ORIGINAL DEFECT, STATED EXACTLY. A failure mid-run wrote a
+     * transcript line and set no error state, so a dead engine produced a
+     * paragraph that read like an answer above a panel that looked idle.
+     *
+     * So the rule is not "every catch sets the banner" — the tool-execution
+     * catch correctly turns a failure into a tool outcome the model can react
+     * to, and raising a banner there would be wrong. The rule is: a catch that
+     * SPEAKS TO THE PERSON must also look like a failure.
+     *
+     * TWO EARLIER VERSIONS OF THIS TEST PASSED WITH THE GUARANTEE DELETED.
+     * The first read only the first catch in the function. The second read all
+     * of them but bounded each body with `indexOf("} finally {")`, which runs
+     * past the end of one catch and into the next — so a block with nothing in
+     * it borrowed the assertion from a block further down. Both were caught by
+     * deleting `setError` from the model path on purpose and watching the test
+     * stay green. The bodies are brace-balanced now.
+     */
+    const catches = catchBodies(RUN);
+    expect(catches.length, "the run has more than one way to fail").toBeGreaterThanOrEqual(3);
+
+    const speaking = catches.filter((body) => body.includes('role: "ocade"'));
+    expect(speaking.length, "some catch reports a failure to the person").toBeGreaterThanOrEqual(2);
+
+    for (const [index, body] of speaking.entries()) {
+      expect(body, `speaking catch #${index + 1} raises the banner`).toContain("setError(message)");
+      expect(body, `speaking catch #${index + 1} holds the phase`).toContain('setPhase("error")');
+    }
   });
 
   it("holds the error state instead of returning to idle", () => {
@@ -71,8 +127,7 @@ describe("a failure mid-run is visible, not silent", () => {
 
   it("clears a stale error when a new instruction arrives", () => {
     // Otherwise the banner from one dead call sits above every later run.
-    const send = MISSION.slice(MISSION.indexOf("const send = useCallback"));
-    expect(send.slice(0, 1200)).toContain("setError(null)");
+    expect(RUN.slice(0, 1600)).toContain("setError(null)");
   });
 
   it("keeps 'error' out of the busy set, so the spinner stops", () => {

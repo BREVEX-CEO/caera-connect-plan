@@ -51,7 +51,7 @@ export function AuthShell({
       */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 bg-[radial-gradient(70%_50%_at_15%_-10%,oklch(0.5_0.1_315/14%),transparent_60%),radial-gradient(50%_40%_at_100%_100%,oklch(0.68_0.11_78/8%),transparent_65%)]"
+        className="pointer-events-none fixed inset-0 bg-[radial-gradient(70%_50%_at_15%_-10%,oklch(0.5_0_0/14%),transparent_60%),radial-gradient(50%_40%_at_100%_100%,oklch(0.68_0_0/8%),transparent_65%)]"
       />
 
       <div className="relative grid min-h-screen grid-rows-[auto_1fr_auto]">

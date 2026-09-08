@@ -10,7 +10,6 @@ import {
   evaluatePublicWindowsRelease,
   type ClientPlatform,
 } from "@/lib/packaging/public-download";
-import { FREE_LAUNCH_MODE } from "@/lib/launch-mode";
 
 export const Route = createFileRoute("/download")({
   /* The availability page is public even though every unverified installer is
@@ -52,7 +51,7 @@ function DownloadPage() {
           title={platform === "windows" ? "Recommended for this device" : "OCADE for Windows"}
           description="Tauri desktop shell, local companion bridge and optional on-device runtime. Public packages remain unavailable until signing and clean-device verification are complete."
         />
-        {release.ready && !FREE_LAUNCH_MODE ? (
+        {release.ready ? (
           <Button asChild className="mt-4 rounded-full">
             <a href={release.url} download>
               <Download className="mr-2 h-4 w-4" aria-hidden />

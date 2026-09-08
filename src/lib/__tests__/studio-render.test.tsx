@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
+import { watchConsole } from "./support/expected-console";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ResearchPanel } from "@/components/ocade/ResearchPanel";
 import { ScenePanel } from "@/components/ocade/ScenePanel";
@@ -33,9 +34,10 @@ describe("the Studio route is reachable, not orphaned", () => {
      * follow.
      */
     const onRail = MODULE_CONTEXT.ocade.some((item) => item.to === "/ocade/studio");
-    const underMore = readFileSync("src/routes/_authenticated/ocade.system.tsx", "utf8").includes(
-      '"/ocade/studio"',
-    );
+    const underMore = readFileSync(
+      "src/routes/_authenticated/ocade.customize.tsx",
+      "utf8",
+    ).includes('"/ocade/studio"');
     const inPalette = readFileSync("src/components/shell/CommandPalette.tsx", "utf8").includes(
       '"/ocade/studio"',
     );
@@ -370,5 +372,21 @@ describe("update policy is reachable and refuses unsafe updates", () => {
     const html = panel();
     expect(html).toMatch(/not available yet/i);
     expect(html).toMatch(/placeholder signing key/i);
+  });
+});
+
+/**
+ * Console output this audit legitimately causes, classified rather than muted.
+ *
+ * The shared list in `support/expected-console.ts` says why each message is
+ * correct behaviour. Anything NOT on it still reaches the console and fails the
+ * assertion below, so a new error cannot hide inside expected noise.
+ */
+const consoleWatch = watchConsole();
+afterAll(() => consoleWatch.restore());
+
+describe("the console during this audit", () => {
+  it("carries nothing this harness cannot account for", () => {
+    expect(consoleWatch.unexpected.slice(0, 5)).toEqual([]);
   });
 });

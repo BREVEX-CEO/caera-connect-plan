@@ -6,6 +6,8 @@ import { useSession } from "@/lib/session";
 import { getModeFor } from "@/lib/storage/resolver";
 import { detectTauri } from "@/lib/native/tauri-companion";
 import { getBrowserBridge } from "@/lib/native/browser-bridge";
+import { loadPolicyCeiling } from "@/lib/organizations/authority";
+import { NO_CEILING, withheldExplanation, type PolicyCeiling } from "@/lib/organizations/policy";
 import { allCapabilityReports, type CapabilitySignals } from "./registry";
 import type { CapabilityReport } from "./types";
 
@@ -96,10 +98,54 @@ export function useCapabilitySignals(): CapabilitySignals {
   };
 }
 
+/**
+ * What the organizations this account belongs to have turned off — PLAN.md §21.
+ *
+ * Cached for five minutes and refetched on nothing else: a workspace policy
+ * changes on the order of months, and the capability badge is on every screen,
+ * so asking on every mount would be a query per navigation for an answer that
+ * is almost always the same empty set.
+ *
+ * Signed-out sessions belong to no organization and skip the read entirely.
+ * `loadPolicyCeiling` already resolves an unreadable policy to "nothing
+ * withheld"; this is the case where there is nothing to read at all.
+ */
+export function usePolicyCeiling(): PolicyCeiling {
+  const { user } = useSession();
+  const ceiling = useQuery({
+    queryKey: ["organization-policy-ceiling", user?.id],
+    enabled: Boolean(user?.id),
+    staleTime: 5 * 60 * 1000,
+    queryFn: loadPolicyCeiling,
+  });
+  return ceiling.data ?? NO_CEILING;
+}
+
 export function useCapabilityReports(): CapabilityReport[] {
   const reports = allCapabilityReports(useCapabilitySignals());
+  const ceiling = usePolicyCeiling();
 
   return reports.map((report) => {
+    /*
+     * A WORKSPACE'S DECISION OUTRANKS EVERY PROBE BELOW IT.
+     *
+     * Applied first, and it replaces the status rather than adding to it. A
+     * capability an organization has turned off is not "ready but blocked" —
+     * the person cannot use it, and any other status here would be OCADE
+     * offering something that will not work. The reason is named so the
+     * sentence is actionable: somebody whose machine control has gone should
+     * be able to tell "your workspace turned this off" from "your companion is
+     * not running", because only one of those is theirs to fix.
+     */
+    if (ceiling.capabilities.has(report.id)) {
+      return {
+        ...report,
+        status: "UNAVAILABLE" as const,
+        detail: withheldExplanation(ceiling, report.id),
+        evidence: "Withheld by an organization policy.",
+      };
+    }
+
     if (report.id === "desktopInstaller") {
       return {
         ...report,

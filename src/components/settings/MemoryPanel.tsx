@@ -22,7 +22,10 @@ import {
   addLocalMemory,
   clearLocalMemory,
   deleteLocalMemory,
+  importLocalMemory,
+  exportLocalMemory,
   inspectLocalMemory,
+  MEMORY_EXPORT_VERSION,
   purgeExpiredLocalMemory,
   setLocalMemoryEnabled,
   updateLocalMemory,
@@ -212,6 +215,145 @@ export function MemoryPanel() {
     }
   }
 
+  /**
+   * WHAT OCADE REMEMBERS, AS A FILE — PLAN.md §8.
+   *
+   * READ FROM THE AUTHORITY, NOT FROM THE SCREEN. The first version serialised
+   * the `rows` state, and that was wrong in the one case the export matters
+   * most: when memory is PAUSED this panel deliberately shows no rows, so the
+   * file would have been empty and would have said "Exported 0 memories" —
+   * a confident, false answer to "what does OCADE know about me". Pausing
+   * memory stops it growing; it does not delete what is there, and the export
+   * has to tell the truth about that.
+   *
+   * Offered for both backends and in both states: where a memory happens to be
+   * stored, and whether it is currently being added to, are not the reader's
+   * question.
+   */
+  async function downloadMemory() {
+    try {
+      let stored: OcadeMemoryRow[];
+      if (backend === "local") {
+        const result = exportLocalMemory();
+        if (!result.ok) throw new Error(result.reason);
+        stored = result.data.rows;
+      } else {
+        stored = (await listMemory()) as OcadeMemoryRow[];
+      }
+      const bundle = {
+        format: "ocade.memory" as const,
+        version: MEMORY_EXPORT_VERSION,
+        exportedAt: new Date().toISOString(),
+        rows: stored,
+      };
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `ocade-memory-${new Date().toISOString().slice(0, 10)}.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success(
+        stored.length === 0
+          ? "Exported. OCADE remembers nothing about you."
+          : `Exported ${stored.length} ${stored.length === 1 ? "memory" : "memories"}.`,
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Memory could not be exported.");
+    }
+  }
+
+  /**
+   * Read memories back in — merge, never replace.
+   *
+   * The destructive restore is deliberately not offered from a file picker: a
+   * person choosing the wrong file would lose everything OCADE knows about them
+   * with no undo, and "delete all, then import" is two deliberate acts that say
+   * what they do. Merging is safe to get wrong.
+   *
+   * On the SERVER backend the rows are added one at a time through the same
+   * authority the add box uses, because the server decides its own ids,
+   * timestamps and duplicate handling — writing them any other way would be a
+   * second path into the same table.
+   */
+  async function uploadMemory(file: File) {
+    /*
+     * ASKED BEFORE THE FILE IS READ, not discovered from a 409.
+     *
+     * The server refuses to store a memory while memory is switched off, which
+     * is correct — but the browser already knows that, and finding out by
+     * posting rows one at a time and watching the first one fail leaves a
+     * failed request in the console and an opaque message on screen. Worse, a
+     * partial import: the local backend has no such refusal, so the two would
+     * behave differently for the same file.
+     *
+     * Export is deliberately NOT gated this way. Reading what is already there
+     * is exactly what somebody who has paused memory wants to do.
+     */
+    if (!enabled) {
+      toast.error("Memory is switched off, so there is nothing to import into.", {
+        description: "Turn it on above, then import. Your export still works either way.",
+      });
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const parsed: unknown = JSON.parse(await file.text());
+
+      if (backend === "local") {
+        const result = importLocalMemory(parsed);
+        if (!result.ok) throw new Error(result.reason);
+        toast.success(
+          result.data.added === 0
+            ? "Nothing new — OCADE already remembered all of that."
+            : `Imported ${result.data.added} ${result.data.added === 1 ? "memory" : "memories"}.`,
+          result.data.alreadyKnown > 0
+            ? { description: `${result.data.alreadyKnown} were already remembered.` }
+            : undefined,
+        );
+        await refresh(true);
+        return;
+      }
+
+      const bundle = parsed as { format?: unknown; version?: unknown; rows?: unknown };
+      if (bundle.format !== "ocade.memory" || bundle.version !== MEMORY_EXPORT_VERSION) {
+        throw new Error("That file is not an OCADE memory export from this version.");
+      }
+      if (!Array.isArray(bundle.rows)) throw new Error("That export is damaged.");
+
+      const known = new Set((rows ?? []).map((row) => `${row.scope}\u0000${row.content}`));
+      let added = 0;
+      for (const entry of bundle.rows as OcadeMemoryRow[]) {
+        if (typeof entry?.content !== "string" || entry.content.trim().length === 0) continue;
+        if (known.has(`${entry.scope}\u0000${entry.content}`)) continue;
+        known.add(`${entry.scope}\u0000${entry.content}`);
+        await addMemory({
+          data: {
+            content: entry.content,
+            scope: entry.scope === "project" ? "project" : "user",
+            projectId: entry.scope === "project" ? (entry.project_id ?? null) : null,
+            // Marked as imported whatever the file claimed, so "where did OCADE
+            // get this idea about me" keeps a truthful answer.
+            source: "imported",
+            expiresAt: entry.expires_at ?? null,
+          },
+        });
+        added += 1;
+      }
+      toast.success(
+        added === 0
+          ? "Nothing new — OCADE already remembered all of that."
+          : `Imported ${added} ${added === 1 ? "memory" : "memories"}.`,
+      );
+      await refresh(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "That file could not be imported.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function clearAll() {
     const phrase = window.prompt(
       'This permanently deletes everything OCADE remembers. Your conversations are not affected. Type "delete memory" to confirm.',
@@ -270,7 +412,7 @@ export function MemoryPanel() {
       {notice ? (
         <GlassPanel className="mt-6 flex items-start gap-3 p-4">
           <AlertTriangle
-            className="mt-0.5 h-4 w-4 flex-none text-[color:var(--warning)]"
+            className="mt-0.5 h-4 w-4 flex-none text-[color:var(--state-warning)]"
             aria-hidden
           />
           <div className="text-sm">
@@ -286,7 +428,7 @@ export function MemoryPanel() {
       {error ? (
         <GlassPanel className="mt-6 flex items-start gap-3 p-4">
           <AlertTriangle
-            className="mt-0.5 h-4 w-4 flex-none text-[color:var(--warning)]"
+            className="mt-0.5 h-4 w-4 flex-none text-[color:var(--state-warning)]"
             aria-hidden
           />
           <div className="text-sm">
@@ -319,28 +461,89 @@ export function MemoryPanel() {
         </GlassPanel>
       ) : null}
 
+      {/*
+        PORTABILITY IS NOT GATED ON MEMORY BEING ON — PLAN.md §8.
+
+        Pausing memory stops it growing; it does not delete what is there. The
+        person most likely to ask "what does OCADE actually know about me" is
+        the one who has just turned it off, and a panel that hid the export
+        from them would answer that question with silence.
+      */}
+      {!error ? (
+        <section className="mt-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-medium text-foreground">Take it with you</h2>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => void downloadMemory()}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Export
+              </button>
+              {/*
+                SIBLINGS, NOT PARENT AND CHILD.
+
+                Tailwind's `peer-*` compiles to a sibling combinator, so an
+                input nested INSIDE its label styles nothing — the ring would
+                never appear, and the accessibility gate would pass on a
+                control that is still invisible when focused. The avatar picker
+                has the same shape for the same reason.
+              */}
+              <div>
+                <input
+                  id="memory-import"
+                  type="file"
+                  accept="application/json,.json"
+                  className="peer sr-only"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    // Cleared so choosing the SAME file twice fires again — a
+                    // person who fixes a file and re-picks it expects a retry.
+                    event.target.value = "";
+                    if (file) void uploadMemory(file);
+                  }}
+                />
+                <label
+                  htmlFor="memory-import"
+                  className="cursor-pointer rounded px-1 py-0.5 text-xs text-muted-foreground hover:text-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring"
+                >
+                  Import
+                </label>
+              </div>
+            </div>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {enabled
+              ? "An export is a JSON file of everything OCADE remembers. Importing one adds what is new and leaves the rest alone."
+              : "Memory is paused, which stops it growing — it does not delete what is already there. An export still shows you all of it."}
+          </p>
+        </section>
+      ) : null}
+
       {enabled && rows ? (
         <section className="mt-6">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="text-sm font-medium text-foreground">
               Remembered items {rows.length > 0 ? `(${rows.length})` : ""}
             </h2>
-            {rows.length > 0 ? (
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => void removeExpired()}
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  Remove expired
-                </button>
-                <button
-                  onClick={() => void clearAll()}
-                  className="text-xs text-muted-foreground hover:text-[color:var(--destructive)]"
-                >
-                  Delete all
-                </button>
-              </div>
-            ) : null}
+            <div className="flex items-center gap-3">
+              {rows.length > 0 ? (
+                <>
+                  <button
+                    onClick={() => void removeExpired()}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Remove expired
+                  </button>
+                  <button
+                    onClick={() => void clearAll()}
+                    className="text-xs text-muted-foreground hover:text-destructive"
+                  >
+                    Delete all
+                  </button>
+                </>
+              ) : null}
+            </div>
           </div>
 
           {/*
@@ -479,7 +682,7 @@ export function MemoryPanel() {
                         <button
                           onClick={() => void remove(row)}
                           title="Delete"
-                          className="rounded p-1 hover:text-[color:var(--destructive)]"
+                          className="rounded p-1 hover:text-destructive"
                         >
                           <Trash2 className="h-3.5 w-3.5" aria-hidden />
                         </button>

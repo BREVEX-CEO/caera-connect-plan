@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeAll, afterEach } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach } from "vitest";
+import { watchConsole } from "./support/expected-console";
 import React from "react";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -33,8 +34,8 @@ import { ThemeProvider } from "@/lib/theme-provider";
  * WHY IT MOUNTS THE ROUTE COMPONENT RATHER THAN THE URL.
  *
  * Going through the real URL drags in the whole `_authenticated` layout: the
- * session guard, device registration, and `FirstRunEngineSetup`, which probes
- * for hardware and never settles under jsdom. Worse, it would need the auth
+ * session guard, device registration, and installation-status observer. Worse,
+ * it would need the auth
  * guard satisfied, and standing up a fake session to walk past a security gate
  * is not something a test should teach anyone to do.
  *
@@ -58,12 +59,23 @@ import { ThemeProvider } from "@/lib/theme-provider";
 const NO_COMPONENT: Record<string, string> = {
   "_authenticated/home.tsx":
     "/home is a redirect to /ocade and deliberately has no component — it exists so old links and the end of onboarding still land somewhere.",
+  "_authenticated/ocade.work.tsx":
+    "PLAN.md §4 migrated Cowork to /ocade/cowork; this is the forwarding address, so it redirects in beforeLoad and never renders. A component here would be a frame of the old screen appearing and vanishing.",
+  "_authenticated/ocade.system.tsx":
+    "PLAN.md §4 migrated the More directory to /ocade/customize; this redirects there in beforeLoad for everybody whose browser or history still holds the old URL.",
+  "_authenticated/cania.tsx":
+    "CANIA is hidden from OCADE. Its historical deep link redirects before rendering an unavailable product.",
+  "_authenticated/ficia.tsx":
+    "FICIA is hidden from OCADE. Its historical deep link redirects before rendering an unavailable product.",
+  "_authenticated/madee.tsx":
+    "MADEE is hidden from OCADE. Its historical deep link redirects before rendering an unavailable product.",
 };
 
 /** Routes that require an account, and therefore had no interaction coverage. */
 const SIGNED_IN_ROUTES = [
   "_authenticated/ocade.index.tsx",
-  "_authenticated/ocade.work.tsx",
+  "_authenticated/ocade.cowork.tsx",
+  "_authenticated/ocade.customize.tsx",
   "_authenticated/ocade.artifacts.tsx",
   "_authenticated/ocade.automations.tsx",
   "_authenticated/ocade.code.tsx",
@@ -72,9 +84,6 @@ const SIGNED_IN_ROUTES = [
   "_authenticated/ocade.projects.tsx",
   "_authenticated/ocade.studio.tsx",
   "_authenticated/onboarding.tsx",
-  "_authenticated/cania.tsx",
-  "_authenticated/ficia.tsx",
-  "_authenticated/madee.tsx",
   "_authenticated/access-denied.tsx",
   "_authenticated/admin.launch-gate.tsx",
   "_authenticated/admin.payments-checklist.tsx",
@@ -106,7 +115,15 @@ let root: Root | null = null;
 const HARNESS_REJECTIONS = [/No Start context found in AsyncLocalStorage/i];
 const unexpectedRejections: string[] = [];
 
+let consoleWatch: ReturnType<typeof watchConsole>;
+
 beforeAll(() => {
+  /*
+   * Every console error is classified rather than printed. A run whose output
+   * is full of expected noise is a run in which a NEW error goes unread.
+   */
+  consoleWatch = watchConsole();
+
   /*
    * React only applies `act()` semantics when this is set. Without it, effects
    * are not flushed the way the assertions assume — the audit would report a
@@ -120,6 +137,24 @@ beforeAll(() => {
    * "not available" branch here — a real branch worth exercising — rather than
    * be handed a fake that lets it walk into code that cannot work.
    */
+  /*
+   * CANVAS: ABSENT, AND HONESTLY SO.
+   *
+   * jsdom has no canvas implementation and shouts about it on every call —
+   * a hundred and fifty lines of output in this file alone, which is exactly
+   * how a real error goes unread.
+   *
+   * `null` is not a workaround: it is what a REAL browser returns when the
+   * requested context type is unsupported, and every component that draws must
+   * already handle it. Stubbing a fake 2D context instead would hand these
+   * routes a canvas that silently records nothing, letting them walk into
+   * drawing code that cannot work — the opposite of what this audit is for.
+   */
+  const canvas = window.HTMLCanvasElement.prototype as unknown as {
+    getContext: () => null;
+  };
+  canvas.getContext = () => null;
+
   if (!window.matchMedia) {
     window.matchMedia = ((q: string) => ({
       matches: false,
@@ -162,6 +197,10 @@ beforeAll(() => {
   }
   if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => {};
   window.scrollTo = () => {};
+  // Typed-confirmation controls use the native prompt in a real browser. A
+  // cancelled prompt is the honest jsdom branch and avoids jsdom's noisy
+  // "not implemented" pseudo-call, which otherwise returns undefined.
+  window.prompt = () => null;
 
   /*
    * jsdom implements neither of these, and an export button that calls
@@ -188,6 +227,22 @@ beforeAll(() => {
       configurable: true,
     });
   }
+});
+
+afterAll(() => {
+  consoleWatch.restore();
+});
+
+describe("the console during this audit", () => {
+  it("carries nothing this harness cannot account for", () => {
+    /*
+     * The point of collecting them: an unexplained console error during a
+     * click-through is a defect that has not been noticed yet. Expected ones
+     * are named above with the reason they are correct; everything else fails
+     * here rather than scrolling past in the output.
+     */
+    expect(consoleWatch.unexpected.slice(0, 5)).toEqual([]);
+  });
 });
 
 afterEach(() => {
@@ -232,9 +287,24 @@ async function mount(Component: React.ComponentType) {
       </QueryClientProvider>,
     );
   });
-  await act(async () => {
-    await new Promise((r) => setTimeout(r, 0));
-  });
+  /*
+   * SETTLE ACROSS A DYNAMIC IMPORT, NOT JUST ONE TICK.
+   *
+   * `useSession` loads the Supabase client on demand — a top-level import put
+   * 203 KiB of auth stack on the landing page's first paint — so "am I signed
+   * in?" now resolves an import before it can answer, and the first render is
+   * legitimately a loading state. One macrotask was enough when the answer was
+   * synchronous; it is not enough to resolve a module.
+   *
+   * Several short turns rather than one long wait: the loop finishes as soon as
+   * the work does, and a page that never settles still fails rather than
+   * hanging the run.
+   */
+  for (let turn = 0; turn < 6; turn += 1) {
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+  }
 }
 
 describe("every signed-in route exposes a component to audit", () => {
@@ -243,7 +313,7 @@ describe("every signed-in route exposes a component to audit", () => {
   });
 
   it("keeps the component-less list short, specific and justified", () => {
-    expect(Object.keys(NO_COMPONENT)).toHaveLength(1);
+    expect(Object.keys(NO_COMPONENT)).toHaveLength(6);
     for (const [name, reason] of Object.entries(NO_COMPONENT)) {
       expect(componentFor(name), `${name} is excluded but now HAS a component`).toBeUndefined();
       expect(reason.length, `${name} is excluded without a reason`).toBeGreaterThan(40);

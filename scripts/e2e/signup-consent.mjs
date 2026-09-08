@@ -109,8 +109,7 @@ r.createAccountUsableOrExplained = r.createAccountEnabled || r.disabledReasonSho
  * The submit control, not the intent control — the intent one is a radio and
  * keeps its own label. There must be no button still offering to sign in.
  */
-r.signInButtonAbsent =
-  (await page.getByRole("button", { name: /^sign in$/i }).count()) === 0;
+r.signInButtonAbsent = (await page.getByRole("button", { name: /^sign in$/i }).count()) === 0;
 r.stayedOnAuthRoute = new URL(page.url()).pathname === "/auth";
 
 console.log(JSON.stringify(r, null, 2));

@@ -28,7 +28,7 @@ export function CreativeControlPanel() {
             inspection and verified exports.
           </p>
         </div>
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 px-2 py-1 text-[10px] font-medium">
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)] px-2 py-1 text-[10px] font-medium">
           <LockKeyhole className="h-3 w-3" aria-hidden /> Adapter required
         </span>
       </div>

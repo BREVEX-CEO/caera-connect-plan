@@ -65,6 +65,31 @@ const CHECKS = [
     unlocks: "Admin-only server functions.",
   },
   {
+    id: "offline-usage-signing",
+    capability: "Signed, account-wide usage while a device is offline",
+    satisfied: () =>
+      [
+        "OCADE_LEASE_SIGNING_KEY_ID",
+        "OCADE_LEASE_SIGNING_PRIVATE_KEY",
+        "OCADE_LEASE_SIGNING_PUBLIC_KEY",
+        "OCADE_LEASE_SIGNING_NOT_BEFORE",
+      ].every(envPresent),
+    detail: () =>
+      `offline lease authority ${
+        [
+          "OCADE_LEASE_SIGNING_KEY_ID",
+          "OCADE_LEASE_SIGNING_PRIVATE_KEY",
+          "OCADE_LEASE_SIGNING_PUBLIC_KEY",
+          "OCADE_LEASE_SIGNING_NOT_BEFORE",
+        ].every(envPresent)
+          ? "set"
+          : "MISSING"
+      }`,
+    action:
+      "Generate one Ed25519 signing authority and store its PKCS8 private key only in server secret storage. Publish only its raw public key through the authenticated lease response.",
+    unlocks: "Device-bound offline generation blocks and next-window continuity.",
+  },
+  {
     id: "ai-gateway",
     capability: "Cloud chat and AI assist",
     satisfied: () => envPresent("LOVABLE_API_KEY") || envPresent("OPENAI_API_KEY"),

@@ -42,13 +42,13 @@ export function OcadeCompanion({
     >
       <div
         className={cn(
-          "relative shrink-0 rounded-full border border-white/15 bg-black/45 shadow-[0_18px_60px_rgba(0,0,0,0.6)] backdrop-blur-xl",
+          "relative shrink-0 rounded-full border border-white/15 bg-black/45 shadow-[0_18px_60px_rgba(0, 0, 0,0.6)] backdrop-blur-xl",
           compact ? "h-14 w-14" : "h-24 w-24 sm:h-28 sm:w-28",
         )}
       >
         <div
           aria-hidden
-          className="absolute inset-[-10%] -z-10 rounded-full bg-[conic-gradient(from_180deg,transparent,rgba(116,84,164,.38),transparent_42%,rgba(203,163,82,.3),transparent_78%)] blur-xl"
+          className="absolute inset-[-10%] -z-10 rounded-full bg-[conic-gradient(from_180deg,transparent,rgba(97, 97, 97,.38),transparent_42%,rgba(166, 166, 166,.3),transparent_78%)] blur-xl"
         />
         {state ? (
           <span className="absolute inset-0 grid place-items-center">
@@ -66,7 +66,7 @@ export function OcadeCompanion({
             height={512}
             loading="lazy"
             decoding="async"
-            className="h-full w-full object-contain drop-shadow-[0_8px_24px_rgba(116,84,164,.24)]"
+            className="h-full w-full object-contain drop-shadow-[0_8px_24px_rgba(97, 97, 97,.24)]"
           />
         )}
       </div>

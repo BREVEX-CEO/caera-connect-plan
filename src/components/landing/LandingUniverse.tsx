@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { ParticleLogoIntro } from "./ParticleLogoIntro";
 import { OcadeCompanion } from "@/components/ocade/OcadeCompanion";
 import { useAppearance } from "@/lib/use-appearance";
+import { scenesShouldRun } from "@/lib/landing/renderer-capability";
 
 /*
  * LAZY, AND THAT IS A BUDGET DECISION RATHER THAN A HABIT.
@@ -24,7 +25,6 @@ import {
   PLANETS,
   INTRO_TIMELINE,
   introPhaseAt,
-  introSeen,
   markIntroSeen,
   forgetIntro,
   chooseRenderTier,
@@ -51,9 +51,10 @@ import {
  * planets carry through the whole page instead of the page being a stack of
  * separate rectangles.
  *
- * THE OPENING PLAYS ONCE PER DEVICE. Remembered in `localStorage`, with a
- * replay control. By the third visit an unskippable five seconds is not
- * atmosphere, it is a toll.
+ * THE OPENING IS EXPLICIT. The particle sequence is available through the
+ * replay control rather than consuming the first interaction budget for every
+ * visitor. A decorative animation must never make the first usable screen
+ * slower than the product it is introducing.
  *
  * REDUCED MOTION IS ABSOLUTE. `prefers-reduced-motion` skips the sequence and
  * paints a single still frame — someone who asked their operating system to
@@ -76,6 +77,17 @@ export function LandingUniverse() {
   const [phase, setPhase] = useState<IntroPhase>("ambient");
   const [hovered, setHovered] = useState<Planet | null>(null);
   const [tier, setTier] = useState<RenderTier>("full");
+  /*
+   * WHETHER THE 3D CHUNK IS FETCHED AT ALL.
+   *
+   * `SolarSystem` declines on a software rasteriser, and that decision is its
+   * own invariant — but by the time it can make it, 551 KiB of engine has been
+   * downloaded and evaluated for nothing. Asking here instead means a machine
+   * with no GPU never requests it: the same question, one network round trip
+   * earlier. Starts false so the server and the first paint agree, and the
+   * probe needs a document anyway.
+   */
+  const [sceneRuns, setSceneRuns] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const startedAt = useRef<number>(0);
 
@@ -87,6 +99,60 @@ export function LandingUniverse() {
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const pinned = useMemo(() => PLANETS.find((p) => p.id === pinnedId) ?? null, [pinnedId]);
   const active = pinned ?? hovered;
+
+  useEffect(() => {
+    /*
+     * The WebGL scene is a progressive enhancement, never a first-paint
+     * dependency.  Loading Three immediately after hydration produced a
+     * 1.5-second main-thread task on a throttled mid-tier device: the landing
+     * page looked painted, but could not accept the visitor's first tap.
+     *
+     * A real interaction requests it straight away for somebody who wants to
+     * turn the scene.  Otherwise it waits until the reader has had time to
+     * absorb the page and the browser reports an idle period.  The CSS/DOM
+     * fallback remains the complete first screen, so this changes decoration
+     * only and keeps the 3D chunk out of first-interaction work.
+     */
+    if (reducedMotion) {
+      setSceneRuns(false);
+      return;
+    }
+
+    let cancelled = false;
+    let idle: number | undefined;
+    const requestScene = () => {
+      if (cancelled) return;
+      setSceneRuns(scenesShouldRun().run);
+    };
+    const requestAtIdle = () => {
+      const idleCallback = (
+        window as Window &
+          typeof globalThis & {
+            requestIdleCallback?: (callback: () => void) => number;
+            cancelIdleCallback?: (handle: number) => void;
+          }
+      ).requestIdleCallback;
+      if (typeof idleCallback === "function") idle = idleCallback(requestScene);
+      else requestScene();
+    };
+
+    // Do not turn a decorative chunk into the first interaction's work.
+    window.addEventListener("pointerdown", requestScene, { once: true, passive: true });
+    // A reader who simply watches the page still receives the enhancement,
+    // after the initial interaction/readiness window has passed.
+    const timer = window.setTimeout(requestAtIdle, 5_000);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("pointerdown", requestScene);
+      window.clearTimeout(timer);
+      if (idle !== undefined) {
+        (
+          window as Window & typeof globalThis & { cancelIdleCallback?: (handle: number) => void }
+        ).cancelIdleCallback?.(idle);
+      }
+    };
+  }, [reducedMotion]);
 
   useEffect(() => {
     const navigatorish = navigator as Navigator & { deviceMemory?: number };
@@ -151,11 +217,6 @@ export function LandingUniverse() {
     };
   }, []);
 
-  const runIntro = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    return !reducedMotion && !introSeen();
-  }, [reducedMotion]);
-
   const play = useMemo(
     () => () => {
       setPhase("wordmark");
@@ -176,14 +237,6 @@ export function LandingUniverse() {
     [],
   );
 
-  useEffect(() => {
-    if (!runIntro) {
-      setPhase("ambient");
-      return;
-    }
-    return play();
-  }, [runIntro, play]);
-
   const introRunning = phase !== "ambient";
   // The identity is large and centred only while the opening runs and the
   // reader is still on the first screen.
@@ -203,13 +256,15 @@ export function LandingUniverse() {
           it, so an empty frame for the moment the chunk arrives looks like the
           page loading, while a spinner looks like something being wrong.
         */}
-        <Suspense fallback={null}>
-          <SolarSystem className="pointer-events-auto absolute inset-0 h-full w-full" />
-        </Suspense>
+        {sceneRuns ? (
+          <Suspense fallback={null}>
+            <SolarSystem className="pointer-events-auto absolute inset-0 h-full w-full" />
+          </Suspense>
+        ) : null}
         {/* Keeps text legible over the brightest part of the field. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_38%,oklch(0.06_0.01_90/0.78)_100%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_38%,oklch(0.06_0_0/0.78)_100%)]"
         />
         {/*
           Deepens as the reader leaves the hero, so the sections below sit on a
@@ -258,7 +313,7 @@ export function LandingUniverse() {
             alt=""
             width={2172}
             height={724}
-            className="h-auto w-full drop-shadow-[0_16px_45px_rgba(0,0,0,0.75)]"
+            className="h-auto w-full drop-shadow-[0_16px_45px_rgba(0, 0, 0,0.75)]"
             fetchPriority="high"
           />
         </h1>
@@ -318,10 +373,10 @@ export function LandingUniverse() {
               Get started
             </Link>
             <Link
-              to="/demo/ocade"
+              to="/pricing"
               className="inline-flex h-11 items-center justify-center rounded-full border border-border/70 bg-background/40 px-7 text-[13.5px] font-medium text-foreground backdrop-blur transition-colors hover:bg-background/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              Try the demo
+              See the plans
             </Link>
           </div>
 
@@ -348,27 +403,31 @@ export function LandingUniverse() {
         ) : null}
       </section>
 
-      {/* ------------------------------------------------------ try it -- */}
+      {/* ------------------------------------------------------ free -- */}
       <Panel>
         <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-primary/80">
-          Try it first
+          Start free
         </p>
         <h2 className="mt-4 text-balance text-3xl font-semibold tracking-tight text-foreground sm:text-[44px]">
           {/*
             One phrase in the display serif, per the design reference: the
             emphasis is a change of voice, not a change of size, and it falls
             on the number because the number is the offer.
+
+            The number is the FREE PLAN's allowance, which is a standing fact
+            about the product, not a countdown that runs out and leaves nothing
+            behind. Work done on the free plan is kept.
           */}
-          <em className="ocade-accent">Twenty-eight</em> minutes.
+          <em className="ocade-accent">Twenty-eight</em> uses.
           <br />
-          No account.
+          Free, on your account.
         </h2>
         <div className="mt-9">
           <Link
-            to="/demo/ocade"
+            to="/auth"
             className="inline-flex h-12 items-center justify-center rounded-full bg-primary px-8 text-[14px] font-medium text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none motion-reduce:hover:translate-y-0"
           >
-            Open the demo
+            Create a free account
           </Link>
         </div>
       </Panel>
@@ -429,7 +488,7 @@ export function LandingUniverse() {
                         "h-1.5 w-1.5 shrink-0 rounded-full transition-transform",
                         isActive || isPinned ? "scale-[1.9]" : "scale-100",
                       )}
-                      style={{ backgroundColor: `oklch(0.8 0.13 ${planet.hue})` }}
+                      style={{ backgroundColor: `oklch(0.8 0 0)` }}
                     />
                     <span
                       className={cn(

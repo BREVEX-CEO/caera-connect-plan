@@ -20,10 +20,10 @@
  * file does three things: verify, record, apply.
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { createClient } from "@supabase/supabase-js";
 import { verifyWebhook, isPaddleEnv, type PaddleEnv } from "@/lib/paddle.server";
 import { checkServerLimit } from "@/lib/limits/server";
 import { decide, targetEntityIdOf, type ExistingRecord } from "@/lib/payments/webhook-apply";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 type ApplyPaymentWebhookArgs = {
@@ -54,9 +54,23 @@ type PaymentWebhookRpcClient = {
   ) => PromiseLike<{ data: string | null; error: unknown | null }>;
 };
 
-let cached: ReturnType<typeof createClient<Database>> | null = null;
-function getSupabase() {
+/**
+ * The service-role client, built once per process — and IMPORTED on demand.
+ *
+ * `@supabase/supabase-js` is 203 KiB, and the generated route tree imports
+ * every route module statically, including this API route. So a top-level
+ * import here put the whole auth stack on the CLIENT entry chunk's graph, for a
+ * handler that only ever runs on the server in response to a provider webhook.
+ * It was the last edge keeping that chunk on the landing page's first paint.
+ *
+ * Only the import moved. What this builds, when, and with which key is
+ * unchanged, and the cache still means one client per process rather than one
+ * per event.
+ */
+let cached: SupabaseClient<Database> | null = null;
+async function getSupabase(): Promise<SupabaseClient<Database>> {
   if (!cached) {
+    const { createClient } = await import("@supabase/supabase-js");
     cached = createClient<Database>(
       process.env["SUPABASE_URL"]!,
       process.env["SUPABASE_SERVICE_ROLE_KEY"]!,
@@ -67,7 +81,7 @@ function getSupabase() {
 
 async function handleWebhook(req: Request, env: PaddleEnv) {
   const event = await verifyWebhook(req, env);
-  const supabase = getSupabase();
+  const supabase = await getSupabase();
   const data = (event.data ?? {}) as Record<string, unknown>;
   const entityId = targetEntityIdOf(event.eventType, data);
 

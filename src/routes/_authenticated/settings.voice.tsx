@@ -196,7 +196,7 @@ function VoiceSettingsPage() {
           </GlassPanel>
         ) : null}
         {storageError ? (
-          <GlassPanel className="border-[color:var(--state-warning)]/50 p-4 text-sm">
+          <GlassPanel className="border-[color:var(--state-warning-line-strong)] p-4 text-sm">
             <p className="font-medium text-foreground">Voice settings were not saved</p>
             <p className="mt-1 text-muted-foreground">{storageError}</p>
           </GlassPanel>
@@ -427,7 +427,7 @@ function VoiceSettingsPage() {
             </span>
           </label>
           {prefs.muted ? (
-            <p className="mt-3 rounded-md bg-[color:var(--state-warning)]/10 px-3 py-2 text-xs text-[color:var(--state-warning)]">
+            <p className="mt-3 rounded-md bg-[color:var(--state-warning-surface)] px-3 py-2 text-xs text-[color:var(--state-warning)]">
               Voice output is muted by emergency mute.{" "}
               <button className="underline" onClick={() => update({ muted: false })}>
                 Unmute

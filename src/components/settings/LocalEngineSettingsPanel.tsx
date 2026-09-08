@@ -76,7 +76,7 @@ export function LocalEngineSettingsPanel() {
           <h2 className="text-sm font-semibold text-foreground">This device</h2>
 
           {device.problem ? (
-            <div className="mt-3 flex gap-3 rounded-md border border-[color:var(--state-warning)]/30 bg-[color:var(--state-warning)]/5 p-3 text-[13px]">
+            <div className="mt-3 flex gap-3 rounded-md border border-[color:var(--state-warning-line)] bg-[color:var(--state-warning-wash)] p-3 text-[13px]">
               <AlertTriangle className="h-4 w-4 shrink-0 text-[color:var(--state-warning)]" />
               <p className="text-muted-foreground">{device.problem}</p>
             </div>

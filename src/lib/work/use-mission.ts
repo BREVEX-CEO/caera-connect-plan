@@ -65,6 +65,8 @@ import {
   type ConstraintCheck,
 } from "./content-constraints";
 import { TaskLedger, checkCall } from "./tool-contract";
+import { beginBilledRequest, type BilledRequest } from "@/lib/commercial/use-generation-permit";
+import { usePolicyCeiling } from "@/lib/capabilities/use-capabilities";
 
 /**
  * A Control + Work mission, driven from the browser.
@@ -206,6 +208,8 @@ export type MissionBrain = (
    * ended on unparseable output.
    */
   tools?: readonly unknown[],
+  /** The mission's one commercial permit, reused by every internal turn. */
+  permit?: BilledRequest["permit"],
 ) => Promise<{
   ok: boolean;
   text: string;
@@ -547,6 +551,14 @@ function betterOf(before: ConstraintCheck, after: ConstraintCheck): boolean {
  */
 
 export function useMission(brain: MissionBrain) {
+  /*
+   * What the account's organizations withhold — PLAN.md §21, §G.
+   *
+   * Read here rather than inside the run so it is a value the closures capture
+   * like any other, and cached by the hook, so a mission does not open with a
+   * network round trip before its first tool.
+   */
+  const policyCeiling = usePolicyCeiling();
   const [start, setStart] = useState<MissionStart | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [phase, setPhase] = useState<MissionPhase>("idle");
@@ -960,8 +972,17 @@ export function useMission(brain: MissionBrain) {
     [],
   );
 
-  const send = useCallback(
-    async (request: string) => {
+  /**
+   * One instruction, run to its end.
+   *
+   * Separated from `send` so that the permit wrapping it has exactly ONE place
+   * to settle. This function has two complete endings — the fast router path
+   * returns early, the model path falls out of its own `finally` — and a
+   * settle written into each would be one edit away from a third ending that
+   * settles nowhere. See `send` below.
+   */
+  const runMission = useCallback(
+    async (request: string, billed: BilledRequest) => {
       /*
        * The user took the machine back, and is now asking for something. That
        * is the handover in the other direction, and it needs a fresh mission —
@@ -1039,6 +1060,38 @@ export function useMission(brain: MissionBrain) {
       const push = (entry: TimelineEntry) => {
         entries.push(entry);
         setLive([...entries]);
+      };
+
+      /*
+       * WHAT THIS INSTRUCTION ACTUALLY DID TO THE MACHINE, counted for the
+       * allowance.
+       *
+       * Classified by the tool registry's own `mutating` flag rather than by a
+       * second list kept here: an action that changes something outside OCADE
+       * is weighted differently from a look, and two places deciding which is
+       * which is how they come to disagree.
+       *
+       * ONLY SUCCESSES COUNT. A refused permission, a contract rejection and a
+       * failed sidecar call all cost the person nothing — they asked for
+       * something and OCADE did not do it.
+       */
+      let readBatches = 0;
+      let sideEffects = 0;
+      const noteToolWork = (name: string, outcome: { kind?: string; ok?: boolean }) => {
+        const succeeded = outcome.ok === true || outcome.kind === "success";
+        if (!succeeded) return;
+        if (findTool(name)?.mutating) sideEffects += 1;
+        else readBatches += 1;
+      };
+
+      /** What reached the person, in the shape the allowance is measured in. */
+      const deliver = (answer: string) => {
+        billed.recordDelivery({
+          prompt: request,
+          answer,
+          readToolBatches: readBatches,
+          sideEffectActions: sideEffects,
+        });
       };
 
       /** Hold here while the user has pressed Pause. */
@@ -1205,6 +1258,7 @@ export function useMission(brain: MissionBrain) {
             const started = performance.now();
             const outcome = await runOneCall(call, missionId, askPermission);
             const elapsed = Math.round(performance.now() - started);
+            noteToolWork(call.name, outcome);
             push({
               id: `dr${Date.now()}${lines.length}`,
               kind: outcome.ok ? "done" : "problem",
@@ -1240,14 +1294,25 @@ export function useMission(brain: MissionBrain) {
               detail: failed.detail,
             });
           }
+          const directReply = escalating
+            ? `${lines.join(" ")} Taking a look at the screen.`
+            : lines.join(" ") || direct.say;
+          /*
+           * The router's own reply is delivered work. It never reached the
+           * model — which is exactly why it is cheap, not why it is free: the
+           * person asked OCADE to do something and OCADE did it.
+           *
+           * Recorded rather than settled. An escalation continues into the
+           * model path below on the same permit, and settling here would
+           * charge the recovery as a second request.
+           */
+          deliver(directReply);
           setTurns((current) => [
             ...current,
             {
               id: replyId(id, "reply"),
               role: "ocade",
-              text: escalating
-                ? `${lines.join(" ")} Taking a look at the screen.`
-                : lines.join(" ") || direct.say,
+              text: directReply,
               entries: [...entries],
               verified: allOk,
             },
@@ -1355,6 +1420,8 @@ export function useMission(brain: MissionBrain) {
             ],
             () => {},
             controller.signal,
+            undefined,
+            billed.permit,
           );
           if (!written.ok || !written.text.trim()) {
             throw new Error(written.reason ?? "The engine did not return any text to type.");
@@ -1371,6 +1438,8 @@ export function useMission(brain: MissionBrain) {
                 [{ role: "user", content: correctionPrompt(request, body, check) }],
                 () => {},
                 controller.signal,
+                undefined,
+                billed.permit,
               );
               if (fixed.ok && fixed.text.trim()) {
                 const retry = checkContent(fixed.text, wanted);
@@ -1417,6 +1486,7 @@ export function useMission(brain: MissionBrain) {
                 },
               };
           const outcome = await runOneCall(typeCall, missionId, askPermission);
+          noteToolWork(typeCall.name, outcome);
           push({
             id: `wt${Date.now()}`,
             kind: outcome.ok ? "done" : "problem",
@@ -1424,16 +1494,20 @@ export function useMission(brain: MissionBrain) {
             detail: outcome.detail,
             verified: outcome.verified,
           });
+          const composeReply = outcome.ok
+            ? chatBox
+              ? `${outcome.detail} Say send when you want it to go.`
+              : `Wrote it into ${pendingCompose.app ?? "the window in front"}. ${outcome.detail}`
+            : outcome.detail;
+          // Charged only when the words genuinely landed. A write that failed
+          // leaves the person with nothing and is settled as a release.
+          if (outcome.ok) deliver(`${body}\n${composeReply}`);
           setTurns((current) => [
             ...current,
             {
               id: `${id}-w`,
               role: "ocade",
-              text: outcome.ok
-                ? chatBox
-                  ? `${outcome.detail} Say send when you want it to go.`
-                  : `Wrote it into ${pendingCompose.app ?? "the window in front"}. ${outcome.detail}`
-                : outcome.detail,
+              text: composeReply,
               entries: [...entries],
               verified: outcome.verified,
             },
@@ -1466,7 +1540,13 @@ export function useMission(brain: MissionBrain) {
       try {
         const agentDeps: AgentDeps = {
           complete: async (prompt, signal) => {
-            const reply = await brain([{ role: "user", content: prompt }], () => {}, signal);
+            const reply = await brain(
+              [{ role: "user", content: prompt }],
+              () => {},
+              signal,
+              undefined,
+              billed.permit,
+            );
             return reply.ok ? reply.text : null;
           },
           turn: async (messages, tools, handlers) => {
@@ -1517,7 +1597,13 @@ export function useMission(brain: MissionBrain) {
               };
             }
 
-            const reply = await brain(local, handlers.onToken ?? (() => {}), handlers.signal, wire);
+            const reply = await brain(
+              local,
+              handlers.onToken ?? (() => {}),
+              handlers.signal,
+              wire,
+              billed.permit,
+            );
             if (!reply.ok) throw new Error(reply.reason ?? "The engine did not answer.");
 
             /*
@@ -1558,6 +1644,8 @@ export function useMission(brain: MissionBrain) {
                 ],
                 () => {},
                 handlers.signal,
+                undefined,
+                billed.permit,
               );
               if (second.ok) {
                 const retried = parseModelReply(second.text, names);
@@ -1658,6 +1746,8 @@ export function useMission(brain: MissionBrain) {
                   ],
                   () => {},
                   controller.signal,
+                  undefined,
+                  billed.permit,
                 );
                 if (corrected.ok && corrected.text.trim()) {
                   const retry = checkContent(corrected.text, constraints);
@@ -1724,6 +1814,7 @@ export function useMission(brain: MissionBrain) {
                 detail: "",
               });
             } else if (event.kind === "tool_end") {
+              noteToolWork(event.call.name, event.outcome);
               push({
                 id: `e${Date.now()}${entries.length}`,
                 kind: event.outcome.kind === "success" ? "done" : "problem",
@@ -1764,6 +1855,7 @@ export function useMission(brain: MissionBrain) {
           request: remainingWork ?? request,
           signal: controller.signal,
           revision,
+          withheldToolDomains: [...policyCeiling.toolDomains],
           /*
            * A RECOVERY IS NOT A REQUEST TO BE CLASSIFIED.
            *
@@ -1841,6 +1933,17 @@ export function useMission(brain: MissionBrain) {
               ? "OCADE stopped because it was not allowed to take the next step."
               : "OCADE finished without anything to report.");
 
+        /*
+         * A CANCELLED TASK IS NOT DELIVERED WORK.
+         *
+         * `ending` is never empty — it carries a sentence for every way the
+         * run could have stopped — so recording it unconditionally would
+         * charge somebody for pressing Stop. Only the endings that mean OCADE
+         * produced something are delivered; the rest fall through to the
+         * release in `send`'s `finally`.
+         */
+        if (result.reason !== "cancelled" && result.reason !== "blocked") deliver(ending);
+
         setTurns((current) => [
           ...current,
           {
@@ -1916,7 +2019,42 @@ export function useMission(brain: MissionBrain) {
     // `speak` and `refreshMemory` are stable `useCallback([])`s, so listing
     // them changes nothing at runtime — but suppressing the rule here would
     // hide the next dependency that is not stable.
-    [brain, runOneCall, speak, refreshMemory, teardown, connect],
+    [brain, runOneCall, speak, refreshMemory, teardown, connect, policyCeiling.toolDomains],
+  );
+
+  /**
+   * One instruction, on one permit.
+   *
+   * CONTROL + WORK SPENDS THE SAME ALLOWANCE AS EVERY OTHER SURFACE. It is one
+   * pool across the whole product, so a room that ran the agent loop for free
+   * would not be a generous room — it would be the allowance being spent
+   * twice, and the obvious way to avoid Chat's limits.
+   *
+   * ACQUIRED BEFORE ANYTHING IS TOUCHED. Nothing connects, nothing routes and
+   * no sidecar is reached until the permit is granted, so an exhausted account
+   * is answered in milliseconds rather than after OCADE has already moved the
+   * mouse.
+   *
+   * SETTLED IN A `finally`, exactly once. Every ending — an answer, a stop, a
+   * dead engine, a thrown sidecar error — passes through it, and `settle`
+   * releases unless something was recorded as delivered. That makes the safe
+   * outcome the default: a future path that forgets to record under-charges,
+   * and one that forgets to settle cannot exist, because there is only this
+   * one exit.
+   */
+  const send = useCallback(
+    async (request: string) => {
+      const billed = await beginBilledRequest({ surface: "cowork" });
+      // Refused. The person has already been told when their allowance
+      // returns, and nothing has been asked of their computer.
+      if (!billed) return;
+      try {
+        await runMission(request, billed);
+      } finally {
+        await billed.settle();
+      }
+    },
+    [runMission],
   );
 
   const busy = phase === "thinking" || phase === "observing" || phase === "controlling";

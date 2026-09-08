@@ -2,7 +2,15 @@ import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-ro
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { Mail, Phone, KeyRound, Loader2, Eye, EyeOff } from "lucide-react";
-import { getSupabaseBrowserConfiguration, supabase } from "@/integrations/supabase/client";
+/*
+ * The CONFIGURATION check comes from the cheap module; the CLIENT is loaded on
+ * demand. This route is statically reachable, so importing the client here put
+ * the whole auth stack on the entry chunk's graph — and the two things this
+ * page does with it (read a session in `beforeLoad`, sign in when somebody
+ * presses the button) both happen after the page exists.
+ */
+import { getSupabaseBrowserConfiguration } from "@/integrations/supabase/configuration";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { lovable } from "@/integrations/lovable";
 import { LegalDialog } from "@/components/legal/LegalDialog";
 import { AuthShell } from "@/components/shell/AuthShell";
@@ -20,12 +28,10 @@ import { safeNext } from "@/lib/auth/safe-next";
 import { cn } from "@/lib/utils";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
 import { authProviderAvailability } from "@/lib/auth/provider-availability";
-import { formatResetRemaining, observeNow, readNextEligibleAt } from "@/lib/demo/session";
 
 const searchSchema = z.object({
   next: z.string().optional(),
   message: z.string().optional(),
-  reason: z.enum(["demo-expired"]).optional(),
   error: z.string().optional(),
   error_description: z.string().optional(),
   provider: z.string().optional(),
@@ -36,6 +42,7 @@ export const Route = createFileRoute("/auth")({
   beforeLoad: async ({ search }) => {
     if (typeof window === "undefined") return;
     if (!getSupabaseBrowserConfiguration().configured) return;
+    const supabase = await loadSupabaseClient();
     const { data } = await supabase.auth.getSession();
     if (data.session) {
       const target = safeNext(search.next) ?? "/home";
@@ -85,31 +92,6 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [notice, setNotice] = useState<string | null>(search.message ?? null);
   const authConfigured = getSupabaseBrowserConfiguration().configured;
-
-  /*
-   * A demo that has just expired hands its visitor to this page. Two things
-   * change when it does.
-   *
-   * First the page stops introducing itself. Somebody who has spent
-   * twenty-eight minutes inside OCADE does not need "Welcome to" — they need
-   * to know their demo ended and what the account gets them.
-   *
-   * Second the demo invitation below has to go. Offering "try the demo" to
-   * the one person in the world who provably cannot start another one is the
-   * kind of small cruelty that reads as a broken product. `readNextEligibleAt`
-   * is the same clock the demo gate itself consults, and `observeNow` is the
-   * monotonic reading, so winding the system clock back does not turn the
-   * invitation back on.
-   */
-  const fromExpiredDemo = search.reason === "demo-expired";
-  const [demoResetsIn, setDemoResetsIn] = useState<string | null>(null);
-  useEffect(() => {
-    const nextEligibleAt = readNextEligibleAt();
-    if (nextEligibleAt === null) return;
-    const now = observeNow(Date.now());
-    if (nextEligibleAt <= now) return;
-    setDemoResetsIn(formatResetRemaining(nextEligibleAt, now));
-  }, []);
 
   useEffect(() => {
     setError(null);
@@ -180,6 +162,7 @@ function AuthPage() {
       return;
     }
     const creating = signupIntent;
+    const supabase = await loadSupabaseClient();
     const { error: err } = await supabase.auth.signInWithOtp({
       phone: parsed.data,
       options: { shouldCreateUser: creating },
@@ -256,6 +239,7 @@ function AuthPage() {
         setBusy(false);
         return;
       }
+      const supabase = await loadSupabaseClient();
       const { data, error: err } = await supabase.auth.signUp({
         email: parsedEmail.data,
         password,
@@ -301,6 +285,7 @@ function AuthPage() {
       setBusy(false);
       return;
     }
+    const supabase = await loadSupabaseClient();
     const { error: err } = await supabase.auth.signInWithPassword({
       email: parsedEmail.data,
       password,
@@ -376,6 +361,7 @@ function AuthPage() {
       setError(describeWait(waiting));
       return;
     }
+    const supabase = await loadSupabaseClient();
     const { error: err } = await supabase.auth.resetPasswordForEmail(parsedEmail.data, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
@@ -432,6 +418,7 @@ function AuthPage() {
      * either.
      */
     const creating = signupIntent;
+    const supabase = await loadSupabaseClient();
     const { error: err } = await supabase.auth.signInWithOtp({
       email: parsed.data,
       options: {
@@ -471,12 +458,8 @@ function AuthPage() {
 
   return (
     <AuthShell
-      title={fromExpiredDemo ? "Continue with OCADE" : "Welcome to CARCC CADANE"}
-      subtitle={
-        fromExpiredDemo
-          ? "Your 28-minute demo has ended. An account keeps the next one."
-          : "One account for OCADE."
-      }
+      title="Welcome to CARCC CADANE"
+      subtitle="One account for OCADE."
       footer={
         <>
           {/*
@@ -525,44 +508,18 @@ function AuthPage() {
         {!authConfigured ? (
           <div
             role="status"
-            className="rounded-md border border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 px-3 py-2 text-xs text-[color:var(--state-warning)]"
+            className="rounded-md border border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)] px-3 py-2 text-xs text-[color:var(--state-warning)]"
           >
             Sign-in is temporarily unavailable because this deployment is missing its private
             service configuration. The public information pages remain available, and no data was
             sent to another service.
           </div>
         ) : null}
-        {fromExpiredDemo ? (
-          <div
-            role="status"
-            className="rounded-lg border border-primary/30 bg-primary/[0.07] px-4 py-3"
-          >
-            <p className="text-sm font-medium text-foreground">Your demo has ended</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              The demo runs for 28 minutes and saves nothing. Everything you tried is gone, which
-              is the point of a demo. An account keeps your conversations, projects and tasks on
-              your own device, and syncs them only if you ask it to.
-            </p>
-          </div>
-        ) : notice ? (
+        {notice ? (
           <div className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
             {notice}
           </div>
         ) : null}
-
-        {demoResetsIn ? (
-          <p className="rounded-md border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-            The demo is available again in {demoResetsIn}. An account has no such limit.
-          </p>
-        ) : (
-          <Link
-            to="/demo"
-            className="flex items-center justify-between rounded-md border border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 px-3 py-2 text-xs text-[color:var(--state-warning)] hover:bg-[color:var(--state-warning)]/20"
-          >
-            <span>Just looking? Try the demo — no sign-in, sample data only.</span>
-            <span className="font-semibold uppercase tracking-wider">Demo →</span>
-          </Link>
-        )}
 
         <Link
           to="/blog/$slug"
@@ -700,7 +657,7 @@ function AuthPage() {
                 placeholder="+14155551234"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                className="flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-muted-foreground"
               />
             </div>
             <button
@@ -719,7 +676,7 @@ function AuthPage() {
             {!authProviderAvailability.emailDelivery ? (
               <div
                 role="status"
-                className="rounded-md border border-[color:var(--state-warning)]/40 bg-[color:var(--state-warning)]/10 px-3 py-2 text-xs text-[color:var(--state-warning)]"
+                className="rounded-md border border-[color:var(--state-warning-line-strong)] bg-[color:var(--state-warning-surface)] px-3 py-2 text-xs text-[color:var(--state-warning)]"
               >
                 Existing members can sign in with a password. New email accounts, one-time codes,
                 and password reset will open after production mail delivery is verified.
@@ -737,7 +694,7 @@ function AuthPage() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                className="flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring placeholder:text-muted-foreground"
               />
             </div>
             <label htmlFor="password" className="text-xs font-medium text-muted-foreground">

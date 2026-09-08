@@ -6,6 +6,7 @@ import {
   type SceneHandles,
 } from "@/lib/landing/solar-scene";
 import { useAppearance } from "@/lib/use-appearance";
+import { scenesShouldRun } from "@/lib/landing/renderer-capability";
 
 /**
  * The hero scene, mounted.
@@ -48,6 +49,12 @@ export function SolarSystem({ className }: { className?: string }) {
     [],
   );
   const [failed, setFailed] = useState(false);
+  /*
+   * Set when there IS WebGL and it is being rasterised by the CPU. Kept apart
+   * from `failed` because the two are different facts and the page says so:
+   * one is "this browser cannot", the other is "this machine should not".
+   */
+  const [declined, setDeclined] = useState(false);
 
   /*
    * BOTH SOURCES OF THE PREFERENCE, not just the media query.
@@ -82,6 +89,19 @@ export function SolarSystem({ className }: { className?: string }) {
      * gets its own element and drops it on cleanup, which makes context reuse
      * structurally impossible rather than something to remember.
      */
+    /*
+     * ASK BEFORE BUILDING. A software rasteriser costs roughly 300 ms per
+     * frame on the main thread, and no quality tier rescues that — see
+     * `renderer-capability.ts` for the measurement. The page keeps everything
+     * the canvas would have shown, because all of it is real text elsewhere.
+     */
+    const capability = scenesShouldRun();
+    if (!capability.run) {
+      setDeclined(true);
+      return;
+    }
+    setDeclined(false);
+
     const canvas = document.createElement("canvas");
     canvas.setAttribute("aria-hidden", "true");
     canvas.style.cssText =
@@ -245,7 +265,11 @@ export function SolarSystem({ className }: { className?: string }) {
   }, [holdStill]);
 
   return (
-    <div ref={wrapRef} className={className} data-scene={failed ? "unavailable" : "live"}>
+    <div
+      ref={wrapRef}
+      className={className}
+      data-scene={declined ? "declined" : failed ? "unavailable" : "live"}
+    >
       {/*
         The canvas is inserted here by the effect rather than rendered by React
         — see the note above. It carries `aria-hidden`, like the scene it
@@ -267,7 +291,7 @@ export function SolarSystem({ className }: { className?: string }) {
             left: `${label.x * 100}%`,
             top: `${label.y * 100}%`,
             opacity: label.opacity,
-            textShadow: "0 1px 3px rgba(0,0,0,0.9)",
+            textShadow: "0 1px 3px rgba(0, 0, 0,0.9)",
           }}
         >
           {label.name}

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Download, FileText, ReceiptText } from "lucide-react";
 import { GlassPanel } from "@/components/shell/GlassPanel";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 
 function money(amountMinor: number, currency: string): string {
   return new Intl.NumberFormat(undefined, {
@@ -14,6 +14,7 @@ export function BillingHistory() {
   const history = useQuery({
     queryKey: ["billing-history", "mine"],
     queryFn: async () => {
+      const supabase = await loadSupabaseClient();
       const [payments, invoices] = await Promise.all([
         supabase
           .from("ocade_payment_events")

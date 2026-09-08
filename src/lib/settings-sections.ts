@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Accessibility,
   Activity,
+  Bell,
   Brain,
   Cpu,
   Database,
@@ -96,6 +97,14 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         status: "active",
         description: "Password, sign-in methods and active sessions.",
         keywords: ["security", "password", "session", "2fa", "login"],
+      },
+      {
+        slug: "notifications",
+        label: "Notifications",
+        icon: Bell,
+        status: "active",
+        description: "What OCADE tells you about, where it goes, and when it stays quiet.",
+        keywords: ["notifications", "alerts", "quiet hours", "email", "push", "mute"],
       },
     ],
   },

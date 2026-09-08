@@ -7,8 +7,8 @@
  * the user's own tariff.
  *
  * WHY THIS IS A FEATURE AND NOT A GIMMICK. It reframes the product's central
- * claim from a slogan into arithmetic. "Unlimited local use" is marketing;
- * "this conversation cost 0.03 p and stayed on this device" is a fact the user
+ * claim from a slogan into arithmetic. "This conversation cost 0.03 p and
+ * stayed on this device" is a fact the user
  * can check against their own electricity bill and the runtime receipt.
  *
  * EVERY FIGURE IS LABELLED. Power draw is a class estimate, not a measurement —
@@ -119,7 +119,7 @@ export function describeTotals(totals: Totals): string {
   return (
     `${totals.local} ${totals.local === 1 ? "answer" : "answers"} ran on your own hardware, ` +
     `using about ${formatEnergy(totals.energyWh)} of electricity — roughly ` +
-    `${formatCost(totals.costMinor, totals.currency)}. Nothing was metered and nothing left this device.`
+    `${formatCost(totals.costMinor, totals.currency)}. Its prompts stayed on this device.`
   );
 }
 

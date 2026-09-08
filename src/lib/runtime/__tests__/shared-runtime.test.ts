@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { plainlyConversational } from "../use-ocade-runtime";
+import { plainlyConversational, requireRuntimeGenerationPermit } from "../use-ocade-runtime";
 
 /**
  * That Chat and Cowork run the SAME runtime, asserted against the source.
@@ -19,6 +19,8 @@ const RUNTIME = readFileSync("src/lib/runtime/use-ocade-runtime.ts", "utf8");
 const EXECUTE = readFileSync("src/lib/runtime/execute.ts", "utf8");
 const RUNNER = readFileSync("src/lib/runtime/tool-runner.ts", "utf8");
 const CALL_MODEL = readFileSync("src/lib/runtime/call-model.ts", "utf8");
+const MISSION_BRAIN = readFileSync("src/lib/work/use-mission-brain.ts", "utf8");
+const MISSION = readFileSync("src/lib/work/use-mission.ts", "utf8");
 const QUERY = readFileSync("src/primary-logic/query/query.ts", "utf8");
 
 describe("one permission layer", () => {
@@ -41,6 +43,31 @@ describe("one permission layer", () => {
 });
 
 describe("one engine", () => {
+  it("refuses direct runtime use without a complete commercial permit", () => {
+    expect(() => requireRuntimeGenerationPermit(undefined)).toThrow(
+      /commercial generation permit/i,
+    );
+    expect(() =>
+      requireRuntimeGenerationPermit({
+        id: "",
+        generationId: "generation-1",
+        idempotencyKey: "request-1",
+        surface: "chat",
+        source: "server",
+      }),
+    ).toThrow(/commercial generation permit/i);
+
+    expect(
+      requireRuntimeGenerationPermit({
+        id: "permit-1",
+        generationId: "generation-1",
+        idempotencyKey: "request-1",
+        surface: "chat",
+        source: "server",
+      }),
+    ).toMatchObject({ id: "permit-1", surface: "chat" });
+  });
+
   it("is the on-device engine, in both rooms", () => {
     expect(RUNTIME).toContain('from "@/lib/chat/use-local-chat-engine"');
   });
@@ -125,10 +152,21 @@ describe("the query loop is the heart", () => {
     expect(QUERY).toContain("deps.runTools");
   });
 
-  it("routes inference to this device and nowhere else", () => {
-    expect(CALL_MODEL).toContain("useLocalChatEngine");
+  it("routes inference through the canonical permit-carrying authority", () => {
+    expect(CALL_MODEL).toContain("OcadeIntelligence");
+    expect(CALL_MODEL).toContain("context.intelligence.stream(request)");
+    expect(CALL_MODEL).toContain("permit: context.permit");
     expect(CALL_MODEL).not.toMatch(/https?:\/\//);
     expect(RUNTIME).toContain("createCallModel");
+    expect(RUNTIME).toContain("createOcadeIntelligence");
+    expect(RUNTIME).toContain("createEngineIntelligenceTransport(engine)");
+    expect(RUNTIME).not.toMatch(/engine\.send\(/);
+    expect(RUNTIME).toContain("await intelligence.generate({");
+    expect(RUNTIME).toContain("void learn(history, result, opts.permit)");
+    expect(MISSION_BRAIN).toContain("createOcadeIntelligence");
+    expect(MISSION).toContain('permit?: BilledRequest["permit"]');
+    expect(MISSION_BRAIN).toContain("if (!permit)");
+    expect(MISSION_BRAIN).not.toMatch(/engine\.send\(/);
   });
 
   it("keeps permission ahead of every executor, with no second route", () => {

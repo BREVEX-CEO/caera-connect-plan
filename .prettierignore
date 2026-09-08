@@ -2,6 +2,7 @@ node_modules
 dist
 .output
 .vinxi
+.work
 pnpm-lock.yaml
 package-lock.json
 bun.lock
@@ -30,3 +31,29 @@ native/companion/*/target/
 # Excluded from the tests below because tests here are OCADE's own.
 src/primary-logic/**/*.ts
 !src/primary-logic/__tests__/**
+
+# Mission-control authority documents, held exactly as authored.
+# `npm run format` is `prettier --write .`; reformatting the document the whole
+# mission is verified against would rewrite the authority to satisfy a
+# cosmetic gate. The content is what is graded, not its table alignment.
+PLAN.md
+CLAUDE.md
+docs/mission/
+
+# Donor archive material, kept in the archive's own formatting for the same
+# reason as `src/primary-logic`: a diff against the archive it came from is
+# the only thing that makes the import auditable.
+imports/ocade-primary-logic/
+
+# Generated evidence and notices, written by the scripts under `scripts/` in
+# their own layout. Formatting them would be undone by the next generator run,
+# so the drift would be permanent rather than fixed — and
+# `npm run licences:check` fails the moment the committed notices stop matching
+# byte-for-byte what the generator produces.
+release/**/*.json
+release/THIRD_PARTY_NOTICES.md
+# The remaining-gap ledger PLAN.md §P asks for, generated from
+# `src/lib/release/remaining-gaps.ts`. `npm run gaps:check` compares it
+# byte-for-byte with the generator's output, so formatting it here would make
+# that check fail permanently rather than fixing anything.
+release/checklists/OCADE_REMAINING_PRODUCT_GAPS.md

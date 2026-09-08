@@ -41,10 +41,14 @@ const OUT = "release/OCADE_J3_NOISE_AND_DEVICE_LOSS.json";
 const HOST = "scripts/voice/voice-host.ps1";
 
 const ps = (a: string[]): Record<string, unknown> => {
-  const out = execFileSync("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", HOST, ...a], {
-    encoding: "utf8",
-    maxBuffer: 64 * 1024 * 1024,
-  });
+  const out = execFileSync(
+    "powershell",
+    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", HOST, ...a],
+    {
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+    },
+  );
   return JSON.parse((out.trim().split("\n").filter(Boolean).pop() ?? "{}").replace(/^﻿/, ""));
 };
 
@@ -71,7 +75,16 @@ if (!cleanCorrect || cleanWarned) failed = true;
 const levels = [-24, -18, -12];
 const noisy = levels.map((db) => {
   const noisyWav = join(tmpdir(), `ocade-j3-noisy${Math.abs(db)}.wav`);
-  const mix = ps(["-Mode", "mix-noise", "-Path", cleanWav, "-NoisePath", noisyWav, "-NoiseDb", String(db)]);
+  const mix = ps([
+    "-Mode",
+    "mix-noise",
+    "-Path",
+    cleanWav,
+    "-NoisePath",
+    noisyWav,
+    "-NoiseDb",
+    String(db),
+  ]);
   const stt = ps(["-Mode", "stt", "-Path", noisyWav]);
   const text = String(stt.text ?? "");
   return {
@@ -117,8 +130,7 @@ const doc = {
     levels: noisy,
     corruptedCount: corrupted.length,
     everyCorruptionCarriedAWarning: everyCorruptionAnnounced,
-    note:
-      "Broadband noise is summed into the real samples and the SNR is computed from the two waveforms. Noise degrading recognition is expected; the requirement is that a degraded transcript is never handed back as though it were what was said. Under noise this recogniser returns fluent, wrong sentences rather than errors, which is why the confidence floor is surfaced as an explicit warning.",
+    note: "Broadband noise is summed into the real samples and the SNR is computed from the two waveforms. Noise degrading recognition is expected; the requirement is that a degraded transcript is never handed back as though it were what was said. Under noise this recogniser returns fluent, wrong sentences rather than errors, which is why the confidence floor is surfaced as an explicit warning.",
   },
   deviceUnavailable: {
     elapsedMs: unavailable.elapsedMs,
@@ -130,14 +142,18 @@ const doc = {
   },
 };
 
-console.log(`clean : ${JSON.stringify(cleanText)} conf=${clean.minConfidence} correct=${cleanCorrect} warned=${cleanWarned}`);
+console.log(
+  `clean : ${JSON.stringify(cleanText)} conf=${clean.minConfidence} correct=${cleanCorrect} warned=${cleanWarned}`,
+);
 for (const n of noisy) {
   console.log(
     `noise ${String(n.noiseDb).padStart(4)}dB (SNR ${n.measuredSnrDb}dB): ${JSON.stringify(n.transcript)} conf=${n.minConfidence} correct=${n.transcriptCorrect} WARNED=${n.lowConfidenceWarning}`,
   );
 }
 console.log(`every corrupted transcript announced itself: ${everyCorruptionAnnounced}`);
-console.log(`device unavailable: ${unavailable.elapsedMs}ms, clear error=${unavailable.surfacedClearError}, no hang=${failedFast}`);
+console.log(
+  `device unavailable: ${unavailable.elapsedMs}ms, clear error=${unavailable.surfacedClearError}, no hang=${failedFast}`,
+);
 console.log(`J3: ${doc.verdict}`);
 
 if (write) {

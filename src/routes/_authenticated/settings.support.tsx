@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { preflight } from "@/lib/edge/preflight";
 import { cn } from "@/lib/utils";
 import { LIST_CAP } from "@/lib/supabase/read-all";
@@ -54,6 +54,7 @@ function SupportPage() {
   const tickets = useQuery({
     queryKey: ["support-tickets", "mine"],
     queryFn: async () => {
+      const supabase = await loadSupabaseClient();
       const { data, error } = await supabase
         .from("ocade_support_tickets")
         .select("id, subject, category, priority, status, last_message_at")
@@ -68,6 +69,7 @@ function SupportPage() {
     queryKey: ["support-messages", selectedId],
     enabled: Boolean(selectedId),
     queryFn: async () => {
+      const supabase = await loadSupabaseClient();
       const { data, error } = await supabase
         .from("ocade_support_messages")
         .select("id, author_role, body, created_at")
@@ -85,6 +87,7 @@ function SupportPage() {
   );
 
   async function createTicket() {
+    const supabase = await loadSupabaseClient();
     const warning = unsafeSupportDetail(`${subject}\n${detail}`);
     if (warning) return toast.error(warning);
     if (subject.trim().length < 5 || detail.trim().length < 2) {
@@ -112,6 +115,7 @@ function SupportPage() {
   }
 
   async function sendReply() {
+    const supabase = await loadSupabaseClient();
     if (!selectedId) return;
     const warning = unsafeSupportDetail(reply);
     if (warning) return toast.error(warning);
@@ -288,7 +292,7 @@ function SupportPage() {
         </GlassPanel>
       </div>
 
-      <p className="mt-4 flex items-start gap-2 rounded-xl border border-[color:var(--state-warning)]/30 bg-[color:var(--state-warning)]/[0.06] p-3 text-xs text-muted-foreground">
+      <p className="mt-4 flex items-start gap-2 rounded-xl border border-[color:var(--state-warning-line)] bg-[color:var(--state-warning-wash)] p-3 text-xs text-muted-foreground">
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--state-warning)]" />
         Never send passwords, one-time codes, Aadhaar or PAN images, full card numbers, UPI PINs,
         recovery codes or API secrets. The composer blocks common credential formats locally before

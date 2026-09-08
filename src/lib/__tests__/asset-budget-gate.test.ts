@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { execFile } from "node:child_process";
-import { writeFile, rm, readFile } from "node:fs/promises";
+import { mkdir, writeFile, rm, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -25,6 +25,8 @@ const run = promisify(execFile);
 const GATE = join("scripts", "check-asset-budgets.mjs");
 const ASSETS = join(".output", "public", "assets");
 const PLANTED = join(ASSETS, "zz-budget-probe-oversized.js");
+const MODELS = join(".output", "public", "models");
+const PLANTED_DEPLOYMENT_ASSET = join(MODELS, "zz-workers-limit-probe.gguf");
 
 const hasBuild = existsSync(ASSETS);
 
@@ -91,6 +93,20 @@ describe.runIf(hasBuild)("asset budget gate", () => {
     expect(existsSync(PLANTED)).toBe(false);
     const result = await runGate();
     expect(result.ok, result.stderr).toBe(true);
+  });
+
+  it("FAILS when a copied public file exceeds the deployment asset limit", async () => {
+    try {
+      await mkdir(MODELS, { recursive: true });
+      await writeFile(PLANTED_DEPLOYMENT_ASSET, Buffer.alloc(25 * 1024 * 1024 + 1));
+      const result = await runGate();
+
+      expect(result.ok, "the gate must reject an undeployable copied public asset").toBe(false);
+      expect(result.stderr).toMatch(/25 MiB Cloudflare Workers static-asset limit/);
+      expect(result.stderr).toMatch(/models\/zz-workers-limit-probe\.gguf/);
+    } finally {
+      await rm(PLANTED_DEPLOYMENT_ASSET, { force: true });
+    }
   });
 
   it("names every budget it enforces so a failure is actionable", async () => {

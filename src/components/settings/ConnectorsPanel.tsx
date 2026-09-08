@@ -144,8 +144,8 @@ export function ConnectorsPanel() {
                       className={cn(
                         "rounded-full px-2 py-0.5 text-[10px] font-medium",
                         row.available
-                          ? "bg-[color:var(--state-success)]/10 text-[color:var(--state-success)]"
-                          : "bg-[color:var(--state-warning)]/10 text-[color:var(--state-warning)]",
+                          ? "bg-[color:var(--state-success-surface)] text-[color:var(--state-success)]"
+                          : "bg-[color:var(--state-warning-surface)] text-[color:var(--state-warning)]",
                       )}
                     >
                       {row.available ? "Available" : "Setup required"}

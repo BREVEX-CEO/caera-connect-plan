@@ -232,15 +232,13 @@ describe("the claim is bounded honestly", () => {
 });
 
 describe("the integrity panel is wired honestly", () => {
-  const DEMO = readFileSync("src/routes/demo.ocade.tsx", "utf8");
   const PANEL = readFileSync("src/components/ocade/chat/ConversationIntegrity.tsx", "utf8");
   /*
-   * The panel moved. It used to render on BOTH surfaces unconditionally; the
-   * demo no longer shows it at all and the signed-in chat shows it behind the
-   * diagnostics switch. The wiring assertions below therefore point at the
-   * chat, which is the surface that still renders it — the properties they
-   * check (verify against real plaintext, re-verify when refs change) are
-   * exactly as load-bearing there as they were on the demo.
+   * The signed-in chat is the only surface that renders the panel, behind the
+   * diagnostics switch. The wiring assertions below therefore point at it, and
+   * the properties they check — verify against real plaintext, re-verify when
+   * refs change, clear the chain with the messages — are exactly as
+   * load-bearing there.
    */
   const CHAT = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
 
@@ -270,32 +268,31 @@ describe("the integrity panel is wired honestly", () => {
   it("records the question as well as the answer", () => {
     // A fork is identified by the question it followed; recording only answers
     // leaves every branch point unlabelled.
-    const c = code(DEMO);
+    const c = code(CHAT);
     expect(c).toMatch(
       /role: "user",[\s\S]{0,120}appendLedger|appendLedger\([\s\S]{0,120}role: "user"/,
     );
   });
 
-  it.each([
-    ["resetConversation", /const resetConversation = useCallback/],
-    ["handleExpire", /const handleExpire = useCallback/],
-  ])("%s clears the record with the messages", (_name, marker) => {
+  it("clears the record whenever the conversation changes", () => {
     /*
      * Leaving the chain behind would have the panel verifying a conversation
      * that is no longer on screen and reporting it intact — a confident claim
-     * about something that does not exist. For the expiry path it would also
-     * make "nothing was saved" untrue.
+     * about something that does not exist.
+     *
+     * ONE reset path, keyed on the conversation id, rather than a handler per
+     * control. Selecting another chat, starting a new one and being switched
+     * by any other route all end at the same effect, so no control can be
+     * added later that clears the messages and forgets the chain.
      */
-    const c = code(DEMO);
+    const c = code(CHAT);
+    const marker = /useEffect\(\(\) => \{\s*ledgerRef\.current = \[\];/;
+    expect(c).toMatch(marker);
     const body = c.slice(c.search(marker), c.search(marker) + 700);
-    expect(body).toMatch(/ledgerRef\.current = \[\]/);
     expect(body).toMatch(/treeRef\.current = emptyTree\(\)/);
-  });
-
-  it("does not keep a second partial reset in the sidebar", () => {
-    // Two copies of "clear the conversation" is how one of them stops clearing
-    // everything.
-    expect(code(DEMO)).toMatch(/onNewChat=\{resetConversation\}/);
+    expect(body, "the reset is keyed on the conversation, not on one button").toMatch(
+      /\}, \[conversation\.id\]\)/,
+    );
   });
 
   it("tells the panel to re-verify when the refs change", () => {

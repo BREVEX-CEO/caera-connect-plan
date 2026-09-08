@@ -29,7 +29,8 @@ import { ErrorJournalPanel } from "./ErrorJournalPanel";
 const previewLedger = new PerfLedger();
 
 export function DiagnosticsSettingsPanel() {
-  const engine = useLocalEngine();
+  // Diagnostics is an explicit request to inspect local runtime health.
+  const engine = useLocalEngine(undefined, true);
   const device = useDevicePolicy();
   const online = useOnline();
 

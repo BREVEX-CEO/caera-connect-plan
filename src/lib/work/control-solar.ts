@@ -262,11 +262,10 @@ function shade(colour: string, amount: number): string {
   if (!Number.isFinite(n)) return colour;
   const towards = amount >= 0 ? 255 : 0;
   const t = Math.abs(amount);
-  const ch = (shift: number) => {
-    const v = (n >> shift) & 0xff;
-    return Math.round(v + (towards - v) * t);
-  };
-  return `rgb(${ch(16)}, ${ch(8)}, ${ch(0)})`;
+  const channels = [16, 8, 0].map((shift) => (n >> shift) & 0xff);
+  const source = Math.round(channels.reduce((sum, channel) => sum + channel, 0) / channels.length);
+  const channel = Math.round(source + (towards - source) * t);
+  return `rgb(${channel}, ${channel}, ${channel})`;
 }
 
 /** Planets whose surface reads as horizontal bands rather than as patches. */
@@ -417,7 +416,7 @@ export function bodiesAt(phase: number): SystemAt {
       x: uranus.x + Math.cos(angle) * moon.orbit,
       y: uranus.y + Math.sin(angle) * moon.orbit,
       r: radiusFor(moon.km),
-      colour: "#a9f0f4",
+      colour: "#e1e1e1",
       orbit: moon.orbit,
     };
   });
@@ -509,7 +508,7 @@ export function paintControlSystem(
   for (const planet of PLANETS) {
     const radius = px(planet.orbit);
     context.beginPath();
-    context.strokeStyle = `rgba(214, 168, 88, ${0.16 * dim})`;
+    context.strokeStyle = `rgba(172, 172, 172, ${0.16 * dim})`;
     context.arc(centreX, centreY, radius, 0, Math.PI * 2);
     context.stroke();
 
@@ -518,7 +517,7 @@ export function paintControlSystem(
       const ticks = Math.min(90, Math.max(24, Math.round(radius / 7)));
       const drift = phase * planet.speed * 0.5;
       context.beginPath();
-      context.strokeStyle = `rgba(232, 190, 120, ${0.2 * dim})`;
+      context.strokeStyle = `rgba(194, 194, 194, ${0.2 * dim})`;
       for (let index = 0; index < ticks; index += 1) {
         const angle = drift + (index / ticks) * Math.PI * 2;
         const cos = Math.cos(angle);
@@ -537,7 +536,7 @@ export function paintControlSystem(
     const b = planets[to];
     if (!a || !b) continue;
     context.beginPath();
-    context.strokeStyle = `rgba(226, 190, 120, ${motion.connectionOpacity})`;
+    context.strokeStyle = `rgba(193, 193, 193, ${motion.connectionOpacity})`;
     context.moveTo(toX(a.x), toY(a.y));
     context.lineTo(toX(b.x), toY(b.y));
     context.stroke();
@@ -553,10 +552,10 @@ export function paintControlSystem(
     centreY,
     sunRadius * 3.1,
   );
-  corona.addColorStop(0, `rgba(255, 236, 178, ${(0.62 + motion.sunPulse * 0.3) * dim})`);
-  corona.addColorStop(0.28, `rgba(255, 186, 74, ${(0.34 + motion.sunPulse * 0.2) * dim})`);
-  corona.addColorStop(0.62, `rgba(214, 128, 34, ${0.12 * dim})`);
-  corona.addColorStop(1, "rgba(214, 128, 34, 0)");
+  corona.addColorStop(0, `rgba(236, 236, 236, ${(0.62 + motion.sunPulse * 0.3) * dim})`);
+  corona.addColorStop(0.28, `rgba(193, 193, 193, ${(0.34 + motion.sunPulse * 0.2) * dim})`);
+  corona.addColorStop(0.62, `rgba(139, 139, 139, ${0.12 * dim})`);
+  corona.addColorStop(1, "rgba(139, 139, 139, 0)");
   context.beginPath();
   context.fillStyle = corona;
   context.arc(centreX, centreY, sunRadius * 3.1, 0, Math.PI * 2);
@@ -570,10 +569,10 @@ export function paintControlSystem(
     centreY,
     sunRadius,
   );
-  body.addColorStop(0, "#fffdf2");
-  body.addColorStop(0.35, "#fff0bb");
-  body.addColorStop(0.72, "#ffca5e");
-  body.addColorStop(1, "#e8760f");
+  body.addColorStop(0, "#fdfdfd");
+  body.addColorStop(0.35, "#efefef");
+  body.addColorStop(0.72, "#cdcdcd");
+  body.addColorStop(1, "#878787");
   context.beginPath();
   context.fillStyle = body;
   context.arc(centreX, centreY, sunRadius, 0, Math.PI * 2);
@@ -604,8 +603,8 @@ export function paintControlSystem(
       const gx = centreX + Math.cos(angle) * distance;
       const gy = centreY + Math.sin(angle) * distance;
       const cell = context.createRadialGradient(gx, gy, 0, gx, gy, size);
-      cell.addColorStop(0, `rgba(255, 214, 130, ${0.16 * dim})`);
-      cell.addColorStop(1, "rgba(255, 214, 130, 0)");
+      cell.addColorStop(0, `rgba(217, 217, 217, ${0.16 * dim})`);
+      cell.addColorStop(1, "rgba(217, 217, 217, 0)");
       context.beginPath();
       context.fillStyle = cell;
       context.arc(gx, gy, size, 0, Math.PI * 2);
@@ -687,7 +686,7 @@ export function paintControlSystem(
       context.translate(x, y);
       context.scale(1, 0.32);
       context.beginPath();
-      context.strokeStyle = `rgba(226, 202, 148, ${0.5 * dim})`;
+      context.strokeStyle = `rgba(203, 203, 203, ${0.5 * dim})`;
       context.lineWidth = Math.max(1, radius * 0.32);
       context.arc(0, 0, radius * 1.85, 0, Math.PI * 2);
       context.stroke();
@@ -698,7 +697,7 @@ export function paintControlSystem(
     if (labels) {
       context.font = "600 10px ui-sans-serif, system-ui, sans-serif";
       context.textAlign = "center";
-      context.fillStyle = `rgba(240, 228, 200, ${0.62 * dim})`;
+      context.fillStyle = `rgba(229, 229, 229, ${0.62 * dim})`;
       context.fillText(planet.name.toUpperCase(), x, y - radius - 8);
     }
   }
@@ -710,14 +709,14 @@ export function paintControlSystem(
    */
   const moonField = px(13.2);
   context.beginPath();
-  context.strokeStyle = `rgba(169, 240, 244, ${0.13 * dim})`;
+  context.strokeStyle = `rgba(225, 225, 225, ${0.13 * dim})`;
   context.arc(toX(uranus.x), toY(uranus.y), moonField, 0, Math.PI * 2);
   context.stroke();
 
   for (const moon of moons) {
     const radius = Math.max(0.7, px(moon.r) * 2.6);
     context.beginPath();
-    context.fillStyle = `rgba(198, 244, 247, ${(motion.frozen ? 0.4 : 0.72) * 1})`;
+    context.fillStyle = `rgba(234, 234, 234, ${(motion.frozen ? 0.4 : 0.72) * 1})`;
     context.arc(toX(moon.x), toY(moon.y), radius, 0, Math.PI * 2);
     context.fill();
   }
@@ -725,7 +724,7 @@ export function paintControlSystem(
   if (labels) {
     context.font = "600 9px ui-sans-serif, system-ui, sans-serif";
     context.textAlign = "center";
-    context.fillStyle = `rgba(226, 232, 240, ${0.45 * dim})`;
+    context.fillStyle = `rgba(231, 231, 231, ${0.45 * dim})`;
     context.fillText("28 MOONS", toX(uranus.x), toY(uranus.y) + moonField + 14);
   }
 
@@ -739,8 +738,8 @@ export function paintControlSystem(
       centreX + Math.cos(angle) * reach,
       centreY + Math.sin(angle) * reach,
     );
-    sweep.addColorStop(0, "rgba(240, 220, 170, 0.22)");
-    sweep.addColorStop(1, "rgba(240, 220, 170, 0)");
+    sweep.addColorStop(0, "rgba(221, 221, 221, 0.22)");
+    sweep.addColorStop(1, "rgba(221, 221, 221, 0)");
     context.beginPath();
     context.strokeStyle = sweep;
     context.lineWidth = 1.5;

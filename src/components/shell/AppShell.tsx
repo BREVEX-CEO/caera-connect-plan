@@ -7,5 +7,5 @@ import { WorkspaceShell } from "./WorkspaceShell";
  * the unified shell without any call-site change.
  */
 export function AppShell({ children }: { children: ReactNode }) {
-  return <WorkspaceShell variant="app">{children}</WorkspaceShell>;
+  return <WorkspaceShell>{children}</WorkspaceShell>;
 }

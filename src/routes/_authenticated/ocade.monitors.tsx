@@ -134,7 +134,7 @@ function MonitorsPage() {
 
       <div
         role="status"
-        className="mb-5 flex items-start gap-3 rounded-xl border border-[color:var(--state-warning)]/35 bg-[color:var(--state-warning)]/5 p-4 text-sm"
+        className="mb-5 flex items-start gap-3 rounded-xl border border-[color:var(--state-warning-line)] bg-[color:var(--state-warning-wash)] p-4 text-sm"
       >
         <AlertTriangle
           className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--state-warning)]"

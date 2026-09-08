@@ -81,6 +81,8 @@ export interface SendOptions {
    */
   tools?: readonly unknown[];
   onToolCall?: (call: { id?: string; name: string; arguments: Record<string, unknown> }) => void;
+  /** Cancels preparation or generation from the owning logical request. */
+  signal?: AbortSignal;
   /**
    * OCADE asking the engine something on its own behalf, not the user's.
    *
@@ -261,12 +263,16 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
       onToken,
       tools,
       onToolCall,
+      signal,
       background = false,
     }: SendOptions): Promise<SendResult> => {
       // Install cancellation before adapter discovery/model preparation. STOP
       // must work while the first-run engine is still being selected, not only
       // after token generation has begun.
       const controller = new AbortController();
+      const abortFromCaller = () => controller.abort(signal?.reason);
+      if (signal?.aborted) abortFromCaller();
+      else signal?.addEventListener("abort", abortFromCaller, { once: true });
       /*
        * A background send neither claims the shared controller nor reports
        * status. See `SendOptions.background`: housekeeping must not be able to
@@ -284,11 +290,23 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
       if (!background) abortRef.current?.abort();
       claim(controller);
       report({ status: "checking", reason: null, remedies: [] });
-      const { outcome, decision } = await decide(contextVision);
-      if (!liveRef.current) return { ok: false, cancelled: true };
+      let outcomeAndDecision: Awaited<ReturnType<typeof decide>>;
+      try {
+        outcomeAndDecision = await decide(contextVision);
+      } catch (error) {
+        signal?.removeEventListener("abort", abortFromCaller);
+        claim(null);
+        throw error;
+      }
+      const { outcome, decision } = outcomeAndDecision;
+      if (!liveRef.current) {
+        signal?.removeEventListener("abort", abortFromCaller);
+        return { ok: false, cancelled: true };
+      }
       if (controller.signal.aborted) {
         claim(null);
         report({ status: "ready", progress: null });
+        signal?.removeEventListener("abort", abortFromCaller);
         return { ok: false, cancelled: true, reason: "Stopped by the user." };
       }
 
@@ -308,6 +326,7 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
             decision.remedies.length > 0 ? decision.remedies : outcome.ok ? [] : outcome.remedies,
         });
         claim(null);
+        signal?.removeEventListener("abort", abortFromCaller);
         return { ok: false, reason };
       }
 
@@ -358,27 +377,29 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
       );
 
       let sawToken = false;
-      const result = await outcome.adapter.stream(withDeliberation, {
-        signal: controller.signal,
-        ...(tools?.length ? { tools } : {}),
-        ...(onToolCall ? { onToolCall } : {}),
-        // Chat deliberates unless the user turned it off; Control never does.
-        // One authority decides, and it is asked here rather than remembered.
-        think: deliberate,
-        onToken: (chunk) => {
-          /*
-           * The first token is what turns "preparing" into a visibly working
-           * product. On a cold WebGPU start there can be a minute of silence
-           * while weights load, and a screen that says "generating" through all
-           * of it looks broken.
-           */
-          if (!sawToken) {
-            sawToken = true;
-            report({ status: "generating" });
-          }
-          onToken(chunk);
-        },
-      });
+      const result = await outcome.adapter
+        .stream(withDeliberation, {
+          signal: controller.signal,
+          ...(tools?.length ? { tools } : {}),
+          ...(onToolCall ? { onToolCall } : {}),
+          // Chat deliberates unless the user turned it off; Control never does.
+          // One authority decides, and it is asked here rather than remembered.
+          think: deliberate,
+          onToken: (chunk) => {
+            /*
+             * The first token is what turns "preparing" into a visibly working
+             * product. On a cold WebGPU start there can be a minute of silence
+             * while weights load, and a screen that says "generating" through all
+             * of it looks broken.
+             */
+            if (!sawToken) {
+              sawToken = true;
+              report({ status: "generating" });
+            }
+            onToken(chunk);
+          },
+        })
+        .finally(() => signal?.removeEventListener("abort", abortFromCaller));
 
       claim(null);
       if (!liveRef.current) return { ok: false, cancelled: true };

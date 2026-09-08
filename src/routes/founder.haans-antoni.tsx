@@ -24,11 +24,11 @@ function FounderPage() {
       summary="HAANS ANTONI is Founder, CEO and Chairman of CARCC CADANE and creator of OCADE."
       structuredData={FOUNDER_STRUCTURED_DATA}
     >
-      <div className="flex items-center gap-4 rounded-[24px] border border-white/[0.08] bg-white/[0.02] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="flex items-center gap-4 rounded-[24px] border border-white/[0.08] bg-white/[0.02] p-5 shadow-[inset_0_1px_0_rgba(255, 255, 255,0.04)]">
         <div
           role="img"
           aria-label="HAANS ANTONI initials"
-          className="grid h-16 w-16 shrink-0 place-items-center rounded-full border border-primary/35 bg-primary/10 text-lg font-semibold shadow-[0_12px_35px_rgba(0,0,0,0.25)]"
+          className="grid h-16 w-16 shrink-0 place-items-center rounded-full border border-primary/35 bg-primary/10 text-lg font-semibold shadow-[0_12px_35px_rgba(0, 0, 0,0.25)]"
         >
           HA
         </div>

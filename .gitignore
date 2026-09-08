@@ -113,6 +113,29 @@ public/models/*.gguf
 release/launch-proof-logs/
 .gate-logs
 
+# Disposable inspection/extraction space. Donor and package probes are never
+# production inputs and must remain outside the tracked/release tree.
+.work/
+
 # The browser-engine harness compiles product code into a bundle and removes
 # it again; a crashed run must not leave one to be committed.
 scripts/.engine-probe.*
+
+# ---------------------------------------------------------- donor archive --
+# PLAN.md §25: "Remove the raw RAR from the final tracked product and releases
+# without rewriting history."
+#
+# The archive was dispositioned in full — every one of its 2,126 files has a
+# decided outcome in `imports/ocade-primary-logic/INTEGRATION_MAP.csv`, and the
+# licence and provenance records it required are kept. What is removed is the
+# ten-megabyte binary itself, which the product does not read, no test opens,
+# and the report generator never touches: it works from the CSV ledger.
+#
+# IGNORED RATHER THAN ONLY DELETED, because `.incoming/` is a live drop point.
+# Deleting the file without this rule means the next archive placed there is
+# committed by the next `git add -A`, and the requirement quietly comes undone.
+# History is untouched: the archive and its hash remain in earlier commits,
+# which is where provenance belongs.
+.incoming/*.rar
+.route-qa-evidence/
+supabase/.temp/

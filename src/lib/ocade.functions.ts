@@ -37,17 +37,29 @@ export const createConversation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((i) =>
     z
-      .object({ title: z.string().max(200).optional(), modelId: z.string().max(200).optional() })
+      .object({
+        id: uuid.optional(),
+        title: z.string().max(200).optional(),
+        modelId: z.string().max(200).optional(),
+        privacyMode: z.enum(["browser_only", "pc_vault", "private_sync"]).optional(),
+        projectId: uuid.nullable().optional(),
+      })
       .parse(i),
   )
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("ocade_conversations")
-      .insert({
-        user_id: context.userId,
-        title: data.title ?? "New chat",
-        model_id: data.modelId ?? null,
-      })
+      .upsert(
+        {
+          ...(data.id ? { id: data.id } : {}),
+          user_id: context.userId,
+          title: data.title ?? "New chat",
+          model_id: data.modelId ?? null,
+          ...(data.privacyMode ? { privacy_mode: data.privacyMode } : {}),
+          ...(data.projectId !== undefined ? { project_id: data.projectId } : {}),
+        },
+        { onConflict: "id" },
+      )
       .select(
         "id, title, pinned, archived, model_id, privacy_mode, project_id, updated_at, created_at",
       )
@@ -88,6 +100,32 @@ export const deleteConversation = createServerFn({ method: "POST" })
     const { error } = await context.supabase.from("ocade_conversations").delete().eq("id", data.id);
     if (error) throw new Response(error.message, { status: 500 });
     return { ok: true as const };
+  });
+
+/**
+ * DELETE EVERY CONVERSATION ON THE ACCOUNT — PLAN.md §8's "delete-all".
+ *
+ * ONE STATEMENT, NOT A LOOP OVER IDS. A client-driven loop would delete some
+ * conversations and stop where the connection did, leaving a history that is
+ * neither cleared nor intact and no way for the person to tell which. Postgres
+ * deletes the set or none of it.
+ *
+ * NO ID LIST IS ACCEPTED, deliberately. The scope is "this caller's
+ * conversations", decided by the session and enforced by row-level security —
+ * a request that could name what to clear could name somebody else's.
+ *
+ * Messages go with them: `ocade_messages` references the conversation ON DELETE
+ * CASCADE, so there is no second pass that could half-succeed.
+ */
+export const deleteAllConversations = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { error, count } = await context.supabase
+      .from("ocade_conversations")
+      .delete({ count: "exact" })
+      .eq("user_id", context.userId);
+    if (error) throw new Response(error.message, { status: 500 });
+    return { ok: true as const, deleted: count ?? 0 };
   });
 
 /* -------------------- Messages -------------------- */

@@ -91,7 +91,18 @@ export function ChatSidebar({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search chats"
-            className="h-8 w-full rounded-lg border border-border/60 bg-background/50 pl-8 pr-7 text-[13px] text-foreground outline-none transition placeholder:text-muted-foreground/70 focus:border-[color:var(--accent-ocade)]/50"
+            /*
+             * A RING, NOT ONLY A BORDER TINT.
+             *
+             * This had `outline-none` and a border that changed colour on
+             * focus, and nothing else. The accessibility run found it as a
+             * keyboard stop with no indicator, which is what a computed-style
+             * check sees — and a person scanning for "where am I?" is looking
+             * for the same thing. A hue shift on a one-pixel border is also
+             * meaning carried by colour alone, which is the failure mode this
+             * product checks for everywhere else.
+             */
+            className="h-8 w-full rounded-lg border border-border/60 bg-background/50 pl-8 pr-7 text-[13px] text-foreground outline-none transition placeholder:text-muted-foreground/70 focus-visible:border-[color:var(--accent-ocade)]/50 focus-visible:ring-2 focus-visible:ring-ring"
           />
           {query ? (
             <button

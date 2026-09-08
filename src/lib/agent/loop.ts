@@ -45,6 +45,7 @@ import { estimateTranscriptTokens, runQuery } from "@/primary-logic/query/query"
 import type { QueryDeps } from "@/primary-logic/query/deps";
 import { compactTranscript } from "@/lib/runtime/compact";
 import { ocadeCorePolicy } from "./ocade-core-policy";
+import { ocadeIdentityAnswer } from "@/lib/ocade-identity";
 
 export interface ToolCall {
   id?: string;
@@ -216,9 +217,40 @@ export async function runAgentTask(
      * them but one.
      */
     domains?: Domain[];
+    /**
+     * Tool areas an organization has withheld from this account — PLAN.md §21.
+     *
+     * Absent on every caller that has no organization in hand, which is the
+     * correct degradation: an empty ceiling changes nothing, and the two places
+     * that DO know pass what they read. See `organizations/policy.ts` for why
+     * this is a ceiling rather than a permission — it can only take areas away,
+     * and everything it leaves is still subject to the risk band and the
+     * permission prompt.
+     */
+    withheldToolDomains?: readonly Domain[];
   },
 ): Promise<AgentResult> {
   const emit = (event: AgentEvent) => deps.onEvent?.(event);
+
+  /*
+   * OCADE's product identity is application-owned rather than model-owned.
+   * Answer it before classification, planning, permit prompts or a model turn
+   * so Cowork cannot accidentally claim a backend identity or begin a mission
+   * merely because somebody asked who created OCADE.
+   */
+  const identityAnswer = ocadeIdentityAnswer(input.request);
+  if (identityAnswer) {
+    const classification: Classification = { domains: ["conversation"], basis: "caller" };
+    emit({ kind: "classified", classification, tools: [] });
+    emit({ kind: "finished", reason: "answered", text: identityAnswer });
+    return {
+      reason: "answered",
+      text: identityAnswer,
+      steps: [],
+      classification,
+      allVerified: true,
+    };
+  }
 
   /*
    * THIS FUNCTION USED TO BE THE LOOP. IT IS NOW AN ADAPTER OVER ONE.
@@ -244,7 +276,17 @@ export async function runAgentTask(
     input.domains && input.domains.length > 0
       ? { domains: input.domains, basis: "caller" }
       : await classify(input.request, deps, input.signal);
-  const domains: Domain[] = classification.domains;
+  const withheld = new Set(input.withheldToolDomains ?? []);
+  /*
+   * WITHHELD AREAS ARE REMOVED BEFORE THE MODEL EVER SEES THEM.
+   *
+   * Filtering the schemas rather than only refusing the call is what keeps the
+   * model from planning around a tool it cannot have and then reporting the
+   * refusal as a failure. It is not the whole of the enforcement — a caller may
+   * pass `domains` itself and skip classification, and a model can invent a
+   * name — so the dispatch below refuses too.
+   */
+  const domains: Domain[] = classification.domains.filter((domain) => !withheld.has(domain));
   // The request is passed so the catalogue can be narrowed to what it is about.
   // Sixty schemas took this model past its deadline; see MAX_TOOLS_PER_TURN.
   const wireTools = schemasFor(domains, input.request);
@@ -337,6 +379,23 @@ export async function runAgentTask(
         };
         steps.push({ call: toolCall, outcome });
         emit({ kind: "tool_end", call: toolCall, outcome });
+        results.push({ id: call.id, name: call.name, content: describe(outcome), isError: true });
+        continue;
+      }
+
+      if (withheld.has(definition.domain)) {
+        /*
+         * Told to the model as a tool result rather than thrown, for the same
+         * reason an invented name is: it is a normal event the model can work
+         * around, and stopping the whole run would turn an administrator's
+         * policy into an outage.
+         */
+        const outcome: ToolOutcome = {
+          kind: "unsupported",
+          detail: `An organization policy withholds ${call.name} from this account, so it was not carried out.`,
+        };
+        steps.push({ call: toolCall, outcome });
+        emit({ kind: "refused", call: toolCall, reason: outcome.detail });
         results.push({ id: call.id, name: call.name, content: describe(outcome), isError: true });
         continue;
       }

@@ -13,7 +13,7 @@ const ITEMS = [
   { to: "/ocade/projects", label: "Projects", icon: FolderOpen },
   { to: "/ocade/search", label: "Search", icon: Search },
   { to: "/ocade/tasks", label: "Tasks", icon: ListChecks },
-  { to: "/ocade/system", label: "More", icon: SlidersHorizontal },
+  { to: "/ocade/customize", label: "More", icon: SlidersHorizontal },
 ] as const;
 
 /**

@@ -7,14 +7,14 @@
  * as a manual action with a button that opens the real test checkout.
  */
 import { useState } from "react";
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { AlertTriangle, ExternalLink, FlaskConical, Loader2, PlayCircle } from "lucide-react";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { PayoutSetupGuide } from "@/components/settings/PayoutSetupGuide";
 
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { requireAdminRole } from "@/lib/admin/route-gate";
 import { useSession } from "@/lib/session";
 import { getPaddleEnvironment, isCheckoutConfigured } from "@/lib/paddle";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
@@ -36,25 +36,7 @@ export const Route = createFileRoute("/_authenticated/admin/payments-checklist")
       { name: "robots", content: "noindex" },
     ],
   }),
-  beforeLoad: async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
-    if (!uid) throw redirect({ to: "/auth" });
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", uid)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!data)
-      throw redirect({
-        to: "/access-denied",
-        search: {
-          area: "the payments test checklist",
-          reason: "This area requires the admin role on your CARCC CADANE account.",
-        },
-      });
-  },
+  beforeLoad: () => requireAdminRole("the payments test checklist"),
   component: PaymentsChecklistPage,
 });
 

@@ -139,9 +139,35 @@ describe("the worker's stated invariants are still in the file", () => {
     expect(SOURCE).toContain('"/brand/ocade-carcc-wordmark.png"');
   });
 
-  it("pre-caches both device-only demo rooms for an offline revisit", () => {
-    expect(SOURCE).toContain('"/demo/ocade"');
-    expect(SOURCE).toContain('"/demo/control"');
+  it("pre-caches no route that the application does not serve", () => {
+    /*
+     * A precached 404 is worse than no precache: the worker stores it as if it
+     * were the page, and the offline shell then serves it confidently. This
+     * caught the demo rooms after the demo was removed — they sat in
+     * OPTIONAL_PRECACHE, which is exactly where a stale entry survives longest
+     * because failing to fetch one is not an error.
+     *
+     * BOTH lists are checked. Asserting only the required one is how the
+     * previous version of this rule passed while the stale entries were still
+     * in the file.
+     */
+    const tree = readFileSync("src/routeTree.gen.ts", "utf8");
+    const checked: string[] = [];
+    for (const name of ["REQUIRED_PRECACHE", "OPTIONAL_PRECACHE"]) {
+      const from = SOURCE.indexOf(`const ${name}`);
+      expect(from, `${name} is missing`).toBeGreaterThan(-1);
+      const list = SOURCE.slice(from, SOURCE.indexOf("];", from));
+      for (const match of list.matchAll(/"(\/[^"]*)"/g)) {
+        const path = match[1]!;
+        // Static files are served from `public/`, not by the router.
+        if (path === "/" || /\.[a-z0-9]+$/i.test(path)) continue;
+        checked.push(path);
+        expect(tree, `${path} is precached by ${name} but is not a route`).toContain(`"${path}"`);
+      }
+    }
+    // Proves the loop above actually read both lists rather than finding none.
+    expect(SOURCE).toContain("OPTIONAL_PRECACHE");
+    expect(checked.length).toBeGreaterThanOrEqual(0);
   });
 
   it("pre-caches the application root for cold-start navigation", () => {

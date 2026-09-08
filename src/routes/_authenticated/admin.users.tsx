@@ -1,11 +1,14 @@
-import { useMemo, useState } from "react";
-import { createFileRoute, redirect, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Search, Users, LifeBuoy } from "lucide-react";
+import { Loader2, Users, LifeBuoy } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
-import { supabase } from "@/integrations/supabase/client";
+import { OcadeDataTable, type OcadeTableColumn } from "@/components/ui/ocade-data-table";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
+import { useSession } from "@/lib/session";
+import { requireAdminRole } from "@/lib/admin/route-gate";
 
 type ProfileRow = {
   id: string;
@@ -33,25 +36,7 @@ export const Route = createFileRoute("/_authenticated/admin/users")({
   head: () => ({
     meta: [{ title: "Accounts — CARCC CADANE Admin" }, { name: "robots", content: "noindex" }],
   }),
-  beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/auth" });
-    const { data: role } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", data.user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!role) {
-      throw redirect({
-        to: "/access-denied",
-        search: {
-          area: "the account overview",
-          reason: "This area requires the admin role on your CARCC CADANE account.",
-        },
-      });
-    }
-  },
+  beforeLoad: () => requireAdminRole("the account directory"),
   component: AdminUsersPage,
 });
 
@@ -64,12 +49,53 @@ function formatDate(value: string | null) {
   });
 }
 
+type AccountRow = ProfileRow & { roles: string[] };
+
+/*
+ * The columns an administrator reads an account by.
+ *
+ * Declared out here rather than inside the component so the array identity is
+ * stable across renders: the table infers each column's sort kind from the
+ * values it holds, and a fresh array every render would redo that work on every
+ * keystroke in the search box.
+ */
+const ACCOUNT_COLUMNS: readonly OcadeTableColumn<AccountRow>[] = [
+  {
+    key: "display_name",
+    label: "Person",
+    // The identifying column: it is what the row IS, so it is never hidden and
+    // it is the one that stays put when a narrow window scrolls sideways.
+    required: true,
+    value: (row) => row.display_name ?? "",
+  },
+  { key: "email", label: "Email", value: (row) => row.email ?? "" },
+  { key: "phone", label: "Phone", value: (row) => row.phone ?? "" },
+  { key: "country", label: "Country", value: (row) => row.country ?? "" },
+  { key: "roles", label: "Roles", value: (row) => row.roles.join(", ") },
+  {
+    key: "onboarding_completed",
+    label: "Onboarded",
+    // Declared rather than inferred: a column that is entirely `false` on the
+    // first page would otherwise be read as text and sort alphabetically.
+    sort: "boolean",
+    value: (row) => Boolean(row.onboarding_completed),
+  },
+  {
+    key: "created_at",
+    label: "Joined",
+    sort: "date",
+    value: (row) => (row.created_at ? new Date(row.created_at) : null),
+    render: (row) => formatDate(row.created_at),
+  },
+];
+
 function AdminUsersPage() {
-  const [query, setQuery] = useState("");
+  const { user } = useSession();
 
   const accounts = useQuery({
     queryKey: ["admin", "accounts"],
     queryFn: async () => {
+      const supabase = await loadSupabaseClient();
       const [profiles, roles] = await Promise.all([
         supabase
           .from("profiles")
@@ -94,6 +120,7 @@ function AdminUsersPage() {
   const tickets = useQuery({
     queryKey: ["admin", "open-tickets"],
     queryFn: async () => {
+      const supabase = await loadSupabaseClient();
       const { data, error } = await supabase
         .from("ocade_support_tickets")
         .select("id, user_id, subject, status, priority, last_message_at")
@@ -105,17 +132,6 @@ function AdminUsersPage() {
     },
   });
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const rows = accounts.data ?? [];
-    if (!q) return rows;
-    return rows.filter((r) =>
-      [r.display_name, r.email, r.phone, r.country]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q)),
-    );
-  }, [accounts.data, query]);
-
   return (
     <AppShell>
       <PageHeader
@@ -125,68 +141,71 @@ function AdminUsersPage() {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
         <GlassPanel className="p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <Users className="h-4 w-4 text-muted-foreground" aria-hidden />
-              Registered accounts
-              <span className="text-xs text-muted-foreground">({filtered.length})</span>
-            </h2>
-            <div className="flex items-center gap-2 rounded-md border border-border/70 bg-background/50 px-2">
-              <Search className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search name, email, phone"
-                aria-label="Search accounts"
-                className="w-52 bg-transparent py-1.5 text-xs text-foreground outline-none placeholder:text-muted-foreground"
-              />
-            </div>
-          </div>
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+            <Users className="h-4 w-4 text-muted-foreground" aria-hidden />
+            Registered accounts
+            <span className="text-xs text-muted-foreground">({accounts.data?.length ?? 0})</span>
+          </h2>
 
-          {accounts.isLoading ? (
-            <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading accounts…
-            </div>
-          ) : accounts.error ? (
-            <div
-              role="alert"
-              className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
-            >
-              Accounts could not be loaded. Your admin role may have changed.
-            </div>
-          ) : filtered.length === 0 ? (
-            <p className="py-8 text-sm text-muted-foreground">No accounts match that search.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="text-muted-foreground">
-                  <tr className="border-b border-border/60">
-                    <th className="py-2 pr-3 font-medium">Person</th>
-                    <th className="py-2 pr-3 font-medium">Contact</th>
-                    <th className="py-2 pr-3 font-medium">Roles</th>
-                    <th className="py-2 pr-3 font-medium">Onboarded</th>
-                    <th className="py-2 font-medium">Joined</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((row) => (
-                    <tr key={row.id} className="border-b border-border/30 last:border-0">
-                      <td className="py-2 pr-3 text-foreground">{row.display_name ?? "—"}</td>
-                      <td className="py-2 pr-3 text-muted-foreground">
-                        <div>{row.email ?? "—"}</div>
-                        {row.phone ? <div>{row.phone}</div> : null}
-                      </td>
-                      <td className="py-2 pr-3 text-muted-foreground">{row.roles.join(", ")}</td>
-                      <td className="py-2 pr-3 text-muted-foreground">
-                        {row.onboarding_completed ? "Yes" : "No"}
-                      </td>
-                      <td className="py-2 text-muted-foreground">{formatDate(row.created_at)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          {/*
+           * ONE TABLE, NOT A SECOND ONE.
+           *
+           * This screen had its own hand-written `<table>`: a search box, no
+           * sorting, no pagination, and up to five hundred rows rendered into
+           * a single scroll. It had no narrow-screen fallback either, so on a
+           * phone the page scrolled sideways — the defect the route audit
+           * checks for on every other route.
+           *
+           * Migrating it to the canonical table is what PLAN.md §M asks for,
+           * and it is also how this screen gains sortable headers, a page
+           * size, column control and an export without any of that being
+           * written twice.
+           *
+           * THE EXPORT IS EXACTLY WHAT THE SERVER ALREADY HANDED OVER. The
+           * rows come from a query this administrator ran under their own
+           * policy; the CSV is those rows and nothing else, so it cannot
+           * contain an account they could not already read on screen.
+           */}
+          <OcadeDataTable<AccountRow>
+            caption="Registered accounts"
+            tableId="admin-accounts"
+            preferenceScope={user?.id ?? "device"}
+            columns={ACCOUNT_COLUMNS}
+            rows={accounts.data ?? []}
+            loading={accounts.isLoading}
+            error={
+              accounts.error
+                ? "Accounts could not be loaded. Your admin role may have changed."
+                : null
+            }
+            onRetry={() => void accounts.refetch()}
+            searchPlaceholder="Name, email, phone"
+            emptyMessage="No accounts match that search."
+            defaultPageSize={25}
+            freezeFirstColumn
+            exportFileName="ocade-accounts"
+            filters={[
+              {
+                id: "onboarded",
+                label: "Onboarded",
+                options: [
+                  { value: "yes", label: "Yes" },
+                  { value: "no", label: "No" },
+                ],
+                test: (row, value) =>
+                  value === "yes" ? Boolean(row.onboarding_completed) : !row.onboarding_completed,
+              },
+              {
+                id: "role",
+                label: "Role",
+                options: [
+                  { value: "admin", label: "Admin" },
+                  { value: "user", label: "User" },
+                ],
+                test: (row, value) => row.roles.includes(value),
+              },
+            ]}
+          />
         </GlassPanel>
 
         <GlassPanel className="p-4">

@@ -15,6 +15,8 @@ import { resolveAdapter } from "./storage/resolver";
 import { StorageLockedError } from "./storage/types";
 import { appendOcadeMessage, listMessages } from "./ocade.functions";
 import { isConversationKey } from "./chat/local-conversations";
+import { mayPersist, type IncognitoAwarePersistTarget } from "./chat/incognito";
+import { isSideKey } from "./chat/side-conversations";
 
 export type ChatsMode = "browser_only" | "pc_vault" | "private_sync";
 
@@ -52,7 +54,15 @@ function randomSuffix(): string {
  * device and the upload is queued. A screen that renders it as an error would
  * be telling somebody their message was lost when it was not.
  */
-export type PersistTarget = "vault" | "cloud" | "pending_sync";
+/**
+ * Where a message went.
+ *
+ * `not_stored` is what an incognito conversation returns — see
+ * `chat/incognito.ts`. It is a first-class outcome rather than an absent one so
+ * a caller cannot mistake "we deliberately kept nothing" for "the write
+ * failed"; those need opposite responses from the interface.
+ */
+export type PersistTarget = IncognitoAwarePersistTarget;
 
 export interface PersistResult {
   stored: PersistTarget;
@@ -73,6 +83,14 @@ export async function persistChatMessage(input: {
   modelId?: string | null;
   providerId?: string | null;
   attachments?: ChatAttachmentMeta[];
+  /**
+   * True for a conversation that is not to be written down — PLAN.md §8.
+   *
+   * Honoured HERE rather than at the nine call sites in the chat screen. A
+   * privacy guarantee spread across nine `if`s is a guarantee that holds until
+   * somebody adds a tenth, and the tenth is the one nobody notices.
+   */
+  incognito?: boolean;
 }): Promise<PersistResult> {
   const createdAt = new Date().toISOString();
   const record: ChatMessageRecord = {
@@ -85,6 +103,15 @@ export async function persistChatMessage(input: {
     provider_id: input.providerId ?? null,
     created_at: createdAt,
   };
+
+  if (!mayPersist(Boolean(input.incognito))) {
+    /*
+     * Returned, not written. The record is still built and handed back because
+     * the screen renders from it — the message is real, it is on screen, and it
+     * is nowhere else.
+     */
+    return { stored: "not_stored", record };
+  }
 
   if (input.chatsMode === "private_sync") {
     /*
@@ -163,7 +190,15 @@ export async function loadChatMessages(input: {
   const adapter = await resolveAdapter(input.userId, "chats");
   const stored = await adapter.list<ChatMessageRecord>("chats");
   const local = stored
-    .filter((r) => !isConversationKey(r.id))
+    /*
+     * BOTH PREFIXES ARE EXCLUDED, and the second one matters more than it
+     * looks. A side-conversation record carries `conversation_id`, so without
+     * this every side question and its answer would appear inline in the
+     * transcript and be sent to the engine as part of it — turning a
+     * deliberately separate thread into the main one. See
+     * `chat/side-conversations.ts`.
+     */
+    .filter((r) => !isConversationKey(r.id) && !isSideKey(r.id))
     .map((r) => r.value)
     .filter(
       (m): m is ChatMessageRecord => Boolean(m) && m.conversation_id === input.conversationId,
@@ -219,11 +254,41 @@ export async function deleteVaultConversation(
 ): Promise<number> {
   const adapter = await resolveAdapter(userId, "chats");
   const all = await adapter.list<ChatMessageRecord>("chats");
+  /*
+   * Message bodies AND side threads. Both carry `conversation_id`, and a side
+   * thread that outlived the conversation it hung off would be an orphaned
+   * record of a conversation the person deleted.
+   */
   const targets = all.filter(
     (r) => !isConversationKey(r.id) && r.value?.conversation_id === conversationId,
   );
   for (const t of targets) {
     await adapter.delete("chats", t.id);
+  }
+  return targets.length;
+}
+
+/**
+ * DELETE EVERY MESSAGE BODY ON THIS DEVICE — PLAN.md §8's "delete-all".
+ *
+ * The companion to `deleteAllConversationsLocally`. Conversations are
+ * tombstoned so the deletion travels; MESSAGE BODIES are removed outright,
+ * because a tombstone for a message body would be a record containing the text
+ * it claims to have deleted.
+ *
+ * ONE PASS OVER THE DATA CLASS, not one pass per conversation. Somebody with
+ * four hundred conversations would otherwise wait for four hundred full scans
+ * of the same store, and the operation that clears everything is the one most
+ * likely to be run on a large history.
+ */
+export async function deleteAllVaultMessages(userId: string): Promise<number> {
+  const adapter = await resolveAdapter(userId, "chats");
+  const all = await adapter.list<ChatMessageRecord>("chats");
+  // Conversation records are kept: their tombstones are what make the deletion
+  // travel to the user's other devices.
+  const targets = all.filter((record) => !isConversationKey(record.id));
+  for (const target of targets) {
+    await adapter.delete("chats", target.id);
   }
   return targets.length;
 }

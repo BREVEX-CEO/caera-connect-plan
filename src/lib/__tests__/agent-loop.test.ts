@@ -174,6 +174,102 @@ function harness(turns: { text: string; toolCalls: ToolCall[] }[], outcomes: Too
   };
 }
 
+describe("OCADE identity stays above every agent backend", () => {
+  it("answers product identity without classifying, calling a model, or offering tools", async () => {
+    const complete = vi.fn(async () => '{"domains":["os_app"]}');
+    const turn = vi.fn(async () => ({ text: "wrong backend identity", toolCalls: [] }));
+    const execute = vi.fn(async () => ({ kind: "success", detail: "unexpected" }) as ToolOutcome);
+
+    const result = await runAgentTask(
+      { complete, turn, execute, permit: async () => true },
+      { request: "Who created OCADE?" },
+    );
+
+    expect(result.text).toBe(
+      "I am OCADE, an AI workspace built for Chat, Cowork and Code. I was created by the founder of CARCC CADANE.",
+    );
+    expect(result.steps).toEqual([]);
+    expect(complete).not.toHaveBeenCalled();
+    expect(turn).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
+  });
+});
+
+describe("an organization can withhold a whole area of tools — PLAN.md §21, §G", () => {
+  it("does not offer the model tools from a withheld area", async () => {
+    const seen: string[][] = [];
+    const { deps } = harness([{ text: "Nothing I can do here.", toolCalls: [] }], []);
+    await runAgentTask(
+      {
+        ...deps,
+        onEvent: (event) => {
+          if (event.kind === "classified") seen.push(event.tools);
+        },
+      },
+      { request: "open Notepad", withheldToolDomains: ["os_app"] },
+    );
+    // The classifier answered `os_app`; the ceiling removed it, so the model
+    // was offered nothing rather than being shown tools it may not use and
+    // then refused after choosing one.
+    expect(seen[0]).toEqual([]);
+  });
+
+  it("still offers the areas the policy leaves alone", async () => {
+    const seen: string[][] = [];
+    const { deps } = harness([{ text: "", toolCalls: [] }], []);
+    await runAgentTask(
+      {
+        ...deps,
+        onEvent: (event) => {
+          if (event.kind === "classified") seen.push(event.tools);
+        },
+      },
+      { request: "open Notepad", withheldToolDomains: ["web"] },
+    );
+    expect(seen[0]?.length ?? 0).toBeGreaterThan(0);
+  });
+
+  it("refuses a call the model made anyway, without ending the run", async () => {
+    /*
+     * The caller may pass `domains` itself and skip classification, and a model
+     * can invent a name it was never shown. So the filter above is not the
+     * whole of the enforcement — the dispatch refuses too, and refuses the way
+     * an invented name is refused: as a tool result the model can work around,
+     * because turning an administrator's policy into an outage would be worse
+     * than the thing it prevents.
+     */
+    const { deps, executed } = harness(
+      [
+        { text: "", toolCalls: [{ name: "control_activate", arguments: { name: "Continue" } }] },
+        { text: "I could not do that one.", toolCalls: [] },
+      ],
+      [{ kind: "success", detail: "Activated.", verified: true }],
+    );
+    const result = await runAgentTask(deps, {
+      request: "click Continue",
+      domains: ["os_app"],
+      withheldToolDomains: ["os_app"],
+    });
+    expect(executed, "a withheld tool reached an adapter").toEqual([]);
+    expect(result.steps[0]?.outcome.kind).toBe("unsupported");
+    expect(result.steps[0]?.outcome.detail).toMatch(/organization policy withholds/i);
+    expect(result.reason).not.toBe("blocked");
+  });
+
+  it("changes nothing when no policy is in force", async () => {
+    const { deps, executed } = harness(
+      [
+        { text: "", toolCalls: [{ name: "control_activate", arguments: { name: "Continue" } }] },
+        { text: "Pressed it.", toolCalls: [] },
+      ],
+      [{ kind: "success", detail: "Activated.", verified: true }],
+    );
+    const result = await runAgentTask(deps, { request: "click Continue" });
+    expect(executed).toHaveLength(1);
+    expect(result.reason).toBe("verified");
+  });
+});
+
 describe("the loop refuses to claim more than it verified", () => {
   it("reports success only when the mutating step was confirmed", async () => {
     const { deps } = harness(

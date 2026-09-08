@@ -80,16 +80,16 @@ its own permissions:
 
 ## What is in this directory
 
-| Path                              | Purpose                                                                                                                                             |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `safety/`                         | Dependency-free security core (guard, allowlist, redaction, IPC). Auditable and testable without the Tauri toolchain.                               |
-| `tauri/src/main.rs`               | Host commands, durable allowlist/journal, cancellation, recovery, tray, global hotkeys, audit.                                                      |
-| `tauri/src/platform.rs`           | Bounded Windows/macOS/Linux backends for screens, windows, apps, approved files and synthetic paste/copy.                                           |
-| `tauri/capabilities/default.json` | Tauri v2 permissions. Narrow by design — no filesystem, shell, HTTP or process access; every OS action goes through the app's own audited commands. |
-| `tauri/entitlements.plist`        | macOS hardened-runtime entitlements. No network, no camera/mic, no JIT.                                                                             |
-| `tauri/icons/`                    | Generated application and tray icons (original artwork).                                                                                            |
-| `ui/`                             | The overlay window (`frontendDist`). Dependency-free HTML/JS; shows real host state and an always-reachable stop.                                   |
-| `../python-host/ocade_host/gesture/` | Local MediaPipe hand landmarks, One Euro smoothing and bounded mouse gestures. The packaged sidecar has no network listener.                    |
+| Path                                 | Purpose                                                                                                                                             |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `safety/`                            | Dependency-free security core (guard, allowlist, redaction, IPC). Auditable and testable without the Tauri toolchain.                               |
+| `tauri/src/main.rs`                  | Host commands, durable allowlist/journal, cancellation, recovery, tray, global hotkeys, audit.                                                      |
+| `tauri/src/platform.rs`              | Bounded Windows/macOS/Linux backends for screens, windows, apps, approved files and synthetic paste/copy.                                           |
+| `tauri/capabilities/default.json`    | Tauri v2 permissions. Narrow by design — no filesystem, shell, HTTP or process access; every OS action goes through the app's own audited commands. |
+| `tauri/entitlements.plist`           | macOS hardened-runtime entitlements. No network, no camera/mic, no JIT.                                                                             |
+| `tauri/icons/`                       | Generated application and tray icons (original artwork).                                                                                            |
+| `ui/`                                | The overlay window (`frontendDist`). Dependency-free HTML/JS; shows real host state and an always-reachable stop.                                   |
+| `../python-host/ocade_host/gesture/` | Local MediaPipe hand landmarks, One Euro smoothing and bounded mouse gestures. The packaged sidecar has no network listener.                        |
 
 ### Global hotkeys
 
@@ -136,14 +136,14 @@ runtime verification checklist before flipping any availability flag:
       (empty body, all-zero key, all-ff key, ascending key, a full canonical
       envelope, and multi-byte UTF-8). Drift on either side turns one suite red.
 
-      The TypeScript half runs today and passes. The Rust half **type-checks**
-          (`cargo check --all-targets`) but has never been EXECUTED here, because
-          the MSVC linker is unavailable. Running `cargo test` on a machine with a
-          linker is the step that converts this from "compiles" to "verified" — do
-          not treat the gate as satisfied until it has actually run.
+  The TypeScript half runs today and passes. The Rust half **type-checks**
+  (`cargo check --all-targets`) but has never been EXECUTED here, because
+  the MSVC linker is unavailable. Running `cargo test` on a machine with a
+  linker is the step that converts this from "compiles" to "verified" — do
+  not treat the gate as satisfied until it has actually run.
 
-          Never regenerate the vectors to make a failure pass: a change there is a
-          wire-format break that both sides must adopt deliberately.
+  Never regenerate the vectors to make a failure pass: a change there is a
+  wire-format break that both sides must adopt deliberately.
 
 - [ ] Binary launches and reports `status().available == true`
 - [ ] `open_session` returns a 32-byte key; the page never supplies one
