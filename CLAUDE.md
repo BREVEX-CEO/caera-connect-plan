@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This is the canonical AI coding-agent entry point for OCADE. The repository intentionally does **not** use `AGENTS.md`; do not recreate it unless the owner explicitly changes that decision. Detailed product, design, architecture, rules, testing and implementation requirements live in the documents linked below. Read them instead of duplicating their contents into new instruction files.
+This is the canonical AI coding-agent entry point for OCADE. The repository intentionally does **not** use `AGENTS.md`; do not recreate it unless the owner explicitly changes that decision. Detailed product, technical, flow, design, architecture, schema, rules, testing and implementation requirements live in the documents linked below. Read them instead of duplicating their contents into new instruction files.
 
 ## Project
 
@@ -16,14 +16,17 @@ This is the canonical AI coding-agent entry point for OCADE. The repository inte
 
 1. `CLAUDE.md` — working rules and documentation map.
 2. `docs/PRD.md` — what the product must be and who it serves.
-3. `PLAN.md` — exact ordered production-completion implementation plan and final acceptance matrix.
-4. `docs/APP_FLOW.md` — routes, redirects, clicks, journeys and UX states.
-5. `docs/DESIGN.md` — visual/interaction system and reference-app interpretation.
-6. `docs/ARCHITECTURE.md` — current/target stack, data/API/system boundaries and deployment architecture.
-7. `docs/RULES.md` — project-specific must/never engineering rules.
-8. `docs/TESTING.md` — test stack, performance killers, production pages/states and definition of done.
-9. `docs/MEMORY.md` — current development state, known problems and exact handoff context.
-10. `docs/DECISIONS.md` — durable decisions and superseded alternatives.
+3. `docs/TRD.md` — implementation-level technical requirements and non-functional constraints.
+4. `PLAN.md` — exact ordered production-completion implementation plan and final acceptance matrix.
+5. `docs/APP_FLOW.md` — routes, redirects, clicks, journeys and UX states.
+6. `docs/UI UX Brief.md` — concise product-experience, information-architecture and surface-level UX intent.
+7. `docs/DESIGN.md` — detailed visual/interaction system and reference-app interpretation.
+8. `docs/ARCHITECTURE.md` — current/target stack, system boundaries and deployment architecture.
+9. `docs/Backend Schema.md` — data contract, current Supabase authorities, relationships, RLS/Storage, pagination/indexing and migration rules.
+10. `docs/RULES.md` — project-specific must/never engineering rules.
+11. `docs/TESTING.md` — test stack, performance killers, production pages/states and definition of done.
+12. `docs/MEMORY.md` — current development state, known problems and exact handoff context.
+13. `docs/DECISIONS.md` — durable decisions and superseded alternatives.
 
 Supporting evidence/provenance/legal/runbooks elsewhere in `docs/`, `release/`, `imports/`, `supabase/` and `src/primary-logic/` remain valid when they do not conflict with the canonical documents above.
 
@@ -31,7 +34,7 @@ Supporting evidence/provenance/legal/runbooks elsewhere in `docs/`, `release/`, 
 
 `PLAN.md` is the only implementation plan. Do not create `PLAN-v2.md`, `codexplan.md`, another completion plan or a second requirements bundle. The previous `docs/mission/*` instruction set is superseded by the canonical documents above.
 
-The documentation is intentionally orthogonal: PRD owns product requirements; APP_FLOW owns navigation/journeys; DESIGN owns UI/UX; ARCHITECTURE owns technical/data/API/deployment structure; RULES owns project-specific engineering constraints; TESTING owns verification; MEMORY owns current state; DECISIONS owns why major choices exist. When a requirement belongs to one file, update that file and cross-reference it rather than copying paragraphs into several documents.
+The documentation is intentionally orthogonal: PRD owns product requirements; TRD owns technical requirements; APP_FLOW owns navigation/journeys; UI UX Brief owns concise experience intent; DESIGN owns detailed UI/UX design-system rules; ARCHITECTURE owns system structure/boundaries; Backend Schema owns the persistent data contract; RULES owns project-specific engineering constraints; TESTING owns verification; MEMORY owns current state; DECISIONS owns why major choices exist. Cross-reference rather than copying entire specifications between files.
 
 For code overlaps, inspect before creating and assign one disposition: KEEP, FIX, COMPLETE, MERGE, REPLACE or REMOVE. Reuse/migrate the canonical authority. Never create a duplicate router, store, database client layer, auth stack, task manager, agent loop, tool registry, model installer, usage/entitlement authority, payment stack, notification stack, browser bridge, native-control engine or design system merely to avoid understanding the existing one.
 
@@ -92,13 +95,13 @@ Payments, subscriptions, refunds, disputes, chargebacks and audited Admin grants
 
 ## UI/UX Rules
 
-Read `docs/DESIGN.md` before modifying product UI. Claude is the primary behavioral/information-architecture reference; ChatGPT and OpenClaw are secondary references for chat polish and agent/computer-use transparency. Use reference products to understand interaction quality and progressive disclosure, not to copy proprietary assets/source/copy or reproduce pixel-for-pixel trade dress.
+Read `docs/UI UX Brief.md` for the intended experience and `docs/DESIGN.md` for the detailed implementation/design-system rules before modifying product UI. Claude is the primary behavioral/information-architecture reference; ChatGPT and OpenClaw are secondary references for chat polish and agent/computer-use transparency. Use reference products to understand interaction quality and progressive disclosure, not to copy proprietary assets/source/copy or reproduce pixel-for-pixel trade dress.
 
 OCADE remains independently branded. Keep the ordinary app minimal and restrained: narrow rail, focused workspace, one obvious primary action, secondary actions contextual, no old More dashboard, no wall of buttons, no fake controls. Jarvis may be visually expressive, but its rendering cannot become a dependency of Cowork logic and must respect performance/reduced motion.
 
 ## Data, API and Security Rules
 
-Read `docs/ARCHITECTURE.md` and `docs/RULES.md`. Derive authorization from trusted session/server context, not client-submitted user/org IDs. Keep RLS/Storage policies and generated types synchronized with migrations. Source/live migrations must be reconciled by schema effect before production application; never replay by filename blindly.
+Read `docs/ARCHITECTURE.md`, `docs/Backend Schema.md` and `docs/RULES.md`. Derive authorization from trusted session/server context, not client-submitted user/org IDs. Keep RLS/Storage policies and generated types synchronized with migrations. Source/live migrations must be reconciled by schema effect before production application; never replay by filename blindly.
 
 Never expose/commit secrets. Never add server secrets with `VITE_`/`PUBLIC_`. Never log Gemini keys, service-role secrets, session tokens, raw protected inputs, payment secrets or unnecessary user content. Dangerous Admin/billing/support-content operations require server-side authorization and recent AAL2 where specified.
 
@@ -121,6 +124,10 @@ Read `docs/TESTING.md`. Fix root causes. Do not hide failures with blanket ignor
 For UI/runtime work, use real browser automation/control and inspect visible state, console, network, storage and postconditions. For browser/native actions, prove the postcondition rather than trusting the issued action. For Supabase, test adversarial cross-user/org roles. For payment/model/provider paths, test failure/replay/duplicate/concurrency boundaries as defined by the plan.
 
 Final reachable tree must have zero known reproducible repository-controlled defects, zero applicable missing requirements, zero known duplicate canonical authorities and no uninvestigated browser/network/runtime failure in required journeys.
+
+## Documentation Cleanup Rule
+
+Supporting audit/readiness, acceptance, ADR, legal, security/breach, deployment, model/CDN, Windows/browser, donor provenance/licence and release-evidence Markdown files may contain historical wording but are not automatically junk. Delete a supporting document only after proving its unique value is preserved, no script/test/workflow/package command references it, and it is not needed for legal, provenance, audit, incident, migration, release or operational recovery. A smaller file count is not worth breaking evidence or losing history.
 
 ## Git and Release Rules
 

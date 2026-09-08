@@ -8,16 +8,21 @@ Canonical public identity comes from `src/config/company-facts.ts`. Product impl
 
 Read these in order before substantial product-wide work:
 
-1. [`CLAUDE.md`](CLAUDE.md) — AI coding-agent entry point and repository working rules.
+1. [`CLAUDE.md`](CLAUDE.md) — single AI coding-agent entry point and repository working rules.
 2. [`docs/PRD.md`](docs/PRD.md) — product requirements and acceptance definition.
-3. [`PLAN.md`](PLAN.md) — sole production-completion implementation plan and final verification/release sequence.
-4. [`docs/APP_FLOW.md`](docs/APP_FLOW.md) — routes, redirects, clicks, user journeys and UX states.
-5. [`docs/DESIGN.md`](docs/DESIGN.md) — visual/interaction system and reference-app guidance.
-6. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — current/target system, data, API, security and deployment architecture.
-7. [`docs/RULES.md`](docs/RULES.md) — project-specific engineering rules and forbidden practices.
-8. [`docs/TESTING.md`](docs/TESTING.md) — testing strategy, performance gates and production-state checks.
-9. [`docs/MEMORY.md`](docs/MEMORY.md) — current status, known problems and session handoff.
-10. [`docs/DECISIONS.md`](docs/DECISIONS.md) — major architecture/product decisions and superseded alternatives.
+3. [`docs/TRD.md`](docs/TRD.md) — technical requirements and non-functional/runtime constraints.
+4. [`PLAN.md`](PLAN.md) — sole production-completion implementation plan and final verification/release sequence.
+5. [`docs/APP_FLOW.md`](docs/APP_FLOW.md) — routes, redirects, clicks, user journeys and UX states.
+6. [`docs/UI UX Brief.md`](docs/UI%20UX%20Brief.md) — concise experience, information-architecture and surface-level UI/UX intent.
+7. [`docs/DESIGN.md`](docs/DESIGN.md) — detailed visual/interaction system and reference-app guidance.
+8. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — current/target system, data, API, security and deployment architecture.
+9. [`docs/Backend Schema.md`](docs/Backend%20Schema.md) — backend data contract, current Supabase authorities, relationships, RLS/Storage and migration rules.
+10. [`docs/RULES.md`](docs/RULES.md) — project-specific engineering rules and forbidden practices.
+11. [`docs/TESTING.md`](docs/TESTING.md) — testing strategy, performance gates and production-state checks.
+12. [`docs/MEMORY.md`](docs/MEMORY.md) — current status, known problems and session handoff.
+13. [`docs/DECISIONS.md`](docs/DECISIONS.md) — major architecture/product decisions and superseded alternatives.
+
+The documents are intentionally role-specific, not competing master plans. `TRD.md` complements `ARCHITECTURE.md`; `UI UX Brief.md` complements and does not replace `DESIGN.md`; `Backend Schema.md` complements the architecture while source migrations/generated types remain the physical schema authority. `PLAN.md` is still the only implementation sequence.
 
 The repository intentionally does not use `AGENTS.md`. Do not recreate a second AI handbook or another master plan.
 
@@ -53,7 +58,9 @@ Free uses the shared 28-successful-AI-requests / 388-minute window. Paid usage u
 
 ## Current Repository State
 
-The current production-completion plan was audited from `main` commit `5b967735267fb650df63d02d76788ba620353cc4`, which consolidated prior Claude/Codex work through Block 9. That baseline already has extensive tests, generated evidence, local-model/runtime foundations, extension/native/mobile source, Supabase schema and release tooling, but the plan also records known remaining defects and architectural migrations. **The repository is not considered production-complete merely because this documentation exists.** Follow `PLAN.md` phase by phase and prove the exact final tree.
+The current production-completion plan was audited from `main` commit `5b967735267fb650df63d02d76788ba620353cc4`, which consolidated prior Claude/Codex work through Block 9. The documentation authority was later consolidated on `main` at `73d1e08d9eb595f9621e30787f4ad8fab1a84d5d`; later documentation-only commits may advance `main` without changing the implementation baseline described by `PLAN.md`.
+
+That implementation baseline already has extensive tests, generated evidence, local-model/runtime foundations, extension/native/mobile source, Supabase schema and release tooling, but the plan also records known remaining defects and architectural migrations. **The repository is not considered production-complete merely because this documentation exists.** Follow `PLAN.md` phase by phase and prove the exact final implementation tree.
 
 ## Development
 
@@ -84,7 +91,7 @@ The repository includes an approved donor integration/provenance system for `OCA
 
 ## Evidence and Historical Documents
 
-Audit reports, provenance, legal documents, runbooks, generated ledgers and release evidence remain useful supporting records. They are not allowed to override the current canonical product/architecture/implementation documents when an older assumption has been explicitly superseded.
+Audit reports, readiness contracts, ADRs, provenance, legal documents, security/breach procedures, runbooks, generated ledgers and release evidence remain useful supporting records. Some preserve historical states and may contain wording superseded by the canonical documents. They cannot override the current product/architecture/implementation authorities, but they must not be deleted unless their unique evidence/operational value and repository references have been safely retired.
 
 ## Licence
 

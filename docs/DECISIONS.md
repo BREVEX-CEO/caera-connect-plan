@@ -180,16 +180,41 @@ Live charging stays disabled until provider/tax/legal/refund/reconciliation/roll
 2026-09-08
 
 ### Status
-Accepted; documentation cleanup decision.
+Accepted; documentation cleanup decision, partially refined by the documentation-role decision below.
 
 ### Context
 The repository accumulated `PLAN.md`, mission docs, kickoff docs, payment addenda and `AGENTS.md`/Claude instructions that could compete for authority.
 
 ### Decision
-Root `PLAN.md` is the sole implementation plan. Root `CLAUDE.md` is the sole AI-agent handbook. Canonical role-specific docs live under `docs/` as PRD, APP_FLOW, DESIGN, ARCHITECTURE, RULES, MEMORY, DECISIONS and TESTING. Remove `AGENTS.md` and the superseded `docs/mission/*` instruction bundle after unique requirements are merged.
+Root `PLAN.md` is the sole implementation plan. Root `CLAUDE.md` is the sole AI-agent handbook. Remove `AGENTS.md` and the superseded `docs/mission/*` instruction bundle after unique requirements are merged.
 
 ### Reasoning
-A single authority hierarchy reduces contradictory instructions and wasted context.
+A single master implementation authority and a single AI handbook reduce contradictory instructions and wasted context.
 
 ### Trade-offs and Consequences
 Historical evidence/audit/legal/provenance documents may remain as supporting records but cannot override newer canonical decisions.
+
+## Canonical role-specific documentation includes TRD, UI UX Brief and Backend Schema
+
+### Date
+2026-09-08
+
+### Status
+Accepted; supersedes only the earlier decision to fold these three roles entirely into Architecture/Design.
+
+### Context
+The project's document-design guidance calls for focused source-of-truth documents for product, technical requirements, flow, UI/UX intent, backend schema, rules, memory, decisions and testing. The owner explicitly requested separate TRD, UI/UX Brief and Backend Schema documents while retaining `DESIGN.md` and avoiding duplicate master plans.
+
+### Options Considered
+Keep all technical/schema detail only in `ARCHITECTURE.md` and all UX intent only in `DESIGN.md`; create three independent duplicate specifications; create three complementary role-specific documents with strict ownership boundaries and cross-references.
+
+### Decision
+Keep `PLAN.md` as the sole implementation sequence and `CLAUDE.md` as the sole AI handbook. Add `docs/TRD.md`, `docs/UI UX Brief.md` and `docs/Backend Schema.md` as complementary authorities. `TRD.md` owns implementation-level technical requirements; `UI UX Brief.md` owns concise experience/information-architecture intent while `DESIGN.md` remains the detailed design-system authority; `Backend Schema.md` owns the logical/physical backend data contract while migrations/generated Supabase types remain the physical schema authority.
+
+The canonical role-specific set is therefore PRD, TRD, APP_FLOW, UI UX Brief, DESIGN, ARCHITECTURE, Backend Schema, RULES, TESTING, MEMORY and DECISIONS.
+
+### Reasoning
+This preserves the source-of-truth discipline of one purpose per document while making critical requirements easier for engineering agents to locate. Cross-references are cheaper and safer than repeating entire specifications.
+
+### Trade-offs and Consequences
+Some facts necessarily appear briefly in multiple documents for context, but detailed ownership remains explicit. Future documentation changes should update the owning file and link to it instead of copying sections. Supporting audit/readiness/legal/provenance/runbook files may remain historical evidence and are not canonical product authority.
