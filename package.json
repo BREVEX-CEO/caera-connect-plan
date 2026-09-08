@@ -164,7 +164,7 @@
     "@tanstack/react-router": "^1.170.16",
     "@tanstack/react-start": "^1.168.26",
     "@wllama/wllama": "^3.5.1",
-    "chromium-bidi": "12.1.0",
+    "chromium-bidi": "17.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.575.0",
