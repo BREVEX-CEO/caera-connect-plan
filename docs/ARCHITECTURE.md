@@ -1,165 +1,110 @@
-# OCADE — Current Production Architecture
+# Architecture
 
-Version: 2026-08-23
-Brand authority: src/config/company-facts.ts
-Machine-checked boundaries: docs/boundaries.json
+## System Overview
 
-This document describes the reachable production design. Passing source tests
-does not prove that an external service, signed installer, store release, model
-mirror, or physical device is live.
+OCADE is a browser-first AI workspace centered on Chat, Cowork and Code with Projects, Tasks, Artifacts, Search, Customize, Settings, organizations/Admin, Offline Intelligence, online intelligence and permissioned browser/Windows control. The target architecture uses one account/session authority, one persistent-data boundary, one intelligence boundary, one commercial-usage authority, one task/receipt authority, one permission system and one set of platform adapters. Historical local-first, duplicate provider/task/native-control paths are migration inputs rather than parallel long-term systems.
 
-## Product boundary
+The current audited baseline for the production-completion plan is `main` at `5b967735267fb650df63d02d76788ba620353cc4`, which already contains React/TanStack web code, Supabase, Cloudflare delivery, WebGPU/WASM local inference, browser extension, Windows/native control, Capacitor mobile/PWA projects and extensive tests/evidence. `PLAN.md` owns the ordered migration from that baseline to the target below.
 
-OCADE BY CARCC CADANE is a browser-first, local-first AI workspace. Normal Chat
-does not require Python, Ollama, or a public-cloud model API. The browser selects
-WebGPU when supported and keeps WASM as its compatibility path. Optional desktop
-runtimes may improve capability, but are not a website prerequisite.
+## System Diagram
 
-No OpenAI, Anthropic, Gemini, Lovable AI Gateway, OpenRouter, Groq, Mistral,
-Together, DeepSeek API, or other hosted model is a fallback for ordinary Chat.
-Supabase identity/private sync, Cloudflare delivery, OAuth, public information
-retrieval, and static model hosting are network services, not AI inference.
+```mermaid
+flowchart LR
+  U[User] --> W[OCADE Web/PWA]
+  W --> C[Chat]
+  W --> CW[Cowork]
+  W --> CODE[Code]
+  W --> X[Projects / Tasks / Artifacts / Search / Customize / Settings]
+  C --> I[OcadeIntelligence]
+  CW --> T[Task + Permission + Receipt]
+  CODE --> T
+  T --> I
+  I --> G[Supabase Edge Function / Gemini 3.1 Flash-Lite]
+  I --> L[Offline Intelligence / WebGPU-WASM]
+  C --> D[Supabase Data Repositories]
+  X --> D
+  T --> D
+  D --> P[(Supabase PostgreSQL)]
+  D --> S[(Private Supabase Storage)]
+  T --> B[Browser Extension]
+  T --> R[Windows RemoteExecutor]
+  W --> CF[Cloudflare Delivery]
+```
 
-## Runtime map
+## Tech Stack
 
-User requests enter the browser workspace and its canonical prompt compiler. The
-compiler routes inference to WebGPU, WASM, or an optional loopback-only local
-runtime through the OCADE Native Companion. It never routes inference to a
-public-cloud model.
+The current stack is TypeScript, React 19, TanStack Start/Router, Vite 8, Tailwind CSS 4, TanStack Query, Radix-style primitives, Lucide icons and Zod. Node 22.23.2 and npm 10.9.8 are pinned; `package-lock.json` is the dependency authority. Supabase provides PostgreSQL, Auth, Storage, RLS, selective Realtime and Edge Functions. Cloudflare/Wrangler is the web deployment path. Browser-local inference uses the existing WebLLM/WebGPU and wllama/WASM authorities with OPFS model storage. Capacitor source supports Android/iOS/PWA. Browser control uses the existing extension/host boundary. Windows control is supporting Cowork/Code infrastructure, not a separate marketed desktop product.
 
-The browser can separately reach encrypted local storage, the safe offline
-shell, optional Supabase Auth/Private Sync, public current-information
-retrieval, and the permissioned Cowork extension. Retrieved files and pages are
-wrapped as untrusted evidence before local reasoning. Cowork and native actions
-remain outside the inference path and have their own confirmation boundaries.
+## Repository Structure
 
-## Browser Chat
+The current repository contains historical source organization under `src/components`, `src/hooks`, `src/lib`, `src/routes`, `src/primary-logic`, integrations and platform roots. Implementation converges dependency-closed families toward:
 
-The browser owns the conversation UI, projects, files, search, outputs,
-attachments, citations, draft state, model preparation, and streaming controls.
-Documents are extracted and reduced locally before selected passages enter the
-prompt. File/page/project text is wrapped as untrusted content and cannot replace
-the canonical system prompt.
+```text
+src/
+  app/        bootstrap, routing, providers, shell, session entry
+  features/   route-facing product use cases and UI
+  core/       domain policy, state machines, intelligence, agents, tools, permissions
+  platform/   browser, extension, Windows host, mobile/PWA, voice, workers
+  data/       Supabase repositories, server APIs, transient RAM buffers
+  shared/     reusable UI primitives, tokens, validation and utilities
+```
 
-The engine router prefers a compatible WebGPU model. If WebGPU is unavailable,
-the browser may select the packaged WASM tier. A missing or corrupt model produces
-a named preparation/error state; it must not silently send the prompt to a cloud
-model.
+Platform/tooling roots such as `supabase/`, `extension/`, `native/`, `android/`, `ios/`, `scripts/`, `.github/`, `public/` and `release/` remain where they serve a real boundary. Do not mass-move files cosmetically; move only when ownership becomes clearer and every caller can migrate safely.
 
-Production model redistribution remains a separate release gate. A source
-manifest or test is not evidence that immutable model files, Range requests,
-licence approval, and CDN digests are live.
+## Application Layers
 
-## Current-information retrieval
+`app` composes routes/providers and owns no product persistence or domain policy. `features` owns Chat/Cowork/Code/Projects/Tasks/Artifacts/Search/Customize/Settings and organization/Admin presentation/use cases but does not create duplicate database/provider/native clients. `core` owns environment-neutral invariants such as intelligence requests, usage permits, task states, permissions, agent/tool policy and entitlement rules. `platform` implements environment-specific adapters behind core contracts. `data` owns ordinary persistence and server APIs. `shared` cannot import feature/route modules.
 
-Current-information search sends only the user's bounded search query to the
-declared retrieval service. Selected public pages are fetched as evidence, marked
-untrusted, and passed to the local inference engine. Citations point to retrieved
-sources; the system must not fabricate a source when retrieval fails.
+## Database Architecture
 
-Retrieval is therefore networked data acquisition, not remote AI inference.
-Credentials from authenticated sites are outside this generic path and require a
-separately authorized connector or user-controlled browser session.
+Supabase PostgreSQL is canonical for ordinary account/user content: profiles/settings/session metadata, conversations/messages/branches/shares, Projects and typed links, files metadata, Tasks/schedules/runs/events/approvals/receipts, Artifacts/versions/provenance, Memory, organizations/members/groups/seats/policies, notifications, commercial usage/permits/leases/entitlements, billing events/subscriptions/refunds/Admin grants and audit/support-access records. Private Supabase Storage owns uploaded file and durable artifact bodies.
 
-## Cowork browser control
+Persistent ordinary content must not have competing IndexedDB, localStorage, Cache Storage, browser/PC vault or OPFS authorities. OPFS is model-only. Incognito is memory-only. If Supabase is temporarily unavailable, eligible local-inference turns may stay only in open-tab RAM, warn before loss and synchronize exactly once on reconnection.
 
-Cowork is separate from Chat. The MV3 extension can observe or act only on a site
-the user approved and only after the OCADE origin establishes its bridge. The
-production externally-connectable origins are https://ocade.in/* and
-https://www.ocade.in/*; local and approved preview origins exist for testing.
+Existing live/source tables and migrations are reused or transformed forward-only; do not create duplicate replacement tables merely for preferred naming. Source/live migration histories are reconciled by schema effect before production application. RLS is mandatory on exposed user/tenant tables and identity comes from trusted Auth/server context, not client-submitted user/org IDs.
 
-Every proposed action is previewed and risk-classified. Pause, STOP, take-over,
-fresh-state observation, planted-failure handling, and independent readback are
-part of the proof boundary. Passwords, OTPs, CAPTCHAs, CVV/PIN values, and
-recovery codes are protected inputs: automation stops and hands control to the
-user rather than reading, storing, inferring, or typing them.
+## API Architecture
 
-Mobile browsers do not pretend to provide the desktop MV3 extension. Unsupported
-mobile Cowork actions must say that desktop/native support is required.
+Browser code calls typed feature/data contracts rather than privileged provider/database implementations. `OcadeIntelligence` is the single AI boundary. Every AI-generating surface acquires one server-authoritative generation permit before provider/model initialization. The online Edge Function uses Gemini 3.1 Flash-Lite with exactly three optional server secret slots—primary, secondary, tertiary—and primary-first pre-output health failover. Local-only performs zero provider network activity.
 
-## Optional native computer control
+Task/remote execution uses one `RemoteExecutor` contract for capability advertisement, claim/lease/heartbeat, approvals, cancellation/emergency stop, receipts, reconnect and recovery. Browser control prefers DOM/accessibility semantics and re-observes after actions/context changes. Windows control consolidates UIA/PyWin32/Win32/native helpers, vision and PyAutoGUI, using semantic/native APIs first and coordinates only as guarded fallback.
 
-The OCADE Native Companion is the only runtime with operating-system authority.
-Its Tauri shell and Rust safety crate enforce allowlists, protected-input refusal,
-confirmation tiers, STOP latching, and audit redaction. The browser communicates
-with it through the explicit companion bridge; absence of the process is a named
-unavailable state.
+## External Services
 
-Web readiness, Windows runtime proof, signed Windows distribution, macOS
-signing/notarization, Android hardware, iOS/TestFlight, and extension-store review
-are separate claims. One does not imply another.
+Supabase is the canonical database/Auth/Storage/Edge Function service. Cloudflare delivers/deploys the web release. Gemini is the pinned online AI provider behind the server boundary. Payment-provider, email/push, OAuth and connector integrations are exposed only when fully configured and proven. A source file, icon or partial secret never makes an external capability available.
 
-Compatibility identifiers such as Rust crate names, mobile bundle identifiers,
-database values, and storage keys may retain legacy strings when changing them
-would break installed data or protocols. They are not current public branding.
+## Data Flow
 
-## Storage, Private Sync, and authentication
+Online Chat/AI flow is: authenticated request → commercial permit → `OcadeIntelligence` → Gemini server boundary → normalized streamed output → permit finalize/release → Supabase persistence. Local flow uses the same logical permit and normalized boundary; when Supabase is unavailable, unsynchronized turns stay RAM-only until reconnection.
 
-Local browser storage is the default workspace path. Sensitive vault material is
-encrypted before IndexedDB persistence. The service worker never caches API,
-authentication, or server-function responses.
+Cowork/Code flow is: user goal → task plan → permission policy → tool/platform action → re-observe → verify postcondition → receipt/event → persistence → continue/recover. Issuing a click/command is never proof of success.
 
-Supabase provides ordinary account authentication and optional user-scoped
-Private Sync. Row-level security and account-linked consent/deletion receipts
-must be proven against the real production project before launch. This checkout
-contains migrations and tests, but no accessible Supabase project was returned in
-the current session, so live migration/RLS/auth is externally blocked.
+Payment flow, implemented last, is: server checkout intent → provider-hosted payment → signed webhook/server reconciliation → immutable normalized billing event → idempotent atomic subscription/entitlement update. Admin grants are separate audited entitlements, never fake provider payments.
 
-## Offline behavior
+## Architectural Patterns
 
-The PWA caches only the application shell and explicitly safe static assets.
-After a successful first load and model preparation, local conversations and
-eligible queued work can continue offline. Authentication transitions, API
-responses, privileged data, and arbitrary cross-origin responses are never
-replayed from cache. Network-only retrieval and Private Sync report that they are
-unavailable rather than simulating success.
+Use one canonical authority per subsystem, ports/adapters for environment-specific implementations, fail-closed external capability checks, idempotent logical operations, append-friendly evidence/audit history, observed postconditions for side effects, progressive disclosure in UI and machine-generated evidence where practical. Generated files remain generated.
 
-## Edge delivery and launch gate
+## System Boundaries
 
-Cloudflare Worker time owns the release decision. Production opens once server
-time is at or after the launch instant, which `src/lib/launch/launch-window.ts`
-owns and no other file restates. OCADE_LAUNCH_READY is an emergency re-lock:
-exactly `false` closes a launched gate on the next request, and any other value
-— including absent — leaves it open, so a misconfigured variable can never take
-a live product down. Before release, /, /auth,
-and product routes remain 503 with noindex. Three factual pages
-(/company, /founder/haans-antoni, /products/ocade) plus their exact brand
-assets, restrictive robots file, and sitemap may remain crawlable. These pages do
-not expose authenticated application data or claim incorporation that has not
-occurred.
+Browser bundles never contain Gemini keys, service-role credentials, payment secrets or native-only APIs. OPFS contains model data only. Browser extension acts only in approved user mission/site context. Windows host accepts only authenticated/scoped local requests and enforces permission/protected-input/emergency-stop rules. Plugins/connectors cannot bypass identity, tenant, usage or permission policy. Browser payment redirects/client prices/profile text cannot mutate entitlement.
 
-## Security boundaries
+## Scalability Considerations
 
-| Boundary                         | Enforced outcome                                              |
-| -------------------------------- | ------------------------------------------------------------- |
-| Service-role database credential | Constructed server-side only; never in the browser graph      |
-| Untrusted file/page content      | Wrapped as evidence; cannot override the system prompt        |
-| Local runtime                    | Loopback only                                                 |
-| Browser action                   | Approved origin, site permission, preview, confirmation, STOP |
-| Protected input                  | Never read, stored, inferred, or typed                        |
-| Offline cache                    | No auth/API/server-function response caching                  |
-| Private Sync                     | User-scoped access under real RLS                             |
-| Hosted-model dependencies        | Source gate rejects public-cloud inference paths              |
+Five performance failures are treated as architecture defects: N+1 query loops, missing evidence-backed indexes, unbounded list loading, unoptimized media and giant eager JavaScript bundles. Batch related reads; use query-plan evidence before adding indexes; cursor-paginate growing feeds/search/activity; keep stable admin lists bounded; optimize responsive/lazy media; lazy-load Code editor/PDF/Jarvis/model/native/media tooling. Batch startup calls and clean up workers/processes to avoid memory/resource leaks.
 
-## Platform truth table
+## Security Architecture
 
-| Surface    | Source path                      | What source can establish                       | What still needs separate live evidence                 |
-| ---------- | -------------------------------- | ----------------------------------------------- | ------------------------------------------------------- |
-| Web Chat   | React/TanStack plus WebGPU/WASM  | Local inference routing, UI, offline rules      | Real model CDN/licence/digest and production generation |
-| Web Cowork | MV3 extension bridge             | Permission and safety contracts                 | Built-extension run and store publication               |
-| Windows    | Tauri plus Rust plus Python host | Safety code, build configuration, Windows tests | Signing, installer lifecycle, final physical-PC proof   |
-| macOS      | Tauri source                     | Config and compile-target intent                | macOS build, signing, notarization, physical Mac        |
-| Android    | Capacitor source                 | Mobile UI/package configuration                 | Signed AAB and real Android hardware                    |
-| iOS        | Capacitor/Xcode source           | iOS project and assets                          | Mac toolchain, signing, TestFlight, real iPhone/iPad    |
-| Supabase   | migrations/types/tests           | Intended schema, RLS, auth flows                | Real project apply and adversarial live RLS             |
-| Cloudflare | Worker config/build              | Gate and deploy configuration                   | Authorized deployment ID/hash and production smoke      |
+Supabase Auth provides account identity. MFA is optional for ordinary users but recent AAL2 is required for dangerous organization/Admin/support-content/billing operations. RLS/Storage policies enforce tenant/user isolation. Privileged functions are narrow, validate ownership/role and use safe search paths. Protected inputs such as passwords, OTPs, CAPTCHAs, CVV/PIN and recovery codes remain user-controlled. Secrets never enter browser bundles/logs. Support content access, where authorized, is case-scoped, time-bound, read-only and immutably audited rather than general raw database access.
 
-## Ownership and compatibility
+## Deployment Architecture
 
-docs/boundaries.json maps every src/lib area to an owner, declares external
-hosts, and records browser/Worker/native runtime restrictions. Its assertions run
-in src/lib/**tests**/governance-artefacts.test.ts.
+Implementation stays on one isolated completion branch until the final matrix passes. The exact verified tree is reconciled against latest `origin/main`, reverified, fast-forwarded without force and remote SHA/tree checked. Production deployment then confirms backups/restore/rollback, applies reviewed forward-compatible Supabase migrations, deploys matching Edge Functions/secrets, stages the exact Cloudflare release, runs staging smoke/critical journeys, promotes that exact version and verifies production health. Release regression triggers rollback.
 
-Shared schema and protocol surfaces are versioned and fail closed on mismatch.
-Stable storage keys and compatibility identifiers are changed only with an
-explicit migration, never as a cosmetic brand replacement.
+## Architecture Decisions
+
+Durable reasons for major choices live in `docs/DECISIONS.md`. Current accepted decisions include Supabase-authoritative ordinary data, model-only OPFS, Gemini 3.1 Flash-Lite with three server key slots, Normal/Jarvis Cowork over one runtime, no separately marketed desktop product, maximum useful donor reuse without parallel donor architecture, payments/Admin grants last and Claude/ChatGPT/OpenClaw as behavioral references while OCADE remains independently implemented.
+
+## Constraints
+
+`PLAN.md` is the sole implementation authority. `CLAUDE.md` is the single AI-agent handbook; `AGENTS.md` is intentionally absent. Never create duplicate routers/stores/agent loops/task systems/model installers/usage authorities/payment stacks/native engines/design systems. Preserve Lovable-connected Git history; no force-push/rebase/squash of published history. External capabilities must be truthfully configured/proven or hidden/unavailable.

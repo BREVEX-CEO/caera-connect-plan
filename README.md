@@ -1,213 +1,91 @@
 # OCADE
 
-OCADE is the active product being developed under the **CARCC CADANE** brand by
-**HAANS ANTONI — CEO, Chairman and Founder**. It is a browser-first, local-first AI
-workspace with web, desktop and mobile source paths plus optional private
-synchronization.
+**OCADE BY CARCC CADANE** is a browser-first AI workspace centered on **Chat, Cowork and Code**. It combines conversational intelligence, delegated browser/computer work, repository-aware coding, Projects, Tasks, Artifacts, Search, customization, organizations and Offline Intelligence in one product.
 
-**Chat generation runs on the user's own device.** OCADE contains no code that
-can send a prompt, draft, conversation, attachment or reasoning request to
-OpenAI, Google Gemini, Anthropic, the Lovable AI Gateway or any other public AI
-service — the gateway, the server chat route and the provider SDK were removed,
-and `src/lib/__tests__/no-cloud-inference.test.ts` fails the build if any of
-them returns. The internet is still used, for downloading OCADE's own engine,
-for Supabase authentication and synchronisation, and for looking up current
-information; fetching a fact is not the same as handing over the user's
-thinking, and OCADE only does the first.
+Canonical public identity comes from `src/config/company-facts.ts`. Product implementation/readiness is governed by the documentation set below and should not be inferred from an old audit paragraph or the existence of a source file alone.
 
-Public launch is planned for **28 August 2026**. OCADE is still pre-launch: a
-file, test, installer or deployment script in this repository is not by itself
-proof that the corresponding production service or store release is available.
+## Documentation Authority
 
-## What is in this repository
+Read these in order before substantial product-wide work:
 
-| Area         | Implemented source                                                                                        | Readiness boundary                                                                                                                                                                                                                   |
-| ------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Web          | React/TanStack Start application, public demo, authenticated workspace and Cloudflare-oriented deployment | A build can pass while a hosted environment is misconfigured. Production URL, monitoring and launch approval remain separate gates.                                                                                                  |
-| Offline web  | Service worker, cached root shell and browser-local storage/model paths                                   | A real Chrome online-then-offline reload is proven from a clean profile. A first visit still needs a network: a browser cannot load a site it has never seen, and OCADE's engine has to arrive once before it can answer offline.    |
-| Private sync | Supabase auth, RLS-backed data paths and private storage. Not an AI provider.                             | Users must be told which mode is active. “Local-first” means generation is always on-device; it does not mean synchronised data never leaves it. Browser Only data never leaves.                                                     |
-| Desktop      | Local Tauri/Rust companion, packaged browser host and packaged MediaPipe hand-control sidecar             | Desktop source is retained for development, but public desktop downloads/releases are intentionally disabled for the current launch. Signing, clean-device tests, macOS notarization and update signing remain future release gates. |
-| Mobile       | Capacitor Android and iOS projects, mobile pairing and restricted control paths                           | Store signing, privacy declarations, billing compliance and device testing are still required before a store-release claim.                                                                                                          |
-| Billing      | Historical subscription/allowance records and provider/webhook source remain intact                       | **Free launch mode is active.** Checkout, pricing, upgrades and paid entitlement gates are disabled. A provider token alone cannot re-enable checkout.                                                                               |
+1. [`CLAUDE.md`](CLAUDE.md) — AI coding-agent entry point and repository working rules.
+2. [`docs/PRD.md`](docs/PRD.md) — product requirements and acceptance definition.
+3. [`PLAN.md`](PLAN.md) — sole production-completion implementation plan and final verification/release sequence.
+4. [`docs/APP_FLOW.md`](docs/APP_FLOW.md) — routes, redirects, clicks, user journeys and UX states.
+5. [`docs/DESIGN.md`](docs/DESIGN.md) — visual/interaction system and reference-app guidance.
+6. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — current/target system, data, API, security and deployment architecture.
+7. [`docs/RULES.md`](docs/RULES.md) — project-specific engineering rules and forbidden practices.
+8. [`docs/TESTING.md`](docs/TESTING.md) — testing strategy, performance gates and production-state checks.
+9. [`docs/MEMORY.md`](docs/MEMORY.md) — current status, known problems and session handoff.
+10. [`docs/DECISIONS.md`](docs/DECISIONS.md) — major architecture/product decisions and superseded alternatives.
 
-## Proving it
+The repository intentionally does not use `AGENTS.md`. Do not recreate a second AI handbook or another master plan.
 
-One command runs every release-critical gate this machine can run:
+## Current Product Direction
 
-```
-npm run launch:prove
-```
+### Data
 
-It writes `release/LAUNCH_PROOF.json` and exits non-zero on a launch-critical
-failure. Its value is a distinction the individual scripts do not make: a gate
-either **passed**, **failed**, or was **UNAVAILABLE** — it could not run here
-because something outside this machine is missing, such as a payment sandbox
-credential or a model host this network cannot reach. Unavailable is never
-counted as a pass, and each one is recorded with the exact command to run where
-it can run. `npm run launch:prove -- --list` shows the gates without running
-them.
+Supabase PostgreSQL is the target canonical persistent authority for ordinary account/user data, with private Supabase Storage for customer files and durable artifact bodies. Historical IndexedDB/localStorage/browser-vault content paths are migration targets, not the final architecture. OPFS is reserved for Offline Intelligence model binaries/chunks and model-owned metadata.
 
-## Current launch mode
+### Intelligence
 
-OCADE is currently configured as a **free launch** for every signed-in account.
-There is nothing to buy and no implemented feature is gated by a paid plan.
-Pricing, checkout, upgrade and billing surfaces are hidden, and the shared
-Paddle bootstrap refuses to initialize while free-launch mode is active. This
-is intentionally enforced below the UI so an old URL, admin surface or stale
-button cannot start a payment merely because provider configuration still
-exists.
+Online intelligence is pinned to **Gemini 3.1 Flash-Lite** through one server-side OCADE intelligence boundary with exactly three optional secret slots: primary, secondary and tertiary. Keys are never browser-readable. Local-only inference must produce zero provider network traffic. One logical AI request keeps one commercial usage permit through retries, tools, subagents, key failover and eligible local fallback.
 
-Billing tables, signed webhook handling and historical provider code are not
-deleted. They are financial/audit history and future integration source, not a
-claim that live checkout is available now.
+### Offline Intelligence
 
-## Product behavior
+Model preparation begins automatically and non-blockingly on the first browser/device visit where supported, including the landing page. The installer verifies/reuses content-addressed OPFS chunks, resumes interrupted transfers and repairs only missing/corrupt content. A verified model is not re-downloaded on normal revisit, sign-in/sign-out, account deletion, service-worker update or compatible deployment. Only explicit Remove Offline Intelligence deletes it; deliberate removal suppresses automatic reinstall until the user explicitly installs again.
 
-OCADE runs its engine in the browser: WebGPU where the browser exposes a usable
-adapter, and a WebAssembly runtime where it does not. A local Ollama runtime or
-a paired desktop is used when one happens to be present, but the web product
-does not require Ollama, Python or a native companion. Preparation starts by
-itself on first visit — there is no Install or Setup button — and the weights
-are stored in the browser, verified against a checksum, and resumed rather than
-re-fetched after an interruption. Features include document handling,
-conversation and project storage, browser/native control components, voice and
-vision modules, automations and cross-device controls. Availability depends on
-the platform, installed model, hardware, privacy mode and configured services.
+### Cowork
 
-Capability labels are evidence-driven. A native shell does not by itself prove
-a Code terminal or automation worker is alive, a saved monitor does not prove
-anything is polling, and source code for an installer does not prove a signed
-download exists. Those capabilities stay `NOT_CONFIGURED` or `UNAVAILABLE`
-until their own runtime evidence exists.
+Cowork has two presentations over one runtime. **Normal Cowork** is a minimal practical work interface. **Jarvis Cowork** is the immersive voice/autonomy interface with the liquid-glass network orb, audio-reactive states and contextual browser/PC observation. Both share the same tasks, permissions, usage, memory, browser/Windows execution and receipts.
 
-Safety controls in source include confirmation and refusal paths, emergency-stop
-handling, account-scoped storage, signed native/bridge requests, attachment
-limits, privacy-mode routing and honest “unverified” outcomes. These controls
-must still be tested on the actual production target before a release claim.
+### Code
 
-The Windows companion source boots from bundled local files; it no longer
-depends on a developer server. Its optional camera preview and cursor control
-use a separately packaged MediaPipe process. Cursor control requires a visible
-two-step opt-in and can be stopped from the app, tray, or `Ctrl+Shift+F12`.
-Camera frames are processed locally and are not sent to the web application.
-This source statement is **not** a public installer-availability claim.
+Code is intended to be a real coding-agent workspace with repository intake, editing, search, symbols/diagnostics, exact patches, diff/review, Git, permissioned terminal/LSP/dev-server, preview/browser verification, parallel sessions/subagents and durable results.
 
-## Privacy model
+### UI/UX
 
-OCADE supports multiple storage and execution boundaries:
+Claude is the primary behavioral/information-architecture benchmark; ChatGPT and OpenClaw are secondary references for chat polish and transparent agent/computer-use interactions. OCADE remains independently branded and implemented. The ordinary product is minimal and restrained; Jarvis is the expressive visual mode.
 
-- **Device/browser-local:** supported data remains on the user’s device.
-- **Private Sync:** selected account and workspace records are stored in the
-  configured Supabase project under row-level security.
-- **Private Sync is local-first:** a message is written to this device before
-  any network call and synchronised in the background, so Chat keeps working
-  with the connection down and nothing is lost when it drops.
-- **No cloud inference in any mode.** There is no disclosed provider and no
-  entitlement that enables one, because there is no remote engine to enable.
+### Commercial
 
-There is no advertising or third-party analytics tracker in the audited source.
-Essential local storage is used for authentication, preferences, security and
-offline operation. Future non-essential analytics must remain disabled until
-the required consent choice and documentation exist.
+Free uses the shared 28-successful-AI-requests / 388-minute window. Paid usage uses server-authoritative windows while the UI shows percentage/reset. Payments, subscriptions, refunds, disputes/chargebacks and audited Admin grants are mandatory but deliberately implemented as the final major phase so OCADE does not take money before the rest of the product is reliable.
 
-See the pre-launch, lawyer-review drafts:
+## Current Repository State
 
-- [Privacy notice](docs/legal/PRIVACY_NOTICE.md)
-- [Terms of service](docs/legal/TERMS_OF_SERVICE.md)
-- [DPDP progress](DPDP_PROGRESS.md)
-- [Data-rights process](docs/legal/DATA_RIGHTS_PROCESS.md)
-- [Breach runbook](BREACH_RUNBOOK.md)
+The current production-completion plan was audited from `main` commit `5b967735267fb650df63d02d76788ba620353cc4`, which consolidated prior Claude/Codex work through Block 9. That baseline already has extensive tests, generated evidence, local-model/runtime foundations, extension/native/mobile source, Supabase schema and release tooling, but the plan also records known remaining defects and architectural migrations. **The repository is not considered production-complete merely because this documentation exists.** Follow `PLAN.md` phase by phase and prove the exact final tree.
 
 ## Development
 
+The current package manager/runtime are pinned in `package.json`, `.node-version` and `.nvmrc`. Common commands include:
+
 ```bash
 npm ci
+npm run format:check
 npm run typecheck
-npm run test
+npm run lint
+npm test
 npm run build
+npm run verify:full
+npm run audit:journey
+npm run launch:prove
 npm run deploy:check
-# Internal Windows development only; no public desktop release is published.
-npm run desktop:bundle:windows
 ```
 
-`typecheck` and `build` regenerate the TanStack route tree first so a newly
-added file route cannot silently disappear from typed routing because a tracked
-generated file is stale.
+Use the actual current `package.json` scripts as the command source of truth. Focused changes should run focused tests first; the full release matrix is defined in `PLAN.md` and `docs/TESTING.md`.
 
-Client authentication needs `VITE_SUPABASE_URL` and
-`VITE_SUPABASE_PUBLISHABLE_KEY`; server routes need their corresponding
-server-side bindings. Missing bindings leave public pages available but make
-authentication fail closed. Never commit service keys, access tokens or local
-`.env` files.
+## Secrets and Configuration
 
-Production auth methods are separately fail-closed by the public boolean flags
-`VITE_AUTH_GOOGLE_ENABLED`, `VITE_AUTH_APPLE_ENABLED`,
-`VITE_AUTH_PHONE_ENABLED`, and `VITE_AUTH_EMAIL_DELIVERY_READY`. These flags do
-not contain credentials. Set one to `true` only after its provider or production
-mail delivery is configured and verified in the selected Supabase project.
+Never commit real secrets or local `.env` files. Browser-visible variables are not authorization. Gemini server keys, Supabase service credentials, payment API/webhook secrets and other privileged material belong only in deployment/server secret stores. `.env.example` documents names/placeholders, not secret values.
 
-## Release and public identity
+## Imported Primary Logic
 
-The private repository is connected to Lovable. Do not rewrite published Git
-history. Work must remain on a reviewed branch until the owner explicitly
-approves a push or merge to `main`.
+The repository includes an approved donor integration/provenance system for `OCADE_PRIMARY_LOGIC`. The verified donor contains 2,126 files. The production-completion plan requires re-evaluating every donor family and maximizing useful safe behavior—especially Chat, Cowork, Code, agents/tools, tasks, Git/LSP, shell safety, permissions, browser/computer control and recovery—without importing duplicate servers/providers/stores/telemetry or broken architecture merely to increase file count.
 
-Official pre-launch identity:
+## Evidence and Historical Documents
 
-- Brand/venture: **CARCC CADANE**
-- Active product: **OCADE**
-- Founder: **Haans Antoni**
-- Formal leadership statement: **HAANS ANTONI — CEO, Chairman and Founder**
-- Location: **Bengaluru, Karnataka, India**
-- Founding record: **28 August 2026** (planned until that date; this does not
-  claim that an incorporated entity already exists)
-- Planned public launch date: **28 August 2026**
-- FICIA, MADEE and CANIA: reserved names for possible future products; not AI
-  models and not currently advertised as available
-
-The website must not publish a CIN, GSTIN, registered office, trademark status,
-launch completion or incorporated founding date until independently verified.
-Search engines and third-party directories decide their own indexing and cannot
-be guaranteed to display any specific result.
-
-## Imported primary logic
-
-Part of what OCADE runs on came from a supplied source archive, licensed for
-direct integration by its rights holder. What was taken is the part that is
-genuinely logic — the permission and risk model, a complete shell parser and
-its destructive-command tables, the query loop with its transitions and token
-budgets, the task lifecycle, compaction, transcript repair and the memory
-model. It lives under `src/primary-logic`, keeps the donor's formatting, and
-records the archive's verified hash and byte count in `provenance.json`
-alongside the licence that permitted the import.
-
-What was deliberately not taken is the rest of it: a terminal renderer, a
-command-line vocabulary, a second web client, hosted inference and analytics.
-
-`imports/ocade-primary-logic/INTEGRATION_REPORT.md` accounts for every one of
-the archive's 2,126 files under one of six outcomes, with the OCADE authority
-that won each area and the reason. It is generated rather than written — a
-report about provenance that cannot be regenerated is a claim — and
-`npm run integration:check` fails the build when it drifts from the tree.
+Audit reports, provenance, legal documents, runbooks, generated ledgers and release evidence remain useful supporting records. They are not allowed to override the current canonical product/architecture/implementation documents when an older assumption has been explicitly superseded.
 
 ## Licence
 
-The repository is proprietary. Copyright © 2026 Haans Antoni, operating under
-the CARCC CADANE brand. See [LICENSE](LICENSE). Third-party packages, models and
-assets remain under their own terms; notices are recorded in
-[release/THIRD_PARTY_NOTICES.md](release/THIRD_PARTY_NOTICES.md).
-
-The imported primary logic is covered by the licence in
-[src/primary-logic/LICENSE.md](src/primary-logic/LICENSE.md), with attribution
-in `src/primary-logic/NOTICE.md`. The two typefaces the product ships —
-Inter and Instrument Serif — are under the SIL Open Font License, whose text
-ships beside them in `public/fonts`.
-
-## Audit status
-
-`docs/OCADE-AUDIT-REPORT.md` records what has been executed and what remains
-external. Windows PC control, the Chrome for Testing extension, installed Chrome
-Stable/Edge parity, and local production-model text/vision paths now have live
-evidence. Production CI, signing/store distribution, live Supabase apply,
-mobile devices, and clean-machine release matrices remain externally blocked.
-See `docs/WINDOWS-PROOF.md` and the ledgers under `release/`.
+The repository is proprietary. Third-party libraries, models and imported logic remain subject to their respective licences/notices. See [`LICENSE`](LICENSE), `release/THIRD_PARTY_NOTICES.md` and the provenance/licence material under `src/primary-logic` and `imports/`.
