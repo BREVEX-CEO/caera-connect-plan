@@ -127,7 +127,7 @@ Final reachable tree must have zero known reproducible repository-controlled def
 
 ## Documentation Cleanup Rule
 
-Supporting audit/readiness, acceptance, ADR, legal, security/breach, deployment, model/CDN, Windows/browser, donor provenance/licence and release-evidence Markdown files may contain historical wording but are not automatically junk. Delete a supporting document only after proving its unique value is preserved, no script/test/workflow/package command references it, and it is not needed for legal, provenance, audit, incident, migration, release or operational recovery. A smaller file count is not worth breaking evidence or losing history.
+Supporting audit/readiness, acceptance, legal, security/breach, deployment, model/CDN, Windows/browser, donor provenance/licence and release-evidence Markdown files may contain historical wording but are not automatically junk. Delete a supporting document only after proving its unique value is preserved, no script/test/workflow/package command references it, and it is not needed for legal, provenance, audit, incident, migration, release or operational recovery. The former standalone ADR decisions are already consolidated in `docs/DECISIONS.md`; new durable decisions belong there rather than in a recreated ADR folder. A smaller file count is not worth breaking evidence or losing history.
 
 ## Git and Release Rules
 
