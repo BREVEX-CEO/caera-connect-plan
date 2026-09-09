@@ -2,7 +2,7 @@
 
 ## General Rules
 
-Work from the actual current repository and canonical documentation, not stale chat summaries or historical branch assumptions. Read `CLAUDE.md`, `docs/PRD.md`, `PLAN.md`, `docs/APP_FLOW.md`, `docs/DESIGN.md`, `docs/ARCHITECTURE.md`, `docs/TESTING.md`, `docs/MEMORY.md` and `docs/DECISIONS.md` before substantial product-wide work.
+Work from the actual current repository and canonical documentation, not stale chat summaries or historical branch assumptions. Read `CLAUDE.md`, `docs/PRD.md`, `docs/TRD.md`, `PLAN.md`, `docs/APP_FLOW.md`, `docs/UI UX Brief.md`, `docs/DESIGN.md`, `docs/ARCHITECTURE.md`, `docs/Backend Schema.md`, `docs/RULES.md`, `docs/TESTING.md`, `docs/MEMORY.md` and `docs/DECISIONS.md` before substantial product-wide work.
 
 Search before creating. If a subsystem already has an authority, repair/complete/merge it rather than creating a second router, store, database client, auth stack, task manager, agent loop, tool registry, model installer, usage system, payment stack, browser bridge, native-control engine or design system. For overlaps use KEEP, FIX, COMPLETE, MERGE, REPLACE or REMOVE and migrate callers before deletion.
 
@@ -34,7 +34,7 @@ Browser bundles cannot import unsafe Node/native modules or privileged credentia
 
 ## Database Rules
 
-Supabase PostgreSQL and private Storage are canonical for ordinary account content. Do not reintroduce persistent IndexedDB/localStorage/browser-vault chat/project/task/artifact/memory stores. OPFS is model-only. Incognito is memory-only. RLS is mandatory for exposed tenant/user data, and Storage policies mirror metadata ownership.
+Read `docs/Backend Schema.md` together with `docs/ARCHITECTURE.md` before changing persistence. Supabase PostgreSQL and private Storage are canonical for ordinary account content. Do not reintroduce persistent IndexedDB/localStorage/browser-vault chat/project/task/artifact/memory stores. OPFS is model-only. Incognito is memory-only. RLS is mandatory for exposed tenant/user data, and Storage policies mirror metadata ownership.
 
 Source/live migrations are reconciled semantically before production application. Use forward-only corrective migrations; do not replay by filename or destructively rewrite history. Add indexes only for actual WHERE/JOIN/ORDER BY/search patterns and query-plan evidence. Every growing query is bounded/paginated.
 
@@ -50,7 +50,7 @@ npm and the committed lockfile are the package authority. Prefer existing compat
 
 ## UI Rules
 
-Read `docs/DESIGN.md` first. Keep OCADE independently branded. Claude is the primary information-architecture/interaction benchmark, ChatGPT and OpenClaw are secondary references; do not copy proprietary assets/source/exact copy or pixel-for-pixel trade dress. Keep one obvious primary action, secondary actions contextual, and remove duplicate buttons/More-style dashboard clutter. Normal and Jarvis Cowork share one runtime; Jarvis is not a second design system or task engine.
+Read `docs/UI UX Brief.md` for experience intent and `docs/DESIGN.md` for detailed design-system/interaction rules before changing product UI. Keep OCADE independently branded. Claude is the primary information-architecture/interaction benchmark, ChatGPT and OpenClaw are secondary references; do not copy proprietary assets/source/exact copy or pixel-for-pixel trade dress. Keep one obvious primary action, secondary actions contextual, and remove duplicate buttons/More-style dashboard clutter. Normal and Jarvis Cowork share one runtime; Jarvis is not a second design system or task engine.
 
 Provider/raw model names do not appear in ordinary customer UI. Use OCADE Intelligence, Online Intelligence and Offline Intelligence. Unconfigured connectors/providers/channels remain hidden or precisely unavailable.
 
@@ -76,4 +76,4 @@ Never create duplicate canonical authorities, fake completion, fake availability
 
 ## Documentation Rules
 
-`PLAN.md` is the sole implementation plan and `CLAUDE.md` is the sole AI handbook. Do not recreate `AGENTS.md`, another PRD/TRD/backend/design bundle, another completion plan or duplicate mission folder. Update the owning canonical document and cross-reference it. `docs/MEMORY.md` records current handoff only; `docs/DECISIONS.md` records meaningful decision history rather than duplicating implementation detail.
+`PLAN.md` is the sole implementation plan and `CLAUDE.md` is the sole AI handbook. The canonical role-specific documents are `docs/PRD.md`, `docs/TRD.md`, `docs/APP_FLOW.md`, `docs/UI UX Brief.md`, `docs/DESIGN.md`, `docs/ARCHITECTURE.md`, `docs/Backend Schema.md`, `docs/RULES.md`, `docs/TESTING.md`, `docs/MEMORY.md` and `docs/DECISIONS.md`. Do not recreate `AGENTS.md`, a second copy of any canonical role, another completion plan or a duplicate mission folder. Update the owning canonical document and cross-reference it. `docs/MEMORY.md` records current handoff only; `docs/DECISIONS.md` records meaningful decision history rather than duplicating implementation detail.
