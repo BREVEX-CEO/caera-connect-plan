@@ -18,7 +18,7 @@ This directory contains OCADE's canonical role-specific documentation plus suppo
 | `RULES.md` | Project-specific engineering constraints and forbidden practices. |
 | `TESTING.md` | Test strategy, repository test stack, five silent speed killers, production-page/state checks and definition of done. |
 | `MEMORY.md` | Concise current state, known problems, recent decisions and session handoff. |
-| `DECISIONS.md` | Durable architecture/product decision records and superseded alternatives. |
+| `DECISIONS.md` | Durable architecture/product decision records and superseded alternatives, including decisions consolidated from the former standalone ADR files. |
 
 These files are complementary rather than duplicate master plans. `TRD.md` states technical requirements; `ARCHITECTURE.md` explains how the system is structured. `UI UX Brief.md` communicates the intended experience; `DESIGN.md` remains the detailed design-system/implementation authority. `Backend Schema.md` owns the data contract while migrations and generated Supabase types remain the physical schema authority. `PLAN.md` remains the only implementation sequence.
 
@@ -26,7 +26,7 @@ There is intentionally no `AGENTS.md`; `CLAUDE.md` is the single AI-agent handbo
 
 ## Supporting documents
 
-Audit/readiness reports, acceptance ledgers, ADRs, legal material, security/breach procedures, deployment/CDN runbooks, Windows/browser/model proofs, donor provenance/licence material and release evidence are supporting records. Some describe historical states and may contain assumptions superseded by the canonical documents, but they retain evidence, provenance, legal, operational or checker value and must not be deleted merely because they are not current product authority.
+Audit/readiness reports, acceptance ledgers, legal material, security/breach procedures, deployment/CDN runbooks, Windows/browser/model proofs, donor provenance/licence material and release evidence are supporting records. Some describe historical states and may contain assumptions superseded by the canonical documents, but they retain evidence, provenance, legal, operational or checker value and must not be deleted merely because they are not current product authority. The former standalone ADR decisions were consolidated into `DECISIONS.md` before those ADR files were removed.
 
 A supporting Markdown file may be removed only after verifying all of the following: its unique information is represented by a current authority or immutable Git history; no script/test/workflow/package command/runtime process references it; it is not required for legal, licence, provenance, security, audit, migration, release or operational evidence; and deleting it cannot break a checker or future incident/recovery workflow.
 

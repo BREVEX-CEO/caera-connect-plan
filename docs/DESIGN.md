@@ -1,6 +1,8 @@
-# UI UX Design Brief
+# Design System and Interaction Specification
 
 ## Design intent
+
+This document is OCADE's detailed visual, component, layout and interaction authority. `docs/UI UX Brief.md` owns the concise experience and information-architecture intent; this file turns that intent into concrete design-system and surface rules without creating a second product brief.
 
 OCADE should feel like a premium, calm, highly capable AI workspace rather than a crowded dashboard. The product must expose enormous capability through progressive disclosure: the user sees only the controls necessary for the current job while deeper tools appear contextually. The overall experience should be immediately familiar to a user of modern AI workspaces without becoming a visual copy of any one product.
 

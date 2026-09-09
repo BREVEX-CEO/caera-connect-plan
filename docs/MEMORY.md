@@ -4,6 +4,8 @@
 
 OCADE is in a production-completion mission. The audited implementation baseline is `main` commit `5b967735267fb650df63d02d76788ba620353cc4` (`feat: integrate OCADE mission through Block 9`). That baseline consolidated prior Claude/Codex work through Block 9. The canonical implementation authority is root `PLAN.md`; later documentation-only commits may advance `main` without changing the implementation baseline described by the plan.
 
+The 2026-09-09 Markdown cleanup checkpoint at `5440321cb4ceb962f541e2b8ed994d8965234d7a` left 77 tracked Markdown files after three superseded ADR files were consolidated into `docs/DECISIONS.md` and removed. The protected authority set remained intact; later documentation-only authority repairs may advance `main` beyond that historical checkpoint.
+
 The canonical documentation set is now intentionally role-specific: `docs/PRD.md`, `docs/TRD.md`, `docs/APP_FLOW.md`, `docs/UI UX Brief.md`, `docs/DESIGN.md`, `docs/ARCHITECTURE.md`, `docs/Backend Schema.md`, `docs/RULES.md`, `docs/TESTING.md`, this file and `docs/DECISIONS.md`. `CLAUDE.md` remains the single AI handbook and `PLAN.md` remains the sole implementation sequence. `AGENTS.md` is intentionally absent.
 
 This documentation refresh does not claim the product is production-complete. It records the current decisions and ordered remaining work so a new engineering session can continue without relying on old conversation history.
@@ -14,7 +16,7 @@ Prior work established deterministic repository evidence, route/donor ledgers, l
 
 The product decisions were revised: Supabase becomes the canonical persistent authority for ordinary user/account data; first-visit Offline Intelligence preparation starts before authentication where supported; Chat is the signed-in home; no onboarding wizard or separate dashboard remains; Gemini 3.1 Flash-Lite is the pinned online model; exactly three server-side Gemini key slots are allowed; Cowork has Normal and Jarvis presentations over one runtime; no separately marketed desktop application is required; the final UI uses Claude as the primary structural benchmark with ChatGPT/OpenClaw as secondary references; payments/refunds/disputes/Admin grants are the final major implementation phase.
 
-Repository branch housekeeping also removed branches proven to be ancestors/duplicates of `main` while retaining branches with active PRs or unique/uncertain work. The documentation inventory was audited: supporting acceptance/readiness, ADR, legal, breach/security, deployment/model/CDN, Windows/browser, donor provenance/licence and release-evidence Markdown remain supporting records rather than canonical product authority.
+Repository branch housekeeping removed branches proven to be ancestors/duplicates of `main` while retaining branches with active PRs or unique/uncertain work. The Markdown inventory was then audited. Three standalone ADR files were merged into `docs/DECISIONS.md` and deleted; supporting acceptance/readiness, legal, breach/security, deployment/model/CDN, Windows/browser, donor provenance/licence and release-evidence Markdown remain supporting records rather than canonical product authority.
 
 ## Currently In Progress
 
@@ -47,6 +49,7 @@ The 2,126-file donor is re-evaluated for maximum useful behavior, especially Cha
 - Payments, refunds, disputes, chargebacks and audited Admin grants are mandatory but implemented last.
 - `PLAN.md` is the only implementation plan. `CLAUDE.md` is the only AI handbook. `AGENTS.md` and the former `docs/mission/*` instruction bundle are intentionally removed.
 - Separate `TRD.md`, `UI UX Brief.md` and `Backend Schema.md` are now part of the canonical role-specific documentation set while `DESIGN.md` and `ARCHITECTURE.md` remain separate detailed authorities.
+- The former standalone ADR decisions now live in `docs/DECISIONS.md`; the three superseded ADR files were removed after their unique decisions were preserved.
 - Supporting historical/evidence Markdown is deleted only when proven unreferenced and valueless for legal/provenance/audit/operations; cleanup must never break package scripts, tests or recovery evidence.
 
 ## Next Steps
