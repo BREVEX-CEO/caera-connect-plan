@@ -7,13 +7,7 @@ import {
   normalisePreferences,
   type NotificationPreferences,
 } from "../preferences";
-import {
-  readNotificationPreferences,
-  writeNotificationPreferences,
-  NOTIFICATION_PREFERENCES_KEY,
-  type PreferenceStorage,
-} from "../preference-store";
-import { keysForClass } from "@/lib/storage/local-data";
+import { normalisePreferences as normalise } from "../preferences";
 
 /**
  * THE SCREEN MUST NOT OFFER A CONTROL THAT DOES NOTHING.
@@ -28,16 +22,6 @@ import { keysForClass } from "@/lib/storage/local-data";
 
 const PANEL = readFileSync("src/components/settings/NotificationPreferencesPanel.tsx", "utf8");
 const PANEL_TEXT = PANEL.replace(/\s+/g, " ");
-
-function memory(seed: Record<string, string> = {}): PreferenceStorage {
-  const entries = { ...seed };
-  return {
-    getItem: (key) => (key in entries ? entries[key] : null),
-    setItem: (key, value) => {
-      entries[key] = value;
-    },
-  };
-}
 
 describe("the settings surface", () => {
   it("was read at all, so a broken scan cannot pass", () => {
@@ -109,7 +93,11 @@ describe("the settings surface", () => {
      */
     expect(PANEL).toContain('source === "account"');
     expect(PANEL_TEXT).toMatch(/follow your account/i);
-    expect(PANEL_TEXT).toMatch(/not signed in.*this browser only/i);
+    expect(PANEL_TEXT).toMatch(/not signed in.*close this tab/i);
+    // The browser copy is gone, so no wording may imply one is kept.
+    expect(PANEL_TEXT, "the panel still claims a browser copy").not.toMatch(
+      /this browser only|browser.s copy/i,
+    );
   });
 
   it("confirms a save only when the account acknowledged it", () => {
@@ -152,53 +140,37 @@ describe("the settings surface", () => {
   });
 });
 
-describe("the preference store", () => {
-  it("round-trips a preference", () => {
-    const storage = memory();
-    const preferences: NotificationPreferences = {
-      ...defaultPreferences(),
-      muteOptional: true,
-    };
-    writeNotificationPreferences(preferences, storage);
-    expect(readNotificationPreferences(["in_app"], storage).muteOptional).toBe(true);
+describe("preferences are kept in the account, not in this browser", () => {
+  it("writes no preference key to browser storage anywhere in the panel", () => {
+    /*
+     * There used to be a browser copy, kept as a cache. It survived sign-out,
+     * so the next person to use the machine saw the previous person's quiet
+     * hours until the account read landed — a settings screen showing the wrong
+     * answer is one somebody can act on.
+     */
+    expect(PANEL).not.toMatch(/localStorage|sessionStorage/);
+    expect(PANEL).not.toContain("preference-store");
   });
 
-  it("normalises whatever it reads back", () => {
-    const storage = memory({
-      [NOTIFICATION_PREFERENCES_KEY]: JSON.stringify({
+  it("still normalises whatever the account returns", () => {
+    // The row is JSON in a database column and can hold anything.
+    const read = normalise(
+      {
         muteOptional: "yes",
         quietHours: { enabled: true, fromHour: 40, toHour: 7, timeZone: "Nowhere/At_All" },
-      }),
-    });
-    const read = readNotificationPreferences(["in_app"], storage);
+      },
+      ["in_app"],
+    );
     expect(read.muteOptional).toBe(false);
     expect(read.quietHours.fromHour).toBe(22);
     expect(read.quietHours.timeZone).toBe("UTC");
   });
 
-  it("returns the defaults for unparseable storage rather than throwing", () => {
-    const storage = memory({ [NOTIFICATION_PREFERENCES_KEY]: "{not json" });
-    expect(readNotificationPreferences(["in_app"], storage)).toEqual(
-      normalisePreferences(null, ["in_app"]),
-    );
-  });
-
-  it("survives no storage at all, as on the server", () => {
-    expect(() => writeNotificationPreferences(defaultPreferences(), null)).not.toThrow();
-    expect(readNotificationPreferences(["in_app"], null)).toEqual(
-      normalisePreferences(null, ["in_app"]),
-    );
-  });
-
-  it("is classified by the local-data deletion authority", () => {
-    /*
-     * Every key the product writes has to be claimed by a class, or it survives
-     * a wipe somebody asked for. The authority fails SAFE — an unclassified key
-     * is left alone — which makes a forgotten key silent rather than loud.
-     */
-    expect(keysForClass("preferences", [NOTIFICATION_PREFERENCES_KEY])).toEqual([
-      NOTIFICATION_PREFERENCES_KEY,
-    ]);
+  it("says which copy is on screen, so defaults are not mistaken for choices", () => {
+    // Showing the defaults as though somebody had chosen them is how a muted
+    // category appears to be switched on.
+    expect(PANEL_TEXT).toContain("what you see are the defaults");
+    expect(PANEL_TEXT).toContain("These follow your account");
   });
 });
 

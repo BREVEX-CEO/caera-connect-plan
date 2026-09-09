@@ -27,12 +27,22 @@ describe("capability registry", () => {
     ).toBe("READY");
   });
 
-  it("does not call sync a failure when the user chose local-only storage", () => {
-    const report = capabilityReport("privateSync", {
-      sync: { signedIn: true, mode: "browser_only" },
-    });
-    expect(report.status).toBe("UNAVAILABLE");
-    expect(report.detail).toMatch(/choice, not a fault/i);
+  it("reports account storage as ready for a signed-in, online session", () => {
+    /*
+     * This used to assert the opposite for a "browser_only" account: that
+     * choosing device-only storage was reported as UNAVAILABLE rather than as a
+     * fault. `PLAN.md` Phase 2 removed the choice, so the case is gone and what
+     * remains is the honest reading of the two signals that are left.
+     */
+    const report = capabilityReport("accountStorage", { sync: { signedIn: true }, online: true });
+    expect(report.status).toBe("READY");
+    expect(report.label).toBe("Account storage");
+  });
+
+  it("says offline rather than broken, and says what happens to the turn", () => {
+    const report = capabilityReport("accountStorage", { sync: { signedIn: true }, online: false });
+    expect(report.status).toBe("OFFLINE");
+    expect(report.detail).toMatch(/waits in the open tab/i);
   });
 
   it("says monitors are not running when no runner polls them", () => {

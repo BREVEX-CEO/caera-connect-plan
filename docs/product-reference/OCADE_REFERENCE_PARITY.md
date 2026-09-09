@@ -28,12 +28,12 @@ This is a behavioral reference only. It does not import Anthropic source, prompt
 
 | ID                            | Reference  | Capability                                                                                                                | Disposition                  | State    | OCADE authority                              | Official source                                                                                                                 |
 | ----------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | -------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| CHAT-CHAT-SURFACES            | chat       | One account can continue conversations on web, desktop, and mobile surfaces.                                              | OCADE_SUPERSET               | partial  | `src/lib/chat/local-conversations.ts`        | [official documentation](https://support.claude.com/en/articles/8114491-get-started-with-claude)                                |
+| CHAT-CHAT-SURFACES            | chat       | One account can continue conversations on web, desktop, and mobile surfaces.                                              | OCADE_SUPERSET               | partial  | `src/lib/ocade-chat-store.ts`                | [official documentation](https://support.claude.com/en/articles/8114491-get-started-with-claude)                                |
 | CHAT-MODEL-CONTROLS           | chat       | A user can choose response mode or effort and see which intelligence path answered.                                       | REPLACE_WITH_OCADE_AUTHORITY | partial  | `src/lib/engine/resolve.ts`                  | [official documentation](https://support.claude.com/en/articles/8114491-get-started-with-claude)                                |
 | CHAT-FILE-CREATION            | chat       | Create and edit downloadable documents, spreadsheets, presentations, PDFs, and code-backed files.                         | PARITY                       | partial  | `src/lib/artifacts/chat-output-flow.ts`      | [official documentation](https://support.claude.com/en/articles/12111783-create-and-edit-files-with-claude)                     |
 | CHAT-ARTIFACTS                | chat       | Open generated output beside a conversation, revise it, recover from render errors, and export it.                        | OCADE_SUPERSET               | partial  | `src/lib/artifacts/store.ts`                 | [official documentation](https://support.claude.com/en/articles/9487310-what-are-artifacts-and-how-do-i-use-them)               |
-| CHAT-PROJECTS                 | chat       | Projects group chats, knowledge, files, instructions, sharing, archive, and deletion.                                     | OCADE_SUPERSET               | partial  | `src/lib/projects/local-projects.ts`         | [official documentation](https://support.claude.com/en/articles/9519177-how-can-i-create-and-manage-projects)                   |
-| CHAT-PROJECT-KNOWLEDGE        | chat       | Project knowledge can be searched when it exceeds direct context capacity.                                                | OCADE_SUPERSET               | partial  | `src/lib/search/local-search.ts`             | [official documentation](https://support.claude.com/en/articles/11473015-retrieval-augmented-generation-rag-for-projects)       |
+| CHAT-PROJECTS                 | chat       | Projects group chats, knowledge, files, instructions, sharing, archive, and deletion.                                     | OCADE_SUPERSET               | partial  | `src/lib/ocade-projects.functions.ts`        | [official documentation](https://support.claude.com/en/articles/9519177-how-can-i-create-and-manage-projects)                   |
+| CHAT-PROJECT-KNOWLEDGE        | chat       | Project knowledge can be searched when it exceeds direct context capacity.                                                | OCADE_SUPERSET               | partial  | `src/lib/search/results.ts`                  | [official documentation](https://support.claude.com/en/articles/11473015-retrieval-augmented-generation-rag-for-projects)       |
 | CHAT-SHARING                  | chat       | Share a point-in-time conversation snapshot and revoke it without exposing private attachment or tool data.               | PARITY                       | complete | `src/lib/chat/conversation-sharing.ts`       | [official documentation](https://support.claude.com/en/articles/10593882-share-and-unshare-chats)                               |
 | COWORK-SHARED-COMPOSER        | cowork     | Chat and Cowork share one home and composer while changing execution mode.                                                | PARITY                       | partial  | `src/components/ocade/chat/ChatComposer.tsx` | [official documentation](https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork)                        |
 | COWORK-PROGRESS-STEERING      | cowork     | Long tasks show progress and can be steered, paused, stopped, resumed, or taken over.                                     | OCADE_SUPERSET               | partial  | `src/lib/work/use-mission.ts`                | [official documentation](https://support.claude.com/en/articles/13345190-get-started-with-claude-cowork)                        |
@@ -64,9 +64,9 @@ This is a behavioral reference only. It does not import Anthropic source, prompt
 
 ### CHAT-CHAT-SURFACES
 
-- Reason: OCADE preserves one conversation authority and adds offline continuity; final cross-device reconciliation remains in Blocks 11 and 17.
+- Reason: One conversation authority in the account, readable from every signed-in surface. A turn produced on the device while the account is unreachable waits in the open tab, marked, and uploads exactly once.
 - Surfaces: web, desktop, mobile
-- Required tests: `src/lib/chat/__tests__/local-conversations.test.ts`
+- Required tests: `src/lib/__tests__/ocade-chat-store.test.ts`
 - Evidence: `src/routes/_authenticated/ocade.index.tsx`
 
 ### CHAT-MODEL-CONTROLS
@@ -94,14 +94,14 @@ This is a behavioral reference only. It does not import Anthropic source, prompt
 
 - Reason: OCADE Projects also own Code, Tasks, Artifacts, memory, permissions, and offline context after Block 20.
 - Surfaces: web, desktop, mobile
-- Required tests: `src/lib/__tests__/local-projects.test.ts`
+- Required tests: `src/lib/__tests__/unbounded-queries.test.ts`
 - Evidence: `src/routes/_authenticated/ocade.projects.tsx`
 
 ### CHAT-PROJECT-KNOWLEDGE
 
-- Reason: OCADE combines local search, scoped memory, and explicit source age rather than copying provider RAG internals.
+- Reason: OCADE searches the account's own rows through parameterized filters, ranks them explainably, and adds scoped memory and explicit source age rather than copying provider RAG internals.
 - Surfaces: web, desktop, mobile
-- Required tests: `src/lib/search/__tests__/local-search.test.ts`
+- Required tests: `src/lib/search/__tests__/results.test.ts`
 - Evidence: `src/lib/memory/session-memory.ts`
 
 ### CHAT-SHARING

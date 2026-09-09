@@ -213,14 +213,6 @@ const actions: Action[] = [
     confirmation: "confirm",
   },
   {
-    id: "vault.recovery_used",
-    featureId: "settings.vault",
-    title: "Recovered vault with recovery kit",
-    log: "compliance",
-    category: "role_change",
-    description: "One-time recovery kit was used to unlock the browser vault.",
-  },
-  {
     id: "activity.clear_operational",
     featureId: "settings.activity",
     title: "Clear old operational activity",

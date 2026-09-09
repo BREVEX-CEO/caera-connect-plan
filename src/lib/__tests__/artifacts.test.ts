@@ -1,5 +1,26 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
+import { createFakeOutputStore } from "./support/fake-outputs";
+
+/**
+ * Real SHA-256 via Web Crypto, real round-trips through a table that behaves
+ * like `ocade_outputs`.
+ *
+ * The integrity tests deliberately alter stored content and check that the
+ * verifier notices — a check that compared the stored hash with itself would
+ * pass every one of them.
+ *
+ * WHY THE ACCOUNT IS FAKED RATHER THAN THE STORE. Artifacts are rows now, and
+ * what is worth proving is the store's own logic on top of them: the refusal to
+ * save without provenance, the mapping from an artifact's file family to a
+ * row's kind and mime, and the re-hash. The fake enforces the same rules the
+ * server does, so a store that passes here is not passing because the fake was
+ * lenient.
+ */
+
+const outputs = createFakeOutputStore();
+vi.mock("@/lib/ocade-projects.functions", () => outputs.module);
+
+const {
   saveArtifact,
   listArtifacts,
   getArtifact,
@@ -11,30 +32,11 @@ import {
   setArtifactRetention,
   purgeExpiredArtifacts,
   sha256,
-  type Artifact,
-} from "../artifacts/store";
-
-/**
- * Real SHA-256 via Web Crypto, real storage round-trips.
- *
- * The integrity tests deliberately corrupt stored content and check that the
- * verifier notices — a check that compared the stored hash with itself would
- * pass every one of them.
- */
-
-let store: Map<string, string>;
+} = await import("../artifacts/store");
 
 beforeEach(() => {
-  store = new Map();
-  vi.stubGlobal("localStorage", {
-    getItem: (k: string) => store.get(k) ?? null,
-    setItem: (k: string, v: string) => void store.set(k, v),
-    removeItem: (k: string) => void store.delete(k),
-    clear: () => store.clear(),
-  });
+  outputs.reset();
 });
-
-const NOW = new Date("2026-07-23T12:00:00Z");
 
 const save = (over: Partial<Parameters<typeof saveArtifact>[0]> = {}) =>
   saveArtifact({
@@ -46,8 +48,6 @@ const save = (over: Partial<Parameters<typeof saveArtifact>[0]> = {}) =>
       verified: true,
       evidence: "3 rows × 2 columns.",
     },
-    now: NOW,
-    id: "a-1",
     ...over,
   });
 
@@ -69,14 +69,6 @@ describe("hashing", () => {
 });
 
 describe("saving an artifact", () => {
-  it("refuses to claim a save when browser storage is unavailable", async () => {
-    vi.stubGlobal("localStorage", undefined);
-    const r = await save();
-    expect(r.ok).toBe(false);
-    if (r.ok) throw new Error("unreachable");
-    expect(r.reason).toMatch(/storage.*unavailable/i);
-  });
-
   it("stores it with its provenance and fingerprint", async () => {
     const r = await save();
     expect(r.ok).toBe(true);
@@ -85,9 +77,17 @@ describe("saving an artifact", () => {
     expect(r.data.sha256).toHaveLength(64);
     // "region,amount" (13) + LF + "North,120" (9) + LF.
     expect(r.data.byteLength).toBe(24);
-    expect(r.data.createdAt).toBe(NOW.toISOString());
-    expect(r.data.privacyClass).toBe("on_device");
     expect(r.data.compatibleApps).toContain("spreadsheet apps");
+  });
+
+  it("records the file family on the row, so it survives a reload", async () => {
+    // The kind is not kept in the browser: it is carried by the row's mime, and
+    // read back from it. Losing it would give every exported file the wrong
+    // extension after a refresh.
+    await save({ kind: "patch" });
+    expect(outputs.rows[0]!.mime).toBe("text/x-diff");
+    const [artifact] = await listArtifacts();
+    expect(artifact!.kind).toBe("patch");
   });
 
   /**
@@ -105,6 +105,7 @@ describe("saving an artifact", () => {
     if (!r.ok) throw new Error("unreachable");
     expect(r.evidence).toMatch(/NOT CONFIRMED/);
     expect(r.data.provenance.verified).toBe(false);
+    expect(outputs.rows[0]!.verified).toBe(false);
   });
 
   it("refuses an artifact with no provenance", async () => {
@@ -114,133 +115,138 @@ describe("saving an artifact", () => {
     expect(r.ok).toBe(false);
     if (r.ok) throw new Error("unreachable");
     expect(r.reason).toMatch(/indistinguishable from a checked one/i);
+    expect(outputs.rows, "a provenance-less artifact reached the account").toHaveLength(0);
   });
 
   it("refuses empty content and empty names", async () => {
     expect((await save({ content: "" })).ok).toBe(false);
     expect((await save({ name: "  " })).ok).toBe(false);
+    expect(outputs.rows).toHaveLength(0);
   });
 
   it("keeps newest first", async () => {
-    await save({ id: "a-1", name: "First" });
-    await save({ id: "a-2", name: "Second" });
-    expect(listArtifacts().map((a) => a.name)).toEqual(["Second", "First"]);
-  });
-
-  it("keeps default save timestamps strictly monotonic within one clock tick", async () => {
-    vi.useFakeTimers();
-    try {
-      vi.setSystemTime(new Date("2026-07-25T01:00:00.000Z"));
-      const first = await saveArtifact({
-        name: "Same tick",
-        kind: "text",
-        content: "one",
-        provenance: { producedBy: "test", verified: true, evidence: "first" },
-      });
-      const second = await saveArtifact({
-        name: "Same tick",
-        kind: "text",
-        content: "two",
-        provenance: { producedBy: "test", verified: true, evidence: "second" },
-      });
-      if (!first.ok || !second.ok) throw new Error("unreachable");
-
-      expect(Date.parse(second.data.createdAt)).toBeGreaterThan(Date.parse(first.data.createdAt));
-    } finally {
-      vi.useRealTimers();
-    }
+    await save({ name: "First" });
+    await save({ name: "Second" });
+    expect((await listArtifacts()).map((a) => a.name)).toEqual(["Second", "First"]);
   });
 
   /**
-   * Quota failure is the realistic one, and silently dropping the newest
-   * artifact is the worst possible response to it.
+   * An unreachable account is not an empty one. Reporting "you have no
+   * artifacts" to somebody whose connection dropped invites them to conclude
+   * their work is gone.
    */
-  it("reports a storage failure instead of losing the artifact quietly", async () => {
-    vi.stubGlobal("localStorage", {
-      getItem: () => null,
-      setItem: () => {
-        throw new Error("QuotaExceededError");
-      },
-      removeItem: () => {},
-      clear: () => {},
-    });
+  it("reports an unreachable account instead of losing the artifact quietly", async () => {
+    const failing = vi
+      .spyOn(outputs.module, "createOutput")
+      .mockRejectedValueOnce(new Error("Failed to fetch"));
     const r = await save();
     expect(r.ok).toBe(false);
     if (r.ok) throw new Error("unreachable");
+    expect(r.reason).toMatch(/could not reach your account/i);
     expect(r.reason).toMatch(/Nothing was changed/i);
-    expect(r.reason).toMatch(/QuotaExceededError/);
+    expect(r.reason).toMatch(/Failed to fetch/);
+    failing.mockRestore();
   });
 
-  it("refuses to overwrite corrupt artifact storage", async () => {
-    store.set("ocade.artifacts.v1", "{not-json");
-    const inspected = inspectArtifactStore();
+  it("distinguishes an unreachable account from an empty one when listing", async () => {
+    const failing = vi
+      .spyOn(outputs.module, "listOutputs")
+      .mockRejectedValueOnce(new Error("offline"));
+    const inspected = await inspectArtifactStore();
     expect(inspected.ok).toBe(false);
-    const r = await save();
-    expect(r.ok).toBe(false);
-    if (r.ok) throw new Error("unreachable");
-    expect(r.reason).toMatch(/corrupt/i);
-    expect(store.get("ocade.artifacts.v1")).toBe("{not-json");
+    if (inspected.ok) throw new Error("unreachable");
+    expect(inspected.reason).toMatch(/could not reach your account/i);
+    failing.mockRestore();
   });
 });
 
 describe("reading and deleting", () => {
   it("finds an artifact by id and returns null for one that isn't there", async () => {
-    await save();
-    expect(getArtifact("a-1")?.name).toBe("Quarterly summary");
-    expect(getArtifact("nope")).toBeNull();
+    const saved = await save();
+    if (!saved.ok) throw new Error("unreachable");
+    expect((await getArtifact(saved.data.id))?.name).toBe("Quarterly summary");
+    expect(await getArtifact("nope")).toBeNull();
   });
 
-  it("deletes and says how many remain", async () => {
-    await save({ id: "a-1" });
-    await save({ id: "a-2" });
-    const r = removeArtifact("a-1");
+  it("deletes it", async () => {
+    const first = await save({ name: "One" });
+    await save({ name: "Two" });
+    if (!first.ok) throw new Error("unreachable");
+    const r = await removeArtifact(first.data.id);
     if (!r.ok) throw new Error("unreachable");
-    expect(r.evidence).toMatch(/1 artifacts remain/);
-    expect(listArtifacts()).toHaveLength(1);
+    expect(await listArtifacts()).toHaveLength(1);
   });
 
   /**
    * A delete that succeeds for an id that never existed lets the UI report
    * "deleted" for something it didn't touch.
    */
-  it("refuses to report success for an artifact that wasn't there", () => {
-    const r = removeArtifact("never-existed");
+  it("refuses to report success for an artifact that wasn't there", async () => {
+    const r = await removeArtifact("never-existed");
     expect(r.ok).toBe(false);
     if (r.ok) throw new Error("unreachable");
     expect(r.reason).toMatch(/nothing was deleted/i);
   });
 
-  it("survives corrupt storage rather than crashing the surface", () => {
-    store.set("ocade.artifacts.v1", "{not json");
-    expect(listArtifacts()).toEqual([]);
+  it("returns an empty list rather than crashing the surface when unreachable", async () => {
+    const failing = vi
+      .spyOn(outputs.module, "listOutputs")
+      .mockRejectedValueOnce(new Error("offline"));
+    // `listArtifacts` is the lenient reader for places that cannot render an
+    // error; `inspectArtifactStore` above is the one that must not lie.
+    expect(await listArtifacts()).toEqual([]);
+    failing.mockRestore();
   });
 });
 
 describe("retention", () => {
   it("sets an expiry without changing content integrity", async () => {
-    await save();
-    const retained = setArtifactRetention("a-1", 30, NOW);
+    const saved = await save();
+    if (!saved.ok) throw new Error("unreachable");
+    const retained = await setArtifactRetention(saved.data.id, 30);
     expect(retained.ok).toBe(true);
     if (!retained.ok) throw new Error("unreachable");
-    expect(retained.data.expiresAt).toBe("2026-08-22T12:00:00.000Z");
-    expect((await verifyIntegrity("a-1")).ok).toBe(true);
+    expect(retained.data.expiresAt).toBeTruthy();
+    expect((await verifyIntegrity(saved.data.id)).ok).toBe(true);
+  });
+
+  it("takes an expiry off again", async () => {
+    const saved = await save();
+    if (!saved.ok) throw new Error("unreachable");
+    await setArtifactRetention(saved.data.id, 30);
+    const cleared = await setArtifactRetention(saved.data.id, null);
+    if (!cleared.ok) throw new Error("unreachable");
+    expect(cleared.data.expiresAt).toBeNull();
+    expect(cleared.evidence).toMatch(/kept until you delete it/i);
   });
 
   it("purges only expired artifacts", async () => {
-    await save({ id: "expired", name: "Expired" });
-    setArtifactRetention("expired", 1, NOW);
-    await save({ id: "kept", name: "Kept" });
-    const result = purgeExpiredArtifacts(new Date("2026-07-25T12:00:00.000Z"));
+    const expired = await save({ name: "Expired" });
+    if (!expired.ok) throw new Error("unreachable");
+    await setArtifactRetention(expired.data.id, 1);
+    await save({ name: "Kept" });
+    // Push the expiry into the past, which is what a day passing does.
+    outputs.corrupt(expired.data.id, { expires_at: "2020-01-01T00:00:00.000Z" });
+
+    const result = await purgeExpiredArtifacts();
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("unreachable");
-    expect(result.data).toEqual({ removed: 1, remaining: 1 });
-    expect(listArtifacts().map((artifact) => artifact.id)).toEqual(["kept"]);
+    expect(result.data.removed).toBe(1);
+    expect((await listArtifacts()).map((artifact) => artifact.name)).toEqual(["Kept"]);
   });
 
   it("refuses an invalid retention window", async () => {
-    await save();
-    expect(setArtifactRetention("a-1", 0).ok).toBe(false);
-    expect(setArtifactRetention("a-1", 3651).ok).toBe(false);
+    const saved = await save();
+    if (!saved.ok) throw new Error("unreachable");
+    expect((await setArtifactRetention(saved.data.id, 0)).ok).toBe(false);
+    expect((await setArtifactRetention(saved.data.id, 3651)).ok).toBe(false);
+  });
+
+  it("refuses retention for an artifact that isn't there", async () => {
+    const r = await setArtifactRetention("00000000-0000-0000-0000-000000000000", 30);
+    expect(r.ok).toBe(false);
+    if (r.ok) throw new Error("unreachable");
+    expect(r.reason).toMatch(/isn't here/i);
   });
 });
 
@@ -250,20 +256,20 @@ describe("retention", () => {
  */
 describe("integrity is checked by re-hashing", () => {
   it("confirms an untouched artifact", async () => {
-    await save();
-    const r = await verifyIntegrity("a-1");
+    const saved = await save();
+    if (!saved.ok) throw new Error("unreachable");
+    const r = await verifyIntegrity(saved.data.id);
     if (!r.ok) throw new Error("unreachable");
     expect(r.data.intact).toBe(true);
     expect(r.evidence).toMatch(/byte-for-byte what was written/i);
   });
 
   it("CATCHES content that was altered in storage", async () => {
-    await save();
-    const items: Artifact[] = JSON.parse(store.get("ocade.artifacts.v1")!);
-    items[0].content = "region,amount\nNorth,999\n";
-    store.set("ocade.artifacts.v1", JSON.stringify(items));
+    const saved = await save();
+    if (!saved.ok) throw new Error("unreachable");
+    outputs.corrupt(saved.data.id, { content: "region,amount\nNorth,999\n" });
 
-    const r = await verifyIntegrity("a-1");
+    const r = await verifyIntegrity(saved.data.id);
     if (!r.ok) throw new Error("unreachable");
     expect(r.data.intact).toBe(false);
     expect(r.data.storedHash).not.toBe(r.data.actualHash);
@@ -272,12 +278,11 @@ describe("integrity is checked by re-hashing", () => {
   });
 
   it("catches truncation, not just substitution", async () => {
-    await save();
-    const items: Artifact[] = JSON.parse(store.get("ocade.artifacts.v1")!);
-    items[0].content = items[0].content.slice(0, 10);
-    store.set("ocade.artifacts.v1", JSON.stringify(items));
+    const saved = await save();
+    if (!saved.ok) throw new Error("unreachable");
+    outputs.corrupt(saved.data.id, { content: saved.data.content.slice(0, 10) });
 
-    const r = await verifyIntegrity("a-1");
+    const r = await verifyIntegrity(saved.data.id);
     if (!r.ok) throw new Error("unreachable");
     expect(r.data.intact).toBe(false);
   });
@@ -297,7 +302,7 @@ describe("presentation", () => {
       ["receipt", "json"],
     ] as const;
     for (const [kind, ext] of kinds) {
-      const r = await save({ kind, id: `k-${kind}`, name: "Thing" });
+      const r = await save({ kind, name: "Thing" });
       if (!r.ok) throw new Error("unreachable");
       expect(exportFilename(r.data)).toBe(`Thing.${ext}`);
     }
@@ -317,9 +322,8 @@ describe("presentation", () => {
 
   /** Labelled every time it is shown, not only at creation. */
   it("repeats NOT CONFIRMED in the list line", async () => {
-    const verified = await save({ id: "v" });
+    const verified = await save();
     const unverified = await save({
-      id: "u",
       provenance: { producedBy: "ocade.web:page.read", verified: false, evidence: "x" },
     });
     if (!verified.ok || !unverified.ok) throw new Error("unreachable");
@@ -333,5 +337,19 @@ describe("presentation", () => {
     const r = await save({ content: "x".repeat(5000) });
     if (!r.ok) throw new Error("unreachable");
     expect(describeArtifact(r.data)).toMatch(/4\.9 kB/);
+  });
+
+  /**
+   * A row written before provenance existed cannot have a producer. It is shown
+   * as unconfirmed rather than given an invented one — the exact lie the
+   * provenance columns exist to prevent.
+   */
+  it("renders a row with no recorded producer as unconfirmed", async () => {
+    const saved = await save();
+    if (!saved.ok) throw new Error("unreachable");
+    outputs.corrupt(saved.data.id, { produced_by: null, verified: false });
+    const [artifact] = await listArtifacts();
+    expect(describeArtifact(artifact!)).toMatch(/NOT CONFIRMED/);
+    expect(artifact!.provenance.producedBy).toMatch(/earlier version of OCADE/);
   });
 });

@@ -1,24 +1,33 @@
 /**
- * Privacy-aware OCADE chat persistence (Plan §18/§30, decision #9 storage).
+ * WHERE A CHAT MESSAGE GOES: SUPABASE, AND NOWHERE ELSE.
  *
- * Where a conversation is stored follows the user's `chats` privacy mode:
- *  - browser_only -> the encrypted Browser Vault (IndexedDB, AES-GCM). Nothing
- *    is written to Supabase, so a Browser-Only chat truly stays on this device.
- *  - private_sync -> Supabase (RLS own-row), as before.
- *  - pc_vault     -> the PC Device Vault, which requires the Native Companion;
- *    the adapter throws rather than silently falling back.
+ * `PLAN.md` Phase 2 removed the storage-mode question this file used to
+ * answer. It routed every message by the account's `chats` privacy setting —
+ * an encrypted IndexedDB vault for Browser Only, an OS store for PC Vault, and
+ * Supabase for Private Sync — and for Private Sync it wrote to BOTH, treating
+ * the device as the authority and the database as a synchronisation target.
  *
- * The vault path pairs with local inference so a Browser-Only + OCADE Local
- * conversation never touches the network at all.
+ * Three copies of a conversation is three answers to "what did I say", and the
+ * product had no rule for which one won. Reading merged them by id with a
+ * content fingerprint as a fallback, which is a way of hiding the question
+ * rather than answering it. One authority answers it: the row in
+ * `ocade_messages`, protected by row-level security, readable from every
+ * device the person signs in on, and removed for good when they delete it.
+ *
+ * THE ONE EXCEPTION IS RAM, AND IT IS TEMPORARY. A turn generated on the
+ * device while the database is unreachable waits in `chat/unsynced-turns.ts`
+ * — in this tab's memory, never on disk — is shown as unsynchronised, warns
+ * before it is lost, and uploads exactly once when the connection returns.
+ *
+ * INCOGNITO WRITES NOTHING AT ALL, and that is decided here rather than at the
+ * call sites. A privacy guarantee spread across nine `if`s holds until somebody
+ * adds a tenth.
  */
-import { resolveAdapter } from "./storage/resolver";
-import { StorageLockedError } from "./storage/types";
 import { appendOcadeMessage, listMessages } from "./ocade.functions";
-import { isConversationKey } from "./chat/local-conversations";
 import { mayPersist, type IncognitoAwarePersistTarget } from "./chat/incognito";
-import { isSideKey } from "./chat/side-conversations";
-
-export type ChatsMode = "browser_only" | "pc_vault" | "private_sync";
+import { rememberUnsyncedTurn, unsyncedTurns } from "./chat/unsynced-turns";
+import { citationsFrom, type Citation } from "./ocade-citations";
+import type { ChatReaction } from "@/components/ocade/chat/chat-types";
 
 export interface ChatAttachmentMeta {
   kind: "image" | "file";
@@ -36,32 +45,24 @@ export interface ChatMessageRecord {
   model_id: string | null;
   provider_id?: string | null;
   created_at: string;
+  /**
+   * The evidence recorded for this answer, and the reader's own feedback on it.
+   *
+   * Both are carried on the message rather than looked up separately: they used
+   * to live in the browser with their own copies of the conversation and
+   * message ids, and a deleted conversation left them behind.
+   */
+  citations?: Citation[] | null;
+  reaction?: ChatReaction | null;
+  /**
+   * True while this turn exists only in the open tab.
+   *
+   * Carried on the record so the transcript can mark it without a second
+   * lookup, and so nothing can render an unsynchronised turn as a saved one.
+   */
+  unsynced?: boolean;
 }
 
-/** Vault records are keyed so a conversation's messages can be filtered fast. */
-function vaultKey(conversationId: string, createdAt: string, suffix: string): string {
-  return `${conversationId}::${createdAt}::${suffix}`;
-}
-
-function randomSuffix(): string {
-  return Math.random().toString(36).slice(2, 10);
-}
-
-/**
- * Where the message ended up.
- *
- * `pending_sync` is new and is NOT a failure: the message is safely on this
- * device and the upload is queued. A screen that renders it as an error would
- * be telling somebody their message was lost when it was not.
- */
-/**
- * Where a message went.
- *
- * `not_stored` is what an incognito conversation returns — see
- * `chat/incognito.ts`. It is a first-class outcome rather than an absent one so
- * a caller cannot mistake "we deliberately kept nothing" for "the write
- * failed"; those need opposite responses from the interface.
- */
 export type PersistTarget = IncognitoAwarePersistTarget;
 
 export interface PersistResult {
@@ -70,31 +71,40 @@ export interface PersistResult {
 }
 
 /**
- * Persist one message according to the privacy mode. Throws StorageLockedError
- * (vault locked) and NativeCompanionRequiredError (pc_vault) unchanged so the
- * caller can surface an honest, actionable message.
+ * A key the device chooses before the message is sent.
+ *
+ * It has to be generated here rather than by the database, because it is what
+ * makes a retry recognisable — a key the server assigns is only known after
+ * the write that a retry is trying not to repeat.
+ */
+function newClientKey(): string {
+  const random = globalThis.crypto;
+  if (random && "randomUUID" in random) return `turn-${random.randomUUID()}`;
+  return `turn-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+/**
+ * Persist one message.
+ *
+ * Returns `not_stored` for an incognito turn, `cloud` when the row exists, and
+ * `unsynced` when it is waiting in memory. None of the three is an error and
+ * the interface must tell them apart: "we deliberately kept nothing", "it is
+ * saved", and "it is not saved yet and you will lose it if you close this tab"
+ * need three different sentences.
  */
 export async function persistChatMessage(input: {
-  userId: string;
-  chatsMode: ChatsMode;
   conversationId: string;
   role: "user" | "assistant";
   content: string;
   modelId?: string | null;
   providerId?: string | null;
   attachments?: ChatAttachmentMeta[];
-  /**
-   * True for a conversation that is not to be written down — PLAN.md §8.
-   *
-   * Honoured HERE rather than at the nine call sites in the chat screen. A
-   * privacy guarantee spread across nine `if`s is a guarantee that holds until
-   * somebody adds a tenth, and the tenth is the one nobody notices.
-   */
   incognito?: boolean;
 }): Promise<PersistResult> {
   const createdAt = new Date().toISOString();
+  const clientKey = newClientKey();
   const record: ChatMessageRecord = {
-    id: vaultKey(input.conversationId, createdAt, randomSuffix()),
+    id: clientKey,
     conversation_id: input.conversationId,
     role: input.role,
     content: input.content,
@@ -113,193 +123,94 @@ export async function persistChatMessage(input: {
     return { stored: "not_stored", record };
   }
 
-  if (input.chatsMode === "private_sync") {
-    /*
-     * DEVICE FIRST, SERVER SECOND — AND THE ORDER IS THE WHOLE POINT.
-     *
-     * This used to be `await appendOcadeMessage(...)` and nothing else: a
-     * server function, a network round trip, and no copy on the machine the
-     * user was typing on. So a message sent with the network down was lost,
-     * Chat waited on a round trip before it could show what you typed, and
-     * Supabase being briefly unreachable made Chat unusable instead of merely
-     * un-synchronised.
-     *
-     * The vault write below cannot be skipped and cannot be deferred. The
-     * upload is owed afterwards, and `syncAdapter.put` is what owes it: it
-     * writes locally, queues the obligation, and drains in the background.
-     */
-    const adapter = await resolveAdapter(input.userId, "chats");
-    await adapter.put("chats", record.id, record);
-
-    /*
-     * The server function still runs, because `ocade_messages` is a real
-     * table with its own schema that Projects, search and export read from —
-     * the generic `user_private_records` row the adapter writes is not a
-     * substitute for it.
-     *
-     * Its failure is no longer fatal. The message is already on the device
-     * and already queued, so a failed append means "not synchronised yet",
-     * and telling the user their message failed when it is safely stored
-     * would be the wrong sentence entirely.
-     */
-    try {
-      await appendOcadeMessage({
-        data: {
-          conversationId: input.conversationId,
-          role: input.role,
-          content: input.content,
-          modelId: input.modelId ?? null,
-          providerId: input.providerId ?? null,
-          attachments: input.attachments ?? [],
-        },
-      });
-      return { stored: "cloud", record };
-    } catch {
-      return { stored: "pending_sync", record };
-    }
+  try {
+    const row = (await appendOcadeMessage({
+      data: {
+        conversationId: input.conversationId,
+        role: input.role,
+        content: input.content,
+        modelId: input.modelId ?? null,
+        providerId: input.providerId ?? null,
+        clientKey,
+        attachments: input.attachments ?? [],
+      },
+    })) as unknown as Partial<ChatMessageRecord> | null;
+    return {
+      stored: "cloud",
+      // The server's id and timestamp win: they are what every other device
+      // will see, and a screen showing the local ones would disagree with the
+      // conversation as soon as it was reloaded.
+      record: { ...record, ...(row ?? {}), conversation_id: input.conversationId },
+    };
+  } catch {
+    rememberUnsyncedTurn({
+      clientKey,
+      conversationId: input.conversationId,
+      role: input.role,
+      content: input.content,
+      modelId: input.modelId ?? null,
+      providerId: input.providerId ?? null,
+      attachments: input.attachments ?? [],
+      createdAt,
+    });
+    return { stored: "unsynced", record: { ...record, unsynced: true } };
   }
-
-  // browser_only and pc_vault both go through the storage adapter.
-  const adapter = await resolveAdapter(input.userId, "chats");
-  await adapter.put("chats", record.id, record);
-  return { stored: "vault", record };
 }
 
 /**
- * Load a conversation's messages from wherever they live. Vault records are
- * filtered by conversation and ordered by creation time.
+ * Read a conversation.
+ *
+ * The database answers, and anything still waiting in this tab is appended so
+ * the transcript a person is looking at is complete. Waiting turns are marked,
+ * so "shown" never quietly means "saved".
  */
 export async function loadChatMessages(input: {
-  userId: string;
-  chatsMode: ChatsMode;
   conversationId: string;
 }): Promise<ChatMessageRecord[]> {
   /*
-   * THE DEVICE IS READ FIRST, IN EVERY MODE.
-   *
-   * `private_sync` used to call `listMessages` and nothing else. Writing to
-   * the device and then reading back from the server is not local-first: it is
-   * a slower way of depending on the server, and it meant opening a
-   * synchronised conversation with the connection down returned an empty
-   * transcript while the messages sat in the vault a few milliseconds away.
-   *
-   * Now the vault answers, and the server is asked only to pick up what
-   * another device wrote. If that request fails the local answer stands, which
-   * is why Chat keeps working when Supabase does not.
+   * Narrowed on the way out. `citations` is a `jsonb` column and `reaction` is
+   * text, so both hold whatever was written to them — including a shape an
+   * older version of OCADE wrote. A malformed citation is dropped rather than
+   * rendered as a card with no source, and an unrecognised reaction reads as no
+   * feedback rather than as a control the interface cannot show.
    */
-  const adapter = await resolveAdapter(input.userId, "chats");
-  const stored = await adapter.list<ChatMessageRecord>("chats");
-  const local = stored
-    /*
-     * BOTH PREFIXES ARE EXCLUDED, and the second one matters more than it
-     * looks. A side-conversation record carries `conversation_id`, so without
-     * this every side question and its answer would appear inline in the
-     * transcript and be sent to the engine as part of it — turning a
-     * deliberately separate thread into the main one. See
-     * `chat/side-conversations.ts`.
-     */
-    .filter((r) => !isConversationKey(r.id) && !isSideKey(r.id))
-    .map((r) => r.value)
-    .filter(
-      (m): m is ChatMessageRecord => Boolean(m) && m.conversation_id === input.conversationId,
-    );
+  const rows =
+    ((await listMessages({
+      data: { conversationId: input.conversationId },
+    })) as unknown as Array<
+      Omit<ChatMessageRecord, "citations" | "reaction"> & {
+        citations?: unknown;
+        reaction?: unknown;
+      }
+    >) ?? [];
+  const remote: ChatMessageRecord[] = rows.map((row) => ({
+    ...row,
+    citations: row.citations ? citationsFrom(row.citations) : null,
+    reaction: row.reaction === "helpful" || row.reaction === "not_helpful" ? row.reaction : null,
+  }));
 
-  if (input.chatsMode !== "private_sync") {
-    return local.sort((a, b) => a.created_at.localeCompare(b.created_at));
-  }
+  const waiting = unsyncedTurns()
+    .filter((turn) => turn.conversationId === input.conversationId)
+    .map((turn): ChatMessageRecord => ({
+      id: turn.clientKey,
+      conversation_id: turn.conversationId,
+      role: turn.role,
+      content: turn.content,
+      attachments: turn.attachments,
+      model_id: turn.modelId,
+      provider_id: turn.providerId,
+      created_at: turn.createdAt,
+      unsynced: true,
+    }));
 
-  let remote: ChatMessageRecord[] = [];
-  try {
-    remote =
-      ((await listMessages({
-        data: { conversationId: input.conversationId },
-      })) as unknown as ChatMessageRecord[]) ?? [];
-  } catch {
-    // Offline, or Supabase down. The device's own copy is a complete answer
-    // for this device; throwing here would empty a conversation being read.
-    return local.sort((a, b) => a.created_at.localeCompare(b.created_at));
-  }
-
-  return mergeMessages(local, remote);
+  return [...remote, ...waiting].sort((a, b) => a.created_at.localeCompare(b.created_at));
 }
 
-/**
- * Union two views of one conversation without duplicating a turn.
- *
- * Matching is by id first, because ids are generated on the device and are the
- * idempotency key. The content fallback exists for one real case: a message
- * written before this change went to the server, which assigned its own uuid,
- * so the same turn can genuinely carry two different ids. Matching those on
- * role + content + timestamp is imperfect in theory and exact in practice,
- * and the alternative is showing every one of those turns twice forever.
- */
-export function mergeMessages(
-  local: ChatMessageRecord[],
-  remote: ChatMessageRecord[],
-): ChatMessageRecord[] {
-  const byId = new Map(local.map((m) => [m.id, m]));
-  const fingerprint = new Set(local.map((m) => `${m.role}\u0000${m.content}\u0000${m.created_at}`));
-  for (const m of remote) {
-    if (byId.has(m.id)) continue;
-    if (fingerprint.has(`${m.role}\u0000${m.content}\u0000${m.created_at}`)) continue;
-    byId.set(m.id, m);
-  }
-  return [...byId.values()].sort((a, b) => a.created_at.localeCompare(b.created_at));
-}
-
-/** Remove every vault-stored message for a conversation (privacy control). */
-export async function deleteVaultConversation(
-  userId: string,
-  conversationId: string,
-): Promise<number> {
-  const adapter = await resolveAdapter(userId, "chats");
-  const all = await adapter.list<ChatMessageRecord>("chats");
-  /*
-   * Message bodies AND side threads. Both carry `conversation_id`, and a side
-   * thread that outlived the conversation it hung off would be an orphaned
-   * record of a conversation the person deleted.
-   */
-  const targets = all.filter(
-    (r) => !isConversationKey(r.id) && r.value?.conversation_id === conversationId,
-  );
-  for (const t of targets) {
-    await adapter.delete("chats", t.id);
-  }
-  return targets.length;
-}
-
-/**
- * DELETE EVERY MESSAGE BODY ON THIS DEVICE — PLAN.md §8's "delete-all".
- *
- * The companion to `deleteAllConversationsLocally`. Conversations are
- * tombstoned so the deletion travels; MESSAGE BODIES are removed outright,
- * because a tombstone for a message body would be a record containing the text
- * it claims to have deleted.
- *
- * ONE PASS OVER THE DATA CLASS, not one pass per conversation. Somebody with
- * four hundred conversations would otherwise wait for four hundred full scans
- * of the same store, and the operation that clears everything is the one most
- * likely to be run on a large history.
- */
-export async function deleteAllVaultMessages(userId: string): Promise<number> {
-  const adapter = await resolveAdapter(userId, "chats");
-  const all = await adapter.list<ChatMessageRecord>("chats");
-  // Conversation records are kept: their tombstones are what make the deletion
-  // travel to the user's other devices.
-  const targets = all.filter((record) => !isConversationKey(record.id));
-  for (const target of targets) {
-    await adapter.delete("chats", target.id);
-  }
-  return targets.length;
-}
-
-/** Human-readable, actionable message for a storage failure. */
+/** Human-readable, actionable message for a failed write. */
 export function describeStorageError(e: unknown): string {
-  if (e instanceof StorageLockedError) {
-    return "Your Browser Vault is locked. Unlock it in Settings → Storage to keep this chat on this device.";
+  const message = e instanceof Error ? e.message : String(e ?? "");
+  if (/network|fetch|offline|failed to fetch/i.test(message)) {
+    return "OCADE could not reach your account. The message is being held in this tab and will be saved when the connection returns — closing the tab discards it.";
   }
-  if (e instanceof Error && e.name === "NativeCompanionRequiredError") {
-    return "PC Vault storage needs the OCADE Native Companion, which isn't connected.";
-  }
-  return e instanceof Error ? e.message : "Could not save this message.";
+  return message.trim() || "OCADE could not save this message.";
 }

@@ -1,11 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { buildReplay, serialiseReplay, saveReplayArtifact } from "../artifacts/learning-replay";
-import {
-  buildTaskLedger,
-  type LedgerStep,
-  type TaskLedgerInput,
-} from "../artifacts/evidence-ledger";
-import { listArtifacts } from "../artifacts/store";
+import { createFakeOutputStore } from "./support/fake-outputs";
+import type { LedgerStep, TaskLedgerInput } from "../artifacts/evidence-ledger";
+
+const outputs = createFakeOutputStore();
+vi.mock("@/lib/ocade-projects.functions", () => outputs.module);
+
+const { buildReplay, serialiseReplay, saveReplayArtifact } =
+  await import("../artifacts/learning-replay");
+const { buildTaskLedger } = await import("../artifacts/evidence-ledger");
+const { listArtifacts } = await import("../artifacts/store");
 import type { EvidenceReceipt } from "../skills/skill-pack";
 
 const receipt = (verified: boolean): EvidenceReceipt => ({
@@ -141,13 +144,7 @@ describe("the closing proof matches the real outcome", () => {
 
 describe("saving a replay as an artifact", () => {
   beforeEach(() => {
-    const store = new Map<string, string>();
-    vi.stubGlobal("localStorage", {
-      getItem: (k: string) => store.get(k) ?? null,
-      setItem: (k: string, v: string) => void store.set(k, v),
-      removeItem: (k: string) => void store.delete(k),
-      clear: () => store.clear(),
-    });
+    outputs.reset();
   });
 
   it("stores a succeeded replay as a verified text artifact", async () => {
@@ -156,7 +153,7 @@ describe("saving a replay as an artifact", () => {
     if (!saved.ok) throw new Error("unreachable");
     expect(saved.data.kind).toBe("text");
     expect(saved.data.provenance.verified).toBe(true);
-    expect(listArtifacts()).toHaveLength(1);
+    expect(await listArtifacts()).toHaveLength(1);
   });
 
   it("stores a partial replay as NOT CONFIRMED, so it isn't a proven recipe", async () => {

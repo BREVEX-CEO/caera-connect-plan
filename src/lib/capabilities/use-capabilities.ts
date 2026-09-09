@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useOnline } from "@/lib/use-online";
 import { useLocalEngine } from "@/lib/use-local-engine";
 import { useSession } from "@/lib/session";
-import { getModeFor } from "@/lib/storage/resolver";
 import { detectTauri } from "@/lib/native/tauri-companion";
 import { getBrowserBridge } from "@/lib/native/browser-bridge";
 import { loadPolicyCeiling } from "@/lib/organizations/authority";
@@ -45,14 +44,6 @@ export function useCapabilitySignals(): CapabilitySignals {
     });
   }, []);
 
-  const modeQuery = useQuery({
-    queryKey: ["capability-storage-mode", user?.id],
-    enabled: !!user?.id,
-    staleTime: 60_000,
-    queryFn: () => getModeFor(user!.id, "chats"),
-  });
-  const storageMode: NonNullable<CapabilitySignals["sync"]>["mode"] = modeQuery.data ?? "unknown";
-
   const [configuredMonitors, setConfiguredMonitors] = useState(0);
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -71,7 +62,12 @@ export function useCapabilitySignals(): CapabilitySignals {
       modelCount: localEngine.models.length,
       checking: localEngine.status === "checking",
     },
-    sync: { signedIn: !!user?.id, mode: storageMode },
+    /*
+     * "Signed in" is the whole question now. It used to also report which of
+     * three storage modes the account had chosen for chats; `PLAN.md` Phase 2
+     * leaves one, so a mode signal could only ever say the same thing.
+     */
+    sync: { signedIn: !!user?.id },
     companion: nativeHost ? { connected: true } : { connected: false },
     browserBridge: browserBridge === undefined ? undefined : { connected: browserBridge },
     speech,

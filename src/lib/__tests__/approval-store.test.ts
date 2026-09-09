@@ -1,11 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  listApprovals,
-  requestApproval,
-  saveApprovalStatus,
-  pruneApprovals,
-  clearApprovals,
-} from "../mobile/approval-store";
 import { APPROVAL_TTL_MS } from "../mobile/pairing";
 import {
   setNotificationTransport,
@@ -13,68 +6,122 @@ import {
   type OcadeNotification,
 } from "../mobile/notifications";
 
+/**
+ * THE APPROVAL QUEUE, WHERE BOTH SIDES OF IT CAN SEE IT.
+ *
+ * The desktop raises an approval; a phone answers it. Those are two devices, so
+ * the queue lived in the wrong place — `localStorage` — and the mobile panel
+ * had no producer at all. Most of this file used to be about surviving a
+ * reload; the account survives more than a reload, and what is worth proving
+ * moved with it:
+ *
+ *  - a decision is ONE statement, so two phones cannot both decide;
+ *  - an expired request cannot be approved, whichever device tries;
+ *  - an unreachable account shows nothing rather than a stale list, because a
+ *    stale list is how somebody approves what was already answered.
+ */
+
+const approvals = vi.hoisted(async () => {
+  const { createFakeApprovalStore } = await import("./support/fake-approvals");
+  return createFakeApprovalStore();
+});
+
+vi.mock("@/integrations/supabase/on-demand", () => ({
+  loadSupabaseClient: async () => (await approvals).client,
+}));
+
+const store = await approvals;
+const { listApprovals, requestApproval, saveApprovalStatus, pruneApprovals, clearApprovals } =
+  await import("../mobile/approval-store");
+
 const NOW = new Date("2026-07-23T10:00:00Z");
 const later = (ms: number) => new Date(NOW.getTime() + ms);
 
+/** Move both clocks together: the store's, and the one the caller passes in. */
+function at(when: Date) {
+  store.setNow(when);
+  return when;
+}
+
 beforeEach(() => {
-  const store = new Map<string, string>();
-  vi.stubGlobal("localStorage", {
-    getItem: (k: string) => store.get(k) ?? null,
-    setItem: (k: string, v: string) => void store.set(k, v),
-    removeItem: (k: string) => void store.delete(k),
-    clear: () => store.clear(),
-  });
+  store.reset();
+  at(NOW);
   // Default to no transport so notification side effects never leak between
   // tests; the notification suite installs its own.
   setNotificationTransport(new UnavailableNotifications());
 });
 
 describe("raising an approval", () => {
-  it("stores a pending request the other surface can read", () => {
-    requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
-    const rows = listApprovals(NOW);
+  it("stores a pending request the OTHER surface can read", async () => {
+    await requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
+    const rows = await listApprovals(NOW);
     expect(rows).toHaveLength(1);
-    expect(rows[0].status).toBe("pending");
-    expect(rows[0].summary).toBe("Open the report");
+    expect(rows[0]!.status).toBe("pending");
+    expect(rows[0]!.summary).toBe("Open the report");
   });
 
-  it("survives a reload — the desktop is blocked waiting on it", () => {
-    requestApproval({ summary: "Open the report", risk: "high" }, NOW);
-    // A fresh read is the "after reload" case; nothing is held in memory.
-    expect(listApprovals(NOW)).toHaveLength(1);
+  it("round-trips dates rather than leaving strings behind", async () => {
+    await requestApproval({ summary: "x", risk: "confirm" }, NOW);
+    const [request] = await listApprovals(NOW);
+    expect(request!.requestedAt).toBeInstanceOf(Date);
+    expect(request!.expiresAt).toBeInstanceOf(Date);
+    expect(request!.expiresAt.getTime()).toBeGreaterThan(request!.requestedAt.getTime());
   });
 
-  it("round-trips dates rather than leaving strings behind", () => {
-    requestApproval({ summary: "x", risk: "confirm" }, NOW);
-    const [r] = listApprovals(NOW);
-    expect(r.requestedAt).toBeInstanceOf(Date);
-    expect(r.expiresAt).toBeInstanceOf(Date);
-    expect(r.expiresAt.getTime()).toBeGreaterThan(r.requestedAt.getTime());
+  it("uses the product's own answering window, not a second copy of it", async () => {
+    const request = await requestApproval({ summary: "x", risk: "confirm" }, NOW);
+    expect(request.expiresAt.getTime() - request.requestedAt.getTime()).toBe(APPROVAL_TTL_MS);
+  });
+
+  it("REFUSES rather than pretending, when it could not be stored", async () => {
+    /*
+     * The caller is about to tell somebody a phone can decide this. Claiming
+     * that about a request which does not exist leaves a desktop waiting on an
+     * answer nobody will ever be asked for.
+     */
+    store.failNext();
+    await expect(requestApproval({ summary: "x", risk: "high" }, NOW)).rejects.toThrow(
+      /could not be saved/i,
+    );
+  });
+
+  it("refuses when nobody is signed in, because no device could see it", async () => {
+    store.signedInAs(null);
+    await expect(requestApproval({ summary: "x", risk: "high" }, NOW)).rejects.toThrow(/sign in/i);
+  });
+
+  it("refuses a duplicate id instead of raising the same approval twice", async () => {
+    await requestApproval({ id: "same", summary: "x", risk: "confirm" }, NOW);
+    await expect(
+      requestApproval({ id: "same", summary: "x", risk: "confirm" }, NOW),
+    ).rejects.toThrow(/already exists/i);
   });
 });
 
 /**
- * Expiry is applied on READ. If it were only applied while a tab was open, a
- * request that lapsed overnight would still show as pending in the morning and
- * could be approved long after the moment had passed.
+ * Expiry is applied on READ, by the server. If it were applied only while a tab
+ * was open, a request that lapsed overnight would still show as pending in the
+ * morning and could be approved long after the moment had passed.
  */
 describe("expiry", () => {
-  it("expires a request that lapsed while nothing was watching", () => {
-    requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
-    const rows = listApprovals(later(APPROVAL_TTL_MS + 1000));
-    expect(rows[0].status).toBe("expired");
+  it("expires a request that lapsed while nothing was watching", async () => {
+    await requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
+    const rows = await listApprovals(at(later(APPROVAL_TTL_MS + 1000)));
+    expect(rows[0]!.status).toBe("expired");
   });
 
-  it("persists the expiry so every surface agrees", () => {
-    requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
-    listApprovals(later(APPROVAL_TTL_MS + 1000));
+  it("records the expiry, so every surface agrees", async () => {
+    await requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
+    await listApprovals(at(later(APPROVAL_TTL_MS + 1000)));
     // Reading again at the ORIGINAL time must not resurrect it as pending.
-    expect(listApprovals(NOW)[0].status).toBe("expired");
+    expect(store.rows[0]!.status).toBe("expired");
+    expect((await listApprovals(NOW))[0]!.status).toBe("expired");
   });
 
-  it("leaves a request pending before its deadline", () => {
-    requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
-    expect(listApprovals(later(APPROVAL_TTL_MS - 1000))[0].status).toBe("pending");
+  it("leaves a request pending before its deadline", async () => {
+    await requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
+    const rows = await listApprovals(at(later(APPROVAL_TTL_MS - 1000)));
+    expect(rows[0]!.status).toBe("pending");
   });
 });
 
@@ -89,8 +136,8 @@ describe("notifications", () => {
     setNotificationTransport({
       permission: async () => "granted",
       request: async () => "granted",
-      deliver: async (n) => {
-        sent.push(n);
+      deliver: async (notification) => {
+        sent.push(notification);
         return true;
       },
     });
@@ -99,177 +146,115 @@ describe("notifications", () => {
 
   it("alerts the phone when an approval is raised", async () => {
     const sent = capture();
-    requestApproval({ summary: "Open the report", risk: "high" }, NOW);
+    await requestApproval({ summary: "Open the report", risk: "high" }, NOW);
     await Promise.resolve();
     await Promise.resolve();
-    expect(sent.some((n) => n.kind === "approval.requested")).toBe(true);
+    expect(sent.some((notification) => notification.kind === "approval.requested")).toBe(true);
   });
 
   it("alerts when a pending request expires", async () => {
-    requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
+    await requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
     const sent = capture();
-    listApprovals(later(APPROVAL_TTL_MS + 1000));
+    await listApprovals(at(later(APPROVAL_TTL_MS + 1000)));
     await Promise.resolve();
     await Promise.resolve();
-    expect(sent.some((n) => n.kind === "approval.expired")).toBe(true);
+    expect(sent.some((notification) => notification.kind === "approval.expired")).toBe(true);
   });
 
   it("does not re-alert an already-expired request on every read", async () => {
-    requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
-    const t = later(APPROVAL_TTL_MS + 1000);
-    listApprovals(t); // first read performs the expiry
+    await requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
+    const lapsed = at(later(APPROVAL_TTL_MS + 1000));
+    await listApprovals(lapsed); // the first read performs the expiry
     const sent = capture();
-    listApprovals(t);
-    listApprovals(t);
+    await listApprovals(lapsed);
+    await listApprovals(lapsed);
     await Promise.resolve();
-    expect(sent.filter((n) => n.kind === "approval.expired")).toHaveLength(0);
+    expect(sent.filter((notification) => notification.kind === "approval.expired")).toHaveLength(0);
   });
 
-  it("raising an approval still succeeds with no notification transport", () => {
+  it("raising an approval still succeeds with no notification transport", async () => {
     setNotificationTransport(new UnavailableNotifications());
-    expect(() => requestApproval({ summary: "x", risk: "confirm" }, NOW)).not.toThrow();
-    expect(listApprovals(NOW)).toHaveLength(1);
+    await expect(requestApproval({ summary: "x", risk: "confirm" }, NOW)).resolves.toBeTruthy();
+    expect(await listApprovals(NOW)).toHaveLength(1);
   });
 });
 
 describe("decisions", () => {
-  it("records who decided it, for the audit trail", () => {
-    const r = requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
-    const saved = saveApprovalStatus(r.id, "approved", "device-1", NOW);
+  it("records who decided it, for the audit trail", async () => {
+    const request = await requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
+    const saved = await saveApprovalStatus(request.id, "approved", "device-1");
     expect(saved?.status).toBe("approved");
     expect(saved?.decidedByDeviceId).toBe("device-1");
-    expect(listApprovals(NOW)[0].status).toBe("approved");
+    expect((await listApprovals(NOW))[0]!.status).toBe("approved");
   });
 
-  it("returns null for an unknown id instead of inventing a row", () => {
-    expect(saveApprovalStatus("nope", "approved")).toBeNull();
+  it("returns null for an unknown id instead of inventing a row", async () => {
+    expect(await saveApprovalStatus("nope", "approved")).toBeNull();
   });
 
-  it("cannot approve an expired durable request", () => {
-    const request = requestApproval({ summary: "Open the report", risk: "high" }, NOW);
-    expect(
-      saveApprovalStatus(request.id, "approved", "device-1", later(APPROVAL_TTL_MS + 1)),
-    ).toBeNull();
-    expect(listApprovals(later(APPROVAL_TTL_MS + 1))[0].status).toBe("expired");
+  it("cannot approve an EXPIRED request", async () => {
+    const request = await requestApproval({ summary: "Open the report", risk: "high" }, NOW);
+    at(later(APPROVAL_TTL_MS + 1));
+    expect(await saveApprovalStatus(request.id, "approved", "device-1")).toBeNull();
+    expect((await listApprovals(later(APPROVAL_TTL_MS + 1)))[0]!.status).toBe("expired");
   });
 
-  it("cannot overwrite a decision that was already recorded", () => {
-    const request = requestApproval({ summary: "Open the report", risk: "high" }, NOW);
-    expect(saveApprovalStatus(request.id, "approved", "device-1", NOW)?.status).toBe("approved");
-    expect(saveApprovalStatus(request.id, "denied", "device-2", later(1))).toBeNull();
-    expect(listApprovals(later(1))[0]).toMatchObject({
+  it("cannot overwrite a decision that was already recorded", async () => {
+    /*
+     * THE RACE THIS EXISTS FOR. Two phones answering at the same moment used to
+     * both read "pending", both decide, and the second write silently replaced
+     * the first — so two people each believed they had decided it, differently.
+     * The decision is one conditional statement now: exactly one of them wins
+     * and the other is told it was already answered.
+     */
+    const request = await requestApproval({ summary: "Open the report", risk: "high" }, NOW);
+    expect((await saveApprovalStatus(request.id, "approved", "device-1"))?.status).toBe("approved");
+    expect(await saveApprovalStatus(request.id, "denied", "device-2")).toBeNull();
+    expect((await listApprovals(NOW))[0]).toMatchObject({
       status: "approved",
       decidedByDeviceId: "device-1",
     });
   });
+
+  it("refuses a status the interface never offers", async () => {
+    const request = await requestApproval({ summary: "x", risk: "confirm" }, NOW);
+    expect(await saveApprovalStatus(request.id, "expired")).toBeNull();
+    expect((await listApprovals(NOW))[0]!.status).toBe("pending");
+  });
 });
 
 describe("housekeeping", () => {
-  it("prunes decided and expired rows but keeps pending ones", () => {
-    const a = requestApproval({ summary: "a", risk: "confirm" }, NOW);
-    requestApproval({ summary: "b", risk: "confirm" }, NOW);
-    saveApprovalStatus(a.id, "denied", "d1", NOW);
+  it("prunes decided and expired rows but keeps pending ones", async () => {
+    const first = await requestApproval({ summary: "a", risk: "confirm" }, NOW);
+    await requestApproval({ summary: "b", risk: "confirm" }, NOW);
+    await saveApprovalStatus(first.id, "denied", "d1");
 
-    const removed = pruneApprovals(NOW);
-    expect(removed).toBe(1);
-    const rows = listApprovals(NOW);
+    expect(await pruneApprovals()).toBe(1);
+    const rows = await listApprovals(NOW);
     expect(rows).toHaveLength(1);
-    expect(rows[0].summary).toBe("b");
+    expect(rows[0]!.summary).toBe("b");
   });
 
   /** A revoked device must not leave decisions outstanding. */
-  it("clears everything on revocation", () => {
-    requestApproval({ summary: "a", risk: "high" }, NOW);
-    clearApprovals();
-    expect(listApprovals(NOW)).toHaveLength(0);
+  it("clears everything on revocation", async () => {
+    await requestApproval({ summary: "a", risk: "high" }, NOW);
+    await clearApprovals();
+    expect(await listApprovals(NOW)).toHaveLength(0);
+  });
+});
+
+describe("an unreachable account is never reported as a decision", () => {
+  it("shows NOTHING rather than a stale list", async () => {
+    await requestApproval({ summary: "a", risk: "high" }, NOW);
+    store.failNext();
+    expect(await listApprovals(NOW)).toEqual([]);
   });
 
-  it("survives corrupt storage rather than throwing", () => {
-    localStorage.setItem("caera:approvals:v1", "{not json");
-    expect(() => listApprovals(NOW)).not.toThrow();
-    expect(listApprovals(NOW)).toEqual([]);
-  });
-
-  it("discards malformed rows instead of crashing on them", () => {
-    localStorage.setItem("caera:approvals:v1", JSON.stringify([{ nope: true }, 42, null]));
-    expect(listApprovals(NOW)).toEqual([]);
-  });
-
-  it("discards approvals with invalid dates, status, or risk", () => {
-    localStorage.setItem(
-      "caera:approvals:v1",
-      JSON.stringify([
-        {
-          id: "bad-date",
-          summary: "x",
-          risk: "high",
-          requestedAt: "not-a-date",
-          expiresAt: NOW.toISOString(),
-          status: "pending",
-        },
-        {
-          id: "bad-status",
-          summary: "x",
-          risk: "high",
-          requestedAt: NOW.toISOString(),
-          expiresAt: later(1000).toISOString(),
-          status: "executed",
-        },
-        {
-          id: "bad-risk",
-          summary: "x",
-          risk: "credential",
-          requestedAt: NOW.toISOString(),
-          expiresAt: later(1000).toISOString(),
-          status: "pending",
-        },
-      ]),
-    );
-    expect(listApprovals(NOW)).toEqual([]);
-  });
-
-  it("refuses a duplicate durable approval id", () => {
-    requestApproval({ id: "same-id", summary: "first", risk: "confirm" }, NOW);
-    expect(() =>
-      requestApproval({ id: "same-id", summary: "second", risk: "confirm" }, NOW),
-    ).toThrow(/already exists/i);
-    expect(listApprovals(NOW)).toHaveLength(1);
-  });
-
-  it("does not return a decided approval when its durable write fails", () => {
-    const created = requestApproval(
-      { id: "persist-fail", summary: "Open report", risk: "high" },
-      NOW,
-    );
-    vi.stubGlobal("localStorage", {
-      getItem: () =>
-        JSON.stringify([
-          {
-            id: created.id,
-            summary: created.summary,
-            risk: created.risk,
-            requestedAt: created.requestedAt.toISOString(),
-            expiresAt: created.expiresAt.toISOString(),
-            status: "pending",
-          },
-        ]),
-      setItem: () => {
-        throw new DOMException("Quota exceeded", "QuotaExceededError");
-      },
-    });
-
-    expect(saveApprovalStatus(created.id, "approved", "d1", NOW)).toBeNull();
-  });
-
-  it("throws instead of inventing a durable approval when storage rejects the write", () => {
-    vi.stubGlobal("localStorage", {
-      getItem: () => "[]",
-      setItem: () => {
-        throw new DOMException("Quota exceeded", "QuotaExceededError");
-      },
-    });
-    expect(() =>
-      requestApproval({ id: "cannot-save", summary: "Open report", risk: "high" }, NOW),
-    ).toThrow(/could not be saved/i);
+  it("does not claim a decision was recorded", async () => {
+    const request = await requestApproval({ summary: "a", risk: "high" }, NOW);
+    store.failNext();
+    expect(await saveApprovalStatus(request.id, "approved", "device-1")).toBeNull();
+    // And it is genuinely still waiting, which is what the null says.
+    expect((await listApprovals(NOW))[0]!.status).toBe("pending");
   });
 });

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ModelVault } from "../model-vault";
 import type { ModelFileWriter, ModelStore } from "../model-store";
-import { deleteLocalData } from "@/lib/storage/local-data";
+import { deleteLocalData } from "@/lib/device/local-data";
 
 /**
  * DELETING ACCOUNT DATA MUST NOT COST A GIGABYTE.

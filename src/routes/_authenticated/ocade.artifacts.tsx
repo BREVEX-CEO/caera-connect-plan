@@ -47,7 +47,10 @@ export const Route = createFileRoute("/_authenticated/ocade/artifacts")({
  * was verified when it was produced (carried permanently on the record), and
  * whether the bytes are still what were written (checked live, by re-hashing).
  *
- * Everything runs on-device against `artifacts/store.ts`. Nothing here uploads.
+ * Reads through `artifacts/store.ts`, which is a typed view over the account's
+ * own `ocade_outputs`. An unreachable account renders as an error rather than
+ * as an empty list: somebody shown "no artifacts" would conclude their work was
+ * gone.
  */
 function ArtifactsPage() {
   const [artifacts, setArtifacts] = useState<Artifact[] | null>(null);
@@ -55,8 +58,8 @@ function ArtifactsPage() {
   const [integrity, setIntegrity] = useState<Record<string, "checking" | "intact" | "changed">>({});
   const [previewId, setPreviewId] = useState<string | null>(null);
 
-  const refresh = useCallback(() => {
-    const result = inspectArtifactStore();
+  const refresh = useCallback(async () => {
+    const result = await inspectArtifactStore();
     if (result.ok) {
       setArtifacts(result.data);
       setLoadError(null);
@@ -65,7 +68,9 @@ function ArtifactsPage() {
       setLoadError(result.reason);
     }
   }, []);
-  useEffect(refresh, [refresh]);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   // Version histories, computed from the same records the list shows.
   const lineages = useMemo(() => groupIntoLineages(artifacts ?? []), [artifacts]);
@@ -99,34 +104,34 @@ function ArtifactsPage() {
     URL.revokeObjectURL(url);
   }
 
-  function remove(id: string) {
-    const r = removeArtifact(id);
+  async function remove(id: string) {
+    const r = await removeArtifact(id);
     if (!r.ok) {
       toast.error(r.reason);
       return;
     }
     toast.success(r.evidence);
-    refresh();
+    await refresh();
   }
 
-  function changeRetention(id: string, value: string) {
-    const result = setArtifactRetention(id, value === "keep" ? null : Number(value));
+  async function changeRetention(id: string, value: string) {
+    const result = await setArtifactRetention(id, value === "keep" ? null : Number(value));
     if (!result.ok) {
       toast.error(result.reason);
       return;
     }
     toast.success(result.evidence);
-    refresh();
+    await refresh();
   }
 
-  function purgeExpired() {
-    const result = purgeExpiredArtifacts();
+  async function purgeExpired() {
+    const result = await purgeExpiredArtifacts();
     if (!result.ok) {
       toast.error(result.reason);
       return;
     }
     toast.success(result.evidence);
-    refresh();
+    await refresh();
   }
 
   async function restore(version: ArtifactVersion) {
@@ -136,7 +141,7 @@ function ArtifactsPage() {
       return;
     }
     toast.success(`Restored ${result.data.name} as a new current version.`);
-    refresh();
+    await refresh();
   }
 
   return (
@@ -222,8 +227,7 @@ function ArtifactsPage() {
                       : "keep until deleted"}
                   </p>
                   <p className="mt-1 text-[10px] text-muted-foreground">
-                    Privacy: {a.privacyClass.replaceAll("_", " ")} Â· Compatible:{" "}
-                    {a.compatibleApps.join(", ")}
+                    Version {a.version} · Compatible: {a.compatibleApps.join(", ")}
                   </p>
 
                   {/* The producing step's own evidence, verbatim. */}

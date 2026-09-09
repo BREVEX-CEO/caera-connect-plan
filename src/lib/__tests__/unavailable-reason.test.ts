@@ -95,9 +95,11 @@ describe("no route splices an error message into SetupRequiredState copy", () =>
     expect(source).not.toMatch(/description=\{`\$\{unavailable\}/);
   });
 
-  it("Projects uses static vault copy and labels the error as technical detail", () => {
+  it("Projects keeps its description static and labels the error as technical detail", () => {
     const source = readFileSync("src/routes/_authenticated/ocade.projects.tsx", "utf8");
-    expect(source).toContain('description="Projects and outputs are written to this device first.');
+    expect(source).toContain(
+      'description="Projects, their files and saved outputs live in your account.',
+    );
     expect(source).toContain("detail={unavailable}");
     expect(source).not.toMatch(/description=\{`\$\{unavailable\}/);
   });

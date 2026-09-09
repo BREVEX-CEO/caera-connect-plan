@@ -189,7 +189,7 @@ export const ROUTE_DISPOSITIONS: readonly RouteEntry[] = [
     module: "_authenticated/ocade.models",
     path: "/ocade/models",
     disposition: "MIGRATE",
-    movesTo: "/settings/vault",
+    movesTo: "/settings/data",
     reason:
       "§4: 'Models, devices, permissions, connectors, health, system, activity, knowledge, and labs into Settings or Customize.' Models are Offline Intelligence, which Settings › Storage owns.",
   },
@@ -406,13 +406,13 @@ export const ROUTE_DISPOSITIONS: readonly RouteEntry[] = [
       ["browser", "Managed-browser behaviour."],
       ["devices", "Browsers and devices on this account."],
       ["mobile", "The mobile companion."],
-      ["privacy", "Per-data-class privacy, data rights and local data."],
+      ["data", "Export or delete what the account holds."],
+      ["privacy", "Where work lives, failure reporting, and what this browser keeps."],
       ["security", "Sign-in, second factor and sessions."],
       ["skills", "Skills and packs."],
       ["support", "Support cases."],
       ["tasks", "Task defaults."],
       ["usage", "What this account has used."],
-      ["vault", "Storage and Offline Intelligence."],
       ["voice", "Dictation and speech."],
     ] as const
   ).map(([slug, reason]): RouteEntry => ({
@@ -421,6 +421,14 @@ export const ROUTE_DISPOSITIONS: readonly RouteEntry[] = [
     disposition: "CANONICAL",
     reason: `A settings section under §4's /settings. ${reason}`,
   })),
+  {
+    module: "_authenticated/settings.vault",
+    path: "/settings/vault",
+    disposition: "MIGRATE",
+    movesTo: "/settings/data",
+    reason:
+      "The browser vault it configured is gone with PLAN.md Phase 2's single persistent authority. The forwarding address stays: this URL is in shipped settings indexes, bookmarks and help articles.",
+  },
 
   // -------------------------------------------------------------- public --
   {

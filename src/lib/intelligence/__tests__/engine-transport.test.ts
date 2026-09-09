@@ -19,7 +19,6 @@ function request(signal?: AbortSignal): IntelligenceRequest {
     tools: [{ name: "observe", description: "Observe", inputSchema: { type: "object" } }],
     attachments: [],
     privacy: {
-      storageMode: "browser_only",
       onlineInferenceConsented: false,
       sealed: true,
     },

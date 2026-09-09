@@ -69,7 +69,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "Private intelligence on your own hardware where supported, with optional authentication, Private Sync and permissioned network services.",
+          "Private intelligence on your own hardware where supported, with optional authentication, account-hosted workspace data and permissioned network services.",
       },
       { property: "og:type", content: "website" },
       { property: "og:image", content: "https://ocade.in/brand/ocade-carcc-wordmark.png" },

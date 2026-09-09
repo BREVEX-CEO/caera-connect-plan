@@ -49,9 +49,15 @@ export const INCOGNITO_CLAIMS = {
  *
  * `not_stored` is a first-class outcome rather than an absent one, so a caller
  * cannot mistake "we deliberately kept nothing" for "the write failed" — the
- * two need opposite responses from the interface.
+ * two need opposite responses from the interface. `unsynced` is the third: the
+ * turn is real and on screen, it is held in this tab's memory because the
+ * database could not be reached, and closing the tab loses it.
+ *
+ * The `vault` and `pending_sync` outcomes went with the browser vault and its
+ * upload queue. `PLAN.md` Phase 2 leaves one persistent authority, so a
+ * message is either in it, deliberately absent from it, or waiting.
  */
-export type IncognitoAwarePersistTarget = "vault" | "cloud" | "pending_sync" | "not_stored";
+export type IncognitoAwarePersistTarget = "cloud" | "unsynced" | "not_stored";
 
 /**
  * May this conversation be written down?

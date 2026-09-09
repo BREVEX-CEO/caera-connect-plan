@@ -107,16 +107,16 @@ describe("no settings section is a dead end when signed out", () => {
    *                           the screen they were on.
    *
    *   /settings/vault         `refresh()` returned early when there was no
-   *                           user, leaving `loading` true forever. The page
-   *                           showed a spinner that could never resolve, since
-   *                           the vault config is keyed by an account id that
-   *                           was never coming.
-   *
-   * Both now render real, readable content. These are the assertions that stop
-   * either from returning.
+   *                           user, leaving `loading` true forever. That page
+   *                           is gone — `PLAN.md` Phase 2 removed the browser
+   *                           vault it configured — and `/settings/data`
+   *                           replaced it. The defect it demonstrated is
+   *                           general, so the rule it produced is asserted
+   *                           against the screen that took its place.
    */
   const SECTION = readFileSync("src/routes/_authenticated/settings.$section.tsx", "utf8");
-  const VAULT = readFileSync("src/routes/_authenticated/settings.vault.tsx", "utf8");
+  const DATA = readFileSync("src/routes/_authenticated/settings.data.tsx", "utf8");
+  const PANEL = readFileSync("src/components/settings/AccountDataPanel.tsx", "utf8");
 
   it("does not forward a signed-out visitor into a gated route", () => {
     expect(code(SECTION)).toMatch(
@@ -128,27 +128,31 @@ describe("no settings section is a dead end when signed out", () => {
     expect(code(SECTION)).toMatch(/const \{ canEdit: canEditSettings \} = useSettingsAccess\(\)/);
   });
 
-  it("finishes loading the vault page when there is no account", () => {
+  it("has nothing to load before an account arrives, so it cannot spin forever", () => {
     /*
-     * The precise shape of the bug: an early return that skips `setLoading`
-     * turns "nothing to load" into "loading forever".
+     * The precise shape of the old bug: an early return that skipped
+     * `setLoading` turned "nothing to load" into "loading forever". The screen
+     * that replaced it reads nothing on mount at all — the export and the
+     * deletions are things a person presses — so there is no state that can be
+     * left true.
      */
-    const refresh = code(VAULT).slice(code(VAULT).indexOf("const refresh"));
-    const guard = refresh.slice(0, 300);
-    expect(guard).toMatch(/if \(!user\)/);
-    expect(guard, "the no-account path leaves the spinner running").toMatch(/setLoading\(false\)/);
-  });
-
-  it("separates the loading state from the no-account state", () => {
-    // `!user || loading` collapsed two different situations into one spinner.
-    expect(code(VAULT), "no-account is still rendered as loading").not.toMatch(
-      /if \(!user \|\| loading\)/,
+    expect(code(DATA), "the data screen fetches on mount and can strand a spinner").not.toMatch(
+      /useEffect|useQuery/,
     );
-    expect(code(VAULT)).toMatch(/if \(loading\)/);
-    expect(code(VAULT)).toMatch(/if \(!user\) \{/);
   });
 
-  it("explains the vault instead of showing controls that cannot work", () => {
-    expect(VAULT).toMatch(/A vault belongs to an account/);
+  it("says what an unsigned visitor is looking at rather than showing a spinner", () => {
+    // Settings is readable signed out, so this screen has to be readable too.
+    expect(DATA).toMatch(/Export everything OCADE holds/);
+  });
+
+  it("does not offer a control that cannot work without an account", () => {
+    /*
+     * The panel's controls call server functions that require a session, and
+     * `SettingsAccessProvider` renders the whole section inert when there is
+     * none. What must not happen is a control that looks pressable and fails
+     * silently, so the panel reports every refusal it gets.
+     */
+    expect(PANEL).toMatch(/toast\.error/);
   });
 });

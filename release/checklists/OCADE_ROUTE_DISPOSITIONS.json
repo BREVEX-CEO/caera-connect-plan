@@ -6,11 +6,11 @@
   "summary": {
     "canonical": 33,
     "supporting": 42,
-    "migrate": 22,
+    "migrate": 23,
     "absorb": 0,
     "retire": 0,
-    "total": 97,
-    "modulesOnDisk": 97,
+    "total": 98,
+    "modulesOnDisk": 98,
     "canonicalAreas": 10
   },
   "canonicalRoutes": {
@@ -140,7 +140,7 @@
       "module": "_authenticated/ocade.models",
       "path": "/ocade/models",
       "disposition": "MIGRATE",
-      "movesTo": "/settings/vault",
+      "movesTo": "/settings/data",
       "reason": "§4: 'Models, devices, permissions, connectors, health, system, activity, knowledge, and labs into Settings or Customize.' Models are Offline Intelligence, which Settings › Storage owns."
     },
     {
@@ -367,10 +367,16 @@
       "reason": "A settings section under §4's /settings. The mobile companion."
     },
     {
+      "module": "_authenticated/settings.data",
+      "path": "/settings/data",
+      "disposition": "CANONICAL",
+      "reason": "A settings section under §4's /settings. Export or delete what the account holds."
+    },
+    {
       "module": "_authenticated/settings.privacy",
       "path": "/settings/privacy",
       "disposition": "CANONICAL",
-      "reason": "A settings section under §4's /settings. Per-data-class privacy, data rights and local data."
+      "reason": "A settings section under §4's /settings. Where work lives, failure reporting, and what this browser keeps."
     },
     {
       "module": "_authenticated/settings.security",
@@ -403,16 +409,17 @@
       "reason": "A settings section under §4's /settings. What this account has used."
     },
     {
-      "module": "_authenticated/settings.vault",
-      "path": "/settings/vault",
-      "disposition": "CANONICAL",
-      "reason": "A settings section under §4's /settings. Storage and Offline Intelligence."
-    },
-    {
       "module": "_authenticated/settings.voice",
       "path": "/settings/voice",
       "disposition": "CANONICAL",
       "reason": "A settings section under §4's /settings. Dictation and speech."
+    },
+    {
+      "module": "_authenticated/settings.vault",
+      "path": "/settings/vault",
+      "disposition": "MIGRATE",
+      "movesTo": "/settings/data",
+      "reason": "The browser vault it configured is gone with PLAN.md Phase 2's single persistent authority. The forwarding address stays: this URL is in shipped settings indexes, bookmarks and help articles."
     },
     {
       "module": "__root",

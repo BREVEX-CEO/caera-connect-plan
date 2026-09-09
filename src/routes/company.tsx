@@ -64,7 +64,7 @@ function CompanyPage() {
       <PublicSection title="OCADE">
         <p>
           OCADE is CARCC CADANE's active local-first AI workspace. Supported AI generation is
-          designed around on-device inference, with optional authentication, Private Sync,
+          designed around on-device inference, with optional authentication, account-hosted work,
           current-information retrieval, support, payments and other user-authorized online services
           separated from the local AI path.
         </p>

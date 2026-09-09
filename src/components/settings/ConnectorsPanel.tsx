@@ -26,12 +26,15 @@ export function ConnectorsPanel() {
 
   const refresh = useCallback(async () => {
     setChecking(true);
-    const [native, browser, email] = await Promise.all([
+    // One round of requests rather than four in sequence: this panel opens on
+    // every visit to Settings and each of these reaches something different.
+    const [native, browser, email, paired] = await Promise.all([
       getCompanion().status(),
       getBrowserBridge().status(),
       getEmailConnectorStatus(),
+      activeDevices(),
     ]);
-    const mobileCount = activeDevices().filter((device) => device.kind === "mobile").length;
+    const mobileCount = paired.filter((device) => device.kind === "mobile").length;
     setRows([
       {
         id: "native",

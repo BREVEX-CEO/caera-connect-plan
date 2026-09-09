@@ -15,5 +15,5 @@ export const PRIVACY_META = {
   eyebrow: "Effective and last updated 25 August 2026",
   title: "Privacy notice",
   summary:
-    "This notice explains how CARCC CADANE handles or intends to handle information for the OCADE website, authentication, local-first AI, Private Sync, support and other user-requested services.",
+    "This notice explains how CARCC CADANE handles or intends to handle information for the OCADE website, authentication, local-first AI, account-hosted workspace data, support and other user-requested services.",
 };

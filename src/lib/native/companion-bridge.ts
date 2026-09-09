@@ -15,7 +15,7 @@
  *  - high-risk actions require explicit confirmation;
  *  - cancellation and emergency stop are first-class.
  */
-import { NativeCompanionRequiredError } from "@/lib/storage/types";
+import { NativeCompanionRequiredError } from "@/lib/native/companion-required";
 import { isProtectedText } from "@/lib/security/protected-text";
 
 export type ActionRisk = "read_only" | "low" | "confirm" | "high" | "prohibited";

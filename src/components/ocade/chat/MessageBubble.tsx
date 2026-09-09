@@ -20,6 +20,7 @@ import {
   ThumbsDown,
   ThumbsUp,
   CheckCheck,
+  CloudOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessageView, MessageActions } from "./chat-types";
@@ -329,10 +330,25 @@ export const MessageBubble = memo(function MessageBubble({
         </div>
         {message.deliveryState ? (
           <span
-            className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"
+            className={cn(
+              "inline-flex items-center gap-1 text-[11px]",
+              // Not the double tick, and not the muted colour: this state is
+              // the one a person has to act on, and dressing it like "Sent"
+              // would be the interface saying the opposite of what it means.
+              // The palette is monochrome by design, so the distinction is
+              // carried by the icon, the wording and the contrast step rather
+              // than by a hue nobody with a colour deficiency would read.
+              message.deliveryState === "unsynced"
+                ? "font-medium text-[color:var(--state-warning)]"
+                : "text-muted-foreground",
+            )}
             role="status"
           >
-            <CheckCheck className="h-3 w-3" aria-hidden />
+            {message.deliveryState === "unsynced" ? (
+              <CloudOff className="h-3 w-3" aria-hidden />
+            ) : (
+              <CheckCheck className="h-3 w-3" aria-hidden />
+            )}
             {deliveryLabel(message.deliveryState)}
           </span>
         ) : null}
@@ -424,5 +440,6 @@ function formatTime(iso: string): string | null {
 function deliveryLabel(state: NonNullable<ChatMessageView["deliveryState"]>): string {
   if (state === "processed") return "Processed by OCADE";
   if (state === "processing") return "OCADE is processing";
+  if (state === "unsynced") return "Not saved yet — closing this tab discards it";
   return "Sent";
 }

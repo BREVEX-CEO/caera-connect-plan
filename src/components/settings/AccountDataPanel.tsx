@@ -22,11 +22,12 @@ import {
  * three classes that must be kept — saying WHY rather than hiding the control,
  * because a missing button is indistinguishable from a broken one.
  *
- * WHAT THIS PANEL DOES NOT CLAIM. It is about the data OCADE holds in its
- * account database. Data a person chose to keep on the device — Browser Only
- * and PC Vault classes — never reached the server and is not in the export;
- * the copy says so rather than letting somebody conclude their local chats are
- * missing from a file that was never going to contain them.
+ * WHAT THIS PANEL COVERS. Everything OCADE holds about the person, because
+ * there is now one place it is held: `PLAN.md` Phase 2 removed the device-only
+ * classes, so an export is not a partial answer to "what do you have about me"
+ * and does not have to explain what it left out. Offline Intelligence is the
+ * exception and is not personal data — it is model weights, on the machine, and
+ * it is removed from Settings rather than from here.
  *
  * THE DOWNLOAD IS BUILT IN THE BROWSER. The export arrives as a value from the
  * server function and becomes a Blob here, so the file never has to be stored

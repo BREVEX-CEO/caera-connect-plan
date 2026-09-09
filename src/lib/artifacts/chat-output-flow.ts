@@ -1,16 +1,30 @@
+/**
+ * SAVING AN ANSWER AS AN ARTIFACT, AND THE RECORD THAT IT HAPPENED.
+ *
+ * ONE ROW, NOT TWO. This module used to write the artifact and then a separate
+ * activity entry in `localStorage`, and roll the artifact back if the ledger
+ * write failed — an elaborate dance around a problem it had created for itself.
+ * Every field of that entry is derivable from the artifact: its digest, its
+ * size, whether the producer confirmed it, and the conversation, message,
+ * project and source files it was made from are all recorded on the row.
+ *
+ * So the ledger is now a PROJECTION of the artifacts themselves. There is no
+ * split to reconcile, no rollback to get wrong, and no way for the Activity
+ * screen to disagree with the Artifacts screen — the failure the rollback
+ * existed to prevent is now unrepresentable.
+ */
 import {
+  inspectArtifactStore,
   removeArtifact,
   saveArtifact,
   sha256,
   verifyIntegrity,
   type Artifact,
-  type ArtifactOutcome,
   type IntegrityResult,
 } from "./store";
+import type { Outcome } from "../outcome";
 
-const ACTIVITY_KEY = "ocade.output-activity.v1";
-
-export interface LocalOutputActivity {
+export interface OutputActivity {
   id: string;
   at: string;
   action: "ocade.output.saved";
@@ -46,108 +60,68 @@ export interface ChatOutputInput {
    * Integrity re-hashing alone proves storage integrity, not factual truth.
    */
   producerVerified?: boolean;
-  now?: Date;
-  artifactId?: string;
-  activityId?: string;
 }
 
 export interface SavedChatOutput {
   artifact: Artifact;
   integrity: IntegrityResult;
-  activity: LocalOutputActivity;
+  activity: OutputActivity;
 }
 
-function isActivity(value: unknown): value is LocalOutputActivity {
-  if (!value || typeof value !== "object") return false;
-  const row = value as Partial<LocalOutputActivity>;
-  return (
-    typeof row.id === "string" &&
-    typeof row.at === "string" &&
-    row.action === "ocade.output.saved" &&
-    typeof row.artifactId === "string" &&
-    typeof row.outputName === "string" &&
-    typeof row.outputSha256 === "string" &&
-    typeof row.outputBytes === "number" &&
-    (row.result === "verified" || row.result === "not_confirmed") &&
-    typeof row.conversationId === "string" &&
-    typeof row.messageId === "string" &&
-    Array.isArray(row.sourceFiles)
-  );
-}
-
-export function listLocalOutputActivity(): ArtifactOutcome<LocalOutputActivity[]> {
-  const storage = globalThis.localStorage;
-  if (!storage) {
-    return {
-      ok: false,
-      reason: "Browser storage is unavailable, so local output activity cannot be read.",
-    };
-  }
-  try {
-    const raw = storage.getItem(ACTIVITY_KEY);
-    if (!raw) return { ok: true, data: [], evidence: "No local output activity." };
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed) || !parsed.every(isActivity)) {
-      return {
-        ok: false,
-        reason:
-          "Local output activity storage is corrupt. OCADE will not render it as an empty ledger.",
-      };
-    }
-    return {
-      ok: true,
-      data: parsed,
-      evidence: `${parsed.length} local output activity ${parsed.length === 1 ? "entry" : "entries"}.`,
-    };
-  } catch {
-    return {
-      ok: false,
-      reason:
-        "Local output activity storage is corrupt. OCADE will not render it as an empty ledger.",
-    };
-  }
-}
-
-function recordLocalOutputActivity(
-  entry: LocalOutputActivity,
-): ArtifactOutcome<LocalOutputActivity> {
-  const existing = listLocalOutputActivity();
-  if (!existing.ok) return existing;
-  const storage = globalThis.localStorage;
-  if (!storage) {
-    return {
-      ok: false,
-      reason: "Browser storage is unavailable, so local output activity could not be saved.",
-    };
-  }
-  try {
-    storage.setItem(ACTIVITY_KEY, JSON.stringify([entry, ...existing.data]));
-    return {
-      ok: true,
-      data: entry,
-      evidence: `Recorded output activity for “${entry.outputName}”.`,
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      reason: `Local output activity could not be saved: ${
-        error instanceof Error ? error.message : "storage refused it"
-      }.`,
-    };
-  }
+/** The activity entry an artifact IS. */
+export function activityFor(artifact: Artifact): OutputActivity {
+  const context = artifact.context;
+  return {
+    // The artifact's own id: an activity entry and the thing it describes are
+    // the same row, so giving them different identities would only invite them
+    // to be treated as separable again.
+    id: artifact.id,
+    at: artifact.createdAt,
+    action: "ocade.output.saved",
+    artifactId: artifact.id,
+    outputName: artifact.name,
+    outputSha256: artifact.sha256,
+    outputBytes: artifact.byteLength,
+    result: artifact.provenance.verified ? "verified" : "not_confirmed",
+    conversationId: context?.conversationId ?? "",
+    messageId: context?.messageId ?? "",
+    ...(context?.projectId ? { projectId: context.projectId } : {}),
+    ...(context?.projectName ? { projectName: context.projectName } : {}),
+    sourceFiles: context?.files ?? [],
+  };
 }
 
 /**
- * Persist an assistant output, immediately re-hash it, then record the exact
- * artifact id and digest in the local activity ledger.
+ * Every output this account has saved from a conversation, newest first.
  *
- * If the activity write fails, the artifact save is rolled back. This avoids a
- * false-success split where the Artifacts surface shows an output that the
- * Activity surface cannot account for.
+ * Artifacts produced by other surfaces are excluded: this is the record of
+ * answers turned into files, and padding it with everything else would make it
+ * harder to find the entry somebody came looking for.
  */
-export async function saveChatOutput(
-  input: ChatOutputInput,
-): Promise<ArtifactOutcome<SavedChatOutput>> {
+export async function listOutputActivity(): Promise<Outcome<OutputActivity[]>> {
+  const stored = await inspectArtifactStore();
+  if (!stored.ok) return stored;
+  const entries = stored.data
+    .filter((artifact) => artifact.provenance.producedBy.startsWith("ocade.chat:"))
+    .map(activityFor);
+  return {
+    ok: true,
+    data: entries,
+    evidence: `${entries.length} saved ${entries.length === 1 ? "output" : "outputs"}.`,
+  };
+}
+
+/**
+ * Persist an assistant output and immediately re-hash it.
+ *
+ * The re-hash is not ceremony: it reads the content back from where it was
+ * stored and fingerprints it again, so a truncated or altered write is caught
+ * now rather than by somebody relying on the file weeks later. An artifact that
+ * fails its own integrity check is removed rather than kept with a warning —
+ * there is nothing to keep, because the bytes are not the ones that were
+ * produced.
+ */
+export async function saveChatOutput(input: ChatOutputInput): Promise<Outcome<SavedChatOutput>> {
   const sourceFiles: Array<{ name: string; sha256: string }> = [];
   for (const file of input.files) {
     const digest = await sha256(file.content);
@@ -159,6 +133,8 @@ export async function saveChatOutput(
     name: input.title,
     kind: "text",
     content: input.content,
+    conversationId: input.conversationId,
+    projectId: input.project?.id ?? null,
     provenance: {
       producedBy: `ocade.chat:${input.conversationId}`,
       verified: input.producerVerified === true,
@@ -178,51 +154,21 @@ export async function saveChatOutput(
         : {}),
       files: sourceFiles,
     },
-    now: input.now,
-    id: input.artifactId,
   });
   if (!saved.ok) return saved;
 
   const integrity = await verifyIntegrity(saved.data.id);
   if (!integrity.ok || !integrity.data.intact) {
-    removeArtifact(saved.data.id);
-    return integrity.ok
-      ? {
-          ok: false,
-          reason: "The saved output failed its immediate integrity check and was removed.",
-        }
-      : integrity;
-  }
-
-  const activity: LocalOutputActivity = {
-    id:
-      input.activityId ?? `output-activity-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    at: (input.now ?? new Date()).toISOString(),
-    action: "ocade.output.saved",
-    artifactId: saved.data.id,
-    outputName: saved.data.name,
-    outputSha256: saved.data.sha256,
-    outputBytes: saved.data.byteLength,
-    result: saved.data.provenance.verified ? "verified" : "not_confirmed",
-    conversationId: input.conversationId,
-    messageId: input.messageId,
-    ...(input.project
-      ? {
-          projectId: input.project.id,
-          ...(input.project.name ? { projectName: input.project.name } : {}),
-        }
-      : {}),
-    sourceFiles,
-  };
-  const recorded = recordLocalOutputActivity(activity);
-  if (!recorded.ok) {
-    const rollback = removeArtifact(saved.data.id);
-    return {
-      ok: false,
-      reason: rollback.ok
-        ? `${recorded.reason} The artifact save was rolled back.`
-        : `${recorded.reason} The artifact also could not be rolled back: ${rollback.reason}`,
-    };
+    const removal = await removeArtifact(saved.data.id);
+    if (integrity.ok) {
+      return {
+        ok: false,
+        reason: removal.ok
+          ? "The saved output failed its immediate integrity check and was removed."
+          : `The saved output failed its immediate integrity check and could not be removed: ${removal.reason}`,
+      };
+    }
+    return integrity;
   }
 
   return {
@@ -230,8 +176,8 @@ export async function saveChatOutput(
     data: {
       artifact: saved.data,
       integrity: integrity.data,
-      activity: recorded.data,
+      activity: activityFor(saved.data),
     },
-    evidence: `Saved, re-hashed, and recorded “${saved.data.name}” in local activity.`,
+    evidence: `Saved and re-hashed “${saved.data.name}”.`,
   };
 }

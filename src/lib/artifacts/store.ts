@@ -18,12 +18,25 @@
  *    check that compared the stored hash against itself would pass on a
  *    truncated file, which is exactly the case it exists to catch.
  *
- * Storage is local to the device, matching the rest of OCADE's local-first
- * surfaces. Nothing here uploads anything.
+ * WHERE THEY LIVE, AND WHY THAT CHANGED. Artifacts were kept in `localStorage`
+ * under `ocade.artifacts.v1` while `ocade_outputs` held the same class of thing
+ * in the account — two stores for one idea. An artifact made on a laptop was
+ * invisible on a phone, sat outside every export and deletion path the account
+ * offers, and vanished when somebody cleared their browser. `PLAN.md` Phase 2
+ * leaves ONE persistent authority: this module is a typed view over
+ * `ocade_outputs`, and every function here is a request.
  */
-
-export type ArtifactOutcome<T> =
-  { ok: true; data: T; evidence: string } | { ok: false; reason: string };
+import {
+  createOutput,
+  deleteOutput,
+  getOutput,
+  listOutputs,
+  purgeExpiredOutputs,
+  setOutputRetention,
+  type OcadeOutput,
+  type OutputContext,
+} from "@/lib/ocade-projects.functions";
+import type { Outcome } from "../outcome";
 
 export type ArtifactKind = "gltf" | "patch" | "table" | "text" | "receipt";
 
@@ -39,17 +52,7 @@ export interface Provenance {
   evidence: string;
 }
 
-export interface ArtifactContext {
-  conversationId: string;
-  messageId: string;
-  projectId?: string;
-  projectName?: string;
-  projectInstructions?: string;
-  files: Array<{
-    name: string;
-    sha256: string;
-  }>;
-}
+export type ArtifactContext = OutputContext;
 
 export interface Artifact {
   id: string;
@@ -61,8 +64,16 @@ export interface Artifact {
   /** SHA-256 of the content at the moment it was stored. */
   sha256: string;
   byteLength: number;
-  /** Where this artifact record is stored. New local artifacts never imply cloud sync. */
-  privacyClass: "on_device" | "private_sync" | "pc_vault";
+  /**
+   * The chain this artifact belongs to, and its place in it. Version history is
+   * recorded by the account rather than inferred from names, so a rename does
+   * not split a lineage and two unrelated files with the same name do not merge
+   * into one.
+   */
+  lineageId: string;
+  version: number;
+  /** The version this one was saved from, when it was saved from one. */
+  parentId: string | null;
   /** Honest app/file families that can consume this artifact's exported bytes. */
   compatibleApps: string[];
   /** Optional task context that produced the artifact. */
@@ -70,8 +81,6 @@ export interface Artifact {
   /** Null/absent means keep until the user deletes it. */
   expiresAt?: string | null;
 }
-
-const STORAGE_KEY = "ocade.artifacts.v1";
 
 /* ----------------------------------------------------------------- hashing -- */
 
@@ -82,7 +91,7 @@ const STORAGE_KEY = "ocade.artifacts.v1";
  * available: a digest that silently changed algorithm is worse than none,
  * because stored and recomputed values would disagree for the wrong reason.
  */
-export async function sha256(text: string): Promise<ArtifactOutcome<string>> {
+export async function sha256(text: string): Promise<Outcome<string>> {
   const subtle = globalThis.crypto?.subtle;
   if (!subtle) {
     return {
@@ -97,148 +106,39 @@ export async function sha256(text: string): Promise<ArtifactOutcome<string>> {
   return { ok: true, data: hex, evidence: `SHA-256 ${hex.slice(0, 12)}…` };
 }
 
-/* ------------------------------------------------------------------ store -- */
+/* -------------------------------------------------- artifacts as outputs -- */
 
-function read(): ArtifactOutcome<Artifact[]> {
-  const storage = globalThis.localStorage;
-  if (!storage) {
-    return {
-      ok: false,
-      reason: "Browser storage is unavailable, so artifacts cannot be read.",
-    };
-  }
-  try {
-    const raw = storage.getItem(STORAGE_KEY);
-    if (!raw) return { ok: true, data: [], evidence: "No artifacts stored." };
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      return {
-        ok: false,
-        reason:
-          "Artifact storage is corrupt. OCADE will not replace it or render it as an empty list.",
-      };
-    }
-    const artifacts = (parsed as Artifact[]).map((artifact) => ({
-      ...artifact,
-      privacyClass: artifact.privacyClass ?? "on_device",
-      compatibleApps:
-        Array.isArray(artifact.compatibleApps) && artifact.compatibleApps.length > 0
-          ? artifact.compatibleApps
-          : compatibleAppsFor(artifact.kind),
-    }));
-    return {
-      ok: true,
-      data: artifacts,
-      evidence: `${artifacts.length} artifacts read.`,
-    };
-  } catch {
-    return {
-      ok: false,
-      reason:
-        "Artifact storage is corrupt. OCADE will not replace it or render it as an empty list.",
-    };
-  }
-}
+/**
+ * An artifact's kind is its FILE FAMILY; an output's kind is its category.
+ *
+ * They are different questions about the same row, so both are stored: the
+ * category is what a Projects list groups by, and the file family decides the
+ * extension an export gets. The mime type is what carries the family, which is
+ * why the reverse mapping reads it first — a `text/csv` output produced by
+ * something other than the artifact path is still a table, and calling it a
+ * document because its category said "export" would give it the wrong file
+ * extension on the way out.
+ */
+const KIND_TO_OUTPUT: Record<ArtifactKind, { kind: OcadeOutput["kind"]; mime: string }> = {
+  gltf: { kind: "visual", mime: "model/gltf+json" },
+  patch: { kind: "export", mime: "text/x-diff" },
+  table: { kind: "export", mime: "text/csv" },
+  text: { kind: "document", mime: "text/plain" },
+  receipt: { kind: "other", mime: "application/json" },
+};
 
-function write(items: Artifact[]): ArtifactOutcome<number> {
-  try {
-    const storage = globalThis.localStorage;
-    if (!storage) {
-      return {
-        ok: false,
-        reason: "Browser storage is unavailable, so the artifact was not saved.",
-      };
-    }
-    storage.setItem(STORAGE_KEY, JSON.stringify(items));
-    return { ok: true, data: items.length, evidence: `${items.length} artifacts stored.` };
-  } catch (e) {
-    // Quota is the realistic failure, and silently dropping the newest artifact
-    // is the worst possible response to it.
-    return {
-      ok: false,
-      reason: `The artifact couldn't be saved: ${e instanceof Error ? e.message : "storage refused it"}. Nothing was changed — delete an older artifact and try again.`,
-    };
-  }
-}
+const MIME_TO_KIND = new Map<string, ArtifactKind>(
+  (Object.entries(KIND_TO_OUTPUT) as Array<[ArtifactKind, { mime: string }]>).map(
+    ([kind, { mime }]) => [mime, kind],
+  ),
+);
 
-export interface SaveInput {
-  name: string;
-  kind: ArtifactKind;
-  content: string;
-  provenance: Provenance;
-  context?: ArtifactContext;
-  expiresAt?: string | null;
-  privacyClass?: Artifact["privacyClass"];
-  compatibleApps?: string[];
-  /** Injected in tests; defaults to now. */
-  now?: Date;
-  /** Injected in tests; defaults to a random id. */
-  id?: string;
-}
-
-/** Store an artifact, fingerprinting its content as it goes. */
-export async function saveArtifact(input: SaveInput): Promise<ArtifactOutcome<Artifact>> {
-  const name = input.name.trim();
-  if (!name) return { ok: false, reason: "An artifact needs a name." };
-  if (input.content.length === 0) {
-    return { ok: false, reason: `“${name}” has no content, so there is nothing to keep.` };
-  }
-  if (!input.provenance.producedBy.trim()) {
-    return {
-      ok: false,
-      reason:
-        "An artifact must record what produced it. OCADE won't store a file with no provenance — that's how an unchecked result becomes indistinguishable from a checked one.",
-    };
-  }
-
-  const hash = await sha256(input.content);
-  if (!hash.ok) return hash;
-
-  const existingResult = read();
-  if (!existingResult.ok) return existingResult;
-  const existing = existingResult.data;
-  const requestedAt = input.now ?? new Date();
-  const latestStoredMs = input.now
-    ? Number.NEGATIVE_INFINITY
-    : existing.reduce((latest, item) => {
-        const parsed = Date.parse(item.createdAt);
-        return Number.isFinite(parsed) ? Math.max(latest, parsed) : latest;
-      }, Number.NEGATIVE_INFINITY);
-  // Several saves can complete inside one millisecond. Default timestamps must
-  // still be strictly monotonic or a restore can sort behind the version it
-  // restored and the UI will keep showing stale content as current. Explicit
-  // test/import timestamps are preserved exactly and retain the id tiebreak.
-  const createdAtMs = input.now
-    ? requestedAt.getTime()
-    : Math.max(requestedAt.getTime(), latestStoredMs + 1);
-  const artifact: Artifact = {
-    id: input.id ?? `a-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    name,
-    kind: input.kind,
-    content: input.content,
-    createdAt: new Date(createdAtMs).toISOString(),
-    provenance: input.provenance,
-    sha256: hash.data,
-    byteLength: new TextEncoder().encode(input.content).length,
-    privacyClass: input.privacyClass ?? "on_device",
-    compatibleApps:
-      input.compatibleApps && input.compatibleApps.length > 0
-        ? [...new Set(input.compatibleApps.map((app) => app.trim()).filter(Boolean))].slice(0, 20)
-        : compatibleAppsFor(input.kind),
-    ...(input.context ? { context: input.context } : {}),
-    ...(input.expiresAt !== undefined ? { expiresAt: input.expiresAt } : {}),
-  };
-
-  const stored = write([artifact, ...existing]);
-  if (!stored.ok) return stored;
-
-  return {
-    ok: true,
-    data: artifact,
-    evidence: input.provenance.verified
-      ? `Saved “${name}” (${artifact.byteLength} bytes), produced by ${input.provenance.producedBy} and confirmed.`
-      : `Saved “${name}” (${artifact.byteLength} bytes). NOT CONFIRMED: ${input.provenance.producedBy} could not verify this result.`,
-  };
+function kindOf(row: OcadeOutput): ArtifactKind {
+  const byMime = row.mime ? MIME_TO_KIND.get(row.mime) : undefined;
+  if (byMime) return byMime;
+  // An output written by another surface. `text` is the honest fallback: it
+  // says nothing about the content beyond that it is readable.
+  return row.kind === "visual" ? "gltf" : "text";
 }
 
 function compatibleAppsFor(kind: ArtifactKind): string[] {
@@ -256,20 +156,139 @@ function compatibleAppsFor(kind: ArtifactKind): string[] {
   }
 }
 
+/**
+ * Turn a stored row into an artifact.
+ *
+ * A row with no `produced_by` predates provenance being recorded. It is
+ * rendered as unverified, from an unknown producer — never as verified, and
+ * never with an invented producer, which is the exact lie the provenance
+ * columns exist to prevent.
+ */
+export function artifactFromOutput(row: OcadeOutput): Artifact {
+  const kind = kindOf(row);
+  const content = row.content ?? "";
+  return {
+    id: row.id,
+    name: row.title,
+    kind,
+    content,
+    createdAt: row.created_at,
+    provenance: {
+      producedBy: row.produced_by ?? "an earlier version of OCADE",
+      verified: row.verified,
+      evidence: row.evidence ?? "",
+    },
+    sha256: row.content_sha256 ?? "",
+    byteLength: row.size_bytes,
+    lineageId: row.lineage_id,
+    version: row.version,
+    parentId: row.parent_output_id,
+    compatibleApps: compatibleAppsFor(kind),
+    ...(row.context ? { context: row.context } : {}),
+    expiresAt: row.expires_at,
+  };
+}
+
+/** Every request goes through here, so one unreachable account reads the same everywhere. */
+function unreachable(error: unknown, doing: string): { ok: false; reason: string } {
+  const detail = error instanceof Error ? error.message : "the request did not complete";
+  return {
+    ok: false,
+    reason: `OCADE could not reach your account to ${doing}: ${detail}. Nothing was changed.`,
+  };
+}
+
+/* ------------------------------------------------------------------ store -- */
+
+export interface SaveInput {
+  name: string;
+  kind: ArtifactKind;
+  content: string;
+  provenance: Provenance;
+  context?: ArtifactContext;
+  /** The artifact this one is a new version of. */
+  parentId?: string | null;
+  /** Days to keep it; null or absent means keep until deleted. */
+  retentionDays?: number | null;
+  projectId?: string | null;
+  conversationId?: string | null;
+}
+
+/** Store an artifact, fingerprinting its content as it goes. */
+export async function saveArtifact(input: SaveInput): Promise<Outcome<Artifact>> {
+  const name = input.name.trim();
+  if (!name) return { ok: false, reason: "An artifact needs a name." };
+  if (input.content.length === 0) {
+    return { ok: false, reason: `“${name}” has no content, so there is nothing to keep.` };
+  }
+  if (!input.provenance.producedBy.trim()) {
+    return {
+      ok: false,
+      reason:
+        "An artifact must record what produced it. OCADE won't store a file with no provenance — that's how an unchecked result becomes indistinguishable from a checked one.",
+    };
+  }
+
+  const mapped = KIND_TO_OUTPUT[input.kind];
+  try {
+    const row = await createOutput({
+      data: {
+        kind: mapped.kind,
+        mime: mapped.mime,
+        title: name,
+        content: input.content,
+        producedBy: input.provenance.producedBy.trim(),
+        verified: input.provenance.verified,
+        evidence: input.provenance.evidence || null,
+        context: input.context ?? null,
+        parentOutputId: input.parentId ?? null,
+        projectId: input.projectId ?? null,
+        conversationId: input.conversationId ?? null,
+        retentionDays: input.retentionDays ?? null,
+      },
+    });
+    const artifact = artifactFromOutput(row);
+    return {
+      ok: true,
+      data: artifact,
+      evidence: input.provenance.verified
+        ? `Saved “${name}” (${artifact.byteLength} bytes), produced by ${input.provenance.producedBy} and confirmed.`
+        : `Saved “${name}” (${artifact.byteLength} bytes). NOT CONFIRMED: ${input.provenance.producedBy} could not verify this result.`,
+    };
+  } catch (error) {
+    return unreachable(error, `save “${name}”`);
+  }
+}
+
 /** Everything stored, newest first. */
-export function listArtifacts(): Artifact[] {
-  const result = read();
+export async function listArtifacts(): Promise<Artifact[]> {
+  const result = await inspectArtifactStore();
   return result.ok ? result.data : [];
 }
 
-/** Strict read for UI/error boundaries that distinguish empty from corrupt. */
-export function inspectArtifactStore(): ArtifactOutcome<Artifact[]> {
-  return read();
+/**
+ * Strict read for UI/error boundaries that distinguish empty from unreachable.
+ *
+ * The distinction is the point. An account that could not be reached must not
+ * render as "you have no artifacts": somebody would conclude their work was
+ * gone and act on it.
+ */
+export async function inspectArtifactStore(): Promise<Outcome<Artifact[]>> {
+  try {
+    const rows = await listOutputs({ data: {} });
+    const artifacts = rows.map(artifactFromOutput);
+    return { ok: true, data: artifacts, evidence: `${artifacts.length} artifacts read.` };
+  } catch (error) {
+    return unreachable(error, "read your artifacts");
+  }
 }
 
-export function getArtifact(id: string): Artifact | null {
-  const result = read();
-  return result.ok ? (result.data.find((a) => a.id === id) ?? null) : null;
+export async function getArtifact(id: string): Promise<Artifact | null> {
+  try {
+    return artifactFromOutput(await getOutput({ data: { id } }));
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -278,81 +297,62 @@ export function getArtifact(id: string): Artifact | null {
  * Reports whether it was actually there. A delete that returns success for an
  * id that never existed lets a UI show "deleted" for something it didn't touch.
  */
-export function removeArtifact(id: string): ArtifactOutcome<{ removed: boolean }> {
-  const beforeResult = read();
-  if (!beforeResult.ok) return beforeResult;
-  const before = beforeResult.data;
-  const after = before.filter((a) => a.id !== id);
-  if (after.length === before.length) {
+export async function removeArtifact(id: string): Promise<Outcome<{ removed: boolean }>> {
+  try {
+    await getOutput({ data: { id } });
+  } catch {
     return { ok: false, reason: "That artifact isn't here — nothing was deleted." };
   }
-  const stored = write(after);
-  if (!stored.ok) return stored;
-  return {
-    ok: true,
-    data: { removed: true },
-    evidence: `Deleted. ${after.length} artifacts remain.`,
-  };
+  try {
+    await deleteOutput({ data: { id } });
+    return { ok: true, data: { removed: true }, evidence: "Deleted." };
+  } catch (error) {
+    return unreachable(error, "delete that artifact");
+  }
 }
 
-export function setArtifactRetention(
+export async function setArtifactRetention(
   id: string,
   days: number | null,
-  now: Date = new Date(),
-): ArtifactOutcome<Artifact> {
+): Promise<Outcome<Artifact>> {
   if (days !== null && (!Number.isInteger(days) || days < 1 || days > 3650)) {
     return {
       ok: false,
       reason: "Retention must be between 1 and 3,650 days, or keep until deleted.",
     };
   }
-  const stored = read();
-  if (!stored.ok) return stored;
-  const index = stored.data.findIndex((artifact) => artifact.id === id);
-  if (index < 0) return { ok: false, reason: "That artifact isn't here." };
-  const expiresAt =
-    days === null ? null : new Date(now.getTime() + days * 24 * 60 * 60 * 1000).toISOString();
-  const updated = { ...stored.data[index], expiresAt };
-  const next = [...stored.data];
-  next[index] = updated;
-  const saved = write(next);
-  if (!saved.ok) return saved;
-  return {
-    ok: true,
-    data: updated,
-    evidence:
-      expiresAt === null
-        ? "Artifact will be kept until you delete it."
-        : `Artifact will be eligible for deletion after ${expiresAt}.`,
-  };
-}
-
-export function purgeExpiredArtifacts(
-  now: Date = new Date(),
-): ArtifactOutcome<{ removed: number; remaining: number }> {
-  const stored = read();
-  if (!stored.ok) return stored;
-  const current = now.getTime();
-  const remaining = stored.data.filter((artifact) => {
-    if (!artifact.expiresAt) return true;
-    const expiry = Date.parse(artifact.expiresAt);
-    return !Number.isFinite(expiry) || expiry > current;
-  });
-  const removed = stored.data.length - remaining.length;
-  if (removed === 0) {
+  try {
+    const artifact = artifactFromOutput(await setOutputRetention({ data: { id, days } }));
     return {
       ok: true,
-      data: { removed: 0, remaining: remaining.length },
-      evidence: "No expired artifacts were deleted.",
+      data: artifact,
+      evidence:
+        artifact.expiresAt == null
+          ? "Artifact will be kept until you delete it."
+          : `Artifact will be eligible for deletion after ${artifact.expiresAt}.`,
     };
+  } catch (error) {
+    if (error instanceof Response && error.status === 404) {
+      return { ok: false, reason: "That artifact isn't here." };
+    }
+    return unreachable(error, "change how long that artifact is kept");
   }
-  const saved = write(remaining);
-  if (!saved.ok) return saved;
-  return {
-    ok: true,
-    data: { removed, remaining: remaining.length },
-    evidence: `Deleted ${removed} expired artifact${removed === 1 ? "" : "s"}.`,
-  };
+}
+
+export async function purgeExpiredArtifacts(): Promise<Outcome<{ removed: number }>> {
+  try {
+    const { removed } = await purgeExpiredOutputs();
+    return {
+      ok: true,
+      data: { removed },
+      evidence:
+        removed === 0
+          ? "No expired artifacts were deleted."
+          : `Deleted ${removed} expired artifact${removed === 1 ? "" : "s"}.`,
+    };
+  } catch (error) {
+    return unreachable(error, "delete expired artifacts");
+  }
 }
 
 /* -------------------------------------------------------------- integrity -- */
@@ -370,10 +370,8 @@ export interface IntegrityResult {
  * itself — that version of the check passes on a truncated file, which is the
  * case it exists to catch.
  */
-export async function verifyIntegrity(id: string): Promise<ArtifactOutcome<IntegrityResult>> {
-  const stored = read();
-  if (!stored.ok) return stored;
-  const artifact = stored.data.find((item) => item.id === id) ?? null;
+export async function verifyIntegrity(id: string): Promise<Outcome<IntegrityResult>> {
+  const artifact = await getArtifact(id);
   if (!artifact) return { ok: false, reason: "That artifact isn't here." };
 
   const actual = await sha256(artifact.content);

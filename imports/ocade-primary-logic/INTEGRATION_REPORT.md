@@ -89,7 +89,7 @@ reason in the JSONL ledger.
 | `src/primary-logic/commands/powershellCodeExecution.ts` | `src/lib/runtime/permissions.ts` |
 | `src/primary-logic/commands/powershellDestructiveWarning.ts` | `src/lib/runtime/permissions.ts` |
 | `src/primary-logic/commands/treeSitterAnalysis.ts` | `src/lib/runtime/permissions.ts` |
-| `src/primary-logic/memory/memoryAge.ts` | `src/lib/local-memory.ts` |
+| `src/primary-logic/memory/memoryAge.ts` | `src/lib/memory/portable.ts` |
 | `src/primary-logic/memory/memoryTypes.ts` | `src/lib/memory/quality.ts` |
 | `src/primary-logic/memory/sessionMemoryPolicy.ts` | `src/lib/memory/session-memory.ts` |
 | `src/primary-logic/net/mappedAddress.ts` | `src/lib/research/public-network.server.ts` |

@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { createFakeOutputStore } from "./support/fake-outputs";
+
+const outputs = createFakeOutputStore();
+vi.mock("@/lib/ocade-projects.functions", () => outputs.module);
+
+const { saveArtifact, verifyIntegrity } = await import("../artifacts/store");
 import { checkScope, createTaskScope } from "../skills/task-scope";
 import { scanUntrustedContent } from "../ocade-injection-guard";
 import { isRecordableInput } from "../skills/session-recording";
-import { saveArtifact, verifyIntegrity } from "../artifacts/store";
 import { governResources, type HardwareSnapshot, type JobSpec } from "../skills/resource-governor";
 import {
   validateGeneratedSandboxRequest,
@@ -33,13 +38,7 @@ const NOW = new Date("2026-07-24T10:00:00Z");
 const GB = 1024 ** 3;
 
 beforeEach(() => {
-  const store = new Map<string, string>();
-  vi.stubGlobal("localStorage", {
-    getItem: (k: string) => store.get(k) ?? null,
-    setItem: (k: string, v: string) => void store.set(k, v),
-    removeItem: (k: string) => void store.delete(k),
-    clear: () => store.clear(),
-  });
+  outputs.reset();
 });
 
 const scope = (caps: string[], paths: string[] = ["memory"], now: Date = NOW) =>
@@ -157,16 +156,16 @@ describe("§8.7 audit tampering is caught by re-hashing", () => {
       kind: "receipt",
       content: '{"result":"ok","rows":3}',
       provenance: { producedBy: "ocade.task:t1", verified: true, evidence: "3 rows" },
-      id: "a-1",
     });
     expect(saved.ok).toBe(true);
+    if (!saved.ok) throw new Error("unreachable");
 
-    // Tamper the stored bytes directly (simulating an attacker editing storage).
-    const raw = JSON.parse(globalThis.localStorage!.getItem("ocade.artifacts.v1")!);
-    raw[0].content = '{"result":"ok","rows":9999}';
-    globalThis.localStorage!.setItem("ocade.artifacts.v1", JSON.stringify(raw));
+    // Tamper the stored bytes directly, the way anything with write access to
+    // the row could. The digest is recomputed from what comes back, so the
+    // change is caught rather than the stored hash being trusted.
+    outputs.corrupt(saved.data.id, { content: '{"result":"ok","rows":9999}' });
 
-    const check = await verifyIntegrity("a-1");
+    const check = await verifyIntegrity(saved.data.id);
     expect(check.ok).toBe(true);
     if (!check.ok) throw new Error("unreachable");
     expect(check.data.intact).toBe(false); // re-hash catches the tamper

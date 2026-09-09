@@ -11,15 +11,16 @@ import {
   setTaskCommentArchived,
   setTaskCommentResolved,
   toggleTaskCommentReaction,
-  type LocalTaskComment,
-} from "@/lib/comments/local-task-comments";
+  type TaskComment,
+} from "@/lib/comments/task-comments";
 
 export function TaskComments({ taskId }: { taskId: string }) {
-  const [comments, setComments] = useState<LocalTaskComment[]>([]);
+  const [comments, setComments] = useState<TaskComment[]>([]);
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [unreachable, setUnreachable] = useState<string | null>(null);
 
   /*
    * Stable across renders, so the effect below can depend on it honestly.
@@ -30,27 +31,53 @@ export function TaskComments({ taskId }: { taskId: string }) {
    * actually reads.
    */
   const refresh = useCallback(
-    (archived = showArchived) => {
-      setComments(listTaskComments(taskId, archived));
+    async (archived = showArchived) => {
+      try {
+        setComments(await listTaskComments(taskId, archived));
+        setUnreachable(null);
+      } catch (error) {
+        /*
+         * NOT EMPTIED. An account that could not be reached must not render as
+         * "no comments on this task" — somebody would conclude what they wrote
+         * was never saved and write it again.
+         */
+        setUnreachable(
+          error instanceof Error ? error.message : "Your account could not be reached.",
+        );
+      }
     },
     [taskId, showArchived],
   );
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
-  function submit() {
+  /**
+   * One helper for every action, so none of them can quietly skip the two
+   * things they all owe the reader: a refusal that is shown, and a refresh that
+   * makes the list agree with what was actually stored.
+   */
+  async function run(action: () => Promise<unknown>, whenItFails: string) {
     try {
-      if (editing) editTaskComment(editing, draft);
-      else createTaskComment({ taskId, body: draft, parentId: replyTo });
-      setDraft("");
-      setReplyTo(null);
-      setEditing(null);
-      refresh();
+      await action();
+      await refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not save the comment.");
+      toast.error(error instanceof Error ? error.message : whenItFails);
     }
+  }
+
+  async function submit() {
+    await run(
+      () =>
+        editing
+          ? editTaskComment(editing, draft)
+          : createTaskComment({ taskId, body: draft, parentId: replyTo }),
+      "Could not save the comment.",
+    );
+    setDraft("");
+    setReplyTo(null);
+    setEditing(null);
   }
 
   const roots = comments.filter(
@@ -59,7 +86,7 @@ export function TaskComments({ taskId }: { taskId: string }) {
   );
   const replies = (id: string) => comments.filter((comment) => comment.parentId === id);
 
-  function actions(comment: LocalTaskComment) {
+  function actions(comment: TaskComment) {
     return (
       <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
         <button
@@ -87,30 +114,36 @@ export function TaskComments({ taskId }: { taskId: string }) {
         <button
           type="button"
           aria-pressed={comment.reacted}
-          onClick={() => {
-            toggleTaskCommentReaction(comment.id);
-            refresh();
-          }}
+          onClick={() =>
+            void run(
+              () => toggleTaskCommentReaction(comment.id),
+              "Could not change that acknowledgement.",
+            )
+          }
           className="underline"
         >
           {comment.reacted ? "Remove acknowledgement" : "Acknowledge"}
         </button>
         <button
           type="button"
-          onClick={() => {
-            setTaskCommentResolved(comment.id, !comment.resolvedAt);
-            refresh();
-          }}
+          onClick={() =>
+            void run(
+              () => setTaskCommentResolved(comment.id, !comment.resolvedAt),
+              "Could not change that comment.",
+            )
+          }
           className="underline"
         >
           {comment.resolvedAt ? "Reopen" : "Resolve"}
         </button>
         <button
           type="button"
-          onClick={() => {
-            setTaskCommentArchived(comment.id, !comment.archivedAt);
-            refresh();
-          }}
+          onClick={() =>
+            void run(
+              () => setTaskCommentArchived(comment.id, !comment.archivedAt),
+              "Could not change that comment.",
+            )
+          }
           className="underline"
         >
           {comment.archivedAt ? "Restore" : "Archive"}
@@ -118,9 +151,8 @@ export function TaskComments({ taskId }: { taskId: string }) {
         <button
           type="button"
           onClick={() => {
-            if (window.confirm("Delete this on-device comment?")) {
-              deleteTaskComment(comment.id);
-              refresh();
+            if (window.confirm("Delete this comment? Its replies go with it.")) {
+              void run(() => deleteTaskComment(comment.id), "Could not delete that comment.");
             }
           }}
           className="underline text-destructive"
@@ -131,7 +163,7 @@ export function TaskComments({ taskId }: { taskId: string }) {
     );
   }
 
-  function commentCard(comment: LocalTaskComment, nested = false) {
+  function commentCard(comment: TaskComment, nested = false) {
     const mentions = mentionsInComment(comment.body);
     return (
       <article
@@ -140,7 +172,7 @@ export function TaskComments({ taskId }: { taskId: string }) {
       >
         <div className="flex flex-wrap justify-between gap-2 text-[11px] text-muted-foreground">
           <span>
-            {comment.author}
+            You
             {comment.resolvedAt ? " · resolved" : ""}
             {comment.archivedAt ? " · archived" : ""}
           </span>
@@ -173,8 +205,14 @@ export function TaskComments({ taskId }: { taskId: string }) {
         </label>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
-        Anchored to this task and stored only on this device. No teammate is notified.
+        Anchored to this task and kept in your account, so they are here on every device you sign in
+        on. No teammate is notified.
       </p>
+      {unreachable ? (
+        <p role="status" className="mt-2 text-xs text-destructive">
+          Comments could not be read: {unreachable} What is shown may be out of date.
+        </p>
+      ) : null}
       <div className="mt-3 space-y-2">
         {roots.map((root) => (
           <div key={root.id} className="space-y-2">
@@ -220,10 +258,15 @@ export function TaskComments({ taskId }: { taskId: string }) {
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           aria-label="Task comment"
-          placeholder="Add an on-device comment"
+          placeholder="Add a comment"
           rows={3}
         />
-        <Button type="button" className="mt-2" disabled={!draft.trim()} onClick={submit}>
+        <Button
+          type="button"
+          className="mt-2"
+          disabled={!draft.trim()}
+          onClick={() => void submit()}
+        >
           {editing ? "Save edit" : replyTo ? "Post reply" : "Post comment"}
         </Button>
       </div>

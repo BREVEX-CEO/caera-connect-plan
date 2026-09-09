@@ -94,6 +94,7 @@
     "test:isolation": "vitest run --sequence.shuffle.files=true --sequence.shuffle.tests=false",
     "test:mutation": "node scripts/mutation-safety.mjs",
     "browser-safety:check": "node scripts/check-browser-safety.mjs",
+    "content-storage:check": "node scripts/check-content-storage.mjs",
     "monochrome:check": "node scripts/check-monochrome.mjs",
     "browser:host-check": "node --check native/browser-host/index.mjs && node native/browser-host/index.mjs --self-test",
     "browser:sidecar-build": "node scripts/build-browser-sidecar.mjs",

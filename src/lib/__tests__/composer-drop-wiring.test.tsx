@@ -60,7 +60,6 @@ async function renderComposer(overrides: Record<string, unknown> = {}) {
       setPermission={() => undefined}
       model="ocade-local"
       setModel={() => undefined}
-      chatsMode="private_sync"
       {...overrides}
     />,
   );

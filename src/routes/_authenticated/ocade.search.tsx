@@ -6,25 +6,13 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { Input } from "@/components/ui/input";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
-import {
-  readLocalCorpus,
-  searchLocalRecords,
-  mergeSearchResults,
-  scoreMatch,
-  snippetAround,
-  type LocalSearchResult,
-} from "@/lib/search/local-search";
-import { getModeFor } from "@/lib/storage/resolver";
-import { StorageLockedError } from "@/lib/storage/types";
-import { VaultUnlockCard } from "@/components/storage/VaultUnlockCard";
+import { scoreMatch, snippetAround, sortResults, type SearchResult } from "@/lib/search/results";
 import { useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/_authenticated/ocade/search")({
   head: () => ({ meta: [{ title: "Search — OCADE" }, { name: "robots", content: "noindex" }] }),
   component: SearchPage,
 });
-
-type SearchResult = LocalSearchResult;
 
 /** Escape LIKE wildcards while keeping the value inside typed filter calls. */
 function escapedLike(raw: string) {
@@ -40,14 +28,17 @@ function escapedLike(raw: string) {
  * the user's text as data, then de-duplicate matching records by id.
  */
 /**
- * The REMOTE half only. Runs when Private Sync is on and the network answers.
+ * Search the account, through Supabase's parameterized filter methods.
  *
  * Kept as separate typed queries rather than one `.or()` because `.or()` takes
  * raw PostgREST grammar, and interpolating a person's search text into that
  * lets punctuation alter the filter expression even with LIKE wildcards
  * escaped. The user's text stays data.
+ *
+ * Every row is RLS-scoped to the account, so this cannot reach across users or
+ * organizations however the query is shaped.
  */
-async function searchRemote(raw: string): Promise<SearchResult[]> {
+async function searchAccount(raw: string): Promise<SearchResult[]> {
   const supabase = await loadSupabaseClient();
   const q = raw.trim();
   if (q.length < 2) return [];
@@ -122,7 +113,6 @@ async function searchRemote(raw: string): Promise<SearchResult[]> {
       createdAt: row.updated_at,
       conversationId: row.id,
       score: scoreMatch(row.title ?? "", "", q),
-      local: false,
     })),
     ...(messages.data ?? []).map((row) => ({
       key: `message:${row.id}`,
@@ -132,7 +122,6 @@ async function searchRemote(raw: string): Promise<SearchResult[]> {
       createdAt: row.created_at,
       conversationId: row.conversation_id,
       score: scoreMatch("", row.content ?? "", q),
-      local: false,
     })),
     ...[...projects.values()].map((row) => ({
       key: `project:${row.id}`,
@@ -141,7 +130,6 @@ async function searchRemote(raw: string): Promise<SearchResult[]> {
       excerpt: row.instructions ? snippetAround(row.instructions, q) : undefined,
       createdAt: row.updated_at,
       score: scoreMatch(row.name ?? "", row.instructions ?? "", q),
-      local: false,
     })),
     ...[...outputs.values()].map((row) => ({
       key: `output:${row.id}`,
@@ -150,7 +138,6 @@ async function searchRemote(raw: string): Promise<SearchResult[]> {
       excerpt: row.content ? snippetAround(row.content, q) : undefined,
       createdAt: row.created_at,
       score: scoreMatch(row.title ?? "", row.content ?? "", q),
-      local: false,
     })),
   ];
 }
@@ -171,39 +158,16 @@ function SearchPage() {
     queryKey: ["ocade-universal-search", normalized, userId],
     enabled: normalized.length >= 2 && userId.length > 0,
     /*
-     * THE DEVICE ANSWERS FIRST, AND SOMETIMES IT IS THE ONLY ANSWER.
+     * ONE CORPUS, ASKED ONCE.
      *
-     * This used to be six Supabase queries and nothing else, which made a
-     * Browser Only conversation — never uploaded, by design — permanently
-     * unfindable, threw when offline, and could not see a Private Sync message
-     * written seconds ago that had not yet drained from the outbox.
-     *
-     * The remote half now runs only for private_sync, only when online, and
-     * its failure is not the search failing: the local rows already answered.
+     * This used to read an encrypted device store first and fold the server's
+     * answer into it, because a Browser Only conversation was never uploaded
+     * and could not otherwise be found. `PLAN.md` Phase 2 removed that mode:
+     * every conversation, project and output is an account row, so the account
+     * is the whole corpus and a merge would have nothing to merge.
      */
-    queryFn: async () => {
-      const corpus = await readLocalCorpus(userId);
-      const local = searchLocalRecords(normalized, corpus);
-
-      const mode = await getModeFor(userId, "chats").catch(() => "browser_only");
-      const online = typeof navigator === "undefined" ? true : navigator.onLine;
-      if (mode !== "private_sync" || !online) return local;
-
-      try {
-        return mergeSearchResults(local, await searchRemote(normalized));
-      } catch {
-        return local;
-      }
-    },
+    queryFn: () => searchAccount(normalized).then(sortResults),
     staleTime: 10_000,
-    /*
-     * A LOCKED VAULT IS AN ANSWER, NOT A FLAKE.
-     *
-     * Retrying it three times with backoff means the page sits on "Searching
-     * your workspace…" for several seconds and then prints the exception text
-     * at the reader. Nothing about waiting improves a missing key.
-     */
-    retry: (attempt, error) => !(error instanceof StorageLockedError) && attempt < 2,
   });
 
   return (
@@ -234,19 +198,6 @@ function SearchPage() {
           <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Searching your workspace…
           </p>
-        ) : results.error instanceof StorageLockedError ? (
-          /*
-            Search reads the same encrypted store everything else does, so it
-            meets the same lock — and the same answer belongs here rather than
-            the exception text, which named a Settings page and left the reader
-            to go and find it.
-          */
-          <div className="mt-4">
-            <VaultUnlockCard
-              what="Your conversations, projects and saved outputs"
-              onUnlocked={() => void results.refetch()}
-            />
-          </div>
         ) : results.isError ? (
           <div
             role="alert"

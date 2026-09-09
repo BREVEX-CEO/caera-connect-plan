@@ -30,6 +30,7 @@ import { OfflineIntelligenceProgress } from "@/components/ocade/setup/OfflineInt
 import { OfflineUsageBridge } from "@/components/commercial/OfflineUsageBridge";
 import { SettingsAccessProvider } from "@/components/settings/SettingsGate";
 import { OcadeMobileBottomNav } from "@/components/shell/OcadeMobileBottomNav";
+import { UnsyncedTurnsBridge } from "@/components/ocade/chat/UnsyncedTurnsBridge";
 
 /**
  * Integration-managed protected layout. Runs client-only because the Supabase
@@ -203,28 +204,6 @@ function AuthedLayout() {
   const context = Route.useRouteContext() as { user?: unknown } | undefined;
   const signedIn = Boolean(context?.user);
 
-  /*
-   * Drain whatever this device still owes the server.
-   *
-   * The `online` event inside the loop is the one that matters: it is what
-   * turns "your chats are staying on this device" back into a synchronised
-   * account without the user doing anything or even noticing. Started here
-   * because this layout is mounted for the whole signed-in session, so the
-   * queue is drained on every visit rather than only while Chat is open.
-   */
-  useEffect(() => {
-    if (!signedIn) return;
-    let cancelled = false;
-    let stop: (() => void) | undefined;
-    void import("@/lib/storage/sync-queue").then(({ startSyncLoop }) => {
-      if (!cancelled) stop = startSyncLoop();
-    });
-    return () => {
-      cancelled = true;
-      stop?.();
-    };
-  }, [signedIn]);
-
   return (
     <SettingsAccessProvider canEdit={signedIn}>
       <div className={signedIn ? "pb-16 md:pb-0" : undefined}>
@@ -232,6 +211,12 @@ function AuthedLayout() {
       </div>
       {signedIn ? <OcadeMobileBottomNav /> : null}
       {signedIn ? <OfflineUsageBridge /> : null}
+      {/*
+        A turn held in this tab because the account could not be reached. Here
+        rather than in Chat so the warning survives navigating away from it —
+        somebody who writes offline and opens Settings has not abandoned it.
+      */}
+      {signedIn ? <UnsyncedTurnsBridge /> : null}
       {/*
         Preparation REPORTS from the lower-left corner; it does not take the
         product away. This replaced a full-screen modal that covered the whole

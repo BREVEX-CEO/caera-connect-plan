@@ -70,9 +70,10 @@ function AboutPage() {
           user's own hardware where supported.
         </p>
         <p>
-          Optional authentication, Private Sync, current-information retrieval, support, payments
-          and user-requested network services are separated from normal local AI generation. Feature
-          availability varies by device, hardware, platform and release readiness.
+          Optional authentication, account-hosted workspace data, current-information retrieval,
+          support, payments and user-requested network services are separated from normal local AI
+          generation. Feature availability varies by device, hardware, platform and release
+          readiness.
         </p>
         <Link
           to="/products/ocade"
@@ -158,8 +159,8 @@ function AboutPage() {
           <Link to="/privacy" className="text-foreground underline">
             Privacy notice
           </Link>{" "}
-          explains Google Sign-In, local processing, Private Sync and user-requested network
-          services.
+          explains Google Sign-In, local processing, account-hosted workspace data and
+          user-requested network services.
         </p>
       </PublicSection>
     </PublicPage>

@@ -9,6 +9,18 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+/*
+ * A run is PROJECTED onto the task board as it moves, and the board is now a
+ * table in the account. Mocked here rather than left to reach a real client:
+ * these tests are about run control, and an unconfigured Supabase warning on
+ * every projection is noise that trains people to ignore stderr.
+ */
+vi.mock("@/integrations/supabase/on-demand", () => ({
+  loadSupabaseClient: async () => {
+    throw new Error("no account in this test");
+  },
+}));
+
 import {
   activeRuns,
   describeRuns,

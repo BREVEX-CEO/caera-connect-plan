@@ -78,9 +78,10 @@ export const STATUS_COMPONENTS: readonly StatusComponent[] = [
     evidence: { kind: "configuration", setting: "supabase" },
   },
   {
-    id: "private-sync",
-    name: "Private Sync",
-    description: "Optional synchronisation of account data between devices.",
+    id: "account-data",
+    name: "Account data",
+    description:
+      "Where your conversations, projects, tasks and artifacts are kept, and what every device you sign in on reads them from.",
     evidence: { kind: "configuration", setting: "supabase" },
   },
   {

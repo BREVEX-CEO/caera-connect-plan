@@ -87,8 +87,8 @@ describe("the route-disposition ledger", () => {
     const generated = JSON.parse(
       readFileSync("release/checklists/OCADE_ROUTE_DISPOSITIONS.json", "utf8"),
     );
-    expect(generated.summary.total).toBe(97);
-    expect(generated.summary.modulesOnDisk).toBe(97);
+    expect(generated.summary.total).toBe(98);
+    expect(generated.summary.modulesOnDisk).toBe(98);
     expect(generated.routes).toEqual(ROUTE_DISPOSITIONS);
     expect(
       generated.routes.every((entry: { module: string }) => !entry.module.includes("\\")),

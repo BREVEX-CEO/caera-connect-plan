@@ -48,14 +48,15 @@ describe("every migration applies in the declared order", () => {
    * two parity tests at the bottom of this file then force the paired
    * verification and rollback scripts to arrive with it.
    *
-   * Last raised for the RLS-policy consolidation, the automation-enqueue
-   * ambiguity fix, the messenger storage bucket, the restored
-   * has_role/authenticated grant and the support-ticket category expansion.
+   * Last raised for the PLAN.md Phase 2 move to one persistent authority:
+   * a client key that makes message sync idempotent, side conversations
+   * anchored in the messages table, and project files and folders that used to
+   * live in `localStorage`.
    * Loosening this to a range would defeat the point: an exact count is what
    * catches a migration going missing.
    */
-  it("finds all 78 migrations", () => {
-    expect(DatabaseTwin.migrationFiles()).toHaveLength(78);
+  it("finds all 87 migrations", () => {
+    expect(DatabaseTwin.migrationFiles()).toHaveLength(87);
   });
 
   /**
@@ -89,7 +90,7 @@ describe("every migration applies in the declared order", () => {
       failed.map((f) => `${f.file}: ${f.error}`),
       "a migration failed against real PostgreSQL",
     ).toEqual([]);
-    expect(applied).toHaveLength(78);
+    expect(applied).toHaveLength(87);
   });
 
   it("rebuilds the whole schema from zero, including the tables defined after the old break", async () => {

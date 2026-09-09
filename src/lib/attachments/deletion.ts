@@ -39,27 +39,15 @@
  * built to avoid.
  */
 
-import { removeProjectFile } from "../project-files";
-import { removeCitationsForSource } from "../chat-citation-store";
-import type { StorageAdapter } from "../storage/types";
-
 /** Every place one attachment can have left something behind. */
 export type DeletionSite =
-  | "extracted_text"
-  | "citation_excerpts"
-  | "vault_payload"
-  | "cached_copies"
-  | "remote_object"
-  | "remote_row";
+  "extracted_text" | "citation_excerpts" | "cached_copies" | "remote_object" | "remote_row";
 
 export interface AttachmentRef {
   /** Project-file record id, when the text was extracted into one. */
   fileId?: string;
   /** Display name — how citations identify the source. */
   name: string;
-  /** Vault record id and class, when a payload was stored on device. */
-  vaultId?: string;
-  vaultClass?: "files" | "images";
   /** Set only for a synced attachment. */
   remote?: { rowId: string; storagePath: string; bucket?: string };
 }
@@ -104,20 +92,67 @@ export function sitesFor(ref: AttachmentRef): DeletionSite[] {
   const sites: DeletionSite[] = [];
   if (ref.fileId) sites.push("extracted_text");
   sites.push("citation_excerpts", "cached_copies");
-  if (ref.vaultId && ref.vaultClass) sites.push("vault_payload");
   if (ref.remote) sites.push(...remoteDeletionOrder());
   return sites;
 }
 
 export interface DeletionPorts {
-  /** Vault adapter, when there is a payload to remove. */
-  adapter?: Pick<StorageAdapter, "delete">;
+  /**
+   * Deletes the project-file row holding the extracted text.
+   *
+   * Injected rather than imported so this module has no server-function graph
+   * behind it and can be tested without one. Must resolve false rather than
+   * throw, for the same reason every other port here does: a receipt that
+   * throws tells the user nothing about the sites that DID clear.
+   */
+  deleteProjectFileRow?: (fileId: string) => Promise<boolean>;
+  /**
+   * Forgets every stored excerpt of this file, across every conversation.
+   *
+   * Injected like the row deletes above, and for the same reason: this module
+   * stays free of the server-function graph and can be exercised without one.
+   * Returns how many excerpts went, so the receipt can say.
+   */
+  forgetCitations?: (name: string) => Promise<number>;
   /** Deletes the bucket object. Must resolve false rather than throw. */
   deleteRemoteObject?: (bucket: string, path: string) => Promise<boolean>;
   /** Deletes the database row. Only ever called after the object is gone. */
   deleteRemoteRow?: (rowId: string) => Promise<boolean>;
   /** Cache Storage, injectable so this is testable off a browser. */
   caches?: CacheStorage;
+}
+
+/** Forget every stored excerpt of this attachment, wherever it was quoted. */
+async function clearCitations(
+  name: string,
+  forget: ((name: string) => Promise<number>) | undefined,
+): Promise<SiteOutcome> {
+  if (!forget) {
+    return {
+      site: "citation_excerpts",
+      cleared: false,
+      detail: "Stored excerpts were not checked, because no way to reach them was provided.",
+    };
+  }
+  try {
+    const removed = await forget(name);
+    return {
+      site: "citation_excerpts",
+      cleared: true,
+      detail:
+        removed === 0
+          ? "No stored citations quote that source."
+          : `${removed} stored ${removed === 1 ? "excerpt" : "excerpts"} of “${name}” deleted.`,
+    };
+  } catch (error) {
+    return {
+      site: "citation_excerpts",
+      cleared: false,
+      detail: `Stored excerpts could not be deleted: ${
+        error instanceof Error ? error.message : "the request did not complete"
+      }.`,
+    };
+  }
 }
 
 /** Remove any cached response whose URL mentions this attachment. */
@@ -174,49 +209,37 @@ export async function deleteAttachment(
 
   // --- extracted text -------------------------------------------------------
   if (ref.fileId) {
-    const result = removeProjectFile(ref.fileId);
-    outcomes.push({
-      site: "extracted_text",
-      // "Not here" is a cleared site. The goal is absence, not a delete count,
-      // and treating an already-absent record as failure makes retry impossible.
-      cleared: result.ok || /not here/i.test(result.reason ?? ""),
-      detail: result.ok
-        ? "Extracted text and its fingerprint deleted. Retrieval passages and the search index were derived from it and no longer exist."
-        : (result.reason ?? "Extracted text could not be deleted."),
-    });
+    let cleared = true;
+    let detail =
+      "Extracted text and its fingerprint deleted. Retrieval passages and the search index were derived from it and no longer exist.";
+    if (ports.deleteProjectFileRow) {
+      try {
+        cleared = await ports.deleteProjectFileRow(ref.fileId);
+        if (!cleared) detail = "The stored text could not be deleted from your account.";
+      } catch (error) {
+        cleared = false;
+        detail = `The stored text could not be deleted: ${
+          error instanceof Error ? error.message : "your account refused"
+        }.`;
+      }
+    }
+    outcomes.push({ site: "extracted_text", cleared, detail });
   }
 
   // --- citation excerpts ----------------------------------------------------
-  const citations = removeCitationsForSource(ref.name);
-  outcomes.push({
-    site: "citation_excerpts",
-    cleared: citations.ok,
-    detail: citations.ok
-      ? (citations.evidence ?? "Stored excerpts deleted.")
-      : (citations.reason ?? "Stored excerpts could not be deleted."),
-  });
-
-  // --- vault payload --------------------------------------------------------
-  if (ref.vaultId && ref.vaultClass) {
-    try {
-      await ports.adapter?.delete(ref.vaultClass, ref.vaultId);
-      outcomes.push({
-        site: "vault_payload",
-        cleared: true,
-        detail: "Encrypted copy deleted from this device's vault.",
-      });
-    } catch (error) {
-      outcomes.push({
-        site: "vault_payload",
-        cleared: false,
-        // A locked vault is the common case and it is recoverable, so it is
-        // reported as itself rather than as a generic failure.
-        detail: `Vault copy not deleted: ${
-          error instanceof Error ? error.message : "the vault refused"
-        }.`,
-      });
-    }
-  }
+  /*
+   * The excerpts are on the messages that cite the file, so clearing them
+   * reaches the account. It is reported honestly in all three cases: swept,
+   * not swept because the request failed, and not swept because no way to
+   * reach them was provided. A deletion that could not clear every excerpt
+   * must not be shown as complete — the person asked for their document to be
+   * gone, and a verbatim quote of it is still their content.
+   *
+   * NO DEFAULT PORT. Reaching the account from here would put the
+   * server-function graph behind this module, which is the thing its ports
+   * exist to avoid.
+   */
+  outcomes.push(await clearCitations(ref.name, ports.forgetCitations));
 
   // --- cached copies --------------------------------------------------------
   outcomes.push(
@@ -295,8 +318,6 @@ export function describeSite(site: DeletionSite): string {
       return "Text read from the file";
     case "citation_excerpts":
       return "Quoted excerpts in past replies";
-    case "vault_payload":
-      return "Encrypted copy on this device";
     case "cached_copies":
       return "Cached copies";
     case "remote_object":

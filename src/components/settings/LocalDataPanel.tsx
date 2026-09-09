@@ -9,7 +9,7 @@ import {
   readModelIdentityFromStore,
   type LocalDataClass,
   type LocalDataDeletionResult,
-} from "@/lib/storage/local-data";
+} from "@/lib/device/local-data";
 
 type SelectableClass = Exclude<LocalDataClass, "all_account_data">;
 

@@ -13,24 +13,24 @@
  * and produces nothing in the sidebar at all: it belongs to the message it
  * hangs off, travels with it, and is deleted with it.
  *
- * WHY THE KEY PREFIX MATTERS MORE THAN IT LOOKS. Side messages live in the same
- * `chats` data class as everything else, because they must sync with the
- * conversation and be swept when it is deleted. But they carry
- * `conversation_id`, and `loadChatMessages` filters on exactly that — so
- * without a key that the main loader can EXCLUDE, every side question would
- * appear inline in the transcript and be sent to the engine as part of it. The
- * `side:` prefix is what keeps them apart, the same device `conv:` uses for
- * conversation records.
+ * WHERE THEY LIVE. In `ocade_messages`, with `anchor_message_id` set to the
+ * message they hang off. They used to live in an encrypted browser vault under
+ * a `side:` key prefix that the main transcript loader had to remember to
+ * exclude; `PLAN.md` Phase 2 leaves one persistent authority, and the database
+ * enforces what the prefix only described — the transcript reads
+ * `anchor_message_id IS NULL`, and the foreign key deletes a thread with the
+ * message it belongs to rather than leaving an orphan behind.
  *
  * INCOGNITO IS INHERITED, not decided again. A side thread of a conversation
  * that is not being written down must not be written down either, and asking
  * the caller to remember that would be a second place to forget it.
  */
-import { resolveAdapter } from "@/lib/storage/resolver";
+import {
+  appendOcadeMessage,
+  deleteSideThread as deleteSideThreadRows,
+  listSideMessages,
+} from "@/lib/ocade.functions";
 import { mayPersist } from "./incognito";
-
-/** Distinguishable by inspection from `conv:` and from a message key. */
-const SIDE_PREFIX = "side:";
 
 export interface SideMessage {
   id: string;
@@ -42,20 +42,15 @@ export interface SideMessage {
   created_at: string;
 }
 
-export function isSideKey(id: string): boolean {
-  return id.startsWith(SIDE_PREFIX);
-}
-
 /**
- * The storage key.
+ * An id for a turn that is not written down.
  *
- * `side:<conversation>:<anchor>::<createdAt>::<suffix>` — the conversation id
- * comes first so a prefix scan finds a conversation's side threads, and the
- * timestamp sorts a thread into order without a second field.
+ * Only incognito threads need one: every other side message is a row and takes
+ * the id the database gives it. React still needs a stable key for the ones it
+ * renders from memory.
  */
-function keyFor(conversationId: string, anchorId: string, createdAt: string): string {
-  const suffix = Math.random().toString(36).slice(2, 10);
-  return `${SIDE_PREFIX}${conversationId}:${anchorId}::${createdAt}::${suffix}`;
+function localSideId(): string {
+  return `side-local-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 /**
@@ -66,7 +61,6 @@ function keyFor(conversationId: string, anchorId: string, createdAt: string): st
  * it is nowhere else.
  */
 export async function appendSideMessage(input: {
-  userId: string;
   conversationId: string;
   anchorMessageId: string;
   role: "user" | "assistant";
@@ -75,7 +69,7 @@ export async function appendSideMessage(input: {
 }): Promise<{ stored: boolean; record: SideMessage }> {
   const createdAt = new Date().toISOString();
   const record: SideMessage = {
-    id: keyFor(input.conversationId, input.anchorMessageId, createdAt),
+    id: localSideId(),
     conversation_id: input.conversationId,
     anchor_message_id: input.anchorMessageId,
     role: input.role,
@@ -85,38 +79,42 @@ export async function appendSideMessage(input: {
 
   if (!mayPersist(Boolean(input.incognito))) return { stored: false, record };
 
-  const adapter = await resolveAdapter(input.userId, "chats");
-  await adapter.put("chats", record.id, record);
-  return { stored: true, record };
+  const row = (await appendOcadeMessage({
+    data: {
+      conversationId: input.conversationId,
+      anchorMessageId: input.anchorMessageId,
+      role: input.role,
+      content: input.content,
+    },
+  })) as unknown as { id?: string; created_at?: string } | null;
+
+  return {
+    stored: true,
+    // The row's id and timestamp win, for the same reason they do in the main
+    // transcript: they are what the next read will return.
+    record: { ...record, id: row?.id ?? record.id, created_at: row?.created_at ?? createdAt },
+  };
 }
 
 /**
- * Every side thread of one conversation, grouped by the message it hangs off.
+ * One side thread, in order.
  *
- * One pass over the data class rather than one per anchor: a conversation with
- * forty messages would otherwise scan the same store forty times to render a
- * transcript, and this runs on every open.
+ * ONE ANCHOR AT A TIME, and that is a change from the vault version, which
+ * scanned the whole data class once and grouped every thread of the
+ * conversation by anchor. It had to: a key-value store has no other way to
+ * find them. A conversation with forty messages therefore paid a full scan on
+ * every open to render threads the reader had not asked to see. An index on
+ * the anchor answers the question actually being asked — this message's thread,
+ * when somebody expands it.
  */
-export async function loadSideThreads(input: {
-  userId: string;
+export async function loadSideThread(input: {
   conversationId: string;
-}): Promise<Map<string, SideMessage[]>> {
-  const adapter = await resolveAdapter(input.userId, "chats");
-  const stored = await adapter.list<SideMessage>("chats");
-
-  const byAnchor = new Map<string, SideMessage[]>();
-  for (const row of stored) {
-    if (!isSideKey(row.id)) continue;
-    const value = row.value;
-    if (!value || value.conversation_id !== input.conversationId) continue;
-    const list = byAnchor.get(value.anchor_message_id) ?? [];
-    list.push(value);
-    byAnchor.set(value.anchor_message_id, list);
-  }
-  for (const list of byAnchor.values()) {
-    list.sort((a, b) => a.created_at.localeCompare(b.created_at));
-  }
-  return byAnchor;
+  anchorMessageId: string;
+}): Promise<SideMessage[]> {
+  const rows = (await listSideMessages({
+    data: { conversationId: input.conversationId, anchorMessageId: input.anchorMessageId },
+  })) as unknown as SideMessage[] | null;
+  return rows ?? [];
 }
 
 /**
@@ -126,22 +124,12 @@ export async function loadSideThreads(input: {
  * conversation it was asked beside.
  */
 export async function deleteSideThread(input: {
-  userId: string;
   conversationId: string;
   anchorMessageId: string;
-}): Promise<number> {
-  const adapter = await resolveAdapter(input.userId, "chats");
-  const stored = await adapter.list<SideMessage>("chats");
-  const targets = stored.filter(
-    (row) =>
-      isSideKey(row.id) &&
-      row.value?.conversation_id === input.conversationId &&
-      row.value?.anchor_message_id === input.anchorMessageId,
-  );
-  for (const target of targets) {
-    await adapter.delete("chats", target.id);
-  }
-  return targets.length;
+}): Promise<void> {
+  await deleteSideThreadRows({
+    data: { conversationId: input.conversationId, anchorMessageId: input.anchorMessageId },
+  });
 }
 
 /**

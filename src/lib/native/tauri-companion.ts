@@ -30,7 +30,7 @@ import {
 } from "./companion-bridge";
 import { isProtectedText, redactForAudit } from "@/lib/security/protected-text";
 import type { NativeObservationAdapter, NativeObservationRequest } from "./automation-observer";
-import { NativeCompanionRequiredError } from "../storage/types";
+import { NativeCompanionRequiredError } from "./companion-required";
 import {
   installManagedCdpBrowserBridge,
   MANAGED_BROWSER_PROTOCOL_VERSION,

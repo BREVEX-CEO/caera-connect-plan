@@ -1,43 +1,49 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { listArtifacts } from "../artifacts/store";
-import { listLocalOutputActivity, saveChatOutput } from "../artifacts/chat-output-flow";
+import { createFakeOutputStore } from "./support/fake-outputs";
 
-let storage: Map<string, string>;
+/**
+ * SAVING AN ANSWER AS AN ARTIFACT — ONE ROW, AND THE LEDGER IT IS.
+ *
+ * The activity entry used to be a second record in `localStorage`, written
+ * after the artifact and rolled back if it failed. Most of this file was about
+ * that split: whether the ledger could disagree with the artifact list, and
+ * whether the rollback fired. `PLAN.md` Phase 2 leaves one row, and the ledger
+ * is a projection of it, so the split is unrepresentable and what is worth
+ * proving changed:
+ *
+ *  - the context an answer was produced from is stored WITH it, not alongside;
+ *  - the entry the Activity screen shows is derived from that row;
+ *  - an output that fails its immediate re-hash is removed rather than kept.
+ */
+
+const outputs = createFakeOutputStore();
+vi.mock("@/lib/ocade-projects.functions", () => outputs.module);
+
+const { listArtifacts } = await import("../artifacts/store");
+const { listOutputActivity, saveChatOutput } = await import("../artifacts/chat-output-flow");
 
 beforeEach(() => {
-  storage = new Map();
-  vi.stubGlobal("localStorage", {
-    getItem: (key: string) => storage.get(key) ?? null,
-    setItem: (key: string, value: string) => void storage.set(key, value),
-    removeItem: (key: string) => void storage.delete(key),
-    clear: () => storage.clear(),
-  });
+  outputs.reset();
 });
 
-describe("Chat output becomes one verified artifact and one matching activity entry", () => {
-  it("keeps project, conversation, message and file context on the artifact and ledger", async () => {
-    const result = await saveChatOutput({
-      title: "Quarterly answer",
-      content: "North grew by 12%.",
-      conversationId: "conversation-1",
-      messageId: "message-9",
-      project: {
-        id: "project-2",
-        name: "Q2 review",
-        instructions: "Use the approved sales workbook.",
-      },
-      files: [
-        {
-          name: "sales.csv",
-          content: "region,growth\nNorth,12\n",
-        },
-      ],
-      producerEvidence: "Assistant response completed and was re-hashed after storage.",
-      producerVerified: true,
-      now: new Date("2026-07-25T04:00:00.000Z"),
-      artifactId: "artifact-1",
-      activityId: "activity-1",
-    });
+const answer = {
+  title: "Quarterly answer",
+  content: "North grew by 12%.",
+  conversationId: "conversation-1",
+  messageId: "message-9",
+  project: {
+    id: "project-2",
+    name: "Q2 review",
+    instructions: "Use the approved sales workbook.",
+  },
+  files: [{ name: "sales.csv", content: "region,growth\nNorth,12\n" }],
+  producerEvidence: "Assistant response completed and was re-hashed after storage.",
+  producerVerified: true,
+};
+
+describe("a chat output becomes one artifact carrying its own context", () => {
+  it("keeps project, conversation, message and file context on the row", async () => {
+    const result = await saveChatOutput(answer);
 
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("unreachable");
@@ -49,15 +55,28 @@ describe("Chat output becomes one verified artifact and one matching activity en
       projectId: "project-2",
       projectName: "Q2 review",
     });
-    expect(result.data.artifact.context?.files[0].sha256).toHaveLength(64);
+    // The source file's digest, not its bytes: what was read is recorded, and
+    // the file itself is not uploaded.
+    expect(result.data.artifact.context?.files?.[0]!.sha256).toHaveLength(64);
+    expect(outputs.rows[0]!.context).toMatchObject({ messageId: "message-9" });
+  });
 
-    const activity = listLocalOutputActivity();
+  it("files the row under the conversation and project it came from", async () => {
+    await saveChatOutput(answer);
+    expect(outputs.rows[0]!.conversation_id).toBe("conversation-1");
+    expect(outputs.rows[0]!.project_id).toBe("project-2");
+  });
+
+  it("shows the same facts in the activity ledger, because it is the same row", async () => {
+    const result = await saveChatOutput(answer);
+    if (!result.ok) throw new Error("unreachable");
+
+    const activity = await listOutputActivity();
     expect(activity.ok).toBe(true);
     if (!activity.ok) throw new Error("unreachable");
     expect(activity.data).toHaveLength(1);
     expect(activity.data[0]).toMatchObject({
-      id: "activity-1",
-      artifactId: "artifact-1",
+      artifactId: result.data.artifact.id,
       outputName: "Quarterly answer",
       outputSha256: result.data.artifact.sha256,
       projectId: "project-2",
@@ -67,58 +86,78 @@ describe("Chat output becomes one verified artifact and one matching activity en
     });
   });
 
-  it("does not claim success when local activity persistence fails", async () => {
-    let writes = 0;
-    vi.stubGlobal("localStorage", {
-      getItem: (key: string) => storage.get(key) ?? null,
-      setItem: (key: string, value: string) => {
-        writes++;
-        if (writes === 2) throw new Error("activity quota");
-        storage.set(key, value);
-      },
-      removeItem: (key: string) => void storage.delete(key),
-      clear: () => storage.clear(),
+  it("marks an unconfirmed answer unconfirmed in the ledger too", async () => {
+    await saveChatOutput({ ...answer, producerVerified: false });
+    const activity = await listOutputActivity();
+    if (!activity.ok) throw new Error("unreachable");
+    expect(activity.data[0]!.result).toBe("not_confirmed");
+  });
+
+  it("leaves artifacts from other surfaces out of the ledger", async () => {
+    // The Activity screen answers "what have I saved from a conversation".
+    // Padding it with every patch and receipt would bury the entry somebody
+    // came looking for.
+    const { saveArtifact } = await import("../artifacts/store");
+    await saveChatOutput(answer);
+    await saveArtifact({
+      name: "Code patch",
+      kind: "patch",
+      content: "--- a\n+++ b\n",
+      provenance: { producedBy: "ocade.code:workspace-1", verified: true, evidence: "applied" },
     });
 
-    const result = await saveChatOutput({
-      title: "Answer",
-      content: "A result",
-      conversationId: "conversation-1",
-      messageId: "message-1",
-      files: [],
-      producerEvidence: "Completed.",
-    });
-
-    expect(result.ok).toBe(false);
-    if (result.ok) throw new Error("unreachable");
-    expect(result.reason).toMatch(/activity.*could not be saved/i);
-    expect(listArtifacts()).toHaveLength(0);
+    const activity = await listOutputActivity();
+    if (!activity.ok) throw new Error("unreachable");
+    expect(activity.data).toHaveLength(1);
+    expect(await listArtifacts()).toHaveLength(2);
   });
 });
 
-describe("local persistence fails closed", () => {
-  it("refuses an output when browser storage is unavailable", async () => {
-    vi.stubGlobal("localStorage", undefined);
-
-    const result = await saveChatOutput({
-      title: "Answer",
-      content: "A result",
-      conversationId: "conversation-1",
-      messageId: "message-1",
-      files: [],
-      producerEvidence: "Completed.",
-    });
-
+describe("it fails closed", () => {
+  it("does not claim success when the account cannot be reached", async () => {
+    const failing = vi
+      .spyOn(outputs.module, "createOutput")
+      .mockRejectedValueOnce(new Error("Failed to fetch"));
+    const result = await saveChatOutput(answer);
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("unreachable");
-    expect(result.reason).toMatch(/storage.*unavailable/i);
+    expect(result.reason).toMatch(/could not reach your account/i);
+    expect(outputs.rows).toHaveLength(0);
+    failing.mockRestore();
   });
 
-  it("reports corrupt activity storage instead of rendering an empty ledger", () => {
-    storage.set("ocade.output-activity.v1", "{not-json");
-    const result = listLocalOutputActivity();
+  it("REMOVES an output that fails its immediate integrity check", async () => {
+    /*
+     * The re-hash reads the content back from where it was stored. An artifact
+     * whose bytes did not survive the write is not worth keeping with a
+     * warning: it is not the thing that was produced, and leaving it would let
+     * somebody rely on it later.
+     */
+    const saved = outputs.module.createOutput.bind(outputs.module);
+    const truncating = vi
+      .spyOn(outputs.module, "createOutput")
+      .mockImplementation(async (input) => {
+        const row = await saved(input);
+        outputs.corrupt(row.id, { content: "not what was written" });
+        return row;
+      });
+
+    const result = await saveChatOutput(answer);
     expect(result.ok).toBe(false);
     if (result.ok) throw new Error("unreachable");
-    expect(result.reason).toMatch(/corrupt/i);
+    expect(result.reason).toMatch(/failed its immediate integrity check and was removed/i);
+    expect(outputs.rows, "a corrupt output was left in the account").toHaveLength(0);
+    truncating.mockRestore();
+  });
+
+  it("reports an unreachable ledger instead of rendering an empty one", async () => {
+    const failing = vi
+      .spyOn(outputs.module, "listOutputs")
+      .mockRejectedValueOnce(new Error("offline"));
+    const result = await listOutputActivity();
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("unreachable");
+    expect(result.reason).toMatch(/could not reach your account/i);
+    failing.mockRestore();
   });
 });

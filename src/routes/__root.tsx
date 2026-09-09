@@ -459,15 +459,39 @@ function BrowserRuntimeBootstrap({
           onSignedInChange(Boolean(session));
           if (!["SIGNED_IN", "SIGNED_OUT", "USER_UPDATED"].includes(event)) return;
           if (event === "SIGNED_OUT") {
+            /*
+             * WHAT SIGNING OUT CLEARS IS WHAT THIS TAB WAS HOLDING — never the
+             * account's own records.
+             *
+             * It used to call `clearDevices()` and `clearApprovals()`. Both
+             * were safe while those lived in this browser and became
+             * destructive the moment they lived in the account: signing out
+             * would have unpaired every phone the person owns and thrown away
+             * every approval waiting for them. Paired devices, the revocations
+             * among them, and outstanding approvals all stay exactly where they
+             * are.
+             *
+             * What must not stay is anything this tab was holding on the
+             * previous person's behalf, because the next person to sign in on
+             * this machine would inherit it.
+             */
             void Promise.all([
-              import("@/lib/storage/resolver").then((module) => module.invalidateModeCache()),
-              import("@/lib/mobile/device-store").then((module) => module.clearDevices()),
-              import("@/lib/mobile/approval-store").then((module) => module.clearApprovals()),
+              import("@/lib/offline-queue").then((module) => module.forgetAllQueues()),
+              import("@/lib/chat/unsynced-turns").then((module) => module.forgetAllUnsyncedTurns()),
+              /*
+               * The site policy is the account's, and this tab was holding a
+               * copy of it to answer permission checks without a round trip.
+               * Forgetting it makes the next account start from refusal rather
+               * than inheriting what the last one allowed.
+               */
+              import("@/lib/native/browser-bridge").then((module) =>
+                module.forgetBrowserSitePolicy(),
+              ),
               import("@/lib/native/tauri-companion").then((module) =>
                 module.closeActiveCompanionSession(),
               ),
             ]).catch(() => {
-              /* Local cleanup is best effort for modules that may never have loaded. */
+              /* Best effort for modules that may never have loaded in this tab. */
             });
           }
           router.invalidate();

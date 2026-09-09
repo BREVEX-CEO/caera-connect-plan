@@ -14,8 +14,9 @@ import {
   getBrowserBridge,
   originOf,
   BROWSER_BRIDGE_UNAVAILABLE,
-  BROWSER_POLICY_STORAGE_KEY,
-  readBrowserSitePolicy,
+  DEFAULT_SITE_POLICY,
+  loadBrowserSitePolicy,
+  saveBrowserSitePolicy,
   type BrowserBridgeStatus,
   type SitePolicy,
 } from "@/lib/native/browser-bridge";
@@ -32,17 +33,26 @@ export const Route = createFileRoute("/_authenticated/settings/browser")({
   component: BrowserSettingsPage,
 });
 
-function loadPolicy(): SitePolicy {
-  return readBrowserSitePolicy();
-}
-
 function BrowserSettingsPage() {
-  const [policy, setPolicy] = useState<SitePolicy>(() => loadPolicy());
+  /*
+   * Starts at the REFUSE-EVERYTHING default and is replaced by the account's
+   * policy when it arrives. Starting from a remembered one would show somebody
+   * permissions that may since have been revoked on another device — on this
+   * screen, that is the whole point of the thing being wrong.
+   */
+  const [policy, setPolicy] = useState<SitePolicy>(DEFAULT_SITE_POLICY);
+  const [unreachable, setUnreachable] = useState<string | null>(null);
   const [site, setSite] = useState("");
   const [bridgeReason, setBridgeReason] = useState<string | null>(null);
   const [bridgeIdentity, setBridgeIdentity] = useState<NonNullable<
     BrowserBridgeStatus["identity"]
   > | null>(null);
+
+  useEffect(() => {
+    void loadBrowserSitePolicy().then(setPolicy, (error: unknown) => {
+      setUnreachable(error instanceof Error ? error.message : "Your account could not be reached.");
+    });
+  }, []);
 
   useEffect(() => {
     void bootstrapCompanion()
@@ -61,20 +71,28 @@ function BrowserSettingsPage() {
    * produced BOTH — and the user believed a permission change had stuck when it
    * had not. For a permissions screen that is the worst possible lie.
    */
-  const persist = useCallback((next: SitePolicy): boolean => {
-    setPolicy(next);
+  const persist = useCallback(async (next: SitePolicy): Promise<boolean> => {
     try {
-      localStorage.setItem(BROWSER_POLICY_STORAGE_KEY, JSON.stringify(next));
+      /*
+       * THE SCREEN IS UPDATED ONLY AFTER THE ACCOUNT AGREES. It used to be set
+       * first, so a failed save left the toggle showing a permission that was
+       * never recorded — and the caller went on to show a success toast beside
+       * the error one. For a permissions screen that is the worst possible lie.
+       */
+      setPolicy(await saveBrowserSitePolicy(next));
+      setUnreachable(null);
       return true;
-    } catch {
+    } catch (error) {
       toast.error(
-        "Couldn't save your site permissions on this device. The change applies to this tab only.",
+        error instanceof Error
+          ? `That permission was not saved: ${error.message}`
+          : "That permission was not saved, so nothing changed.",
       );
       return false;
     }
   }, []);
 
-  function addSite() {
+  async function addSite() {
     const origin = originOf(
       site.trim().startsWith("http") ? site.trim() : `https://${site.trim()}`,
     );
@@ -86,7 +104,7 @@ function BrowserSettingsPage() {
       toast.info(`${origin} is already allowed.`);
       return;
     }
-    const saved = persist({ ...policy, allowOrigins: [...policy.allowOrigins, origin] });
+    const saved = await persist({ ...policy, allowOrigins: [...policy.allowOrigins, origin] });
     setSite("");
     // Only claim success when it actually saved; persist() already explained
     // the failure, so staying quiet here avoids contradicting it.
@@ -94,16 +112,16 @@ function BrowserSettingsPage() {
       toast.success(`${origin} allowed. Reading and filling stay off until you grant them.`);
   }
 
-  function toggle(list: "readOrigins" | "fillOrigins" | "denyOrigins", origin: string) {
+  async function toggle(list: "readOrigins" | "fillOrigins" | "denyOrigins", origin: string) {
     const has = policy[list].includes(origin);
-    persist({
+    await persist({
       ...policy,
       [list]: has ? policy[list].filter((o) => o !== origin) : [...policy[list], origin],
     });
   }
 
-  function removeSite(origin: string) {
-    const saved = persist({
+  async function removeSite(origin: string) {
+    const saved = await persist({
       ...policy,
       allowOrigins: policy.allowOrigins.filter((o) => o !== origin),
       readOrigins: policy.readOrigins.filter((o) => o !== origin),
@@ -192,18 +210,33 @@ function BrowserSettingsPage() {
           </h3>
           <p className="mb-3 text-xs text-muted-foreground">
             Adding a site lets OCADE navigate it. Reading page content and filling forms are
-            separate permissions you grant per site.
+            separate permissions you grant per site. These follow your account, so removing a site
+            removes it everywhere you are signed in.
           </p>
+          {unreachable ? (
+            <p
+              role="status"
+              className="mb-3 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+            >
+              Your site permissions could not be read: {unreachable} Nothing is allowed until they
+              can be — OCADE refuses rather than acting on a list it is not sure of.
+            </p>
+          ) : null}
           <div className="flex gap-2">
             <Input
               value={site}
               onChange={(e) => setSite(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addSite()}
+              onKeyDown={(e) => e.key === "Enter" && void addSite()}
               placeholder="example.com"
               aria-label="Website to allow"
               className="h-9 text-sm"
             />
-            <Button size="sm" className="h-9 shrink-0" onClick={addSite} disabled={!site.trim()}>
+            <Button
+              size="sm"
+              className="h-9 shrink-0"
+              onClick={() => void addSite()}
+              disabled={!site.trim()}
+            >
               <Plus className="h-4 w-4" />
               <span className="sr-only">Allow site</span>
             </Button>
@@ -236,7 +269,7 @@ function BrowserSettingsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => toggle("readOrigins", origin)}
+                          onClick={() => void toggle("readOrigins", origin)}
                           className={cn(policy.readOrigins.includes(origin) && "bg-sidebar-accent")}
                         >
                           <Eye className="mr-1 h-3.5 w-3.5" /> Read
@@ -244,7 +277,7 @@ function BrowserSettingsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => toggle("fillOrigins", origin)}
+                          onClick={() => void toggle("fillOrigins", origin)}
                           className={cn(policy.fillOrigins.includes(origin) && "bg-sidebar-accent")}
                         >
                           <PencilLine className="mr-1 h-3.5 w-3.5" /> Fill
@@ -252,7 +285,7 @@ function BrowserSettingsPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => toggle("denyOrigins", origin)}
+                          onClick={() => void toggle("denyOrigins", origin)}
                           className={cn(denied && "bg-destructive/15 text-destructive")}
                         >
                           <Ban className="mr-1 h-3.5 w-3.5" /> Block
@@ -260,7 +293,7 @@ function BrowserSettingsPage() {
                         <Button size="sm" variant="ghost" onClick={() => void testRead(origin)}>
                           Test
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => removeSite(origin)}>
+                        <Button size="sm" variant="ghost" onClick={() => void removeSite(origin)}>
                           <Trash2 className="h-3.5 w-3.5" />
                           <span className="sr-only">Remove {origin}</span>
                         </Button>

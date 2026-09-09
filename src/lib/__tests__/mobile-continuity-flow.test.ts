@@ -9,14 +9,27 @@ import {
   UnavailableMobileBiometricGate,
   type MobileIntent,
 } from "../mobile/companion-link";
-import {
-  listApprovals,
-  requestApproval,
-  saveApprovalStatus,
-  clearApprovals,
-} from "../mobile/approval-store";
 import { setNotificationTransport, UnavailableNotifications } from "../mobile/notifications";
+import { forgetAllQueues } from "../offline-queue";
 import { createPairingChallenge, verifyPairing, type PairedDevice } from "../mobile/pairing";
+
+/*
+ * Hoisted, because `vi.mock` is lifted above every import and every other
+ * statement in the file. Built the ordinary way, the factory would close over a
+ * binding that does not exist yet when the mocked module is first resolved.
+ */
+const approvalStore = vi.hoisted(async () => {
+  const { createFakeApprovalStore } = await import("./support/fake-approvals");
+  return createFakeApprovalStore();
+});
+
+vi.mock("@/integrations/supabase/on-demand", () => ({
+  loadSupabaseClient: async () => (await approvalStore).client,
+}));
+
+const approvals = await approvalStore;
+const { listApprovals, requestApproval, saveApprovalStatus, clearApprovals } =
+  await import("../mobile/approval-store");
 
 /**
  * END-TO-END MOBILE CONTINUITY.
@@ -65,13 +78,11 @@ function transport() {
 }
 
 beforeEach(() => {
-  const store = new Map<string, string>();
-  vi.stubGlobal("localStorage", {
-    getItem: (k: string) => store.get(k) ?? null,
-    setItem: (k: string, v: string) => void store.set(k, v),
-    removeItem: (k: string) => void store.delete(k),
-    clear: () => store.clear(),
-  });
+  approvals.reset();
+  approvals.setNow(NOW);
+  // The intent queue lives in this tab, so a test that queued work must not
+  // leave it for the next one.
+  forgetAllQueues();
   setMobileTransport(new UnavailableMobileTransport());
   setMobileBiometricGate(new UnavailableMobileBiometricGate());
   setNotificationTransport(new UnavailableNotifications());
@@ -162,33 +173,38 @@ describe("revocation cuts off work queued beforehand", () => {
     expect(t.delivered.length).toBe(flushed.sent);
   });
 
-  it("pending approvals are cleared on revocation, so no decision lands late", () => {
-    requestApproval({ summary: "Open the report", risk: "high" }, NOW);
-    expect(listApprovals(NOW)).toHaveLength(1);
+  it("pending approvals are cleared on revocation, so no decision lands late", async () => {
+    await requestApproval({ summary: "Open the report", risk: "high" }, NOW);
+    expect(await listApprovals(NOW)).toHaveLength(1);
 
-    clearApprovals(); // what revoke() does
-    expect(listApprovals(NOW)).toHaveLength(0);
+    await clearApprovals(); // what revoke() does
+    expect(await listApprovals(NOW)).toHaveLength(0);
 
     // A decision for the now-gone request cannot resurrect it.
-    expect(saveApprovalStatus("anything", "approved", "d1")).toBeNull();
-    expect(listApprovals(NOW)).toHaveLength(0);
+    expect(await saveApprovalStatus("anything", "approved", "d1")).toBeNull();
+    expect(await listApprovals(NOW)).toHaveLength(0);
   });
 });
 
 describe("continuity survives interruption", () => {
-  it("an approval raised before a reload is still waiting after it", () => {
-    const created = requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
-    // Fresh read = post-reload; nothing is held in memory.
-    const after = listApprovals(NOW);
+  it("an approval raised on the desktop is waiting on the phone", async () => {
+    /*
+     * The seam this journey exists for. It used to say "still waiting after a
+     * reload", which was the wrong bar: the reload was never the problem. The
+     * two surfaces are two DEVICES, and a queue in one browser could not be
+     * read from the other at all.
+     */
+    const created = await requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
+    const after = await listApprovals(NOW);
     expect(after).toHaveLength(1);
-    expect(after[0].id).toBe(created.id);
-    expect(after[0].status).toBe("pending");
+    expect(after[0]!.id).toBe(created.id);
+    expect(after[0]!.status).toBe("pending");
   });
 
-  it("a decision made on the phone is visible to the desktop", () => {
-    const created = requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
-    saveApprovalStatus(created.id, "approved", "d1", NOW);
-    expect(listApprovals(NOW)[0].status).toBe("approved");
+  it("a decision made on the phone is visible to the desktop", async () => {
+    const created = await requestApproval({ summary: "Open the report", risk: "confirm" }, NOW);
+    await saveApprovalStatus(created.id, "approved", "d1");
+    expect((await listApprovals(NOW))[0]!.status).toBe("approved");
   });
 
   it("multiple queued items replay in order, oldest first", async () => {

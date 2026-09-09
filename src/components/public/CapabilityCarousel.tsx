@@ -13,9 +13,9 @@ const CAPABILITIES = [
       "Control and Cowork paths preview actions, preserve STOP and require a supported signed companion before claiming computer control.",
   },
   {
-    title: "Device Only or Private Sync",
+    title: "One place your work lives",
     detail:
-      "Workspace data can remain local or use the verified private service when it is configured; the product fails closed when that service is missing.",
+      "Conversations, projects, tasks and artifacts are kept in your account, so every device you sign in on sees the same work; the product fails closed rather than answering from a stale copy.",
   },
 ] as const;
 

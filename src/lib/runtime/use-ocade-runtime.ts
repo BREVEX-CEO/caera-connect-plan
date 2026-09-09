@@ -76,7 +76,7 @@ import { considerSessionMemory, noteWork } from "@/lib/memory/session-memory";
 import { mayRemember } from "@/lib/chat/incognito";
 import { repairForResume } from "@/primary-logic/query/resume";
 import { QueryGuard } from "@/primary-logic/query/queryGuard";
-import { addLocalMemory, inspectLocalMemory } from "@/lib/local-memory";
+import { addMemory, readMemory } from "@/lib/ocade-projects.functions";
 import type { BilledRequest } from "@/lib/commercial/use-generation-permit";
 
 /**
@@ -124,7 +124,7 @@ export interface RuntimeOptions {
   /** The live companion session, when the surface holds one. */
   missionId?: () => string | null;
   /** What OCADE already knows about this person, for the system prompt. */
-  memoryContext?: () => string | null;
+  memoryContext?: () => string | null | Promise<string | null>;
   /** True while the person has pressed stop or pause. */
   shouldStop?: () => string | null;
   /**
@@ -270,7 +270,6 @@ export function useOcadeRuntime(options: RuntimeOptions) {
               tools: [],
               attachments: [],
               privacy: {
-                storageMode: "browser_only",
                 onlineInferenceConsented: false,
                 sealed: true,
               },
@@ -284,14 +283,38 @@ export function useOcadeRuntime(options: RuntimeOptions) {
             });
             return reply.ok ? reply.response.text : null;
           },
-          existing: () => {
-            const held = inspectLocalMemory();
-            return held.ok ? held.data.rows.map((row) => row.content) : [];
+          existing: async () => {
+            /*
+             * Read from the account rather than from anything this tab is
+             * holding. A second device may have added the same fact an hour
+             * ago, and an extraction that could not see it would save it again
+             * — memory that grows a duplicate every session is the failure
+             * that makes recall useless.
+             */
+            try {
+              const held = await readMemory();
+              return held.rows.map((row) => row.content);
+            } catch {
+              return [];
+            }
           },
-          // `source: "imported"` because OCADE inferred it rather than being
-          // told it. The distinction is visible in Privacy settings, where a
-          // person deciding what to delete deserves to know which is which.
-          save: (content) => addLocalMemory({ content, source: "imported" }).ok,
+          /*
+           * `source: "imported"` because OCADE inferred it rather than being
+           * told it. The distinction is visible in Privacy settings, where a
+           * person deciding what to delete deserves to know which is which.
+           *
+           * A refusal is an ordinary answer here, not an error: the server
+           * declines when memory is switched off, and note-taking must not
+           * surface that to somebody who is in the middle of something else.
+           */
+          save: async (content) => {
+            try {
+              await addMemory({ data: { content, source: "imported" } });
+              return true;
+            } catch {
+              return false;
+            }
+          },
         },
       });
     },
@@ -381,7 +404,7 @@ export function useOcadeRuntime(options: RuntimeOptions) {
           };
         }
 
-        const memory = optionsRef.current.memoryContext?.() ?? null;
+        const memory = (await optionsRef.current.memoryContext?.()) ?? null;
         /*
          * REPAIR THE HISTORY BEFORE THE MODEL SEES IT.
          *
@@ -400,7 +423,6 @@ export function useOcadeRuntime(options: RuntimeOptions) {
             permit: opts.permit,
             mode: optionsRef.current.intelligenceMode?.() ?? "local_only",
             privacy: optionsRef.current.intelligencePrivacy?.() ?? {
-              storageMode: "browser_only",
               onlineInferenceConsented: false,
               sealed: true,
             },

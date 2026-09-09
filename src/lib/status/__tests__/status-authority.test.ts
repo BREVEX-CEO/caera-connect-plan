@@ -156,7 +156,7 @@ describe("probing", () => {
   it("reports an absent account binding as an outage of the things that need it", async () => {
     const result = await probeOne(
       {
-        id: "private-sync",
+        id: "account-data",
         name: "n",
         description: "d",
         evidence: { kind: "configuration", setting: "supabase" },

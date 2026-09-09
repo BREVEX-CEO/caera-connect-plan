@@ -1,146 +1,211 @@
 /**
- * Durable paired-device registry (Plan §27).
+ * The paired-device registry (Plan §27) — the account's, not the browser's.
  *
- * Devices were previously held in component state only, which meant pairing was
- * cosmetic: a reload lost every device, and — more seriously — a REVOCATION did
- * not survive either. A revocation that evaporates is worse than none, because
- * the user believes a lost phone has been cut off.
+ * WHY THIS IS A SAFETY QUESTION AND NOT A STORAGE ONE. Devices lived in
+ * `localStorage` under `caera:devices:v1` while `public.devices` held the same
+ * idea for browsers and PCs. Two registries answering "which devices may act
+ * for this account" is a defect anywhere; here it was dangerous. A REVOCATION
+ * that lives only in the browser it was performed in is not a revocation:
+ * somebody who loses a phone and revokes it from a laptop would find it still
+ * trusted on every other device they own, and the refusal gone entirely once
+ * that laptop's storage was cleared.
  *
- * A revoked device is kept as a tombstone rather than deleted. Removing the row
- * would let the same device pair again silently; keeping it means the refusal
- * is explicit and auditable.
+ * So this file is now a typed view over `public.devices`, and every function is
+ * a request. `devices.ts` owns registering THIS browser; this owns the phones a
+ * person has paired. They are the same table.
+ *
+ * A REVOKED DEVICE IS KEPT AS A TOMBSTONE — `revoked_at` set, row present —
+ * rather than deleted. Removing it would let the same device pair again
+ * silently; keeping it means the refusal is explicit and auditable.
  */
-import type { PairedDevice } from "./pairing";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
+import type { DeviceKind, DevicePlatform, PairedDevice } from "./pairing";
 
-const KEY = "caera:devices:v1";
+const COLUMNS = "id, name, kind, platform, created_at, last_active_at, revoked_at";
 
-interface StoredDevice {
+interface DeviceRow {
   id: string;
-  label: string;
-  kind: PairedDevice["kind"];
-  platform: PairedDevice["platform"];
-  pairedAt: string;
-  lastSeenAt: string;
-  revoked: boolean;
-  revokedAt?: string;
+  name: string;
+  kind: DeviceKind;
+  platform: string | null;
+  created_at: string;
+  last_active_at: string;
+  revoked_at: string | null;
 }
 
-function toStored(d: PairedDevice, revokedAt?: Date): StoredDevice {
+const PLATFORMS: DevicePlatform[] = ["windows", "macos", "android", "ios"];
+
+/**
+ * A row registered before `platform` was recorded does not know its own.
+ * `windows` is the shape the rest of the product treats as "an ordinary desktop
+ * we cannot say more about"; it is never presented as a fact somebody stated.
+ */
+function platformOf(row: DeviceRow): DevicePlatform {
+  const stored = row.platform as DevicePlatform | null;
+  if (stored && PLATFORMS.includes(stored)) return stored;
+  return row.kind === "mobile" ? "android" : "windows";
+}
+
+function toPaired(row: DeviceRow): PairedDevice {
   return {
-    id: d.id,
-    label: d.label,
-    kind: d.kind,
-    platform: d.platform,
-    pairedAt: d.pairedAt.toISOString(),
-    lastSeenAt: d.lastSeenAt.toISOString(),
-    revoked: d.revoked,
-    revokedAt: revokedAt?.toISOString(),
+    id: row.id,
+    label: row.name,
+    kind: row.kind,
+    platform: platformOf(row),
+    pairedAt: new Date(row.created_at),
+    lastSeenAt: new Date(row.last_active_at),
+    revoked: row.revoked_at !== null,
   };
 }
 
-function fromStored(s: StoredDevice): PairedDevice {
-  return {
-    id: s.id,
-    label: s.label,
-    kind: s.kind,
-    platform: s.platform,
-    pairedAt: new Date(s.pairedAt),
-    lastSeenAt: new Date(s.lastSeenAt),
-    revoked: s.revoked,
-  };
-}
-
-function readAll(): StoredDevice[] {
-  if (typeof localStorage === "undefined") return [];
+/** Every device, including revoked tombstones. */
+export async function listDevices(): Promise<PairedDevice[]> {
   try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(KEY) ?? "[]");
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (v): v is StoredDevice =>
-        typeof v === "object" &&
-        v !== null &&
-        typeof (v as StoredDevice).id === "string" &&
-        typeof (v as StoredDevice).pairedAt === "string",
-    );
+    const supabase = await loadSupabaseClient();
+    const { data, error } = await supabase
+      .from("devices")
+      .select(COLUMNS)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data as DeviceRow[] | null)?.map(toPaired) ?? [];
   } catch {
+    /*
+     * An unreachable account lists NOTHING rather than a remembered set. The
+     * list is used to decide what may act, and a stale copy is exactly how a
+     * revoked phone keeps working — failing closed is the only safe answer.
+     */
     return [];
   }
 }
 
-function writeAll(rows: StoredDevice[]): boolean {
-  if (typeof localStorage === "undefined") return false;
-  try {
-    localStorage.setItem(KEY, JSON.stringify(rows));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/** Every device, including revoked tombstones. */
-export function listDevices(): PairedDevice[] {
-  return readAll().map(fromStored);
-}
-
 /** Devices that may still act. */
-export function activeDevices(): PairedDevice[] {
-  return listDevices().filter((d) => !d.revoked);
+export async function activeDevices(): Promise<PairedDevice[]> {
+  return (await listDevices()).filter((device) => !device.revoked);
 }
 
 /**
  * Register a newly paired device.
  *
  * Refuses to re-pair an id that was revoked: a lost phone must not be able to
- * quietly restore its own trust by pairing again under the same identity.
+ * quietly restore its own trust by pairing again under the same identity. The
+ * check reads the account rather than anything this browser remembers, so it
+ * holds on a device that has never seen the revocation.
  */
-export function saveDevice(device: PairedDevice): { ok: true } | { ok: false; reason: string } {
-  const rows = readAll();
-  const existing = rows.find((r) => r.id === device.id);
-  if (existing?.revoked) {
+export async function saveDevice(
+  device: PairedDevice,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  try {
+    const supabase = await loadSupabaseClient();
+    const { data: existing, error: readError } = await supabase
+      .from("devices")
+      .select("id, revoked_at")
+      .eq("id", device.id)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (existing?.revoked_at) {
+      return {
+        ok: false,
+        reason: "That device was revoked. Remove it from the list before pairing it again.",
+      };
+    }
+
+    const { data: session } = await supabase.auth.getUser();
+    const userId = session.user?.id;
+    if (!userId) return { ok: false, reason: "Sign in before pairing a device." };
+
+    const { error } = await supabase.from("devices").upsert(
+      {
+        id: device.id,
+        user_id: userId,
+        name: device.label,
+        kind: device.kind,
+        platform: device.platform,
+        last_active_at: device.lastSeenAt.toISOString(),
+        created_at: device.pairedAt.toISOString(),
+      },
+      { onConflict: "id" },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  } catch (cause) {
     return {
       ok: false,
-      reason: "That device was revoked. Remove it from the list before pairing it again.",
+      reason: `This device could not be paired: ${
+        cause instanceof Error ? cause.message : "your account could not be reached"
+      }. Nothing was changed.`,
     };
   }
-  const next = existing
-    ? rows.map((r) => (r.id === device.id ? toStored(device) : r))
-    : [...rows, toStored(device)];
-  return writeAll(next)
-    ? { ok: true }
-    : {
-        ok: false,
-        reason:
-          "This device could not be saved securely. Check private-storage access and try pairing again.",
-      };
 }
 
 /**
- * Revoke a device. Persisted as a tombstone so the refusal survives a reload —
- * the whole point of revoking a lost phone.
+ * Revoke a device.
+ *
+ * A tombstone rather than a delete, so the refusal survives — that is the whole
+ * point of revoking a lost phone. Returns null when nothing was revoked, so a
+ * screen cannot report a revocation that did not happen.
  */
-export function revokeDevice(id: string, now: Date = new Date()): PairedDevice | null {
-  const rows = readAll();
-  const idx = rows.findIndex((r) => r.id === id);
-  if (idx === -1) return null;
-  rows[idx] = { ...rows[idx], revoked: true, revokedAt: now.toISOString() };
-  return writeAll(rows) ? fromStored(rows[idx]) : null;
+export async function revokeDevice(
+  id: string,
+  now: Date = new Date(),
+): Promise<PairedDevice | null> {
+  try {
+    const supabase = await loadSupabaseClient();
+    const { data, error } = await supabase
+      .from("devices")
+      .update({ revoked_at: now.toISOString() })
+      .eq("id", id)
+      .select(COLUMNS)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return data ? toPaired(data as DeviceRow) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Permanently forget a device, allowing it to pair again. Explicit user action. */
-export function forgetDevice(id: string): void {
-  writeAll(readAll().filter((r) => r.id !== id));
+export async function forgetDevice(id: string): Promise<void> {
+  try {
+    const supabase = await loadSupabaseClient();
+    await supabase.from("devices").delete().eq("id", id);
+  } catch {
+    /*
+     * Silent because forgetting is the SAFE direction of this pair: a device
+     * that stays in the list stays visible and stays revoked. The caller
+     * re-reads the list, so a failure shows as the row still being there.
+     */
+  }
 }
 
 /** Refresh the last-seen timestamp used by the trust-staleness check. */
-export function touchDevice(id: string, now: Date = new Date()): void {
-  const rows = readAll();
-  const idx = rows.findIndex((r) => r.id === id);
-  if (idx === -1 || rows[idx].revoked) return;
-  rows[idx] = { ...rows[idx], lastSeenAt: now.toISOString() };
-  writeAll(rows);
+export async function touchDevice(id: string, now: Date = new Date()): Promise<void> {
+  try {
+    const supabase = await loadSupabaseClient();
+    await supabase
+      .from("devices")
+      .update({ last_active_at: now.toISOString() })
+      .eq("id", id)
+      // A revoked device must not have its trust refreshed by its own traffic.
+      .is("revoked_at", null);
+  } catch {
+    /* A missed heartbeat expires trust, which is the safe direction. */
+  }
 }
 
-/** Remove every device — used when clearing local state entirely. */
-export function clearDevices(): void {
-  writeAll([]);
+/**
+ * Forget every paired device.
+ *
+ * Used when somebody clears their data. Revoked tombstones go too: this is a
+ * deliberate request to remove the record, not a revocation.
+ */
+export async function clearDevices(): Promise<void> {
+  try {
+    const supabase = await loadSupabaseClient();
+    const { data: session } = await supabase.auth.getUser();
+    const userId = session.user?.id;
+    if (!userId) return;
+    await supabase.from("devices").delete().eq("user_id", userId);
+  } catch {
+    /* Reported by the list still showing them, rather than by a silent claim. */
+  }
 }

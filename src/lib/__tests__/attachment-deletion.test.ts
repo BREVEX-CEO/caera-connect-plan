@@ -6,12 +6,6 @@ import {
   describeSite,
   type DeletionSite,
 } from "../attachments/deletion";
-import {
-  saveChatCitations,
-  removeCitationsForSource,
-  getChatCitations,
-} from "../chat-citation-store";
-import { saveProjectFile, listProjectFiles } from "../project-files";
 
 /**
  * Deleting an attachment must empty every place it left a trace.
@@ -109,44 +103,35 @@ describe("the remote order is the one that cannot lose bytes", () => {
 });
 
 describe("a local failure does not abandon the sites after it", () => {
-  it("still clears citations when the vault refuses", async () => {
-    saveChatCitations({
-      conversationId: "c1",
-      messageId: "m1",
-      citations: [
-        { sourceId: "S1", name: "leak.pdf", kind: "pdf", locator: { page: 2 }, snippet: "secret" },
-      ],
-    });
+  it("still clears citations when the account refuses the stored text", async () => {
+    const swept: string[] = [];
 
     const receipt = await deleteAttachment(
-      { name: "leak.pdf", vaultId: "v1", vaultClass: "files" },
+      { fileId: "f1", name: "leak.pdf" },
       {
-        adapter: {
-          delete: async () => {
-            throw new Error("Browser Only vault is locked.");
-          },
+        deleteProjectFileRow: async () => {
+          throw new Error("your account refused");
+        },
+        forgetCitations: async (name) => {
+          swept.push(name);
+          return 1;
         },
       },
     );
 
-    // The vault is reported as still holding data...
-    expect(receipt.remaining).toContain("vault_payload");
+    // The stored text is reported as still there...
+    expect(receipt.remaining).toContain("extracted_text");
     expect(receipt.complete).toBe(false);
-    // ...but the excerpt, which comes after it, was still deleted.
-    const left = getChatCitations("c1", "m1");
-    expect(left.ok && left.data, "an excerpt of the deleted file survived").toBeNull();
+    // ...but the excerpt, which comes after it, was still swept.
+    expect(swept, "an excerpt of the deleted file was never reached").toEqual(["leak.pdf"]);
+    expect(receipt.remaining).not.toContain("citation_excerpts");
   });
 
   it("names exactly which places still hold data", async () => {
     const receipt = await deleteAttachment(
-      { name: "a.pdf", vaultId: "v2", vaultClass: "files" },
-      {
-        adapter: {
-          delete: async () => {
-            throw new Error("locked");
-          },
-        },
-      },
+      { fileId: "f2", name: "a.pdf" },
+      // Every other site succeeds, so the count is about the one that did not.
+      { deleteProjectFileRow: async () => false, forgetCitations: async () => 0 },
     );
     expect(receipt.summary).toMatch(/partly deleted/i);
     expect(receipt.summary).toMatch(/1 place/);
@@ -176,7 +161,6 @@ describe("the receipt describes only work that exists", () => {
     const all: DeletionSite[] = [
       "extracted_text",
       "citation_excerpts",
-      "vault_payload",
       "cached_copies",
       "remote_object",
       "remote_row",
@@ -188,71 +172,79 @@ describe("the receipt describes only work that exists", () => {
   });
 
   it("does not claim to delete a retrieval index that is never persisted", async () => {
-    const saved = await saveProjectFile({
-      projectId: "p1",
-      name: "notes.txt",
-      mime: "text/plain",
-      sizeBytes: 12,
-      text: "hello world retrieval",
-    });
-    expect(saved.ok).toBe(true);
-    if (!saved.ok) return;
-
-    const receipt = await deleteAttachment({ fileId: saved.data.id, name: "notes.txt" });
+    const receipt = await deleteAttachment(
+      { fileId: "file-1", name: "notes.txt" },
+      { deleteProjectFileRow: async () => true },
+    );
     const text = receipt.outcomes.find((o) => o.site === "extracted_text");
     // Passages and the BM25 index are computed at query time from this text.
     // The receipt says so rather than inventing a separate deletion step.
     expect(text?.detail).toMatch(/derived from it and no longer exist/i);
     expect(receipt.outcomes.map((o) => o.site)).not.toContain("retrieval_index");
-
-    const left = listProjectFiles("p1");
-    expect(left.ok && left.data).toHaveLength(0);
   });
 });
 
 describe("deleting an already-deleted attachment is not an error", () => {
-  it("reports a missing project-file record as cleared", async () => {
+  it("reports a row nothing had to delete as cleared", async () => {
+    /*
+     * No port supplied: the caller has already removed the row — which is what
+     * the Projects screen does before sweeping the other sites. Absence is the
+     * goal, and treating "already gone" as a failure would leave the retry path
+     * permanently red for somebody who has done nothing wrong.
+     */
     const receipt = await deleteAttachment({ fileId: "never-existed", name: "ghost.txt" });
     const text = receipt.outcomes.find((o) => o.site === "extracted_text");
-    // Absence is the goal. Treating "already gone" as failure makes the retry
-    // path permanently red for a user who has done nothing wrong.
     expect(text?.cleared).toBe(true);
   });
 });
 
-describe("excerpts are removed by source, across every conversation", () => {
-  it("removes quotes of one file without touching other sources", () => {
-    saveChatCitations({
-      conversationId: "c1",
-      messageId: "m1",
-      citations: [
-        { sourceId: "S1", name: "gone.pdf", kind: "pdf", locator: { page: 1 }, snippet: "a" },
-        { sourceId: "S2", name: "kept.pdf", kind: "pdf", locator: { page: 1 }, snippet: "b" },
-      ],
-    });
-    saveChatCitations({
-      conversationId: "c2",
-      messageId: "m2",
-      citations: [
-        { sourceId: "S1", name: "gone.pdf", kind: "pdf", locator: { page: 9 }, snippet: "c" },
-      ],
-    });
-
-    const result = removeCitationsForSource("gone.pdf");
-    expect(result.ok && result.data.removed).toBe(2);
-
-    const first = getChatCitations("c1", "m1");
-    expect(first.ok && first.data?.map((c) => c.name)).toEqual(["kept.pdf"]);
-    // A record left with nothing is dropped, not kept as an empty shell that
-    // still names the conversation.
-    const second = getChatCitations("c2", "m2");
-    expect(second.ok && second.data).toBeNull();
+describe("excerpts are reported honestly", () => {
+  it("says how many were removed", async () => {
+    const receipt = await deleteAttachment(
+      { fileId: "f1", name: "gone.pdf" },
+      { forgetCitations: async () => 2 },
+    );
+    const excerpts = receipt.outcomes.find((o) => o.site === "citation_excerpts");
+    expect(excerpts?.cleared).toBe(true);
+    expect(excerpts?.detail).toMatch(/2 stored excerpts of “gone.pdf” deleted/);
   });
 
-  it("reports zero rather than failing when nothing quoted the source", () => {
-    const result = removeCitationsForSource("untouched.pdf");
-    expect(result.ok).toBe(true);
-    expect(result.ok && result.data.removed).toBe(0);
+  it("reports zero rather than failing when nothing quoted the source", async () => {
+    const receipt = await deleteAttachment(
+      { fileId: "f1", name: "untouched.pdf" },
+      { forgetCitations: async () => 0 },
+    );
+    const excerpts = receipt.outcomes.find((o) => o.site === "citation_excerpts");
+    expect(excerpts?.cleared).toBe(true);
+    expect(excerpts?.detail).toMatch(/No stored citations quote that source/);
+  });
+
+  it("REFUSES TO CLAIM the excerpts are gone when it had no way to reach them", async () => {
+    /*
+     * The dangerous case. A deletion receipt that quietly counted an unchecked
+     * site as cleared would tell somebody their document was fully deleted
+     * while verbatim quotes of it were still stored.
+     */
+    const receipt = await deleteAttachment({ fileId: "f1", name: "gone.pdf" });
+    const excerpts = receipt.outcomes.find((o) => o.site === "citation_excerpts");
+    expect(excerpts?.cleared).toBe(false);
+    expect(excerpts?.detail).toMatch(/were not checked/i);
+    expect(receipt.complete).toBe(false);
+    expect(receipt.remaining).toContain("citation_excerpts");
+  });
+
+  it("reports a failed sweep as a failure, not as nothing to do", async () => {
+    const receipt = await deleteAttachment(
+      { fileId: "f1", name: "gone.pdf" },
+      {
+        forgetCitations: async () => {
+          throw new Error("your account refused");
+        },
+      },
+    );
+    const excerpts = receipt.outcomes.find((o) => o.site === "citation_excerpts");
+    expect(excerpts?.cleared).toBe(false);
+    expect(excerpts?.detail).toMatch(/your account refused/);
   });
 });
 

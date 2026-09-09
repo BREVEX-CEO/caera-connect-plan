@@ -1,3 +1,7 @@
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
+import { randomUuid } from "@/lib/ids";
+import { LIST_CAP } from "@/lib/supabase/read-all";
+
 export type UnifiedTaskStatus =
   | "CREATED"
   | "PLANNING"
@@ -120,10 +124,13 @@ export function createUnifiedTask(
     >,
   at = nowIso(),
 ): UnifiedTask {
-  const id =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `task-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  /*
+   * A UUID, because that is what the column holds. Generated here rather than
+   * by the database so the caller can reference the task immediately — and the
+   * fallback is a UUID too, not a readable string: an id the column rejects
+   * would turn a storage detail into a task that cannot be saved at all.
+   */
+  const id = randomUuid();
   return {
     ...input,
     id,
@@ -181,87 +188,154 @@ export function taskFromAutomationRun(run: AutomationRunLike, title: string): Un
   };
 }
 
-function openDb(): Promise<IDBDatabase | null> {
-  if (typeof indexedDB === "undefined") return Promise.resolve(null);
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME))
-        db.createObjectStore(STORE_NAME, { keyPath: "id" });
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () =>
-      reject(request.error ?? new Error("Could not open OCADE task database."));
-  });
+/* ------------------------------------------------------------ storage -- */
+
+/**
+ * WHERE TASKS LIVE, AND WHY THAT CHANGED.
+ *
+ * They were kept in IndexedDB with a `localStorage` fallback. That meant work
+ * started on a laptop was invisible on a phone, gone when somebody cleared
+ * their browser, and outside every export and deletion path the account offers
+ * — while the same person's automation runs were already in the account.
+ * `PLAN.md` Phase 2 leaves one persistent authority, and these three functions
+ * are requests to it.
+ *
+ * The transition rules above are untouched. They are the domain logic, they are
+ * pure, and they are tested without a database; only the storage moved.
+ */
+
+interface TaskRow {
+  id: string;
+  source: UnifiedTaskSource;
+  source_ref: string | null;
+  title: string;
+  request: string | null;
+  current_step: string | null;
+  status: UnifiedTaskStatus;
+  progress: number | null;
+  device_id: string | null;
+  agent: string | null;
+  permission_requirements: string[];
+  input_refs: string[];
+  output_refs: string[];
+  receipts: string[];
+  dependency_task_ids: string[];
+  retry_count: number;
+  last_error: string | null;
+  scheduled_for: string | null;
+  started_at: string | null;
+  finished_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
-function readFallback(): UnifiedTask[] {
-  if (typeof localStorage === "undefined") return [];
-  try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "[]");
-    return Array.isArray(parsed) ? (parsed as UnifiedTask[]) : [];
-  } catch {
-    return [];
-  }
+const TASK_COLUMNS =
+  "id, source, source_ref, title, request, current_step, status, progress, device_id, agent, permission_requirements, input_refs, output_refs, receipts, dependency_task_ids, retry_count, last_error, scheduled_for, started_at, finished_at, created_at, updated_at";
+
+/** Undefined rather than null on the way out: the task type uses optionals. */
+function optional<T>(value: T | null): T | undefined {
+  return value ?? undefined;
 }
 
-function writeFallback(tasks: UnifiedTask[]) {
-  if (typeof localStorage === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks.slice(0, 500)));
+function toTask(row: TaskRow): UnifiedTask {
+  return {
+    id: row.id,
+    source: row.source,
+    sourceRef: optional(row.source_ref),
+    title: row.title,
+    request: optional(row.request),
+    currentStep: optional(row.current_step),
+    status: row.status,
+    progress: optional(row.progress),
+    deviceId: optional(row.device_id),
+    agent: optional(row.agent),
+    permissionRequirements: row.permission_requirements,
+    inputRefs: row.input_refs,
+    outputRefs: row.output_refs,
+    receipts: row.receipts,
+    dependencyTaskIds: row.dependency_task_ids,
+    retryCount: row.retry_count,
+    lastError: optional(row.last_error),
+    scheduledFor: optional(row.scheduled_for),
+    startedAt: optional(row.started_at),
+    finishedAt: optional(row.finished_at),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
-export async function listLocalTasks(): Promise<UnifiedTask[]> {
-  try {
-    const db = await openDb();
-    if (!db) return readFallback();
-    return await new Promise((resolve, reject) => {
-      const request = db.transaction(STORE_NAME, "readonly").objectStore(STORE_NAME).getAll();
-      request.onsuccess = () =>
-        resolve(
-          (request.result as UnifiedTask[]).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
-        );
-      request.onerror = () => reject(request.error);
-    });
-  } catch {
-    return readFallback();
-  }
+function toRow(task: UnifiedTask, userId: string) {
+  return {
+    id: task.id,
+    user_id: userId,
+    source: task.source,
+    source_ref: task.sourceRef ?? null,
+    title: task.title,
+    request: task.request ?? null,
+    current_step: task.currentStep ?? null,
+    status: task.status,
+    progress: task.progress ?? null,
+    device_id: task.deviceId ?? null,
+    agent: task.agent ?? null,
+    permission_requirements: task.permissionRequirements ?? [],
+    input_refs: task.inputRefs ?? [],
+    output_refs: task.outputRefs ?? [],
+    receipts: task.receipts ?? [],
+    dependency_task_ids: task.dependencyTaskIds ?? [],
+    retry_count: task.retryCount,
+    last_error: task.lastError ?? null,
+    scheduled_for: task.scheduledFor ?? null,
+    started_at: task.startedAt ?? null,
+    finished_at: task.finishedAt ?? null,
+    created_at: task.createdAt,
+    updated_at: task.updatedAt,
+  };
 }
 
+/** Every task the account has, most recently changed first. */
+export async function listTasks(): Promise<UnifiedTask[]> {
+  const supabase = await loadSupabaseClient();
+  /*
+   * Bounded, and the bound is the honest answer for a board. Tasks accumulate
+   * for as long as somebody uses OCADE; nobody scrolls ten thousand of them,
+   * and an unbounded read makes the board slower every week. The most recently
+   * changed few hundred is what a board is for.
+   */
+  const { data, error } = await supabase
+    .from("ocade_tasks")
+    .select(TASK_COLUMNS)
+    .order("updated_at", { ascending: false })
+    .limit(LIST_CAP);
+  if (error) throw new Error(error.message);
+  return ((data as unknown as TaskRow[] | null) ?? []).map(toTask);
+}
+
+/**
+ * Write a task, creating or replacing it.
+ *
+ * THROWS RATHER THAN SWALLOWING. This used to fall back to another store on
+ * failure, so a caller could never tell whether the work it just recorded
+ * actually existed anywhere. A task board that shows a task nobody kept is
+ * worse than one that says it could not save.
+ */
 export async function persistTask(task: UnifiedTask): Promise<UnifiedTask> {
-  try {
-    const db = await openDb();
-    if (!db) {
-      const tasks = readFallback().filter((item) => item.id !== task.id);
-      writeFallback([task, ...tasks]);
-      return task;
-    }
-    await new Promise<void>((resolve, reject) => {
-      const request = db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME).put(task);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-    return task;
-  } catch {
-    const tasks = readFallback().filter((item) => item.id !== task.id);
-    writeFallback([task, ...tasks]);
-    return task;
-  }
+  const supabase = await loadSupabaseClient();
+  const { data: session } = await supabase.auth.getUser();
+  const userId = session.user?.id;
+  if (!userId) throw new Error("Sign in before saving a task.");
+
+  const { data, error } = await supabase
+    .from("ocade_tasks")
+    .upsert(toRow(task, userId), { onConflict: "id" })
+    .select(TASK_COLUMNS)
+    .single();
+  if (error) throw new Error(error.message);
+  return toTask(data as unknown as TaskRow);
 }
 
-export async function removeLocalTask(id: string): Promise<void> {
-  const fallback = readFallback().filter((task) => task.id !== id);
-  writeFallback(fallback);
-  try {
-    const db = await openDb();
-    if (!db) return;
-    await new Promise<void>((resolve, reject) => {
-      const request = db.transaction(STORE_NAME, "readwrite").objectStore(STORE_NAME).delete(id);
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  } catch {
-    // Fallback storage was already updated. A local persistence failure must not
-    // turn into a fabricated task success or affect the actual external run.
-  }
+/** Remove a task. Its comments go with it, through the foreign key. */
+export async function removeTask(id: string): Promise<void> {
+  const supabase = await loadSupabaseClient();
+  const { error } = await supabase.from("ocade_tasks").delete().eq("id", id);
+  if (error) throw new Error(error.message);
 }

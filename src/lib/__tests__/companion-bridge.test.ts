@@ -12,7 +12,7 @@ import {
   type NativeCompanionAdapter,
 } from "../native/companion-bridge";
 import { isProtectedText, redactForAudit } from "../security/protected-text";
-import { NativeCompanionRequiredError } from "../storage/types";
+import { NativeCompanionRequiredError } from "../native/companion-required";
 
 describe("risk tiers", () => {
   it.each<[CompanionAction, string]>([

@@ -12,6 +12,24 @@ const uuid = z.string().uuid();
 
 /* -------------------- Conversations -------------------- */
 
+/**
+ * One conversation row, as every surface reads it.
+ *
+ * Named rather than inferred at each call site: Chat, Projects and Search all
+ * render the same row, and three inferred shapes drift the moment a column is
+ * added.
+ */
+export interface OcadeConversationRow {
+  id: string;
+  title: string;
+  pinned: boolean;
+  archived: boolean;
+  model_id: string | null;
+  project_id: string | null;
+  updated_at: string;
+  created_at: string;
+}
+
 export const listConversations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -23,9 +41,7 @@ export const listConversations = createServerFn({ method: "GET" })
      */
     const { data, error } = await context.supabase
       .from("ocade_conversations")
-      .select(
-        "id, title, pinned, archived, model_id, privacy_mode, project_id, updated_at, created_at",
-      )
+      .select("id, title, pinned, archived, model_id, project_id, updated_at, created_at")
       .order("pinned", { ascending: false })
       .order("updated_at", { ascending: false })
       .limit(LIST_CAP);
@@ -41,7 +57,6 @@ export const createConversation = createServerFn({ method: "POST" })
         id: uuid.optional(),
         title: z.string().max(200).optional(),
         modelId: z.string().max(200).optional(),
-        privacyMode: z.enum(["browser_only", "pc_vault", "private_sync"]).optional(),
         projectId: uuid.nullable().optional(),
       })
       .parse(i),
@@ -55,14 +70,11 @@ export const createConversation = createServerFn({ method: "POST" })
           user_id: context.userId,
           title: data.title ?? "New chat",
           model_id: data.modelId ?? null,
-          ...(data.privacyMode ? { privacy_mode: data.privacyMode } : {}),
           ...(data.projectId !== undefined ? { project_id: data.projectId } : {}),
         },
         { onConflict: "id" },
       )
-      .select(
-        "id, title, pinned, archived, model_id, privacy_mode, project_id, updated_at, created_at",
-      )
+      .select("id, title, pinned, archived, model_id, project_id, updated_at, created_at")
       .single();
     if (error) throw new Response(error.message, { status: 500 });
     return row;
@@ -145,20 +157,81 @@ export const listMessages = createServerFn({ method: "GET" })
       role: string;
       content: string;
       attachments: Json;
+      citations: Json | null;
+      reaction: string | null;
       model_id: string | null;
       provider_id: string | null;
       created_at: string;
     }>((from, to) =>
       context.supabase
         .from("ocade_messages")
-        .select("id, role, content, attachments, model_id, provider_id, created_at")
+        .select(
+          "id, role, content, attachments, citations, reaction, model_id, provider_id, created_at",
+        )
         .eq("conversation_id", data.conversationId)
+        /*
+         * ORDINARY TURNS ONLY. A side conversation is a message with an anchor,
+         * and it belongs to that anchor rather than to the transcript. Without
+         * this filter every side question would appear inline and be sent to
+         * the engine as part of the thread it was deliberately kept out of.
+         */
+        .is("anchor_message_id", null)
         .order("created_at", { ascending: true })
         .range(from, to),
     ).catch((cause: Error) => {
       throw new Response(cause.message, { status: 500 });
     });
     return rows;
+  });
+
+/**
+ * One side conversation: the short thread hanging off a single message.
+ *
+ * Separate from `listMessages` rather than a flag on it, because the two are
+ * read at different moments and by different surfaces — the transcript loads
+ * on open, a side thread loads when somebody expands one — and a single
+ * function with a mode is how the wrong rows end up in the wrong place.
+ */
+export const listSideMessages = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .validator((i) => z.object({ conversationId: uuid, anchorMessageId: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    /*
+     * Paged for the same reason the transcript is: a side thread is usually
+     * three turns and occasionally is not, and "usually" is not a bound.
+     */
+    const rows = await readAllPages<{
+      id: string;
+      role: string;
+      content: string;
+      created_at: string;
+      anchor_message_id: string | null;
+    }>((from, to) =>
+      context.supabase
+        .from("ocade_messages")
+        .select("id, role, content, created_at, anchor_message_id")
+        .eq("conversation_id", data.conversationId)
+        .eq("anchor_message_id", data.anchorMessageId)
+        .order("created_at", { ascending: true })
+        .range(from, to),
+    ).catch((cause: Error) => {
+      throw new Response(cause.message, { status: 500 });
+    });
+    return rows;
+  });
+
+/** Discard a whole side thread. The anchor and the transcript are untouched. */
+export const deleteSideThread = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i) => z.object({ conversationId: uuid, anchorMessageId: uuid }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("ocade_messages")
+      .delete()
+      .eq("conversation_id", data.conversationId)
+      .eq("anchor_message_id", data.anchorMessageId);
+    if (error) throw new Response(error.message, { status: 500 });
+    return { ok: true as const };
   });
 
 export const deleteMessage = createServerFn({ method: "POST" })
@@ -188,6 +261,24 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
         content: z.string().max(200_000),
         modelId: z.string().max(200).nullable().optional(),
         providerId: z.string().max(100).nullable().optional(),
+        /**
+         * An idempotency key chosen on the device, for a turn that waited in
+         * an open tab while the database was unreachable.
+         *
+         * Optional because a message written while connected has no need of
+         * one. When present it is what stops a replayed flush — a request that
+         * timed out after it was applied, a reload part-way through — from
+         * writing the same sentence into somebody's transcript twice.
+         */
+        clientKey: z.string().min(8).max(200).optional(),
+        /**
+         * The message this turn hangs off, for a side conversation.
+         *
+         * Absent for an ordinary turn. Present, the row is excluded from the
+         * transcript and read only by the thread it belongs to — and the
+         * foreign key removes it when the anchor goes.
+         */
+        anchorMessageId: uuid.optional(),
         attachments: z
           .array(
             z.object({
@@ -210,6 +301,29 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!conv) throw new Response("Conversation not found", { status: 404 });
 
+    const COLUMNS =
+      "id, role, content, attachments, citations, reaction, model_id, provider_id, created_at";
+
+    /*
+     * ALREADY WRITTEN? SAY SO AND STOP.
+     *
+     * Checked before inserting rather than only after a conflict, because the
+     * common replay is not a race: it is the same device asking again seconds
+     * or minutes later, and answering that from a SELECT costs one indexed
+     * lookup instead of a failed write. The unique index is still what makes
+     * this correct — two tabs flushing the same buffer at once reach the
+     * INSERT together, and the loser is caught below.
+     */
+    if (data.clientKey) {
+      const { data: existing } = await context.supabase
+        .from("ocade_messages")
+        .select(COLUMNS)
+        .eq("user_id", context.userId)
+        .eq("client_key", data.clientKey)
+        .maybeSingle();
+      if (existing) return existing;
+    }
+
     const { data: row, error } = await context.supabase
       .from("ocade_messages")
       .insert({
@@ -219,15 +333,35 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
         content: data.content,
         model_id: data.modelId ?? null,
         provider_id: data.providerId ?? null,
+        client_key: data.clientKey ?? null,
+        anchor_message_id: data.anchorMessageId ?? null,
         attachments: (data.attachments ?? []) as never,
       })
-      .select("id, role, content, attachments, model_id, provider_id, created_at")
+      .select(COLUMNS)
       .single();
-    if (error) throw new Response(error.message, { status: 500 });
+    if (error) {
+      /*
+       * 23505 on this table can only be the client-key index: every other
+       * unique column is a generated id. The row the other writer inserted is
+       * the answer, so read it back rather than failing a flush that
+       * succeeded.
+       */
+      if (data.clientKey && error.code === "23505") {
+        const { data: raced } = await context.supabase
+          .from("ocade_messages")
+          .select(COLUMNS)
+          .eq("user_id", context.userId)
+          .eq("client_key", data.clientKey)
+          .maybeSingle();
+        if (raced) return raced;
+      }
+      throw new Response(error.message, { status: 500 });
+    }
 
     // Auto-title from the first user message.
     if (
       data.role === "user" &&
+      !data.anchorMessageId &&
       (conv.title ?? "").toLowerCase() === "new chat" &&
       data.content.trim()
     ) {
@@ -237,6 +371,140 @@ export const appendOcadeMessage = createServerFn({ method: "POST" })
         .eq("id", data.conversationId);
     }
     return row;
+  });
+
+/**
+ * The evidence for one answer, kept ON the answer.
+ *
+ * Citations lived in `localStorage` with their own copies of the conversation
+ * and message ids, and that produced the failure worth naming: deleting a
+ * conversation left the records behind, so verbatim excerpts of documents
+ * somebody had deleted stayed on disk under messages that no longer existed.
+ * As a column they go when the message goes.
+ */
+export const saveMessageCitations = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i) =>
+    z
+      .object({
+        messageId: uuid,
+        citations: z
+          .array(
+            z.object({
+              sourceId: z.string().regex(/^(?:S|W)\d+$/),
+              name: z.string().max(500),
+              kind: z.string().max(100),
+              locator: z
+                .object({
+                  line: z.number().int().positive().optional(),
+                  page: z.number().int().positive().optional(),
+                  sheet: z.string().max(200).optional(),
+                  section: z.string().max(500).optional(),
+                })
+                .default({}),
+              snippet: z.string().max(4000).nullable(),
+              provenance: z
+                .enum(["attached_document", "project_context", "internet_evidence"])
+                .optional(),
+              url: z.string().max(2000).optional(),
+              domain: z.string().max(300).optional(),
+              publishedAt: z.string().max(100).nullable().optional(),
+              retrievedAt: z.string().max(100).optional(),
+            }),
+          )
+          // At least one: storing an empty list would say "this answer has no
+          // evidence" where absent says "none was recorded", and those are
+          // different claims.
+          .min(1)
+          .max(10),
+      })
+      .parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("ocade_messages")
+      .update({ citations: data.citations as never })
+      .eq("id", data.messageId)
+      .eq("user_id", context.userId)
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Response(error.message, { status: 500 });
+    if (!row) throw new Response("Message not found", { status: 404 });
+    return { ok: true as const };
+  });
+
+/**
+ * Whether the reader found an answer helpful.
+ *
+ * `null` clears it, and clearing is a supported operation rather than an
+ * omission: pressing the active choice again is how somebody takes back
+ * feedback they gave by accident, and a function that could only set one would
+ * leave them no way to.
+ */
+export const setMessageReaction = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i) =>
+    z.object({ messageId: uuid, reaction: z.enum(["helpful", "not_helpful"]).nullable() }).parse(i),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("ocade_messages")
+      .update({ reaction: data.reaction })
+      .eq("id", data.messageId)
+      .eq("user_id", context.userId)
+      .select("id")
+      .maybeSingle();
+    if (error) throw new Response(error.message, { status: 500 });
+    if (!row) throw new Response("Message not found", { status: 404 });
+    return { ok: true as const };
+  });
+
+/**
+ * Forget every excerpt of one source, across every conversation.
+ *
+ * WHY THIS EXISTS. A citation carries a `snippet` — a verbatim excerpt of the
+ * document it cites. Deleting a file while leaving its citations behind means
+ * somebody asked for a document to be gone and its text is still stored, still
+ * rendered under old answers. The excerpt is small, which is exactly why it
+ * gets forgotten, and it is still their content.
+ *
+ * Matched on the citation's `name`, because that is the only identifier a
+ * citation carries. A message left with no citations has the column cleared
+ * rather than set to an empty list, so "none recorded" and "evidence was
+ * removed" do not become the same state.
+ */
+export const forgetCitationsForSource = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i) => z.object({ name: z.string().trim().min(1).max(500) }).parse(i))
+  .handler(async ({ data, context }) => {
+    const rows = await readAllPages<{ id: string; citations: Json | null }>((from, to) =>
+      context.supabase
+        .from("ocade_messages")
+        .select("id, citations")
+        .eq("user_id", context.userId)
+        .not("citations", "is", null)
+        .order("created_at", { ascending: true })
+        .range(from, to),
+    ).catch((cause: Error) => {
+      throw new Response(cause.message, { status: 500 });
+    });
+
+    let removed = 0;
+    for (const row of rows) {
+      const citations = Array.isArray(row.citations)
+        ? (row.citations as Array<{ name?: unknown }>)
+        : [];
+      const kept = citations.filter((citation) => citation.name !== data.name);
+      if (kept.length === citations.length) continue;
+      removed += citations.length - kept.length;
+      const { error } = await context.supabase
+        .from("ocade_messages")
+        .update({ citations: (kept.length > 0 ? kept : null) as never })
+        .eq("id", row.id)
+        .eq("user_id", context.userId);
+      if (error) throw new Response(error.message, { status: 500 });
+    }
+    return { removed };
   });
 
 export const exportConversation = createServerFn({ method: "GET" })

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { forgetAllQueues } from "../offline-queue";
 import {
   decideMobileIntent,
   dispatchMobileIntent,
@@ -291,28 +292,32 @@ describe("protected content never crosses a handoff", () => {
  * your phone reconnects". These pin that promise: it must survive a reload, and
  * it must never replay something that has to be decided live.
  */
-describe("the durable offline queue", () => {
+describe("the offline queue", () => {
   beforeEach(() => {
-    const store = new Map<string, string>();
-    vi.stubGlobal("localStorage", {
-      getItem: (k: string) => store.get(k) ?? null,
-      setItem: (k: string, v: string) => void store.set(k, v),
-      removeItem: (k: string) => void store.delete(k),
-      clear: () => store.clear(),
-    });
+    // The queue is held in the tab now, so it has to be emptied between tests
+    // the way closing a tab empties it.
+    forgetAllQueues();
     setMobileTransport(new UnavailableMobileTransport());
     setMobileBiometricGate(new UnavailableMobileBiometricGate());
   });
 
-  it("persists a handoff so it survives a reload", async () => {
+  it("holds a handoff for every part of this tab that asks for the queue", async () => {
+    /*
+     * It used to be written to `localStorage` and this asserted it survived a
+     * reload. A handoff carries real text, and a copy of it sitting in the
+     * browser would outlive a sign-out and be invisible to every export the
+     * account offers — so it lasts as long as the tab, and the screen says so.
+     */
     const q = createMobileIntentQueue();
     await dispatchMobileIntent(
       { kind: "task.handoff", conversationId: "c", text: "later" },
       phone(),
       { online: false, durable: q, now: NOW },
     );
-    // A fresh instance reads the same storage — this is the "after reload" case.
     expect(createMobileIntentQueue().size).toBe(1);
+
+    forgetAllQueues(); // a closed tab
+    expect(createMobileIntentQueue().size).toBe(0);
   });
 
   it("NEVER persists an emergency stop — halting must be decided live", async () => {

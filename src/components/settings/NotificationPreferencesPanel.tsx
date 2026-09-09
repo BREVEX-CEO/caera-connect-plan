@@ -17,7 +17,6 @@ import {
   normalisePreferences,
   type NotificationPreferences,
 } from "@/lib/notifications/preferences";
-import { readNotificationPreferences } from "@/lib/notifications/preference-store";
 import {
   loadNotificationPreferences,
   saveNotificationPreferences,
@@ -47,17 +46,22 @@ import { getNotificationTransport, type PermissionState } from "@/lib/mobile/not
  *   it, and a refusal is a state this screen can show rather than a dead end.
  *   §D: "Push pre-permission explanation. Explicit decline. Enable-later path."
  *
- * WHERE THESE ARE STORED, SAID PLAINLY ON THE SCREEN — and it depends on
- * whether anybody is signed in. §D asks for cross-device synchronisation, and
- * the account now has somewhere to keep these, so a signed-in person's choices
- * follow them. Signed out there is no account to follow, and the screen says
- * "this browser only" instead of implying otherwise.
+ * WHERE THESE ARE KEPT, SAID PLAINLY ON THE SCREEN. The account, and only the
+ * account — §D asks for cross-device synchronisation, and a signed-in person's
+ * choices follow them. Nothing is written to this browser: the cache that used
+ * to be here survived sign-out, so the next person to use the machine saw the
+ * previous person's quiet hours until the account answered.
+ *
+ * Until it answers, the screen shows the DEFAULTS and says they are defaults.
+ * Showing them as though somebody had chosen them is how a muted category
+ * appears to be switched on.
  *
  * THE SAVE STATE IS REPORTED, NOT ASSUMED. "Saved" means the account
- * acknowledged it. "On this device" means OCADE could not reach the account and
- * the choice applies here — which matters, because it means the phone has not
- * heard about it. A refusal is shown as a failure. `preference-sync.ts` decides
- * which of the three happened; this screen only renders it.
+ * acknowledged it. Session-only means OCADE could not reach the account and the
+ * choice holds until the tab closes — which matters, because it means the phone
+ * has not heard about it and neither will this browser after a reload. A
+ * refusal is shown as a failure. `preference-sync.ts` decides which of the
+ * three happened; this screen only renders it.
  */
 export function NotificationPreferencesPanel() {
   const channels = useMemo(() => resolveChannels(deploymentChannelConfiguration()), []);
@@ -73,19 +77,16 @@ export function NotificationPreferencesPanel() {
   const [loaded, setLoaded] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveState, setSaveState] = useState<SaveOutcome | null>(null);
-  const [source, setSource] = useState<"account" | "device">("device");
+  const [source, setSource] = useState<"account" | "defaults">("defaults");
   const [permission, setPermission] = useState<PermissionState | null>(null);
   const [asking, setAsking] = useState(false);
 
   useEffect(() => {
     /*
-     * After mount, and from the DEVICE first. Reading storage during render
-     * would make the server's HTML and the first client render disagree for
-     * anybody who has changed a setting, and React would throw the server's
-     * work away. Painting from the device copy before the account copy arrives
-     * is also what keeps this screen usable offline.
+     * After mount. Nothing is read from the browser: preferences live in the
+     * account, and until it answers this screen shows the defaults and says so
+     * rather than showing a previous signed-in person's settings.
      */
-    setPreferences(readNotificationPreferences(availableIds));
     setLoaded(true);
     void getNotificationTransport()
       .permission()
@@ -94,10 +95,9 @@ export function NotificationPreferencesPanel() {
   }, [availableIds]);
 
   /*
-   * The account copy, once there is an account. It replaces what the device
-   * had, because that is what makes this synchronisation rather than two
-   * independent settings — except for an account with no row yet, which
-   * `loadNotificationPreferences` pushes the device copy up for instead.
+   * The account's copy, once there is an account. It is the only copy: an
+   * account with no row yet has never had a preference changed, and is shown
+   * the defaults it is genuinely being treated with.
    */
   useEffect(() => {
     let cancelled = false;
@@ -195,8 +195,8 @@ export function NotificationPreferencesPanel() {
           {source === "account"
             ? "These follow your account, so a change here reaches your other devices."
             : backend
-              ? "OCADE has not been able to read these from your account yet, so what you see is this browser’s copy."
-              : "You are not signed in, so these apply to this browser only."}
+              ? "OCADE has not been able to read these from your account yet, so what you see are the defaults."
+              : "You are not signed in, so these apply until you close this tab."}
         </p>
 
         {/*

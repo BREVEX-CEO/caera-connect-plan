@@ -7,195 +7,108 @@ import { join } from "node:path";
  *
  * Both are promises about ABSENCE, which is the hardest kind of behaviour to
  * keep working: nothing goes wrong on screen when they break. An incognito
- * conversation that is quietly written to the vault looks identical to one that
- * is not, right up until somebody opens their history and finds it there.
+ * conversation that is quietly written looks identical to one that is not,
+ * right up until somebody opens their history and finds it there.
+ *
+ * WHAT CHANGED WITH `PLAN.md` PHASE 2. Absence used to have to be checked in
+ * three places, because a message could land in a browser vault, an OS vault or
+ * Supabase. There is one authority now, so "written nowhere" is one assertion —
+ * and the buffer that holds a turn while the account is unreachable is the one
+ * new place that had to be checked too.
  */
 
-interface VaultRow {
-  id: string;
-  value: unknown;
-}
-
-const vault = {
-  rows: [] as VaultRow[],
-};
 const cloud = { appended: [] as unknown[] };
-
-vi.mock("@/lib/storage/resolver", () => ({
-  resolveAdapter: vi.fn(async () => ({
-    put: (_collection: string, id: string, value: unknown) => {
-      vault.rows = [...vault.rows.filter((row) => row.id !== id), { id, value }];
-      return Promise.resolve();
-    },
-    list: () => Promise.resolve(vault.rows),
-    delete: (_collection: string, id: string) => {
-      vault.rows = vault.rows.filter((row) => row.id !== id);
-      return Promise.resolve();
-    },
-  })),
-}));
 
 vi.mock("@/lib/ocade.functions", () => ({
   appendOcadeMessage: vi.fn(async (arg: unknown) => {
     cloud.appended.push(arg);
+    return { id: "row", created_at: new Date().toISOString() };
   }),
   listMessages: vi.fn(async () => []),
 }));
 
 const { mayPersist, mayRemember, INCOGNITO_CLAIMS } = await import("../chat/incognito");
-const { persistChatMessage, loadChatMessages, deleteAllVaultMessages } =
-  await import("../ocade-chat-store");
-const { createConversationLocally, listConversationsLocally, deleteAllConversationsLocally } =
-  await import("../chat/local-conversations");
+const { persistChatMessage } = await import("../ocade-chat-store");
+const { unsyncedCount, forgetAllUnsyncedTurns } = await import("../chat/unsynced-turns");
 
 beforeEach(() => {
-  vault.rows = [];
   cloud.appended = [];
+  forgetAllUnsyncedTurns();
 });
 
 describe("an incognito message is written nowhere", () => {
   const base = {
-    userId: "user-1",
     conversationId: "conversation-1",
     role: "user" as const,
-    content: "Something I do not want kept.",
-    incognito: true,
+    content: "something private",
   };
 
-  it("stays out of the vault in browser_only", async () => {
-    const result = await persistChatMessage({ ...base, chatsMode: "browser_only" });
-    expect(result.stored).toBe("not_stored");
-    expect(vault.rows).toHaveLength(0);
-  });
-
-  it("stays out of BOTH the vault and the cloud in private_sync", async () => {
-    /*
-     * The synchronised mode is the dangerous one: its normal path writes to the
-     * device AND queues an upload, so a missed check leaks the conversation to
-     * the account and to every other device signed into it.
-     */
-    const result = await persistChatMessage({ ...base, chatsMode: "private_sync" });
-    expect(result.stored).toBe("not_stored");
-    expect(vault.rows).toHaveLength(0);
+  it("never reaches the account", async () => {
+    await persistChatMessage({ ...base, incognito: true });
     expect(cloud.appended).toHaveLength(0);
   });
 
+  it("never reaches the unsynchronised buffer either", async () => {
+    /*
+     * The buffer is memory, not disk, but it is still a copy — and the flush
+     * that drains it would write the turn to the account the moment the
+     * connection returned. "Nowhere" has to include it.
+     */
+    await persistChatMessage({ ...base, incognito: true });
+    expect(unsyncedCount()).toBe(0);
+  });
+
   it("still returns the record, because the screen renders from it", async () => {
-    const result = await persistChatMessage({ ...base, chatsMode: "browser_only" });
-    expect(result.record.content).toBe(base.content);
-    expect(result.record.conversation_id).toBe("conversation-1");
+    const result = await persistChatMessage({ ...base, incognito: true });
+    expect(result.stored).toBe("not_stored");
+    expect(result.record.content).toBe("something private");
   });
 
   it("refuses BEFORE choosing a destination", () => {
     /*
-     * A structural check, and the reason is a real failure mode: a guard placed
-     * inside one branch protects that branch only, and the next storage mode
-     * added below it inherits nothing. The refusal must sit above the
-     * `private_sync` branch, where every destination passes through it.
+     * `mayPersist` is consulted at the top of the store rather than at each
+     * call site. A guarantee spread across nine `if`s holds until somebody adds
+     * a tenth, and the tenth is the one nobody notices.
      */
     const source = readFileSync(join(process.cwd(), "src/lib/ocade-chat-store.ts"), "utf8");
-    const body = source.slice(source.indexOf("export async function persistChatMessage("));
-    expect(body.indexOf("mayPersist(")).toBeLessThan(body.indexOf('=== "private_sync"'));
+    const guard = source.indexOf("mayPersist(");
+    const send = source.indexOf("appendOcadeMessage(");
+    expect(guard).toBeGreaterThan(0);
+    expect(send).toBeGreaterThan(guard);
+  });
+
+  it("writes an ordinary message, so the test above is not passing by accident", async () => {
+    await persistChatMessage(base);
+    expect(cloud.appended).toHaveLength(1);
   });
 });
 
 describe("the promises the interface makes are the ones the code keeps", () => {
   it("excludes memory in both directions", () => {
+    // Excluding only the write is the weaker half: a reply shaped by what OCADE
+    // remembers about somebody connects the conversation to them anyway.
     expect(mayRemember(true)).toBe(false);
-    expect(mayRemember(false)).toBe(true);
     expect(mayPersist(true)).toBe(false);
-    const claims = INCOGNITO_CLAIMS.kept.join(" ");
-    expect(claims).toMatch(/will not remember/i);
-    // Not writing memory is the easy half; not READING it is the half that
-    // makes the conversation unconnected to the person having it.
-    expect(claims).toMatch(/will not use what it already remembers/i);
+    expect(mayRemember(false)).toBe(true);
+    expect(mayPersist(false)).toBe(true);
   });
 
   it("does not claim anonymity it cannot deliver", () => {
     const notKept = INCOGNITO_CLAIMS.notKept.join(" ");
-    expect(notKept).toMatch(/still reaches the provider/i);
-    expect(notKept).toMatch(/does not erase/i);
-    expect(notKept).toMatch(/does not hide/i);
+    expect(notKept).toMatch(/provider/i);
+    expect(notKept).toMatch(/already remembers/i);
   });
 
   it("never persists the flag itself", async () => {
+    // Storing "this conversation was incognito" would be a record of it having
+    // happened, which is the one thing the mode is for.
     await persistChatMessage({
-      userId: "user-1",
-      chatsMode: "browser_only",
-      conversationId: "conversation-1",
-      role: "user",
-      content: "Kept.",
-    });
-    const stored = JSON.stringify(vault.rows);
-    // Storing "this one was incognito" would itself be a record that the
-    // conversation happened.
-    expect(stored).not.toContain("incognito");
-  });
-});
-
-describe("delete-all clears the device", () => {
-  it("removes every message body and tombstones every conversation", async () => {
-    await createConversationLocally("user-1", { title: "One", privacyMode: "browser_only" });
-    await createConversationLocally("user-1", { title: "Two", privacyMode: "browser_only" });
-    await persistChatMessage({
-      userId: "user-1",
-      chatsMode: "browser_only",
-      conversationId: "conversation-1",
-      role: "user",
-      content: "First message",
-    });
-    await persistChatMessage({
-      userId: "user-1",
-      chatsMode: "browser_only",
       conversationId: "conversation-2",
       role: "user",
-      content: "Second message",
+      content: "ordinary",
     });
-
-    const removed = await deleteAllVaultMessages("user-1");
-    expect(removed).toBe(2);
-    const tombstoned = await deleteAllConversationsLocally("user-1");
-    expect(tombstoned).toBe(2);
-
-    for (const conversationId of ["conversation-1", "conversation-2"]) {
-      const transcript = await loadChatMessages({
-        userId: "user-1",
-        chatsMode: "browser_only",
-        conversationId,
-      });
-      expect(transcript).toHaveLength(0);
-    }
-    expect(await listConversationsLocally("user-1")).toHaveLength(0);
-  });
-
-  it("keeps conversation records as tombstones so the deletion travels", async () => {
-    await createConversationLocally("user-1", { title: "One", privacyMode: "browser_only" });
-    await deleteAllVaultMessages("user-1");
-    await deleteAllConversationsLocally("user-1");
-    /*
-     * A tombstone for a MESSAGE would be a record containing the text it claims
-     * to have deleted, so message bodies are removed outright. A conversation
-     * record carries only a title and a deletion time, and removing it outright
-     * would let another device re-synchronise the conversation straight back.
-     */
-    expect(vault.rows).toHaveLength(1);
-    expect(vault.rows[0]!.id.startsWith("conv:")).toBe(true);
-    expect(JSON.stringify(vault.rows[0]!.value)).toContain("deleted_at");
-  });
-
-  it("is idempotent — running it twice deletes nothing the second time", async () => {
-    await createConversationLocally("user-1", { title: "One", privacyMode: "browser_only" });
-    await persistChatMessage({
-      userId: "user-1",
-      chatsMode: "browser_only",
-      conversationId: "conversation-1",
-      role: "user",
-      content: "First message",
-    });
-    await deleteAllVaultMessages("user-1");
-    await deleteAllConversationsLocally("user-1");
-    expect(await deleteAllVaultMessages("user-1")).toBe(0);
-    expect(await deleteAllConversationsLocally("user-1")).toBe(0);
+    const sent = cloud.appended[0] as { data: Record<string, unknown> };
+    expect(Object.keys(sent.data)).not.toContain("incognito");
   });
 });
 
@@ -221,5 +134,23 @@ describe("the server's delete-all is scoped by the session, not by the request",
     // that is neither cleared nor intact.
     expect(body).not.toMatch(/for \(|\.map\(/);
     expect(body).toContain('.delete({ count: "exact" })');
+  });
+
+  it("takes the messages with the conversations", () => {
+    /*
+     * `ocade_messages.conversation_id` cascades, so one delete clears both. A
+     * separate message sweep would be a second statement that can fail on its
+     * own and leave the text of a deleted conversation in the account.
+     */
+    const schema = readFileSync(
+      join(
+        process.cwd(),
+        "supabase/migrations/20260721142438_03071f4a-d755-4453-beea-10cd60c22e02.sql",
+      ),
+      "utf8",
+    );
+    expect(schema).toMatch(
+      /conversation_id UUID NOT NULL REFERENCES public\.ocade_conversations\(id\) ON DELETE CASCADE/,
+    );
   });
 });

@@ -9,7 +9,6 @@ import {
   RefreshCcw,
   Save,
   Send,
-  ShieldCheck,
   Sparkles,
   Square,
   X,
@@ -101,7 +100,6 @@ export function Composer(props: {
   setPermission: (p: PermissionMode) => void;
   model: string;
   setModel: (m: string) => void;
-  chatsMode: "browser_only" | "pc_vault" | "private_sync";
   onImprove?: () => void;
   improving?: boolean;
   onToggleVoice?: () => void;
@@ -129,7 +127,6 @@ export function Composer(props: {
     setPermission,
     model,
     setModel,
-    chatsMode,
     onImprove,
     improving,
     onToggleVoice,
@@ -552,18 +549,16 @@ export function Composer(props: {
           choose one.
         */}
 
-        {/* Privacy indicator */}
-        <span
-          className="ml-1 hidden items-center gap-1 rounded-md border border-border/60 bg-background/40 px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground sm:inline-flex"
-          title={`Storage mode: ${chatsMode}`}
-        >
-          <ShieldCheck className="h-3 w-3" />
-          {chatsMode === "private_sync"
-            ? "Private sync"
-            : chatsMode === "pc_vault"
-              ? "PC vault"
-              : "Browser only"}
-        </span>
+        {/*
+          THE STORAGE INDICATOR IS GONE, and its absence is the point.
+
+          It read "Private sync", "PC vault" or "Browser only" — three answers
+          to where a conversation was kept. `PLAN.md` Phase 2 leaves one, so the
+          badge could only ever say the same thing, and a label that never
+          varies is decoration taking up the row where the controls live. What
+          a person still needs to know about this conversation — that it is
+          incognito, or sealed — is said where it actually differs.
+        */}
 
         <div className="ml-auto flex items-center gap-1">
           {onImprove ? (

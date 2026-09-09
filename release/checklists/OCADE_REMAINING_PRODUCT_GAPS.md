@@ -98,9 +98,9 @@ Authority: `PLAN.md` §P.
 - **Disposition**: COMPLETE
 - **Requirement**: Per-chat and per-selection deletion controls in Settings → Privacy, backed by the canonical local-data deletion authority.
 - **Discovered from**: Repository inspection while building the deletion authority: the authority deletes by class, and the Privacy screen offered no per-selection control on top of it. Per-chat deletion already existed on the chat surface (deleteConversationLocally plus the server function beside it), which is where a person deletes one conversation; what was missing was the per-selection control on the privacy screen.
-- **Existing authority**: `src/lib/storage/local-data.ts`
-- **Implementation evidence**: `src/lib/storage/local-data.ts`, `src/components/settings/LocalDataPanel.tsx`
-- **Test evidence**: `src/lib/storage/__tests__/local-data-deletion.test.ts`
+- **Existing authority**: `src/lib/device/local-data.ts`
+- **Implementation evidence**: `src/lib/device/local-data.ts`, `src/components/settings/LocalDataPanel.tsx`
+- **Test evidence**: `src/lib/device/__tests__/local-data-deletion.test.ts`
 - **Runtime evidence**: `npm run audit:settings against the production build: /settings/privacy renders the per-selection controls, 827/827 route checks signed in, 16/16 settings checks`
 - **Last verified**: 2026-09-04
 
@@ -249,10 +249,10 @@ Authority: `PLAN.md` §P.
 - **Status**: RUNTIME-PROVEN
 - **Disposition**: COMPLETE
 - **Requirement**: Incognito conversations excluded from ordinary history and memory, and memory import and export.
-- **Discovered from**: Surveying §8's list against the chat surface. `incognito` appeared nowhere in Chat — only in the browser-control policy, which is a different thing — and the memory panel offered review, edit, pause, reset and deletion but neither of the two that let somebody carry what OCADE knows about them or check it. Both are privacy requirements whose partial versions are the dangerous ones: a conversation kept out of the sidebar whose messages sit in the vault, and an export read from the screen rather than from storage, which on a PAUSED memory would have produced an empty file and reported 'Exported 0 memories' as the answer to 'what does OCADE know about me'.
+- **Discovered from**: Surveying §8's list against the chat surface. `incognito` appeared nowhere in Chat — only in the browser-control policy, which is a different thing — and the memory panel offered review, edit, pause, reset and deletion but neither of the two that let somebody carry what OCADE knows about them or check it. Both are privacy requirements whose partial versions are the dangerous ones: a conversation kept out of the sidebar whose messages sit in the vault, and an export read from the screen rather than from the authority, which on a PAUSED memory would have produced an empty file and reported 'Exported 0 memories' as the answer to 'what does OCADE know about me'.
 - **Existing authority**: `src/lib/ocade-chat-store.ts`
-- **Implementation evidence**: `src/lib/chat/incognito.ts`, `src/lib/ocade-chat-store.ts`, `src/lib/runtime/use-ocade-runtime.ts`, `src/routes/_authenticated/ocade.index.tsx`, `src/lib/local-memory.ts`, `src/components/settings/MemoryPanel.tsx`
-- **Test evidence**: `src/lib/chat/__tests__/incognito.test.ts`, `src/lib/__tests__/memory-portability.test.ts`, `src/lib/__tests__/hidden-file-inputs.test.ts`
+- **Implementation evidence**: `src/lib/chat/incognito.ts`, `src/lib/ocade-chat-store.ts`, `src/lib/runtime/use-ocade-runtime.ts`, `src/routes/_authenticated/ocade.index.tsx`, `src/lib/memory/portable.ts`, `src/components/settings/MemoryPanel.tsx`
+- **Test evidence**: `src/lib/chat/__tests__/incognito.test.ts`, `src/lib/memory/__tests__/portable.test.ts`, `src/lib/__tests__/hidden-file-inputs.test.ts`
 - **Runtime evidence**: `scripts/e2e/incognito-and-memory-journey.mjs`, `scripts/e2e/run-incognito-and-memory-journey.mjs`
 - **Last verified**: 2026-09-05
 

@@ -59,6 +59,7 @@ npm run build
 npm run build:stable
 npm run performance:budget
 npm run browser-safety:check
+npm run content-storage:check
 npm run controls:check
 npm run supabase:types-check
 npm run integration:check

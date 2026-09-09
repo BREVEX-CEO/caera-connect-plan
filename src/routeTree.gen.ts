@@ -92,6 +92,7 @@ import { Route as AuthenticatedSettingsActivityRouteImport } from './routes/_aut
 import { Route as AuthenticatedSettingsAppearanceRouteImport } from './routes/_authenticated/settings.appearance'
 import { Route as AuthenticatedSettingsBillingRouteImport } from './routes/_authenticated/settings.billing'
 import { Route as AuthenticatedSettingsBrowserRouteImport } from './routes/_authenticated/settings.browser'
+import { Route as AuthenticatedSettingsDataRouteImport } from './routes/_authenticated/settings.data'
 import { Route as AuthenticatedSettingsDevicesRouteImport } from './routes/_authenticated/settings.devices'
 import { Route as AuthenticatedSettingsMobileRouteImport } from './routes/_authenticated/settings.mobile'
 import { Route as AuthenticatedSettingsPrivacyRouteImport } from './routes/_authenticated/settings.privacy'
@@ -552,6 +553,12 @@ const AuthenticatedSettingsBrowserRoute =
     path: '/browser',
     getParentRoute: () => AuthenticatedSettingsRoute,
   } as any)
+const AuthenticatedSettingsDataRoute =
+  AuthenticatedSettingsDataRouteImport.update({
+    id: '/data',
+    path: '/data',
+    getParentRoute: () => AuthenticatedSettingsRoute,
+  } as any)
 const AuthenticatedSettingsDevicesRoute =
   AuthenticatedSettingsDevicesRouteImport.update({
     id: '/devices',
@@ -709,6 +716,7 @@ export interface FileRoutesByFullPath {
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/settings/browser': typeof AuthenticatedSettingsBrowserRoute
+  '/settings/data': typeof AuthenticatedSettingsDataRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/settings/mobile': typeof AuthenticatedSettingsMobileRoute
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
@@ -803,6 +811,7 @@ export interface FileRoutesByTo {
   '/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/settings/browser': typeof AuthenticatedSettingsBrowserRoute
+  '/settings/data': typeof AuthenticatedSettingsDataRoute
   '/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/settings/mobile': typeof AuthenticatedSettingsMobileRoute
   '/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
@@ -902,6 +911,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/appearance': typeof AuthenticatedSettingsAppearanceRoute
   '/_authenticated/settings/billing': typeof AuthenticatedSettingsBillingRoute
   '/_authenticated/settings/browser': typeof AuthenticatedSettingsBrowserRoute
+  '/_authenticated/settings/data': typeof AuthenticatedSettingsDataRoute
   '/_authenticated/settings/devices': typeof AuthenticatedSettingsDevicesRoute
   '/_authenticated/settings/mobile': typeof AuthenticatedSettingsMobileRoute
   '/_authenticated/settings/privacy': typeof AuthenticatedSettingsPrivacyRoute
@@ -1001,6 +1011,7 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/billing'
     | '/settings/browser'
+    | '/settings/data'
     | '/settings/devices'
     | '/settings/mobile'
     | '/settings/privacy'
@@ -1095,6 +1106,7 @@ export interface FileRouteTypes {
     | '/settings/appearance'
     | '/settings/billing'
     | '/settings/browser'
+    | '/settings/data'
     | '/settings/devices'
     | '/settings/mobile'
     | '/settings/privacy'
@@ -1193,6 +1205,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/appearance'
     | '/_authenticated/settings/billing'
     | '/_authenticated/settings/browser'
+    | '/_authenticated/settings/data'
     | '/_authenticated/settings/devices'
     | '/_authenticated/settings/mobile'
     | '/_authenticated/settings/privacy'
@@ -1830,6 +1843,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsBrowserRouteImport
       parentRoute: typeof AuthenticatedSettingsRoute
     }
+    '/_authenticated/settings/data': {
+      id: '/_authenticated/settings/data'
+      path: '/data'
+      fullPath: '/settings/data'
+      preLoaderRoute: typeof AuthenticatedSettingsDataRouteImport
+      parentRoute: typeof AuthenticatedSettingsRoute
+    }
     '/_authenticated/settings/devices': {
       id: '/_authenticated/settings/devices'
       path: '/devices'
@@ -1989,6 +2009,7 @@ interface AuthenticatedSettingsRouteChildren {
   AuthenticatedSettingsAppearanceRoute: typeof AuthenticatedSettingsAppearanceRoute
   AuthenticatedSettingsBillingRoute: typeof AuthenticatedSettingsBillingRoute
   AuthenticatedSettingsBrowserRoute: typeof AuthenticatedSettingsBrowserRoute
+  AuthenticatedSettingsDataRoute: typeof AuthenticatedSettingsDataRoute
   AuthenticatedSettingsDevicesRoute: typeof AuthenticatedSettingsDevicesRoute
   AuthenticatedSettingsMobileRoute: typeof AuthenticatedSettingsMobileRoute
   AuthenticatedSettingsPrivacyRoute: typeof AuthenticatedSettingsPrivacyRoute
@@ -2008,6 +2029,7 @@ const AuthenticatedSettingsRouteChildren: AuthenticatedSettingsRouteChildren = {
   AuthenticatedSettingsAppearanceRoute: AuthenticatedSettingsAppearanceRoute,
   AuthenticatedSettingsBillingRoute: AuthenticatedSettingsBillingRoute,
   AuthenticatedSettingsBrowserRoute: AuthenticatedSettingsBrowserRoute,
+  AuthenticatedSettingsDataRoute: AuthenticatedSettingsDataRoute,
   AuthenticatedSettingsDevicesRoute: AuthenticatedSettingsDevicesRoute,
   AuthenticatedSettingsMobileRoute: AuthenticatedSettingsMobileRoute,
   AuthenticatedSettingsPrivacyRoute: AuthenticatedSettingsPrivacyRoute,

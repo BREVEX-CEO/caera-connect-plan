@@ -1,251 +1,270 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { StorageLockedError } from "../storage/types";
 
 /**
- * Privacy-aware chat persistence.
+ * WHERE A MESSAGE GOES, AND WHAT THE SCREEN IS TOLD ABOUT IT.
  *
- * The privacy promise is concrete and ASYMMETRIC, which is the part that used
- * to be got wrong here. A `browser_only` conversation must NEVER be written to
- * Supabase — that direction is the guarantee, and a mistake in it silently
- * uploads a conversation somebody asked to keep on their machine.
+ * The store used to route by a per-account privacy mode: an encrypted browser
+ * vault, an OS vault, or Supabase — and for Supabase it wrote to both. Most of
+ * this file was about which of the three won. `PLAN.md` Phase 2 leaves one
+ * authority, so what is worth proving changed:
  *
- * The other direction is not a guarantee at all. `private_sync` used to write
- * ONLY to the cloud, and this file asserted that as though it were a privacy
- * property. It was a bug: a message sent with the network down was lost, and
- * Chat could not start a conversation offline. Writing a synchronised message
- * to the device first leaks nothing — it is the user's own device — and it is
- * what makes Chat fast and usable offline. So the assertion is inverted here,
- * deliberately, while the browser_only one is untouched.
+ *  - an incognito turn is written NOWHERE, and the record still comes back
+ *    because the screen renders from it;
+ *  - a reachable account gets the row, and the row's id and timestamp win;
+ *  - an UNREACHABLE account does not lose the turn and does not claim to have
+ *    saved it — it waits in the tab, marked, with a key that makes the later
+ *    upload idempotent.
+ *
+ * The server function is mocked because this is the store's own logic. That the
+ * key it sends actually prevents a duplicate row is proved against real
+ * PostgreSQL in `db-twin.test.ts`, through the migration's own verification.
  */
 
-interface VaultRow {
-  id: string;
-  value: unknown;
-}
-
-const vault = {
-  rows: [] as VaultRow[],
-  put: vi.fn(),
-  list: vi.fn(),
-  delete: vi.fn(),
-};
-const cloud = { appended: [] as unknown[], listed: [] as unknown[] };
-
-vi.mock("../storage/resolver", () => ({
-  resolveAdapter: vi.fn(async () => ({
-    put: (collection: string, id: string, value: unknown) => {
-      vault.put(collection, id, value);
-      vault.rows.push({ id, value });
-      return Promise.resolve();
-    },
-    list: (collection: string) => {
-      vault.list(collection);
-      return Promise.resolve(vault.rows);
-    },
-    delete: (collection: string, id: string) => {
-      vault.delete(collection, id);
-      vault.rows = vault.rows.filter((r) => r.id !== id);
-      return Promise.resolve();
-    },
-  })),
-}));
+const appendOcadeMessage = vi.fn();
+const listMessages = vi.fn();
 
 vi.mock("../ocade.functions", () => ({
-  appendOcadeMessage: vi.fn(async (arg: unknown) => {
-    cloud.appended.push(arg);
-  }),
-  listMessages: vi.fn(async () => cloud.listed),
+  appendOcadeMessage: (input: unknown) => appendOcadeMessage(input),
+  listMessages: (input: unknown) => listMessages(input),
 }));
 
-const { persistChatMessage, loadChatMessages, deleteVaultConversation, describeStorageError } =
+const { persistChatMessage, loadChatMessages, describeStorageError } =
   await import("../ocade-chat-store");
+const { unsyncedCount, unsyncedTurns, forgetAllUnsyncedTurns } =
+  await import("../chat/unsynced-turns");
 
 beforeEach(() => {
-  vault.rows = [];
-  vault.put.mockClear();
-  vault.list.mockClear();
-  vault.delete.mockClear();
-  cloud.appended = [];
-  cloud.listed = [];
+  appendOcadeMessage.mockReset();
+  listMessages.mockReset();
+  forgetAllUnsyncedTurns();
 });
 
-const base = {
-  userId: "u1",
-  conversationId: "c1",
-  role: "user" as const,
-  content: "hello",
-};
-
-describe("persistChatMessage routes by privacy mode", () => {
-  it("keeps a browser_only message OUT of the cloud", async () => {
-    const r = await persistChatMessage({ ...base, chatsMode: "browser_only" });
-    expect(r.stored).toBe("vault");
-    expect(vault.put).toHaveBeenCalledTimes(1);
-    expect(cloud.appended).toHaveLength(0); // the privacy promise
+describe("an incognito turn is written nowhere", () => {
+  it("does not call the server at all", async () => {
+    const result = await persistChatMessage({
+      conversationId: "c1",
+      role: "user",
+      content: "secret",
+      incognito: true,
+    });
+    expect(appendOcadeMessage).not.toHaveBeenCalled();
+    expect(result.stored).toBe("not_stored");
   });
 
-  it("keeps a pc_vault message out of the cloud too", async () => {
-    const r = await persistChatMessage({ ...base, chatsMode: "pc_vault" });
-    expect(r.stored).toBe("vault");
-    expect(cloud.appended).toHaveLength(0);
+  it("still returns the record, because the screen renders from it", async () => {
+    const result = await persistChatMessage({
+      conversationId: "c1",
+      role: "user",
+      content: "secret",
+      incognito: true,
+    });
+    expect(result.record.content).toBe("secret");
+    expect(result.record.conversation_id).toBe("c1");
   });
 
-  it("writes a private_sync message to the device FIRST, then sends it", async () => {
-    const r = await persistChatMessage({ ...base, chatsMode: "private_sync" });
-    expect(r.stored).toBe("cloud");
-    // Both happened, and the local one is what makes the message survive a
-    // dropped connection.
-    expect(vault.put).toHaveBeenCalledTimes(1);
-    expect(cloud.appended).toHaveLength(1);
-    const [, storedId] = vault.put.mock.calls[0];
-    expect(storedId).toBe(r.record.id);
+  it("leaves nothing waiting in the tab either", async () => {
+    // An unsynchronised buffer would be a record of the conversation having
+    // happened, which is the one thing the mode exists to prevent.
+    await persistChatMessage({
+      conversationId: "c1",
+      role: "user",
+      content: "secret",
+      incognito: true,
+    });
+    expect(unsyncedCount()).toBe(0);
   });
+});
 
-  it("returns a complete record with defaults filled in", async () => {
-    const r = await persistChatMessage({ ...base, chatsMode: "browser_only" });
-    expect(r.record).toMatchObject({
-      conversation_id: "c1",
+describe("a reachable account takes the message", () => {
+  it("sends it and reports the row", async () => {
+    appendOcadeMessage.mockResolvedValue({
+      id: "row-1",
+      created_at: "2026-09-09T10:00:00.000Z",
+    });
+    const result = await persistChatMessage({
+      conversationId: "c1",
       role: "user",
       content: "hello",
-      attachments: [],
-      model_id: null,
-      provider_id: null,
     });
-    expect(typeof r.record.created_at).toBe("string");
-    expect(r.record.id).toContain("c1::");
+    expect(result.stored).toBe("cloud");
+    // The row's id wins: it is what every other device will see, and a screen
+    // showing the local one would disagree with the conversation on reload.
+    expect(result.record.id).toBe("row-1");
+    expect(result.record.created_at).toBe("2026-09-09T10:00:00.000Z");
   });
 
   it("carries model, provider and attachments through", async () => {
-    const r = await persistChatMessage({
-      ...base,
-      chatsMode: "browser_only",
-      modelId: "m1",
-      providerId: "p1",
-      attachments: [{ name: "a.txt" } as never],
+    appendOcadeMessage.mockResolvedValue({ id: "row-2" });
+    await persistChatMessage({
+      conversationId: "c1",
+      role: "assistant",
+      content: "answer",
+      modelId: "ocade-local",
+      providerId: "device",
+      attachments: [{ kind: "file", name: "a.txt", mime: "text/plain", sizeBytes: 4 }],
     });
-    expect(r.record.model_id).toBe("m1");
-    expect(r.record.provider_id).toBe("p1");
-    expect(r.record.attachments).toHaveLength(1);
+    const sent = appendOcadeMessage.mock.calls[0]![0] as { data: Record<string, unknown> };
+    expect(sent.data.modelId).toBe("ocade-local");
+    expect(sent.data.providerId).toBe("device");
+    expect(sent.data.attachments).toHaveLength(1);
   });
 
-  it("gives two messages in the same conversation distinct ids", async () => {
-    const a = await persistChatMessage({ ...base, chatsMode: "browser_only" });
-    const b = await persistChatMessage({ ...base, chatsMode: "browser_only" });
-    expect(a.record.id).not.toBe(b.record.id);
-  });
-
-  it("propagates a locked vault instead of silently dropping the message", async () => {
-    const { resolveAdapter } = await import("../storage/resolver");
-    vi.mocked(resolveAdapter).mockRejectedValueOnce(new StorageLockedError());
-    await expect(persistChatMessage({ ...base, chatsMode: "browser_only" })).rejects.toBeInstanceOf(
-      StorageLockedError,
+  it("sends an idempotency key with every turn", async () => {
+    appendOcadeMessage.mockResolvedValue({ id: "row-3" });
+    await persistChatMessage({ conversationId: "c1", role: "user", content: "one" });
+    await persistChatMessage({ conversationId: "c1", role: "user", content: "two" });
+    const keys = appendOcadeMessage.mock.calls.map(
+      (call) => (call[0] as { data: { clientKey?: string } }).data.clientKey,
     );
+    expect(keys.every(Boolean)).toBe(true);
+    expect(new Set(keys).size, "two turns shared one key").toBe(2);
   });
 });
 
-describe("loadChatMessages", () => {
-  const row = (id: string, conversation_id: string, created_at: string) => ({
-    id,
-    value: { id, conversation_id, created_at, role: "user", content: id },
+describe("an unreachable account does not lose the turn, and does not claim to have saved it", () => {
+  beforeEach(() => {
+    appendOcadeMessage.mockRejectedValue(new Error("Failed to fetch"));
   });
 
-  it("returns only the requested conversation", async () => {
-    vault.rows = [row("m1", "c1", "2026-01-01T00:00:00Z"), row("m2", "c2", "2026-01-01T00:00:01Z")];
-    const out = await loadChatMessages({
-      userId: "u1",
-      chatsMode: "browser_only",
+  it("reports it as unsynchronised rather than as saved or as failed", async () => {
+    const result = await persistChatMessage({
       conversationId: "c1",
+      role: "user",
+      content: "written offline",
     });
-    expect(out.map((m) => m.id)).toEqual(["m1"]);
+    expect(result.stored).toBe("unsynced");
+    expect(result.record.unsynced).toBe(true);
   });
 
-  it("orders messages oldest first regardless of storage order", async () => {
-    vault.rows = [
-      row("late", "c1", "2026-01-01T00:00:09Z"),
-      row("early", "c1", "2026-01-01T00:00:01Z"),
-      row("middle", "c1", "2026-01-01T00:00:05Z"),
-    ];
-    const out = await loadChatMessages({
-      userId: "u1",
-      chatsMode: "browser_only",
-      conversationId: "c1",
-    });
-    expect(out.map((m) => m.id)).toEqual(["early", "middle", "late"]);
+  it("holds it in the tab, with the key the upload will use", async () => {
+    await persistChatMessage({ conversationId: "c1", role: "user", content: "written offline" });
+    const waiting = unsyncedTurns();
+    expect(waiting).toHaveLength(1);
+    expect(waiting[0]!.content).toBe("written offline");
+    expect(waiting[0]!.clientKey).toBeTruthy();
   });
 
-  it("skips empty vault entries rather than returning holes", async () => {
-    vault.rows = [{ id: "broken", value: null }, row("ok", "c1", "2026-01-01T00:00:00Z")];
-    const out = await loadChatMessages({
-      userId: "u1",
-      chatsMode: "browser_only",
-      conversationId: "c1",
-    });
-    expect(out.map((m) => m.id)).toEqual(["ok"]);
+  it("shows the waiting turn in the transcript, marked", async () => {
+    listMessages.mockResolvedValue([]);
+    await persistChatMessage({ conversationId: "c1", role: "user", content: "written offline" });
+    const rows = await loadChatMessages({ conversationId: "c1" });
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.unsynced).toBe(true);
   });
 
-  it("reads private_sync conversations from the cloud", async () => {
-    cloud.listed = [{ id: "s1", conversation_id: "c1", created_at: "2026-01-01T00:00:00Z" }];
-    const out = await loadChatMessages({
-      userId: "u1",
-      chatsMode: "private_sync",
-      conversationId: "c1",
-    });
-    expect(out.map((m) => m.id)).toEqual(["s1"]);
-  });
-
-  it("returns an empty list when the cloud returns nothing", async () => {
-    cloud.listed = null as never;
-    const out = await loadChatMessages({
-      userId: "u1",
-      chatsMode: "private_sync",
-      conversationId: "c1",
-    });
-    expect(out).toEqual([]);
+  it("keeps another conversation's waiting turn out of this transcript", async () => {
+    listMessages.mockResolvedValue([]);
+    await persistChatMessage({ conversationId: "c2", role: "user", content: "elsewhere" });
+    expect(await loadChatMessages({ conversationId: "c1" })).toHaveLength(0);
   });
 });
 
-describe("deleteVaultConversation (privacy control)", () => {
-  it("deletes only the target conversation and reports the count", async () => {
-    vault.rows = [
-      { id: "a", value: { conversation_id: "c1" } },
-      { id: "b", value: { conversation_id: "c1" } },
-      { id: "c", value: { conversation_id: "c2" } },
-    ];
-    const removed = await deleteVaultConversation("u1", "c1");
-    expect(removed).toBe(2);
-    expect(vault.rows.map((r) => r.id)).toEqual(["c"]);
+describe("what comes back from the columns is checked, not trusted", () => {
+  /*
+   * `citations` is `jsonb` and `reaction` is text, so both hold whatever was
+   * written to them — including a shape an older version of OCADE wrote. The
+   * screen renders citation cards and a feedback control from these, so a
+   * malformed value has to be dropped here rather than reaching them.
+   */
+  it("keeps the citations that are citations and drops the rest", async () => {
+    listMessages.mockResolvedValue([
+      {
+        id: "a",
+        conversation_id: "c1",
+        role: "assistant",
+        content: "answer",
+        created_at: "2026-01-01",
+        citations: [
+          { sourceId: "S1", name: "notes.pdf", kind: "pdf", locator: { page: 2 }, snippet: "x" },
+          { sourceId: "not-a-source-id", name: "bad", kind: "pdf", locator: {}, snippet: null },
+          { name: "no source id at all", kind: "pdf", locator: {}, snippet: null },
+          "not even an object",
+        ],
+      },
+    ]);
+    const [row] = await loadChatMessages({ conversationId: "c1" });
+    expect(row!.citations).toHaveLength(1);
+    expect(row!.citations![0]!.name).toBe("notes.pdf");
   });
 
-  it("reports zero when nothing matches, without deleting anything", async () => {
-    vault.rows = [{ id: "c", value: { conversation_id: "c2" } }];
-    expect(await deleteVaultConversation("u1", "nope")).toBe(0);
-    expect(vault.delete).not.toHaveBeenCalled();
+  it("treats a citations value that is not a list as no citations", async () => {
+    listMessages.mockResolvedValue([
+      {
+        id: "a",
+        conversation_id: "c1",
+        role: "assistant",
+        content: "answer",
+        created_at: "2026-01-01",
+        citations: { sourceId: "S1" },
+      },
+    ]);
+    expect((await loadChatMessages({ conversationId: "c1" }))[0]!.citations).toEqual([]);
   });
 
-  it("tolerates empty vault entries", async () => {
-    vault.rows = [{ id: "broken", value: null }];
-    expect(await deleteVaultConversation("u1", "c1")).toBe(0);
+  it("reads an unrecognised reaction as no feedback", async () => {
+    // A stored value the interface cannot show must not render as a pressed
+    // control somebody cannot un-press.
+    listMessages.mockResolvedValue([
+      {
+        id: "a",
+        conversation_id: "c1",
+        role: "assistant",
+        content: "answer",
+        created_at: "2026-01-01",
+        reaction: "loved-it",
+      },
+    ]);
+    expect((await loadChatMessages({ conversationId: "c1" }))[0]!.reaction).toBeNull();
+  });
+
+  it("carries a reaction the interface does show", async () => {
+    listMessages.mockResolvedValue([
+      {
+        id: "a",
+        conversation_id: "c1",
+        role: "assistant",
+        content: "answer",
+        created_at: "2026-01-01",
+        reaction: "not_helpful",
+      },
+    ]);
+    expect((await loadChatMessages({ conversationId: "c1" }))[0]!.reaction).toBe("not_helpful");
+  });
+});
+
+describe("loading a conversation", () => {
+  it("orders the account's rows and the waiting turns together, oldest first", async () => {
+    listMessages.mockResolvedValue([
+      { id: "b", conversation_id: "c1", role: "user", content: "second", created_at: "2026-01-02" },
+      { id: "a", conversation_id: "c1", role: "user", content: "first", created_at: "2026-01-01" },
+    ]);
+    appendOcadeMessage.mockRejectedValue(new Error("offline"));
+    await persistChatMessage({ conversationId: "c1", role: "user", content: "third" });
+
+    const rows = await loadChatMessages({ conversationId: "c1" });
+    expect(rows.map((row) => row.content)).toEqual(["first", "second", "third"]);
+  });
+
+  it("returns an empty list when the account has nothing", async () => {
+    listMessages.mockResolvedValue(null);
+    expect(await loadChatMessages({ conversationId: "c1" })).toEqual([]);
   });
 });
 
 describe("describeStorageError gives an actionable message", () => {
-  it("explains a locked vault and where to unlock it", () => {
-    const msg = describeStorageError(new StorageLockedError());
-    expect(msg).toMatch(/locked/i);
-    expect(msg).toMatch(/Settings/);
-  });
-
-  it("explains a missing native companion", () => {
-    const e = new Error("nope");
-    e.name = "NativeCompanionRequiredError";
-    expect(describeStorageError(e)).toMatch(/Native Companion/i);
+  it("explains an unreachable account, and what happens to the message", () => {
+    const message = describeStorageError(new Error("Failed to fetch"));
+    expect(message).toMatch(/could not reach your account/i);
+    expect(message, "does not say what closing the tab costs").toMatch(/closing the tab/i);
   });
 
   it("passes a plain error message through", () => {
-    expect(describeStorageError(new Error("disk full"))).toBe("disk full");
+    expect(describeStorageError(new Error("Conversation not found"))).toBe(
+      "Conversation not found",
+    );
   });
 
   it("falls back to an honest default for a non-error", () => {
-    expect(describeStorageError("weird")).toBe("Could not save this message.");
+    expect(describeStorageError(undefined)).toMatch(/could not save/i);
   });
 });

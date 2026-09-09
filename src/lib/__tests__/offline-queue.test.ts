@@ -1,7 +1,28 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { OfflineQueue, saveDraft, recoverDraft, clearDraft } from "../offline-queue";
+import {
+  OfflineQueue,
+  forgetAllQueues,
+  saveDraft,
+  recoverDraft,
+  clearDraft,
+} from "../offline-queue";
 
-/** Minimal in-memory localStorage so these run in the node environment. */
+/**
+ * THE QUEUE IS HELD IN THE TAB; A DRAFT IS KEPT IN THE BROWSER.
+ *
+ * The queue used to be written to `localStorage`, and its payloads carry real
+ * content — the text of a handoff, a clipboard. `PLAN.md` Phase 2 gives
+ * ordinary content one persistent authority, so what is queued now lasts as
+ * long as the tab and nothing more. The tests below therefore assert the
+ * opposite of what they used to: a reload starts empty, and nothing reaches
+ * browser storage.
+ *
+ * A DRAFT IS THE EXCEPTION and still keeps its own tests: it is what the person
+ * is looking at, it is never sent anywhere on its own, and losing it to a
+ * refresh is the failure it exists to prevent.
+ */
+
+/** Minimal in-memory localStorage, so the draft tests run in the node environment. */
 function installStorage() {
   const store = new Map<string, string>();
   const mock = {
@@ -19,12 +40,13 @@ const replayable = (p: Job) => p.kind === "send";
 
 beforeEach(() => {
   installStorage();
+  forgetAllQueues();
 });
 
 describe("OfflineQueue", () => {
   const NOW = new Date("2026-07-23T10:00:00Z");
 
-  it("queues a replayable payload and persists it", () => {
+  it("queues a replayable payload", () => {
     const q = new OfflineQueue<Job>("k", replayable);
     const r = q.enqueue({ kind: "send", text: "hi" }, NOW, "id1");
     expect(r.queued).toBe(true);
@@ -39,57 +61,54 @@ describe("OfflineQueue", () => {
     expect(q.size).toBe(0);
   });
 
-  it("survives a simulated reload by reading back from storage", () => {
+  it("is shared between instances naming the same queue, within one tab", () => {
     const a = new OfflineQueue<Job>("k", replayable);
-    a.enqueue({ kind: "send", text: "persisted" }, NOW, "id1");
-    // A brand-new instance = a fresh page load against the same storage.
+    a.enqueue({ kind: "send", text: "held" }, NOW, "id1");
+    // A second instance is another part of the same page, not another page.
     const b = new OfflineQueue<Job>("k", replayable);
     expect(b.size).toBe(1);
-    expect(b.all()[0].payload.text).toBe("persisted");
+    expect(b.all()[0].payload.text).toBe("held");
   });
 
-  it("discards corrupt storage instead of throwing", () => {
-    localStorage.setItem("k", "{not json");
+  it("WRITES NOTHING TO BROWSER STORAGE", () => {
+    /*
+     * The payloads carry real content — the text of a handoff, a clipboard. A
+     * copy in the browser would outlive a sign-out, survive an account
+     * deletion, and be invisible to every export the account offers.
+     */
+    const written: string[] = [];
+    vi.stubGlobal("localStorage", {
+      getItem: () => null,
+      setItem: (key: string) => written.push(key),
+      removeItem: () => undefined,
+    });
     const q = new OfflineQueue<Job>("k", replayable);
-    expect(q.all()).toEqual([]);
+    q.enqueue({ kind: "send", text: "private" }, NOW, "id1");
+    expect(written).toEqual([]);
+    expect(q.size).toBe(1);
+  });
+
+  it("starts empty in a new tab, because nothing was written down", () => {
+    const a = new OfflineQueue<Job>("k", replayable);
+    a.enqueue({ kind: "send", text: "held" }, NOW, "id1");
+    forgetAllQueues(); // a closed tab
+    expect(new OfflineQueue<Job>("k", replayable).size).toBe(0);
   });
 
   it("ignores foreign entries that don't match the shape", () => {
-    localStorage.setItem("k", JSON.stringify([{ nope: true }, 42, null]));
-    expect(new OfflineQueue<Job>("k", replayable).all()).toEqual([]);
+    // Payloads are validated on the way out whatever put them there, because a
+    // queued item is data like any other.
+    const q = new OfflineQueue<Job>("k", replayable);
+    q.enqueue({ kind: "send", text: "real" }, NOW, "id1");
+    expect(q.all()).toHaveLength(1);
   });
 
-  it("never replays a forged non-replayable payload from storage", async () => {
-    localStorage.setItem(
-      "k",
-      JSON.stringify([
-        {
-          id: "forged-stop",
-          payload: { kind: "stop" },
-          queuedAt: NOW.toISOString(),
-          attempts: 0,
-        },
-      ]),
-    );
+  it("never replays a payload that must be decided live", async () => {
     const q = new OfflineQueue<Job>("k", replayable);
+    expect(q.enqueue({ kind: "stop" }, NOW, "forged-stop").queued).toBe(false);
     const send = vi.fn(async () => true);
-    expect(q.all()).toEqual([]);
     await q.flush(send);
     expect(send).not.toHaveBeenCalled();
-  });
-
-  it("refuses to claim an enqueue when durable storage rejects it", () => {
-    vi.stubGlobal("localStorage", {
-      getItem: () => "[]",
-      setItem: () => {
-        throw new DOMException("Quota exceeded", "QuotaExceededError");
-      },
-    });
-    const q = new OfflineQueue<Job>("k", replayable);
-    const result = q.enqueue({ kind: "send", text: "must persist" }, NOW, "id1");
-    expect(result.queued).toBe(false);
-    if (result.queued) throw new Error("unreachable");
-    expect(result.reason).toMatch(/could not be saved/i);
   });
 
   it("caps the queue, dropping the oldest", () => {
@@ -106,19 +125,6 @@ describe("OfflineQueue", () => {
     const result = await q.flush(async () => true);
     expect(result.sent).toBe(2);
     expect(q.size).toBe(0);
-  });
-
-  it("does not claim a durable acknowledgement when removal cannot be saved", async () => {
-    const installed = installStorage();
-    const q = new OfflineQueue<Job>("k", replayable);
-    q.enqueue({ kind: "send", text: "a" }, NOW, "a");
-    installed.mock.setItem = () => {
-      throw new DOMException("Quota exceeded", "QuotaExceededError");
-    };
-    const result = await q.flush(async () => true);
-    expect(result.sent).toBe(0);
-    expect(result.failed).toBe(1);
-    expect(q.size).toBe(1);
   });
 
   it("reuses the queue id as the idempotency key after a lost acknowledgement", async () => {
@@ -186,9 +192,14 @@ describe("OfflineQueue", () => {
     expect(q.size).toBe(0);
   });
 
-  it("ignores an oversized persisted queue before parsing it", () => {
-    localStorage.setItem("k", " ".repeat(2_000_001));
-    expect(new OfflineQueue<Job>("k", replayable).all()).toEqual([]);
+  it("refuses to hold more than its total budget", () => {
+    // The budget bounds the tab's own memory now rather than a storage quota,
+    // and it still has to be enforced: one enormous handoff must not be able to
+    // push everything else out.
+    const q = new OfflineQueue<Job>("k", replayable, { maxStoredBytes: 200 });
+    for (let i = 0; i < 20; i++) q.enqueue({ kind: "send", text: `m${i}` }, NOW, `id${i}`);
+    expect(q.size).toBeGreaterThan(0);
+    expect(q.size).toBeLessThan(20);
   });
 });
 

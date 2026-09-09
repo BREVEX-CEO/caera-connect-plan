@@ -14,7 +14,7 @@ import {
   deleteMyAccount,
   type AccountDeletionReceipt,
 } from "@/lib/account.functions";
-import { deleteLocalData } from "@/lib/storage/local-data";
+import { deleteLocalData } from "@/lib/device/local-data";
 import { organizationsBlockingAccountDeletion } from "@/lib/organizations/authority";
 
 /**

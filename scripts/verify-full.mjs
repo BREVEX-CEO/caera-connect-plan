@@ -35,6 +35,7 @@ const commands = [
   "application-lifecycle:check",
   "controls:check",
   "browser-safety:check",
+  "content-storage:check",
   "monochrome:check",
   "a11y:check",
   "licences:check",

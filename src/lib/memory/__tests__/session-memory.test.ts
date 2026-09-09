@@ -36,8 +36,10 @@ function depsThatSay(reply: string | null) {
     saved,
     deps: {
       complete: async () => reply,
-      existing: () => [],
-      save: (content: string) => {
+      // Async, because both reach the account: what is already remembered is
+      // read from it, and a new fact is written to it.
+      existing: async () => [],
+      save: async (content: string) => {
         saved.push(content);
         return true;
       },
@@ -119,8 +121,8 @@ describe("when an extraction happens at all", () => {
         complete: async () => {
           throw new Error("engine fell over");
         },
-        existing: () => [],
-        save: () => true,
+        existing: async () => [],
+        save: async () => true,
       },
     });
     expect(facts).toEqual([]);

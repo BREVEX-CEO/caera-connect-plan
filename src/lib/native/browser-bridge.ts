@@ -92,26 +92,103 @@ export const DEFAULT_SITE_POLICY: SitePolicy = {
   allowPrivate: false,
 };
 
-export const BROWSER_POLICY_STORAGE_KEY = "caera:browser:policy:v1";
+/**
+ * WHERE THE SITE POLICY LIVES, AND WHY IT MOVED.
+ *
+ * It was `localStorage`, per browser. That made a REVOCATION local to whichever
+ * browser performed it: somebody who removes a bank from the allow list on a
+ * laptop leaves it allowed on every other browser they have signed in on. A
+ * permission is exactly the thing that has to be account-wide, so the authority
+ * is `ocade_browser_site_policy` — one row per account.
+ *
+ * IT IS STILL READ SYNCHRONOUSLY, from a cache this module holds in memory,
+ * because it is consulted at DISPATCH TIME — before every browser action. A
+ * round trip there would put the network in the path of every click, and a
+ * failed round trip would have to either block the action or wave it through.
+ *
+ * THE CACHE FAILS CLOSED. Until `loadBrowserSitePolicy` has succeeded in this
+ * tab, the answer is the default: nothing allowed. An empty policy refuses
+ * actions that should have been permitted, which is a visible inconvenience; a
+ * remembered policy would permit actions that were revoked, which is not
+ * visible at all.
+ */
+let cachedPolicy: SitePolicy = { ...DEFAULT_SITE_POLICY };
 
-/** Read the current per-device browser policy at dispatch time. */
+function normalisePolicy(row: Partial<Record<string, unknown>> | null): SitePolicy {
+  const list = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+  return {
+    allowOrigins: list(row?.allow_origins),
+    denyOrigins: list(row?.deny_origins),
+    readOrigins: list(row?.read_origins),
+    fillOrigins: list(row?.fill_origins),
+    // Never stored, never configurable. See the migration.
+    allowPrivate: false,
+  };
+}
+
+/**
+ * Read the policy in force, without waiting.
+ *
+ * Returns the account's policy once it has been loaded in this tab, and the
+ * refuse-everything default before that.
+ */
 export function readBrowserSitePolicy(): SitePolicy {
-  if (typeof localStorage === "undefined") return { ...DEFAULT_SITE_POLICY };
-  try {
-    const raw = localStorage.getItem(BROWSER_POLICY_STORAGE_KEY);
-    if (!raw) return { ...DEFAULT_SITE_POLICY };
-    const policy = JSON.parse(raw) as Partial<SitePolicy>;
-    return {
-      ...DEFAULT_SITE_POLICY,
-      allowOrigins: Array.isArray(policy.allowOrigins) ? policy.allowOrigins : [],
-      denyOrigins: Array.isArray(policy.denyOrigins) ? policy.denyOrigins : [],
-      readOrigins: Array.isArray(policy.readOrigins) ? policy.readOrigins : [],
-      fillOrigins: Array.isArray(policy.fillOrigins) ? policy.fillOrigins : [],
-      allowPrivate: false,
-    };
-  } catch {
-    return { ...DEFAULT_SITE_POLICY };
-  }
+  return { ...cachedPolicy };
+}
+
+/** Fetch the account's policy and make it the one dispatch will read. */
+export async function loadBrowserSitePolicy(): Promise<SitePolicy> {
+  const { loadSupabaseClient } = await import("@/integrations/supabase/on-demand");
+  const supabase = await loadSupabaseClient();
+  const { data, error } = await supabase
+    .from("ocade_browser_site_policy")
+    .select("allow_origins, deny_origins, read_origins, fill_origins")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  /*
+   * No row is not a failure: it is somebody who has never granted a site. The
+   * default is refusal, so an account with no row and an account that allows
+   * nothing are the same thing, and both are correct.
+   */
+  cachedPolicy = normalisePolicy(data as Record<string, unknown> | null);
+  return { ...cachedPolicy };
+}
+
+/**
+ * Change the policy.
+ *
+ * The cache is updated ONLY after the account has agreed. Updating it first
+ * would let a failed save leave this tab acting on a permission that was never
+ * recorded — and on a permissions screen that is the worst possible lie.
+ */
+export async function saveBrowserSitePolicy(next: SitePolicy): Promise<SitePolicy> {
+  const { loadSupabaseClient } = await import("@/integrations/supabase/on-demand");
+  const supabase = await loadSupabaseClient();
+  const { data: session } = await supabase.auth.getUser();
+  const userId = session.user?.id;
+  if (!userId) throw new Error("Sign in before changing site permissions.");
+
+  const { error } = await supabase.from("ocade_browser_site_policy").upsert(
+    {
+      user_id: userId,
+      allow_origins: next.allowOrigins,
+      deny_origins: next.denyOrigins,
+      read_origins: next.readOrigins,
+      fill_origins: next.fillOrigins,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+  if (error) throw new Error(error.message);
+
+  cachedPolicy = { ...next, allowPrivate: false };
+  return { ...cachedPolicy };
+}
+
+/** Forget the loaded policy. Called on sign-out: the next account is not this one. */
+export function forgetBrowserSitePolicy(): void {
+  cachedPolicy = { ...DEFAULT_SITE_POLICY };
 }
 
 /** Field names that must never be auto-filled or read. */

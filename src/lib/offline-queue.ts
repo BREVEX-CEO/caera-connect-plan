@@ -1,15 +1,28 @@
 /**
- * Durable offline queue and crash recovery (Plan §34, §39).
+ * The offline queue, and crash recovery for what somebody was typing.
  *
- * Two failure modes this removes:
- *  1. LOST WORK — a half-typed message or an action raised while offline
- *     disappears when the tab is closed, crashes or reloads.
+ * Two failure modes the queue removes:
+ *  1. LOST WORK — an action raised while offline disappears the moment it
+ *     fails to send.
  *  2. UNSAFE REPLAY — a queue that blindly replays everything can re-fire a
  *     "stop" or an approval against a task that has since changed.
  *
- * Storage is synchronous `localStorage` on purpose: it must survive a hard
- * crash, so nothing may be buffered in memory awaiting an async flush. All
- * reads are defensive — corrupt or foreign data is discarded, never thrown on.
+ * THE QUEUE IS HELD IN THE TAB, NOT WRITTEN TO THE BROWSER. It used to be
+ * `localStorage`, and its payloads carry real content — the text of a handoff,
+ * a clipboard. `PLAN.md` Phase 2 gives ordinary content one persistent
+ * authority, and a second copy sitting in the browser waiting to be sent is
+ * exactly the copy that outlives a sign-out, survives an account deletion, and
+ * is invisible to every export the account offers. Held in memory it lasts as
+ * long as the tab, and the screen says so rather than promising durability it
+ * would then have to be trusted for.
+ *
+ * DRAFTS ARE DIFFERENT and stay in the browser. An unsent draft is what the
+ * person is looking at, it is never sent anywhere on its own, and losing it to
+ * a refresh is the failure the feature exists to prevent. It is gated by
+ * Settings › Chat › Keep unsent drafts, so somebody on a shared computer can
+ * turn it off.
+ *
+ * All reads are still defensive — a payload is data like any other.
  */
 
 export interface QueuedItem<T> {
@@ -46,16 +59,33 @@ const DEFAULTS = {
 };
 const MAX_DRAFT_CHARACTERS = 100_000;
 
+/**
+ * Every queue's contents, for as long as this tab is open.
+ *
+ * Serialised rather than held as objects, so a caller cannot mutate what is
+ * queued after the fact and so the size budgets below mean the same thing they
+ * meant when this was a browser store.
+ */
+const HELD = new Map<string, string>();
+
 function readRaw(key: string, maxStoredBytes: number): unknown[] {
-  if (typeof localStorage === "undefined") return [];
   try {
-    const raw = localStorage.getItem(key) ?? "[]";
+    const raw = HELD.get(key) ?? "[]";
     if (utf8Bytes(raw) > maxStoredBytes) return [];
     const parsed: unknown = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
+}
+
+/**
+ * Forget every queue. Used by sign-out and by the local-data authority: what
+ * one person's tab was holding must not be waiting when the next person signs
+ * in on the same machine.
+ */
+export function forgetAllQueues(): void {
+  HELD.clear();
 }
 
 function isQueued<T>(v: unknown): v is QueuedItem<T> {
@@ -116,7 +146,6 @@ export class OfflineQueue<T> {
   }
 
   private write(items: QueuedItem<T>[]): boolean {
-    if (typeof localStorage === "undefined") return false;
     const bounded = [...items];
     let serialized = serialiseQueue(bounded);
     while (
@@ -128,21 +157,8 @@ export class OfflineQueue<T> {
       serialized = serialiseQueue(bounded);
     }
     if (serialized === null || utf8Bytes(serialized) > this.maxStoredBytes) return false;
-    try {
-      localStorage.setItem(this.storageKey, serialized);
-      return true;
-    } catch {
-      // Storage full or blocked — drop the oldest half and retry once so the
-      // newest work still survives rather than losing everything.
-      try {
-        const reduced = serialiseQueue(bounded.slice(-Math.ceil(bounded.length / 2)));
-        if (reduced === null || utf8Bytes(reduced) > this.maxStoredBytes) return false;
-        localStorage.setItem(this.storageKey, reduced);
-        return true;
-      } catch {
-        return false;
-      }
-    }
+    HELD.set(this.storageKey, serialized);
+    return true;
   }
 
   /** Returns the stored item, or a refusal when the payload must not be replayed. */

@@ -16,7 +16,7 @@ export const Route = createFileRoute("/products/ocade")({
       {
         property: "og:description",
         content:
-          "Local-first AI for chat, research, work and permissioned computer control, with optional Private Sync and current-information services.",
+          "Local-first AI for chat, research, work and permissioned computer control, with account-hosted workspace data and optional current-information services.",
       },
     ],
   }),
@@ -28,7 +28,7 @@ function OcadePage() {
     <PublicPage
       eyebrow="Official OCADE product information"
       title={PUBLIC_IDENTITY.product}
-      summary="OCADE is a cross-platform, local-inference AI workspace with optional Private Sync, user-authorized network services and permissioned computer-control features. CARCC CADANE records 28 August 2026 as OCADE's formal public-launch date."
+      summary="OCADE is a cross-platform, local-inference AI workspace with account-hosted workspace data, user-authorized network services and permissioned computer-control features. CARCC CADANE records 28 August 2026 as OCADE's formal public-launch date."
       structuredData={OCADE_STRUCTURED_DATA}
     >
       <CapabilityCarousel />
@@ -40,15 +40,16 @@ function OcadePage() {
           rather than a public-cloud AI inference fallback.
         </p>
         <p>
-          Optional authentication, Private Sync, current-information retrieval, support, payment and
-          user-authorized network features are separate from the normal local AI path.
+          Optional authentication, account-hosted workspace data, current-information retrieval,
+          support, payment and user-authorized network features are separate from the normal local
+          AI path.
         </p>
       </PublicSection>
 
       <PublicSection title="What exists across the product">
         <p>
           The repository contains the web application and offline shell, Supabase-backed account and
-          private-sync paths, on-device model routing, Capacitor Android and iOS projects, desktop
+          workspace data, on-device model routing, Capacitor Android and iOS projects, desktop
           components, browser-control components and release infrastructure. Source presence and
           passing tests do not by themselves prove that every installer, app-store build or external
           production service is available at the same moment.
@@ -67,7 +68,7 @@ function OcadePage() {
         <p>
           Supported OCADE Chat generation is designed to run locally; public-cloud AI inference is
           not a fallback. Local capability depends on device support and installed models. Sign-in,
-          Private Sync, live web requests, payments and other requested online services require a
+          Account data, live web requests, payments and other requested online services require a
           network.
         </p>
         <p>

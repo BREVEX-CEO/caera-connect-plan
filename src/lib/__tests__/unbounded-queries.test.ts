@@ -20,7 +20,6 @@ import { describe, expect, it } from "vitest";
 
 /** Tables whose row count is fixed by something other than user behaviour. */
 const NATURALLY_BOUNDED: Record<string, string> = {
-  data_class_privacy: "one row per data class — six, by definition",
   feature_flags: "deployment configuration, not user data",
   launch_gate_items: "the launch checklist, a fixed list",
   launch_gate_history: "admin-only audit of that fixed list",

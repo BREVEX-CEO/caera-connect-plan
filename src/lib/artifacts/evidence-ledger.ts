@@ -18,7 +18,8 @@
  * layer and hands the result to `artifacts/store.ts`.
  */
 import type { EvidenceReceipt } from "../skills/skill-pack";
-import { saveArtifact, type Artifact, type ArtifactOutcome } from "./store";
+import { saveArtifact, type Artifact } from "./store";
+import type { Outcome } from "../outcome";
 
 /** One executed (or attempted) step, with everything that happened to it. */
 export interface LedgerStep {
@@ -223,7 +224,7 @@ export function serialiseLedger(ledger: TaskLedger): string {
  * everywhere the artifact appears — the ledger's own honesty flows through into
  * the store's.
  */
-export async function saveLedgerArtifact(ledger: TaskLedger): Promise<ArtifactOutcome<Artifact>> {
+export async function saveLedgerArtifact(ledger: TaskLedger): Promise<Outcome<Artifact>> {
   return saveArtifact({
     name: `Receipt — ${ledger.intent || ledger.taskId}`,
     kind: "receipt",

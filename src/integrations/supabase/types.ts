@@ -563,6 +563,7 @@ export type Database = {
           last_active_at: string
           name: string
           physical_pc_id: string | null
+          platform: string | null
           revoked_at: string | null
           user_agent: string | null
           user_id: string
@@ -574,6 +575,7 @@ export type Database = {
           last_active_at?: string
           name: string
           physical_pc_id?: string | null
+          platform?: string | null
           revoked_at?: string | null
           user_agent?: string | null
           user_id: string
@@ -585,6 +587,7 @@ export type Database = {
           last_active_at?: string
           name?: string
           physical_pc_id?: string | null
+          platform?: string | null
           revoked_at?: string | null
           user_agent?: string | null
           user_id?: string
@@ -1901,6 +1904,42 @@ export type Database = {
           },
         ]
       }
+      ocade_approvals: {
+        Row: {
+          decided_at: string | null
+          decided_by_device: string | null
+          expires_at: string
+          id: string
+          requested_at: string
+          risk: string
+          status: string
+          summary: string
+          user_id: string
+        }
+        Insert: {
+          decided_at?: string | null
+          decided_by_device?: string | null
+          expires_at: string
+          id?: string
+          requested_at?: string
+          risk: string
+          status?: string
+          summary: string
+          user_id: string
+        }
+        Update: {
+          decided_at?: string | null
+          decided_by_device?: string | null
+          expires_at?: string
+          id?: string
+          requested_at?: string
+          risk?: string
+          status?: string
+          summary?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_automation_runs: {
         Row: {
           approval_decision: string | null
@@ -2580,42 +2619,61 @@ export type Database = {
       }
       ocade_messages: {
         Row: {
+          anchor_message_id: string | null
           attachments: Json
+          citations: Json | null
+          client_key: string | null
           content: string
           conversation_id: string
           created_at: string
           id: string
           model_id: string | null
           provider_id: string | null
+          reaction: string | null
           role: string
           token_usage: Json | null
           user_id: string
         }
         Insert: {
+          anchor_message_id?: string | null
           attachments?: Json
+          citations?: Json | null
+          client_key?: string | null
           content: string
           conversation_id: string
           created_at?: string
           id?: string
           model_id?: string | null
           provider_id?: string | null
+          reaction?: string | null
           role: string
           token_usage?: Json | null
           user_id: string
         }
         Update: {
+          anchor_message_id?: string | null
           attachments?: Json
+          citations?: Json | null
+          client_key?: string | null
           content?: string
           conversation_id?: string
           created_at?: string
           id?: string
           model_id?: string | null
           provider_id?: string | null
+          reaction?: string | null
           role?: string
           token_usage?: Json | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ocade_messages_anchor_message_id_fkey"
+            columns: ["anchor_message_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ocade_messages_conversation_id_fkey"
             columns: ["conversation_id"]
@@ -3141,52 +3199,64 @@ export type Database = {
         Row: {
           content: string | null
           content_sha256: string | null
+          context: Json | null
           conversation_id: string | null
           created_at: string
+          evidence: string | null
           expires_at: string | null
           id: string
           kind: string
           lineage_id: string
           mime: string | null
           parent_output_id: string | null
+          produced_by: string | null
           project_id: string | null
           size_bytes: number
           title: string
           user_id: string
+          verified: boolean
           version: number
         }
         Insert: {
           content?: string | null
           content_sha256?: string | null
+          context?: Json | null
           conversation_id?: string | null
           created_at?: string
+          evidence?: string | null
           expires_at?: string | null
           id?: string
           kind: string
           lineage_id?: string
           mime?: string | null
           parent_output_id?: string | null
+          produced_by?: string | null
           project_id?: string | null
           size_bytes?: number
           title: string
           user_id: string
+          verified?: boolean
           version?: number
         }
         Update: {
           content?: string | null
           content_sha256?: string | null
+          context?: Json | null
           conversation_id?: string | null
           created_at?: string
+          evidence?: string | null
           expires_at?: string | null
           id?: string
           kind?: string
           lineage_id?: string
           mime?: string | null
           parent_output_id?: string | null
+          produced_by?: string | null
           project_id?: string | null
           size_bytes?: number
           title?: string
           user_id?: string
+          verified?: boolean
           version?: number
         }
         Relationships: [
@@ -3289,6 +3359,85 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ocade_project_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_project_files: {
+        Row: {
+          content_sha256: string
+          created_at: string
+          folder: string
+          id: string
+          mime: string
+          name: string
+          project_id: string
+          size_bytes: number
+          text: string
+          user_id: string
+        }
+        Insert: {
+          content_sha256: string
+          created_at?: string
+          folder?: string
+          id?: string
+          mime?: string
+          name: string
+          project_id: string
+          size_bytes: number
+          text: string
+          user_id: string
+        }
+        Update: {
+          content_sha256?: string
+          created_at?: string
+          folder?: string
+          id?: string
+          mime?: string
+          name?: string
+          project_id?: string
+          size_bytes?: number
+          text?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_project_folders: {
+        Row: {
+          created_at: string
+          id: string
+          path: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          path: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          path?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_project_folders_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "ocade_projects"
@@ -3507,6 +3656,201 @@ export type Database = {
           status?: string
           subject?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ocade_task_comments: {
+        Row: {
+          archived_at: string | null
+          body: string
+          created_at: string
+          id: string
+          parent_id: string | null
+          reacted: boolean
+          resolved_at: string | null
+          task_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          reacted?: boolean
+          resolved_at?: string | null
+          task_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          parent_id?: string | null
+          reacted?: boolean
+          resolved_at?: string | null
+          task_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocade_task_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_task_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_tasks: {
+        Row: {
+          agent: string | null
+          created_at: string
+          current_step: string | null
+          dependency_task_ids: string[]
+          device_id: string | null
+          finished_at: string | null
+          id: string
+          input_refs: string[]
+          last_error: string | null
+          output_refs: string[]
+          permission_requirements: string[]
+          progress: number | null
+          receipts: string[]
+          request: string | null
+          retry_count: number
+          scheduled_for: string | null
+          source: string
+          source_ref: string | null
+          started_at: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent?: string | null
+          created_at?: string
+          current_step?: string | null
+          dependency_task_ids?: string[]
+          device_id?: string | null
+          finished_at?: string | null
+          id?: string
+          input_refs?: string[]
+          last_error?: string | null
+          output_refs?: string[]
+          permission_requirements?: string[]
+          progress?: number | null
+          receipts?: string[]
+          request?: string | null
+          retry_count?: number
+          scheduled_for?: string | null
+          source: string
+          source_ref?: string | null
+          started_at?: string | null
+          status: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent?: string | null
+          created_at?: string
+          current_step?: string | null
+          dependency_task_ids?: string[]
+          device_id?: string | null
+          finished_at?: string | null
+          id?: string
+          input_refs?: string[]
+          last_error?: string | null
+          output_refs?: string[]
+          permission_requirements?: string[]
+          progress?: number | null
+          receipts?: string[]
+          request?: string | null
+          retry_count?: number
+          scheduled_for?: string | null
+          source?: string
+          source_ref?: string | null
+          started_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ocade_browser_site_policy: {
+        Row: {
+          allow_origins: string[]
+          deny_origins: string[]
+          fill_origins: string[]
+          read_origins: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allow_origins?: string[]
+          deny_origins?: string[]
+          fill_origins?: string[]
+          read_origins?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allow_origins?: string[]
+          deny_origins?: string[]
+          fill_origins?: string[]
+          read_origins?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ocade_monitors: {
+        Row: {
+          created_at: string
+          id: string
+          interval_ms: number
+          last_checked_at: string | null
+          sources: string[]
+          state: string
+          subject: string
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interval_ms: number
+          last_checked_at?: string | null
+          sources: string[]
+          state?: string
+          subject: string
+          topic: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interval_ms?: number
+          last_checked_at?: string | null
+          sources?: string[]
+          state?: string
+          subject?: string
+          topic?: string
           user_id?: string
         }
         Relationships: []
@@ -4193,6 +4537,34 @@ export type Database = {
       is_tenant_member: {
         Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
+      }
+      ocade_decide_approval: {
+        Args: { _device_id?: string; _id: string; _status: string }
+        Returns: {
+          decided_at: string | null
+          decided_by_device: string | null
+          expires_at: string
+          id: string
+          requested_at: string
+          risk: string
+          status: string
+          summary: string
+          user_id: string
+        }
+      }
+      ocade_expire_due_approvals: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          decided_at: string | null
+          decided_by_device: string | null
+          expires_at: string
+          id: string
+          requested_at: string
+          risk: string
+          status: string
+          summary: string
+          user_id: string
+        }[]
       }
       ocade_append_automation_receipt: {
         Args: {

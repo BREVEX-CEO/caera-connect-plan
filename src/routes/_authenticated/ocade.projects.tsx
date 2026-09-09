@@ -20,7 +20,6 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { EmptyState } from "@/components/shell/EmptyState";
 import { SetupRequiredState } from "@/components/shell/SetupRequiredState";
-import { VaultUnlockCard } from "@/components/storage/VaultUnlockCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,39 +31,49 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { getModeFor } from "@/lib/storage/resolver";
-import { type OcadeProject } from "@/lib/ocade-projects.functions";
 import {
-  createLocalOutput,
-  createLocalProject,
-  deleteLocalOutput,
-  deleteLocalProject,
-  getLocalOutput,
-  listLocalOutputs,
-  listLocalProjects,
-  purgeExpiredLocalOutputs,
-  updateLocalProject,
-} from "@/lib/projects/local-projects";
-import {
-  listConversationsLocally,
-  updateConversationLocally,
-  type LocalConversation,
-} from "@/lib/chat/local-conversations";
-import { useSession } from "@/lib/session";
-import {
-  listProjectFiles,
-  saveProjectFile,
-  removeProjectFilesForProject,
-  type ProjectFile,
-} from "@/lib/project-files";
-import { deleteAttachment, describeSite } from "@/lib/attachments/deletion";
-import {
+  createOutput,
+  createProject,
   createProjectFolder,
+  deleteOutput,
+  deleteProject,
+  deleteProjectFile,
+  deleteProjectFolder as deleteProjectFolderRow,
+  getOutput,
+  listOutputs,
+  listProjectFiles,
   listProjectFolders,
-  removeProjectFolder,
-  removeProjectFoldersForProject,
-  type ProjectFolder,
-} from "@/lib/project-folders";
+  listProjects,
+  purgeExpiredOutputs,
+  setConversationProject,
+  saveProjectFile,
+  updateProject,
+  type OcadeOutput,
+  type OcadeProject,
+  type OcadeProjectFile,
+  type OcadeProjectFolder,
+} from "@/lib/ocade-projects.functions";
+import {
+  listConversations,
+  updateConversation,
+  type OcadeConversationRow,
+} from "@/lib/ocade.functions";
+import { useSession } from "@/lib/session";
+import { deleteAttachment, describeSite, type DeletionPorts } from "@/lib/attachments/deletion";
+import { forgetCitationsForSource } from "@/lib/ocade.functions";
+
+/**
+ * How this screen reaches the places a deleted file left a trace.
+ *
+ * The deletion module takes these as ports so it carries no server-function
+ * graph of its own and can be tested without one. Supplying the citation sweep
+ * here is what makes "delete this file" also mean "and forget the sentences it
+ * was quoted for" — an excerpt is small, which is exactly why it gets
+ * forgotten, and it is still the reader's content.
+ */
+const deletionPorts: DeletionPorts = {
+  forgetCitations: async (name) => (await forgetCitationsForSource({ data: { name } })).removed,
+};
 
 export const Route = createFileRoute("/_authenticated/ocade/projects")({
   head: () => ({
@@ -103,11 +112,11 @@ function ProjectsPage() {
   const [instructions, setInstructions] = useState("");
   const [nameDraft, setNameDraft] = useState("");
 
-  const [conversations, setConversations] = useState<LocalConversation[] | null>(null);
-  const [unfiled, setUnfiled] = useState<LocalConversation[] | null>(null);
+  const [conversations, setConversations] = useState<OcadeConversationRow[] | null>(null);
+  const [unfiled, setUnfiled] = useState<OcadeConversationRow[] | null>(null);
   const [outputs, setOutputs] = useState<OutputRow[] | null>(null);
-  const [projectFiles, setProjectFiles] = useState<ProjectFile[] | null>(null);
-  const [projectFolders, setProjectFolders] = useState<ProjectFolder[] | null>(null);
+  const [projectFiles, setProjectFiles] = useState<OcadeProjectFile[] | null>(null);
+  const [projectFolders, setProjectFolders] = useState<OcadeProjectFolder[] | null>(null);
   const [projectFileError, setProjectFileError] = useState<string | null>(null);
   const [folderDraft, setFolderDraft] = useState("");
   const [uploadFolder, setUploadFolder] = useState("");
@@ -125,7 +134,6 @@ function ProjectsPage() {
   const [previewDraft, setPreviewDraft] = useState("");
   const [outputRetention, setOutputRetention] = useState<"keep" | "30" | "90" | "365">("keep");
   const [savingVersion, setSavingVersion] = useState(false);
-  const [projectsStayLocal, setProjectsStayLocal] = useState<boolean | null>(null);
 
   const selected = projects?.find((p) => p.id === selectedId) ?? null;
   const visibleProjects =
@@ -150,19 +158,13 @@ function ProjectsPage() {
     if (!userId) return;
     setUnavailable(null);
     try {
-      if (!userId) throw new Error("Sign in to open your on-device projects.");
-      const [rows, mode] = await Promise.all([
-        listLocalProjects(userId, showArchived),
-        getModeFor(userId, "files"),
-      ]);
-      setProjectsStayLocal(mode !== "private_sync");
+      const all = (await listProjects()) as OcadeProject[];
+      const rows = showArchived ? all : all.filter((project) => !project.archived);
       setProjects(rows);
       setSelectedId((cur) => (cur && rows.some((r) => r.id === cur) ? cur : (rows[0]?.id ?? null)));
     } catch (e) {
       setProjects(null);
-      setUnavailable(
-        e instanceof Error ? e.message : "Projects aren't available in this browser vault.",
-      );
+      setUnavailable(e instanceof Error ? e.message : "Projects could not be loaded.");
     }
   }, [showArchived, userId]);
 
@@ -184,38 +186,38 @@ function ProjectsPage() {
     setUploadFolder("");
     setFolderDraft("");
     setFileSearch("");
-    const localFiles = listProjectFiles(selected.id);
-    const localFolders = listProjectFolders(selected.id);
-    if (localFiles.ok) {
-      setProjectFiles(localFiles.data);
-      setProjectFileError(null);
-    } else {
-      setProjectFiles(null);
-      setProjectFileError(localFiles.reason);
-    }
-    if (localFolders.ok) {
-      setProjectFolders(localFolders.data);
-    } else {
-      setProjectFolders(null);
-      setProjectFileError((current) =>
-        current ? `${current} ${localFolders.reason}` : localFolders.reason,
-      );
-    }
     let live = true;
     void (async () => {
       try {
-        const [allConversations, o] = await Promise.all([
-          listConversationsLocally(userId),
-          listLocalOutputs(userId, selected.id),
+        /*
+         * FIVE READS, ISSUED TOGETHER.
+         *
+         * They are independent — a project's files do not depend on its
+         * conversations — so awaiting them in sequence would spend five round
+         * trips to render one screen. `PLAN.md` Phase 18 names serialised
+         * startup requests as one of the silent speed killers.
+         */
+        const [files, folders, allConversations, projectOutputs] = await Promise.all([
+          listProjectFiles({ data: { projectId: selected.id } }),
+          listProjectFolders({ data: { projectId: selected.id } }),
+          listConversations(),
+          listOutputs({ data: { projectId: selected.id } }),
         ]);
-        const c = allConversations.filter((row) => row.project_id === selected.id);
-        const u = allConversations.filter((row) => !row.project_id);
         if (!live) return;
-        setConversations(c);
-        setOutputs(o as OutputRow[]);
-        setUnfiled(u);
-      } catch {
+        setProjectFiles(files as OcadeProjectFile[]);
+        setProjectFolders(folders as OcadeProjectFolder[]);
+        setProjectFileError(null);
+        const rows = (allConversations ?? []) as unknown as OcadeConversationRow[];
+        setConversations(rows.filter((row) => row.project_id === selected.id));
+        setUnfiled(rows.filter((row) => !row.project_id));
+        setOutputs(projectOutputs as unknown as OutputRow[]);
+      } catch (e) {
         if (!live) return;
+        setProjectFiles(null);
+        setProjectFolders(null);
+        setProjectFileError(
+          e instanceof Error ? e.message : "This project's contents could not be loaded.",
+        );
         setConversations([]);
         setOutputs([]);
         setUnfiled([]);
@@ -226,6 +228,23 @@ function ProjectsPage() {
     };
   }, [selected, userId]);
 
+  /** Re-read a project's files and folders after something changed one. */
+  const refreshProjectItems = useCallback(async (projectId: string) => {
+    try {
+      const [files, folders] = await Promise.all([
+        listProjectFiles({ data: { projectId } }),
+        listProjectFolders({ data: { projectId } }),
+      ]);
+      setProjectFiles(files as OcadeProjectFile[]);
+      setProjectFolders(folders as OcadeProjectFolder[]);
+      setProjectFileError(null);
+    } catch (e) {
+      setProjectFileError(
+        e instanceof Error ? e.message : "This project's files could not be re-read.",
+      );
+    }
+  }, []);
+
   async function addProjectFiles(files: FileList | null) {
     if (!selected || !files) return;
     for (const file of [...files]) {
@@ -235,69 +254,71 @@ function ProjectsPage() {
         toast.error(`${file.name}: add this through Chat first so OCADE can extract it safely.`);
         continue;
       }
-      const result = await saveProjectFile({
-        projectId: selected.id,
-        name: file.name,
-        mime: file.type || "text/plain",
-        sizeBytes: file.size,
-        text: await file.text(),
-        folder: uploadFolder,
-      });
-      if (!result.ok) toast.error(`${file.name}: ${result.reason}`);
-      else toast.success(result.evidence);
+      try {
+        await saveProjectFile({
+          data: {
+            projectId: selected.id,
+            name: file.name,
+            mime: file.type || "text/plain",
+            sizeBytes: file.size,
+            text: await file.text(),
+            folder: uploadFolder,
+          },
+        });
+        toast.success(`${file.name} added to this project.`);
+      } catch (e) {
+        toast.error(`${file.name}: ${e instanceof Error ? e.message : "could not be saved."}`);
+      }
     }
-    refreshLocalProjectItems(selected.id);
+    await refreshProjectItems(selected.id);
   }
 
-  function refreshLocalProjectItems(projectId: string) {
-    const files = listProjectFiles(projectId);
-    const folders = listProjectFolders(projectId);
-    if (!files.ok || !folders.ok) {
-      setProjectFileError(!files.ok ? files.reason : !folders.ok ? folders.reason : null);
-      return;
-    }
-    setProjectFiles(files.data);
-    setProjectFolders(folders.data);
-    setProjectFileError(null);
-  }
-
-  function addProjectFolder() {
+  async function addProjectFolder() {
     if (!selected) return;
-    const created = createProjectFolder({ projectId: selected.id, path: folderDraft });
-    if (!created.ok) {
-      toast.error(created.reason);
-      return;
+    const path = folderDraft.trim();
+    if (!path) return;
+    try {
+      const created = (await createProjectFolder({
+        data: { projectId: selected.id, path },
+      })) as OcadeProjectFolder;
+      setFolderDraft("");
+      setUploadFolder(created.path);
+      await refreshProjectItems(selected.id);
+      toast.success(`Folder “${created.path}” is ready.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not create the folder.");
     }
-    setFolderDraft("");
-    setUploadFolder(created.data.path);
-    refreshLocalProjectItems(selected.id);
-    toast.success(created.evidence);
   }
 
-  function deleteProjectFolder(path: string) {
+  async function deleteProjectFolder(folder: OcadeProjectFolder) {
     if (!selected) return;
-    const removed = removeProjectFolder(selected.id, path);
-    if (!removed.ok) {
-      toast.error(removed.reason);
-      return;
+    try {
+      await deleteProjectFolderRow({ data: { id: folder.id } });
+      if (uploadFolder === folder.path) setUploadFolder("");
+      await refreshProjectItems(selected.id);
+      toast.success(`Folder “${folder.path}” removed. Its files were kept.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not remove the folder.");
     }
-    if (uploadFolder === path) setUploadFolder("");
-    refreshLocalProjectItems(selected.id);
-    toast.success(removed.evidence);
   }
 
   /**
    * Delete a project file from EVERY place it left a trace.
    *
-   * This used to call `removeProjectFile` alone, which deletes the extracted
-   * text and nothing else. Verbatim excerpts of the same document stayed in
-   * saved citations under old assistant replies, and cached copies stayed in
-   * Cache Storage — so a user who deleted a document to make it go away was
-   * shown a success toast while its text was still readable in the app.
+   * The row is one of them. Verbatim excerpts of the same document also sit in
+   * saved citations under old assistant replies, and cached copies sit in Cache
+   * Storage — so deleting only the row would show a success message while the
+   * text stayed readable in the app.
    */
-  async function deleteProjectFile(id: string, name: string) {
-    const receipt = await deleteAttachment({ fileId: id, name });
-    if (selected) refreshLocalProjectItems(selected.id);
+  async function deleteProjectFileEverywhere(file: OcadeProjectFile) {
+    try {
+      await deleteProjectFile({ data: { id: file.id } });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not delete this file.");
+      return;
+    }
+    const receipt = await deleteAttachment({ fileId: file.id, name: file.name }, deletionPorts);
+    if (selected) await refreshProjectItems(selected.id);
 
     if (receipt.complete) {
       toast.success(receipt.summary);
@@ -315,7 +336,7 @@ function ProjectsPage() {
     if (!name) return;
     setCreating(true);
     try {
-      const p = await createLocalProject(userId, { name });
+      const p = (await createProject({ data: { name } })) as OcadeProject;
       toast.success(`Project “${p.name}” created.`);
       setNewName("");
       await refreshProjects();
@@ -331,9 +352,12 @@ function ProjectsPage() {
     if (!selected) return;
     setBusy(true);
     try {
-      await updateLocalProject(userId, selected.id, {
-        name: nameDraft.trim() || selected.name,
-        instructions: instructions.trim() ? instructions : null,
+      await updateProject({
+        data: {
+          id: selected.id,
+          name: nameDraft.trim() || selected.name,
+          instructions: instructions.trim() ? instructions : null,
+        },
       });
       toast.success("Project saved.");
       await refreshProjects();
@@ -347,7 +371,7 @@ function ProjectsPage() {
   async function toggleArchive(p: OcadeProject) {
     setBusy(true);
     try {
-      await updateLocalProject(userId, p.id, { archived: !p.archived });
+      await updateProject({ data: { id: p.id, archived: !p.archived } });
       toast.success(p.archived ? "Project restored." : "Project archived.");
       await refreshProjects();
     } catch (e) {
@@ -361,37 +385,27 @@ function ProjectsPage() {
     setBusy(true);
     try {
       /*
-       * Sweep each file's OTHER traces before the bulk removal.
+       * Sweep each file's OTHER traces before the row goes.
        *
-       * `removeProjectFilesForProject` deletes the project-file records and
-       * nothing else. Read the names first — after the bulk delete there is
-       * nothing left to tell us which documents were quoted, and the excerpts
-       * would stay behind with no record that they belong to a deleted file.
+       * Deleting the project removes its file rows through the foreign key and
+       * nothing else. Read the names first — afterwards there is nothing left
+       * to say which documents were quoted, and their excerpts would stay in
+       * saved citations and Cache Storage with no record of what they belong to.
        */
-      const doomed = listProjectFiles(p.id);
-      await deleteLocalProject(userId, p.id);
-      if (doomed.ok) {
-        for (const file of doomed.data) {
-          await deleteAttachment({ name: file.name });
-        }
+      const doomed = (await listProjectFiles({
+        data: { projectId: p.id },
+      })) as OcadeProjectFile[];
+      await deleteProject({ data: { id: p.id } });
+      for (const file of doomed) {
+        await deleteAttachment({ fileId: file.id, name: file.name }, deletionPorts);
       }
-      const localRemoval = removeProjectFilesForProject(p.id);
-      const folderRemoval = removeProjectFoldersForProject(p.id);
       setConfirmDelete(null);
       await refreshProjects();
-      if (!localRemoval.ok || !folderRemoval.ok) {
-        toast.error(
-          `Project deleted and its conversations were kept, but on-device project data could not be fully removed: ${
-            !localRemoval.ok ? localRemoval.reason : !folderRemoval.ok ? folderRemoval.reason : ""
-          }`,
-        );
-      } else {
-        toast.success(
-          localRemoval.data.removed > 0
-            ? `Project deleted, conversations unfiled, and ${localRemoval.data.removed} on-device ${localRemoval.data.removed === 1 ? "file" : "files"} removed.`
-            : "Project deleted. Its conversations were kept and unfiled.",
-        );
-      }
+      toast.success(
+        doomed.length > 0
+          ? `Project deleted, its conversations were kept and unfiled, and ${doomed.length} ${doomed.length === 1 ? "file" : "files"} removed.`
+          : "Project deleted. Its conversations were kept and unfiled.",
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not delete the project.");
     } finally {
@@ -401,13 +415,10 @@ function ProjectsPage() {
 
   async function moveConversation(conversationId: string, projectId: string | null) {
     try {
-      const moved = await updateConversationLocally(userId, conversationId, {
-        project_id: projectId,
-      });
-      if (!moved) throw new Error("Conversation not found on this device.");
+      await setConversationProject({ data: { conversationId, projectId } });
       toast.success(projectId ? "Conversation moved into the project." : "Conversation unfiled.");
       if (selected) {
-        const all = await listConversationsLocally(userId);
+        const all = (await listConversations()) as unknown as OcadeConversationRow[];
         setConversations(all.filter((row) => row.project_id === selected.id));
         setUnfiled(all.filter((row) => !row.project_id));
       }
@@ -418,7 +429,7 @@ function ProjectsPage() {
 
   async function openPreview(id: string) {
     try {
-      const row = await getLocalOutput(userId, id);
+      const row = (await getOutput({ data: { id } })) as OcadeOutput;
       setPreview({
         id: row.id,
         title: row.title,
@@ -448,17 +459,21 @@ function ProjectsPage() {
     if (!preview || !selected || !previewDraft.trim()) return;
     setSavingVersion(true);
     try {
-      const created = await createLocalOutput(userId, {
-        projectId: selected.id,
-        parentOutputId: preview.id,
-        kind: preview.kind,
-        title: preview.title,
-        content: previewDraft,
-        mime: preview.mime,
-        retentionDays: outputRetention === "keep" ? null : Number(outputRetention),
-      });
+      const created = (await createOutput({
+        data: {
+          projectId: selected.id,
+          parentOutputId: preview.id,
+          kind: preview.kind,
+          title: preview.title,
+          content: previewDraft,
+          mime: preview.mime,
+          retentionDays: outputRetention === "keep" ? null : Number(outputRetention),
+        },
+      })) as OcadeOutput;
       toast.success(`Saved ${preview.title} as version ${created.version}.`);
-      setOutputs((await listLocalOutputs(userId, selected.id)) as OutputRow[]);
+      setOutputs(
+        (await listOutputs({ data: { projectId: selected.id } })) as unknown as OutputRow[],
+      );
       setPreview(null);
     } catch (error) {
       toast.error(
@@ -471,9 +486,13 @@ function ProjectsPage() {
 
   async function removeOutput(id: string) {
     try {
-      await deleteLocalOutput(userId, id);
+      await deleteOutput({ data: { id } });
       toast.success("Output deleted.");
-      if (selected) setOutputs((await listLocalOutputs(userId, selected.id)) as OutputRow[]);
+      if (selected) {
+        setOutputs(
+          (await listOutputs({ data: { projectId: selected.id } })) as unknown as OutputRow[],
+        );
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not delete the output.");
     }
@@ -481,14 +500,16 @@ function ProjectsPage() {
 
   async function removeExpiredOutputs() {
     try {
-      const result = await purgeExpiredLocalOutputs(userId);
+      const result = await purgeExpiredOutputs();
       toast.success(
         result.removed > 0
           ? `${result.removed} expired ${result.removed === 1 ? "output" : "outputs"} deleted.`
           : "No expired outputs to delete.",
       );
       if (selected) {
-        setOutputs((await listLocalOutputs(userId, selected.id)) as OutputRow[]);
+        setOutputs(
+          (await listOutputs({ data: { projectId: selected.id } })) as unknown as OutputRow[],
+        );
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not remove expired outputs.");
@@ -514,56 +535,22 @@ function ProjectsPage() {
         }
       />
 
-      {/*
-        WHERE THIS DATA LIVES, SAID ON THE PAGE THAT HOLDS IT.
-
-        The privacy setting is two screens away in Settings, and until now this
-        page uploaded everything regardless of it. Saying which mode is in force
-        here is how somebody notices if it is ever wrong again.
-      */}
-      <p className="mt-2 text-xs text-muted-foreground">
-        {projectsStayLocal === null
-          ? "Checking this browser's project storage mode…"
-          : projectsStayLocal
-            ? "Projects and saved outputs stay in this browser. Nothing here is uploaded."
-            : "Projects and saved outputs are synchronised to your private account storage."}
-      </p>
-
       {unavailable ? (
-        /*
-          A LOCKED VAULT IS NOT A SETUP FAILURE, AND IT IS NOT FIXED BY RETRYING.
-          It has one answer — the key — so that answer is offered here rather
-          than named. Everything else that can stop a read (a browser refusing
-          IndexedDB, a corrupt store) still gets the panel it had, because for
-          those a retry genuinely is the next thing to try.
-        */
-        /Unlock it in Settings/i.test(unavailable) ? (
-          <VaultUnlockCard what="Projects and saved outputs" onUnlocked={refreshProjects} />
-        ) : (
-          <SetupRequiredState
-            title="Projects couldn't open the browser vault"
-            description="Projects and outputs are written to this device first. Unlock the vault or retry; a database connection is not required."
-            detail={unavailable}
-            status="failed"
-            action={
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  to="/settings/vault"
-                  className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:opacity-90"
-                >
-                  Open vault settings
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => void refreshProjects()}
-                  className="rounded-md border border-border/60 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent/30"
-                >
-                  Try again
-                </button>
-              </div>
-            }
-          />
-        )
+        <SetupRequiredState
+          title="Projects couldn't be loaded"
+          description="Projects, their files and saved outputs live in your account. This is usually a connection problem rather than a missing setup step."
+          detail={unavailable}
+          status="failed"
+          action={
+            <button
+              type="button"
+              onClick={() => void refreshProjects()}
+              className="rounded-md border border-border/60 px-3 py-1.5 text-xs font-medium text-foreground transition hover:bg-accent/30"
+            >
+              Try again
+            </button>
+          }
+        />
       ) : (
         /*
          * THE SHELL RENDERS WHILE THE LIST LOADS.
@@ -858,7 +845,7 @@ function ProjectsPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => deleteProjectFolder(folder.path)}
+                          onClick={() => void deleteProjectFolder(folder)}
                           aria-label={`Delete folder ${folder.path}`}
                           className="text-muted-foreground hover:text-destructive"
                         >
@@ -902,10 +889,10 @@ function ProjectsPage() {
                           {file.name}
                         </span>
                         <span className="font-mono text-[9px] text-muted-foreground">
-                          {file.sha256.slice(0, 10)}…
+                          {file.content_sha256.slice(0, 10)}…
                         </span>
                         <button
-                          onClick={() => void deleteProjectFile(file.id, file.name)}
+                          onClick={() => void deleteProjectFileEverywhere(file)}
                           aria-label={`Delete ${file.name}`}
                           className="ml-auto text-muted-foreground hover:text-destructive"
                         >

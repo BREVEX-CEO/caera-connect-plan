@@ -43,7 +43,7 @@ const POLICIES: Array<{
     icon: Mic,
   },
   {
-    id: "privateSync",
+    id: "accountStorage",
     label: "Storage & sync",
     description:
       "Your selected storage mode determines whether chat content stays local or may sync.",

@@ -160,8 +160,40 @@ describe("versioned output input", () => {
         content: "v2",
         parentOutputId: ID,
         retentionDays: 90,
+        producedBy: "ocade.chat:conversation-1",
       }).success,
     ).toBe(true);
+  });
+
+  it("REFUSES an output that does not say what produced it", () => {
+    /*
+     * An output with no record of what produced it is just a file. Accepting
+     * one is how an unchecked result becomes indistinguishable from a checked
+     * one, so the refusal is in the validator rather than left to each caller.
+     */
+    expect(
+      createOutputInput.safeParse({ kind: "document", title: "Report", content: "v1" }).success,
+    ).toBe(false);
+    expect(
+      createOutputInput.safeParse({
+        kind: "document",
+        title: "Report",
+        content: "v1",
+        producedBy: "   ",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("treats an output whose verification is unstated as unverified", () => {
+    const parsed = createOutputInput.safeParse({
+      kind: "document",
+      title: "Report",
+      content: "v1",
+      producedBy: "ocade.chat:conversation-1",
+    });
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) throw new Error("unreachable");
+    expect(parsed.data.verified).toBe(false);
   });
 
   it("refuses oversized retention and content", () => {

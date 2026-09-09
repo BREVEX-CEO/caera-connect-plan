@@ -17,7 +17,8 @@
  * success.
  */
 import type { TaskLedger, LedgerStep } from "./evidence-ledger";
-import { saveArtifact, type Artifact, type ArtifactOutcome } from "./store";
+import { saveArtifact, type Artifact } from "./store";
+import type { Outcome } from "../outcome";
 
 export interface ReplayStep {
   number: number;
@@ -143,7 +144,7 @@ export function serialiseReplay(replay: Replay): string {
  * Its verified flag follows the ledger outcome: a replay of a partial or failed
  * task is stored NOT CONFIRMED, so it can never be mistaken for a proven recipe.
  */
-export async function saveReplayArtifact(ledger: TaskLedger): Promise<ArtifactOutcome<Artifact>> {
+export async function saveReplayArtifact(ledger: TaskLedger): Promise<Outcome<Artifact>> {
   const replay = buildReplay(ledger);
   return saveArtifact({
     name: `Replay — ${ledger.intent || ledger.taskId}`,

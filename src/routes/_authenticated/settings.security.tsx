@@ -15,7 +15,7 @@ import { PageHeader } from "@/components/shell/PageHeader";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { useSession } from "@/lib/session";
-import { deleteLocalData } from "@/lib/storage/local-data";
+import { deleteLocalData } from "@/lib/device/local-data";
 import { executeAction, recordAction, ActionConfirmationError } from "@/lib/actions";
 import { listDevicesForCurrentUser } from "@/lib/devices";
 import { TwoFactorPanel } from "@/components/settings/TwoFactorPanel";

@@ -56,8 +56,18 @@ export interface NormalizedAttachment {
   image?: string;
 }
 
+/**
+ * What this request is allowed to do with the network.
+ *
+ * `storageMode` used to sit here as a third field, naming where the account
+ * kept its chats. It was doing two jobs badly: it was the reason a request was
+ * refused, and it was also a description of a storage arrangement that
+ * `PLAN.md` Phase 2 removed. What actually decides whether a request may leave
+ * the device is the intelligence mode the person chose and whether the
+ * conversation is sealed, and both of those are here.
+ */
 export interface IntelligencePrivacyPolicy {
-  storageMode: "browser_only" | "pc_vault" | "private_sync";
+  /** False for Local-only, and for anything OCADE asks on its own behalf. */
   onlineInferenceConsented: boolean;
   sealed: boolean;
 }

@@ -69,7 +69,7 @@ export type CapabilityId =
   | "computerControl"
   | "voice"
   | "vision"
-  | "privateSync"
+  | "accountStorage"
   | "monitors"
   | "automationRunner"
   | "codeTerminal"
@@ -91,7 +91,7 @@ export interface CapabilityReport {
 
 export const CAPABILITY_ORDER: readonly CapabilityId[] = [
   "localAI",
-  "privateSync",
+  "accountStorage",
   "browser",
   "computerControl",
   "codeTerminal",

@@ -95,7 +95,6 @@ export function useMissionBrain(): {
         tools: normalizedTools,
         attachments: [],
         privacy: {
-          storageMode: "browser_only",
           onlineInferenceConsented: false,
           sealed: true,
         },

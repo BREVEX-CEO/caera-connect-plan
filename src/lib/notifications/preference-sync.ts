@@ -1,38 +1,32 @@
 /**
- * ONE PREFERENCE, TWO PLACES IT LIVES, AND A CLEAR RULE ABOUT WHICH WINS.
+ * ONE PREFERENCE, IN ONE PLACE, AND AN HONEST ANSWER ABOUT WHETHER IT GOT THERE.
  *
  * PLAN.md §D asks for cross-device synchronisation and for save confirmation.
- * Neither is served by simply moving the preference to the server: a settings
- * screen that cannot render until a round trip finishes is worse on a train
- * than the local-only version it replaced, and one that reports "saved" before
- * the server has agreed is lying.
+ * This module used to keep a browser copy alongside the account's and treat it
+ * as a cache, and the cache is what went wrong: it survived sign-out, so the
+ * next person to use the browser was shown the previous person's quiet hours
+ * until the account read landed, and a settings screen that shows the wrong
+ * answer for half a second is a settings screen somebody can act on.
  *
- * SO THE DEVICE COPY STAYS, AS A CACHE RATHER THAN AS AN AUTHORITY. The screen
- * paints from it immediately, the account copy arrives and replaces it, and
- * every change is written to both. The local write happens first and
- * unconditionally, because the person's choice must survive a refresh even if
- * the network never answers.
- *
- * WHOSE COPY WINS. The account's, whenever it can be read — that is what makes
- * it synchronisation rather than two independent settings. The one exception is
- * an account with no row yet: a person who set quiet hours on this laptop
- * before ever signing in should not have them erased by an empty server
- * document, so the local copy is pushed up instead.
+ * `PLAN.md` Phase 2 leaves the account as the only place preferences are kept.
+ * Nothing is written to the browser. Until the account answers, the screen has
+ * the defaults, which is the truthful thing to show somebody whose preferences
+ * have not been read yet.
  *
  * SAVING IS REPORTED HONESTLY. `saveNotificationPreferences` returns a state a
  * screen can show without inventing anything: `saved` when the server
- * acknowledged and returned a revision, `device_only` when it could not be
- * reached and the choice applies here, and `failed` when the server refused.
- * The three are genuinely different and a person needs to be able to tell them
- * apart — "device only" means the phone has not heard about it.
+ * acknowledged and returned a revision, `session_only` when it could not be
+ * reached and the choice applies for as long as this tab is open, and `failed`
+ * when the server refused. The three are genuinely different and a person needs
+ * to be able to tell them apart — "session only" means the phone has not heard
+ * about it, and neither will this browser after a reload.
  */
 
-import { normalisePreferences, type NotificationPreferences } from "./preferences";
 import {
-  readNotificationPreferences,
-  writeNotificationPreferences,
-  type PreferenceStorage,
-} from "./preference-store";
+  defaultPreferences,
+  normalisePreferences,
+  type NotificationPreferences,
+} from "./preferences";
 import type { NotificationChannelId } from "./channels";
 import type { Json } from "@/integrations/supabase/types";
 
@@ -53,13 +47,13 @@ export interface StoredPreferenceRow {
 
 export type SaveOutcome =
   | { state: "saved"; revision: number }
-  | { state: "device_only"; reason: string }
+  | { state: "session_only"; reason: string }
   | { state: "failed"; reason: string };
 
 export interface LoadedPreferences {
   preferences: NotificationPreferences;
   /** Where the value on screen came from, so the screen can say so. */
-  source: "account" | "device";
+  source: "account" | "defaults";
   /** Present when the account copy could not be read. */
   unavailable?: string;
 }
@@ -67,61 +61,60 @@ export interface LoadedPreferences {
 /**
  * Read the preference the product should act on.
  *
- * The local copy is read first and used as the fallback for every failure path,
- * so this never returns nothing: a settings screen always has something to
- * paint, and `decideDelivery` always has something to decide from.
+ * Defaults are the fallback for every failure path, so this never returns
+ * nothing: a settings screen always has something to paint, and
+ * `decideDelivery` always has something to decide from. The `source` says which
+ * it is, and the screen tells the person — showing defaults as though they were
+ * somebody's chosen settings is how a muted category appears to be on.
  */
 export async function loadNotificationPreferences(input: {
   backend: PreferenceBackend | null;
   availableChannelIds: readonly NotificationChannelId[];
-  storage?: PreferenceStorage | null;
 }): Promise<LoadedPreferences> {
-  const local = readNotificationPreferences(input.availableChannelIds, input.storage);
-  if (!input.backend) return { preferences: local, source: "device" };
+  const fallback = normalisePreferences(null, input.availableChannelIds);
+  if (!input.backend) return { preferences: fallback, source: "defaults" };
 
   const { row, error } = await input.backend.read();
-  if (error) return { preferences: local, source: "device", unavailable: error };
+  if (error) return { preferences: fallback, source: "defaults", unavailable: error };
 
-  if (!row) {
-    /*
-     * No account row yet. The local document is the only one that exists, so it
-     * is pushed up rather than replaced by a default — otherwise signing in on
-     * a device that already had preferences would silently reset them.
-     */
-    await input.backend.save(local).catch(() => undefined);
-    return { preferences: local, source: "device" };
-  }
+  /*
+   * No row yet is not a failure: it is somebody who has never changed a
+   * notification setting. The defaults are what the product is actually acting
+   * on for them, and writing a row here would record a choice they did not
+   * make.
+   */
+  if (!row) return { preferences: fallback, source: "account" };
 
-  const merged = normalisePreferences(
-    {
-      muteOptional: row.mute_optional,
-      quietHours: row.quiet_hours,
-      categories: row.categories,
-    },
-    input.availableChannelIds,
-  );
-  writeNotificationPreferences(merged, input.storage);
-  return { preferences: merged, source: "account" };
+  return {
+    preferences: normalisePreferences(
+      {
+        muteOptional: row.mute_optional,
+        quietHours: row.quiet_hours,
+        categories: row.categories,
+      },
+      input.availableChannelIds,
+    ),
+    source: "account",
+  };
 }
 
 /**
- * Save a preference to the device and to the account.
+ * Save a preference to the account.
  *
- * THE LOCAL WRITE IS NOT CONDITIONAL ON THE REMOTE ONE. A person who changes a
- * setting on a train has changed it; refusing to remember that because a
- * request failed would be the product arguing with them about what they just
- * did.
+ * THE CHOICE STILL APPLIES WHEN THE SAVE DOES NOT. The caller holds what the
+ * person just chose and keeps acting on it, and this says plainly how far it
+ * got. Refusing to honour a change because a request failed would be the
+ * product arguing with somebody about what they just did; claiming it was saved
+ * would be worse.
  */
 export async function saveNotificationPreferences(input: {
   preferences: NotificationPreferences;
   backend: PreferenceBackend | null;
-  storage?: PreferenceStorage | null;
 }): Promise<SaveOutcome> {
-  writeNotificationPreferences(input.preferences, input.storage);
   if (!input.backend) {
     return {
-      state: "device_only",
-      reason: "You are not signed in, so this applies to this browser only.",
+      state: "session_only",
+      reason: "You are not signed in, so this applies until you close this tab.",
     };
   }
 
@@ -134,8 +127,9 @@ export async function saveNotificationPreferences(input: {
   }
   if (revision === null) {
     return {
-      state: "device_only",
-      reason: "OCADE could not reach your account. This applies on this device for now.",
+      state: "session_only",
+      reason:
+        "OCADE could not reach your account. This applies until you close this tab, and your other devices have not been told.",
     };
   }
   return { state: "saved", revision };

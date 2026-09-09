@@ -25,10 +25,10 @@ const CONNECTORS: Array<{
     icon: Globe2,
   },
   {
-    id: "privateSync",
-    label: "Private Sync",
-    description: "Account sync for content whose storage mode allows it.",
-    to: "/settings/privacy",
+    id: "accountStorage",
+    label: "Account data",
+    description: "Where your conversations, projects, tasks and artifacts are kept.",
+    to: "/settings/data",
     icon: RefreshCw,
   },
   {

@@ -19,7 +19,6 @@ function request(mode: IntelligenceRequest["mode"] = "automatic"): IntelligenceR
     tools: [],
     attachments: [],
     privacy: {
-      storageMode: "private_sync",
       onlineInferenceConsented: true,
       sealed: false,
     },

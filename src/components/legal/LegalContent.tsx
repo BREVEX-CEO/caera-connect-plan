@@ -50,16 +50,16 @@ export function TermsContent() {
 
       <PublicSection title="4. OCADE service and local-first architecture">
         <p>
-          OCADE combines local software with optional online authentication, Private Sync,
-          current-information retrieval, support, payments and permissioned computer or
-          remote-device features. Supported chat generation is designed to run on the user's device
-          rather than through a public-cloud AI inference provider.
+          OCADE combines local software with optional online authentication, account-hosted
+          workspace data, current-information retrieval, support, payments and permissioned computer
+          or remote-device features. Supported chat generation is designed to run on the user's
+          device rather than through a public-cloud AI inference provider.
         </p>
         <p>
-          Optional Google authentication, Supabase, Cloudflare, Private Sync, current-information
-          retrieval and other user-requested network services may process the information reasonably
-          necessary to provide those features. Feature availability can vary by device, hardware,
-          browser, operating system, region, release stage and plan. Read the{" "}
+          Optional Google authentication, Supabase, Cloudflare, current-information retrieval and
+          other user-requested network services may process the information reasonably necessary to
+          provide those features. Feature availability can vary by device, hardware, browser,
+          operating system, region, release stage and plan. Read the{" "}
           <Link to="/privacy" className="text-foreground underline">
             Privacy notice
           </Link>
@@ -431,9 +431,10 @@ export function PrivacyContent() {
       <PublicSection title="5. Purposes of processing">
         <p>
           Information may be used to provide requested features, authenticate and secure accounts,
-          synchronize selected data when you choose Private Sync, maintain reliability, prevent
-          abuse, investigate security events, process support or rights requests, maintain payment
-          records when payments are enabled and comply with applicable law.
+          store your workspace data so it is available on the devices you sign in on, maintain
+          reliability, prevent abuse, investigate security events, process support or rights
+          requests, maintain payment records when payments are enabled and comply with applicable
+          law.
         </p>
       </PublicSection>
 
@@ -449,12 +450,24 @@ export function PrivacyContent() {
         </p>
       </PublicSection>
 
-      <PublicSection title="7. Device-only data and Private Sync">
+      <PublicSection title="7. Where your workspace data is stored">
         <p>
-          Device-only data remains controlled through your device and OCADE's local controls. When
-          you choose Private Sync, selected account or workspace information may be stored through
-          the configured Supabase infrastructure subject to the feature's settings and access
-          controls.
+          Conversations, projects, tasks, artifacts, memory and other workspace content are stored
+          through the configured Supabase infrastructure, subject to that service's access controls,
+          so that they are available on the devices you sign in on. They are not kept in a
+          device-only mode.
+        </p>
+        <p>
+          Two categories remain on the device. Offline Intelligence model data is stored on the
+          machine it was installed on and is not workspace content; it persists until you remove it,
+          including after signing out or deleting your account. Device preferences — such as theme,
+          language, interface layout and an unsent message draft — are stored in that browser
+          because they describe that device rather than you.
+        </p>
+        <p>
+          A message composed while your account is unreachable is held in the open browser tab until
+          the connection returns. It is not written to durable storage on the device, and closing
+          that tab discards it.
         </p>
       </PublicSection>
 

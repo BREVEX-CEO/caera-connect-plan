@@ -22,7 +22,7 @@
 
 import { fail, ok, type ToolOutcome } from "@/lib/agent/outcomes";
 import { StopTaskError, elapsedMs, listRuns, stopRun } from "@/lib/tasks/runs";
-import { createUnifiedTask, listLocalTasks, persistTask } from "@/lib/tasks/unified-task";
+import { createUnifiedTask, listTasks, persistTask } from "@/lib/tasks/unified-task";
 
 /** Names this module owns. Kept here so the executor's check is one lookup. */
 export const TASK_TOOL_NAMES = ["task_list", "task_stop", "task_create"] as const;
@@ -39,9 +39,9 @@ function minutes(ms: number): string {
   return mins === 1 ? "1 minute" : `${mins} minutes`;
 }
 
-async function listTasks(): Promise<ToolOutcome> {
+async function describeTasks(): Promise<ToolOutcome> {
   const live = listRuns().filter((task) => task.status !== "completed");
-  const board = await listLocalTasks().catch(() => []);
+  const board = await listTasks().catch(() => []);
   const openBoard = board.filter(
     (task) => task.status !== "COMPLETED" && task.status !== "CANCELLED",
   );
@@ -116,7 +116,7 @@ export async function runTaskTool(
   name: TaskToolName,
   args: Record<string, unknown>,
 ): Promise<ToolOutcome> {
-  if (name === "task_list") return listTasks();
+  if (name === "task_list") return describeTasks();
   if (name === "task_stop") return stopTaskTool(args);
   return createTask(args);
 }

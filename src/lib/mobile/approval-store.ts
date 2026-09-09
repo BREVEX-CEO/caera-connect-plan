@@ -1,176 +1,162 @@
 /**
- * Shared approval queue (Plan §27).
+ * The shared approval queue (Plan §27) — in the account, where both sides see it.
  *
- * The producer and the consumer live on different surfaces: the Desktop Copilot
- * raises an approval when an action needs a human decision, and the mobile
- * companion (or the mobile settings page) answers it. Without a shared store
- * between them the approvals panel had no producer at all — it was permanently
- * empty, and `expireIfDue` / `applyMobileApproval` had nothing to act on.
+ * The producer and the consumer are on DIFFERENT DEVICES: the desktop Copilot
+ * raises an approval when an action needs a human decision, and the phone
+ * answers it. This queue lived in `localStorage`, which meant the two surfaces
+ * could never see the same list — the mobile approvals panel had no producer at
+ * all, it was permanently empty, and a desktop waiting on a decision waited
+ * forever.
  *
- * Durable on purpose: an approval raised just before a reload or crash must
- * still be waiting afterwards, or the desktop blocks forever on a request the
- * user can no longer see.
+ * A DECISION IS ONE STATEMENT. `ocade_decide_approval` updates only a row that
+ * is still pending and still in date, and returns nothing otherwise. The browser
+ * version read, decided and wrote back, so two phones answering at the same
+ * moment could both believe they had decided it and the second would silently
+ * overwrite the first. Here exactly one of them decides and the other is told it
+ * was already answered.
  *
- * Storage holds only what is already redacted — a request summary never
- * contains protected input, because `createApprovalRequest` is given a summary
- * that has been through `redactForAudit`.
+ * WHAT IS STORED IS ALREADY REDACTED — a summary reaches this having been
+ * through `redactForAudit`, and protected input never reaches it at all.
  */
-import {
-  createApprovalRequest,
-  expireIfDue,
-  type ApprovalRequest,
-  type ApprovalStatus,
-} from "./pairing";
+import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
+import { LIST_CAP } from "@/lib/supabase/read-all";
+import { APPROVAL_TTL_MS, expireIfDue, type ApprovalRequest, type ApprovalStatus } from "./pairing";
 import { notify, approvalNotification, expiredNotification } from "./notifications";
 
-const KEY = "caera:approvals:v1";
+const COLUMNS =
+  "id, summary, risk, status, requested_at, expires_at, decided_by_device, decided_at";
 
-/** Serialised form — Dates become ISO strings in storage. */
-interface StoredApproval {
+interface ApprovalRow {
   id: string;
   summary: string;
   risk: ApprovalRequest["risk"];
-  requestedAt: string;
-  expiresAt: string;
   status: ApprovalStatus;
-  decidedByDeviceId?: string;
-  decidedAt?: string;
+  requested_at: string;
+  expires_at: string;
+  decided_by_device: string | null;
+  decided_at: string | null;
 }
 
-const RISKS: ApprovalRequest["risk"][] = ["read_only", "low", "confirm", "high", "prohibited"];
-const STATUSES: ApprovalStatus[] = ["pending", "approved", "denied", "expired", "cancelled"];
-
-function canonicalDate(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  const parsed = new Date(value);
-  return Number.isFinite(parsed.getTime()) && parsed.toISOString() === value;
-}
-
-function isStoredApproval(value: unknown): value is StoredApproval {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const row = value as Partial<StoredApproval>;
-  if (
-    typeof row.id !== "string" ||
-    !row.id.trim() ||
-    row.id.length > 300 ||
-    typeof row.summary !== "string" ||
-    !row.summary.trim() ||
-    row.summary.length > 4_000 ||
-    !RISKS.includes(row.risk as ApprovalRequest["risk"]) ||
-    !STATUSES.includes(row.status as ApprovalStatus) ||
-    !canonicalDate(row.requestedAt) ||
-    !canonicalDate(row.expiresAt) ||
-    Date.parse(row.expiresAt) <= Date.parse(row.requestedAt)
-  ) {
-    return false;
-  }
-  return !(
-    (row.decidedByDeviceId !== undefined &&
-      (typeof row.decidedByDeviceId !== "string" || !row.decidedByDeviceId.trim())) ||
-    (row.decidedAt !== undefined && !canonicalDate(row.decidedAt))
-  );
-}
-
-function toStored(r: ApprovalRequest): StoredApproval {
+function toRequest(row: ApprovalRow): ApprovalRequest {
   return {
-    id: r.id,
-    summary: r.summary,
-    risk: r.risk,
-    requestedAt: r.requestedAt.toISOString(),
-    expiresAt: r.expiresAt.toISOString(),
-    status: r.status,
-    decidedByDeviceId: r.decidedByDeviceId,
-    decidedAt: r.decidedAt?.toISOString(),
+    id: row.id,
+    summary: row.summary,
+    risk: row.risk,
+    requestedAt: new Date(row.requested_at),
+    expiresAt: new Date(row.expires_at),
+    status: row.status,
+    decidedByDeviceId: row.decided_by_device ?? undefined,
+    decidedAt: row.decided_at ? new Date(row.decided_at) : undefined,
   };
 }
 
-function fromStored(s: StoredApproval): ApprovalRequest {
-  return {
-    id: s.id,
-    summary: s.summary,
-    risk: s.risk,
-    requestedAt: new Date(s.requestedAt),
-    expiresAt: new Date(s.expiresAt),
-    status: s.status,
-    decidedByDeviceId: s.decidedByDeviceId,
-    decidedAt: s.decidedAt ? new Date(s.decidedAt) : undefined,
-  };
-}
-
-function readAll(): StoredApproval[] {
-  if (typeof localStorage === "undefined") return [];
+/**
+ * Every approval, expiring any that lapsed while nothing was watching.
+ *
+ * Expiry is applied on READ, by the server, so a request cannot appear
+ * "pending" forever just because no tab was open when it lapsed — and so every
+ * surface agrees on the state without a background job that has to be healthy.
+ *
+ * A request that expires here also NOTIFIES, because somebody was waiting on a
+ * decision that will now never happen. Flipping it silently would leave them
+ * expecting an outcome that never arrives.
+ */
+export async function listApprovals(now: Date = new Date()): Promise<ApprovalRequest[]> {
   try {
-    const parsed: unknown = JSON.parse(localStorage.getItem(KEY) ?? "[]");
-    if (!Array.isArray(parsed)) return [];
-    const seen = new Set<string>();
-    return parsed.filter((value): value is StoredApproval => {
-      if (!isStoredApproval(value) || seen.has(value.id)) return false;
-      seen.add(value.id);
-      return true;
-    });
+    const supabase = await loadSupabaseClient();
+
+    /*
+     * EXPIRY FIRST, AND ITS FAILURE IS FATAL TO THE READ. If expiry could not
+     * run, a request that lapsed may still be stored as pending — and rendering
+     * that is exactly how somebody approves an action whose moment has passed.
+     * Showing nothing is the safe answer; showing a maybe-stale list is not.
+     */
+    const { data: lapsed, error: expiryError } = await supabase.rpc("ocade_expire_due_approvals");
+    if (expiryError) throw new Error(expiryError.message);
+    for (const row of (lapsed as ApprovalRow[] | null) ?? []) {
+      void notify(expiredNotification(toRequest(row)));
+    }
+
+    /*
+     * BOUNDED, and honestly so. What this list is for is "what needs me now":
+     * a pending approval lapses in two minutes, and decided ones are pruned.
+     * The newest few hundred is every approval anybody could act on, and an
+     * unbounded read of a table that grows with use is how a phone eventually
+     * spends a second rendering a year of answered requests.
+     */
+    const { data, error } = await supabase
+      .from("ocade_approvals")
+      .select(COLUMNS)
+      .order("requested_at", { ascending: false })
+      .limit(LIST_CAP);
+    if (error) throw new Error(error.message);
+    /*
+     * `expireIfDue` is applied again on the way out. The server expired what was
+     * due when it ran; this covers the seconds since, so a request cannot be
+     * rendered as decidable a moment after it stopped being one.
+     */
+    return ((data as ApprovalRow[] | null) ?? []).map((row) => expireIfDue(toRequest(row), now));
   } catch {
+    /*
+     * An unreachable account shows NOTHING rather than a remembered list.
+     * Approvals authorise actions, and a stale copy is how somebody approves
+     * something that was already answered or already expired.
+     */
     return [];
   }
 }
 
-function writeAll(rows: StoredApproval[]): boolean {
-  if (typeof localStorage === "undefined") return false;
-  try {
-    localStorage.setItem(KEY, JSON.stringify(rows));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /**
- * List every approval, expiring any that timed out while nothing was watching.
- * Expiry is applied on READ so a request cannot appear "pending" forever just
- * because no tab was open when it lapsed.
+ * Raise an approval.
  *
- * A request that expires HERE also notifies, because the user was waiting on a
- * decision that will now never happen — silently flipping it to "expired" would
- * leave them expecting an outcome that never arrives.
+ * Throws rather than returning a placeholder when it could not be stored: the
+ * caller is about to tell somebody a phone can decide this, and OCADE will not
+ * claim that about a request that does not exist.
  */
-export function listApprovals(now: Date = new Date()): ApprovalRequest[] {
-  const before = readAll().map(fromStored);
-  const rows = before.map((r) => expireIfDue(r, now));
-
-  for (let i = 0; i < rows.length; i++) {
-    if (before[i].status === "pending" && rows[i].status === "expired") {
-      void notify(expiredNotification(rows[i]));
-    }
-  }
-
-  // Persist the expiries so every surface agrees on the state.
-  writeAll(rows.map(toStored));
-  return rows;
-}
-
-/** Raise an approval. Returns the created request. */
-export function requestApproval(
+export async function requestApproval(
   input: { id?: string; summary: string; risk: ApprovalRequest["risk"] },
   now: Date = new Date(),
-): ApprovalRequest {
+): Promise<ApprovalRequest> {
   if (!Number.isFinite(now.getTime())) {
     throw new Error("An approval requires a valid request time.");
   }
-  const id =
-    input.id ?? (typeof crypto !== "undefined" ? crypto.randomUUID() : `a-${now.getTime()}`);
-  if (readAll().some((row) => row.id === id)) {
-    throw new Error("An approval with this id already exists; no duplicate was created.");
+  const summary = input.summary.trim();
+  if (!summary) throw new Error("An approval requires a summary of what is being asked.");
+
+  const supabase = await loadSupabaseClient();
+  const { data: session } = await supabase.auth.getUser();
+  const userId = session.user?.id;
+  if (!userId) {
+    throw new Error("Sign in before asking for an approval, so your devices can see it.");
   }
-  const request = createApprovalRequest({
-    id,
-    summary: input.summary,
-    risk: input.risk,
-    now,
-  });
-  if (!writeAll([...readAll(), toStored(request)])) {
+
+  const { data, error } = await supabase
+    .from("ocade_approvals")
+    .insert({
+      ...(input.id ? { id: input.id } : {}),
+      user_id: userId,
+      summary,
+      risk: input.risk,
+      status: "pending",
+      requested_at: now.toISOString(),
+      // `APPROVAL_TTL_MS` from `pairing`, not a second constant here: the
+      // window a person has to answer is one product decision, and two of them
+      // would eventually disagree.
+      expires_at: new Date(now.getTime() + APPROVAL_TTL_MS).toISOString(),
+    })
+    .select(COLUMNS)
+    .single();
+  if (error) {
+    // 23505 is the primary key: the same approval raised twice.
+    if (error.code === "23505") {
+      throw new Error("An approval with this id already exists; no duplicate was created.");
+    }
     throw new Error(
-      "This approval could not be saved. OCADE will not claim that a phone can decide it.",
+      `This approval could not be saved: ${error.message}. OCADE will not claim that a phone can decide it.`,
     );
   }
+
+  const request = toRequest(data as ApprovalRow);
 
   // Alert the paired phone. Fire-and-forget: the desktop must not block on a
   // notification, and with no transport connected this reports unavailable
@@ -180,46 +166,69 @@ export function requestApproval(
   return request;
 }
 
-/** Record a decision. Returns the updated request, or null if it is gone. */
-export function saveApprovalStatus(
+/**
+ * Record a decision.
+ *
+ * Returns the updated request, or null when it was already answered, had
+ * expired, or is gone. Null is not an error to swallow: the screen has to say
+ * the decision did not take, or two people each believe they approved an action
+ * once.
+ */
+export async function saveApprovalStatus(
   id: string,
   status: ApprovalStatus,
   deviceId?: string,
-  now: Date = new Date(),
-): ApprovalRequest | null {
-  const rows = readAll();
-  const idx = rows.findIndex((r) => r.id === id);
-  if (idx === -1) return null;
-  const current = fromStored(rows[idx]);
-  const fresh = expireIfDue(current, now);
-  if (fresh.status !== "pending") {
-    if (fresh.status !== current.status) {
-      rows[idx] = toStored(fresh);
-      writeAll(rows);
-    }
+): Promise<ApprovalRequest | null> {
+  if (!["approved", "denied", "cancelled"].includes(status)) return null;
+  try {
+    const supabase = await loadSupabaseClient();
+    const { data, error } = await supabase.rpc("ocade_decide_approval", {
+      _id: id,
+      _status: status,
+      _device_id: deviceId,
+    });
+    if (error) throw new Error(error.message);
+    const row = (Array.isArray(data) ? data[0] : data) as ApprovalRow | null;
+    return row ? toRequest(row) : null;
+  } catch {
     return null;
   }
-  if (!["approved", "denied", "cancelled"].includes(status)) return null;
-  rows[idx] = {
-    ...rows[idx],
-    status,
-    decidedByDeviceId: deviceId ?? rows[idx].decidedByDeviceId,
-    decidedAt: now.toISOString(),
-  };
-  return writeAll(rows) ? fromStored(rows[idx]) : null;
 }
 
-/** Drop decided/expired rows so the list does not grow without bound. */
-export function pruneApprovals(now: Date = new Date()): number {
-  const rows = readAll()
-    .map(fromStored)
-    .map((r) => expireIfDue(r, now));
-  const keep = rows.filter((r) => r.status === "pending");
-  writeAll(keep.map(toStored));
-  return rows.length - keep.length;
+/** Drop decided and expired rows so the list does not grow without bound. */
+export async function pruneApprovals(): Promise<number> {
+  try {
+    const supabase = await loadSupabaseClient();
+    // Expire first, so a request that lapsed a moment ago is pruned with the
+    // rest rather than surviving until the next visit.
+    await supabase.rpc("ocade_expire_due_approvals");
+    const { data, error } = await supabase
+      .from("ocade_approvals")
+      .delete()
+      .neq("status", "pending")
+      .select("id");
+    if (error) throw new Error(error.message);
+    return data?.length ?? 0;
+  } catch {
+    return 0;
+  }
 }
 
-/** Remove everything — used when a device is revoked or the user clears state. */
-export function clearApprovals(): void {
-  writeAll([]);
+/**
+ * Remove everything.
+ *
+ * Used when a device is revoked: work that device raised must not be decidable
+ * afterwards. Deliberately NOT called on sign-out — an approval belongs to the
+ * account, and the next sign-in should still see what is waiting.
+ */
+export async function clearApprovals(): Promise<void> {
+  try {
+    const supabase = await loadSupabaseClient();
+    const { data: session } = await supabase.auth.getUser();
+    const userId = session.user?.id;
+    if (!userId) return;
+    await supabase.from("ocade_approvals").delete().eq("user_id", userId);
+  } catch {
+    /* Reported by the list still showing them, rather than by a silent claim. */
+  }
 }

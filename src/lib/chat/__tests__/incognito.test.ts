@@ -75,16 +75,19 @@ describe("what the product promises", () => {
 });
 
 describe("the writes the promises depend on", () => {
-  it("the chat store refuses to write before it chooses a destination", () => {
+  it("the chat store refuses before it writes anywhere", () => {
     /*
-     * Order matters and is asserted: the refusal has to come BEFORE the branch
-     * that picks vault or cloud, or a future mode added above it would write.
+     * Order matters and is asserted: the refusal has to come BEFORE the write,
+     * and before the buffer that holds a turn while the account is unreachable
+     * — which would otherwise upload it the moment the connection returned.
      */
     const source = readCode("src/lib/ocade-chat-store.ts");
-    const guard = source.indexOf("mayPersist");
-    const privateSync = source.indexOf('input.chatsMode === "private_sync"');
+    const guard = source.indexOf("mayPersist(");
+    const send = source.indexOf("appendOcadeMessage(");
+    const buffer = source.indexOf("rememberUnsyncedTurn(");
     expect(guard, "the chat store does not consult the incognito rule").toBeGreaterThan(-1);
-    expect(guard).toBeLessThan(privateSync);
+    expect(guard).toBeLessThan(send);
+    expect(guard).toBeLessThan(buffer);
   });
 
   it("the runtime refuses to learn before it counts the work", () => {
@@ -113,10 +116,10 @@ describe("the writes the promises depend on", () => {
       source.indexOf("async function ensureActive"),
       source.indexOf("async function togglePin"),
     );
-    // The incognito branch returns before `createConversationLocally`, which
-    // writes a record to the vault and queues it for the server.
+    // The incognito branch returns before `createConversation`, which writes
+    // the row a conversation is.
     const branch = ensure.indexOf("nextIsIncognito");
-    const create = ensure.indexOf("createConversationLocally");
+    const create = ensure.indexOf("createConversation(");
     expect(branch).toBeGreaterThan(-1);
     expect(branch).toBeLessThan(create);
   });
@@ -129,7 +132,7 @@ describe("the writes the promises depend on", () => {
     );
     expect(memory).toContain("conversation.incognito");
     expect(memory.indexOf("conversation.incognito")).toBeLessThan(
-      memory.indexOf("localMemoryContext"),
+      memory.indexOf("readMemoryContext"),
     );
   });
 
@@ -150,10 +153,14 @@ describe("the writes the promises depend on", () => {
       5,
     );
     const unflagged = calls.filter((call) => !/incognito:/.test(call));
-    // One call site is the BRANCH path, which refuses an incognito source
-    // outright rather than copying its messages into a new conversation.
-    expect(unflagged).toHaveLength(1);
-    expect(unflagged[0]).toContain("created.id");
+    /*
+     * NONE, now. The branch path used to be the exception: it copied earlier
+     * turns into a new conversation one persist at a time, and passed no flag
+     * because it had already refused an incognito source. That copy is a single
+     * server-side fork, so every remaining call site writes for the
+     * conversation the person is in and every one of them carries the flag.
+     */
+    expect(unflagged).toHaveLength(0);
   });
 
   it("branching an incognito conversation is refused with the reason", () => {
@@ -163,31 +170,33 @@ describe("the writes the promises depend on", () => {
       source.indexOf("async function forkBeforeUser") + 1200,
     );
     expect(fork).toContain("conversation.incognito");
-    expect(fork.indexOf("conversation.incognito")).toBeLessThan(fork.indexOf("createConversation"));
+    expect(fork.indexOf("conversation.incognito")).toBeLessThan(
+      fork.indexOf("forkConversationBeforeMessage"),
+    );
   });
 });
 
 describe("the chat store, exercised", () => {
   it("stores nothing and says so", async () => {
-    const put = vi.fn();
-    vi.doMock("@/lib/storage/resolver", () => ({
-      resolveAdapter: async () => ({ put }),
-      getModeFor: async () => "private_sync",
+    const appendOcadeMessage = vi.fn();
+    vi.doMock("@/lib/ocade.functions", () => ({
+      appendOcadeMessage,
+      listMessages: async () => [],
     }));
     const { persistChatMessage } = await import("../../ocade-chat-store");
+    const { unsyncedCount } = await import("../unsynced-turns");
     const result = await persistChatMessage({
-      userId: "u1",
-      chatsMode: "private_sync",
       conversationId: "c1",
       role: "user",
       content: "something private",
       incognito: true,
     });
     expect(result.stored).toEqual("not_stored");
-    expect(put, "an incognito message reached the storage adapter").not.toHaveBeenCalled();
+    expect(appendOcadeMessage, "an incognito message reached the account").not.toHaveBeenCalled();
+    expect(unsyncedCount(), "an incognito message reached the waiting buffer").toBe(0);
     // The record still comes back: the message is real, it is on screen, and
     // it is nowhere else.
     expect(result.record.content).toEqual("something private");
-    vi.doUnmock("@/lib/storage/resolver");
+    vi.doUnmock("@/lib/ocade.functions");
   });
 });

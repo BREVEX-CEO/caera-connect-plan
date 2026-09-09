@@ -21,7 +21,6 @@ export function HomeSurface(props: {
   userLabel: string;
   model: string;
   setModel: (m: string) => void;
-  chatsMode: "browser_only" | "pc_vault" | "private_sync";
   permission: PermissionMode;
   setPermission: (p: PermissionMode) => void;
   /** Whether the conversation this composer starts will be incognito — §8. */
@@ -33,7 +32,6 @@ export function HomeSurface(props: {
     userLabel,
     model,
     setModel,
-    chatsMode,
     permission,
     setPermission,
     incognito,
@@ -133,7 +131,6 @@ export function HomeSurface(props: {
           setPermission={setPermission}
           model={model}
           setModel={setModel}
-          chatsMode={chatsMode}
           onToggleVoice={dictation.toggle}
           listening={dictation.state === "listening" || dictation.state === "hearing"}
           floating

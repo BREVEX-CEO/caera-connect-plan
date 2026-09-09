@@ -63,9 +63,8 @@ reduced-motion preference. The composer's textarea gained a real accessible name
 ### Remaining in this phase
 
 1. `ChatSurface` is still ~3,500 lines inside the route. Splitting it means separating the send
-   pipeline from the presentation, which is a deeper change than moving components.
-2. Re-check for other duplicate authorities per subsystem (tasks, storage, projects) before Phase 2
-   moves persistence.
+   pipeline from the presentation, which is a deeper change than moving components. Carried into
+   Phase 2's follow-through rather than blocking persistence work.
 
 ### Deliberately not done
 
@@ -73,7 +72,59 @@ reduced-motion preference. The composer's textarea gained a real accessible name
 unreachable component alive. The historical route stubs (`cania`, `ficia`, `madee`, `home`,
 `ocade.system`, `ocade.work`, and now `onboarding`) are the redirects `docs/APP_FLOW.md` requires.
 
+## Phase 2 — Supabase canonical persistence (COMPLETE)
+
+Ordinary user content now has ONE persistent authority. Nothing the product treats as content is
+written to `localStorage`, `sessionStorage`, IndexedDB, Cache Storage or OPFS, and
+`npm run content-storage:check` fails the build if that changes.
+
+### What moved, and what it replaced
+
+| Was | Is now |
+| --- | --- |
+| `ocade.memory.local.v1` + a cloud/local backend switch in the panel | `ocade_memory`; `src/lib/memory/portable.ts` keeps the pure export/import and context rendering |
+| `ocade.artifacts.v1` + `ocade.output-activity.v1` | `ocade_outputs`, extended with `produced_by`, `verified`, `evidence`, `context`; the activity ledger is a projection of those rows |
+| `ocade.chat-citations.v1` | `ocade_messages.citations` |
+| `ocade.chat.reactions.v1:<user>:<conversation>` | `ocade_messages.reaction` |
+| `ocade.notifications.preferences.v1` (cache) | `ocade_notification_preferences` alone |
+| `caera:devices:v1` | `public.devices`, plus a new `platform` column |
+| `caera:approvals:v1` | `ocade_approvals`, decided by `ocade_decide_approval` |
+| `ocade:unified-tasks:v1` + the `ocade-runtime` IndexedDB store | `ocade_tasks` |
+| `ocade:task-comments:v1` | `ocade_task_comments` |
+| `ocade.monitors.v1` | `ocade_monitors` |
+| `caera:browser:policy:v1` | `ocade_browser_site_policy`, read through a fail-closed in-memory cache |
+| `caera:mobile:queue:v1` (durable outbox) | held in the tab, with the screen saying so |
+
+### The two safety-critical ones
+
+A **device revocation** and a **site permission** both lived in one browser, so both applied only
+where they were performed. Somebody who revoked a lost phone from a laptop left it trusted
+everywhere else. Both are account rows now, and signing out no longer calls `clearDevices()` or
+`clearApprovals()` — those were safe while the data was local and would have destroyed the
+account's own records once it was not.
+
+An **approval decision** is one statement (`ocade_decide_approval` updates only a row that is still
+pending and in date), which closes the read-then-write race two phones could hit.
+
+### Migrations added (all applied live, all in the twin)
+
+`20260909150000_ocade_output_provenance`, `20260909160000_ocade_message_citations_and_reactions`,
+`20260909170000_devices_platform`, `20260909180000_ocade_approvals`,
+`20260909190000_ocade_tasks_and_comments`, `20260909200000_ocade_monitors_and_browser_policy`.
+Each has its rollback and verification; `db-twin.test.ts` applies, verifies and rolls back all 85
+against real PostgreSQL.
+
+### Copy corrected
+
+"Browser Only", "PC Vault" and "Private Sync" described modes that no longer exist. Swept from the
+legal notice, the privacy summary, support articles, the status catalogue, the capability carousel,
+the connectors list, the marketing routes and the auth screen. The `privateSync` capability id is
+now `accountStorage`.
+
 ## Next action
 
-Finish the `ChatSurface` split, then re-run `npm test`, `npm run audit:routes:prod` and
-`npm run audit:entry-routing` before starting Phase 2.
+Phase 3 — Supabase security, Auth, MFA and schema reconciliation. Start by semantically reconciling
+source migrations against live: the live database was 78 tables against 91 in source before this
+phase, and the named gaps have not yet been worked. Note also that `supabase/config.toml` names
+project `ubantxggjducfmwoydim` while the live project this session applied migrations to is
+`sazhgaisyhkdbrooycdv` — reconcile that before any deployment step.

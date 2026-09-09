@@ -19,7 +19,6 @@ function request(): IntelligenceRequest {
     tools: [],
     attachments: [],
     privacy: {
-      storageMode: "private_sync",
       onlineInferenceConsented: true,
       sealed: false,
     },

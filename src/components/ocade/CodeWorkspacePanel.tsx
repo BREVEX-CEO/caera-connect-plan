@@ -495,14 +495,12 @@ export function CodeWorkspacePanel() {
         verified: latestChange.undoVerified,
         evidence: latestChange.receipt.evidence,
       },
-      privacyClass: "on_device",
-      compatibleApps: ["Git", "text editors"],
     });
     if (!stored.ok) {
       setError(stored.reason);
       return;
     }
-    toast.success("Patch saved to on-device Artifacts.");
+    toast.success("Patch saved to Artifacts.");
     setTerminal((lines) => [
       ...lines,
       `artifact: ${stored.data.id} · sha256 ${stored.data.sha256.slice(0, 12)}…`,

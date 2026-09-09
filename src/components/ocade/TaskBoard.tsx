@@ -9,9 +9,9 @@ import { TaskTimeline } from "@/components/ocade/TaskTimeline";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   createUnifiedTask,
-  listLocalTasks,
+  listTasks,
   persistTask,
-  removeLocalTask,
+  removeTask,
   type UnifiedTask,
   type UnifiedTaskSource,
 } from "@/lib/tasks/unified-task";
@@ -52,16 +52,31 @@ export function TaskBoard() {
   const [view, setView] = useState<"board" | "feed" | "analytics" | "timeline">("board");
   const [feedPage, setFeedPage] = useState(1);
   const [lastSeen, setLastSeen] = useState("");
+  const [unreachable, setUnreachable] = useState<string | null>(null);
 
   useEffect(() => {
     let live = true;
     const refresh = () =>
-      listLocalTasks().then((items) => {
-        if (live) {
+      listTasks().then(
+        (items) => {
+          if (!live) return;
           setTasks(items);
+          setUnreachable(null);
           setLoading(false);
-        }
-      });
+        },
+        (error: unknown) => {
+          if (!live) return;
+          /*
+           * NOT EMPTIED. A board that renders "no tasks" for an unreachable
+           * account tells somebody their work is gone, which is the one thing
+           * it must never say by accident.
+           */
+          setUnreachable(
+            error instanceof Error ? error.message : "Your account could not be reached.",
+          );
+          setLoading(false);
+        },
+      );
 
     /*
      * RECONCILE BEFORE SHOWING ANYTHING.
@@ -89,6 +104,12 @@ export function TaskBoard() {
   }, []);
 
   useEffect(() => {
+    /*
+     * WHAT THIS TAB HAS ALREADY LOOKED AT — not content, and deliberately per
+     * tab. "New since I last looked" is a question about this session, so it is
+     * `sessionStorage`: carrying it across devices would mark a feed as read on
+     * a phone because a laptop had it open.
+     */
     if (typeof sessionStorage !== "undefined") {
       setLastSeen(sessionStorage.getItem("ocade:task-feed:last-seen") ?? "");
       sessionStorage.setItem("ocade:task-feed:last-seen", new Date().toISOString());
@@ -105,10 +126,17 @@ export function TaskBoard() {
   async function addTask() {
     if (!draft.trim()) return;
     const task = createUnifiedTask({ source: "work", title: draft.trim() });
-    await persistTask(task);
+    try {
+      await persistTask(task);
+    } catch (error) {
+      // The task is NOT added to the list. Showing it would be the board saying
+      // the work is recorded when nothing recorded it.
+      toast.error(error instanceof Error ? error.message : "That task could not be saved.");
+      return;
+    }
     setTasks((current) => [task, ...current]);
     setDraft("");
-    toast.success("Task added to Queued on this device.");
+    toast.success("Task added to Queued.");
   }
 
   async function move(task: UnifiedTask, destination: TaskBoardColumn) {
@@ -124,6 +152,8 @@ export function TaskBoard() {
   }
 
   async function saveTask(task: UnifiedTask) {
+    // Throws on failure, and every caller lets it: the screen must not show a
+    // change the account refused.
     await persistTask(task);
     setTasks((current) => current.map((item) => (item.id === task.id ? task : item)));
     setSelected((current) => (current?.id === task.id ? task : current));
@@ -133,16 +163,27 @@ export function TaskBoard() {
     if (!selected) return;
     const title = window.prompt("Task title", selected.title)?.trim();
     if (!title || title === selected.title) return;
-    await saveTask({ ...selected, title, updatedAt: new Date().toISOString() });
-    toast.success("Task title updated on this device.");
+    try {
+      await saveTask({ ...selected, title, updatedAt: new Date().toISOString() });
+      toast.success("Task title updated.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "That title could not be saved.");
+    }
   }
 
   async function deleteSelected() {
-    if (!selected || !window.confirm(`Delete “${selected.title}” from this device?`)) return;
-    await removeLocalTask(selected.id);
+    if (!selected || !window.confirm(`Delete “${selected.title}”? Its comments go with it.`)) {
+      return;
+    }
+    try {
+      await removeTask(selected.id);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "That task could not be deleted.");
+      return;
+    }
     setTasks((current) => current.filter((task) => task.id !== selected.id));
     setSelected(null);
-    toast.success("Task deleted from this device.");
+    toast.success("Task deleted.");
   }
 
   function card(task: UnifiedTask) {
@@ -288,8 +329,15 @@ export function TaskBoard() {
         </label>
       </div>
 
+      {unreachable ? (
+        <p role="status" className="mt-4 text-sm text-destructive">
+          Your tasks could not be read: {unreachable} This is not an empty board — nothing was lost,
+          and it will fill in when your account is reachable again.
+        </p>
+      ) : null}
+
       {loading ? (
-        <p className="mt-4 text-sm text-muted-foreground">Reading on-device tasks…</p>
+        <p className="mt-4 text-sm text-muted-foreground">Reading your tasks…</p>
       ) : view === "analytics" ? (
         <TaskAnalytics tasks={visible} />
       ) : view === "timeline" ? (

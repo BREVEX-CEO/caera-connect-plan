@@ -115,8 +115,7 @@ function parseBody(value: unknown): OnlineRequestBody | null {
     value.tools.length > MAX_TOOLS ||
     !Array.isArray(value.attachments) ||
     privacy.onlineInferenceConsented !== true ||
-    privacy.sealed !== false ||
-    !["browser_only", "pc_vault", "private_sync"].includes(String(privacy.storageMode))
+    privacy.sealed !== false
   ) {
     return null;
   }

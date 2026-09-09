@@ -161,8 +161,8 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         label: "Privacy",
         icon: ShieldCheck,
         status: "active",
-        description: "Where your work is allowed to go.",
-        keywords: ["privacy", "device only", "sync", "data"],
+        description: "Where your work lives, and what this browser keeps.",
+        keywords: ["privacy", "telemetry", "browser", "data"],
       },
       {
         slug: "permissions",
@@ -173,12 +173,12 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
         keywords: ["permission", "approval", "confirm", "allow"],
       },
       {
-        slug: "vault",
+        slug: "data",
         label: "Your data",
         icon: Database,
         status: "active",
         description: "Export or delete what OCADE holds.",
-        keywords: ["data", "export", "delete", "vault", "download"],
+        keywords: ["data", "export", "delete", "download"],
       },
       {
         slug: "activity",

@@ -10,7 +10,13 @@
 export type ChatRole = "user" | "assistant" | "system";
 
 export type ChatReaction = "helpful" | "not_helpful";
-export type ChatDeliveryState = "sent" | "processing" | "processed";
+/**
+ * `unsynced` is not a stage of the others: it says the turn exists only in this
+ * tab because the account could not be reached, and that closing the tab loses
+ * it. It has to be visible on the message itself — a person who can see their
+ * words on screen has every reason to assume they are saved.
+ */
+export type ChatDeliveryState = "sent" | "processing" | "processed" | "unsynced";
 
 export interface ChatAttachmentView {
   kind: "image" | "file";
@@ -37,6 +43,8 @@ export interface ChatMessageView {
   reaction?: ChatReaction | null;
   /** Truthful lifecycle of a user turn, rather than a simulated human read receipt. */
   deliveryState?: ChatDeliveryState;
+  /** True while this turn is held in the open tab and not yet in the account. */
+  unsynced?: boolean;
 }
 
 export interface ChatConversationView {

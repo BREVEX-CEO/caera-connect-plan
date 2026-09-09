@@ -111,7 +111,7 @@ export const MODULE_CONTEXT: Record<ModuleId, NavItem[]> = {
   settings: [
     { to: "/settings", label: "General", icon: Settings, exact: true },
     { to: "/settings/privacy", label: "Privacy", icon: Settings },
-    { to: "/settings/vault", label: "Storage", icon: Settings },
+    { to: "/settings/data", label: "Your data", icon: Settings },
     { to: "/settings/activity", label: "Activity", icon: Settings },
     { to: "/settings/appearance", label: "Appearance", icon: Settings },
   ],

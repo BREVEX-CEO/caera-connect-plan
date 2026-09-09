@@ -103,9 +103,13 @@ function MobilePage() {
   /* Set only after the user compares the pairing digits on both devices. */
   const [channel] = useState<ChannelDescriptor | null>(null);
   const [now, setNow] = useState(() => new Date());
-  // Loaded from the durable store: pairing and — critically — REVOCATION must
-  // survive a reload. Component state alone made both cosmetic.
-  const [devices, setDevices] = useState<PairedDevice[]>(() => listDevices());
+  /*
+   * Loaded from the ACCOUNT: pairing and — critically — REVOCATION must survive
+   * a reload and reach the person's other devices. A registry kept in this
+   * browser made both cosmetic, and made a revocation something only this
+   * machine knew about.
+   */
+  const [devices, setDevices] = useState<PairedDevice[]>([]);
   const [approvals, setApprovals] = useState<ApprovalRequest[]>([]);
   const [transportReason, setTransportReason] = useState<string | null>(null);
 
@@ -113,15 +117,25 @@ function MobilePage() {
   const [handoffText, setHandoffText] = useState("");
   const [confirmCode, setConfirmCode] = useState("");
   const [deviceLabel, setDeviceLabel] = useState("");
-  // Reads through the store so a revoked device can never be selected here,
-  // even if the local list is momentarily stale.
-  const firstActiveDevice = activeDevices()[0] ?? null;
+  // Read from the list the account returned, so a revoked device can never be
+  // selected here — the list is refreshed after every action that changes it.
+  const firstActiveDevice = devices.find((device) => !device.revoked) ?? null;
+
+  const refreshDevices = useCallback(async () => {
+    setDevices(await listDevices());
+  }, []);
 
   useEffect(() => {
     void getNotificationTransport().permission().then(setNotifPermission);
-  }, []);
+    void refreshDevices();
+  }, [refreshDevices]);
 
-  // Durable across reloads and crashes — the offline notice below promises this.
+  /*
+   * HELD IN THIS TAB, and the notices below say so rather than promising it
+   * survives a reload. A handoff carries real text, and a copy of it waiting in
+   * browser storage would outlive a sign-out and be invisible to every export
+   * the account offers.
+   */
   const queue = useMemo(() => createMobileIntentQueue(), []);
   const [queued, setQueued] = useState<QueuedItem<MobileIntent>[]>([]);
   const refreshQueue = useCallback(() => setQueued(queue.all()), [queue]);
@@ -176,7 +190,7 @@ function MobilePage() {
     let live = true;
     void (async () => {
       const next = await buildMobileTransportOrUnavailable({
-        deviceId: activeDevices()[0]?.id,
+        deviceId: firstActiveDevice?.id,
         relayUrl: channel?.relayUrl,
         roomId: channel?.roomId,
         peerPublicKey: channel?.peerPublicKey,
@@ -190,21 +204,35 @@ function MobilePage() {
     return () => {
       live = false;
     };
-  }, [devices, channel]);
+  }, [firstActiveDevice?.id, channel]);
 
-  // Read from the shared store, which applies expiry on read — so a request
-  // that lapsed while no tab was open never shows as still pending.
+  const refreshApprovals = useCallback(async (at: Date = new Date()) => {
+    setApprovals(await listApprovals(at));
+  }, []);
+
+  /*
+   * Read from the account, which applies expiry on read — so a request that
+   * lapsed while no tab was open never shows as still pending, on any device.
+   *
+   * Bound to the clock's MINUTE rather than to its second. `now` ticks once a
+   * second to keep the countdowns moving, and a request per second per open tab
+   * for a list that changes rarely is the kind of quiet cost that only shows up
+   * as a bill.
+   */
+  const minute = Math.floor(now.getTime() / 60_000);
   useEffect(() => {
-    setApprovals(listApprovals(now));
-  }, [now]);
+    void refreshApprovals();
+  }, [minute, refreshApprovals]);
 
   // Housekeeping: decided and expired rows are kept briefly so the user can see
-  // what happened, then dropped so the store cannot grow without bound. Runs
-  // once per mount rather than on the 1s tick.
+  // what happened, then dropped so the list cannot grow without bound. Runs
+  // once per mount rather than on the tick.
   useEffect(() => {
-    pruneApprovals();
-    setApprovals(listApprovals());
-  }, []);
+    void (async () => {
+      await pruneApprovals();
+      await refreshApprovals();
+    })();
+  }, [refreshApprovals]);
 
   const startPairing = useCallback(() => {
     // Enforce the device allowance HERE, before a code exists. Minting a code
@@ -268,9 +296,9 @@ function MobilePage() {
     // Deciding proves the device is present and working, so refresh its
     // last-seen. Without this an active phone drifts into "needs
     // re-verification" purely because nothing ever recorded that it acted.
-    if (result.status === decision) touchDevice(device.id);
-    setApprovals(listApprovals());
-    setDevices(listDevices());
+    if (result.status === decision) await touchDevice(device.id);
+    await refreshApprovals();
+    await refreshDevices();
     toast[result.status === decision ? "success" : "error"](result.reason);
   }
 
@@ -304,7 +332,7 @@ function MobilePage() {
    * match — a wrong or late code is refused with its own reason rather than a
    * generic failure.
    */
-  function completePairing() {
+  async function completePairing() {
     if (!challenge) return;
     const result = verifyPairing(
       challenge,
@@ -326,12 +354,12 @@ function MobilePage() {
       lastSeenAt: now,
       revoked: false,
     };
-    const saved = saveDevice(device);
+    const saved = await saveDevice(device);
     if (!saved.ok) {
       toast.error(saved.reason);
       return;
     }
-    setDevices(listDevices());
+    await refreshDevices();
     // A challenge is single-use: consume it so the same code cannot pair twice.
     setChallenge(null);
     setConfirmCode("");
@@ -343,8 +371,9 @@ function MobilePage() {
    * Hand text to the paired phone as a task or clipboard entry.
    *
    * Goes through the full guarded path, so a protected value is refused before
-   * it is queued, sent, or written anywhere. When offline the intent is held in
-   * the durable queue and replayed on reconnect.
+   * it is queued, sent, or written anywhere. When offline the intent waits in
+   * this tab and is replayed on reconnect — closing the tab discards it, which
+   * is what the notice beside the list says.
    */
   async function sendHandoff(kind: "task.handoff" | "clipboard.handoff") {
     const device = firstActiveDevice;
@@ -373,11 +402,12 @@ function MobilePage() {
     }
   }
 
-  function revoke(device: PairedDevice) {
-    // Persisted as a tombstone — a revocation that vanished on reload would be
-    // worse than none, because the user believes a lost phone is cut off.
-    const revoked = revokeDeviceRecord(device.id);
-    setDevices(listDevices());
+  async function revoke(device: PairedDevice) {
+    // Recorded as a tombstone in the account — a revocation that vanished on
+    // reload, or that only one browser knew about, would be worse than none,
+    // because the person believes a lost phone is cut off.
+    const revoked = await revokeDeviceRecord(device.id);
+    await refreshDevices();
     if (!revoked) {
       // Never claim a device was cut off when the record could not be written.
       toast.error(`Couldn't revoke ${device.label}. Try again — it may still be able to act.`);
@@ -390,7 +420,7 @@ function MobilePage() {
     refreshQueue();
     // Pending approvals belong to a device that can no longer act. Leaving them
     // would let a revoked phone's decisions land after revocation.
-    clearApprovals();
+    void clearApprovals();
     setApprovals([]);
     toast.success(
       dropped > 0
@@ -427,8 +457,9 @@ function MobilePage() {
         {!online ? (
           <GlassPanel className="flex items-center gap-2 p-3 text-xs text-muted-foreground">
             <WifiOff className="h-4 w-4" aria-hidden />
-            You're offline. Safe requests are queued and sent when your phone reconnects; stops and
-            approvals always need a live connection.
+            You&rsquo;re offline. Safe requests wait in this tab and are sent when your phone
+            reconnects &mdash; closing it discards them. Stops and approvals always need a live
+            connection.
           </GlassPanel>
         ) : null}
 
@@ -508,7 +539,7 @@ function MobilePage() {
                 <Button
                   size="sm"
                   className="h-9"
-                  onClick={completePairing}
+                  onClick={() => void completePairing()}
                   disabled={!confirmCode.trim()}
                 >
                   Pair
@@ -578,7 +609,7 @@ function MobilePage() {
                           <Button size="sm" variant="ghost" onClick={() => void emergencyStop(d)}>
                             <OctagonX className="mr-1 h-3.5 w-3.5" /> Stop
                           </Button>
-                          <Button size="sm" variant="ghost" onClick={() => revoke(d)}>
+                          <Button size="sm" variant="ghost" onClick={() => void revoke(d)}>
                             <Trash2 className="mr-1 h-3.5 w-3.5" /> Revoke
                           </Button>
                         </>
@@ -589,11 +620,13 @@ function MobilePage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => {
-                            forgetDevice(d.id);
-                            setDevices(listDevices());
-                            toast.success(
-                              `${d.label} forgotten. It can be paired again if you choose.`,
-                            );
+                            void (async () => {
+                              await forgetDevice(d.id);
+                              await refreshDevices();
+                              toast.success(
+                                `${d.label} forgotten. It can be paired again if you choose.`,
+                              );
+                            })();
                           }}
                         >
                           Forget
@@ -677,13 +710,14 @@ function MobilePage() {
           </ul>
         </GlassPanel>
 
-        {/* Waiting to send — the durable offline queue */}
+        {/* Waiting to send — held in this tab, not written down */}
         {queued.length > 0 ? (
           <GlassPanel className="p-4">
             <h3 className="mb-2 text-sm font-semibold">Waiting to send</h3>
             <p className="mb-3 text-xs text-muted-foreground">
-              Saved on this device and sent automatically when your phone reconnects. Stops and
-              approvals are never queued — they always need a live connection.
+              Waiting in this tab and sent automatically when your phone reconnects. Closing this
+              tab discards them. Stops and approvals are never queued &mdash; they always need a
+              live connection.
             </p>
             <ul className="flex flex-col gap-2">
               {queued.map((q) => (

@@ -76,7 +76,7 @@ export async function probeOne(
         state: environment.accountBindingConfigured ? "unknown" : "outage",
         detail: environment.accountBindingConfigured
           ? "An account binding is configured. OCADE does not probe the provider from this page, so this is not a health check."
-          : "No account binding is configured on this deployment, so signing in and Private Sync cannot work.",
+          : "No account binding is configured on this deployment, so signing in and reading your own work cannot work.",
       };
     }
     case "browser-capability": {

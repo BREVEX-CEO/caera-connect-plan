@@ -20,7 +20,7 @@ export interface CapabilitySignals {
   /** On-device engine probe. */
   localEngine?: { reachable: boolean; modelCount: number; checking?: boolean };
   /** Encrypted account sync. */
-  sync?: { signedIn: boolean; mode: "browser_only" | "pc_vault" | "private_sync" | "unknown" };
+  sync?: { signedIn: boolean };
   /** Native companion / machine control bridge. */
   companion?: { connected: boolean; approved?: boolean };
   /** Browser automation surface (extension or CDP bridge). */
@@ -87,64 +87,34 @@ function localAI(s: CapabilitySignals): CapabilityReport {
   };
 }
 
-function privateSync(s: CapabilitySignals): CapabilityReport {
+function accountStorage(s: CapabilitySignals): CapabilityReport {
   const sync = s.sync;
   if (!sync?.signedIn) {
     return {
-      id: "privateSync",
-      label: "Private Sync",
+      id: "accountStorage",
+      label: "Account storage",
       status: "NOT_CONFIGURED",
-      detail: "Sign in to synchronise this account across your approved devices.",
-      action: { label: "Privacy settings", to: "/settings/privacy" },
+      detail: "Sign in to keep your work in your account, on every device you use.",
+      action: { label: "Sign in", to: "/auth" },
       evidence: sync ? "No signed-in account." : NOT_OBSERVED,
-    };
-  }
-  if (sync.mode === "browser_only") {
-    return {
-      id: "privateSync",
-      label: "Private Sync",
-      status: "UNAVAILABLE",
-      detail:
-        "Chats are set to Browser Only, so nothing is synchronised. That is a choice, not a fault.",
-      action: { label: "Change storage mode", to: "/settings/privacy" },
-      evidence: "Storage mode is browser_only.",
-    };
-  }
-  if (sync.mode === "pc_vault") {
-    return {
-      id: "privateSync",
-      label: "Private Sync",
-      status: "UNAVAILABLE",
-      detail: "Chats are stored in the PC Vault on this machine and are not synchronised.",
-      action: { label: "Change storage mode", to: "/settings/privacy" },
-      evidence: "Storage mode is pc_vault.",
     };
   }
   if (s.online === false) {
     return {
-      id: "privateSync",
-      label: "Private Sync",
+      id: "accountStorage",
+      label: "Account storage",
       status: "OFFLINE",
-      detail: "Offline. Changes stay on this device and sync when the connection returns.",
+      detail:
+        "Offline. A turn OCADE answers on this device waits in the open tab, is marked unsaved, and is saved when the connection returns.",
       evidence: "Browser reports offline.",
     };
   }
-  if (sync.mode === "unknown") {
-    return {
-      id: "privateSync",
-      label: "Private Sync",
-      status: "NOT_CONFIGURED",
-      detail: "No storage mode has been chosen yet.",
-      action: { label: "Choose a storage mode", to: "/settings/privacy" },
-      evidence: "Storage mode unresolved.",
-    };
-  }
   return {
-    id: "privateSync",
-    label: "Private Sync",
+    id: "accountStorage",
+    label: "Account storage",
     status: "READY",
-    detail: "Chats are synchronised to your account across approved devices.",
-    evidence: "Storage mode is private_sync and the device is online.",
+    detail: "Your work is stored in your account and follows you to every device you sign in on.",
+    evidence: "Signed in and online.",
   };
 }
 
@@ -418,7 +388,7 @@ function desktopInstaller(): CapabilityReport {
 
 const BUILDERS: Record<CapabilityId, (s: CapabilitySignals) => CapabilityReport> = {
   localAI,
-  privateSync,
+  accountStorage,
   browser,
   computerControl,
   codeTerminal,

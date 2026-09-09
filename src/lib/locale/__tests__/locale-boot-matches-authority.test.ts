@@ -8,7 +8,7 @@ import {
   type LocaleStorage,
 } from "../use-locale";
 import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from "../supported-locales";
-import { keysForClass } from "@/lib/storage/local-data";
+import { keysForClass } from "@/lib/device/local-data";
 
 /**
  * THE LOCALE LIST EXISTS TWICE, AND THAT IS DELIBERATE — SO IT IS CHECKED.

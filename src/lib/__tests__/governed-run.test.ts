@@ -1,13 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  runGovernedTask,
-  runAndRecord,
-  type GovernedStep,
-  type GovernedRunInput,
-} from "../skills/governed-run";
-import { ExecutorRegistry } from "../skills/executor-registry";
-import { createTaskScope } from "../skills/task-scope";
-import { listArtifacts } from "../artifacts/store";
+import { createFakeOutputStore } from "./support/fake-outputs";
+
+const outputs = createFakeOutputStore();
+vi.mock("@/lib/ocade-projects.functions", () => outputs.module);
+
+const { runGovernedTask, runAndRecord } = await import("../skills/governed-run");
+const { ExecutorRegistry } = await import("../skills/executor-registry");
+const { createTaskScope } = await import("../skills/task-scope");
+const { listArtifacts } = await import("../artifacts/store");
+import type { GovernedStep, GovernedRunInput } from "../skills/governed-run";
+import type { ExecutorRegistry as ExecutorRegistryType } from "../skills/executor-registry";
 import type { AdapterHealth } from "../skills/adapter-health";
 import type { AppIdentity, ControlMethod, SkillCapability, SkillPack } from "../skills/skill-pack";
 import type { RecoveryOption } from "../skills/recovery-graph";
@@ -51,7 +53,7 @@ const independentlyConfirmed = () => ({
 });
 
 /** A registry whose executors and separate verifiers agree. */
-function okRegistry(): ExecutorRegistry {
+function okRegistry(): ExecutorRegistryType {
   const r = new ExecutorRegistry();
   r.register(
     "demo.app",
@@ -107,13 +109,7 @@ const input = (over: Partial<GovernedRunInput> = {}): GovernedRunInput => ({
 });
 
 beforeEach(() => {
-  const store = new Map<string, string>();
-  vi.stubGlobal("localStorage", {
-    getItem: (k: string) => store.get(k) ?? null,
-    setItem: (k: string, v: string) => void store.set(k, v),
-    removeItem: (k: string) => void store.delete(k),
-    clear: () => store.clear(),
-  });
+  outputs.reset();
 });
 
 describe("a clean governed run", () => {
@@ -215,10 +211,10 @@ describe("runAndRecord persists the ledger as an artifact", () => {
   it("saves a succeeded run as a verified receipt artifact", async () => {
     const r = await runAndRecord(input());
     if (!r.ok) throw new Error("unreachable");
-    const saved = listArtifacts();
+    const saved = await listArtifacts();
     expect(saved).toHaveLength(1);
-    expect(saved[0].kind).toBe("receipt");
-    expect(saved[0].provenance.verified).toBe(true);
+    expect(saved[0]!.kind).toBe("receipt");
+    expect(saved[0]!.provenance.verified).toBe(true);
     expect(r.evidence).toMatch(/Receipt saved/);
     expect(r.data.receiptRecording.status).toBe("saved");
   });
@@ -238,28 +234,31 @@ describe("runAndRecord persists the ledger as an artifact", () => {
     });
     const r = await runAndRecord(narrow);
     if (!r.ok) throw new Error("unreachable");
-    expect(listArtifacts()[0].provenance.verified).toBe(false);
+    expect((await listArtifacts())[0]!.provenance.verified).toBe(false);
   });
 
   it("reports receipt persistence failure instead of claiming it saved", async () => {
-    vi.stubGlobal("localStorage", {
-      getItem: () => null,
-      setItem: () => {
-        throw new Error("storage unavailable");
-      },
-      removeItem: () => undefined,
-      clear: () => undefined,
-    });
+    /*
+     * The run itself SUCCEEDED and the receipt did not reach the account. Both
+     * halves have to be reported: a run reported as failed because its receipt
+     * did not save would send somebody looking for a problem that is not there,
+     * and one reported as fully recorded would leave them believing in evidence
+     * that does not exist.
+     */
+    const failing = vi
+      .spyOn(outputs.module, "createOutput")
+      .mockRejectedValueOnce(new Error("Failed to fetch"));
 
     const r = await runAndRecord(input());
     if (!r.ok) throw new Error("unreachable");
     expect(r.data.ledger.outcome).toBe("succeeded");
     expect(r.data.receiptRecording).toMatchObject({
       status: "failed",
-      reason: expect.stringMatching(/storage unavailable/i),
+      reason: expect.stringMatching(/could not reach your account/i),
     });
     expect(r.evidence).toMatch(/Receipt not saved/i);
     expect(r.evidence).not.toMatch(/Receipt saved:/i);
+    failing.mockRestore();
   });
 
   it("refuses an empty task", async () => {

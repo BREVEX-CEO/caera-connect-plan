@@ -66,6 +66,63 @@ export interface Citation {
  * Citation history is persisted in browser storage, so an unchecked value
  * could otherwise turn a corrupted record into a `javascript:` navigation.
  */
+/**
+ * IS THIS ACTUALLY A CITATION?
+ *
+ * Citations come back from a `jsonb` column, and a column holds whatever was
+ * written to it — including rows written by an older version of OCADE, or by a
+ * shape nothing here expects. Validating on the way out keeps a malformed
+ * record from reaching the renderer as a card with no source and no locator.
+ *
+ * These moved here from the browser citation store `PLAN.md` Phase 2 removed.
+ * The store is gone; the reason to check is not, because the data still arrives
+ * from outside this module.
+ */
+function isLocator(value: unknown): value is SourceLocator {
+  if (!value || typeof value !== "object") return false;
+  const locator = value as SourceLocator;
+  return (
+    (locator.line === undefined || (Number.isInteger(locator.line) && locator.line > 0)) &&
+    (locator.page === undefined || (Number.isInteger(locator.page) && locator.page > 0)) &&
+    (locator.sheet === undefined || typeof locator.sheet === "string") &&
+    (locator.section === undefined || typeof locator.section === "string")
+  );
+}
+
+export function isCitation(value: unknown): value is Citation {
+  if (!value || typeof value !== "object") return false;
+  const citation = value as Partial<Citation>;
+  return (
+    typeof citation.sourceId === "string" &&
+    /^(?:S|W)\d+$/.test(citation.sourceId) &&
+    typeof citation.name === "string" &&
+    typeof citation.kind === "string" &&
+    isLocator(citation.locator) &&
+    (citation.snippet === null || typeof citation.snippet === "string") &&
+    (citation.provenance === undefined ||
+      citation.provenance === "attached_document" ||
+      citation.provenance === "project_context" ||
+      citation.provenance === "internet_evidence") &&
+    (citation.url === undefined || typeof citation.url === "string") &&
+    (citation.domain === undefined || typeof citation.domain === "string") &&
+    (citation.publishedAt === undefined ||
+      citation.publishedAt === null ||
+      typeof citation.publishedAt === "string") &&
+    (citation.retrievedAt === undefined || typeof citation.retrievedAt === "string")
+  );
+}
+
+/**
+ * The citations in a stored value, and nothing else.
+ *
+ * A malformed entry is dropped rather than failing the whole message: the
+ * answer is still worth reading, and a card that cannot say where it came from
+ * is worse than no card.
+ */
+export function citationsFrom(value: unknown): Citation[] {
+  return Array.isArray(value) ? value.filter(isCitation) : [];
+}
+
 export function safeCitationHref(url: string | undefined): string | null {
   if (!url) return null;
   try {

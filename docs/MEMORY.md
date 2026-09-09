@@ -24,7 +24,7 @@ The next engineering mission starts at Phase 0 of `PLAN.md`: refresh the exact i
 
 ## Known Problems
 
-The implementation plan's audited baseline recorded stale mission evidence/hash assumptions, a formatting defect, at least one suite failure tied to stale mission authority and skipped tests requiring review. Existing browser journeys still encode obsolete onboarding/local-first behavior. Chat remains oversized/mixed-responsibility. Local-first persistence paths and old/future route chunks remain in the production graph. Project/task/artifact and related authorities still include localStorage/IndexedDB paths. Task state/persistence is fragmented. Supabase source/live migration histories differ and require semantic reconciliation. Live Supabase security/performance findings include elevated functions/policy issues and index findings that must be resolved from current evidence rather than blindly applied. Gemini currently requires migration to the pinned three-key model boundary. Offline model preparation still needs first-visit/no-redownload behavior proven end to end. Payments/subscriptions retain historical overlapping authorities and are intentionally completed last.
+The implementation plan's audited baseline recorded stale mission evidence/hash assumptions, a formatting defect, at least one suite failure tied to stale mission authority and skipped tests requiring review. Existing browser journeys still encode obsolete onboarding/local-first behavior. Chat remains oversized/mixed-responsibility. Old and future route chunks remain in the production graph. Supabase source/live migration histories differ and require semantic reconciliation. Live Supabase security/performance findings include elevated functions/policy issues and index findings that must be resolved from current evidence rather than blindly applied. Gemini currently requires migration to the pinned three-key model boundary. Offline model preparation still needs first-visit/no-redownload behavior proven end to end. Payments/subscriptions retain historical overlapping authorities and are intentionally completed last.
 
 Treat this list as a starting pointer only: rerun the actual current commands and update this file when evidence changes.
 
@@ -42,7 +42,9 @@ The 2,126-file donor is re-evaluated for maximum useful behavior, especially Cha
 
 ## Recent Decisions
 
-- Supabase/Storage, not browser-local content stores, is the persistent user-data authority.
+- Supabase/Storage, not browser-local content stores, is the persistent user-data authority — implemented, and enforced by `content-storage:check`.
+- A device revocation and a site permission are account facts, not browser facts. Signing out clears what a tab was holding and never the account's own records.
+- An approval decision is a single conditional statement in the database, so two devices answering at once cannot both believe they decided it.
 - Claude is the primary UI structure/interaction benchmark; ChatGPT and OpenClaw are secondary behavioral references; OCADE remains independently branded/implemented.
 - Chat/Cowork/Code are the primary workspace surfaces; Projects/Tasks/Artifacts/Search/Customize/Settings support them.
 - The old More dashboard is removed after useful behavior is rewired.
@@ -52,9 +54,33 @@ The 2,126-file donor is re-evaluated for maximum useful behavior, especially Cha
 - The former standalone ADR decisions now live in `docs/DECISIONS.md`; the three superseded ADR files were removed after their unique decisions were preserved.
 - Supporting historical/evidence Markdown is deleted only when proven unreferenced and valueless for legal/provenance/audit/operations; cleanup must never break package scripts, tests or recovery evidence.
 
+## Current State
+
+Branch `claude/plan-implementation-n3yjkn`, cut from `origin/main` at `a7a99e3`.
+
+`PLAN.md` Phase 0 (baseline and evidence repair) and Phase 2 (Supabase canonical persistence) are
+complete. Phase 1 is complete except for splitting `ChatSurface`, which is carried forward.
+
+Phase 2 in one line: ordinary user content now has ONE persistent authority. Memory, artifacts and
+their activity ledger, citations, message feedback, notification preferences, paired devices,
+approvals, tasks, task comments, monitors and browser site permissions all moved from
+`localStorage`/IndexedDB into the account. `npm run content-storage:check` fails the build if
+content returns to browser storage; 40 device/model stores are declared with a written reason each.
+
+Two of those were safety-critical rather than merely inconvenient. A device revocation and a site
+permission each lived in one browser, so revoking a lost phone from a laptop left it trusted on
+every other machine. Both are account rows now, and signing out no longer clears devices or
+approvals — that was safe while they were local and destructive once they were not.
+
+Six migrations were added and applied live, each with its rollback and verification; the database
+twin applies, verifies and rolls back all 85 against real PostgreSQL.
+
 ## Next Steps
 
-Create one isolated completion branch from freshly fetched `origin/main`, inspect actual current Git/repository state, run the Phase 0 baseline checks in `PLAN.md`, update generated requirement/route/donor/gap evidence against the canonical documents, fix baseline failures at root cause, and proceed only when Phase 0's checkpoint is green.
+Phase 3 — Supabase security, Auth, MFA and schema reconciliation. Reconcile source migrations
+against live by schema effect before applying anything: source held 91 tables against 78 live at the
+start of this work. `supabase/config.toml` names project `ubantxggjducfmwoydim` while the live
+project is `sazhgaisyhkdbrooycdv`; reconcile that before any deployment step.
 
 ## Things to Be Careful About
 

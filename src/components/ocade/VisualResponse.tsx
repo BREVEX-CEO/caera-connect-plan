@@ -13,7 +13,7 @@ import {
   type ChartPoint,
   type DiagramStep,
 } from "@/lib/ocade-visual";
-import { createLocalOutput } from "@/lib/projects/local-projects";
+import { createOutput } from "@/lib/ocade-projects.functions";
 import { useSession } from "@/lib/session";
 
 /**
@@ -75,17 +75,19 @@ export function VisualResponse({
     setSaving(true);
     try {
       if (!user?.id) throw new Error("Sign in to save this output.");
-      await createLocalOutput(user.id, {
-        projectId: projectId ?? null,
-        conversationId: conversationId ?? null,
-        kind: "visual",
-        title: plan.blocks.find((b) => b.kind === "heading")?.title ?? "Visual response",
-        content: visualPlanToText(plan),
-        mime: "text/plain",
+      await createOutput({
+        data: {
+          projectId: projectId ?? null,
+          conversationId: conversationId ?? null,
+          kind: "visual",
+          title: plan.blocks.find((b) => b.kind === "heading")?.title ?? "Visual response",
+          content: visualPlanToText(plan),
+          mime: "text/plain",
+        },
       });
-      toast.success("Saved to Outputs.");
+      toast.success("Saved to Artifacts.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't save this output on the device.");
+      toast.error(e instanceof Error ? e.message : "This output could not be saved.");
     } finally {
       setSaving(false);
     }

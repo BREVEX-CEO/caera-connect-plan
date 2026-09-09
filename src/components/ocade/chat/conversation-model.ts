@@ -15,7 +15,9 @@
 import { capabilityLabelFor } from "@/lib/ocade-capability-labels";
 import { getOcadeModel } from "@/lib/ocade-models";
 import type { ExtractResult } from "@/lib/ocade-documents";
-import type { ChatMessageView } from "./chat-types";
+import { randomUuid } from "@/lib/ids";
+import type { ChatMessageView, ChatReaction } from "./chat-types";
+import type { Citation } from "@/lib/ocade-citations";
 
 /**
  * What a person chooses, in their words.
@@ -62,7 +64,6 @@ export type Conversation = {
   pinned: boolean;
   archived: boolean;
   model_id: string | null;
-  privacy_mode: string;
   updated_at: string;
   project_id?: string | null;
   /**
@@ -84,6 +85,12 @@ export type Message = {
   attachments: Attachment[];
   model_id: string | null;
   created_at: string;
+  /** The evidence recorded for this answer, when any was. */
+  citations?: Citation[] | null;
+  /** The reader's own feedback on it. */
+  reaction?: ChatReaction | null;
+  /** True while this turn is held in the open tab and not yet in the account. */
+  unsynced?: boolean;
 };
 
 /**
@@ -109,7 +116,21 @@ export function toMessageView(message: Message): ChatMessageView {
     engineLabel: message.model_id
       ? capabilityLabelFor({ locality: getOcadeModel(message.model_id).locality })
       : null,
+    reaction: message.reaction ?? null,
+    unsynced: message.unsynced,
   };
+}
+
+/**
+ * A new conversation's id, chosen on the device.
+ *
+ * A UUID because that is what the column holds, and generated here rather than
+ * by the database so the transcript can render the moment somebody presses
+ * Send. The row that follows carries the same id, so nothing has to reconcile
+ * two of them afterwards.
+ */
+export function newConversationId(): string {
+  return randomUuid();
 }
 
 export type PermissionMode = "manual" | "assisted" | "autonomous";

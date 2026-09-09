@@ -48,7 +48,7 @@ describe("the complete PLAN.md continuation evidence graph", () => {
     expect(generated.planSha256).toBe(createHash("sha256").update(plan).digest("hex"));
     expect(generated.summary.planRequirements).toBe(extractPlanRequirements(plan).length);
     expect(generated.summary.parityCapabilities).toBe(31);
-    expect(generated.summary.routeRecords).toBe(97);
+    expect(generated.summary.routeRecords).toBe(98);
     expect(generated.summary.remainingGapRecords).toBe(19);
     expect(generated.composedLedgers.donor.records).toBe(2126);
   });

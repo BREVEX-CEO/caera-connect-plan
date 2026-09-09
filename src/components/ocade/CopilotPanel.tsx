@@ -286,7 +286,7 @@ export function CopilotPanel() {
   }
 
   /** Preview an action: risk-check it before anything is proposed to the user. */
-  function propose(action: CompanionAction) {
+  async function propose(action: CompanionAction) {
     const channelRefusal = computerUseChannelDecision("thisComputer");
     if (channelRefusal) {
       toast.error(channelRefusal);
@@ -337,7 +337,13 @@ export function CopilotPanel() {
      */
     if (risk === "confirm" || risk === "high") {
       try {
-        requestApproval({ summary: redactForAudit(`OCADE wants to ${describe(action)}`), risk });
+        // Awaited, because the row is what makes the phone able to answer. A
+        // fire-and-forget here would show "waiting for approval" for a request
+        // that may never have been raised.
+        await requestApproval({
+          summary: redactForAudit(`OCADE wants to ${describe(action)}`),
+          risk,
+        });
       } catch (error) {
         setPending(null);
         const detail = error instanceof Error ? error.message : "The approval could not be saved.";
@@ -642,13 +648,17 @@ export function CopilotPanel() {
               Nothing proposed. Actions always appear here for confirmation before they run.
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
-              <Button size="sm" variant="ghost" onClick={() => propose({ kind: "window.list" })}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => void propose({ kind: "window.list" })}
+              >
                 Preview: list windows
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => propose({ kind: "text.type", text: "my password is hunter2" })}
+                onClick={() => void propose({ kind: "text.type", text: "my password is hunter2" })}
               >
                 Preview: protected text
               </Button>

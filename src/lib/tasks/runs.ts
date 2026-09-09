@@ -40,7 +40,7 @@ import {
 } from "@/primary-logic/tasks/lifecycle";
 import { StopTaskError, stopTask } from "@/primary-logic/tasks/stopTask";
 import {
-  listLocalTasks,
+  listTasks,
   persistTask,
   transitionTask,
   type UnifiedTask,
@@ -281,7 +281,7 @@ export async function stopAllRuns(detail?: string): Promise<number> {
  * admitted it stopped doing, not re-attaching to a process that is gone.
  */
 export async function reconcileInterruptedRuns(now = new Date()): Promise<UnifiedTask[]> {
-  const stored = await listLocalTasks().catch(() => [] as UnifiedTask[]);
+  const stored = await listTasks().catch(() => [] as UnifiedTask[]);
   const stale = stored.filter(
     (task) =>
       (task.status === "EXECUTING" ||

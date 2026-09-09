@@ -8,10 +8,7 @@ import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { useSession } from "@/lib/session";
 import { executeAction, getAction, ActionConfirmationError } from "@/lib/actions";
 import { cn } from "@/lib/utils";
-import {
-  listLocalOutputActivity,
-  type LocalOutputActivity,
-} from "@/lib/artifacts/chat-output-flow";
+import { listOutputActivity, type OutputActivity } from "@/lib/artifacts/chat-output-flow";
 
 export const Route = createFileRoute("/_authenticated/settings/activity")({
   head: () => ({
@@ -60,8 +57,8 @@ function ActivityPage() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [phrase, setPhrase] = useState("");
   const [msg, setMsg] = useState<{ kind: "success" | "error"; text: string } | null>(null);
-  const [localOutputs, setLocalOutputs] = useState<LocalOutputActivity[] | null>(null);
-  const [localOutputError, setLocalOutputError] = useState<string | null>(null);
+  const [savedOutputs, setSavedOutputs] = useState<OutputActivity[] | null>(null);
+  const [savedOutputError, setSavedOutputError] = useState<string | null>(null);
 
   const from = useMemo(() => windowStart(win), [win]);
 
@@ -118,19 +115,21 @@ function ActivityPage() {
     setMsg(null);
   }, [tab]);
 
-  function refreshLocalOutputs() {
-    const result = listLocalOutputActivity();
+  async function refreshSavedOutputs() {
+    const result = await listOutputActivity();
     if (result.ok) {
-      setLocalOutputs(result.data);
-      setLocalOutputError(null);
+      setSavedOutputs(result.data);
+      setSavedOutputError(null);
     } else {
-      setLocalOutputs(null);
-      setLocalOutputError(result.reason);
+      // Kept as null rather than emptied: an account that could not be reached
+      // must not render as "you have saved nothing".
+      setSavedOutputs(null);
+      setSavedOutputError(result.reason);
     }
   }
 
   useEffect(() => {
-    refreshLocalOutputs();
+    void refreshSavedOutputs();
   }, []);
 
   async function clearOldOperational() {
@@ -300,29 +299,29 @@ function ActivityPage() {
         <GlassPanel className="mt-4 overflow-hidden">
           <div className="flex items-center justify-between border-b border-border/40 px-3 py-2">
             <div>
-              <h2 className="text-sm font-medium text-foreground">On-device output activity</h2>
+              <h2 className="text-sm font-medium text-foreground">Saved chat outputs</h2>
               <p className="text-[11px] text-muted-foreground">
-                Exact artifact ids and SHA-256 fingerprints recorded by Chat on this device.
+                Exact artifact ids and SHA-256 fingerprints recorded when Chat saved an answer.
               </p>
             </div>
             <button
-              onClick={refreshLocalOutputs}
+              onClick={() => void refreshSavedOutputs()}
               className="rounded-md border border-border/60 px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
             >
-              Refresh local
+              Refresh
             </button>
           </div>
-          {localOutputError ? (
-            <div className="p-3 text-xs text-destructive">{localOutputError}</div>
-          ) : localOutputs === null ? (
-            <div className="p-3 text-xs text-muted-foreground">Loading local activity…</div>
-          ) : localOutputs.length === 0 ? (
+          {savedOutputError ? (
+            <div className="p-3 text-xs text-destructive">{savedOutputError}</div>
+          ) : savedOutputs === null ? (
+            <div className="p-3 text-xs text-muted-foreground">Loading saved outputs…</div>
+          ) : savedOutputs.length === 0 ? (
             <div className="p-3 text-xs text-muted-foreground">
-              No Chat outputs have been saved on this device.
+              No Chat outputs have been saved yet.
             </div>
           ) : (
             <ul className="divide-y divide-border/40">
-              {localOutputs.map((row) => (
+              {savedOutputs.map((row) => (
                 <li key={row.id} className="grid gap-1 p-3 text-xs sm:grid-cols-[1fr_auto]">
                   <div className="min-w-0">
                     <p className="font-medium text-foreground">{row.outputName}</p>

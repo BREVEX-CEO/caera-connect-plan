@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  buildTaskLedger,
-  serialiseLedger,
-  saveLedgerArtifact,
-  type LedgerStep,
-  type TaskLedgerInput,
-} from "../artifacts/evidence-ledger";
-import { listArtifacts } from "../artifacts/store";
+import { createFakeOutputStore } from "./support/fake-outputs";
+import type { LedgerStep, TaskLedgerInput } from "../artifacts/evidence-ledger";
+
+const outputs = createFakeOutputStore();
+vi.mock("@/lib/ocade-projects.functions", () => outputs.module);
+
+const { buildTaskLedger, serialiseLedger, saveLedgerArtifact } =
+  await import("../artifacts/evidence-ledger");
+const { listArtifacts } = await import("../artifacts/store");
 import type { EvidenceReceipt } from "../skills/skill-pack";
 
 const receipt = (verified: boolean): EvidenceReceipt => ({
@@ -154,13 +155,7 @@ describe("it refuses to launder an unproven claim", () => {
 
 describe("serialisation and storage", () => {
   beforeEach(() => {
-    const store = new Map<string, string>();
-    vi.stubGlobal("localStorage", {
-      getItem: (k: string) => store.get(k) ?? null,
-      setItem: (k: string, v: string) => void store.set(k, v),
-      removeItem: (k: string) => void store.delete(k),
-      clear: () => store.clear(),
-    });
+    outputs.reset();
   });
 
   it("round-trips through JSON", () => {
@@ -180,7 +175,7 @@ describe("serialisation and storage", () => {
     if (!saved.ok) throw new Error("unreachable");
     expect(saved.data.kind).toBe("receipt");
     expect(saved.data.provenance.verified).toBe(true);
-    expect(listArtifacts()).toHaveLength(1);
+    expect(await listArtifacts()).toHaveLength(1);
   });
 
   /**

@@ -65,25 +65,36 @@ export const SECURITY_POSTURE: readonly SecurityGroup[] = [
     title: "On your device",
     statements: [
       {
-        claim: "Browser-only records are encrypted at rest with AES-GCM.",
+        claim: "Your conversations, projects and files live in your account, not in this browser.",
         detail:
-          "Each record's value is encrypted under a data-encryption key that exists only in memory, derived from your passphrase with PBKDF2-SHA256 or wrapped by a hardware authenticator through the WebAuthn PRF extension. The key is never written to disk and never leaves the device.",
-        implementedBy: ["src/lib/storage/vault-crypto.ts", "src/lib/storage/indexeddb-adapter.ts"],
-        evidence: ["AES-GCM", "PBKDF2"],
+          "Every row is protected by PostgreSQL row-level security scoped to your own user id, so a query that is not yours returns nothing rather than somebody else's work. This replaced an encrypted browser store: one authority means one place to protect, one place to export from, and one place a deletion has to reach.",
+        implementedBy: ["src/lib/ocade-chat-store.ts", "src/lib/ocade.functions.ts"],
+        evidence: ["user_id", "row-level security"],
       },
       {
-        claim: "Record metadata is NOT encrypted, and that is a deliberate trade.",
+        claim:
+          "A turn OCADE answers on this device while your account is unreachable waits in the open tab.",
         detail:
-          "Identifiers, data classes and timestamps stay in the clear so the product can list and search without asking you to unlock first. Someone with access to the browser profile could therefore see how many records of each kind exist and when they changed — but not what any of them says.",
-        implementedBy: ["src/lib/storage/indexeddb-adapter.ts"],
-        evidence: ["dataClass", "ciphertext"],
+          "It is held in memory — never written to disk — shown as unsaved, and warned about before you close or reload the page. When the connection returns it is uploaded exactly once, using a key chosen before it was sent so a retry cannot write it twice.",
+        implementedBy: [
+          "src/lib/chat/unsynced-turns.ts",
+          "src/components/ocade/chat/UnsyncedTurnsBridge.tsx",
+        ],
+        evidence: ["clientKey", "beforeunload"],
       },
       {
         claim: "Offline Intelligence lives apart from your account data.",
         detail:
-          "The model is stored in the browser's private origin filesystem, not in the account database and not in the record store. Deleting account data, deleting private data and signing out all leave it in place; only the model vault's own uninstall removes it, and only when you ask for that specifically.",
-        implementedBy: ["src/lib/storage/indexeddb-adapter.ts"],
-        evidence: ["records"],
+          "The model is stored in the browser's private origin filesystem, not in the account database. Deleting account data, deleting this browser's own data and signing out all leave it in place; only the model vault's own uninstall removes it, and only when you ask for that specifically.",
+        implementedBy: ["src/lib/device/local-data.ts", "src/lib/brain/model-vault.ts"],
+        evidence: ["MODEL_OWNED_KEY_PREFIXES", "OPFS"],
+      },
+      {
+        claim: "What this browser does keep is preferences, not content.",
+        detail:
+          "A theme, a send key, an unsent draft, a table layout, the model's own metadata. Clearing them is offered separately from exercising a data right, because clearing a shared laptop and deleting your account's work are different requests.",
+        implementedBy: ["src/lib/device/local-data.ts"],
+        evidence: ["keysForClass", "preferences"],
       },
     ],
     limitation:

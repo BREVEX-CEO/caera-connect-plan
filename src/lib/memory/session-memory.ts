@@ -17,7 +17,7 @@
  *
  * WHY THE FILTER IS STRICTER HERE THAN FOR A TYPED MEMORY
  * ------------------------------------------------------
- * `addLocalMemory` never refuses what a person typed, and it is right not to —
+ * `addMemory` never refuses what a person typed, and it is right not to —
  * overruling somebody about their own memory is not the interface's job. But
  * nobody asked for these. A memory OCADE decided to keep on its own has to
  * clear a higher bar than one a person chose, because the cost of a wrong one
@@ -136,9 +136,9 @@ export interface SessionMemoryDeps {
   /** Ask the local engine. Returns null when it could not answer. */
   complete: (prompt: string) => Promise<string | null>;
   /** Memories already held, so an extraction does not re-save them. */
-  existing: () => readonly string[];
+  existing: () => Promise<readonly string[]>;
   /** Save one fact. Returning false means it was not saved. */
-  save: (content: string) => boolean;
+  save: (content: string) => Promise<boolean>;
 }
 
 /**
@@ -167,8 +167,17 @@ export async function considerSessionMemory(
       states.set(key, abandonExtraction(stateFor(key)));
       return [];
     }
-    const facts = parseExtracted(reply, input.deps.existing());
-    const saved = facts.filter((fact) => input.deps.save(fact));
+    const facts = parseExtracted(reply, await input.deps.existing());
+    /*
+     * Saved one at a time and in order, not with `Promise.all`. Each save is a
+     * write to the account, and the cap on how many memories may be held is
+     * enforced per write — firing them concurrently would let a batch cross it
+     * together, and would report facts as saved that the last write refused.
+     */
+    const saved: string[] = [];
+    for (const fact of facts) {
+      if (await input.deps.save(fact)) saved.push(fact);
+    }
     states.set(key, completeExtraction(stateFor(key), input.tokenCount));
     return saved;
   } catch {

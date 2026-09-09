@@ -500,7 +500,7 @@ function AuthPage() {
           >
             privacy notice
           </button>
-          . Your workspace defaults to Private Sync — you can switch it to Device Only anytime.
+          . Your work is kept in your account, so it is there on every device you sign in on.
         </>
       }
     >

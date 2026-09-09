@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Radar, Pause, Play, Trash2, Plus, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -9,19 +9,19 @@ import { CapabilityBadge } from "@/components/capability/CapabilityBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import type { Monitor, ScanTopic } from "@/lib/research/world-scan";
 import {
-  WorldScan,
-  MIN_INTERVAL_MS,
-  type Monitor,
-  type ScanTopic,
-} from "@/lib/research/world-scan";
+  createMonitor,
+  listMonitors,
+  revokeMonitor,
+  setMonitorState,
+} from "@/lib/research/monitor-store";
 
 export const Route = createFileRoute("/_authenticated/ocade/monitors")({
   head: () => ({ meta: [{ title: "Monitors — OCADE" }, { name: "robots", content: "noindex" }] }),
   component: MonitorsPage,
 });
 
-const STORAGE_KEY = "ocade.monitors.v1";
 const TOPIC_LABELS: Record<ScanTopic, string> = {
   local_incident: "Local incidents",
   weather: "Weather",
@@ -39,54 +39,45 @@ function MonitorsPage() {
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState<ScanTopic>("market");
   const [sourceText, setSourceText] = useState("");
+  const [unreachable, setUnreachable] = useState<string | null>(null);
 
-  const scan = useMemo(() => {
+  /**
+   * Re-read from the account after every change.
+   *
+   * The screen used to mutate an in-memory model, write the whole list, and
+   * roll the model back by hand when the write failed. Reading back is simpler
+   * and stronger: what is on screen is what is stored, including anything
+   * another device changed in the meantime.
+   */
+  const refresh = useCallback(async () => {
     try {
-      const raw = globalThis.localStorage?.getItem(STORAGE_KEY);
-      return raw ? WorldScan.fromJSON(JSON.parse(raw)) : new WorldScan();
-    } catch {
-      return new WorldScan();
+      setMonitors(await listMonitors());
+      setUnreachable(null);
+    } catch (error) {
+      /*
+       * NOT EMPTIED. "No monitors" and "could not read your monitors" look
+       * identical on screen and mean opposite things — one of them invites
+       * somebody to set them all up again.
+       */
+      setUnreachable(error instanceof Error ? error.message : "Your account could not be reached.");
     }
   }, []);
 
-  const persist = useCallback(
-    (state: Monitor[]): boolean => {
-      try {
-        if (!globalThis.localStorage) throw new Error("Local storage is unavailable.");
-        globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch {
-        toast.error("Couldn't save your monitors on this device.");
-        return false;
-      }
-      setMonitors(scan.list());
-      return true;
-    },
-    [scan],
-  );
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
-  useEffect(() => setMonitors(scan.list()), [scan]);
-
-  function add() {
+  async function add() {
     const sources = sourceText
       .split(",")
       .map((source) => source.trim())
       .filter(Boolean);
-    const result = scan.create({
-      id: `mon-${Date.now()}`,
-      topic,
-      subject,
-      sources,
-      intervalMs: MIN_INTERVAL_MS[topic],
-    });
+    const result = await createMonitor({ topic, subject, sources });
     if (!result.ok) {
       toast.error(result.reason);
       return;
     }
-    if (!persist(scan.toJSON())) {
-      scan.revoke(result.data.id);
-      setMonitors(scan.list());
-      return;
-    }
+    await refresh();
     toast.success(
       "Monitor configuration saved. No background polling starts until a monitor runner is connected.",
     );
@@ -94,30 +85,23 @@ function MonitorsPage() {
     setSourceText("");
   }
 
-  function toggle(monitor: Monitor) {
-    const wasActive = monitor.state === "active";
-    const result = wasActive ? scan.pause(monitor.id) : scan.resume(monitor.id);
-    if (!result.ok) return;
-    if (!persist(scan.toJSON())) {
-      if (wasActive) scan.resume(monitor.id);
-      else scan.pause(monitor.id);
-      setMonitors(scan.list());
+  async function toggle(monitor: Monitor) {
+    const next = monitor.state === "active" ? "paused" : "active";
+    const changed = await setMonitorState(monitor.id, next);
+    if (!changed) {
+      toast.error(`Couldn't ${next === "paused" ? "pause" : "resume"} “${monitor.subject}”.`);
+      return;
     }
+    await refresh();
   }
 
-  function revoke(id: string) {
-    const before = scan.toJSON();
-    const remaining = before.filter((monitor) => monitor.id !== id);
-    if (remaining.length === before.length) {
-      toast.error("That monitor isn't here — nothing was revoked.");
+  async function revoke(id: string) {
+    if (!(await revokeMonitor(id))) {
+      toast.error("That monitor wasn't revoked — it may already be gone, or unreachable.");
+      await refresh();
       return;
     }
-    const result = scan.revoke(id);
-    if (!result.ok) {
-      toast.error(result.reason);
-      return;
-    }
-    if (!persist(scan.toJSON())) return;
+    await refresh();
     toast.success("Monitor configuration revoked.");
   }
 
@@ -203,13 +187,19 @@ function MonitorsPage() {
               className="mt-1"
             />
           </div>
-          <Button size="sm" className="w-fit" disabled={!canAdd} onClick={add}>
+          <Button size="sm" className="w-fit" disabled={!canAdd} onClick={() => void add()}>
             Save definition
           </Button>
         </div>
       </GlassPanel>
 
       <div className="mt-5">
+        {unreachable ? (
+          <p role="status" className="mb-4 text-sm text-destructive">
+            Your monitors could not be read: {unreachable} This is not an empty list — nothing was
+            lost, and they will appear when your account is reachable again.
+          </p>
+        ) : null}
         {monitors === null ? null : monitors.length === 0 ? (
           <EmptyState
             icon={<Radar className="h-8 w-8" aria-hidden />}
@@ -249,7 +239,7 @@ function MonitorsPage() {
                     size="sm"
                     variant="ghost"
                     className="h-7 text-[11px]"
-                    onClick={() => toggle(monitor)}
+                    onClick={() => void toggle(monitor)}
                   >
                     {monitor.state === "active" ? (
                       <>
@@ -265,7 +255,7 @@ function MonitorsPage() {
                     size="sm"
                     variant="ghost"
                     className="h-7 text-[11px] text-destructive"
-                    onClick={() => revoke(monitor.id)}
+                    onClick={() => void revoke(monitor.id)}
                   >
                     <Trash2 className="mr-1.5 h-3 w-3" /> Revoke
                   </Button>

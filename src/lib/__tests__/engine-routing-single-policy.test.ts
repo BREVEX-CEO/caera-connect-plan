@@ -60,16 +60,18 @@ describe("the signed-in chat delegates instead of deciding", () => {
 
   it("passes privacy policy into the authority instead of implementing a parallel rule", () => {
     /*
-     * The screen used to hold its own `if (chatsMode !== "private_sync" &&
-     * !allowCloud)`. Two implementations of one privacy rule is how a
-     * Browser-Only conversation starts reaching a server while the authority
-     * still says it must not — nothing fails, the promise just quietly stops
-     * being kept.
+     * The screen used to hold its own copy of the privacy rule, derived from a
+     * per-account storage mode. Two implementations of one rule is how a
+     * conversation starts reaching a server while the authority still says it
+     * must not — nothing fails, the promise just quietly stops being kept.
+     *
+     * `PLAN.md` Phase 2 removed the storage mode, so consent is what it should
+     * always have been: Local Intelligence never goes out, and a sealed
+     * conversation never goes out.
      */
-    expect(chat).not.toMatch(/if \([^)]*chatsMode !== "private_sync"[^)]*allowCloud/);
     expect(chat).not.toMatch(/allowCloud:/);
-    expect(chat).toMatch(/storageMode:\s*chatsMode/);
-    expect(chat).toContain('onlineInferenceConsented: chatsMode === "private_sync"');
+    expect(chat).not.toMatch(/storageMode:/);
+    expect(chat).toContain('onlineInferenceConsented: engineTier !== "local" && !sealed');
     expect(chat).toMatch(/privacy:\s*\{[\s\S]{0,180}sealed,/);
   });
 

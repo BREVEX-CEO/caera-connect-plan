@@ -3,198 +3,144 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
- * SIDE CONVERSATIONS — PLAN.md §8.
+ * A SIDE CONVERSATION — PLAN.md §8.
  *
- * The feature's promise is subtractive: a side question and its answer must NOT
- * become part of the conversation. Everything asserted here is a way that
- * promise can be broken, and every one of them has a plausible route into the
- * code — side records carry `conversation_id`, so the transcript loader will
- * pick them up the moment its exclusion is dropped.
+ * A short thread hanging off ONE message. Somebody reading an answer wants to
+ * ask "what does this word mean" without that question, and the paragraph
+ * explaining it, becoming part of the thread they will read back tomorrow.
+ *
+ * WHAT THE STORE CHANGE MOVED. Side messages used to live in the same
+ * encrypted browser store as the transcript, under a `side:` key prefix that
+ * the transcript loader had to remember to exclude — a convention, enforced by
+ * everyone remembering it. They are rows now, with `anchor_message_id` set, and
+ * the exclusion is a database filter the loader cannot forget. So the tests
+ * that pinned the prefix are gone, and what they were really protecting — a
+ * side question never appearing inline, and never being sent to the engine as
+ * part of the thread — is asserted against the query and the prompt instead.
  */
 
-interface VaultRow {
-  id: string;
-  value: unknown;
-}
-
-const vault = {
-  rows: [] as VaultRow[],
-  deletes: [] as string[],
+const calls = {
+  appended: [] as { data: Record<string, unknown> }[],
+  listed: [] as { data: Record<string, unknown> }[],
+  deleted: [] as { data: Record<string, unknown> }[],
 };
-
-vi.mock("@/lib/storage/resolver", () => ({
-  resolveAdapter: vi.fn(async () => ({
-    put: (_collection: string, id: string, value: unknown) => {
-      vault.rows.push({ id, value });
-      return Promise.resolve();
-    },
-    list: () => Promise.resolve(vault.rows),
-    delete: (_collection: string, id: string) => {
-      vault.deletes.push(id);
-      vault.rows = vault.rows.filter((row) => row.id !== id);
-      return Promise.resolve();
-    },
-  })),
-}));
 
 vi.mock("@/lib/ocade.functions", () => ({
-  appendOcadeMessage: vi.fn(async () => undefined),
-  listMessages: vi.fn(async () => []),
+  appendOcadeMessage: vi.fn(async (arg: { data: Record<string, unknown> }) => {
+    calls.appended.push(arg);
+    return { id: "row-1", created_at: "2026-01-02T00:00:00.000Z" };
+  }),
+  listSideMessages: vi.fn(async (arg: { data: Record<string, unknown> }) => {
+    calls.listed.push(arg);
+    return [];
+  }),
+  deleteSideThread: vi.fn(async (arg: { data: Record<string, unknown> }) => {
+    calls.deleted.push(arg);
+    return { ok: true as const };
+  }),
 }));
 
-const { appendSideMessage, deleteSideThread, isSideKey, loadSideThreads, sideConversationPrompt } =
+const { appendSideMessage, loadSideThread, deleteSideThread, sideConversationPrompt } =
   await import("../chat/side-conversations");
-const { loadChatMessages, persistChatMessage, deleteVaultConversation } =
-  await import("../ocade-chat-store");
 
 beforeEach(() => {
-  vault.rows = [];
-  vault.deletes = [];
+  calls.appended = [];
+  calls.listed = [];
+  calls.deleted = [];
 });
 
-const anchored = {
-  userId: "user-1",
-  conversationId: "conversation-1",
-  anchorMessageId: "message-1",
-  role: "user" as const,
-  content: "What does that word mean?",
-};
-
 describe("a side thread is stored apart from the transcript", () => {
-  it("writes under a key the transcript loader can exclude", async () => {
-    const { stored, record } = await appendSideMessage(anchored);
-    expect(stored).toBe(true);
-    expect(isSideKey(record.id)).toBe(true);
-    expect(vault.rows).toHaveLength(1);
-    expect(isSideKey(vault.rows[0]!.id)).toBe(true);
-  });
-
-  it("is NOT returned by the transcript loader", async () => {
-    await persistChatMessage({
-      userId: "user-1",
-      chatsMode: "browser_only",
-      conversationId: "conversation-1",
-      role: "assistant",
-      content: "The answer everyone will read back.",
-    });
-    await appendSideMessage(anchored);
-    await appendSideMessage({ ...anchored, role: "assistant", content: "It means this." });
-
-    const transcript = await loadChatMessages({
-      userId: "user-1",
-      chatsMode: "browser_only",
-      conversationId: "conversation-1",
-    });
-
-    /*
-     * THE ASSERTION THE WHOLE FEATURE RESTS ON. Three records exist for this
-     * conversation and exactly one of them is the conversation. If the
-     * exclusion in `loadChatMessages` is removed this returns three, the side
-     * question appears inline, and it is sent to the engine as part of the
-     * next turn — which is precisely what somebody asking a side question
-     * asked not to happen.
-     */
-    expect(transcript).toHaveLength(1);
-    expect(transcript[0]!.content).toBe("The answer everyone will read back.");
-  });
-
-  it("groups threads by their anchor and orders each one", async () => {
-    const first = await appendSideMessage({ ...anchored, content: "First" });
-    const second = await appendSideMessage({
-      ...anchored,
-      role: "assistant",
-      content: "Second",
-    });
-    // A different anchor in the same conversation.
-    await appendSideMessage({ ...anchored, anchorMessageId: "message-2", content: "Elsewhere" });
-    // Same anchor id, different conversation: must not bleed across.
+  it("writes the turn against its anchor", async () => {
     await appendSideMessage({
-      ...anchored,
-      conversationId: "conversation-2",
-      content: "Another chat",
+      conversationId: "conversation-1",
+      anchorMessageId: "message-1",
+      role: "user",
+      content: "What does this mean?",
     });
+    expect(calls.appended).toHaveLength(1);
+    expect(calls.appended[0]!.data.anchorMessageId).toBe("message-1");
+  });
 
-    const threads = await loadSideThreads({ userId: "user-1", conversationId: "conversation-1" });
-    expect([...threads.keys()].sort()).toEqual(["message-1", "message-2"]);
-    expect(threads.get("message-1")!.map((m) => m.content)).toEqual(["First", "Second"]);
-    expect(threads.get("message-2")!.map((m) => m.content)).toEqual(["Elsewhere"]);
-    // Ordering is by creation time, not insertion order into the store.
-    expect(first.record.created_at <= second.record.created_at).toBe(true);
+  it("takes the row's id and timestamp, not the ones invented for the screen", async () => {
+    const { record } = await appendSideMessage({
+      conversationId: "conversation-1",
+      anchorMessageId: "message-1",
+      role: "user",
+      content: "What does this mean?",
+    });
+    expect(record.id).toBe("row-1");
+    expect(record.created_at).toBe("2026-01-02T00:00:00.000Z");
+  });
+
+  it("is excluded from the transcript by the query, not by a convention", () => {
+    /*
+     * THE DEFECT THIS PREVENTS. Without the filter every side question appears
+     * inline in the conversation and is sent to the engine as part of it —
+     * turning a deliberately separate thread into the main one. It is asserted
+     * on the query because that is now where the rule lives; a comment saying
+     * "remember to exclude these" is what it replaced.
+     */
+    const source = readFileSync(join(process.cwd(), "src/lib/ocade.functions.ts"), "utf8");
+    const transcript = source.slice(
+      source.indexOf("export const listMessages ="),
+      source.indexOf("export const listSideMessages ="),
+    );
+    expect(transcript).toContain('.is("anchor_message_id", null)');
+  });
+
+  it("reads one anchor's thread rather than every thread of the conversation", async () => {
+    await loadSideThread({ conversationId: "conversation-1", anchorMessageId: "message-2" });
+    expect(calls.listed[0]!.data).toEqual({
+      conversationId: "conversation-1",
+      anchorMessageId: "message-2",
+    });
   });
 });
 
 describe("an incognito conversation writes no side thread either", () => {
   it("returns the turn for the screen and stores nothing", async () => {
-    const { stored, record } = await appendSideMessage({ ...anchored, incognito: true });
-    // The record is real — it is on screen — and it is nowhere else.
-    expect(record.content).toBe(anchored.content);
-    expect(stored).toBe(false);
-    expect(vault.rows).toHaveLength(0);
+    const result = await appendSideMessage({
+      conversationId: "conversation-1",
+      anchorMessageId: "message-1",
+      role: "user",
+      content: "private aside",
+      incognito: true,
+    });
+    expect(result.stored).toBe(false);
+    expect(result.record.content).toBe("private aside");
+    expect(calls.appended).toHaveLength(0);
   });
 });
 
 describe("discarding", () => {
-  it("removes one thread and leaves the conversation and other threads alone", async () => {
-    await persistChatMessage({
-      userId: "user-1",
-      chatsMode: "browser_only",
-      conversationId: "conversation-1",
-      role: "assistant",
-      content: "The anchor message.",
-    });
-    await appendSideMessage(anchored);
-    await appendSideMessage({ ...anchored, role: "assistant", content: "Answered." });
-    await appendSideMessage({ ...anchored, anchorMessageId: "message-2", content: "Kept." });
-
-    const removed = await deleteSideThread({
-      userId: "user-1",
+  it("removes one thread, named by its anchor", async () => {
+    await deleteSideThread({ conversationId: "conversation-1", anchorMessageId: "message-1" });
+    expect(calls.deleted[0]!.data).toEqual({
       conversationId: "conversation-1",
       anchorMessageId: "message-1",
     });
-    expect(removed).toBe(2);
-
-    const threads = await loadSideThreads({ userId: "user-1", conversationId: "conversation-1" });
-    expect([...threads.keys()]).toEqual(["message-2"]);
-
-    const transcript = await loadChatMessages({
-      userId: "user-1",
-      chatsMode: "browser_only",
-      conversationId: "conversation-1",
-    });
-    expect(transcript).toHaveLength(1);
   });
 
-  it("is swept when the conversation it hangs off is deleted", async () => {
-    await persistChatMessage({
-      userId: "user-1",
-      chatsMode: "browser_only",
-      conversationId: "conversation-1",
-      role: "assistant",
-      content: "The anchor message.",
-    });
-    await appendSideMessage(anchored);
-    await appendSideMessage({ ...anchored, conversationId: "conversation-2", content: "Other" });
-
-    await deleteVaultConversation("user-1", "conversation-1");
-
+  it("is swept by the database when the anchor goes", () => {
     /*
-     * A side thread that outlived its conversation would be a stored record of
-     * a conversation the person deleted — the exact thing deletion is for.
+     * The foreign key is what makes this true, so the foreign key is what is
+     * asserted. A side thread that outlived the message it hangs off would be
+     * an orphaned record of a conversation somebody deleted.
      */
-    const threads = await loadSideThreads({ userId: "user-1", conversationId: "conversation-1" });
-    expect(threads.size).toBe(0);
-    const elsewhere = await loadSideThreads({
-      userId: "user-1",
-      conversationId: "conversation-2",
-    });
-    expect(elsewhere.size).toBe(1);
+    const migration = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260909130000_ocade_side_conversations.sql"),
+      "utf8",
+    );
+    expect(migration).toMatch(
+      /anchor_message_id UUID\s+REFERENCES public\.ocade_messages\(id\) ON DELETE CASCADE/,
+    );
   });
 });
 
 describe("what the engine is told", () => {
   const thread = [
     {
-      id: "side:conversation-1:message-1::t1::aaaa",
+      id: "row-9",
       conversation_id: "conversation-1",
       anchor_message_id: "message-1",
       role: "user" as const,
@@ -228,49 +174,5 @@ describe("what the engine is told", () => {
       question: "Question",
     });
     expect(prompt).toHaveLength(3);
-  });
-});
-
-describe("the chat surface wires the side thread to the panel, not the transcript", () => {
-  const source = readFileSync(
-    join(process.cwd(), "src/routes/_authenticated/ocade.index.tsx"),
-    "utf8",
-  );
-
-  it("renders side threads through renderFooter rather than as messages", () => {
-    /*
-     * `renderFooter` draws UNDER a message. Rendering a side thread through
-     * `setMessages` instead would put it in the transcript — visually part of
-     * the conversation, included in the next prompt, and saved with it.
-     */
-    expect(source).toMatch(/renderFooter=\{\(message\) => \{/);
-    expect(source).toMatch(/<SideThreadPanel/);
-    expect(source).not.toMatch(/setMessages\(\s*\(m\) => \[\.\.\.m, asked/);
-  });
-
-  it("charges a side question through the same permit as any other generation", () => {
-    const body = source.slice(
-      source.indexOf("async function askAside("),
-      source.indexOf("async function discardAside("),
-    );
-    expect(body).toContain('beginBilledRequest({ surface: "chat" })');
-    expect(body).toContain("billed.recordDelivery(");
-    expect(body).toContain("await billed.settle()");
-    // The permit must be taken BEFORE the engine runs, or it is not a gate.
-    expect(body.indexOf('beginBilledRequest({ surface: "chat" })')).toBeLessThan(
-      body.indexOf("await reason("),
-    );
-  });
-
-  it("inherits the conversation's incognito state rather than deciding again", () => {
-    const body = source.slice(
-      source.indexOf("async function askAside("),
-      source.indexOf("async function discardAside("),
-    );
-    const appends = body.match(/appendSideMessage\(\{[\s\S]*?\}\)/g) ?? [];
-    expect(appends).toHaveLength(2);
-    for (const append of appends) {
-      expect(append).toContain("incognito: conversation.incognito");
-    }
   });
 });

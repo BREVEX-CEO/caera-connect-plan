@@ -46,7 +46,6 @@ import {
   Unlock as UnlockIcon,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { PrivacyBadge } from "@/components/shell/PrivacyBadge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -76,9 +75,10 @@ import {
   appendOcadeMessage,
   listConversations,
   listMessages,
+  saveMessageCitations,
+  setMessageReaction,
   updateConversation,
 } from "@/lib/ocade.functions";
-import { getModeFor } from "@/lib/storage/resolver";
 import { OCADE_DEFAULT_MODEL_ID, OCADE_MODELS, getOcadeModel } from "@/lib/ocade-models";
 import { ocadeChatCapabilityDisclosure, ocadeIdentityAnswer } from "@/lib/ocade-identity";
 import { capabilityLabelFor } from "@/lib/ocade-capability-labels";
@@ -89,16 +89,6 @@ import { useChatPrefs, readChatPrefs } from "@/lib/use-chat-prefs";
 import { assembleSystemPrompt } from "@/lib/prompt/assemble";
 import { chooseBrowserTier, systemPromptBudgetFor } from "@/lib/brain/browser-catalogue";
 import { loadBenchmark } from "@/lib/brain/tier-benchmark-store";
-import {
-  createConversationLocally,
-  listConversationsLocally,
-  updateConversationLocally,
-  deleteConversationLocally,
-  mergeRemoteConversations,
-  deleteAllConversationsLocally,
-  newConversationId,
-  type LocalConversation,
-} from "@/lib/chat/local-conversations";
 import { improvePromptLocally } from "@/lib/chat/improve-prompt";
 import {
   currentShareToken,
@@ -112,7 +102,7 @@ import {
 import {
   appendSideMessage,
   deleteSideThread,
-  loadSideThreads,
+  loadSideThread,
   sideConversationPrompt,
   type SideMessage,
 } from "@/lib/chat/side-conversations";
@@ -158,14 +148,7 @@ import type {
   ChatConversationView,
   ChatReaction,
 } from "@/components/ocade/chat/chat-types";
-import {
-  deliveryStateFor,
-  quoteForReply,
-  readChatReactions,
-  toggleChatReaction,
-  writeChatReactions,
-  type ChatReactionMap,
-} from "@/lib/chat/message-feedback";
+import { deliveryStateFor, quoteForReply } from "@/lib/chat/message-feedback";
 import { reason } from "@/lib/reasoning/engine";
 import { brainReasonDeps, sessionPerfLedger } from "@/lib/reasoning/brain-deps";
 import { thinkingFor } from "@/lib/local/fixed-model";
@@ -180,6 +163,7 @@ import {
   MAX_ATTACHMENTS,
   MAX_FILE_BYTES,
   MODES,
+  newConversationId,
   readChatError,
   fileToDataUrl,
   toMessageView,
@@ -238,16 +222,15 @@ import { LivingIntelligenceBackdrop } from "@/components/visual/LivingIntelligen
 import {
   branchConversation,
   forkConversationBeforeMessage,
+  listProjectFiles,
+  listProjects,
+  readMemory,
+  saveProjectFile,
   type OcadeProject,
+  type OcadeProjectFile,
 } from "@/lib/ocade-projects.functions";
-import { getLocalProject } from "@/lib/projects/local-projects";
-import {
-  persistChatMessage,
-  loadChatMessages,
-  deleteAllVaultMessages,
-  deleteVaultConversation,
-  describeStorageError,
-} from "@/lib/ocade-chat-store";
+import { persistChatMessage, loadChatMessages, describeStorageError } from "@/lib/ocade-chat-store";
+import { forgetAllUnsyncedTurns, forgetConversationTurns } from "@/lib/chat/unsynced-turns";
 import { globalMultimodalRegistry } from "@/lib/providers/multimodal-registry";
 import { assertStreamWithinLimit } from "@/lib/stream-limits";
 import {
@@ -265,18 +248,12 @@ import { redactForSpeech, redactSpokenSecrets } from "@/lib/voice/transcript-red
 import { describeRecognitionError, useDictation } from "@/lib/voice/use-dictation";
 import { useVoicePrefs } from "@/lib/use-voice-prefs";
 import { saveChatOutput } from "@/lib/artifacts/chat-output-flow";
-import { listProjectFiles, saveProjectFile, type ProjectFile } from "@/lib/project-files";
 import { buildContextTray, type ContextEntry } from "@/lib/chat/context-tray";
 import { ContextTray } from "@/components/ocade/chat/ContextTray";
-import { localMemoryContext } from "@/lib/local-memory";
+import { memoryContextFrom } from "@/lib/memory/portable";
 import { classifyFreshness } from "@/lib/research/freshness-classifier";
 import { retrieveCurrentInformation } from "@/lib/research.functions";
 import type { CurrentInformationPacket } from "@/lib/research/current-information";
-import {
-  getChatCitations,
-  removeConversationCitations,
-  saveChatCitations,
-} from "@/lib/chat-citation-store";
 
 export const Route = createFileRoute("/_authenticated/ocade/")({
   head: () => ({
@@ -362,9 +339,6 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   const [showArchived, setShowArchived] = useState(false);
   const [search, setSearch] = useState("");
   const [model, setModel] = useState<string>(OCADE_DEFAULT_MODEL_ID);
-  const [chatsMode, setChatsMode] = useState<"browser_only" | "pc_vault" | "private_sync">(
-    "private_sync",
-  );
   /*
    * Whether the NEXT conversation is incognito — PLAN.md §8.
    *
@@ -393,78 +367,40 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   const [sidebarHidden, setSidebarHidden] = useState(false);
 
   /**
-   * The device answers first; the server only adds what another device wrote.
+   * The account's conversations, from the one place they live.
    *
-   * This was `listConversations()` alone — a server function — so history was
-   * empty offline even though every conversation was sitting in the vault.
-   * The remote call is now best-effort: if it fails, the local list stands,
-   * which is the difference between "not synchronised yet" and "your chats
-   * are gone".
+   * This used to read an encrypted device vault first and merge the server's
+   * answer into it. `PLAN.md` Phase 2 leaves one persistent authority, so
+   * there is nothing to merge: the row in `ocade_conversations` is the
+   * conversation, on this device and on every other one.
    */
   const refreshList = useCallback(async () => {
-    let local: LocalConversation[];
-    try {
-      local = await listConversationsLocally(userId);
-    } catch {
-      /*
-       * A LOCKED VAULT IS A STATE, NOT A CRASH — AND NOT AN ALERT EITHER.
-       *
-       * Reading the list out of a Browser Only vault that has not been
-       * unlocked throws `StorageLockedError`, and this `try` had no `catch`, so
-       * the rejection escaped the callback and surfaced as an unhandled promise
-       * rejection with a stack trace in it. The route audit catches exactly
-       * that and calls it a developer error, which is what it was.
-       *
-       * Handled SILENTLY, though, and that is deliberate. This runs from an
-       * effect on mount, not from anything the user did: they locked the vault,
-       * they know it is locked, and a notification fired by a background
-       * refresh tells them something they already chose while covering the page
-       * they were trying to read. The paths that toast are the ones where a
-       * person asked for something and did not get it — opening a conversation,
-       * deleting one — and they already do.
-       *
-       * The list is deliberately NOT emptied. "Your chats are gone" and "this
-       * device cannot read them until you unlock it" are different claims, and
-       * only one of them is true.
-       */
-      setLoadingList(false);
-      return;
-    }
-
     /*
      * KEEP THE INCOGNITO ONES — PLAN.md §8.
      *
      * Nothing about an incognito conversation is written, so it is in no list
-     * this function reads, and replacing the state outright would make an
-     * open one VANISH mid-sentence on the next refresh. They live in this
-     * state and nowhere else, so this is the one place that has to remember
-     * them, and the ordering below keeps them where they were: newest first,
-     * above the stored ones.
+     * this function reads, and replacing the state outright would make an open
+     * one VANISH mid-sentence on the next refresh. They live in this state and
+     * nowhere else, so this is the one place that has to remember them, and the
+     * ordering below keeps them where they were: newest first, above the rest.
      */
-    const keepIncognito = (stored: Conversation[]) => {
-      setConversations((current) => [...current.filter((c) => c.incognito), ...stored]);
-    };
-
     try {
-      keepIncognito(local as unknown as Conversation[]);
-      setLoadingList(false);
-
-      if (chatsMode !== "private_sync") return;
-      try {
-        const remote = (await listConversations()) as unknown as LocalConversation[];
-        const merged = mergeRemoteConversations(local, remote ?? []);
-        keepIncognito(merged as unknown as Conversation[]);
-      } catch {
-        // Offline or Supabase unavailable. The local list is already shown.
-      }
+      const stored = ((await listConversations()) as unknown as Conversation[]) ?? [];
+      setConversations((current) => [...current.filter((c) => c.incognito), ...stored]);
+    } catch (e) {
+      /*
+       * UNREACHABLE IS NOT EMPTY, and the list is deliberately not cleared.
+       * "Your chats are gone" and "this device cannot reach your account right
+       * now" are different claims and only one of them is true. Silent because
+       * this runs from an effect on mount rather than from anything the user
+       * did; the paths that toast are the ones where somebody asked for
+       * something and did not get it.
+       */
+      void e;
     } finally {
       setLoadingList(false);
     }
-  }, [userId, chatsMode]);
-
-  useEffect(() => {
-    void getModeFor(userId, "chats").then((m) => setChatsMode(m));
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     void refreshList();
@@ -497,15 +433,14 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
       return;
     }
     setLoadingMessages(true);
-    // Read from wherever this conversation lives (vault for Browser Only).
-    void loadChatMessages({ userId, chatsMode, conversationId: activeId })
+    void loadChatMessages({ conversationId: activeId })
       .then((rows) => setMessages(rows as unknown as Message[]))
       .catch((e) => {
         toast.error(describeStorageError(e));
         setMessages([]);
       })
       .finally(() => setLoadingMessages(false));
-  }, [activeId, activeIsIncognito, chatsMode, userId]);
+  }, [activeId, activeIsIncognito]);
 
   const active = useMemo(
     () => conversations.find((c) => c.id === activeId) ?? null,
@@ -580,17 +515,18 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   }, []);
 
   /**
-   * Start a conversation on this device.
+   * Start a conversation.
    *
-   * This used to await `createConversation`, a server function that INSERTed
-   * a row and returned the id Postgres had generated. So the id of a chat
-   * could not exist until a round trip succeeded, and starting a new chat
-   * therefore required the network — in every privacy mode, including the two
-   * whose entire promise is that they do not need one. Offline, the composer
-   * simply threw.
+   * THE ID IS CHOSEN HERE, and the row is created with it. Letting Postgres
+   * generate the id meant a new chat could not exist until a round trip
+   * succeeded, so the composer threw on a slow connection; choosing it on the
+   * device means the transcript can render immediately and the row that
+   * arrives carries the same id rather than a second one.
    *
-   * The id is made here now. The server copy is queued and drains in the
-   * background; the conversation is real either way.
+   * The row is still awaited, because `ocade_messages` belongs to
+   * `ocade_conversations` and the append refuses an unknown parent. A
+   * conversation whose first two messages 404 while the screen shows them is
+   * the failure this ordering prevents.
    */
   async function ensureActive(): Promise<Conversation> {
     if (active) return active;
@@ -598,8 +534,8 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
     /*
      * AN INCOGNITO CONVERSATION IS NOT CREATED ANYWHERE — PLAN.md §8.
      *
-     * `createConversationLocally` writes a record to the vault and queues it
-     * for the server. A conversation row is a record of the conversation
+     * `createConversation` writes a row. A conversation row is a record of the
+     * conversation
      * having happened, which is precisely what this must not leave behind, so
      * the object is built here and lives only in React state.
      *
@@ -615,7 +551,6 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
         pinned: false,
         archived: false,
         model_id: model,
-        privacy_mode: chatsMode,
         updated_at: now,
         incognito: true,
       };
@@ -625,39 +560,18 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
       return conv;
     }
 
-    const created = await createConversationLocally(userId, {
-      modelId: model,
-      privacyMode: chatsMode,
-    });
-    const conv = created as unknown as Conversation;
+    const id = newConversationId();
+    const now = new Date().toISOString();
+    const conv: Conversation = {
+      id,
+      title: "New chat",
+      pinned: false,
+      archived: false,
+      model_id: model,
+      updated_at: now,
+    };
+    await createConversation({ data: { id, title: conv.title, modelId: model ?? undefined } });
 
-    /*
-     * PRIVATE SYNC NEEDS ITS DOMAIN ROW BEFORE ITS FIRST MESSAGE.
-     *
-     * The generic sync adapter has already queued the encrypted local record,
-     * but `ocade_messages` belongs to `ocade_conversations` and the message RPC
-     * deliberately refuses an unknown parent. Previously the first two appends
-     * raced ahead and returned 404 while the local transcript appeared to work.
-     * Device creation remains first and offline still returns immediately; a
-     * connected private-sync conversation establishes its canonical parent
-     * before the composer can submit the pending turn.
-     */
-    if (chatsMode === "private_sync" && navigator.onLine !== false) {
-      try {
-        await createConversation({
-          data: {
-            id: created.id,
-            title: created.title,
-            modelId: created.model_id ?? undefined,
-            privacyMode: "private_sync",
-            projectId: created.project_id,
-          },
-        });
-      } catch {
-        // The device row and queued sync obligation already exist. Offline and
-        // transient server failures must not make a new local chat disappear.
-      }
-    }
     setConversations((prev) => [conv, ...prev]);
     setLoadingMessages(true);
     setActiveId(conv.id);
@@ -665,29 +579,42 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   }
 
   /*
-   * Pin, archive and rename apply to the device immediately and are queued for
-   * the server. Awaiting a round trip for a rename meant the title did not
-   * change offline and the control looked broken; the queue makes the change
-   * real now and synchronised later.
+   * Pin, archive and rename change the row and then re-read the list.
+   *
+   * THE FAILURE IS SHOWN. These used to write to the device, refresh from it,
+   * and fire the server call with `.catch(() => {})` — so a rename that the
+   * server rejected left the new title on screen and the old one in the
+   * account, and nothing said so. With one authority there is nothing to show
+   * until the write lands, and a write that does not land is something the
+   * person needs to know about.
    */
   async function togglePin(c: Conversation) {
-    await updateConversationLocally(userId, c.id, { pinned: !c.pinned });
-    await refreshList();
-    void updateConversation({ data: { id: c.id, pinned: !c.pinned } }).catch(() => {});
+    try {
+      await updateConversation({ data: { id: c.id, pinned: !c.pinned } });
+      await refreshList();
+    } catch (e) {
+      toast.error(describeStorageError(e));
+    }
   }
   async function toggleArchive(c: Conversation) {
-    await updateConversationLocally(userId, c.id, { archived: !c.archived });
-    await refreshList();
-    if (c.id === activeId && !c.archived) setActiveId(null);
-    void updateConversation({ data: { id: c.id, archived: !c.archived } }).catch(() => {});
+    try {
+      await updateConversation({ data: { id: c.id, archived: !c.archived } });
+      if (c.id === activeId && !c.archived) setActiveId(null);
+      await refreshList();
+    } catch (e) {
+      toast.error(describeStorageError(e));
+    }
   }
   async function handleRenameSubmit(newTitle: string) {
     if (!renameTarget) return;
     const id = renameTarget.id;
-    await updateConversationLocally(userId, id, { title: newTitle });
-    setRenameTarget(null);
-    await refreshList();
-    void updateConversation({ data: { id, title: newTitle } }).catch(() => {});
+    try {
+      await updateConversation({ data: { id, title: newTitle } });
+      setRenameTarget(null);
+      await refreshList();
+    } catch (e) {
+      toast.error(describeStorageError(e));
+    }
   }
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -711,67 +638,54 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
     }
 
     /*
-     * Delete the conversation record on this device first, as a TOMBSTONE.
+     * ONE DELETE, AND IT EITHER HAPPENED OR IT DID NOT.
      *
-     * Awaiting the server made deleting impossible offline, and simply
-     * removing the local row would let the conversation reappear on the next
-     * merge from a device that never saw the delete. The tombstone is what
-     * makes the deletion a fact that travels.
+     * This used to write a tombstone to the device, fire the server call
+     * without waiting, and then sweep the message bodies out of the local
+     * vault — three writes to keep in step, and a success message that was
+     * shown before any of them was confirmed. With one authority the row and
+     * its messages go together, and the person is told the truth about it.
      */
-    await deleteConversationLocally(userId, target.id);
-    void deleteConversation({ data: { id: target.id } }).catch(() => {});
+    try {
+      await deleteConversation({ data: { id: target.id } });
+    } catch (e) {
+      toast.error(describeStorageError(e));
+      return;
+    }
 
     /*
-     * ...AND the message bodies held on this device.
-     *
-     * With a Browser Vault or PC Vault privacy mode the message text never went
-     * to the server, so removing the server row alone would leave the actual
-     * content sitting in local storage while the user is told "Conversation
-     * deleted". Deleting only half of it and reporting success is worse than
-     * failing loudly.
+     * Anything of this conversation still waiting in the tab goes with it.
+     * A queued upload into a conversation that no longer exists would fail
+     * forever and hold the unsynchronised warning open with nothing behind it.
      */
-    let vaultRemoved = 0;
-    let vaultError: unknown = null;
-    try {
-      vaultRemoved = await deleteVaultConversation(userId, target.id);
-    } catch (e) {
-      vaultError = e;
-    }
-    const citationRemoval = removeConversationCitations(target.id);
+    forgetConversationTurns(target.id);
 
     if (target.id === activeId) setActiveId(null);
     setDeleteTarget(null);
     await refreshList();
 
-    if (vaultError || !citationRemoval.ok) {
-      // Honest: the record is gone but the on-device copy is not.
-      toast.error(
-        vaultError
-          ? `Conversation removed, but its messages on this device could not be deleted. ${describeStorageError(vaultError)}`
-          : `Conversation removed, but its citation history on this device could not be deleted. ${citationRemoval.ok ? "" : citationRemoval.reason}`,
-      );
-    } else {
-      toast.success(
-        vaultRemoved > 0
-          ? `Conversation deleted, including ${vaultRemoved} ${vaultRemoved === 1 ? "message" : "messages"} stored on this device.`
-          : "Conversation deleted",
-      );
-    }
+    /*
+     * The citations go with the messages, and the messages go with the
+     * conversation, through the foreign keys. Citation evidence used to be a
+     * separate browser store that had to be swept here, and the sweep is what
+     * failed: a deleted conversation could leave verbatim excerpts of somebody
+     * else's documents behind, keyed to messages that no longer existed.
+     */
+    toast.success("Conversation deleted");
   }
+
   /**
    * DELETE EVERY CONVERSATION — PLAN.md §8's "delete-all".
    *
-   * THE DEVICE FIRST, AND ALWAYS. Conversations are tombstoned so the deletion
-   * travels to this account's other machines, and message bodies are removed
-   * outright — a tombstone for a message body would be a record containing the
-   * text it claims to have deleted. The server is told afterwards and its
-   * failure is not fatal: the history is already gone from this machine, and
-   * telling somebody the deletion failed when it has happened locally is the
-   * wrong sentence.
+   * ONE WRITE, AND IT IS AWAITED. The account's rows go, and with them every
+   * message that hung off them. This used to clear a device vault first and
+   * fire the server call without waiting, which meant "deleted from this
+   * device and every other one you sign in on" was printed before the second
+   * half had been attempted.
    *
    * INCOGNITO CONVERSATIONS ARE DROPPED FROM STATE, NOT DELETED. They were
-   * never written, so there is nothing to tombstone, and writing one now would
-   * create the durable record that mode exists to avoid.
+   * never written, so there is nothing to delete, and writing anything now
+   * would create the durable record that mode exists to avoid.
    *
    * WHAT THIS DOES NOT TOUCH, and it matters enough to say in the dialog:
    * Offline Intelligence, memory, and projects are separate authorities with
@@ -781,22 +695,19 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   async function handleDeleteAll() {
     setDeletingAll(true);
     try {
-      const [tombstoned, bodies] = await Promise.all([
-        deleteAllConversationsLocally(userId),
-        deleteAllVaultMessages(userId),
-      ]);
+      const removed = (await deleteAllConversations()) as unknown as
+        { deleted?: number } | number | null;
+      const count = typeof removed === "number" ? removed : (removed?.deleted ?? 0);
 
-      // Best effort, and deliberately after the device is already clear.
-      void deleteAllConversations().catch(() => {});
-
+      forgetAllUnsyncedTurns();
       setConversations([]);
       setActiveId(null);
       setMessages([]);
       setDeleteAllOpen(false);
       toast.success(
-        tombstoned === 0 && bodies === 0
+        count === 0
           ? "There was nothing to delete."
-          : `Deleted ${tombstoned} ${tombstoned === 1 ? "conversation" : "conversations"} from this device and every other one you sign in on.`,
+          : `Deleted ${count} ${count === 1 ? "conversation" : "conversations"} from every device you sign in on.`,
       );
       await refreshList();
     } catch (e) {
@@ -890,7 +801,6 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
                 await updateConversation({ data: { id: active.id, modelId: m } });
                 await refreshList();
               }}
-              chatsMode={chatsMode}
               permission={permission}
               setPermission={setPermission}
               onRefreshList={refreshList}
@@ -910,7 +820,6 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
               userLabel={userLabel}
               model={model}
               setModel={setModel}
-              chatsMode={chatsMode}
               permission={permission}
               setPermission={setPermission}
               incognito={nextIsIncognito}
@@ -971,7 +880,6 @@ function ChatSurface(props: {
   loading: boolean;
   model: string;
   setModel: (m: string) => void;
-  chatsMode: "browser_only" | "pc_vault" | "private_sync";
   permission: PermissionMode;
   setPermission: (p: PermissionMode) => void;
   onRefreshList: () => Promise<void>;
@@ -989,7 +897,6 @@ function ChatSurface(props: {
     loading,
     model,
     setModel,
-    chatsMode,
     permission,
     setPermission,
     onRefreshList,
@@ -1000,7 +907,6 @@ function ChatSurface(props: {
   } = props;
   const [draft, setDraft] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [reactions, setReactions] = useState<ChatReactionMap>({});
   const [streaming, setStreaming] = useState(false);
   /*
    * TOOLS IN CHAT.
@@ -1032,23 +938,36 @@ function ChatSurface(props: {
   const listeningRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    setReactions(readChatReactions(userId, conversation.id));
-  }, [conversation.id, userId]);
-
+  /**
+   * FEEDBACK IS SAVED ON THE ANSWER IT IS ABOUT.
+   *
+   * It used to be a per-browser map keyed by user and conversation, which meant
+   * marking a reply unhelpful on a laptop left it unmarked on a phone, and
+   * clearing the browser lost it. The message row carries it now, so the
+   * optimistic update below is corrected by the next load rather than being the
+   * only record.
+   *
+   * Pressing the active choice again clears it — that is how somebody takes
+   * back feedback they gave by accident.
+   */
   const reactToMessage = useCallback(
     (messageId: string, reaction: ChatReaction) => {
-      setReactions((current) => {
-        const next = toggleChatReaction(current, messageId, reaction);
-        if (!writeChatReactions(userId, conversation.id, next)) {
-          toast.error("Reaction saved for this session only.", {
-            description: "This browser did not allow local storage.",
-          });
-        }
-        return next;
+      const current = messages.find((message) => message.id === messageId)?.reaction ?? null;
+      const next = current === reaction ? null : reaction;
+      setMessages((rows) =>
+        rows.map((row) => (row.id === messageId ? { ...row, reaction: next } : row)),
+      );
+      void setMessageReaction({ data: { messageId, reaction: next } }).catch(() => {
+        // Put it back rather than showing feedback that was not recorded.
+        setMessages((rows) =>
+          rows.map((row) => (row.id === messageId ? { ...row, reaction: current } : row)),
+        );
+        toast.error("That feedback could not be saved.", {
+          description: "OCADE could not reach your account, so nothing was recorded.",
+        });
       });
     },
-    [conversation.id, userId],
+    [messages, setMessages],
   );
   /**
    * Models already asked to load in this session. Typing fires on EVERY
@@ -1090,9 +1009,17 @@ function ChatSurface(props: {
     surface: "chat",
     missionId: () => null,
     intelligenceMode: () => (engineTier === "local" ? "local_only" : "automatic"),
+    /*
+     * CONSENT FOLLOWS THE MODE THE PERSON CHOSE, not a storage setting.
+     *
+     * This read `chatsMode === "private_sync"`, which meant the answer to "may
+     * this request leave the device?" was derived from where chats were kept.
+     * `PLAN.md` Phase 2 leaves one place, so the question is now what it always
+     * should have been: Local Intelligence never goes out, and a sealed
+     * conversation never goes out.
+     */
     intelligencePrivacy: () => ({
-      storageMode: chatsMode,
-      onlineInferenceConsented: chatsMode === "private_sync",
+      onlineInferenceConsented: engineTier !== "local" && !sealed,
       sealed,
     }),
     /*
@@ -1116,8 +1043,7 @@ function ChatSurface(props: {
       // Scoped to the project this conversation belongs to, exactly as the
       // ordinary chat path scopes it. Memory that is off, empty or unreadable
       // returns null, and the prompt is then what it was before.
-      const memory = localMemoryContext(conversation.project_id ?? null);
-      return memory.ok ? memory.data : null;
+      return readMemoryContext(conversation.project_id ?? null);
     },
     onApprovalNeeded: (approval) =>
       new Promise<boolean>((resolve) => {
@@ -1350,11 +1276,31 @@ function ChatSurface(props: {
     setSideThreads(new Map());
     setOpenAside(null);
     setAsideStream("");
-    if (conversation.incognito) return;
+  }, [conversation.id]);
+
+  /*
+   * A THREAD IS READ WHEN SOMEBODY OPENS IT, not when the conversation opens.
+   *
+   * This used to read every side thread of the conversation up front, because
+   * the vault it read from had no way to find one without scanning all of
+   * them. A conversation with forty messages therefore paid a full scan on
+   * open for threads nobody had asked to see. The database has an index on the
+   * anchor, so the question can be the one actually being asked.
+   *
+   * The `cancelled` flag matters: opening two panels quickly would otherwise
+   * let a slow read from the first land against the second.
+   */
+  useEffect(() => {
+    if (!openAside || conversation.incognito) return;
     let cancelled = false;
-    void loadSideThreads({ userId, conversationId: conversation.id })
-      .then((threads) => {
-        if (!cancelled) setSideThreads(threads);
+    void loadSideThread({ conversationId: conversation.id, anchorMessageId: openAside })
+      .then((thread) => {
+        if (cancelled) return;
+        setSideThreads((current) => {
+          const next = new Map(current);
+          next.set(openAside, thread);
+          return next;
+        });
       })
       .catch(() => {
         // A side thread that cannot be read is not worth interrupting the
@@ -1364,7 +1310,7 @@ function ChatSurface(props: {
     return () => {
       cancelled = true;
     };
-  }, [conversation.id, conversation.incognito, userId]);
+  }, [openAside, conversation.id, conversation.incognito]);
   // Voice: shared preferences drive captions, wake phrase, device and output.
   const { prefs: voicePrefs, emergencyMute } = useVoicePrefs();
   const [caption, setCaption] = useState("");
@@ -1374,7 +1320,7 @@ function ChatSurface(props: {
   const wakeRef = useRef<SpeechRecognitionLike | null>(null);
   // Visual responses are opt-in per answer.
   const [visualAnswer, setVisualAnswer] = useState<string | null>(null);
-  const [projectFiles, setProjectFiles] = useState<ProjectFile[]>([]);
+  const [projectFiles, setProjectFiles] = useState<OcadeProjectFile[]>([]);
   const [projectFileError, setProjectFileError] = useState<string | null>(null);
   /**
    * Sources the user has excluded from the NEXT question.
@@ -1429,28 +1375,35 @@ function ChatSurface(props: {
       setProjectContextLoading(false);
       return;
     }
-    const result = listProjectFiles(conversation.project_id);
-    if (result.ok) {
-      setProjectFiles(result.data);
-      setProjectFileError(null);
-    } else {
-      setProjectFiles([]);
-      setProjectFileError(result.reason);
-    }
+    const projectId = conversation.project_id;
     let live = true;
     setProjectContextLoading(true);
-    void getLocalProject(userId, conversation.project_id)
-      .then((project) => {
+    /*
+     * THE PROJECT AND ITS FILES TOGETHER.
+     *
+     * A conversation filed in a project answers with that project's
+     * instructions and material, so both are needed before the next turn can
+     * be assembled — and they are independent reads, so they go out together
+     * rather than one after the other.
+     */
+    void Promise.all([listProjects(), listProjectFiles({ data: { projectId } })])
+      .then(([projects, files]) => {
         if (!live) return;
+        const project =
+          ((projects ?? []) as OcadeProject[]).find((row) => row.id === projectId) ?? null;
         setProjectDetails(project);
-        setProjectContextError(null);
+        setProjectFiles(files as OcadeProjectFile[]);
+        setProjectContextError(project ? null : "This conversation's project no longer exists.");
+        setProjectFileError(null);
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         if (!live) return;
         setProjectDetails(null);
-        setProjectContextError(
-          error instanceof Error ? error.message : "Project context could not be loaded.",
-        );
+        setProjectFiles([]);
+        const reason =
+          error instanceof Error ? error.message : "Project context could not be loaded.";
+        setProjectContextError(reason);
+        setProjectFileError(reason);
       })
       .finally(() => {
         if (live) setProjectContextLoading(false);
@@ -1458,7 +1411,7 @@ function ChatSurface(props: {
     return () => {
       live = false;
     };
-  }, [conversation.project_id, userId]);
+  }, [conversation.project_id]);
 
   /*
    * The retrieval sentence describes the last request in THIS conversation.
@@ -1477,13 +1430,10 @@ function ChatSurface(props: {
       setCitationError(null);
       return;
     }
-    const restored = getChatCitations(conversation.id, assistant.id);
-    if (!restored.ok) {
-      setCitations([]);
-      setCitationError(restored.reason);
-      return;
-    }
-    setCitations(restored.data ?? []);
+    // Restored from the answer itself: the evidence is a column on the message,
+    // so it arrives with the transcript rather than needing a second lookup
+    // that could disagree with it.
+    setCitations(assistant.citations ?? []);
     setCitationError(null);
   }, [conversation.id, messages, streaming]);
 
@@ -1522,6 +1472,9 @@ function ChatSurface(props: {
   // user chooses male or female (decision #22). Device-level preference.
   const [voiceGender, setVoiceGender] = useState<VoiceGender | null>(() => {
     if (typeof window === "undefined") return null;
+    // A per-device voice choice: which voice this machine speaks with. Not
+    // content, and deliberately not synchronised — a laptop and a phone
+    // reasonably want different answers.
     const v = window.localStorage.getItem("caera:voice:gender");
     return v === "male" || v === "female" ? v : null;
   });
@@ -1593,8 +1546,6 @@ function ChatSurface(props: {
   async function recordUnavailableTurn(text: string, atts: Attachment[], reason: string) {
     try {
       const userTurn = await persistChatMessage({
-        userId,
-        chatsMode,
         incognito: conversation.incognito,
         conversationId: conversation.id,
         role: "user",
@@ -1607,8 +1558,6 @@ function ChatSurface(props: {
         })),
       });
       const notice = await persistChatMessage({
-        userId,
-        chatsMode,
         incognito: conversation.incognito,
         conversationId: conversation.id,
         role: "assistant",
@@ -1649,16 +1598,12 @@ function ChatSurface(props: {
   async function recordIdentityTurn(text: string, answer: string) {
     try {
       const userTurn = await persistChatMessage({
-        userId,
-        chatsMode,
         incognito: conversation.incognito,
         conversationId: conversation.id,
         role: "user",
         content: text,
       });
       const assistantTurn = await persistChatMessage({
-        userId,
-        chatsMode,
         incognito: conversation.incognito,
         conversationId: conversation.id,
         role: "assistant",
@@ -1720,14 +1665,14 @@ function ChatSurface(props: {
      * is how it stops working in the case where it is not.
      */
     /*
-     * Generation is on-device now, so the only way a secret in this message
-     * leaves the machine is chat synchronisation — or a broken seal. The
-     * `engineTier === "cloud"` term is gone because that tier is gone; keeping
-     * it would have quietly widened the warning to a case that can no longer
-     * happen, and a warning that fires when nothing is at risk is a warning
-     * people learn to click through.
+     * A SEALED CONVERSATION IS THE ONLY ONE NOTHING LEAVES.
+     *
+     * This also read `chatsMode === "private_sync"`, from an era when a chat
+     * could be kept on the device alone. `PLAN.md` Phase 2 makes every ordinary
+     * conversation an account record, so the storage half of the condition was
+     * always true and the seal is what the warning actually turns on.
      */
-    const willBeExposed = chatsMode === "private_sync" || !sealed;
+    const willBeExposed = !sealed;
     if (willBeExposed) {
       const findings = preflight(text);
       const critical = findings.filter((f) => f.severity === "critical");
@@ -1948,7 +1893,7 @@ function ChatSurface(props: {
       },
     };
 
-    const context = buildRequestContext(atts, true, text);
+    const context = await buildRequestContext(atts, true, text);
     if (!context.ok) {
       toast.error(context.reason);
       return;
@@ -1967,7 +1912,6 @@ function ChatSurface(props: {
       engineLabel: "OCADE Intelligence",
       local: engineTier === "local",
       online,
-      privacyMode: chatsMode,
       project: projectDetails
         ? { name: projectDetails.name, instructions: projectDetails.instructions }
         : undefined,
@@ -2006,8 +1950,7 @@ function ChatSurface(props: {
           ...(attachment.extractedText ? { text: attachment.extractedText } : {}),
         })),
         privacy: {
-          storageMode: chatsMode,
-          onlineInferenceConsented: chatsMode === "private_sync",
+          onlineInferenceConsented: engineTier !== "local" && !sealed,
           sealed,
         },
         conversationId: conversation.id,
@@ -2030,8 +1973,6 @@ function ChatSurface(props: {
     billed: BilledRequest,
   ) {
     await persistChatMessage({
-      userId,
-      chatsMode,
       incognito: conversation.incognito,
       conversationId: conversation.id,
       role: "user",
@@ -2044,8 +1985,6 @@ function ChatSurface(props: {
       })),
     });
     await persistChatMessage({
-      userId,
-      chatsMode,
       incognito: conversation.incognito,
       conversationId: conversation.id,
       role: "assistant",
@@ -2055,7 +1994,7 @@ function ChatSurface(props: {
     });
     const rows = await refreshAfterLocal();
     const assistant = [...rows].reverse().find((message) => message.role === "assistant");
-    recordCitations(answer, assistant?.id);
+    void recordCitations(answer, assistant?.id);
     billed.recordDelivery({
       prompt: sentMessages.map((message) => message.content).join("\n"),
       answer,
@@ -2127,16 +2066,12 @@ function ChatSurface(props: {
         .join("\n");
 
       await persistChatMessage({
-        userId,
-        chatsMode,
         incognito: conversation.incognito,
         conversationId: conversation.id,
         role: "user",
         content: text,
       });
       await persistChatMessage({
-        userId,
-        chatsMode,
         incognito: conversation.incognito,
         conversationId: conversation.id,
         role: "assistant",
@@ -2265,7 +2200,7 @@ function ChatSurface(props: {
             ).tier,
           )
         : null;
-    const requestContext = buildRequestContext(atts, true, text);
+    const requestContext = await buildRequestContext(atts, true, text);
     if (!requestContext.ok) {
       toast.error(requestContext.reason);
       return null;
@@ -2377,7 +2312,6 @@ function ChatSurface(props: {
           engineLabel: label,
           local: true,
           online: typeof navigator === "undefined" ? undefined : navigator.onLine,
-          privacyMode: chatsMode,
           /*
            * The budget comes from the engine that will actually read this.
            *
@@ -2603,8 +2537,6 @@ function ChatSurface(props: {
           }
           completedUnsavedText = `${acc}\n\n_[stopped by you]_`;
           await persistChatMessage({
-            userId,
-            chatsMode,
             incognito: conversation.incognito,
             conversationId: conversation.id,
             role: "user",
@@ -2618,8 +2550,6 @@ function ChatSurface(props: {
           });
           userTurnPersisted = true;
           await persistChatMessage({
-            userId,
-            chatsMode,
             incognito: conversation.incognito,
             conversationId: conversation.id,
             role: "assistant",
@@ -2629,7 +2559,7 @@ function ChatSurface(props: {
           });
           const rows = await refreshAfterLocal();
           const assistant = [...rows].reverse().find((message) => message.role === "assistant");
-          recordCitations(acc, assistant?.id);
+          void recordCitations(acc, assistant?.id);
           clearDraft(conversation.id);
           return acc.trim() ? acc : null;
         }
@@ -2637,8 +2567,6 @@ function ChatSurface(props: {
         if (result.ok && acc.trim()) {
           completedUnsavedText = acc;
           await persistChatMessage({
-            userId,
-            chatsMode,
             incognito: conversation.incognito,
             conversationId: conversation.id,
             role: "user",
@@ -2652,8 +2580,6 @@ function ChatSurface(props: {
           });
           userTurnPersisted = true;
           await persistChatMessage({
-            userId,
-            chatsMode,
             incognito: conversation.incognito,
             conversationId: conversation.id,
             role: "assistant",
@@ -2663,7 +2589,7 @@ function ChatSurface(props: {
           });
           const rows = await refreshAfterLocal();
           const assistant = [...rows].reverse().find((message) => message.role === "assistant");
-          recordCitations(acc, assistant?.id);
+          void recordCitations(acc, assistant?.id);
 
           /*
            * Delivered. Recorded here, after the answer is persisted and on
@@ -2883,7 +2809,7 @@ function ChatSurface(props: {
         kind: "file",
         name: file.folder ? `${file.folder}/${file.name}` : file.name,
         mime: file.mime,
-        sizeBytes: file.sizeBytes,
+        sizeBytes: file.size_bytes,
         extractedText: file.text,
         extract: {
           status: "ok",
@@ -2891,7 +2817,7 @@ function ChatSurface(props: {
             name: file.folder ? `${file.folder}/${file.name}` : file.name,
             kind: classifyFile(file.name, file.mime),
             mime: file.mime,
-            sizeBytes: file.sizeBytes,
+            sizeBytes: file.size_bytes,
           },
           text: file.text,
         },
@@ -2948,45 +2874,66 @@ function ChatSurface(props: {
     return built.context;
   }
 
-  function buildRequestContext(
+  /**
+   * WHAT OCADE REMEMBERS, READ FROM THE ACCOUNT AT THE MOMENT IT IS USED.
+   *
+   * Memory is one authority — `ocade_memory` — so this is a request, and the
+   * request is made per message rather than cached at mount. A person who
+   * deletes a memory in Settings and then asks a question in another tab is
+   * entitled to a reply that does not still know it, and a snapshot taken when
+   * the screen opened would.
+   *
+   * An unreachable account returns null rather than refusing the message. A
+   * reply without remembered context is a smaller failure than no reply at all,
+   * and the person can see the connection state elsewhere.
+   */
+  async function readMemoryContext(projectId: string | null): Promise<string | null> {
+    try {
+      const held = await readMemory();
+      if (!held.enabled) return null;
+      return memoryContextFrom(held.rows, projectId);
+    } catch {
+      return null;
+    }
+  }
+
+  async function buildRequestContext(
     atts: Attachment[],
-    includeLocalMemory: boolean,
+    includeMemory: boolean,
     question: string,
-  ): { ok: true; data: string | undefined } | { ok: false; reason: string } {
+  ): Promise<{ ok: true; data: string | undefined } | { ok: false; reason: string }> {
     const documents = buildDocContext(atts, question);
-    if (!includeLocalMemory) return { ok: true, data: documents };
-    const memory = localMemoryContext(conversation.project_id ?? null);
-    if (!memory.ok) return memory;
-    const parts = [memory.data, documents].filter((part): part is string => Boolean(part));
+    if (!includeMemory || conversation.incognito) return { ok: true, data: documents };
+    const memory = await readMemoryContext(conversation.project_id ?? null);
+    const parts = [memory, documents].filter((part): part is string => Boolean(part));
     return { ok: true, data: parts.length > 0 ? parts.join("\n\n") : undefined };
   }
 
   async function saveAttachmentToProject(attachment: Attachment) {
     if (!conversation.project_id || !attachment.extractedText) return;
-    const saved = await saveProjectFile({
-      projectId: conversation.project_id,
-      name: attachment.name,
-      mime: attachment.mime,
-      sizeBytes: attachment.sizeBytes,
-      text: attachment.extractedText,
-    });
-    if (!saved.ok) {
-      toast.error(saved.reason);
-      return;
+    const projectId = conversation.project_id;
+    try {
+      await saveProjectFile({
+        data: {
+          projectId,
+          name: attachment.name,
+          mime: attachment.mime,
+          sizeBytes: attachment.sizeBytes,
+          text: attachment.extractedText,
+        },
+      });
+      setProjectFiles((await listProjectFiles({ data: { projectId } })) as OcadeProjectFile[]);
+      setProjectFileError(null);
+      toast.success(`Saved ${attachment.name} to this project.`);
+    } catch (e) {
+      const reason = e instanceof Error ? e.message : "The file could not be saved.";
+      setProjectFileError(reason);
+      toast.error(reason);
     }
-    const refreshed = listProjectFiles(conversation.project_id);
-    if (!refreshed.ok) {
-      setProjectFileError(refreshed.reason);
-      toast.error(refreshed.reason);
-      return;
-    }
-    setProjectFiles(refreshed.data);
-    setProjectFileError(null);
-    toast.success(`Saved ${attachment.name} as hashed project context on this device.`);
   }
 
   /** Map citation markers in a finished answer back to the real sources. */
-  function recordCitations(answer: string, messageId?: string) {
+  async function recordCitations(answer: string, messageId?: string) {
     const sources = sourceIndexRef.current;
     const parsed = sources.length > 0 ? parseCitations(answer, sources) : [];
     setCitations(parsed);
@@ -3000,12 +2947,17 @@ function ChatSurface(props: {
       );
       return;
     }
-    const saved = saveChatCitations({
-      conversationId: conversation.id,
-      messageId,
-      citations: parsed,
-    });
-    setCitationError(saved.ok ? null : saved.reason);
+    try {
+      await saveMessageCitations({ data: { messageId, citations: parsed } });
+      setMessages((rows) =>
+        rows.map((row) => (row.id === messageId ? { ...row, citations: parsed } : row)),
+      );
+      setCitationError(null);
+    } catch (error) {
+      setCitationError(
+        `Citation evidence could not be restored or saved: ${describeStorageError(error)}`,
+      );
+    }
   }
 
   /**
@@ -3059,7 +3011,6 @@ function ChatSurface(props: {
     try {
       const thread = sideThreads.get(anchor.id) ?? [];
       const asked = await appendSideMessage({
-        userId,
         conversationId: conversation.id,
         anchorMessageId: anchor.id,
         role: "user",
@@ -3105,7 +3056,6 @@ function ChatSurface(props: {
       billed.recordDelivery({ prompt: text, answer: finalText });
 
       const answered = await appendSideMessage({
-        userId,
         conversationId: conversation.id,
         anchorMessageId: anchor.id,
         role: "assistant",
@@ -3131,7 +3081,6 @@ function ChatSurface(props: {
     try {
       if (!conversation.incognito) {
         await deleteSideThread({
-          userId,
           conversationId: conversation.id,
           anchorMessageId: anchorId,
         });
@@ -3180,69 +3129,22 @@ function ChatSurface(props: {
       );
     }
 
-    if (chatsMode === "private_sync") {
-      return (await forkConversationBeforeMessage({
-        data: {
-          conversationId: conversation.id,
-          fromMessageId: message.id,
-          title,
-        },
-      })) as { id: string; title: string };
-    }
-
-    const created = (await createConversationLocally(userId, {
-      title,
-      modelId: model,
-      privacyMode: chatsMode,
-    })) as unknown as Conversation;
-    try {
-      if (conversation.project_id) {
-        await updateConversationLocally(userId, created.id, {
-          project_id: conversation.project_id,
-        });
-      }
-      const source = await loadChatMessages({
-        userId,
-        chatsMode,
+    /*
+     * FORKED ON THE SERVER, IN ONE STATEMENT.
+     *
+     * There were two branches here: this one, and a local path that created a
+     * conversation in the device vault and then copied the earlier turns into
+     * it one `persistChatMessage` at a time — which could half-finish, and
+     * which had its own rules about what it refused to copy. With one authority
+     * the fork is a single call that either happened or did not.
+     */
+    return (await forkConversationBeforeMessage({
+      data: {
         conversationId: conversation.id,
-      });
-      const pivot = source.findIndex((row) => row.id === message.id);
-      if (pivot < 0 || source[pivot].role !== "user") {
-        throw new Error("The message to branch from is no longer available in this vault.");
-      }
-      for (const row of source.slice(0, pivot)) {
-        if (row.role === "system") {
-          throw new Error(
-            "This local branch contains a system record that cannot be copied safely.",
-          );
-        }
-        await persistChatMessage({
-          userId,
-          chatsMode,
-          conversationId: created.id,
-          role: row.role,
-          content: row.content,
-          attachments: row.attachments,
-          modelId: row.model_id,
-          providerId: row.provider_id,
-        });
-      }
-      return { id: created.id, title: created.title };
-    } catch (error) {
-      let cleanupError: unknown = null;
-      try {
-        await deleteVaultConversation(userId, created.id);
-        await deleteConversation({ data: { id: created.id } });
-      } catch (cleanup) {
-        cleanupError = cleanup;
-      }
-      if (cleanupError) {
-        throw new Error(
-          `${error instanceof Error ? error.message : "Could not create the local branch."} Cleanup also failed: ${describeStorageError(cleanupError)}`,
-        );
-      }
-      throw error;
-    }
+        fromMessageId: message.id,
+        title,
+      },
+    })) as { id: string; title: string };
   }
 
   async function prepareEdit(message: Message) {
@@ -3314,8 +3216,6 @@ function ChatSurface(props: {
 
   async function refreshAfterLocal(): Promise<Message[]> {
     const rows = (await loadChatMessages({
-      userId,
-      chatsMode,
       conversationId: conversation.id,
     })) as unknown as Message[];
     setMessages(rows);
@@ -3872,7 +3772,6 @@ function ChatSurface(props: {
             )}
             {sealed ? "Sealed" : "Seal"}
           </button>
-          <PrivacyBadge mode={chatsMode === "private_sync" ? "private_sync" : "device_only"} />
           <EngineBadge
             status={{
               locality: localEngineReady ? "local" : modelInfo.locality,
@@ -3919,7 +3818,6 @@ function ChatSurface(props: {
                 messages={[
                   ...messages.map((message, index) => ({
                     ...toMessageView(message),
-                    reaction: reactions[message.id] ?? null,
                     deliveryState: deliveryStateFor(messages, index, streaming),
                   })),
                   ...(streaming && streamText
@@ -4145,10 +4043,10 @@ function ChatSurface(props: {
                       const where = describeLocator(c.locator);
                       /*
                        * A web source is rendered as a link so it can be
-                       * checked, and ONLY through `safeCitationHref`.
-                       * Citations live in localStorage, which anything running
-                       * in this origin can write, and an unchecked href is
-                       * `javascript:` away from being stored XSS on click.
+                       * checked, and ONLY through `safeCitationHref`. A
+                       * citation's URL comes from what a model produced about
+                       * a page it read, and an unchecked href is `javascript:`
+                       * away from being stored XSS on click.
                        */
                       const href = safeCitationHref(c.url);
                       return (
@@ -4437,7 +4335,6 @@ function ChatSurface(props: {
             setPermission={setPermission}
             model={model}
             setModel={setModel}
-            chatsMode={chatsMode}
             onImprove={handleImprove}
             improving={improving}
             onToggleVoice={toggleVoice}
