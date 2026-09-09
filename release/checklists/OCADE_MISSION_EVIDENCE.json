@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "generatedBy": "scripts/generate-mission-evidence.mjs",
   "authority": "PLAN.md",
-  "planSha256": "ed69b9e4f9352760fd4994d35f65525bb23f60706683e1912190866c19278567",
+  "planSha256": "732eab394626c93e29069c7112e4ddafe93b88afbffcacd5739ed49672f0f4a0",
   "statusSemantics": {
     "requirementScope": "Each PLAN prose, list, and table block is represented. Progress and proof are inherited from its named section and never promote an individual item by file existence alone.",
     "composition": "Feature-level claims remain in the parity, route, remaining-gap, donor, and final verification ledgers referenced by this graph."
@@ -272,7 +272,7 @@
       "section": "2",
       "sectionTitle": "Supabase canonical persistence",
       "kind": "paragraph",
-      "text": "Move conversations/messages, Projects, Tasks/runs/events/approvals, Artifacts/versions/provenance, Memory, settings, notifications and ordinary account data to typed Supabase repositories; use private Storage for files/artifact bodies. Add RAM-only unsynced turns with idempotent reconnect sync and close/reload/sign-out warnings. Incognito never persists. Add a static prohibition against ordinary content in IndexedDB/localStorage/OPFS/Cache Storage/browser vaults. Gate: ordinary user content has one persistent authority—Supabase/Storage.",
+      "text": "Follow `docs/Backend Schema.md` and move conversations/messages, Projects, Tasks/runs/events/approvals, Artifacts/versions/provenance, Memory, settings, notifications and ordinary account data to typed Supabase repositories; use private Storage for files/artifact bodies. Add RAM-only unsynced turns with idempotent reconnect sync and close/reload/sign-out warnings. Incognito never persists. Add a static prohibition against ordinary content in IndexedDB/localStorage/OPFS/Cache Storage/browser vaults. Gate: ordinary user content has one persistent authority—Supabase/Storage.",
       "continuationBlock": 3,
       "sectionProgress": "NOT_STARTED",
       "proofLevel": "SPECIFIED",
@@ -280,9 +280,9 @@
       "evidence": ["docs/MEMORY.md"],
       "evidenceTarget": "Complete and verify PLAN.md Phase 2",
       "remainingAction": "Execute the focused implementation and verification gate for Phase 2.",
-      "id": "PLAN-2-e4f7d374",
+      "id": "PLAN-2-bf3d658c",
       "planLine": 39,
-      "requirement": "Move conversations/messages, Projects, Tasks/runs/events/approvals, Artifacts/versions/provenance, Memory, settings, notifications and ordinary account data to typed Supabase repositories; use private Storage for files/artifact bodies. Add RAM-only unsynced turns with idempotent reconnect sync and close/reload/sign-out warnings. Incognito never persists. Add a static prohibition against ordinary content in IndexedDB/localStorage/OPFS/Cache Storage/browser vaults. Gate: ordinary user content has one persistent authority—Supabase/Storage.",
+      "requirement": "Follow `docs/Backend Schema.md` and move conversations/messages, Projects, Tasks/runs/events/approvals, Artifacts/versions/provenance, Memory, settings, notifications and ordinary account data to typed Supabase repositories; use private Storage for files/artifact bodies. Add RAM-only unsynced turns with idempotent reconnect sync and close/reload/sign-out warnings. Incognito never persists. Add a static prohibition against ordinary content in IndexedDB/localStorage/OPFS/Cache Storage/browser vaults. Gate: ordinary user content has one persistent authority—Supabase/Storage.",
       "proofLevelScope": "section"
     },
     {
@@ -290,7 +290,7 @@
       "section": "3",
       "sectionTitle": "Supabase security, Auth, MFA and schema reconciliation",
       "kind": "paragraph",
-      "text": "Semantically reconcile source/live migrations before applying changes. Repair RLS, grants, Storage policies, privileged functions/search paths, indexes and generated types. Complete email/password, verification/OTP and configured Google OAuth, session restore/expiry/revocation, optional ordinary-user MFA and recent AAL2 for dangerous organization/Admin/support/billing actions. Gate: no client-controlled ownership, unintended elevated function or cross-tenant data path.",
+      "text": "Using the data/RLS/migration contract in `docs/Backend Schema.md`, semantically reconcile source/live migrations before applying changes. Repair RLS, grants, Storage policies, privileged functions/search paths, indexes and generated types. Complete email/password, verification/OTP and configured Google OAuth, session restore/expiry/revocation, optional ordinary-user MFA and recent AAL2 for dangerous organization/Admin/support/billing actions. Gate: no client-controlled ownership, unintended elevated function or cross-tenant data path.",
       "continuationBlock": 4,
       "sectionProgress": "NOT_STARTED",
       "proofLevel": "SPECIFIED",
@@ -298,9 +298,9 @@
       "evidence": ["docs/MEMORY.md"],
       "evidenceTarget": "Complete and verify PLAN.md Phase 3",
       "remainingAction": "Execute the focused implementation and verification gate for Phase 3.",
-      "id": "PLAN-3-65bac2f6",
+      "id": "PLAN-3-96fe7607",
       "planLine": 43,
-      "requirement": "Semantically reconcile source/live migrations before applying changes. Repair RLS, grants, Storage policies, privileged functions/search paths, indexes and generated types. Complete email/password, verification/OTP and configured Google OAuth, session restore/expiry/revocation, optional ordinary-user MFA and recent AAL2 for dangerous organization/Admin/support/billing actions. Gate: no client-controlled ownership, unintended elevated function or cross-tenant data path.",
+      "requirement": "Using the data/RLS/migration contract in `docs/Backend Schema.md`, semantically reconcile source/live migrations before applying changes. Repair RLS, grants, Storage policies, privileged functions/search paths, indexes and generated types. Complete email/password, verification/OTP and configured Google OAuth, session restore/expiry/revocation, optional ordinary-user MFA and recent AAL2 for dangerous organization/Admin/support/billing actions. Gate: no client-controlled ownership, unintended elevated function or cross-tenant data path.",
       "proofLevelScope": "section"
     },
     {
@@ -560,7 +560,7 @@
       "section": "17",
       "sectionTitle": "Final OCADE UI/UX consolidation",
       "kind": "paragraph",
-      "text": "Only after logic/information architecture stabilizes, implement `docs/DESIGN.md`. Use Claude as the primary interaction/information-architecture benchmark, ChatGPT for universal chat/composer polish and OpenClaw for transparent autonomy/control patterns, while keeping original OCADE branding/assets/code and avoiding pixel-for-pixel trade dress. Remove duplicate buttons/toolbars, keep one obvious primary action, move secondary actions contextually, remove old More, implement sparse Projects/Tasks/Artifacts/Customize, shared Chat/Cowork/Code shell, complete light/dark appearances and all empty/loading/error/recovery states. Jarvis is the expressive exception; ordinary surfaces remain calm. Gate: visual route/control matrix is coherent, responsive, reachable and distinctly OCADE.",
+      "text": "Only after logic/information architecture stabilizes, implement the experience intent in `docs/UI UX Brief.md` and the detailed design system in `docs/DESIGN.md` together. Use Claude as the primary interaction/information-architecture benchmark, ChatGPT for universal chat/composer polish and OpenClaw for transparent autonomy/control patterns, while keeping original OCADE branding/assets/code and avoiding pixel-for-pixel trade dress. Remove duplicate buttons/toolbars, keep one obvious primary action, move secondary actions contextually, remove old More, implement sparse Projects/Tasks/Artifacts/Customize, shared Chat/Cowork/Code shell, complete light/dark appearances and all empty/loading/error/recovery states. Jarvis is the expressive exception; ordinary surfaces remain calm. Gate: visual route/control matrix is coherent, responsive, reachable and distinctly OCADE.",
       "continuationBlock": 18,
       "sectionProgress": "NOT_STARTED",
       "proofLevel": "SPECIFIED",
@@ -568,9 +568,9 @@
       "evidence": ["docs/MEMORY.md"],
       "evidenceTarget": "Complete and verify PLAN.md Phase 17",
       "remainingAction": "Execute the focused implementation and verification gate for Phase 17.",
-      "id": "PLAN-17-b6d76301",
+      "id": "PLAN-17-39cc6ebb",
       "planLine": 101,
-      "requirement": "Only after logic/information architecture stabilizes, implement `docs/DESIGN.md`. Use Claude as the primary interaction/information-architecture benchmark, ChatGPT for universal chat/composer polish and OpenClaw for transparent autonomy/control patterns, while keeping original OCADE branding/assets/code and avoiding pixel-for-pixel trade dress. Remove duplicate buttons/toolbars, keep one obvious primary action, move secondary actions contextually, remove old More, implement sparse Projects/Tasks/Artifacts/Customize, shared Chat/Cowork/Code shell, complete light/dark appearances and all empty/loading/error/recovery states. Jarvis is the expressive exception; ordinary surfaces remain calm. Gate: visual route/control matrix is coherent, responsive, reachable and distinctly OCADE.",
+      "requirement": "Only after logic/information architecture stabilizes, implement the experience intent in `docs/UI UX Brief.md` and the detailed design system in `docs/DESIGN.md` together. Use Claude as the primary interaction/information-architecture benchmark, ChatGPT for universal chat/composer polish and OpenClaw for transparent autonomy/control patterns, while keeping original OCADE branding/assets/code and avoiding pixel-for-pixel trade dress. Remove duplicate buttons/toolbars, keep one obvious primary action, move secondary actions contextually, remove old More, implement sparse Projects/Tasks/Artifacts/Customize, shared Chat/Cowork/Code shell, complete light/dark appearances and all empty/loading/error/recovery states. Jarvis is the expressive exception; ordinary surfaces remain calm. Gate: visual route/control matrix is coherent, responsive, reachable and distinctly OCADE.",
       "proofLevelScope": "section"
     },
     {

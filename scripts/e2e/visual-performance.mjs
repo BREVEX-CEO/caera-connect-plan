@@ -89,9 +89,9 @@ async function clearModals() {
       name: /^(accept and continue|skip|done|finish|got it|close)$/i,
     });
     if ((await button.count()) === 0) {
-      // The first-install gate has no dismiss button and may be completing
-      // while the once-per-account welcome tour waits underneath it. Returning
-      // here left that tour to intercept the later settings click. Give the
+      // The first-install gate has no dismiss button and may still be
+      // completing while another dialog waits underneath it. Returning here
+      // left that dialog to intercept the later settings click. Give the
       // non-dismissible gate time to resolve, then inspect the next dialog.
       await page.waitForTimeout(500);
       continue;

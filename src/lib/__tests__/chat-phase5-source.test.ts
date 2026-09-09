@@ -15,6 +15,14 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), "utf8"
 
 describe("Chat outputs and project navigation are real surfaces", () => {
   const chat = read("src/routes/_authenticated/ocade.index.tsx");
+  /*
+   * The Chat route was split in Phase 1. The composer, the rail and the
+   * dialogs are their own modules now, so the rules they carry are read from
+   * the file that owns each one — a slice of the wrong file would pass by
+   * matching nothing.
+   */
+  const composer = read("src/components/ocade/chat/ChatComposer.tsx");
+  const rail = read("src/components/ocade/chat/ChatContextualSidebar.tsx");
   const activity = read("src/routes/_authenticated/settings.activity.tsx");
   const projects = read("src/routes/_authenticated/ocade.projects.tsx");
   const bubble = read("src/components/ocade/chat/MessageBubble.tsx");
@@ -50,7 +58,7 @@ describe("Chat outputs and project navigation are real surfaces", () => {
     expect(chat).toContain("await deleteVaultConversation(userId, created.id)");
     expect(chat).toContain("saveDraft(created.id, message.content)");
     expect(chat).toContain("saveDraft(created.id, userMsg.content)");
-    expect(chat).toContain('title="Retry in a new branch"');
+    expect(composer).toContain('title="Retry in a new branch"');
     expect(chat).not.toContain("setMessages(messages.slice(0, realIdx + 1))");
   });
 
@@ -90,12 +98,12 @@ describe("Chat outputs and project navigation are real surfaces", () => {
      * the absence of a "planned" placeholder are what actually matter, so
      * those are what is asserted.
      */
-    expect(chat).toMatch(/<SidebarLink[^>]*to="\/ocade\/projects"/);
-    expect(chat).toMatch(/<SidebarLink[^>]*to="\/ocade\/artifacts"/);
-    expect(chat).not.toContain('label="Projects" state="planned"');
-    expect(chat).not.toContain('title="Project or folder — planned"');
+    expect(rail).toMatch(/<SidebarLink[^>]*to="\/ocade\/projects"/);
+    expect(rail).toMatch(/<SidebarLink[^>]*to="\/ocade\/artifacts"/);
+    expect(rail).not.toContain('label="Projects" state="planned"');
+    expect(rail).not.toContain('title="Project or folder — planned"');
     // A route that exists only as a disabled button is the defect this guards.
-    expect(chat).not.toMatch(/to="\/ocade\/(projects|artifacts)"[^>]*disabled/);
+    expect(rail).not.toMatch(/to="\/ocade\/(projects|artifacts)"[^>]*disabled/);
   });
 
   it("uses reviewable local memory in Chat", () => {
@@ -130,7 +138,7 @@ describe("Chat outputs and project navigation are real surfaces", () => {
     expect(projects).toContain("saveNewOutputVersion");
     expect(projects).toContain("parentOutputId: preview.id");
     expect(projects).toContain("purgeExpiredLocalOutputs(userId)");
-    expect(chat).toContain("onSaveAttachmentToProject(a)");
+    expect(composer).toContain("onSaveAttachmentToProject(a)");
     expect(outputs).toContain('.lt("expires_at", new Date().toISOString())');
     expect(localProjects).toContain('resolveAdapter(userId, "files")');
     expect(localProjects).toContain("deleted_at: now");

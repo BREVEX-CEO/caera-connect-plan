@@ -27,8 +27,15 @@
  * behaved differently depending on which screen read it.
  */
 
-/** The default when there is no usable destination. */
-export const DEFAULT_NEXT = "/home";
+/**
+ * The default when there is no usable destination.
+ *
+ * Chat, not `/home`. `docs/APP_FLOW.md` makes `/ocade` the signed-in home and
+ * leaves `/home` as a forwarding address; defaulting to the forwarder sent
+ * every sign-in, verification and password reset through an extra navigation
+ * to arrive at the same screen.
+ */
+export const DEFAULT_NEXT = "/ocade";
 
 /**
  * Resolve a `next` parameter to a path OCADE may navigate to, or null.

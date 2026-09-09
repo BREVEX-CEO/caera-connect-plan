@@ -333,8 +333,10 @@ export const ROUTE_DISPOSITIONS: readonly RouteEntry[] = [
   {
     module: "_authenticated/onboarding",
     path: "/onboarding",
-    disposition: "SUPPORTING",
-    reason: "First run. Reached once, by the gate in the authenticated layout.",
+    disposition: "MIGRATE",
+    movesTo: "/ocade",
+    reason:
+      "The setup wizard is removed. A new account goes to Chat and configures the rest in Settings; this is the forwarding address for links that predate that.",
   },
   {
     module: "_authenticated/home",

@@ -64,7 +64,9 @@ describe("no dead controls remain", () => {
 });
 
 describe("the composer never offers a Stop it cannot honour", () => {
-  const ocade = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
+  // The composer left the Chat route in the Phase 1 split; read where it lives.
+  const ocade = readFileSync("src/components/ocade/chat/ChatComposer.tsx", "utf8");
+  const route = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
 
   it("makes onStop optional so a surface can decline to offer it", () => {
     // It was REQUIRED, which forced `onStop={() => {}}` on the home composer —
@@ -77,10 +79,14 @@ describe("the composer never offers a Stop it cannot honour", () => {
   });
 
   it("no longer passes an empty stop handler anywhere", () => {
-    // Comments are stripped first: the prop's own doc comment QUOTES the old
-    // `onStop={() => {}}` to explain why the prop is optional, and that
+    // Read from the ROUTE, which is what mounts the composer and could pass a
+    // no-op. Comments are stripped first: the prop's own doc comment QUOTES the
+    // old `onStop={() => {}}` to explain why the prop is optional, and that
     // explanation must not be mistaken for the defect it describes.
-    const code = ocade.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/\/\/[^\n]*/g, " ");
+    const code = route
+      .concat(ocade)
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/\/\/[^\n]*/g, " ");
     expect(code).not.toMatch(/onStop=\{\(\) => \{\s*\}\}/);
     expect(code).not.toMatch(/onStop=\{\(\) => \{\s*\/\*[\s\S]*?\*\/\s*\}\}/);
   });
@@ -129,9 +135,19 @@ describe("blocked controls explain themselves to assistive technology", () => {
      * capability case and routes the account case to sign-in instead of
      * disabling — so no control is ever both dead and silent.
      */
-    const menu = readFileSync("src/components/ocade/chat/ComposerMenu.tsx", "utf8");
-    expect(menu).toMatch(/disabledReason: signedIn \? \(imageDisabledReason \?\? null\) : null/);
-    expect(menu).toMatch(/requiresSignIn: !signedIn/);
+    /*
+     * WHAT REPLACED THE MENU. `ComposerMenu.tsx` carried this rule and nothing
+     * rendered it — the shipped composer has its own attach controls. The rule
+     * survives on the control people can actually press: every icon button
+     * carries a `title`, which is also its accessible name, so no control in
+     * the row is both unavailable and silent about it.
+     */
+    const composer = readFileSync("src/components/ocade/chat/ChatComposer.tsx", "utf8");
+    expect(composer).toMatch(/aria-label=\{title\}/);
+    const untitled = [...composer.matchAll(/<ComposerIcon\b([\s\S]*?)>/g)].filter(
+      (match) => !/\btitle=/.test(match[1]!),
+    );
+    expect(untitled, "a composer icon offers no name for what it does").toHaveLength(0);
   });
 
   it("no reachable surface claims its replies are canned", () => {

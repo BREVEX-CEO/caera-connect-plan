@@ -72,13 +72,11 @@ function emailFrom(body, url) {
  * Who the bearer token says this is.
  *
  * `GET /auth/v1/user` carries no body and no query — the caller is identified
- * ENTIRELY by the token, which is how the server-rendered half of the app asks
- * "who am I" before deciding whether to send someone to onboarding. Falling
- * back to the default address there answered every such question as the
- * original audit account, so the route gate read one user's profile while the
- * page wrote another's, and onboarding could never complete: the app set
- * `onboarding_completed` on the real account and the gate kept checking a
- * different one.
+ * ENTIRELY by the token, which is how the app asks "who am I" before reading
+ * anything that belongs to a person. Falling back to the default address here
+ * answered every such question as the original audit account, so one user's
+ * profile was read while another's was written, and a second account in the
+ * same run could never be told apart from the first.
  */
 function identityFromToken(req) {
   const header = String(req.headers.authorization ?? "");
@@ -270,8 +268,9 @@ function freshTables() {
 /**
  * Add the rows Supabase's own signup trigger would have created.
  *
- * Deliberately does NOT set `onboarding_completed`: a new account has not
- * onboarded, and the app's gate reads exactly that column to decide.
+ * Deliberately minimal: a new account has a profile, a settings row and the
+ * `user` role, and nothing else. Anything a journey needs beyond that has to be
+ * created by using the product, which is what makes the journey worth running.
  */
 function seedAccount(tables, id, address) {
   (tables.user_settings ??= []).push({ user_id: id, created_at: new Date().toISOString() });

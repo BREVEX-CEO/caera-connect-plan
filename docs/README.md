@@ -4,21 +4,21 @@ This directory contains OCADE's canonical role-specific documentation plus suppo
 
 ## Canonical documents
 
-| File | Owns |
-|---|---|
-| `../PLAN.md` | The sole ordered implementation plan, checkpoints, final verification, Git integration and deployment sequence. |
-| `../CLAUDE.md` | The single AI coding-agent entry point and documentation read order. |
-| `PRD.md` | Product scope, target users, goals/non-goals, core features and product acceptance criteria. |
-| `TRD.md` | Technical requirements that translate product behavior into runtime, security, platform, intelligence, performance and reliability constraints. |
-| `APP_FLOW.md` | Routes, redirects, clicks, user journeys, overlays and UX/error/lifecycle states. |
-| `UI UX Brief.md` | Concise experiential brief: product feel, information architecture, surface-level UX intent, responsive behavior and reference-app interpretation. |
-| `DESIGN.md` | Detailed visual system, layout, components, Jarvis presentation, interaction rules and accessibility design authority. |
-| `ARCHITECTURE.md` | Current/target stack, repository layers, system boundaries, data/API/security/platform/deployment architecture and scalability model. |
+| File                | Owns                                                                                                                                                  |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `../PLAN.md`        | The sole ordered implementation plan, checkpoints, final verification, Git integration and deployment sequence.                                       |
+| `../CLAUDE.md`      | The single AI coding-agent entry point and documentation read order.                                                                                  |
+| `PRD.md`            | Product scope, target users, goals/non-goals, core features and product acceptance criteria.                                                          |
+| `TRD.md`            | Technical requirements that translate product behavior into runtime, security, platform, intelligence, performance and reliability constraints.       |
+| `APP_FLOW.md`       | Routes, redirects, clicks, user journeys, overlays and UX/error/lifecycle states.                                                                     |
+| `UI UX Brief.md`    | Concise experiential brief: product feel, information architecture, surface-level UX intent, responsive behavior and reference-app interpretation.    |
+| `DESIGN.md`         | Detailed visual system, layout, components, Jarvis presentation, interaction rules and accessibility design authority.                                |
+| `ARCHITECTURE.md`   | Current/target stack, repository layers, system boundaries, data/API/security/platform/deployment architecture and scalability model.                 |
 | `Backend Schema.md` | Backend data contract: current physical Supabase authorities, logical entities, relationships, RLS, Storage, pagination/indexing and migration rules. |
-| `RULES.md` | Project-specific engineering constraints and forbidden practices. |
-| `TESTING.md` | Test strategy, repository test stack, five silent speed killers, production-page/state checks and definition of done. |
-| `MEMORY.md` | Concise current state, known problems, recent decisions and session handoff. |
-| `DECISIONS.md` | Durable architecture/product decision records and superseded alternatives, including decisions consolidated from the former standalone ADR files. |
+| `RULES.md`          | Project-specific engineering constraints and forbidden practices.                                                                                     |
+| `TESTING.md`        | Test strategy, repository test stack, five silent speed killers, production-page/state checks and definition of done.                                 |
+| `MEMORY.md`         | Concise current state, known problems, recent decisions and session handoff.                                                                          |
+| `DECISIONS.md`      | Durable architecture/product decision records and superseded alternatives, including decisions consolidated from the former standalone ADR files.     |
 
 These files are complementary rather than duplicate master plans. `TRD.md` states technical requirements; `ARCHITECTURE.md` explains how the system is structured. `UI UX Brief.md` communicates the intended experience; `DESIGN.md` remains the detailed design-system/implementation authority. `Backend Schema.md` owns the data contract while migrations and generated Supabase types remain the physical schema authority. `PLAN.md` remains the only implementation sequence.
 

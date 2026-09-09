@@ -181,85 +181,46 @@ describe("the probe survives a browser that has nothing", () => {
 
 /* ---------------------------------------------------------------- composer */
 
-const MENU = readFileSync("src/components/ocade/chat/ComposerMenu.tsx", "utf8");
-const DICTATE = readFileSync("src/components/ocade/chat/DictateButton.tsx", "utf8");
+const COMPOSER = readFileSync("src/components/ocade/chat/ChatComposer.tsx", "utf8");
 const HOOK = readFileSync("src/lib/voice/use-dictation.ts", "utf8");
 
-describe("the + menu does not cover the message being written", () => {
-  it("anchors above the composer card rather than the button", () => {
-    /*
-     * Measured in a browser: anchored to the button, the menu overlapped the
-     * text area by 50px, because the + sits in the control row BELOW it. The
-     * wrapper is `contents` so the menu positions against the composer's own
-     * relative card instead.
-     */
-    expect(MENU).toMatch(/cn\("contents", className\)/);
-    expect(MENU).toMatch(/absolute bottom-full/);
-  });
-
-  it("returns focus to the trigger when dismissed with Escape", () => {
-    // Without this the next Tab starts from the top of the document.
-    expect(MENU).toMatch(/triggerRef\.current\?\.focus\(\)/);
-  });
-
-  it("offers the four actions the composer owns", () => {
-    for (const label of ["New chat", "Upload image", "Upload file", "Add link"]) {
-      expect(MENU, `${label} is missing from the menu`).toContain(label);
-    }
-  });
-
-  it("explains an unavailable action rather than hiding it", () => {
-    // A capability that vanishes leaves the user unsure it exists at all.
-    expect(MENU).toMatch(/disabledReason/);
-    expect(MENU).toMatch(/action\.disabledReason \?\?/);
-  });
-
-  it("answers a sign-in gate instead of greying the item out", () => {
-    /*
-     * THE DEAD CONTROL THIS REPLACES. Upload image, upload file and add link
-     * were rendered `disabled` for every signed-out visitor — three greyed rows that
-     * could not be pressed and did not say why. A disabled control is the right
-     * answer to a CAPABILITY limit ("this browser cannot read images") and the
-     * wrong answer to an ACCOUNT one, because the second has a remedy and the
-     * user is the one who can apply it.
-     *
-     * Gated items now stay pressable and swap the menu to "Sign in to upload
-     * files" with the button that does it.
-     */
-    expect(MENU, "the gate is not distinguished from a capability limit").toMatch(/requiresSignIn/);
-    expect(MENU, "pressing a gated action does not offer sign-in").toMatch(/Sign in to \{gated\}/);
-    // It must NOT simply disable them, which is what it used to do.
-    expect(MENU).toMatch(/setGated\(action\.label\.toLowerCase\(\)\)/);
-  });
-
-  it("keeps text chat open when uploads are gated", () => {
-    /*
-     * A signed-out visitor gets a usable chat, not a locked shell: the account
-     * gate routes to sign-in from the menu row that needs it, and the composer
-     * itself is never disabled wholesale.
-     */
-    const MENU = readFileSync("src/components/ocade/chat/ComposerMenu.tsx", "utf8");
-    expect(MENU).toMatch(/requiresSignIn: !signedIn/);
-    const COMPOSER = readFileSync("src/components/ocade/chat/ChatComposer.tsx", "utf8");
-    expect(COMPOSER, "the composer itself was disabled").not.toMatch(
-      /<textarea[^>]*\sdisabled=\{!signedIn\}/,
-    );
-  });
-});
+/*
+ * THE `+` MENU IS GONE, AND SO ARE ITS TESTS.
+ *
+ * `ComposerMenu.tsx` and `DictateButton.tsx` were a second composer: a `+`
+ * menu with New chat / Upload image / Upload file / Add link, and a dictation
+ * button with its own recording indicator. Nothing rendered either of them —
+ * only this file and two others imported them — while the composer people
+ * actually type into lived inside the Chat route with its own attach buttons
+ * and its own hold-to-talk control.
+ *
+ * So the rules asserted here were true of code no user could reach. `PLAN.md`
+ * Phase 1 allows one authority per subsystem: the shipped composer took the
+ * name and the unshipped pair was removed. The one rule that was genuinely
+ * about the PRODUCT rather than about that component — that an open microphone
+ * is unmistakable, and that its indicator survives a reduced-motion preference
+ * — moved onto the shipped composer, and is asserted against it below.
+ *
+ * Whether the composer should collapse its attach controls back behind one
+ * trigger is a question for the final interface pass, not something to keep an
+ * unreachable component alive for.
+ */
 
 describe("the microphone is unmistakable when it is open", () => {
   it("draws the recording ring outside motion-safe, so a motion preference cannot hide it", () => {
-    /*
-     * The pulse is decorative and respects `prefers-reduced-motion`. The ring
-     * is not: losing the "we are recording" indicator to an accessibility
-     * preference would be a privacy failure wearing an accessibility badge.
-     */
     const ring = /ring-2 ring-destructive\/60/;
-    expect(DICTATE).toMatch(ring);
-    const ringLine = DICTATE.split("\n").find((l) => ring.test(l)) ?? "";
+    expect(COMPOSER).toMatch(ring);
+    const ringLine = COMPOSER.split("\n").find((line) => ring.test(line)) ?? "";
     expect(ringLine).not.toMatch(/motion-safe/);
     // And the pulse, separately, does respect it.
-    expect(DICTATE).toMatch(/motion-safe:animate-ping/);
+    expect(COMPOSER).toMatch(/motion-safe:animate-ping/);
+  });
+
+  it("keeps text chat usable rather than disabling the whole composer", () => {
+    // A signed-out or capability-limited visitor gets a usable chat, not a
+    // locked shell. The box is disabled only while a reply is streaming.
+    expect(COMPOSER).not.toMatch(/<Textarea[\s\S]{0,400}disabled=\{!signedIn\}/);
+    expect(COMPOSER).toMatch(/disabled=\{streaming\}/);
   });
 
   it("names every failure with the action that fixes it", () => {

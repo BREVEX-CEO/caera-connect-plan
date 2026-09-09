@@ -112,7 +112,13 @@ describe("the facts stay available where they belong", () => {
 });
 
 describe("the choice a person is offered", () => {
-  const CHAT = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
+  /*
+   * The mode list left the Chat route in the Phase 1 split. It is read from the
+   * module that declares it, so this keeps asserting the words a person is
+   * actually offered.
+   */
+  const CHAT = readFileSync("src/components/ocade/chat/conversation-model.ts", "utf8");
+  const ROUTE = readFileSync("src/routes/_authenticated/ocade.index.tsx", "utf8");
 
   it("is Fast, Thinking and Local Intelligence", () => {
     for (const label of ["Fast", "Thinking", "Local Intelligence"]) {
@@ -127,7 +133,7 @@ describe("the choice a person is offered", () => {
      * question somebody actually has, which is whether they want the answer
      * sooner or better.
      */
-    expect(CHAT).not.toContain('t === "auto" ? "Automatic" : "On this device"');
+    expect(ROUTE).not.toContain('t === "auto" ? "Automatic" : "On this device"');
   });
 
   it("explains each mode without naming a runtime", () => {

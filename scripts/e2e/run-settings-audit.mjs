@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startServedBuild } from "./served-build.mjs";
 
-const storageState = join(tmpdir(), "ocade-onboarded-state.json");
+const storageState = join(tmpdir(), "ocade-signed-in-state.json");
 const served = await startServedBuild({
   port: 8080,
   outDir: ".output-settings",
@@ -34,7 +34,7 @@ failures += (await served.run("HELP CENTER JOURNEY", ["scripts/e2e/help-center-j
   : 0;
 failures += (await served.run("SETTINGS, SIGNED OUT", ["scripts/e2e/settings-audit.mjs"])) ? 1 : 0;
 failures += (await served.run("EVERY ROUTE, SIGNED OUT", ["scripts/e2e/route-qa.mjs"])) ? 1 : 0;
-failures += (await served.run("SIGN IN AND ONBOARD", ["scripts/e2e/sign-in-and-onboard.mjs"], {
+failures += (await served.run("SIGN IN", ["scripts/e2e/sign-in-state.mjs"], {
   OCADE_STORAGE_STATE_OUT: storageState,
 }))
   ? 1

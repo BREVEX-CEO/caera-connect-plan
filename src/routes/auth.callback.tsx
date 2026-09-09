@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { AuthShell } from "@/components/shell/AuthShell";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
-import { safeNext } from "@/lib/auth/safe-next";
+import { DEFAULT_NEXT, safeNext } from "@/lib/auth/safe-next";
 
 const searchSchema = z.object({
   next: z.string().optional(),
@@ -41,7 +41,7 @@ function CallbackPage() {
 
   useEffect(() => {
     if (error) return;
-    const target = safeNext(next) ?? "/home";
+    const target = safeNext(next) ?? DEFAULT_NEXT;
 
     let cancelled = false;
     let done = false;
@@ -53,26 +53,6 @@ function CallbackPage() {
       setHint(friendly.hint ?? null);
     };
 
-    /**
-     * Where the user should land. Onboarding is gated downstream anyway, but
-     * resolving it here avoids bouncing through a page the gate will reject.
-     * A failed read is not fatal — the gate re-asserts on the next navigation.
-     */
-    const resolveDestination = async (userId: string) => {
-      const supabase = await loadSupabaseClient();
-      try {
-        const { data, error: profileError } = await supabase
-          .from("profiles")
-          .select("onboarding_completed")
-          .eq("id", userId)
-          .maybeSingle();
-        if (!profileError && !data?.onboarding_completed) return "/onboarding";
-      } catch {
-        /* fall through to the requested destination */
-      }
-      return target;
-    };
-
     const finish = async () => {
       const supabase = await loadSupabaseClient();
       if (cancelled || done) return;
@@ -82,9 +62,13 @@ function CallbackPage() {
       if (cancelled || done) return;
       if (userError || !data.user) return;
       done = true;
-      const destination = await resolveDestination(data.user.id);
-      if (cancelled) return;
-      navigate({ to: destination, replace: true });
+      /*
+       * Straight to where they were going. This used to read
+       * `profiles.onboarding_completed` first and divert to the setup wizard;
+       * `docs/APP_FLOW.md` now sends a verified session to the intended deep
+       * link, or to Chat when there is none.
+       */
+      navigate({ to: target, replace: true });
     };
 
     const restore = async () => {

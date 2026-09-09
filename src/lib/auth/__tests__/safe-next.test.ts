@@ -71,7 +71,10 @@ describe("with no origin to compare against, it fails closed", () => {
 });
 
 describe("both auth screens use the same rule", () => {
-  it("has a default nobody has to invent twice", () => {
-    expect(DEFAULT_NEXT).toBe("/home");
+  it("has a default nobody has to invent twice, and it is Chat", () => {
+    // docs/APP_FLOW.md: successful auth resolves to the intended deep link, or
+    // to /ocade. `/home` is only a forwarding address, so defaulting to it
+    // spent an extra navigation to arrive at the same screen.
+    expect(DEFAULT_NEXT).toBe("/ocade");
   });
 });

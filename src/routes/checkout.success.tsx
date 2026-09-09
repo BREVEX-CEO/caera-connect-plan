@@ -16,7 +16,7 @@ export const Route = createFileRoute("/checkout/success")({
    * of a false claim.
    */
   beforeLoad: () => {
-    if (!isCheckoutConfigured()) throw redirect({ to: "/home" });
+    if (!isCheckoutConfigured()) throw redirect({ to: "/ocade" });
   },
   head: () => ({
     meta: [
@@ -137,7 +137,7 @@ function CheckoutSuccessPage() {
             <Link to="/settings/billing">Go to billing</Link>
           </Button>
           <Button asChild size="sm" variant="outline">
-            <Link to="/home">Open OCADE</Link>
+            <Link to="/ocade">Open OCADE</Link>
           </Button>
         </div>
       </GlassPanel>

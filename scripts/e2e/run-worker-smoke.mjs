@@ -44,11 +44,9 @@ async function stage(label, args, extraEnv = {}) {
 
 let failures = 0;
 failures += await stage("EVERY ROUTE ON THE WORKER, SIGNED OUT", ["scripts/e2e/route-qa.mjs"]);
-failures += await stage("SIGN UP, VERIFY, SIGN IN, ONBOARD", [
-  "scripts/e2e/sign-in-and-onboard.mjs",
-]);
+failures += await stage("SIGN UP, VERIFY, SIGN IN, ONBOARD", ["scripts/e2e/sign-in-state.mjs"]);
 failures += await stage("EVERY ROUTE ON THE WORKER, SIGNED IN", ["scripts/e2e/route-qa.mjs"], {
-  OCADE_STORAGE_STATE: "/tmp/ocade-onboarded-state.json",
+  OCADE_STORAGE_STATE: "/tmp/ocade-signed-in-state.json",
 });
 
 const died = served.serverDied;

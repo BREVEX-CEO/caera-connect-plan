@@ -4,6 +4,7 @@ import { z } from "zod";
 import { Loader2 } from "lucide-react";
 import { loadSupabaseClient } from "@/integrations/supabase/on-demand";
 import { AuthShell } from "@/components/shell/AuthShell";
+import { DEFAULT_NEXT, safeNext } from "@/lib/auth/safe-next";
 import {
   OTP_RESEND_COOLDOWN_SECONDS,
   describeResend,
@@ -87,7 +88,15 @@ function VerifyPage() {
     return () => window.clearInterval(id);
   }, [lastSentAt]);
 
-  const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/home";
+  /*
+   * THROUGH `safeNext`, NOT A SECOND HAND-ROLLED CHECK.
+   *
+   * What stood here — starts with "/", does not start with "//" — is the exact
+   * pattern match `safe-next.ts` exists to replace, and it accepts strings the
+   * shared resolver rejects. Two answers to "may OCADE navigate here?" is one
+   * more than a redirect target should ever have.
+   */
+  const target = safeNext(next) ?? DEFAULT_NEXT;
 
   async function verify(e: React.FormEvent) {
     const supabase = await loadSupabaseClient();

@@ -25,9 +25,9 @@ const served = await startServedBuild({
 });
 
 let failures = 0;
-const storageState = join(tmpdir(), "ocade-onboarded-state.json");
+const storageState = join(tmpdir(), "ocade-signed-in-state.json");
 failures += (await served.run("EVERY ROUTE, SIGNED OUT", ["scripts/e2e/route-qa.mjs"])) ? 1 : 0;
-failures += (await served.run("SIGN IN AND ONBOARD", ["scripts/e2e/sign-in-and-onboard.mjs"], {
+failures += (await served.run("SIGN IN", ["scripts/e2e/sign-in-state.mjs"], {
   OCADE_STORAGE_STATE_OUT: storageState,
 }))
   ? 1

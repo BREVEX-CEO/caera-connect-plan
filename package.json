@@ -115,6 +115,7 @@
     "agent:live-check": "vite-node scripts/agent-loop-evidence.mts",
     "audit:routes": "node scripts/e2e/route-qa.mjs",
     "audit:routes:prod": "node scripts/e2e/run-route-qa.mjs",
+    "audit:entry-routing": "node scripts/e2e/run-entry-routing.mjs",
     "audit:offline:prod": "node scripts/e2e/run-offline.mjs",
     "integration:report": "node scripts/generate-integration-report.mjs",
     "integration:check": "node scripts/generate-integration-report.mjs --check",

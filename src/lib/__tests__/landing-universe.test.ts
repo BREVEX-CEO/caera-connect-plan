@@ -2,14 +2,6 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import {
   PLANETS,
-  DEFAULT_CAMERA,
-  MAX_PITCH,
-  MIN_PITCH,
-  MIN_DISTANCE,
-  MAX_DISTANCE,
-  clampCamera,
-  positionsAt,
-  planetAtPointer,
   introPhaseAt,
   introSeen,
   markIntroSeen,
@@ -20,17 +12,14 @@ import {
 } from "../landing/universe";
 
 /**
- * The landing universe, tested as maths.
+ * The landing universe: what it promises, and when it plays.
  *
- * The renderer is a canvas and cannot be pixel-asserted here, so the geometry,
- * the hit testing, the intro sequencing and the quality tiers all live in pure
- * functions and those are what these tests hold. What is left in the renderer
- * is drawing calls — the part where a mistake is visible immediately.
- *
- * The cases below are the ones that break a scene like this in production: a
- * planet crossing the camera plane and producing an infinity, a hit test that
- * becomes an ellipse on a wide monitor, an intro that replays forever, and a
- * device that cannot carry the frame budget.
+ * The hero is a Three.js scene now, so the projection, camera and hit-testing
+ * cases that used to sit here went with `landing/paint.ts` — they were the
+ * geometry of a canvas renderer the product no longer mounts. What remains is
+ * what a visitor still meets: eight capabilities that each name a real benefit,
+ * an intro that plays once rather than forever, and a quality tier that a
+ * reduced-motion preference always wins.
  */
 
 describe("the system is eight capabilities, each with a real benefit", () => {
@@ -76,120 +65,6 @@ describe("the system is eight capabilities, each with a real benefit", () => {
     const retrograde = PLANETS.filter((p) => p.speed < 0);
     expect(retrograde.length).toBeGreaterThan(0);
     expect(retrograde.length).toBeLessThan(PLANETS.length);
-  });
-});
-
-describe("projection stays finite in every camera position", () => {
-  it("produces finite screen coordinates across a full orbit", () => {
-    for (let t = 0; t < 120; t += 0.37) {
-      for (const position of positionsAt(t, DEFAULT_CAMERA, 1.78)) {
-        expect(Number.isFinite(position.sx), `${position.planet.id} sx at t=${t}`).toBe(true);
-        expect(Number.isFinite(position.sy), `${position.planet.id} sy at t=${t}`).toBe(true);
-        expect(Number.isFinite(position.sr), `${position.planet.id} sr at t=${t}`).toBe(true);
-        expect(position.sr).toBeGreaterThan(0);
-      }
-    }
-  });
-
-  it("survives a camera pulled inside the outermost orbit", () => {
-    /*
-     * The failure this guards: a planet passing through the camera plane makes
-     * the perspective divisor zero, the coordinate becomes Infinity, and the
-     * canvas drops the entire frame. The divisor is floored instead.
-     */
-    const close = clampCamera({ ...DEFAULT_CAMERA, distance: MIN_DISTANCE });
-    for (let t = 0; t < 80; t += 0.21) {
-      for (const position of positionsAt(t, close, 1.0)) {
-        expect(Number.isFinite(position.sx)).toBe(true);
-        expect(Number.isFinite(position.sr)).toBe(true);
-      }
-    }
-  });
-
-  it("sorts furthest first, so nearer planets draw on top", () => {
-    const positions = positionsAt(3.2, DEFAULT_CAMERA, 1.6);
-    const zs = positions.map((p) => p.z);
-    expect([...zs].sort((a, b) => a - b)).toEqual(zs);
-  });
-
-  it("moves the planets as time advances", () => {
-    const a = positionsAt(0, DEFAULT_CAMERA, 1.6).find((p) => p.planet.id === "chat")!;
-    const b = positionsAt(6, DEFAULT_CAMERA, 1.6).find((p) => p.planet.id === "chat")!;
-    expect(Math.abs(a.sx - b.sx) + Math.abs(a.sy - b.sy)).toBeGreaterThan(0.01);
-  });
-});
-
-describe("the camera cannot be turned into a broken state", () => {
-  it("clamps pitch so the system never flips over", () => {
-    expect(clampCamera({ ...DEFAULT_CAMERA, pitch: 99 }).pitch).toBe(MAX_PITCH);
-    expect(clampCamera({ ...DEFAULT_CAMERA, pitch: -99 }).pitch).toBe(MIN_PITCH);
-  });
-
-  it("clamps distance so the camera cannot fly through the core or off to nothing", () => {
-    expect(clampCamera({ ...DEFAULT_CAMERA, distance: 0 }).distance).toBe(MIN_DISTANCE);
-    expect(clampCamera({ ...DEFAULT_CAMERA, distance: 9999 }).distance).toBe(MAX_DISTANCE);
-  });
-
-  it("leaves yaw unbounded, because spinning right round is fine", () => {
-    expect(clampCamera({ ...DEFAULT_CAMERA, yaw: 42 }).yaw).toBe(42);
-  });
-});
-
-describe("hit testing behaves the way a pointer expects", () => {
-  it("finds the planet under the pointer", () => {
-    const positions = positionsAt(1.5, DEFAULT_CAMERA, 1.6);
-    const target = positions[positions.length - 1];
-    const hit = planetAtPointer(positions, target.sx, target.sy, 1.6);
-    expect(hit?.planet.id).toBe(target.planet.id);
-  });
-
-  it("returns nothing in empty space", () => {
-    const positions = positionsAt(1.5, DEFAULT_CAMERA, 1.6);
-    // Far outside the projected system.
-    expect(planetAtPointer(positions, -5, -5, 1.6)).toBeNull();
-  });
-
-  it("corrects for aspect, so the hit area is a circle and not an ellipse", () => {
-    /*
-     * Without the aspect correction the target is stretched horizontally on a
-     * wide monitor: a pointer well to the side of a planet registers as a hit
-     * and the one directly above it does not.
-     */
-    const positions = positionsAt(2, DEFAULT_CAMERA, 2.4);
-    const target = positions[positions.length - 1];
-    const offset = target.sr * 1.5;
-    const horizontal = planetAtPointer(positions, target.sx + offset, target.sy, 2.4);
-    const vertical = planetAtPointer(positions, target.sx, target.sy + offset, 2.4);
-    // On a 2.4 aspect the horizontal offset is the larger real distance, so it
-    // must be the one that misses first.
-    expect(Boolean(vertical)).toBe(true);
-    expect(horizontal).toBeNull();
-  });
-
-  it("prefers the nearer planet where two overlap", () => {
-    const near = {
-      z: 5,
-      sx: 0.5,
-      sy: 0.5,
-      sr: 0.1,
-      planet: PLANETS[0],
-      x: 0,
-      y: 0,
-      depth: 1,
-      spinAngle: 0,
-    };
-    const far = {
-      z: -5,
-      sx: 0.5,
-      sy: 0.5,
-      sr: 0.1,
-      planet: PLANETS[1],
-      x: 0,
-      y: 0,
-      depth: 0,
-      spinAngle: 0,
-    };
-    expect(planetAtPointer([far, near], 0.5, 0.5, 1)?.planet.id).toBe(PLANETS[0].id);
   });
 });
 

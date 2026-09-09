@@ -1,10 +1,17 @@
 /**
- * Deciding what a paste or a drop means.
+ * Deciding what a drag means.
  *
  * Split out of `ChatComposer` so the component file exports only a component:
  * mixing helpers in defeats fast refresh, and every edit to the composer then
  * loses whatever the user had typed. These are also the fiddliest part of drag
  * handling, and separating them is what makes them testable without a DOM.
+ *
+ * `acceptsFiles` used to live here too. It answered "may these files be
+ * attached?" from four flags, and the composer that ships has only one of them
+ * — it is never handler-less and has no `disabled` prop, so calling it meant
+ * passing two constants and reading a rule that could not vary. The rule it
+ * carried, refusing a file while a reply is streaming, is asserted directly
+ * against the component in `composer-drop-wiring.test.tsx`.
  */
 /**
  * Is this drag carrying files?
@@ -32,21 +39,4 @@ export function dragDepthAfter(current: number, event: "enter" | "leave" | "drop
   if (event === "enter") return current + 1;
   if (event === "drop") return 0;
   return Math.max(0, current - 1);
-}
-
-/**
- * May these files be attached?
- *
- * Refusing while a reply is streaming is not fussiness: the attachment list is
- * read when the NEXT message is assembled, so a file added mid-stream would
- * appear to belong to the turn already in flight and silently arrive with the
- * following one instead.
- */
-export function acceptsFiles(state: {
-  hasHandler: boolean;
-  disabled: boolean;
-  streaming: boolean;
-  fileCount: number;
-}): boolean {
-  return state.hasHandler && !state.disabled && !state.streaming && state.fileCount > 0;
 }

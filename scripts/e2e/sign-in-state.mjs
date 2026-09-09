@@ -1,21 +1,24 @@
 /**
- * Produce a real signed-in, onboarded browser state, by using the product.
+ * Produce a real signed-in browser state, by using the product.
  *
  * Not by writing a session into localStorage. Standing up a fake session to
  * walk past an auth gate teaches the wrong thing and proves less: this fills
- * the email/password form, presses Sign in, and then answers all five
- * onboarding steps, so a state file only exists if those flows genuinely work.
+ * the email/password form and presses Sign in, so a state file only exists if
+ * that flow genuinely works.
+ *
+ * IT NO LONGER WALKS A SETUP WIZARD. There is not one: `docs/APP_FLOW.md`
+ * sends a new account to Chat, and this asserts that — landing anywhere in the
+ * `/onboarding` family is now a failure rather than five Continues to press.
  *
  * Writes a Playwright storage state other audits reuse. The Supabase it signs
  * in against is the loopback fixture — see scripts/fixtures/stub-supabase.mjs
  * for exactly what that does and does not prove.
  */
 import { chromium } from "playwright-core";
-import { completeOnboarding } from "./onboarding.mjs";
 import { clearModals } from "./sign-in.mjs";
 
 const BASE = process.env.OCADE_BASE_URL ?? "http://127.0.0.1:8080";
-const OUT = process.env.OCADE_STORAGE_STATE_OUT ?? "/tmp/ocade-onboarded-state.json";
+const OUT = process.env.OCADE_STORAGE_STATE_OUT ?? "/tmp/ocade-signed-in-state.json";
 const EMAIL = process.env.OCADE_AUDIT_EMAIL ?? "audit@ocade.test";
 const PASSWORD = process.env.OCADE_AUDIT_PASSWORD ?? "AuditPassword123!";
 
@@ -52,18 +55,13 @@ if (!signedIn) {
   await browser.close();
   process.exit(1);
 }
-console.log(`signed in, landed on ${new URL(page.url()).pathname}`);
-
-// Onboarding: five steps, each ending in Continue, the last in Enter workspace.
-await completeOnboarding(page, { email: EMAIL });
-
 const landed = new URL(page.url()).pathname;
-if (landed === "/onboarding") {
-  console.error("onboarding did not complete");
+console.log(`signed in, landed on ${landed}`);
+if (landed.startsWith("/onboarding")) {
+  console.error("sign-in still routes through a setup wizard");
   await browser.close();
   process.exit(1);
 }
-console.log(`onboarding complete, landed on ${landed}`);
 // Save the once-per-account welcome dismissal into the shared state. Without
 // this, every later audit context opens the tour again, and a setup dialog that
 // is still resolving can briefly prevent the ordinary Skip click from reaching

@@ -23,7 +23,6 @@
  * person will actually see.
  */
 import { chromium } from "playwright-core";
-import { completeOnboarding } from "./onboarding.mjs";
 import { clearModals, signInWithPassword } from "./sign-in.mjs";
 
 const BASE = process.env.OCADE_BASE_URL ?? "http://127.0.0.1:8080";
@@ -204,9 +203,8 @@ try {
     await signInWithPassword(colleague, { email: COLLEAGUE_EMAIL, password: PASSWORD });
   }
 
-  // Onboarding stands between sign-in and the invitation for a new account.
-  await clearModals(colleague);
-  await completeOnboarding(colleague, { email: COLLEAGUE_EMAIL, log: note });
+  // Nothing stands between sign-in and the invitation any more: the setup
+  // wizard is gone, so a new account arrives at Chat and can open the link.
   await clearModals(colleague);
 
   await colleague.goto(inviteLink, { waitUntil: "domcontentloaded", timeout: 60000 });
@@ -264,9 +262,9 @@ try {
    * THE OTHER PERSON'S ROW, FOUND BY WHO IT IS NOT.
    *
    * A member is shown by their profile name when they have one, so looking for
-   * the invited address finds nothing once onboarding has given them a name —
-   * which is the ordinary case, not an edge one. The row marked "(you)" is the
-   * owner's; the other one is the colleague's.
+   * the invited address finds nothing for an account that has since set one in
+   * Settings. The row marked "(you)" is the owner's; the other one is the
+   * colleague's.
    */
   const colleagueRow = page
     .locator("li")

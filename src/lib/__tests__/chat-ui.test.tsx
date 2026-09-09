@@ -1,11 +1,10 @@
-import { describe, it, expect } from "vitest";
+// @vitest-environment jsdom
+import { afterEach, describe, it, expect } from "vitest";
+import { cleanup, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ChatComposer } from "@/components/ocade/chat/ChatComposer";
-import {
-  dragCarriesFiles,
-  dragDepthAfter,
-  acceptsFiles,
-} from "@/components/ocade/chat/composer-drop";
+import { Composer } from "@/components/ocade/chat/ChatComposer";
+import { dragCarriesFiles, dragDepthAfter } from "@/components/ocade/chat/composer-drop";
+import { renderWithRouter } from "./support/router-harness";
 import { MessageBubble } from "@/components/ocade/chat/MessageBubble";
 import { EngineBadge } from "@/components/ocade/chat/EngineBadge";
 import { groupConversations } from "@/lib/chat/group-conversations";
@@ -213,89 +212,88 @@ describe("a message row offers only the actions it was given", () => {
   });
 });
 
+afterEach(cleanup);
+
 describe("the composer", () => {
-  const base = { value: "", onChange: () => {}, onSubmit: () => {} };
-
-  /**
-   * Attribute ORDER is React's business, not a property of the component, so
-   * the tag is isolated and inspected rather than matched with one regex that
-   * happens to encode today's emission order.
+  /*
+   * MOUNTED RATHER THAN STRINGIFIED. The composer links to Projects, so it
+   * needs router context, and the states asserted below — Send disabled, Send
+   * replaced by Stop — are what a person can and cannot press. A string of
+   * markup can show an attribute; only a mounted control can be found by the
+   * name a screen reader would announce.
    */
-  const sendButton = (html: string) => {
-    const match = /<button[^>]*aria-label="Send message"[^>]*>/.exec(html);
-    if (!match) throw new Error("no send button rendered");
-    return match[0];
-  };
+  const mount = (overrides: Record<string, unknown> = {}) =>
+    renderWithRouter(
+      <Composer
+        draft=""
+        setDraft={() => undefined}
+        attachments={[]}
+        setAttachments={() => undefined}
+        onSubmit={() => undefined}
+        streaming={false}
+        permission="manual"
+        setPermission={() => undefined}
+        model="ocade-local"
+        setModel={() => undefined}
+        chatsMode="private_sync"
+        {...overrides}
+      />,
+    );
 
-  it("cannot be sent while empty", () => {
-    expect(sendButton(renderToStaticMarkup(<ChatComposer {...base} />))).toContain("disabled");
+  const sendButton = () => screen.getByRole("button", { name: /^Send$/ });
+
+  it("cannot be sent while empty", async () => {
+    await mount();
+    expect(sendButton()).toHaveProperty("disabled", true);
   });
 
-  it("becomes sendable once there is text", () => {
+  it("becomes sendable once there is text", async () => {
+    await mount({ draft: "hello" });
+    expect(sendButton()).toHaveProperty("disabled", false);
+  });
+
+  it("becomes sendable with an attachment even when the text is empty", async () => {
+    await mount({
+      attachments: [{ kind: "file", name: "report.pdf", mime: "application/pdf", sizeBytes: 10 }],
+    });
+    expect(sendButton()).toHaveProperty("disabled", false);
+  });
+
+  it("replaces Send with Stop during generation, in the same place", async () => {
+    await mount({ draft: "hi", streaming: true, onStop: () => undefined });
+    expect(screen.queryByRole("button", { name: /^Send$/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /^Stop$/ })).toBeTruthy();
+  });
+
+  it("offers no Stop when there is nothing cancellable", async () => {
+    // A red Stop that does nothing when clicked is worse than no Stop: it is
+    // the control somebody reaches for when they most want it to work.
+    await mount({ draft: "hi", streaming: true });
+    expect(screen.queryByRole("button", { name: /^Stop$/ })).toBeNull();
+  });
+
+  it("states the send key that is actually in force", async () => {
+    await mount();
     expect(
-      sendButton(renderToStaticMarkup(<ChatComposer {...base} value="hello" />)),
-    ).not.toContain("disabled");
+      screen.getByRole("textbox", { name: /message ocade/i }).getAttribute("placeholder"),
+    ).toContain("Enter to send");
   });
 
-  it("becomes sendable with an attachment even when the text is empty", () => {
-    const html = renderToStaticMarkup(
-      <ChatComposer
-        {...base}
-        attachments={[{ kind: "file", name: "report.pdf", mime: "application/pdf", sizeBytes: 10 }]}
-      />,
-    );
-    expect(sendButton(html)).not.toContain("disabled");
+  it("names the text area, so it is not an anonymous box", async () => {
+    // Its placeholder is a hint, not a name: a screen reader announced the
+    // product's primary control as "edit text, blank".
+    await mount();
+    expect(screen.getByRole("textbox", { name: /message ocade/i })).toBeTruthy();
   });
 
-  it("replaces Send with Stop during generation, in the same place", () => {
-    const html = renderToStaticMarkup(
-      <ChatComposer {...base} value="hi" streaming onStop={() => {}} />,
-    );
-    expect(html).toContain("Stop generating");
-    expect(html).not.toContain("Send message");
-  });
-
-  it("offers no Stop when there is nothing cancellable", () => {
-    const html = renderToStaticMarkup(<ChatComposer {...base} value="hi" streaming />);
-    expect(html).not.toContain("Stop generating");
-  });
-
-  it("states the send key that is actually in force", () => {
-    expect(renderToStaticMarkup(<ChatComposer {...base} />)).toContain("Enter to send");
-    expect(renderToStaticMarkup(<ChatComposer {...base} sendKey="mod_enter" />)).toContain(
-      "Ctrl+Enter to send",
-    );
-  });
-
-  it("puts every add action behind one labelled trigger", () => {
-    /*
-     * The composer used to carry a bare paperclip and a bare picture icon, and
-     * a disabled picture had to smuggle its reason into an `aria-label`. Both
-     * are now inside a single `+`, which is where a new chat and a link also
-     * live — the row was growing an icon per capability.
-     *
-     * The reason for a disabled action moved with it, from an aria-label to
-     * VISIBLE TEXT under the menu item. That is stronger, not weaker: a
-     * sighted user could not read the old one at all without hovering.
-     * `voice-and-composer.test.ts` pins the menu's own contents.
-     */
-    const html = renderToStaticMarkup(
-      <ChatComposer
-        {...base}
-        onAddFiles={() => {}}
-        imageDisabledReason="No image-reading engine is installed."
-      />,
-    );
-    expect(html).toContain('aria-label="Add to this conversation"');
-    expect(html).toContain('aria-haspopup="menu"');
-    // Closed by default, so it cannot cover the message being written.
-    expect(html).toContain('aria-expanded="false"');
-  });
-
-  it("labels the text area, so it is not an anonymous box", () => {
-    const html = renderToStaticMarkup(<ChatComposer {...base} />);
-    expect(html).toContain('for="ocade-composer"');
-    expect(html).toContain('id="ocade-composer"');
+  it("offers every attachment path a named, pressable control", async () => {
+    // By role, not by label: the hidden `<input type=file>` behind each button
+    // carries the same name, and it is `display:none` — a real screen reader
+    // never reaches it, so a test that found it would be measuring the wrong
+    // element and would pass with the visible button removed.
+    await mount();
+    expect(screen.getByRole("button", { name: /^Attach files/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Attach images" })).toBeTruthy();
   });
 });
 
@@ -371,27 +369,11 @@ describe("attaching by paste and by drop", () => {
     expect(dragDepthAfter(3, "drop")).toBe(0);
   });
 
-  it("ignores a paste that carries no files, so ordinary text paste still works", () => {
-    expect(
-      acceptsFiles({ hasHandler: true, disabled: false, streaming: false, fileCount: 0 }),
-    ).toBe(false);
-  });
-
-  it("refuses files while a reply is streaming", () => {
-    // The attachment list is read when the NEXT message is assembled, so a file
-    // added mid-stream looks like it belongs to the turn already in flight and
-    // silently arrives with the following one.
-    expect(acceptsFiles({ hasHandler: true, disabled: false, streaming: true, fileCount: 1 })).toBe(
-      false,
-    );
-    expect(acceptsFiles({ hasHandler: true, disabled: true, streaming: false, fileCount: 1 })).toBe(
-      false,
-    );
-    expect(
-      acceptsFiles({ hasHandler: false, disabled: false, streaming: false, fileCount: 1 }),
-    ).toBe(false);
-    expect(
-      acceptsFiles({ hasHandler: true, disabled: false, streaming: false, fileCount: 1 }),
-    ).toBe(true);
-  });
+  /*
+   * Whether a drop is ACCEPTED — refused while streaming, ignored when it
+   * carries no files — is asserted against the mounted component in
+   * `composer-drop-wiring.test.tsx`. It used to live here as a pure
+   * `acceptsFiles` helper taking four flags, two of which the shipped composer
+   * could only ever pass as constants.
+   */
 });

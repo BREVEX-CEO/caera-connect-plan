@@ -58,11 +58,13 @@ import { ThemeProvider } from "@/lib/theme-provider";
  */
 const NO_COMPONENT: Record<string, string> = {
   "_authenticated/home.tsx":
-    "/home is a redirect to /ocade and deliberately has no component — it exists so old links and the end of onboarding still land somewhere.",
+    "/home is a redirect to /ocade and deliberately has no component — it exists so old links still land somewhere.",
   "_authenticated/ocade.work.tsx":
     "PLAN.md §4 migrated Cowork to /ocade/cowork; this is the forwarding address, so it redirects in beforeLoad and never renders. A component here would be a frame of the old screen appearing and vanishing.",
   "_authenticated/ocade.system.tsx":
     "PLAN.md §4 migrated the More directory to /ocade/customize; this redirects there in beforeLoad for everybody whose browser or history still holds the old URL.",
+  "_authenticated/onboarding.tsx":
+    "There is no setup wizard. PLAN.md and docs/APP_FLOW.md send a new account to Chat, so this redirects in beforeLoad for the accounts and emails that still hold the old URL.",
   "_authenticated/cania.tsx":
     "CANIA is hidden from OCADE. Its historical deep link redirects before rendering an unavailable product.",
   "_authenticated/ficia.tsx":
@@ -83,7 +85,6 @@ const SIGNED_IN_ROUTES = [
   "_authenticated/ocade.monitors.tsx",
   "_authenticated/ocade.projects.tsx",
   "_authenticated/ocade.studio.tsx",
-  "_authenticated/onboarding.tsx",
   "_authenticated/access-denied.tsx",
   "_authenticated/admin.launch-gate.tsx",
   "_authenticated/admin.payments-checklist.tsx",
@@ -313,7 +314,7 @@ describe("every signed-in route exposes a component to audit", () => {
   });
 
   it("keeps the component-less list short, specific and justified", () => {
-    expect(Object.keys(NO_COMPONENT)).toHaveLength(6);
+    expect(Object.keys(NO_COMPONENT)).toHaveLength(7);
     for (const [name, reason] of Object.entries(NO_COMPONENT)) {
       expect(componentFor(name), `${name} is excluded but now HAS a component`).toBeUndefined();
       expect(reason.length, `${name} is excluded without a reason`).toBeGreaterThan(40);

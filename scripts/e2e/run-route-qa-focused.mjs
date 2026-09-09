@@ -45,7 +45,7 @@ for (let attempt = 1; attempt <= REPEATS; attempt += 1) {
     ? 1
     : 0;
 }
-failures += (await served.run("SIGN IN AND ONBOARD", ["scripts/e2e/sign-in-and-onboard.mjs"], {
+failures += (await served.run("SIGN IN", ["scripts/e2e/sign-in-state.mjs"], {
   OCADE_STORAGE_STATE_OUT: storageState,
 }))
   ? 1

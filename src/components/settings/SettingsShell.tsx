@@ -238,7 +238,7 @@ export function SettingsShell({ children }: { children: ReactNode }) {
 
         <div className="border-t border-border/50 px-3 py-2">
           <button
-            onClick={() => navigate({ to: signedIn ? "/home" : "/" })}
+            onClick={() => navigate({ to: signedIn ? "/ocade" : "/" })}
             className="inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-[11px] text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
           >
             <X className="h-3 w-3" aria-hidden /> Close settings

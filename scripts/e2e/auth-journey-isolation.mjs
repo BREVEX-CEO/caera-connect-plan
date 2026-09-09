@@ -38,7 +38,6 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { resolveBrowserPath } from "./browser-path.mjs";
-import { completeOnboarding } from "./onboarding.mjs";
 import { startServedBuild } from "./served-build.mjs";
 
 const PORT = Number(process.env.OCADE_PREVIEW_PORT ?? 8109);
@@ -270,9 +269,7 @@ async function main() {
     });
 
     await googleButton.first().click();
-    await page
-      .waitForURL(/\/(ocade|onboarding|auth\/callback)/, { timeout: 45_000 })
-      .catch(() => null);
+    await page.waitForURL(/\/(ocade|auth\/callback)/, { timeout: 45_000 }).catch(() => null);
     await page.waitForTimeout(4000);
 
     check(popups === 0, "no popup window was opened", `${popups} popup(s)`);
@@ -308,10 +305,6 @@ async function main() {
     console.log("\n4. Authentication starts preparation, and reload resumes it");
     await acceptConsent(page);
     await page.waitForTimeout(12_000);
-    if (new URL(page.url()).pathname === "/onboarding") {
-      await completeOnboarding(page, { email: session.email ?? "oauth@ocade.test" });
-      await page.waitForTimeout(1500);
-    }
 
     const preparationPanel = page.getByTestId("offline-intelligence-progress");
     const preparationText =
@@ -333,9 +326,7 @@ async function main() {
 
     const afterIsolation = await page.evaluate(ISOLATION_PROBE);
     check(
-      afterIsolation.path.startsWith("/onboarding") ||
-        afterIsolation.path.startsWith("/ocade") ||
-        afterIsolation.path.startsWith("/settings"),
+      afterIsolation.path.startsWith("/ocade") || afterIsolation.path.startsWith("/settings"),
       "the authenticated document remains on a protected product route",
       afterIsolation.path,
     );

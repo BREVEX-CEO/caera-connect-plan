@@ -137,8 +137,13 @@ describe("what the dialog says about how current the copy is", () => {
 });
 
 describe("the surfaces that carry sharing", () => {
+  /*
+   * The dialogs left the Chat route in the Phase 1 split; the rules they carry
+   * did not. Read where ShareDialog lives now, so this keeps asserting the code
+   * that runs rather than passing against an empty slice of the wrong file.
+   */
   const chat = readFileSync(
-    join(process.cwd(), "src/routes/_authenticated/ocade.index.tsx"),
+    join(process.cwd(), "src/components/ocade/chat/ConversationDialogs.tsx"),
     "utf8",
   );
   const page = readFileSync(join(process.cwd(), "src/routes/share.$token.tsx"), "utf8");
@@ -146,8 +151,8 @@ describe("the surfaces that carry sharing", () => {
 
   it("does not publish anything just by opening the dialog", () => {
     const body = chat.slice(
-      chat.indexOf("function ShareDialog("),
-      chat.indexOf("function DeleteAllDialog("),
+      chat.indexOf("export function ShareDialog("),
+      chat.indexOf("export function DeleteAllDialog("),
     );
     const effect = body.slice(
       body.indexOf("useEffect(() => {"),
@@ -165,8 +170,8 @@ describe("the surfaces that carry sharing", () => {
 
   it("refuses an incognito conversation without asking the server", () => {
     const body = chat.slice(
-      chat.indexOf("function ShareDialog("),
-      chat.indexOf("function DeleteAllDialog("),
+      chat.indexOf("export function ShareDialog("),
+      chat.indexOf("export function DeleteAllDialog("),
     );
     expect(body).toMatch(/!conversation!\.incognito/);
     expect(body).toMatch(/An incognito conversation cannot be shared/);

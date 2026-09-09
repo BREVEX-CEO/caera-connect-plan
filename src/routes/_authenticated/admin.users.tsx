@@ -16,7 +16,6 @@ type ProfileRow = {
   email: string | null;
   phone: string | null;
   country: string | null;
-  onboarding_completed: boolean | null;
   created_at: string;
 };
 
@@ -73,14 +72,6 @@ const ACCOUNT_COLUMNS: readonly OcadeTableColumn<AccountRow>[] = [
   { key: "country", label: "Country", value: (row) => row.country ?? "" },
   { key: "roles", label: "Roles", value: (row) => row.roles.join(", ") },
   {
-    key: "onboarding_completed",
-    label: "Onboarded",
-    // Declared rather than inferred: a column that is entirely `false` on the
-    // first page would otherwise be read as text and sort alphabetically.
-    sort: "boolean",
-    value: (row) => Boolean(row.onboarding_completed),
-  },
-  {
     key: "created_at",
     label: "Joined",
     sort: "date",
@@ -99,7 +90,7 @@ function AdminUsersPage() {
       const [profiles, roles] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id, display_name, email, phone, country, onboarding_completed, created_at")
+          .select("id, display_name, email, phone, country, created_at")
           .order("created_at", { ascending: false })
           .limit(500),
         supabase.from("user_roles").select("user_id, role"),
@@ -185,16 +176,6 @@ function AdminUsersPage() {
             freezeFirstColumn
             exportFileName="ocade-accounts"
             filters={[
-              {
-                id: "onboarded",
-                label: "Onboarded",
-                options: [
-                  { value: "yes", label: "Yes" },
-                  { value: "no", label: "No" },
-                ],
-                test: (row, value) =>
-                  value === "yes" ? Boolean(row.onboarding_completed) : !row.onboarding_completed,
-              },
               {
                 id: "role",
                 label: "Role",

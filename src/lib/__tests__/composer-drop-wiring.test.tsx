@@ -2,23 +2,25 @@
 /**
  * DROPPING A FILE ON THE COMPOSER, ON THE REAL COMPONENT.
  *
- * The drop HELPERS were already tested — `dragCarriesFiles`, `dragDepthAfter`
- * and `acceptsFiles` each have their own cases in chat-ui.test.tsx. What had
- * never been tested is the WIRING: that the component calls them with the right
- * things, and that a dropped file actually reaches `onAddFiles`.
+ * The drag HELPERS are tested on their own in `chat-ui.test.tsx`:
+ * `dragCarriesFiles` and `dragDepthAfter` each have their own cases. What those
+ * cannot show is the WIRING — that the component calls them with the right
+ * things, and that a dropped file actually becomes an attachment.
  *
- * That gap is the whole failure mode this file exists for. Every helper can be
- * correct and the component can still hand `onAddFiles` the wrong list, refuse
- * a drop it should accept, or show "Drop to attach" over a drag carrying only
- * text — and no unit test of a pure function would notice, because none of them
- * is wrong.
+ * That gap is the whole failure mode this file exists for. Both helpers can be
+ * correct and the component can still ignore the dropped list, refuse a drop it
+ * should accept, or show "Drop to attach" over a drag carrying only text, and
+ * no unit test of a pure function would notice, because none of them is wrong.
  *
  * So these fire real drag events carrying a real DataTransfer at the real
  * dropzone, and assert on what the component did.
  */
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
-import { ChatComposer } from "@/components/ocade/chat/ChatComposer";
+import { describe, it, expect, vi, afterEach } from "vitest";
+import { screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import { renderWithRouter } from "./support/router-harness";
+import { Composer } from "@/components/ocade/chat/ChatComposer";
+
+afterEach(cleanup);
 
 /** A DataTransfer carrying files, which jsdom does not construct for us. */
 function transferWith(files: File[]) {
@@ -44,112 +46,113 @@ function transferWith(files: File[]) {
 
 const TEXT_DRAG = { types: ["text/plain"], files: { length: 0 } as unknown as FileList };
 
-function renderComposer(overrides: Record<string, unknown> = {}) {
-  const onAddFiles = vi.fn();
-  render(
-    <ChatComposer
-      value=""
-      onChange={() => undefined}
+async function renderComposer(overrides: Record<string, unknown> = {}) {
+  const setAttachments = vi.fn();
+  await renderWithRouter(
+    <Composer
+      draft=""
+      setDraft={() => undefined}
+      attachments={[]}
+      setAttachments={setAttachments}
       onSubmit={() => undefined}
-      onAddFiles={onAddFiles}
+      streaming={false}
+      permission="manual"
+      setPermission={() => undefined}
+      model="ocade-local"
+      setModel={() => undefined}
+      chatsMode="private_sync"
       {...overrides}
     />,
   );
-  return { onAddFiles, zone: screen.getByTestId("composer-dropzone") };
+  return { setAttachments, zone: screen.getByTestId("composer-dropzone") };
 }
 
 const OVERLAY = /drop to attach/i;
 
-describe("a file dropped on the composer reaches the attachment handler", () => {
-  it("hands over exactly the dropped file", () => {
-    const { onAddFiles, zone } = renderComposer();
+describe("a file dropped on the composer becomes an attachment", () => {
+  it("reads the dropped file and adds it", async () => {
+    const { setAttachments, zone } = await renderComposer();
     const file = new File(["hello"], "notes.txt", { type: "text/plain" });
 
     fireEvent.drop(zone, { dataTransfer: transferWith([file]) });
 
-    expect(onAddFiles).toHaveBeenCalledTimes(1);
-    const [list, imagesOnly] = onAddFiles.mock.calls[0];
-    expect(list.length).toBe(1);
-    expect(list.item(0).name).toBe("notes.txt");
+    /*
+     * Awaited, because reading happens ON THIS DEVICE before the attachment
+     * exists — a text file is read, a PDF or workbook is decoded — and the raw
+     * file is never uploaded. That asynchrony is the behaviour, not an
+     * inconvenience, so the assertion waits for it rather than reaching past it.
+     */
+    await waitFor(() => expect(setAttachments).toHaveBeenCalledTimes(1));
+    const next = setAttachments.mock.calls[0]![0] as Array<{ name: string; kind: string }>;
+    expect(next.map((attachment) => attachment.name)).toEqual(["notes.txt"]);
     // A drop is not the image button, so it must not be restricted to images.
-    expect(imagesOnly).toBe(false);
-    cleanup();
+    expect(next[0]!.kind).toBe("file");
   });
 
-  it("REFUSES a drop while a reply is streaming", () => {
+  it("REFUSES a drop while a reply is streaming", async () => {
     // Not fussiness: the attachment list is read when the NEXT message is
     // assembled, so a file added mid-stream appears to belong to the turn
     // already in flight and silently arrives with the following one.
-    const { onAddFiles, zone } = renderComposer({ streaming: true });
-    fireEvent.drop(zone, {
-      dataTransfer: transferWith([new File(["x"], "late.txt")]),
-    });
-    expect(onAddFiles).not.toHaveBeenCalled();
-    cleanup();
+    const { setAttachments, zone } = await renderComposer({ streaming: true });
+
+    fireEvent.drop(zone, { dataTransfer: transferWith([new File(["x"], "late.txt")]) });
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(setAttachments).not.toHaveBeenCalled();
   });
 
-  it("REFUSES a drop while the composer is disabled", () => {
-    const { onAddFiles, zone } = renderComposer({ disabled: true });
-    fireEvent.drop(zone, { dataTransfer: transferWith([new File(["x"], "no.txt")]) });
-    expect(onAddFiles).not.toHaveBeenCalled();
-    cleanup();
-  });
+  it("does nothing at all when the drop carries no files", async () => {
+    const { setAttachments, zone } = await renderComposer();
 
-  it("does nothing at all when the drop carries no files", () => {
-    const { onAddFiles, zone } = renderComposer();
     fireEvent.drop(zone, { dataTransfer: transferWith([]) });
-    expect(onAddFiles).not.toHaveBeenCalled();
-    cleanup();
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(setAttachments).not.toHaveBeenCalled();
   });
 });
 
 describe("the overlay tells the truth about what is being dragged", () => {
-  it("appears for a drag carrying files", () => {
-    const { zone } = renderComposer();
+  it("appears for a drag carrying files", async () => {
+    const { zone } = await renderComposer();
+
     expect(screen.queryByText(OVERLAY)).toBeNull();
     fireEvent.dragEnter(zone, { dataTransfer: transferWith([new File(["x"], "a.txt")]) });
     expect(screen.getByText(OVERLAY)).toBeTruthy();
-    cleanup();
   });
 
-  it("does NOT appear for a drag carrying only text", () => {
+  it("does NOT appear for a drag carrying only text", async () => {
     // Dragging selected text across the composer fires the same events.
     // Promising "drop to attach" for it is a lie about what will happen.
-    const { zone } = renderComposer();
+    const { zone } = await renderComposer();
+
     fireEvent.dragEnter(zone, { dataTransfer: TEXT_DRAG });
+
     expect(screen.queryByText(OVERLAY)).toBeNull();
-    cleanup();
   });
 
-  it("stays up while the pointer crosses the box's own children", () => {
+  it("stays up while the pointer crosses the box's own children", async () => {
     // dragenter/dragleave fire for every element crossed, so a boolean flag
     // would drop the overlay the moment the cursor reached the textarea.
-    const { zone } = renderComposer();
+    const { zone } = await renderComposer();
     const carrying = { dataTransfer: transferWith([new File(["x"], "a.txt")]) };
+
     fireEvent.dragEnter(zone, carrying); // onto the box
     fireEvent.dragEnter(zone, carrying); // onto the textarea inside it
     fireEvent.dragLeave(zone); // off the textarea, still inside the box
     expect(screen.getByText(OVERLAY)).toBeTruthy();
+
     fireEvent.dragLeave(zone); // and now genuinely out
     expect(screen.queryByText(OVERLAY)).toBeNull();
-    cleanup();
   });
 
-  it("clears the overlay after a drop, not just after a leave", () => {
-    const { zone } = renderComposer();
+  it("clears the overlay after a drop, not just after a leave", async () => {
+    const { zone } = await renderComposer();
     const carrying = { dataTransfer: transferWith([new File(["x"], "a.txt")]) };
+
     fireEvent.dragEnter(zone, carrying);
     expect(screen.getByText(OVERLAY)).toBeTruthy();
+
     fireEvent.drop(zone, carrying);
     expect(screen.queryByText(OVERLAY)).toBeNull();
-    cleanup();
-  });
-
-  it("does not offer to attach when there is no handler to attach with", () => {
-    render(<ChatComposer value="" onChange={() => undefined} onSubmit={() => undefined} />);
-    const zone = screen.getByTestId("composer-dropzone");
-    fireEvent.dragEnter(zone, { dataTransfer: transferWith([new File(["x"], "a.txt")]) });
-    expect(screen.queryByText(OVERLAY)).toBeNull();
-    cleanup();
   });
 });

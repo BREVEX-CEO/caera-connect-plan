@@ -37,11 +37,22 @@ describe("a dropped network does not sign the user out", () => {
     expect(GUARD).toMatch(/expiresAt\s*>\s*Date\.now\(\)/);
   });
 
-  it("does not send someone back through onboarding because their wifi dropped", () => {
-    // The gate is a database read. Someone past onboarding must not be pushed
-    // back into it, and someone who has not finished it cannot finish it
-    // offline anyway, since onboarding writes to that same database.
-    expect(GUARD).toContain("if (!offline) {");
+  it("does not hold someone at a second-factor challenge their wifi cannot answer", () => {
+    /*
+     * The assurance level is a network read, so offline it has no answer. The
+     * gate is skipped rather than failed, and it re-asserts on the next online
+     * navigation; the server middleware behind the dangerous operations is
+     * what actually protects them, and that one fails closed.
+     */
+    expect(GUARD).toContain('if (!offline && !location.pathname.startsWith("/challenge"))');
+  });
+
+  it("has no setup wizard left to send anybody back through", () => {
+    // A `profiles.onboarding_completed` read used to stand in this guard and
+    // redirect to /onboarding. PLAN.md and docs/APP_FLOW.md removed the wizard,
+    // so the offline exception it needed is gone with it.
+    expect(GUARD).not.toContain('select("onboarding_completed")');
+    expect(GUARD).not.toMatch(/redirect\(\{ to: "\/onboarding"/);
   });
 });
 

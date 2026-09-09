@@ -463,10 +463,17 @@ export function LandingUniverse() {
             return (
               <li key={planet.id}>
                 {/*
-                  No card, no border, no box. The planet's own colour is the
-                  only ornament, and pressing one moves the camera to it — the
-                  list and the scene are one control, which is why neither needs
-                  decoration to look connected.
+                  No card, no border, no box. The name and the benefit are the
+                  whole row, and pressing one pins its highlight so a reader can
+                  hold a capability in view while they read the rest.
+
+                  IT DOES NOT MOVE THE CAMERA, and the comment here used to say
+                  it did. That was true of the 2D scene these rows were written
+                  for; the hero is now the Three.js system in `solar-scene.ts`,
+                  whose bodies are planets rather than capabilities, so there is
+                  no body to fly to. Rewiring the two is an interface decision,
+                  not a missing wire — and a comment claiming a behaviour the
+                  product does not have is worse than no comment.
                 */}
                 <button
                   type="button"

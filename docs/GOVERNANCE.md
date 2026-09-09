@@ -12,12 +12,12 @@ This is a supporting governance record. Current product/technical decisions are 
 
 Changes to `main` must preserve published history and pass the verification appropriate to their scope. The current ordinary GitHub CI authority is `.github/workflows/ci.yml`.
 
-| Stage | Current authority |
-| --- | --- |
-| Portable install, route stability, readiness, typecheck, lint, format, tests, deterministic build, performance, Supabase types, release/integration/mission/browser/extension checks | `npm run verify:full` in the `portable-core` Ubuntu/Node 22 job |
-| Production dependency advisory check | `npm audit --omit=dev` in the same portable job |
-| Platform/hardware-specific proof | `.github/workflows/platforms.yml`, `.github/workflows/windows-proof.yml` and the owning scripts |
-| Final production acceptance and deployment sequence | `PLAN.md` and `docs/TESTING.md` |
+| Stage                                                                                                                                                                                | Current authority                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| Portable install, route stability, readiness, typecheck, lint, format, tests, deterministic build, performance, Supabase types, release/integration/mission/browser/extension checks | `npm run verify:full` in the `portable-core` Ubuntu/Node 22 job                                 |
+| Production dependency advisory check                                                                                                                                                 | `npm audit --omit=dev` in the same portable job                                                 |
+| Platform/hardware-specific proof                                                                                                                                                     | `.github/workflows/platforms.yml`, `.github/workflows/windows-proof.yml` and the owning scripts |
+| Final production acceptance and deployment sequence                                                                                                                                  | `PLAN.md` and `docs/TESTING.md`                                                                 |
 
 **Rules that hold regardless of urgency:**
 

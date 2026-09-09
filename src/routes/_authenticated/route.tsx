@@ -34,7 +34,7 @@ import { OcadeMobileBottomNav } from "@/components/shell/OcadeMobileBottomNav";
 /**
  * Integration-managed protected layout. Runs client-only because the Supabase
  * session lives in localStorage. All routes under src/routes/_authenticated/
- * inherit this gate, plus the onboarding gate below.
+ * inherit this gate.
  */
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -124,9 +124,8 @@ export const Route = createFileRoute("/_authenticated")({
      * are untouched and cannot be trapped by a prompt they are unable to
      * answer.
      *
-     * NOT OFFLINE, for the same reason as the onboarding gate below: this is a
-     * network read, and somebody whose wifi dropped must not be locked out of
-     * a local-first product. The cached session was already checked for expiry
+     * NOT OFFLINE: this is a network read, and somebody whose wifi dropped
+     * must not be locked out of a product that can still answer on-device. The cached session was already checked for expiry
      * and rejection above, and the gate re-asserts on the next online
      * navigation.
      *
@@ -176,29 +175,19 @@ export const Route = createFileRoute("/_authenticated")({
       }
     }
 
-    // Onboarding gate (G1). Everyone must finish onboarding before app routes.
-    if (!location.pathname.startsWith("/onboarding")) {
-      /*
-       * The onboarding gate is a database read, so it cannot run offline
-       * either. Someone already past onboarding must not be sent back through
-       * it because their wifi dropped -- and someone who has NOT finished it
-       * cannot complete it offline anyway, since onboarding writes to the same
-       * database. Skipping the gate while unreachable is therefore both the
-       * kinder and the only useful behaviour; it re-asserts on the next
-       * online navigation.
-       */
-      if (!offline) {
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("onboarding_completed")
-          .eq("id", user!.id)
-          .maybeSingle();
-        if (!profileError && !profile?.onboarding_completed) {
-          throw redirect({ to: "/onboarding" });
-        }
-      }
-    }
-
+    /*
+     * THERE IS NO ONBOARDING GATE, AND ITS ABSENCE IS THE DESIGN.
+     *
+     * A `profiles.onboarding_completed` read used to stand here and send every
+     * account that had not finished the wizard to `/onboarding`. `PLAN.md` and
+     * `docs/APP_FLOW.md` removed the wizard: a new account goes to Chat, and
+     * profile, appearance, Offline Intelligence and permissions are configured
+     * in Settings afterwards, by somebody who has seen the product and has an
+     * opinion about it.
+     *
+     * The column still exists and is not read here. Removing it is a schema
+     * change and belongs to the migration phase, not to a routing gate.
+     */
     return { user };
   },
   component: AuthedLayout,
@@ -247,10 +236,10 @@ function AuthedLayout() {
         Preparation REPORTS from the lower-left corner; it does not take the
         product away. This replaced a full-screen modal that covered the whole
         signed-in application for the duration of the first install and stayed
-        there when the install failed — which trapped a new account on
-        /onboarding with a Continue button it could see and could not press.
-        See `PLAN.md` §17: automatic preparation, lower-left progress, no
-        confirmation screen.
+        there when the install failed — which trapped a new account on the
+        setup wizard with a Continue button it could see and could not press.
+        See `PLAN.md` Phase 5: preparation starts on first visit and never
+        blocks the product.
       */}
       {signedIn ? <OfflineIntelligenceProgress /> : null}
     </SettingsAccessProvider>
@@ -280,7 +269,7 @@ function AuthedError({ error, reset }: { error: Error; reset: () => void }) {
             Try again
           </button>
           <Link
-            to="/home"
+            to="/ocade"
             className="rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent"
           >
             Back to Home

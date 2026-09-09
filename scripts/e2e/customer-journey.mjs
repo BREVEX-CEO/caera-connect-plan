@@ -10,7 +10,7 @@
  * seeded database rows, no pre-signed session — and walks the customer path
  * end to end:
  *
- *   sign up → verify → onboard → chat → tools → files → projects → search →
+ *   sign up → verify → chat → tools → files → projects → search →
  *   tasks → cowork → approval → pause/resume/take over/stop → offline →
  *   reopen → voice → reconnect → settings → sign out → sign back in
  *
@@ -76,7 +76,7 @@ async function goto(path) {
   await clearModals();
 }
 
-/** Consent and onboarding dialogs stand between the visitor and everything. */
+/** Consent and welcome dialogs stand between the visitor and everything. */
 async function clearModals() {
   for (let round = 0; round < 6; round += 1) {
     const dialog = page.locator("[role=dialog], [role=alertdialog]");
@@ -233,77 +233,35 @@ await stage("sign up, verify, sign in", async () => {
 });
 
 /* ------------------------------------------------------------------ 3 -- */
-await stage("onboarding completes and lets go", async () => {
-  const seen = [];
-  for (let step = 1; step <= 10; step += 1) {
-    if (new URL(page.url()).pathname !== "/onboarding") break;
-    const heading = await page
-      .locator("h1, h2")
-      .first()
-      .textContent()
-      .catch(() => "");
-    seen.push((heading ?? "").trim());
-
-    /*
-     * Filled through the real input rather than by writing `.value` and firing
-     * an event. The setter trick works on a plain controlled input and stops
-     * working the moment a field validates on blur or masks its own value —
-     * and when it stops working the button simply stays disabled, which reads
-     * as "onboarding is broken" rather than "the script typed wrong".
-     */
-    const inputs = page.locator("input:not([type=checkbox]):not([type=radio]):not([disabled])");
-    for (let i = 0; i < (await inputs.count()); i += 1) {
-      const field = inputs.nth(i);
-      if (await field.inputValue().catch(() => "")) continue;
-      const hint =
-        (await field.getAttribute("placeholder")) ?? (await field.getAttribute("aria-label")) ?? "";
-      const value = /mail/i.test(hint)
-        ? EMAIL
-        : /language|locale/i.test(hint)
-          ? "English"
-          : /timezone|time zone/i.test(hint)
-            ? "UTC"
-            : "Journey Tester";
-      await field.fill(value).catch(() => {});
-    }
-    const boxes = page.locator("input[type=checkbox]:not([disabled])");
-    for (let i = 0; i < (await boxes.count()); i += 1) {
-      await boxes
-        .nth(i)
-        .check({ timeout: 3000 })
-        .catch(() => {});
-    }
-    await page.waitForTimeout(500);
-
-    const next = page
-      .locator("button", { hasText: /^(Continue|Next|Finish|Enter workspace)$/i })
-      .first();
-    if ((await next.count()) === 0) break;
-    assert(!(await next.isDisabled()), `step ${step} ("${seen.at(-1)}") would not let go`);
-    await next.click({ timeout: 12000 });
-    await page.waitForTimeout(2200);
-  }
+await stage("sign-in lands in Chat, with nothing in the way", async () => {
+  /*
+   * THERE IS NO SETUP WIZARD, AND THIS IS WHERE THAT IS PROVED.
+   *
+   * What stood here walked five onboarding steps — a display name, an account
+   * type, a storage-mode choice, a module list, a review — and asserted only
+   * that they eventually let go. `docs/APP_FLOW.md` removed all five: a new
+   * account arrives at Chat and configures the rest in Settings, later, having
+   * seen the product first.
+   */
+  await page.waitForTimeout(1500);
+  await clearModals();
   const landed = new URL(page.url()).pathname;
-  assert(landed !== "/onboarding", `onboarding would not finish; last step "${seen.at(-1)}"`);
-  return `${seen.length} steps → ${landed}`;
+  assert(!landed.startsWith("/onboarding"), `a setup wizard still stands at ${landed}`);
+  return `landed on ${landed}`;
 });
 
 /* -------------------------------------------------------------- 3.5 -- */
 await stage("the vault is set up before anything needs it", async () => {
   /*
-   * Onboarding ends here when there is no vault yet, because both privacy
-   * modes write to this device first and nothing can be stored until the key
-   * exists. If the product already routed us to the workspace the vault was
-   * configured, and there is nothing to do.
+   * Both privacy modes still write to this device first, and nothing can be
+   * stored until the key exists. Nothing routes anybody here any more, so the
+   * journey goes and does it — which is also what a real new account has to do.
    */
   if (!page.url().includes("/settings/vault")) {
     await goto("/settings/vault");
   }
-  /*
-   * The welcome tour opens over whatever the app navigated to, so it has to be
-   * dismissed here as well as after each `goto` — arriving by the product's own
-   * redirect is exactly the case that skips the usual dismissal.
-   */
+  // The legal consent gate can open over whatever the app navigated to, so it
+  // is dismissed here as well as after each `goto`.
   await clearModals();
   const text = await bodyText();
   if (/Vault unlocked/i.test(text)) return "already unlocked";

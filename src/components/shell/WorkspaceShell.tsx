@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { WelcomeTour } from "@/components/onboarding/WelcomeTour";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { MotionScope } from "@/components/motion/MotionScope";
 import {
@@ -367,7 +366,7 @@ function WorkspaceShellInner({
               collapsed ? "justify-center px-2" : "px-4",
             )}
           >
-            <Link to="/home" aria-label="CARCC CADANE home" className="inline-flex">
+            <Link to="/ocade" aria-label="CARCC CADANE home" className="inline-flex">
               <BrandMark className={collapsed ? "[&_.flex-col]:hidden" : ""} />
             </Link>
           </div>
@@ -491,8 +490,6 @@ function WorkspaceShellInner({
                 if the observer never runs — see MotionScope. */}
             <MotionScope>{children}</MotionScope>
           </div>
-          {/* Three-step welcome, once per account. Renders nothing afterwards. */}
-          <WelcomeTour />
         </main>
 
         {/* Adaptive Copilot panel */}

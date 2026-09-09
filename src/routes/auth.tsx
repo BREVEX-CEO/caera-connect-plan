@@ -24,7 +24,7 @@ import {
   secondsUntilAllowed,
   type ThrottledAction,
 } from "@/lib/auth/throttle";
-import { safeNext } from "@/lib/auth/safe-next";
+import { DEFAULT_NEXT, safeNext } from "@/lib/auth/safe-next";
 import { cn } from "@/lib/utils";
 import { describeOAuthError, readOAuthErrorFromUrl } from "@/lib/auth/oauth-errors";
 import { authProviderAvailability } from "@/lib/auth/provider-availability";
@@ -45,7 +45,7 @@ export const Route = createFileRoute("/auth")({
     const supabase = await loadSupabaseClient();
     const { data } = await supabase.auth.getSession();
     if (data.session) {
-      const target = safeNext(search.next) ?? "/home";
+      const target = safeNext(search.next) ?? DEFAULT_NEXT;
       throw redirect({ to: target });
     }
   },
@@ -71,7 +71,7 @@ const methods: { id: Method; label: string }[] = [
 function AuthPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
-  const nextPath = safeNext(search.next) ?? "/home";
+  const nextPath = safeNext(search.next) ?? DEFAULT_NEXT;
   const [method, setMethod] = useState<Method>(methods[0]?.id ?? "email");
   const [busy, setBusy] = useState(false);
   const inboundOAuthError = readOAuthErrorFromUrl(
@@ -112,7 +112,7 @@ function AuthPage() {
     try {
       const result = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: `${window.location.origin}/auth/callback${
-          nextPath !== "/home" ? `?next=${encodeURIComponent(nextPath)}` : ""
+          nextPath !== DEFAULT_NEXT ? `?next=${encodeURIComponent(nextPath)}` : ""
         }`,
       });
       if (result.error) {
@@ -245,7 +245,7 @@ function AuthPage() {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback${
-            nextPath !== "/home" ? `?next=${encodeURIComponent(nextPath)}` : ""
+            nextPath !== DEFAULT_NEXT ? `?next=${encodeURIComponent(nextPath)}` : ""
           }`,
         },
       });
@@ -424,7 +424,7 @@ function AuthPage() {
       options: {
         shouldCreateUser: creating,
         emailRedirectTo: `${window.location.origin}/auth/callback${
-          nextPath !== "/home" ? `?next=${encodeURIComponent(nextPath)}` : ""
+          nextPath !== DEFAULT_NEXT ? `?next=${encodeURIComponent(nextPath)}` : ""
         }`,
       },
     });
