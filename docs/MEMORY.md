@@ -4,7 +4,7 @@
 
 OCADE is in a production-completion mission. The audited implementation baseline is `main` commit `5b967735267fb650df63d02d76788ba620353cc4` (`feat: integrate OCADE mission through Block 9`). That baseline consolidated prior Claude/Codex work through Block 9. The canonical implementation authority is root `PLAN.md`; later documentation-only commits may advance `main` without changing the implementation baseline described by the plan.
 
-The current documentation-cleanup checkpoint on `main` is `5440321cb4ceb962f541e2b8ed994d8965234d7a`. The repository has 77 tracked Markdown files after three superseded ADR files were consolidated into `docs/DECISIONS.md` and removed. The protected authority set remains intact.
+The 2026-09-09 Markdown cleanup checkpoint at `5440321cb4ceb962f541e2b8ed994d8965234d7a` left 77 tracked Markdown files after three superseded ADR files were consolidated into `docs/DECISIONS.md` and removed. The protected authority set remained intact; later documentation-only authority repairs may advance `main` beyond that historical checkpoint.
 
 The canonical documentation set is now intentionally role-specific: `docs/PRD.md`, `docs/TRD.md`, `docs/APP_FLOW.md`, `docs/UI UX Brief.md`, `docs/DESIGN.md`, `docs/ARCHITECTURE.md`, `docs/Backend Schema.md`, `docs/RULES.md`, `docs/TESTING.md`, this file and `docs/DECISIONS.md`. `CLAUDE.md` remains the single AI handbook and `PLAN.md` remains the sole implementation sequence. `AGENTS.md` is intentionally absent.
 
