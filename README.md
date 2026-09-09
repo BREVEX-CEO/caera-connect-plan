@@ -58,7 +58,7 @@ Free uses the shared 28-successful-AI-requests / 388-minute window. Paid usage u
 
 ## Current Repository State
 
-The current production-completion plan was audited from `main` commit `5b967735267fb650df63d02d76788ba620353cc4`, which consolidated prior Claude/Codex work through Block 9. The documentation authority was later consolidated on `main` at `73d1e08d9eb595f9621e30787f4ad8fab1a84d5d`; later documentation-only commits may advance `main` without changing the implementation baseline described by `PLAN.md`.
+The current production-completion plan was audited from `main` commit `5b967735267fb650df63d02d76788ba620353cc4`, which consolidated prior Claude/Codex implementation work through Block 9. Later documentation-only commits have advanced `main` while preserving that implementation baseline distinction. The current authority set includes the separate TRD, UI UX Brief and Backend Schema, and the 2026-09-09 Markdown cleanup consolidated the former standalone ADR decisions into `docs/DECISIONS.md`.
 
 That implementation baseline already has extensive tests, generated evidence, local-model/runtime foundations, extension/native/mobile source, Supabase schema and release tooling, but the plan also records known remaining defects and architectural migrations. **The repository is not considered production-complete merely because this documentation exists.** Follow `PLAN.md` phase by phase and prove the exact final implementation tree.
 
@@ -91,7 +91,7 @@ The repository includes an approved donor integration/provenance system for `OCA
 
 ## Evidence and Historical Documents
 
-Audit reports, readiness contracts, ADRs, provenance, legal documents, security/breach procedures, runbooks, generated ledgers and release evidence remain useful supporting records. Some preserve historical states and may contain wording superseded by the canonical documents. They cannot override the current product/architecture/implementation authorities, but they must not be deleted unless their unique evidence/operational value and repository references have been safely retired.
+Audit reports, readiness contracts, provenance, legal documents, security/breach procedures, runbooks, generated ledgers and release evidence remain useful supporting records. Some preserve historical states and may contain wording superseded by the canonical documents. The former standalone ADR decisions now live in `docs/DECISIONS.md`. Supporting records cannot override current product/architecture/implementation authorities, but they must not be deleted unless their unique evidence/operational value and repository references have been safely retired.
 
 ## Licence
 
