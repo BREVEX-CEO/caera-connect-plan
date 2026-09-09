@@ -2,7 +2,7 @@
 
 ## Purpose and authority
 
-This is the sole OCADE implementation plan. It replaces earlier continuation/block plans and incorporates the still-valid requirements from the former `PLAN.md`, Codex plans, mission documents, donor evidence, payment/refund/Admin-grant specification and the current canonical documentation set. Product scope is in `docs/PRD.md`; routes/journeys in `docs/APP_FLOW.md`; UI/UX in `docs/DESIGN.md`; technical/data/API architecture in `docs/ARCHITECTURE.md`; engineering constraints in `docs/RULES.md`; testing in `docs/TESTING.md`; current handoff in `docs/MEMORY.md`; durable decisions in `docs/DECISIONS.md`. Do not create another master plan.
+This is the sole OCADE implementation plan. It replaces earlier continuation/block plans and incorporates the still-valid requirements from the former `PLAN.md`, Codex plans, mission documents, donor evidence, payment/refund/Admin-grant specification and the current canonical documentation set. Product scope is in `docs/PRD.md`; implementation-level technical requirements in `docs/TRD.md`; routes/journeys in `docs/APP_FLOW.md`; concise experience intent in `docs/UI UX Brief.md`; detailed UI/UX in `docs/DESIGN.md`; system/API/deployment architecture in `docs/ARCHITECTURE.md`; the backend data contract in `docs/Backend Schema.md`; engineering constraints in `docs/RULES.md`; testing in `docs/TESTING.md`; current handoff in `docs/MEMORY.md`; durable decisions in `docs/DECISIONS.md`. Do not create another master plan.
 
 Work from a fresh fetch of `origin/main` on one isolated completion branch. Preserve unknown work. Do not reset/clean destructively, force-push or rewrite published history. `main` remains untouched until the exact reconciled final tree passes the complete final matrix. Focused phase checks run during implementation; the final merge uses the exact verified tree.
 
@@ -36,11 +36,11 @@ Establish import/ownership boundaries, split materially mixed files such as the 
 
 ### Phase 2 — Supabase canonical persistence
 
-Move conversations/messages, Projects, Tasks/runs/events/approvals, Artifacts/versions/provenance, Memory, settings, notifications and ordinary account data to typed Supabase repositories; use private Storage for files/artifact bodies. Add RAM-only unsynced turns with idempotent reconnect sync and close/reload/sign-out warnings. Incognito never persists. Add a static prohibition against ordinary content in IndexedDB/localStorage/OPFS/Cache Storage/browser vaults. Gate: ordinary user content has one persistent authority—Supabase/Storage.
+Follow `docs/Backend Schema.md` and move conversations/messages, Projects, Tasks/runs/events/approvals, Artifacts/versions/provenance, Memory, settings, notifications and ordinary account data to typed Supabase repositories; use private Storage for files/artifact bodies. Add RAM-only unsynced turns with idempotent reconnect sync and close/reload/sign-out warnings. Incognito never persists. Add a static prohibition against ordinary content in IndexedDB/localStorage/OPFS/Cache Storage/browser vaults. Gate: ordinary user content has one persistent authority—Supabase/Storage.
 
 ### Phase 3 — Supabase security, Auth, MFA and schema reconciliation
 
-Semantically reconcile source/live migrations before applying changes. Repair RLS, grants, Storage policies, privileged functions/search paths, indexes and generated types. Complete email/password, verification/OTP and configured Google OAuth, session restore/expiry/revocation, optional ordinary-user MFA and recent AAL2 for dangerous organization/Admin/support/billing actions. Gate: no client-controlled ownership, unintended elevated function or cross-tenant data path.
+Using the data/RLS/migration contract in `docs/Backend Schema.md`, semantically reconcile source/live migrations before applying changes. Repair RLS, grants, Storage policies, privileged functions/search paths, indexes and generated types. Complete email/password, verification/OTP and configured Google OAuth, session restore/expiry/revocation, optional ordinary-user MFA and recent AAL2 for dangerous organization/Admin/support/billing actions. Gate: no client-controlled ownership, unintended elevated function or cross-tenant data path.
 
 ### Phase 4 — Commercial usage and offline leases
 
@@ -98,7 +98,7 @@ Add privacy-safe structured diagnostics for release/operation/error class/latenc
 
 ### Phase 17 — Final OCADE UI/UX consolidation
 
-Only after logic/information architecture stabilizes, implement `docs/DESIGN.md`. Use Claude as the primary interaction/information-architecture benchmark, ChatGPT for universal chat/composer polish and OpenClaw for transparent autonomy/control patterns, while keeping original OCADE branding/assets/code and avoiding pixel-for-pixel trade dress. Remove duplicate buttons/toolbars, keep one obvious primary action, move secondary actions contextually, remove old More, implement sparse Projects/Tasks/Artifacts/Customize, shared Chat/Cowork/Code shell, complete light/dark appearances and all empty/loading/error/recovery states. Jarvis is the expressive exception; ordinary surfaces remain calm. Gate: visual route/control matrix is coherent, responsive, reachable and distinctly OCADE.
+Only after logic/information architecture stabilizes, implement the experience intent in `docs/UI UX Brief.md` and the detailed design system in `docs/DESIGN.md` together. Use Claude as the primary interaction/information-architecture benchmark, ChatGPT for universal chat/composer polish and OpenClaw for transparent autonomy/control patterns, while keeping original OCADE branding/assets/code and avoiding pixel-for-pixel trade dress. Remove duplicate buttons/toolbars, keep one obvious primary action, move secondary actions contextually, remove old More, implement sparse Projects/Tasks/Artifacts/Customize, shared Chat/Cowork/Code shell, complete light/dark appearances and all empty/loading/error/recovery states. Jarvis is the expressive exception; ordinary surfaces remain calm. Gate: visual route/control matrix is coherent, responsive, reachable and distinctly OCADE.
 
 ### Phase 18 — Localization, accessibility, performance and defect cleanup
 
