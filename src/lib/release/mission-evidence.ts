@@ -60,7 +60,7 @@ const section = (
   remainingAction,
 });
 
-export const MISSION_SECTION_STATES: readonly MissionSectionState[] = [
+const LEGACY_MISSION_SECTION_STATES: readonly MissionSectionState[] = [
   section(
     "1",
     29,
@@ -532,6 +532,24 @@ export const MISSION_SECTION_STATES: readonly MissionSectionState[] = [
   ),
 ] as const;
 
+/** Current PLAN.md is phase-based; the legacy section map remains below as audit history only. */
+export const MISSION_SECTION_STATES: readonly MissionSectionState[] = Array.from(
+  { length: 21 },
+  (_, phase) =>
+    section(
+      String(phase),
+      phase + 1,
+      phase === 0 ? "PARTIAL" : "NOT_STARTED",
+      phase === 0 ? "SOURCE_PRESENT" : "SPECIFIED",
+      "PLAN.md",
+      ["docs/MEMORY.md"],
+      `Complete and verify PLAN.md Phase ${phase}`,
+      `Execute the focused implementation and verification gate for Phase ${phase}.`,
+    ),
+);
+
+void LEGACY_MISSION_SECTION_STATES;
+
 function stableHash(input: string): string {
   let hash = 0x811c9dc5;
   for (let index = 0; index < input.length; index += 1) {
@@ -577,7 +595,9 @@ export function extractPlanRequirements(planText: string): ExtractedPlanRequirem
     }
     if (inFence) continue;
 
-    const h2 = line.match(/^##\s+((?:\d+[A-Z]?|[A-P]))\.\s+(.+)$/);
+    const h2 =
+      line.match(/^###\s+Phase\s+(\d+)\s+[—-]\s+(.+)$/) ??
+      line.match(/^##\s+((?:\d+[A-Z]?|[A-P]))\.\s+(.+)$/);
     if (h2) {
       flush();
       currentSection = h2[1]!;

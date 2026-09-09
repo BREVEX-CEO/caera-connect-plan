@@ -2,11 +2,11 @@
 
 > **Do not use the percentages or “buildable remainder: None” claims below for
 > release decisions.** Phase 29 proved that this 2026-07-28 document conflated
-> declared/source progress with requirement-bound evidence. The executable
-> authority is now
-> [`OCADE_P29_FINAL_READINESS.json`](./OCADE_P29_FINAL_READINESS.json), produced
-> by `npm run readiness:publish` and enforced by `npm run readiness:check`.
-> The historical text remains only to preserve the audit trail.
+> declared/source progress with requirement-bound evidence. The former Phase 29
+> readiness artifact and commands are no longer present in the current tree;
+> current release authority is `PLAN.md`, `docs/TESTING.md`, the generated
+> evidence ledgers and `release/OCADE_RELEASE_CHECKLIST.md`. The historical text
+> remains only to preserve the audit trail.
 >
 > **The "buildable remainder: None" claim is now concretely disproven, not just distrusted.**
 > Of the 27 requirements at NOT STARTED in the 510-row register, **25 need no credential, device,

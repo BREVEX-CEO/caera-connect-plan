@@ -109,7 +109,7 @@ This is a behavioral reference only. It does not import Anthropic source, prompt
 - Reason: The share/revoke checkpoint implements a bounded snapshot and keeps attachment/tool internals private.
 - Surfaces: web, desktop, mobile
 - Required tests: `src/lib/chat/__tests__/conversation-sharing.test.ts`
-- Evidence: `src/routes/share.$token.tsx`, `docs/mission/OCADE_EXECUTION_STATE.md`
+- Evidence: `src/routes/share.$token.tsx`, `docs/MEMORY.md`
 
 ### COWORK-SHARED-COMPOSER
 

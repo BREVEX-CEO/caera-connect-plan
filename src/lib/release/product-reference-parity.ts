@@ -174,7 +174,7 @@ export const PRODUCT_REFERENCE_PARITY: readonly ProductParityRecord[] = [
     disposition: "PARITY",
     implementationState: "complete",
     requiredTests: ["src/lib/chat/__tests__/conversation-sharing.test.ts"],
-    evidence: ["src/routes/share.$token.tsx", "docs/mission/OCADE_EXECUTION_STATE.md"],
+    evidence: ["src/routes/share.$token.tsx", "docs/MEMORY.md"],
     reason:
       "The share/revoke checkpoint implements a bounded snapshot and keeps attachment/tool internals private.",
   }),

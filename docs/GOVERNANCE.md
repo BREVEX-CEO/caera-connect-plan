@@ -173,14 +173,13 @@ contract explicitly excludes synthetic fixtures.
 
 ## 10. Portfolio management (AZ-450)
 
-One product ships: **OCADE**. FICIA, MADEE and CANIA are reserved names behind
-placeholder routes.
+One product ships: **OCADE**. FICIA, MADEE and CANIA are retired product names,
+not active destinations or actionable placeholders. The current decision and its
+historical reasoning are recorded in
+[`DECISIONS.md`](DECISIONS.md#ocade-is-the-only-shipped-product). Three half-built
+products made the repository read as further along than it was, carried most of the
+lint risk around untyped employee and timesheet data, and displayed placeholder figures
+that looked like working software.
 
-The decision and its reasoning are recorded in
-[`adr/0001-one-product.md`](adr/0001-one-product.md). The short version: three
-half-built products made the whole repository read as further along than it was, carried
-196 of 231 lint warnings on untyped employee and timesheet data, and offered dashboards
-of placeholder figures that looked like working software.
-
-A retired product returns only through §2 feature intake and §3 architecture review, from
-the placeholder route outward — not by restoring deleted screens.
+A retired product returns only through §2 feature intake and §3 architecture review,
+not by restoring deleted screens from Git history.
