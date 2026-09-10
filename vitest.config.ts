@@ -30,6 +30,8 @@ const DATABASE_BACKED = [
   "src/lib/__tests__/user-isolation.test.ts",
   "src/lib/account/__tests__/data-rights-map.test.ts",
   "src/lib/commercial/__tests__/gate-against-postgres.test.ts",
+  "src/lib/commercial/__tests__/ledger-against-postgres.test.ts",
+  "src/lib/commercial/__tests__/offline-capacity-against-postgres.test.ts",
   "src/lib/notifications/__tests__/notification-schema.test.ts",
   "src/lib/admin/__tests__/admin-operations-schema.test.ts",
   "src/lib/support/__tests__/support-publishing-schema.test.ts",

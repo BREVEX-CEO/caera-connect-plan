@@ -118,10 +118,22 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 4 — Commercial usage and offline leases. Phase 3 applied the authority it builds on:
-`ocade_generation_permits` with acquire/finalize/release and the one-time transport claim, and
-`ocade_device_usage_keys`, `ocade_device_usage_leases`, `ocade_offline_usage_allocations` and
-`ocade_offline_usage_events` with allocate/activate/reconcile/return. Do not create a second one.
+Phase 4 (commercial usage and offline leases) is complete. Phase 3 is what unblocked it: the permit
+and offline-lease tables and functions were in source but not in the live database, so the binding
+was calling RPCs the deployment did not have. The phase's own work was proving the parts nothing
+owned — the binding's own arguments against the real functions (every surface and tier the types
+allow is one the database accepts), and the capacity arithmetic ACROSS mechanisms: two devices draw
+from one pool, an offline block and a connected request spend the same allowance in both directions,
+and returning a block gives the capacity back to the account rather than to the device. One risk was
+closed on the way: the durable half of `CommercialUsageLedger` is optional and the gate falls back to
+an in-memory reservation without it, so its presence on the production binding is now asserted —
+otherwise a refactor could move money-keeping out of Postgres silently.
+
+Next is Phase 5 — OCADE Intelligence, Gemini and model lifecycle. One `OcadeIntelligence` boundary
+after permit acquisition; Gemini 3.1 Flash-Lite pinned to exactly three server secret slots with
+primary-first health failover only before meaningful output; Local-only producing zero provider
+traffic of any kind. Then first-visit Offline Intelligence preparation that verifies before it
+fetches, resumes rather than restarts, and never redownloads a verified model.
 
 One known external item remains from Phase 3: `auth_leaked_password_protection` is disabled in
 Supabase Auth. It is a dashboard setting with no repository path, recorded in

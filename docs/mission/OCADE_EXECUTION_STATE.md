@@ -282,10 +282,71 @@ and `organization-assurance.test.ts` hold those three properties against real Po
 security advisors report no `function_search_path_mutable` and live performance advisors no
 `unindexed_foreign_keys` and no `multiple_permissive_policies`.
 
+## Phase 4 — Commercial usage and offline leases (COMPLETE)
+
+Phase 3 is what unblocked this: `ocade_generation_permits`, the four offline-usage tables and the
+acquire/finalize/release, allocate/activate/reconcile/return and transport-claim functions were in
+source but not in the live database, so `supabase-ledger.ts` was calling RPCs the deployment did not
+have. They are applied now, and the phase's own work was proving the parts nothing owned.
+
+### What was already right, and was verified rather than rebuilt
+
+Free counts USES — twenty-eight per 388-minute window, one per logical request whatever it cost to
+serve — and is shown as raw counts because a person has to plan around twenty-eight of something.
+Pro and Max count weighted work and are shown as a percentage with a reset, because an equivalent is
+not a unit anybody can convert into their own work; Max is `PRO * 10` written as a multiplication so
+it cannot drift into approximately ten times Pro. Windows anchor to the account's own creation rather
+than to a fixed UTC boundary, which spreads the resets out and puts each person's boundary in the
+same place in their own day. Retries, tool loops, subagents and key failover are one permit under one
+idempotency key; a failure or a cancellation before any output reached the person charges nothing.
+`generation-gate.test.ts` holds all of that, and `every-ai-surface-is-gated.test.ts` holds the
+structural half — every model-running call site acquires a permit, settles it in a `finally`, and
+refuses before it runs anything.
+
+### The two seams nothing was watching
+
+**The binding's arguments had never met the real functions.**
+`supabase-ledger.test.ts` asserts the RPC names and arguments against a mock; the migration's
+verification calls those functions correctly from SQL. Both pass, and neither proves THE TWO AGREE. A
+`p_surface` the TypeScript union allows and the CHECK constraint refuses, a `p_tier` capitalised on
+one side, a renamed parameter — each passes both halves and fails in production, on money.
+`ledger-against-postgres.test.ts` drives the production binding, unmodified, through a client shim
+whose only job is to turn its `.rpc()` calls into SQL against real PostgreSQL, using NAMED-argument
+syntax so a renamed parameter fails the way PostgREST would. Every `GenerationSurface` and every
+`PlanTier` the types allow is asserted to be one the database accepts, so adding a surface to one
+side without the other fails there rather than at somebody's send button.
+
+**Capacity was proved per function, never across them.** The gate is "possible consumption cannot
+exceed authoritative capacity", and the word doing the work is POSSIBLE — everything an account could
+still spend without asking anybody. There are two places it can be held: a connected request's
+reservation on a durable permit, and a signed offline block a device can spend with the network down.
+`offline-capacity-against-postgres.test.ts` proves the arithmetic between them: two devices draw from
+one pool rather than one each, an offline block spends the same allowance a connected request does in
+both directions, returning a block gives the capacity back to the ACCOUNT, reconciling one device
+cannot move another's lease, a replayed upload is not counted twice, and a forked chain claiming a
+settled sequence is refused.
+
+### One risk closed while proving it
+
+`CommercialUsageLedger` declares the whole durable half — `acquirePermit`, `finalizePermit`,
+`releasePermit`, `expirePermits`, `readCurrent` — as OPTIONAL, and the gate falls back to an
+in-memory reservation when they are absent. The fallback is the right trade: it is what lets the
+gate's rules be tested exhaustively without a database. But it means a refactor that dropped one of
+those methods from the production binding would not fail to compile — it would silently move
+money-keeping out of Postgres and into a server process, where a restart loses it and two instances
+disagree. Their presence on the production binding is now asserted.
+
+### Gate
+
+Possible consumption cannot exceed authoritative capacity, proved against real PostgreSQL across both
+mechanisms and two devices. 152 commercial tests pass, 36 of them against the database.
+
 ## Next action
 
-Phase 4 — Commercial usage and offline leases. The tables and functions Phase 3 applied
-(`ocade_generation_permits`, `ocade_device_usage_keys`, `ocade_device_usage_leases`,
-`ocade_offline_usage_allocations`, `ocade_offline_usage_events`, and the acquire/finalize/release,
-allocate/activate/reconcile/return and transport-claim functions) are the authority Phase 4 builds
-on; do not create a second one.
+Phase 5 — OCADE Intelligence, Gemini and model lifecycle. Two halves: one `OcadeIntelligence`
+boundary after permit acquisition with Gemini 3.1 Flash-Lite pinned to exactly three server secret
+slots and primary-first health failover only before meaningful output — Local-only producing zero
+provider DNS, fetch, preconnect or health traffic — and first-visit Offline Intelligence preparation
+that verifies manifest, chunks and hashes before fetching, resumes interrupted ranges, repairs only
+what is missing or corrupt, and never redownloads a verified model across reload, sign-in or -out,
+account deletion, a service-worker or application deployment, or an ordinary revisit.
