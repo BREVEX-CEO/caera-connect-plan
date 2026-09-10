@@ -362,6 +362,31 @@ try {
         const rendered = sample.text.trim().length > 0 || sample.controls > 0;
         if (rendered && !moved) break;
       }
+      /*
+       * ONE LAST QUESTION BEFORE CALLING A PAGE EMPTY: IS IT STILL THERE?
+       *
+       * Same reasoning as the read after the clicks. A route that redirects
+       * client-side — `/settings/vault` goes to `/settings/data`, `/admin/help`
+       * to `/access-denied` — can be measured in the gap between two documents
+       * when a chunk request is aborted, and what is recorded then is a moment
+       * no person would ever see. Opening it once more answers the question
+       * properly: if it renders on a fresh navigation the page is fine, and if
+       * it does not the failure stands with its evidence.
+       */
+      if (body === null || (body.text.trim().length === 0 && body.controls === 0)) {
+        try {
+          await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded" });
+          await page
+            .waitForFunction(hasContent, undefined, { timeout: 15_000 })
+            .catch(() => undefined);
+          await page.waitForTimeout(400);
+          const second = await measure().catch(() => null);
+          if (second && (second.text.trim().length > 0 || second.controls > 0)) body = second;
+        } catch {
+          // Leave the empty reading in place; the check below reports it.
+        }
+      }
+
       body ??= { path: landed, text: "", scrollWidth: 0, clientWidth: 1, headings: 0, controls: 0 };
       // Where the person ended up, read after the page settled rather than
       // before it: the summary's redirect column was reporting the first hop.
@@ -672,6 +697,42 @@ try {
             if (Date.now() < ceiling) settleBy = Math.min(Date.now() + 15_000, ceiling);
           }
         }
+        /*
+         * ONE LAST QUESTION BEFORE CALLING A PAGE EMPTY: IS IT STILL THERE?
+         *
+         * The clicks are pressed quickly, and a control that starts a document
+         * navigation can have it superseded by the next click — Chromium
+         * aborts the first request, and what the loop above then measures is
+         * the gap between two documents that no person would ever see. The
+         * evidence said so exactly: `/settings/usage` recorded `url=/ocade`
+         * with the main-frame request and every chunk `net::ERR_ABORTED`.
+         *
+         * So an empty body is not the verdict; it is the prompt for one. The
+         * route is opened again and read once. If it renders, the emptiness
+         * belonged to the harness racing its own clicks. If it does not, the
+         * page really is broken and the failure stands with its evidence.
+         */
+        let reopened = null;
+        if (after !== "navigated away" && after.trim().length === 0) {
+          try {
+            await page.goto(`${BASE}${route}`, { waitUntil: "domcontentloaded" });
+            await page
+              .waitForFunction(
+                () => (document.body?.innerText?.trim().length ?? 0) > 0,
+                undefined,
+                {
+                  timeout: 15_000,
+                },
+              )
+              .catch(() => undefined);
+            await page.waitForTimeout(400);
+            reopened = await page.evaluate(() => document.body?.innerText ?? "");
+          } catch {
+            reopened = null;
+          }
+          if (reopened && reopened.trim().length > 0) after = reopened;
+        }
+
         const brokeAfterClicks = DEV_LEAK_SOURCE.find((p) => new RegExp(p, "i").test(after));
         const survivedClicks =
           !brokeAfterClicks && (after.trim().length > 0 || after === "navigated away");

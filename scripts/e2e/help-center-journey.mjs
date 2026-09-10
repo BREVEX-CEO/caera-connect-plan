@@ -66,9 +66,25 @@ page.on("console", (message) => {
   consoleErrors.push(text);
 });
 page.on("pageerror", (error) => consoleErrors.push(`PAGEERROR: ${error.message.slice(0, 200)}`));
-page.on("requestfailed", (request) =>
-  failedRequests.push(`${request.url()} ${request.failure()?.errorText ?? "?"}`),
-);
+page.on("requestfailed", (request) => {
+  const error = request.failure()?.errorText ?? "?";
+  /*
+   * A CANCELLATION IS NOT A FAILURE.
+   *
+   * `net::ERR_ABORTED` is Chromium saying the CLIENT stopped the request —
+   * which is what happens to every module prefetch still in flight when the
+   * journey navigates, and this journey navigates constantly. Counting those
+   * made the check report a broken help centre while every page it visited
+   * rendered perfectly, and there is no version of the product where that
+   * report is useful.
+   *
+   * Everything else still counts. A server that hangs up gives
+   * `ERR_EMPTY_RESPONSE` or `ERR_CONNECTION_RESET`, a missing host gives
+   * `ERR_NAME_NOT_RESOLVED`, and none of those is a cancellation.
+   */
+  if (error.includes("ERR_ABORTED")) return;
+  failedRequests.push(`${request.url()} ${error}`);
+});
 
 /*
  * A 404 is an ANSWER, not a failed request — `requestfailed` fires for

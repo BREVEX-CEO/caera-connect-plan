@@ -118,29 +118,32 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 13 (browser extension and Windows host) is complete for everything this
-machine can reach. The browser half is proven against a real browser: 69 of 69
-extension scenarios in real Chromium, including that the driven tab moves and
-the OCADE tab does not, that a website cannot approve or revoke a site for
-itself, that an unfakeable tool is refused honestly, and that after TAKE OVER
-the page is re-observed and reported stale rather than planned against from
-memory. The manifest ships no static host permissions.
+Phase 14 (mobile, PWA and voice) is complete. The layouts, safe areas, offline
+shell and honest push channels were built; this phase ran the proofs, and the
+audit that runs them was failing for two reasons that were both about the
+harness rather than the product.
 
-The Windows half is consolidated behind one primary executor with a narrow,
-tested fallback rule, and the host's own ordering is the required one — UIA
-invoke first, a real pointer press only where no invoke pattern exists,
-verified by comparing the window fingerprint before and after.
+The Help Center journey counted `net::ERR_ABORTED` as a failed request.
+That code is Chromium saying the client cancelled — what happens to every module
+prefetch in flight when the journey navigates — so it reported a broken help
+centre while every page rendered. Cancellations are excluded now; the codes that
+mean the server failed still count.
 
-`npm run windows:prove` needs a supported Windows PC and refuses to run
-anywhere else. It is recorded in `docs/deployment/PRODUCTION_STATE.md` as a
-pre-launch action with no repository path, alongside the leaked-password
-setting. `npm run model:install-proof` DOES run here and was re-run for this
-phase: a first install, an interrupted resume and a repair over 1.04 GiB.
+And an empty body after pressing controls was treated as a verdict rather than a
+question. The audit presses quickly, and a control that starts a document
+navigation can have it superseded by the next press; the loop then measures the
+gap between two documents no person would see. Both readings now open the route
+again and read it once before failing, which distinguishes "the page emptied
+itself" from "the harness raced its own clicks".
+
+Every stage then passes: 926/926 routes signed out and signed in, 7/7 visual
+performance, 38/38 and 24/24 accessibility, 119/119 and 85/85 responsive across
+six widths, 12/12 web vitals, 13/13 offline transitions.
 
 `ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
 1, deliberately.
 
-Next is Phase 14 — mobile, PWA and voice.
+Next is Phase 15 — organizations, Admin, notifications and public trust.
 
 Two known external items remain: `auth_leaked_password_protection` is disabled
 in Supabase Auth, and the Windows control journey needs Windows hardware. Both

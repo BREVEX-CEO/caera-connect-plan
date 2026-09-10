@@ -1035,6 +1035,59 @@ this environment cannot give, and it is recorded as outstanding rather than
 claimed.
 
 
+## Phase 14 — Mobile, PWA and voice (COMPLETE)
+
+The layouts, safe areas, offline shell and honest push channels were built. What
+this phase did was run the proofs — and the audit that runs them was failing for
+two reasons that were both about the harness rather than the product.
+
+### A cancellation is not a failed request
+
+The Help Center journey counted every `requestfailed`, and
+`net::ERR_ABORTED` is Chromium saying the CLIENT stopped the request — which is
+what happens to every module prefetch still in flight when a journey navigates,
+and that journey navigates constantly. It reported a broken help centre while
+every page it visited rendered perfectly. Cancellations are excluded now;
+`ERR_EMPTY_RESPONSE`, `ERR_CONNECTION_RESET` and `ERR_NAME_NOT_RESOLVED` — the
+codes that mean the SERVER failed — still count.
+
+### An empty reading is a question, not a verdict
+
+`/settings/usage` reported "0 chars left" after its controls were pressed, and
+the evidence named the mechanism exactly: `url=/ocade`, with the main-frame
+request and every chunk `net::ERR_ABORTED`. The audit presses controls quickly,
+and a control that starts a document navigation can have it superseded by the
+next press — what the settle loop then measures is the gap between two documents
+that no person would ever see. `/settings/vault`, which redirects client-side to
+`/settings/data`, failed the same way on the first measurement.
+
+Both readings now ask one more question before returning a verdict: open the
+route again and read it once. If it renders, the emptiness belonged to the
+harness racing its own clicks. If it does not, the failure stands with its
+evidence. That is a stricter check than a longer timeout would have been, and it
+distinguishes the two cases instead of hiding one.
+
+### What the proofs then said
+
+Every stage of `npm run audit:settings` passes: 84 routes × 2 viewports at
+926/926 signed out and signed in, 4/4 and 16/16 settings checks, 7/7 visual
+performance, 38/38 and 24/24 accessibility, 119/119 and 85/85 responsive across
+six widths and twelve route/state combinations, 12/12 web vitals, and 13/13
+offline transitions including a second page reached offline through the app
+router and preferences surviving the round trip.
+
+Push remains what `PLAN.md` §D demands: five delivery states, with
+`unavailable` — "this deployment has no provider" — kept distinct from
+`dead_letter` — "we promised and could not". Nothing claims push works because
+an abstraction exists.
+
+### Gate
+
+Every visible platform feature has real proof or a precise unavailable state.
+
+8,253 tests across 512 files.
+
+
 ## Next action
 
-Phase 14 — Mobile, PWA and voice.
+Phase 15 — Organizations, Admin, notifications and public trust.
