@@ -16,7 +16,7 @@ describe("unreachable auth server", () => {
     { name: "AuthRetryableFetchError", message: "Failed to fetch", status: 0 },
     { name: "TypeError", message: "Failed to fetch" },
     { name: "TypeError", message: "NetworkError when attempting to fetch resource." },
-    { name: "Error", message: "getaddrinfo ENOTFOUND ubantxggjducfmwoydim.supabase.co" },
+    { name: "Error", message: "getaddrinfo ENOTFOUND sazhgaisyhkdbrooycdv.supabase.co" },
     { name: "Error", message: "connect ECONNREFUSED 127.0.0.1:443" },
     { name: "AbortError", message: "The operation was aborted" },
     { name: "Error", message: "Request timed out" },

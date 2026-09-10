@@ -109,7 +109,7 @@ export async function shareConversation(input: {
     const supabase = await loadSupabaseClient();
     const { data, error } = await supabase.rpc("ocade_share_conversation", {
       p_conversation_id: input.conversationId,
-      p_expires_at: input.expiresAt ?? null,
+      p_expires_at: input.expiresAt ?? undefined,
     });
     if (error) return { ok: false, refusal: shareRefusalOf(error) };
     return { ok: true, value: String(data) };

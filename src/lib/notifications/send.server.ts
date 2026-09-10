@@ -22,6 +22,7 @@
  */
 
 import type { Json } from "@/integrations/supabase/types";
+import { sqlNullable } from "@/lib/supabase/rpc-null";
 import {
   deploymentChannelConfiguration,
   resolveChannels,
@@ -82,7 +83,7 @@ export async function sendNotification(input: NotificationToSend): Promise<SendO
       p_category: input.category,
       p_title: input.title,
       p_body: input.body ?? "",
-      p_deep_link: input.deepLink ?? null,
+      p_deep_link: sqlNullable(input.deepLink),
       p_idempotency_key: input.idempotencyKey,
       p_delivery: delivery as unknown as Json,
     });

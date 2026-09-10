@@ -33,6 +33,18 @@ let organizationId = "";
 /** Seconds past the recent-proof window — old enough that nothing is close. */
 const STALE_SECONDS = Math.floor(RECENT_PROOF_MS / 1000) + 60;
 
+/**
+ * `ocade_organization_invites.token_hash` is constrained to `^[0-9a-f]{64}$` —
+ * the shape of a SHA-256 digest — so a fixture that reads like a label would be
+ * refused by the column before any of these rules ran, and the test would pass
+ * for the wrong reason.
+ */
+const INVITE_HASHES = {
+  stale: "a".repeat(64),
+  fresh: "b".repeat(64),
+  reissued: "c".repeat(64),
+};
+
 async function memberId(userId: string): Promise<string> {
   const rows = await twin.asSuperuser<{ id: string }>(
     `select id from public.ocade_organization_members
@@ -329,6 +341,93 @@ describe("changing what the organization allows", () => {
     await twin.execSuperuser(
       `delete from public.ocade_organization_policies where organization_id = '${organizationId}'`,
     );
+  });
+});
+
+describe("a stale session cannot hand out access", () => {
+  it("refuses to invite an address when the last proof is old", async () => {
+    const attempt = await twin.asTenant(
+      OWNER,
+      `select public.ocade_invite_to_organization(
+         '${organizationId}', 'stranger@example.com', 'owner',
+         '${INVITE_HASHES.stale}', now() + interval '7 days')`,
+      { provedSecondsAgo: STALE_SECONDS },
+    );
+    expect(attempt.error, "a stale session invited an owner").toMatch(/Confirm it is you/i);
+
+    const invited = await twin.asSuperuser<{ count: string }>(
+      `select count(*) from public.ocade_organization_invites
+        where organization_id = '${organizationId}' and email = 'stranger@example.com'`,
+    );
+    expect(Number(invited[0]?.count), "the invitation was written anyway").toEqual(0);
+  });
+
+  it("invites when the proof is recent", async () => {
+    const attempt = await twin.asTenant<{ ocade_invite_to_organization: string }>(
+      OWNER,
+      `select public.ocade_invite_to_organization(
+         '${organizationId}', 'colleague@example.com', 'member',
+         '${INVITE_HASHES.fresh}', now() + interval '7 days')`,
+      { provedSecondsAgo: 5 },
+    );
+    expect(attempt.error).toBeUndefined();
+    expect(attempt.rows[0]?.ocade_invite_to_organization).toBeTruthy();
+  });
+
+  it("refuses to re-issue an invitation link from a stale session", async () => {
+    /*
+     * The address does not change, so this reads harmless. It is not: the old
+     * token stops working and a NEW VALID ONE starts, which is the same
+     * capability as issuing the invitation in the first place.
+     */
+    const invite = await twin.asSuperuser<{ id: string; token_hash: string }>(
+      `select id, token_hash from public.ocade_organization_invites
+        where organization_id = '${organizationId}' and email = 'colleague@example.com'`,
+    );
+    const inviteId = invite[0]?.id ?? "";
+    expect(inviteId).not.toEqual("");
+
+    const attempt = await twin.asTenant(
+      OWNER,
+      `select public.ocade_resend_organization_invite(
+         '${inviteId}', '${INVITE_HASHES.reissued}', now() + interval '7 days')`,
+      { provedSecondsAgo: STALE_SECONDS },
+    );
+    expect(attempt.error, "a stale session minted a fresh invitation token").toMatch(
+      /Confirm it is you/i,
+    );
+
+    const after = await twin.asSuperuser<{ token_hash: string }>(
+      `select token_hash from public.ocade_organization_invites where id = '${inviteId}'`,
+    );
+    expect(after[0]?.token_hash, "the token was replaced anyway").toEqual(invite[0]?.token_hash);
+
+    await twin.execSuperuser(
+      `delete from public.ocade_organization_invites where organization_id = '${organizationId}'`,
+    );
+  });
+
+  it("refuses to give a suspended member their access back from a stale session", async () => {
+    const member = await memberId(MEMBER);
+    await twin.execSuperuser(
+      `update public.ocade_organization_members set state = 'deactivated' where id = '${member}'`,
+    );
+
+    const attempt = await twin.asTenant(
+      OWNER,
+      `select public.ocade_set_organization_member_state('${member}', 'active')`,
+      { provedSecondsAgo: STALE_SECONDS },
+    );
+    expect(attempt.error, "a stale session reactivated a suspended member").toMatch(
+      /Confirm it is you/i,
+    );
+
+    const state = await twin.asSuperuser<{ state: string }>(
+      `select state from public.ocade_organization_members where id = '${member}'`,
+    );
+    expect(state[0]?.state, "the member was reactivated anyway").toEqual("deactivated");
+
+    await resetOrganization();
   });
 });
 

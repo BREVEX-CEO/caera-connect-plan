@@ -49,15 +49,11 @@ beforeEach(async () => {
   await twin.execSuperuser(`delete from public.ocade_conversations`);
 });
 
-/** A synchronised conversation with `turns` messages, owned by `owner`. */
-async function seedConversation(
-  owner: string,
-  turns: string[],
-  privacyMode = "private_sync",
-): Promise<string> {
+/** A conversation with `turns` messages, owned by `owner`. */
+async function seedConversation(owner: string, turns: string[]): Promise<string> {
   const rows = await twin.asSuperuser<{ id: string }>(
-    `insert into public.ocade_conversations (user_id, title, privacy_mode)
-     values ('${owner}', 'How the tides work', '${privacyMode}')
+    `insert into public.ocade_conversations (user_id, title)
+     values ('${owner}', 'How the tides work')
      returning id`,
   );
   const id = rows[0]!.id;
@@ -145,22 +141,18 @@ describe("a share is a snapshot, not a window onto the conversation", () => {
   });
 });
 
-describe("a conversation that lives on the device cannot be shared", () => {
-  for (const mode of ["browser_only", "pc_vault"]) {
-    it(`refuses ${mode} rather than publishing an empty transcript`, async () => {
-      const conversation = await seedConversation(OWNER, ["Local only"], mode);
-      const attempt = await share(OWNER, conversation);
-      /*
-       * The messages of a device-only conversation are not in this database, so
-       * a share built from `ocade_messages` would be an empty transcript
-       * published under a real title — a silent wrong answer, which is worse
-       * than a refusal.
-       */
-      expect(attempt.error).toBeDefined();
-      expect(attempt.errorDetail).toBe("conversation_not_synchronised");
-    });
-  }
-
+describe("a conversation with nothing in it cannot be shared", () => {
+  /*
+   * THE DEVICE-ONLY REFUSAL IS GONE, AND SO IS WHAT IT GUARDED. Sharing used to
+   * refuse a `browser_only` or `pc_vault` conversation, because its messages
+   * were on the person's machine and a share built from `ocade_messages` would
+   * publish an empty transcript under a real title. `PLAN.md` Phase 2 removed
+   * those storage modes: every conversation with a row is in the account, and
+   * an incognito conversation has no row to reach this function with.
+   *
+   * The empty-transcript failure it existed to prevent is still tested — below,
+   * against the condition that actually produces it.
+   */
   it("refuses a conversation with nothing in it", async () => {
     const conversation = await seedConversation(OWNER, []);
     const attempt = await share(OWNER, conversation);

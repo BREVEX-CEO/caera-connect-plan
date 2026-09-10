@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Json } from "@/integrations/supabase/types";
+import { sqlNullable } from "@/lib/supabase/rpc-null";
 import { ALLOWANCES } from "./usage-policy";
 import { resolveTierFor } from "./entitlement-resolver";
 import {
@@ -136,7 +137,7 @@ export const allocateOfflineUsage = createServerFn({ method: "POST" })
       p_request_key: data.requestKey,
       p_tier: entitlement.tier,
       p_session_limit_hundredths: allowance.session * 100,
-      p_week_limit_hundredths: allowance.week === null ? null : allowance.week * 100,
+      p_week_limit_hundredths: sqlNullable(allowance.week === null ? null : allowance.week * 100),
       p_amount_hundredths: incrementHundredths,
       p_preissue: data.preissue,
     });

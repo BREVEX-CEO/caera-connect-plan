@@ -201,7 +201,12 @@ function GeneralPage() {
           <span>Could not load your profile.</span>
           <button
             onClick={() => setReloadKey((key) => key + 1)}
-            className="underline underline-offset-2"
+            /*
+             * A REAL TOUCH TARGET — see the identical control in
+             * `TwoFactorPanel`. Bare underlined text measured 30x16, below the
+             * 24x24 minimum, on the one control a person needs after a failure.
+             */
+            className="inline-flex min-h-6 shrink-0 items-center px-1 underline underline-offset-2"
           >
             Retry
           </button>

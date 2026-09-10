@@ -49,12 +49,19 @@ import type { DeviceMode } from "../brain/device-mode";
  */
 export type EnginePreference = "auto" | "local_only";
 
-/** How the conversation's messages are stored, which gates cloud transfer. */
-export type PrivacyMode = "browser_only" | "pc_vault" | "private_sync";
-
+/*
+ * THERE IS NO `privacyMode` HERE ANY MORE.
+ *
+ * It was `"browser_only" | "pc_vault" | "private_sync"` — the three
+ * per-conversation storage modes `PLAN.md` Phase 2 removed — and it was a
+ * REQUIRED field that `resolveEngine` never read. Every caller had to supply a
+ * value, the hook defaulted it to `"private_sync"`, and the prompt assembler
+ * printed it into the system message, so the model was told about a storage mode
+ * the product does not have. Work is kept in the account; where a request may
+ * run is decided by the fields below, which the function actually reads.
+ */
 export interface EngineContext {
   preference: EnginePreference;
-  privacyMode: PrivacyMode;
   deviceMode: DeviceMode;
   /** An on-device adapter reported itself ready. */
   localAvailable: boolean;

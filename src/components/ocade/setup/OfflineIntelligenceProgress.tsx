@@ -107,9 +107,32 @@ export function OfflineIntelligenceProgress({ className }: { className?: string 
       data-testid="offline-intelligence-progress"
       data-stage={state.stage}
       className={cn(
-        // Lower-left, above ordinary content and BELOW dialogs, so a real
-        // dialog can still cover it and it can never cover one.
-        "fixed bottom-4 left-4 z-40 w-[min(20rem,calc(100vw-2rem))]",
+        /*
+         * `pointer-events-none`, WITH `pointer-events-auto` ON EVERY CONTROL.
+         *
+         * This shipped at `bottom-4 left-4` — the same corner as the sidebar
+         * footer, at the same `z-40` as the sidebar itself — and being rendered
+         * later it painted on top. The Account menu underneath it was
+         * unclickable for the entire time preparation was running, and
+         * PERMANENTLY on a device that failed with `insufficient_storage`,
+         * because that state does not clear on its own. `audit:journey` caught
+         * it: every attempt to sign out timed out with this panel named as the
+         * element intercepting the click.
+         *
+         * A `role="status"` region reports; it does not demand. So it stops
+         * absorbing clicks meant for anything else, and its own buttons opt
+         * back in individually — the same shape `UnsyncedTurnsBridge` already
+         * uses, extended to a panel that has controls of its own.
+         */
+        "pointer-events-none",
+        /*
+         * Raised clear of what lives in that corner: the sidebar's account
+         * button on a desktop, and `OcadeMobileBottomNav` on a phone. The
+         * pass-through above means an overlap can no longer eat a click, but a
+         * readout that visually hides the way out of the account is still
+         * wrong, and a person cannot click what they cannot see.
+         */
+        "fixed bottom-20 left-4 z-40 w-[min(20rem,calc(100vw-2rem))]",
         "rounded-xl border border-border/60 bg-background/95 p-3 text-[12px] shadow-lg backdrop-blur",
         "supports-[backdrop-filter]:bg-background/80",
         className,
@@ -133,7 +156,7 @@ export function OfflineIntelligenceProgress({ className }: { className?: string 
           type="button"
           onClick={() => setDismissed(true)}
           aria-label="Hide preparation status"
-          className="-mr-1.5 -mt-1.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="pointer-events-auto -mr-1.5 -mt-1.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span aria-hidden>×</span>
         </button>
@@ -165,7 +188,7 @@ export function OfflineIntelligenceProgress({ className }: { className?: string 
       ) : null}
 
       {failed && remedies.length > 0 ? (
-        <div className="mt-2 flex flex-wrap gap-1.5">
+        <div className="pointer-events-auto mt-2 flex flex-wrap gap-1.5">
           {remedies.map((remedy) => (
             <RemedyControl
               key={remedy}

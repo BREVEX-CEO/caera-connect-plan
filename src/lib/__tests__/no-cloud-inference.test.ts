@@ -123,7 +123,6 @@ describe("no shipped code can send a prompt to a public AI provider", () => {
 describe("the engine resolver cannot choose a remote engine", () => {
   const base: EngineContext = {
     preference: "auto",
-    privacyMode: "private_sync",
     deviceMode: "pc_web",
     localAvailable: false,
     localLabel: null,
@@ -142,24 +141,21 @@ describe("the engine resolver cannot choose a remote engine", () => {
 
   it("never returns a non-local target, under any combination of inputs", () => {
     for (const preference of ["auto", "local_only"] as const) {
-      for (const privacyMode of ["browser_only", "pc_vault", "private_sync"] as const) {
-        for (const localAvailable of [true, false]) {
-          for (const visionRequired of [true, false]) {
-            for (const localVision of [true, false]) {
-              for (const online of [true, false]) {
-                const d = resolveEngine({
-                  ...base,
-                  preference,
-                  privacyMode,
-                  localAvailable,
-                  localLabel: localAvailable ? "OCADE Local" : null,
-                  localVision,
-                  visionRequired,
-                  online,
-                });
-                if (d.target) expect(d.target.kind).toBe("local");
-                expect(d.consumesAllowance).toBe(false);
-              }
+      for (const localAvailable of [true, false]) {
+        for (const visionRequired of [true, false]) {
+          for (const localVision of [true, false]) {
+            for (const online of [true, false]) {
+              const d = resolveEngine({
+                ...base,
+                preference,
+                localAvailable,
+                localLabel: localAvailable ? "OCADE Local" : null,
+                localVision,
+                visionRequired,
+                online,
+              });
+              if (d.target) expect(d.target.kind).toBe("local");
+              expect(d.consumesAllowance).toBe(false);
             }
           }
         }

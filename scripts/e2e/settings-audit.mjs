@@ -39,7 +39,10 @@ const SIGNED_IN = Boolean(STATE);
 const SECTIONS = [
   "activity",
   "privacy",
-  "vault",
+  // `vault` was this entry's name until `PLAN.md` Phase 2 removed the browser
+  // vault. The address still redirects here, so auditing the old name would
+  // have audited this screen under a name nothing renders.
+  "data",
   "appearance",
   "chat",
   "motion",

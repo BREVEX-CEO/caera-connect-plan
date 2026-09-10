@@ -19,7 +19,6 @@ import { resolveEngine, type EngineContext } from "../engine/resolve";
 
 const base: EngineContext = {
   preference: "auto",
-  privacyMode: "private_sync",
   deviceMode: "pc_web",
   localAvailable: true,
   localLabel: "OCADE Local",
@@ -176,12 +175,10 @@ describe("no screen has grown a direct provider path", () => {
 });
 
 describe("the authority has no branch to escape through", () => {
-  it("prefers local whenever local can serve, in every privacy mode", () => {
-    for (const privacyMode of ["browser_only", "pc_vault", "private_sync"] as const) {
-      const d = resolveEngine(ctx({ privacyMode }));
-      expect(d.ok).toBe(true);
-      expect(d.target?.kind).toBe("local");
-    }
+  it("prefers local whenever local can serve", () => {
+    const d = resolveEngine(ctx());
+    expect(d.ok).toBe(true);
+    expect(d.target?.kind).toBe("local");
   });
 
   it("reports being offline rather than blaming a plan", () => {

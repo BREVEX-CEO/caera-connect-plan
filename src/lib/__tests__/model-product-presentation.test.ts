@@ -54,20 +54,38 @@ describe("ordinary OCADE Intelligence presentation", () => {
     expect(PROGRESS_CODE).not.toContain('role="dialog"');
     expect(PROGRESS_CODE).not.toContain("aria-modal");
 
-    // Lower-left, and beneath dialogs so it can never cover one.
-    expect(PROGRESS_CODE).toMatch(/fixed bottom-4 left-4 z-40/);
+    /*
+     * Lower-left, beneath dialogs so it can never cover one, and RAISED CLEAR
+     * of the corner the sidebar footer occupies.
+     *
+     * It shipped at `bottom-4 left-4`, which is where the Account menu is, at
+     * the same `z-40` as the sidebar — and being rendered later it painted on
+     * top. `audit:journey` failed every sign-out attempt with this panel named
+     * as the element intercepting the click, permanently on a device that
+     * failed with `insufficient_storage` because that state never clears.
+     */
+    expect(PROGRESS_CODE).toMatch(/fixed bottom-20 left-4 z-40/);
 
     /*
      * Nothing is made inert or unclickable by preparation.
      *
-     * The structural half is the stronger one: this component takes no
+     * `pointer-events-none` ON THE PANEL IS PART OF THAT, not a violation of
+     * it. This assertion used to forbid the class outright, which had it
+     * backwards: a `role="status"` region that absorbs clicks is precisely how
+     * preparation makes something else unclickable. The panel passes them
+     * through and its own controls opt back in one at a time.
+     *
+     * The structural half is still the stronger one: this component takes no
      * `children`, so unlike the gate it replaced there is nothing it COULD
      * wrap, conceal or disable. A future edit that gives it children is the
      * edit that would bring the trap back.
      */
     expect(PROGRESS_CODE).not.toMatch(/\binert\b/);
-    expect(PROGRESS_CODE).not.toMatch(/pointer-events-none/);
     expect(PROGRESS_CODE).not.toMatch(/children/);
+    expect(PROGRESS_CODE).toMatch(/"pointer-events-none"/);
+    // Every control inside it is still reachable.
+    expect(PROGRESS_CODE).toMatch(/pointer-events-auto -mr-1\.5 -mt-1\.5/);
+    expect(PROGRESS_CODE).toMatch(/pointer-events-auto mt-2 flex flex-wrap/);
 
     // The dismiss control is a real touch target, not a bare glyph. It shipped
     // at 20x18 and the route audit failed it at phone width on every route.

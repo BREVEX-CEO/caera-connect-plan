@@ -76,8 +76,6 @@ export interface RuntimeContext {
   local?: boolean;
   /** True when the device currently has a working network connection. */
   online?: boolean;
-  /** browser_only | private_sync | pc_vault — affects what OCADE may promise. */
-  privacyMode?: string;
   capabilities?: PromptCapability[];
   tools?: PromptToolSchema[];
   /** The user's project, when the conversation belongs to one. */
@@ -167,7 +165,6 @@ function runtimeFacts(context: RuntimeContext): string {
         : "The device is OFFLINE. Current-information retrieval and cloud synchronisation are unavailable. Say that current verification is unavailable rather than presenting stored knowledge as live.",
     );
   }
-  if (context.privacyMode) lines.push(`Privacy mode: ${context.privacyMode}.`);
   return lines.join("\n");
 }
 

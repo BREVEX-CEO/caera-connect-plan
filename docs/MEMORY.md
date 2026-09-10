@@ -58,8 +58,9 @@ The 2,126-file donor is re-evaluated for maximum useful behavior, especially Cha
 
 Branch `claude/plan-implementation-n3yjkn`, cut from `origin/main` at `a7a99e3`.
 
-`PLAN.md` Phase 0 (baseline and evidence repair) and Phase 2 (Supabase canonical persistence) are
-complete. Phase 1 is complete except for splitting `ChatSurface`, which is carried forward.
+`PLAN.md` Phase 0 (baseline and evidence repair), Phase 2 (Supabase canonical persistence) and
+Phase 3 (Supabase security, Auth, MFA and schema reconciliation) are complete. Phase 1 is complete
+except for splitting `ChatSurface`, which is carried forward.
 
 Phase 2 in one line: ordinary user content now has ONE persistent authority. Memory, artifacts and
 their activity ledger, citations, message feedback, notification preferences, paired devices,
@@ -72,15 +73,59 @@ permission each lived in one browser, so revoking a lost phone from a laptop lef
 every other machine. Both are account rows now, and signing out no longer clears devices or
 approvals — that was safe while they were local and destructive once they were not.
 
-Six migrations were added and applied live, each with its rollback and verification; the database
-twin applies, verifies and rolls back all 85 against real PostgreSQL.
+Phase 3 in one line: source and live agree, and the acts that hand out access ask who you are.
+Source declares 96 tables (two renamed away by later migrations) and live now holds exactly those
+96; the reconciliation was done by schema effect, which is how three "missing" migrations turned out
+to be already applied. Seven previously-unapplied migrations were applied, and five new ones repaired
+what the reconciliation exposed:
+
+- `ocade_organization_policies` still constrained capabilities to `privateSync`, so withholding
+  account storage would have been refused by a CHECK constraint with nothing on screen to explain it.
+- `ocade_share_conversation` still refused unless `privacy_mode = 'private_sync'` — a rule that read
+  as enforced, was unreachable because nothing set the column, and would have started refusing real
+  conversations the moment anything wrote the old value back. Gate and column both removed.
+- `privacyMode` was still a required field on `EngineContext` that nothing read, and
+  `assemble.ts` printed it into the system prompt, telling the model about a storage mode the product
+  does not have.
+- Four tables ran two permissive SELECT policies for the same role, so every read also called
+  `has_role` on rows already admitted. Merged. Support articles deliberately keep two, because `anon`
+  cannot execute `has_role` and a merged policy would break the signed-out help centre.
+- Twenty-two foreign keys had no covering index. The cost lands on DELETE of the parent, under lock —
+  and twenty of them are on the account-deletion and device-revocation paths.
+- Inviting an address, re-issuing its invitation link and reactivating a suspended member asked for no
+  recent strong authentication, so an unlocked laptop could add an owner. Now gated. Deactivation
+  stays ungated on purpose; organization groups stay ungated because they grant nothing.
+
+Regenerating the types caught real drift rather than noise, including four RPC arguments the newer
+generator types as non-nullable; three are omitted now and two go through
+`src/lib/supabase/rpc-null.ts`. `supabase/config.toml` pointed at the wrong project and now names
+`sazhgaisyhkdbrooycdv`.
+
+Twelve migrations were added across Phases 2 and 3, each with its rollback and verification; the
+database twin applies, verifies and rolls back all 92 against real PostgreSQL. Live security advisors
+report no mutable function search path; live performance advisors report no unindexed foreign keys and
+no duplicated permissive policies. The full record, including what was audited and deliberately left
+alone, is in `docs/mission/OCADE_EXECUTION_STATE.md`.
+
+The browser proofs found three more defects and one stale harness. A status panel was covering the
+Account menu at the same corner and z-index as the sidebar, permanently on a device that fails for
+storage — so signing out was unreachable. Four "Retry" controls measured 30x16, below the touch
+minimum, on exactly the screens somebody reaches after a failure. The route harness measured one
+document while the product had already replaced it, which produced a blank-page report for a route
+that passes ten times out of ten. And three customer-journey stages still asserted the browser vault
+Phase 2 removed; they now assert what has to hold instead — an unreachable account says so, and the
+work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 3 — Supabase security, Auth, MFA and schema reconciliation. Reconcile source migrations
-against live by schema effect before applying anything: source held 91 tables against 78 live at the
-start of this work. `supabase/config.toml` names project `ubantxggjducfmwoydim` while the live
-project is `sazhgaisyhkdbrooycdv`; reconcile that before any deployment step.
+Phase 4 — Commercial usage and offline leases. Phase 3 applied the authority it builds on:
+`ocade_generation_permits` with acquire/finalize/release and the one-time transport claim, and
+`ocade_device_usage_keys`, `ocade_device_usage_leases`, `ocade_offline_usage_allocations` and
+`ocade_offline_usage_events` with allocate/activate/reconcile/return. Do not create a second one.
+
+One known external item remains from Phase 3: `auth_leaked_password_protection` is disabled in
+Supabase Auth. It is a dashboard setting with no repository path, recorded in
+`docs/deployment/PRODUCTION_STATE.md` as a pre-launch action.
 
 ## Things to Be Careful About
 

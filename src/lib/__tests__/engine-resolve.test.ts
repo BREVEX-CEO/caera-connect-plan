@@ -20,7 +20,6 @@ import { resolveEngine, cloudWouldWorkAfterApproval, type EngineContext } from "
 
 const base: EngineContext = {
   preference: "auto",
-  privacyMode: "private_sync",
   deviceMode: "pc_web",
   localAvailable: true,
   localLabel: "OCADE Local Fast",
@@ -42,12 +41,10 @@ describe("local serves whenever it can", () => {
     expect(resolveEngine(ctx()).consumesAllowance).toBe(false);
   });
 
-  it("needs no approval for any privacy mode, because nothing leaves", () => {
-    for (const privacyMode of ["browser_only", "pc_vault", "private_sync"] as const) {
-      const d = resolveEngine(ctx({ privacyMode }));
-      expect(d.ok).toBe(true);
-      expect(d.needsCloudApproval).toBe(false);
-    }
+  it("needs no approval, because nothing leaves the device", () => {
+    const d = resolveEngine(ctx());
+    expect(d.ok).toBe(true);
+    expect(d.needsCloudApproval).toBe(false);
   });
 
   it("uses local while offline", () => {
@@ -65,25 +62,22 @@ describe("local serves whenever it can", () => {
 describe("there is no route off the device", () => {
   it("never returns a remote target, under any combination of inputs", () => {
     for (const preference of ["auto", "local_only"] as const) {
-      for (const privacyMode of ["browser_only", "pc_vault", "private_sync"] as const) {
-        for (const localAvailable of [true, false]) {
-          for (const localVision of [true, false]) {
-            for (const visionRequired of [true, false]) {
-              for (const online of [true, false]) {
-                const d = resolveEngine(
-                  ctx({
-                    preference,
-                    privacyMode,
-                    localAvailable,
-                    localVision,
-                    visionRequired,
-                    online,
-                  }),
-                );
-                if (d.target) expect(d.target.kind).toBe("local");
-                expect(d.needsCloudApproval).toBe(false);
-                expect(d.consumesAllowance).toBe(false);
-              }
+      for (const localAvailable of [true, false]) {
+        for (const localVision of [true, false]) {
+          for (const visionRequired of [true, false]) {
+            for (const online of [true, false]) {
+              const d = resolveEngine(
+                ctx({
+                  preference,
+                  localAvailable,
+                  localVision,
+                  visionRequired,
+                  online,
+                }),
+              );
+              if (d.target) expect(d.target.kind).toBe("local");
+              expect(d.needsCloudApproval).toBe(false);
+              expect(d.consumesAllowance).toBe(false);
             }
           }
         }

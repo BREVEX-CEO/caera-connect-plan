@@ -414,7 +414,19 @@ function Message({
     >
       <span>{text}</span>
       {onRetry ? (
-        <button onClick={onRetry} className="underline underline-offset-2">
+        <button
+          onClick={onRetry}
+          /*
+           * A REAL TOUCH TARGET. This shipped as bare underlined text and
+           * measured 30x16, which the route audit failed at phone width —
+           * correctly, and worse than usual: this is the control somebody
+           * reaches for when something has ALREADY failed, so missing it
+           * leaves them stuck on the error rather than merely inconvenienced.
+           * `shrink-0` keeps it at that size when the message beside it is
+           * long enough for the flex row to want the space back.
+           */
+          className="inline-flex min-h-6 shrink-0 items-center px-1 underline underline-offset-2"
+        >
           Retry
         </button>
       ) : null}

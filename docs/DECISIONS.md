@@ -363,3 +363,63 @@ This preserves the source-of-truth discipline of one purpose per document while 
 ### Trade-offs and Consequences
 
 Some facts necessarily appear briefly in multiple documents for context, but detailed ownership remains explicit. Future documentation changes should update the owning file and link to it instead of copying sections. Supporting audit/readiness/legal/provenance/runbook files may remain historical evidence and are not canonical product authority.
+
+## Recent strong authentication gates the grant of access, not its withdrawal
+
+### Date
+
+2026-09-10
+
+### Status
+
+Accepted.
+
+### Context
+
+`PLAN.md` Phase 3 requires recent AAL2 before a dangerous organization, Admin or support action. Applying that literally to every mutation on those surfaces produces a confirmation prompt on acts that reduce risk — suspending a member, revoking an invitation — and the cost lands exactly when an administrator is responding to a compromised account and cannot reach their authenticator.
+
+### Options Considered
+
+Gate every mutation uniformly; gate nothing and rely on the role check; gate by direction.
+
+### Decision
+
+Gate the acts that CREATE or RESTORE access: inviting an address, re-issuing an invitation link, reactivating a suspended member, changing a role, changing policy, transferring ownership, deleting a workspace, removing a member, and the support and status writes that publish to readers. Leave the withdrawing direction reachable from a session whose last proof is old: deactivating a member is not gated, and `ocade_set_organization_member_state` tests the direction rather than the fact of a change. Leave acts that grant nothing ungated, and say why in the migration — organization groups are `(id, organization_id, name, created_at)` with no policy, capability or RLS predicate reading membership.
+
+### Reasoning
+
+Re-issuing an invitation link reads harmless because the address does not change, but the old token stops working and a new valid one starts — the same capability as inviting. Direction, not table, is what separates the dangerous act from the cautious one. A prompt in front of the cautious act is friction with no risk behind it, which is how confirmation prompts stop being read.
+
+### Trade-offs and Consequences
+
+The rule is not "every mutation on this table", so each new mutation needs a decision recorded with it. `organization-assurance.test.ts` pins both halves against real PostgreSQL — the grant refused from a stale session, and the suspension still allowed — so a later change that gates uniformly fails rather than quietly adding friction to incident response. If a group ever gains an effect on access, it joins the gated list.
+
+## Generated Supabase types are regenerated, never hand-corrected
+
+### Date
+
+2026-09-10
+
+### Status
+
+Accepted.
+
+### Context
+
+`src/integrations/supabase/types.ts` is generated from the live database. The generator reads only two facts about a function parameter — its type and whether it has a DEFAULT — so a parameter with a default becomes optional and non-nullable, and one without becomes required and non-nullable, even though Postgres accepts NULL for both. Postgres has no NOT NULL parameter, so the generator cannot express what these functions actually take. Regenerating after Phase 3 turned four correct calls into type errors.
+
+### Options Considered
+
+Hand-edit the generated file; widen the call sites to `any`; change the SQL signatures to carry DEFAULT NULL everywhere; pass values that type-check but change behaviour; cast at the call site.
+
+### Decision
+
+The generated file stays generated. Where a parameter has DEFAULT NULL, omit it and let Postgres apply the default. Where NULL is not meaningful, pass the real value. Where a parameter has no default and NULL IS the meaningful value — an unlimited weekly allowance, a notification with no deep link — launder that one argument through `sqlNullable` in `src/lib/supabase/rpc-null.ts`, at the call site, where a reader can see which parameter and why.
+
+### Reasoning
+
+Hand-editing the file makes the next regeneration destroy the fix silently. `any` at the call site turns off checking for the whole call, which is the defect `scripts/check-supabase-types.mjs` exists to prevent. Substituting a value — an empty string for a missing link, zero for an unlimited allowance — type-checks and stores the wrong thing. Adding DEFAULT NULL to a mid-list parameter forces defaults onto every parameter after it. A named, documented, single-argument cast is the smallest honest answer.
+
+### Trade-offs and Consequences
+
+`sqlNullable` is a cast and could be misused to launder any null; its documentation names the one case it is for, and the three cases it is not. Regenerating types remains a required step after every migration, and `supabase:types-check` fails the build when a migrated table is missing from the file.

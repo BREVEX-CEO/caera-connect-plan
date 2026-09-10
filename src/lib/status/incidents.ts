@@ -285,8 +285,8 @@ export async function openIncident(input: {
       p_impact: input.impact,
       p_component_ids: [...input.componentIds],
       p_body: input.body,
-      p_started_at: input.startedAt ?? null,
-      p_scheduled_end: input.scheduledEnd ?? null,
+      p_started_at: input.startedAt ?? undefined,
+      p_scheduled_end: input.scheduledEnd ?? undefined,
     });
     if (error) return failed(error);
     return { ok: true, value: String(data) };

@@ -147,7 +147,7 @@ describe("verifications actually assert something", () => {
   it("checks catalogue state rather than guessing", () => {
     const noCatalogue = verifications.filter((n) => {
       const sql = code(read(VERIFICATION, n));
-      return !/pg_catalog|information_schema|pg_class|pg_policies|pg_proc|has_table_privilege|has_function_privilege/.test(
+      return !/pg_catalog|information_schema|pg_class|pg_policies|pg_proc|pg_constraint|pg_index|pg_trigger|has_table_privilege|has_function_privilege/.test(
         sql,
       );
     });

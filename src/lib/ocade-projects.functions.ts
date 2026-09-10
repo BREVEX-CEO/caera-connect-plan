@@ -675,7 +675,7 @@ export const branchConversation = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: source } = await context.supabase
       .from("ocade_conversations")
-      .select("id, title, project_id, model_id, provider_id, privacy_mode")
+      .select("id, title, project_id, model_id, provider_id")
       .eq("id", data.conversationId)
       .eq("user_id", context.userId)
       .maybeSingle();
@@ -715,7 +715,6 @@ export const branchConversation = createServerFn({ method: "POST" })
         project_id: source.project_id ?? null,
         model_id: source.model_id ?? null,
         provider_id: source.provider_id ?? null,
-        privacy_mode: source.privacy_mode ?? "private_sync",
       })
       .select("id, title")
       .single();
@@ -747,7 +746,7 @@ export const forkConversationBeforeMessage = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: source } = await context.supabase
       .from("ocade_conversations")
-      .select("id, title, project_id, model_id, provider_id, privacy_mode")
+      .select("id, title, project_id, model_id, provider_id")
       .eq("id", data.conversationId)
       .eq("user_id", context.userId)
       .maybeSingle();
@@ -778,7 +777,6 @@ export const forkConversationBeforeMessage = createServerFn({ method: "POST" })
         project_id: source.project_id ?? null,
         model_id: source.model_id ?? null,
         provider_id: source.provider_id ?? null,
-        privacy_mode: source.privacy_mode ?? "private_sync",
       })
       .select("id, title")
       .single();

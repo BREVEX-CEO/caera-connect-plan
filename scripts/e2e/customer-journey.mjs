@@ -15,10 +15,13 @@
  *   reopen → voice → reconnect → settings → sign out → sign back in
  *
  * The chaining IS the test. Search has to find the conversation Chat created.
- * Offline has to show the project Projects created. The reopen stage closes
- * the page and opens a new one in the same profile, so anything held only in
- * a React state variable disappears and only what was actually persisted
- * survives. Signing out and back in has to leave the work intact.
+ * Offline has to say it cannot reach the account rather than showing the empty
+ * list an unreachable one would otherwise look like — and the project Projects
+ * created must NOT appear, because `PLAN.md` Phase 2 left nothing on this
+ * machine for it to come from. The reopen stage closes the page and opens a new
+ * one in the same profile, so anything held only in a React state variable
+ * disappears and only what was actually persisted survives. Signing out and
+ * back in has to leave the work intact.
  *
  * WHAT IT DOES NOT CLAIM. The Supabase behind it is the loopback fixture in
  * scripts/fixtures/stub-supabase.mjs, so this proves the product's own flow,
@@ -31,8 +34,7 @@ import { chromium } from "playwright-core";
 
 const BASE = process.env.OCADE_BASE_URL ?? "http://127.0.0.1:8080";
 const PASSWORD = process.env.OCADE_AUDIT_PASSWORD ?? "AuditPassword123!";
-/** Twelve characters minimum, per the vault's own rule. */
-const PASSPHRASE = process.env.OCADE_AUDIT_PASSPHRASE ?? "journey-vault-passphrase-2026";
+/** How long to let a screen settle before reading it, in milliseconds. */
 const SLOW = Number(process.env.OCADE_JOURNEY_SETTLE ?? 900);
 
 /** A phrase unique to this run, so "search finds it" cannot be a false pass. */
@@ -40,8 +42,8 @@ const MARK = `journey-${Date.now().toString(36)}`;
 /*
  * A NEW ACCOUNT EVERY RUN. Reusing one address makes the second run a sign-in
  * rather than a sign-up, and it inherits whatever the first run left behind —
- * which is how a vault that fails to set up on a fresh account hides for
- * months behind a fixture that already has one.
+ * which is how a defect that only bites a genuinely new account hides for
+ * months behind a fixture that was already past it.
  */
 const EMAIL = process.env.OCADE_AUDIT_EMAIL ?? `${MARK}@ocade.test`;
 
@@ -105,61 +107,6 @@ const signedIn = () =>
 
 /** Visible text of the whole page, for "is this fact on screen" questions. */
 const bodyText = () => page.evaluate(() => document.body.innerText);
-
-/**
- * Put the key back after a page load, the way a person has to.
- *
- * The vault key lives in memory and nowhere else, so every full page load
- * drops it. That is the point of it — nothing on disk is readable without
- * somebody present — and it means "reload" is not a neutral act in this
- * product. Anywhere the journey reloads, this is the step a real user also
- * performs, so it is performed here rather than skipped.
- *
- * Returns true if it had to unlock, which is also the assertion that the
- * unlock was offered ON THE PAGE rather than only in Settings.
- */
-async function unlockIfLocked() {
-  const field = page.locator('input[aria-label="Vault passphrase"]');
-  /*
-   * The card reads the vault's configuration before it can offer anything, so
-   * it is a round trip behind the rest of the page. Waiting briefly for it
-   * rather than sampling once is the difference between "the product does not
-   * offer an unlock" and "the script looked too early".
-   */
-  await field
-    .first()
-    .waitFor({ state: "visible", timeout: 6000 })
-    .catch(() => {});
-  if ((await field.count()) === 0) return false;
-  await field.first().fill(PASSPHRASE);
-  await page.waitForTimeout(200);
-  await page
-    .locator("button", { hasText: /^Unlock$/ })
-    .first()
-    .click({ timeout: 10000 });
-  /*
-   * PBKDF2 at 600,000 iterations is deliberately slow — that is the whole
-   * point of it — and on a small CI machine it is seconds, not milliseconds.
-   * Waiting for the field to go away rather than for a fixed delay is the
-   * difference between measuring the product and measuring the runner.
-   */
-  await page
-    .locator('input[aria-label="Vault passphrase"]')
-    .first()
-    .waitFor({ state: "detached", timeout: 30000 })
-    .catch(() => {});
-  await page.waitForTimeout(1200);
-  const stillLocked = await page.locator('input[aria-label="Vault passphrase"]').count();
-  if (stillLocked) {
-    const complaint = await page
-      .locator("[role=alert]")
-      .first()
-      .textContent()
-      .catch(() => null);
-    throw new Error(`the vault would not unlock${complaint ? `: ${complaint.trim()}` : ""}`);
-  }
-  return true;
-}
 
 const browser = await chromium.launch({
   executablePath: process.env.OCADE_BROWSER_PATH ?? "/opt/pw-browsers/chromium",
@@ -251,46 +198,46 @@ await stage("sign-in lands in Chat, with nothing in the way", async () => {
 });
 
 /* -------------------------------------------------------------- 3.5 -- */
-await stage("the vault is set up before anything needs it", async () => {
+await stage("the old vault address goes somewhere useful", async () => {
   /*
-   * Both privacy modes still write to this device first, and nothing can be
-   * stored until the key exists. Nothing routes anybody here any more, so the
-   * journey goes and does it — which is also what a real new account has to do.
+   * THIS STAGE USED TO CREATE A VAULT.
+   *
+   * It opened `/settings/vault`, set a passphrase, waited for PBKDF2 at 600,000
+   * iterations and asserted a recovery kit appeared — because both storage
+   * modes wrote to the device first and nothing could be stored until the key
+   * existed. `PLAN.md` Phase 2 removed that store: the account holds the
+   * account's work and there is no device key between a person and their own
+   * conversations. Asserting the setup form still appears would fail forever,
+   * for the reason the phase succeeded.
+   *
+   * What is worth checking now is that the address did not simply die. It is in
+   * the settings index of every build that shipped it, in bookmarks, and in the
+   * help articles that told people where to export their data — so it has to
+   * reach the screen answering what they came for.
    */
-  if (!page.url().includes("/settings/vault")) {
-    await goto("/settings/vault");
-  }
-  // The legal consent gate can open over whatever the app navigated to, so it
-  // is dismissed here as well as after each `goto`.
+  await goto("/settings/vault");
   await clearModals();
+  await page.waitForTimeout(1500);
+  const landed = new URL(page.url()).pathname;
+  assert(
+    landed === "/settings/data",
+    `the old vault address went to ${landed} instead of the data screen`,
+  );
   const text = await bodyText();
-  if (/Vault unlocked/i.test(text)) return "already unlocked";
-
-  const passphrase = page.locator('input[aria-label="New vault passphrase"]');
-  assert((await passphrase.count()) > 0, `no vault setup on the page: ${text.slice(0, 160)}`);
-  await passphrase.fill(PASSPHRASE);
-  await page.locator('input[aria-label="Repeat vault passphrase"]').fill(PASSPHRASE);
-  await page.waitForTimeout(300);
-  await page
-    .locator("button", { hasText: /^Create vault$/ })
-    .first()
-    .click({ timeout: 15000 });
-  await page.waitForTimeout(4000);
-  const after = await bodyText();
-  assert(/Vault unlocked/i.test(after), `the vault did not unlock: ${after.slice(0, 220)}`);
-  /*
-   * The recovery kit is shown exactly once and never stored. If it stopped
-   * appearing, somebody would lose their data the first time they forgot a
-   * passphrase, and no other test would notice.
-   */
-  assert(/recovery/i.test(after), "no recovery kit was offered after creating the vault");
-  return "created, unlocked, recovery kit shown";
+  assert(
+    /export/i.test(text) && /delete/i.test(text),
+    `the data screen offers neither an export nor a deletion: ${text.slice(0, 160)}`,
+  );
+  assert(
+    !/passphrase/i.test(text),
+    "the removed vault passphrase is still being asked for on the data screen",
+  );
+  return `${landed}, with an export and a deletion on it`;
 });
 
 /* ------------------------------------------------------------------ 4 -- */
 await stage("chat answers, or says why it cannot", async () => {
   await goto("/ocade");
-  await unlockIfLocked();
   const composer = page.locator("#ocade-chat-composer");
   await composer.waitFor({ timeout: 20000 });
   await composer.fill(`Remember this phrase exactly: ${MARK}`);
@@ -362,8 +309,6 @@ await stage("a file attaches and is named back", async () => {
 /* ------------------------------------------------------------------ 7 -- */
 await stage("a project is created and persists", async () => {
   await goto("/ocade/projects");
-  // Arriving by a fresh page load, so the key has to go back in first.
-  await unlockIfLocked();
   const name = page.locator('input[placeholder="New project name"]');
   await name.waitFor({ timeout: 20000 });
   await name.fill(`Project ${MARK}`);
@@ -374,11 +319,14 @@ await stage("a project is created and persists", async () => {
     .click({ timeout: 15000 });
   await page.waitForTimeout(3000);
   await goto("/ocade/projects");
-  const relocked = await unlockIfLocked();
+  /*
+   * A FULL RELOAD, DELIBERATELY. This used to have to put a vault passphrase
+   * back first, because the key lived in memory and every load dropped it.
+   * `PLAN.md` Phase 2 removed that store, so surviving a reload now means the
+   * row is in the account — which is the whole claim being tested.
+   */
   assert((await bodyText()).includes(MARK), "the project was gone after a reload");
-  return relocked
-    ? `Project ${MARK} survived a reload, once the vault was unlocked in place`
-    : `Project ${MARK} survived a reload`;
+  return `Project ${MARK} survived a reload`;
 });
 
 /* ------------------------------------------------------------------ 8 -- */
@@ -403,7 +351,6 @@ await stage("search finds what earlier stages made", async () => {
   await box.fill(MARK);
   await page.waitForTimeout(2500);
   // The lock only shows once a search has actually tried to read the store.
-  await unlockIfLocked();
   await page.waitForTimeout(3000);
   const text = await bodyText();
   /*
@@ -452,85 +399,109 @@ await stage("approval and permissions are reachable and editable", async () => {
 });
 
 /* ----------------------------------------------------------------- 12 -- */
-await stage("offline: the work made online is still readable", async () => {
-  /*
-   * WAIT FOR THE WORKER TO ACTUALLY OWN THE PAGE BEFORE CUTTING THE NETWORK.
-   *
-   * This stage used to go offline after a flat 1200ms and hope. When the
-   * service worker had not yet claimed the client, the navigation below failed
-   * in the browser rather than in the product: Chromium's own error page,
-   * which is 113 characters of nothing on an opaque origin — so the NEXT stage
-   * then died too, with "Failed to read the localStorage property: Access is
-   * denied for this document", because an error page has no origin to read
-   * storage from. Two failures, one cause, neither of them the product.
-   *
-   * `navigator.serviceWorker.controller` is the actual precondition the stage
-   * depends on, so it is waited for and asserted rather than approximated by a
-   * sleep. A worker that never takes control still fails this stage — loudly,
-   * and with the right reason written down.
-   */
-  const controlled = await page
-    .waitForFunction(() => Boolean(navigator.serviceWorker?.controller), null, { timeout: 20000 })
-    .then(() => true)
-    .catch(() => false);
-  assert(controlled, "the service worker never took control, so offline was never actually tested");
-
-  // The shell has to be IN the cache, not merely on its way there. Without it
-  // the fallback below has nothing to serve.
-  const shellCached = await page
-    .waitForFunction(
-      async () => {
-        const keys = await caches.keys();
-        for (const key of keys) {
-          const cache = await caches.open(key);
-          if (await cache.match("/")) return true;
-        }
-        return false;
-      },
-      null,
-      { timeout: 20000 },
-    )
-    .then(() => true)
-    .catch(() => false);
-  assert(shellCached, "the application shell was never cached, so offline had nothing to serve");
-
-  deliberatelyOffline = true;
-  await context.setOffline(true);
-  await page.waitForTimeout(1200);
-  let unlockedOffline = false;
-  for (const path of ["/ocade", "/ocade/projects", "/ocade/tasks"]) {
-    await page
-      .goto(`${BASE}${path}`, { waitUntil: "domcontentloaded", timeout: 45000 })
-      .catch(() => {});
-    await page.waitForTimeout(2500);
+await stage(
+  "offline: the shell still renders and the product says what it cannot reach",
+  async () => {
     /*
-     * The unlock itself has to work with the network down. The key is derived
-     * on this device from something the person knows, and the row describing
-     * how to unwrap it is cached here — if either needed a server, "offline"
-     * would mean "locked out of your own encrypted data", which is the
-     * opposite of the promise.
+     * THIS STAGE USED TO ASSERT THE WORK WAS STILL READABLE OFFLINE.
+     *
+     * It could, because an encrypted IndexedDB vault held a copy of it. `PLAN.md`
+     * Phase 2 removed that copy: Supabase and private Storage are the single
+     * persistent authority, and there is deliberately nothing on this machine to
+     * read. Keeping the old assertion would have demanded the product grow back
+     * the second authority the phase existed to remove.
+     *
+     * The requirement that replaces it is the harder one to get right. An
+     * unreachable account must not render as an EMPTY one: a projects screen that
+     * shows "no projects yet" to somebody with eleven of them is a silent wrong
+     * answer, and the person's next move is to make a twelfth. So the shell has
+     * to render, the browser's own error page must not, and the screen has to say
+     * it could not load rather than answering the question with nothing.
+     *
+     * WAIT FOR THE WORKER TO ACTUALLY OWN THE PAGE BEFORE CUTTING THE NETWORK.
+     * This used to go offline after a flat 1200ms and hope. When the service
+     * worker had not yet claimed the client, the navigation failed in the browser
+     * rather than in the product — Chromium's error page, 113 characters of
+     * nothing on an opaque origin — and the next stage died too, because an error
+     * page has no origin to read storage from. Two failures, one cause, neither
+     * of them the product.
      */
-    if (await unlockIfLocked()) unlockedOffline = true;
-    await page.waitForTimeout(1500);
-    const text = await bodyText();
-    assert(text.length > 400, `${path} rendered almost nothing offline (${text.length} chars)`);
+    const controlled = await page
+      .waitForFunction(() => Boolean(navigator.serviceWorker?.controller), null, { timeout: 20000 })
+      .then(() => true)
+      .catch(() => false);
     assert(
-      !/ERR_INTERNET_DISCONNECTED|This site can.t be reached/i.test(text),
-      `${path} showed the browser error page`,
+      controlled,
+      "the service worker never took control, so offline was never actually tested",
     );
-  }
-  await page.goto(`${BASE}/ocade/projects`).catch(() => {});
-  await page.waitForTimeout(2500);
-  if (await unlockIfLocked()) unlockedOffline = true;
-  await page.waitForTimeout(2000);
-  assert((await bodyText()).includes(MARK), "the project was not readable offline");
-  return unlockedOffline
-    ? "chat, projects and tasks rendered, and the vault unlocked, with the network down"
-    : "chat, projects and tasks all rendered with the network down";
-});
+
+    // The shell has to be IN the cache, not merely on its way there. Without it
+    // the fallback below has nothing to serve.
+    const shellCached = await page
+      .waitForFunction(
+        async () => {
+          const keys = await caches.keys();
+          for (const key of keys) {
+            const cache = await caches.open(key);
+            if (await cache.match("/")) return true;
+          }
+          return false;
+        },
+        null,
+        { timeout: 20000 },
+      )
+      .then(() => true)
+      .catch(() => false);
+    assert(shellCached, "the application shell was never cached, so offline had nothing to serve");
+
+    deliberatelyOffline = true;
+    await context.setOffline(true);
+    await page.waitForTimeout(1200);
+    for (const path of ["/ocade", "/ocade/projects", "/ocade/tasks"]) {
+      await page
+        .goto(`${BASE}${path}`, { waitUntil: "domcontentloaded", timeout: 45000 })
+        .catch(() => {});
+      await page.waitForTimeout(2500);
+      const text = await bodyText();
+      assert(text.length > 400, `${path} rendered almost nothing offline (${text.length} chars)`);
+      assert(
+        !/ERR_INTERNET_DISCONNECTED|This site can.t be reached/i.test(text),
+        `${path} showed the browser error page`,
+      );
+    }
+
+    await page.goto(`${BASE}/ocade/projects`).catch(() => {});
+    await page.waitForTimeout(3000);
+    const projects = await bodyText();
+    /*
+     * The project made online must not appear, because there is nowhere for it to
+     * have come from — if it did, something is still keeping a copy of the
+     * account's content on this device, and `content-storage:check` missed it.
+     */
+    assert(
+      !projects.includes(MARK),
+      "a project was readable with the network down, so something is still caching account content locally",
+    );
+    /*
+     * And the screen must SAY SO. This is the assertion that separates an honest
+     * refusal from a confident empty list.
+     */
+    assert(
+      /could not|couldn.t|unavailable|not available|offline|cannot reach|failed to/i.test(projects),
+      `the projects screen went quiet instead of saying it could not reach the account: ${projects.slice(0, 220)}`,
+    );
+    return "shell rendered, work correctly absent, and the screen said it could not load";
+  },
+);
 
 /* ----------------------------------------------------------------- 13 -- */
-await stage("reopen offline: a new page keeps the session and the work", async () => {
+await stage("reopen offline: a new page keeps the session", async () => {
+  /*
+   * The session survives; the work does not, and must not. A refresh token is
+   * this device's own credential and is meant to persist — that is what makes
+   * reconnecting seamless rather than a second sign-in. The account's content is
+   * not this device's, so the stage asserts one and refuses the other.
+   */
   await page.close();
   page = await context.newPage();
   observePage(page);
@@ -540,9 +511,11 @@ await stage("reopen offline: a new page keeps the session and the work", async (
   await page.waitForTimeout(3500);
   assert(await signedIn(), "the session did not survive closing the page");
   await clearModals();
-  await unlockIfLocked();
-  assert((await bodyText()).includes(MARK), "the project did not survive closing the page");
-  return "session and project both survived, with the network still down";
+  assert(
+    !(await bodyText()).includes(MARK),
+    "a project survived closing the page with the network down, so it is being stored locally",
+  );
+  return "session survived, work correctly still absent, with the network still down";
 });
 
 /* ----------------------------------------------------------------- 14 -- */
@@ -552,7 +525,6 @@ await stage("reconnect: the product comes back without a reload", async () => {
   deliberatelyOffline = false;
   await goto("/ocade/projects");
   assert(await signedIn(), "the session was lost on reconnect");
-  await unlockIfLocked();
   assert((await bodyText()).includes(MARK), "the project was lost on reconnect");
   return "back online, nothing lost";
 });
@@ -560,7 +532,6 @@ await stage("reconnect: the product comes back without a reload", async () => {
 /* ----------------------------------------------------------------- 15 -- */
 await stage("voice offers a control and states a reason", async () => {
   await goto("/ocade");
-  await unlockIfLocked();
   const mic = page
     .locator(
       'button[aria-label="Dictate a message"], button[aria-label="Stop dictating"], button[title*="talk"]',
@@ -655,7 +626,6 @@ await stage("sign out, sign back in, and the work is still there", async () => {
   assert(await signedIn(), "could not sign back in");
 
   await goto("/ocade/projects");
-  await unlockIfLocked();
   assert((await bodyText()).includes(MARK), "the project did not survive a sign-out and back in");
   return `Project ${MARK} still there after a full round trip`;
 });

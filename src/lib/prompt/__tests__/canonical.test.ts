@@ -121,7 +121,6 @@ describe("assembler", () => {
       "runtimeLabel",
       "local",
       "online",
-      "privacyMode",
       "capabilities",
       "tools",
       "project",

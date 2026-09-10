@@ -2157,6 +2157,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ocade_browser_site_policy: {
+        Row: {
+          allow_origins: string[]
+          deny_origins: string[]
+          fill_origins: string[]
+          read_origins: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allow_origins?: string[]
+          deny_origins?: string[]
+          fill_origins?: string[]
+          read_origins?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allow_origins?: string[]
+          deny_origins?: string[]
+          fill_origins?: string[]
+          read_origins?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_commercial_usage: {
         Row: {
           id: string
@@ -2184,89 +2211,102 @@ export type Database = {
         }
         Relationships: []
       }
-      ocade_offline_usage_allocations: {
+      ocade_conversation_shares: {
         Row: {
-          amount_hundredths: number
+          conversation_id: string
           created_at: string
-          device_id: string
+          expires_at: string | null
           id: string
-          lease_id: string
-          request_key: string
-          user_id: string
+          message_count: number
+          messages: Json
+          owner_id: string
+          revoked_at: string | null
+          snapshot_at: string
+          title: string
+          token: string
         }
         Insert: {
-          amount_hundredths: number
+          conversation_id: string
           created_at?: string
-          device_id: string
+          expires_at?: string | null
           id?: string
-          lease_id: string
-          request_key: string
-          user_id: string
+          message_count?: number
+          messages?: Json
+          owner_id: string
+          revoked_at?: string | null
+          snapshot_at?: string
+          title: string
+          token?: string
         }
         Update: {
-          amount_hundredths?: number
+          conversation_id?: string
           created_at?: string
-          device_id?: string
+          expires_at?: string | null
           id?: string
-          lease_id?: string
-          request_key?: string
-          user_id?: string
+          message_count?: number
+          messages?: Json
+          owner_id?: string
+          revoked_at?: string | null
+          snapshot_at?: string
+          title?: string
+          token?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ocade_conversation_shares_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      ocade_offline_usage_events: {
+      ocade_conversations: {
         Row: {
-          cost_hundredths: number
-          device_id: string
-          device_signature: string
-          event_hash: string
-          generation_id: string
+          archived: boolean
+          created_at: string
           id: string
-          idempotency_key: string
-          lease_id: string
-          occurred_at: string
-          previous_hash: string
-          reconciled_at: string
-          sequence: number
-          status: string
-          surface: string
+          model_id: string | null
+          pinned: boolean
+          project_id: string | null
+          provider_id: string | null
+          title: string
+          updated_at: string
           user_id: string
         }
         Insert: {
-          cost_hundredths: number
-          device_id: string
-          device_signature: string
-          event_hash: string
-          generation_id: string
-          id: string
-          idempotency_key: string
-          lease_id: string
-          occurred_at: string
-          previous_hash: string
-          reconciled_at?: string
-          sequence: number
-          status: string
-          surface: string
+          archived?: boolean
+          created_at?: string
+          id?: string
+          model_id?: string | null
+          pinned?: boolean
+          project_id?: string | null
+          provider_id?: string | null
+          title?: string
+          updated_at?: string
           user_id: string
         }
         Update: {
-          cost_hundredths?: number
-          device_id?: string
-          device_signature?: string
-          event_hash?: string
-          generation_id?: string
+          archived?: boolean
+          created_at?: string
           id?: string
-          idempotency_key?: string
-          lease_id?: string
-          occurred_at?: string
-          previous_hash?: string
-          reconciled_at?: string
-          sequence?: number
-          status?: string
-          surface?: string
+          model_id?: string | null
+          pinned?: boolean
+          project_id?: string | null
+          provider_id?: string | null
+          title?: string
+          updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ocade_conversations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ocade_device_usage_keys: {
         Row: {
@@ -2463,56 +2503,6 @@ export type Database = {
           week_window_start?: string
         }
         Relationships: []
-      }
-      ocade_conversations: {
-        Row: {
-          archived: boolean
-          created_at: string
-          id: string
-          model_id: string | null
-          pinned: boolean
-          privacy_mode: string
-          project_id: string | null
-          provider_id: string | null
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          archived?: boolean
-          created_at?: string
-          id?: string
-          model_id?: string | null
-          pinned?: boolean
-          privacy_mode?: string
-          project_id?: string | null
-          provider_id?: string | null
-          title?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          archived?: boolean
-          created_at?: string
-          id?: string
-          model_id?: string | null
-          pinned?: boolean
-          privacy_mode?: string
-          project_id?: string | null
-          provider_id?: string | null
-          title?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ocade_conversations_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "ocade_projects"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       ocade_invoices: {
         Row: {
@@ -2731,6 +2721,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ocade_monitors: {
+        Row: {
+          created_at: string
+          id: string
+          interval_ms: number
+          last_checked_at: string | null
+          sources: string[]
+          state: string
+          subject: string
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interval_ms: number
+          last_checked_at?: string | null
+          sources: string[]
+          state?: string
+          subject: string
+          topic: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interval_ms?: number
+          last_checked_at?: string | null
+          sources?: string[]
+          state?: string
+          subject?: string
+          topic?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ocade_notification_preferences: {
         Row: {
           categories: Json
@@ -2797,6 +2823,120 @@ export type Database = {
         }
         Relationships: []
       }
+      ocade_offline_usage_allocations: {
+        Row: {
+          amount_hundredths: number
+          created_at: string
+          device_id: string
+          id: string
+          lease_id: string
+          request_key: string
+          user_id: string
+        }
+        Insert: {
+          amount_hundredths: number
+          created_at?: string
+          device_id: string
+          id?: string
+          lease_id: string
+          request_key: string
+          user_id: string
+        }
+        Update: {
+          amount_hundredths?: number
+          created_at?: string
+          device_id?: string
+          id?: string
+          lease_id?: string
+          request_key?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_offline_usage_allocations_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocade_offline_usage_allocations_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_device_usage_leases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_offline_usage_events: {
+        Row: {
+          cost_hundredths: number
+          device_id: string
+          device_signature: string
+          event_hash: string
+          generation_id: string
+          id: string
+          idempotency_key: string
+          lease_id: string
+          occurred_at: string
+          previous_hash: string
+          reconciled_at: string
+          sequence: number
+          status: string
+          surface: string
+          user_id: string
+        }
+        Insert: {
+          cost_hundredths: number
+          device_id: string
+          device_signature: string
+          event_hash: string
+          generation_id: string
+          id: string
+          idempotency_key: string
+          lease_id: string
+          occurred_at: string
+          previous_hash: string
+          reconciled_at?: string
+          sequence: number
+          status: string
+          surface: string
+          user_id: string
+        }
+        Update: {
+          cost_hundredths?: number
+          device_id?: string
+          device_signature?: string
+          event_hash?: string
+          generation_id?: string
+          id?: string
+          idempotency_key?: string
+          lease_id?: string
+          occurred_at?: string
+          previous_hash?: string
+          reconciled_at?: string
+          sequence?: number
+          status?: string
+          surface?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_offline_usage_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocade_offline_usage_events_lease_id_fkey"
+            columns: ["lease_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_device_usage_leases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ocade_organization_events: {
         Row: {
           actor_id: string | null
@@ -2825,7 +2965,15 @@ export type Database = {
           organization_id?: string
           subject_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ocade_organization_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ocade_organization_group_members: {
         Row: {
@@ -2843,7 +2991,22 @@ export type Database = {
           group_id?: string
           member_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ocade_organization_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_organization_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocade_organization_group_members_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_organization_members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ocade_organization_groups: {
         Row: {
@@ -2864,7 +3027,15 @@ export type Database = {
           name?: string
           organization_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ocade_organization_groups_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ocade_organization_invites: {
         Row: {
@@ -2909,7 +3080,15 @@ export type Database = {
           role?: string
           token_hash?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ocade_organization_invites_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ocade_organization_members: {
         Row: {
@@ -2942,207 +3121,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
-      }
-      ocade_support_articles: {
-        Row: {
-          body: string[]
-          category: string
-          keywords: string[]
-          slug: string
-          status: string
-          summary: string
-          title: string
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          body: string[]
-          category: string
-          keywords?: string[]
-          slug: string
-          status: string
-          summary: string
-          title: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          body?: string[]
-          category?: string
-          keywords?: string[]
-          slug?: string
-          status?: string
-          summary?: string
-          title?: string
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
-      ocade_support_article_revisions: {
-        Row: {
-          body: string[]
-          category: string
-          created_at: string
-          created_by: string | null
-          id: string
-          keywords: string[]
-          note: string
-          slug: string
-          status: string
-          summary: string
-          title: string
-        }
-        Insert: {
-          body: string[]
-          category: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          keywords?: string[]
-          note?: string
-          slug: string
-          status: string
-          summary: string
-          title: string
-        }
-        Update: {
-          body?: string[]
-          category?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          keywords?: string[]
-          note?: string
-          slug?: string
-          status?: string
-          summary?: string
-          title?: string
-        }
-        Relationships: []
-      }
-      ocade_conversation_shares: {
-        Row: {
-          conversation_id: string
-          created_at: string
-          expires_at: string | null
-          id: string
-          message_count: number
-          messages: Json
-          owner_id: string
-          revoked_at: string | null
-          snapshot_at: string
-          title: string
-          token: string
-        }
-        Insert: {
-          conversation_id: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          message_count?: number
-          messages?: Json
-          owner_id: string
-          revoked_at?: string | null
-          snapshot_at?: string
-          title: string
-          token?: string
-        }
-        Update: {
-          conversation_id?: string
-          created_at?: string
-          expires_at?: string | null
-          id?: string
-          message_count?: number
-          messages?: Json
-          owner_id?: string
-          revoked_at?: string | null
-          snapshot_at?: string
-          title?: string
-          token?: string
-        }
         Relationships: [
           {
-            foreignKeyName: "ocade_conversation_shares_conversation_id_fkey"
-            columns: ["conversation_id"]
+            foreignKeyName: "ocade_organization_members_organization_id_fkey"
+            columns: ["organization_id"]
             isOneToOne: false
-            referencedRelation: "ocade_conversations"
+            referencedRelation: "ocade_organizations"
             referencedColumns: ["id"]
           },
         ]
-      }
-      ocade_status_incidents: {
-        Row: {
-          component_ids: string[]
-          created_at: string
-          created_by: string | null
-          id: string
-          impact: string
-          kind: string
-          resolved_at: string | null
-          scheduled_end: string | null
-          started_at: string
-          state: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          component_ids?: string[]
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          impact: string
-          kind: string
-          resolved_at?: string | null
-          scheduled_end?: string | null
-          started_at?: string
-          state?: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          component_ids?: string[]
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          impact?: string
-          kind?: string
-          resolved_at?: string | null
-          scheduled_end?: string | null
-          started_at?: string
-          state?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      ocade_status_incident_updates: {
-        Row: {
-          body: string
-          created_at: string
-          created_by: string | null
-          id: string
-          incident_id: string
-          state: string
-        }
-        Insert: {
-          body: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          incident_id: string
-          state: string
-        }
-        Update: {
-          body?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          incident_id?: string
-          state?: string
-        }
-        Relationships: []
       }
       ocade_organization_policies: {
         Row: {
@@ -3166,7 +3153,15 @@ export type Database = {
           withheld_capabilities?: string[]
           withheld_tool_domains?: string[]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ocade_organization_policies_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "ocade_organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ocade_organizations: {
         Row: {
@@ -3331,41 +3326,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ocade_project_items: {
-        Row: {
-          created_at: string
-          id: string
-          kind: string
-          project_id: string
-          ref_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          kind: string
-          project_id: string
-          ref_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          kind?: string
-          project_id?: string
-          ref_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ocade_project_items_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "ocade_projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ocade_project_files: {
         Row: {
           content_sha256: string
@@ -3438,6 +3398,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ocade_project_folders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_project_items: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          project_id: string
+          ref_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          project_id: string
+          ref_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          project_id?: string
+          ref_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_project_items_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "ocade_projects"
@@ -3550,6 +3545,86 @@ export type Database = {
         }
         Relationships: []
       }
+      ocade_status_incident_updates: {
+        Row: {
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          incident_id: string
+          state: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          incident_id: string
+          state: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          incident_id?: string
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_status_incident_updates_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_status_incidents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_status_incidents: {
+        Row: {
+          component_ids: string[]
+          created_at: string
+          created_by: string | null
+          id: string
+          impact: string
+          kind: string
+          resolved_at: string | null
+          scheduled_end: string | null
+          started_at: string
+          state: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          component_ids?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          impact: string
+          kind: string
+          resolved_at?: string | null
+          scheduled_end?: string | null
+          started_at?: string
+          state?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          component_ids?: string[]
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          impact?: string
+          kind?: string
+          resolved_at?: string | null
+          scheduled_end?: string | null
+          started_at?: string
+          state?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ocade_subscriptions: {
         Row: {
           catalogue_version: string
@@ -3583,6 +3658,84 @@ export type Database = {
           status?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      ocade_support_article_revisions: {
+        Row: {
+          body: string[]
+          category: string
+          created_at: string
+          created_by: string | null
+          id: string
+          keywords: string[]
+          note: string
+          slug: string
+          status: string
+          summary: string
+          title: string
+        }
+        Insert: {
+          body: string[]
+          category: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          keywords?: string[]
+          note?: string
+          slug: string
+          status: string
+          summary: string
+          title: string
+        }
+        Update: {
+          body?: string[]
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          keywords?: string[]
+          note?: string
+          slug?: string
+          status?: string
+          summary?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      ocade_support_articles: {
+        Row: {
+          body: string[]
+          category: string
+          keywords: string[]
+          slug: string
+          status: string
+          summary: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          body: string[]
+          category: string
+          keywords?: string[]
+          slug: string
+          status: string
+          summary: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          body?: string[]
+          category?: string
+          keywords?: string[]
+          slug?: string
+          status?: string
+          summary?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -3699,17 +3852,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "ocade_task_comments_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "ocade_tasks"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "ocade_task_comments_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "ocade_task_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocade_task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -3788,69 +3941,6 @@ export type Database = {
           status?: string
           title?: string
           updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      ocade_browser_site_policy: {
-        Row: {
-          allow_origins: string[]
-          deny_origins: string[]
-          fill_origins: string[]
-          read_origins: string[]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          allow_origins?: string[]
-          deny_origins?: string[]
-          fill_origins?: string[]
-          read_origins?: string[]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          allow_origins?: string[]
-          deny_origins?: string[]
-          fill_origins?: string[]
-          read_origins?: string[]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      ocade_monitors: {
-        Row: {
-          created_at: string
-          id: string
-          interval_ms: number
-          last_checked_at: string | null
-          sources: string[]
-          state: string
-          subject: string
-          topic: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          interval_ms: number
-          last_checked_at?: string | null
-          sources: string[]
-          state?: string
-          subject: string
-          topic: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          interval_ms?: number
-          last_checked_at?: string | null
-          sources?: string[]
-          state?: string
-          subject?: string
-          topic?: string
           user_id?: string
         }
         Relationships: []
@@ -4538,32 +4628,77 @@ export type Database = {
         Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
       }
-      ocade_decide_approval: {
-        Args: { _device_id?: string; _id: string; _status: string }
-        Returns: {
-          decided_at: string | null
-          decided_by_device: string | null
-          expires_at: string
-          id: string
-          requested_at: string
-          risk: string
-          status: string
-          summary: string
-          user_id: string
-        }
+      ocade_accept_organization_invite: {
+        Args: { p_token_hash: string }
+        Returns: string
       }
-      ocade_expire_due_approvals: {
-        Args: Record<PropertyKey, never>
+      ocade_acquire_generation_permit: {
+        Args: {
+          p_generation_id: string
+          p_idempotency_key: string
+          p_reserved_hundredths: number
+          p_session_limit_hundredths: number
+          p_surface: string
+          p_tier: string
+          p_user_id: string
+          p_week_limit_hundredths: number
+        }
         Returns: {
-          decided_at: string | null
-          decided_by_device: string | null
+          outcome: string
+          permit_id: string
+          reserved_hundredths: number
+          session_reset_at: string
+          week_reset_at: string
+        }[]
+      }
+      ocade_activate_offline_usage_lease: {
+        Args: {
+          p_key_id: string
+          p_lease_id: string
+          p_server_signature: string
+          p_signed_payload: Json
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      ocade_admin_notification_delivery: {
+        Args: { p_since: string }
+        Returns: {
+          category: string
+          channel: string
+          occurrences: number
+          state: string
+        }[]
+      }
+      ocade_allocate_offline_usage: {
+        Args: {
+          p_amount_hundredths: number
+          p_browser_install_id: string
+          p_device_id: string
+          p_device_public_key: string
+          p_preissue?: boolean
+          p_request_key: string
+          p_session_limit_hundredths: number
+          p_tier: string
+          p_user_id: string
+          p_week_limit_hundredths: number
+        }
+        Returns: {
+          allocated_hundredths: number
+          consumed_hundredths: number
           expires_at: string
-          id: string
-          requested_at: string
-          risk: string
-          status: string
-          summary: string
-          user_id: string
+          issued_at: string
+          lease_id: string
+          not_before: string
+          outcome: string
+          preissued: boolean
+          sequence_end: number
+          sequence_start: number
+          session_reset_at: string
+          session_window_start: string
+          tier: string
+          week_reset_at: string
+          week_window_start: string
         }[]
       }
       ocade_append_automation_receipt: {
@@ -4598,6 +4733,16 @@ export type Database = {
           next_step_index: number
         }[]
       }
+      ocade_claim_generation_transport: {
+        Args: {
+          p_generation_id: string
+          p_idempotency_key: string
+          p_permit_id: string
+          p_surface: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       ocade_complete_automation_run: {
         Args: {
           p_claim_token: string
@@ -4618,155 +4763,6 @@ export type Database = {
         }
         Returns: number
       }
-      ocade_acquire_generation_permit: {
-        Args: {
-          p_generation_id: string
-          p_idempotency_key: string
-          p_reserved_hundredths: number
-          p_session_limit_hundredths: number
-          p_surface: string
-          p_tier: string
-          p_user_id: string
-          p_week_limit_hundredths: number | null
-        }
-        Returns: {
-          outcome: string
-          permit_id: string | null
-          reserved_hundredths: number
-          session_reset_at: string
-          week_reset_at: string
-        }[]
-      }
-      ocade_activate_offline_usage_lease: {
-        Args: {
-          p_key_id: string
-          p_lease_id: string
-          p_server_signature: string
-          p_signed_payload: Json
-          p_user_id: string
-        }
-        Returns: boolean
-      }
-      ocade_allocate_offline_usage: {
-        Args: {
-          p_amount_hundredths: number
-          p_browser_install_id: string
-          p_device_id: string
-          p_device_public_key: string
-          p_preissue?: boolean
-          p_request_key: string
-          p_session_limit_hundredths: number
-          p_tier: string
-          p_user_id: string
-          p_week_limit_hundredths: number | null
-        }
-        Returns: {
-          allocated_hundredths: number
-          consumed_hundredths: number
-          expires_at: string
-          issued_at: string
-          lease_id: string | null
-          not_before: string
-          outcome: string
-          preissued: boolean
-          sequence_end: number
-          sequence_start: number
-          session_reset_at: string
-          session_window_start: string
-          tier: string
-          week_reset_at: string
-          week_window_start: string
-        }[]
-      }
-      ocade_claim_generation_transport: {
-        Args: {
-          p_generation_id: string
-          p_idempotency_key: string
-          p_permit_id: string
-          p_surface: string
-          p_user_id: string
-        }
-        Returns: boolean
-      }
-      ocade_expire_commercial_permits: {
-        Args: { p_now?: string; p_user_id: string }
-        Returns: number
-      }
-      ocade_expire_offline_usage_leases: {
-        Args: { p_now?: string; p_user_id: string }
-        Returns: number
-      }
-      ocade_finalize_generation_permit: {
-        Args: {
-          p_cost_hundredths: number
-          p_idempotency_key: string
-          p_user_id: string
-        }
-        Returns: {
-          charged_hundredths: number
-          outcome: string
-        }[]
-      }
-      ocade_read_commercial_usage: {
-        Args: { p_user_id: string }
-        Returns: {
-          reserved_hundredths: number
-          reset_at: string
-          used_hundredths: number
-          window_kind: string
-          window_start: string
-        }[]
-      }
-      ocade_read_offline_usage: {
-        Args: { p_user_id: string }
-        Returns: {
-          allocated_hundredths: number
-          consumed_hundredths: number
-          device_id: string
-          device_name: string
-          device_public_key: string
-          expires_at: string
-          key_id: string | null
-          last_event_hash: string
-          last_sequence: number
-          lease_id: string
-          not_before: string
-          pending_hundredths: number
-          preissued: boolean
-          server_signature: string | null
-          session_reset_at: string
-          session_window_start: string
-          signed_payload: Json | null
-          status: string
-          tier: string
-          week_reset_at: string
-          week_window_start: string
-        }[]
-      }
-      ocade_reconcile_offline_usage: {
-        Args: {
-          p_consumed_hundredths: number
-          p_device_id: string
-          p_events: Json
-          p_last_event_hash: string
-          p_last_sequence: number
-          p_lease_id: string
-          p_user_id: string
-        }
-        Returns: number
-      }
-      ocade_release_generation_permit: {
-        Args: {
-          p_idempotency_key: string
-          p_reason: string
-          p_user_id: string
-        }
-        Returns: boolean
-      }
-      ocade_return_offline_usage: {
-        Args: { p_device_id: string; p_lease_id: string; p_user_id: string }
-        Returns: number
-      }
       ocade_consume_mfa_recovery_code: {
         Args: {
           p_code_hash: string
@@ -4785,13 +4781,49 @@ export type Database = {
           total: number
         }[]
       }
+      ocade_create_organization: {
+        Args: { p_name: string; p_slug: string }
+        Returns: string
+      }
+      ocade_create_organization_group: {
+        Args: { p_name: string; p_organization_id: string }
+        Returns: string
+      }
       ocade_create_support_ticket: {
         Args: { p_body: string; p_category: string; p_subject: string }
         Returns: string
       }
+      ocade_decide_approval: {
+        Args: { _device_id?: string; _id: string; _status: string }
+        Returns: {
+          decided_at: string | null
+          decided_by_device: string | null
+          expires_at: string
+          id: string
+          requested_at: string
+          risk: string
+          status: string
+          summary: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ocade_approvals"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       ocade_decide_automation_run: {
         Args: { p_decision: string; p_device_id?: string; p_run_id: string }
         Returns: string
+      }
+      ocade_delete_organization: {
+        Args: { p_organization_id: string; p_typed_name: string }
+        Returns: number
+      }
+      ocade_delete_organization_group: {
+        Args: { p_group_id: string }
+        Returns: number
       }
       ocade_enqueue_automation_run: {
         Args: {
@@ -4820,9 +4852,58 @@ export type Database = {
         }
         Returns: boolean
       }
+      ocade_expire_commercial_permits: {
+        Args: { p_now?: string; p_user_id: string }
+        Returns: number
+      }
+      ocade_expire_due_approvals: {
+        Args: never
+        Returns: {
+          decided_at: string | null
+          decided_by_device: string | null
+          expires_at: string
+          id: string
+          requested_at: string
+          risk: string
+          status: string
+          summary: string
+          user_id: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ocade_approvals"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      ocade_expire_offline_usage_leases: {
+        Args: { p_now?: string; p_user_id: string }
+        Returns: number
+      }
+      ocade_finalize_generation_permit: {
+        Args: {
+          p_cost_hundredths: number
+          p_idempotency_key: string
+          p_user_id: string
+        }
+        Returns: {
+          charged_hundredths: number
+          outcome: string
+        }[]
+      }
       ocade_heartbeat_automation_run: {
         Args: { p_claim_token: string; p_run_id: string }
         Returns: boolean
+      }
+      ocade_invite_to_organization: {
+        Args: {
+          p_email: string
+          p_expires_at: string
+          p_organization_id: string
+          p_role: string
+          p_token_hash: string
+        }
+        Returns: string
       }
       ocade_list_account_sessions: {
         Args: { p_user_id: string }
@@ -4836,28 +4917,134 @@ export type Database = {
           user_agent: string
         }[]
       }
-      ocade_mark_all_notifications_read: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      ocade_mark_all_notifications_read: { Args: never; Returns: number }
       ocade_mark_notification_read: {
         Args: { p_notification_id: string }
+        Returns: number
+      }
+      ocade_my_organizations_blocking_deletion: {
+        Args: never
+        Returns: {
+          name: string
+          organization_id: string
+          solo: boolean
+        }[]
+      }
+      ocade_open_status_incident: {
+        Args: {
+          p_body: string
+          p_component_ids: string[]
+          p_impact: string
+          p_kind: string
+          p_scheduled_end?: string
+          p_started_at?: string
+          p_title: string
+        }
+        Returns: string
+      }
+      ocade_org_active_owners: {
+        Args: { p_excluding: string; p_organization_id: string }
+        Returns: number
+      }
+      ocade_org_can_administer: {
+        Args: { p_organization_id: string }
+        Returns: boolean
+      }
+      ocade_org_is_owner: {
+        Args: { p_organization_id: string }
+        Returns: boolean
+      }
+      ocade_org_role: { Args: { p_organization_id: string }; Returns: string }
+      ocade_organizations_blocking_deletion: {
+        Args: { p_user_id: string }
+        Returns: {
+          name: string
+          organization_id: string
+          solo: boolean
+        }[]
+      }
+      ocade_post_status_incident_update: {
+        Args: { p_body: string; p_incident_id: string; p_state: string }
+        Returns: number
+      }
+      ocade_read_commercial_usage: {
+        Args: { p_user_id: string }
+        Returns: {
+          reserved_hundredths: number
+          reset_at: string
+          used_hundredths: number
+          window_kind: string
+          window_start: string
+        }[]
+      }
+      ocade_read_offline_usage: {
+        Args: { p_user_id: string }
+        Returns: {
+          allocated_hundredths: number
+          consumed_hundredths: number
+          device_id: string
+          device_name: string
+          device_public_key: string
+          expires_at: string
+          key_id: string
+          last_event_hash: string
+          last_sequence: number
+          lease_id: string
+          not_before: string
+          pending_hundredths: number
+          preissued: boolean
+          server_signature: string
+          session_reset_at: string
+          session_window_start: string
+          signed_payload: Json
+          status: string
+          tier: string
+          week_reset_at: string
+          week_window_start: string
+        }[]
+      }
+      ocade_read_shared_conversation: {
+        Args: { p_token: string }
+        Returns: {
+          message_count: number
+          messages: Json
+          snapshot_at: string
+          title: string
+        }[]
+      }
+      ocade_recent_proof_window: { Args: never; Returns: string }
+      ocade_reconcile_offline_usage: {
+        Args: {
+          p_consumed_hundredths: number
+          p_device_id: string
+          p_events: Json
+          p_last_event_hash: string
+          p_last_sequence: number
+          p_lease_id: string
+          p_user_id: string
+        }
         Returns: number
       }
       ocade_record_notification: {
         Args: {
           p_body: string
           p_category: string
-          // Nullable in the database: `deep_link` is `text` with no NOT NULL,
-          // and its CHECK explicitly permits NULL. A notification that points
-          // nowhere in particular is the ordinary case.
-          p_deep_link: string | null
+          p_deep_link: string
           p_delivery?: Json
           p_idempotency_key: string
           p_title: string
           p_user_id: string
         }
         Returns: string
+      }
+      ocade_record_organization_event: {
+        Args: {
+          p_detail?: Json
+          p_event: string
+          p_organization_id: string
+          p_subject_id?: string
+        }
+        Returns: undefined
       }
       ocade_recover_stale_automation_runs: {
         Args: { p_stale_before: string }
@@ -4872,63 +5059,9 @@ export type Database = {
         }
         Returns: number
       }
-      ocade_replace_mfa_recovery_codes: {
-        Args: { p_code_hashes: string[]; p_user_id: string }
-        Returns: number
-      }
-      ocade_accept_organization_invite: {
-        Args: { p_token_hash: string }
-        Returns: string
-      }
-      ocade_create_organization: {
-        Args: { p_name: string; p_slug: string }
-        Returns: string
-      }
-      ocade_create_organization_group: {
-        Args: { p_name: string; p_organization_id: string }
-        Returns: string
-      }
-      ocade_delete_organization: {
-        Args: { p_organization_id: string; p_typed_name: string }
-        Returns: number
-      }
-      ocade_delete_organization_group: {
-        Args: { p_group_id: string }
-        Returns: number
-      }
-      ocade_invite_to_organization: {
-        Args: {
-          p_email: string
-          p_expires_at: string
-          p_organization_id: string
-          p_role: string
-          p_token_hash: string
-        }
-        Returns: string
-      }
-      ocade_my_organizations_blocking_deletion: {
-        Args: Record<PropertyKey, never>
-        Returns: { name: string; organization_id: string; solo: boolean }[]
-      }
-      ocade_organizations_blocking_deletion: {
-        Args: { p_user_id: string }
-        Returns: { name: string; organization_id: string; solo: boolean }[]
-      }
-      ocade_org_active_owners: {
-        Args: { p_excluding: string | null; p_organization_id: string }
-        Returns: number
-      }
-      ocade_org_can_administer: {
-        Args: { p_organization_id: string }
+      ocade_release_generation_permit: {
+        Args: { p_idempotency_key: string; p_reason: string; p_user_id: string }
         Returns: boolean
-      }
-      ocade_org_is_owner: {
-        Args: { p_organization_id: string }
-        Returns: boolean
-      }
-      ocade_org_role: {
-        Args: { p_organization_id: string }
-        Returns: string
       }
       ocade_remove_organization_member: {
         Args: { p_member_id: string }
@@ -4938,95 +5071,8 @@ export type Database = {
         Args: { p_name: string; p_organization_id: string }
         Returns: number
       }
-      ocade_resend_organization_invite: {
-        Args: { p_expires_at: string; p_invite_id: string; p_token_hash: string }
-        Returns: number
-      }
-      ocade_revoke_organization_invite: {
-        Args: { p_invite_id: string }
-        Returns: number
-      }
-      ocade_set_organization_group_membership: {
-        Args: { p_group_id: string; p_member_id: string; p_present: boolean }
-        Returns: number
-      }
-      ocade_set_organization_member_role: {
-        Args: { p_member_id: string; p_role: string }
-        Returns: number
-      }
-      ocade_set_organization_member_state: {
-        Args: { p_member_id: string; p_state: string }
-        Returns: number
-      }
-      ocade_admin_notification_delivery: {
-        Args: { p_since: string }
-        Returns: {
-          category: string
-          channel: string
-          state: string
-          occurrences: number
-        }[]
-      }
-      ocade_read_shared_conversation: {
-        Args: { p_token: string }
-        Returns: {
-          title: string
-          messages: Json
-          message_count: number
-          snapshot_at: string
-        }[]
-      }
-      ocade_revoke_conversation_share: {
-        Args: { p_conversation_id: string }
-        Returns: number
-      }
-      ocade_share_conversation: {
-        Args: { p_conversation_id: string; p_expires_at?: string | null }
-        Returns: string
-      }
-      ocade_open_status_incident: {
-        Args: {
-          p_kind: string
-          p_title: string
-          p_impact: string
-          p_component_ids: string[]
-          p_body: string
-          p_started_at?: string | null
-          p_scheduled_end?: string | null
-        }
-        Returns: string
-      }
-      ocade_post_status_incident_update: {
-        Args: { p_incident_id: string; p_state: string; p_body: string }
-        Returns: number
-      }
-      ocade_save_support_article: {
-        Args: {
-          p_slug: string
-          p_title: string
-          p_summary: string
-          p_category: string
-          p_body: string[]
-          p_keywords: string[]
-          p_status: string
-          p_note?: string
-        }
-        Returns: number
-      }
-      ocade_set_organization_policy: {
-        Args: {
-          p_organization_id: string
-          p_withheld_capabilities: string[]
-          p_withheld_tool_domains: string[]
-        }
-        Returns: number
-      }
-      ocade_transfer_organization_ownership: {
-        Args: { p_organization_id: string; p_to_user_id: string }
-        Returns: number
-      }
-      ocade_save_notification_preferences: {
-        Args: { p_categories: Json; p_mute_optional: boolean; p_quiet_hours: Json }
+      ocade_replace_mfa_recovery_codes: {
+        Args: { p_code_hashes: string[]; p_user_id: string }
         Returns: number
       }
       ocade_request_automation_cancel: {
@@ -5047,21 +5093,92 @@ export type Database = {
         }
         Returns: boolean
       }
+      ocade_require_recent_strong_auth: {
+        Args: { p_action: string }
+        Returns: undefined
+      }
+      ocade_resend_organization_invite: {
+        Args: {
+          p_expires_at: string
+          p_invite_id: string
+          p_token_hash: string
+        }
+        Returns: number
+      }
       ocade_resume_automation_run: {
         Args: { p_run_id: string }
         Returns: string
       }
+      ocade_return_offline_usage: {
+        Args: { p_device_id: string; p_lease_id: string; p_user_id: string }
+        Returns: number
+      }
       ocade_revoke_account_session: {
         Args: { p_session_id: string; p_user_id: string }
+        Returns: number
+      }
+      ocade_revoke_conversation_share: {
+        Args: { p_conversation_id: string }
+        Returns: number
+      }
+      ocade_revoke_organization_invite: {
+        Args: { p_invite_id: string }
         Returns: number
       }
       ocade_revoke_other_account_sessions: {
         Args: { p_keep_session_id?: string; p_user_id: string }
         Returns: number
       }
+      ocade_save_notification_preferences: {
+        Args: {
+          p_categories: Json
+          p_mute_optional: boolean
+          p_quiet_hours: Json
+        }
+        Returns: number
+      }
+      ocade_save_support_article: {
+        Args: {
+          p_body: string[]
+          p_category: string
+          p_keywords: string[]
+          p_note?: string
+          p_slug: string
+          p_status: string
+          p_summary: string
+          p_title: string
+        }
+        Returns: number
+      }
+      ocade_session_has_verified_factor: { Args: never; Returns: boolean }
       ocade_session_is_live: {
         Args: { p_session_id: string; p_user_id: string }
         Returns: boolean
+      }
+      ocade_session_last_proof_at: { Args: never; Returns: string }
+      ocade_set_organization_group_membership: {
+        Args: { p_group_id: string; p_member_id: string; p_present: boolean }
+        Returns: number
+      }
+      ocade_set_organization_member_role: {
+        Args: { p_member_id: string; p_role: string }
+        Returns: number
+      }
+      ocade_set_organization_member_state: {
+        Args: { p_member_id: string; p_state: string }
+        Returns: number
+      }
+      ocade_set_organization_policy: {
+        Args: {
+          p_organization_id: string
+          p_withheld_capabilities: string[]
+          p_withheld_tool_domains: string[]
+        }
+        Returns: number
+      }
+      ocade_share_conversation: {
+        Args: { p_conversation_id: string; p_expires_at?: string }
+        Returns: string
       }
       ocade_suspend_automation_run: {
         Args: {
@@ -5071,6 +5188,10 @@ export type Database = {
           p_run_id: string
         }
         Returns: boolean
+      }
+      ocade_transfer_organization_ownership: {
+        Args: { p_organization_id: string; p_to_user_id: string }
+        Returns: number
       }
       revoke_device_for_current_user: {
         Args: { _device_id: string }

@@ -137,7 +137,6 @@ export interface ChatEngineContext {
    */
   thinking?: boolean;
   preference?: EngineContext["preference"];
-  privacyMode?: EngineContext["privacyMode"];
   visionRequired?: boolean;
 }
 
@@ -201,7 +200,6 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
    */
   const {
     preference = "auto",
-    privacyMode = "private_sync",
     visionRequired: contextVision = false,
     // Destructured for the same reason as the rest: read off `context` inside
     // the callback it would be an unlisted dependency, and the switch would go
@@ -217,7 +215,6 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
       const localAvailable = outcome.ok;
       const decision = resolveEngine({
         preference,
-        privacyMode,
         deviceMode: brain.mode,
         localAvailable,
         localLabel: outcome.ok ? outcome.availability.label : null,
@@ -227,7 +224,7 @@ export function useLocalChatEngine(context: ChatEngineContext = {}): {
       });
       return { outcome, decision };
     },
-    [brain, preference, privacyMode],
+    [brain, preference],
   );
 
   const check = useCallback(async () => {

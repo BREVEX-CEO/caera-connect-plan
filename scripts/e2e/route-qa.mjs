@@ -292,8 +292,26 @@ try {
        * the cost of being wrong in the tight direction is a false defect
        * report, and the cost in the other direction is only time on a page that
        * is genuinely blank.
+       *
+       * AND THE BUDGET RESTARTS FOR A DOCUMENT IT HAS NOT YET WAITED FOR.
+       *
+       * The loop after the clicks already did this; this one did not, and the
+       * difference showed up as `/settings/devices` reporting "0 chars, 0
+       * headings, 0 controls" in one full pass and passing ten times out of ten
+       * under the focused harness. The evidence named the mechanism: no console
+       * error, and two vendor chunks recorded as `net::ERR_ABORTED` — the
+       * signature of `isolation-upgrade.ts` calling `location.replace` to get a
+       * cross-origin-isolated document. That reload aborts every in-flight chunk
+       * and restarts the heaviest route in the product from nothing, and the
+       * fifteen seconds had been spent on the document it replaced.
+       *
+       * At most two extensions, matching the loop below: one for the isolation
+       * upgrade, one for a redirect that follows it. A third would be a page
+       * that cannot settle, which is what this check exists to catch.
        */
-      const settleBy = Date.now() + 15_000;
+      let settleBy = Date.now() + 15_000;
+      let extensionsLeft = 2;
+      let seenLoads = documentLoads;
       while (Date.now() < settleBy) {
         const remaining = settleBy - Date.now();
         await page
@@ -305,6 +323,16 @@ try {
         const before = page.url();
         const sample = await measure().catch(() => null);
         const after = page.url();
+        if (documentLoads !== seenLoads) {
+          // A new document arrived. The budget so far measured the old one, and
+          // any sample taken from it describes a page nobody is looking at.
+          seenLoads = documentLoads;
+          if (extensionsLeft > 0) {
+            extensionsLeft -= 1;
+            settleBy = Date.now() + 15_000;
+            continue;
+          }
+        }
         if (!sample) continue;
         body = sample;
         const moved = before !== after || new URL(after).pathname !== sample.path;
