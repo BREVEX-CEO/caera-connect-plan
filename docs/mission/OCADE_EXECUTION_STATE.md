@@ -341,12 +341,111 @@ disagree. Their presence on the production binding is now asserted.
 Possible consumption cannot exceed authoritative capacity, proved against real PostgreSQL across both
 mechanisms and two devices. 152 commercial tests pass, 36 of them against the database.
 
+## Phase 5 — OCADE Intelligence, Gemini and model lifecycle (COMPLETE)
+
+### The pinned model had drifted, quietly and completely
+
+`src/lib/intelligence/online-models.ts` pinned `gemini-3.7-flash`, with a
+`checkedAt` of 7 September — the day BEFORE `docs/DECISIONS.md` recorded the
+decision to pin `gemini-3.1-flash-lite`, a decision whose own text says changing
+the model "requires an explicit owner decision and corresponding tests and docs".
+No such decision existed. `PLAN.md`, `CLAUDE.md`, `docs/PRD.md`, `docs/TRD.md`,
+`docs/ARCHITECTURE.md`, `README.md` and `docs/MEMORY.md` all named one model and
+the running code used another, including a second literal inside the Edge
+Function. Nothing failed, because a model identifier is a string that works right
+up until somebody compares it to what was promised.
+
+It is pinned to `gemini-3.1-flash-lite` now — the exact stable API identifier
+`docs/TRD.md` names — in one place, with the Edge Function reading
+`DEFAULT_ONLINE_MODEL` rather than carrying its own copy.
+`pinned-model.test.ts` compares the code against the DOCUMENTS rather than
+against a copy of the value, so the next change has to move both.
+
+### The three key slots did not exist
+
+`docs/TRD.md` names `GEMINI_API_KEY_PRIMARY`, `GEMINI_API_KEY_SECONDARY` and
+`GEMINI_API_KEY_TERTIARY` and requires primary-first failover. The Edge Function
+read one `GEMINI_API_KEY` and the handler retried it. All three are read now, the
+list is built from the ones actually set — so a project with one key does not
+have failover invented for it and a project with three does not have the third
+ignored — and the handler owns the order while the function keeps the keys.
+
+The failure taxonomy is the point, because the plan forbids one kind of
+retry and requires another:
+
+| Failure | What it means | What happens |
+| ------- | ------------- | ------------ |
+| 401 / 403 | THIS key is refused | Abandon the slot at once; retrying a revoked key is only a delay |
+| 5xx or a thrown transport error | The provider or the path failed | Retry the slot, then move to the next |
+| 429 | Quota, and quota belongs to the PROJECT | Retry the slot, then answer 429 — every key meets the same wall, and trying them is the evasion `docs/TRD.md` forbids |
+| anything else | A real refusal about this request | Reported as-is |
+
+All of it is pre-output by construction: the loop ends the moment a response is
+ok, and the stream is handed off after it. An abort is never treated as a slot
+failure — trying the next key after the person has left would spend their
+allowance on a request nobody is waiting for. Seven tests hold the taxonomy,
+including the single-key case and the one that proves nothing is attempted once
+the stream has started.
+
+Local-only still performs zero provider traffic, and now demonstrably for a
+structural reason: `generativelanguage.googleapis.com` and `x-goog-api-key`
+appear in exactly one file, a Deno function no browser bundle imports.
+
+### Preparation was gated on a session, against the plan
+
+`__root.tsx` called `useInstallationBootstrap({ enabled: signedIn })`, and
+`preparation-requires-a-session.test.tsx` asserted it, citing a `PLAN.md` §17
+that opened with "After authenticated login". Neither phrase the test quoted
+survives in the plan. The current authorities say the reverse three times —
+`PLAN.md` line 15, `PLAN.md` Phase 5, and `docs/TRD.md` ("including while the
+landing page is displayed").
+
+The concern behind the gate was real and is not waived: the defect it was added
+for was the installer's bootstrap running inside the hydration task of the one
+page a first-time visitor is deciding about. But a gate does not make
+preparation cheaper, it makes it not happen. The two mechanisms that do make it
+cheap were already there and now carry the weight alone — nothing is imported
+statically, and the start is deferred to an idle callback. Measured after the
+change: landing LCP 300 ms, CLS 0.0124, TBT **29 ms** against a 200 ms budget
+(it was 39 ms with the gate in place), and eager JavaScript unchanged at
+630.8 KiB. The reasoning is recorded in `docs/DECISIONS.md`, because the next
+person will have the same instinct to add a gate.
+
+### Two lifecycle events nothing was watching
+
+`PLAN.md` Phase 5 names five things a verified model must survive. Four were
+already proved behaviourally — reload, browser restart, a new application
+deployment and revisit in `install-lifecycle.test.ts`; account deletion in
+`deletion-makes-no-model-request.test.ts`, including when there is no model at
+all. The two that were not are the two whose code changed most recently, and
+both fail silently: nothing errors, the person simply waits for a transfer they
+already completed.
+
+Signing out clears what the TAB was holding, and Phase 2 rewrote that block —
+one line further, into the model store, and a sign-out would cost a gigabyte. A
+service-worker `activate` deletes old caches, which is right, and is one
+careless `caches.keys()` away from deleting everything the origin holds. Both
+hold today, and both are pinned now, along with the structural reason the second
+one is safe: the weights are in OPFS rather than in the Cache Storage that
+`activate` prunes.
+
+### Gate
+
+One model authority and proven zero-unnecessary-redownload behaviour.
+`model:install-proof` runs the shipped transfer, vault and authority against a
+real HTTP server that speaks Range, over a real socket, with a real mid-transfer
+failure and SHA-256 checked against Node's own crypto: interrupted transfer,
+resume, independent verification, reload to ready, corruption repair, uninstall
+and reinstall all pass. `browser-model-authority.test.ts` holds the single
+authority.
+
 ## Next action
 
-Phase 5 — OCADE Intelligence, Gemini and model lifecycle. Two halves: one `OcadeIntelligence`
-boundary after permit acquisition with Gemini 3.1 Flash-Lite pinned to exactly three server secret
-slots and primary-first health failover only before meaningful output — Local-only producing zero
-provider DNS, fetch, preconnect or health traffic — and first-visit Offline Intelligence preparation
-that verifies manifest, chunks and hashes before fetching, resumes interrupted ranges, repairs only
-what is missing or corrupt, and never redownloads a verified model across reload, sign-in or -out,
-account deletion, a service-worker or application deployment, or an ordinary revisit.
+Phase 6 — Complete donor re-evaluation. Reassess all 2,126 donor files against
+the post-refactor authorities with deterministic dispositions — direct safe
+reuse, adapt, behavioural port, current OCADE stronger, or reject — validating
+provenance, dependency closure, compatibility and runtime reachability for every
+merged behaviour. `integration:check` already tracks 2,126 dispositions and
+37/37 adapted modules reached; the phase is about the dispositions being CURRENT
+against what Phases 1-5 changed, not about the count. Gate: maximum useful donor
+behaviour with no parallel donor product architecture.

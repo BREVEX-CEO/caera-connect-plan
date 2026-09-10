@@ -8,7 +8,13 @@ import type {
   NormalizedToolDefinition,
   NormalizedUsage,
 } from "./contract.ts";
-import { DEFAULT_ONLINE_MODEL, isAllowedOnlineModel, type OnlineModelId } from "./online-models.ts";
+import {
+  DEFAULT_ONLINE_MODEL,
+  isAllowedOnlineModel,
+  PROVIDER_KEY_SLOTS,
+  type OnlineModelId,
+  type ProviderKeySlot,
+} from "./online-models.ts";
 
 const MAX_BODY_BYTES = 1_048_576;
 const MAX_MESSAGES = 256;
@@ -41,10 +47,21 @@ export interface OnlineHandlerDependencies {
     userId: string;
     permit: IntelligencePermit;
   }): Promise<{ ok: true } | { ok: false; reason: string }>;
+  /**
+   * The slots that actually hold a key, in the order they may be tried.
+   *
+   * Supplied by the deployment rather than assumed, because two of the three
+   * are OPTIONAL: a project with one key must not have failover invented for
+   * it, and a project with three must not have the third ignored. Absent or
+   * empty means the caller has not said, and one primary attempt is made.
+   */
+  providerSlots?: readonly ProviderKeySlot[];
   callProvider(input: {
     model: OnlineModelId;
     body: Record<string, unknown>;
     signal: AbortSignal;
+    /** Which key to present. The handler decides; the caller holds the keys. */
+    slot: ProviderKeySlot;
   }): Promise<Response>;
 }
 
@@ -401,23 +418,88 @@ export async function handleOnlineIntelligence(
     request.signal.removeEventListener("abort", abort);
   };
   try {
+    /*
+     * PRIMARY FIRST, AND ONLY FOR THE RIGHT REASONS.
+     *
+     * `docs/TRD.md` allows failover for "key-local authentication/health or
+     * pre-output provider/transport failure" and forbids it for quota:
+     * "Project/provider-wide quota must not trigger key rotation to evade
+     * quota." Those are different failures that look similar from here, so
+     * they are separated by status rather than lumped into "the call did not
+     * work":
+     *
+     *   401 / 403  — THIS KEY is refused. Nothing about the next one is
+     *                implied, so move on immediately; retrying a revoked key
+     *                is only a delay.
+     *   5xx, throw — the provider or the transport failed. The next key may
+     *                reach a healthier path, so retry this slot and then move
+     *                on.
+     *   429        — quota, and quota belongs to the PROJECT. Every key would
+     *                meet the same wall, and trying them anyway is exactly the
+     *                evasion the plan names. Retry this slot, then answer 429
+     *                honestly.
+     *   anything   — a real refusal about this request. Reported as-is.
+     *   else
+     *
+     * ALL OF THIS IS PRE-OUTPUT BY CONSTRUCTION. The loop ends the moment a
+     * response is ok; the stream is handed off after it, and nothing here runs
+     * again once a single token has reached the person.
+     */
+    const slots: readonly ProviderKeySlot[] =
+      deps.providerSlots && deps.providerSlots.length > 0
+        ? deps.providerSlots
+        : [PROVIDER_KEY_SLOTS[0]];
     let provider: Response | null = null;
-    for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS; attempt += 1) {
-      provider = await deps.callProvider({
-        model: configured,
-        body: providerBody(body),
-        signal: controller.signal,
-      });
-      if (provider.ok) break;
-      if (
-        !(provider.status === 429 || provider.status >= 500) ||
-        attempt === MAX_PROVIDER_ATTEMPTS - 1
-      ) {
-        return json(provider.status === 429 ? 429 : 503, { error: "provider_unavailable" }, origin);
+    let quotaExhausted = false;
+
+    outer: for (const slot of slots) {
+      for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS; attempt += 1) {
+        let response: Response;
+        try {
+          response = await deps.callProvider({
+            model: configured,
+            body: providerBody(body),
+            signal: controller.signal,
+            slot,
+          });
+        } catch (cause) {
+          /*
+           * A THROW IS A TRANSPORT FAILURE OF THIS SLOT — unless we asked for
+           * it. An abort is the person leaving or the timeout firing, and
+           * trying the next key after that would be spending their allowance
+           * on a request nobody is waiting for.
+           */
+          if (controller.signal.aborted) throw cause;
+          if (attempt === MAX_PROVIDER_ATTEMPTS - 1) continue outer;
+          await sleep(retryAfter(new Response(null, { status: 503 }), attempt), controller.signal);
+          continue;
+        }
+
+        provider = response;
+        if (response.ok) break outer;
+
+        if (response.status === 401 || response.status === 403) continue outer;
+
+        if (response.status === 429) {
+          quotaExhausted = true;
+          if (attempt === MAX_PROVIDER_ATTEMPTS - 1) break outer;
+          await sleep(retryAfter(response, attempt), controller.signal);
+          continue;
+        }
+
+        if (response.status >= 500) {
+          if (attempt === MAX_PROVIDER_ATTEMPTS - 1) continue outer;
+          await sleep(retryAfter(response, attempt), controller.signal);
+          continue;
+        }
+
+        return json(503, { error: "provider_unavailable" }, origin);
       }
-      await sleep(retryAfter(provider, attempt), controller.signal);
     }
-    if (!provider?.ok) return json(503, { error: "provider_unavailable" }, origin);
+
+    if (!provider?.ok) {
+      return json(quotaExhausted ? 429 : 503, { error: "provider_unavailable" }, origin);
+    }
     handedOff = true;
     return new Response(
       normalizedProviderStream(provider, controller.signal, cleanup, (reason) => {

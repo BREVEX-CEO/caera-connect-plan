@@ -320,7 +320,6 @@ function RootComponent() {
             queryClient={queryClient}
             router={router}
             onSignedInChange={setSignedIn}
-            signedIn={signedIn}
           />
         ) : null}
         {/*
@@ -435,15 +434,38 @@ function BrowserRuntimeBootstrap({
   queryClient,
   router,
   onSignedInChange,
-  signedIn,
 }: {
   pathname: string;
   queryClient: QueryClient;
   router: ReturnType<typeof useRouter>;
   onSignedInChange: (signedIn: boolean) => void;
-  signedIn: boolean;
 }) {
-  useInstallationBootstrap({ enabled: signedIn });
+  /*
+   * PREPARATION STARTS ON THE FIRST VISIT, SIGNED IN OR NOT.
+   *
+   * This read `enabled: signedIn`, from a plan revision that opened §17 with
+   * "After authenticated login". The current authorities say the opposite, in
+   * three places and without hedging: `PLAN.md` line 15 — a first unseen visit
+   * "may begin Offline Intelligence preparation immediately in the background";
+   * Phase 5 — "Start Offline Intelligence preparation on first visit without
+   * blocking landing/auth"; `docs/TRD.md` — "on the first browser/device visit
+   * where capability permits, INCLUDING WHILE THE LANDING PAGE IS DISPLAYED".
+   *
+   * The concern behind the old gate was real and is not waived by any of that:
+   * an anonymous visitor should not have a multi-gigabyte transfer started
+   * inside the hydration task of the one page they are deciding about. But the
+   * gate was the wrong instrument for it — it did not make preparation cheaper,
+   * it made it not happen — and the right instrument is already here and stays:
+   * nothing is imported statically, and the start is deferred to an idle
+   * callback with a 1.5s timeout so it can never share a task with hydration.
+   * `download-plan.ts` carries the other half of the answer: cellular is
+   * allowed and `saveData` lowers concurrency rather than cancelling, because
+   * "the local engine is the product, not an optional extra".
+   *
+   * `preparation-starts-on-first-visit.test.tsx` holds both halves, and
+   * `audit:web-vitals` measures what it costs the landing page.
+   */
+  useInstallationBootstrap();
 
   useEffect(() => {
     let cancelled = false;

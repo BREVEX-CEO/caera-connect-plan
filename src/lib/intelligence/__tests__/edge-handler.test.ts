@@ -53,6 +53,9 @@ function dependencies(patch: Partial<OnlineHandlerDependencies> = {}): OnlineHan
   return {
     allowedOrigins: new Set([ORIGIN]),
     providerReady: true,
+    // All three configured, so a test that expects NO failover is proving the
+    // rule rather than the absence of somewhere to fail over to.
+    providerSlots: ["primary", "secondary", "tertiary"],
     verifyJwt: vi.fn(async () => ({ userId: "user-1" })),
     claimPermit: vi.fn(async () => ({ ok: true as const })),
     callProvider: vi.fn(async () =>
@@ -85,7 +88,7 @@ describe("authenticated Online Intelligence Edge handler", () => {
       }),
       callProvider: vi.fn(async ({ model, body: providerInput }) => {
         order.push("provider");
-        expect(model).toBe("gemini-3.7-flash");
+        expect(model).toBe("gemini-3.1-flash-lite");
         expect(providerInput).toMatchObject({
           system_instruction: { parts: [{ text: "You are OCADE." }] },
           contents: [{ role: "user", parts: [{ text: "Hello" }] }],
@@ -138,7 +141,7 @@ describe("authenticated Online Intelligence Edge handler", () => {
     expect(unapproved.claimPermit).not.toHaveBeenCalled();
   });
 
-  it("uses bounded retry for 429 and 5xx without changing credentials or model", async () => {
+  it("retries 429 and 5xx on the SAME key, and never changes the model", async () => {
     const call = vi
       .fn<OnlineHandlerDependencies["callProvider"]>()
       .mockResolvedValueOnce(new Response(null, { status: 429 }))
@@ -154,11 +157,151 @@ describe("authenticated Online Intelligence Edge handler", () => {
     await response.text();
     expect(call).toHaveBeenCalledTimes(3);
     expect(call.mock.calls.map(([input]) => input.model)).toEqual([
-      "gemini-3.7-flash",
-      "gemini-3.7-flash",
-      "gemini-3.7-flash",
+      "gemini-3.1-flash-lite",
+      "gemini-3.1-flash-lite",
+      "gemini-3.1-flash-lite",
     ]);
+    // Three slots were offered and none of them was reached for: a retry is not
+    // a rotation, and a 429 is the one failure that must never become one.
+    expect(call.mock.calls.map(([input]) => input.slot)).toEqual(["primary", "primary", "primary"]);
     expect(sleep).toHaveBeenCalledTimes(2);
+  });
+
+  it("moves to the next key when THIS key is refused, and stops when one works", async () => {
+    /*
+     * 401 and 403 are key-local: the credential is revoked, misconfigured or
+     * not entitled, and nothing about the next one is implied. Retrying it is
+     * only a delay, so the slot is abandoned on the first refusal.
+     */
+    const call = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(new Response(null, { status: 403 }))
+      .mockResolvedValueOnce(
+        provider([{ candidates: [{ content: { parts: [{ text: "ok" }] } }] }]),
+      );
+    const sleep = vi.fn(async () => undefined);
+    const deps = dependencies({ callProvider: call, sleep });
+
+    const response = await handleOnlineIntelligence(request(), deps);
+    expect(response.status).toBe(200);
+    await response.text();
+    expect(call.mock.calls.map(([input]) => input.slot)).toEqual([
+      "primary",
+      "secondary",
+      "tertiary",
+    ]);
+    expect(sleep, "a revoked key was waited on before being abandoned").not.toHaveBeenCalled();
+  });
+
+  it("moves to the next key after a slot's health attempts are spent", async () => {
+    const call = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockResolvedValue(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(new Response(null, { status: 503 }))
+      .mockResolvedValueOnce(
+        provider([{ candidates: [{ content: { parts: [{ text: "ok" }] } }] }]),
+      );
+    const deps = dependencies({ callProvider: call, sleep: vi.fn(async () => undefined) });
+
+    const response = await handleOnlineIntelligence(request(), deps);
+    expect(response.status).toBe(200);
+    await response.text();
+    // Three attempts on the primary, then the secondary answers.
+    expect(call.mock.calls.map(([input]) => input.slot)).toEqual([
+      "primary",
+      "primary",
+      "primary",
+      "secondary",
+    ]);
+  });
+
+  it("treats a thrown transport error as this slot's failure, not the request's", async () => {
+    const call = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockRejectedValueOnce(new TypeError("network"))
+      .mockRejectedValueOnce(new TypeError("network"))
+      .mockRejectedValueOnce(new TypeError("network"))
+      .mockResolvedValueOnce(
+        provider([{ candidates: [{ content: { parts: [{ text: "ok" }] } }] }]),
+      );
+    const deps = dependencies({ callProvider: call, sleep: vi.fn(async () => undefined) });
+
+    const response = await handleOnlineIntelligence(request(), deps);
+    expect(response.status).toBe(200);
+    await response.text();
+    expect(call.mock.calls.map(([input]) => input.slot)).toEqual([
+      "primary",
+      "primary",
+      "primary",
+      "secondary",
+    ]);
+  });
+
+  it("answers 429 rather than spending the other keys on the same project quota", async () => {
+    const call = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockResolvedValue(new Response(null, { status: 429 }));
+    const deps = dependencies({ callProvider: call, sleep: vi.fn(async () => undefined) });
+
+    const response = await handleOnlineIntelligence(request(), deps);
+    expect(response.status).toBe(429);
+    /*
+     * Three attempts, all on the primary. Quota belongs to the PROJECT, so
+     * every key would meet the same wall and trying them anyway is the evasion
+     * `docs/TRD.md` forbids in so many words.
+     */
+    expect(call).toHaveBeenCalledTimes(3);
+    expect(new Set(call.mock.calls.map(([input]) => input.slot))).toEqual(new Set(["primary"]));
+  });
+
+  it("refuses once every configured key has failed, without inventing a fourth", async () => {
+    const call = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockResolvedValue(new Response(null, { status: 401 }));
+    const deps = dependencies({ callProvider: call, sleep: vi.fn(async () => undefined) });
+
+    const response = await handleOnlineIntelligence(request(), deps);
+    expect(response.status).toBe(503);
+    expect(call).toHaveBeenCalledTimes(3);
+  });
+
+  it("makes one primary attempt when the deployment holds a single key", async () => {
+    const call = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockResolvedValue(new Response(null, { status: 401 }));
+    const deps = dependencies({
+      callProvider: call,
+      providerSlots: ["primary"],
+      sleep: vi.fn(async () => undefined),
+    });
+
+    expect((await handleOnlineIntelligence(request(), deps)).status).toBe(503);
+    expect(call, "failover was invented for a project with one key").toHaveBeenCalledTimes(1);
+  });
+
+  it("does not reach for another key once the answer has started", async () => {
+    /*
+     * The structural guarantee: the loop ends the moment a response is ok, and
+     * the stream is handed off after it. A provider that fails MID-STREAM is a
+     * refusal on the stream, not a reason to start again somewhere else — the
+     * person has already seen output, and a second attempt would either
+     * duplicate it or contradict it.
+     */
+    const call = vi
+      .fn<OnlineHandlerDependencies["callProvider"]>()
+      .mockResolvedValueOnce(new Response("data: {broken\n\n", { status: 200 }));
+    const deps = dependencies({ callProvider: call, sleep: vi.fn(async () => undefined) });
+
+    const response = await handleOnlineIntelligence(request(), deps);
+    const stream = await response.text();
+    expect(stream).toContain('"type":"refusal"');
+    expect(
+      call,
+      "a second key was tried after the stream had been handed off",
+    ).toHaveBeenCalledTimes(1);
   });
 
   it("converts a malformed provider stream to a refusal, never a fake final answer", async () => {

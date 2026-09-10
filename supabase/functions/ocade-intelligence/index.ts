@@ -1,5 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2.110.7";
 import { handleOnlineIntelligence } from "../../../src/lib/intelligence/edge-handler.ts";
+import {
+  DEFAULT_ONLINE_MODEL,
+  PROVIDER_KEY_SLOTS,
+  type ProviderKeySlot,
+} from "../../../src/lib/intelligence/online-models.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 
@@ -28,8 +33,27 @@ const SUPABASE_SERVICE_ROLE_KEY =
   Deno.env.get("SUPABASE_SECRET_KEY") ||
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ||
   "";
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
-const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.7-flash";
+/*
+ * EXACTLY THREE KEY SLOTS, AND ONLY THE ONES THAT ARE SET.
+ *
+ * `docs/TRD.md` names all three and makes the second and third OPTIONAL, so the
+ * list is built from what the deployment actually holds: a project with one key
+ * must not have failover invented for it, and a project with three must not
+ * have the third ignored. The keys stay in this module and never travel — the
+ * handler is told WHICH SLOT to use and nothing more, so the policy lives in
+ * one tested place and the secrets live in none of it.
+ *
+ * `GEMINI_API_KEY` is still read as the primary. It is what earlier deployments
+ * set, and a rename that silently turned online intelligence off would be a
+ * worse outcome than carrying one alias.
+ */
+const PROVIDER_KEYS: Record<ProviderKeySlot, string> = {
+  primary: Deno.env.get("GEMINI_API_KEY_PRIMARY") ?? Deno.env.get("GEMINI_API_KEY") ?? "",
+  secondary: Deno.env.get("GEMINI_API_KEY_SECONDARY") ?? "",
+  tertiary: Deno.env.get("GEMINI_API_KEY_TERTIARY") ?? "",
+};
+const CONFIGURED_SLOTS = PROVIDER_KEY_SLOTS.filter((slot) => PROVIDER_KEYS[slot].length > 0);
+const GEMINI_MODEL = Deno.env.get("GEMINI_MODEL") ?? DEFAULT_ONLINE_MODEL;
 const allowedOrigins = new Set(
   (Deno.env.get("OCADE_ALLOWED_ORIGINS") ?? "")
     .split(",")
@@ -41,8 +65,12 @@ Deno.serve((request) =>
   handleOnlineIntelligence(request, {
     allowedOrigins,
     providerReady: Boolean(
-      SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY && SUPABASE_SERVICE_ROLE_KEY && GEMINI_API_KEY,
+      SUPABASE_URL &&
+      SUPABASE_PUBLISHABLE_KEY &&
+      SUPABASE_SERVICE_ROLE_KEY &&
+      CONFIGURED_SLOTS.length > 0,
     ),
+    providerSlots: CONFIGURED_SLOTS,
     model: GEMINI_MODEL,
     async verifyJwt(token) {
       const auth = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -86,12 +114,14 @@ Deno.serve((request) =>
             reason: "The generation permit is invalid or was already used.",
           };
     },
-    callProvider({ model, body, signal }) {
+    callProvider({ model, body, signal, slot }) {
       return fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY },
+          // The slot the handler chose. The key itself never leaves this file,
+          // and never appears in a log line, a response or an error.
+          headers: { "Content-Type": "application/json", "x-goog-api-key": PROVIDER_KEYS[slot] },
           body: JSON.stringify(body),
           signal,
         },

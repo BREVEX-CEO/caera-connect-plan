@@ -118,26 +118,45 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 4 (commercial usage and offline leases) is complete. Phase 3 is what unblocked it: the permit
-and offline-lease tables and functions were in source but not in the live database, so the binding
-was calling RPCs the deployment did not have. The phase's own work was proving the parts nothing
-owned — the binding's own arguments against the real functions (every surface and tier the types
-allow is one the database accepts), and the capacity arithmetic ACROSS mechanisms: two devices draw
-from one pool, an offline block and a connected request spend the same allowance in both directions,
-and returning a block gives the capacity back to the account rather than to the device. One risk was
-closed on the way: the durable half of `CommercialUsageLedger` is optional and the gate falls back to
-an in-memory reservation without it, so its presence on the production binding is now asserted —
-otherwise a refactor could move money-keeping out of Postgres silently.
+Phase 5 (OCADE Intelligence, Gemini and model lifecycle) is complete, and it was
+the phase with the most drift rather than the most building.
 
-Next is Phase 5 — OCADE Intelligence, Gemini and model lifecycle. One `OcadeIntelligence` boundary
-after permit acquisition; Gemini 3.1 Flash-Lite pinned to exactly three server secret slots with
-primary-first health failover only before meaningful output; Local-only producing zero provider
-traffic of any kind. Then first-visit Offline Intelligence preparation that verifies before it
-fetches, resumes rather than restarts, and never redownloads a verified model.
+The pinned model had come apart from every document that names it: the code said
+`gemini-3.7-flash`, dated the day before the decision that pins
+`gemini-3.1-flash-lite`, with a second literal inside the Edge Function. Nothing
+failed, which is the whole problem with a model identifier. It is pinned in one
+place now, and the test compares the code against the documents rather than
+against a copy of the value.
 
-One known external item remains from Phase 3: `auth_leaked_password_protection` is disabled in
-Supabase Auth. It is a dashboard setting with no repository path, recorded in
-`docs/deployment/PRODUCTION_STATE.md` as a pre-launch action.
+The three key slots `docs/TRD.md` requires did not exist — one `GEMINI_API_KEY`
+and a retry loop. All three are read now, from the ones actually set, with the
+failure taxonomy the plan asks for: a key-local 401/403 abandons the slot at
+once, a 5xx or transport error retries then moves on, and a **429 never
+rotates**, because quota belongs to the project and trying the other keys is the
+evasion the plan forbids in so many words. Nothing is attempted once output has
+begun.
+
+Preparation was gated on `signedIn`, from a plan revision that no longer exists.
+The current plan says first visit, landing page included. The gate was removed
+and the two things that actually make it cheap now carry the weight alone — the
+installer is never imported statically, and the start is deferred to an idle
+callback. The landing page measured BETTER afterwards: TBT 29 ms against a
+200 ms budget, where it was 39 ms with the gate. `docs/DECISIONS.md` records why
+a gate was the wrong instrument, because the next person will have the same
+instinct.
+
+Finally, two lifecycle events nothing was watching are pinned: a verified model
+must survive signing out (Phase 2 rewrote that block, and one line further would
+cost a gigabyte) and a service-worker update (its `activate` prunes caches, and
+the weights are in OPFS precisely so that pruning cannot reach them).
+
+Next is Phase 6 — complete donor re-evaluation. `integration:check` already
+tracks 2,126 dispositions with 37/37 adapted modules reached; the phase is about
+those dispositions being current against what Phases 1-5 changed.
+
+One known external item remains from Phase 3: `auth_leaked_password_protection`
+is disabled in Supabase Auth. It is a dashboard setting with no repository path,
+recorded in `docs/deployment/PRODUCTION_STATE.md` as a pre-launch action.
 
 ## Things to Be Careful About
 

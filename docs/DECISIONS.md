@@ -423,3 +423,33 @@ Hand-editing the file makes the next regeneration destroy the fix silently. `any
 ### Trade-offs and Consequences
 
 `sqlNullable` is a cast and could be misused to launder any null; its documentation names the one case it is for, and the three cases it is not. Regenerating types remains a required step after every migration, and `supabase:types-check` fails the build when a migrated table is missing from the file.
+
+## Offline Intelligence prepares on the first visit, and the landing page is protected by deferral rather than by a gate
+
+### Date
+
+2026-09-10
+
+### Status
+
+Accepted. Supersedes the behaviour introduced by an earlier plan revision whose §17 opened with "After authenticated login".
+
+### Context
+
+The root shell gated preparation on `signedIn`. It was added for a real, measured reason: the installer's bootstrap was running inside the same task as hydration, on the public landing page, so an anonymous visitor deciding whether to sign up paid for device probing, catalogue resolution, a storage-persistence request and then a model transfer. It was found through the landing page's Total Blocking Time. The current `PLAN.md` and `docs/TRD.md` require the opposite — preparation begins on the first browser or device visit, including while the landing page is displayed, without blocking landing or auth.
+
+### Options Considered
+
+Keep the sign-in gate and accept the drift; start on first visit and accept whatever it costs the landing page; start on first visit with the work deferred out of the hydration task and the installer loaded on demand; start on first visit but postpone on a metered connection.
+
+### Decision
+
+Preparation starts on the first visit, signed in or not. The landing page is protected by the two mechanisms that actually make it cheap rather than by not doing it: the installer is never imported statically, so the entry bundle does not carry the transfer engine, the streaming digest, the vault or the catalogue; and the start is deferred to an idle callback with a 1.5-second timeout, falling back to a 200 ms timer, so it can never share a task with hydration. A metered connection tunes the transfer rather than postponing it, per `download-plan.ts`: "the local engine is the product, not an optional extra."
+
+### Reasoning
+
+The gate did not make preparation cheaper, it made it not happen — and the cost it was avoiding was a scheduling defect, not an inherent cost of preparing. Deferral fixes the scheduling defect directly and leaves the product behaviour the plan asks for. Measured after the change, the landing page reports LCP 300 ms, CLS 0.0124 and TBT 29 ms against a 200 ms budget, and eager JavaScript is unchanged at 630.8 KiB.
+
+### Trade-offs and Consequences
+
+A visitor who never signs up may transfer a model they never use, on their own bandwidth. That is the trade the plan makes deliberately, and it is bounded by the same explicit Remove control every other visitor has. `preparation-starts-on-first-visit.test.tsx` holds both halves — that it starts without a session, and that the deferral and the dynamic import are still in place — so a future edit cannot reintroduce the gate quietly, and cannot remove the deferral that makes starting acceptable.
