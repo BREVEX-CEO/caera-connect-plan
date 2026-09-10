@@ -1146,6 +1146,98 @@ tests across 513 files, 95 migrations applied, verified and rolled back against
 real PostgreSQL, performance budget green.
 
 
+## Phase 16 — Monitoring, backup, restore and rollback
+
+### Recovery is performed, not described
+
+`docs/deployment/BACKUP_AND_RESTORE.md` described a restore in shell commands
+nobody had run since they were written. It said the schema was 58 migrations
+when it was 95, and told an operator to check a `vault_config` table and a
+browser vault that Phase 2 removed. A runbook drifts silently because nothing
+executes it.
+
+`npm run recovery:prove` executes it. A live database with two accounts' data
+across every owned table plus Storage rows; a backup taken from it; a SECOND
+empty PostgreSQL that has never seen the schema, the policies, the extensions
+or the functions; the schema rebuilt from `supabase/migrations/` alone; the
+rows restored parents-first; then the proofs — identical digests per table,
+every foreign key re-validated by Postgres itself, sequences moved past the
+restored rows, RLS back with the data, and one account unable to read the
+other's rows in the restored database. Then the newest migration rolled back
+and re-applied there. Evidence: `release/OCADE_RECOVERY_REHEARSAL.json`, twelve
+steps, counts and digests only.
+
+### What the rehearsal found on its first two runs
+
+A backup scoped to `public` alone left sixty foreign keys pointing at an
+`auth.users` that was never exported: every user-owned row orphaned. Storage
+has the same shape — the bytes survive a database loss, the rows saying who
+owns them do not, and a restore without them lists nobody's files. Both schemas
+are in scope now.
+
+A schema rebuilt from migrations is not empty. Several migrations insert
+reference data, so the restore collided on a unique constraint; a restore
+replaces rather than appends, which is what `pg_restore --clean` means.
+
+And the Phase 15 migration could not be re-applied over what its own rollback
+deliberately keeps — the rollback preserves the support access-event rows,
+because a rollback that erased the record of who read what would cover its own
+tracks, so the migration now drops its policies before creating them.
+
+Proven by breaking it: RLS disabled on one restored table makes the
+cross-account probe fail with "1 row(s) belonging to another account were
+returned".
+
+### Diagnostics that cannot carry anybody's work
+
+`src/lib/telemetry/operation-health.ts` supplies the vocabulary Phase 16 names —
+release, operation, error class, latency, provider slot, component (web, Edge
+Function, webhook, task, provider, model, database) — and feeds the consent,
+allow-list, redaction and queue that `failure-telemetry.ts` already owned. Not
+a second telemetry stack.
+
+Every field is enumerated at build time and an unrecognised value is replaced
+rather than passed through, so a prompt, an address or a key cannot become an
+error class. Latency is a bucket, because a millisecond count fingerprints a
+session. The provider slot is an ordinal, never a key. An unrecognised outcome
+is treated as a failure, never a success.
+
+The Edge Function emits exactly one record per request, wrapped around the
+handler rather than instrumented per `return` — there are fourteen ways out and
+a per-return call site is a per-return chance to forget one.
+
+### Edge Function rollback existed nowhere
+
+Cloudflare had an immutable version id and a separately approved rollback; the
+database had per-migration rollbacks; the Edge Function had a directory push and
+a number Supabase counts. `release/OCADE_EDGE_FUNCTION_RELEASES.json` records
+which source each version was, including every `src/lib` module the entrypoint
+imports transitively. `npm run edge:rollback-prove` rebuilds it out of git and
+re-hashes it.
+
+That recorded a live fact: deployed version 2 is commit `5b96773` — single
+`GEMINI_API_KEY`, `gemini-3.7-flash`, no slot failover, still accepting the
+removed storage modes. The repository is far ahead. Recorded in
+`docs/deployment/PRODUCTION_STATE.md`; Phase 20 owns the deployment that
+replaces it.
+
+### Dead text from the removed vault
+
+Sharing still refused a conversation with "change its storage to Private Sync in
+Settings → Storage" for a state the database can no longer produce, and the
+offline page still promised that device-only conversations remained readable
+with no network. Both removed, and both replaced by gates: the client's refusal
+set is now compared against the newest SQL definition of
+`ocade_share_conversation`, and the offline page may not name a removed storage
+mode.
+
+### Gate
+
+Recovery is demonstrated, not documented: twelve rehearsal steps green against
+real PostgreSQL, the Edge Function rollback target rebuilt from git and hashing
+identically, and the runbook itself held to the repository by a test.
+
+
 ## Next action
 
-Phase 16 — Monitoring, backup, restore and rollback.
+Phase 17 — Final OCADE UI/UX consolidation.

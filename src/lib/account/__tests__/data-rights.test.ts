@@ -143,7 +143,13 @@ describe("exporting an account", () => {
   it("says what is NOT in the file, because a reader cannot see an absence", async () => {
     const result = await buildAccountExport(fakeDatabase({}), "account-1");
     const notes = result.notes.join(" ");
-    expect(notes).toMatch(/device only/i);
+    /*
+     * This note used to name the "Browser Only" and "PC Vault" data classes
+     * `PLAN.md` Phase 2 removed. What it must still do is state the absence:
+     * an export cannot contain what OCADE never received.
+     */
+    expect(notes).toMatch(/never received/i);
+    expect(notes).not.toMatch(/Browser Only|PC Vault/i);
     expect(notes).toMatch(/Offline Intelligence/);
   });
 });

@@ -110,7 +110,22 @@
         "condition": "any confirmed cross-tenant access, credential exposure or forged update acceptance",
         "severity": "SEV1"
       }
-    ]
+    ],
+    "structuredRecord": {
+      "module": "src/lib/telemetry/operation-health.ts",
+      "fields": [
+        "release",
+        "component",
+        "operation",
+        "outcome",
+        "errorClass",
+        "latencyBucket",
+        "providerSlot",
+        "attempts"
+      ],
+      "privacy": "Every field is enumerated at build time, so an unrecognised value is replaced rather than recorded. Latency is a bucket and the provider slot is an ordinal, never a key.",
+      "edgeFunction": "One record per request, logged by supabase/functions/ocade-intelligence under the prefix ocade.health."
+    }
   },
   "incident": {
     "roles": {
@@ -174,7 +189,18 @@
       "row-count and critical-record reconciliation",
       "recovery-point and recovery-time measurements",
       "restore target destroyed or retained under an approved policy"
-    ]
+    ],
+    "rehearsal": {
+      "command": "npm run recovery:prove",
+      "evidence": "release/OCADE_RECOVERY_REHEARSAL.json",
+      "scope": "Schema rebuilt from supabase/migrations into an empty PostgreSQL, rows restored from a backup of a seeded database, then digest, foreign-key, sequence, row-level-security and cross-account checks, and one migration rolled back and re-applied.",
+      "note": "A local rehearsal against real PostgreSQL. It does not replace the owner-run drill against an isolated Supabase project, which is what requiredRestoreEvidence describes."
+    },
+    "rollback": {
+      "cloudflare": "npm run deploy:rollback to a named prior immutable version id, separately approved and health-verified",
+      "edgeFunction": "release/OCADE_EDGE_FUNCTION_RELEASES.json records the source of each deployed version; npm run edge:rollback-prove rebuilds it from git and re-hashes it",
+      "database": "supabase/rollback/<migration>_rollback.sql, newest first"
+    }
   },
   "releaseControls": {
     "deployCommand": "npm run deploy:web",

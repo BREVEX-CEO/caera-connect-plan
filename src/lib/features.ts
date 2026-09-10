@@ -115,11 +115,20 @@ const features: Feature[] = [
     status: "active",
     platforms: ["web"],
   },
+  /*
+   * RETIRED, NOT DELETED. `PLAN.md` Phase 2 removed the encrypted browser
+   * store this configured, and `/settings/vault` now forwards to
+   * `/settings/data`. The entry stays `hidden` so `isFeatureAvailable` is
+   * false everywhere — no screen can enable a control for it — while the
+   * vault actions below keep a human title for the audit rows people already
+   * have in their activity log.
+   */
   {
     id: "settings.vault",
     module: "core",
     title: "Browser Vault",
-    status: "active",
+    status: "hidden",
+    reason: "The encrypted browser store was removed; an account holds the account's work.",
     platforms: ["web"],
   },
   {

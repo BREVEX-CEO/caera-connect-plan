@@ -359,3 +359,106 @@ describe("authenticated Online Intelligence Edge handler", () => {
     expect(providerSignal!.aborted).toBe(true);
   });
 });
+
+describe("the health record this function leaves behind", () => {
+  /*
+   * PLAN.md Phase 16 asks for Edge Function health "without secrets or
+   * unnecessary content". The record is the only thing this function writes
+   * about a request, so what it may NOT contain is most of what is proven
+   * here: not the prompt, not the key, not the user id, not the permit.
+   */
+  function observed() {
+    const records: unknown[] = [];
+    return { records, observe: (record: unknown) => records.push(record) };
+  }
+
+  it("emits exactly one record for a successful request, naming the slot that served", async () => {
+    const seen = observed();
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ observe: seen.observe }),
+    );
+    expect(response.status).toBe(200);
+    expect(seen.records).toHaveLength(1);
+    expect(seen.records[0]).toMatchObject({
+      component: "edge_function",
+      operation: "generation",
+      outcome: "succeeded",
+      errorClass: "none",
+      providerSlot: "primary",
+      attempts: 1,
+    });
+  });
+
+  it("carries no prompt, key, token, user id or permit", async () => {
+    const seen = observed();
+    await handleOnlineIntelligence(
+      request(),
+      dependencies({
+        observe: seen.observe,
+        verifyJwt: vi.fn(async () => ({ userId: "user-1" })),
+      }),
+    );
+    const serialised = JSON.stringify(seen.records);
+    for (const forbidden of [
+      "Hello",
+      "You are OCADE",
+      "user-token",
+      "user-1",
+      "generation-1",
+      "idempotency-1",
+      "11111111-1111-4111-8111-111111111111",
+    ]) {
+      expect(serialised).not.toContain(forbidden);
+    }
+  });
+
+  it("reports a refusal as refused, not as a failure", async () => {
+    const seen = observed();
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ observe: seen.observe, verifyJwt: vi.fn(async () => null) }),
+    );
+    expect(response.status).toBe(401);
+    expect(seen.records[0]).toMatchObject({
+      outcome: "refused",
+      errorClass: "auth",
+      // Nothing reached a provider, so no attempt is claimed against one.
+      providerSlot: "none",
+    });
+  });
+
+  it("records the slot that finally answered after a failover", async () => {
+    const seen = observed();
+    const callProvider = vi.fn(async ({ slot }: { slot: string }) =>
+      slot === "primary"
+        ? new Response("no", { status: 401 })
+        : provider([{ candidates: [{ content: { parts: [{ text: "ok" }] } }] }]),
+    );
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({ observe: seen.observe, callProvider }),
+    );
+    expect(response.status).toBe(200);
+    expect(seen.records[0]).toMatchObject({ providerSlot: "secondary", outcome: "succeeded" });
+    expect((seen.records[0] as { attempts: number }).attempts).toBeGreaterThan(1);
+  });
+
+  it("reports exhausted quota as quota, which is the one an operator waits out", async () => {
+    const seen = observed();
+    const response = await handleOnlineIntelligence(
+      request(),
+      dependencies({
+        observe: seen.observe,
+        callProvider: vi.fn(async () => new Response("slow down", { status: 429 })),
+      }),
+    );
+    expect(response.status).toBe(429);
+    expect(seen.records[0]).toMatchObject({ outcome: "failed", errorClass: "quota" });
+  });
+
+  it("still emits one record when no observer is configured, by not crashing", async () => {
+    const response = await handleOnlineIntelligence(request(), dependencies());
+    expect(response.status).toBe(200);
+  });
+});

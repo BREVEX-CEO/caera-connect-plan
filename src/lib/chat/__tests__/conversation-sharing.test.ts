@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   describeSnapshot,
@@ -51,7 +51,6 @@ describe("a refusal is read from `details`, never from the message", () => {
     for (const detail of [
       "authentication_required",
       "not_found_or_forbidden",
-      "conversation_not_synchronised",
       "conversation_empty",
       "expiry_in_past",
     ] as const) {
@@ -73,12 +72,45 @@ describe("a refusal is read from `details`, never from the message", () => {
     expect(shareRefusalOf({ details: 42 })).toBe("unknown");
   });
 
-  it("tells somebody with a device-only conversation what to change", () => {
-    const message = SHARE_REFUSAL_MESSAGE.conversation_not_synchronised;
-    // A refusal without a remedy is a dead end, and this one has an exact
-    // remedy: the storage mode.
-    expect(message).toMatch(/Private Sync/);
-    expect(message).toMatch(/only on your device/i);
+  it("answers exactly the refusals the live function raises, and no more", () => {
+    /*
+     * THE DRIFT THIS CATCHES, BECAUSE IT ALREADY HAPPENED ONCE.
+     *
+     * `ocade_share_conversation` used to refuse a device-only conversation
+     * with `conversation_not_synchronised`, and the screen told people to
+     * "change its storage to Private Sync in Settings → Storage". Phase 2
+     * removed the storage modes and the settings page; the migration below
+     * rewrote the function without that refusal — and the sentence stayed on
+     * the client for a state the database can no longer produce, pointing at
+     * a page that no longer exists.
+     *
+     * So read the newest definition of the function and compare its refusal
+     * set to this module's. A refusal the database can raise and the client
+     * cannot name would reach a person as the vague `unknown`; a refusal the
+     * client names and the database cannot raise is dead text like that one.
+     */
+    const dir = join(process.cwd(), "supabase", "migrations");
+    const defining = readdirSync(dir)
+      .filter((f) => f.endsWith(".sql"))
+      .sort()
+      .map((f) => ({ f, sql: readFileSync(join(dir, f), "utf8") }))
+      .filter((m) => m.sql.includes("FUNCTION public.ocade_share_conversation("));
+    expect(defining.length).toBeGreaterThan(0);
+
+    const newest = defining[defining.length - 1];
+    const body = newest.sql.slice(newest.sql.indexOf("FUNCTION public.ocade_share_conversation("));
+    const raised = new Set(Array.from(body.matchAll(/DETAIL = '([a-z_]+)'/g)).map((m) => m[1]));
+
+    const named = new Set(Object.keys(SHARE_REFUSAL_MESSAGE));
+    named.delete("unknown"); // The client's own catch-all; SQL never raises it.
+
+    expect([...raised].sort()).toEqual([...named].sort());
+  });
+
+  it("names no storage mode or settings page that was removed", () => {
+    for (const message of Object.values(SHARE_REFUSAL_MESSAGE)) {
+      expect(message).not.toMatch(/private sync|browser only|pc vault|settings . storage/i);
+    }
   });
 });
 

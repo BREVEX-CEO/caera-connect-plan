@@ -264,10 +264,19 @@ CREATE POLICY "ocade_consolidated_insert" ON public.ocade_support_messages
  * by the SECURITY DEFINER functions above, which is what makes the event log
  * append-only in practice as well as in intent. */
 ALTER TABLE public.ocade_support_grants ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "support_grants_own_read" ON public.ocade_support_grants;
 CREATE POLICY "support_grants_own_read" ON public.ocade_support_grants
   FOR SELECT TO authenticated USING (admin_id = (SELECT auth.uid()));
 
 ALTER TABLE public.ocade_support_access_events ENABLE ROW LEVEL SECURITY;
+/* IF EXISTS, BECAUSE THE ROLLBACK KEEPS THE AUDIT ROWS.
+ * The rollback drops this migration's foreign keys but deliberately leaves
+ * `ocade_support_access_events` and its rows in place -- an access record is
+ * evidence, and a rollback that erased it would be a rollback that covered its
+ * own tracks. That makes the table outlive the migration, so re-applying the
+ * migration meets a policy that is already there. Recovery has to be able to
+ * re-apply what it rolled back; the restore rehearsal does exactly that. */
+DROP POLICY IF EXISTS "support_access_events_own_read" ON public.ocade_support_access_events;
 CREATE POLICY "support_access_events_own_read" ON public.ocade_support_access_events
   FOR SELECT TO authenticated USING (admin_id = (SELECT auth.uid()));
 

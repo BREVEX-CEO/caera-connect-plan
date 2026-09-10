@@ -15,6 +15,12 @@ import {
   type OnlineModelId,
   type ProviderKeySlot,
 } from "./online-models.ts";
+import {
+  buildHealthRecord,
+  type ErrorClass,
+  type HealthRecord,
+  type ProviderSlot,
+} from "../telemetry/operation-health.ts";
 
 const MAX_BODY_BYTES = 1_048_576;
 const MAX_MESSAGES = 256;
@@ -63,6 +69,17 @@ export interface OnlineHandlerDependencies {
     /** Which key to present. The handler decides; the caller holds the keys. */
     slot: ProviderKeySlot;
   }): Promise<Response>;
+  /**
+   * Where one structured health record per request goes.
+   *
+   * `PLAN.md` Phase 16 asks for Edge Function health "without secrets or
+   * unnecessary content", and the record it receives is built by
+   * `operation-health.ts`: enumerated values only, no prompt, no key, no user
+   * id, no message. The deployment decides what to do with it -- the function
+   * writes it to its own log -- so this module stays testable and holds no
+   * opinion about a logging service.
+   */
+  observe?(record: HealthRecord): void;
 }
 
 function json(status: number, body: Record<string, unknown>, origin?: string): Response {
@@ -362,9 +379,73 @@ function normalizedProviderStream(
 }
 
 /** Portable authenticated handler used by the Supabase Edge entry point. */
+/** How a refusal reads to an operator, from the status it answered with. */
+function errorClassForStatus(status: number): ErrorClass {
+  if (status < 400) return "none";
+  if (status === 401) return "auth";
+  if (status === 403) return "permission";
+  if (status === 429) return "quota";
+  if (status === 400 || status === 413 || status === 415 || status === 422) return "validation";
+  if (status === 405) return "validation";
+  if (status === 503 || status === 502) return "upstream";
+  if (status === 504) return "timeout";
+  return "internal";
+}
+
+/**
+ * ONE STRUCTURED HEALTH RECORD PER REQUEST -- PLAN.md Phase 16.
+ *
+ * Wrapping the handler rather than instrumenting each `return` is deliberate:
+ * there are fourteen ways out of this function and a per-return call site is a
+ * per-return chance to forget one. Whatever it answers, exactly one record is
+ * emitted.
+ *
+ * THE LATENCY IS TIME TO THE ANSWER, not time to the last token. A streamed
+ * response is handed off and finishes long after this returns; "how long
+ * before the provider started answering" is the number that tells an operator
+ * whether the path is healthy, and the only one this function can honestly
+ * know.
+ */
 export async function handleOnlineIntelligence(
   request: Request,
   deps: OnlineHandlerDependencies,
+): Promise<Response> {
+  const clock = deps.now ?? (() => Date.now());
+  const startedAt = clock();
+  // Zero until a provider is actually called: a request refused for its origin
+  // or its token never reached one, and reporting an attempt it never made
+  // would put phantom provider load in the numbers.
+  const attempted: ProviderAttempt = { slot: "none", attempts: 0 };
+  const response = await runOnlineIntelligence(request, deps, attempted);
+  deps.observe?.(
+    buildHealthRecord({
+      component: "edge_function",
+      operation: "generation",
+      outcome:
+        response.status < 400
+          ? "succeeded"
+          : response.status === 401 || response.status === 403
+            ? "refused"
+            : "failed",
+      errorClass: errorClassForStatus(response.status),
+      durationMs: clock() - startedAt,
+      providerSlot: attempted.slot,
+      attempts: attempted.attempts,
+    }),
+  );
+  return response;
+}
+
+/** Which slot ended up serving, and how many provider calls it took. */
+interface ProviderAttempt {
+  slot: ProviderSlot;
+  attempts: number;
+}
+
+async function runOnlineIntelligence(
+  request: Request,
+  deps: OnlineHandlerDependencies,
+  attempted: ProviderAttempt,
 ): Promise<Response> {
   const origin = request.headers.get("origin") ?? "";
   if (!origin || !deps.allowedOrigins.has(origin))
@@ -456,6 +537,8 @@ export async function handleOnlineIntelligence(
       for (let attempt = 0; attempt < MAX_PROVIDER_ATTEMPTS; attempt += 1) {
         let response: Response;
         try {
+          attempted.slot = slot;
+          attempted.attempts += 1;
           response = await deps.callProvider({
             model: configured,
             body: providerBody(body),

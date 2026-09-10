@@ -154,6 +154,35 @@ The audit proves the honest half rather than the working half:
 `signup-consent.mjs` asserts that a disabled Create account carries a visible
 explanation, and it does.
 
+## The deployed Edge Function is behind this repository
+
+`release/OCADE_EDGE_FUNCTION_RELEASES.json` records what is actually running in
+Supabase: `ocade-intelligence` version 2, built from commit `5b96773`. That
+source predates most of this mission. It reads a single `GEMINI_API_KEY`, still
+defaults to `gemini-3.7-flash`, has no slot failover, and still accepts the
+`browser_only` and `pc_vault` storage modes Phase 2 removed.
+
+Nothing is broken by that today, because the browser only reaches the function
+through paths this repository has not yet deployed either. It is recorded here
+because a deployment that lands without noticing would be a surprise, and
+because Phase 20 owns the controlled deployment that replaces it.
+
+`npm run edge:release-check` reports whether the working tree still produces the
+deployed source — it currently reports "ahead", which is the truthful state.
+`npm run edge:rollback-prove` rebuilds version 2 out of git and confirms it
+hashes identically, so the rollback target is proven rather than assumed.
+
+## Recovery is demonstrated
+
+`npm run recovery:prove` performs a full loss-and-recovery against real
+PostgreSQL and writes `release/OCADE_RECOVERY_REHEARSAL.json`: schema rebuilt
+from `supabase/migrations/` into an empty database, rows restored from a
+backup, and then the proofs that decide whether the restore is the same product
+— identical digests, every foreign key re-validated, sequences usable, RLS back
+with the data, and one account unable to read the other's rows. It also rolls
+the newest migration back and re-applies it. `docs/deployment/BACKUP_AND_RESTORE.md`
+is the operator's copy of the same procedure.
+
 ## The one proof this machine cannot run
 
 `npm run windows:prove` drives a real pointer, a real keyboard and Windows' own

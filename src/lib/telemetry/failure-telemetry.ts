@@ -26,6 +26,8 @@
  *      that cannot be checked.
  */
 
+import { buildHealthRecord, type HealthObservation } from "./operation-health";
+
 export type TelemetryConsent = "none" | "failures_only" | "failures_and_performance";
 
 /**
@@ -48,6 +50,24 @@ export const ALLOWED_FIELDS = [
   "durationMs",
   "retryCount",
   "installId",
+  /*
+   * PHASE 16'S HEALTH VOCABULARY.
+   *
+   * `PLAN.md` Phase 16 asks for release, operation, error class, latency,
+   * provider slot, task, Edge Function and webhook health. Every one of these
+   * is an enumerated value built by `operation-health.ts`, which is why they
+   * can be added to an allow-list designed to keep free text out: a caller
+   * cannot put a prompt into `errorClass`, because a value that is not in the
+   * list does not survive the record being built.
+   */
+  "release",
+  "component",
+  "operation",
+  "outcome",
+  "errorClass",
+  "latencyBucket",
+  "providerSlot",
+  "attempts",
 ] as const;
 export type AllowedField = (typeof ALLOWED_FIELDS)[number];
 
@@ -57,6 +77,8 @@ export type FailureKind =
   | "webhook_rejected"
   | "sandbox_refused"
   | "pairing_failed"
+  /** A health observation rather than a crash: see `observe` below. */
+  | "operation_health"
   | "unknown";
 
 export interface RawFailure {
@@ -158,6 +180,14 @@ export function buildReport(
     route: raw.route,
     appId: raw.appId,
     appVersion: raw.appVersion,
+    release: raw.release,
+    component: raw.component,
+    operation: raw.operation,
+    outcome: raw.outcome,
+    errorClass: raw.errorClass,
+    latencyBucket: raw.latencyBucket,
+    providerSlot: raw.providerSlot,
+    attempts: raw.attempts,
     failureCode: raw.failureCode,
     durationMs: raw.durationMs,
     retryCount: raw.retryCount,
@@ -219,11 +249,14 @@ export class TelemetryQueue {
         reason: "Failure reporting is off, so nothing was collected.",
       };
     }
-    if (raw.kind === "unknown" && this.consent !== "failures_and_performance") {
+    if (
+      (raw.kind === "unknown" || raw.kind === "operation_health") &&
+      this.consent !== "failures_and_performance"
+    ) {
       return {
         queued: false,
         refusal: "performance_not_consented",
-        reason: "Only failures are shared, and this is not a failure.",
+        reason: "Only failures are shared, and this is timing rather than a failure.",
       };
     }
     if (this.items.length >= MAX_QUEUE) {
@@ -239,6 +272,28 @@ export class TelemetryQueue {
     const { report, redactions } = buildReport(raw, this.env, this.now());
     this.items.push(report);
     return { queued: true, report, redactions };
+  }
+
+  /**
+   * Record the health of one operation.
+   *
+   * Health records are timing and outcome, which is what the "failures and
+   * timing" consent is FOR -- so they need it, and somebody who chose
+   * "failures only" sends none of them. The record is built by
+   * `operation-health.ts`, whose fields are enumerated at build time, so
+   * nothing free-form reaches the queue through this door.
+   */
+  observe(observation: HealthObservation): QueueOutcome {
+    const health = buildHealthRecord(observation);
+    return this.record({
+      kind: "operation_health",
+      // The failure code is the class, so one field answers "what went wrong"
+      // for a health record and a crash alike.
+      failureCode: health.errorClass,
+      durationMs: undefined,
+      ...health,
+      retryCount: health.attempts,
+    });
   }
 
   /** Exactly what would be transmitted, for the user to read. */

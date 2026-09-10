@@ -118,31 +118,45 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 15 (organizations, Admin, notifications and public trust) is complete.
-Workspaces, roles, seats, the organization ceiling and tenant isolation were
-built in Phase 3; notifications were already honest about what a deployment can
-deliver. What this phase found was the requirement it names outright, unmet:
-any admin could read any customer's support messages, for ever, with no reason,
-no expiry and no record.
+Phase 16 (monitoring, backup, restore and rollback) is complete.
 
-Support content now needs a case: per-ticket, a written reason, an expiry of at
-most a day, closable early, and a second factor checked IN THE DATABASE rather
-than only in the application. Reading goes through a function that records one
-access event per object in the same statement that returns it. Replying needs
-the case open too. The customer's own access is untouched.
+Recovery is now demonstrated rather than described. `npm run recovery:prove`
+takes a backup from a live database holding two accounts' data, throws it away
+into a second empty PostgreSQL, rebuilds the schema from `supabase/migrations/`
+alone, restores the rows, and then proves the restore is the same product:
+identical digests per table, every foreign key re-validated, sequences usable,
+RLS back with the data, and one account still unable to read the other's rows.
+It rolls the newest migration back and re-applies it, and writes
+`release/OCADE_RECOVERY_REHEARSAL.json`.
 
-The first version of that migration changed nothing on live and looked correct.
-An earlier migration had consolidated every permissive policy per table, and
-PostgreSQL ORs permissive policies together — so the narrower policy sat beside
-the broad one and the broad one still governed. Found by querying `pg_policies`
-on the live project. The consolidated policies are what the migration now
-rewrites, and the verification asserts the effective permission rather than the
-policy the migration happens to name.
+Building it found two real defects a written procedure had hidden. A backup
+scoped to `public` alone orphaned every user-owned row, because `auth.users` was
+never in scope; `storage.objects` has the same property for files. And a schema
+rebuilt from migrations is not empty — several migrations insert reference data
+— so a restore must replace rather than append. The Phase 15 migration also had
+to become re-appliable over what its own rollback deliberately keeps.
+
+Structured diagnostics are `src/lib/telemetry/operation-health.ts`, feeding the
+existing consent, allow-list and queue in `failure-telemetry.ts` rather than a
+second telemetry stack. Every field is enumerated at build time, so an
+unrecognised value is replaced rather than passed through: a caller cannot put a
+prompt, an email address or a key into an error class. Latency is a bucket, and
+the provider slot is an ordinal, never a key. The Edge Function emits exactly
+one such record per request, wrapped around the handler so none of its fourteen
+exits can forget.
+
+Edge Function rollback had no answer at all and now has a ledger:
+`release/OCADE_EDGE_FUNCTION_RELEASES.json` records which source each deployed
+version was. `npm run edge:rollback-prove` reconstructs it from git and
+re-hashes it. That exposed a live fact worth knowing: deployed version 2 is
+commit `5b96773`, which predates most of this mission — single key, old model,
+no slot failover. Recorded in `docs/deployment/PRODUCTION_STATE.md`; Phase 20
+owns the controlled deployment that replaces it.
 
 `ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
 1, deliberately.
 
-Next is Phase 16 — monitoring, backup, restore and rollback.
+Next is Phase 17 — final OCADE UI/UX consolidation.
 
 Two known external items remain: `auth_leaked_password_protection` is disabled
 in Supabase Auth, and the Windows control journey needs Windows hardware. Both

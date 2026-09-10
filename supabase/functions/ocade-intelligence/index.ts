@@ -71,6 +71,17 @@ Deno.serve((request) =>
       CONFIGURED_SLOTS.length > 0,
     ),
     providerSlots: CONFIGURED_SLOTS,
+    /*
+     * One structured health line per request -- PLAN.md Phase 16.
+     *
+     * `console.log` is the Edge Function's log, which is where an operator
+     * already looks and which Supabase already retains; adding a logging
+     * service here would be a second place to leak from for no extra answer.
+     * The record is built by `operation-health.ts` and carries enumerated
+     * values only: no prompt, no key, no user id, no message. `ocade.health`
+     * is the prefix to query on.
+     */
+    observe: (record) => console.log("ocade.health", JSON.stringify(record)),
     model: GEMINI_MODEL,
     async verifyJwt(token) {
       const auth = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {

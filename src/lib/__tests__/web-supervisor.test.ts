@@ -165,10 +165,16 @@ describe("the progressive web assets actually ship", () => {
     expect(existsSync("public/sw.js")).toBe(true);
     expect(existsSync("public/offline.html")).toBe(true);
     const offline = readFileSync("public/offline.html", "utf8");
-    // The offline page must not overclaim: vault-backed chats survive, network
-    // services do not.
-    expect(offline).toMatch(/Browser Only|PC Vault/);
+    /*
+     * The offline page must not overclaim. It used to promise that "Browser
+     * Only or PC Vault" conversations remained readable here; `PLAN.md` Phase
+     * 2 removed local persistence, so the only thing that still works with no
+     * network is a prepared on-device engine. Assert both halves: what is
+     * true, and that no removed storage mode is being promised.
+     */
     expect(offline).toMatch(/Network services are unavailable/i);
+    expect(offline).toMatch(/Offline Intelligence/);
+    expect(offline).not.toMatch(/Browser Only|PC Vault|Private Sync/i);
     expect(offline).not.toMatch(/cloud/i);
   });
 

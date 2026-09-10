@@ -41,7 +41,6 @@ export function isShareToken(value: string): boolean {
 export type ShareRefusal =
   | "authentication_required"
   | "not_found_or_forbidden"
-  | "conversation_not_synchronised"
   | "conversation_empty"
   | "expiry_in_past"
   | "unknown";
@@ -50,8 +49,6 @@ export type ShareRefusal =
 export const SHARE_REFUSAL_MESSAGE: Record<ShareRefusal, string> = {
   authentication_required: "Sign in to share a conversation.",
   not_found_or_forbidden: "That conversation is not available to share.",
-  conversation_not_synchronised:
-    "This conversation is stored only on your device, so there is nothing on the server to share. Change its storage to Private Sync in Settings → Storage first.",
   conversation_empty: "There is nothing in this conversation to share yet.",
   expiry_in_past: "Choose an expiry in the future.",
   unknown: "That conversation could not be shared. Try again.",

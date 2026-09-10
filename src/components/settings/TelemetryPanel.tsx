@@ -9,6 +9,7 @@ import {
   ALLOWED_FIELDS,
   type TelemetryConsent,
 } from "@/lib/telemetry/failure-telemetry";
+import { OCADE_RELEASE_VERSION } from "@/lib/release-health";
 
 /**
  * Production owner for opt-in failure telemetry (HWE-38).
@@ -42,7 +43,9 @@ export function TelemetryPanel() {
     () => ({
       osFamily: typeof navigator === "undefined" ? "unknown" : navigator.platform || "unknown",
       osVersion: "unknown",
-      ocadeVersion: "0.1.0",
+      // One release authority. A hardcoded version here would report the wrong
+      // build the first time somebody shipped without editing this file.
+      ocadeVersion: OCADE_RELEASE_VERSION,
       installId: newInstallId(),
     }),
     [],

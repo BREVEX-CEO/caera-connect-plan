@@ -1,33 +1,61 @@
-# Backups and restore
+# Backups, restore and rollback
 
-What can be recovered, what cannot, and how — written before it is needed
-rather than after.
+What can be recovered, what cannot, and how — proven by something that runs,
+not only described here.
+
+## Recovery is rehearsed, not documented
+
+`npm run recovery:prove` performs a full recovery against real PostgreSQL and
+writes `release/OCADE_RECOVERY_REHEARSAL.json`. It is not a smoke test of a
+runbook; it is the recovery itself, in the order an incident forces:
+
+1. A live database with two accounts' data in it, across every table that
+   declares an owner, plus Storage object rows.
+2. A backup taken from it — rows only, nothing about the instance.
+3. **Total loss.** A second, empty PostgreSQL that has never seen the schema,
+   the policies, the extensions or the functions.
+4. Schema rebuilt from `supabase/migrations/` alone.
+5. Rows restored, parents before children, into truncated tables.
+6. The proofs: identical rows by digest, every foreign key re-validated,
+   sequences moved past the restored rows, row-level security back with the
+   data, and one account still unable to read the other's rows.
+7. The newest migration rolled back and re-applied on the restored database.
+
+The rehearsal has already found two real defects that a written procedure had
+been hiding: a backup scoped to `public` alone left every user-owned row
+orphaned because `auth.users` was never included, and a schema rebuilt from
+migrations is **not empty** — several migrations insert reference data, so a
+restore must replace rather than append.
 
 ## What exists to restore from
 
 | Layer               | Where it lives                                               | Recoverable?                        |
 | ------------------- | ------------------------------------------------------------ | ----------------------------------- |
-| Schema              | `supabase/migrations/` — 58 files, applied in filename order | **Yes**, from this repository alone |
+| Schema              | `supabase/migrations/` — 95 files, applied in filename order | **Yes**, from this repository alone |
 | Schema verification | `supabase/verification/` — one per migration                 | **Yes**                             |
 | Schema rollback     | `supabase/rollback/` — one per migration                     | **Yes**                             |
 | Row data            | Supabase managed backups for project `sazhgaisyhkdbrooycdv`  | **Depends on the plan** — see below |
-| Browser-vault data  | The user's own device, encrypted under a key we never hold   | **No, by design**                   |
+| Identities          | `auth.users` and the rest of the `auth` schema               | **Yes**, and they must be in scope  |
+| Storage objects     | Bytes in Supabase Storage; ownership rows in `storage`       | **Both halves, or neither works**   |
 | Model weights       | The user's own device (OPFS)                                 | Re-downloadable                     |
 
 The schema is fully reproducible from this repository with no backup at all.
-`npm run test -- db-twin` applies all 58 migrations to real PostgreSQL, runs
-each verification script immediately after its own migration, then rolls every
-one back in reverse against the full schema. That rehearsal runs on every
-commit, so "the migrations still apply" is never a hope.
+`npx vitest run --project database src/lib/__tests__/db-twin.test.ts` applies
+all 95 migrations to real PostgreSQL, runs each verification script immediately
+after its own migration, then rolls every one back in reverse against the full
+schema.
 
-## What is NOT backed up, and must not be promised
+## Storage is two halves and needs both
 
-**Browser Only and Private Sync vault contents are encrypted with a key that
-exists only in the user's browser memory.** A Supabase backup contains their
-ciphertext and nothing that can open it — see `src/lib/storage/vault.ts`. If a
-user loses both their passphrase and their recovery kit, their vault is gone,
-and no restore performed here changes that. That is the intended property, and
-support must never imply otherwise.
+A file has bytes in Supabase Storage and a row in `storage.objects` saying
+which bucket it is in, what it is called and who owns it. A database restore
+that omits those rows leaves every customer file intact and unreachable — the
+account can list nothing. The rehearsal covers the rows; the bytes are
+Supabase's object storage and survive a database loss on their own.
+
+There is no browser vault. `PLAN.md` Phase 2 made the account the single
+persistent authority, so there is no device-held ciphertext that a restore
+cannot reach and no passphrase whose loss destroys data.
 
 ## Managed backups: verify before relying on
 
@@ -44,7 +72,7 @@ repository cannot see it. Before launch, confirm in the dashboard for project
 Write the answers into this file. An unanswered question here is the same as no
 backup.
 
-## Restoring the schema
+## Restoring against a real project
 
 Never against production first. Supabase branches exist for this.
 
@@ -61,27 +89,14 @@ for f in supabase/verification/*_verify.sql; do
 done
 ```
 
-The same sequence runs locally with no Supabase account at all, against PGlite:
+Then restore the managed backup **into that branch**, and answer the same
+questions the rehearsal answers locally: row counts on the tables that matter,
+`auth.users` present, `storage.objects` present, RLS policies present, and a
+cross-account read that returns nothing. A restore that loses RLS policies is
+worse than no restore — it has good row counts and is a breach.
 
-```bash
-npx vitest run src/lib/__tests__/db-twin.test.ts
-```
-
-## Restoring row data
-
-1. Restore the managed backup **into a branch**, never over production.
-2. Check row counts on the tables that matter — `ocade_conversations`,
-   `ocade_messages`, `user_private_records`, `vault_config`, `profiles`.
-3. Prove isolation survived the restore:
-   `npx vitest run src/lib/__tests__/user-isolation.test.ts`. A restore that
-   loses RLS policies is worse than no restore.
-4. Only then promote, and only during a window where writes are paused —
-   otherwise the restore silently discards everything written since.
-
-**`vault_config` deserves its own check.** Restoring an older copy of that table
-after a passphrase rotation leaves users holding a key that no longer unwraps
-their data. If a restore crosses a rotation, those accounts need the recovery
-kit path, and they need to be told.
+Only promote during a window where writes are paused; otherwise the restore
+silently discards everything written since it was taken.
 
 ## Rolling back one migration
 
@@ -93,7 +108,28 @@ psql "$DB_URL" -v ON_ERROR_STOP=1 -f supabase/rollback/<timestamp>_<name>_rollba
 ```
 
 Read it first. Some are destructive by nature: a rollback that drops a table
-drops its rows, and the file says so where that is true.
+drops its rows, and the file says so where that is true. Some deliberately keep
+data — the support-access rollback keeps its audit rows, because a rollback that
+erased the record of who read what would be a rollback covering its own tracks.
+A migration must therefore be re-appliable over what its rollback left behind,
+and the rehearsal proves exactly that on the newest one.
+
+## Rolling back the application
+
+Three deployables, three answers:
+
+| Deployable        | Rollback                                                                                                 | Proof                           |
+| ----------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| Cloudflare Worker | `npm run deploy:rollback` to a named prior immutable version id, separately approved and health-verified | `deployment-controller.test.ts` |
+| Edge Function     | Redeploy the source recorded in `release/OCADE_EDGE_FUNCTION_RELEASES.json`                              | `npm run edge:rollback-prove`   |
+| Database          | The rollback script for each migration, newest first                                                     | `npm run recovery:prove`        |
+
+`npm run edge:release-check` says whether the working tree still produces the
+deployed Edge Function source. "Ahead" is the ordinary state between a change
+and its deployment; what must never appear is a deployed function this ledger
+does not record. `npm run edge:rollback-prove` reconstructs the recorded source
+out of git and re-hashes it, so the rollback target is something that has been
+rebuilt rather than something written down.
 
 ## What to do first, in an actual incident
 
@@ -105,6 +141,6 @@ drops its rows, and the file says so where that is true.
 4. **Then promote**, and record what was lost. Users are owed the truth about a
    gap, including its start and end time.
 
-`BREACH_RUNBOOK.md` covers the case where the incident is a compromise rather
+The root `BREACH_RUNBOOK.md` and `release/OCADE_INCIDENT_RESPONSE_RUNBOOK.md` cover the case where the incident is a compromise rather
 than a loss. If both, that runbook takes precedence: preserving evidence comes
 before restoring service.

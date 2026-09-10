@@ -241,7 +241,7 @@ export async function buildAccountExport(
     classes,
     notes: [
       "This file contains the data OCADE holds for this account in its own database.",
-      "Anything you chose to keep on your device only — Browser Only or PC Vault data classes — is not in here, because OCADE never received it.",
+      "Anything OCADE never received is not in here — a draft you never sent, or a file you never uploaded.",
       "Offline Intelligence is a model on your device, not account data, and is unaffected by an export or a deletion.",
       partial
         ? "At least one table could not be read; every table that failed says so in its own entry."
