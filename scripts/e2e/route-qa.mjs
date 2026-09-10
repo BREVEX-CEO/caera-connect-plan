@@ -608,6 +608,7 @@ try {
          */
         let extensionsLeft = 2;
         let seenLoads = documentLoads;
+        let seenUrl = page.url();
         while (Date.now() < settleBy) {
           if (after !== "navigated away" && after.trim().length > 0) break;
           const remaining = settleBy - Date.now();
@@ -624,9 +625,26 @@ try {
             // already gone.
             after = "";
           }
-          if (documentLoads !== seenLoads) {
-            // A new document arrived. The budget so far measured the old one.
+          /*
+           * A CLIENT-SIDE ROUTE CHANGE COUNTS AS A NEW PAGE TOO.
+           *
+           * `framenavigated` fires for DOCUMENT navigations. TanStack Router
+           * replaces the view without one, so pressing a link that leaves the
+           * route — a "Back to Settings", a delete that returns to Chat —
+           * changed everything being measured and bumped nothing. The budget
+           * kept running against a page that no longer existed, and whichever
+           * route happened to hold such a control failed with "0 chars left":
+           * `/settings/data` in one pass, `/settings/appearance` in the next.
+           * A moving target across runs is the signature of a race, not of a
+           * broken page.
+           *
+           * So the URL is watched alongside the document count, and either one
+           * changing earns the same bounded extension.
+           */
+          const moved = documentLoads !== seenLoads || page.url() !== seenUrl;
+          if (moved) {
             seenLoads = documentLoads;
+            seenUrl = page.url();
             if (extensionsLeft > 0) {
               extensionsLeft -= 1;
               settleBy = Date.now() + 15_000;

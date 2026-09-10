@@ -118,41 +118,29 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 5 (OCADE Intelligence, Gemini and model lifecycle) is complete, and it was
-the phase with the most drift rather than the most building.
+Phase 6 (complete donor re-evaluation) is complete, and it found no stale
+dispositions — measured rather than assumed. All 2,126 records were re-derived
+against the tree Phases 1-5 left: every destination and equivalent still exists,
+every required test exists, and the 37 adapted modules are still reached from
+non-test product code. Two merge destinations first appeared orphaned, including
+one carrying twenty-six merged donor records; both were reached by relative
+import, and the naive alias-only check was wrong rather than the product.
 
-The pinned model had come apart from every document that names it: the code said
-`gemini-3.7-flash`, dated the day before the decision that pins
-`gemini-3.1-flash-lite`, with a second literal inside the Edge Function. Nothing
-failed, which is the whole problem with a model identifier. It is pinned in one
-place now, and the test compares the code against the documents rather than
-against a copy of the value.
+What was missing was enforcement of properties that happened to be true. The
+ledger checked its destinations for MERGE and REPLACE only, so a REMOVE or KEEP
+record could point at a deleted file and stay green — every record is checked
+now, both fields. And nothing stopped the ported donor logic becoming a second
+layer: the 37 modules are pure leaves that import nothing but their own
+relatives and `zod`, which is the whole of "no parallel donor product
+architecture", and it was true by nobody's decision. Both gates were proved by
+deliberately breaking them.
 
-The three key slots `docs/TRD.md` requires did not exist — one `GEMINI_API_KEY`
-and a retry loop. All three are read now, from the ones actually set, with the
-failure taxonomy the plan asks for: a key-local 401/403 abandons the slot at
-once, a 5xx or transport error retries then moves on, and a **429 never
-rotates**, because quota belongs to the project and trying the other keys is the
-evasion the plan forbids in so many words. Nothing is attempted once output has
-begun.
-
-Preparation was gated on `signedIn`, from a plan revision that no longer exists.
-The current plan says first visit, landing page included. The gate was removed
-and the two things that actually make it cheap now carry the weight alone — the
-installer is never imported statically, and the start is deferred to an idle
-callback. The landing page measured BETTER afterwards: TBT 29 ms against a
-200 ms budget, where it was 39 ms with the gate. `docs/DECISIONS.md` records why
-a gate was the wrong instrument, because the next person will have the same
-instinct.
-
-Finally, two lifecycle events nothing was watching are pinned: a verified model
-must survive signing out (Phase 2 rewrote that block, and one line further would
-cost a gigabyte) and a service-worker update (its `activate` prunes caches, and
-the weights are in OPFS precisely so that pruning cannot reach them).
-
-Next is Phase 6 — complete donor re-evaluation. `integration:check` already
-tracks 2,126 dispositions with 37/37 adapted modules reached; the phase is about
-those dispositions being current against what Phases 1-5 changed.
+Next is Phase 7 — production Chat: the whole conversation lifecycle against the
+canonical authorities, with the gate that every visible Chat control works
+against one of them and the browser journeys show no unexplained console,
+network or storage error. Splitting `ChatSurface` out of
+`src/routes/_authenticated/ocade.index.tsx` is carried from Phase 1 and is the
+file most of that phase touches.
 
 One known external item remains from Phase 3: `auth_leaked_password_protection`
 is disabled in Supabase Auth. It is a dashboard setting with no repository path,

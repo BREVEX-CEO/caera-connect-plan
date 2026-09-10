@@ -130,11 +130,28 @@ function reachablePorted(graph) {
 }
 
 function callersOf(module, graph) {
-  const spec = `@/${module.replace(/^src\//, "").replace(/\.ts$/, "")}`;
+  /*
+   * BOTH IMPORT FORMS, because this list was blind to one of them.
+   *
+   * It matched the `@/` alias only. A product file that reaches a module by
+   * RELATIVE path was reported as not calling it — which is how
+   * `src/lib/runtime/call-model.ts`, with twenty-six donor records merged into
+   * it, reads as having no caller at all when in fact `use-ocade-runtime.ts`
+   * imports it as `./call-model`. A caller list that can under-report is worse
+   * than no list, because the missing entry looks like stranded behaviour.
+   */
+  const bare = module.replace(/\.tsx?$/, "");
+  const alias = `@/${bare.replace(/^src\//, "")}`;
   const callers = [];
   for (const [file, specs] of graph) {
     if (file.startsWith(PORTED_ROOT) || file.includes("__tests__")) continue;
-    if (specs.includes(spec)) callers.push(file);
+    const reaches = specs.some((spec) => {
+      if (spec === alias) return true;
+      if (!spec.startsWith(".")) return false;
+      const resolved = join(file, "..", spec).replace(/\\/g, "/").replace(/\.js$/, "");
+      return resolved === bare || resolved === `${bare}/index`;
+    });
+    if (reaches) callers.push(file);
   }
   return callers.sort();
 }
@@ -197,15 +214,35 @@ function validate(records, portedFiles, reached) {
         problems.push(`${record.archivePath}: ${field} must be non-empty`);
       }
     }
+    /*
+     * THE DESTINATION MUST STILL BE THERE, WHATEVER THE DISPOSITION.
+     *
+     * This was checked for MERGE and REPLACE only, on the reasoning that those
+     * are the ones that name an authority. But every record names one — a
+     * REMOVE record says where the behaviour went instead, and a KEEP record
+     * says what it was compared against — and a destination that no longer
+     * exists makes the record unreadable rather than merely untidy: "removed,
+     * because `src/lib/x.ts` already did it" is not a disposition once
+     * `src/lib/x.ts` is gone, it is a claim nobody can check.
+     *
+     * The refactoring phases delete and move files by design, and this ledger
+     * is the record that has to survive them. Checking all 2,126 costs nothing
+     * and turns "somebody will notice" into a build failure.
+     */
+    if (record.canonicalDestination && !existsSync(record.canonicalDestination)) {
+      problems.push(
+        `${record.archivePath}: authority does not exist: ${record.canonicalDestination}`,
+      );
+    }
+    if (record.currentOcadeEquivalent && !existsSync(record.currentOcadeEquivalent)) {
+      problems.push(
+        `${record.archivePath}: OCADE equivalent does not exist: ${record.currentOcadeEquivalent}`,
+      );
+    }
     if (["MERGE", "REPLACE"].includes(record.finalDisposition)) {
       if (!record.currentOcadeEquivalent || !record.canonicalDestination) {
         problems.push(
           `${record.archivePath}: ${record.finalDisposition} requires one OCADE authority`,
-        );
-      }
-      if (!existsSync(record.canonicalDestination)) {
-        problems.push(
-          `${record.archivePath}: authority does not exist: ${record.canonicalDestination}`,
         );
       }
       if (!record.requiredTests.length || !record.requiredTests.includes(record.verificationTest)) {

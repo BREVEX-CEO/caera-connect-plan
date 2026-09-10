@@ -439,13 +439,97 @@ resume, independent verification, reload to ready, corruption repair, uninstall
 and reinstall all pass. `browser-model-authority.test.ts` holds the single
 authority.
 
+## Phase 6 — Complete donor re-evaluation (COMPLETE)
+
+This phase found no stale dispositions, and that is the finding rather than a
+shrug: it was measured, three ways, against the tree Phases 1-5 left behind.
+
+### Re-derived rather than re-read
+
+All 2,126 records were checked against the current tree. Every
+`canonicalDestination` and every `currentOcadeEquivalent` still exists — zero
+missing, including across the four files Phase 2 deleted, none of which any
+record referenced. Every `requiredTests` entry exists. The 37 adapted modules
+are still reached from non-test product code, which the report re-derives from
+the import graph on each run rather than storing.
+
+Every MERGE and REPLACE destination was checked for a product caller by hand.
+The two that first appeared orphaned — `src/lib/runtime/tool-runner.ts` and
+`src/lib/runtime/call-model.ts`, the latter carrying twenty-six merged donor
+records — turned out to be imported by `use-ocade-runtime.ts` as `./call-model`
+and `./tool-runner`. The naive check was alias-only and wrong; the behaviour is
+reached. `src/primary-logic/query/contextAnalysis.ts` looked orphaned for the
+same reason and is reached through `microCompact`, which
+`src/lib/runtime/compact.ts` imports.
+
+### What was actually missing: enforcement of things that happened to be true
+
+**The ledger only checked its destinations for two dispositions.**
+`existsSync(canonicalDestination)` ran for MERGE and REPLACE. But every record
+names an authority — a REMOVE record says where the behaviour went instead, a
+KEEP record says what it was compared against — and a destination that no longer
+exists makes the record unreadable rather than untidy: "removed, because
+`src/lib/x.ts` already did it" is not a disposition once `src/lib/x.ts` is gone,
+it is a claim nobody can check. All 2,126 are checked now, both fields. Proved
+by pointing one record at a deleted file and watching the gate fail.
+
+**Nothing stopped the ported logic becoming a second layer.** The 37 modules are
+pure leaves — parsers, policies, schemas, budget arithmetic, sanitisation — and
+they import nothing but their own relatives and `zod`. That is the whole of
+"no parallel donor product architecture", and it was true by nobody's decision.
+`no-parallel-architecture.test.ts` holds it now: no ported module may reach an
+OCADE module by alias, absolute path or a relative climb, and none may carry its
+own React, Supabase, TanStack, `fetch`, `localStorage`, `indexedDB` or OPFS.
+Proved by adding a cross-layer import and watching it fail.
+
+Two of that test's own first six findings were sentences — a comment saying a
+sidebar entry "was renamed from 'Control + Work' to 'Work'" matches an import
+pattern exactly — so it strips comments before scanning. A third was `zod/v4`,
+which was the rule stated wrongly rather than a finding: a ported module using
+the same validation library as the code around it is the opposite of a parallel
+architecture.
+
+**The report's caller listing was blind to relative imports.** It matched the
+`@/` alias only, which is the same blind spot that made `call-model.ts` read as
+uncalled. It resolves both forms now. The regenerated report is byte-identical,
+because product code reaches ported modules by alias today — the fix removes a
+way to under-report, not a current error.
+
+### And one more harness race, found by the browser proof
+
+`audit:routes:prod` failed on `/settings/data` in one pass and
+`/settings/appearance` in the next, both with "0 chars left" after pressing.
+A moving target across runs is the signature of a race rather than a broken
+page, and the captured evidence named it: the recorded URL was `/ocade`, not the
+route under test. Pressing a control that LEAVES the route — a "Back to
+Settings", a delete that returns to Chat — changes everything being measured,
+and TanStack Router does it without a document navigation, so `framenavigated`
+never fired and the settle budget kept running against a page that no longer
+existed. The pre-press loop got this fix in Phase 3; the post-press loop watched
+only the document count. It watches the URL too now. The full pass went from 607
+controls pressed to 798, because the harness stops abandoning a route's press
+phase early.
+
+### Gate
+
+Maximum useful donor behaviour with no parallel donor product architecture:
+2,126 dispositions valid against the current tree, 37/37 adapted modules reached
+from product code, every merge destination reachable, and the leaf property now
+enforced rather than merely observed.
+
 ## Next action
 
-Phase 6 — Complete donor re-evaluation. Reassess all 2,126 donor files against
-the post-refactor authorities with deterministic dispositions — direct safe
-reuse, adapt, behavioural port, current OCADE stronger, or reject — validating
-provenance, dependency closure, compatibility and runtime reachability for every
-merged behaviour. `integration:check` already tracks 2,126 dispositions and
-37/37 adapted modules reached; the phase is about the dispositions being CURRENT
-against what Phases 1-5 changed, not about the count. Gate: maximum useful donor
-behaviour with no parallel donor product architecture.
+Phase 7 — Production Chat. The whole conversation lifecycle against the canonical
+authorities Phase 2 established: streaming, stop, retry and regenerate;
+branching and side conversations; attachments and private files; citations and
+web retrieval; tools; account and project memory; Incognito; sharing and
+revocation (the share functions Phase 3 applied and Phase 3 also cleaned of the
+removed privacy-mode gate); archive, trash, restore, delete, export and search;
+cross-session and cross-device persistence; usage, provider, model and session
+recovery; mobile, keyboard and accessibility behaviour. Gate: every visible Chat
+control works against a canonical authority, and the browser journeys show no
+unexplained console, network or storage error.
+
+Carried from Phase 1 and still open: splitting `ChatSurface` out of
+`src/routes/_authenticated/ocade.index.tsx`, which is the file most of this
+phase touches.
