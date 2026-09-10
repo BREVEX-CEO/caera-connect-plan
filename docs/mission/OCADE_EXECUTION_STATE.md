@@ -1088,6 +1088,64 @@ Every visible platform feature has real proof or a precise unavailable state.
 8,253 tests across 512 files.
 
 
+## Phase 15 — Organizations, Admin, notifications and public trust (COMPLETE)
+
+Workspace switching, members, roles, seats, the organization policy ceiling and
+tenant isolation were built in Phase 3 and are enforced in the database.
+Notifications were already honest: five delivery states, with `unavailable` —
+"this deployment has no provider" — kept distinct from `dead_letter`. What this
+phase found was the one requirement it names outright, unmet.
+
+### Any admin could read any customer's support messages, for ever
+
+`PLAN.md` Phase 15: "Support-content inspection requires time-bound case-scoped
+read-only grant, recent AAL2, reason/expiry and per-object access events —
+never unrestricted raw DB browsing." The policy on `ocade_support_messages`
+read `OR ocade_is_support_admin()`. Any admin, any ticket, no reason, no
+expiry, no record of which case was opened or which message was read. That is
+the thing the sentence forbids, wearing an RLS policy's clothes.
+
+A grant is now per-case, carries a reason of at least ten characters, expires
+within at most a day, and can be closed early. Opening one checks the second
+factor IN THE DATABASE, from the session's own claims — a server function that
+forgets its middleware is a bug, and a policy that trusts the application to
+have remembered is a design. Reading goes through `ocade_read_support_case`,
+which records one access event per message and per ticket in the same statement
+that returns them, so no path hands over content without leaving a trace.
+Replying needs the case open too, because replying is acting on a case.
+
+The customer's own access is untouched, and the queue itself still lists
+tickets — triage without a queue is not a job anybody can do. What closed is
+the customer's own words.
+
+### The policy that governs was not the policy that was written
+
+The first version of this migration replaced `support_messages_ticket_read` and
+looked correct — and changed nothing at all on the live database. An earlier
+migration had consolidated every permissive policy per table into
+`ocade_consolidated_*`, and PostgreSQL ORs permissive policies together: a
+narrower policy beside a broad one is not a narrowing. Live still read
+`OR is_support_admin()` from the consolidated policy nobody had touched.
+
+Found by querying `pg_policies` on the live project rather than by reading the
+migration back. The consolidated policies are what the migration now rewrites,
+the customer's half carried across verbatim, and the verification asserts the
+effective permission — no SELECT policy on that table may mention the admin
+role, and one must consult the grant — rather than the policy this migration
+happens to name.
+
+### Gate
+
+Server-enforced tenant and support boundaries: the second factor, the case
+scope, the expiry and the access record are all in the database, and the
+application cannot reach support content around them. Provider truthfulness is
+unchanged and still asserted.
+
+84 routes × 2 viewports signed out and signed in at 926/926 checks each, 8,266
+tests across 513 files, 95 migrations applied, verified and rolled back against
+real PostgreSQL, performance budget green.
+
+
 ## Next action
 
-Phase 15 — Organizations, Admin, notifications and public trust.
+Phase 16 — Monitoring, backup, restore and rollback.

@@ -3777,6 +3777,89 @@ export type Database = {
           },
         ]
       }
+      ocade_support_access_events: {
+        Row: {
+          admin_id: string
+          grant_id: string
+          id: string
+          object_id: string
+          object_kind: string
+          read_at: string
+          ticket_id: string
+        }
+        Insert: {
+          admin_id: string
+          grant_id: string
+          id?: string
+          object_id: string
+          object_kind: string
+          read_at?: string
+          ticket_id: string
+        }
+        Update: {
+          admin_id?: string
+          grant_id?: string
+          id?: string
+          object_id?: string
+          object_kind?: string
+          read_at?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_support_access_events_grant_id_fkey"
+            columns: ["grant_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_support_grants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ocade_support_access_events_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ocade_support_grants: {
+        Row: {
+          admin_id: string
+          expires_at: string
+          granted_at: string
+          id: string
+          reason: string
+          revoked_at: string | null
+          ticket_id: string
+        }
+        Insert: {
+          admin_id: string
+          expires_at: string
+          granted_at?: string
+          id?: string
+          reason: string
+          revoked_at?: string | null
+          ticket_id: string
+        }
+        Update: {
+          admin_id?: string
+          expires_at?: string
+          granted_at?: string
+          id?: string
+          reason?: string
+          revoked_at?: string | null
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ocade_support_grants_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "ocade_support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ocade_support_tickets: {
         Row: {
           assigned_to: string | null
@@ -5019,6 +5102,30 @@ export type Database = {
           week_window_start: string
         }[]
       }
+      ocade_close_support_case: { Args: { grant_id: string }; Returns: boolean }
+      ocade_open_support_case: {
+        Args: { case_reason: string; minutes?: number; target_ticket: string }
+        Returns: {
+          admin_id: string
+          expires_at: string
+          granted_at: string
+          id: string
+          reason: string
+          revoked_at: string | null
+          ticket_id: string
+        }
+      }
+      ocade_read_support_case: {
+        Args: { target_ticket: string }
+        Returns: {
+          author_role: string
+          body: string
+          created_at: string
+          id: string
+          ticket_id: string
+        }[]
+      }
+      ocade_support_grant_active: { Args: { target_ticket: string }; Returns: boolean }
       ocade_read_shared_conversation: {
         Args: { p_token: string }
         Returns: {

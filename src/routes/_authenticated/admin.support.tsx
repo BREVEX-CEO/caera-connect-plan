@@ -12,6 +12,15 @@ import { requireAdminRole } from "@/lib/admin/route-gate";
 import { cn } from "@/lib/utils";
 import { LIST_CAP } from "@/lib/supabase/read-all";
 
+/** One message, as `ocade_read_support_case` returns it. */
+type SupportCaseMessage = {
+  id: string;
+  ticket_id: string;
+  author_role: string;
+  body: string;
+  created_at: string;
+};
+
 type Ticket = {
   id: string;
   user_id: string;
@@ -62,21 +71,87 @@ function AdminSupportPage() {
   }, [filter, tickets.data]);
   const selected = tickets.data?.find((ticket) => ticket.id === selectedId) ?? null;
 
+  /*
+   * READING A CASE IS AN ACT, NOT A QUERY.
+   *
+   * This used to select straight from `ocade_support_messages`, which worked
+   * because any admin could read every message of every customer, for ever,
+   * with no reason recorded. `PLAN.md` Phase 15 forbids exactly that. The read
+   * now goes through `ocade_read_support_case`, which returns nothing unless a
+   * case is open for this admin on this ticket and records one access event per
+   * object it hands back. An empty answer here is not an error — it is what
+   * "no case is open" looks like.
+   */
   const messages = useQuery({
-    queryKey: ["support-messages", selectedId],
+    queryKey: ["support-case", selectedId],
+    enabled: Boolean(selectedId),
+    queryFn: async () => {
+      const supabase = await loadSupabaseClient();
+      const { data, error } = await supabase.rpc("ocade_read_support_case", {
+        target_ticket: selectedId!,
+      });
+      if (error) throw error;
+      return (data ?? []) as SupportCaseMessage[];
+    },
+  });
+
+  /** The case this admin has open on the selected ticket, if any. */
+  const openCase = useQuery({
+    queryKey: ["support-grant", selectedId],
     enabled: Boolean(selectedId),
     queryFn: async () => {
       const supabase = await loadSupabaseClient();
       const { data, error } = await supabase
-        .from("ocade_support_messages")
-        .select("id, author_role, body, created_at")
+        .from("ocade_support_grants")
+        .select("id, reason, granted_at, expires_at")
         .eq("ticket_id", selectedId!)
-        .order("created_at", { ascending: true })
-        .limit(LIST_CAP);
+        .is("revoked_at", null)
+        .gt("expires_at", new Date().toISOString())
+        .order("expires_at", { ascending: false })
+        .limit(1);
       if (error) throw error;
-      return data ?? [];
+      return (data ?? [])[0] ?? null;
     },
   });
+
+  async function openCaseFor(ticketId: string) {
+    const reason = window
+      .prompt("Why do you need to read this customer's case? This is recorded.")
+      ?.trim();
+    if (!reason) return;
+    if (reason.length < 10) {
+      toast.error("Write a reason somebody could read back later — at least ten characters.");
+      return;
+    }
+    setBusy(true);
+    const supabase = await loadSupabaseClient();
+    const { error } = await supabase.rpc("ocade_open_support_case", {
+      target_ticket: ticketId,
+      case_reason: reason,
+      minutes: 60,
+    });
+    setBusy(false);
+    if (error) {
+      // The database refuses without a recent second factor, which is the
+      // message worth passing on verbatim rather than rewording.
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Case opened for one hour. What you read is recorded.");
+    await qc.invalidateQueries({ queryKey: ["support-grant", ticketId] });
+    await qc.invalidateQueries({ queryKey: ["support-case", ticketId] });
+  }
+
+  async function closeCase(grantId: string, ticketId: string) {
+    setBusy(true);
+    const supabase = await loadSupabaseClient();
+    const { error } = await supabase.rpc("ocade_close_support_case", { grant_id: grantId });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Case closed.");
+    await qc.invalidateQueries({ queryKey: ["support-grant", ticketId] });
+    await qc.invalidateQueries({ queryKey: ["support-case", ticketId] });
+  }
 
   async function setStatus(status: string) {
     const supabase = await loadSupabaseClient();
@@ -191,8 +266,56 @@ function AdminSupportPage() {
                   <option value="closed">Closed</option>
                 </select>
               </div>
+              {/*
+                THE CASE, AND WHETHER IT IS OPEN.
+                Support content is not something a queue simply shows: it is a
+                customer's own words, and reading them takes a reason, a clock
+                and a record. This says which of those is missing rather than
+                rendering an empty conversation and letting somebody conclude
+                the customer never wrote anything.
+              */}
+              {openCase.data ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-card/40 px-3 py-2 text-[11px] text-muted-foreground">
+                  <span>
+                    Case open until {new Date(openCase.data.expires_at).toLocaleTimeString()} ·{" "}
+                    {openCase.data.reason}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void closeCase(openCase.data!.id, selected.id)}
+                    className="ml-auto rounded-md border border-border px-2 py-1 text-foreground"
+                  >
+                    Close case
+                  </button>
+                  <span className="w-full text-muted-foreground/80">
+                    Every message you read here is recorded against this case.
+                  </span>
+                </div>
+              ) : (
+                <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-card/40 px-3 py-2 text-[11px] text-muted-foreground">
+                  <span>
+                    This customer&rsquo;s messages are closed. Opening the case needs a written
+                    reason and a recent second factor, lasts an hour, and is recorded.
+                  </span>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void openCaseFor(selected.id)}
+                    className="ml-auto rounded-md border border-border px-2 py-1 text-foreground"
+                  >
+                    Open case
+                  </button>
+                </div>
+              )}
+
               <div className="flex-1 space-y-3 overflow-y-auto py-4">
                 {messages.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {!messages.isLoading && (messages.data?.length ?? 0) === 0 && !openCase.data ? (
+                  <p className="text-xs text-muted-foreground">
+                    Nothing is shown because no case is open.
+                  </p>
+                ) : null}
                 {messages.data?.map((message) => (
                   <article
                     key={message.id}

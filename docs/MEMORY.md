@@ -118,32 +118,31 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 14 (mobile, PWA and voice) is complete. The layouts, safe areas, offline
-shell and honest push channels were built; this phase ran the proofs, and the
-audit that runs them was failing for two reasons that were both about the
-harness rather than the product.
+Phase 15 (organizations, Admin, notifications and public trust) is complete.
+Workspaces, roles, seats, the organization ceiling and tenant isolation were
+built in Phase 3; notifications were already honest about what a deployment can
+deliver. What this phase found was the requirement it names outright, unmet:
+any admin could read any customer's support messages, for ever, with no reason,
+no expiry and no record.
 
-The Help Center journey counted `net::ERR_ABORTED` as a failed request.
-That code is Chromium saying the client cancelled — what happens to every module
-prefetch in flight when the journey navigates — so it reported a broken help
-centre while every page rendered. Cancellations are excluded now; the codes that
-mean the server failed still count.
+Support content now needs a case: per-ticket, a written reason, an expiry of at
+most a day, closable early, and a second factor checked IN THE DATABASE rather
+than only in the application. Reading goes through a function that records one
+access event per object in the same statement that returns it. Replying needs
+the case open too. The customer's own access is untouched.
 
-And an empty body after pressing controls was treated as a verdict rather than a
-question. The audit presses quickly, and a control that starts a document
-navigation can have it superseded by the next press; the loop then measures the
-gap between two documents no person would see. Both readings now open the route
-again and read it once before failing, which distinguishes "the page emptied
-itself" from "the harness raced its own clicks".
-
-Every stage then passes: 926/926 routes signed out and signed in, 7/7 visual
-performance, 38/38 and 24/24 accessibility, 119/119 and 85/85 responsive across
-six widths, 12/12 web vitals, 13/13 offline transitions.
+The first version of that migration changed nothing on live and looked correct.
+An earlier migration had consolidated every permissive policy per table, and
+PostgreSQL ORs permissive policies together — so the narrower policy sat beside
+the broad one and the broad one still governed. Found by querying `pg_policies`
+on the live project. The consolidated policies are what the migration now
+rewrites, and the verification asserts the effective permission rather than the
+policy the migration happens to name.
 
 `ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
 1, deliberately.
 
-Next is Phase 15 — organizations, Admin, notifications and public trust.
+Next is Phase 16 — monitoring, backup, restore and rollback.
 
 Two known external items remain: `auth_leaked_password_protection` is disabled
 in Supabase Auth, and the Windows control journey needs Windows hardware. Both
