@@ -118,34 +118,33 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 12 (agents, tools, skills, plugins and connectors) is complete. Nearly all
-of it was already built: one agent loop with one bounded planner over it, one
-tool registry keyed by domain, one permission layer both rooms ask, signed skill
-manifests with capability restriction, a marketplace that admits nothing
-unsigned, and a connectors page that refuses to show Gmail, Drive, Slack or
-Notion as connected because no connector implementation exists.
+Phase 13 (browser extension and Windows host) is complete for everything this
+machine can reach. The browser half is proven against a real browser: 69 of 69
+extension scenarios in real Chromium, including that the driven tab moves and
+the OCADE tab does not, that a website cannot approve or revoke a site for
+itself, that an unfakeable tool is refused honestly, and that after TAKE OVER
+the page is re-observed and reported stale rather than planned against from
+memory. The manifest ships no static host permissions.
 
-Two things were missing, both about what happens after admission. Revocation was
-enforced only at admission: `PackRegistry` could register and replace and had no
-way to remove, so a skill later found to be malicious stayed in the list,
-answerable and plannable, whatever any notice said. It now has `unregister` and
-`applyRevocations`, which skips a version-specific notice that does not match
-the installed version.
+The Windows half is consolidated behind one primary executor with a narrow,
+tested fallback rule, and the host's own ordering is the required one — UIA
+invoke first, a real pointer press only where no invoke pattern exists,
+verified by comparing the window fingerprint before and after.
 
-And the four boundaries — identity, usage, permission, tenant — were each
-enforced by an arrangement rather than a lock, with nothing checking that the
-arrangement held. `extensions-cannot-bypass-the-boundaries.test.ts` now checks
-all four against the whole tree, and adding an ungated caller fails it.
+`npm run windows:prove` needs a supported Windows PC and refuses to run
+anywhere else. It is recorded in `docs/deployment/PRODUCTION_STATE.md` as a
+pre-launch action with no repository path, alongside the leaked-password
+setting. `npm run model:install-proof` DOES run here and was re-run for this
+phase: a first install, an interrupted resume and a repair over 1.04 GiB.
 
 `ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
 1, deliberately.
 
-Next is Phase 13 — browser extension and Windows host. Gate: real Chrome/Edge
-and supported Windows journeys prove safe observed postconditions.
+Next is Phase 14 — mobile, PWA and voice.
 
-One known external item remains from Phase 3: `auth_leaked_password_protection`
-is disabled in Supabase Auth. It is a dashboard setting with no repository path,
-recorded in `docs/deployment/PRODUCTION_STATE.md` as a pre-launch action.
+Two known external items remain: `auth_leaked_password_protection` is disabled
+in Supabase Auth, and the Windows control journey needs Windows hardware. Both
+are recorded in `docs/deployment/PRODUCTION_STATE.md`.
 
 ## Things to Be Careful About
 

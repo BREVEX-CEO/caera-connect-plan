@@ -978,6 +978,63 @@ removed from a machine that already has it.
 tests across 512 files, performance budget green.
 
 
+## Phase 13 — Browser extension and Windows host (COMPLETE, less one hardware proof)
+
+This phase was built and, for the half this machine can reach, proven. What it
+needed was running the proofs and recording honestly which one cannot run here.
+
+### The browser half is proven against a real browser
+
+`npm run extension:e2e` drives the shipped extension in real Chromium: 69 of 69
+scenarios. Among them are the ones that matter for the gate — the driven tab
+moves and the OCADE tab does not; an unapproved address is refused; a website
+cannot approve or revoke a site for itself; a tool the extension cannot do is
+refused honestly rather than faked; a mutating call is verified by the
+extension rather than by the adapter; and after a TAKE OVER the page is
+re-observed and reported STALE rather than planned against from memory.
+
+The manifest ships no static host permissions at all — `host_permissions: []`,
+with `optional_host_permissions` granted per site by the person — and two tests
+keep it that way.
+
+### The Windows half is consolidated, and its ordering is the required one
+
+`adapters.node.ts` runs the Mark-L control engine as the primary executor with
+`ocade_host` as a fallback, and the fallback rule is narrow and tested: only an
+`unsupported` code — the transport's word for "could not be started at all" —
+falls through. A `retryable_failure` does not, because it carries the real
+reason, and collapsing it once produced the most misleading receipt in the
+product's history ("WhatsApp control needs the control engine", said by a
+running engine). `engine-errors-are-not-absence.test.ts` exists so nobody
+re-adds the collapse.
+
+Inside the host, the ordering `PLAN.md` asks for is what the code does:
+`invoke_control` uses the UIA invoke pattern first, falls back to a real
+pointer press only where a control exposes no invoke pattern, and verifies by
+comparing the window's visual fingerprint before and after — a control that
+reports success while nothing moved is not treated as success.
+
+### What cannot be run here, said rather than counted
+
+`npm run windows:prove` needs a supported Windows PC. It refuses to run
+anywhere else and says so, which is right: a green line from a machine with no
+Windows API would be worse than no line. It is recorded in
+`docs/deployment/PRODUCTION_STATE.md` as a pre-launch action with no repository
+path, alongside the leaked-password setting.
+
+A first read of that section also claimed `model:install-proof` could not run
+here. It can, and it does: a first install, an interrupted resume and a repair
+over 1.04 GiB of real transfer, re-run for this phase and its evidence
+regenerated.
+
+### Gate
+
+Real Chrome/Edge journeys prove safe observed postconditions — 69/69, against
+the shipped extension. The Windows journey is the one reachable-elsewhere proof
+this environment cannot give, and it is recorded as outstanding rather than
+claimed.
+
+
 ## Next action
 
-Phase 13 — Browser control, Windows control and mobile.
+Phase 14 — Mobile, PWA and voice.

@@ -153,3 +153,19 @@ anything the allowlist does not name — so a mistyped override fails closed wit
 The audit proves the honest half rather than the working half:
 `signup-consent.mjs` asserts that a disabled Create account carries a visible
 explanation, and it does.
+
+## The one proof this machine cannot run
+
+`npm run windows:prove` drives a real pointer, a real keyboard and Windows' own
+OCR through the control engine, and re-observes the result. It refuses to run
+anywhere else and says so — "This proof only means anything on Windows, and this
+is linux" — which is the correct behaviour: a green line from a machine with no
+Windows API would be worse than no line at all. **Run it on a supported Windows
+PC before launch.** It has no repository path either.
+
+The browser half of the same phase IS reachable here and is run:
+`npm run extension:e2e` drives the shipped extension in real Chromium and
+asserts scope, pairing, re-observation and honest refusal — 69 of 69 scenarios.
+So is the model lifecycle: `npm run model:install-proof` completes a first
+install, an interrupted resume and a repair over about a gigabyte of real
+transfer, and writes `release/OCADE_MODEL_INSTALL_PROOF.json`.
