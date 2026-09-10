@@ -924,6 +924,60 @@ customer-journey stages, 8,242 tests across 511 files, 94 migrations applied,
 verified and rolled back against real PostgreSQL, performance budget green.
 
 
+## Phase 12 — Agents, tools, skills, plugins and connectors (COMPLETE)
+
+Almost all of this phase was already built, and built well: one agent loop with
+one bounded planner over it, one tool registry keyed by domain, one permission
+layer both rooms ask, signed skill manifests with capability restriction and
+revocation, a marketplace that admits nothing unsigned, and a connectors page
+that refuses to show Gmail, Drive, Slack or Notion as connected because no
+connector implementation exists. Two things were missing, and both were about
+what happens AFTER something is admitted.
+
+### A withdrawn skill could not be taken off the machine
+
+`skill-trust` exists because a community skill drives somebody's computer, and
+its own header says the serious gap is revocation: a skill later found to be
+malicious must not stay installed and trusted for ever. Revocation was enforced
+at ADMISSION — and nowhere else. `PackRegistry` could register and replace, and
+had no way to remove: a pack already installed stayed in `list()`, stayed
+answerable by `get()`, and stayed plannable, whatever any revocation notice
+said. Signing without removal is the weaker half of the problem the module was
+written to solve.
+
+There is an `unregister` now, which reports whether anything was actually
+removed, and `applyRevocations`, which unloads every pack a notice covers —
+skipping a version-specific notice that does not match the installed version,
+because a revocation for 1.2 is not a statement about 1.3.
+
+### The four boundaries were arrangements, and nothing checked them
+
+The gate is a negative property: extensions cannot bypass identity, usage,
+permission or tenant boundaries. Each was enforced, and each by an arrangement
+rather than a lock — permission decided upstream of the executor, identity read
+from the request rather than the body, the organization ceiling read from the
+database as the caller, the usage permit held by the surface that originated the
+request. `src/lib/runtime/execute.ts` states the risk in its own header — "an
+executor that also gated itself would let a caller skip the gate by calling the
+executor directly" — and then nothing checked that its callers kept their side.
+
+`extensions-cannot-bypass-the-boundaries.test.ts` checks all four against the
+whole tree: every file that runs a tool reaches the permission layer or is named
+with a reason; no server function validates a user or organization id sent by
+the client; the ceiling is asked of the database twice and accepted from the
+body never; and the usage gate's exemption list contains no extension, skill,
+plugin or marketplace path. Adding an ungated caller fails it.
+
+### Gate
+
+Extensions cannot bypass identity, usage, permission or tenant boundaries, and
+the property is now enforced rather than arranged. A revoked skill can be
+removed from a machine that already has it.
+
+84 routes × 2 viewports signed out and signed in at 926/926 checks each, 8,258
+tests across 512 files, performance budget green.
+
+
 ## Next action
 
-Phase 12 — Agents, tools, skills, plugins and connectors.
+Phase 13 — Browser control, Windows control and mobile.

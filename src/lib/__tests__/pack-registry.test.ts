@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   PackRegistry,
+  applyRevocations,
   BUILT_IN_PACKS,
   coverageReport,
   describeCoverage,
@@ -375,5 +376,70 @@ describe("answering “what do you know about this program?”", () => {
 
   it("returns nothing for an empty query rather than a misleading default", () => {
     expect(describeAppLookup(registry, "   ")).toBe("");
+  });
+});
+
+describe("a withdrawn skill can actually be taken off the machine", () => {
+  /*
+   * `skill-trust`'s second rule is that revocation beats a valid signature.
+   * That was enforced at ADMISSION and nowhere else: a skill already
+   * registered stayed in the list, kept being returned by `get()`, and kept
+   * being planned against, because nothing could take it out again. Signing
+   * without removal is the weaker half of the problem the module was written
+   * to solve.
+   */
+  it("removes a pack and stops answering for it", () => {
+    const registry = new PackRegistry();
+    const target = registry.list()[0]!.appId;
+
+    expect(registry.unregister(target)).toBe(true);
+    expect(registry.get(target)).toBeNull();
+    expect(registry.list().some((pack) => pack.appId === target)).toBe(false);
+    expect(registry.testedCapabilities().some((entry) => entry.appId === target)).toBe(false);
+  });
+
+  it("says when there was nothing to remove, rather than implying there was", () => {
+    expect(new PackRegistry().unregister("nothing.installed")).toBe(false);
+  });
+
+  it("unloads every pack a revocation covers, and reports what went", () => {
+    const registry = new PackRegistry();
+    const doomed = registry.list()[0]!.appId;
+
+    const removed = applyRevocations(registry, [
+      { skillId: doomed, reason: "Published key was compromised." },
+      { skillId: "never.installed", reason: "Not here." },
+    ]);
+
+    expect(removed).toEqual([{ appId: doomed, reason: "Published key was compromised." }]);
+    expect(registry.get(doomed)).toBeNull();
+  });
+
+  it("leaves a version it does not name alone", () => {
+    /*
+     * A revocation for 1.2 is not a statement about 1.3. Removing the wrong
+     * version would take a working skill off somebody's machine on the
+     * strength of a notice that was never about it.
+     */
+    const registry = new PackRegistry();
+    const installed = registry.list()[0]!.appId;
+
+    const removed = applyRevocations(
+      registry,
+      [{ skillId: installed, version: "1.2", reason: "That build was bad." }],
+      () => "1.3",
+    );
+
+    expect(removed).toEqual([]);
+    expect(registry.get(installed)).not.toBeNull();
+
+    // And it does remove the version it does name.
+    expect(
+      applyRevocations(
+        registry,
+        [{ skillId: installed, version: "1.3", reason: "That build was bad." }],
+        () => "1.3",
+      ),
+    ).toHaveLength(1);
   });
 });

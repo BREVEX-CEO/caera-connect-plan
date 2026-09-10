@@ -488,6 +488,27 @@ export class PackRegistry {
     this.packs = [...this.packs.filter((p) => p.appId !== pack.appId), clonePack(pack)];
   }
 
+  /**
+   * Take a pack out, for real.
+   *
+   * WHY REGISTRATION WITHOUT REMOVAL IS NOT ENOUGH. `skill-trust` exists
+   * because a community skill drives somebody's computer, and its second rule
+   * is that revocation beats a valid signature — a correctly signed skill that
+   * has been withdrawn is refused. That refusal happened at ADMISSION and
+   * nowhere else: a skill already registered stayed in this list, kept being
+   * returned by `list()` and `get()`, and kept being planned against, because
+   * nothing here could take it out again. Signing without removal is the
+   * weaker half of the same problem the trust module was written to solve.
+   *
+   * Returns whether anything was actually removed, so a caller can tell
+   * "withdrawn" from "was never here" instead of assuming.
+   */
+  unregister(appId: string): boolean {
+    const before = this.packs.length;
+    this.packs = this.packs.filter((pack) => pack.appId !== appId);
+    return this.packs.length !== before;
+  }
+
   /** Capabilities across all packs that are backed by a real test. */
   testedCapabilities(): { appId: string; capability: SkillCapability }[] {
     return this.packs.flatMap((p) =>
@@ -609,4 +630,31 @@ export function describeAppLookup(registry: PackRegistry, appName: string): stri
     return `OCADE has a tested pack for ${pack.displayName.toLowerCase()}, which covers files rather than the applications themselves. ${pack.coverageNote}`;
   }
   return `OCADE has a tested skill pack for ${pack.displayName.toLowerCase()}, and can operate it directly.`;
+}
+
+/**
+ * Unload every pack a revocation covers.
+ *
+ * The list is the publisher's or the reviewer's answer about which skills must
+ * stop being used; this is the part that makes the answer take effect on a
+ * machine that already has them. A version-specific revocation only removes
+ * the pack when the installed version matches, because a revocation for 1.2 is
+ * not a statement about 1.3.
+ *
+ * Returns what was removed, so the surface can say so rather than going quiet.
+ */
+export function applyRevocations(
+  registry: PackRegistry,
+  revocations: readonly { skillId: string; version?: string; reason: string }[],
+  installedVersion: (appId: string) => string | undefined = () => undefined,
+): { appId: string; reason: string }[] {
+  const removed: { appId: string; reason: string }[] = [];
+  for (const entry of revocations) {
+    if (!registry.get(entry.skillId)) continue;
+    if (entry.version !== undefined && installedVersion(entry.skillId) !== entry.version) continue;
+    if (registry.unregister(entry.skillId)) {
+      removed.push({ appId: entry.skillId, reason: entry.reason });
+    }
+  }
+  return removed;
 }

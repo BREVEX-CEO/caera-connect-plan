@@ -118,41 +118,30 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 11 (Projects, Tasks, Artifacts, Search and Memory) is complete. Four of the
-five were built and connected; what the phase found was three holes in the graph
-and one row that lied about itself.
+Phase 12 (agents, tools, skills, plugins and connectors) is complete. Nearly all
+of it was already built: one agent loop with one bounded planner over it, one
+tool registry keyed by domain, one permission layer both rooms ask, signed skill
+manifests with capability restriction, a marketplace that admits nothing
+unsigned, and a connectors page that refuses to show Gmail, Drive, Slack or
+Notion as connected because no connector implementation exists.
 
-A task could not be filed with the work it belonged to. Chats, files, Code
-sessions, artifacts and memory all carry `project_id`; `ocade_tasks` did not, so
-the one record representing work in progress was the one that could not join the
-project graph. The column is `ON DELETE SET NULL` — deleting a project must not
-delete the work — indexed for the only question anybody asks of it, with a
-rollback that records each filing in the task's own step text before dropping
-it, and a verification that proves against real PostgreSQL that a deleted
-project leaves the task alive and unfiled.
+Two things were missing, both about what happens after admission. Revocation was
+enforced only at admission: `PackRegistry` could register and replace and had no
+way to remove, so a skill later found to be malicious stayed in the list,
+answerable and plannable, whatever any notice said. It now has `unregister` and
+`applyRevocations`, which skips a version-specific notice that does not match
+the installed version.
 
-Quick add recorded every task as immediate work, so a task meant for Friday sat
-in Queued looking overdue and one that needed an answer looked ready to start.
-The board now asks which kind — now, scheduled, waiting for me — stores the
-schedule as an instant rather than the wall clock somebody typed, and shows it
-on the card. Recurring and monitoring work stays with the automation form that
-owns it.
-
-Search could not find a task or a memory, which reads as "you never wrote that
-down". Both are in now, through the same typed filters, bounds and RLS scoping,
-and each result opens where the row lives.
-
-Session extraction wrote `source: "imported"` — the word for a memory the person
-brought in from another product — for facts OCADE had inferred on its own. The
-review list prints the value verbatim, so everybody who checked was told they
-had imported facts they had never seen. The schema and the panel were already
-right; only the writer was wrong.
+And the four boundaries — identity, usage, permission, tenant — were each
+enforced by an arrangement rather than a lock, with nothing checking that the
+arrangement held. `extensions-cannot-bypass-the-boundaries.test.ts` now checks
+all four against the whole tree, and adding an ungated caller fails it.
 
 `ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
 1, deliberately.
 
-Next is Phase 12 — Agents, tools, skills, plugins and connectors. Gate:
-extensions cannot bypass identity, usage, permission or tenant boundaries.
+Next is Phase 13 — browser extension and Windows host. Gate: real Chrome/Edge
+and supported Windows journeys prove safe observed postconditions.
 
 One known external item remains from Phase 3: `auth_leaked_password_protection`
 is disabled in Supabase Auth. It is a dashboard setting with no repository path,
