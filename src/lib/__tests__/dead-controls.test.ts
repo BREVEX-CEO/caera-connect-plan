@@ -116,7 +116,9 @@ describe("blocked controls explain themselves to assistive technology", () => {
     const cowork = readFileSync("src/routes/_authenticated/ocade.cowork.tsx", "utf8");
     expect(ocade).not.toMatch(/run-controls-setup-required/);
     expect(cowork).not.toMatch(/redirect\(/);
-    expect(cowork).toMatch(/ControlWorkPanel/);
+    // The room, which renders the panel. Phase 9 put `CoworkRoom` between them
+    // so Normal and Jarvis share one mission; the route still lands in Cowork.
+    expect(cowork).toMatch(/CoworkRoom/);
   });
 
   it("the old Cowork address forwards to the room, not to Chat", () => {

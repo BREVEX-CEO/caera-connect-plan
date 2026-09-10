@@ -21,8 +21,8 @@ const frame = (state: OrbState, seconds: number, amplitude?: number) =>
   orbFrameAt(state, seconds, amplitude === undefined ? {} : { amplitude });
 
 describe("every state is covered", () => {
-  it("describes all ten", () => {
-    expect(ORB_STATES).toHaveLength(10);
+  it("describes all eleven", () => {
+    expect(ORB_STATES).toHaveLength(11);
     for (const state of ORB_STATES) {
       expect(ORB_APPEARANCE[state], state).toBeDefined();
       expect(ORB_APPEARANCE[state].label.length).toBeGreaterThan(2);
@@ -84,6 +84,26 @@ describe("the states mean what they say", () => {
   it("paused is calmer than thinking", () => {
     expect(ORB_APPEARANCE.paused.energy).toBeLessThan(ORB_APPEARANCE.thinking.energy);
     expect(ORB_APPEARANCE.paused.pulseHz).toBeLessThan(ORB_APPEARANCE.thinking.pulseHz);
+  });
+
+  it("browser work is as loud as machine work and a different shape", () => {
+    /*
+     * The two are the same kind of event — OCADE is changing something — so
+     * neither may read as calmer than the other. What separates them is the
+     * silhouette: a page is a bounded place and the orb stays open, while the
+     * machine is not and it draws tight.
+     */
+    expect(ORB_APPEARANCE.browsing.energy).toBeGreaterThan(ORB_APPEARANCE.thinking.energy);
+    expect(ORB_APPEARANCE.browsing.scale).toBeGreaterThan(ORB_APPEARANCE.acting.scale);
+    expect(Math.abs(ORB_APPEARANCE.browsing.energy - ORB_APPEARANCE.acting.energy)).toBeLessThan(
+      0.15,
+    );
+  });
+
+  it("says which of the two is happening, in words", () => {
+    expect(ORB_APPEARANCE.browsing.label).not.toBe(ORB_APPEARANCE.acting.label);
+    expect(ORB_APPEARANCE.browsing.label).toMatch(/browser/i);
+    expect(ORB_APPEARANCE.acting.label).toMatch(/computer/i);
   });
 
   it("acting is the busiest and the tightest", () => {

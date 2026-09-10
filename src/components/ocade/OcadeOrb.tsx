@@ -1,5 +1,11 @@
 import { Suspense, lazy, useMemo } from "react";
-import { ORB_APPEARANCE, type OrbState } from "@/lib/orb/state";
+import {
+  ORB_APPEARANCE,
+  tintFrame,
+  orbFrameAt,
+  type OrbAccent,
+  type OrbState,
+} from "@/lib/orb/state";
 import { cn } from "@/lib/utils";
 
 /**
@@ -34,10 +40,16 @@ export function OcadeOrb({
   state,
   amplitude = 0,
   size = 96,
+  accent = "silver",
   className,
   decorative = false,
 }: {
   state: OrbState;
+  /**
+   * The accent to draw it in. `silver` is the product default and changes
+   * nothing; Jarvis is the one surface that offers the others.
+   */
+  accent?: OrbAccent;
   /** Live input level, 0–1. Used while listening and speaking. */
   amplitude?: number;
   /** Rendered size in CSS pixels. */
@@ -53,6 +65,11 @@ export function OcadeOrb({
 }) {
   const look = ORB_APPEARANCE[state];
   const label = useMemo(() => look.label, [look.label]);
+  // The placeholder is the same object arriving, so it carries the same tint.
+  const core = useMemo(
+    () => tintFrame(orbFrameAt(state, 0, { quality: "still" }), accent).core,
+    [state, accent],
+  );
 
   const placeholder = (
     <span
@@ -61,7 +78,7 @@ export function OcadeOrb({
       style={{
         width: size,
         height: size,
-        background: `radial-gradient(circle at 35% 32%, rgb(${to255(look.core)} / 0.95), rgb(${to255(look.core)} / 0.35) 62%, transparent 72%)`,
+        background: `radial-gradient(circle at 35% 32%, rgb(${to255(core)} / 0.95), rgb(${to255(core)} / 0.35) 62%, transparent 72%)`,
       }}
     />
   );
@@ -72,7 +89,13 @@ export function OcadeOrb({
       style={{ width: size, height: size }}
     >
       <Suspense fallback={placeholder}>
-        <OcadeOrbCanvas state={state} amplitude={amplitude} size={size} decorative />
+        <OcadeOrbCanvas
+          state={state}
+          amplitude={amplitude}
+          size={size}
+          accent={accent}
+          decorative
+        />
       </Suspense>
       {decorative ? null : (
         <span role="status" aria-live="polite" className="sr-only">

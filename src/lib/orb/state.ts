@@ -32,6 +32,16 @@ export type OrbState =
   | "speaking"
   /** OCADE is doing something to the machine right now. */
   | "acting"
+  /**
+   * OCADE is working inside a browser page rather than on the machine itself.
+   *
+   * SEPARATE FROM `acting` BECAUSE THE TWO ARE DIFFERENT RISKS. A person who
+   * can see that OCADE is clicking inside a tab, rather than typing into
+   * whatever window happens to be in front, knows how much of their computer
+   * is in play — and that is exactly the judgement they need in the second
+   * before deciding to take over.
+   */
+  | "browsing"
   /** A question is on screen and OCADE is waiting for a yes or a no. */
   | "approval"
   /** Held by the person. Everything keeps its place; it slows. */
@@ -49,6 +59,7 @@ export const ORB_STATES: readonly OrbState[] = [
   "thinking",
   "speaking",
   "acting",
+  "browsing",
   "approval",
   "paused",
   "takeover",
@@ -157,6 +168,21 @@ export const ORB_APPEARANCE: Record<OrbState, OrbAppearance> = {
     turbulence: 0.55,
     scale: 0.92,
     label: "Working on your computer",
+  },
+  browsing: {
+    /*
+     * Busy like `acting`, and shaped differently: a page is a bounded place, so
+     * the orb stays open rather than drawing itself tight. Same energy family,
+     * distinct silhouette — readable without colour, which is the rule the
+     * whole table is built on.
+     */
+    core: DEPTH,
+    rim: BRIGHT,
+    energy: 0.82,
+    pulseHz: 1.9,
+    turbulence: 0.48,
+    scale: 1.03,
+    label: "Working in the browser",
   },
   approval: {
     /*
@@ -331,6 +357,13 @@ export function orbStateFor(input: {
   phase?: string | null;
   awaitingApproval?: boolean;
   userHasControl?: boolean;
+  /**
+   * True while the action in flight is happening inside a browser page.
+   *
+   * Read from the tool being run, not guessed from the sentence: only the
+   * caller knows which adapter took the last step.
+   */
+  inBrowser?: boolean;
 }): OrbState {
   if (input.awaitingApproval) return "approval";
   if (input.userHasControl) return "takeover";
@@ -344,7 +377,7 @@ export function orbStateFor(input: {
       return "speaking";
     case "controlling":
     case "acting":
-      return "acting";
+      return input.inBrowser ? "browsing" : "acting";
     case "paused":
       return "paused";
     case "stopped":
@@ -354,4 +387,64 @@ export function orbStateFor(input: {
     default:
       return "idle";
   }
+}
+
+/* ------------------------------------------------------------- accents -- */
+
+/**
+ * The orb's accent, and the one surface allowed to choose it.
+ *
+ * CUSTOMER-FACING OCADE IS MONOCHROME, and `silver` is that: the identity
+ * tint, applied everywhere, which changes nothing. Jarvis is the single
+ * expressive surface `docs/DESIGN.md` allows, so it — and only it — may offer
+ * the others, from a curated list rather than a colour editor.
+ *
+ * AN ACCENT TINTS AND NOTHING ELSE. Energy, pulse, turbulence, scale and the
+ * label are untouched by every accent, which is what keeps the orb readable
+ * for somebody who cannot see the difference between them: the state is still
+ * carried by motion, size and words, exactly as it is in the grey product.
+ */
+export type OrbAccent = "silver" | "ember" | "tide" | "moss";
+
+export const ORB_ACCENTS: readonly OrbAccent[] = ["silver", "ember", "tide", "moss"];
+
+/** What the picker calls each one. Plain words, no hex, no jargon. */
+export const ORB_ACCENT_LABELS: Record<OrbAccent, string> = {
+  silver: "Silver",
+  ember: "Ember",
+  tide: "Tide",
+  moss: "Moss",
+};
+
+/**
+ * Channel weights, normalised so the tint cannot change how bright the orb is.
+ *
+ * The weights average to 1, so a grey of 0.72 stays a colour whose mean is
+ * 0.72. Without that an accent would double as a brightness control, and two
+ * states that differ by luminance — which is most of the table — would stop
+ * being told apart on a tinted orb.
+ */
+const ACCENT_WEIGHTS: Record<OrbAccent, readonly [number, number, number]> = {
+  silver: [1, 1, 1],
+  ember: [1.24, 0.94, 0.82],
+  tide: [0.82, 1.02, 1.16],
+  moss: [0.86, 1.14, 0.9],
+};
+
+function tintColour(
+  colour: readonly [number, number, number],
+  accent: OrbAccent,
+): readonly [number, number, number] {
+  const weights = ACCENT_WEIGHTS[accent];
+  return [
+    clamp01(colour[0] * weights[0]),
+    clamp01(colour[1] * weights[1]),
+    clamp01(colour[2] * weights[2]),
+  ] as const;
+}
+
+/** The same frame, in the chosen accent. `silver` returns it unchanged. */
+export function tintFrame(frame: OrbFrame, accent: OrbAccent): OrbFrame {
+  if (accent === "silver") return frame;
+  return { ...frame, core: tintColour(frame.core, accent), rim: tintColour(frame.rim, accent) };
 }

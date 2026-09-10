@@ -3,6 +3,8 @@ import {
   ORB_APPEARANCE,
   orbFrameAt,
   qualityFor,
+  tintFrame,
+  type OrbAccent,
   type OrbQuality,
   type OrbState,
 } from "@/lib/orb/state";
@@ -41,10 +43,16 @@ export function OcadeOrbCanvas({
   state,
   amplitude = 0,
   size = 96,
+  accent = "silver",
   className,
   decorative = false,
 }: {
   state: OrbState;
+  /**
+   * The accent to draw it in. `silver` is the product default and changes
+   * nothing; the others exist for Jarvis, the one expressive surface.
+   */
+  accent?: OrbAccent;
   /** Live input level, 0–1. Used while listening and speaking. */
   amplitude?: number;
   /** Rendered size in CSS pixels. */
@@ -65,6 +73,8 @@ export function OcadeOrbCanvas({
   amplitudeRef.current = amplitude;
   const stateRef = useRef(state);
   stateRef.current = state;
+  const accentRef = useRef(accent);
+  accentRef.current = accent;
 
   const reducedMotion = appearance.reducedMotion || appearance.osReducedMotion;
 
@@ -96,15 +106,11 @@ export function OcadeOrbCanvas({
     canvas.width = pixels;
     canvas.height = pixels;
 
-    if (quality === "still") {
-      const context = canvas.getContext("2d");
-      if (!context) return;
-      paintOrb(context, orbFrameAt(state, 0, { quality: "still" }), {
-        width: pixels,
-        height: pixels,
-      });
-      return;
-    }
+    // A still orb is painted by the effect below, which also repaints it when
+    // the accent changes. Doing it here as well would tie the accent to the
+    // effect that owns the WebGL context, and every accent change would then
+    // throw that context away and build another one.
+    if (quality === "still") return;
 
     if (quality === "simple") {
       const context = canvas.getContext("2d");
@@ -115,7 +121,10 @@ export function OcadeOrbCanvas({
         const seconds = (performance.now() - started) / 1000;
         paintOrb(
           context,
-          orbFrameAt(stateRef.current, seconds, { amplitude: amplitudeRef.current }),
+          tintFrame(
+            orbFrameAt(stateRef.current, seconds, { amplitude: amplitudeRef.current }),
+            accentRef.current,
+          ),
           { width: pixels, height: pixels },
         );
         raf = requestAnimationFrame(draw);
@@ -173,7 +182,10 @@ export function OcadeOrbCanvas({
     const started = performance.now();
     const draw = () => {
       const seconds = (performance.now() - started) / 1000;
-      const frame = orbFrameAt(stateRef.current, seconds, { amplitude: amplitudeRef.current });
+      const frame = tintFrame(
+        orbFrameAt(stateRef.current, seconds, { amplitude: amplitudeRef.current }),
+        accentRef.current,
+      );
       const values = uniformsFor(frame, seconds, [pixels, pixels]);
       gl.viewport(0, 0, pixels, pixels);
       gl.clearColor(0, 0, 0, 0);
@@ -209,6 +221,30 @@ export function OcadeOrbCanvas({
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
   }, [quality, size, state]);
+
+  /**
+   * The one frame a still orb shows.
+   *
+   * SEPARATE FROM THE LOOP ABOVE BECAUSE IT DEPENDS ON THE ACCENT. The animated
+   * paths read the accent from a ref every frame and so must not re-run when it
+   * changes — re-running the WebGL effect means destroying a context and
+   * creating another, and the browser keeps only a handful. A still orb has no
+   * loop to preserve, so it simply repaints.
+   */
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || quality !== "still") return;
+    const ratio = Math.min(2, typeof window === "undefined" ? 1 : window.devicePixelRatio || 1);
+    const pixels = Math.round(size * ratio);
+    canvas.width = pixels;
+    canvas.height = pixels;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+    paintOrb(context, tintFrame(orbFrameAt(state, 0, { quality: "still" }), accent), {
+      width: pixels,
+      height: pixels,
+    });
+  }, [quality, size, state, accent]);
 
   const label = useMemo(() => ORB_APPEARANCE[state].label, [state]);
 

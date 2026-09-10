@@ -1,7 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { ControlWorkPanel } from "@/components/ocade/control/ControlWorkPanel";
-import { useMissionBrain } from "@/lib/work/use-mission-brain";
+import { CoworkRoom } from "@/components/ocade/cowork/CoworkRoom";
 import { LivingIntelligenceBackdrop } from "@/components/visual/LivingIntelligenceBackdrop";
 
 /**
@@ -34,17 +32,6 @@ export const Route = createFileRoute("/_authenticated/ocade/cowork")({
 });
 
 function CoworkRoute() {
-  const { brain, warm } = useMissionBrain();
-
-  /*
-   * WARM ON ARRIVAL. A cold 7B took over two minutes to answer its first
-   * Control + Work turn on this machine, nearly all of it loading weights from
-   * disk while the screen said "Thinking". Starting that load when the user
-   * opens the room moves it to the seconds they spend reading the empty state.
-   */
-  useEffect(() => {
-    warm();
-  }, [warm]);
   return (
     <div className="relative h-[calc(100svh-4rem)] w-full overflow-hidden rounded-xl border border-border/50">
       {/*
@@ -54,7 +41,7 @@ function CoworkRoute() {
       */}
       <LivingIntelligenceBackdrop intensity="cinematic" />
       {/*
-        The panel sits on a near-opaque plate above the scene. Stop, takeover,
+        The room sits on a near-opaque plate above the scene. Stop, takeover,
         permission and approval controls live inside it, and a control that
         halts a running action must never be the thing competing with a moving
         gradient for the eye — so the plate is opaque enough to remove the
@@ -62,15 +49,15 @@ function CoworkRoute() {
       */}
       <div className="relative z-10 flex h-full flex-col bg-background/88">
         {/*
-          Whether OCADE can act in THIS browser is said inside the panel: loudly
+          ONE MISSION, TWO PRESENTATIONS. `CoworkRoom` owns the runtime and
+          renders either Normal or Jarvis over it, so switching view cannot
+          start a second mission — see the note in that file.
+
+          Whether OCADE can act in THIS browser is said inside the room: loudly
           when the extension is missing, and as one line in the Command Center
-          when it is there. It used to be a permanent plate above everything,
-          which spent the top of the room on a fact that changes once a month.
+          when it is there.
         */}
-        <ControlWorkPanel
-          brain={brain}
-          headerNote="Signed in · this computer · file attachment is not configured yet"
-        />
+        <CoworkRoom headerNote="Signed in · this computer · file attachment is not configured yet" />
       </div>
     </div>
   );

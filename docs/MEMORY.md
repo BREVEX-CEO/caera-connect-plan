@@ -118,45 +118,38 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 8 (Normal Cowork) is complete. The runtime was already there — one agent
-loop, one task registry, observation-backed verification of every mutating
-action, an approval layer shared with Chat. What was wrong was the account it
-gave of itself, and every one of the five defects reported work as other than it
-was, which is this phase's gate stated in the negative.
+Phase 9 (Jarvis Cowork) is complete. Jarvis did not exist in the tree; the parts
+it needed did — an orb with ten states, three rendering tiers, a still fallback
+and its own live region, already shared by Chat and Normal Cowork. The phase was
+mostly about not building a second product.
 
-The planner read success as `reason === "answered"`, but the loop's ending for a
-run that used tools and could stand behind them is `verified` — the stronger of
-the two. So every step that touched anything was recorded as failed: a completed
-multi-step task turned the panel red, and the next step was told the previous one
-"did not work". Pressing Stop mid-plan was reported the same way, and because
-only a cancelled run escapes delivery, it was also charged for. Typing a new
-instruction during a plan recorded "New instruction" and did nothing with it —
-the revision handle never reached `runPlannedTask`. The plan itself was invisible:
-`onStep` existed and nothing passed it. And `reconcileInterruptedRuns` treated
-"not in this tab's registry" as proof of death, so a second window buried the
-mission running in the first one while it carried on moving the mouse.
+The gate is structural. A `/ocade/jarvis` route would look identical on a quiet
+screen and fork the mission the first time somebody switched mid-task. So the
+runtime moved up: `CoworkRoom` owns the one `useMission` and renders either
+presentation over it, and `ControlWorkPanel` now receives the mission rather
+than creating it. Switching view is a render — it cannot start a run, buy a
+permit, fork a transcript or drop an approval already on screen.
+`jarvis-is-a-view.test.tsx` holds that, and forking it deliberately fails.
 
-All five are fixed at the authority rather than the symptom: one `succeeded()`,
-one plan `reason` that cancellation outranks, the revision passed through and
-carried into later steps, the step announced as a timeline entry of its own, and
-a 20-second heartbeat with a three-beat staleness threshold.
+The orb gained `browsing`: browser work and machine work are the same energy and
+a different silhouette, chosen from the tool's registered domain when the step is
+pushed rather than inferred from its label. `useAudioLevel` drives the listening
+motion from the real waveform, levels only, never leaving the tab; speaking uses
+the state's own energy and says why, because the browser does not expose the
+level of speech it synthesises. Four curated accents tint the orb and nothing
+else, with weights that average to 1 so an accent cannot become a brightness
+control.
 
-Cowork also gained what it did not have. Emergency stop kills every live run
-anywhere in OCADE, hands back the keyboard, does not take it again, asks for no
-confirmation and says what it stopped. The Command Center became what
-`docs/DESIGN.md` describes — a collapsible inspector, closed by default, behind
-one control, answering this computer, this browser, who is acting, permission
-and what the workspace withheld, the current action, receipts and diagnostics —
-instead of a name on the column holding the conversation. A companion killed
-between instructions gets one reconnect before the refusal is reported. A reload
-mid-task now says what was interrupted, and restarts nothing.
+The route audit's settle race was fixed at its shape rather than its symptom.
+Extending the budget a fixed number of times had been the fix three times and
+was wrong on a different route each time. Both loops now grant another quiet
+window while the page is still moving, under a hard 45-second ceiling.
 
 `ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
 1, deliberately.
 
-Next is Phase 9 — Jarvis Cowork: a view and controller over this same runtime,
-never a second one. Gate: Normal and Jarvis produce identical task history,
-permissions, usage and receipts.
+Next is Phase 10 — Production Code. Gate: every success is based on observed
+repository or tool postconditions.
 
 One known external item remains from Phase 3: `auth_leaked_password_protection`
 is disabled in Supabase Auth. It is a dashboard setting with no repository path,

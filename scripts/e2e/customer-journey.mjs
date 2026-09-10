@@ -440,6 +440,46 @@ await stage("the Command Center is a closed inspector until it is asked for", as
   return "closed, opens with seven answers, closes";
 });
 
+/* --------------------------------------------------------------- 10.6 -- */
+await stage("Jarvis is the same room, seen differently", async () => {
+  await goto("/ocade/cowork");
+  await page.waitForTimeout(3000);
+  const url = page.url();
+
+  const toJarvis = page.locator('button[role="radio"]', { hasText: /^Jarvis$/ }).first();
+  assert((await toJarvis.count()) === 1, "no Normal/Jarvis selector in Cowork");
+  await toJarvis.click();
+  await page.waitForTimeout(1800);
+
+  /*
+   * SWITCHING IS A RENDER, NOT A NAVIGATION. A Jarvis on its own route would
+   * mount a second mission — the exact thing PLAN.md Phase 9 forbids — and the
+   * cheapest way to see that from outside is that the address never moved.
+   */
+  assert(page.url() === url, `switching to Jarvis navigated to ${page.url()}`);
+
+  const jarvis = await bodyText();
+  // The state is in words, not only in motion: reduced motion, a still
+  // fallback and a screen reader all land on this line.
+  assert(/Ready|Listening|Thinking|Working|Paused|Stopped/i.test(jarvis), "Jarvis says no state");
+  assert(/Return to Normal/i.test(jarvis), "no way back to Normal");
+  assert(/what it sees/i.test(jarvis), "no contextual observation control");
+
+  const accents = await page.locator('[role="radiogroup"][aria-label="Orb accent"] button').count();
+  assert(accents >= 3, `expected a small curated accent set, found ${accents}`);
+
+  // And it comes back to the same room.
+  await page
+    .locator("button", { hasText: /Return to Normal/ })
+    .first()
+    .click();
+  await page.waitForTimeout(1200);
+  const back = await bodyText();
+  assert(/OCADE Cowork/i.test(back), "Return to Normal did not land back in Cowork");
+  assert(page.url() === url, "returning from Jarvis navigated away");
+  return "one room, two views, no navigation";
+});
+
 /* ----------------------------------------------------------------- 11 -- */
 await stage("approval and permissions are reachable and editable", async () => {
   await goto("/settings/privacy");

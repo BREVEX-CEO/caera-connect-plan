@@ -713,13 +713,87 @@ files, with 3 skipped. The performance budget passes with headroom on every
 line.
 
 
+## Phase 9 — Jarvis Cowork (COMPLETE)
+
+Jarvis did not exist. Nothing in the tree mentioned it, and the parts it needed
+did: an orb with ten states, three rendering tiers, a still fallback and a live
+region carrying its own label, all already used by Chat and Normal Cowork. So
+this phase was mostly about not building a second product.
+
+### The structure IS the gate
+
+`PLAN.md` asks that Normal and Jarvis produce identical task history,
+permissions, usage and receipts. The obvious shape — a `/ocade/jarvis` route —
+would satisfy that on a quiet screen and produce two missions the first time
+somebody switched mid-task: a second `useMission`, a second run, a second
+permit, a forked transcript.
+
+So the runtime moved one level up. `CoworkRoom` owns the one `useMission` and
+renders either presentation over it; `ControlWorkPanel` now takes the mission as
+a prop rather than creating it. Switching view is a render. It cannot start a
+run, buy a permit, fork a transcript or drop an approval that is already on
+screen, because nothing unmounts. `jarvis-is-a-view.test.tsx` holds that
+structurally — neither view may call `useMission`, Jarvis may not contain a
+permit, run, loop or permission call — and then mounts the room, switches to
+Jarvis and back, and proves every view was handed a mission whose identity was
+minted exactly once. Forking it deliberately fails two of those tests.
+
+### Browser work and machine work are two different states
+
+The orb had `acting` for everything. A person deciding whether to take the
+keyboard back needs to know how much of their computer is in play, so
+`browsing` was added: the same energy as `acting`, a different silhouette —
+open rather than tight — and its own words. It is chosen from the tool's
+registered domain at the moment the step is pushed, never inferred from the
+label, because a renamed tool must not be able to make the orb lie.
+
+### Amplitude that is real, and speech that does not pretend
+
+`useAudioLevel` reads the waveform directly: recognition reports words and says
+nothing until it has decided something is a word, so an orb driven by it sits
+still through a sentence and then jumps. Levels only — nothing transcribes,
+stores, uploads or retains, and the numbers never leave the tab. Frequency tilt
+biases the motion slightly, which is the frequency reactivity the design asks
+for. While SPEAKING the orb uses the state's own energy and says so: the browser
+does not expose the level of speech it synthesises, and an orb following a voice
+it cannot hear would be a decoration claiming to be an instrument.
+
+### Accents, scoped
+
+Four curated accents, default silver, tinting the orb and nothing else. The
+weights average to 1 so an accent cannot double as a brightness control — which
+matters because most of the state table is told apart by luminance. A test
+greps the tree to keep every other surface from passing one.
+
+### The settle race, fixed at its shape rather than its symptom
+
+`/settings/billing` failed one pass; the next pass it passed and `/admin/help`,
+`/admin/status` and `/admin/operations` failed. Each time the fix had been to
+extend the audit's settle budget a fixed number of times, and each time the
+guess was wrong on a different route — the admin guard forwards to
+`/access-denied`, which the auth layer then evaluates again. Counting hops is
+the wrong shape. Both loops now keep granting another quiet window while the
+page is still moving, under a hard 45-second ceiling, so a page that cannot
+settle still fails and a page that settles after four hops is measured.
+
+### Gate
+
+Normal and Jarvis produce identical task history, permissions, usage and
+receipts, because there is one runtime and the views cannot reach past it.
+
+84 routes × 2 viewports, signed out and signed in, at 926/926 checks each — 705
+and 765 controls pressed. 20/20 customer-journey stages, including one that
+switches to Jarvis, reads its state in words, counts its accents and returns,
+proving the address never moves. 8,210 tests across 509 files. Performance
+budget green, with Jarvis lazy-loaded so Normal pays nothing for it.
+
+
 ## Next action
 
-Phase 9 — Jarvis Cowork. Build Jarvis only as a view and controller over the
-Cowork runtime this phase finished: the liquid-glass network orb, idle
-wave/breathing motion, microphone amplitude and frequency reactivity, distinct
-Listening/Speaking/Thinking/browser-action/computer-action states,
-user-selectable scoped accents, a text fallback, a reduced-motion/static
-fallback and contextual observation panels. Gate: Normal and Jarvis produce
-identical task history, permissions, usage and receipts — one runtime with two
-presentations, never two runtimes.
+Phase 10 — Production Code. Real repository intake and mapping, file
+tree/editing/search/symbols/diagnostics, exact patches with conflicts, review
+and undo, Git status/diff/branch/worktree/commit/push/PR where authorized, CI
+status, permissioned terminal/process/LSP/dev-server/preview/browser
+verification, parallel sessions and subagents, and durable task/artifact
+outputs. Gate: every success is based on observed repository or tool
+postconditions.

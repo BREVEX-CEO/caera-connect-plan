@@ -128,6 +128,16 @@ export interface TimelineEntry {
   label: string;
   detail: string;
   verified?: boolean;
+  /**
+   * Where the step happened, when the step touched something.
+   *
+   * READ FROM THE TOOL, NEVER GUESSED FROM THE SENTENCE. Jarvis shows browser
+   * work and machine work as two different states, because a person deciding
+   * whether to take the keyboard back needs to know how much of their computer
+   * is in play. Inferring that from a label would make the orb lie the first
+   * time a tool is renamed.
+   */
+  surface?: "browser" | "computer";
 }
 
 export interface PendingApproval {
@@ -365,6 +375,24 @@ const SPOKEN: Record<string, string> = {
 
 export function describeTool(name: string): string {
   return SPOKEN[name] ?? "Working";
+}
+
+/**
+ * Which surface a tool acts on, asked of the registry rather than the name.
+ *
+ * A tool called `browser_click` acts in a page and `screen_click` acts on the
+ * machine, and the difference is a property the registry already records —
+ * every browser tool is registered in the `web` domain. Matching on the prefix
+ * would work today and break the first time a tool is renamed, which is the
+ * kind of bug that makes a status indicator quietly wrong.
+ *
+ * Read-only tools return nothing: looking at a page is not working in one, and
+ * the orb must not announce browser work for an observation.
+ */
+export function surfaceOf(name: string): "browser" | "computer" | undefined {
+  const tool = findTool(name);
+  if (!tool?.mutating) return undefined;
+  return tool.domain === "web" ? "browser" : "computer";
 }
 
 /**
@@ -1953,6 +1981,7 @@ export function useMission(brain: MissionBrain) {
                 kind: "acting",
                 label: describeTool(event.call.name),
                 detail: "",
+                surface: surfaceOf(event.call.name),
               });
             } else if (event.kind === "tool_end") {
               noteToolWork(event.call.name, event.outcome);

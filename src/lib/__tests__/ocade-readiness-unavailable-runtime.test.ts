@@ -70,12 +70,17 @@ describe("OCADE 77 — unavailable runtime boundaries", () => {
   });
 
   it("#65 tells Cowork users file attachment is not configured", () => {
-    // Was `/ocade/work`; PLAN.md §4 moved the room to `/ocade/cowork`. The
-    // disclosure it must carry is unchanged.
+    /*
+     * Was `/ocade/work`; PLAN.md §4 moved the room to `/ocade/cowork`, and
+     * Phase 9 moved the runtime one level up into `CoworkRoom` so Normal and
+     * Jarvis share one mission. The disclosure it must carry is unchanged, and
+     * the route still has to reach the room rather than a redirect.
+     */
     expectAll("src/routes/_authenticated/ocade.cowork.tsx", [
       /file attachment is not configured yet/i,
-      /ControlWorkPanel/,
+      /CoworkRoom/,
     ]);
+    expectAll("src/components/ocade/cowork/CoworkRoom.tsx", [/ControlWorkPanel/]);
   });
 
   it("#69 never infers global automation readiness from shell presence", () => {

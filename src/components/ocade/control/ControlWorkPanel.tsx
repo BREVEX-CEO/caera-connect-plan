@@ -25,7 +25,7 @@ import { useVoicePrefs } from "@/lib/use-voice-prefs";
 import { useDictation } from "@/lib/voice/use-dictation";
 import { cn } from "@/lib/utils";
 import { orbStateFor } from "@/lib/orb/state";
-import { useMission, type MissionBrain, type TimelineEntry } from "@/lib/work/use-mission";
+import type { Mission, TimelineEntry } from "@/lib/work/use-mission";
 import { directControl } from "@/lib/work/fast-router";
 import { OcadeCompanion } from "@/components/ocade/OcadeCompanion";
 import { CoworkCommandCenter } from "@/components/ocade/cowork/CoworkCommandCenter";
@@ -65,16 +65,27 @@ import { useExtensionHandshake } from "@/lib/native/use-extension-handshake";
  */
 
 export function ControlWorkPanel({
-  brain,
+  mission,
   /** Rendered in the panel header. The demo and the signed-in app differ here. */
   headerNote,
+  /** Rendered beside the title: the Normal/Jarvis selector, when there is one. */
+  presentation,
   className,
 }: {
-  brain: MissionBrain;
+  /**
+   * The room's one runtime, passed in rather than created here.
+   *
+   * NORMAL AND JARVIS ARE TWO VIEWS OF ONE MISSION. If this component called
+   * `useMission` itself, switching presentation would unmount one hook and
+   * mount another — a new mission, a new run, a new permit, and a task history
+   * that forked the moment somebody pressed a view button. The room above owns
+   * it, so switching is a render and nothing else.
+   */
+  mission: Mission;
   headerNote?: React.ReactNode;
+  presentation?: React.ReactNode;
   className?: string;
 }) {
-  const mission = useMission(brain);
   const [prompt, setPrompt] = useState("");
   const [deckOpen, setDeckOpen] = useState(false);
   /*
@@ -349,13 +360,17 @@ export function ControlWorkPanel({
               the right of this line, and it is closed until asked for.
             */}
             <h2 className="text-[14.5px] font-medium text-foreground">OCADE Cowork</h2>
+            {presentation ? <div className="ml-auto">{presentation}</div> : null}
             <Button
               type="button"
               size="sm"
               variant={inspectorOpen ? "secondary" : "ghost"}
               aria-expanded={inspectorOpen}
               aria-controls="cowork-command-center"
-              className="ml-auto h-7 gap-1.5 rounded-full px-3 text-[11px] text-muted-foreground/85"
+              className={cn(
+                "h-7 gap-1.5 rounded-full px-3 text-[11px] text-muted-foreground/85",
+                presentation ? "" : "ml-auto",
+              )}
               onClick={() => setInspectorOpen((current) => !current)}
             >
               <Gauge className="h-3.5 w-3.5" aria-hidden />

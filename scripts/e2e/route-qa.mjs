@@ -317,13 +317,21 @@ try {
        * focused harness, and the captured evidence was a document body holding
        * nothing but the entry script — a page that had barely started.
        *
-       * Three extensions: the client-side redirect, the isolation upgrade that
-       * replaces the document it lands on, and one redirect after that. A
-       * fourth would be a page that cannot settle, which is what this check
-       * exists to catch.
+       * COUNTING THE HOPS WAS THE WRONG SHAPE. Extending a fixed number of
+       * times means guessing how many redirects a route takes, and the guess
+       * was wrong three separate times: two for `/settings/devices`, three for
+       * `/settings/billing`, four for `/admin/help` signed out — the admin
+       * guard forwards to `/access-denied`, which the auth layer then
+       * evaluates again. Each guess produced the same false report, on a
+       * different route, in a different pass.
+       *
+       * What the check actually needs is a TOTAL bound: keep giving a moving
+       * page another quiet window, and stop absolutely at the ceiling. A page
+       * that cannot settle still fails — 45 seconds later instead of 15 — and
+       * a page that settles after four hops is measured correctly.
        */
-      let settleBy = Date.now() + 15_000;
-      let extensionsLeft = 3;
+      const ceiling = Date.now() + 45_000;
+      let settleBy = Math.min(Date.now() + 15_000, ceiling);
       let seenLoads = documentLoads;
       let seenUrl = page.url();
       while (Date.now() < settleBy) {
@@ -343,9 +351,8 @@ try {
           // nobody is looking at.
           seenLoads = documentLoads;
           seenUrl = after;
-          if (extensionsLeft > 0) {
-            extensionsLeft -= 1;
-            settleBy = Date.now() + 15_000;
+          if (Date.now() < ceiling) {
+            settleBy = Math.min(Date.now() + 15_000, ceiling);
             continue;
           }
         }
@@ -616,13 +623,14 @@ try {
          * genuinely emptied by its own buttons is still empty when the budget
          * runs out, so the check is not softened — only the race is removed.
          */
-        let settleBy = Date.now() + 15_000;
         /*
-         * At most two extensions: one for the isolation upgrade's reload, one
-         * for a redirect that follows it. A third would be a page that cannot
-         * settle, which is the thing this check exists to catch.
+         * BOUNDED IN TOTAL RATHER THAN BY A COUNT OF HOPS, for the reason set
+         * out on the first measurement: how many navigations a control causes
+         * is not knowable in advance, and every fixed count produced a false
+         * "0 chars left" on whichever route happened to exceed it.
          */
-        let extensionsLeft = 2;
+        const ceiling = Date.now() + 45_000;
+        let settleBy = Math.min(Date.now() + 15_000, ceiling);
         let seenLoads = documentLoads;
         let seenUrl = page.url();
         while (Date.now() < settleBy) {
@@ -661,10 +669,7 @@ try {
           if (moved) {
             seenLoads = documentLoads;
             seenUrl = page.url();
-            if (extensionsLeft > 0) {
-              extensionsLeft -= 1;
-              settleBy = Date.now() + 15_000;
-            }
+            if (Date.now() < ceiling) settleBy = Math.min(Date.now() + 15_000, ceiling);
           }
         }
         const brokeAfterClicks = DEV_LEAK_SOURCE.find((p) => new RegExp(p, "i").test(after));
