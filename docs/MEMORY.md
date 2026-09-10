@@ -118,29 +118,37 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 6 (complete donor re-evaluation) is complete, and it found no stale
-dispositions — measured rather than assumed. All 2,126 records were re-derived
-against the tree Phases 1-5 left: every destination and equivalent still exists,
-every required test exists, and the 37 adapted modules are still reached from
-non-test product code. Two merge destinations first appeared orphaned, including
-one carrying twenty-six merged donor records; both were reached by relative
-import, and the naive alias-only check was wrong rather than the product.
+Phase 7 (production Chat) is complete. Most of its long list was already built
+and was checked item by item against what proves it; one requirement was
+genuinely missing, and it was the one that stood between a person and losing
+their conversations.
 
-What was missing was enforcement of properties that happened to be true. The
-ledger checked its destinations for MERGE and REPLACE only, so a REMOVE or KEEP
-record could point at a deleted file and stay green — every record is checked
-now, both fields. And nothing stopped the ported donor logic becoming a second
-layer: the 37 modules are pure leaves that import nothing but their own
-relatives and `zod`, which is the whole of "no parallel donor product
-architecture", and it was true by nobody's decision. Both gates were proved by
-deliberately breaking them.
+Four canonical documents list archive, trash, restore and permanent delete as
+four different things, and Backend Schema says a conversation row needs
+archived/trash/deletion state. `ocade_conversations` had `archived` and nothing
+else, so the only way out of the sidebar was a delete that took every message
+with it behind a dialog reading "This cannot be undone" — honest, and still
+wrong, because it made the choice unreasonable. There is a trash now: thirty
+days, defined once in the database, swept on read rather than by a cron job,
+undoable without a confirmation because a confirmation in front of an undoable
+act is what teaches people to click through the one that matters. A trashed
+conversation offers restore and permanent delete and nothing else. The boolean
+that selected the list became a three-state value, so "archived and trashed"
+cannot be written down.
 
-Next is Phase 7 — production Chat: the whole conversation lifecycle against the
-canonical authorities, with the gate that every visible Chat control works
-against one of them and the browser journeys show no unexplained console,
-network or storage error. Splitting `ChatSurface` out of
-`src/routes/_authenticated/ocade.index.tsx` is carried from Phase 1 and is the
-file most of that phase touches.
+The purge is SECURITY DEFINER and takes no arguments, which is what makes
+"purge somebody else's trash" unwritable; two accounts each holding a lapsed row
+prove the predicate inside it actually scopes.
+
+`ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
+
+1. It is code organisation rather than a Phase 7 gate requirement, and splitting
+   it now would risk the behaviour this phase just verified for no change in what
+   the product does.
+
+Next is Phase 8 — Normal Cowork, whose gate is that work completes from OBSERVED
+state rather than simulated progress: an issued action is not a completed one
+until it has been re-observed.
 
 One known external item remains from Phase 3: `auth_leaked_password_protection`
 is disabled in Supabase Auth. It is a dashboard setting with no repository path,

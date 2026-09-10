@@ -2265,6 +2265,7 @@ export type Database = {
         Row: {
           archived: boolean
           created_at: string
+          deleted_at: string | null
           id: string
           model_id: string | null
           pinned: boolean
@@ -2277,6 +2278,7 @@ export type Database = {
         Insert: {
           archived?: boolean
           created_at?: string
+          deleted_at?: string | null
           id?: string
           model_id?: string | null
           pinned?: boolean
@@ -2289,6 +2291,7 @@ export type Database = {
         Update: {
           archived?: boolean
           created_at?: string
+          deleted_at?: string | null
           id?: string
           model_id?: string | null
           pinned?: boolean
@@ -4773,6 +4776,7 @@ export type Database = {
         }
         Returns: string
       }
+      ocade_conversation_trash_days: { Args: never; Returns: number }
       ocade_count_mfa_recovery_codes: {
         Args: { p_user_id: string }
         Returns: {
@@ -4967,6 +4971,7 @@ export type Database = {
         Args: { p_body: string; p_incident_id: string; p_state: string }
         Returns: number
       }
+      ocade_purge_expired_conversation_trash: { Args: never; Returns: number }
       ocade_read_commercial_usage: {
         Args: { p_user_id: string }
         Returns: {

@@ -517,19 +517,97 @@ Maximum useful donor behaviour with no parallel donor product architecture:
 from product code, every merge destination reachable, and the leaf property now
 enforced rather than merely observed.
 
+## Phase 7 — Production Chat (COMPLETE)
+
+Phase 7's list is long and most of it was already built. The audit below is what
+each item was checked against, and one of them was genuinely missing.
+
+### The missing requirement: a trash
+
+`docs/PRD.md`, `docs/TRD.md`, `docs/APP_FLOW.md` and `docs/UI UX Brief.md` all
+list **archive, trash, restore and permanent delete as four different things**,
+and `docs/Backend Schema.md` says outright that a conversation row needs
+"archived/trash/deletion state". `ocade_conversations` had `archived` and
+nothing else. The only way to get a conversation out of the sidebar for good was
+a delete that took every message with it, behind a dialog reading "This cannot
+be undone" — which was honest and still wrong, because it made the choice
+unreasonable: there was no smaller option to take.
+
+`deleted_at` exists now, with a partial index on the trash, and:
+
+- **Archive and trash stay separate columns.** Archiving means "not in my way"
+  and is reversible for ever. Trashing means "I am done with this" and the row
+  goes for real when the undo period lapses. Collapsing them would take one of
+  those meanings away from somebody relying on it.
+- **Thirty days**, written once in `ocade_conversation_trash_days()`. No
+  document names a period — `docs/APP_FLOW.md` says "the defined undo period"
+  and leaves it to be defined — so it is defined, in the one place the screen
+  that counts down and the sweep that purges both read.
+- **Swept on read, not on a schedule**, the pattern `ocade_expire_due_approvals`
+  already established here. A cron job is a second system to deploy and monitor
+  for a question that answers itself at the point of use. A failed sweep is not
+  fatal: the list still excludes the row.
+- **Trashing asks nothing first.** It is undoable, and a confirmation in front
+  of an undoable act is what teaches somebody to click through the one that is
+  not. The toast carries an Undo.
+- **A trashed conversation offers two controls, not eight.** Renaming, pinning,
+  sharing or exporting something a person has said they are done with is a
+  control that works and should not be there.
+- **`showArchived: boolean` became `view: "active" | "archived" | "trash"`.**
+  Adding the trash as a second flag would have made "archived AND trashed" a
+  state the type allows and nothing renders.
+- **Restoring clears the timestamp and nothing else**, so a conversation that
+  was archived before it was trashed comes back archived.
+- **`setConversationTrashed` is separate from `updateConversation`**, which
+  patches whatever it is given. A client that could set `deleted_at` directly
+  could date something into the past and have it swept immediately — turning an
+  undoable act into a permanent one through the ordinary update path.
+
+`conversation-trash-schema.test.ts` proves the half that needs a SECOND ACCOUNT
+to be provable at all: the purge is SECURITY DEFINER, so RLS does not apply to
+it and the `user_id = auth.uid()` line inside it is the entire access control.
+Two accounts each hold a long-lapsed row, one calls the purge, exactly one row
+goes. The function also takes no arguments, which is what makes "purge somebody
+else's trash" unwritable rather than merely unwritten.
+
+### The rest, and what each was checked against
+
+| Requirement | Where it is proved |
+| --- | --- |
+| Streaming, stop, retry, regenerate | `chat-ui.test.tsx` — regenerate offered only on the newest turn, a failed answer keeps its text and offers a real retry |
+| Branching and side conversations | `ocade_side_conversations`, `SideThreadPanel` |
+| Attachments and private files | `audit:journey` — "a file attaches and is named back" |
+| Citations and web retrieval | `ocade-citations.ts`, citation evidence stored with the message |
+| Tools | `audit:journey` — "the tool surface is reachable from chat" |
+| Account and project memory | Phase 2's `memory/portable.ts` against `ocade_memory` |
+| Incognito | `IncognitoBanner`, and no row is ever written — including no tombstone on delete |
+| Sharing and revocation | Phase 3's share functions, `ConversationDialogs` |
+| Export and search | `handleExport`; `audit:journey` — "search finds what earlier stages made" |
+| Cross-session and cross-device persistence | `audit:journey` — "sign out, sign back in, and the work is still there" |
+| Usage, provider, model and session recovery | Phases 4 and 5; `session-failure.ts` |
+| Mobile, keyboard, accessibility | 84 routes x 2 viewports, 38/38 accessibility checks, 119/119 responsive checks, `ShortcutsDialog` |
+
+### Gate
+
+Every visible Chat control works against a canonical authority, and the browser
+journeys show no unexplained console, network or storage error: 84 routes x 2
+viewports signed out and signed in at 926/926 checks each, and 18/18
+customer-journey stages.
+
+### Carried forward, deliberately
+
+`ChatSurface` is still ~3,500 lines inside
+`src/routes/_authenticated/ocade.index.tsx`, carried from Phase 1. It is a
+code-organisation task rather than a Phase 7 gate requirement, and splitting it
+now would put the behaviour this phase just verified at risk for no change in
+what the product does. It stays on the list.
+
 ## Next action
 
-Phase 7 — Production Chat. The whole conversation lifecycle against the canonical
-authorities Phase 2 established: streaming, stop, retry and regenerate;
-branching and side conversations; attachments and private files; citations and
-web retrieval; tools; account and project memory; Incognito; sharing and
-revocation (the share functions Phase 3 applied and Phase 3 also cleaned of the
-removed privacy-mode gate); archive, trash, restore, delete, export and search;
-cross-session and cross-device persistence; usage, provider, model and session
-recovery; mobile, keyboard and accessibility behaviour. Gate: every visible Chat
-control works against a canonical authority, and the browser journeys show no
-unexplained console, network or storage error.
-
-Carried from Phase 1 and still open: splitting `ChatSurface` out of
-`src/routes/_authenticated/ocade.index.tsx`, which is the file most of this
-phase touches.
+Phase 8 — Normal Cowork. One outcome-oriented task runtime with a concise plan
+and current step, meaningful approvals, files/research/browser/supported
+computer operations, receipts and postcondition verification, pause, takeover,
+stop and emergency stop, and crash/reload/reconnect recovery. The Command Center
+is a collapsible inspector rather than a dashboard. Gate: work completes from
+OBSERVED state rather than simulated progress — an issued action is not a
+completed one until it has been re-observed.

@@ -9,6 +9,8 @@ import { MessageBubble } from "@/components/ocade/chat/MessageBubble";
 import { EngineBadge } from "@/components/ocade/chat/EngineBadge";
 import { groupConversations } from "@/lib/chat/group-conversations";
 import type { ChatMessageView } from "@/components/ocade/chat/chat-types";
+import { OcadeContextualSidebar } from "@/components/ocade/chat/ChatContextualSidebar";
+import type { Conversation } from "@/components/ocade/chat/conversation-model";
 
 /**
  * The chat surface, asserted on its rendered output.
@@ -375,4 +377,101 @@ describe("attaching by paste and by drop", () => {
    * `acceptsFiles` helper taking four flags, two of which the shipped composer
    * could only ever pass as constants.
    */
+});
+
+describe("the conversation rail and its three lists", () => {
+  /**
+   * ARCHIVE, TRASH AND PERMANENT DELETE ARE THREE DIFFERENT ACTS.
+   *
+   * `docs/PRD.md`, `docs/TRD.md`, `docs/APP_FLOW.md` and `docs/UI UX Brief.md`
+   * all list them separately, and the rail is where a person tells them apart.
+   * Before the trash existed the only way out of the sidebar was a permanent
+   * delete, which made the confirmation honest and the choice unreasonable —
+   * there was no smaller option to take.
+   *
+   * The assertions are about what reaches the screen rather than what the
+   * source says, because "the trash row offers restore" is a claim about a
+   * rendered control.
+   */
+  const conversation = (over: Partial<Conversation> = {}): Conversation => ({
+    id: "c1",
+    title: "How the tides work",
+    pinned: false,
+    archived: false,
+    model_id: null,
+    updated_at: "2026-09-01T10:00:00.000Z",
+    ...over,
+  });
+
+  const rail = (over: Partial<Parameters<typeof OcadeContextualSidebar>[0]> = {}) => (
+    <OcadeContextualSidebar
+      onNew={() => {}}
+      search=""
+      setSearch={() => {}}
+      view="active"
+      setView={() => {}}
+      pinned={[]}
+      recent={[conversation()]}
+      trashed={[]}
+      trashDays={30}
+      loading={false}
+      activeId={null}
+      onSelect={() => {}}
+      onPin={() => {}}
+      onArchive={() => {}}
+      onRename={() => {}}
+      onTrash={() => {}}
+      onRestore={() => {}}
+      onDelete={() => {}}
+      onExport={() => {}}
+      onShare={() => {}}
+      onDeleteAll={() => {}}
+      onShowShortcuts={() => {}}
+      {...over}
+    />
+  );
+
+  it("offers Move to trash rather than Delete on an ordinary conversation", async () => {
+    await renderWithRouter(rail());
+    expect(screen.getByTitle("Move to trash")).toBeTruthy();
+    // The permanent one is not reachable from here any more, which is the whole
+    // point: the smaller option is the one on the row.
+    expect(screen.queryByTitle("Delete permanently")).toBeNull();
+  });
+
+  it("offers only restore and permanent delete on a trashed conversation", async () => {
+    await renderWithRouter(
+      rail({ view: "trash", recent: [], trashed: [conversation({ title: "In the trash" })] }),
+    );
+    expect(screen.getByTitle("Restore")).toBeTruthy();
+    expect(screen.getByTitle("Delete permanently")).toBeTruthy();
+    /*
+     * Renaming, pinning, sharing or exporting something somebody has said they
+     * are done with is a control that works and should not be there.
+     */
+    for (const absent of ["Rename", "Share", "Export", "Pin", "Archive", "Move to trash"]) {
+      expect(screen.queryByTitle(absent), `the trash still offers ${absent}`).toBeNull();
+    }
+  });
+
+  it("says how long the trash keeps things, in the trash", async () => {
+    await renderWithRouter(rail({ view: "trash", recent: [], trashed: [conversation()] }));
+    expect(screen.getByText(/deleted for good after 30 days/i)).toBeTruthy();
+  });
+
+  it("does not say it in the ordinary list, where nothing is counting down", async () => {
+    await renderWithRouter(rail());
+    expect(screen.queryByText(/deleted for good after/i)).toBeNull();
+  });
+
+  it("offers a way into the trash, and a way back out of it", async () => {
+    await renderWithRouter(rail());
+    expect(screen.getByText("Trash")).toBeTruthy();
+    expect(screen.getByText("Archived chats")).toBeTruthy();
+
+    cleanup();
+    await renderWithRouter(rail({ view: "trash", recent: [], trashed: [] }));
+    expect(screen.getByText("Back to active chats")).toBeTruthy();
+    expect(screen.getByText("The trash is empty.")).toBeTruthy();
+  });
 });

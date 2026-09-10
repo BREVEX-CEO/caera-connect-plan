@@ -28,7 +28,12 @@ export interface OcadeConversationRow {
   project_id: string | null;
   updated_at: string;
   created_at: string;
+  /** When this was moved to trash. `null` means it is not in the trash. */
+  deleted_at: string | null;
 }
+
+const CONVERSATION_COLUMNS =
+  "id, title, pinned, archived, model_id, project_id, updated_at, created_at, deleted_at";
 
 export const listConversations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -39,14 +44,94 @@ export const listConversations = createServerFn({ method: "GET" })
      * unbounded list; the most recent few hundred, pinned first, is the list.
      * Anything older is reached through Search, which reads the same rows.
      */
+    /*
+     * THE TRASH IS SWEPT BEFORE THE LIST IS READ.
+     *
+     * Anything past the undo period is genuinely gone, and the only moment that
+     * has to be true is when somebody looks — which is here. Swept on read
+     * rather than on a schedule, the way `listApprovals` already expires
+     * approvals: a cron job is a second system to deploy and monitor for a
+     * question that answers itself at the point of use.
+     *
+     * A FAILED SWEEP IS NOT FATAL. A conversation lingering a few minutes past
+     * thirty days is a cosmetic wrong; refusing to show somebody their history
+     * because a cleanup failed is not. The list still excludes it.
+     */
+    await context.supabase.rpc("ocade_purge_expired_conversation_trash");
+
+    /*
+     * Bounded, and bounded by US rather than by PostgREST's own ceiling — which
+     * truncates silently at 1,000 and tells nobody. A sidebar does not need an
+     * unbounded list; the most recent few hundred, pinned first, is the list.
+     * Anything older is reached through Search, which reads the same rows.
+     */
     const { data, error } = await context.supabase
       .from("ocade_conversations")
-      .select("id, title, pinned, archived, model_id, project_id, updated_at, created_at")
+      .select(CONVERSATION_COLUMNS)
+      .is("deleted_at", null)
       .order("pinned", { ascending: false })
       .order("updated_at", { ascending: false })
       .limit(LIST_CAP);
     if (error) throw new Response(error.message, { status: 500 });
     return data ?? [];
+  });
+
+/**
+ * The trash, newest first.
+ *
+ * Read separately rather than filtered out of the sidebar list, because the two
+ * lists answer different questions and one of them is small. Swept first, so
+ * nothing appears with a negative number of days left on it.
+ */
+export const listTrashedConversations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await context.supabase.rpc("ocade_purge_expired_conversation_trash");
+    const { data, error } = await context.supabase
+      .from("ocade_conversations")
+      .select(CONVERSATION_COLUMNS)
+      .not("deleted_at", "is", null)
+      .order("deleted_at", { ascending: false })
+      .limit(LIST_CAP);
+    if (error) throw new Response(error.message, { status: 500 });
+    return data ?? [];
+  });
+
+/**
+ * Move a conversation to the trash, or take it back out.
+ *
+ * SEPARATE FROM `updateConversation`, which patches whatever it is given. This
+ * one writes a timestamp the caller does not choose: a client that could set
+ * `deleted_at` could date something into the past and have it swept
+ * immediately, which turns an undoable act into a permanent one through the
+ * ordinary update path.
+ *
+ * Restoring clears the timestamp and nothing else. A conversation that was
+ * archived before it was trashed comes back archived, because that is where its
+ * owner left it.
+ */
+export const setConversationTrashed = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((i) => z.object({ id: uuid, trashed: z.boolean() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("ocade_conversations")
+      .update({ deleted_at: data.trashed ? new Date().toISOString() : null })
+      .eq("id", data.id)
+      .select(CONVERSATION_COLUMNS)
+      .maybeSingle();
+    if (error) throw new Response(error.message, { status: 500 });
+    if (!row) throw new Response("That conversation no longer exists.", { status: 404 });
+    return row;
+  });
+
+/** How many days a trashed conversation can still be restored. */
+export const conversationTrashDays = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase.rpc("ocade_conversation_trash_days");
+    if (error) throw new Response(error.message, { status: 500 });
+    return Number(data ?? 30);
   });
 
 export const createConversation = createServerFn({ method: "POST" })
@@ -74,7 +159,7 @@ export const createConversation = createServerFn({ method: "POST" })
         },
         { onConflict: "id" },
       )
-      .select("id, title, pinned, archived, model_id, project_id, updated_at, created_at")
+      .select(CONVERSATION_COLUMNS)
       .single();
     if (error) throw new Response(error.message, { status: 500 });
     return row;

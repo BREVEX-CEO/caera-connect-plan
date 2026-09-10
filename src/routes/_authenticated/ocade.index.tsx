@@ -71,6 +71,9 @@ import {
   createConversation,
   deleteAllConversations,
   deleteConversation,
+  listTrashedConversations,
+  setConversationTrashed,
+  conversationTrashDays,
   exportConversation,
   appendOcadeMessage,
   listConversations,
@@ -176,7 +179,10 @@ import {
 } from "@/components/ocade/chat/conversation-model";
 import { IncognitoBanner } from "@/components/ocade/chat/IncognitoBanner";
 import { ShortcutsDialog } from "@/components/ocade/chat/ShortcutsDialog";
-import { OcadeContextualSidebar } from "@/components/ocade/chat/ChatContextualSidebar";
+import {
+  OcadeContextualSidebar,
+  type ConversationListView,
+} from "@/components/ocade/chat/ChatContextualSidebar";
 import { HomeSurface } from "@/components/ocade/chat/ChatHomeSurface";
 import { Composer } from "@/components/ocade/chat/ChatComposer";
 import {
@@ -336,7 +342,17 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [showArchived, setShowArchived] = useState(false);
+  const [listView, setListView] = useState<ConversationListView>("active");
+  /*
+   * The trash is a SEPARATE READ, not a filter over the sidebar list.
+   *
+   * `listConversations` excludes trashed rows on the server, so the two lists
+   * never disagree about what is in which — and the trash is small and looked
+   * at rarely, so fetching it only when somebody opens it costs nothing the
+   * rest of the time.
+   */
+  const [trashed, setTrashed] = useState<Conversation[]>([]);
+  const [trashDays, setTrashDays] = useState(30);
   const [search, setSearch] = useState("");
   const [model, setModel] = useState<string>(OCADE_DEFAULT_MODEL_ID);
   /*
@@ -596,6 +612,83 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
       toast.error(describeStorageError(e));
     }
   }
+  /**
+   * Read the trash, and how long its contents have left.
+   *
+   * Called when the trash is opened and after anything that changes it. The
+   * server sweeps whatever is past the undo period before answering, so a row
+   * never appears here with a negative number of days on it.
+   */
+  const refreshTrash = useCallback(async () => {
+    try {
+      const [rows, days] = await Promise.all([
+        listTrashedConversations() as unknown as Promise<Conversation[]>,
+        conversationTrashDays(),
+      ]);
+      setTrashed(rows ?? []);
+      setTrashDays(Number(days) || 30);
+    } catch (e) {
+      // Same reasoning as `refreshList`: unreachable is not empty. Showing an
+      // empty trash to somebody whose account cannot be reached would tell them
+      // their conversations are already gone.
+      void e;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (listView === "trash") void refreshTrash();
+  }, [listView, refreshTrash]);
+
+  /**
+   * Move a conversation to the trash.
+   *
+   * NO CONFIRMATION, deliberately. It is undoable for `trashDays`, and a dialog
+   * in front of an undoable act is what trains somebody to click through the
+   * one that is not. The toast says where it went and offers the way back.
+   *
+   * AN INCOGNITO CONVERSATION HAS NOTHING TO TRASH. It was never written, so it
+   * is dropped from this component's state the way closing it does — writing a
+   * `deleted_at` would mean creating the row in order to mark it deleted.
+   */
+  async function trashConversation(c: Conversation) {
+    if (c.incognito) {
+      setConversations((current) => current.filter((row) => row.id !== c.id));
+      if (c.id === activeId) setActiveId(null);
+      toast.success("Closed. There was nothing stored to delete.");
+      return;
+    }
+    try {
+      await setConversationTrashed({ data: { id: c.id, trashed: true } });
+    } catch (e) {
+      toast.error(describeStorageError(e));
+      return;
+    }
+    forgetConversationTurns(c.id);
+    if (c.id === activeId) setActiveId(null);
+    await refreshList();
+    if (listView === "trash") await refreshTrash();
+    toast.success(`Moved to trash. It stays restorable for ${trashDays} days.`, {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          void restoreConversation(c);
+        },
+      },
+    });
+  }
+
+  /** Take a conversation back out of the trash, into the state it was left in. */
+  async function restoreConversation(c: Conversation) {
+    try {
+      await setConversationTrashed({ data: { id: c.id, trashed: false } });
+    } catch (e) {
+      toast.error(describeStorageError(e));
+      return;
+    }
+    await Promise.all([refreshList(), refreshTrash()]);
+    toast.success("Restored.");
+  }
+
   async function toggleArchive(c: Conversation) {
     try {
       await updateConversation({ data: { id: c.id, archived: !c.archived } });
@@ -662,7 +755,9 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
 
     if (target.id === activeId) setActiveId(null);
     setDeleteTarget(null);
-    await refreshList();
+    // Both lists, because a permanent delete is reached from the trash and the
+    // row has to leave the list it was deleted from as well as the sidebar.
+    await Promise.all([refreshList(), refreshTrash()]);
 
     /*
      * The citations go with the messages, and the messages go with the
@@ -748,9 +843,9 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
   const recent = useMemo(() => {
     const q = search.trim().toLowerCase();
     return conversations
-      .filter((c) => (showArchived ? c.archived : !c.archived && !c.pinned))
+      .filter((c) => (listView === "archived" ? c.archived : !c.archived && !c.pinned))
       .filter((c) => (q ? c.title.toLowerCase().includes(q) : true));
-  }, [conversations, search, showArchived]);
+  }, [conversations, search, listView]);
 
   return (
     <>
@@ -765,10 +860,12 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
             onNew={handleNew}
             search={search}
             setSearch={setSearch}
-            showArchived={showArchived}
-            setShowArchived={setShowArchived}
+            view={listView}
+            setView={setListView}
             pinned={pinned}
             recent={recent}
+            trashed={trashed}
+            trashDays={trashDays}
             loading={loadingList}
             activeId={activeId}
             onSelect={(id) => {
@@ -777,6 +874,8 @@ function OcadeWorkspace({ userId, userLabel }: { userId: string; userLabel: stri
             onPin={togglePin}
             onArchive={toggleArchive}
             onRename={(c) => setRenameTarget(c)}
+            onTrash={(c) => void trashConversation(c)}
+            onRestore={(c) => void restoreConversation(c)}
             onDelete={(c) => setDeleteTarget(c)}
             onExport={handleExport}
             onShare={(c) => setShareTarget(c)}

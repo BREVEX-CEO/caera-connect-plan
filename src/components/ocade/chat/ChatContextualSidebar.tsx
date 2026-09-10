@@ -3,6 +3,7 @@ import {
   Archive,
   ArchiveRestore,
   Download,
+  RotateCcw,
   FileCode2,
   FileOutput,
   FolderOpen,
@@ -29,20 +30,39 @@ import type { Conversation } from "./conversation-model";
  * them in a six-thousand-line route file is what made the route impossible to
  * read. Behaviour is unchanged.
  */
+/**
+ * Which list the rail is showing.
+ *
+ * ONE VALUE RATHER THAN TWO BOOLEANS. This was `showArchived: boolean`, and
+ * adding the trash as a second flag would have made "archived AND trashed" a
+ * state the type allows and nothing renders. Three names, one at a time, and
+ * the impossible combination cannot be written down.
+ */
+export type ConversationListView = "active" | "archived" | "trash";
+
 export function OcadeContextualSidebar(props: {
   onNew: () => void;
   search: string;
   setSearch: (v: string) => void;
-  showArchived: boolean;
-  setShowArchived: (v: boolean) => void;
+  view: ConversationListView;
+  setView: (v: ConversationListView) => void;
   pinned: Conversation[];
   recent: Conversation[];
+  /** Conversations in the trash, newest first. Only read in the trash view. */
+  trashed: Conversation[];
+  /** How many days a trashed conversation can still be restored. */
+  trashDays: number;
   loading: boolean;
   activeId: string | null;
   onSelect: (id: string) => void;
   onPin: (c: Conversation) => void;
   onArchive: (c: Conversation) => void;
   onRename: (c: Conversation) => void;
+  /** Move to trash. Undoable, so it asks nothing before doing it. */
+  onTrash: (c: Conversation) => void;
+  /** Take back out of the trash, into whatever state it was left in. */
+  onRestore: (c: Conversation) => void;
+  /** Permanent delete, reached only from the trash. Opens the confirmation. */
   onDelete: (c: Conversation) => void;
   onExport: (c: Conversation) => void;
   /** PLAN.md §8's share. Opens the dialog; nothing is published by opening it. */
@@ -55,16 +75,20 @@ export function OcadeContextualSidebar(props: {
     onNew,
     search,
     setSearch,
-    showArchived,
-    setShowArchived,
+    view: listView,
+    setView,
     pinned,
     recent,
     loading,
     activeId,
     onSelect,
+    trashed,
+    trashDays,
     onPin,
     onArchive,
     onRename,
+    onTrash,
+    onRestore,
     onDelete,
     onExport,
     onShare,
@@ -81,15 +105,17 @@ export function OcadeContextualSidebar(props: {
    * Every action this sidebar used to own is preserved and passed through as a
    * row menu: pin, rename, export, archive, delete.
    */
-  const view: ChatConversationView[] = (showArchived ? recent : [...pinned, ...recent]).map(
-    (c) => ({
-      id: c.id,
-      title: c.title,
-      updatedAt: c.updated_at,
-      pinned: !!c.pinned,
-    }),
+  const source =
+    listView === "trash" ? trashed : listView === "archived" ? recent : [...pinned, ...recent];
+  const view: ChatConversationView[] = source.map((c) => ({
+    id: c.id,
+    title: c.title,
+    updatedAt: c.updated_at,
+    pinned: !!c.pinned,
+  }));
+  const byId = new Map<string, Conversation>(
+    [...pinned, ...recent, ...trashed].map((c) => [c.id, c]),
   );
-  const byId = new Map<string, Conversation>([...pinned, ...recent].map((c) => [c.id, c]));
 
   return (
     <aside className="hidden w-[17.5rem] shrink-0 flex-col border-r border-border/70 bg-sidebar md:flex">
@@ -101,13 +127,35 @@ export function OcadeContextualSidebar(props: {
         emptyLabel={
           loading
             ? "Loading conversations…"
-            : showArchived
-              ? "Nothing archived."
-              : "No conversations yet."
+            : listView === "trash"
+              ? "The trash is empty."
+              : listView === "archived"
+                ? "Nothing archived."
+                : "No conversations yet."
         }
         renderRowMenu={(row: ChatConversationView) => {
           const c = byId.get(row.id);
           if (!c) return null;
+          /*
+           * A CONVERSATION IN THE TRASH OFFERS TWO THINGS, NOT EIGHT.
+           *
+           * Renaming, pinning, sharing or exporting something the person has
+           * said they are done with is a control that works and should not be
+           * there. What they came to the trash for is to take it back or to
+           * finish the job.
+           */
+          if (listView === "trash") {
+            return (
+              <span className="flex items-center rounded-md bg-sidebar/90 backdrop-blur">
+                <IconMini title="Restore" onClick={() => onRestore(c)}>
+                  <RotateCcw className="h-3 w-3" />
+                </IconMini>
+                <IconMini title="Delete permanently" onClick={() => onDelete(c)}>
+                  <Trash2 className="h-3 w-3 text-destructive" />
+                </IconMini>
+              </span>
+            );
+          }
           return (
             <span className="flex items-center rounded-md bg-sidebar/90 backdrop-blur">
               <IconMini title={c.pinned ? "Unpin" : "Pin"} onClick={() => onPin(c)}>
@@ -129,8 +177,13 @@ export function OcadeContextualSidebar(props: {
                   <Archive className="h-3 w-3" />
                 )}
               </IconMini>
-              <IconMini title="Delete" onClick={() => onDelete(c)}>
-                <Trash2 className="h-3 w-3 text-destructive" />
+              {/*
+                MOVE TO TRASH, NOT DELETE. It is undoable for `trashDays`, so it
+                asks nothing first — a confirmation in front of an undoable act
+                is what teaches people to click through the one that matters.
+              */}
+              <IconMini title="Move to trash" onClick={() => onTrash(c)}>
+                <Trash2 className="h-3 w-3" />
               </IconMini>
             </span>
           );
@@ -142,11 +195,27 @@ export function OcadeContextualSidebar(props: {
             <SidebarLink icon={FolderOpen} label="Projects" to="/ocade/projects" />
             <SidebarLink icon={FileOutput} label="Files" to="/ocade/artifacts" />
             <SidebarLink icon={Workflow} label="Automations" to="/ocade/automations" />
-            <StaticRow
-              icon={Archive}
-              label={showArchived ? "Back to active chats" : "Archived chats"}
-              onClick={() => setShowArchived(!showArchived)}
-            />
+            {listView === "active" ? (
+              <>
+                <StaticRow
+                  icon={Archive}
+                  label="Archived chats"
+                  onClick={() => setView("archived")}
+                />
+                <StaticRow icon={Trash2} label="Trash" onClick={() => setView("trash")} />
+              </>
+            ) : (
+              <StaticRow
+                icon={ArchiveRestore}
+                label="Back to active chats"
+                onClick={() => setView("active")}
+              />
+            )}
+            {listView === "trash" ? (
+              <p className="px-2 py-1 text-[10px] leading-4 text-muted-foreground">
+                Conversations here are deleted for good after {trashDays} days.
+              </p>
+            ) : null}
             {/* A visible way in. Shortcuts that can only be found by already
                 knowing the shortcut are shortcuts almost nobody finds. */}
             <StaticRow icon={Keyboard} label="Keyboard shortcuts" onClick={onShowShortcuts} />

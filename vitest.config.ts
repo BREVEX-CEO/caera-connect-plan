@@ -39,6 +39,7 @@ const DATABASE_BACKED = [
   "src/lib/organizations/__tests__/organization-assurance.test.ts",
   "src/lib/organizations/__tests__/organization-schema.test.ts",
   "src/lib/chat/__tests__/conversation-share-schema.test.ts",
+  "src/lib/chat/__tests__/conversation-trash-schema.test.ts",
 ];
 
 const alias = {

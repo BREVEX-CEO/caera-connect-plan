@@ -351,11 +351,19 @@ export function DeleteDialog({
     <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete “{target?.title}”?</DialogTitle>
+          <DialogTitle>Delete “{target?.title}” for good?</DialogTitle>
         </DialogHeader>
         <div className="space-y-2 text-sm">
+          {/*
+            THIS DIALOG IS NOW REACHED FROM THE TRASH, and its wording had to
+            follow. It used to be the only way to get a conversation out of the
+            sidebar, which made "cannot be undone" true and the choice
+            unreasonable: the person had no smaller option. Moving to trash is
+            the smaller option, so this one is free to be as final as it says.
+          */}
           <p className="text-muted-foreground">
-            This permanently removes the conversation and all its messages. This cannot be undone.
+            This removes the conversation and all its messages immediately, without waiting for the
+            trash to empty. It cannot be undone.
           </p>
           <p className="text-xs">
             Type <span className="font-mono font-semibold">delete</span> to confirm.
