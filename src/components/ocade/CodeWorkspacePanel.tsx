@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   AlertTriangle,
@@ -37,6 +37,7 @@ import {
   type PatchPreview,
   type WorkspaceAnalysis,
 } from "@/lib/code/workspace";
+import { unavailableGitHost, workspaceDiff, workspaceStatus } from "@/lib/code/git";
 import { validateGeneratedSandboxRequest } from "@/lib/code/generated-sandbox";
 import { saveArtifact } from "@/lib/artifacts/store";
 import { runSandboxScript, type SandboxRunResponse } from "@/lib/sandbox.functions";
@@ -138,6 +139,16 @@ type SearchView =
       rows: Array<{ path: string; line: number; text: string }>;
     };
 
+/**
+ * The repository host, which no browser deployment has.
+ *
+ * Status and diff below are answered from the session itself, so the absence
+ * of a host takes away branches, commits, pushes, pull requests and CI — and
+ * nothing else. It is said once, where those controls would be, rather than
+ * everywhere.
+ */
+const repositoryHost = unavailableGitHost();
+
 const unavailableHost: CodeCommandHost = {
   id: "desktop-companion",
   kind: "unavailable",
@@ -169,7 +180,31 @@ export function CodeWorkspacePanel() {
   const runSandbox = useServerFn(runSandboxScript);
   const [sandboxRunning, setSandboxRunning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [workspace, setWorkspace] = useState<CodeWorkspace | null>(null);
+  /*
+   * PARALLEL SESSIONS, AS A LIST AND AN INDEX.
+   *
+   * Reviewing one repository while a second one waits is the ordinary shape of
+   * this work, and a single-slot workspace made the second intake destroy the
+   * first — including its applied changes, its baseline and its history, which
+   * exist nowhere else. Sessions are independent by construction: each carries
+   * its own baseline, files, changes and history, and switching is a lookup.
+   */
+  const [sessions, setSessions] = useState<CodeWorkspace[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const workspace = useMemo(
+    () => sessions.find((session) => session.id === activeId) ?? null,
+    [sessions, activeId],
+  );
+  const setWorkspace = useCallback((next: CodeWorkspace) => {
+    setSessions((current) => {
+      const existing = current.findIndex((session) => session.id === next.id);
+      if (existing === -1) return [...current, next];
+      const copy = [...current];
+      copy[existing] = next;
+      return copy;
+    });
+    setActiveId(next.id);
+  }, []);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<WorkspaceAnalysis | null>(null);
   const [analysisEvidence, setAnalysisEvidence] = useState("");
@@ -195,6 +230,16 @@ export function CodeWorkspacePanel() {
     () => (workspace && selectedPath ? applicableInstructions(workspace, selectedPath) : []),
     [selectedPath, workspace],
   );
+  /*
+   * WHAT HAS CHANGED, COMPARED RATHER THAN REMEMBERED.
+   *
+   * Derived from the workspace on every render instead of tracked alongside
+   * it: a second copy of "what is different" is a second thing to keep right,
+   * and the moment it drifts the review pane is describing a repository that
+   * does not exist.
+   */
+  const status = useMemo(() => (workspace ? workspaceStatus(workspace) : null), [workspace]);
+  const sessionDiff = useMemo(() => (workspace ? workspaceDiff(workspace) : ""), [workspace]);
   const activeChanges = workspace?.changes.filter((change) => change.status === "applied") ?? [];
   const latestChange = activeChanges.at(-1) ?? null;
 
@@ -484,6 +529,35 @@ export function CodeWorkspacePanel() {
     }
   }
 
+  /**
+   * The whole session's diff, kept where the rest of the account's output is.
+   *
+   * A single patch is already storable, and a review is rarely one patch. This
+   * is what a person hands to a colleague, so it belongs in Artifacts with the
+   * provenance the store insists on rather than in a browser download folder.
+   */
+  async function saveSessionDiff() {
+    if (!workspace || !sessionDiff) return;
+    const stored = await saveArtifact({
+      name: `Code session · ${workspace.name}`,
+      kind: "patch",
+      content: sessionDiff,
+      provenance: {
+        producedBy: `ocade.code:${workspace.id}`,
+        // The diff is a comparison of two observed states, so it is as
+        // verified as the workspace itself — never more.
+        verified: workspace.changes.every((change) => change.undoVerified),
+        evidence: status?.evidence ?? "Session diff computed against the intake baseline.",
+      },
+    });
+    if (!stored.ok) {
+      setError(stored.reason);
+      return;
+    }
+    toast.success("Session diff saved to Artifacts.");
+    setTerminal((lines) => [...lines, `artifact: session diff for ${workspace.name} stored`]);
+  }
+
   async function savePatchArtifact() {
     if (!workspace || !latestChange) return;
     const stored = await saveArtifact({
@@ -532,6 +606,35 @@ export function CodeWorkspacePanel() {
 
   return (
     <div className="space-y-4">
+      {/*
+        OPEN SESSIONS. Shown only when there is a choice to make: one session
+        needs no tab strip, and a control that never changes anything is
+        furniture.
+      */}
+      {sessions.length > 1 ? (
+        <div role="tablist" aria-label="Open code sessions" className="flex flex-wrap gap-1.5">
+          {sessions.map((session) => (
+            <button
+              key={session.id}
+              type="button"
+              role="tab"
+              aria-selected={session.id === activeId}
+              onClick={() => setActiveId(session.id)}
+              className={
+                session.id === activeId
+                  ? "rounded-full border border-border bg-accent/40 px-3 py-1 text-[11px] text-foreground"
+                  : "rounded-full border border-border/60 px-3 py-1 text-[11px] text-muted-foreground hover:text-foreground"
+              }
+            >
+              {session.name}
+              <span className="ml-1.5 text-muted-foreground/70">
+                {session.changes.filter((change) => change.status === "applied").length || ""}
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <GlassPanel className="p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -878,6 +981,85 @@ export function CodeWorkspacePanel() {
                 </Button>
               </div>
             ) : null}
+          </GlassPanel>
+
+          <GlassPanel className="p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="flex items-center gap-2 text-sm font-semibold">
+                  <GitBranch className="h-4 w-4" aria-hidden /> Changes in this session
+                </h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Every working file compared against the files taken in at intake. This is a
+                  comparison of two things OCADE holds, so it needs no checkout and cannot drift
+                  from what the diff below shows.
+                </p>
+              </div>
+              {sessionDiff ? (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => download(`${workspace?.name ?? "session"}.diff`, sessionDiff)}
+                  >
+                    <Download className="mr-1.5 h-3.5 w-3.5" aria-hidden /> Export diff
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => void saveSessionDiff()}>
+                    Save to Artifacts
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+
+            {status && !status.clean ? (
+              <ul className="mt-3 space-y-1 font-mono text-[11px]">
+                {status.entries.map((entry) => (
+                  <li key={entry.path} className="flex items-center gap-2">
+                    <span
+                      className={
+                        entry.status === "deleted"
+                          ? "text-destructive/85"
+                          : entry.status === "added"
+                            ? "text-[color:var(--state-success,theme(colors.emerald.400))]"
+                            : "text-foreground/85"
+                      }
+                    >
+                      {entry.status === "added" ? "A" : entry.status === "deleted" ? "D" : "M"}
+                    </span>
+                    <span className="truncate">{entry.path}</span>
+                    <span className="ml-auto shrink-0 text-muted-foreground">
+                      +{entry.added} −{entry.removed}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-xs text-muted-foreground">
+                {workspace
+                  ? "Nothing has changed since intake."
+                  : "Load a repository to see what changes."}
+              </p>
+            )}
+
+            {sessionDiff ? (
+              <pre
+                aria-label="Session diff"
+                className="ocade-scroll mt-3 max-h-60 overflow-auto rounded border border-border/60 bg-black/80 p-3 font-mono text-[10px] leading-5"
+              >
+                {sessionDiff}
+              </pre>
+            ) : null}
+
+            {/*
+              WHAT A SESSION CANNOT ANSWER, SAID WHERE IT WOULD BE ANSWERED.
+              A browser holds files, not a checkout, so a branch, a commit, a
+              push, a pull request and a CI result are claims about a
+              repository OCADE does not have. The alternative to saying so is a
+              row of controls that look real and do nothing.
+            */}
+            <p className="mt-3 rounded border border-border/60 bg-card/40 p-3 text-xs text-muted-foreground">
+              {repositoryHost.unavailableReason}
+            </p>
           </GlassPanel>
 
           <div className="grid gap-4 lg:grid-cols-2">

@@ -118,38 +118,42 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 9 (Jarvis Cowork) is complete. Jarvis did not exist in the tree; the parts
-it needed did — an orb with ten states, three rendering tiers, a still fallback
-and its own live region, already shared by Chat and Normal Cowork. The phase was
-mostly about not building a second product.
+Phase 10 (production Code) is complete. Most of it was already built — intake
+with limits, a file tree, text/symbol/reference search, dependency diagnostics,
+exact patches with an exercised inverse and both hashes, a history that records
+what was verified, and a command contract that refuses to call an
+acknowledgement a result. What was missing was the question a person asks before
+handing work to anybody: what has changed?
 
-The gate is structural. A `/ocade/jarvis` route would look identical on a quiet
-screen and fork the mission the first time somebody switched mid-task. So the
-runtime moved up: `CoworkRoom` owns the one `useMission` and renders either
-presentation over it, and `ControlWorkPanel` now receives the mission rather
-than creating it. Switching view is a render — it cannot start a run, buy a
-permit, fork a transcript or drop an approval already on screen.
-`jarvis-is-a-view.test.tsx` holds that, and forking it deliberately fails.
+Every patch rewrites the working files, so the workspace could describe the last
+edit and nothing about the session. It now keeps the repository exactly as taken
+in, and status and diff compare the two — an observation of two things OCADE
+holds, needing no checkout, host or credentials, and unable to disagree with the
+files on screen. Undoing every change returns to that baseline exactly.
 
-The orb gained `browsing`: browser work and machine work are the same energy and
-a different silhouette, chosen from the tool's registered domain when the step is
-pushed rather than inferred from its label. `useAudioLevel` drives the listening
-motion from the real waveform, levels only, never leaving the tab; speaking uses
-the state's own energy and says why, because the browser does not expose the
-level of speech it synthesises. Four curated accents tint the orb and nothing
-else, with weights that average to 1 so an accent cannot become a brightness
-control.
+Branch, worktree, commit, push, pull request and CI are claims about a
+repository a browser does not have, so they go through `GitHost`, whose value is
+its four refusals: no host, an unauthorised operation, a host that threw, and a
+host that reported success without watching it finish. A non-zero exit is a real
+answer and is reported as one. The screen says this once, in the host's own
+words, and names what still works.
 
-The route audit's settle race was fixed at its shape rather than its symptom.
-Extending the budget a fixed number of times had been the fix three times and
-was wrong on a different route each time. Both loops now grant another quiet
-window while the page is still moving, under a hard 45-second ceiling.
+Sessions no longer destroy each other — a second intake used to replace the
+first workspace's baseline, changes and history — and the session diff can be
+kept in Artifacts with real provenance.
+
+LSP, a dev server, a preview and browser verification of a running app all need
+a process on a real machine, and there is no customer-facing desktop product in
+this release. The contracts they would arrive through exist; the unavailability
+is stated in the product rather than hidden. That is the honest scope, recorded
+in `docs/mission/OCADE_EXECUTION_STATE.md`.
 
 `ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
 1, deliberately.
 
-Next is Phase 10 — Production Code. Gate: every success is based on observed
-repository or tool postconditions.
+Next is Phase 11 — Projects, Tasks, Artifacts, Search and Memory. Gate: one
+connected workspace graph with no disconnected admin shells or local duplicate
+stores.
 
 One known external item remains from Phase 3: `auth_leaked_password_protection`
 is disabled in Supabase Auth. It is a dashboard setting with no repository path,

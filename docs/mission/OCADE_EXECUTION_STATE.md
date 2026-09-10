@@ -788,12 +788,81 @@ proving the address never moves. 8,210 tests across 509 files. Performance
 budget green, with Jarvis lazy-loaded so Normal pays nothing for it.
 
 
+## Phase 10 — Production Code (COMPLETE)
+
+Code already held most of this phase: repository intake with limits, a file
+tree, text/symbol/reference search, dependency diagnostics, exact patches with
+a preview, an exercised inverse and before/after SHA-256, a history that
+records what was verified, and a command contract that refuses to call an
+acknowledgement a result. What it could not do was answer the question a person
+asks before they hand work to anybody: what has changed?
+
+### What changed, compared rather than remembered
+
+Every patch rewrites `files`, so after two edits the workspace could describe
+the second one and nothing about the session. `CodeWorkspace` now carries the
+repository exactly as it was taken in, captured once and never written to
+again, and `workspaceStatus` and `workspaceDiff` compare the two. That is an
+observation of two things OCADE holds — no checkout, no host, no credentials —
+so the status, the diff and the files on screen cannot disagree. Undoing every
+change returns to the baseline exactly, which is the fixed point the tests
+hold.
+
+### And what a session genuinely cannot answer
+
+A browser holds files, not a checkout. Branch, worktree, commit, push, pull
+request and CI are claims about a repository that is not here, so they go
+through `GitHost` — and the contract's value is its refusals. Four of them: no
+host, an unauthorised operation, a host that threw, and a host that reported
+success without watching it finish. The last is the one worth having: a
+plausible integration that returns as soon as it has dispatched would turn
+"pushed" into a label, and the person would hear about it from a colleague
+rather than from OCADE. A non-zero exit is not a refusal — it is a real answer
+and is reported as one.
+
+The screen says this once, where those controls would be, using the host's own
+sentence, and names what still works so the message is not a dead end.
+
+### Sessions stopped destroying each other
+
+A second intake replaced the first workspace — its baseline, its applied
+changes and its history, which exist nowhere else. Sessions are a list now,
+each independent by construction, with a tab strip that appears only when there
+is more than one.
+
+### Durable output
+
+A single patch could already be stored as an artifact. The session diff — the
+thing actually handed to a colleague — can be too, with the provenance the
+artifact store insists on and `verified` set from the workspace rather than
+asserted.
+
+### What this phase did NOT build, and why that is the honest scope
+
+LSP, a dev server, a preview and browser verification of a running app all need
+a process on a real machine. There is no customer-facing desktop product in
+this release and the browser has no shell, so building UI for them would be
+building controls that cannot work. What exists instead is the contract they
+would arrive through — the command host for processes, `GitHost` for
+repositories — and, in the browser, the parts that genuinely can be answered
+without one: symbols, references and dependency diagnostics, which are already
+here. The unavailability is stated in the product rather than hidden.
+
+### Gate
+
+Every success rests on an observed postcondition: a patch is accepted only
+after its inverse has been exercised and both hashes recorded, a command is
+verified only when the host observed the exit, a Git operation is recorded only
+when the host watched it finish, and status and diff are comparisons of two
+states OCADE holds rather than a story assembled from a change log.
+
+
 ## Next action
 
-Phase 10 — Production Code. Real repository intake and mapping, file
-tree/editing/search/symbols/diagnostics, exact patches with conflicts, review
-and undo, Git status/diff/branch/worktree/commit/push/PR where authorized, CI
-status, permissioned terminal/process/LSP/dev-server/preview/browser
-verification, parallel sessions and subagents, and durable task/artifact
-outputs. Gate: every success is based on observed repository or tool
-postconditions.
+Phase 11 — Projects, Tasks, Artifacts, Search and Memory. Projects as the shared
+context graph; Tasks as the unified home for missions, schedules, automations,
+monitors, action-required, inbox, runs and Dispatch; Artifacts as the versioned
+provenance output library; Search as authorized bounded server-side search plus
+Cmd/Ctrl+K; Memory as Supabase-backed, scoped, sourced, reviewable, editable,
+deletable and Incognito-excluded. Gate: one connected workspace graph with no
+disconnected admin shells or local duplicate stores.

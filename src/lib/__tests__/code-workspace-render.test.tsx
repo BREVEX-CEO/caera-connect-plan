@@ -84,3 +84,43 @@ describe("the console during this audit", () => {
     expect(consoleWatch.unexpected.slice(0, 5)).toEqual([]);
   });
 });
+
+describe("what Code says about a repository it does not have", () => {
+  const panel = source("src/components/ocade/CodeWorkspacePanel.tsx");
+
+  it("computes what changed instead of tracking it separately", () => {
+    /*
+     * Status and diff both come from the workspace, so they cannot disagree
+     * with each other or with the files on screen. A remembered copy of "what
+     * is different" is a second thing to keep right, and the moment it drifts
+     * the review pane describes a repository that does not exist.
+     */
+    expect(panel).toContain("workspaceStatus(workspace)");
+    expect(panel).toContain("workspaceDiff(workspace)");
+  });
+
+  it("says plainly that branches, commits and CI need a host", () => {
+    /*
+     * The sentence is the host's own `unavailableReason`, rendered where those
+     * controls would be — so there is one place that decides what is possible
+     * and the screen cannot claim more than it. It appears with a repository
+     * open, which is the only time the question arises.
+     */
+    expect(panel).toContain("repositoryHost.unavailableReason");
+    expect(source("src/lib/code/git.ts")).toMatch(/status and diff below are computed/i);
+
+    // And nothing pretends otherwise on the empty screen or anywhere else.
+    const rendered = html();
+    for (const fake of [">Commit<", ">Push<", ">Open pull request<", ">Create branch<"]) {
+      expect(rendered, fake).not.toContain(fake);
+    }
+  });
+
+  it("keeps sessions independent rather than replacing one with the next", () => {
+    // A second intake used to destroy the first session's baseline, changes
+    // and history, which exist nowhere else.
+    expect(panel).toContain("const [sessions, setSessions]");
+    expect(panel).toContain('role="tablist"');
+    expect(panel).not.toMatch(/const \[workspace, setWorkspace\] = useState/);
+  });
+});

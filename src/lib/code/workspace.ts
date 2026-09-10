@@ -68,6 +68,18 @@ export interface CodeWorkspace {
   createdAt: string;
   revision: number;
   files: SourceFile[];
+  /**
+   * The repository exactly as it was taken in, kept for the life of the session.
+   *
+   * WITHOUT IT THERE IS NO "WHAT HAS CHANGED". Every patch rewrites `files`,
+   * so after two edits the workspace can say what the second one did and
+   * nothing at all about the session as a whole — which is the question a
+   * person asks before they commit. Git answers it by diffing the working tree
+   * against a recorded state, and this is that state: captured once at intake,
+   * never written to afterwards, so a status is a comparison of two observed
+   * things rather than a story assembled from the change log.
+   */
+  baseline: SourceFile[];
   changes: CodeChange[];
   history: CodeHistoryEntry[];
 }
@@ -241,6 +253,9 @@ export function createCodeWorkspace(input: {
     createdAt: at,
     revision: 0,
     files,
+    // Frozen copies. The baseline must not alias the array the caller can go
+    // on to edit, and must not alias `files`, which every patch replaces.
+    baseline: files.map((file) => ({ ...file })),
     changes: [],
     history: [
       {
