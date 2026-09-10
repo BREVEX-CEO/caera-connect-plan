@@ -8,7 +8,7 @@ import {
   summarise,
 } from "@/lib/agent/planner";
 import type { ToolOutcome } from "@/lib/agent/outcomes";
-import type { AgentResult } from "@/lib/agent/loop";
+import { Revision, type AgentResult } from "@/lib/agent/loop";
 
 /**
  * The planner's claim is not "it can run several tools" — the flat loop already
@@ -211,5 +211,188 @@ describe("a step's verbose internals never reach the next step", () => {
     expect(planned).toBe(false);
     expect(result.planned).toBe(false);
     expect(result.text).toBe("Opened Notepad.");
+  });
+});
+
+/**
+ * A PLAN THAT STOPPED AND A PLAN THAT FAILED ARE NOT THE SAME ENDING.
+ *
+ * Both leave the plan incomplete, and reading incompleteness alone was all the
+ * caller could do — so the two were reported identically: a failure. On the
+ * mission surface that meant a red panel for pressing Stop, and, because only
+ * a cancelled run escapes delivery, being charged for it.
+ */
+describe("a stop is reported as a stop", () => {
+  const twoSteps =
+    '{"steps":[{"do":"open the chat","needs":["os_app"]},{"do":"send it","needs":["os_app"]}]}';
+
+  it("ends a plan the user interrupted as cancelled, not as a failure", async () => {
+    const control = new AbortController();
+    const reached: string[] = [];
+    const deps = {
+      complete: async () => twoSteps,
+      turn: async (messages: { role: string; content: string }[]) => {
+        reached.push(
+          messages
+            .filter((m) => m.role === "user")
+            .map((m) => m.content)
+            .join("\n"),
+        );
+        // Stop pressed while the first step is talking.
+        control.abort();
+        return { text: "Opened it.", toolCalls: [] };
+      },
+      execute: async () => outcome("ok"),
+      permit: async () => true,
+    };
+
+    const result = await runPlannedTask(deps, {
+      goal: "open the chat and then send it",
+      signal: control.signal,
+    });
+
+    expect(result.reason).toBe("cancelled");
+    // Still incomplete — the stop does not pretend the work finished.
+    expect(result.ok).toBe(false);
+    // And the second step never started.
+    expect(reached).toHaveLength(1);
+  });
+
+  it("still ends a plan that genuinely failed as a failure", async () => {
+    let turn = 0;
+    const deps = {
+      complete: async () => twoSteps,
+      turn: async () => {
+        turn += 1;
+        if (turn === 1) throw new Error("no conversation called that appeared");
+        return { text: "Reported the problem.", toolCalls: [] };
+      },
+      execute: async () => outcome("ok"),
+      permit: async () => true,
+    };
+
+    const result = await runPlannedTask(deps, { goal: "open the chat and then send it" });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).not.toBe("cancelled");
+  });
+
+  it("does not call a step that verified its work a failure", async () => {
+    /*
+     * The loop's endings are `answered` for a run that used no tools and
+     * `verified` for one that used them and could stand behind them — so
+     * reading success as `answered` alone marked every step that touched
+     * anything as failed, carried "did not work" forward into the next step's
+     * context, and reported a completed plan as a failed run.
+     */
+    let turn = 0;
+    const deps = {
+      complete: async () => twoSteps,
+      turn: async (messages: { role: string; content: string }[]) => {
+        turn += 1;
+        // Each step observes once, then reports.
+        if (turn === 1 || turn === 3) {
+          return { text: "", toolCalls: [{ name: "screen_observe", arguments: {} }] };
+        }
+        seen.push(
+          messages
+            .filter((m) => m.role === "user")
+            .map((m) => m.content)
+            .join("\n"),
+        );
+        return { text: turn === 2 ? "Opened it." : "Sent it.", toolCalls: [] };
+      },
+      execute: async () => outcome("the chat window is open"),
+      permit: async () => true,
+    };
+    const seen: string[] = [];
+
+    const result = await runPlannedTask(deps, { goal: "open the chat and then send it" });
+
+    expect(result.steps.map((step) => step.reason)).toEqual(["verified", "verified"]);
+    expect(result.steps.every((step) => step.ok)).toBe(true);
+    expect(result.ok).toBe(true);
+    expect(result.reason).toBe("verified");
+    // And the second step was told what the first one did, not that it failed.
+    expect(seen[1]).toContain("Already done in this task");
+    expect(seen[1]).not.toMatch(/did not work/i);
+  });
+
+  it("counts every tool call across the plan, so the receipt can say how much was done", async () => {
+    let turn = 0;
+    const deps = {
+      complete: async () => twoSteps,
+      turn: async () => {
+        turn += 1;
+        if (turn === 1) {
+          return { text: "", toolCalls: [{ name: "screen_observe", arguments: {} }] };
+        }
+        return { text: turn === 2 ? "Opened it." : "Sent it.", toolCalls: [] };
+      },
+      execute: async () => outcome("the chat window is open"),
+      permit: async () => true,
+    };
+
+    const result = await runPlannedTask(deps, { goal: "open the chat and then send it" });
+
+    expect(result.ok).toBe(true);
+    // One call in the first step, none in the second — and the total is the
+    // sum, not the length of a step list the sub-agents already threw away.
+    expect(result.steps.map((step) => step.toolCalls)).toEqual([1, 0]);
+    expect(result.toolCalls).toBe(1);
+  });
+});
+
+/**
+ * THE COMPOSER STAYS LIVE DURING A PLAN.
+ *
+ * Typing a new sentence mid-task is a change of plan, not a line of text: the
+ * work already done is kept and only what happens next changes. During a
+ * PLANNED task it was neither — the handle was passed to the flat loop and
+ * never to the planner, so the timeline recorded "New instruction" and nothing
+ * read it. That is the definition of a fake control.
+ */
+describe("a change of plan reaches a planned task", () => {
+  it("hands the correction to the running step and to the steps after it", async () => {
+    const revision = new Revision();
+    const seen: string[] = [];
+    let turn = 0;
+    const deps = {
+      complete: async () =>
+        '{"steps":[{"do":"open the chat","needs":["os_app"]},{"do":"send it","needs":["os_app"]}]}',
+      turn: async (messages: { role: string; content: string }[]) => {
+        turn += 1;
+        seen.push(
+          messages
+            .filter((m) => m.role === "user")
+            .map((m) => m.content)
+            .join("\n"),
+        );
+        // The user types it while the first step is talking.
+        if (turn === 1) {
+          revision.submit("actually send it to Sam");
+          return { text: "", toolCalls: [{ name: "screen_observe", arguments: {} }] };
+        }
+        return { text: turn === 2 ? "Opened it." : "Sent it to Sam.", toolCalls: [] };
+      },
+      execute: async () => outcome("the chat window is open"),
+      permit: async () => true,
+    };
+
+    const result = await runPlannedTask(deps, {
+      goal: "open the chat and then send it",
+      revision,
+    });
+
+    // The step that was running was told, by the loop, in its own words.
+    expect(
+      seen.some((text) => /Change of plan, starting now: actually send it to Sam/.test(text)),
+    ).toBe(true);
+    // And the step after it was told too, rather than carrying on with an
+    // instruction the user has already withdrawn.
+    const laterStep = seen.at(-1) ?? "";
+    expect(laterStep).toContain("The user changed the plan");
+    expect(laterStep).toContain("actually send it to Sam");
+    expect(result.ok).toBe(true);
   });
 });

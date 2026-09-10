@@ -305,13 +305,27 @@ try {
        * and restarts the heaviest route in the product from nothing, and the
        * fifteen seconds had been spent on the document it replaced.
        *
-       * At most two extensions, matching the loop below: one for the isolation
-       * upgrade, one for a redirect that follows it. A third would be a page
-       * that cannot settle, which is what this check exists to catch.
+       * AND A CLIENT-SIDE REDIRECT IS A PAGE IT HAS NOT WAITED FOR EITHER.
+       *
+       * Extending on `documentLoads` alone still missed the case the router
+       * handles by itself: `/settings/billing` throws `redirect({ to:
+       * "/settings/usage" })` in `beforeLoad` on a deployment with no payment
+       * provider, which changes the URL and the component without loading a
+       * document. The budget went on measuring the route that redirected. In a
+       * full pass that reported "0 chars, 0 headings, 0 controls" for
+       * `/settings/billing` while the same two routes passed 23/23 under the
+       * focused harness, and the captured evidence was a document body holding
+       * nothing but the entry script — a page that had barely started.
+       *
+       * Three extensions: the client-side redirect, the isolation upgrade that
+       * replaces the document it lands on, and one redirect after that. A
+       * fourth would be a page that cannot settle, which is what this check
+       * exists to catch.
        */
       let settleBy = Date.now() + 15_000;
-      let extensionsLeft = 2;
+      let extensionsLeft = 3;
       let seenLoads = documentLoads;
+      let seenUrl = page.url();
       while (Date.now() < settleBy) {
         const remaining = settleBy - Date.now();
         await page
@@ -323,10 +337,12 @@ try {
         const before = page.url();
         const sample = await measure().catch(() => null);
         const after = page.url();
-        if (documentLoads !== seenLoads) {
-          // A new document arrived. The budget so far measured the old one, and
-          // any sample taken from it describes a page nobody is looking at.
+        if (documentLoads !== seenLoads || after !== seenUrl) {
+          // A new document or a new address. The budget so far measured what
+          // came before it, and any sample taken from that describes a page
+          // nobody is looking at.
           seenLoads = documentLoads;
+          seenUrl = after;
           if (extensionsLeft > 0) {
             extensionsLeft -= 1;
             settleBy = Date.now() + 15_000;

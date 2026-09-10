@@ -164,11 +164,12 @@ function write(task: TaskRun) {
   boardCache.set(task.id, projected);
   /*
    * Persistence is fire-and-forget on purpose. A run must not stall because
-   * IndexedDB is slow or unavailable in a private window -- the durable copy is
-   * for history and for recovering an interrupted run, and neither is worth
+   * the account is slow to reach or unreachable -- the durable copy is for
+   * history and for recovering an interrupted run, and neither is worth
    * blocking live work over.
    */
   void persistTask(projected).catch(() => undefined);
+  ensureHeartbeat();
   announce();
 }
 
@@ -273,6 +274,57 @@ export async function stopAllRuns(detail?: string): Promise<number> {
 }
 
 /**
+ * How long a run may go untouched before a reload treats it as interrupted.
+ *
+ * Three heartbeats. One missed beat is a slow network or a busy tab, and
+ * declaring a live mission dead over it is the failure this guards against;
+ * three missed beats with nothing in this tab's registry is a page that is
+ * gone.
+ */
+export const HEARTBEAT_MS = 20_000;
+export const INTERRUPTED_AFTER_MS = HEARTBEAT_MS * 3 + 5_000;
+
+function staleness(task: UnifiedTask, now: Date): number {
+  const touched = Date.parse(task.updatedAt);
+  // An unparseable timestamp must not make a live run look fresh forever.
+  return Number.isNaN(touched) ? Number.POSITIVE_INFINITY : now.getTime() - touched;
+}
+
+let heartbeat: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Keep the durable copy of every live run warm.
+ *
+ * Only while something is actually running: an idle tab that beat forever
+ * would write to the account for no reason, and a run that ended must go stale
+ * so a later reload can tell that it did.
+ */
+function ensureHeartbeat() {
+  const active = activeRuns();
+  if (active.length === 0) {
+    if (heartbeat !== null) {
+      clearInterval(heartbeat);
+      heartbeat = null;
+    }
+    return;
+  }
+  if (heartbeat !== null || typeof setInterval !== "function") return;
+  heartbeat = setInterval(() => {
+    const live = activeRuns();
+    if (live.length === 0) {
+      ensureHeartbeat();
+      return;
+    }
+    for (const task of live) {
+      void persistTask(project(task, boardCache.get(task.id))).catch(() => undefined);
+    }
+  }, HEARTBEAT_MS);
+  // Node keeps the process alive for a pending interval; a test run must not
+  // hang on one. Browsers have no `unref`, which is why this is guarded.
+  (heartbeat as unknown as { unref?: () => void }).unref?.();
+}
+
+/**
  * Mark runs that a reload or crash interrupted.
  *
  * A board task left EXECUTING or WAITING_USER by a previous session cannot
@@ -288,7 +340,18 @@ export async function reconcileInterruptedRuns(now = new Date()): Promise<Unifie
         task.status === "WAITING_USER" ||
         task.status === "WAITING_PERMISSION" ||
         task.status === "PLANNING") &&
-      !runs.has(task.id),
+      !runs.has(task.id) &&
+      /*
+       * ANOTHER TAB IS NOT A CRASH.
+       *
+       * This registry is per-tab, so "not in `runs`" used to be the whole test
+       * -- and opening a second tab therefore declared the mission running in
+       * the first one dead, in the account, while it carried on moving the
+       * mouse. The board then showed a failure for work that was happening.
+       * A live run heartbeats (below), so what separates the two cases is
+       * whether anything has touched the row recently.
+       */
+      staleness(task, now) > INTERRUPTED_AFTER_MS,
   );
   const repaired: UnifiedTask[] = [];
   for (const task of stale) {
@@ -306,6 +369,10 @@ export async function reconcileInterruptedRuns(now = new Date()): Promise<Unifie
 
 /** Test seam. Drops live state without touching what was persisted. */
 export function resetRunsForTest() {
+  if (heartbeat !== null) {
+    clearInterval(heartbeat);
+    heartbeat = null;
+  }
   runs.clear();
   killers.clear();
   boardCache.clear();

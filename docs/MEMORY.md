@@ -118,37 +118,45 @@ work made online must NOT be readable offline.
 
 ## Next Steps
 
-Phase 7 (production Chat) is complete. Most of its long list was already built
-and was checked item by item against what proves it; one requirement was
-genuinely missing, and it was the one that stood between a person and losing
-their conversations.
+Phase 8 (Normal Cowork) is complete. The runtime was already there — one agent
+loop, one task registry, observation-backed verification of every mutating
+action, an approval layer shared with Chat. What was wrong was the account it
+gave of itself, and every one of the five defects reported work as other than it
+was, which is this phase's gate stated in the negative.
 
-Four canonical documents list archive, trash, restore and permanent delete as
-four different things, and Backend Schema says a conversation row needs
-archived/trash/deletion state. `ocade_conversations` had `archived` and nothing
-else, so the only way out of the sidebar was a delete that took every message
-with it behind a dialog reading "This cannot be undone" — honest, and still
-wrong, because it made the choice unreasonable. There is a trash now: thirty
-days, defined once in the database, swept on read rather than by a cron job,
-undoable without a confirmation because a confirmation in front of an undoable
-act is what teaches people to click through the one that matters. A trashed
-conversation offers restore and permanent delete and nothing else. The boolean
-that selected the list became a three-state value, so "archived and trashed"
-cannot be written down.
+The planner read success as `reason === "answered"`, but the loop's ending for a
+run that used tools and could stand behind them is `verified` — the stronger of
+the two. So every step that touched anything was recorded as failed: a completed
+multi-step task turned the panel red, and the next step was told the previous one
+"did not work". Pressing Stop mid-plan was reported the same way, and because
+only a cancelled run escapes delivery, it was also charged for. Typing a new
+instruction during a plan recorded "New instruction" and did nothing with it —
+the revision handle never reached `runPlannedTask`. The plan itself was invisible:
+`onStep` existed and nothing passed it. And `reconcileInterruptedRuns` treated
+"not in this tab's registry" as proof of death, so a second window buried the
+mission running in the first one while it carried on moving the mouse.
 
-The purge is SECURITY DEFINER and takes no arguments, which is what makes
-"purge somebody else's trash" unwritable; two accounts each holding a lapsed row
-prove the predicate inside it actually scopes.
+All five are fixed at the authority rather than the symptom: one `succeeded()`,
+one plan `reason` that cancellation outranks, the revision passed through and
+carried into later steps, the step announced as a timeline entry of its own, and
+a 20-second heartbeat with a three-beat staleness threshold.
+
+Cowork also gained what it did not have. Emergency stop kills every live run
+anywhere in OCADE, hands back the keyboard, does not take it again, asks for no
+confirmation and says what it stopped. The Command Center became what
+`docs/DESIGN.md` describes — a collapsible inspector, closed by default, behind
+one control, answering this computer, this browser, who is acting, permission
+and what the workspace withheld, the current action, receipts and diagnostics —
+instead of a name on the column holding the conversation. A companion killed
+between instructions gets one reconnect before the refusal is reported. A reload
+mid-task now says what was interrupted, and restarts nothing.
 
 `ChatSurface` is still ~3,500 lines inside `ocade.index.tsx`, carried from Phase
+1, deliberately.
 
-1. It is code organisation rather than a Phase 7 gate requirement, and splitting
-   it now would risk the behaviour this phase just verified for no change in what
-   the product does.
-
-Next is Phase 8 — Normal Cowork, whose gate is that work completes from OBSERVED
-state rather than simulated progress: an issued action is not a completed one
-until it has been re-observed.
+Next is Phase 9 — Jarvis Cowork: a view and controller over this same runtime,
+never a second one. Gate: Normal and Jarvis produce identical task history,
+permissions, usage and receipts.
 
 One known external item remains from Phase 3: `auth_leaked_password_protection`
 is disabled in Supabase Auth. It is a dashboard setting with no repository path,

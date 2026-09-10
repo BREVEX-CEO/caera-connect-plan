@@ -126,8 +126,20 @@ describe("a failure mid-run is visible, not silent", () => {
   });
 
   it("clears a stale error when a new instruction arrives", () => {
-    // Otherwise the banner from one dead call sits above every later run.
-    expect(RUN.slice(0, 1600)).toContain("setError(null)");
+    /*
+     * Otherwise the banner from one dead call sits above every later run.
+     *
+     * ASSERTED BY ORDER, NOT BY CHARACTER OFFSET. This used to read the first
+     * 1,600 characters of `runMission`, which made a comment added above the
+     * line — or any code inserted before it — fail a test about behaviour that
+     * had not changed. What the requirement actually says is that the stale
+     * error is cleared BEFORE the new work starts, so that is what is measured.
+     */
+    const cleared = RUN.indexOf("setError(null)");
+    const working = RUN.indexOf("const run = shouldPlan");
+    expect(cleared).toBeGreaterThan(-1);
+    expect(working).toBeGreaterThan(-1);
+    expect(cleared).toBeLessThan(working);
   });
 
   it("keeps 'error' out of the busy set, so the spinner stops", () => {

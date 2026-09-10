@@ -1,12 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useExtensionHandshake } from "@/lib/native/use-extension-handshake";
 import { AlertCircle, CheckCircle2, Chrome, Loader2, RefreshCw } from "lucide-react";
 import { GlassPanel } from "@/components/shell/GlassPanel";
 import { StatusBadge } from "@/components/shell/StatusBadge";
-import {
-  handshakeWithExtension,
-  extensionChannelAvailable,
-  type Handshake,
-} from "@/lib/native/extension-bridge";
+import { extensionChannelAvailable, type Handshake } from "@/lib/native/extension-bridge";
 
 /**
  * Whether OCADE can act in this browser, and what to do when it cannot.
@@ -25,27 +21,36 @@ import {
  * one the extension accepts. Anything else would be inventing a ceremony on
  * top of a check the browser already performs.
  */
+/**
+ * The self-serving gate: its own handshake, and the notice for it.
+ *
+ * Used where nothing else on the screen needs the answer.
+ */
 export function CoworkExtensionGate({
   onReady,
 }: {
   /** Called once, when the extension answers and is compatible. */
   onReady?: (handshake: Handshake) => void;
 }) {
-  const [state, setState] = useState<Handshake | null>(null);
-  const [checking, setChecking] = useState(true);
+  const { state, checking, check } = useExtensionHandshake(onReady);
+  return <ExtensionGateNotice state={state} checking={checking} onCheck={check} />;
+}
 
-  const check = useCallback(async () => {
-    setChecking(true);
-    const result = await handshakeWithExtension();
-    setState(result);
-    setChecking(false);
-    if (result.installed && result.compatible) onReady?.(result);
-  }, [onReady]);
-
-  useEffect(() => {
-    void check();
-  }, [check]);
-
+/**
+ * What to say about the extension, given an answer somebody else asked for.
+ *
+ * Presentational on purpose: the room that shows this also shows the Command
+ * Center, and both have to be describing the same handshake.
+ */
+export function ExtensionGateNotice({
+  state,
+  checking,
+  onCheck,
+}: {
+  state: Handshake | null;
+  checking: boolean;
+  onCheck: () => void;
+}) {
   if (checking && state === null) {
     return (
       <GlassPanel className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
@@ -127,7 +132,7 @@ export function CoworkExtensionGate({
 
       <button
         type="button"
-        onClick={() => void check()}
+        onClick={onCheck}
         disabled={checking}
         className="inline-flex items-center gap-2 rounded-md border border-border/60 px-3 py-1.5 text-sm text-foreground transition hover:bg-accent/30 disabled:opacity-60"
       >

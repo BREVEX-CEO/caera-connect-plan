@@ -45,8 +45,28 @@
  * the end rather than spinning in the middle.
  */
 
-import { runAgentTask, type AgentDeps, type AgentResult } from "./loop";
+import {
+  runAgentTask,
+  type AgentDeps,
+  type AgentResult,
+  type AgentStopReason,
+  type Revision,
+} from "./loop";
 import type { Domain } from "./domains";
+
+/**
+ * THE TWO ENDINGS THAT MEAN THE STEP DID WHAT IT WAS ASKED.
+ *
+ * The loop ends a run that used no tools as `answered` and one that used tools
+ * and could stand behind them as `verified` — the stronger of the two. Reading
+ * success as `reason === "answered"` therefore called the BEST ending a
+ * failure, and every step that touched anything was one: the plan reported
+ * `ok: false` for work that had completed and verified, the mission panel
+ * turned red for it, and the next step was handed "did not work" about a step
+ * that had worked. Success is asked for by name, once, here.
+ */
+const succeeded = (reason: AgentStopReason): boolean =>
+  reason === "answered" || reason === "verified";
 
 /** One unit of work: a sentence, and the tools it is allowed to touch. */
 export interface PlanStep {
@@ -64,6 +84,16 @@ export interface PlanStepResult {
   /** How many tool calls happened inside — for latency reporting, not context. */
   toolCalls: number;
   verified: boolean;
+  /**
+   * How the sub-agent stopped, in its own words rather than reduced to `ok`.
+   *
+   * WHY THE REASON IS CARRIED AND NOT RECOMPUTED. A plan that the user
+   * interrupted and a plan whose third step failed both end with `ok: false`,
+   * and the caller then has nothing left to tell them apart — so pressing Stop
+   * was reported as a failed run and charged for. The reason is known here, at
+   * the only place that knows it, so it travels.
+   */
+  reason: AgentStopReason;
 }
 
 export interface PlanResult {
@@ -74,6 +104,13 @@ export interface PlanResult {
   ok: boolean;
   /** True when decomposition produced more than one step. */
   planned: boolean;
+  /**
+   * How the plan as a whole stopped. `cancelled` outranks every other ending:
+   * a user who pressed Stop is not shown a failure, and is not charged for one.
+   */
+  reason: AgentStopReason;
+  /** Every tool call across every step, so the caller can say how much was done. */
+  toolCalls: number;
 }
 
 /**
@@ -235,6 +272,18 @@ export async function runPlannedTask(
   input: {
     goal: string;
     signal?: AbortSignal;
+    /**
+     * The user changing their mind mid-task, exactly as an unplanned run
+     * receives it.
+     *
+     * WITHOUT THIS THE COMPOSER WAS A FAKE CONTROL DURING A PLAN. Typing a new
+     * sentence while OCADE worked recorded "New instruction" in the timeline
+     * and then did nothing with it, because the handle was only ever passed to
+     * the flat loop. The mailbox is one-shot, so handing the same one to every
+     * step needs no coordination: whichever step is running takes it, and the
+     * ones after it are told below.
+     */
+    revision?: Revision;
     memoryContext?: string | null;
   },
 ): Promise<PlanResult> {
@@ -257,6 +306,7 @@ export async function runPlannedTask(
     const single = await runAgentTask(deps, {
       request: goal,
       signal: input.signal,
+      revision: input.revision,
       memoryContext: input.memoryContext,
     });
     return {
@@ -265,14 +315,17 @@ export async function runPlannedTask(
         {
           instruction: goal,
           summary: summarise(single),
-          ok: single.reason === "answered",
+          ok: succeeded(single.reason),
           toolCalls: single.steps.length,
           verified: single.allVerified,
+          reason: single.reason,
         },
       ],
       text: single.text,
-      ok: single.reason === "answered",
+      ok: succeeded(single.reason),
       planned: false,
+      reason: single.reason,
+      toolCalls: single.steps.length,
     };
   }
 
@@ -285,25 +338,50 @@ export async function runPlannedTask(
    * histories full of bounding boxes.
    */
   const carried: string[] = [];
+  /*
+   * WHAT THE USER CHANGED WHILE THE PLAN WAS RUNNING.
+   *
+   * The revision mailbox is emptied by whichever step is running, so only that
+   * step would ever hear it — and the remaining steps would carry on executing
+   * a plan the user has already corrected. The loop announces what it took, so
+   * the correction is recorded here as it happens and handed to every step
+   * after it, alongside what has already been done.
+   */
+  const corrections: string[] = [];
+  const stepDeps: PlanDeps = {
+    ...deps,
+    onEvent: (event) => {
+      if (event.kind === "revised") corrections.push(event.instruction);
+      deps.onEvent?.(event);
+    },
+  };
 
   for (let index = 0; index < steps.length; index += 1) {
     if (input.signal?.aborted) break;
     const step = steps[index];
     deps.onStep?.(index, steps.length, step);
 
-    const context =
+    const context = [
+      step.instruction,
       carried.length > 0
-        ? `${step.instruction}\n\nAlready done in this task:\n${carried
+        ? `Already done in this task:\n${carried.map((line, n) => `${n + 1}. ${line}`).join("\n")}`
+        : null,
+      corrections.length > 0
+        ? `The user changed the plan while this task was running. Honour the latest of these over the instruction above where they conflict:\n${corrections
             .map((line, n) => `${n + 1}. ${line}`)
             .join("\n")}`
-        : step.instruction;
+        : null,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
 
     let result: AgentResult;
     try {
-      result = await runAgentTask(deps, {
+      result = await runAgentTask(stepDeps, {
         // The sub-agent's own history starts here and dies here.
         request: context,
         signal: input.signal,
+        revision: input.revision,
         memoryContext: input.memoryContext,
         // Told, not classified: the plan already said what this step needs, and
         // re-deriving it invites the classifier's `conversation` fallback,
@@ -318,19 +396,23 @@ export async function runPlannedTask(
         ok: false,
         toolCalls: 0,
         verified: false,
+        // The sub-agent did not stop, it died. `step_limit` is the ending the
+        // caller already treats as a visible failure, which is what this is.
+        reason: "step_limit",
       });
       carried.push(`${step.instruction} — failed: ${why}`);
       continue;
     }
 
     const summary = summarise(result);
-    const ok = result.reason === "answered";
+    const ok = succeeded(result.reason);
     done.push({
       instruction: step.instruction,
       summary,
       ok,
       toolCalls: result.steps.length,
       verified: result.allVerified,
+      reason: result.reason,
     });
     // A failure is carried forward as plainly as a success. A later step that
     // depends on it can then say so, instead of quietly acting on nothing.
@@ -340,11 +422,32 @@ export async function runPlannedTask(
   }
 
   const failed = done.filter((s) => !s.ok);
+  const complete = failed.length === 0 && done.length === steps.length;
+  /*
+   * A STOP IS A STOP, WHATEVER ELSE HAPPENED.
+   *
+   * The loop leaves early on an abort, so an interrupted plan is also an
+   * incomplete one — and reading incompleteness alone reported the user's own
+   * Stop as a failed run. Cancellation is therefore checked first: the signal
+   * for a stop between steps, a cancelled sub-agent for a stop inside one.
+   * Only then does the first ending that was not a success speak for the plan.
+   */
+  const stopped = input.signal?.aborted === true || done.some((s) => s.reason === "cancelled");
+  const reason: AgentStopReason = stopped
+    ? "cancelled"
+    : complete
+      ? done.every((s) => s.reason === "verified")
+        ? "verified"
+        : "answered"
+      : (done.find((s) => !succeeded(s.reason))?.reason ?? "step_limit");
+
   return {
     goal,
     steps: done,
     text: done.map((s) => s.summary).join(" "),
-    ok: failed.length === 0 && done.length === steps.length,
+    ok: complete,
     planned: true,
+    reason,
+    toolCalls: done.reduce((total, s) => total + s.toolCalls, 0),
   };
 }

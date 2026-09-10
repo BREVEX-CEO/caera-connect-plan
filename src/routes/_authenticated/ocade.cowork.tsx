@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { ControlWorkPanel } from "@/components/ocade/control/ControlWorkPanel";
 import { useMissionBrain } from "@/lib/work/use-mission-brain";
 import { LivingIntelligenceBackdrop } from "@/components/visual/LivingIntelligenceBackdrop";
-import { CoworkExtensionGate } from "@/components/ocade/cowork/CoworkExtensionGate";
 
 /**
  * OCADE Cowork — the second of PLAN.md §4's three primary modes.
@@ -63,14 +62,11 @@ function CoworkRoute() {
       */}
       <div className="relative z-10 flex h-full flex-col bg-background/88">
         {/*
-          Whether OCADE can act in THIS browser, said plainly and before
-          anything else in the room. Without the extension this page cannot
-          open a tab, read a page or click anything outside itself — and a room
-          called Control that cannot say so is the room lying about itself.
+          Whether OCADE can act in THIS browser is said inside the panel: loudly
+          when the extension is missing, and as one line in the Command Center
+          when it is there. It used to be a permanent plate above everything,
+          which spent the top of the room on a fact that changes once a month.
         */}
-        <div className="shrink-0 px-4 pt-4">
-          <CoworkExtensionGate />
-        </div>
         <ControlWorkPanel
           brain={brain}
           headerNote="Signed in · this computer · file attachment is not configured yet"

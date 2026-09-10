@@ -34,7 +34,18 @@ import {
   stopMissionFn,
   type MissionStart,
 } from "@/lib/control-work.functions";
-import { finishRun, pauseRun, resumeRun, startRun, stopRun, updateRun } from "@/lib/tasks/runs";
+import {
+  finishRun,
+  isActiveTaskStatus,
+  reconcileInterruptedRuns,
+  pauseRun,
+  resumeRun,
+  startRun,
+  stopAllRuns,
+  stopRun,
+  subscribeToRuns,
+  updateRun,
+} from "@/lib/tasks/runs";
 import type { BrainMessage } from "@/lib/brain/adapter";
 import type { ControlState } from "./control-solar";
 import { routeDirect } from "./fast-router";
@@ -107,7 +118,13 @@ export type MissionPhase = ControlState;
 
 export interface TimelineEntry {
   id: string;
-  kind: "said" | "acting" | "done" | "problem" | "refused" | "asked";
+  /**
+   * `plan` is the one entry that is not something OCADE did — it is what it is
+   * about to do, and which part of the whole it is. A decomposed goal without
+   * it reads as a stream of disconnected actions with no visible shape, which
+   * is precisely the "simulated progress" a person cannot check work against.
+   */
+  kind: "said" | "acting" | "done" | "problem" | "refused" | "asked" | "plan";
   label: string;
   detail: string;
   verified?: boolean;
@@ -550,6 +567,15 @@ function betterOf(before: ConstraintCheck, after: ConstraintCheck): boolean {
  * instructions while claiming to be the same OCADE.
  */
 
+/**
+ * Everything the Cowork room knows, as one type.
+ *
+ * The inspector reads the same object the panel does rather than re-querying
+ * connection, permission and receipt state for itself — two readers of one
+ * runtime, not two runtimes.
+ */
+export type Mission = ReturnType<typeof useMission>;
+
 export function useMission(brain: MissionBrain) {
   /*
    * What the account's organizations withhold — PLAN.md §21, §G.
@@ -830,6 +856,107 @@ export function useMission(brain: MissionBrain) {
     }
   }, [teardown]);
 
+  /*
+   * WHAT THE LAST PAGE LEFT BEHIND, SAID ON ARRIVAL.
+   *
+   * A mission is a per-tab loop: closing the tab, reloading it or losing the
+   * browser ends the work instantly and silently. The account row was left
+   * saying EXECUTING, and the room said nothing at all — so a person who
+   * reloaded mid-task came back to an idle screen with no indication that the
+   * thing they asked for had stopped half way through. The registry can tell
+   * which rows no page is heartbeating; this says so, once, in the room where
+   * the instruction was given.
+   *
+   * IT DOES NOT RESTART ANYTHING. OCADE cannot know how much of an interrupted
+   * task had already happened to the machine, and re-running the second half of
+   * a half-done job is exactly the kind of unobserved action this product does
+   * not take. The user is told, and asks again if they want it.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    void reconcileInterruptedRuns()
+      .then((repaired) => {
+        if (cancelled || repaired.length === 0) return;
+        const named = repaired.slice(0, 3).map((task) => `“${task.title}”`);
+        const rest = repaired.length - named.length;
+        setTurns((current) => [
+          ...current,
+          {
+            id: `interrupted-${repaired[0].id}`,
+            role: "ocade",
+            text: `${named.join(", ")}${rest > 0 ? ` and ${rest} more` : ""} ${
+              repaired.length === 1 ? "was" : "were"
+            } still running when this page closed. Nothing is running now, and OCADE has not carried on by itself — ask again and it will start from the beginning.`,
+          },
+        ]);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /**
+   * How much of OCADE is running anywhere, not just in this hook.
+   *
+   * `busy` answers "is THIS panel in the middle of an instruction", which is
+   * the wrong question for a stop that has to mean everything: a scheduled
+   * automation, a shell command or a mission started in another room is just as
+   * much OCADE holding this computer. The registry already knows; this reads it.
+   */
+  const [activeRunCount, setActiveRunCount] = useState(0);
+  useEffect(
+    () =>
+      subscribeToRuns((tasks) => {
+        setActiveRunCount(tasks.filter((task) => isActiveTaskStatus(task.status)).length);
+      }),
+    [],
+  );
+
+  /**
+   * Stop everything, now.
+   *
+   * NOT A SECOND STOP BUTTON. `stop` ends the instruction this panel is running
+   * and leaves the machine attached, because the ordinary case is "not that,
+   * do something else". This is the other case: the user wants OCADE off their
+   * computer, and does not know or care which of its runs is the one moving the
+   * mouse. So it aborts first and asks questions never — the loop is cut before
+   * the registry is walked, because the fastest possible halt of the thing
+   * touching the keyboard is the entire point — then every live run is killed,
+   * and the machine is handed back and NOT retaken, exactly as Take over does.
+   *
+   * A run that cannot be killed does not strand the rest: `stopAllRuns` isolates
+   * each one, and the release below happens whatever the registry reports.
+   */
+  const emergencyStop = useCallback(async (): Promise<number> => {
+    stoppedRef.current = true;
+    handOverRef.current = true;
+    setHandedOver(true);
+    setPhase("stopped");
+    abortRef.current?.abort();
+    runIdRef.current = null;
+    const stopped = await stopAllRuns("Emergency stop.");
+    await teardown();
+    /*
+     * SAID, NOT ONLY DONE. A control that silently succeeds and a control that
+     * silently does nothing look identical, and this is the one control where
+     * that ambiguity is unacceptable. The count is the registry's own answer,
+     * so "nothing was running" is stated as such rather than rounded up.
+     */
+    setTurns((current) => [
+      ...current,
+      {
+        id: `emergency-${Date.now()}`,
+        role: "ocade",
+        text:
+          stopped === 0
+            ? "Emergency stop. Nothing was running. OCADE has let go of the keyboard and mouse and will not take them back until you ask for something."
+            : `Emergency stop. ${stopped} ${stopped === 1 ? "thing" : "things"} stopped. OCADE has let go of the keyboard and mouse and will not take them back until you ask for something.`,
+      },
+    ]);
+    return stopped;
+  }, [teardown]);
+
   const approvalRefResolve = useRef<((allowed: boolean) => void) | null>(null);
 
   const answer = useCallback((allowed: boolean) => {
@@ -994,6 +1121,20 @@ export function useMission(brain: MissionBrain) {
         stoppedRef.current = false;
         await connect();
       }
+      /*
+       * THE COMPANION CAN DIE BETWEEN INSTRUCTIONS, AND SAYING SO WAS A DEAD
+       * END.
+       *
+       * `connected` is read from the answer the last connection gave, so a
+       * companion that was restarted, updated or killed since then leaves the
+       * room looking attached: the Try again control is hidden because the
+       * last answer was ok, and the composer refuses with "not connected".
+       * There was nothing left to press but reload. One reconnect is attempted
+       * here instead — the same call the button makes — and only if THAT fails
+       * is the refusal reported, by which point `start` carries the real answer
+       * and Try again is on screen.
+       */
+      if (!missionRef.current) await connect();
       const missionId = missionRef.current;
       if (!missionId) {
         setError("OCADE is not connected to this computer.");
@@ -1897,25 +2038,69 @@ export function useMission(brain: MissionBrain) {
          */
         const shouldPlan = !recovering && !revision && looksMultiStep(taskInput.request);
 
-        const result = shouldPlan
+        const run = shouldPlan
           ? await (async () => {
-              const plan = await runPlannedTask(agentDeps, {
-                goal: taskInput.request,
-                signal: taskInput.signal,
-                memoryContext: taskInput.memoryContext,
-              });
-              // Mapped onto the shape the rest of this function already reads,
-              // so the planner is a different way of running the work rather
-              // than a second set of endings to handle.
+              const plan = await runPlannedTask(
+                {
+                  ...agentDeps,
+                  /*
+                   * THE PLAN, SAID BEFORE EACH PART OF IT RUNS.
+                   *
+                   * The sub-agents' own steps arrive as they happen, but the
+                   * shape they belong to was invisible: a four-part goal read
+                   * as one long undifferentiated list, and the person watching
+                   * could not tell how much was left. This is the one line
+                   * that says which part is running and how many there are.
+                   */
+                  onStep: (index, total, step) => {
+                    push({
+                      id: `${id}-plan-${index}`,
+                      kind: "plan",
+                      label: `Step ${index + 1} of ${total}`,
+                      detail: step.instruction,
+                    });
+                  },
+                },
+                {
+                  goal: taskInput.request,
+                  signal: taskInput.signal,
+                  // The composer stays live during a plan, as it does during
+                  // any other run: a new sentence is a change of plan, not a
+                  // line of text the timeline records and nothing reads.
+                  revision: taskInput.revision,
+                  memoryContext: taskInput.memoryContext,
+                },
+              );
+              /*
+               * Mapped onto the shape the rest of this function already reads,
+               * so the planner is a different way of running the work rather
+               * than a second set of endings to handle.
+               *
+               * THE ENDING IS THE PLAN'S OWN, NOT `ok` READ BACKWARDS. This
+               * used to send `step_limit` for anything short of a clean
+               * finish, which made pressing Stop mid-plan look like a failed
+               * run — a red panel, and, because only a cancelled run escapes
+               * `deliver`, a charged one. `plan.steps` is empty in the shape
+               * below because the sub-agents' transcripts die with them, so
+               * the count travels beside it instead of being read from a list
+               * that is empty by construction.
+               */
               return {
-                reason: plan.ok ? ("answered" as const) : ("step_limit" as const),
-                text: plan.text,
-                steps: [],
-                classification: { domains: [], basis: "caller" as const },
-                allVerified: plan.steps.every((step) => step.verified),
+                result: {
+                  reason: plan.reason,
+                  text: plan.text,
+                  steps: [],
+                  classification: { domains: [], basis: "caller" as const },
+                  allVerified: plan.steps.every((step) => step.verified),
+                },
+                toolCalls: plan.toolCalls,
               };
             })()
-          : await runAgentTask(agentDeps, taskInput);
+          : await (async () => {
+              const single = await runAgentTask(agentDeps, taskInput);
+              return { result: single, toolCalls: single.steps.length };
+            })();
+        const result = run.result;
 
         /*
          * THE ENDING IS NAMED, NOT SUMMARISED.
@@ -1925,13 +2110,25 @@ export function useMission(brain: MissionBrain) {
          * pressed Stop and the transcript told them the work had concluded. The
          * stop reason is known here, so it is said.
          */
+        const stoppedSentence =
+          "You stopped this. OCADE let go of the keyboard and mouse and left everything as it was.";
+        /*
+         * A STOP IS SAID EVEN WHEN THERE IS SOMETHING TO REPORT.
+         *
+         * `result.text || …` only reached the stop sentence when the run had
+         * produced no text at all. A planned run that was interrupted after
+         * two of its four steps has text — the summaries of those two — so the
+         * transcript closed on them and read exactly like a finished task. The
+         * partial work is still worth saying, so it is said first, and then
+         * the ending it actually had.
+         */
         const ending =
-          result.text ||
-          (result.reason === "cancelled"
-            ? "You stopped this. OCADE let go of the keyboard and mouse and left everything as it was."
-            : result.reason === "blocked"
-              ? "OCADE stopped because it was not allowed to take the next step."
-              : "OCADE finished without anything to report.");
+          result.reason === "cancelled"
+            ? [result.text, stoppedSentence].filter(Boolean).join(" ")
+            : result.text ||
+              (result.reason === "blocked"
+                ? "OCADE stopped because it was not allowed to take the next step."
+                : "OCADE finished without anything to report.");
 
         /*
          * A CANCELLED TASK IS NOT DELIVERED WORK.
@@ -1963,7 +2160,7 @@ export function useMission(brain: MissionBrain) {
          * OCADE could confirm it. "Not all confirmed" is said plainly rather
          * than rounded up to "done".
          */
-        const stepCount = result.steps.length;
+        const stepCount = run.toolCalls;
         runReceipt =
           stepCount === 0
             ? ending.slice(0, 160)
@@ -2079,6 +2276,9 @@ export function useMission(brain: MissionBrain) {
     stop,
     /** Hand the keyboard and mouse back. OCADE holds nothing until asked. */
     takeOver,
+    emergencyStop,
+    /** Live runs anywhere in OCADE, including ones this panel did not start. */
+    activeRunCount,
     /** True while the user has control and OCADE is deliberately holding off. */
     handedOver,
     error,
@@ -2094,6 +2294,12 @@ export function useMission(brain: MissionBrain) {
     speak,
     /** Where the time went on the last step. */
     lastLatency: latencyRef.current,
+    /**
+     * What this user's organizations withhold, read from the database as the
+     * caller, and which organization withheld each thing. The inspector states
+     * it; the loop enforces it. One answer, not two readings of one policy.
+     */
+    policyCeiling,
     /** Which tools this device actually offers, for the capability line. */
     toolCount: toolsFor(["os_app", "files", "web"] as Domain[]).length,
   };

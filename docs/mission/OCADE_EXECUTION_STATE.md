@@ -602,12 +602,124 @@ code-organisation task rather than a Phase 7 gate requirement, and splitting it
 now would put the behaviour this phase just verified at risk for no change in
 what the product does. It stays on the list.
 
+## Phase 8 — Normal Cowork (COMPLETE)
+
+Cowork already had the runtime this phase asks for: one agent loop, one task
+registry, observation-backed verification for every mutating action, and an
+approval layer shared with Chat. What it did not have was a truthful account of
+itself. Five things were reported wrongly, and each of them reported work as
+worse or better than it was — which is the phase gate, stated in the negative.
+
+### The best ending was being read as a failure
+
+`runAgentTask` ends a run that used no tools as `answered`, and one that used
+tools and could stand behind them as `verified` — the stronger of the two. The
+planner read success as `reason === "answered"` alone, so EVERY step that
+touched anything was recorded `ok: false`. A completed, verified, multi-step
+task reported as failed: the mission panel turned red, the run receipt said
+failed, and the next step was handed "did not work" about a step that had
+worked. `succeeded()` now names the two endings that mean the step did what it
+was asked, in one place, and `agentic-planner.test.ts` holds it.
+
+### Pressing Stop was a failure, and was charged for
+
+An interrupted plan is an incomplete plan, and incompleteness was all the caller
+had to read, so `use-mission` mapped it to `step_limit`. That is a failure
+ending: the panel held at "error", and — because only a `cancelled` run escapes
+`deliver` — the person was charged for pressing Stop. `PlanResult` now carries
+the plan's own `reason`, cancellation outranks every other ending, and the stop
+sentence is said even when partial work also has something to report.
+
+### The composer was a fake control during a plan
+
+Typing a new instruction mid-task recorded "New instruction" in the timeline and
+then did nothing with it: the revision handle was only ever passed to the flat
+loop, never to `runPlannedTask`. It is passed now — the one-shot mailbox is
+taken by whichever step is running — and a correction is carried into the steps
+after it, so the rest of the plan is not executed against an instruction the
+user has already withdrawn.
+
+### The plan itself was invisible
+
+`PlanDeps.onStep` existed and nothing passed it, so a four-part goal read as one
+undifferentiated list of actions with no visible shape and no sense of how much
+was left. The timeline gained one entry kind — the step, and which of how many —
+rendered with a hollow dot, because "about to" and "already did" must not look
+alike.
+
+### A second tab declared the first one dead
+
+`reconcileInterruptedRuns` marked every EXECUTING row not in THIS tab's registry
+as FAILED. The registry is per-tab, so opening a second window buried the
+mission running in the first one, in the account, while it carried on moving the
+mouse. Live runs now heartbeat every 20 seconds and only a row untouched for
+three beats is treated as interrupted. `runs-recovery.test.ts` proves both
+halves, and was checked by breaking the staleness clause and watching the
+another-tab case fail.
+
+### What the phase added
+
+**Emergency stop.** `stop` ends this panel's instruction and leaves the machine
+attached; there was nothing that meant "get off my computer". `emergencyStop`
+aborts first, then kills every live run through the registry — including work
+this room did not start — hands the keyboard back and does not take it again. It
+asks for no confirmation, and says what it stopped rather than succeeding
+silently. It appears whenever anything is running anywhere in OCADE.
+
+**The Command Center, as an inspector.** The right column was titled "OCADE
+Command Center" while being the conversation and the composer: the primary
+surface, permanently open, with none of the connection, permission or receipt
+detail the name promises. `docs/DESIGN.md` asks for a collapsible inspector that
+does not occupy the canvas when nothing requires it. There is one now — closed
+by default, behind one control, answering seven things: this computer, this
+browser, who is acting, permission and what the workspace withheld, the current
+action, receipts, diagnostics. It reads the mission rather than querying, so the
+panel a person opens BECAUSE something looks wrong cannot hold a second opinion
+about the same computer. Confirmed, not confirmed on screen, nothing to confirm
+and failed stay four different sentences.
+
+**A reconnect instead of a dead end.** A companion killed between instructions
+left the room looking attached — Try again is hidden while the last answer was
+ok, and the composer refused with "not connected". One reconnect is attempted
+before that refusal is reported.
+
+**What the last page left behind, said on arrival.** A reload mid-task lost the
+work silently. The room now reconciles on mount and says which work was
+interrupted. It restarts nothing: OCADE cannot know how much of it already
+happened to the machine.
+
+### One more settle race, found by the full pass
+
+`/settings/billing` reported "0 chars, 0 headings, 0 controls" signed out while
+the same two routes passed 23/23 under the focused harness, and the captured
+evidence named the mechanism: a document body holding nothing but the entry
+script, at `/settings/usage`. On a deployment with no payment provider, billing
+throws `redirect({ to: "/settings/usage" })` in `beforeLoad` — the router
+handles it without loading a document, so the pre-press settle loop, which
+restarted its budget only for a new DOCUMENT, went on measuring the route that
+had already redirected. It now restarts for a new address as well.
+
+### Gate
+
+Work completes from observed state rather than simulated progress: the endings
+the runtime already computed are the ones the surfaces report, the four
+verification states stay four sentences, and nothing claims a computer, an
+extension or a step that nothing answered for.
+
+84 routes × 2 viewports, signed out and signed in, at 926/926 checks each — 861
+and 630 controls pressed. 19/19 customer-journey stages, including a new one
+that opens the Command Center and reads what it says. 8,203 tests across 508
+files, with 3 skipped. The performance budget passes with headroom on every
+line.
+
+
 ## Next action
 
-Phase 8 — Normal Cowork. One outcome-oriented task runtime with a concise plan
-and current step, meaningful approvals, files/research/browser/supported
-computer operations, receipts and postcondition verification, pause, takeover,
-stop and emergency stop, and crash/reload/reconnect recovery. The Command Center
-is a collapsible inspector rather than a dashboard. Gate: work completes from
-OBSERVED state rather than simulated progress — an issued action is not a
-completed one until it has been re-observed.
+Phase 9 — Jarvis Cowork. Build Jarvis only as a view and controller over the
+Cowork runtime this phase finished: the liquid-glass network orb, idle
+wave/breathing motion, microphone amplitude and frequency reactivity, distinct
+Listening/Speaking/Thinking/browser-action/computer-action states,
+user-selectable scoped accents, a text fallback, a reduced-motion/static
+fallback and contextual observation panels. Gate: Normal and Jarvis produce
+identical task history, permissions, usage and receipts — one runtime with two
+presentations, never two runtimes.

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  ChevronDown,
   Command,
+  Gauge,
   Globe2,
   Hand,
   Mic,
@@ -11,6 +13,7 @@ import {
   Smartphone,
   Sparkles,
   Square,
+  OctagonX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -25,6 +28,9 @@ import { orbStateFor } from "@/lib/orb/state";
 import { useMission, type MissionBrain, type TimelineEntry } from "@/lib/work/use-mission";
 import { directControl } from "@/lib/work/fast-router";
 import { OcadeCompanion } from "@/components/ocade/OcadeCompanion";
+import { CoworkCommandCenter } from "@/components/ocade/cowork/CoworkCommandCenter";
+import { ExtensionGateNotice } from "@/components/ocade/cowork/CoworkExtensionGate";
+import { useExtensionHandshake } from "@/lib/native/use-extension-handshake";
 
 /**
  * OCADE Control + Work: the room where OCADE is asked to DO things to this
@@ -71,10 +77,22 @@ export function ControlWorkPanel({
   const mission = useMission(brain);
   const [prompt, setPrompt] = useState("");
   const [deckOpen, setDeckOpen] = useState(false);
+  /*
+   * CLOSED. DESIGN.md: "The inspector should not occupy the main Cowork canvas
+   * when nothing requires it." Every fact in it is about the machine rather
+   * than the work, and it is wanted at the moment something looks wrong.
+   */
+  const [inspectorOpen, setInspectorOpen] = useState(false);
   const [gestureOpen, setGestureOpen] = useState(false);
   const historyRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const voicePrefs = useVoicePrefs();
+  /*
+   * ONE HANDSHAKE FOR THE ROOM. The notice below and the Command Center are
+   * both describing this browser, so they read the same answer rather than
+   * asking the extension twice and risking two verdicts.
+   */
+  const extension = useExtensionHandshake();
 
   const dictation = useDictation({
     lang: "en-US",
@@ -284,6 +302,26 @@ export function ControlWorkPanel({
               />
             </>
           ) : null}
+          {/*
+            EMERGENCY STOP — SHOWN WHENEVER ANYTHING IS RUNNING, NOT ONLY THIS.
+            `busy` is this panel's own instruction. A scheduled automation or a
+            run started in another room holds the same keyboard, so the control
+            that means "get off my computer" appears while any of them is live,
+            and it does not ask for confirmation: a person reaching for it has
+            already decided.
+          */}
+          {mission.busy || mission.activeRunCount > 0 ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => void mission.emergencyStop()}
+              className="h-7 gap-1.5 rounded-full border border-destructive/60 bg-destructive/20 px-3 text-[11.5px] text-foreground backdrop-blur hover:bg-destructive/30"
+            >
+              <OctagonX className="h-3.5 w-3.5" />
+              Emergency stop
+            </Button>
+          ) : null}
         </div>
       </section>
 
@@ -302,12 +340,67 @@ export function ControlWorkPanel({
               className="h-1.5 w-1.5 rounded-full bg-[color:var(--accent-ocade)] shadow-[0_0_14px_var(--accent-ocade)]"
               aria-hidden
             />
-            <h2 className="text-[14.5px] font-medium text-foreground">OCADE Command Center</h2>
+            {/*
+              THE COLUMN IS THE WORK, NOT THE INSPECTOR.
+              It was titled "OCADE Command Center" while being the conversation
+              and the composer — the primary surface, permanently open, with
+              none of the connection, permission or receipt detail that name
+              promises. The Command Center is the panel behind the control to
+              the right of this line, and it is closed until asked for.
+            */}
+            <h2 className="text-[14.5px] font-medium text-foreground">OCADE Cowork</h2>
+            <Button
+              type="button"
+              size="sm"
+              variant={inspectorOpen ? "secondary" : "ghost"}
+              aria-expanded={inspectorOpen}
+              aria-controls="cowork-command-center"
+              className="ml-auto h-7 gap-1.5 rounded-full px-3 text-[11px] text-muted-foreground/85"
+              onClick={() => setInspectorOpen((current) => !current)}
+            >
+              <Gauge className="h-3.5 w-3.5" aria-hidden />
+              Command Center
+              <ChevronDown
+                className={cn("h-3 w-3 transition-transform", inspectorOpen ? "rotate-180" : "")}
+                aria-hidden
+              />
+            </Button>
           </div>
           {headerNote ? (
             <p className="mt-0.5 text-[11px] text-muted-foreground/70">{headerNote}</p>
           ) : null}
         </header>
+
+        {inspectorOpen ? (
+          <div
+            id="cowork-command-center"
+            className="ocade-scroll max-h-[58%] overflow-y-auto border-b border-border/60 px-5 py-4"
+          >
+            <CoworkCommandCenter
+              mission={mission}
+              extension={extension.state}
+              extensionChecking={extension.checking}
+              onRecheckExtension={extension.check}
+            />
+          </div>
+        ) : null}
+
+        {/*
+          THE NOTICE APPEARS ONLY WHEN SOMETHING IS WRONG.
+          A green "connected" plate held the top of the room permanently, which
+          is canvas spent on a fact that changes once a month. Connected is now
+          a line in the Command Center; not connected is still loud, because
+          without the extension this page has no hands in this browser.
+        */}
+        {!extension.ready && !(extension.checking && extension.state === null) ? (
+          <div className="border-b border-border/60 p-3">
+            <ExtensionGateNotice
+              state={extension.state}
+              checking={extension.checking}
+              onCheck={extension.check}
+            />
+          </div>
+        ) : null}
 
         {deckOpen ? (
           <div className="ocade-scroll max-h-[58%] overflow-y-auto border-b border-border/60 p-3">
@@ -654,7 +747,15 @@ function Steps({ entries, live = false }: { entries: TimelineEntry[]; live?: boo
   return (
     <ul className="space-y-1">
       {entries.map((entry) => (
-        <li key={entry.id} className="flex items-start gap-2 text-[11.5px] leading-relaxed">
+        <li
+          key={entry.id}
+          className={cn(
+            "flex items-start gap-2 text-[11.5px] leading-relaxed",
+            // The plan sits slightly apart from the actions under it, so a long
+            // task reads as parts rather than as one undifferentiated list.
+            entry.kind === "plan" ? "pt-1.5 first:pt-0" : "",
+          )}
+        >
           <span
             aria-hidden
             className={cn(
@@ -663,14 +764,26 @@ function Steps({ entries, live = false }: { entries: TimelineEntry[]; live?: boo
                 ? "bg-destructive/70"
                 : entry.kind === "asked"
                   ? "bg-[oklch(0.72_0_0)]"
-                  : entry.verified === false
-                    ? "bg-muted-foreground/45"
-                    : "bg-[oklch(0.72_0_0)]/80",
+                  : entry.kind === "plan"
+                    ? // Hollow: this one is what OCADE is ABOUT to do. A filled
+                      // dot on the same list means something already happened,
+                      // and the two must not look alike.
+                      "border border-[oklch(0.72_0_0)]/70"
+                    : entry.verified === false
+                      ? "bg-muted-foreground/45"
+                      : "bg-[oklch(0.72_0_0)]/80",
               live && entry.kind === "acting" ? "animate-pulse" : "",
             )}
           />
           <span className="text-muted-foreground">
-            <span className="text-foreground/80">{entry.label}</span>
+            <span
+              className={cn(
+                "text-foreground/80",
+                entry.kind === "plan" ? "font-medium text-foreground" : "",
+              )}
+            >
+              {entry.label}
+            </span>
             {entry.detail ? ` — ${entry.detail}` : ""}
             {entry.verified === false ? " (not confirmed on screen)" : ""}
           </span>

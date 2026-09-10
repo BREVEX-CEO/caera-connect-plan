@@ -382,6 +382,64 @@ await stage("cowork is honest about the missing companion", async () => {
   return "gate shown, no phantom controls";
 });
 
+/* --------------------------------------------------------------- 10.5 -- */
+await stage("the Command Center is a closed inspector until it is asked for", async () => {
+  await goto("/ocade/cowork");
+  await page.waitForTimeout(3500);
+
+  /*
+   * CLOSED BY DEFAULT. The room used to carry the NAME "OCADE Command Center"
+   * on the column holding the conversation and the composer — the primary
+   * surface, permanently open, with none of the connection, permission or
+   * receipt detail that name promises. DESIGN.md asks for the opposite: an
+   * inspector that does not occupy the canvas until something needs it.
+   */
+  const closed = await bodyText();
+  assert(!/Who is acting/i.test(closed), "the inspector was already open before anyone asked");
+
+  const toggle = page.locator("button", { hasText: /Command Center/ }).first();
+  assert((await toggle.count()) === 1, "no control opens the Command Center");
+  await toggle.click();
+  await page.waitForTimeout(900);
+
+  /*
+   * CASE-INSENSITIVELY, BECAUSE `innerText` APPLIES `text-transform`.
+   * The section headings are styled uppercase, so `document.body.innerText`
+   * returns "THIS COMPUTER" for a heading written "This computer" — an exact
+   * match here fails on a panel that is rendering perfectly.
+   */
+  const open = (await bodyText()).toLowerCase();
+  for (const heading of [
+    "this computer",
+    "this browser",
+    "who is acting",
+    "permission",
+    "current action",
+    "receipts",
+    "diagnostics",
+  ]) {
+    assert(open.includes(heading), `the inspector does not answer "${heading}"`);
+  }
+
+  /*
+   * AND IT IS HONEST HERE. This browser has no companion and no extension, so
+   * an inspector claiming a connected computer would be the exact failure the
+   * phase gate names: reported state that nothing observed.
+   */
+  assert(
+    /not asked yet|not reachable/.test(open),
+    "the inspector claimed a computer nothing has answered from",
+  );
+  assert(/not connected|needs updating/.test(open), "the inspector claimed an absent extension");
+  assert(/nothing running/.test(open), "the inspector reported an action with nothing running");
+
+  await toggle.click();
+  await page.waitForTimeout(600);
+  const shut = await bodyText();
+  assert(!/Who is acting/i.test(shut), "the inspector would not close again");
+  return "closed, opens with seven answers, closes";
+});
+
 /* ----------------------------------------------------------------- 11 -- */
 await stage("approval and permissions are reachable and editable", async () => {
   await goto("/settings/privacy");
